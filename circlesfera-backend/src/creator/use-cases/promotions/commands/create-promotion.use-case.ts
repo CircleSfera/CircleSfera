@@ -21,9 +21,7 @@ export class CreatePromotionUseCase {
     durationDays: number,
     budget?: number,
     currency = 'EUR',
-    objective = 'PROFILE_VISITS',
-    interests?: string,
-    countries?: string,
+    countries?: string[],
     dailyBudget?: number,
   ) {
     await assertRealMoneyAllowed(this.prisma, userId);
@@ -83,9 +81,7 @@ export class CreatePromotionUseCase {
         dailyBudgetCents,
         currency,
         endDate,
-        objective,
-        interests,
-        countries,
+        countries: countries?.length ? countries.join(',') : null,
         status: PromotionStatus.PENDING,
       },
     });

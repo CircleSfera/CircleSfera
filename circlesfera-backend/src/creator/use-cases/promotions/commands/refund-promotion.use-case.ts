@@ -1,5 +1,4 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { PromotionRefundPolicy } from '@prisma/client';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
@@ -9,7 +8,6 @@ export type RefundPromotionResult =
       refunded: false;
       reason:
         | 'already_refunded'
-        | 'policy_none'
         | 'not_charged'
         | 'no_remaining_budget'
         | 'skipped_unpaid';
@@ -34,9 +32,6 @@ export class RefundPromotionUseCase {
     }
     if (promo.refundedAt) {
       return { refunded: false, reason: 'already_refunded' };
-    }
-    if (promo.refundPolicy !== PromotionRefundPolicy.PROPORTIONAL) {
-      return { refunded: false, reason: 'policy_none' };
     }
     if (!promo.stripePaymentIntentId || !promo.chargedAt) {
       return { refunded: false, reason: 'not_charged' };

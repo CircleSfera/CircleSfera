@@ -742,19 +742,22 @@ describe('FeedService', () => {
         .mockResolvedValueOnce({ userId: 'viewer-user' }) // postUnlock
         .mockResolvedValueOnce({
           userId: 'viewer-user',
-          location: 'Madrid, Spain',
+          // Free text no longer aims anything: the country comes from the
+          // network at sign-up when settings name none.
+          location: 'Berlin, Germany',
+          user: { signupCountry: 'ES', settings: { country: null } },
         }); // injectPromotions
 
       mockPrismaService.promotion.findMany.mockResolvedValueOnce([
         {
           id: 'promo-1',
           targetId: 'promoted-p1',
-          countries: 'Spain, France',
+          countries: 'ES,FR',
         },
         {
           id: 'promo-nomatch',
           targetId: 'promoted-p2',
-          countries: 'Germany',
+          countries: 'DE',
         },
       ]);
 

@@ -1,5 +1,10 @@
+import { COUNTRY_CODES } from '@circlesfera/shared';
 import { Transform } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
+  IsDateString,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -27,6 +32,10 @@ const lowerCase = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.toLowerCase() : value;
 const upperCase = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.toUpperCase() : value;
+const upperCaseEach = ({ value }: { value: unknown }) =>
+  Array.isArray(value)
+    ? value.map((v) => (typeof v === 'string' ? v.toUpperCase() : v))
+    : value;
 
 export class CreatePromotionDto {
   @Transform(lowerCase)
@@ -65,18 +74,33 @@ export class CreatePromotionDto {
   @IsIn(['EUR'])
   currency?: string;
 
+  // Countries the promotion is aimed at, from the closed list; none for
+  // everywhere.
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  objective?: string;
+  @Transform(upperCaseEach)
+  @IsArray()
+  @ArrayUnique()
+  @ArrayMaxSize(COUNTRY_CODES.length)
+  @IsIn(COUNTRY_CODES, { each: true })
+  countries?: string[];
+}
+
+export class UpdatePromotionDto {
+  @IsOptional()
+  @Transform(upperCaseEach)
+  @IsArray()
+  @ArrayUnique()
+  @ArrayMaxSize(COUNTRY_CODES.length)
+  @IsIn(COUNTRY_CODES, { each: true })
+  countries?: string[];
 
   @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  interests?: string;
+  @IsDateString()
+  endDate?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  countries?: string;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(MIN_PROMOTION_DAILY_BUDGET_EUROS)
+  @Max(MAX_PROMOTION_DAILY_BUDGET_EUROS)
+  dailyBudget?: number;
 }

@@ -252,6 +252,9 @@ model UserSettings {
   // On for an account under the existing-customer exception; the person can
   // say no at sign-up, in settings or from the link in every newsletter.
   newsletter           Boolean       @default(true)
+  // The country the person says they are in (ISO code), for the promotions
+  // they see; when empty, the country of the network at sign-up is used.
+  country              String?
 
   updatedAt DateTime @updatedAt
 
@@ -1434,19 +1437,17 @@ model Promotion {
   reach       Int                 @default(0)
   clicks      Int                 @default(0)
 
-  // Sponsored Placements Segmentation
-
-  objective        String? @default("PROFILE_VISITS")
-  interests        String?
+  // Aimed by country only: ISO codes joined by commas, or none for
+  // everywhere.
   countries        String?
   dailyBudgetCents Int? // Daily cap in cents
 
   // Monetization: Checkout Session ID is stored in stripePaymentIntentId (legacy field name).
 
-  // chargedAt is set on checkout.session.completed. Cancel refunds remaining budget when PROPORTIONAL.
-  stripePaymentIntentId String?               @unique
+  // chargedAt is set on checkout.session.completed. A cancelled or rejected
+  // promotion is always refunded what it did not spend.
+  stripePaymentIntentId String?   @unique
   chargedAt             DateTime?
-  refundPolicy          PromotionRefundPolicy @default(PROPORTIONAL)
   refundedAt            DateTime?
 
   createdAt DateTime @default(now())
@@ -2551,11 +2552,6 @@ enum NotificationType {
 enum PostType {
   POST
   FRAME
-}
-
-enum PromotionRefundPolicy {
-  PROPORTIONAL
-  NONE
 }
 
 enum PromotionStatus {

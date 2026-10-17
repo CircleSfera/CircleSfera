@@ -40,6 +40,8 @@ export const usersApi = {
     contentPreference?: 'GENERAL' | 'MATURE';
     blurSensitiveContent?: boolean;
     isOnboarded?: boolean;
+    // ISO code from the closed list; null goes back to the network's.
+    country?: string | null;
   }) => apiClient.put('/users/me/settings', data),
 
   // Schedule account deletion (30-day GDPR grace). Canonical endpoint.

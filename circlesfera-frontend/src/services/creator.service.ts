@@ -74,7 +74,8 @@ export interface CreatorPromotion {
   reach: number;
   clicks: number;
   createdAt: string;
-  refundPolicy?: string;
+  // ISO codes joined by commas; none for everywhere.
+  countries?: string | null;
   refundedAt?: string | null;
   target?: {
     caption?: string | null;
@@ -132,9 +133,8 @@ export const creatorApi = {
     dailyBudget?: number;
     durationDays: number;
     currency?: string;
-    objective?: string;
-    interests?: string;
-    countries?: string;
+    // ISO codes from the closed list; none for everywhere.
+    countries?: string[];
   }) =>
     apiClient.post<{ url: string; promotionId: string }>(
       'creator/promotions',
@@ -163,9 +163,7 @@ export const creatorApi = {
   updatePromotion: (
     id: string,
     data: {
-      objective?: string;
-      interests?: string;
-      countries?: string;
+      countries?: string[];
       endDate?: string;
       dailyBudget?: number;
     },

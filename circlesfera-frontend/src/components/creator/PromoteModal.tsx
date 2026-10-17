@@ -8,6 +8,7 @@ import type { PaginatedResponse, Post } from '../../types';
 import { formatWholeEuros } from '../../utils/money';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
+import CountryPicker from './CountryPicker';
 import { CreatorViewChoice } from './CreatorPieces';
 import { postFacts } from './creatorWords';
 
@@ -21,9 +22,6 @@ interface Props {
   onClose: () => void;
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
-
-const fieldClass =
-  'w-full min-h-12 rounded-xl bg-white/5 border border-white/10 px-4 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-brand-primary';
 
 function Thumbnail({ url }: { url?: string }) {
   return (
@@ -47,7 +45,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
   const [chosen, setChosen] = useState<CreatorPost | Post | null>(post ?? null);
   const [dailyBudget, setDailyBudget] = useState<number>(DAILY_BUDGETS[0]);
   const [durationDays, setDurationDays] = useState<number>(DURATIONS[1]);
-  const [places, setPlaces] = useState('');
+  const [countries, setCountries] = useState<string[]>([]);
 
   const { data: posts, isLoading: loadingPosts } = useQuery<
     PaginatedResponse<CreatorPost>
@@ -65,7 +63,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
         dailyBudget,
         durationDays,
         currency: 'EUR',
-        countries: places.trim() || undefined,
+        countries: countries.length ? countries : undefined,
       }),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
@@ -147,23 +145,23 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="promote-places" className="text-sm text-white/70">
-              {t('creator.promote.places')}
+            <label
+              htmlFor="promote-countries"
+              className="text-sm text-white/70"
+            >
+              {t('creator.promote.countries')}
             </label>
-            <input
-              id="promote-places"
-              type="text"
-              value={places}
-              onChange={(e) => setPlaces(e.target.value)}
-              placeholder={t('creator.promote.places_placeholder')}
-              aria-describedby="promote-places-hint"
-              className={fieldClass}
+            <CountryPicker
+              id="promote-countries"
+              value={countries}
+              onChange={setCountries}
+              describedBy="promote-countries-hint"
             />
             <p
-              id="promote-places-hint"
+              id="promote-countries-hint"
               className="text-xs text-white/50 leading-relaxed"
             >
-              {t('creator.promote.places_hint')}
+              {t('creator.promote.countries_hint')}
             </p>
           </div>
 

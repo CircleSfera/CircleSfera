@@ -643,6 +643,7 @@ export class UsersService {
           blurSensitiveContent: dto.blurSensitiveContent,
           emailNotifications: dto.emailNotifications,
           newsletter: dto.newsletter,
+          ...(dto.country !== undefined && { country: dto.country }),
           ...(dto.isOnboarded !== undefined && {
             isOnboarded: dto.isOnboarded,
           }),
@@ -654,6 +655,7 @@ export class UsersService {
           blurSensitiveContent: dto.blurSensitiveContent ?? true,
           emailNotifications: dto.emailNotifications ?? true,
           newsletter: dto.newsletter ?? true,
+          country: dto.country ?? null,
           isOnboarded: dto.isOnboarded ?? false,
         },
       });

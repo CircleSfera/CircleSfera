@@ -24,6 +24,7 @@ import AboutAccountDialog, {
   aboutAccountFromProfile,
 } from '../profile/AboutAccountDialog';
 import { Button } from '../ui';
+import CountrySetting from './CountrySetting';
 import SettingsDangerZone from './SettingsDangerZone';
 import SettingsSection from './SettingsSection';
 
@@ -225,6 +226,8 @@ export default function AccountSettings() {
               </button>
             </div>
           </div>
+
+          <CountrySetting />
 
           <div
             className={`rounded-xl border p-4 ${

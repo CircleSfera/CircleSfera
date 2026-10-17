@@ -17,6 +17,10 @@ import {
   isTestViewerProfile,
   viewerAudienceWhere,
 } from '../common/policies/test-account.policy.js';
+import {
+  promotionReaches,
+  viewerCountryOf,
+} from '../common/promotions/promotion-country.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
@@ -800,11 +804,19 @@ export class FeedService {
     const neededPromotions = Math.floor(posts.length / 5);
     if (neededPromotions === 0) return posts;
 
-    let viewerLocation: string | undefined;
+    let viewerCountry: string | null = null;
     let viewerUserId: string | undefined;
     if (profileId) {
       const viewer = await this.prisma.profile.findUnique({
         where: { id: profileId },
+        include: {
+          user: {
+            select: {
+              signupCountry: true,
+              settings: { select: { country: true } },
+            },
+          },
+        },
       });
       // A Profile on the Elite Creator or Business plan sees no promoted
       // posts: it is one of the things those plans include.
@@ -814,7 +826,7 @@ export class FeedService {
       ) {
         return posts;
       }
-      viewerLocation = viewer?.location?.toLowerCase();
+      viewerCountry = viewerCountryOf(viewer?.user);
       viewerUserId = viewer?.userId;
     }
 
@@ -830,21 +842,7 @@ export class FeedService {
     });
 
     const activePromotions = activePromotionsRaw
-      .filter((promo) => {
-        if (!promo.countries) return true; // No country targeting
-        const targetCountries = promo.countries
-          .toLowerCase()
-          .split(',')
-          .map((c: string) => c.trim())
-          .filter(Boolean);
-        if (targetCountries.length === 0) return true;
-        if (!viewerLocation) return false; // Viewer has no location, but promo requires one
-
-        // Check if viewer's location matches any of the target countries
-        return targetCountries.some((country: string) =>
-          viewerLocation!.includes(country),
-        );
-      })
+      .filter((promo) => promotionReaches(promo.countries, viewerCountry))
       .slice(0, neededPromotions);
 
     if (activePromotions.length === 0) return posts;

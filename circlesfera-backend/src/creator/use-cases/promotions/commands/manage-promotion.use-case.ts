@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PromotionRefundPolicy, PromotionStatus } from '@prisma/client';
+import { PromotionStatus } from '@prisma/client';
 import { eurosToCents } from '../../../../common/constants/monetization.constants.js';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
@@ -119,7 +119,7 @@ export class ManagePromotionUseCase {
       amountCents: number;
       amount: number;
       currency: string;
-      status: 'succeeded' | 'skipped_policy' | 'skipped_unpaid' | 'none';
+      status: 'succeeded' | 'skipped_unpaid' | 'none';
     } = { amountCents: 0, amount: 0, currency: promo.currency, status: 'none' };
 
     if (
@@ -146,14 +146,7 @@ export class ManagePromotionUseCase {
     // money and records it — previously this block duplicated that logic
     // inline and, unlike RefundPromotionUseCase, never wrote a Transaction
     // row for the refund.
-    if (promo.refundPolicy === PromotionRefundPolicy.NONE) {
-      refundResult = {
-        amountCents: 0,
-        amount: 0,
-        currency: promo.currency,
-        status: 'skipped_policy',
-      };
-    } else if (wasCharged && !promo.refundedAt && promo.stripePaymentIntentId) {
+    if (wasCharged && !promo.refundedAt && promo.stripePaymentIntentId) {
       try {
         const result = await this.refundPromotionUseCase.execute(
           promotionId,
@@ -175,8 +168,8 @@ export class ManagePromotionUseCase {
             status: 'skipped_unpaid',
           };
         }
-        // 'not_charged' / 'no_remaining_budget' / 'already_refunded' /
-        // 'policy_none': nothing to refund — refundResult stays 'none'.
+        // 'not_charged' / 'no_remaining_budget' / 'already_refunded':
+        // nothing to refund — refundResult stays 'none'.
       } catch (_err) {
         throw new BadRequestException(
           'Could not process refund. Promotion was not cancelled; please retry.',
@@ -204,9 +197,7 @@ export class ManagePromotionUseCase {
     userId: string,
     promotionId: string,
     data: {
-      objective?: string;
-      interests?: string;
-      countries?: string;
+      countries?: string[];
       endDate?: string;
       dailyBudget?: number;
       dailyBudgetCents?: number;
@@ -242,14 +233,12 @@ export class ManagePromotionUseCase {
       await this.prisma.promotion.update({
         where: { id: promotionId },
         data: {
-          ...(data.objective !== undefined
-            ? { objective: data.objective }
-            : {}),
-          ...(data.interests !== undefined
-            ? { interests: data.interests }
-            : {}),
           ...(data.countries !== undefined
-            ? { countries: data.countries }
+            ? {
+                countries: data.countries.length
+                  ? data.countries.join(',')
+                  : null,
+              }
             : {}),
           ...(dailyBudgetCents !== undefined ? { dailyBudgetCents } : {}),
           ...(endDate ? { endDate } : {}),

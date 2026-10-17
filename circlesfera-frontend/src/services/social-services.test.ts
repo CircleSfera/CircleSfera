@@ -818,9 +818,9 @@ const cases: Case[] = [
   ],
   [
     'creator.updatePromotion',
-    () => creatorApi.updatePromotion('pr1', { objective: 'REACH' }),
+    () => creatorApi.updatePromotion('pr1', { countries: ['ES'] }),
     'patch',
-    ['creator/promotions/pr1', { objective: 'REACH' }],
+    ['creator/promotions/pr1', { countries: ['ES'] }],
   ],
   [
     'creator.getRevenueAnalytics',
