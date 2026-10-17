@@ -74,6 +74,9 @@ export class SearchService {
             AND p."moderationStatus" = 'VISIBLE'
             AND pr."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isActive" = true
+            AND pr."isAccountBanned" = false
+            AND (pr."suspendedUntil" IS NULL OR pr."suspendedUntil" < NOW())
             AND u."isTestAccount" = ${viewerIsTest}
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
@@ -92,6 +95,9 @@ export class SearchService {
             AND p."moderationStatus" = 'VISIBLE'
             AND pr."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isActive" = true
+            AND pr."isAccountBanned" = false
+            AND (pr."suspendedUntil" IS NULL OR pr."suspendedUntil" < NOW())
             AND u."isTestAccount" = ${viewerIsTest}
           ORDER BY distance ASC
           LIMIT ${limit}
@@ -154,6 +160,9 @@ export class SearchService {
           JOIN "users" u ON u.id = pr."userId"
           WHERE pr."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isActive" = true
+            AND pr."isAccountBanned" = false
+            AND (pr."suspendedUntil" IS NULL OR pr."suspendedUntil" < NOW())
             AND u."isTestAccount" = ${viewerIsTest}
             AND pr.id NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND pr.id NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
@@ -169,6 +178,9 @@ export class SearchService {
           JOIN "users" u ON u.id = pr."userId"
           WHERE pr."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isActive" = true
+            AND pr."isAccountBanned" = false
+            AND (pr."suspendedUntil" IS NULL OR pr."suspendedUntil" < NOW())
             AND u."isTestAccount" = ${viewerIsTest}
           ORDER BY distance ASC
           LIMIT ${limit}
@@ -360,12 +372,25 @@ export class SearchService {
           { username: { contains: sanitizedQuery, mode: 'insensitive' } },
           { fullName: { contains: sanitizedQuery, mode: 'insensitive' } },
         ],
+        // Banned or suspended Profiles, and accounts that are closed or
+        // deactivated, are not findable. A private Profile is: its name and
+        // photo show, its content does not.
         user: {
           deactivatedAt: null,
+          isActive: true,
         },
+        isAccountBanned: false,
         ...(verifiedOnly ? { verificationLevel: { not: 'BASIC' } } : {}),
         // Blocked Profiles and other audiences are not findable.
-        AND: [await visibleToViewerWhere(this.prisma, viewerId)],
+        AND: [
+          await visibleToViewerWhere(this.prisma, viewerId),
+          {
+            OR: [
+              { suspendedUntil: null },
+              { suspendedUntil: { lt: new Date() } },
+            ],
+          },
+        ],
       },
       take: 30, // Larger pool for better ranking
       include: {
