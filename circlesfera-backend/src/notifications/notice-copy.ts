@@ -190,6 +190,19 @@ const endSentence = (text: string) =>
 const withNote = (text: string, label: string, note?: string) =>
   note?.trim() ? `${text} ${label}: ${note.trim()}` : text;
 
+// The other ways to seek redress, named in every decision that can be
+// appealed and in a rejected appeal.
+const REDRESS: Record<Locale, string> = {
+  en: 'You can also turn to a certified out-of-court dispute settlement body or to the courts.',
+  es: 'También puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
+};
+
+// How a decision can be appealed: once, within six months.
+const APPEAL: Record<Locale, string> = {
+  en: `You can appeal this decision once, within six months. ${REDRESS.en}`,
+  es: `Puedes apelar esta decisión una vez, en los seis meses siguientes. ${REDRESS.es}`,
+};
+
 function renderEn(n: Notice): string {
   switch (n.key) {
     case 'post_liked':
@@ -231,12 +244,14 @@ function renderEn(n: Notice): string {
         `${who} ${verb} your ${CONTENT.en[contentType(n.contentType)]}.`,
         'Note',
         n.note,
-      ).concat(' You can appeal from Settings → Appeals.');
+      ).concat(
+        n.status === 'hidden' || n.status === 'removed' ? ` ${APPEAL.en}` : '',
+      );
     }
     case 'report_updated':
       return `Your report about a ${CONTENT.en[contentType(n.reportType)]} is now ${REPORT_STATUS.en[n.status] ?? n.status.toLowerCase()}.`;
-    case 'appeal_decided':
-      return withNote(
+    case 'appeal_decided': {
+      const text = withNote(
         n.outcome === 'APPROVED'
           ? 'Your appeal was approved.'
           : n.outcome === 'REJECTED'
@@ -245,12 +260,18 @@ function renderEn(n: Notice): string {
         'Notes',
         n.notes,
       );
+      return n.outcome === 'REJECTED'
+        ? `${endSentence(text)} ${REDRESS.en}`
+        : text;
+    }
     case 'account_suspended':
-      return withNote(
-        `Your account is suspended until ${day('en', n.until)}.`,
-        'Reason',
-        n.reason,
-      );
+      return `${endSentence(
+        withNote(
+          `Your account is suspended until ${day('en', n.until)}.`,
+          'Reason',
+          n.reason,
+        ),
+      )} ${APPEAL.en}`;
     case 'account_warned':
       return withNote(
         'You received a formal warning for breaking the CircleSfera rules.',
@@ -264,35 +285,35 @@ function renderEn(n: Notice): string {
         n.reason,
       );
     case 'bot_labeled':
-      return 'After a staff review, your account was labeled as possibly automated. You can appeal from Settings → Appeals.';
+      return `After a staff review, your account was labeled as possibly automated. ${APPEAL.en}`;
     case 'promotion_approved':
       return 'Your promotion was approved and is now running.';
     case 'promotion_rejected':
-      return `${endSentence(withNote('Your promotion request was rejected.', 'Reason', n.note))}${n.refunded ? ' What was not spent is refunded.' : ''} You can appeal this decision once.`;
+      return `${endSentence(withNote('Your promotion request was rejected.', 'Reason', n.note))}${n.refunded ? ' What was not spent is refunded.' : ''} ${APPEAL.en}`;
     case 'profile_warning':
-      return `Warning: this profile broke the community guidelines (${rule('en', n.rule)}). There is no penalty this time. It expires on ${day('en', n.expires)}. You can appeal it.`;
+      return `Warning: this profile broke the community guidelines (${rule('en', n.rule)}). There is no penalty this time. It expires on ${day('en', n.expires)}. ${APPEAL.en}`;
     case 'profile_strike': {
       const base = `Strike ${n.count} of ${n.max} on this profile for breaking the community guidelines (${rule('en', n.rule)}). It expires on ${day('en', n.expires)}.`;
       if (n.consequence === 'BANNED') {
-        return `${base} This profile is banned. Your other profiles are not affected. You can appeal this decision.`;
+        return `${base} This profile is banned. Your other profiles are not affected. ${APPEAL.en}`;
       }
       if (n.consequence === 'SUSPENDED' && n.suspendedUntil) {
-        return `${base} This profile is suspended until ${day('en', n.suspendedUntil)}. You can appeal this decision.`;
+        return `${base} This profile is suspended until ${day('en', n.suspendedUntil)}. ${APPEAL.en}`;
       }
-      return `${base} You can appeal it.`;
+      return `${base} ${APPEAL.en}`;
     }
     case 'profile_banned':
-      return 'This profile was banned after a report review. Your other profiles are not affected. You can appeal this decision.';
+      return `This profile was banned after a report review. Your other profiles are not affected. ${APPEAL.en}`;
     case 'profile_suspended_activity':
-      return `This profile is suspended until ${day('en', n.until)} after a review of unusual activity. Your other profiles are not affected. You can appeal this decision.`;
+      return `This profile is suspended until ${day('en', n.until)} after a review of unusual activity. Your other profiles are not affected. ${APPEAL.en}`;
     case 'profile_suspended_cause':
       return n.cause === 'COMPROMISED'
         ? `This profile is paused until ${day('en', n.until)} because someone else may have got into it. This protects you and is not a sanction. Your other profiles are not affected. Write to support to get it back.`
-        : `After a review by our team, this profile is suspended until ${day('en', n.until)} for ${SUSPENSION_CAUSES.en[n.cause]}. Your other profiles are not affected. You can appeal this decision.`;
+        : `After a review by our team, this profile is suspended until ${day('en', n.until)} for ${SUSPENSION_CAUSES.en[n.cause]}. Your other profiles are not affected. ${APPEAL.en}`;
     case 'profile_restricted':
       return n.by === 'automated'
-        ? `An automated system detected unusual activity on this profile, such as many actions in a short time or repeated messages. Until a person on our team reviews it, for at most ${n.hours} hours, this profile can follow at most 20 accounts and send at most 5 message requests a day. Nothing is hidden or removed. You can appeal this decision.`
-        : `After a review by our team, this profile can follow at most 20 accounts and send at most 5 message requests a day for ${n.days} days, because of unusual activity such as many actions in a short time or repeated messages. Nothing is hidden or removed. You can appeal this decision.`;
+        ? `An automated system detected unusual activity on this profile, such as many actions in a short time or repeated messages. Until a person on our team reviews it, for at most ${n.hours} hours, this profile can follow at most 20 accounts and send at most 5 message requests a day. Nothing is hidden or removed. ${APPEAL.en}`
+        : `After a review by our team, this profile can follow at most 20 accounts and send at most 5 message requests a day for ${n.days} days, because of unusual activity such as many actions in a short time or repeated messages. Nothing is hidden or removed. ${APPEAL.en}`;
     case 'message_unlocked':
       return `unlocked your private message for ${money('en', n.amountCents, n.currency)}`;
     case 'tip_received':
@@ -346,14 +367,16 @@ function renderEs(n: Notice): string {
         `${who} ${verb} tu ${CONTENT.es[contentType(n.contentType)]}.`,
         'Nota',
         n.note,
-      ).concat(' Puedes apelar desde Ajustes → Apelaciones.');
+      ).concat(
+        n.status === 'hidden' || n.status === 'removed' ? ` ${APPEAL.es}` : '',
+      );
     }
     case 'report_updated': {
       const type = contentType(n.reportType);
       return `Tu denuncia sobre ${ES_ARTICLE[type]} ${CONTENT.es[type]} ahora está ${REPORT_STATUS.es[n.status] ?? n.status.toLowerCase()}.`;
     }
-    case 'appeal_decided':
-      return withNote(
+    case 'appeal_decided': {
+      const text = withNote(
         n.outcome === 'APPROVED'
           ? 'Tu apelación ha sido aprobada.'
           : n.outcome === 'REJECTED'
@@ -362,12 +385,18 @@ function renderEs(n: Notice): string {
         'Notas',
         n.notes,
       );
+      return n.outcome === 'REJECTED'
+        ? `${endSentence(text)} ${REDRESS.es}`
+        : text;
+    }
     case 'account_suspended':
-      return withNote(
-        `Tu cuenta está suspendida hasta el ${day('es', n.until)}.`,
-        'Motivo',
-        n.reason,
-      );
+      return `${endSentence(
+        withNote(
+          `Tu cuenta está suspendida hasta el ${day('es', n.until)}.`,
+          'Motivo',
+          n.reason,
+        ),
+      )} ${APPEAL.es}`;
     case 'account_warned':
       return withNote(
         'Has recibido una advertencia formal por incumplir las normas de CircleSfera.',
@@ -381,7 +410,7 @@ function renderEs(n: Notice): string {
         n.reason,
       );
     case 'bot_labeled':
-      return 'Tras una revisión del equipo, tu cuenta se ha marcado como posiblemente automatizada. Puedes apelar desde Ajustes → Apelaciones.';
+      return `Tras una revisión del equipo, tu cuenta se ha marcado como posiblemente automatizada. ${APPEAL.es}`;
     case 'promotion_approved':
       return 'Tu promoción ha sido aprobada y ya está en marcha.';
     case 'promotion_rejected':
@@ -391,31 +420,31 @@ function renderEs(n: Notice): string {
           'Motivo',
           n.note,
         ),
-      )}${n.refunded ? ' Te devolvemos lo que no se haya gastado.' : ''} Puedes apelar esta decisión una vez.`;
+      )}${n.refunded ? ' Te devolvemos lo que no se haya gastado.' : ''} ${APPEAL.es}`;
     case 'profile_warning':
-      return `Advertencia: este perfil ha incumplido las normas de la comunidad (${rule('es', n.rule)}). Esta vez no hay sanción. Caduca el ${day('es', n.expires)}. Puedes apelarla.`;
+      return `Advertencia: este perfil ha incumplido las normas de la comunidad (${rule('es', n.rule)}). Esta vez no hay sanción. Caduca el ${day('es', n.expires)}. ${APPEAL.es}`;
     case 'profile_strike': {
       const base = `Strike ${n.count} de ${n.max} en este perfil por incumplir las normas de la comunidad (${rule('es', n.rule)}). Caduca el ${day('es', n.expires)}.`;
       if (n.consequence === 'BANNED') {
-        return `${base} Este perfil queda bloqueado. Tus otros perfiles no se ven afectados. Puedes apelar esta decisión.`;
+        return `${base} Este perfil queda bloqueado. Tus otros perfiles no se ven afectados. ${APPEAL.es}`;
       }
       if (n.consequence === 'SUSPENDED' && n.suspendedUntil) {
-        return `${base} Este perfil queda suspendido hasta el ${day('es', n.suspendedUntil)}. Puedes apelar esta decisión.`;
+        return `${base} Este perfil queda suspendido hasta el ${day('es', n.suspendedUntil)}. ${APPEAL.es}`;
       }
-      return `${base} Puedes apelarlo.`;
+      return `${base} ${APPEAL.es}`;
     }
     case 'profile_banned':
-      return 'Este perfil ha sido bloqueado tras revisar una denuncia. Tus otros perfiles no se ven afectados. Puedes apelar esta decisión.';
+      return `Este perfil ha sido bloqueado tras revisar una denuncia. Tus otros perfiles no se ven afectados. ${APPEAL.es}`;
     case 'profile_suspended_activity':
-      return `Este perfil está suspendido hasta el ${day('es', n.until)} tras revisar una actividad inusual. Tus otros perfiles no se ven afectados. Puedes apelar esta decisión.`;
+      return `Este perfil está suspendido hasta el ${day('es', n.until)} tras revisar una actividad inusual. Tus otros perfiles no se ven afectados. ${APPEAL.es}`;
     case 'profile_suspended_cause':
       return n.cause === 'COMPROMISED'
         ? `Este perfil está en pausa hasta el ${day('es', n.until)} porque otra persona puede haber entrado en él. Es una protección para ti, no una sanción. Tus otros perfiles no se ven afectados. Escribe a soporte para recuperarlo.`
-        : `Tras una revisión de nuestro equipo, este perfil está suspendido hasta el ${day('es', n.until)} por ${SUSPENSION_CAUSES.es[n.cause]}. Tus otros perfiles no se ven afectados. Puedes apelar esta decisión.`;
+        : `Tras una revisión de nuestro equipo, este perfil está suspendido hasta el ${day('es', n.until)} por ${SUSPENSION_CAUSES.es[n.cause]}. Tus otros perfiles no se ven afectados. ${APPEAL.es}`;
     case 'profile_restricted':
       return n.by === 'automated'
-        ? `Un sistema automático ha detectado actividad inusual en este perfil, como muchas acciones en poco tiempo o mensajes repetidos. Hasta que una persona de nuestro equipo lo revise, durante un máximo de ${n.hours} horas, este perfil puede seguir como mucho a 20 cuentas y enviar como mucho 5 solicitudes de mensaje al día. No se oculta ni se elimina nada. Puedes apelar esta decisión.`
-        : `Tras una revisión de nuestro equipo, durante ${n.days} días este perfil puede seguir como mucho a 20 cuentas y enviar como mucho 5 solicitudes de mensaje al día, por actividad inusual como muchas acciones en poco tiempo o mensajes repetidos. No se oculta ni se elimina nada. Puedes apelar esta decisión.`;
+        ? `Un sistema automático ha detectado actividad inusual en este perfil, como muchas acciones en poco tiempo o mensajes repetidos. Hasta que una persona de nuestro equipo lo revise, durante un máximo de ${n.hours} horas, este perfil puede seguir como mucho a 20 cuentas y enviar como mucho 5 solicitudes de mensaje al día. No se oculta ni se elimina nada. ${APPEAL.es}`
+        : `Tras una revisión de nuestro equipo, durante ${n.days} días este perfil puede seguir como mucho a 20 cuentas y enviar como mucho 5 solicitudes de mensaje al día, por actividad inusual como muchas acciones en poco tiempo o mensajes repetidos. No se oculta ni se elimina nada. ${APPEAL.es}`;
     case 'message_unlocked':
       return `ha desbloqueado tu mensaje privado por ${money('es', n.amountCents, n.currency)}`;
     case 'tip_received':

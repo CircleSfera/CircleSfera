@@ -168,6 +168,7 @@ describe('AppealsSettings form and list', () => {
     const tr = (key: string) => view.i18n!.t(`settings.appeals.${key}`);
     return {
       tr,
+      t: (key: string) => view.i18n!.t(key),
       type: () => screen.getByLabelText(tr('type')) as HTMLSelectElement,
       target: () => screen.getByLabelText(tr('target_id')) as HTMLInputElement,
       reason: () => screen.getByLabelText(tr('reason')) as HTMLTextAreaElement,
@@ -278,6 +279,29 @@ describe('AppealsSettings form and list', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(tr('error')));
     expect(reason()).toHaveValue('Please look again');
     expect(getMyAppeals).toHaveBeenCalledTimes(1);
+  });
+
+  it('says why the server refused: past the six months, or already appealed', async () => {
+    const view = show();
+    for (const [status, code] of [
+      [400, 'APPEAL_WINDOW_CLOSED'],
+      [409, 'APPEAL_ALREADY_MADE'],
+    ] as const) {
+      vi.mocked(toast.error).mockClear();
+      vi.mocked(createAppeal).mockRejectedValueOnce({
+        status,
+        data: { errorCode: code },
+      });
+      fireEvent.change(view.reason(), {
+        target: { value: 'Please look again' },
+      });
+      fireEvent.click(view.submit());
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          view.t(`errors.codes.${code}`),
+        ),
+      );
+    }
   });
 
   it('counts the reason and warns near its limit', () => {

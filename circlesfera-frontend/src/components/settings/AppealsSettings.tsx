@@ -10,6 +10,7 @@ import {
   createAppeal,
   getMyAppeals,
 } from '../../services/appeals.service';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { formatDate } from '../../utils/format';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button, Select, Textarea } from '../ui';
@@ -95,8 +96,9 @@ export default function AppealsSettings() {
       setReason('');
       queryClient.invalidateQueries({ queryKey: ['myAppeals'] });
     },
-    onError: () => {
-      toast.error(t('settings.appeals.error'));
+    // A decision past its six months, or already appealed, says so.
+    onError: (err) => {
+      toast.error(apiErrorMessage(err, t, 'settings.appeals.error'));
     },
   });
 

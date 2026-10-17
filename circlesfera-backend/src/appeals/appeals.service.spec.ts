@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -160,7 +156,7 @@ describe('AppealsService', () => {
 
       expect(mockPrismaService.promotion.findFirst).toHaveBeenCalledWith({
         where: { id: 'promo-1', userId: 'user-1', status: 'REJECTED' },
-        select: { id: true },
+        select: expect.objectContaining({ id: true }),
       });
       expect(mockPrismaService.appeal.create).toHaveBeenCalled();
     });
@@ -179,13 +175,16 @@ describe('AppealsService', () => {
     });
 
     it('takes one appeal per rejected promotion, whatever became of it', async () => {
+      const reviewedAt = new Date(Date.now() - 86_400_000);
       mockPrismaService.promotion.findFirst.mockResolvedValue({
         id: 'promo-1',
+        reviewedAt,
+        updatedAt: new Date(),
       });
-      // None pending; one decided earlier, found under the lock.
-      mockPrismaService.appeal.findFirst
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({ id: 'appeal-old' });
+      // One appeal since the rejection, already decided, found under the lock.
+      mockPrismaService.appeal.findFirst.mockResolvedValueOnce({
+        id: 'appeal-old',
+      });
 
       await expect(
         service.create('user-1', {
@@ -193,17 +192,126 @@ describe('AppealsService', () => {
           targetId: 'promo-1',
           reason: 'The post follows every rule',
         }),
-      ).rejects.toThrow('This promotion has already been appealed');
+      ).rejects.toMatchObject({ errorCode: 'APPEAL_ALREADY_MADE' });
       expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
       expect(mockPrismaService.appeal.findFirst).toHaveBeenLastCalledWith({
         where: {
           userId: 'user-1',
           targetType: 'PROMOTION_REJECTION',
           targetId: 'promo-1',
+          createdAt: { gte: reviewedAt },
         },
         select: { id: true },
       });
       expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses an appeal more than six months after the decision, also of an expired strike', async () => {
+      const createdAt = new Date();
+      createdAt.setUTCMonth(createdAt.getUTCMonth() - 7);
+      mockPrismaService.profileStrike.findFirst.mockResolvedValue({
+        id: 'strike-1',
+        createdAt,
+      });
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'STRIKE' as any,
+          targetId: 'strike-1',
+          reason: 'This strike is not fair at all',
+        }),
+      ).rejects.toMatchObject({ errorCode: 'APPEAL_WINDOW_CLOSED' });
+      expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
+    });
+
+    it('takes an appeal of a strike given five months ago', async () => {
+      const createdAt = new Date();
+      createdAt.setUTCMonth(createdAt.getUTCMonth() - 5);
+      mockPrismaService.profileStrike.findFirst.mockResolvedValue({
+        id: 'strike-1',
+        createdAt,
+      });
+      mockPrismaService.appeal.create.mockResolvedValue({ id: 'appeal-1' });
+
+      await service.create('user-1', {
+        targetType: 'STRIKE' as any,
+        targetId: 'strike-1',
+        reason: 'This strike is not fair at all',
+      });
+      expect(mockPrismaService.appeal.create).toHaveBeenCalled();
+    });
+
+    it('a post removed again after an appeal is a new decision, with its own appeal', async () => {
+      const moderatedAt = new Date(Date.now() - 3_600_000);
+      mockPrismaService.post.findFirst.mockResolvedValue({
+        id: 'post-1',
+        moderatedAt,
+        updatedAt: new Date(),
+      });
+      mockPrismaService.appeal.create.mockResolvedValue({ id: 'appeal-2' });
+
+      await service.create('user-1', {
+        targetType: 'POST_REMOVAL' as any,
+        targetId: 'post-1',
+        reason: 'Please restore this post now',
+      });
+      // Only appeals since this removal count.
+      expect(mockPrismaService.appeal.findFirst).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          targetType: 'POST_REMOVAL',
+          targetId: 'post-1',
+          createdAt: { gte: moderatedAt },
+        },
+        select: { id: true },
+      });
+      expect(mockPrismaService.appeal.create).toHaveBeenCalled();
+    });
+
+    it('with no recorded time, counts the six months from the last change and any earlier appeal', async () => {
+      const updatedAt = new Date(Date.now() - 86_400_000);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'p-1',
+        isAccountBanned: true,
+        sanctionedAt: null,
+        updatedAt,
+      });
+      mockPrismaService.appeal.findFirst.mockResolvedValueOnce({
+        id: 'appeal-old',
+      });
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'ACCOUNT_BAN' as any,
+          targetId: 'p-1',
+          reason: 'Please review this ban',
+        }),
+      ).rejects.toMatchObject({ errorCode: 'APPEAL_ALREADY_MADE' });
+      expect(mockPrismaService.appeal.findFirst).toHaveBeenCalledWith({
+        where: { userId: 'user-1', targetType: 'ACCOUNT_BAN', targetId: 'p-1' },
+        select: { id: true },
+      });
+    });
+
+    it('an appeal about the account with no Profile named counts from the latest sanction', async () => {
+      const old = new Date();
+      old.setUTCMonth(old.getUTCMonth() - 8);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        sanctionedAt: old,
+        updatedAt: new Date(),
+      });
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'ACCOUNT_BAN' as any,
+          reason: 'Please review this ban',
+        }),
+      ).rejects.toMatchObject({ errorCode: 'APPEAL_WINDOW_CLOSED' });
+      expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { sanctionedAt: { sort: 'desc', nulls: 'last' } },
+        }),
+      );
     });
 
     it('refuses an appeal about a post of another account', async () => {
@@ -218,7 +326,7 @@ describe('AppealsService', () => {
       ).rejects.toThrow(NotFoundException);
       expect(mockPrismaService.post.findFirst).toHaveBeenCalledWith({
         where: { id: 'someone-elses-post', profile: { userId: 'user-1' } },
-        select: { id: true },
+        select: expect.objectContaining({ id: true }),
       });
       expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
     });
@@ -256,11 +364,11 @@ describe('AppealsService', () => {
           profile: { userId: 'user-1' },
           profileId: 'profile-restricted',
         },
-        select: { id: true },
+        select: expect.objectContaining({ id: true }),
       });
     });
 
-    it('serializes appeals of one account before the pending check', async () => {
+    it('serializes appeals of one account before the check of earlier appeals', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({ id: 'p-1' });
       mockPrismaService.appeal.create.mockResolvedValue({ id: 'appeal-1' });
 
@@ -289,11 +397,11 @@ describe('AppealsService', () => {
       ).rejects.toThrow(NotFoundException);
       expect(mockPrismaService.riskCase.findFirst).toHaveBeenCalledWith({
         where: { id: 'case-of-someone-else', profile: { userId: 'user-1' } },
-        select: { id: true },
+        select: expect.objectContaining({ id: true }),
       });
     });
 
-    it('refuses a second pending appeal about the same decision', async () => {
+    it('refuses a second appeal about the same decision', async () => {
       mockPrismaService.profileStrike.findFirst.mockResolvedValue({
         id: 'strike-1',
       });
@@ -305,7 +413,7 @@ describe('AppealsService', () => {
           targetId: 'strike-1',
           reason: 'This strike is not fair at all',
         }),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toMatchObject({ errorCode: 'APPEAL_ALREADY_MADE' });
       expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
     });
   });

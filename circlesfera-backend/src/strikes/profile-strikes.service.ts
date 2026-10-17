@@ -160,6 +160,7 @@ export class ProfileStrikesService {
           where: { id: violation.profileId },
           data: {
             isAccountBanned: true,
+            sanctionedAt: now,
             accountBanReason: `Repeated violations of the community guidelines (${activeStrikes} active strikes)`,
             banStrikeId: strike.id,
           },
@@ -182,6 +183,7 @@ export class ProfileStrikesService {
               suspendedUntil,
               suspensionStrikeId: strike.id,
               suspensionCause: null,
+              sanctionedAt: now,
             },
           });
         }
@@ -228,6 +230,7 @@ export class ProfileStrikesService {
         isAccountBanned: true,
         accountBanReason: params.reason,
         banStrikeId: null,
+        sanctionedAt: new Date(),
       },
     });
     await this.invalidateProfileCache([params.profileId]);
@@ -262,6 +265,7 @@ export class ProfileStrikesService {
         suspendedUntil: params.until,
         suspensionStrikeId: null,
         suspensionCause: params.cause ?? null,
+        sanctionedAt: new Date(),
       },
     });
     await this.announceSuspension(params);

@@ -129,18 +129,18 @@ const en: EmailCopy = {
   accountBanned: {
     subject: 'Your CircleSfera account was suspended',
     title: 'Account suspended',
-    body: 'Hello {name},<br><br>Your account was suspended by our moderation team for violating the Terms of Service.<br><br>If you think this is a mistake, you can appeal from the sign-in screen.',
+    body: 'Hello {name},<br><br>Your account was suspended by our moderation team for violating the Terms of Service.<br><br>If you think this is a mistake, you can appeal from the sign-in screen once, within six months. You can also turn to a certified out-of-court dispute settlement body or to the courts.',
   },
   postRemoved: {
     subject: 'Your post was removed',
     title: 'Your post was removed',
-    body: 'Hello {name},<br><br>One of your posts was removed by our moderation team for breaking the community guidelines.<br><br><strong>Reason:</strong> {reason}',
+    body: 'Hello {name},<br><br>One of your posts was removed by our moderation team for breaking the community guidelines.<br><br><strong>Reason:</strong> {reason}<br><br>You can appeal this decision once, within six months, from Settings → Appeals. You can also turn to a certified out-of-court dispute settlement body or to the courts.',
     button: 'Read the guidelines',
   },
   postsRemoved: {
     subject: '{count} of your posts were removed',
     title: 'Your posts were removed',
-    body: 'Hello {name},<br><br>{count} of your posts were removed by our moderation team for breaking the community guidelines.<br><br><strong>Reason:</strong> {reason}',
+    body: 'Hello {name},<br><br>{count} of your posts were removed by our moderation team for breaking the community guidelines.<br><br><strong>Reason:</strong> {reason}<br><br>You can appeal each removal once, within six months, from Settings → Appeals. You can also turn to a certified out-of-court dispute settlement body or to the courts.',
   },
   appealApproved: {
     subject: 'Your appeal was approved',
@@ -150,7 +150,7 @@ const en: EmailCopy = {
   appealRejected: {
     subject: 'Your appeal was reviewed',
     title: 'Decision upheld',
-    body: 'Hello {name},<br><br>We reviewed your appeal and the decision stays in place.<br><br><strong>Notes:</strong> {notes}',
+    body: 'Hello {name},<br><br>We reviewed your appeal and the decision stays in place.<br><br><strong>Notes:</strong> {notes}<br><br>Each decision can be appealed once, so this one cannot be appealed again. You can still turn to a certified out-of-court dispute settlement body or to the courts.',
   },
   appealDefaultNotes: 'Your appeal was reviewed under our Terms of Service.',
   moderationReason: 'Violation of the community guidelines',
@@ -243,18 +243,18 @@ const es: EmailCopy = {
   accountBanned: {
     subject: 'Tu cuenta de CircleSfera ha sido suspendida',
     title: 'Cuenta suspendida',
-    body: 'Hola {name},<br><br>Nuestro equipo de moderación ha suspendido tu cuenta por incumplir los Términos de Servicio.<br><br>Si crees que es un error, puedes apelar desde la pantalla de inicio de sesión.',
+    body: 'Hola {name},<br><br>Nuestro equipo de moderación ha suspendido tu cuenta por incumplir los Términos de Servicio.<br><br>Si crees que es un error, puedes apelar desde la pantalla de inicio de sesión una vez, en los seis meses siguientes. También puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
   },
   postRemoved: {
     subject: 'Hemos retirado una publicación tuya',
     title: 'Publicación retirada',
-    body: 'Hola {name},<br><br>Nuestro equipo de moderación ha retirado una de tus publicaciones por incumplir las normas de la comunidad.<br><br><strong>Motivo:</strong> {reason}',
+    body: 'Hola {name},<br><br>Nuestro equipo de moderación ha retirado una de tus publicaciones por incumplir las normas de la comunidad.<br><br><strong>Motivo:</strong> {reason}<br><br>Puedes apelar esta decisión una vez, en los seis meses siguientes, desde Ajustes → Apelaciones. También puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
     button: 'Leer las normas',
   },
   postsRemoved: {
     subject: 'Hemos retirado {count} publicaciones tuyas',
     title: 'Publicaciones retiradas',
-    body: 'Hola {name},<br><br>Nuestro equipo de moderación ha retirado {count} de tus publicaciones por incumplir las normas de la comunidad.<br><br><strong>Motivo:</strong> {reason}',
+    body: 'Hola {name},<br><br>Nuestro equipo de moderación ha retirado {count} de tus publicaciones por incumplir las normas de la comunidad.<br><br><strong>Motivo:</strong> {reason}<br><br>Puedes apelar cada retirada una vez, en los seis meses siguientes, desde Ajustes → Apelaciones. También puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
   },
   appealApproved: {
     subject: 'Tu apelación ha sido aprobada',
@@ -264,7 +264,7 @@ const es: EmailCopy = {
   appealRejected: {
     subject: 'Hemos revisado tu apelación',
     title: 'Decisión mantenida',
-    body: 'Hola {name},<br><br>Hemos revisado tu apelación y la decisión se mantiene.<br><br><strong>Notas:</strong> {notes}',
+    body: 'Hola {name},<br><br>Hemos revisado tu apelación y la decisión se mantiene.<br><br><strong>Notas:</strong> {notes}<br><br>Cada decisión se puede apelar una vez, así que esta no se puede volver a apelar. Aún puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
   },
   appealDefaultNotes:
     'Se ha revisado tu apelación según nuestros Términos de Servicio.',

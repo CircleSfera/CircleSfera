@@ -124,7 +124,7 @@ describe('AppealsService.create — every appeal type', () => {
     });
     expect(t.prisma.profileStrike.findFirst).toHaveBeenCalledWith({
       where: { id: 'strike-1', profile: { userId: 'user-1' } },
-      select: { id: true },
+      select: expect.objectContaining({ id: true }),
     });
   });
 
@@ -160,13 +160,45 @@ describe('AppealsService.create — every appeal type', () => {
 
     expect(t.prisma.appeal.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ targetId: null, status: 'PENDING' }),
+        where: expect.objectContaining({ targetId: null }),
       }),
     );
     expect(t.events.emit).toHaveBeenCalledWith(
       'moderation.report_filed',
       expect.objectContaining({ targetId: 'N/A' }),
     );
+  });
+
+  it('a kind it does not know has no target and no deadline', async () => {
+    const appeal = await t.service.create('user-1', {
+      targetType: 'SOMETHING_ELSE',
+      targetId: 'anything',
+      reason,
+    } as never);
+
+    expect(appeal).toMatchObject({ targetId: undefined });
+    expect(t.prisma.appeal.findFirst).toHaveBeenCalledWith({
+      where: { userId: 'user-1', targetType: 'SOMETHING_ELSE', targetId: null },
+      select: { id: true },
+    });
+  });
+
+  it('an appeal about a closed account with no Profile sanctioned counts from its last change', async () => {
+    const old = new Date();
+    old.setUTCMonth(old.getUTCMonth() - 7);
+    t.prisma.profile.findFirst.mockResolvedValue(null);
+    t.prisma.user.findUnique.mockResolvedValue({
+      isActive: false,
+      isRootBanned: true,
+      updatedAt: old,
+    });
+
+    await expect(
+      t.service.create('user-1', {
+        targetType: 'ACCOUNT_BAN',
+        reason,
+      } as never),
+    ).rejects.toMatchObject({ errorCode: 'APPEAL_WINDOW_CLOSED' });
   });
 
   it('ignores a target on appeals that take none', async () => {

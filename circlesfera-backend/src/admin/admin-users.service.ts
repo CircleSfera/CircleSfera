@@ -302,6 +302,11 @@ export class AdminUsersService {
       throw new NotFoundException('User not found');
     }
 
+    // The six months to appeal the ban count from now, on every Profile.
+    await this.prisma.profile.updateMany({
+      where: { userId },
+      data: { sanctionedAt: new Date() },
+    });
     const result = await this.prisma.user.update({
       where: { id: userId },
       data: { isActive: false, isRootBanned: true },
@@ -502,6 +507,7 @@ export class AdminUsersService {
         suspendedUntil: until,
         suspensionStrikeId: null,
         suspensionCause: null,
+        sanctionedAt: new Date(),
       },
     });
     await this.prisma.user.update({

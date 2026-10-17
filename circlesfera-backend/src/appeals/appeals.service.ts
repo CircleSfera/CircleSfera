@@ -1,7 +1,9 @@
-import type { ModerationReportFiledEvent } from '@circlesfera/shared';
+import {
+  ErrorCode,
+  type ModerationReportFiledEvent,
+} from '@circlesfera/shared';
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -9,6 +11,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationType, type Prisma } from '@prisma/client';
 import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
+import { AppException } from '../common/errors/app.exception.js';
 import { resolvedAtOnStatusChange } from '../common/utils/resolved-at.util.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
@@ -17,8 +20,15 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfileStrikesService } from '../strikes/profile-strikes.service.js';
 import { ActionLimitsService } from '../trust/action-limits.service.js';
 import { RiskDetectorService } from '../trust/risk-detector.service.js';
+import { appealDeadline } from './appeal-window.js';
 import { CreateAppealDto } from './dto/create-appeal.dto.js';
 import { UpdateAppealDto } from './dto/update-appeal.dto.js';
+
+// When an appealed decision was taken; see resolveOwnedTarget.
+interface DecisionTime {
+  recordedAt: Date | null;
+  latestAt: Date | null;
+}
 
 @Injectable()
 export class AppealsService {
@@ -38,22 +48,28 @@ export class AppealsService {
 
   // The appealed item must belong to the appellant: approving an appeal
   // restores it, so an appeal about someone else's post, strike or Profile
-  // is refused. Returns the target id to store.
+  // is refused. Returns the target id to store and when the decision was
+  // taken: `recordedAt` when it was written down, else `latestAt`, the last
+  // change of the item, never earlier than the decision but moving later.
   private async resolveOwnedTarget(
     userId: string,
     dto: CreateAppealDto,
     onlyProfileId?: string,
-  ): Promise<string | undefined> {
+  ): Promise<DecisionTime & { targetId: string | undefined }> {
     const targetId = dto.targetId?.trim() || undefined;
     switch (dto.targetType) {
       case 'POST_REMOVAL': {
         if (!targetId) throw new BadRequestException('targetId is required');
         const post = await this.prisma.post.findFirst({
           where: { id: targetId, profile: { userId } },
-          select: { id: true },
+          select: { id: true, moderatedAt: true, updatedAt: true },
         });
         if (!post) throw new NotFoundException('Post not found');
-        return targetId;
+        return {
+          targetId,
+          recordedAt: post.moderatedAt,
+          latestAt: post.updatedAt,
+        };
       }
       case 'STRIKE': {
         if (!targetId) throw new BadRequestException('targetId is required');
@@ -63,22 +79,31 @@ export class AppealsService {
             profile: { userId },
             ...(onlyProfileId ? { profileId: onlyProfileId } : {}),
           },
-          select: { id: true },
+          select: { id: true, createdAt: true },
         });
         if (!strike) throw new NotFoundException('Strike not found');
-        return targetId;
+        return { targetId, recordedAt: strike.createdAt, latestAt: null };
       }
       case 'RESTRICTION': {
         if (!targetId) throw new BadRequestException('targetId is required');
         const riskCase = await this.prisma.riskCase.findFirst({
           where: { id: targetId, profile: { userId } },
-          select: { id: true },
+          select: { id: true, restrictedAt: true, createdAt: true },
         });
         if (!riskCase) throw new NotFoundException('Restriction not found');
-        return targetId;
+        return {
+          targetId,
+          recordedAt: riskCase.restrictedAt ?? riskCase.createdAt,
+          latestAt: null,
+        };
       }
       case 'ACCOUNT_BAN': {
-        if (!targetId) return undefined;
+        if (!targetId) {
+          return {
+            targetId: undefined,
+            ...(await this.accountSanctionedAt(userId)),
+          };
+        }
         const profile = await this.prisma.profile.findFirst({
           where: { id: targetId, userId },
           select: {
@@ -86,6 +111,8 @@ export class AppealsService {
             isAccountBanned: true,
             suspendedUntil: true,
             suspensionCause: true,
+            sanctionedAt: true,
+            updatedAt: true,
           },
         });
         if (!profile) throw new NotFoundException('Profile not found');
@@ -101,57 +128,113 @@ export class AppealsService {
             'This profile is paused to protect it; contact support to get it back',
           );
         }
-        return targetId;
+        return {
+          targetId,
+          recordedAt: profile.sanctionedAt,
+          latestAt: profile.updatedAt,
+        };
+      }
+      case 'BOT_LABEL': {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { botLabeledAt: true },
+        });
+        // The label is on the account: no target is stored.
+        return {
+          targetId: undefined,
+          recordedAt: user?.botLabeledAt ?? null,
+          latestAt: null,
+        };
       }
       case 'PROMOTION_REJECTION': {
         if (!targetId) throw new BadRequestException('targetId is required');
         const promotion = await this.prisma.promotion.findFirst({
           where: { id: targetId, userId, status: 'REJECTED' },
-          select: { id: true },
+          select: { id: true, reviewedAt: true, updatedAt: true },
         });
         if (!promotion) throw new NotFoundException('Promotion not found');
-        return targetId;
+        return {
+          targetId,
+          recordedAt: promotion.reviewedAt,
+          latestAt: promotion.updatedAt,
+        };
       }
       default:
-        return undefined;
+        return { targetId: undefined, recordedAt: null, latestAt: null };
     }
+  }
+
+  // An appeal about the account with no Profile named: the latest ban or
+  // suspension of any of its Profiles, else the last change of an account
+  // that is closed by staff.
+  private async accountSanctionedAt(userId: string): Promise<DecisionTime> {
+    const profile = await this.prisma.profile.findFirst({
+      where: {
+        userId,
+        OR: [{ isAccountBanned: true }, { suspendedUntil: { not: null } }],
+      },
+      orderBy: { sanctionedAt: { sort: 'desc', nulls: 'last' } },
+      select: { sanctionedAt: true, updatedAt: true },
+    });
+    if (profile) {
+      return { recordedAt: profile.sanctionedAt, latestAt: profile.updatedAt };
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isActive: true, isRootBanned: true, updatedAt: true },
+    });
+    return {
+      recordedAt: null,
+      latestAt:
+        user && (user.isRootBanned || !user.isActive) ? user.updatedAt : null,
+    };
   }
 
   // onlyProfileId: set for appeals filed with a login-screen appeal token,
   // which may only concern the Profile that could not sign in.
   async create(userId: string, dto: CreateAppealDto, onlyProfileId?: string) {
-    const targetId = await this.resolveOwnedTarget(userId, dto, onlyProfileId);
+    const { targetId, recordedAt, latestAt } = await this.resolveOwnedTarget(
+      userId,
+      dto,
+      onlyProfileId,
+    );
+
+    // Six months from the decision, also after a warning or strike expired.
+    const decidedAt = recordedAt ?? latestAt;
+    if (decidedAt) {
+      const deadline = appealDeadline(decidedAt);
+      if (deadline < new Date()) {
+        throw AppException.BadRequest(
+          ErrorCode.APPEAL_WINDOW_CLOSED,
+          'The time to appeal this decision has passed',
+          { deadline: deadline.toISOString() },
+        );
+      }
+    }
 
     const appeal = await this.prisma.$transaction(async (tx) => {
       // Serialize appeals of one account so two concurrent requests cannot
-      // both pass the pending check.
+      // both pass the check below.
       await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`;
-      const pending = await tx.appeal.findFirst({
+      // Each decision is appealed once, whatever the outcome; a rejected
+      // appeal is not reopened. A later decision about the same item (a
+      // post removed again) is a new decision, with its own appeal. Only a
+      // recorded time tells decisions apart; without one, any earlier
+      // appeal of the item counts.
+      const earlier = await tx.appeal.findFirst({
         where: {
           userId,
           targetType: dto.targetType,
           targetId: targetId ?? null,
-          status: 'PENDING',
+          ...(recordedAt ? { createdAt: { gte: recordedAt } } : {}),
         },
         select: { id: true },
       });
-      if (pending) {
-        throw new ConflictException(
-          'An appeal for this decision is already pending',
+      if (earlier) {
+        throw AppException.Conflict(
+          ErrorCode.APPEAL_ALREADY_MADE,
+          'This decision has already been appealed',
         );
-      }
-      // A rejected promotion may be appealed once, whatever the outcome:
-      // checked under the lock, so an appeal decided meanwhile still counts.
-      if (dto.targetType === 'PROMOTION_REJECTION') {
-        const earlier = await tx.appeal.findFirst({
-          where: { userId, targetType: 'PROMOTION_REJECTION', targetId },
-          select: { id: true },
-        });
-        if (earlier) {
-          throw new ConflictException(
-            'This promotion has already been appealed',
-          );
-        }
       }
       return tx.appeal.create({
         data: {

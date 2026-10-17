@@ -51,7 +51,11 @@ describe('ReviewPromotionUseCase', () => {
     expect(refund.execute).toHaveBeenCalledWith('promo-1', 'admin-reject');
     expect(prisma.promotion.update).toHaveBeenCalledWith({
       where: { id: 'promo-1' },
-      data: { status: 'REJECTED', rejectionReason: 'Misleading' },
+      data: {
+        status: 'REJECTED',
+        rejectionReason: 'Misleading',
+        reviewedAt: expect.any(Date),
+      },
     });
     const notice = notifications.create.mock.calls[0][0];
     expect(notice).toMatchObject({
@@ -70,7 +74,11 @@ describe('ReviewPromotionUseCase', () => {
     expect(refund.execute).not.toHaveBeenCalled();
     expect(prisma.promotion.update).toHaveBeenCalledWith({
       where: { id: 'promo-1' },
-      data: { status: 'ACTIVE', rejectionReason: null },
+      data: {
+        status: 'ACTIVE',
+        rejectionReason: null,
+        reviewedAt: expect.any(Date),
+      },
     });
     expect(notifications.create.mock.calls[0][0]).toMatchObject({
       notice: { key: 'promotion_approved' },
