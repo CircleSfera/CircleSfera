@@ -69,6 +69,9 @@ describe('PostsService', () => {
     audio: {
       findUnique: vi.fn(),
     },
+    userSettings: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
   };
 
   const mockAIService = {
@@ -1054,6 +1057,65 @@ describe('PostsService', () => {
           }),
         }),
       );
+    });
+
+    it('shows a guest no hidden, removed or mature posts on a Profile page', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        id: 'user-public',
+        privacyLevel: Visibility.PUBLIC,
+        user: {},
+      });
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.count.mockResolvedValueOnce(0);
+
+      await service.findByUser('username', { page: 1, limit: 10 });
+
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            visibility: Visibility.PUBLIC,
+            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            contentRating: 'GENERAL',
+          }),
+        }),
+      );
+    });
+
+    it('shows mature posts on a Profile page to a viewer who allows them, blurred if asked', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        id: 'user-author',
+        privacyLevel: Visibility.PUBLIC,
+        user: {},
+      });
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'viewer-user',
+      });
+      mockPrismaService.userSettings.findUnique.mockResolvedValueOnce({
+        contentPreference: 'MATURE',
+        blurSensitiveContent: true,
+      });
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        {
+          id: 'p-m',
+          profileId: 'user-author',
+          contentRating: 'MATURE',
+          likes: [],
+          media: [],
+        },
+      ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(1);
+
+      const result = await service.findByUser(
+        'username',
+        { page: 1, limit: 10 },
+        undefined,
+        'viewer-2',
+      );
+
+      const where =
+        mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].where;
+      expect(where.contentRating).toBeUndefined();
+      expect((result.data[0] as any).shouldBlurSensitive).toBe(true);
     });
 
     it('constructs public filter when viewer is not logged in', async () => {

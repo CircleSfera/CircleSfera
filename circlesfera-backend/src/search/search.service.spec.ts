@@ -19,6 +19,9 @@ describe('SearchService', () => {
     hashtag: {
       findMany: vi.fn(),
     },
+    userSettings: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
     follow: {
       findMany: vi.fn(),
     },
@@ -75,7 +78,9 @@ describe('SearchService', () => {
 
       const result = await service.semanticSearchPosts('nature photography');
 
-      expect(result).toEqual([{ id: 'cached-post' }]);
+      expect(result).toEqual([
+        { id: 'cached-post', shouldBlurSensitive: false },
+      ]);
       expect(mockCacheManager.get).toHaveBeenCalled();
       expect(mockAIService.generateEmbedding).not.toHaveBeenCalled();
     });
@@ -538,8 +543,62 @@ describe('SearchService', () => {
       mockCacheManager.get.mockResolvedValueOnce([{ id: 'cached-trending' }]);
 
       const res = await service.getTrending(5);
-      expect(res).toEqual([{ id: 'cached-trending' }]);
+      expect(res).toEqual([
+        { id: 'cached-trending', shouldBlurSensitive: false },
+      ]);
       expect(mockPrismaService.$queryRaw).not.toHaveBeenCalled();
+    });
+
+    it('leaves out mature posts for a guest', async () => {
+      mockCacheManager.get.mockResolvedValueOnce([
+        { id: 'general', contentRating: 'GENERAL', profileId: 'a' },
+        { id: 'mature', contentRating: 'MATURE', profileId: 'a' },
+      ]);
+
+      const res = await service.getTrending(5);
+      expect(res.map((p) => p.id)).toEqual(['general']);
+    });
+
+    it('keeps mature posts for a viewer who allows them, blurred if asked', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'u1',
+      });
+      mockPrismaService.userSettings.findUnique.mockResolvedValueOnce({
+        contentPreference: 'MATURE',
+        blurSensitiveContent: true,
+      });
+      mockCacheManager.get.mockResolvedValueOnce([
+        { id: 'mature', contentRating: 'MATURE', profileId: 'a' },
+      ]);
+
+      const res = (await service.getTrending(5, 'viewer')) as any[];
+      expect(res).toEqual([
+        {
+          id: 'mature',
+          contentRating: 'MATURE',
+          profileId: 'a',
+          shouldBlurSensitive: true,
+        },
+      ]);
+    });
+
+    it('keeps the viewer own mature posts even when they prefer general', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'u1',
+      });
+      mockPrismaService.userSettings.findUnique.mockResolvedValueOnce({
+        contentPreference: 'GENERAL',
+        blurSensitiveContent: true,
+      });
+      mockCacheManager.get.mockResolvedValueOnce([
+        { id: 'mine', contentRating: 'MATURE', profileId: 'viewer' },
+        { id: 'theirs', contentRating: 'MATURE', profileId: 'a' },
+      ]);
+
+      const res = (await service.getTrending(5, 'viewer')) as any[];
+      expect(res.map((p) => [p.id, p.shouldBlurSensitive])).toEqual([
+        ['mine', false],
+      ]);
     });
 
     it('returns empty array if no trending posts in window', async () => {

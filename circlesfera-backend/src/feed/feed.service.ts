@@ -4,6 +4,11 @@ import { Visibility } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
 import {
+  loadViewerContent,
+  matureWhere,
+  shouldBlur,
+} from '../common/content/viewer-content.js';
+import {
   createPaginatedResult,
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
@@ -47,35 +52,10 @@ export class FeedService {
     };
   }
 
-  private async getViewerContentSettings(profileId: string | null) {
-    if (!profileId) {
-      return {
-        allowMature: false,
-        blurSensitiveContent: true,
-      };
-    }
-    // UserSettings is keyed by account User.id, not Profile.id
-    const profile = await this.prisma.profile.findUnique({
-      where: { id: profileId },
-      select: { userId: true },
-    });
-    if (!profile) {
-      return {
-        allowMature: false,
-        blurSensitiveContent: true,
-      };
-    }
-    const settings = await this.prisma.userSettings.findUnique({
-      where: { userId: profile.userId },
-      select: {
-        contentPreference: true,
-        blurSensitiveContent: true,
-      },
-    });
-    return {
-      allowMature: settings?.contentPreference === 'MATURE',
-      blurSensitiveContent: settings?.blurSensitiveContent ?? true,
-    };
+  // What the viewer asked to see of sensitive content, read the same way
+  // everywhere posts are listed.
+  private getViewerContentSettings(profileId: string | null) {
+    return loadViewerContent(this.prisma, profileId);
   }
 
   private buildRecommendationMeta(
@@ -394,9 +374,7 @@ export class FeedService {
           ...rest,
           isLiked,
           ...recommendationMeta,
-          shouldBlurSensitive:
-            viewerSettings.blurSensitiveContent &&
-            post.contentRating === 'MATURE',
+          shouldBlurSensitive: shouldBlur(post, viewerSettings, profileId),
         };
 
         if (finalPost.isPremium && finalPost.profileId !== profileId) {
@@ -477,6 +455,8 @@ export class FeedService {
           profile: await viewerAudienceWhere(this.prisma, profileId),
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
           scheduledStatus: 'PUBLISHED',
+          // Mature posts only for who allows them; their own always.
+          AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
         },
         include: this.postHydrationInclude(profileId),
       });
@@ -564,6 +544,7 @@ export class FeedService {
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
             ...preferenceFilter,
+            AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
             OR: [
               { visibility: Visibility.PUBLIC },
               { visibility: Visibility.FOLLOWERS },
@@ -582,6 +563,7 @@ export class FeedService {
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
             ...preferenceFilter,
+            AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
           },
         }),
       ]);
@@ -632,9 +614,7 @@ export class FeedService {
         ...rest,
         isLiked,
         ...recommendationMeta,
-        shouldBlurSensitive:
-          viewerSettings.blurSensitiveContent &&
-          post.contentRating === 'MATURE',
+        shouldBlurSensitive: shouldBlur(post, viewerSettings, profileId),
       };
 
       if (finalPost.isPremium && finalPost.profileId !== profileId) {
@@ -770,9 +750,7 @@ export class FeedService {
         ...rest,
         isLiked,
         ...recommendationMeta,
-        shouldBlurSensitive:
-          viewerSettings.blurSensitiveContent &&
-          post.contentRating === 'MATURE',
+        shouldBlurSensitive: shouldBlur(post, viewerSettings, currentProfileId),
       };
 
       if (finalPost.isPremium && finalPost.profileId !== currentProfileId) {
