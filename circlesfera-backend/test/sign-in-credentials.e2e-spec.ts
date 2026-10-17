@@ -126,7 +126,13 @@ describe('Sign-in credentials (e2e)', () => {
     const email = `signin_old_${id}@example.com`;
     try {
       const old = await prisma.user.create({
-        data: { email, password: 'hash-from-an-older-app' },
+        // An older app also writes the two-step flag: its schema still
+        // has a default for it, and the client sends defaults itself.
+        data: {
+          email,
+          password: 'hash-from-an-older-app',
+          isTwoFactorEnabled: false,
+        },
         select: { id: true },
       });
 
