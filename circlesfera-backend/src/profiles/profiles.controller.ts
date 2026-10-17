@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import {
   Body,
   Controller,
@@ -30,7 +31,9 @@ import {
   REFRESH_TOKEN_COOKIE,
   refreshTokenCookieOptions,
 } from '../common/config/cookie.config.js';
+import { AppException } from '../common/errors/app.exception.js';
 import { MemberAllowed } from '../team/member-allowed.decorator.js';
+import { RecordsActivity } from '../team/records-activity.decorator.js';
 import { CreateProfileDto } from './dto/create-profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ProfilesService } from './profiles.service.js';
@@ -156,11 +159,33 @@ export class ProfilesController {
   // Update the authenticated user's active profile.
   @Put('me')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @MemberAllowed('profile.edit')
+  @RecordsActivity('PROFILE_EDITED')
   async updateProfile(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: UpdateProfileDto,
   ) {
-    return this.profilesService.updateProfile(user.profileId, dto);
+    // Changing the kind of Profile would take it out of Business, which is
+    // the owner's call.
+    if (user.memberRole && dto.accountType !== undefined) {
+      throw AppException.Forbidden(
+        ErrorCode.TEAM_MEMBER_NOT_ALLOWED,
+        'Only the owner changes the kind of this profile',
+      );
+    }
+    const updated = await this.profilesService.updateProfile(
+      user.profileId,
+      dto,
+    );
+    // A member gets the Profile as a member sees it: the answer of the
+    // update carries the owner's account (email, role).
+    if (user.memberRole) {
+      return this.profilesService.getMemberProfile(
+        user.profileId,
+        user.memberRole,
+      );
+    }
+    return updated;
   }
 
   // Deactivate the authenticated user's account.

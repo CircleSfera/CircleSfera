@@ -9,7 +9,6 @@ const OWNER_ONLY_DIRS = [
   'chat',
   'payments',
   'monetization',
-  'creator',
   'notifications',
   'users',
   'admin',
@@ -39,6 +38,31 @@ describe('routes open to team members', () => {
   it('the owner areas exist, so the check above looks somewhere', () => {
     for (const dir of OWNER_ONLY_DIRS) {
       expect(controllers(join(SRC, dir)).length, dir).toBeGreaterThan(0);
+    }
+  });
+
+  it('in the creator tools, only figures open: promotions, revenue and its export stay with the owner', () => {
+    const source = readFileSync(
+      join(SRC, 'creator', 'creator.controller.ts'),
+      'utf8',
+    );
+    // Each route block from one decorator line to the next method.
+    const blocks = source.split(/\n(?= {2}@(?:Get|Post|Patch|Delete|Put)\()/);
+    const opened = blocks
+      .filter((b) => b.includes('@MemberAllowed('))
+      .map((b) => b.match(/@(?:Get|Post|Patch|Delete|Put)\('([^']*)'\)/)?.[1]);
+    expect(opened.sort()).toEqual(
+      [
+        'activity-chart',
+        'analytics/retention',
+        'analytics/top-posts',
+        'posts',
+        'stats',
+        'stories',
+      ].sort(),
+    );
+    for (const block of blocks.filter((b) => b.includes('@MemberAllowed('))) {
+      expect(block).toContain("@MemberAllowed('analytics.read')");
     }
   });
 });

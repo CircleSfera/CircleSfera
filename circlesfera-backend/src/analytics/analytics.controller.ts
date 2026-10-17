@@ -17,6 +17,7 @@ import {
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import { AnalyticsService } from './analytics.service.js';
 import { CreateEventBatchDto, CreateEventDto } from './dto/create-event.dto.js';
 
@@ -29,6 +30,7 @@ export class AnalyticsController {
 
   // Log a single telemetry interaction event
   @Post('events')
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async logEvent(
     @CurrentUser('userId') userId: string | null,
@@ -40,6 +42,7 @@ export class AnalyticsController {
 
   // Log a batch of telemetry interaction events
   @Post(['events/batch', 'batch'])
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async logEventsBatch(
     @CurrentUser('userId') userId: string | null,
@@ -51,6 +54,7 @@ export class AnalyticsController {
 
   // Get dashboard statistics for the current user (creator)
   @Get('dashboard')
+  @MemberAllowed('analytics.read')
   @UseGuards(JwtAuthGuard)
   async getDashboard(
     @CurrentUser('profileId') profileId: string,
@@ -64,6 +68,7 @@ export class AnalyticsController {
 
   // Track a view for a specific post
   @Post('post/:id/view')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async trackView(
     @Param('id') postId: string,
@@ -74,6 +79,7 @@ export class AnalyticsController {
 
   // Track a loop for a specific frame
   @Post('post/:id/loop')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async trackLoop(@Param('id') postId: string) {
     return this.analyticsService.trackFrameLoop(postId);
@@ -81,6 +87,7 @@ export class AnalyticsController {
 
   // Track watch time for a specific frame
   @Post('post/:id/watch')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async trackWatch(
     @Param('id') postId: string,
@@ -94,6 +101,7 @@ export class AnalyticsController {
 
   // Get detailed insights for a specific post (author only)
   @Get('post/:id/insights')
+  @MemberAllowed('analytics.read')
   @UseGuards(JwtAuthGuard)
   async getPostInsights(
     @Param('id') postId: string,

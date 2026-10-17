@@ -645,7 +645,8 @@
         "ACTIVE": "Active",
         "PAUSED": "Paused: the Business plan ended"
       },
-      "switcher_title": "Teams you work on"
+      "switcher_title": "Teams you work on",
+      "editor_no_profile": "Your role as editor publishes and answers comments; the owner or an administrator edits this profile."
     }
   },
   "auth": {

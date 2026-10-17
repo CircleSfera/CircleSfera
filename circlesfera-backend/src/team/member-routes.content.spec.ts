@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
 import { CommentsController } from '../comments/comments.controller.js';
 import { PostsController } from '../posts/posts.controller.js';
+import { ProfilesController } from '../profiles/profiles.controller.js';
 import { StoriesController } from '../stories/stories.controller.js';
 import { UploadsController } from '../uploads/uploads.controller.js';
 import { MEMBER_ALLOWED } from './member-allowed.decorator.js';
@@ -25,6 +26,7 @@ describe('content routes open to team members', () => {
     [CommentsController, 'create', 'comments.answer', 'COMMENT_WRITTEN'],
     [CommentsController, 'update', 'comments.answer', 'COMMENT_EDITED'],
     [CommentsController, 'remove', 'comments.answer', 'COMMENT_DELETED'],
+    [ProfilesController, 'updateProfile', 'profile.edit', 'PROFILE_EDITED'],
   ] as const)('%s.%s', (controller, method, access, action) => {
     expect(meta(controller, method, MEMBER_ALLOWED)).toBe(access);
     expect(meta(controller, method, RECORDS_ACTIVITY)).toBe(action);

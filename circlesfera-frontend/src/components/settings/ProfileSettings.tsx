@@ -44,6 +44,8 @@ export default function ProfileSettings() {
     queryFn: () => profileApi.getMyProfile(),
   });
   const profile = profileData?.data;
+  // Set when the session works on this Profile as a team member.
+  const memberRole = profile?.memberRole;
 
   const [fullName, setFullName] = useState('');
 
@@ -217,7 +219,8 @@ export default function ProfileSettings() {
     // Name and bio go only when they change: one kept from before the limits
     // were set may be longer than they allow, and must not stop the person
     // from saving the rest.
-    const data: UpdateProfileDto = { accountType };
+    // The kind of Profile is the owner's call: a team member never sends it.
+    const data: UpdateProfileDto = memberRole ? {} : { accountType };
     if (fullName !== (profile?.fullName || '')) data.fullName = fullName;
     if (bio !== (profile?.bio || '')) data.bio = bio;
     if (website && website.trim() !== '') {
@@ -245,6 +248,15 @@ export default function ProfileSettings() {
     { id: 'CREATOR' as const, icon: Star },
     { id: 'BUSINESS' as const, icon: BarChart3 },
   ];
+
+  // An editor works on content, not on the Profile itself.
+  if (memberRole === 'EDITOR') {
+    return (
+      <p className="max-w-xl text-sm text-white/60">
+        {t('settings.team.editor_no_profile')}
+      </p>
+    );
+  }
 
   return (
     <form onSubmit={handleProfileSubmit} className="space-y-5 max-w-xl">
@@ -517,7 +529,7 @@ export default function ProfileSettings() {
         </div>
       </SettingsSection>
 
-      {profile?.verificationLevel === 'BUSINESS' && (
+      {profile?.verificationLevel === 'BUSINESS' && !memberRole && (
         <SettingsSection title={t('settings.profile.company.title')}>
           <div className="p-4">
             {profile.companyVerified ? (
@@ -546,44 +558,52 @@ export default function ProfileSettings() {
         </SettingsSection>
       )}
 
-      <SettingsSection title={t('settings.profile.account_type')}>
-        {accountTypes.map((type) => {
-          const selected = accountType === type.id;
-          const Icon = type.icon;
-          return (
-            <SettingsRow
-              key={type.id}
-              as="button"
-              label={t(`settings.profile.types.${type.id.toLowerCase()}.label`)}
-              description={t(
-                `settings.profile.types.${type.id.toLowerCase()}.desc`,
-              )}
-              onClick={() => {
-                setAccountType(type.id);
-              }}
-              control={
-                <span className="flex items-center gap-2">
-                  <Icon
-                    size={16}
-                    className={
-                      selected ? 'text-brand-primary-text' : 'text-white/40'
-                    }
-                    aria-hidden
-                  />
-                  {selected ? (
-                    <span className="w-5 h-5 rounded-full bg-brand-primary flex items-center justify-center">
-                      <Check size={12} className="text-white" strokeWidth={3} />
-                    </span>
-                  ) : (
-                    <span className="w-5 h-5 rounded-full border border-white/20" />
-                  )}
-                </span>
-              }
-              className={selected ? 'bg-brand-primary/10' : ''}
-            />
-          );
-        })}
-      </SettingsSection>
+      {!memberRole && (
+        <SettingsSection title={t('settings.profile.account_type')}>
+          {accountTypes.map((type) => {
+            const selected = accountType === type.id;
+            const Icon = type.icon;
+            return (
+              <SettingsRow
+                key={type.id}
+                as="button"
+                label={t(
+                  `settings.profile.types.${type.id.toLowerCase()}.label`,
+                )}
+                description={t(
+                  `settings.profile.types.${type.id.toLowerCase()}.desc`,
+                )}
+                onClick={() => {
+                  setAccountType(type.id);
+                }}
+                control={
+                  <span className="flex items-center gap-2">
+                    <Icon
+                      size={16}
+                      className={
+                        selected ? 'text-brand-primary-text' : 'text-white/40'
+                      }
+                      aria-hidden
+                    />
+                    {selected ? (
+                      <span className="w-5 h-5 rounded-full bg-brand-primary flex items-center justify-center">
+                        <Check
+                          size={12}
+                          className="text-white"
+                          strokeWidth={3}
+                        />
+                      </span>
+                    ) : (
+                      <span className="w-5 h-5 rounded-full border border-white/20" />
+                    )}
+                  </span>
+                }
+                className={selected ? 'bg-brand-primary/10' : ''}
+              />
+            );
+          })}
+        </SettingsSection>
+      )}
 
       {hasBiometric && (
         <SettingsSection title={t('settings.security.title')}>
