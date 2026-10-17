@@ -511,7 +511,7 @@ jobs:
               for attempt in 1 2 3 4 5; do
                 code=$(curl -sS -o "$SMOKE_TMP"/cs-smoke-body -w "%{http_code}" \
                   --max-time 15 \
-                  "http://127.0.0.1:8082/api/v1${path}" || echo "000")
+                  "http://127.0.0.1:8082/api/v1${path}") || code="000"
                 case "$code" in
                   2*|3*|401|403|404)
                     echo "  OK  $code  $path"
