@@ -133,4 +133,21 @@ describe('PostGrid', () => {
     expect(tile).toHaveAttribute('href', '/p/post-1');
     expect(tile).toHaveClass('aspect-4/5');
   });
+  it('blurs the thumbnail of a sensitive post and says why', () => {
+    renderWithProviders(
+      <PostGrid
+        items={[
+          post({ id: 'm-1', caption: 'Mature', shouldBlurSensitive: true }),
+          post({ id: 'g-1', caption: 'General' }),
+        ]}
+        emptyMessage="Empty"
+        emptySubtext=""
+        icon={null}
+      />,
+    );
+
+    expect(screen.getByAltText('Mature')).toHaveClass('blur-xl');
+    expect(screen.getByAltText('General')).not.toHaveClass('blur-xl');
+    expect(screen.getAllByText(/sensitive/i)).toHaveLength(1);
+  });
 });

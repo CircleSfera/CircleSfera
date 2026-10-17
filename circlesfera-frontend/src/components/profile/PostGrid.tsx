@@ -1,5 +1,6 @@
-import { Clapperboard, Heart, MessageCircle } from 'lucide-react';
+import { Clapperboard, EyeOff, Heart, MessageCircle } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
 import { getPostPath } from '../../utils/postRoutes';
@@ -57,6 +58,7 @@ export default function PostGrid({
   hasMore = false,
   isLoadingMore = false,
 }: PostGridProps) {
+  const { t } = useTranslation();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const resolvedColumns =
     columns ?? (variant === 'frames' ? 'frames' : 'default');
@@ -94,88 +96,104 @@ export default function PostGrid({
   return (
     <div>
       <div className={GRID_CLASS[resolvedColumns]}>
-        {items.map((post) => (
-          <Link
-            key={post.id}
-            to={getPostPath(post)}
-            className={`${ASPECT_CLASS[aspectRatio]} relative group overflow-hidden bg-white/5`}
-          >
-            {post.type === 'FRAME' && (
-              <div className="absolute top-1.5 right-1.5 z-10">
-                <Clapperboard
-                  size={isFramesGrid || isExploreGrid ? 12 : 16}
-                  className="text-white drop-shadow-md"
+        {items.map((post) => {
+          // A sensitive post shows blurred here too; it is lifted on the
+          // post itself, by pressing on it.
+          const blurred = !!post.shouldBlurSensitive;
+          const mediaClass = `w-full h-full object-cover transition-transform duration-300 group-hover:scale-105${blurred ? ' blur-xl brightness-75' : ''}`;
+          return (
+            <Link
+              key={post.id}
+              to={getPostPath(post)}
+              className={`${ASPECT_CLASS[aspectRatio]} relative group overflow-hidden bg-white/5`}
+            >
+              {post.type === 'FRAME' && (
+                <div className="absolute top-1.5 right-1.5 z-10">
+                  <Clapperboard
+                    size={isFramesGrid || isExploreGrid ? 12 : 16}
+                    className="text-white drop-shadow-md"
+                  />
+                </div>
+              )}
+              {post.media?.[0]?.type === 'video' || post.type === 'FRAME' ? (
+                <video
+                  src={videoPreviewSrc(post.media?.[0])}
+                  poster={post.media?.[0]?.thumbnailUrl || undefined}
+                  className={mediaClass}
+                  muted
+                  playsInline
+                  loop
+                  preload={post.media?.[0]?.thumbnailUrl ? 'none' : 'metadata'}
+                  onMouseOver={(e) => {
+                    e.currentTarget.play().catch(() => {});
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.pause();
+                    e.currentTarget.currentTime = 0;
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.play().catch(() => {});
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.pause();
+                    e.currentTarget.currentTime = 0;
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                >
+                  <track kind="captions" />
+                </video>
+              ) : (
+                <img
+                  src={
+                    post.media?.[0]?.thumbnailUrl ||
+                    post.media?.[0]?.standardUrl ||
+                    post.media?.[0]?.url
+                  }
+                  srcSet={
+                    post.media?.[0]?.thumbnailUrl &&
+                    post.media?.[0]?.standardUrl
+                      ? `${post.media?.[0]?.thumbnailUrl} 300w, ${post.media?.[0]?.standardUrl} 600w`
+                      : undefined
+                  }
+                  sizes={
+                    isExploreGrid
+                      ? '(max-width: 768px) 33vw, (max-width: 1280px) 20vw, 16vw'
+                      : '(max-width: 768px) 33vw, 250px'
+                  }
+                  alt={post.caption || ''}
+                  className={mediaClass}
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.src = '#noimagex400?text=No+Image';
+                    e.currentTarget.srcset = '';
+                  }}
                 />
-              </div>
-            )}
-            {post.media?.[0]?.type === 'video' || post.type === 'FRAME' ? (
-              <video
-                src={videoPreviewSrc(post.media?.[0])}
-                poster={post.media?.[0]?.thumbnailUrl || undefined}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                muted
-                playsInline
-                loop
-                preload={post.media?.[0]?.thumbnailUrl ? 'none' : 'metadata'}
-                onMouseOver={(e) => {
-                  e.currentTarget.play().catch(() => {});
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.pause();
-                  e.currentTarget.currentTime = 0;
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.play().catch(() => {});
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.pause();
-                  e.currentTarget.currentTime = 0;
-                }}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              >
-                <track kind="captions" />
-              </video>
-            ) : (
-              <img
-                src={
-                  post.media?.[0]?.thumbnailUrl ||
-                  post.media?.[0]?.standardUrl ||
-                  post.media?.[0]?.url
-                }
-                srcSet={
-                  post.media?.[0]?.thumbnailUrl && post.media?.[0]?.standardUrl
-                    ? `${post.media?.[0]?.thumbnailUrl} 300w, ${post.media?.[0]?.standardUrl} 600w`
-                    : undefined
-                }
-                sizes={
-                  isExploreGrid
-                    ? '(max-width: 768px) 33vw, (max-width: 1280px) 20vw, 16vw'
-                    : '(max-width: 768px) 33vw, 250px'
-                }
-                alt={post.caption || ''}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-                onError={(e) => {
-                  e.currentTarget.src = '#noimagex400?text=No+Image';
-                  e.currentTarget.srcset = '';
-                }}
-              />
-            )}
+              )}
 
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 pointer-events-none">
-              <div className="flex items-center gap-1.5 text-white font-bold text-xs md:text-sm">
-                <Heart size={statIconSize} fill="white" />
-                <span>{post._count?.likes || 0}</span>
+              {blurred && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 px-2 text-center text-white pointer-events-none">
+                  <EyeOff size={statIconSize} aria-hidden="true" />
+                  <span className="text-xs font-semibold">
+                    {t('post.media.sensitive')}
+                  </span>
+                </div>
+              )}
+
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 pointer-events-none">
+                <div className="flex items-center gap-1.5 text-white font-bold text-xs md:text-sm">
+                  <Heart size={statIconSize} fill="white" />
+                  <span>{post._count?.likes || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-white font-bold text-xs md:text-sm">
+                  <MessageCircle size={statIconSize} fill="white" />
+                  <span>{post._count?.comments || 0}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-white font-bold text-xs md:text-sm">
-                <MessageCircle size={statIconSize} fill="white" />
-                <span>{post._count?.comments || 0}</span>
-              </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </div>
 
       {(hasMore || isLoadingMore) && (

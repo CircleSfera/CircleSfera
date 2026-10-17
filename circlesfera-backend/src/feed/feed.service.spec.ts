@@ -286,19 +286,42 @@ describe('FeedService', () => {
       expect(result.data).toHaveLength(1);
     });
 
-    it('does not hide MATURE posts when the viewer prefers GENERAL', async () => {
+    it('hides MATURE posts of others when the viewer prefers GENERAL', async () => {
       mockPrismaService.follow.findMany.mockResolvedValue([
         { followingId: 'user-2' },
       ]);
-      mockPrismaService.post.findMany.mockResolvedValue([
-        { id: '1', likes: [], contentRating: 'MATURE' },
-      ]);
-      mockPrismaService.post.count.mockResolvedValue(1);
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      mockPrismaService.post.count.mockResolvedValue(0);
 
       await service.getFollowingFeed('user-1', { page: 1, limit: 10 });
 
       const where = mockPrismaService.post.findMany.mock.calls[0][0].where;
-      expect(where.contentRating).toBeUndefined();
+      expect(where.AND).toContainEqual({
+        OR: [{ contentRating: 'GENERAL' }, { profileId: 'user-1' }],
+      });
+    });
+
+    it('shows MATURE posts in following when the viewer allows them', async () => {
+      mockPrismaService.userSettings.findUnique.mockResolvedValue({
+        contentPreference: 'MATURE',
+        blurSensitiveContent: false,
+      });
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'user-2' },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: '1', likes: [], contentRating: 'MATURE', profileId: 'user-2' },
+      ]);
+      mockPrismaService.post.count.mockResolvedValue(1);
+
+      const result = await service.getFollowingFeed('user-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      const where = mockPrismaService.post.findMany.mock.calls[0][0].where;
+      expect(where.AND).toContainEqual({ OR: [{}, { profileId: 'user-1' }] });
+      expect(result.data[0].shouldBlurSensitive).toBe(false);
     });
 
     it('blurs MATURE posts in following when blur is enabled', async () => {

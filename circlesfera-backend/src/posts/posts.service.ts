@@ -20,6 +20,12 @@ import {
   MIN_PPV_PRICE_CENTS,
 } from '../common/constants/monetization.constants.js';
 import {
+  loadViewerContent,
+  matureWhere,
+  shouldBlur,
+  type ViewerContent,
+} from '../common/content/viewer-content.js';
+import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
@@ -331,6 +337,7 @@ export class PostsService {
   ) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
+    const content = await loadViewerContent(this.prisma, currentProfileId);
 
     const [posts, total] = await Promise.all([
       this.prisma.post.findMany({
@@ -382,7 +389,7 @@ export class PostsService {
     ]);
 
     return createPaginatedResult(
-      posts.map((post) => this.injectIsLiked(post, undefined)),
+      posts.map((post) => this.injectIsLiked(post, currentProfileId, content)),
       total,
       page,
       limit,
@@ -402,6 +409,7 @@ export class PostsService {
   ) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
+    const content = await loadViewerContent(this.prisma, currentProfileId);
 
     const orderBy: Prisma.PostOrderByWithRelationInput =
       sort === 'trending'
@@ -454,6 +462,7 @@ export class PostsService {
         ...rest,
         media: rest.media.map(resolveMediaFields),
         isLiked,
+        shouldBlurSensitive: shouldBlur(rest, content, currentProfileId),
       };
     });
 
@@ -478,6 +487,7 @@ export class PostsService {
   async getFramesFeed(pagination: PaginationDto, currentProfileId?: string) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
+    const content = await loadViewerContent(this.prisma, currentProfileId);
 
     // Frames are usually randomized or trending, for now we will just show latest frames globally
     const [posts, total] = await Promise.all([
@@ -526,6 +536,7 @@ export class PostsService {
         ...rest,
         media: rest.media.map(resolveMediaFields),
         isLiked,
+        shouldBlurSensitive: shouldBlur(rest, content, currentProfileId),
       };
     });
 
@@ -581,7 +592,8 @@ export class PostsService {
         console.error('Failed to track view in findOne:', err);
       });
 
-    return this.injectIsLiked(post, currentProfileId) as Record<
+    const content = await loadViewerContent(this.prisma, currentProfileId);
+    return this.injectIsLiked(post, currentProfileId, content) as Record<
       string,
       unknown
     >;
@@ -632,9 +644,14 @@ export class PostsService {
       }
     }
 
+    const content = await loadViewerContent(this.prisma, currentProfileId);
     const whereClause: Prisma.PostWhereInput = {
       profileId: profile.id,
-      ...this.getUserProfileVisibilityFilter(profile.id, currentProfileId),
+      ...this.getUserProfileVisibilityFilter(
+        profile.id,
+        currentProfileId,
+        content,
+      ),
     };
 
     if (type) {
@@ -670,7 +687,7 @@ export class PostsService {
     ]);
 
     const postsWithLikes = posts.map((post) =>
-      this.injectIsLiked(post, currentProfileId),
+      this.injectIsLiked(post, currentProfileId, content),
     );
     const processedPosts = await this.postPaywallService.applyPaywall(
       postsWithLikes,
@@ -698,6 +715,7 @@ export class PostsService {
   ) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
+    const content = await loadViewerContent(this.prisma, currentProfileId);
 
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
@@ -752,7 +770,7 @@ export class PostsService {
     ]);
 
     return createPaginatedResult(
-      posts.map((post) => this.injectIsLiked(post, undefined)),
+      posts.map((post) => this.injectIsLiked(post, currentProfileId, content)),
       total,
       page,
       limit,
@@ -844,9 +862,12 @@ export class PostsService {
   private async getGlobalVisibilityFilter(
     currentProfileId?: string,
   ): Promise<Prisma.PostWhereInput> {
+    // Mature posts only for who allows them; the viewer's own always.
+    const content = await loadViewerContent(this.prisma, currentProfileId);
     const baseFilter: Prisma.PostWhereInput = {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE',
+      ...matureWhere(content),
       profile: {
         AND: [
           { privacyLevel: Visibility.PUBLIC },
@@ -864,7 +885,8 @@ export class PostsService {
   // Adjusts visibility based on whether the viewer is the author or a follower.
   private getUserProfileVisibilityFilter(
     authorId: string,
-    currentProfileId?: string,
+    currentProfileId: string | undefined,
+    content: ViewerContent,
   ): Prisma.PostWhereInput {
     if (authorId === currentProfileId) return {}; // Author sees everything
 
@@ -872,11 +894,19 @@ export class PostsService {
       visibility: Visibility.PUBLIC,
     };
 
-    // If not logged in, only see public
-    if (!currentProfileId) return publicFilter;
+    // If not logged in, only see public posts that moderation has not
+    // hidden or removed, and no mature ones.
+    if (!currentProfileId) {
+      return {
+        ...publicFilter,
+        moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+        ...matureWhere(content),
+      };
+    }
 
     return {
       moderationStatus: { in: ['VISIBLE', 'FLAGGED'] }, // Still show flagged but not hidden
+      ...matureWhere(content),
       OR: [
         publicFilter,
         {
@@ -897,7 +927,8 @@ export class PostsService {
   private injectIsLiked<T extends Record<string, any>>(
     post: T,
     currentProfileId?: string,
-  ): T & { isLiked: boolean } {
+    content?: ViewerContent,
+  ): T & { isLiked: boolean; shouldBlurSensitive?: boolean } {
     const { likes, ...rest } = post as T & {
       likes?: unknown[];
       media?: any[];
@@ -925,6 +956,9 @@ export class PostsService {
         ? { media: rest.media.map(resolveMediaFields) }
         : {}),
       isLiked,
+      ...(content && {
+        shouldBlurSensitive: shouldBlur(post, content, currentProfileId),
+      }),
     };
   }
 }

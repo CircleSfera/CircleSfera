@@ -5,6 +5,10 @@ import type { Hashtag, Post } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
 import {
+  loadViewerContent,
+  shouldBlur,
+} from '../common/content/viewer-content.js';
+import {
   getBlockedProfileIds,
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
@@ -41,6 +45,28 @@ export class SearchService {
   // AI-powered semantic search for posts.
   // Uses vector similarity to find content that matches the concept of the query,
   // Even if exact keywords aren't present.
+  // Posts as this viewer asked to see sensitive content: mature ones only if
+  // allowed (their own always), each marked when it shows blurred.
+  private async forViewer<
+    T extends { contentRating?: string | null; profileId?: string },
+  >(
+    posts: T[],
+    viewerId?: string,
+  ): Promise<Array<T & { shouldBlurSensitive: boolean }>> {
+    const content = await loadViewerContent(this.prisma, viewerId);
+    return posts
+      .filter(
+        (p) =>
+          content.allowMature ||
+          p.contentRating !== 'MATURE' ||
+          (viewerId && p.profileId === viewerId),
+      )
+      .map((p) => ({
+        ...p,
+        shouldBlurSensitive: shouldBlur(p, content, viewerId),
+      }));
+  }
+
   async semanticSearchPosts(
     query: string,
     limit = 10,
@@ -50,7 +76,7 @@ export class SearchService {
 
     const cacheKey = `search:semantic:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
-    if (cached) return cached;
+    if (cached) return this.forViewer(cached, profileId);
 
     try {
       // 1. Generate embedding for the search query
@@ -125,7 +151,7 @@ export class SearchService {
 
       const filtered = posts.filter(Boolean);
       await this.cacheManager.set(cacheKey, filtered, 600000); // 10 min cache for semantic
-      return filtered;
+      return this.forViewer(filtered, profileId);
     } catch (error) {
       console.error('Semantic Search Error:', error);
       return [];
@@ -466,12 +492,15 @@ export class SearchService {
     // The cached list is viewer-independent; blocks and audiences
     // are applied per viewer afterwards so neither leaks through the cache.
     const blocked = new Set(await getBlockedProfileIds(this.prisma, viewerId));
-    const withoutBlocked = (posts: Post[]) =>
-      filterToViewerAudience(
-        this.prisma,
+    const withoutBlocked = async (posts: Post[]) =>
+      this.forViewer(
+        await filterToViewerAudience(
+          this.prisma,
+          viewerId,
+          posts.filter((p) => !blocked.has(p.profileId)),
+          (p) => p.profileId,
+        ),
         viewerId,
-        posts.filter((p) => !blocked.has(p.profileId)),
-        (p) => p.profileId,
       );
 
     const cacheKey = `trending_v3:${limit}`;
@@ -549,13 +578,12 @@ export class SearchService {
     });
 
     // Rank by engagement alone: a plan does not move a post up.
-    return posts
-      .sort((a, b) => {
-        const scoreA = a._count.likes * 1.2 + a._count.comments * 2.5;
-        const scoreB = b._count.likes * 1.2 + b._count.comments * 2.5;
+    const ranked = posts.sort((a, b) => {
+      const scoreA = a._count.likes * 1.2 + a._count.comments * 2.5;
+      const scoreB = b._count.likes * 1.2 + b._count.comments * 2.5;
 
-        return scoreB - scoreA;
-      })
-      .slice(0, 15);
+      return scoreB - scoreA;
+    });
+    return (await this.forViewer(ranked, viewerId)).slice(0, 15);
   }
 }
