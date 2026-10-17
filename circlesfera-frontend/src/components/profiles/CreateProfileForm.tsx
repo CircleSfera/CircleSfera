@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useProfileSwitch } from '../../hooks/useProfileSwitch';
 import { type ProfileAccountType, profileApi } from '../../services';
 import { SIGN_INS_QUERY_KEY, signInsApi } from '../../services/signIns.service';
+import { apiErrorCode } from '../../utils/apiErrorMessage';
 import { Button, Input } from '../ui';
 import { MY_PROFILES_QUERY_KEY } from './OwnedProfileList';
 
@@ -99,8 +100,13 @@ export default function CreateProfileForm({
             password,
             currentPassword,
           });
-        } catch {
-          toast.error(t('settings.signIns.create.own_failed'));
+        } catch (error) {
+          // A leaked password says so first; the Profile is made either way.
+          toast.error(
+            apiErrorCode(error) === 'PASSWORD_LEAKED'
+              ? `${t('errors.codes.PASSWORD_LEAKED')} ${t('settings.signIns.create.own_failed')}`
+              : t('settings.signIns.create.own_failed'),
+          );
         }
       }
       void queryClient.invalidateQueries({ queryKey: SIGN_INS_QUERY_KEY });

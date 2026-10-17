@@ -9,6 +9,7 @@ import { BUTTON_FIT, BUTTON_ROW } from '../components/ui/buttonWidth';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, profileApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
+import { apiErrorCode } from '../utils/apiErrorMessage';
 import { toAppLocale } from '../utils/appLocale';
 import { logger } from '../utils/logger';
 import { getVisitorId } from '../utils/visitorId';
@@ -59,8 +60,12 @@ export default function Register() {
     },
     // A refused sign-up (email or username taken, closed registration,
     // failed security check) used to leave the form silent.
-    onError: () => {
-      toast.error(t('auth.register.default_error'));
+    onError: (error) => {
+      toast.error(
+        apiErrorCode(error) === 'PASSWORD_LEAKED'
+          ? t('errors.codes.PASSWORD_LEAKED')
+          : t('auth.register.default_error'),
+      );
     },
   });
 

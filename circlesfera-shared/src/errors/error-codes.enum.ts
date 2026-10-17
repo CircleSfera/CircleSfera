@@ -95,6 +95,8 @@ export enum ErrorCode {
   SIGN_IN_ALREADY_OWN = 'SIGN_IN_ALREADY_OWN',
   // The Profile or the sign-in named is not one of the person's.
   SIGN_IN_NOT_FOUND = 'SIGN_IN_NOT_FOUND',
+  // The new password is in the list of known leaked passwords.
+  PASSWORD_LEAKED = 'PASSWORD_LEAKED',
   // Too many new sign-ins in a short time; details carry when to try again.
   SIGN_IN_LIMIT_REACHED = 'SIGN_IN_LIMIT_REACHED',
 

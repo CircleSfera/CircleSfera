@@ -217,6 +217,15 @@ describe('SignInsService', () => {
       );
     });
 
+    it('refuses a leaked password and creates nothing', async () => {
+      expect(
+        await codeOf(
+          service.giveOwn(session, { ...own, password: 'Password123' }, proof),
+        ),
+      ).toBe('400 PASSWORD_LEAKED');
+      expect(tx.signIn.create).not.toHaveBeenCalled();
+    });
+
     it('looks for the Profile among those of the person, and answers not found for one of someone else', async () => {
       prisma.profile.findFirst.mockResolvedValue(null);
 
