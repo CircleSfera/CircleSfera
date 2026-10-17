@@ -105,16 +105,33 @@ describe('RecordPromotionInteractionUseCase.recordView', () => {
     );
   });
 
-  it('charges nothing for the owner, a stopped promotion or a guest', async () => {
+  it('charges nothing for the owner', async () => {
     answers(promo());
     expect(await useCase.recordView('promo-1', 'owner')).toEqual({
       success: false,
     });
+    expect(tx.promotion.update).not.toHaveBeenCalled();
+  });
+
+  it('charges nothing for a promotion that is not running', async () => {
     answers(promo({ status: 'PAUSED' }));
     expect(await useCase.recordView('promo-1', 'viewer')).toEqual({
       success: false,
     });
+    expect(tx.promotion.update).not.toHaveBeenCalled();
+  });
+
+  it('charges nothing for a guest, and asks nothing', async () => {
     expect(await useCase.recordView('promo-1', '')).toEqual({
+      success: false,
+    });
+    expect(tx.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('counts no view past the daily cap of a person', async () => {
+    tx.$queryRaw.mockResolvedValueOnce([promo()]).mockResolvedValueOnce([]);
+
+    expect(await useCase.recordView('promo-1', 'viewer')).toEqual({
       success: false,
     });
     expect(tx.promotion.update).not.toHaveBeenCalled();

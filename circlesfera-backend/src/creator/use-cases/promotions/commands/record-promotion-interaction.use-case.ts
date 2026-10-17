@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PromotionStatus } from '@prisma/client';
-import { PROMOTION_COST_PER_VIEW_CENTS } from '../../../../common/constants/monetization.constants.js';
+import {
+  PROMOTION_COST_PER_VIEW_CENTS,
+  PROMOTION_VIEWS_PER_PERSON_PER_DAY,
+} from '../../../../common/constants/monetization.constants.js';
 import {
   dailyBudgetReached,
   spentOn,
@@ -65,8 +68,13 @@ export class RecordPromotionInteractionUseCase {
         VALUES (${promotionId}, ${viewerId}, ${day}::date, 1)
         ON CONFLICT ("promotionId", "userId", "day")
         DO UPDATE SET "views" = promotion_views."views" + 1
+        WHERE promotion_views."views" < ${PROMOTION_VIEWS_PER_PERSON_PER_DAY}
         RETURNING "views"
       `;
+      // Seen as often as a day allows: not counted again.
+      if (seen.length === 0) {
+        return { success: false };
+      }
       // Seen before today: counted and paid already.
       if ((seen[0]?.views ?? 1) > 1) {
         return { success: true };
