@@ -4,15 +4,16 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from './../src/app.module.js';
-import { MAX_PASSKEYS_PER_ACCOUNT } from '../src/auth/passkey/passkey.service.js';
+import { MAX_PASSKEYS_PER_SIGN_IN } from '../src/auth/passkey/passkey.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { uniqueSuffix } from './utils/unique-id.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 
-// An account may register a limited number of passkeys; past it the server
-// refuses to start another registration.
-describe('Passkey limit per account (e2e)', () => {
+// A sign-in may register a limited number of passkeys; past it the server
+// refuses to start another registration. Each sign-in of an account counts
+// its own.
+describe('Passkey limit per sign-in (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let csrfToken: string;
@@ -34,10 +35,12 @@ describe('Passkey limit per account (e2e)', () => {
       .set('Cookie', cookies)
       .set('x-csrf-token', csrfToken);
 
-  const addStoredPasskeys = (count: number, from: number) =>
+  // Without a sign-in named, a passkey goes to the account's first one.
+  const addStoredPasskeys = (count: number, from: number, signInId?: string) =>
     prisma.passkey.createMany({
       data: Array.from({ length: count }, (_, i) => ({
         userId,
+        ...(signInId ? { signInId } : {}),
         credentialID: `pk-limit-${id}-${from + i}`,
         publicKey: Buffer.from('test-key'),
         counter: BigInt(0),
@@ -94,22 +97,36 @@ describe('Passkey limit per account (e2e)', () => {
     await app.close();
   });
 
-  it('starts a registration while the account is below the limit', async () => {
-    await addStoredPasskeys(MAX_PASSKEYS_PER_ACCOUNT - 1, 0);
+  it("another sign-in's passkeys do not count towards this sign-in's limit", async () => {
+    const other = await prisma.signIn.create({
+      data: {
+        userId,
+        email: `pk_limit_other_${id}@example.com`,
+        password: 'hash',
+      },
+      select: { id: true },
+    });
+    await addStoredPasskeys(MAX_PASSKEYS_PER_SIGN_IN, 100, other.id);
+
+    await registerOptions().expect(201);
+  });
+
+  it('starts a registration while the sign-in is below the limit', async () => {
+    await addStoredPasskeys(MAX_PASSKEYS_PER_SIGN_IN - 1, 0);
 
     const res = await registerOptions().expect(201);
 
     expect(typeof res.body.challenge).toBe('string');
   });
 
-  it('refuses another registration once the account is at the limit', async () => {
-    await addStoredPasskeys(1, MAX_PASSKEYS_PER_ACCOUNT);
+  it('refuses another registration once the sign-in is at the limit', async () => {
+    await addStoredPasskeys(1, MAX_PASSKEYS_PER_SIGN_IN);
 
     const res = await registerOptions().expect(409);
 
     expect(res.body).toMatchObject({
       errorCode: 'PASSKEY_LIMIT_REACHED',
-      details: { max: MAX_PASSKEYS_PER_ACCOUNT },
+      details: { max: MAX_PASSKEYS_PER_SIGN_IN },
     });
   });
 });
