@@ -114,10 +114,8 @@ export function createCspDirectives(options: CspOptions) {
   return {
     defaultSrc: ["'self'"],
     scriptSrc: options.isSwagger ? ["'self'", "'unsafe-inline'"] : ["'self'"],
-    styleSrc: options.isSwagger
-      ? ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com']
-      : ["'self'", 'https://fonts.googleapis.com'],
-    fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+    styleSrc: options.isSwagger ? ["'self'", "'unsafe-inline'"] : ["'self'"],
+    fontSrc: ["'self'"],
     imgSrc: [
       "'self'",
       'data:',

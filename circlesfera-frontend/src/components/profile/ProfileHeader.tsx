@@ -575,8 +575,9 @@ export default function ProfileHeader({
               )}
           </div>
 
-          {/* Mobile Only Action Buttons */}
-          <div className="flex md:hidden items-center gap-1.5 pt-1">
+          {/* Mobile Only Action Buttons. Four 44 px buttons and creator mode
+              share 390 px: a 4 px gap leaves the label room in Inter. */}
+          <div className="flex md:hidden items-center gap-1 pt-1">
             {isMe ? (
               <>
                 <button

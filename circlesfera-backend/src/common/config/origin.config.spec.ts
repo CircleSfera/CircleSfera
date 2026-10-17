@@ -107,10 +107,9 @@ describe('Origin & CSP Hardening Configuration', () => {
       expect(directives.defaultSrc).toEqual(["'self'"]);
       expect(directives.scriptSrc).toEqual(["'self'"]);
       expect(directives.scriptSrc).not.toContain("'unsafe-inline'");
-      expect(directives.styleSrc).toEqual([
-        "'self'",
-        'https://fonts.googleapis.com',
-      ]);
+      expect(directives.styleSrc).toEqual(["'self'"]);
+      // Fonts are served by CircleSfera itself, never by a third party.
+      expect(directives.fontSrc).toEqual(["'self'"]);
       expect(directives.styleSrc).not.toContain("'unsafe-inline'");
 
       // Connect sources must be bounded without wss://*
