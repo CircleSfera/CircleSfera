@@ -120,6 +120,14 @@ The steps follow PD-014:
   - An editor sees that the Profile is edited by the owner or an administrator.
   - The company verification stays with the owner.
 
+### The owner's activity log (step 6)
+
+- `GET /team/activity` lists, by pages and newest first, what was done on the Profile of the
+  session: who, which action, on what and when. It is for the owner only (`team.manage`).
+- The owner's own actions are marked as theirs. A person whose account is gone stays in the log
+  without a name.
+- The log stays readable after the Business plan ends, under Settings → Teams.
+
 ## Consequences
 
 - Authorization moves, step by step, from "the account owns the Profile" to "this person can do

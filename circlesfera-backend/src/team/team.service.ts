@@ -6,6 +6,7 @@ import {
   type Prisma,
   type ProfileMemberRole,
 } from '@prisma/client';
+import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfileAccessService } from './profile-access.service.js';
@@ -176,6 +177,41 @@ export class TeamService {
       );
     }
     return { success: true };
+  }
+
+  // What was done on the Profile in use and by whom, newest first, for its
+  // owner (PD-014: the owner sees every person's actions).
+  async activity(userId: string, profileId: string, page = 1, limit = 20) {
+    await this.access.assertCan(userId, profileId, 'team.manage');
+    const where = { profileId };
+    const [rows, total] = await Promise.all([
+      this.prisma.profileActivity.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          action: true,
+          targetId: true,
+          createdAt: true,
+          userId: true,
+          user: { select: PERSON_SELECT },
+        },
+      }),
+      this.prisma.profileActivity.count({ where }),
+    ]);
+    return createPaginatedResult(
+      rows.map(({ user, userId: actorId, ...row }) => ({
+        ...row,
+        // The owner's own actions are marked as theirs.
+        byOwner: actorId === userId,
+        person: user?.profiles[0] ?? null,
+      })),
+      total,
+      page,
+      limit,
+    );
   }
 
   // The Business Profiles the person works on as an active member, for the

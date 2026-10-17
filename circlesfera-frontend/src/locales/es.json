@@ -646,7 +646,36 @@
         "PAUSED": "En pausa: terminó el plan Business"
       },
       "switcher_title": "Equipos en los que trabajas",
-      "editor_no_profile": "Tu rol de editor publica y responde comentarios; el dueño o un administrador edita este perfil."
+      "editor_no_profile": "Tu rol de editor publica y responde comentarios; el dueño o un administrador edita este perfil.",
+      "activity": {
+        "title": "Actividad del equipo",
+        "desc": "Lo que ha hecho cada persona en este perfil, de lo más reciente a lo más antiguo.",
+        "you": "Tú",
+        "former": "Un antiguo miembro",
+        "empty": "Todavía no se ha hecho nada en este perfil.",
+        "error": "No se ha podido cargar la actividad.",
+        "more": "Ver más",
+        "action": {
+          "POST_PUBLISHED": "ha publicado una publicación",
+          "POST_EDITED": "ha editado una publicación",
+          "POST_DELETED": "ha eliminado una publicación",
+          "STORY_PUBLISHED": "ha publicado una historia",
+          "STORY_DELETED": "ha eliminado una historia",
+          "COMMENT_WRITTEN": "ha escrito un comentario",
+          "COMMENT_EDITED": "ha editado un comentario",
+          "COMMENT_DELETED": "ha eliminado un comentario",
+          "PROFILE_EDITED": "ha editado el perfil",
+          "POST_PUBLISHED_you": "has publicado una publicación",
+          "POST_EDITED_you": "has editado una publicación",
+          "POST_DELETED_you": "has eliminado una publicación",
+          "STORY_PUBLISHED_you": "has publicado una historia",
+          "STORY_DELETED_you": "has eliminado una historia",
+          "COMMENT_WRITTEN_you": "has escrito un comentario",
+          "COMMENT_EDITED_you": "has editado un comentario",
+          "COMMENT_DELETED_you": "has eliminado un comentario",
+          "PROFILE_EDITED_you": "has editado el perfil"
+        }
+      }
     }
   },
   "auth": {

@@ -14,6 +14,7 @@ import { apiErrorMessage, apiErrorStatus } from '../../utils/apiErrorMessage';
 import UserAvatar from '../UserAvatar';
 import { Button, Input, Select } from '../ui';
 import SettingsSection from './SettingsSection';
+import TeamActivity from './TeamActivity';
 
 const ROLES: TeamRole[] = ['EDITOR', 'ADMINISTRATOR'];
 
@@ -266,6 +267,9 @@ export default function TeamSettings() {
           </div>
         ) : null}
       </SettingsSection>
+
+      {/* The log stays readable after the plan ends. */}
+      {ownsTeam && data && <TeamActivity />}
     </div>
   );
 }

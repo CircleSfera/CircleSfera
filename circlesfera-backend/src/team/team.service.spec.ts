@@ -14,6 +14,7 @@ describe('TeamService', () => {
       update: vi.fn(),
       updateMany: vi.fn(),
     },
+    profileActivity: { findMany: vi.fn(), count: vi.fn() },
     signIn: { findFirst: vi.fn() },
     $queryRaw: vi.fn(),
     $transaction: vi.fn(),
@@ -211,6 +212,75 @@ describe('TeamService', () => {
       );
       await invite();
       expect(notices()).toEqual([]);
+    });
+  });
+
+  describe('the activity log', () => {
+    it('is for the owner only, newest first, and names who did each thing', async () => {
+      const at = new Date('2026-10-10T10:00:00Z');
+      prisma.profileActivity.findMany.mockResolvedValue([
+        {
+          id: 'a-1',
+          action: 'POST_PUBLISHED',
+          targetId: 'post-1',
+          createdAt: at,
+          userId: 'u-ana',
+          user: { profiles: [{ id: 'p-ana', username: 'ana' }] },
+        },
+        {
+          id: 'a-2',
+          action: 'PROFILE_EDITED',
+          targetId: null,
+          createdAt: at,
+          userId: 'u-owner',
+          user: { profiles: [{ id: 'p-owner', username: 'shop' }] },
+        },
+        {
+          id: 'a-3',
+          action: 'COMMENT_DELETED',
+          targetId: 'c-1',
+          createdAt: at,
+          userId: null,
+          user: null,
+        },
+      ]);
+      prisma.profileActivity.count.mockResolvedValue(43);
+
+      const res = await team.activity('u-owner', 'p-shop', 2, 20);
+
+      expect(access.assertCan).toHaveBeenCalledWith(
+        'u-owner',
+        'p-shop',
+        'team.manage',
+      );
+      expect(prisma.profileActivity.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { profileId: 'p-shop' },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          skip: 20,
+          take: 20,
+        }),
+      );
+      expect(res.meta).toMatchObject({ total: 43, page: 2, totalPages: 3 });
+      expect(res.data[0]).toEqual({
+        id: 'a-1',
+        action: 'POST_PUBLISHED',
+        targetId: 'post-1',
+        createdAt: at,
+        byOwner: false,
+        person: { id: 'p-ana', username: 'ana' },
+      });
+      expect(res.data[1]).toMatchObject({ byOwner: true });
+      // A person whose account is gone stays in the log without a name.
+      expect(res.data[2]).toMatchObject({ byOwner: false, person: null });
+    });
+
+    it('is refused to anyone but the owner', async () => {
+      access.assertCan.mockRejectedValue(new ForbiddenException());
+      await expect(team.activity('u-ana', 'p-shop')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(prisma.profileActivity.findMany).not.toHaveBeenCalled();
     });
   });
 
