@@ -119,6 +119,41 @@ describe('ProfilesController', () => {
     );
   });
 
+  it('a team administrator edits the Profile, but never changes its kind', async () => {
+    mockService.updateProfile.mockResolvedValue({
+      id: 'p-shop',
+      user: { email: 'owner@shop.example', role: 'USER' },
+    });
+    mockService.getMemberProfile.mockResolvedValue({
+      id: 'p-shop',
+      memberRole: 'ADMINISTRATOR',
+    });
+    const controller = app.get(ProfilesController);
+    const admin = {
+      ...TEST_USER,
+      profileId: 'p-shop',
+      memberRole: 'ADMINISTRATOR' as const,
+    };
+
+    // The answer is the member view, never the owner's account.
+    await expect(
+      controller.updateProfile(admin, { bio: 'New bio' } as never),
+    ).resolves.toEqual({ id: 'p-shop', memberRole: 'ADMINISTRATOR' });
+    expect(mockService.getMemberProfile).toHaveBeenCalledWith(
+      'p-shop',
+      'ADMINISTRATOR',
+    );
+    expect(mockService.updateProfile).toHaveBeenCalledWith('p-shop', {
+      bio: 'New bio',
+    });
+
+    mockService.updateProfile.mockClear();
+    await expect(
+      controller.updateProfile(admin, { accountType: 'PERSONAL' } as never),
+    ).rejects.toMatchObject({ errorCode: 'TEAM_MEMBER_NOT_ALLOWED' });
+    expect(mockService.updateProfile).not.toHaveBeenCalled();
+  });
+
   it('a team member gets the Profile as anyone sees it, never the owner account view', async () => {
     mockService.getMemberProfile.mockResolvedValue({ id: 'p-shop' });
     const controller = app.get(ProfilesController);

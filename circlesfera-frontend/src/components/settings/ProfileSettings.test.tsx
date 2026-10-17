@@ -178,6 +178,30 @@ describe('ProfileSettings', () => {
     );
   });
 
+  it('a team editor is told the profile is edited by the owner or an administrator', async () => {
+    api.profile.getMyProfile.mockResolvedValue({
+      data: mine({ memberRole: 'EDITOR' }),
+    } as never);
+    const { i18n } = renderWithProviders(<ProfileSettings />);
+    expect(
+      await screen.findByText(i18n!.t('settings.team.editor_no_profile')),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Bio')).not.toBeInTheDocument();
+  });
+
+  it('a team administrator edits the profile but never sees or sends its kind', async () => {
+    await show(mine({ memberRole: 'ADMINISTRATOR', accountType: 'BUSINESS' }));
+    expect(screen.queryByText('Account Type')).not.toBeInTheDocument();
+
+    type('Bio', 'Team words');
+    fireEvent.click(save());
+
+    await waitFor(() => expect(api.profile.updateProfile).toHaveBeenCalled());
+    const sent = api.profile.updateProfile.mock.calls[0][0] as object;
+    expect(sent).not.toHaveProperty('accountType');
+    expect(sent).toMatchObject({ bio: 'Team words' });
+  });
+
   it('sends no site when it is emptied or only spaces', async () => {
     await show();
 

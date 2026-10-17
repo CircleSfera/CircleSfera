@@ -103,6 +103,23 @@ The steps follow PD-014:
   actions too. A failure to record never fails the action. The person's data export lists the
   activity, and the owner's activity log (step 6) reads it.
 
+### Figures and the Profile by role (step 5)
+
+- **Every role reads the figures** (`analytics.read`):
+  - the creator stats, the activity chart and the content lists with their figures;
+  - audience retention and the best posts;
+  - the analytics dashboard and each post's insights.
+
+  None of these answers carries money. The revenue figures, their export and promotions stay with
+  the owner. A test fails if any other route of the creator tools opens to a member.
+- **Viewing events** (views, loops, watch time) are open to every role as `browse`, so a member
+  browsing as the Profile is counted like any viewer.
+- **Editing the Profile** (`profile.edit`) is open to the owner and administrators. It is recorded
+  as `PROFILE_EDITED`.
+  - An administrator never changes the kind of the Profile, which would take it out of Business.
+  - An editor sees that the Profile is edited by the owner or an administrator.
+  - The company verification stays with the owner.
+
 ## Consequences
 
 - Authorization moves, step by step, from "the account owns the Profile" to "this person can do

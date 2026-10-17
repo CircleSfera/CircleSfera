@@ -20,22 +20,20 @@ import { type CurrentUserData } from '../auth/decorators/current-user.decorator.
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { ElitePlanGuard } from '../auth/guards/elite-plan.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import {
   CreatePromotionDto,
   UpdatePromotionDto,
 } from './dto/create-promotion.dto.js';
-
 // Analytics
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
 import { GetAudienceRetentionQuery } from './use-cases/analytics/queries/get-audience-retention.query.js';
 import { GetCreatorStatsQuery } from './use-cases/analytics/queries/get-creator-stats.query.js';
 import { GetRevenueAnalyticsQuery } from './use-cases/analytics/queries/get-revenue-analytics.query.js';
 import { GetTopContentQuery } from './use-cases/analytics/queries/get-top-content.query.js';
-
 // Content
 import { GetCreatorPostsQuery } from './use-cases/content/queries/get-creator-posts.query.js';
 import { GetCreatorStoriesQuery } from './use-cases/content/queries/get-creator-stories.query.js';
-
 // Promotions
 import { CreatePromotionUseCase } from './use-cases/promotions/commands/create-promotion.use-case.js';
 import { ManagePromotionUseCase } from './use-cases/promotions/commands/manage-promotion.use-case.js';
@@ -80,6 +78,7 @@ export class CreatorController {
   ) {}
 
   @Get('stats')
+  @MemberAllowed('analytics.read')
   @UseGuards(CreatorAccountGuard)
   @HttpCode(HttpStatus.OK)
   async getStats(@Req() req: AuthRequest) {
@@ -87,6 +86,7 @@ export class CreatorController {
   }
 
   @Get('activity-chart')
+  @MemberAllowed('analytics.read')
   @UseGuards(CreatorAccountGuard)
   @HttpCode(HttpStatus.OK)
   async getActivityChart(@Req() req: AuthRequest) {
@@ -98,6 +98,7 @@ export class CreatorController {
   }
 
   @Get('posts')
+  @MemberAllowed('analytics.read')
   @UseGuards(CreatorAccountGuard)
   async getPosts(
     @Req() req: AuthRequest,
@@ -114,6 +115,7 @@ export class CreatorController {
   }
 
   @Get('stories')
+  @MemberAllowed('analytics.read')
   @UseGuards(CreatorAccountGuard)
   async getStories(
     @Req() req: AuthRequest,
@@ -228,12 +230,14 @@ export class CreatorController {
   }
 
   @Get('analytics/retention')
+  @MemberAllowed('analytics.read')
   @UseGuards(CreatorAccountGuard, ElitePlanGuard)
   async getAudienceRetentionAnalytics(@Req() req: AuthRequest) {
     return this.getAudienceRetentionQ.execute(req.user.profileId);
   }
 
   @Get('analytics/top-posts')
+  @MemberAllowed('analytics.read')
   @UseGuards(CreatorAccountGuard, ElitePlanGuard)
   async getTopPerformingContent(
     @Req() req: AuthRequest,

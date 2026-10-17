@@ -645,7 +645,8 @@
         "ACTIVE": "Activo",
         "PAUSED": "En pausa: terminó el plan Business"
       },
-      "switcher_title": "Equipos en los que trabajas"
+      "switcher_title": "Equipos en los que trabajas",
+      "editor_no_profile": "Tu rol de editor publica y responde comentarios; el dueño o un administrador edita este perfil."
     }
   },
   "auth": {
