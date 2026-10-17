@@ -13,6 +13,7 @@ import type { Cache } from 'cache-manager';
 import { linkedAccountsWhere } from '../common/abuse/linked-accounts.js';
 import { computeTrustScore } from '../common/abuse/trust-score.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import { FIRST_SIGN_IN_ORDER } from '../common/auth/sign-in-lookup.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -848,7 +849,12 @@ export class AdminUsersService {
       select: {
         id: true,
         createdAt: true,
-        emailVerified: true,
+        // The account's email counts as verified when its first sign-in's is.
+        signIns: {
+          orderBy: FIRST_SIGN_IN_ORDER,
+          take: 1,
+          select: { emailVerified: true },
+        },
         identityVerifiedAt: true,
         botLabeledAt: true,
         isActive: true,
@@ -873,7 +879,7 @@ export class AdminUsersService {
         fullName: a.profiles[0]?.fullName,
         avatar: a.profiles[0]?.avatar,
         createdAt: a.createdAt,
-        emailConfirmed: !!a.emailVerified,
+        emailConfirmed: !!a.signIns[0]?.emailVerified,
         identityVerified: !!a.identityVerifiedAt,
         botLabeled: !!a.botLabeledAt,
         // Active strikes across the account's Profiles.
@@ -887,7 +893,12 @@ export class AdminUsersService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
-        emailVerified: true,
+        // The account's email counts as verified when its first sign-in's is.
+        signIns: {
+          orderBy: FIRST_SIGN_IN_ORDER,
+          take: 1,
+          select: { emailVerified: true },
+        },
         identityVerifiedAt: true,
         createdAt: true,
         botLabeledAt: true,
@@ -905,7 +916,7 @@ export class AdminUsersService {
 
     const linked = await this.getLinkedAccounts(userId);
     return computeTrustScore({
-      emailVerified: !!user.emailVerified,
+      emailVerified: !!user.signIns[0]?.emailVerified,
       identityVerified: !!user.identityVerifiedAt,
       createdAt: user.createdAt,
       strikeCount: user.profiles.reduce((sum, p) => sum + p._count.strikes, 0),
@@ -980,7 +991,7 @@ export class AdminUsersService {
       this.prisma.user.count({
         where: {
           createdAt: { gte: since },
-          emailVerified: { not: null },
+          signIns: { some: { emailVerified: { not: null } } },
         },
       }),
       this.turnstile.getFunnelCounters(),

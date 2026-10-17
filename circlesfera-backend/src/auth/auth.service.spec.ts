@@ -30,9 +30,9 @@ vi.mock('otplib', () => ({
 describe('AuthService', () => {
   let service: AuthService;
 
-  // The sign-in of an account holds a copy of its credentials; the database
-  // keeps it equal. Tests describe the account, and its sign-in is read from
-  // that description, with the account behind it.
+  // The credentials are on the sign-in. Tests describe the account with its
+  // credentials, and its sign-in is read from that description, with the
+  // account behind it.
   type AccountDouble = Record<string, unknown> & { id?: string };
   const signInOf = (account: AccountDouble | null | undefined) =>
     account
@@ -58,6 +58,7 @@ describe('AuthService', () => {
       update: vi.fn().mockResolvedValue({}),
     },
     signIn: {
+      create: vi.fn().mockResolvedValue({ id: 'sign-in-new' }),
       update: vi.fn().mockResolvedValue({}),
       findUnique: vi.fn(async (args?: unknown) => {
         // Signing up asks only whether a sign-in holds the email. No test
@@ -86,6 +87,10 @@ describe('AuthService', () => {
       }),
     },
     profile: {
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+        id: 'profile-new',
+        ...data,
+      })),
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       // Sign-in reads the account's Profiles; tests configure the single
@@ -95,6 +100,10 @@ describe('AuthService', () => {
         return profile ? [profile] : [];
       }),
     },
+    // Signing up writes the account, its sign-in and its Profile together.
+    $transaction: vi.fn(async (fn: (tx: unknown) => unknown) =>
+      fn(mockPrismaService),
+    ),
     refreshToken: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -219,11 +228,26 @@ describe('AuthService', () => {
 
       const result = await service.register(dto);
 
-      expect(mockPrismaService.user.create).toHaveBeenCalled();
-      const createArgs = mockPrismaService.user.create.mock.calls[0][0] as {
-        data: { password: string };
+      // The credentials go on the sign-in, never on the account.
+      const account = mockPrismaService.user.create.mock.calls[0][0] as {
+        data: Record<string, unknown>;
       };
-      expect(createArgs.data.password).toContain('$argon2');
+      expect(account.data).not.toHaveProperty('password');
+      expect(account.data).not.toHaveProperty('verificationToken');
+      const signIn = mockPrismaService.signIn.create.mock.calls[0][0] as {
+        data: { userId: string; email: string; password: string };
+      };
+      expect(signIn.data).toMatchObject({ userId: '1', email: dto.email });
+      expect(signIn.data.password).toContain('$argon2');
+      expect(signIn.data).toHaveProperty('verificationToken');
+      // The first Profile signs in with that sign-in.
+      expect(mockPrismaService.profile.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: '1',
+          signInId: 'sign-in-new',
+          username: dto.username,
+        }),
+      });
       expect(result).toHaveProperty('accessToken');
     });
 

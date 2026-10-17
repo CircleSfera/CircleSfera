@@ -9,15 +9,17 @@ import { CryptoService } from '../../src/common/services/crypto.service.js';
 import { PrismaService } from '../../src/prisma/prisma.service.js';
 import { uniqueSuffix } from '../utils/unique-id.js';
 
-const SECRET_FIELDS = [
+// The account keeps only the passkey challenge; the credentials and
+// one-time tokens are on the sign-in.
+const ACCOUNT_SECRET_FIELDS = ['currentChallenge'] as const;
+const SIGN_IN_SECRET_FIELDS = [
   'password',
   'twoFactorSecret',
   'resetToken',
   'verificationToken',
-  'currentChallenge',
 ] as const;
 
-describe('User secret columns are omitted by default (e2e)', () => {
+describe('Secret columns are omitted by default (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let userId: string;
@@ -58,16 +60,16 @@ describe('User secret columns are omitted by default (e2e)', () => {
       .send({ email, password, username, dateOfBirth: '1990-01-01' })
       .expect(201);
 
-    const user = await prisma.user.update({
+    const signIn = await prisma.signIn.update({
       where: { email },
       data: {
         emailVerified: new Date(),
         isTwoFactorEnabled: true,
         twoFactorSecret: crypto.encrypt(totpSecret),
       },
-      select: { id: true },
+      select: { userId: true },
     });
-    userId = user.id;
+    userId = signIn.userId;
   });
 
   afterAll(async () => {
@@ -79,29 +81,40 @@ describe('User secret columns are omitted by default (e2e)', () => {
 
   it('does not return secret columns from a plain User read', async () => {
     const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    for (const field of SECRET_FIELDS) {
+    for (const field of ACCOUNT_SECRET_FIELDS) {
+      expect(Object.keys(user), field).not.toContain(field);
+    }
+    // No credential column is left on the account.
+    for (const field of SIGN_IN_SECRET_FIELDS) {
       expect(Object.keys(user), field).not.toContain(field);
     }
     expect(user.email).toBe(email);
+    const signIn = await prisma.signIn.findUniqueOrThrow({ where: { email } });
+    for (const field of SIGN_IN_SECRET_FIELDS) {
+      expect(Object.keys(signIn), field).not.toContain(field);
+    }
   });
 
   it('does not return secret columns through a relation include', async () => {
     const profile = await prisma.profile.findFirstOrThrow({
       where: { userId },
-      include: { user: true },
+      include: { user: true, signIn: true },
     });
-    for (const field of SECRET_FIELDS) {
+    for (const field of ACCOUNT_SECRET_FIELDS) {
       expect(Object.keys(profile.user), field).not.toContain(field);
+    }
+    for (const field of SIGN_IN_SECRET_FIELDS) {
+      expect(Object.keys(profile.signIn ?? {}), field).not.toContain(field);
     }
   });
 
   it('returns a secret column only when the query opts in', async () => {
-    const user = await prisma.user.findUniqueOrThrow({
-      where: { id: userId },
+    const signIn = await prisma.signIn.findUniqueOrThrow({
+      where: { email },
       omit: { password: false, twoFactorSecret: false },
     });
-    expect(user.password).toMatch(/^\$argon2/);
-    expect(user.twoFactorSecret).toBeTruthy();
+    expect(signIn.password).toMatch(/^\$argon2/);
+    expect(signIn.twoFactorSecret).toBeTruthy();
   });
 
   it('still lets a 2FA-enabled user log in (login opts in to password and secret)', async () => {

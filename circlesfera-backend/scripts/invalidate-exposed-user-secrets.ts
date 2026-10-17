@@ -68,11 +68,11 @@ async function main() {
       twoFactorPlaintext,
     ] = await Promise.all([
       prisma.user.count(),
-      prisma.user.count({ where: { resetToken: { not: null } } }),
-      prisma.user.count({ where: { verificationToken: { not: null } } }),
+      prisma.signIn.count({ where: { resetToken: { not: null } } }),
+      prisma.signIn.count({ where: { verificationToken: { not: null } } }),
       prisma.user.count({ where: { currentChallenge: { not: null } } }),
-      prisma.user.count({ where: { password: { startsWith: '$argon2' } } }),
-      prisma.user.count({
+      prisma.signIn.count({ where: { password: { startsWith: '$argon2' } } }),
+      prisma.signIn.count({
         where: {
           OR: [
             { password: { startsWith: '$2a$' } },
@@ -81,8 +81,8 @@ async function main() {
           ],
         },
       }),
-      prisma.user.count({ where: { isTwoFactorEnabled: true } }),
-      prisma.user.count({
+      prisma.signIn.count({ where: { isTwoFactorEnabled: true } }),
+      prisma.signIn.count({
         where: {
           twoFactorSecret: { not: null },
           NOT: { twoFactorSecret: { contains: ':' } },
@@ -112,17 +112,17 @@ async function main() {
       ? {
           exposedBefore: exposedBefore?.toISOString(),
           excludedAccounts: excludedFound,
-          accountsToFlag: await prisma.user.count({
-            where: { ...exposedWhere, passwordResetRequiredAt: null },
+          accountsToFlag: await prisma.signIn.count({
+            where: { user: exposedWhere, passwordResetRequiredAt: null },
           }),
-          alreadyFlagged: await prisma.user.count({
+          alreadyFlagged: await prisma.signIn.count({
             where: { passwordResetRequiredAt: { not: null } },
           }),
           sessionsToRevoke: await prisma.refreshToken.count({
             where: { user: exposedWhere },
           }),
-          plaintextTwoFactorToDisable: await prisma.user.count({
-            where: { ...exposedWhere, ...plaintextTwoFactorWhere },
+          plaintextTwoFactorToDisable: await prisma.signIn.count({
+            where: { user: exposedWhere, ...plaintextTwoFactorWhere },
           }),
         }
       : undefined;
@@ -156,22 +156,30 @@ async function main() {
       return;
     }
 
-    const cleared = await prisma.user.updateMany({
-      where: {
-        OR: [
-          { resetToken: { not: null } },
-          { verificationToken: { not: null } },
-          { currentChallenge: { not: null } },
-        ],
-      },
-      data: {
-        resetToken: null,
-        resetTokenExpires: null,
-        verificationToken: null,
-        currentChallenge: null,
-      },
-    });
-    console.log(`Cleared one-time tokens on ${cleared.count} users.`);
+    // Recovery and verification tokens are on the sign-ins; the passkey
+    // challenge is on the account.
+    const [cleared, challengesCleared] = await prisma.$transaction([
+      prisma.signIn.updateMany({
+        where: {
+          OR: [
+            { resetToken: { not: null } },
+            { verificationToken: { not: null } },
+          ],
+        },
+        data: {
+          resetToken: null,
+          resetTokenExpires: null,
+          verificationToken: null,
+        },
+      }),
+      prisma.user.updateMany({
+        where: { currentChallenge: { not: null } },
+        data: { currentChallenge: null },
+      }),
+    ]);
+    console.log(
+      `Cleared one-time tokens on ${cleared.count} sign-ins and passkey challenges on ${challengesCleared.count} users.`,
+    );
 
     if (!forceReset || !exposedWhere) {
       console.log(
@@ -181,18 +189,18 @@ async function main() {
     }
 
     const [flagged, sessions, twoFactor] = await prisma.$transaction([
-      prisma.user.updateMany({
-        where: { ...exposedWhere, passwordResetRequiredAt: null },
+      prisma.signIn.updateMany({
+        where: { user: exposedWhere, passwordResetRequiredAt: null },
         data: { passwordResetRequiredAt: new Date() },
       }),
       prisma.refreshToken.deleteMany({ where: { user: exposedWhere } }),
-      prisma.user.updateMany({
-        where: { ...exposedWhere, ...plaintextTwoFactorWhere },
+      prisma.signIn.updateMany({
+        where: { user: exposedWhere, ...plaintextTwoFactorWhere },
         data: { isTwoFactorEnabled: false, twoFactorSecret: null },
       }),
     ]);
     console.log(
-      `Required a password reset on ${flagged.count} users, revoked ${sessions.count} sessions, disabled plaintext 2FA on ${twoFactor.count} users.`,
+      `Required a password reset on ${flagged.count} sign-ins, revoked ${sessions.count} sessions, disabled plaintext 2FA on ${twoFactor.count} sign-ins.`,
     );
   } finally {
     await prisma.$disconnect();

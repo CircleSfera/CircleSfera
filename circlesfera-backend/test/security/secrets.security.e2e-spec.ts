@@ -50,7 +50,7 @@ describe('Secrets Security (e2e)', () => {
       .expect(201);
 
     // Add fake reset token for testing
-    await prisma.user.update({
+    await prisma.signIn.update({
       where: { email: testUser.email },
       data: {
         emailVerified: new Date(),

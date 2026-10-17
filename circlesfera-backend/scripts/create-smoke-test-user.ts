@@ -48,29 +48,48 @@ async function main() {
   try {
     const passwordHash = await argon2.hash(password);
 
-    const user = await prisma.user.upsert({
-      where: { email },
-      create: {
-        email,
-        password: passwordHash,
-        role: 'USER',
-        emailVerified: new Date(),
-        profiles: {
-          create: {
-            username,
-            fullName: 'CircleSfera Smoke Test',
-            bio: 'Internal infrastructure account used by the post-deploy authenticated smoke check. Not a real user.',
-          },
+    // The account, its sign-in (with the credentials) and its Profile; run
+    // again, it only sets the password and the verified email again.
+    const user = await prisma.$transaction(async (tx) => {
+      const existing = await tx.signIn.findUnique({
+        where: { email },
+        select: { id: true, userId: true },
+      });
+      if (existing) {
+        await tx.signIn.update({
+          where: { id: existing.id },
+          data: { password: passwordHash, emailVerified: new Date() },
+        });
+        return tx.user.findUniqueOrThrow({
+          where: { id: existing.userId },
+          include: { profiles: true },
+        });
+      }
+      const account = await tx.user.create({
+        data: {
+          email,
+          role: 'USER',
+          settings: { create: { privacyLevel: 'PRIVATE' } },
         },
-        settings: {
-          create: { privacyLevel: 'PRIVATE' },
+      });
+      const signIn = await tx.signIn.create({
+        data: {
+          userId: account.id,
+          email,
+          password: passwordHash,
+          emailVerified: new Date(),
         },
-      },
-      update: {
-        password: passwordHash,
-        emailVerified: new Date(),
-      },
-      include: { profiles: true },
+      });
+      const profile = await tx.profile.create({
+        data: {
+          userId: account.id,
+          signInId: signIn.id,
+          username,
+          fullName: 'CircleSfera Smoke Test',
+          bio: 'Internal infrastructure account used by the post-deploy authenticated smoke check. Not a real user.',
+        },
+      });
+      return { ...account, profiles: [profile] };
     });
 
     console.log('Smoke test account ready');

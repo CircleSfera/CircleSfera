@@ -143,28 +143,38 @@ export class AuthService {
     // Generate high-entropy token
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    // Create user and profile
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        password: hashedPassword,
-        verificationToken,
-        dateOfBirth,
-        locale: toSupportedLocale(dto.locale),
-        profiles: {
-          create: {
-            username: dto.username,
-            fullName: dto.fullName || null,
-          },
+    // The account, its sign-in (which holds the credentials) and its first
+    // Profile, signing in with that sign-in, are created together.
+    const user = await this.prisma.$transaction(async (tx) => {
+      const account = await tx.user.create({
+        data: {
+          email: dto.email,
+          dateOfBirth,
+          locale: toSupportedLocale(dto.locale),
+          // The newsletter is on unless the person said no at sign-up.
+          ...(dto.newsletter === false && {
+            settings: { create: { newsletter: false } },
+          }),
         },
-        // The newsletter is on unless the person said no at sign-up.
-        ...(dto.newsletter === false && {
-          settings: { create: { newsletter: false } },
-        }),
-      },
-      include: {
-        profiles: true,
-      },
+      });
+      const signIn = await tx.signIn.create({
+        data: {
+          userId: account.id,
+          email: dto.email,
+          password: hashedPassword,
+          verificationToken,
+        },
+        select: { id: true },
+      });
+      const profile = await tx.profile.create({
+        data: {
+          userId: account.id,
+          signInId: signIn.id,
+          username: dto.username,
+          fullName: dto.fullName || null,
+        },
+      });
+      return { ...account, profiles: [profile] };
     });
 
     // Send verification email

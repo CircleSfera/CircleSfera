@@ -160,7 +160,6 @@ export class UsersService {
           role: true,
           dateOfBirth: true,
           identityVerifiedAt: true,
-          emailVerified: true,
           signupCountry: true,
           signupIp: true,
           lastIp: true,
@@ -307,7 +306,8 @@ export class UsersService {
       role: account.role,
       dateOfBirth: account.dateOfBirth,
       identityVerifiedAt: account.identityVerifiedAt,
-      emailVerified: account.emailVerified,
+      // As the account's: that of its first sign-in.
+      emailVerified: account.signIns?.[0]?.emailVerified ?? null,
       signIns: (account.signIns ?? []).map((signIn) => ({
         email: signIn.email,
         emailVerified: signIn.emailVerified,

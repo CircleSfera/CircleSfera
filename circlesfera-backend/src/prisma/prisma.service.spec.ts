@@ -53,6 +53,8 @@ describe('PrismaService', () => {
     ) as unknown as { options: { omit: { user: Record<string, boolean> } } };
 
     expect(service.options.omit.user).toEqual(USER_SECRET_OMIT);
+    // The account's old copy of the credentials stays hidden while it
+    // exists.
     expect(Object.keys(USER_SECRET_OMIT).sort()).toEqual([
       'currentChallenge',
       'password',

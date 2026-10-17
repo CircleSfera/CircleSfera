@@ -94,8 +94,16 @@ Each step is one change, deployable and reversible on its own.
    and verifying with a phone number is not offered for now. Nothing in the product or the schema
    refers to a phone number, so there is nothing to hide or remove. It is not started until the
    owner asks for it; it then needs its own confirmation (a new provider and a schema change).
-8. **Removal** of the credential columns from `User`, once step 4 has been in production long
-   enough to be sure nothing reads them.
+8. **Removal** of the credential columns from `User`, in two changes so that a version of the app
+   still running during a deploy keeps working:
+   - **8a.** The app stops reading and writing them: sign-up, the staff scripts and the seed write
+     the credentials on the `SignIn`; staff views, the data export and the Profile read whether an
+     email is confirmed, and whether the second step is on, from the `SignIn`. `users.password`
+     becomes optional, and the database still copies credentials written on an account, as an
+     older app does, to its sign-in. The `currentChallenge` column stays: it is the account's
+     passkey challenge, not a copy of a credential.
+   - **8b.** Once 8a is in production, the copy triggers and the columns are dropped. The migration
+     first stops, changing nothing, if any account has no sign-in.
 
 Steps 1 to 4 change nothing a person can see: every account keeps one sign-in that serves all of
 its Profiles.

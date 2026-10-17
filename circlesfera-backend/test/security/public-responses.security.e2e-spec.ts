@@ -155,11 +155,17 @@ describe('Public responses never carry account-level User columns (e2e)', () => 
     userIds.push(author.user.id);
     authorUsername = author.profile.username;
     authorProfileId = author.profile.id;
-    await prisma.user.update({
-      where: { id: author.user.id },
+    // The one-time token and the second-factor secret are on the sign-in.
+    await prisma.signIn.updateMany({
+      where: { userId: author.user.id },
       data: {
         resetToken: sentinels.resetToken,
         twoFactorSecret: sentinels.twoFactorSecret,
+      },
+    });
+    await prisma.user.update({
+      where: { id: author.user.id },
+      data: {
         signupIp: sentinels.signupIp,
         lastIp: sentinels.signupIp,
         stripeCustomerId: sentinels.stripeCustomerId,

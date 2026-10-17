@@ -103,12 +103,13 @@ export class ProfilesService {
             createdAt: true,
             lastSeenAt: true,
             isActive: true,
-            emailVerified: true,
             identityVerifiedAt: true,
             signupCountry: true,
             botLabeledAt: true,
           },
         },
+        // Whether the Profile's email is confirmed is its sign-in's.
+        signIn: { select: { emailVerified: true } },
         _count: {
           select: {
             posts: true,
@@ -170,7 +171,7 @@ export class ProfilesService {
         ? profile.accentColor
         : null,
       identityVerified: !!user?.identityVerifiedAt,
-      emailConfirmed: !!user?.emailVerified,
+      emailConfirmed: !!profile.signIn?.emailVerified,
       joinedAt: user?.createdAt?.toISOString?.() ?? user?.createdAt,
       signupCountry: user?.signupCountry ?? null,
       // Active strikes of this Profile; warnings are not shown.
@@ -383,8 +384,6 @@ export class ProfilesService {
             createdAt: true,
             lastSeenAt: true,
             isActive: true,
-            emailVerified: true,
-
             identityVerifiedAt: true,
             signupCountry: true,
             botLabeledAt: true,
@@ -428,15 +427,15 @@ export class ProfilesService {
       profile.verificationLevel === 'BUSINESS';
 
     const companyVerified = await this.isVerifiedCompany(profile);
-    // The sign-in of the session, inside the account of this Profile. A
-    // session that names none reads the account, which mirrors its first.
-    const sessionSignIn = signInId
-      ? await this.prisma.signIn.findFirst({
-          where: { id: signInId, userId: profile.userId },
-          select: { email: true, emailVerified: true },
-        })
-      : null;
-    const signedInWith = sessionSignIn ?? profile.user;
+    // The sign-in of the session, inside the account of this Profile; a
+    // session that names none reads the Profile's own sign-in.
+    const sessionSignIn = await this.prisma.signIn.findFirst({
+      where: signInId
+        ? { id: signInId, userId: profile.userId }
+        : { profiles: { some: { id: profile.id } } },
+      select: { email: true, emailVerified: true, isTwoFactorEnabled: true },
+    });
+    const signedInWith = sessionSignIn;
 
     // Flatten for UI convenience
     return {
@@ -464,6 +463,8 @@ export class ProfilesService {
         ...profile.user,
         email: signedInWith?.email ?? profile.user.email,
         emailVerified: signedInWith?.emailVerified ?? null,
+        // The second step of the sign-in in use, for its settings switch.
+        isTwoFactorEnabled: signedInWith?.isTwoFactorEnabled ?? false,
       },
     };
   }
