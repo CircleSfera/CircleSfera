@@ -111,7 +111,8 @@ function ActivityChip({
 }
 
 // What the staff knows about the account, left for the next staff member.
-// Notes are added, never edited or deleted, and the holder never sees them.
+// Notes are added, never edited or deleted. The holder does not see them in
+// the app; they are part of the holder's data export.
 function StaffNotes({ userId }: { userId: string }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
