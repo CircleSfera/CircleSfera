@@ -45,6 +45,7 @@ export class AdminProfileSuspensionService {
           suspendedUntil: until,
           suspensionStrikeId: null,
           suspensionCause: input.cause,
+          sanctionedAt: new Date(),
         },
       }),
       this.prisma.adminAuditLog.create({

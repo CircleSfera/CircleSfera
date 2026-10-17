@@ -50,7 +50,9 @@ export class ModerateContentUseCase {
     if (targetType === 'POST') {
       result = await this.prisma.post.update({
         where: { id: targetId },
-        data,
+        // The six months to appeal a hidden or removed post count from now.
+        data:
+          status === 'VISIBLE' ? data : { ...data, moderatedAt: new Date() },
         select: { id: true, profileId: true, moderationStatus: true },
       });
       authorProfileId = result.profileId;

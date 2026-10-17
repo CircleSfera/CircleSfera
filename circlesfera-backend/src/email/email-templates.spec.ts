@@ -96,6 +96,31 @@ describe('EmailTemplates', () => {
     );
   });
 
+  it('a rejected appeal and every removal or ban name the other ways to seek redress', () => {
+    const redress = {
+      en: 'certified out-of-court dispute settlement body or to the courts',
+      es: 'órgano certificado de resolución extrajudicial de litigios o a los tribunales',
+    };
+    for (const [ctx, words] of [
+      [en, redress.en],
+      [es, redress.es],
+    ] as const) {
+      expect(
+        EmailTemplates.appealDecision(ctx, 'Ana', false, 'no').html,
+      ).toContain(words);
+      expect(EmailTemplates.accountBanned(ctx, 'Ana').html).toContain(words);
+      expect(EmailTemplates.postRemoved(ctx, 'Ana', 'x').html).toContain(words);
+      expect(EmailTemplates.postsRemoved(ctx, 'Ana', 2).html).toContain(words);
+      // An approved appeal leaves nothing to seek.
+      expect(
+        EmailTemplates.appealDecision(ctx, 'Ana', true, 'ok').html,
+      ).not.toContain(words);
+    }
+    expect(EmailTemplates.postRemoved(en, 'Ana', 'x').html).toContain(
+      'once, within six months',
+    );
+  });
+
   it('links the receipt and the removed post to live app pages', () => {
     expect(
       EmailTemplates.subscriptionReceipt(en, 'Premium', '€9.99').html,

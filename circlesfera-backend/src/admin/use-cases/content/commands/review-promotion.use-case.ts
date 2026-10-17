@@ -67,6 +67,7 @@ export class ReviewPromotionUseCase {
         // The reason stays with the promotion, for the appeal.
         rejectionReason:
           status === PromotionStatus.REJECTED ? (note ?? null) : null,
+        reviewedAt: new Date(),
       },
     });
 

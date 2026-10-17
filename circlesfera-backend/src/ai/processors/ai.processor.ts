@@ -270,7 +270,12 @@ export class AIProcessor extends WorkerHost {
     if (targetType === 'POST') {
       const res = await this.prisma.post.update({
         where: { id: targetId },
-        data: updateData,
+        // The six months to appeal a hidden or removed post count from now.
+        data:
+          updateData.moderationStatus === 'HIDDEN' ||
+          updateData.moderationStatus === 'REMOVED'
+            ? { ...updateData, moderatedAt: new Date() }
+            : updateData,
         select: { profileId: true },
       });
       return res.profileId;

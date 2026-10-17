@@ -20,6 +20,11 @@ export enum ErrorCode {
   // A per-Profile cap on follows, message requests or comments was reached;
   // details carry the action and when it can be retried.
   ACTION_LIMIT_REACHED = 'ACTION_LIMIT_REACHED',
+  // More than six months have passed since the person was told of the
+  // decision; details carry the last day it could be appealed.
+  APPEAL_WINDOW_CLOSED = 'APPEAL_WINDOW_CLOSED',
+  // The decision was already appealed; each decision is appealed once.
+  APPEAL_ALREADY_MADE = 'APPEAL_ALREADY_MADE',
 
   // Monetization & Payments
   INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',

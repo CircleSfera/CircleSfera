@@ -350,7 +350,7 @@
     },
     "appeals": {
       "title": "Appeals",
-      "subtitle": "Submit and track reviews of moderation decisions.",
+      "subtitle": "Ask for a review of a moderation decision. Each decision can be appealed once, within six months of being told of it.",
       "create_title": "New appeal",
       "type": "Appeal type",
       "type_post": "Post removal",
@@ -5319,7 +5319,9 @@
       "FRAME_DURATION_OUT_OF_RANGE": "This video's length doesn't fit a Frame.",
       "MEDIA_DURATION_UNKNOWN": "We couldn't read this video's length. Try another file.",
       "EBADCSRFTOKEN": "Your session needs refreshing. Reload the page and try again.",
-      "ADMIN_STEP_UP_REQUIRED": "Confirm your identity to continue."
+      "ADMIN_STEP_UP_REQUIRED": "Confirm your identity to continue.",
+      "APPEAL_WINDOW_CLOSED": "More than six months have passed since this decision, so it can no longer be appealed.",
+      "APPEAL_ALREADY_MADE": "This decision has already been appealed. Each decision can be appealed once."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

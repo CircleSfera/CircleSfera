@@ -514,6 +514,7 @@ describe('AIProcessor', () => {
         data: {
           moderationStatus: ModerationStatus.HIDDEN,
           moderationNote: expect.stringContaining('[AI Vector Firewall]'),
+          moderatedAt: expect.any(Date),
         },
         select: { profileId: true },
       });
@@ -696,6 +697,7 @@ describe('AIProcessor', () => {
         data: {
           moderationStatus: ModerationStatus.HIDDEN,
           moderationNote: expect.stringContaining('sexual'),
+          moderatedAt: expect.any(Date),
         },
         select: { profileId: true },
       });

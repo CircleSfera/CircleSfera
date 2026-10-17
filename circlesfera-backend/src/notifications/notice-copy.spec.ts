@@ -104,10 +104,10 @@ describe('renderNotice', () => {
         notes: ' Spam ',
       }),
     ).toBe(
-      'Hemos revisado tu apelación y la decisión se mantiene. Notas: Spam',
+      'Hemos revisado tu apelación y la decisión se mantiene. Notas: Spam. También puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
     );
     expect(renderNotice('en', { key: 'promotion_rejected', note: '  ' })).toBe(
-      'Your promotion request was rejected. You can appeal this decision once.',
+      'Your promotion request was rejected. You can appeal this decision once, within six months. You can also turn to a certified out-of-court dispute settlement body or to the courts.',
     );
     // Money back is told only when it came back.
     expect(
@@ -117,7 +117,7 @@ describe('renderNotice', () => {
         refunded: true,
       }),
     ).toBe(
-      'Tu solicitud de promoción ha sido rechazada. Motivo: Engañosa. Te devolvemos lo que no se haya gastado. Puedes apelar esta decisión una vez.',
+      'Tu solicitud de promoción ha sido rechazada. Motivo: Engañosa. Te devolvemos lo que no se haya gastado. Puedes apelar esta decisión una vez, en los seis meses siguientes. También puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
     );
     expect(
       renderNotice('en', {
@@ -126,8 +126,60 @@ describe('renderNotice', () => {
         refunded: true,
       }),
     ).toBe(
-      'Your promotion request was rejected. Reason: Misleading. What was not spent is refunded. You can appeal this decision once.',
+      'Your promotion request was rejected. Reason: Misleading. What was not spent is refunded. You can appeal this decision once, within six months. You can also turn to a certified out-of-court dispute settlement body or to the courts.',
     );
+  });
+
+  it('every decision that can be appealed names the six months and the other ways to seek redress', () => {
+    const until = new Date('2026-11-01T00:00:00.000Z');
+    const expires = new Date('2027-01-01T00:00:00.000Z');
+    const decisions = [
+      { key: 'content_moderated', contentType: 'POST', status: 'removed' },
+      { key: 'account_suspended', until, reason: 'Spam' },
+      { key: 'bot_labeled' },
+      { key: 'promotion_rejected' },
+      { key: 'profile_warning', rule: 'SPAM', expires },
+      {
+        key: 'profile_strike',
+        rule: 'SPAM',
+        expires,
+        count: 1,
+        max: 3,
+        consequence: 'NONE',
+      },
+      { key: 'profile_banned' },
+      { key: 'profile_suspended_activity', until },
+      { key: 'profile_suspended_cause', until, cause: 'SCAM' },
+      { key: 'profile_restricted', by: 'staff', hours: 24, days: 7 },
+    ] as const;
+    for (const notice of decisions) {
+      expect(renderNotice('en', notice)).toContain(
+        'You can appeal this decision once, within six months. You can also turn to a certified out-of-court dispute settlement body or to the courts.',
+      );
+      expect(renderNotice('es', notice)).toContain(
+        'Puedes apelar esta decisión una vez, en los seis meses siguientes. También puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
+      );
+    }
+    // Restored content and a Profile paused to protect it are not decisions
+    // against the person.
+    expect(
+      renderNotice('en', {
+        key: 'content_moderated',
+        contentType: 'POST',
+        status: 'restored',
+      }),
+    ).toBe('Moderation restored your post.');
+    expect(
+      renderNotice('en', {
+        key: 'profile_suspended_cause',
+        until,
+        cause: 'COMPROMISED',
+      }),
+    ).not.toContain('appeal');
+    // An approved appeal needs no other way.
+    expect(
+      renderNotice('en', { key: 'appeal_decided', outcome: 'APPROVED' }),
+    ).toBe('Your appeal was approved.');
   });
 
   it('names what was moderated or reported in each language', () => {
@@ -139,7 +191,8 @@ describe('renderNotice', () => {
         automated: true,
       }),
     ).toBe(
-      'La moderación automática ha ocultado tu comentario. Puedes apelar desde Ajustes → Apelaciones.',
+      // A comment cannot be appealed yet: only the other ways are named.
+      'La moderación automática ha ocultado tu comentario. Puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
     );
     expect(
       renderNotice('es', {

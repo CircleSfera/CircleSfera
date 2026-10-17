@@ -173,6 +173,7 @@ describe('ProfileStrikesService', () => {
           suspendedUntil: until,
           suspensionStrikeId: 'strike-new',
           suspensionCause: null,
+          sanctionedAt: expect.any(Date),
         },
       });
       expect(result?.suspendedUntil).toEqual(until);
@@ -218,6 +219,7 @@ describe('ProfileStrikesService', () => {
           isAccountBanned: true,
           accountBanReason: expect.stringContaining('3 active strikes'),
           banStrikeId: 'strike-new',
+          sanctionedAt: expect.any(Date),
         },
       });
       expect(eventEmitter.emit).toHaveBeenCalledWith(
@@ -266,6 +268,7 @@ describe('ProfileStrikesService', () => {
           isAccountBanned: true,
           accountBanReason: 'Severe violation',
           banStrikeId: null,
+          sanctionedAt: expect.any(Date),
         },
       });
       expect(prisma.profileStrike.create).not.toHaveBeenCalled();
@@ -296,6 +299,7 @@ describe('ProfileStrikesService', () => {
           suspendedUntil: until,
           suspensionStrikeId: null,
           suspensionCause: null,
+          sanctionedAt: expect.any(Date),
         },
       });
       expect(cache.del).toHaveBeenCalledWith('profile:offender');
@@ -328,6 +332,7 @@ describe('ProfileStrikesService', () => {
           suspendedUntil: until,
           suspensionStrikeId: null,
           suspensionCause: 'SCAM',
+          sanctionedAt: expect.any(Date),
         },
       });
       expect(notifications.create).toHaveBeenCalledWith(

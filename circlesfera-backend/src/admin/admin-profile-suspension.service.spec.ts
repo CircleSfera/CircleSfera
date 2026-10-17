@@ -65,6 +65,7 @@ describe('AdminProfileSuspensionService', () => {
         suspendedUntil: until,
         suspensionStrikeId: null,
         suspensionCause: 'HARASSMENT',
+        sanctionedAt: NOW,
       },
     });
     // The suspension and its audit entry are written together.

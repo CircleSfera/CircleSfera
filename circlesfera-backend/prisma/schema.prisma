@@ -388,6 +388,9 @@ model Profile {
   // and direct bans clear these.
   banStrikeId        String?
   suspensionStrikeId String?
+  // When the last ban or suspension was placed: the six months to appeal it
+  // count from then.
+  sanctionedAt       DateTime?
   // Who may see this Profile's content: each Profile of a person chooses for
   // itself. PRIVATE asks for an accepted follow.
   privacyLevel       Visibility @default(PUBLIC)
@@ -504,6 +507,9 @@ model Post {
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?          @db.Text
+  // When it was last hidden or removed by moderation: the six months to
+  // appeal it count from then.
+  moderatedAt      DateTime?
 
   // Premium Content
 
@@ -1473,6 +1479,9 @@ model Promotion {
   refundedAt            DateTime?
   // Why staff rejected it, told to the advertiser; it may be appealed once.
   rejectionReason       String?
+  // When staff approved or rejected it: the six months to appeal a
+  // rejection count from then.
+  reviewedAt            DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

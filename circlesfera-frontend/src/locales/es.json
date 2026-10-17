@@ -350,7 +350,7 @@
     },
     "appeals": {
       "title": "Apelaciones",
-      "subtitle": "Envía y sigue las revisiones de decisiones de moderación.",
+      "subtitle": "Pide que revisemos una decisión de moderación. Cada decisión se puede apelar una vez, en los seis meses siguientes a cuando se te comunicó.",
       "create_title": "Nueva apelación",
       "type": "Tipo de apelación",
       "type_post": "Eliminación de publicación",
@@ -5319,7 +5319,9 @@
       "FRAME_DURATION_OUT_OF_RANGE": "La duración de este vídeo no encaja en un Frame.",
       "MEDIA_DURATION_UNKNOWN": "No hemos podido leer la duración de este vídeo. Prueba con otro archivo.",
       "EBADCSRFTOKEN": "Tu sesión necesita actualizarse. Recarga la página e inténtalo de nuevo.",
-      "ADMIN_STEP_UP_REQUIRED": "Confirma tu identidad para continuar."
+      "ADMIN_STEP_UP_REQUIRED": "Confirma tu identidad para continuar.",
+      "APPEAL_WINDOW_CLOSED": "Han pasado más de seis meses desde esta decisión, así que ya no se puede apelar.",
+      "APPEAL_ALREADY_MADE": "Esta decisión ya se ha apelado. Cada decisión se puede apelar una vez."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",
