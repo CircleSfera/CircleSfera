@@ -1542,6 +1542,7 @@ export default function ChatWindow() {
               <textarea
                 ref={inputRef}
                 value={input}
+                maxLength={5000}
                 onChange={(e) => {
                   handleInputChange(e);
                   e.target.style.height = 'auto';

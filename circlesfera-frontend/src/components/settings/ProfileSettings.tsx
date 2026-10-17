@@ -418,6 +418,7 @@ export default function ProfileSettings() {
             label={t('settings.profile.display_name')}
             type="text"
             value={fullName}
+            maxLength={50}
             onChange={(e) => setFullName(e.target.value)}
             placeholder={t('settings.profile.placeholders.name')}
           />
@@ -438,9 +439,9 @@ export default function ProfileSettings() {
                 {t('settings.profile.bio')}
               </label>
               <span
-                className={`text-xs ${bio.length >= 140 ? 'text-brand-secondary' : 'text-white/40'}`}
+                className={`text-xs ${bio.length >= 280 ? 'text-brand-secondary' : 'text-white/40'}`}
               >
-                {bio.length}/150
+                {bio.length}/300
               </span>
             </div>
             <Textarea
@@ -448,7 +449,7 @@ export default function ProfileSettings() {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               rows={3}
-              maxLength={150}
+              maxLength={300}
               placeholder={t('settings.profile.placeholders.bio')}
               className="resize-none"
             />

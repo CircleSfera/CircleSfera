@@ -127,7 +127,7 @@ describe('ProfileSettings', () => {
     expect(screen.getByLabelText('Username')).toHaveValue('ana');
     expect(screen.getByLabelText('Bio')).toHaveValue('Photographer');
     expect(screen.getByLabelText('Website')).toHaveValue('https://ana.example');
-    expect(screen.getByText('12/150')).toBeInTheDocument();
+    expect(screen.getByText('12/300')).toBeInTheDocument();
     expect(screen.getByText('@ana')).toBeInTheDocument();
     expect(save()).toBeDisabled();
     expect(screen.queryByText('Email not verified')).not.toBeInTheDocument();
@@ -204,10 +204,10 @@ describe('ProfileSettings', () => {
   it('warns when the bio is near its limit', async () => {
     await show();
 
-    type('Bio', 'a'.repeat(139));
-    expect(screen.getByText('139/150')).toHaveClass('text-white/40');
-    type('Bio', 'a'.repeat(140));
-    expect(screen.getByText('140/150')).toHaveClass('text-brand-secondary');
+    type('Bio', 'a'.repeat(279));
+    expect(screen.getByText('279/300')).toHaveClass('text-white/40');
+    type('Bio', 'a'.repeat(280));
+    expect(screen.getByText('280/300')).toHaveClass('text-brand-secondary');
   });
 
   it('checks a new username, drops what it cannot hold, and moves to the new address once saved', async () => {

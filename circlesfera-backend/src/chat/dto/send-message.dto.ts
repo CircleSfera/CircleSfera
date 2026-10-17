@@ -24,6 +24,7 @@ export class SendMessageDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(5000)
   content!: string;
 
   @IsString()
