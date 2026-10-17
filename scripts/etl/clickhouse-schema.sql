@@ -1,4 +1,4 @@
--- ClickHouse schema for CircleSfera analytics (ADR-0016).
+-- ClickHouse schema for CircleSfera analytics (see docs/adr/0016-analytical-warehouse-clickhouse.md).
 -- Run once after provisioning ClickHouse Cloud / self-hosted instance:
 --   clickhouse-client --host ... --secure --query "$(cat scripts/etl/clickhouse-schema.sql)"
 

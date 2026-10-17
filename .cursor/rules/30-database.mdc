@@ -39,6 +39,6 @@ Rules:
   compatible with the previously deployed image. Destructive or narrowing changes are split across
   releases: add → backfill → switch reads → stop writing → drop.
 - Do not reintroduce a dropped concept without checking why it went — `payout_requests` and
-  `PayoutStatus` were removed deliberately (ADR-0002).
+  `PayoutStatus` were removed deliberately (`docs/adr/0002-stripe-connect-payouts.md`).
 
 Documentation: Notion → CircleSfera Documentation (see `AGENTS.md` for links).
