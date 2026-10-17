@@ -24,19 +24,21 @@ describe('SystemSettingsService', () => {
           updatedBy: 'system',
         })),
       ),
-      upsert: vi.fn(
+      createMany: vi.fn(
         async ({
-          where,
-          create,
+          data,
         }: {
-          where: { key: string };
-          create: { key: string; value: string; description?: string };
-          update: Record<string, never>;
+          data: { key: string; value: string }[];
+          skipDuplicates: boolean;
         }) => {
-          if (!store.has(where.key)) {
-            store.set(create.key, create.value);
+          let count = 0;
+          for (const row of data) {
+            if (!store.has(row.key)) {
+              store.set(row.key, row.value);
+              count++;
+            }
           }
-          return { key: where.key, value: store.get(where.key) };
+          return { count };
         },
       ),
     },
@@ -69,7 +71,32 @@ describe('SystemSettingsService', () => {
     expect(await service.isEnabled(SYSTEM_SETTING_KEYS.REGISTRATION_OPEN)).toBe(
       true,
     );
-    expect(prisma.systemSetting.upsert).toHaveBeenCalled();
+    // The whole catalog in one statement, never overwriting a value.
+    expect(prisma.systemSetting.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skipDuplicates: true }),
+    );
+  });
+
+  it('writes the catalog once per process, however many settings are read', async () => {
+    for (let i = 0; i < 5; i++) {
+      await service.isEnabled(SYSTEM_SETTING_KEYS.MAINTENANCE_MODE);
+      await service.isEnabled(SYSTEM_SETTING_KEYS.REGISTRATION_OPEN);
+    }
+    await service.list();
+
+    expect(prisma.systemSetting.createMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('tries the catalog again after a failure', async () => {
+    prisma.systemSetting.createMany.mockRejectedValueOnce(new Error('db'));
+
+    await expect(
+      service.isEnabled(SYSTEM_SETTING_KEYS.MAINTENANCE_MODE),
+    ).rejects.toThrow('db');
+    expect(await service.isEnabled(SYSTEM_SETTING_KEYS.MAINTENANCE_MODE)).toBe(
+      false,
+    );
+    expect(prisma.systemSetting.createMany).toHaveBeenCalledTimes(2);
   });
 
   it('uses cached value when present', async () => {

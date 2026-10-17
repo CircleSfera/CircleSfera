@@ -17,24 +17,35 @@ export class SystemSettingsService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
-  // Insert missing catalog rows without overwriting existing values.
+  // Insert missing catalog rows without overwriting existing values: one
+  // statement for the whole catalog.
   async ensureDefaults(updatedBy = 'system'): Promise<void> {
-    for (const setting of SYSTEM_SETTING_DEFAULTS) {
-      await this.prisma.systemSetting.upsert({
-        where: { key: setting.key },
-        create: {
-          key: setting.key,
-          value: setting.value,
-          description: setting.description,
-          updatedBy,
-        },
-        update: {},
-      });
-    }
+    await this.prisma.systemSetting.createMany({
+      data: SYSTEM_SETTING_DEFAULTS.map((setting) => ({
+        key: setting.key,
+        value: setting.value,
+        description: setting.description,
+        updatedBy,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  // The catalog is written once per process, not on every cache miss: every
+  // request reads a setting (maintenance mode), and doing it each time ran
+  // one query per setting.
+  private defaultsReady?: Promise<void>;
+
+  private ensureDefaultsOnce(): Promise<void> {
+    this.defaultsReady ??= this.ensureDefaults().catch((err) => {
+      this.defaultsReady = undefined;
+      throw err;
+    });
+    return this.defaultsReady;
   }
 
   async list() {
-    await this.ensureDefaults();
+    await this.ensureDefaultsOnce();
     return this.prisma.systemSetting.findMany({
       orderBy: { key: 'asc' },
     });
@@ -47,7 +58,7 @@ export class SystemSettingsService {
       return cached;
     }
 
-    await this.ensureDefaults();
+    await this.ensureDefaultsOnce();
     const row = await this.prisma.systemSetting.findUnique({
       where: { key },
     });

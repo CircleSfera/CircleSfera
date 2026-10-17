@@ -6,11 +6,13 @@ import { BrowserRouter } from 'react-router-dom';
 import { AppToaster } from './components/ui/AppToaster';
 import { i18nReady } from './i18n';
 import { initSentry } from './sentry.ts';
+import { watchForStaleBuild } from './utils/staleBuild';
 import './index.css';
 import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 
 initSentry();
+watchForStaleBuild();
 
 const queryClient = new QueryClient({
   defaultOptions: {
