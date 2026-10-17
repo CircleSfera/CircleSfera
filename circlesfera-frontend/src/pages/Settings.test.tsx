@@ -43,6 +43,9 @@ vi.mock('../components/settings/RequestsSettings', () => ({
 vi.mock('../components/settings/SecuritySettings', () => ({
   default: () => <div>panel:security</div>,
 }));
+vi.mock('../components/settings/TeamSettings', () => ({
+  default: () => <div>panel:team</div>,
+}));
 vi.mock('../components/settings/SettingsHubIndex', () => ({
   default: () => <div>panel:hub</div>,
 }));

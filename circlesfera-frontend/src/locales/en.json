@@ -111,6 +111,10 @@
       "profiles": {
         "label": "Profiles",
         "desc": "Switch & create"
+      },
+      "team": {
+        "label": "Teams",
+        "desc": "People who work on a Business profile"
       }
     },
     "profile": {
@@ -597,6 +601,49 @@
         "submitting": "Creating profile…",
         "cancel": "Cancel",
         "failed": "Could not create the profile. Try again."
+      }
+    },
+    "team": {
+      "title": "Team of this profile",
+      "subtitle": "People who work on this Business profile with their own account. Nobody shares a password.",
+      "invitations_title": "Invitations",
+      "invitations_desc": "Business profiles that invited you to work on them.",
+      "invited_as": "Invites you as {{role}}",
+      "accept": "Accept",
+      "decline": "Decline",
+      "accepted": "You joined the team.",
+      "answer_error": "The invitation could not be answered.",
+      "business_only": "Teams are for Business profiles. Switch to a Business profile you own to see its team.",
+      "owner_only": "Only the owner of this profile manages its team.",
+      "plan_required": "A team is part of the Business plan.",
+      "see_plans": "See plans",
+      "seats": "{{used}} of {{max}} people, besides you",
+      "empty": "Nobody else works on this profile yet.",
+      "invite_title": "Invite a person",
+      "username": "Username",
+      "username_placeholder": "@username of one of their profiles",
+      "role_label": "Role",
+      "invite": "Send invitation",
+      "full": "The team is full",
+      "invited": "Invitation sent.",
+      "invite_error": "The invitation could not be sent.",
+      "remove": "Remove",
+      "withdraw": "Withdraw",
+      "remove_error": "The person could not be removed.",
+      "two_factor_note": "To accept, the person needs two-step verification on.",
+      "unknown": "unknown",
+      "role": {
+        "ADMINISTRATOR": "Administrator",
+        "EDITOR": "Editor"
+      },
+      "role_desc": {
+        "EDITOR": "Publishes, edits and deletes content, answers comments and sees analytics.",
+        "ADMINISTRATOR": "Everything an editor does, and edits the profile and its settings."
+      },
+      "status": {
+        "INVITED": "Invited",
+        "ACTIVE": "Active",
+        "PAUSED": "Paused: the Business plan ended"
       }
     }
   },
@@ -5351,7 +5398,12 @@
       "EBADCSRFTOKEN": "Your session needs refreshing. Reload the page and try again.",
       "ADMIN_STEP_UP_REQUIRED": "Confirm your identity to continue.",
       "APPEAL_WINDOW_CLOSED": "More than six months have passed since this decision, so it can no longer be appealed.",
-      "APPEAL_ALREADY_MADE": "This decision has already been appealed. Each decision can be appealed once."
+      "APPEAL_ALREADY_MADE": "This decision has already been appealed. Each decision can be appealed once.",
+      "TEAM_FULL": "The team is full: 5 people besides the owner.",
+      "TEAM_ALREADY_MEMBER": "This person is already invited or in the team.",
+      "TEAM_INVITE_SELF": "You already own this profile.",
+      "TEAM_TWO_FACTOR_REQUIRED": "Turn on two-step verification in Security to join a team.",
+      "TEAM_MEMBER_NOT_FOUND": "That invitation or person is no longer there."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
