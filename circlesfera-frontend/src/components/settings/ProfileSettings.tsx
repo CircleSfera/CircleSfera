@@ -214,11 +214,12 @@ export default function ProfileSettings() {
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    const data: UpdateProfileDto = {
-      fullName,
-      bio,
-      accountType,
-    };
+    // Name and bio go only when they change: one kept from before the limits
+    // were set may be longer than they allow, and must not stop the person
+    // from saving the rest.
+    const data: UpdateProfileDto = { accountType };
+    if (fullName !== (profile?.fullName || '')) data.fullName = fullName;
+    if (bio !== (profile?.bio || '')) data.bio = bio;
     if (website && website.trim() !== '') {
       data.website = website;
     } else {

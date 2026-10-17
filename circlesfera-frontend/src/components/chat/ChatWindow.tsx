@@ -51,6 +51,9 @@ import {
 } from './mergeChatMessages';
 
 // Frequent emojis for the message box; phones already have their own keyboard.
+// The longest message the server accepts.
+const MESSAGE_MAX_LENGTH = 5000;
+
 const MESSAGE_EMOJIS = [
   '😀',
   '😂',
@@ -572,11 +575,15 @@ export default function ChatWindow() {
     };
   }, [id, chatInfo.otherProfileId, chatInfo.isGroup, isTyping, stopTyping]);
 
-  // Puts the emoji where the cursor is and leaves the cursor after it.
+  // Puts the emoji where the cursor is and leaves the cursor after it. The
+  // box's own limit does not stop text put in by code, so it is checked here.
   const insertEmoji = (emoji: string) => {
     const box = inputRef.current;
     const start = box?.selectionStart ?? input.length;
     const end = box?.selectionEnd ?? input.length;
+    if (input.length - (end - start) + emoji.length > MESSAGE_MAX_LENGTH) {
+      return;
+    }
     setInput(input.slice(0, start) + emoji + input.slice(end));
     requestAnimationFrame(() => {
       box?.focus();
@@ -766,6 +773,7 @@ export default function ChatWindow() {
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !id || !profile) return;
+    if (input.length > MESSAGE_MAX_LENGTH) return;
 
     const tempId =
       Date.now().toString() + Math.random().toString(36).substring(2, 9);
@@ -1542,7 +1550,7 @@ export default function ChatWindow() {
               <textarea
                 ref={inputRef}
                 value={input}
-                maxLength={5000}
+                maxLength={MESSAGE_MAX_LENGTH}
                 onChange={(e) => {
                   handleInputChange(e);
                   e.target.style.height = 'auto';

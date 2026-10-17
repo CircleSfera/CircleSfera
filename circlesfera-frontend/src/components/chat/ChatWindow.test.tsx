@@ -1281,6 +1281,23 @@ describe('ChatWindow', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('adds no emoji to a message already at its limit', async () => {
+      const i18n = await renderLoadedChat();
+      const box = screen.getByPlaceholderText(
+        i18n.t('chat.type_message'),
+      ) as HTMLTextAreaElement;
+      const full = 'a'.repeat(5000);
+      typeMessage(i18n, full);
+      box.setSelectionRange(5000, 5000);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('chat.add_emoji') }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: '🎉' }));
+
+      expect(box).toHaveValue(full);
+    });
+
     it('closes the panel from its button', async () => {
       const i18n = await renderLoadedChat();
       const toggle = screen.getByRole('button', {

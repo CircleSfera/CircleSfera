@@ -162,6 +162,22 @@ describe('ProfileSettings', () => {
     expect(screen.getByTestId('where')).toHaveTextContent('/');
   });
 
+  it('a name and bio longer than the limits, kept from before, do not stop saving the rest', async () => {
+    const longName = 'N'.repeat(60);
+    const longBio = 'B'.repeat(320);
+    await show(mine({ fullName: longName, bio: longBio }));
+
+    type('Website', 'https://new.example');
+    fireEvent.click(save());
+
+    await waitFor(() =>
+      expect(api.profile.updateProfile).toHaveBeenCalledWith({
+        accountType: 'PERSONAL',
+        website: 'https://new.example',
+      }),
+    );
+  });
+
   it('sends no site when it is emptied or only spaces', async () => {
     await show();
 
