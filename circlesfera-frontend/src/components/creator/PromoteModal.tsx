@@ -6,6 +6,7 @@ import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse, Post } from '../../types';
 import { formatWholeEuros } from '../../utils/money';
+import { WithdrawalConsentBox } from '../payments/WithdrawalConsent';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
 import CountryPicker from './CountryPicker';
@@ -55,9 +56,13 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
     enabled: !post,
   });
 
+  // Paying needs the consent to start at once and the acknowledgement of
+  // losing the withdrawal right; the button waits for the box.
+  const [withdrawalConsent, setWithdrawalConsent] = useState(false);
   const mutation = useMutation({
     mutationFn: (target: CreatorPost | Post) =>
       creatorApi.createPromotion({
+        withdrawalConsent: true,
         targetType: target.type?.toLowerCase() === 'frame' ? 'frame' : 'post',
         targetId: target.id,
         dailyBudget,
@@ -177,11 +182,18 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <p className="text-xs text-white/50 leading-relaxed">
               {t('creator.promote.total_hint', { count: durationDays })}
             </p>
+            <WithdrawalConsentBox
+              checked={withdrawalConsent}
+              onChange={setWithdrawalConsent}
+            />
             <Button
               variant="primary"
               size="lg"
               className="button-alone min-h-12"
-              onClick={() => mutation.mutate(chosen)}
+              disabled={!withdrawalConsent}
+              onClick={() => {
+                if (withdrawalConsent) mutation.mutate(chosen);
+              }}
               isLoading={mutation.isPending}
             >
               {t('creator.promote.pay', { total })}

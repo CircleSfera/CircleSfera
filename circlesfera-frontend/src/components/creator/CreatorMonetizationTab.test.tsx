@@ -6,6 +6,10 @@ import { paymentsApi } from '../../services/payments.service';
 import { renderWithProviders } from '../../test/test-utils';
 import CreatorMonetizationTab from './CreatorMonetizationTab';
 
+vi.mock('../payments/WithdrawalConsent', async () =>
+  (await import('../../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
+);
+
 const auth = vi.hoisted(() => ({ verificationLevel: undefined as unknown }));
 vi.mock('../../stores/authStore', () => ({
   useAuthStore: (selector: (s: unknown) => unknown) =>
@@ -414,6 +418,8 @@ describe('CreatorMonetizationTab', () => {
       );
       expect(paymentsApi.createSubscriptionCheckout).toHaveBeenCalledWith(
         'plan-1',
+        'MONTHLY',
+        { withdrawalConsent: true },
       );
     });
 

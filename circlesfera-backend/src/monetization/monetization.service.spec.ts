@@ -436,6 +436,9 @@ describe('MonetizationService', () => {
             type: 'DIRECT_STORY_UNLOCK',
             storyId: 's-1',
             creatorId: 'c-1',
+            // The buyer's consent, kept with the payment.
+            withdrawal_consent: 'accepted',
+            withdrawal_consent_version: '2026-1',
           },
         }),
         { idempotencyKey: undefined },
@@ -603,6 +606,9 @@ describe('MonetizationService', () => {
             type: 'DIRECT_MESSAGE_UNLOCK',
             messageId: 'm-1',
             creatorId: 'creator-user-1',
+            // The buyer's consent, kept with the payment.
+            withdrawal_consent: 'accepted',
+            withdrawal_consent_version: '2026-1',
           },
         }),
         { idempotencyKey: undefined },

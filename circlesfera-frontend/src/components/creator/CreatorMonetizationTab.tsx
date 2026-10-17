@@ -29,6 +29,10 @@ import {
 } from '../../utils/pendingTab';
 import { planFeatureLabel } from '../../utils/planFeatures';
 import MonetizationDashboard from '../monetization/MonetizationDashboard';
+import {
+  useWithdrawalConsent,
+  type WithdrawalConsentGiven,
+} from '../payments/WithdrawalConsent';
 import { Button, Card } from '../ui';
 import { CreatorFigure, CreatorFigures, CreatorSection } from './CreatorPieces';
 import CreatorPpvIncome from './CreatorPpvIncome';
@@ -144,9 +148,17 @@ export default function CreatorMonetizationTab({
     },
   });
 
+  // Before paying: the consent to start at once and the acknowledgement of
+  // losing the withdrawal right.
+  const consent = useWithdrawalConsent();
   const checkoutMutation = useMutation({
-    mutationFn: (planId: string) =>
-      paymentsApi.createSubscriptionCheckout(planId),
+    mutationFn: ({
+      planId,
+      given,
+    }: {
+      planId: string;
+      given: WithdrawalConsentGiven;
+    }) => paymentsApi.createSubscriptionCheckout(planId, 'MONTHLY', given),
     onSuccess: (data) => {
       if (data?.url) window.location.href = data.url;
     },
@@ -219,6 +231,7 @@ export default function CreatorMonetizationTab({
 
   return (
     <div className="space-y-6 pb-8">
+      {consent.dialog}
       {showIncome && (
         <div className="space-y-8">
           <CreatorPpvIncome
@@ -369,7 +382,11 @@ export default function CreatorMonetizationTab({
                       variant="secondary"
                       disabled={checkoutMutation.isPending}
                       isLoading={checkoutMutation.isPending}
-                      onClick={() => checkoutMutation.mutate(plan.id)}
+                      onClick={() =>
+                        consent.ask((given) =>
+                          checkoutMutation.mutate({ planId: plan.id, given }),
+                        )
+                      }
                       className="button-alone min-h-11"
                     >
                       {t('creator.monetization.upgrade_now')}

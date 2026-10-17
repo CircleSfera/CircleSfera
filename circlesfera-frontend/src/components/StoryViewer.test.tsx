@@ -9,6 +9,10 @@ import { renderWithProviders } from '../test/test-utils';
 import type { Story } from '../types';
 import StoryViewer from './StoryViewer';
 
+vi.mock('./payments/WithdrawalConsent', async () =>
+  (await import('../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
+);
+
 vi.mock('../stores/authStore', () => ({
   useAuthStore: (selector: (s: { profile: { id: string } }) => unknown) =>
     selector({ profile: { id: 'me' } }),
@@ -673,6 +677,7 @@ describe('StoryViewer', () => {
       expect(monetizationApi.unlockStory).toHaveBeenCalledWith(
         's1',
         window.location.href,
+        { withdrawalConsent: true },
       );
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ['stories'] });
     });

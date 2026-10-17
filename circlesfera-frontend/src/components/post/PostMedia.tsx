@@ -7,6 +7,10 @@ import type { Post } from '../../types';
 import { reportPaymentError } from '../../utils/identityVerification';
 import Carousel from '../Carousel';
 import PaywallOverlay from '../monetization/PaywallOverlay';
+import {
+  useWithdrawalConsent,
+  type WithdrawalConsentGiven,
+} from '../payments/WithdrawalConsent';
 
 interface PostMediaProps {
   post: Post;
@@ -31,8 +35,12 @@ export default function PostMedia({
   const [revealed, setRevealed] = useState(false);
   const isBlurred = !!post.shouldBlurSensitive && !revealed;
 
+  // Before paying: the consent to start at once and the acknowledgement of
+  // losing the withdrawal right.
+  const consent = useWithdrawalConsent();
   const unlockMutation = useMutation({
-    mutationFn: () => monetizationApi.unlockPost(post.id, window.location.href),
+    mutationFn: (given: WithdrawalConsentGiven) =>
+      monetizationApi.unlockPost(post.id, window.location.href, given),
     onSuccess: (response: { url?: string }) => {
       if (response?.url) {
         window.location.href = response.url;
@@ -103,10 +111,11 @@ export default function PostMedia({
       {post.isLocked && (
         <PaywallOverlay
           price={displayPrice}
-          onUnlock={() => unlockMutation.mutate()}
+          onUnlock={() => consent.ask((given) => unlockMutation.mutate(given))}
           isLoading={unlockMutation.isPending}
         />
       )}
+      {consent.dialog}
     </div>
   );
 }

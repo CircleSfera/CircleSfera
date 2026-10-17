@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PromotionStatus, PromotionTargetType } from '@prisma/client';
 import { eurosToCents } from '../../../../common/constants/monetization.constants.js';
+import { withdrawalConsentMetadata } from '../../../../common/consumer/withdrawal-consent.js';
 import { assertRealMoneyAllowed } from '../../../../common/policies/test-account.policy.js';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
@@ -111,6 +112,7 @@ export class CreatePromotionUseCase {
         promotionId: promotion.id,
         userId: userId,
         type: 'PROMOTION',
+        ...withdrawalConsentMetadata(),
       },
     });
 

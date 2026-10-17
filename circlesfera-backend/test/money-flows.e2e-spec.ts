@@ -176,6 +176,7 @@ describe('Money flows (e2e)', () => {
         .send({
           planId: activePlanId,
           billingCycle: 'MONTHLY',
+          withdrawalConsent: true,
         })
         .expect(401);
       await request(app.getHttpServer())
@@ -244,7 +245,11 @@ describe('Money flows (e2e)', () => {
         .post('/api/v1/payments/checkout')
         .set('Cookie', [`access_token=${accessToken}`, csrfCookie])
         .set('x-csrf-token', csrfToken)
-        .send({ planId: activePlanId, billingCycle: 'MONTHLY' })
+        .send({
+          planId: activePlanId,
+          billingCycle: 'MONTHLY',
+          withdrawalConsent: true,
+        })
         .expect(403);
       expect(checkout.body.message).toBe(KYC_REQUIRED);
 
@@ -294,6 +299,7 @@ describe('Money flows (e2e)', () => {
         .send({
           planId: activePlanId,
           billingCycle: 'MONTHLY',
+          withdrawalConsent: true,
           amountCents: 1,
         })
         .expect(400);
@@ -339,6 +345,7 @@ describe('Money flows (e2e)', () => {
         .send({
           postId: '00000000-0000-4000-8000-000000000002',
           returnUrl: 'http://localhost:5173/',
+          withdrawalConsent: true,
           amountCents: 1,
         })
         .expect(400);

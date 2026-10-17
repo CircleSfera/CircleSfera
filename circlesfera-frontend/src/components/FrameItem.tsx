@@ -30,6 +30,10 @@ import FrameOverlayInfo from './frames/FrameOverlayInfo';
 import ConfirmModal from './modals/ConfirmModal';
 import ReportModal from './modals/ReportModal';
 import PaywallOverlay from './monetization/PaywallOverlay';
+import {
+  useWithdrawalConsent,
+  type WithdrawalConsentGiven,
+} from './payments/WithdrawalConsent';
 import EditCaptionDialog from './post/EditCaptionDialog';
 
 const PromoteModal = lazy(() => import('./creator/PromoteModal'));
@@ -90,8 +94,12 @@ export default function FrameItem({
   });
   const isBookmarked = bookmarkData?.data?.bookmarked ?? false;
 
+  // Before paying: the consent to start at once and the acknowledgement of
+  // losing the withdrawal right.
+  const consent = useWithdrawalConsent();
   const unlockMutation = useMutation({
-    mutationFn: () => monetizationApi.unlockPost(post.id, window.location.href),
+    mutationFn: (given: WithdrawalConsentGiven) =>
+      monetizationApi.unlockPost(post.id, window.location.href, given),
     onSuccess: (response: { url?: string }) => {
       if (response?.url) {
         window.location.href = response.url;
@@ -458,10 +466,11 @@ export default function FrameItem({
       {post.isLocked && (
         <PaywallOverlay
           price={post.priceCents ? post.priceCents / 100 : 0}
-          onUnlock={() => unlockMutation.mutate()}
+          onUnlock={() => consent.ask((given) => unlockMutation.mutate(given))}
           isLoading={unlockMutation.isPending}
         />
       )}
+      {consent.dialog}
 
       <div className="absolute top-4 right-4 z-30 pointer-events-auto">
         <button

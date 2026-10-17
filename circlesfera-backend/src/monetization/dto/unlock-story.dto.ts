@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Equals, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class UnlockStoryDto {
   @IsString()
@@ -12,4 +12,9 @@ export class UnlockStoryDto {
   @IsString()
   @IsOptional()
   idempotencyKey?: string;
+
+  // The buyer consents to start at once and acknowledges losing the right of
+  // withdrawal; without it the purchase is refused.
+  @Equals(true, { message: 'withdrawalConsent must be true' })
+  withdrawalConsent!: true;
 }

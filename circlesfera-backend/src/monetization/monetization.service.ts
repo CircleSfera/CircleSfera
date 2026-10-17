@@ -7,6 +7,7 @@ import {
   MIN_TIP_CENTS,
   PLATFORM_FEE_DECIMAL,
 } from '../common/constants/monetization.constants.js';
+import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
@@ -210,6 +211,7 @@ export class MonetizationService {
       creatorStripeAccountId: creator.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_POST_UNLOCK',
+        ...withdrawalConsentMetadata(),
         postId: postId,
         creatorId: creator.id,
       },
@@ -274,6 +276,7 @@ export class MonetizationService {
       creatorStripeAccountId: creator.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_STORY_UNLOCK',
+        ...withdrawalConsentMetadata(),
         storyId,
         creatorId: creator.id,
       },
@@ -354,6 +357,7 @@ export class MonetizationService {
       creatorStripeAccountId: creator.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_MESSAGE_UNLOCK',
+        ...withdrawalConsentMetadata(),
         messageId,
         creatorId: creator.id,
       },

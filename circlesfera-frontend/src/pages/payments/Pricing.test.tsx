@@ -9,6 +9,10 @@ import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import Pricing from './Pricing';
 
+vi.mock('../../components/payments/WithdrawalConsent', async () =>
+  (await import('../../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
+);
+
 vi.mock('../../services/payments.service', () => ({
   paymentsApi: {
     getPlans: vi.fn(),
@@ -242,6 +246,7 @@ describe('Pricing', () => {
       expect(paymentsApi.createSubscriptionCheckout).toHaveBeenCalledWith(
         'p-premium',
         'MONTHLY',
+        { withdrawalConsent: true },
       ),
     );
     await waitFor(() =>
@@ -260,6 +265,7 @@ describe('Pricing', () => {
       expect(paymentsApi.createSubscriptionCheckout).toHaveBeenCalledWith(
         'p-elite',
         'YEARLY',
+        { withdrawalConsent: true },
       ),
     );
   });

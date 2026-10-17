@@ -6,6 +6,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { AccountType, SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
+import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
@@ -263,6 +264,7 @@ export class PaymentsService {
               planId: plan.id,
               billingCycle,
               profileId: profile.id,
+              ...withdrawalConsentMetadata(),
             },
           },
           {

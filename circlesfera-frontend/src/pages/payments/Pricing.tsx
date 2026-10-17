@@ -18,6 +18,10 @@ import {
   MarketingPage,
   MarketingPageHeader,
 } from '../../components/marketing';
+import {
+  useWithdrawalConsent,
+  type WithdrawalConsentGiven,
+} from '../../components/payments/WithdrawalConsent';
 import { ArticleLinks } from '../../components/support/ArticleLinks';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { helpCentreApi } from '../../services/helpCentre.service';
@@ -144,25 +148,43 @@ export default function Pricing() {
     retry: false,
   });
 
-  const checkoutMutation = useMutation({
-    mutationFn: async (plan: PlatformPlanDto) => {
-      const verificationLevel =
-        currentUser?.verificationLevel || currentUser?.verificationLevel;
-      const mappedLevel = planVerificationMap[plan.name];
-      const isActiveByBilling =
-        !!billingStatus?.hasActiveSubscription &&
-        billingStatus?.subscription?.planName
-          ?.toLowerCase()
-          .includes(plan.name.toLowerCase());
-      const isActiveByLevel =
-        !!mappedLevel && verificationLevel === mappedLevel;
-      const isActive = isActiveByBilling || isActiveByLevel;
+  const isPlanActive = (plan: PlatformPlanDto) => {
+    const verificationLevel =
+      currentUser?.verificationLevel || currentUser?.verificationLevel;
+    const mappedLevel = planVerificationMap[plan.name];
+    const isActiveByBilling =
+      !!billingStatus?.hasActiveSubscription &&
+      billingStatus?.subscription?.planName
+        ?.toLowerCase()
+        .includes(plan.name.toLowerCase());
+    const isActiveByLevel = !!mappedLevel && verificationLevel === mappedLevel;
+    const isActive = isActiveByBilling || isActiveByLevel;
 
-      if (isActive) {
+    return isActive;
+  };
+
+  // Before paying for a plan: the consent to start at once and the
+  // acknowledgement of losing the withdrawal right.
+  const consent = useWithdrawalConsent();
+  const checkoutMutation = useMutation({
+    mutationFn: async ({
+      plan,
+      given,
+    }: {
+      plan: PlatformPlanDto;
+      given?: WithdrawalConsentGiven;
+    }) => {
+      // A plan already held opens the billing portal; a new one is a
+      // purchase and comes with the consent.
+      if (!given) {
         return paymentsApi.getBillingPortalUrl();
       }
 
-      return paymentsApi.createSubscriptionCheckout(plan.id, billingCycle);
+      return paymentsApi.createSubscriptionCheckout(
+        plan.id,
+        billingCycle,
+        given,
+      );
     },
     onSuccess: (res) => {
       if (res?.url) {
@@ -179,8 +201,15 @@ export default function Pricing() {
       navigate('/accounts/signup');
       return;
     }
-    setLoadingPlanId(plan.id);
-    checkoutMutation.mutate(plan);
+    if (isPlanActive(plan)) {
+      setLoadingPlanId(plan.id);
+      checkoutMutation.mutate({ plan });
+      return;
+    }
+    consent.ask((given) => {
+      setLoadingPlanId(plan.id);
+      checkoutMutation.mutate({ plan, given });
+    });
   };
 
   const verificationLevel =
@@ -192,6 +221,7 @@ export default function Pricing() {
 
   return (
     <MarketingPage withFooter={!isAuthenticated}>
+      {consent.dialog}
       <div className="mx-auto w-full max-w-6xl px-4 pb-14 sm:px-6 sm:pb-20">
         <MarketingPageHeader
           align="center"

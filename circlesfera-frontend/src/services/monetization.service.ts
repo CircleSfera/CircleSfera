@@ -1,3 +1,4 @@
+import type { WithdrawalConsentGiven } from '../components/payments/WithdrawalConsent';
 import { apiClient as api } from './api';
 
 export const monetizationApi = {
@@ -30,18 +31,28 @@ export const monetizationApi = {
     });
     return data;
   },
-  unlockPost: async (postId: string, returnUrl: string) => {
+  unlockPost: async (
+    postId: string,
+    returnUrl: string,
+    consent: WithdrawalConsentGiven,
+  ) => {
     const { data } = await api.post('/monetization/unlock', {
       postId,
       returnUrl,
+      ...consent,
     });
     return data;
   },
 
-  unlockStory: async (storyId: string, returnUrl: string) => {
+  unlockStory: async (
+    storyId: string,
+    returnUrl: string,
+    consent: WithdrawalConsentGiven,
+  ) => {
     const { data } = await api.post('/monetization/unlock-story', {
       storyId,
       returnUrl,
+      ...consent,
     });
     return data;
   },
