@@ -38,7 +38,10 @@ export class PushController {
 
   @Delete('unsubscribe')
   @UseGuards(JwtAuthGuard)
-  async unsubscribe(@Query('endpoint') endpoint: string) {
-    return this.pushService.unsubscribe(endpoint);
+  async unsubscribe(
+    @CurrentUser() user: CurrentUserData,
+    @Query('endpoint') endpoint: string,
+  ) {
+    return this.pushService.unsubscribe(user.userId, endpoint);
   }
 }

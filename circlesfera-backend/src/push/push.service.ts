@@ -43,20 +43,29 @@ export class PushService {
     });
   }
 
-  async unsubscribe(endpoint: string) {
+  // A person takes one of their own devices off; nobody else's.
+  async unsubscribe(userId: string, endpoint: string) {
     return this.prisma.pushSubscription.deleteMany({
-      where: { endpoint },
+      where: { endpoint, userId },
     });
   }
 
-  // Send a push notification to a specific user.
-  // Sends to all registered devices for that user.
+  // Sends a push to the devices of the person who owns a Profile, when that
+  // Profile has push on. Devices are kept by person (the browser subscribes
+  // once for the account); what is sent is for one Profile, so the Profile's
+  // switch decides.
   async sendNotification(
-    userId: string,
+    profileId: string,
     payload: { title: string; body: string; data?: any },
   ) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { userId: true, pushNotifications: true },
+    });
+    if (!profile || profile.pushNotifications === false) return;
+
     const subscriptions = await this.prisma.pushSubscription.findMany({
-      where: { userId },
+      where: { userId: profile.userId },
     });
 
     if (subscriptions.length === 0) return;
@@ -78,7 +87,9 @@ export class PushService {
           // If subscription is expired or invalid, remove it
           const statusCode = (error as { statusCode?: number }).statusCode;
           if (statusCode === 404 || statusCode === 410) {
-            await this.unsubscribe(sub.endpoint);
+            await this.prisma.pushSubscription.deleteMany({
+              where: { endpoint: sub.endpoint },
+            });
             this.logger.log(
               `Removed expired push subscription: ${sub.endpoint}`,
             );

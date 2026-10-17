@@ -352,14 +352,13 @@ describe('NotificationsService', () => {
       expect(mockPrismaService.notification.create).not.toHaveBeenCalled();
     });
 
-    it('skips push notification when recipient disabled pushNotifications', async () => {
+    it('hands the push to the push service, which honours the Profile switch', async () => {
       mockPrismaService.notification.findFirst.mockResolvedValueOnce(null);
       mockPrismaService.notification.create.mockResolvedValueOnce({
         id: 'n-no-push',
         recipientId: 'user-1',
         type: 'FOLLOW',
       });
-      recipientPush.on = false;
 
       const res = await service.create({
         recipientId: 'user-1',
@@ -369,7 +368,10 @@ describe('NotificationsService', () => {
       });
 
       expect(res).toBeDefined();
-      expect(mockPushService.sendNotification).not.toHaveBeenCalled();
+      expect(mockPushService.sendNotification).toHaveBeenCalledWith(
+        'user-1',
+        expect.anything(),
+      );
     });
 
     it('handles error in push notification gracefully without throwing', async () => {
