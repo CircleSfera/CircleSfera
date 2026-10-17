@@ -228,6 +228,16 @@ export default function StoryViewer({
     }
   }, [currentStory]);
 
+  // The timers that clear reaction particles stop with the viewer, so none
+  // updates it after it has closed.
+  const particleTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(
+    () => () => {
+      for (const timer of particleTimers.current) clearTimeout(timer);
+    },
+    [],
+  );
+
   const triggerReactionAnimation = (emoji: string) => {
     const newParticles = Array.from({ length: 12 }).map(() => ({
       id: particleIdCounter.current++,
@@ -236,11 +246,15 @@ export default function StoryViewer({
       emoji,
     }));
     setParticles((prev) => [...prev, ...newParticles]);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      particleTimers.current = particleTimers.current.filter(
+        (t) => t !== timer,
+      );
       setParticles((prev) =>
         prev.filter((p) => !newParticles.find((np) => np.id === p.id)),
       );
     }, 2000);
+    particleTimers.current.push(timer);
   };
 
   const handleLike = async (e: React.MouseEvent) => {

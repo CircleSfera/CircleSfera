@@ -204,6 +204,24 @@ describe('StoryViewer', () => {
       expect(screen.getByPlaceholderText('Reply...')).toHaveValue('Hello');
     });
 
+    it('stops the timer of the reaction burst when the viewer closes', async () => {
+      const clear = vi.spyOn(globalThis, 'clearTimeout');
+      const user = userEvent.setup();
+      const { unmount } = show([story('s1')]);
+      await waitFor(() =>
+        expect(storiesApi.getReactions).toHaveBeenCalledTimes(1),
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Like story' }));
+      const before = clear.mock.calls.length;
+      unmount();
+
+      // The burst's 2-second timer is cancelled, so it never updates a
+      // viewer that is gone.
+      expect(clear.mock.calls.length).toBeGreaterThan(before);
+      clear.mockRestore();
+    });
+
     it('adds a heart and reads the reactions again', async () => {
       const user = userEvent.setup();
       show([story('s1')]);
