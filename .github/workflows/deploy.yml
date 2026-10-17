@@ -676,6 +676,21 @@ jobs:
                   csrf_body=$(curl -sS -b "$SMOKE_JAR" -c "$SMOKE_JAR" "${SMOKE_TEST_API_URL}/csrf-token")
                   SMOKE_CSRF_TOKEN=$(echo "$csrf_body" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
 
+                  # The caption limit holds when writing: one character over it is
+                  # refused before anything is stored.
+                  SMOKE_LONG_CAPTION=$(printf 'a%.0s' $(seq 1 2201))
+                  long_create_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-long -w "%{http_code}" \
+                    -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
+                    -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
+                    -d "{\"caption\":\"${SMOKE_LONG_CAPTION}\",\"visibility\":\"PRIVATE\"}" \
+                    "${SMOKE_TEST_API_URL}/posts") || long_create_code="000"
+                  if [ "$long_create_code" != "400" ]; then
+                    echo "  FAIL  a caption over the limit was not refused when writing ($long_create_code)"
+                    auth_smoke_ok=0
+                  else
+                    echo "  OK    a caption over the limit is refused when writing"
+                  fi
+
                   create_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-create -w "%{http_code}" \
                     -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
                     -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
@@ -694,6 +709,18 @@ jobs:
                       echo "  FAIL  could not parse created post id"
                       auth_smoke_ok=0
                     else
+                      # The same limit holds when editing.
+                      long_edit_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-long -w "%{http_code}" \
+                        -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
+                        -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
+                        -X PUT -d "{\"caption\":\"${SMOKE_LONG_CAPTION}\"}" \
+                        "${SMOKE_TEST_API_URL}/posts/${SMOKE_POST_ID}") || long_edit_code="000"
+                      if [ "$long_edit_code" != "400" ]; then
+                        echo "  FAIL  a caption over the limit was not refused when editing ($long_edit_code)"
+                        auth_smoke_ok=0
+                      else
+                        echo "  OK    a caption over the limit is refused when editing"
+                      fi
                       delete_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-delete -w "%{http_code}" \
                         -b "$SMOKE_JAR" \
                         -H "x-csrf-token: $SMOKE_CSRF_TOKEN" \
