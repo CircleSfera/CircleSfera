@@ -200,7 +200,7 @@ server {
 
     # The parts the site map index lists, at the root so that each may list
     # any address of the site.
-    location ~ ^/sitemap-(pages|profiles|posts)-([0-9]{1,6})\.xml$ {
+    location ~ ^/sitemap-(pages|profiles|posts)-([0-9]+)\.xml$ {
         proxy_pass $backend_upstream/api/v1/sitemap/$1/$2;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
