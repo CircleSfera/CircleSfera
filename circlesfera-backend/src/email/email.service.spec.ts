@@ -454,6 +454,22 @@ describe('EmailService', () => {
       expect('replyTo' in job).toBe(false);
     });
 
+    it('enqueues the email of a cancelled plan', async () => {
+      await service.sendPlanCancelledEmail(
+        'subscriber@example.com',
+        'Pro Creator',
+        'ana',
+        new Date('2026-11-01T00:00:00.000Z'),
+      );
+      expect(mockEmailQueue.add).toHaveBeenCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({
+          to: 'subscriber@example.com',
+          subject: 'Has cancelado tu plan Pro Creator',
+        }),
+      );
+    });
+
     it('should enqueue a subscription receipt email', async () => {
       await service.sendSubscriptionReceipt(
         'subscriber@example.com',

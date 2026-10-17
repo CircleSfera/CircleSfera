@@ -455,4 +455,33 @@ export const EmailTemplates = {
       }),
     };
   },
+
+  // A cancelled plan: it lasts until the end of the period paid.
+  planCancelled: (
+    ctx: EmailContext,
+    planName: string,
+    username: string,
+    endsAt: Date,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const date = endsAt.toLocaleDateString(
+      ctx.locale === 'es' ? 'es-ES' : 'en-GB',
+      { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
+    );
+    return {
+      subject: fill(copy.planCancelled.subject, { plan: planName }),
+      html: layout(ctx, copy, {
+        title: copy.planCancelled.title,
+        content: fill(copy.planCancelled.body, {
+          plan: escapeHtml(planName),
+          username: escapeHtml(username),
+          date: escapeHtml(date),
+        }),
+        button: {
+          text: copy.planCancelled.button,
+          url: `${ctx.frontendUrl}/accounts/billing`,
+        },
+      }),
+    };
+  },
 };

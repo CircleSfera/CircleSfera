@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Shield, Star } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -14,7 +14,10 @@ export default function BillingSettings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [isProcessingPortal, setIsProcessingPortal] = useState(false);
+  // Cancelling takes two steps: the button, then the confirmation.
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
   const username = useAuthStore((state) => state.profile?.username);
+  const queryClient = useQueryClient();
 
   const { data: billingStatus, isLoading } = useQuery({
     queryKey: ['billingStatus'],
@@ -23,6 +26,18 @@ export default function BillingSettings() {
   });
 
   const handleUpgrade = () => navigate('/pricing');
+
+  const cancelPlan = useMutation({
+    mutationFn: () => paymentsApi.cancelPlan(),
+    onSuccess: (status) => {
+      queryClient.setQueryData(['billingStatus'], status);
+      setConfirmingCancel(false);
+      toast.success(t('settings.billing.cancel_done'));
+    },
+    onError: () => {
+      toast.error(t('settings.billing.cancel_error'));
+    },
+  });
 
   const handleBillingPortal = async () => {
     try {
@@ -103,6 +118,53 @@ export default function BillingSettings() {
               : t('settings.billing.view_plans')}
           </Button>
         </div>
+
+        {hasActiveSubscription &&
+          subscription &&
+          !subscription.cancelAtPeriodEnd && (
+            <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              {confirmingCancel ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-white">
+                    {t('settings.billing.cancel_confirm', {
+                      plan: subscription.planName,
+                      date: new Date(
+                        subscription.currentPeriodEnd,
+                      ).toLocaleDateString(i18n.language, {
+                        dateStyle: 'long',
+                      }),
+                    })}
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      variant="danger"
+                      onClick={() => cancelPlan.mutate()}
+                      isLoading={cancelPlan.isPending}
+                      className="min-h-11 text-sm font-semibold"
+                    >
+                      {t('settings.billing.cancel_confirm_button')}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setConfirmingCancel(false)}
+                      disabled={cancelPlan.isPending}
+                      className="min-h-11 text-sm font-semibold"
+                    >
+                      {t('settings.billing.cancel_keep')}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={() => setConfirmingCancel(true)}
+                  className="min-h-11 button-alone text-sm font-semibold"
+                >
+                  {t('settings.billing.cancel')}
+                </Button>
+              )}
+            </div>
+          )}
       </SettingsSection>
 
       {otherProfiles.length > 0 && (

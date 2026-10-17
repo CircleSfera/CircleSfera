@@ -35,6 +35,7 @@ describe('PaymentsController', () => {
     createCheckout: vi.fn(),
     getPortalUrl: vi.fn(),
     getBillingStatus: vi.fn(),
+    cancelPlan: vi.fn(),
     getLedgerCsv: vi.fn(),
     constructEvent: vi.fn(),
     processWebhookEvent: vi.fn(),
@@ -154,6 +155,21 @@ describe('PaymentsController', () => {
       TEST_USER.profileId,
     );
     expect(mockService.getLedgerCsv).toHaveBeenCalledWith(TEST_USER.userId);
+  });
+
+  it('cancels the plan of the session Profile, for the person who pays it', async () => {
+    mockService.cancelPlan.mockResolvedValue({ hasActiveSubscription: true });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/cancel')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual({ hasActiveSubscription: true });
+    expect(mockService.cancelPlan).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
   });
 
   it('rejects the admin ledger with a user session', async () => {
