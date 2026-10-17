@@ -10,9 +10,11 @@ import {
   vi,
 } from 'vitest';
 import { AnalyticsService } from '../analytics/analytics.service.js';
+import { REQUIRES_PLAN_KEY } from '../auth/decorators/requires-plan.decorator.js';
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { ElitePlanGuard } from '../auth/guards/elite-plan.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
 import {
   BEARER,
   createControllerApp,
@@ -30,6 +32,9 @@ import { CreatePromotionUseCase } from './use-cases/promotions/commands/create-p
 import { ManagePromotionUseCase } from './use-cases/promotions/commands/manage-promotion.use-case.js';
 import { RecordPromotionInteractionUseCase } from './use-cases/promotions/commands/record-promotion-interaction.use-case.js';
 import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotions.query.js';
+
+// The key under which @UseGuards stores a handler's guards.
+const NEST_GUARDS_METADATA = '__guards__';
 
 describe('CreatorController', () => {
   let app: INestApplication;
@@ -348,5 +353,25 @@ describe('CreatorController', () => {
       TEST_USER.userId,
       'promo-1',
     );
+  });
+
+  // Creator and Business Profiles promote without a platform plan: the Account
+  // Type decides, so no promotion route may carry a plan check.
+  it.each([
+    'getPromotions',
+    'createPromotion',
+    'updatePromotion',
+    'cancelPromotion',
+    'pausePromotion',
+    'resumePromotion',
+  ] as const)('%s requires no platform plan', (handler) => {
+    const method = CreatorController.prototype[handler];
+    const guards: unknown[] =
+      Reflect.getMetadata(NEST_GUARDS_METADATA, method) ?? [];
+
+    expect(Reflect.getMetadata(REQUIRES_PLAN_KEY, method)).toBeUndefined();
+    expect(guards).not.toContain(ElitePlanGuard);
+    expect(guards).not.toContain(SubscriptionGuard);
+    expect(guards).toContain(CreatorAccountGuard);
   });
 });

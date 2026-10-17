@@ -523,7 +523,7 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
       );
     });
 
-    it('requires Elite Creator platform plan to manage promotions', async () => {
+    it('refuses a route that requires a platform plan the user does not hold, and allows it once held', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ role: 'USER' });
       mockPrisma.platformPlan.findFirst.mockResolvedValue({
         name: 'Elite Creator',
