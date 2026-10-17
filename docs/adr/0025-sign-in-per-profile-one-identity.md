@@ -85,6 +85,13 @@ Each step is one change, deployable and reversible on its own.
    two never differ while the readers are still being moved.
 2. **Password sign-in, recovery and email verification** read the `SignIn`.
 3. **Two-factor and passkeys** read the `SignIn`.
+   - A passkey belongs to the sign-in of the session: it is registered, listed and removed there.
+     The limit of five counts that sign-in, and the passkey is named after the Profile that
+     enters with it.
+   - Removing a passkey needs a fresh confirmation with a passkey of that same sign-in.
+   - A session that names no sign-in uses the account's first one.
+   - **Owner decision.** Until then, every passkey was registered on the account's first sign-in,
+     so a Profile with its own sign-in added its passkey to the shared one.
 4. **Sessions** carry `signInId`; refresh tokens belong to the `SignIn`.
 5. **App**: the screen where a Profile sets its own email and password or goes back to sharing, and
    the choice when creating a Profile.

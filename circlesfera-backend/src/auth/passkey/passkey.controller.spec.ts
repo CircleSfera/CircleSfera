@@ -94,9 +94,15 @@ describe('PasskeyController', () => {
       .set(BEARER)
       .expect(201);
 
-    expect(mockPasskey.getUserPasskeys).toHaveBeenCalledWith(TEST_USER.userId);
+    // Both act on the sign-in of the session.
+    expect(mockPasskey.getUserPasskeys).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.signInId,
+    );
     expect(mockPasskey.generateRegistrationOptions).toHaveBeenCalledWith(
       TEST_USER.userId,
+      undefined,
+      TEST_USER.signInId,
     );
   });
 
@@ -113,6 +119,7 @@ describe('PasskeyController', () => {
     expect(mockPasskey.verifyRegistration).toHaveBeenCalledWith(
       TEST_USER.userId,
       registrationResponse,
+      TEST_USER.signInId,
     );
   });
 
@@ -220,6 +227,7 @@ describe('PasskeyController', () => {
       TEST_USER.userId,
       'pk-1',
       { id: 'cred-1' },
+      TEST_USER.signInId,
     );
   });
 

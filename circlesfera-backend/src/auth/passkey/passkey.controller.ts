@@ -46,14 +46,18 @@ export class PasskeyController {
   @UseGuards(JwtAuthGuard)
   @Get()
   async listPasskeys(@CurrentUser() user: CurrentUserData) {
-    return this.passkeyService.getUserPasskeys(user.userId);
+    return this.passkeyService.getUserPasskeys(user.userId, user.signInId);
   }
 
   // Generate WebAuthn registration options (requires auth).
   @UseGuards(JwtAuthGuard)
   @Post('register-options')
   async generateRegistrationOptions(@CurrentUser() user: CurrentUserData) {
-    return this.passkeyService.generateRegistrationOptions(user.userId);
+    return this.passkeyService.generateRegistrationOptions(
+      user.userId,
+      undefined,
+      user.signInId,
+    );
   }
 
   // Verify WebAuthn registration and store the passkey (requires auth).
@@ -66,6 +70,7 @@ export class PasskeyController {
     return this.passkeyService.verifyRegistration(
       user.userId,
       body.registrationResponse,
+      user.signInId,
     );
   }
 
@@ -139,6 +144,7 @@ export class PasskeyController {
       user.userId,
       passkeyId,
       body.authenticationResponse,
+      user.signInId,
     );
   }
 
