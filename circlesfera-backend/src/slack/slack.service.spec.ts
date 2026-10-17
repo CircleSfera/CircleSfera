@@ -2,10 +2,12 @@ import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import axios from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ReviewReportUseCase } from '../admin/use-cases/content/commands/review-report.use-case.js';
 import { AIService } from '../ai/ai.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from './slack.service.js';
+import { SlackStaff } from './slack-staff.js';
 
 vi.mock('axios', () => ({
   default: {
@@ -57,6 +59,11 @@ describe('SlackService', () => {
     sendSupportReplyEmail: vi.fn(),
   };
 
+  const mockSlackStaff = { moderatorFor: vi.fn() };
+  const mockReviews = {
+    updateStatus: vi.fn(),
+    resolveWithPenalty: vi.fn(),
+  };
   const mockAIService = {
     generateMorningBriefing: vi.fn(),
     moderateContent: vi.fn(),
@@ -95,6 +102,8 @@ describe('SlackService', () => {
         { provide: EmailService, useValue: mockEmailService },
         { provide: AIService, useValue: mockAIService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: SlackStaff, useValue: mockSlackStaff },
+        { provide: ReviewReportUseCase, useValue: mockReviews },
       ],
     }).compile();
 
@@ -114,6 +123,8 @@ describe('SlackService', () => {
         mockEmailService as any,
         mockAIService as any,
         emptyConfig as any,
+        mockSlackStaff as any,
+        { get: () => mockReviews } as any,
       );
 
       await emptyService.sendProductionAlert({ message: 'No webhook alert' });
@@ -258,6 +269,27 @@ describe('SlackService', () => {
         }),
         { timeout: 5_000 },
       );
+      // Who reported and what they wrote stay in the Admin Panel.
+      const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
+      expect(sent).not.toContain('user-1');
+      expect(sent).not.toContain('Offensive advertising');
+      expect(sent).toContain('https://admin.circlesfera.com/reports');
+      const actions = (
+        vi.mocked(axios.post).mock.calls.at(-1)?.[1] as {
+          blocks: Array<{
+            type: string;
+            elements?: Array<{ action_id: string }>;
+          }>;
+        }
+      ).blocks
+        .find((b) => b.type === 'actions')
+        ?.elements?.map((e) => e.action_id);
+      expect(actions).toEqual([
+        'moderate_dismiss',
+        'moderate_strike',
+        'moderate_ban',
+        'moderate_ai',
+      ]);
     });
 
     it('sends moderation alert without details', async () => {
@@ -315,7 +347,7 @@ describe('SlackService', () => {
   });
 
   describe('sendSupportReplyAlert', () => {
-    it('tells the support channel the number and subject of the ticket, and not what was written', async () => {
+    it('tells the support channel the number of the ticket, and nothing the requester wrote', async () => {
       await service.sendSupportReplyAlert({
         id: 'tick-1',
         reference: 42,
@@ -332,25 +364,8 @@ describe('SlackService', () => {
       );
       const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
       expect(sent).toContain('#42');
-      expect(sent).toContain('Cannot login');
+      expect(sent).not.toContain('Cannot login');
       expect(sent).not.toContain('user@example.com');
-    });
-  });
-
-  describe('what a requester wrote, in an alert', () => {
-    it('shows as written, and cannot build a link or call the channel', async () => {
-      await service.sendSupportReplyAlert({
-        id: 'tick-1',
-        reference: 42,
-        subject: '<!channel> see <https://evil.example|your account> & more',
-      });
-
-      const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
-      expect(sent).toContain(
-        '&lt;!channel&gt; see &lt;https://evil.example|your account&gt; &amp; more',
-      );
-      expect(sent).not.toContain('<!channel>');
-      expect(sent).not.toContain('<https://evil.example');
     });
   });
 
@@ -400,6 +415,12 @@ describe('SlackService', () => {
         }),
         { timeout: 5_000 },
       );
+      // Who wrote and what they wrote stay in the Help Desk.
+      const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
+      expect(sent).toContain('tick-1');
+      expect(sent).not.toContain('user@example.com');
+      expect(sent).not.toContain('Cannot login');
+      expect(sent).not.toContain('Passkey error');
     });
   });
 
@@ -463,11 +484,14 @@ describe('SlackService', () => {
 
       const res = await service.handleUserCommand('shading');
 
-      expect(res.response_type).toBe('in_channel');
+      // Only to whoever asked, with no email, bio or post.
+      expect(res.response_type).toBe('ephemeral');
       expect(res.blocks[0].text.text).toContain('@shading');
-      expect(
-        res.blocks.some((b: any) => b.text?.text?.includes('First post')),
-      ).toBe(true);
+      const shown = JSON.stringify(res);
+      expect(shown).toContain('usr-1');
+      expect(shown).not.toContain('user@circle.com');
+      expect(shown).not.toContain('Creator of worlds');
+      expect(shown).not.toContain('First post');
     });
 
     it('returns formatted user card when user has no bio and empty posts', async () => {
@@ -489,7 +513,7 @@ describe('SlackService', () => {
 
       const res = await service.handleUserCommand('nobio');
 
-      expect(res.response_type).toBe('in_channel');
+      expect(res.response_type).toBe('ephemeral');
       expect(res.blocks[0].text.text).toContain('@nobio');
     });
 
@@ -513,6 +537,8 @@ describe('SlackService', () => {
         mockEmailService as any,
         mockAIService as any,
         emptyConfig as any,
+        mockSlackStaff as any,
+        { get: () => mockReviews } as any,
       );
 
       await customService.sendDailyMorningBriefing();
@@ -581,185 +607,123 @@ describe('SlackService', () => {
       expect(res).toEqual({ text: 'Report not found' });
     });
 
-    it('handles moderate_ignore by resolving report and updating message via chat.update', async () => {
-      mockPrismaService.report.findUnique.mockResolvedValue({ id: 'rep-1' });
-      mockPrismaService.report.update.mockResolvedValue({
+    describe('report buttons act as the member of staff who pressed them', () => {
+      const pending = {
         id: 'rep-1',
-        status: 'RESOLVED',
-      });
-
-      const payload = {
-        user: { username: 'mod_admin' },
-        actions: [{ action_id: 'moderate_ignore', value: 'ignore_rep-1' }],
-        channel: { id: 'C12345' },
-        message: { blocks: [{ type: 'actions' }], ts: '1234567890.123456' },
-      };
-
-      const res = await service.handleModerationInteraction(payload);
-
-      expect(mockPrismaService.report.update).toHaveBeenCalledWith({
-        where: { id: 'rep-1' },
-        data: { status: 'RESOLVED' },
-      });
-      expect(axios.post).toHaveBeenCalledWith(
-        'https://slack.com/api/chat.update',
-        expect.objectContaining({
-          channel: 'C12345',
-          ts: '1234567890.123456',
-        }),
-        expect.objectContaining({ timeout: 5_000 }),
-      );
-      expect(res.text).toContain('Report ignored by @mod_admin');
-    });
-
-    it('handles moderate_delete for POST', async () => {
-      mockPrismaService.report.findUnique.mockResolvedValue({
-        id: 'rep-post',
+        status: 'PENDING',
         targetType: 'POST',
         targetId: 'post-1',
-      });
-
-      const payload = {
-        user: { username: 'mod_admin' },
-        actions: [{ action_id: 'moderate_delete', value: 'delete_rep-post' }],
       };
-
-      const res = await service.handleModerationInteraction(payload);
-
-      expect(mockPrismaService.post.update).toHaveBeenCalledWith({
-        where: { id: 'post-1' },
-        data: { moderationStatus: 'REMOVED' },
-      });
-      expect(mockPrismaService.report.update).toHaveBeenCalledWith({
-        where: { id: 'rep-post' },
-        data: { status: 'RESOLVED' },
-      });
-      expect(res.text).toContain('Post deleted by @mod_admin');
-    });
-
-    it('handles moderate_delete for COMMENT', async () => {
-      mockPrismaService.report.findUnique.mockResolvedValue({
-        id: 'rep-comm',
-        targetType: 'COMMENT',
-        targetId: 'comm-1',
+      const pressed = (action_id: string, value: string) => ({
+        user: { id: 'U123', username: 'mod_admin' },
+        channel: { id: 'C1' },
+        message: { ts: '1.2', blocks: [{ type: 'actions' }] },
+        actions: [{ action_id, value }],
       });
 
-      const payload = {
-        user: { username: 'mod_admin' },
-        actions: [{ action_id: 'moderate_delete', value: 'delete_rep-comm' }],
-      };
-
-      const res = await service.handleModerationInteraction(payload);
-
-      expect(mockPrismaService.comment.update).toHaveBeenCalledWith({
-        where: { id: 'comm-1' },
-        data: { moderationStatus: 'REMOVED' },
-      });
-      expect(res.text).toContain('Comment deleted by @mod_admin');
-    });
-
-    it('handles moderate_delete for unhandled target type', async () => {
-      mockPrismaService.report.findUnique.mockResolvedValue({
-        id: 'rep-other',
-        targetType: 'PROFILE',
-        targetId: 'prof-1',
+      beforeEach(() => {
+        mockPrismaService.report.findUnique.mockResolvedValue(pending);
+        mockSlackStaff.moderatorFor.mockResolvedValue('admin-1');
       });
 
-      const payload = {
-        user: { username: 'mod_admin' },
-        actions: [{ action_id: 'moderate_delete', value: 'delete_rep-other' }],
-      };
+      it('dismisses through the staff use case, which tells the reporter', async () => {
+        const res = await service.handleModerationInteraction(
+          pressed('moderate_dismiss', 'dismiss_rep-1'),
+        );
 
-      const res = await service.handleModerationInteraction(payload);
-
-      expect(res.text).toContain('Cannot delete target type: PROFILE');
-    });
-
-    it('handles moderate_ban for USER target type', async () => {
-      mockPrismaService.report.findUnique.mockResolvedValue({
-        id: 'rep-user',
-        targetType: 'USER',
-        targetId: 'usr-1',
+        expect(mockSlackStaff.moderatorFor).toHaveBeenCalledWith('U123');
+        expect(mockReviews.updateStatus).toHaveBeenCalledWith(
+          'admin-1',
+          'rep-1',
+          'REJECTED',
+        );
+        expect(res.text).toContain('desestimada por @mod_admin');
+        // The message loses its buttons and says what was decided.
+        expect(axios.post).toHaveBeenCalledWith(
+          'https://slack.com/api/chat.update',
+          expect.objectContaining({ channel: 'C1', ts: '1.2' }),
+          expect.anything(),
+        );
       });
 
-      const payload = {
-        user: { username: 'mod_admin' },
-        actions: [{ action_id: 'moderate_ban', value: 'ban_rep-user' }],
-      };
+      it('an older ignore button dismisses the same way', async () => {
+        await service.handleModerationInteraction(
+          pressed('moderate_ignore', 'ignore_rep-1'),
+        );
 
-      const res = await service.handleModerationInteraction(payload);
-
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'usr-1' },
-        data: { isActive: false },
-      });
-      expect(res.text).toContain('User banned by @mod_admin');
-    });
-
-    it('handles moderate_ban for POST target type', async () => {
-      mockPrismaService.report.findUnique.mockResolvedValue({
-        id: 'rep-post-ban',
-        targetType: 'POST',
-        targetId: 'post-1',
-      });
-      mockPrismaService.post.findUnique.mockResolvedValue({
-        profileId: 'usr-author',
+        expect(mockReviews.updateStatus).toHaveBeenCalledWith(
+          'admin-1',
+          'rep-1',
+          'REJECTED',
+        );
       });
 
-      const payload = {
-        user: { username: 'mod_admin' },
-        actions: [{ action_id: 'moderate_ban', value: 'ban_rep-post-ban' }],
-      };
+      it('a violation goes through the strike ladder, with its notice and appeal', async () => {
+        const res = await service.handleModerationInteraction(
+          pressed('moderate_strike', 'strike_rep-1'),
+        );
 
-      const res = await service.handleModerationInteraction(payload);
-
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'usr-author' },
-        data: { isActive: false },
-      });
-      expect(res.text).toContain('User banned by @mod_admin');
-    });
-
-    it('handles moderate_ban for COMMENT target type', async () => {
-      mockPrismaService.report.findUnique.mockResolvedValue({
-        id: 'rep-comment-ban',
-        targetType: 'COMMENT',
-        targetId: 'comm-1',
-      });
-      mockPrismaService.comment.findUnique.mockResolvedValue({
-        profileId: 'usr-commenter',
+        expect(mockReviews.resolveWithPenalty).toHaveBeenCalledWith(
+          'admin-1',
+          'rep-1',
+          'STRIKE',
+        );
+        expect(res.text).toContain('Infracción aplicada');
       });
 
-      const payload = {
-        user: { username: 'mod_admin' },
-        actions: [{ action_id: 'moderate_ban', value: 'ban_rep-comment-ban' }],
-      };
+      it('a ban bans the reported Profile through the staff use case, never the account directly', async () => {
+        const res = await service.handleModerationInteraction(
+          pressed('moderate_ban', 'ban_rep-1'),
+        );
 
-      const res = await service.handleModerationInteraction(payload);
-
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'usr-commenter' },
-        data: { isActive: false },
+        expect(mockReviews.resolveWithPenalty).toHaveBeenCalledWith(
+          'admin-1',
+          'rep-1',
+          'BAN',
+        );
+        expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+        expect(res.text).toContain('Perfil baneado');
       });
-      expect(res.text).toContain('User banned by @mod_admin');
-    });
 
-    it('handles moderate_ban when target user cannot be found', async () => {
-      mockPrismaService.report.findUnique.mockResolvedValue({
-        id: 'rep-lost',
-        targetType: 'POST',
-        targetId: 'post-404',
+      it('does nothing for a Slack account that is no member of staff who may decide reports', async () => {
+        mockSlackStaff.moderatorFor.mockResolvedValue(null);
+
+        const res = await service.handleModerationInteraction(
+          pressed('moderate_ban', 'ban_rep-1'),
+        );
+
+        expect(mockReviews.resolveWithPenalty).not.toHaveBeenCalled();
+        expect(mockReviews.updateStatus).not.toHaveBeenCalled();
+        expect(axios.post).not.toHaveBeenCalled();
+        expect(res.text).toContain('No se ha hecho nada');
+        expect(res.text).toContain('https://admin.circlesfera.com/reports');
       });
-      mockPrismaService.post.findUnique.mockResolvedValue(null);
 
-      const payload = {
-        user: { username: 'mod_admin' },
-        actions: [{ action_id: 'moderate_ban', value: 'ban_rep-lost' }],
-      };
+      it('does not decide again a report already decided', async () => {
+        mockPrismaService.report.findUnique.mockResolvedValue({
+          ...pending,
+          status: 'RESOLVED',
+        });
 
-      const res = await service.handleModerationInteraction(payload);
+        const res = await service.handleModerationInteraction(
+          pressed('moderate_strike', 'strike_rep-1'),
+        );
 
-      expect(res.text).toContain('Could not find user to ban');
+        expect(mockReviews.resolveWithPenalty).not.toHaveBeenCalled();
+        expect(res.text).toContain('ya estaba decidida');
+      });
+
+      it('the delete button of older alerts removes nothing and points to the panel', async () => {
+        const res = await service.handleModerationInteraction(
+          pressed('moderate_delete', 'delete_rep-1'),
+        );
+
+        expect(mockPrismaService.post.update).not.toHaveBeenCalled();
+        expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+        expect(mockReviews.resolveWithPenalty).not.toHaveBeenCalled();
+        expect(axios.post).not.toHaveBeenCalled();
+        expect(res.text).toContain('panel de staff');
+      });
     });
 
     it('handles moderate_ai with flagged content', async () => {
@@ -872,6 +836,8 @@ describe('SlackService', () => {
         mockEmailService as any,
         mockAIService as any,
         emptyConfig as any,
+        mockSlackStaff as any,
+        { get: () => mockReviews } as any,
       );
 
       const payload = {
