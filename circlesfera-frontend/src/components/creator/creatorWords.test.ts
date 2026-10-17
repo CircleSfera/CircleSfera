@@ -18,9 +18,9 @@ describe('againstAverage', () => {
 });
 
 describe('weekdayName', () => {
-  it('writes the day the server names in Spanish in the language asked', () => {
-    expect(weekdayName('Domingos', 'en')).toBe('Sunday');
-    expect(weekdayName('Sábados', 'es')).toBe('Sábado');
+  it('writes the day the server names by code in the language asked', () => {
+    expect(weekdayName('SUNDAY', 'en')).toBe('Sunday');
+    expect(weekdayName('SATURDAY', 'es')).toBe('Sábado');
   });
 
   it('keeps a word it does not know', () => {

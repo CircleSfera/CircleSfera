@@ -30,7 +30,7 @@ describe('GetRevenueAnalyticsQuery', () => {
     mockPrismaService.transaction.findMany.mockResolvedValue([]);
     mockPrismaService.follow.count.mockResolvedValue(0);
 
-    await query.execute('user-42', '30d');
+    await query.execute('user-42', 'profile-42', '30d');
 
     expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -44,20 +44,36 @@ describe('GetRevenueAnalyticsQuery', () => {
       { type: 'DIRECT_TIP', amount: 500 },
       { type: 'DIRECT_POST_UNLOCK', amount: 300 },
       { type: 'DIRECT_STORY_UNLOCK', amount: 200 },
+      { type: 'DIRECT_MESSAGE_UNLOCK', amount: 250 },
       { type: 'DIRECT_LIVE_GIFT', amount: 100 },
-      { type: 'STRIPE_SUBSCRIPTION', amount: 1000 },
+      { type: 'DIRECT_TIP', amount: 10 },
+      { type: 'DIRECT_TIP', amount: 20 },
     ]);
     mockPrismaService.follow.count.mockResolvedValue(10);
 
-    const result = await query.execute('user-42', '7d');
+    const result = await query.execute('user-42', 'profile-42', '7d');
 
-    expect(result).toMatchObject({
-      subscriptionsTotal: 10,
-      tipsTotal: 5,
+    expect(result).toEqual({
+      period: '7d',
+      tipsTotal: 5.3,
       postUnlocksTotal: 5,
+      messageUnlocksTotal: 2.5,
       giftsTotal: 1,
-      grossRevenue: 21,
+      // Summed in cents: no floating error in the total.
+      grossRevenue: 13.8,
+      totalFollowersCount: 10,
       currency: 'EUR',
+    });
+  });
+
+  it('counts the followers of the Profile, by Profile.id', async () => {
+    mockPrismaService.transaction.findMany.mockResolvedValue([]);
+    mockPrismaService.follow.count.mockResolvedValue(3);
+
+    await query.execute('user-42', 'profile-42', '30d');
+
+    expect(mockPrismaService.follow.count).toHaveBeenCalledWith({
+      where: { followingId: 'profile-42', status: 'ACCEPTED' },
     });
   });
 });

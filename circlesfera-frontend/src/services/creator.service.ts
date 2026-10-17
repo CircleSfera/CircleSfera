@@ -16,13 +16,11 @@ export interface CreatorStats {
   engagementRate: number;
   followerGrowth: number;
   totalReach: number;
-  mrr: number;
-  subscriberCount: number;
   geoDistribution: { location: string; count: number }[];
   activityHours: { hour: number; count: number }[];
-  retentionStatus: { active: number; churning: number; churned: number };
   insights: {
-    bestDayToPost: string;
+    // A weekday code (SUNDAY…SATURDAY); none when the week had no likes.
+    bestDayToPost: string | null;
     bestHourToPost: number;
     retentionRate: number;
   };

@@ -225,9 +225,13 @@ export class CreatorController {
     @Req() req: AuthRequest,
     @Query('period') period?: '7d' | '30d' | '90d' | '1y',
   ) {
-    // Transaction.receiverId stores User.id, not Profile.id — unlike the
-    // Post/Story/Follow-backed analytics queries below, which take profileId.
-    return this.getRevenueAnalyticsQ.execute(req.user.userId, period);
+    // Transaction.receiverId stores User.id; followers are counted by
+    // Profile.id.
+    return this.getRevenueAnalyticsQ.execute(
+      req.user.userId,
+      req.user.profileId,
+      period,
+    );
   }
 
   @Get('analytics/retention')

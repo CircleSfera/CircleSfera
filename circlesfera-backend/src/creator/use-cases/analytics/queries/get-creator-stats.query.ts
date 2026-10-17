@@ -10,6 +10,16 @@ interface RecentInteraction {
   createdAt: Date;
 }
 
+const WEEKDAYS = [
+  'SUNDAY',
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+] as const;
+
 @Injectable()
 export class GetCreatorStatsQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -110,27 +120,19 @@ export class GetCreatorStatsQuery {
           ) / 100
         : 0;
 
-    const daysArr = [
-      'Domingos',
-      'Lunes',
-      'Martes',
-      'Miércoles',
-      'Jueves',
-      'Viernes',
-      'Sábados',
-    ];
+    // The day as a code the app writes in the reader's language; none when
+    // the last week had no likes. Days and hours are in universal time.
     const dayCounts = [0, 0, 0, 0, 0, 0, 0];
     recentLikes.forEach((l) => {
-      dayCounts[new Date(l.createdAt).getDay()]++;
+      dayCounts[new Date(l.createdAt).getUTCDay()]++;
     });
 
     const maxLikes = Math.max(...dayCounts);
-    const bestDayIndex = maxLikes > 0 ? dayCounts.indexOf(maxLikes) : 0;
-    const bestDay = daysArr[bestDayIndex];
+    const bestDay = maxLikes > 0 ? WEEKDAYS[dayCounts.indexOf(maxLikes)] : null;
 
     const hourCounts = Array(24).fill(0);
     recentLikes.forEach((l) => {
-      hourCounts[new Date(l.createdAt).getHours()]++;
+      hourCounts[new Date(l.createdAt).getUTCHours()]++;
     });
     const maxHourLikes = Math.max(...hourCounts);
     const bestHour = maxHourLikes > 0 ? hourCounts.indexOf(maxHourLikes) : 0;
@@ -170,20 +172,13 @@ export class GetCreatorStatsQuery {
         ? Math.round((activeFollowersCount / followerCount) * 100)
         : 0;
 
-    const mrr = 0;
-    const subscriberCount = 0;
-    const active = 0;
-    const churning = 0;
-    const churned = 0;
-    const retentionStatus = { active, churning, churned };
-
     const followersList = await this.prisma.follow.findMany({
       where: { followingId: profileId, status: 'ACCEPTED' },
       select: {
-        followerId: true,
         follower: {
           select: {
             location: true,
+            userId: true,
           },
         },
       },
@@ -202,13 +197,17 @@ export class GetCreatorStatsQuery {
       }),
     );
 
-    const followerIds = followersList.map((f) => f.followerId);
+    // When the followers are active: their events are kept by person
+    // (User.id), not by Profile.
+    const followerUserIds = [
+      ...new Set(followersList.map((f) => f.follower.userId)),
+    ];
     let activityHours: { hour: number; count: number }[] = [];
 
-    if (followerIds.length > 0) {
+    if (followerUserIds.length > 0) {
       const recentEvents = await this.prisma.interactionEvent.findMany({
         where: {
-          id: { in: followerIds },
+          userId: { in: followerUserIds },
           createdAt: { gte: thirtyDaysAgo },
         },
         select: {
@@ -218,7 +217,7 @@ export class GetCreatorStatsQuery {
 
       const hourlyCounts = Array(24).fill(0);
       for (const event of recentEvents) {
-        const hour = new Date(event.createdAt).getHours();
+        const hour = new Date(event.createdAt).getUTCHours();
         hourlyCounts[hour]++;
       }
 
@@ -248,11 +247,8 @@ export class GetCreatorStatsQuery {
       engagementRate,
       followerGrowth,
       totalReach,
-      mrr,
-      subscriberCount,
       geoDistribution,
       activityHours,
-      retentionStatus,
       insights: {
         bestDayToPost: bestDay,
         bestHourToPost: bestHour,
