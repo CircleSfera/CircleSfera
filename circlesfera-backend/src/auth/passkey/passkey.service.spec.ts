@@ -18,7 +18,7 @@ import {
 } from '@simplewebauthn/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { MAX_PASSKEYS_PER_ACCOUNT, PasskeyService } from './passkey.service.js';
+import { MAX_PASSKEYS_PER_SIGN_IN, PasskeyService } from './passkey.service.js';
 
 vi.mock('@simplewebauthn/server', () => ({
   generateRegistrationOptions: vi.fn(),
@@ -151,7 +151,7 @@ describe('PasskeyService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'user-1',
         email: 'test@example.com',
-        passkeys: Array.from({ length: MAX_PASSKEYS_PER_ACCOUNT }, (_, i) => ({
+        passkeys: Array.from({ length: MAX_PASSKEYS_PER_SIGN_IN }, (_, i) => ({
           credentialID: `cred-${i}`,
         })),
       });
@@ -164,7 +164,7 @@ describe('PasskeyService', () => {
       expect((error as HttpException).getStatus()).toBe(409);
       expect((error as HttpException).getResponse()).toMatchObject({
         errorCode: 'PASSKEY_LIMIT_REACHED',
-        details: { max: MAX_PASSKEYS_PER_ACCOUNT },
+        details: { max: MAX_PASSKEYS_PER_SIGN_IN },
       });
       expect(mockGenerateRegistrationOptions).not.toHaveBeenCalled();
       expect(mockPrismaService.passkeyChallenge.create).not.toHaveBeenCalled();
@@ -175,7 +175,7 @@ describe('PasskeyService', () => {
         id: 'user-1',
         email: 'test@example.com',
         passkeys: Array.from(
-          { length: MAX_PASSKEYS_PER_ACCOUNT - 1 },
+          { length: MAX_PASSKEYS_PER_SIGN_IN - 1 },
           (_, i) => ({ credentialID: `cred-${i}` }),
         ),
       });
@@ -262,7 +262,7 @@ describe('PasskeyService', () => {
         },
       } as unknown as VerifiedRegistrationResponse);
       mockPrismaService.passkey.count.mockResolvedValueOnce(
-        MAX_PASSKEYS_PER_ACCOUNT,
+        MAX_PASSKEYS_PER_SIGN_IN,
       );
 
       const error = await service

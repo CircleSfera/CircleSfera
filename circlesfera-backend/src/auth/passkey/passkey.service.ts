@@ -31,15 +31,16 @@ import {
 
 const PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// Passkeys an account may register. One synced passkey covers a whole device
-// ecosystem, so a few cover phones, computers and a hardware key.
-export const MAX_PASSKEYS_PER_ACCOUNT = 5;
+// Passkeys a sign-in may register; each sign-in of an account has its own.
+// One synced passkey covers a whole device ecosystem, so a few cover phones,
+// computers and a hardware key.
+export const MAX_PASSKEYS_PER_SIGN_IN = 5;
 
 function passkeyLimitReached(): AppException {
   return AppException.Conflict(
     ErrorCode.PASSKEY_LIMIT_REACHED,
     'Passkey limit reached',
-    { max: MAX_PASSKEYS_PER_ACCOUNT },
+    { max: MAX_PASSKEYS_PER_SIGN_IN },
   );
 }
 
@@ -263,7 +264,7 @@ export class PasskeyService {
     if (!user || !signIn) {
       throw new NotFoundException('User not found');
     }
-    if (user.passkeys.length >= MAX_PASSKEYS_PER_ACCOUNT) {
+    if (user.passkeys.length >= MAX_PASSKEYS_PER_SIGN_IN) {
       throw passkeyLimitReached();
     }
 
@@ -418,7 +419,7 @@ export class PasskeyService {
       const registered = await tx.passkey.count({
         where: { signInId: data.signInId },
       });
-      if (registered >= MAX_PASSKEYS_PER_ACCOUNT) {
+      if (registered >= MAX_PASSKEYS_PER_SIGN_IN) {
         throw passkeyLimitReached();
       }
       await tx.passkey.create({ data });
