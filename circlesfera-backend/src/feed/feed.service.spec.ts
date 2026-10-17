@@ -37,6 +37,9 @@ describe('FeedService', () => {
     promotion: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    promotionView: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     userSettings: {
       findUnique: vi.fn().mockResolvedValue(null),
     },
@@ -712,6 +715,75 @@ describe('FeedService', () => {
         expect(res.data.some((p: any) => p.isPromoted)).toBe(true);
       },
     );
+
+    it('leaves out a promotion seen enough today or whose day is spent', async () => {
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.like.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([
+        { id: 'post-1' },
+        { id: 'post-2' },
+        { id: 'post-3' },
+        { id: 'post-4' },
+        { id: 'post-5' },
+      ]);
+      const posts = Array.from({ length: 5 }, (_, i) => ({
+        id: `post-${i + 1}`,
+        type: 'POST',
+        likes: [],
+        media: [],
+        contentRating: 'GENERAL',
+      }));
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce(posts) // Hybrid hydrated posts
+        .mockResolvedValueOnce([
+          { id: 'promoted-p3', caption: 'Fresh', likes: [], media: [] },
+        ]); // Promoted post hydration
+      mockPrismaService.post.count.mockResolvedValueOnce(5);
+
+      mockPrismaService.profile.findUnique
+        .mockResolvedValueOnce({ userId: 'viewer-user' }) // viewerContentSettings
+        .mockResolvedValueOnce({ userId: 'viewer-user' }) // postUnlock
+        .mockResolvedValueOnce({
+          userId: 'viewer-user',
+          // Free text no longer aims anything: the country comes from the
+          // network at sign-up when settings name none.
+          location: 'Berlin, Germany',
+          user: { signupCountry: 'ES', settings: { country: null } },
+        }); // injectPromotions
+
+      const today = new Date().toISOString().slice(0, 10);
+      mockPrismaService.promotion.findMany.mockResolvedValueOnce([
+        { id: 'promo-seen', targetId: 'promoted-p1', countries: null },
+        {
+          id: 'promo-spent',
+          targetId: 'promoted-p2',
+          countries: null,
+          dailyBudgetCents: 500,
+          spendDay: today,
+          spentTodayCents: 500,
+        },
+        { id: 'promo-fresh', targetId: 'promoted-p3', countries: null },
+      ]);
+      mockPrismaService.promotionView.findMany.mockResolvedValueOnce([
+        { promotionId: 'promo-seen' },
+      ]);
+
+      const res = (await service.getHybridFeed('viewer-prof', {
+        page: 1,
+        limit: 10,
+      })) as any;
+
+      expect(mockPrismaService.promotionView.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'viewer-user',
+            views: { gte: 3 },
+          }),
+        }),
+      );
+      const injected = res.data.filter((p: any) => p.isPromoted);
+      expect(injected.map((p: any) => p.promotionId)).toEqual(['promo-fresh']);
+    });
 
     it('injects promotions matching viewer location into feed with >= 5 posts', async () => {
       mockCache.get.mockResolvedValue(null);

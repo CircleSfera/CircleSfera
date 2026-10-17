@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Visibility } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
+import { PROMOTION_VIEWS_PER_PERSON_PER_DAY } from '../common/constants/monetization.constants.js';
 import {
   loadViewerContent,
   matureWhere,
@@ -21,6 +22,10 @@ import {
   promotionReaches,
   viewerCountryOf,
 } from '../common/promotions/promotion-country.js';
+import {
+  dailyBudgetReached,
+  utcDay,
+} from '../common/promotions/promotion-pacing.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
@@ -841,8 +846,27 @@ export class FeedService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Not one whose budget for today is spent, nor one this person has
+    // already seen as often as a day allows.
+    const day = utcDay();
+    const seenEnough = new Set<string>();
+    if (viewerUserId && activePromotionsRaw.length > 0) {
+      const seen = await this.prisma.promotionView.findMany({
+        where: {
+          userId: viewerUserId,
+          day: new Date(`${day}T00:00:00.000Z`),
+          promotionId: { in: activePromotionsRaw.map((p) => p.id) },
+          views: { gte: PROMOTION_VIEWS_PER_PERSON_PER_DAY },
+        },
+        select: { promotionId: true },
+      });
+      for (const row of seen) seenEnough.add(row.promotionId);
+    }
+
     const activePromotions = activePromotionsRaw
       .filter((promo) => promotionReaches(promo.countries, viewerCountry))
+      .filter((promo) => !dailyBudgetReached(promo, day))
+      .filter((promo) => !seenEnough.has(promo.id))
       .slice(0, neededPromotions);
 
     if (activePromotions.length === 0) return posts;

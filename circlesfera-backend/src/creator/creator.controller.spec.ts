@@ -204,7 +204,7 @@ describe('CreatorController', () => {
         withdrawalConsent: true,
         targetType: 'POST',
         targetId: 'post-1',
-        budget: 35,
+        dailyBudget: 5,
         durationDays: 7,
       })
       .expect(201);
@@ -216,8 +216,7 @@ describe('CreatorController', () => {
       'post',
       'post-1',
       7,
-      35,
-      undefined,
+      5,
       undefined,
       undefined,
     );
@@ -226,16 +225,12 @@ describe('CreatorController', () => {
   it.each([
     ['a story, which no feed shows as promoted', { targetType: 'story' }],
     ['a Profile, which no feed shows as promoted', { targetType: 'profile' }],
-    ['a budget above the most a promotion may cost', { budget: 1500.01 }],
-    ['a budget under one euro', { budget: 0.5 }],
-    ['a negative budget', { budget: -10 }],
-    ['a budget with fractions of a cent', { budget: 10.001 }],
-    ['a budget per day above the range', { dailyBudget: 51 }],
-    [
-      'a whole budget out of range sent next to a valid budget per day',
-      { budget: 999999, dailyBudget: 5 },
-    ],
-    ['a budget per day under the range', { dailyBudget: 4 }],
+    ['a whole budget, which the server works out', { budget: 35 }],
+    ['no budget per day', { dailyBudget: undefined }],
+    ['a budget per day off the choices', { dailyBudget: 7 }],
+    ['a budget per day above the choices', { dailyBudget: 51 }],
+    ['a budget per day under the choices', { dailyBudget: 4 }],
+    ['a length off the choices', { durationDays: 5 }],
     ['more days than a promotion may last', { durationDays: 31 }],
     ['no days', { durationDays: 0 }],
     ['a part of a day', { durationDays: 1.5 }],
@@ -256,7 +251,7 @@ describe('CreatorController', () => {
         withdrawalConsent: true,
         targetType: 'post',
         targetId: 'post-1',
-        budget: 35,
+        dailyBudget: 5,
         durationDays: 7,
         ...change,
       })
@@ -265,7 +260,12 @@ describe('CreatorController', () => {
     expect(mockCreatePromotionUC.execute).not.toHaveBeenCalled();
   });
 
-  it('takes a budget per day in place of the whole budget', async () => {
+  it.each([
+    [5, 3],
+    [10, 7],
+    [25, 14],
+    [50, 30],
+  ])('takes €%i a day for %i days', async (dailyBudget, durationDays) => {
     mockCreatePromotionUC.execute.mockClear();
     mockCreatePromotionUC.execute.mockResolvedValue({ id: 'promo-2' });
 
@@ -276,8 +276,8 @@ describe('CreatorController', () => {
         withdrawalConsent: true,
         targetType: 'frame',
         targetId: 'post-1',
-        dailyBudget: 50,
-        durationDays: 30,
+        dailyBudget,
+        durationDays,
         currency: 'eur',
       })
       .expect(201);
@@ -286,11 +286,10 @@ describe('CreatorController', () => {
       TEST_USER.userId,
       'frame',
       'post-1',
-      30,
-      undefined,
+      durationDays,
+      dailyBudget,
       'EUR',
       undefined,
-      50,
     );
   });
 
@@ -316,10 +315,9 @@ describe('CreatorController', () => {
       'post',
       'post-1',
       3,
-      undefined,
+      5,
       undefined,
       ['ES', 'FR'],
-      5,
     );
   });
 
@@ -327,7 +325,7 @@ describe('CreatorController', () => {
     ['countries as free text', { countries: 'Spain' }],
     ['a country off the closed list', { countries: ['ZZ'] }],
     ['an end date that is not a date', { endDate: 'tomorrow' }],
-    ['a budget per day above the range', { dailyBudget: 51 }],
+    ['a budget per day off the choices', { dailyBudget: 7 }],
     ['an objective', { objective: 'REACH' }],
   ])('refuses an edit with %s', async (_what, body) => {
     mockManagePromotionUC.updatePromotion.mockClear();

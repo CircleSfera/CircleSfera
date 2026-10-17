@@ -13,16 +13,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   CancelPromotionResult,
+  CreatorPost,
   CreatorPromotion,
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
 import { formatDate, formatNumber } from '../../utils/format';
 import { formatCents } from '../../utils/money';
-import {
-  useWithdrawalConsent,
-  type WithdrawalConsentGiven,
-} from '../payments/WithdrawalConsent';
 import { Button, Dialog } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
 import { CreatorBadge, CreatorPager, CreatorRow } from './CreatorPieces';
@@ -42,13 +39,6 @@ function computeDaysLeft(endDate: string): number {
     0,
     Math.ceil((new Date(endDate).getTime() - Date.now()) / 86_400_000),
   );
-}
-
-function redirectToCheckout(url: string | null | undefined) {
-  if (!url) {
-    throw new Error('Missing checkout URL');
-  }
-  window.location.href = url;
 }
 
 function isActiveStatus(status: string) {
@@ -88,6 +78,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [showNewPromo, setShowNewPromo] = useState(false);
+  const [repeatPost, setRepeatPost] = useState<CreatorPost | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -153,47 +144,16 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       ),
     });
 
-  // Repeating a promotion is a new purchase: the consent to start at once
-  // and the acknowledgement of losing the withdrawal right come first.
-  const consent = useWithdrawalConsent();
-
+  // Promoting the same post again starts a new promotion from the dialog,
+  // with the fixed budgets and lengths.
   const handleRepeat = (promo: CreatorPromotion) => {
-    const remainingEuros = (promo.budgetCents || 0) / 100;
-    if (remainingEuros <= 0) {
-      onToast(t('creator.promotions.error_repeat'), 'error');
-      return;
-    }
-
-    consent.ask((given) => {
-      void repeat(promo, remainingEuros, given);
-    });
+    setRepeatPost({
+      id: promo.targetId,
+      type: promo.target?.type ?? promo.targetType,
+      caption: promo.target?.caption ?? null,
+      media: promo.target?.thumbnail ? [{ url: promo.target.thumbnail }] : [],
+    } as CreatorPost);
   };
-
-  const repeat = (
-    promo: CreatorPromotion,
-    remainingEuros: number,
-    given: WithdrawalConsentGiven,
-  ) =>
-    creatorApi
-      .createPromotion({
-        targetType: promo.targetType,
-        targetId: promo.targetId,
-        budget: remainingEuros,
-        durationDays: 7,
-        currency: promo.currency || 'EUR',
-        ...given,
-      })
-      .then((response) => {
-        queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-        const url = response.data?.url;
-        if (!url) {
-          onToast(t('creator.promotions.error_repeat'), 'error');
-          return;
-        }
-        onToast(t('creator.promotions.redirecting'), 'success');
-        redirectToCheckout(url);
-      })
-      .catch(() => onToast(t('creator.promotions.error_repeat'), 'error'));
 
   const extendPromo = (promo: CreatorPromotion) => {
     const next = new Date(promo.endDate);
@@ -370,7 +330,6 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4 pb-8">
-      {consent.dialog}
       {promos.length > 0 && (
         <div className="flex justify-end">
           <Button
@@ -475,6 +434,13 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         {showNewPromo && (
           <PromoteModal
             onClose={() => setShowNewPromo(false)}
+            onToast={onToast}
+          />
+        )}
+        {repeatPost && (
+          <PromoteModal
+            post={repeatPost}
+            onClose={() => setRepeatPost(null)}
             onToast={onToast}
           />
         )}

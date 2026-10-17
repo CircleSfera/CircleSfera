@@ -20,10 +20,9 @@ export class CreatePromotionUseCase {
     targetType: string,
     targetId: string,
     durationDays: number,
-    budget?: number,
+    dailyBudget: number,
     currency = 'EUR',
     countries?: string[],
-    dailyBudget?: number,
   ) {
     await assertRealMoneyAllowed(this.prisma, userId);
     const ownedProfiles = await this.prisma.profile.findMany({
@@ -65,12 +64,10 @@ export class CreatePromotionUseCase {
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + durationDays);
 
-    // API accepts major units from existing clients; persist integer cents.
-    const finalBudgetEuros =
-      budget || (dailyBudget ? dailyBudget * durationDays : 0);
-    const budgetCents = eurosToCents(finalBudgetEuros);
-    const dailyBudgetCents =
-      dailyBudget !== undefined ? eurosToCents(dailyBudget) : undefined;
+    // The whole budget is the budget per day times the days, worked out here
+    // in cents: it is the amount charged.
+    const dailyBudgetCents = eurosToCents(dailyBudget);
+    const budgetCents = dailyBudgetCents * durationDays;
 
     const promotion = await this.prisma.promotion.create({
       data: {

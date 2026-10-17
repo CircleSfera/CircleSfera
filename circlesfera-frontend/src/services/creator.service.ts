@@ -131,8 +131,8 @@ export const creatorApi = {
     data: {
       targetType: string;
       targetId: string;
-      budget?: number;
-      dailyBudget?: number;
+      // One of the fixed choices; the server works out the whole budget.
+      dailyBudget: number;
       durationDays: number;
       currency?: string;
       // ISO codes from the closed list; none for everywhere.

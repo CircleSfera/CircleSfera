@@ -7,23 +7,14 @@ import {
   IsArray,
   IsDateString,
   IsIn,
-  IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
-  Max,
   MaxLength,
-  Min,
-  ValidateIf,
 } from 'class-validator';
 import {
-  MAX_PROMOTION_BUDGET_EUROS,
-  MAX_PROMOTION_DAILY_BUDGET_EUROS,
-  MAX_PROMOTION_DAYS,
-  MIN_PROMOTION_BUDGET_EUROS,
-  MIN_PROMOTION_DAILY_BUDGET_EUROS,
-  MIN_PROMOTION_DAYS,
+  PROMOTION_DAILY_BUDGETS_EUROS,
+  PROMOTION_DURATIONS_DAYS,
 } from '../../common/constants/monetization.constants.js';
 
 // What can be promoted: only what a feed shows as promoted.
@@ -48,27 +39,13 @@ export class CreatePromotionDto {
   @MaxLength(64)
   targetId!: string;
 
-  @IsInt()
-  @Min(MIN_PROMOTION_DAYS)
-  @Max(MAX_PROMOTION_DAYS)
+  // One of the fixed lengths and budgets per day; the server works out the
+  // whole budget, the amount charged.
+  @IsIn(PROMOTION_DURATIONS_DAYS)
   durationDays!: number;
 
-  // The whole budget, in euros. Either this or the budget per day is sent.
-  // Checked whenever it is sent: it is the amount that is charged.
-  @ValidateIf(
-    (dto: CreatePromotionDto) =>
-      dto.budget !== undefined || dto.dailyBudget === undefined,
-  )
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(MIN_PROMOTION_BUDGET_EUROS)
-  @Max(MAX_PROMOTION_BUDGET_EUROS)
-  budget?: number;
-
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(MIN_PROMOTION_DAILY_BUDGET_EUROS)
-  @Max(MAX_PROMOTION_DAILY_BUDGET_EUROS)
-  dailyBudget?: number;
+  @IsIn(PROMOTION_DAILY_BUDGETS_EUROS)
+  dailyBudget!: number;
 
   @IsOptional()
   @Transform(upperCase)
@@ -105,8 +82,6 @@ export class UpdatePromotionDto {
   endDate?: string;
 
   @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(MIN_PROMOTION_DAILY_BUDGET_EUROS)
-  @Max(MAX_PROMOTION_DAILY_BUDGET_EUROS)
+  @IsIn(PROMOTION_DAILY_BUDGETS_EUROS)
   dailyBudget?: number;
 }

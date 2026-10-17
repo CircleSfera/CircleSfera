@@ -90,7 +90,8 @@ describe('CreatePromotionUseCase', () => {
         line_items: [
           expect.objectContaining({
             price_data: expect.objectContaining({
-              unit_amount: 5000,
+              // €50 a day for 7 days, worked out by the server.
+              unit_amount: 35000,
               product_data: expect.objectContaining({
                 name: 'Promotion: POST',
                 description: 'Promotion for 7 days',
@@ -101,6 +102,14 @@ describe('CreatePromotionUseCase', () => {
       }),
     );
     expect(result.url).toBe('https://checkout.stripe.com/pay/cs_123');
+    expect(mockPrismaService.promotion.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          budgetCents: 35000,
+          dailyBudgetCents: 5000,
+        }),
+      }),
+    );
   });
 
   it('rejects promotion when target post is not owned by user', async () => {

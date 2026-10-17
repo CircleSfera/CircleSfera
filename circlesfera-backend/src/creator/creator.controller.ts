@@ -152,10 +152,9 @@ export class CreatorController {
       body.targetType,
       body.targetId,
       body.durationDays,
-      body.budget,
+      body.dailyBudget,
       body.currency,
       body.countries,
-      body.dailyBudget,
     ) as Promise<unknown>;
   }
 

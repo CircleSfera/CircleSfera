@@ -88,6 +88,7 @@ model User {
   deviceSignals         DeviceSignal[]
   settings              UserSettings?
   nativePushTokens      NativePushToken[]
+  promotionViews        PromotionView[]
   linkedAdminIdentities AdminIdentity[] // Correlation only, never auth
   staffNotes            StaffNote[]
   dataExportRequests    DataExportRequest[]
@@ -1459,6 +1460,9 @@ model Promotion {
   // everywhere.
   countries        String?
   dailyBudgetCents Int? // Daily cap in cents
+  // What the promotion spent on spendDay (UTC); a new day starts at zero.
+  spendDay         DateTime? @db.Date
+  spentTodayCents  Int       @default(0)
 
   // Monetization: Checkout Session ID is stored in stripePaymentIntentId (legacy field name).
 
@@ -1471,13 +1475,32 @@ model Promotion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views PromotionView[]
 
   @@index([userId])
   @@index([status])
   @@index([targetType, targetId])
   @@index([status, endDate])
   @@map("promotions")
+}
+
+// How many times one person saw one promotion on one day (UTC). It caps how
+// often they see it, and makes them count, and cost, once a day. Kept a few
+// days, then purged.
+model PromotionView {
+  promotionId String
+  userId      String
+  day         DateTime @db.Date
+  views       Int      @default(1)
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([promotionId, userId, day])
+  @@index([userId, day])
+  @@index([day])
+  @@map("promotion_views")
 }
 
 model Monetization {
