@@ -24,6 +24,20 @@ import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 
+// The push switches of a Profile: the pause and the five groups.
+const PROFILE_PUSH_FIELDS = [
+  'pushNotifications',
+  'pushLikes',
+  'pushComments',
+  'pushFollows',
+  'pushMessages',
+  'pushLive',
+] as const;
+
+const PROFILE_PUSH_SELECT = Object.fromEntries(
+  PROFILE_PUSH_FIELDS.map((f) => [f, true]),
+) as Record<(typeof PROFILE_PUSH_FIELDS)[number], true>;
+
 // Service for user management: follow suggestions, banning, and unbanning.
 @Injectable()
 export class UsersService {
@@ -628,12 +642,17 @@ export class UsersService {
 
     const profile = await this.prisma.profile.findFirst({
       where: { id: profileId, userId },
-      select: { privacyLevel: true, pushNotifications: true },
+      select: { privacyLevel: true, ...PROFILE_PUSH_SELECT },
     });
     return {
       ...settings,
       privacyLevel: profile?.privacyLevel ?? Visibility.PUBLIC,
       pushNotifications: profile?.pushNotifications ?? true,
+      pushLikes: profile?.pushLikes ?? true,
+      pushComments: profile?.pushComments ?? true,
+      pushFollows: profile?.pushFollows ?? true,
+      pushMessages: profile?.pushMessages ?? true,
+      pushLive: profile?.pushLive ?? true,
     };
   }
 
@@ -677,11 +696,14 @@ export class UsersService {
         },
       });
       // What belongs to the Profile the session acts as.
-      if (dto.pushNotifications !== undefined) {
-        await tx.profile.update({
-          where: { id: profileId },
-          data: { pushNotifications: dto.pushNotifications },
-        });
+      const push = Object.fromEntries(
+        PROFILE_PUSH_FIELDS.filter((f) => dto[f] !== undefined).map((f) => [
+          f,
+          dto[f],
+        ]),
+      );
+      if (Object.keys(push).length > 0) {
+        await tx.profile.update({ where: { id: profileId }, data: push });
       }
       if (dto.privacyLevel !== undefined) {
         await setProfilePrivacy(tx, profileId, dto.privacyLevel as Visibility);

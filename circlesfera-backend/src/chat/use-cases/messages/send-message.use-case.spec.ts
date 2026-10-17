@@ -217,6 +217,7 @@ describe('SendMessageUseCase', () => {
         title: 'Nuevo mensaje cifrado',
         data: { url: '/chat/conv-1', type: 'chat' },
       }),
+      'messages',
     );
   });
 
@@ -370,6 +371,7 @@ describe('SendMessageUseCase', () => {
       expect.objectContaining({
         title: 'Nuevo mensaje cifrado',
       }),
+      'messages',
     );
   });
 

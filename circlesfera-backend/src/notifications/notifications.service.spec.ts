@@ -89,6 +89,7 @@ describe('NotificationsService', () => {
       expect(mockPushService.sendNotification).toHaveBeenCalledWith(
         'p-1',
         expect.objectContaining({ body: 'started following you' }),
+        'follows',
       );
     });
 
@@ -352,7 +353,7 @@ describe('NotificationsService', () => {
       expect(mockPrismaService.notification.create).not.toHaveBeenCalled();
     });
 
-    it('hands the push to the push service, which honours the Profile switch', async () => {
+    it('hands the push to the push service with its group, whose switch it honours', async () => {
       mockPrismaService.notification.findFirst.mockResolvedValueOnce(null);
       mockPrismaService.notification.create.mockResolvedValueOnce({
         id: 'n-no-push',
@@ -371,6 +372,7 @@ describe('NotificationsService', () => {
       expect(mockPushService.sendNotification).toHaveBeenCalledWith(
         'user-1',
         expect.anything(),
+        'follows',
       );
     });
 

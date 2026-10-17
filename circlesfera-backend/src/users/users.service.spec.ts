@@ -620,6 +620,11 @@ describe('UsersService', () => {
         id: 'p-1',
         privacyLevel: 'PRIVATE',
         pushNotifications: false,
+        pushLikes: false,
+        pushComments: true,
+        pushFollows: true,
+        pushMessages: false,
+        pushLive: true,
       });
       mockPrismaService.$transaction.mockImplementation(
         async (fn: (client: typeof tx) => unknown) => fn(tx),
@@ -633,10 +638,25 @@ describe('UsersService', () => {
 
       expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith({
         where: { id: 'p-1', userId: 'u-1' },
-        select: { privacyLevel: true, pushNotifications: true },
+        select: {
+          privacyLevel: true,
+          pushNotifications: true,
+          pushLikes: true,
+          pushComments: true,
+          pushFollows: true,
+          pushMessages: true,
+          pushLive: true,
+        },
       });
       expect(res.privacyLevel).toBe('PRIVATE');
-      expect(res.pushNotifications).toBe(false);
+      expect(res).toMatchObject({
+        pushNotifications: false,
+        pushLikes: false,
+        pushComments: true,
+        pushFollows: true,
+        pushMessages: false,
+        pushLive: true,
+      });
       // The email switch stays with the person.
       expect(res.emailNotifications).toBe(false);
       expect(mockPrismaService.userSettings.create).not.toHaveBeenCalled();
@@ -664,6 +684,7 @@ describe('UsersService', () => {
         emailNotifications: false,
         newsletter: false,
         pushNotifications: true,
+        pushLive: false,
         isOnboarded: true,
         country: 'ES',
       });
@@ -690,7 +711,8 @@ describe('UsersService', () => {
       });
       expect(tx.profile.update).toHaveBeenCalledWith({
         where: { id: 'p-1' },
-        data: { pushNotifications: true },
+        // Only the switches sent change.
+        data: { pushNotifications: true, pushLive: false },
       });
       expect(tx.profile.update).toHaveBeenCalledWith({
         where: { id: 'p-1' },

@@ -8,6 +8,7 @@ import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
+import { pushGroupOf } from '../push/push-groups.js';
 import { type Notice, renderNotice } from './notice-copy.js';
 
 type NotificationType = $Enums.NotificationType;
@@ -220,15 +221,19 @@ export class NotificationsService {
       if (!isBatchableType) {
         // The push service honours the switch of the Profile it is for.
         this.pushService
-          .sendNotification(data.recipientId, {
-            title: (notification as any).sender?.username || 'CircleSfera',
-            body: content,
-            data: {
-              type: data.type,
-              postId: data.postId,
-              url: `/${(notification as any).sender?.username}`,
+          .sendNotification(
+            data.recipientId,
+            {
+              title: (notification as any).sender?.username || 'CircleSfera',
+              body: content,
+              data: {
+                type: data.type,
+                postId: data.postId,
+                url: `/${(notification as any).sender?.username}`,
+              },
             },
-          })
+            pushGroupOf(data.type),
+          )
           .catch((err) =>
             this.logger.error(`Failed to send push notification: ${err}`),
           );

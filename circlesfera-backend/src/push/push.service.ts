@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { SubscribePushDto } from './dto/subscribe.dto.js';
 import type { SubscribeNativeDto } from './dto/subscribe-native.dto.js';
 import { FcmSender } from './fcm.sender.js';
+import { PUSH_GROUP_COLUMN, type PushGroup } from './push-groups.js';
 
 @Injectable()
 export class PushService {
@@ -70,19 +71,29 @@ export class PushService {
     });
   }
 
-  // Sends a push to the devices of the person who owns a Profile, when that
-  // Profile has push on. Devices are kept by person (the browser subscribes
-  // once for the account); what is sent is for one Profile, so the Profile's
-  // switch decides.
+  // Sends a push to the devices of the person who owns a Profile, unless
+  // that Profile paused push or switched off the push's group. Devices are
+  // kept by person (the browser subscribes once for the account); what is
+  // sent is for one Profile, so the Profile's switches decide. A push with
+  // no group (moderation, plan, payment) is stopped only by the pause.
   async sendNotification(
     profileId: string,
     payload: { title: string; body: string; data?: any },
+    group: PushGroup | null,
   ) {
+    const column = group ? PUSH_GROUP_COLUMN[group] : null;
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
-      select: { userId: true, pushNotifications: true },
+      select: {
+        userId: true,
+        pushNotifications: true,
+        ...(column ? { [column]: true } : {}),
+      },
     });
     if (!profile || profile.pushNotifications === false) return;
+    if (column && (profile as Record<string, unknown>)[column] === false) {
+      return;
+    }
 
     await this.sendNative(profile.userId, payload);
 

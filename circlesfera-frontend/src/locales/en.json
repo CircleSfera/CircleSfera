@@ -496,12 +496,20 @@
     "notifications": {
       "email_desc": "Receive email updates and alerts",
       "email_notifications": "Email notifications",
-      "push_desc": "Receive in-app notifications",
-      "push_notifications": "Push notifications",
       "update_error": "Failed to update settings",
       "updated": "Settings updated",
       "newsletter": "CircleSfera newsletter",
-      "newsletter_desc": "News about CircleSfera by email, now and then. Separate from your notifications."
+      "newsletter_desc": "News about CircleSfera by email, now and then. Separate from your notifications.",
+      "pause_all": "Pause all push",
+      "pause_all_desc": "Stops every push notification of this profile. Your notifications still arrive in the app.",
+      "push_group": {
+        "likes": "Likes",
+        "comments": "Comments and mentions",
+        "follows": "New followers and requests",
+        "messages": "Messages",
+        "live": "Live broadcasts"
+      },
+      "push_always": "Notices about moderation, your plan and payments have no switch of their own: only pausing all push stops them."
     },
     "signIns": {
       "title": "How each profile signs in",
