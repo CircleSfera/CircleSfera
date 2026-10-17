@@ -46,6 +46,8 @@ export function initSentry() {
       }),
     ],
     environment: import.meta.env.MODE,
+    // The commit the app was built from, so an error names its version.
+    release: import.meta.env.VITE_SENTRY_RELEASE || undefined,
     // Sentry 11 collects personal data unless told otherwise: no user info,
     // cookies, headers or bodies, and no credential-like query parameters.
     dataCollection: {
