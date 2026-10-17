@@ -2195,7 +2195,6 @@
       "finished": "Campaña cancelada",
       "finished_refund": "Campaña cancelada. Se te devuelven {{amount}}.",
       "error_cancel": "Error al cancelar",
-      "error_repeat": "Error al repetir",
       "clicks": "Clics",
       "ctr": "Tasa de clics",
       "kind_post": "publicación",

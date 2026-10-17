@@ -67,6 +67,9 @@ describe('MaintenanceService', () => {
     postView: {
       deleteMany: vi.fn(),
     },
+    promotionView: {
+      deleteMany: vi.fn(),
+    },
     $transaction: vi.fn().mockResolvedValue([]),
   };
 
@@ -707,6 +710,30 @@ describe('MaintenanceService', () => {
         new Error('DB error'),
       );
       await expect(service.purgeOldPostViews()).resolves.not.toThrow();
+    });
+  });
+
+  describe('purgeOldPromotionViews', () => {
+    it('purges the views by person of days more than a week old', async () => {
+      mockPrismaService.promotionView.deleteMany.mockResolvedValue({
+        count: 3,
+      });
+      const before = Date.now();
+
+      await service.purgeOldPromotionViews();
+
+      const where =
+        mockPrismaService.promotionView.deleteMany.mock.calls[0][0].where;
+      const cut = where.day.lt.getTime();
+      expect(cut).toBeLessThanOrEqual(before - 7 * 24 * 60 * 60 * 1000 + 1000);
+      expect(cut).toBeGreaterThan(before - 8 * 24 * 60 * 60 * 1000);
+    });
+
+    it('catches errors', async () => {
+      mockPrismaService.promotionView.deleteMany.mockRejectedValueOnce(
+        new Error('DB error'),
+      );
+      await expect(service.purgeOldPromotionViews()).resolves.not.toThrow();
     });
   });
 

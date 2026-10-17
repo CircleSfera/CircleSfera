@@ -7,10 +7,6 @@ import {
 import { renderWithProviders } from '../../test/test-utils';
 import CreatorPromotionsTab from './CreatorPromotionsTab';
 
-vi.mock('../payments/WithdrawalConsent', async () =>
-  (await import('../../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
-);
-
 vi.mock('../../services/creator.service', () => ({
   creatorApi: {
     getPromotions: vi.fn(),
@@ -25,8 +21,19 @@ vi.mock('framer-motion', async () =>
   (await import('../../test/still-motion')).stillMotion(),
 );
 vi.mock('./PromoteModal', () => ({
-  default: ({ onClose }: { onClose: () => void }) => (
+  default: ({
+    onClose,
+    post,
+  }: {
+    onClose: () => void;
+    post?: { id: string; caption?: string | null };
+  }) => (
     <div role="dialog" aria-label="new campaign">
+      {post ? (
+        <p>
+          promoting {post.id}: {post.caption}
+        </p>
+      ) : null}
       <button type="button" onClick={onClose}>
         close new campaign
       </button>
@@ -410,27 +417,8 @@ describe('CreatorPromotionsTab with campaigns', () => {
   });
 
   describe('repeating a finished campaign', () => {
-    const location = window.location;
-    beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        configurable: true,
-        value: { ...location, href: 'http://localhost/' },
-      });
-    });
-    afterEach(() => {
-      Object.defineProperty(window, 'location', {
-        configurable: true,
-        value: location,
-      });
-    });
-
-    it('starts a week with the same post and what was left, and goes to the payment page', async () => {
-      vi.mocked(creatorApi.createPromotion).mockResolvedValue({
-        data: { url: 'https://pay.example/session', promotionId: 'n1' },
-      } as never);
-      await show([
-        promo('d', { status: 'COMPLETED', budgetCents: 1550, currency: 'USD' }),
-      ]);
+    it('opens a new promotion of the same post, to choose its budget and days', async () => {
+      await show([promo('d', { status: 'COMPLETED', budgetCents: 1550 })]);
       await open('Caption d');
       expect(
         screen.queryByRole('button', { name: 'Cancel the campaign' }),
@@ -438,63 +426,19 @@ describe('CreatorPromotionsTab with campaigns', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Repeat' }));
 
-      await waitFor(() =>
-        expect(toastSpy).toHaveBeenCalledWith(
-          'Redirecting to secure checkout...',
-          'success',
-        ),
+      expect(
+        await screen.findByText('promoting post-d: Caption d'),
+      ).toBeInTheDocument();
+      // Nothing is charged from here: the dialog leads to the payment.
+      expect(creatorApi.createPromotion).not.toHaveBeenCalled();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'close new campaign' }),
       );
-      expect(creatorApi.createPromotion).toHaveBeenCalledWith({
-        targetType: 'POST',
-        targetId: 'post-d',
-        budget: 15.5,
-        durationDays: 7,
-        currency: 'USD',
-        withdrawalConsent: true,
-      });
-      expect(window.location.href).toBe('https://pay.example/session');
-    });
-
-    it.each([
-      ['there is nothing left to repeat it with', { budgetCents: 0 }, null],
-      ['the server gives no payment page', {}, { data: {} }],
-      ['the request fails', {}, 'reject'],
-    ])('says it could not be repeated when %s', async (_why, over, answer) => {
-      if (answer === 'reject') {
-        vi.mocked(creatorApi.createPromotion).mockRejectedValue(
-          new Error('down'),
-        );
-      } else if (answer) {
-        vi.mocked(creatorApi.createPromotion).mockResolvedValue(
-          answer as never,
-        );
-      }
-      await show([promo('d', { status: 'COMPLETED', ...over })]);
-      await open('Caption d');
-
-      fireEvent.click(screen.getByRole('button', { name: 'Repeat' }));
-
       await waitFor(() =>
-        expect(toastSpy).toHaveBeenCalledWith('Error repeating', 'error'),
-      );
-      expect(window.location.href).toBe('http://localhost/');
-      if (answer === null)
-        expect(creatorApi.createPromotion).not.toHaveBeenCalled();
-    });
-
-    it('pays in euros for a campaign saved with no currency', async () => {
-      vi.mocked(creatorApi.createPromotion).mockResolvedValue({
-        data: {},
-      } as never);
-      await show([promo('d', { status: 'COMPLETED', currency: '' })]);
-      await open('Caption d');
-
-      fireEvent.click(screen.getByRole('button', { name: 'Repeat' }));
-
-      await waitFor(() =>
-        expect(creatorApi.createPromotion).toHaveBeenCalledWith(
-          expect.objectContaining({ currency: 'EUR' }),
-        ),
+        expect(
+          screen.queryByText('promoting post-d: Caption d'),
+        ).not.toBeInTheDocument(),
       );
     });
   });

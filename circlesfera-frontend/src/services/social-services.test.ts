@@ -784,6 +784,7 @@ const cases: Case[] = [
       creatorApi.createPromotion({
         targetType: 'POST',
         targetId: 'p1',
+        dailyBudget: 5,
         durationDays: 3,
         withdrawalConsent: true,
       }),
@@ -793,6 +794,7 @@ const cases: Case[] = [
       {
         targetType: 'POST',
         targetId: 'p1',
+        dailyBudget: 5,
         durationDays: 3,
         withdrawalConsent: true,
       },

@@ -2195,7 +2195,6 @@
       "finished": "Campaign cancelled",
       "finished_refund": "Campaign cancelled. {{amount}} will be refunded.",
       "error_cancel": "Error cancelling",
-      "error_repeat": "Error repeating",
       "clicks": "Clicks",
       "ctr": "Click rate",
       "kind_post": "post",

@@ -633,4 +633,24 @@ export class MaintenanceService {
       this.logger.error('Error in purgeOldPostViews cron job', error);
     }
   }
+
+  // Promotion views by person are needed for the day they belong to: they
+  // cap how often one person sees a promotion and make them count once. Kept
+  // seven days, then purged.
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async purgeOldPromotionViews() {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    try {
+      const result = await this.prisma.promotionView.deleteMany({
+        where: { day: { lt: sevenDaysAgo } },
+      });
+      if (result.count > 0) {
+        this.logger.log(
+          `Purged ${result.count} promotion view records older than 7 days.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error in purgeOldPromotionViews cron job', error);
+    }
+  }
 }
