@@ -68,6 +68,10 @@ RUN chmod +x ./scripts/prisma-migrate-deploy.sh
 
 # Set environment variables
 ENV NODE_ENV=production
+# The commit the image was built from; Sentry names it as the release. Last,
+# so a new commit does not undo the cached layers above.
+ARG SENTRY_RELEASE
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
 
 # Expose the application port
 EXPOSE 3000

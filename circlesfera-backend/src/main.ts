@@ -29,6 +29,8 @@ Sentry.init({
   dsn: process.env.SENTRY_DSN,
   integrations: [nodeProfilingIntegration()],
   environment: process.env.NODE_ENV || 'development',
+  // The commit the image was built from, so an error names its version.
+  release: process.env.SENTRY_RELEASE || undefined,
   tracesSampleRate: isProd ? 0.1 : 1.0,
   // Profiles follow sampled traces (Sentry 11 replaced profilesSampleRate).
   profileSessionSampleRate: isProd ? 0.1 : 1.0,
