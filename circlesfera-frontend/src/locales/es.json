@@ -299,10 +299,10 @@
       "status_cancelled": "Cancelada",
       "status_expired": "Caducada",
       "cancel": "Cancelar plan",
-      "cancel_confirm": "Mantienes todas las funciones de {{plan}} hasta el {{date}}, el final del periodo que ya pagaste. No se te cobrará nada más. ¿Cancelar el plan?",
+      "cancel_confirm": "Mantienes todas las funciones de {{plan}} hasta el {{date}}, el final del periodo que ya pagaste, y el plan no se renovará. ¿Cancelar el plan?",
       "cancel_confirm_button": "Sí, cancelar el plan",
       "cancel_keep": "Mantener mi plan",
-      "cancel_done": "Plan cancelado. Te hemos enviado un email con la fecha en que termina.",
+      "cancel_done": "Plan cancelado. Sigue activo hasta el final del periodo que pagaste.",
       "cancel_error": "No se ha podido cancelar el plan. Inténtalo de nuevo."
     },
     "security": {

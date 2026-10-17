@@ -171,6 +171,46 @@ describe('BillingSettings', () => {
     expect(toast.success).toHaveBeenCalledWith(t('cancel_done'));
   });
 
+  it('a plan with a payment overdue can be cancelled too', async () => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: false,
+      subscription: {
+        planName: 'Premium',
+        status: 'PAST_DUE',
+        currentPeriodEnd: '2026-11-06T00:00:00.000Z',
+        cancelAtPeriodEnd: false,
+      },
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />);
+
+    expect(
+      await screen.findByRole('button', {
+        name: i18n!.t('settings.billing.cancel'),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the end date in UTC, as the email does', async () => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: true,
+      subscription: {
+        planName: 'Premium',
+        status: 'ACTIVE',
+        currentPeriodEnd: '2026-11-01T00:00:00.000Z',
+        cancelAtPeriodEnd: true,
+      },
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />);
+    const expected = new Date('2026-11-01T00:00:00.000Z').toLocaleDateString(
+      i18n!.language,
+      { dateStyle: 'long', timeZone: 'UTC' },
+    );
+
+    expect(
+      await screen.findByText(expected, { exact: false }),
+    ).toBeInTheDocument();
+  });
+
   it('keeping the plan at the second step cancels nothing', async () => {
     vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
       hasActiveSubscription: true,

@@ -434,21 +434,22 @@ export class PaymentsService {
         data: { cancelAtPeriodEnd: true },
       });
 
-      const payer = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { email: true },
-      });
-      if (payer?.email) {
-        await this.emailService
-          .sendPlanCancelledEmail(
+      // Telling the payer is best effort: the cancellation already stands.
+      try {
+        const payer = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true },
+        });
+        if (payer?.email) {
+          await this.emailService.sendPlanCancelledEmail(
             payer.email,
             subscription.plan.name,
             subscription.profile?.username ?? '',
             subscription.currentPeriodEnd,
-          )
-          .catch((err) =>
-            this.logger.error('Failed to send the plan cancelled email', err),
           );
+        }
+      } catch (err) {
+        this.logger.error('Failed to send the plan cancelled email', err);
       }
     }
 

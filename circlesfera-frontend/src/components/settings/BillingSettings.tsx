@@ -10,6 +10,9 @@ import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
 
+// A plan can be cancelled while it runs, also with a payment overdue.
+const CANCELLABLE = ['ACTIVE', 'TRIALING', 'PAST_DUE'];
+
 export default function BillingSettings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -100,7 +103,7 @@ export default function BillingSettings() {
                   : t('settings.billing.renews_on')}{' '}
                 {new Date(subscription.currentPeriodEnd).toLocaleDateString(
                   i18n.language,
-                  { dateStyle: 'long' },
+                  { dateStyle: 'long', timeZone: 'UTC' },
                 )}
               </p>
             )}
@@ -119,8 +122,8 @@ export default function BillingSettings() {
           </Button>
         </div>
 
-        {hasActiveSubscription &&
-          subscription &&
+        {subscription &&
+          CANCELLABLE.includes(subscription.status) &&
           !subscription.cancelAtPeriodEnd && (
             <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
               {confirmingCancel ? (
@@ -132,6 +135,7 @@ export default function BillingSettings() {
                         subscription.currentPeriodEnd,
                       ).toLocaleDateString(i18n.language, {
                         dateStyle: 'long',
+                        timeZone: 'UTC',
                       }),
                     })}
                   </p>

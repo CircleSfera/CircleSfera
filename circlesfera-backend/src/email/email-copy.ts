@@ -193,7 +193,7 @@ const en: EmailCopy = {
   planCancelled: {
     subject: 'Your {plan} plan is cancelled',
     title: 'Plan cancelled',
-    body: 'You cancelled the <strong>{plan}</strong> plan of @{username}.<br><br>You keep every feature of the plan until <strong>{date}</strong>, the end of the period you already paid. Nothing more will be charged.<br><br>If you did not cancel it, write to support@circlesfera.com.',
+    body: 'You cancelled the <strong>{plan}</strong> plan of @{username}.<br><br>You keep every feature of the plan until <strong>{date}</strong>, the end of the period you already paid. The plan will not renew.<br><br>If you did not cancel it, write to support@circlesfera.com.',
     button: 'See my plan',
   },
   greeting: 'Hello',
@@ -315,7 +315,7 @@ const es: EmailCopy = {
   planCancelled: {
     subject: 'Has cancelado tu plan {plan}',
     title: 'Plan cancelado',
-    body: 'Has cancelado el plan <strong>{plan}</strong> de @{username}.<br><br>Mantienes todas las funciones del plan hasta el <strong>{date}</strong>, el final del periodo que ya pagaste. No se te cobrará nada más.<br><br>Si no lo has cancelado tú, escribe a support@circlesfera.com.',
+    body: 'Has cancelado el plan <strong>{plan}</strong> de @{username}.<br><br>Mantienes todas las funciones del plan hasta el <strong>{date}</strong>, el final del periodo que ya pagaste. El plan no se renovará.<br><br>Si no lo has cancelado tú, escribe a support@circlesfera.com.',
     button: 'Ver mi plan',
   },
   greeting: 'Hola',

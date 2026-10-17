@@ -774,6 +774,15 @@ describe('PaymentsService', () => {
       expect(emailService.sendPlanCancelledEmail).toHaveBeenCalledTimes(1);
     });
 
+    it('a failure finding the payer does not turn the cancellation into an error', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      prisma.user.findUnique = vi.fn().mockRejectedValue(new Error('db'));
+
+      await expect(service.cancelPlan('u_1', 'prof_1')).resolves.toBeDefined();
+      expect(stripeService.cancelSubscription).toHaveBeenCalled();
+      expect(prisma.platformSubscription.update).toHaveBeenCalled();
+    });
+
     it('without a Profile in use there is no plan to cancel', async () => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
 
