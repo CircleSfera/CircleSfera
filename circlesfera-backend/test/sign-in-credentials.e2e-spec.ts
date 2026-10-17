@@ -9,8 +9,7 @@ import { uniqueSuffix } from './utils/unique-id.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 
-// The app writes the credentials on the sign-in only. The account keeps an
-// old copy only while it is being retired, and a new account has none.
+// The credentials live on the sign-in only; the account holds none.
 describe('Sign-in credentials (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -78,30 +77,6 @@ describe('Sign-in credentials (e2e)', () => {
       select: { signInId: true },
     });
     expect(profiles).toEqual([{ signInId: signIns[0].id }]);
-    // The account itself holds no credentials.
-    const own = await prisma.user.findUniqueOrThrow({
-      where: { id: user.id },
-      omit: {
-        password: false,
-        verificationToken: false,
-        isTwoFactorEnabled: false,
-      },
-    });
-    expect(own.password).toBeNull();
-    expect(own.verificationToken).toBeNull();
-    // Not even a default is written there, so the column can be dropped.
-    expect(own.isTwoFactorEnabled).toBeNull();
-
-    // A later write on the sign-in gives the account no copy either.
-    await prisma.signIn.update({
-      where: { id: signIns[0].id },
-      data: { emailVerified: new Date(), verificationToken: null },
-    });
-    const after = await prisma.user.findUniqueOrThrow({
-      where: { id: user.id },
-      omit: { password: false },
-    });
-    expect(after.password).toBeNull();
   });
 
   it('a second Profile of the account enters with the same sign-in', async () => {
@@ -122,28 +97,24 @@ describe('Sign-in credentials (e2e)', () => {
     expect(second.signInId).toBe(signIn.id);
   });
 
-  it('an account written with a password, as an older version of the app does during a deploy, still gets its sign-in', async () => {
-    const email = `signin_old_${id}@example.com`;
-    try {
-      const old = await prisma.user.create({
-        // An older app also writes the two-step flag: its schema still
-        // has a default for it, and the client sends defaults itself.
-        data: {
-          email,
-          password: 'hash-from-an-older-app',
-          isTwoFactorEnabled: false,
-        },
-        select: { id: true },
-      });
-
-      const signIn = await prisma.signIn.findFirstOrThrow({
-        where: { userId: old.id },
-        omit: { password: false },
-      });
-      expect(signIn.email).toBe(email);
-      expect(signIn.password).toBe('hash-from-an-older-app');
-    } finally {
-      await prisma.user.deleteMany({ where: { email } });
+  it('the account has no credential columns left', async () => {
+    const columns = await prisma.$queryRaw<{ column_name: string }[]>`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'users'
+    `;
+    const names = columns.map((c) => c.column_name);
+    expect(names).toContain('email');
+    for (const gone of [
+      'password',
+      'emailVerified',
+      'verificationToken',
+      'isTwoFactorEnabled',
+      'twoFactorSecret',
+      'resetToken',
+      'resetTokenExpires',
+      'passwordResetRequiredAt',
+    ]) {
+      expect(names).not.toContain(gone);
     }
   });
 });

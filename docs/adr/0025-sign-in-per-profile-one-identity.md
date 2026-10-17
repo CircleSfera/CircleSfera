@@ -114,6 +114,9 @@ Each step is one change, deployable and reversible on its own.
    - **8c.** Once 8b is in production, the copy triggers and the columns are dropped. The migration
      first stops, changing nothing, if any account has no sign-in, or if an account that still
      holds a password differs from its first sign-in.
+     - The copy from the sign-in back to the account also carried the email. No flow changes the
+       email of a sign-in once it exists, so the account's email (the identity) is unaffected.
+     - `User` keeps `email` and `currentChallenge`, the passkey challenge.
 
 Steps 1 to 4 change nothing a person can see: every account keeps one sign-in that serves all of
 its Profiles.

@@ -14,21 +14,10 @@ const { Pool } = pkg;
 // including any future `include: { user: true }`, can no longer leak them.
 // Runtime only: the generated TS types still list these fields, so a new
 // reader must opt in explicitly or it gets `undefined`.
-//
-// - currentChallenge: the passkey challenge of the account.
-// - The old copy of the credentials, which nothing reads any more
-//   (ADR-0025, step 8). No query asks for it, so the columns can be dropped
-//   and this version still works if a deploy rolls back to it.
+// The account holds no credentials (ADR-0025); only its passkey challenge
+// is left out.
 export const USER_SECRET_OMIT = {
   currentChallenge: true,
-  password: true,
-  emailVerified: true,
-  verificationToken: true,
-  isTwoFactorEnabled: true,
-  twoFactorSecret: true,
-  resetToken: true,
-  resetTokenExpires: true,
-  passwordResetRequiredAt: true,
 } as const;
 
 // The same rule for the sign-in, which holds the credentials.

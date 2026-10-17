@@ -53,19 +53,7 @@ describe('PrismaService', () => {
     ) as unknown as { options: { omit: { user: Record<string, boolean> } } };
 
     expect(service.options.omit.user).toEqual(USER_SECRET_OMIT);
-    // No read of an account asks for the old copy of the credentials, so
-    // its columns can be dropped while this version still works.
-    expect(Object.keys(USER_SECRET_OMIT).sort()).toEqual([
-      'currentChallenge',
-      'emailVerified',
-      'isTwoFactorEnabled',
-      'password',
-      'passwordResetRequiredAt',
-      'resetToken',
-      'resetTokenExpires',
-      'twoFactorSecret',
-      'verificationToken',
-    ]);
+    expect(Object.keys(USER_SECRET_OMIT)).toEqual(['currentChallenge']);
     expect(Object.values(USER_SECRET_OMIT).every((v) => v === true)).toBe(true);
   });
 });
