@@ -505,6 +505,27 @@ export class ProfilesService {
     };
   }
 
+  // The Profile of a session acting as a team member (ADR-0028): what anyone
+  // may see of it, and the person's role. Nothing of the owner's account,
+  // settings or sign-in.
+  async getMemberProfile(profileId: string, memberRole: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { username: true },
+    });
+    if (!profile) {
+      throw AppException.NotFound(
+        ErrorCode.PROFILE_NOT_FOUND,
+        'Profile not found',
+      );
+    }
+    const view = (await this.getProfile(profile.username)) as Record<
+      string,
+      unknown
+    >;
+    return { ...view, memberRole };
+  }
+
   // Get all profiles owned by the authenticated User identity.
   async getMyProfiles(userId: string) {
     const profiles = await this.prisma.profile.findMany({
@@ -608,13 +629,23 @@ export class ProfilesService {
     return profile;
   }
 
-  // Validate that a profile belongs to the authenticated user and is operational for switching.
+  // Validate that a profile belongs to the authenticated user, or is one
+  // they work on as an active team member, and is operational for switching.
   async switchProfile(userId: string, targetProfileId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: targetProfileId },
     });
+    const isMember =
+      !!profile &&
+      profile.userId !== userId &&
+      (
+        await this.prisma.profileMember.findUnique({
+          where: { profileId_userId: { profileId: profile.id, userId } },
+          select: { status: true },
+        })
+      )?.status === 'ACTIVE';
 
-    if (!profile || profile.userId !== userId) {
+    if (!profile || (profile.userId !== userId && !isMember)) {
       throw AppException.Forbidden(
         ErrorCode.FORBIDDEN_ACCESS,
         'Profile not found or does not belong to this account',

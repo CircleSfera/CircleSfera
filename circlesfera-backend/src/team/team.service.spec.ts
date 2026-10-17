@@ -243,6 +243,18 @@ describe('TeamService', () => {
     });
   });
 
+  it('lists the Business Profiles the person works on, with the role, for the switcher', async () => {
+    prisma.profileMember.findMany.mockResolvedValue([
+      { role: 'EDITOR', profile: { id: 'p-shop', username: 'shop' } },
+    ]);
+    expect(await team.memberProfiles('u-ana')).toEqual([
+      { id: 'p-shop', username: 'shop', memberRole: 'EDITOR' },
+    ]);
+    expect(prisma.profileMember.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'u-ana', status: 'ACTIVE' } }),
+    );
+  });
+
   describe('the invited person', () => {
     it('sees the invitations waiting for them', async () => {
       prisma.profileMember.findMany.mockResolvedValue([{ id: 'm-1' }]);

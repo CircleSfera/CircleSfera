@@ -31,6 +31,7 @@ describe('ProfilesController', () => {
   const mockService = {
     searchProfiles: vi.fn(),
     getMyProfile: vi.fn(),
+    getMemberProfile: vi.fn(),
     getMyProfiles: vi.fn(),
     createProfile: vi.fn(),
     switchProfile: vi.fn(),
@@ -116,6 +117,24 @@ describe('ProfilesController', () => {
       TEST_USER.profileId,
       TEST_USER.signInId,
     );
+  });
+
+  it('a team member gets the Profile as anyone sees it, never the owner account view', async () => {
+    mockService.getMemberProfile.mockResolvedValue({ id: 'p-shop' });
+    const controller = app.get(ProfilesController);
+
+    const res = await controller.getMyProfile({
+      ...TEST_USER,
+      profileId: 'p-shop',
+      memberRole: 'EDITOR',
+    });
+
+    expect(res).toEqual({ id: 'p-shop' });
+    expect(mockService.getMemberProfile).toHaveBeenCalledWith(
+      'p-shop',
+      'EDITOR',
+    );
+    expect(mockService.getMyProfile).not.toHaveBeenCalled();
   });
 
   it('loads all profiles for the authenticated user', async () => {

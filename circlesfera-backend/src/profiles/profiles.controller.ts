@@ -30,6 +30,7 @@ import {
   REFRESH_TOKEN_COOKIE,
   refreshTokenCookieOptions,
 } from '../common/config/cookie.config.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import { CreateProfileDto } from './dto/create-profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ProfilesService } from './profiles.service.js';
@@ -46,6 +47,7 @@ export class ProfilesController {
 
   // Search for profiles by username or full name. Hidden from either side of a block.
   @Get('search')
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async searchProfiles(
     @Query('q') query: string,
@@ -57,6 +59,7 @@ export class ProfilesController {
   // Get all profiles owned by the authenticated identity.
   @Get('my-profiles')
   @UseGuards(JwtAuthGuard)
+  @MemberAllowed('session')
   async getMyProfiles(@CurrentUser() user: CurrentUserData) {
     return this.profilesService.getMyProfiles(user.userId);
   }
@@ -74,6 +77,7 @@ export class ProfilesController {
   // Switch the active session profile and reissue authentication cookies.
   @Post('switch/:profileId')
   @UseGuards(JwtAuthGuard)
+  @MemberAllowed('session')
   async switchProfile(
     @CurrentUser() user: CurrentUserData,
     @Param('profileId') profileId: string,
@@ -120,7 +124,15 @@ export class ProfilesController {
   // Get the authenticated user's own active profile.
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @MemberAllowed('session')
   async getMyProfile(@CurrentUser() user: CurrentUserData) {
+    // A team member sees the Profile as anyone does, and their role.
+    if (user.memberRole) {
+      return this.profilesService.getMemberProfile(
+        user.profileId,
+        user.memberRole,
+      );
+    }
     return this.profilesService.getMyProfile(user.profileId, user.signInId);
   }
 
@@ -133,6 +145,7 @@ export class ProfilesController {
   // Get a public profile by username. Hidden from either side of a block.
   @Get(':username')
   @UseGuards(JwtOptionalGuard)
+  @MemberAllowed('browse')
   async getProfile(
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData | null,

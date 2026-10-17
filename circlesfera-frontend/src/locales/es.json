@@ -644,7 +644,8 @@
         "INVITED": "Invitado",
         "ACTIVE": "Activo",
         "PAUSED": "En pausa: terminó el plan Business"
-      }
+      },
+      "switcher_title": "Equipos en los que trabajas"
     }
   },
   "auth": {
@@ -5403,7 +5404,8 @@
       "TEAM_ALREADY_MEMBER": "Esta persona ya está invitada o en el equipo.",
       "TEAM_INVITE_SELF": "Ya eres el dueño de este perfil.",
       "TEAM_TWO_FACTOR_REQUIRED": "Activa la verificación en dos pasos en Seguridad para unirte a un equipo.",
-      "TEAM_MEMBER_NOT_FOUND": "Esa invitación o persona ya no está."
+      "TEAM_MEMBER_NOT_FOUND": "Esa invitación o persona ya no está.",
+      "TEAM_MEMBER_NOT_ALLOWED": "Tu rol en este perfil de equipo no incluye esto."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",
