@@ -156,7 +156,9 @@ describe('EmailTemplates', () => {
       'Removed.\n<b>Illegal</b> sale.',
     );
     expect(acted.html).toContain('acted on the content');
-    expect(acted.html).toContain('Removed.<br>&lt;b&gt;Illegal&lt;/b&gt; sale.');
+    expect(acted.html).toContain(
+      'Removed.<br>&lt;b&gt;Illegal&lt;/b&gt; sale.',
+    );
     expect(
       EmailTemplates.noticeDecided(en, 'https://x', false, 'No.').html,
     ).toContain('did not act on the content');
