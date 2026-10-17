@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { authApi } from '../services/auth.service';
 import { profileApi } from '../services/profile.service';
 import type { ProfileWithUser } from '../types';
+import { forgetNativePushToken } from '../utils/nativePush';
 
 // Auth state store.
 // Tokens are NO LONGER stored in this store or localStorage.
@@ -116,14 +117,18 @@ export const useAuthStore = create<AuthState>()(
           isCheckingSession: false,
         });
 
+        // 2. Take this phone off push while the session still allows it: the
+        // next person to sign in on it must not get this one's notices.
+        await forgetNativePushToken();
+
         try {
-          // 2. Tell backend to revoke session cookies
+          // 3. Tell backend to revoke session cookies
           await authApi.logout();
         } catch (error) {
           console.error('Failed to logout from backend', error);
         }
 
-        // 3. Clear Service Worker API cache to prevent cross-account data bleed
+        // 4. Clear Service Worker API cache to prevent cross-account data bleed
         await clearApiCache();
       },
     }),

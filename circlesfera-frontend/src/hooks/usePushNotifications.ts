@@ -2,6 +2,10 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../services';
+import {
+  forgetNativePushToken,
+  rememberNativePushToken,
+} from '../utils/nativePush';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -54,9 +58,9 @@ export function usePushNotifications() {
       checkSubscription();
 
       // Setup native listeners
+      // The Firebase Cloud Messaging token of this device.
       PushNotifications.addListener('registration', (token) => {
-        // Send native APNs/FCM token to backend
-        // Note: Backend must adapt to handle APNs/FCM tokens alongside WebPush
+        rememberNativePushToken(token.value);
         api
           .post('/push/subscribe-native', {
             token: token.value,
@@ -125,11 +129,7 @@ export function usePushNotifications() {
     setIsLoading(true);
     try {
       if (isNative) {
-        // Capacitor Push Notifications don't have a direct "unregister" method currently
-        // Usually, you delete the token from the backend database.
-        await api.delete(
-          `/push/unsubscribe-native?platform=${Capacitor.getPlatform()}`,
-        );
+        await forgetNativePushToken();
         setIsSubscribed(false);
         return true;
       } else {

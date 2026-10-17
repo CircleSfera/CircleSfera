@@ -39,6 +39,8 @@ describe('UsersService', () => {
     storyUnlock: { findMany: vi.fn() },
     userExperiment: { findMany: vi.fn() },
     staffNote: { findMany: vi.fn() },
+    pushSubscription: { findMany: vi.fn() },
+    nativePushToken: { findMany: vi.fn() },
   };
   const mockCrypto = {
     decrypt: vi.fn((text: string) => text.replace(/^cipher_/, '')),
@@ -396,6 +398,12 @@ describe('UsersService', () => {
       heldModels.staffNote.findMany.mockResolvedValue([
         { body: 'Asked twice about a refund', createdAt: new Date() },
       ]);
+      heldModels.pushSubscription.findMany.mockResolvedValue([
+        { createdAt: new Date() },
+      ]);
+      heldModels.nativePushToken.findMany.mockResolvedValue([
+        { platform: 'ios', createdAt: new Date(), lastSeenAt: new Date() },
+      ]);
 
       const res = (await service.exportUserData('u_exp')) as any;
 
@@ -412,6 +420,17 @@ describe('UsersService', () => {
       expect(res.unlocks.stories).toHaveLength(1);
       expect(res.experiments[0].variant).toBe('b');
       expect(res.staffNotes[0].body).toBe('Asked twice about a refund');
+      expect(res.pushDevices.browsers).toHaveLength(1);
+      expect(res.pushDevices.apps[0].platform).toBe('ios');
+      // Never the keys or tokens of a device.
+      expect(heldModels.nativePushToken.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u_exp' },
+        select: { platform: true, createdAt: true, lastSeenAt: true },
+      });
+      expect(heldModels.pushSubscription.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u_exp' },
+        select: { createdAt: true },
+      });
 
       // Read by the account's id or its Profiles; staff who acted are not
       // selected.

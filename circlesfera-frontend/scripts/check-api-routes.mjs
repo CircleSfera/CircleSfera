@@ -14,11 +14,7 @@ const BACKEND_SRC = join(root, '../circlesfera-backend/src');
 // Requests the app still makes to routes the server does not have. Each
 // one is a feature that does not work; the list is here so that it can
 // only get shorter.
-const KNOWN_MISSING = [
-  // Push notifications of the native apps.
-  'POST push/subscribe-native',
-  'DELETE push/unsubscribe-native',
-];
+const KNOWN_MISSING = [];
 
 function filesUnder(dir, keep) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

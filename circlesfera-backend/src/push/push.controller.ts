@@ -13,6 +13,7 @@ import type { CurrentUserData } from '../auth/decorators/current-user.decorator.
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscribePushDto } from './dto/subscribe.dto.js';
+import { SubscribeNativeDto } from './dto/subscribe-native.dto.js';
 import { PushService } from './push.service.js';
 
 @Controller('push')
@@ -43,5 +44,26 @@ export class PushController {
     @Query('endpoint') endpoint: string,
   ) {
     return this.pushService.unsubscribe(user.userId, endpoint);
+  }
+
+  @Post('subscribe-native')
+  @UseGuards(JwtAuthGuard)
+  async subscribeNative(
+    @CurrentUser() user: CurrentUserData,
+    @Body() dto: SubscribeNativeDto,
+  ) {
+    await this.pushService.subscribeNative(user.userId, dto);
+    return { success: true };
+  }
+
+  @Delete('unsubscribe-native')
+  @UseGuards(JwtAuthGuard)
+  async unsubscribeNative(
+    @CurrentUser() user: CurrentUserData,
+    @Query('token') token: string,
+  ) {
+    if (!token) return { success: true };
+    await this.pushService.unsubscribeNative(user.userId, token);
+    return { success: true };
   }
 }

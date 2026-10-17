@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import webpush from 'web-push';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { SubscribePushDto } from './dto/subscribe.dto.js';
+import type { SubscribeNativeDto } from './dto/subscribe-native.dto.js';
+import { FcmSender } from './fcm.sender.js';
 
 @Injectable()
 export class PushService {
@@ -11,6 +13,7 @@ export class PushService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(FcmSender) private readonly fcm: FcmSender,
   ) {
     const publicKey = this.configService.get<string>('VAPID_PUBLIC_KEY');
     const privateKey = this.configService.get<string>('VAPID_PRIVATE_KEY');
@@ -50,6 +53,23 @@ export class PushService {
     });
   }
 
+  // A device of the native app: its token is the person's from now on, also
+  // when the device was someone else's before (a shared phone).
+  async subscribeNative(userId: string, dto: SubscribeNativeDto) {
+    return this.prisma.nativePushToken.upsert({
+      where: { token: dto.token },
+      create: { userId, token: dto.token, platform: dto.platform },
+      update: { userId, platform: dto.platform, lastSeenAt: new Date() },
+    });
+  }
+
+  // A person takes one of their own devices off; nobody else's.
+  async unsubscribeNative(userId: string, token: string) {
+    return this.prisma.nativePushToken.deleteMany({
+      where: { token, userId },
+    });
+  }
+
   // Sends a push to the devices of the person who owns a Profile, when that
   // Profile has push on. Devices are kept by person (the browser subscribes
   // once for the account); what is sent is for one Profile, so the Profile's
@@ -63,6 +83,8 @@ export class PushService {
       select: { userId: true, pushNotifications: true },
     });
     if (!profile || profile.pushNotifications === false) return;
+
+    await this.sendNative(profile.userId, payload);
 
     const subscriptions = await this.prisma.pushSubscription.findMany({
       where: { userId: profile.userId },
@@ -101,5 +123,35 @@ export class PushService {
     );
 
     return results;
+  }
+
+  // The same notice to the person's phones and tablets with the native app.
+  // A failure here never stops the web push.
+  private async sendNative(
+    userId: string,
+    payload: { title: string; body: string; data?: any },
+  ) {
+    try {
+      const devices = await this.prisma.nativePushToken.findMany({
+        where: { userId },
+        select: { token: true },
+      });
+      if (devices.length === 0) return;
+      const data: Record<string, string> = {};
+      for (const [key, value] of Object.entries(payload.data ?? {})) {
+        if (value !== undefined && value !== null) data[key] = String(value);
+      }
+      const gone = await this.fcm.send(
+        devices.map((d) => d.token),
+        { title: payload.title, body: payload.body, data },
+      );
+      if (gone.length > 0) {
+        await this.prisma.nativePushToken.deleteMany({
+          where: { token: { in: gone } },
+        });
+      }
+    } catch (error) {
+      this.logger.error('Failed to send native push', error);
+    }
   }
 }

@@ -3,6 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import webpush from 'web-push';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { FcmSender } from './fcm.sender.js';
 import { PushService } from './push.service.js';
 
 vi.mock('web-push', () => ({
@@ -22,7 +23,13 @@ describe('PushService', () => {
       findMany: vi.fn(),
     },
     profile: { findUnique: vi.fn() },
+    nativePushToken: {
+      upsert: vi.fn(),
+      deleteMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   };
+  const mockFcm = { send: vi.fn().mockResolvedValue([]) };
 
   const mockConfigService = {
     get: vi.fn((key: string) => {
@@ -43,11 +50,14 @@ describe('PushService', () => {
         PushService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: FcmSender, useValue: mockFcm },
       ],
     }).compile();
 
     service = module.get<PushService>(PushService);
     vi.clearAllMocks();
+    mockPrismaService.nativePushToken.findMany.mockResolvedValue([]);
+    mockFcm.send.mockResolvedValue([]);
   });
 
   it('should be defined', () => {
@@ -234,6 +244,7 @@ describe('PushService', () => {
           PushService,
           { provide: PrismaService, useValue: mockPrismaService },
           { provide: ConfigService, useValue: customConfig },
+          { provide: FcmSender, useValue: mockFcm },
         ],
       }).compile();
 
@@ -244,6 +255,85 @@ describe('PushService', () => {
         'pub-key',
         'priv-key',
       );
+    });
+  });
+  describe('native apps', () => {
+    it('keeps the token of a device for the person, also when it was someone else', async () => {
+      await service.subscribeNative('user-2', {
+        token: 'fcm-1',
+        platform: 'android',
+      });
+      expect(mockPrismaService.nativePushToken.upsert).toHaveBeenCalledWith({
+        where: { token: 'fcm-1' },
+        create: { userId: 'user-2', token: 'fcm-1', platform: 'android' },
+        update: {
+          userId: 'user-2',
+          platform: 'android',
+          lastSeenAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('takes off only a device of the person who asks', async () => {
+      await service.unsubscribeNative('user-1', 'fcm-1');
+      expect(mockPrismaService.nativePushToken.deleteMany).toHaveBeenCalledWith(
+        { where: { token: 'fcm-1', userId: 'user-1' } },
+      );
+    });
+
+    it('sends to the devices with data as strings, and deletes the ones gone', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        userId: 'user-1',
+        pushNotifications: true,
+      });
+      mockPrismaService.pushSubscription.findMany.mockResolvedValue([]);
+      mockPrismaService.nativePushToken.findMany.mockResolvedValue([
+        { token: 'fcm-1' },
+        { token: 'fcm-2' },
+      ]);
+      mockFcm.send.mockResolvedValue(['fcm-2']);
+
+      await service.sendNotification('profile-1', {
+        title: 'Hi',
+        body: 'New like',
+        data: { url: '/p/1', count: 3, none: null },
+      });
+
+      expect(mockFcm.send).toHaveBeenCalledWith(['fcm-1', 'fcm-2'], {
+        title: 'Hi',
+        body: 'New like',
+        data: { url: '/p/1', count: '3' },
+      });
+      expect(mockPrismaService.nativePushToken.deleteMany).toHaveBeenCalledWith(
+        { where: { token: { in: ['fcm-2'] } } },
+      );
+    });
+
+    it('sends nothing to devices when the Profile has push off', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        userId: 'user-1',
+        pushNotifications: false,
+      });
+      await service.sendNotification('profile-1', { title: 'a', body: 'b' });
+      expect(mockFcm.send).not.toHaveBeenCalled();
+    });
+
+    it('still sends web push when the native send fails', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        userId: 'user-1',
+        pushNotifications: true,
+      });
+      mockPrismaService.nativePushToken.findMany.mockResolvedValue([
+        { token: 'fcm-1' },
+      ]);
+      mockFcm.send.mockRejectedValue(new Error('firebase down'));
+      mockPrismaService.pushSubscription.findMany.mockResolvedValue([
+        { endpoint: 'https://push.example/1', p256dh: 'k', auth: 'a' },
+      ]);
+
+      await service.sendNotification('profile-1', { title: 'a', body: 'b' });
+
+      expect(webpush.sendNotification).toHaveBeenCalled();
     });
   });
 });
