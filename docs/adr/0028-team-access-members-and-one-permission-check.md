@@ -91,6 +91,18 @@ The steps follow PD-014:
 - The realtime socket picks the Profile among the person's own only. A member session therefore
   gets the socket of the person's own Profile and never the Business Profile's messages.
 
+### Content by role (step 4)
+
+- Every role can publish, edit and delete posts and stories, and upload their media. Every role
+  can also write, edit and delete comments. The Profile is still the author: ownership is
+  checked against the Profile of the session, so a member acts on the Business Profile's content.
+- Setting a price on content is money, so it stays with the owner. A member's post or story with
+  a price is refused, and the composer does not offer one.
+- Each of those actions on a Business Profile is recorded in `profile_activities` once it
+  succeeds: the Profile, the person, the action and the target. That covers the owner's own
+  actions too. A failure to record never fails the action. The person's data export lists the
+  activity, and the owner's activity log (step 6) reads it.
+
 ## Consequences
 
 - Authorization moves, step by step, from "the account owns the Profile" to "this person can do

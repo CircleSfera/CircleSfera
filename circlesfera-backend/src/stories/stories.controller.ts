@@ -22,6 +22,8 @@ import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { RespondStoryStickerDto } from '../story-stickers/dto/story-sticker.dto.js';
 import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
 import { MemberAllowed } from '../team/member-allowed.decorator.js';
+import { refuseMemberPrice } from '../team/member-price.js';
+import { RecordsActivity } from '../team/records-activity.decorator.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoryReactionDto } from './dto/story-reaction.dto.js';
 import { StoriesService } from './stories.service.js';
@@ -37,10 +39,13 @@ export class StoriesController {
   // Create a new 24-hour ephemeral story.
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @MemberAllowed('content.manage')
+  @RecordsActivity('STORY_PUBLISHED')
   create(
     @CurrentUser() user: CurrentUserData,
     @Body() createStoryDto: CreateStoryDto,
   ) {
+    refuseMemberPrice(user, createStoryDto.priceCents);
     return this.storiesService.create(user.profileId, createStoryDto);
   }
 
@@ -74,6 +79,8 @@ export class StoriesController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, OwnershipGuard)
   @RequireOwnership({ model: 'Story' })
+  @MemberAllowed('content.manage')
+  @RecordsActivity('STORY_DELETED')
   async remove(@Param('id') id: string): Promise<void> {
     return this.storiesService.delete(id);
   }

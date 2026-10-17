@@ -170,15 +170,21 @@ export default function CaptionStep({
           } satisfies OptionRow,
         ]
       : []),
-    {
-      key: 'monetization',
-      icon: Euro,
-      label: isPremium
-        ? t('createPost.caption.monetization_active')
-        : t('createPost.caption.monetization'),
-      isActive: !!isPremium,
-      onClick: () => setSubScreen('monetization'),
-    },
+    // A price is money, which stays with the owner: a team member
+    // publishes free content only.
+    ...(profile?.memberRole
+      ? []
+      : [
+          {
+            key: 'monetization',
+            icon: Euro,
+            label: isPremium
+              ? t('createPost.caption.monetization_active')
+              : t('createPost.caption.monetization'),
+            isActive: !!isPremium,
+            onClick: () => setSubScreen('monetization'),
+          } satisfies OptionRow,
+        ]),
     {
       key: 'accessibility',
       icon: Eye,

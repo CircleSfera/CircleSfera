@@ -329,7 +329,24 @@ describe('UsersService', () => {
         .mockResolvedValueOnce(mockAccount)
         .mockResolvedValueOnce(mockRelations);
 
+      (mockAccount as Record<string, unknown>).profileActivities = [
+        {
+          action: 'POST_PUBLISHED',
+          targetId: 'post-9',
+          createdAt: new Date('2026-10-01'),
+          profile: { username: 'shop' },
+        },
+      ];
       const res = await service.exportUserData('u_exp');
+      // What the person did on Business Profiles, as a member or owner.
+      expect(res.teamActivity).toEqual([
+        {
+          action: 'POST_PUBLISHED',
+          on: 'shop',
+          targetId: 'post-9',
+          at: new Date('2026-10-01'),
+        },
+      ]);
       // Every way the person signs in, and nothing secret about any.
       expect(res.signIns).toEqual([
         {

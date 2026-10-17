@@ -22,6 +22,7 @@ import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { MemberAllowed } from '../team/member-allowed.decorator.js';
+import { RecordsActivity } from '../team/records-activity.decorator.js';
 import { CommentsService } from './comments.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { UpdateCommentDto } from './dto/update-comment.dto.js';
@@ -34,6 +35,8 @@ export class CommentsController {
   // Create a comment or reply on a post (requires auth).
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @MemberAllowed('comments.answer')
+  @RecordsActivity('COMMENT_WRITTEN')
   async create(
     @Param('postId') postId: string,
     @CurrentUser() user: CurrentUserData,
@@ -58,6 +61,8 @@ export class CommentsController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, OwnershipGuard)
   @RequireOwnership({ model: 'Comment' })
+  @MemberAllowed('comments.answer')
+  @RecordsActivity('COMMENT_EDITED')
   async update(
     @Param('postId') postId: string,
     @Param('id') id: string,
@@ -71,6 +76,8 @@ export class CommentsController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, OwnershipGuard)
   @RequireOwnership({ model: 'Comment' })
+  @MemberAllowed('comments.answer')
+  @RecordsActivity('COMMENT_DELETED')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.commentsService.remove(id);

@@ -17,6 +17,7 @@ import {
 } from '../auth/decorators/current-user.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { UploadsService } from './uploads.service.js';
 
@@ -32,6 +33,8 @@ export class UploadsController {
   // Upload a file (image or video, max 100 MB). Returns the public URL and type.
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  // Publishing needs its media.
+  @MemberAllowed('content.manage')
   @Throttle({ short: { limit: 5, ttl: 60000 } })
   @UseInterceptors(
     FileInterceptor('file', {

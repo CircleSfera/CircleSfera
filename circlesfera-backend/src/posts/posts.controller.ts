@@ -29,6 +29,8 @@ import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { MemberAllowed } from '../team/member-allowed.decorator.js';
+import { refuseMemberPrice } from '../team/member-price.js';
+import { RecordsActivity } from '../team/records-activity.decorator.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { FindPostsQueryDto } from './dto/find-posts-query.dto.js';
 import { GetPostsDto } from './dto/get-posts.dto.js';
@@ -46,10 +48,13 @@ export class PostsController {
   // Create a new post (requires authentication).
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @MemberAllowed('content.manage')
+  @RecordsActivity('POST_PUBLISHED')
   async create(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreatePostDto,
   ) {
+    refuseMemberPrice(user, dto.priceCents);
     return this.postsService.create(user.profileId, dto);
   }
 
@@ -137,6 +142,8 @@ export class PostsController {
   @Put(':id')
   @UseGuards(JwtAuthGuard, OwnershipGuard)
   @RequireOwnership({ model: 'Post' })
+  @MemberAllowed('content.manage')
+  @RecordsActivity('POST_EDITED')
   async update(@Param('id') id: string, @Body() dto: UpdatePostDto) {
     return this.postsService.update(id, dto);
   }
@@ -145,6 +152,8 @@ export class PostsController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, OwnershipGuard)
   @RequireOwnership({ model: 'Post' })
+  @MemberAllowed('content.manage')
+  @RecordsActivity('POST_DELETED')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.postsService.remove(id);

@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import CaptionStep from './CaptionStep';
 
+const session = vi.hoisted(() => ({
+  profile: { username: 'tester' } as { username: string; memberRole?: string },
+}));
 vi.mock('../../stores/authStore', () => ({
-  useAuthStore: (sel: (s: { profile: { username: string } }) => unknown) =>
-    sel({ profile: { username: 'tester' } }),
+  useAuthStore: (sel: (s: typeof session) => unknown) => sel(session),
 }));
 
 vi.mock('../UserAvatar', () => ({
@@ -41,6 +43,22 @@ const baseProps = {
 describe('CaptionStep', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    session.profile = { username: 'tester' };
+  });
+
+  it('offers a price to the owner, never to a team member', () => {
+    const owner = renderWithProviders(
+      <CaptionStep {...baseProps} mediaFiles={[imageFile]} mode="POST" />,
+    );
+    const label = owner.i18n!.t('createPost.caption.monetization');
+    expect(screen.getByText(label)).toBeInTheDocument();
+    owner.unmount();
+
+    session.profile = { username: 'shop', memberRole: 'EDITOR' };
+    renderWithProviders(
+      <CaptionStep {...baseProps} mediaFiles={[imageFile]} mode="POST" />,
+    );
+    expect(screen.queryByText(label)).not.toBeInTheDocument();
   });
 
   it('hides Tag People on Frame and surfaces music first', () => {

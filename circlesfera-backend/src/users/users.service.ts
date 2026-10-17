@@ -182,6 +182,17 @@ export class UsersService {
               profiles: { select: { username: true } },
             },
           },
+          // What the person did on Business Profiles of others or their own,
+          // as a team member or owner.
+          profileActivities: {
+            orderBy: { createdAt: 'asc' },
+            select: {
+              action: true,
+              targetId: true,
+              createdAt: true,
+              profile: { select: { username: true } },
+            },
+          },
         },
       }),
       this.prisma.user.findUnique({
@@ -314,6 +325,12 @@ export class UsersService {
         twoFactorEnabled: signIn.isTwoFactorEnabled,
         createdAt: signIn.createdAt,
         profiles: signIn.profiles.map((profile) => profile.username),
+      })),
+      teamActivity: (account.profileActivities ?? []).map((activity) => ({
+        action: activity.action,
+        on: activity.profile.username,
+        targetId: activity.targetId,
+        at: activity.createdAt,
       })),
       signupCountry: account.signupCountry,
       signupIp: account.signupIp,
