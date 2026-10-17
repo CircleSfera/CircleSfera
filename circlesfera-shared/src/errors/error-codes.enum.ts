@@ -128,6 +128,8 @@ export enum ErrorCode {
   TEAM_TWO_FACTOR_REQUIRED = 'TEAM_TWO_FACTOR_REQUIRED',
   // The invitation or the member does not exist, or is not the person's.
   TEAM_MEMBER_NOT_FOUND = 'TEAM_MEMBER_NOT_FOUND',
+  // A team member's session reached something their role does not open.
+  TEAM_MEMBER_NOT_ALLOWED = 'TEAM_MEMBER_NOT_ALLOWED',
   CAPTCHA_FAILED = 'CAPTCHA_FAILED',
   CAPTCHA_REQUIRED = 'CAPTCHA_REQUIRED',
 }

@@ -69,6 +69,28 @@ The steps follow PD-014:
 7. Pausing members when the Business plan ends, and resuming them when it returns; the public
    texts.
 
+### The member session (step 3)
+
+- The token still names the person. The session may be bound to a Profile of someone else, and
+  counts only while the person is an active member of it. Otherwise it falls back to the person's
+  own Profiles, as before. The JWT check and the token refresh resolve it the same way, and the
+  session carries the role.
+- A global interceptor runs after the guards, once the session is known. It refuses a member
+  session on every route, except those marked with `@MemberAllowed`:
+  - `session`, for every role: keeping and leaving the session. That covers switching Profile,
+    the own Profile, the list of own Profiles, sessions, logging out, invitations and team
+    Profiles;
+  - `browse`, for every role: reading what anyone signed in may read. That covers the feeds,
+    posts, public Profiles, search, stories and comments;
+  - an action of the table, for the roles that allow it. None is opened in step 3: content
+    opens in step 4, when the acting person is recorded.
+- Direct messages, money, the owner's notices, the account and staff stay closed. A test fails if
+  any route in those areas is marked.
+- The own Profile (`GET /profiles/me`) of a member session is the Profile as anyone sees it, with
+  the role. It never includes the owner's account, settings or sign-in.
+- The realtime socket picks the Profile among the person's own only. A member session therefore
+  gets the socket of the person's own Profile and never the Business Profile's messages.
+
 ## Consequences
 
 - Authorization moves, step by step, from "the account owns the Profile" to "this person can do

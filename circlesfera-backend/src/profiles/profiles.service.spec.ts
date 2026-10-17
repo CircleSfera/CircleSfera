@@ -12,6 +12,7 @@ describe('ProfilesService', () => {
 
   const mockPrismaService: any = {
     $transaction: vi.fn((cb: any) => cb(mockPrismaService)),
+    profileMember: { findUnique: vi.fn().mockResolvedValue(null) },
     profile: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -993,6 +994,65 @@ describe('ProfilesService', () => {
           where: { id: 'p-2' },
         });
         expect(res).toEqual(targetProfile);
+      });
+
+      it('switches into a Profile the person works on as an active team member, and not otherwise', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue({
+          id: 'p-shop',
+          userId: 'u-owner',
+          username: 'shop',
+          isAccountBanned: false,
+          suspendedUntil: null,
+        });
+        mockPrismaService.profileMember.findUnique.mockResolvedValueOnce({
+          status: 'ACTIVE',
+        });
+        await expect(
+          service.switchProfile('u-1', 'p-shop'),
+        ).resolves.toMatchObject({ id: 'p-shop' });
+        expect(mockPrismaService.profileMember.findUnique).toHaveBeenCalledWith(
+          {
+            where: { profileId_userId: { profileId: 'p-shop', userId: 'u-1' } },
+            select: { status: true },
+          },
+        );
+
+        for (const status of ['INVITED', 'PAUSED', 'REMOVED']) {
+          mockPrismaService.profileMember.findUnique.mockResolvedValueOnce({
+            status,
+          });
+          await expect(service.switchProfile('u-1', 'p-shop')).rejects.toThrow(
+            expect.objectContaining({
+              message: expect.stringContaining('does not belong'),
+            }),
+          );
+        }
+      });
+
+      it('shows a team member the Profile as anyone sees it, with their role and nothing of the account', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue({
+          username: 'shop',
+        });
+        const spy = vi
+          .spyOn(service, 'getProfile')
+          .mockResolvedValue({ id: 'p-shop', username: 'shop' } as never);
+
+        const view = await service.getMemberProfile('p-shop', 'EDITOR');
+
+        expect(spy).toHaveBeenCalledWith('shop');
+        expect(view).toEqual({
+          id: 'p-shop',
+          username: 'shop',
+          memberRole: 'EDITOR',
+        });
+        spy.mockRestore();
+      });
+
+      it('a team Profile that is gone is not found', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue(null);
+        await expect(
+          service.getMemberProfile('p-gone', 'EDITOR'),
+        ).rejects.toMatchObject({ errorCode: 'PROFILE_NOT_FOUND' });
       });
 
       it('rejects switching if profile belongs to a different user', async () => {

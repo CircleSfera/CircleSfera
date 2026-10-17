@@ -6,6 +6,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import { FeedService } from './feed.service.js';
 
 @Controller('feed')
@@ -14,6 +15,7 @@ export class FeedController {
 
   // Get personalized hybrid "For You" feed
   @Get('foryou')
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async getForYou(
     @CurrentUser() user: CurrentUserData | null,
@@ -28,6 +30,7 @@ export class FeedController {
 
   // Get personalized feed from followed users
   @Get('following')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async getFollowing(
     @CurrentUser() user: CurrentUserData | null,

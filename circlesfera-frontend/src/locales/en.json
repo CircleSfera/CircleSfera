@@ -644,7 +644,8 @@
         "INVITED": "Invited",
         "ACTIVE": "Active",
         "PAUSED": "Paused: the Business plan ended"
-      }
+      },
+      "switcher_title": "Teams you work on"
     }
   },
   "auth": {
@@ -5403,7 +5404,8 @@
       "TEAM_ALREADY_MEMBER": "This person is already invited or in the team.",
       "TEAM_INVITE_SELF": "You already own this profile.",
       "TEAM_TWO_FACTOR_REQUIRED": "Turn on two-step verification in Security to join a team.",
-      "TEAM_MEMBER_NOT_FOUND": "That invitation or person is no longer there."
+      "TEAM_MEMBER_NOT_FOUND": "That invitation or person is no longer there.",
+      "TEAM_MEMBER_NOT_ALLOWED": "Your role on this team profile does not include this."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

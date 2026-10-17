@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import { CommentsService } from './comments.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { UpdateCommentDto } from './dto/update-comment.dto.js';
@@ -43,6 +44,7 @@ export class CommentsController {
 
   // List top-level comments with nested replies for a post.
   @Get()
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async findByPost(
     @Param('postId') postId: string,
