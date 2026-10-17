@@ -88,6 +88,8 @@ model User {
   // Profiles of others this person works on, and the invitations sent.
   memberships           ProfileMember[]        @relation("ProfileMemberPerson")
   membersInvited        ProfileMember[]        @relation("ProfileMemberInviter")
+  // What the person did on Business Profiles.
+  profileActivities     ProfileActivity[]
   refreshTokens         RefreshToken[]
   passkeys              Passkey[]
   passkeyChallenges     PasskeyChallenge[]
@@ -418,9 +420,11 @@ model Profile {
   // recorded in profile_strikes; nothing reads or writes this column any more.
   strikeCount     Int              @default(0)
 
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   // The people who work on this Profile besides its owner (Business only).
-  members ProfileMember[]
+  members    ProfileMember[]
+  // What was done on this Profile, and by which person (Business).
+  activities ProfileActivity[]
 
   // The sign-in this Profile is entered with. Several Profiles of one person
   // may share one. Filled for every Profile by the database; optional in the
@@ -2913,4 +2917,35 @@ enum ProfileMemberStatus {
   PAUSED
   DECLINED
   REMOVED
+}
+
+// What was done on a Business Profile and which person did it: the Profile
+// is the public author, this keeps the acting person (ADR-0028). The owner
+// reads it in the activity log.
+model ProfileActivity {
+  id        String                @id @default(uuid())
+  profileId String
+  // The person who acted; empty once that account is gone.
+  userId    String?
+  action    ProfileActivityAction
+  // The post, story or comment acted on.
+  targetId  String?
+  createdAt DateTime              @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, createdAt])
+  @@map("profile_activities")
+}
+
+enum ProfileActivityAction {
+  POST_PUBLISHED
+  POST_EDITED
+  POST_DELETED
+  STORY_PUBLISHED
+  STORY_DELETED
+  COMMENT_WRITTEN
+  COMMENT_EDITED
+  COMMENT_DELETED
 }

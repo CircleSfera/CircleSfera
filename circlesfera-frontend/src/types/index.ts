@@ -117,6 +117,8 @@ export interface ProfileWithUser extends IProfile {
   accentColor?: string | null;
   // On the Business plan, with a payout account verified as a company.
   companyVerified?: boolean;
+  // Set when the session acts as this Profile as a team member: the role.
+  memberRole?: 'ADMINISTRATOR' | 'EDITOR';
   isVerified?: boolean;
   isPrivate?: boolean;
   banner?: string | null;
