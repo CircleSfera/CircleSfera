@@ -19,7 +19,8 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  password  String
+  // Old copy, see below: an account created now has none.
+  password  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -51,16 +52,18 @@ model User {
   identityVerifiedAt      DateTime?
   dateOfBirth             DateTime?
   stripeIdentitySessionId String?   @unique
+
+  // Old copy of the credentials of the first sign-in, kept equal by the
+  // database while it is being retired: nothing in the app reads or writes
+  // it. The credentials live on SignIn.
   emailVerified           DateTime?
   verificationToken       String?   @unique
-
-  // Auth secrets
   isTwoFactorEnabled      Boolean   @default(false)
   twoFactorSecret         String?
   resetToken              String?   @unique
   resetTokenExpires       DateTime?
-  // Set when the stored hash must no longer grant access; cleared only by a completed email reset.
   passwordResetRequiredAt DateTime?
+  // The passkey challenge slot of the account.
   currentChallenge        String? // WebAuthn registration/auth challenge (temporary)
 
   // Abuse / trust — raw IP for account lifetime; hashes for clustering. Public APIs never expose raw IP.

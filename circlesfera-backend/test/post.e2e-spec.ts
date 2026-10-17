@@ -53,7 +53,7 @@ describe('Posts (e2e)', () => {
       .send(testUser)
       .expect(201);
 
-    await prisma.user.update({
+    await prisma.signIn.update({
       where: { email: testUser.email },
       data: { emailVerified: new Date() },
     });

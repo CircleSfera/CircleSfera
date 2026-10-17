@@ -41,26 +41,35 @@ export interface UserFactoryOverrides {
 }
 
 /**
- * Build unpersisted User attributes for unit testing.
+ * Build unpersisted User attributes for unit testing. The credentials are
+ * not on the account: see buildSignInAttributes.
  */
 export async function buildUserAttributes(
   overrides: UserFactoryOverrides = {},
 ): Promise<Prisma.UserCreateInput> {
   const suffix = generateTestSuffix();
-  const rawPassword = overrides.password ?? 'Password123!';
-  const hashedPassword = await getTestPasswordHash(rawPassword);
-
   return {
     email: overrides.email ?? `user_${suffix}@circlesfera.test`,
-    password: hashedPassword,
     role: overrides.role ?? 'USER',
     isActive: overrides.isActive ?? true,
     isTestAccount: overrides.isTestAccount ?? false,
+    dateOfBirth: overrides.dateOfBirth ?? new Date('1995-05-15'),
+  };
+}
+
+/**
+ * Build the credentials of the account's sign-in: the password hash and
+ * whether the email is verified (verified unless told otherwise).
+ */
+export async function buildSignInAttributes(
+  overrides: Pick<UserFactoryOverrides, 'password' | 'emailVerified'> = {},
+): Promise<{ password: string; emailVerified: Date | null }> {
+  return {
+    password: await getTestPasswordHash(overrides.password ?? 'Password123!'),
     emailVerified:
       overrides.emailVerified !== undefined
         ? overrides.emailVerified
         : new Date(),
-    dateOfBirth: overrides.dateOfBirth ?? new Date('1995-05-15'),
   };
 }
 
@@ -75,6 +84,15 @@ export async function createUser(
 
   const user = await prisma.user.create({
     data,
+  });
+  // Its sign-in, with the credentials; the Profiles created later sign in
+  // with it.
+  await prisma.signIn.create({
+    data: {
+      userId: user.id,
+      email: user.email,
+      ...(await buildSignInAttributes(overrides)),
+    },
   });
 
   const shouldCreateSettings = overrides.createSettings ?? true;

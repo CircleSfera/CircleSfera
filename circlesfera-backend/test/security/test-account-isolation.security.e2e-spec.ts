@@ -49,9 +49,12 @@ describe('Test Account isolation (e2e)', () => {
       .set('x-csrf-token', csrf)
       .send({ email, password, username, dateOfBirth: '1990-01-01' })
       .expect(201);
-    const user = await prisma.user.update({
+    await prisma.signIn.update({
       where: { email },
       data: { emailVerified: new Date() },
+    });
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email },
       include: { profiles: true },
     });
     userIds.push(user.id);

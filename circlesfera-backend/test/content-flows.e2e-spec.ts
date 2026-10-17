@@ -75,7 +75,7 @@ describe('Content Flows (e2e)', () => {
       .expect(201);
 
     // Manually verify them in DB
-    await prisma.user.updateMany({
+    await prisma.signIn.updateMany({
       where: { email: { in: [creator.email, mentionedUser.email] } },
       data: { emailVerified: new Date() },
     });

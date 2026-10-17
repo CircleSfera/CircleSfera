@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildPostAttributes,
   buildProfileAttributes,
+  buildSignInAttributes,
   buildUserAttributes,
   createBlock,
   createCloseFriend,
@@ -107,18 +108,25 @@ describe('Test Data Factories & Scenario Seeder', () => {
       expect(defaultUser.email).toContain('@circlesfera.test');
       expect(defaultUser.role).toBe('USER');
       expect(defaultUser.isActive).toBe(true);
-      expect(defaultUser.emailVerified).toBeInstanceOf(Date);
+      // The credentials are on the sign-in, not on the account.
+      expect(defaultUser).not.toHaveProperty('password');
 
       const overriddenUser = await buildUserAttributes({
         email: 'custom@example.com',
         role: 'ADMIN',
         isActive: false,
-        emailVerified: null,
       });
       expect(overriddenUser.email).toBe('custom@example.com');
       expect(overriddenUser.role).toBe('ADMIN');
       expect(overriddenUser.isActive).toBe(false);
-      expect(overriddenUser.emailVerified).toBeNull();
+    });
+
+    it('builds the credentials of the sign-in, verified unless told otherwise', async () => {
+      const verified = await buildSignInAttributes();
+      expect(verified.emailVerified).toBeInstanceOf(Date);
+      expect(await argon2.verify(verified.password, 'Password123!')).toBe(true);
+      const unverified = await buildSignInAttributes({ emailVerified: null });
+      expect(unverified.emailVerified).toBeNull();
     });
 
     it('builds unpersisted Profile attributes with proper defaults and overrides', () => {
@@ -159,6 +167,9 @@ describe('Test Data Factories & Scenario Seeder', () => {
         },
         userSettings: {
           create: vi.fn(),
+        },
+        signIn: {
+          create: vi.fn().mockResolvedValue({ id: 'sign-in-1' }),
         },
         profile: {
           create: vi.fn(),
@@ -226,6 +237,13 @@ describe('Test Data Factories & Scenario Seeder', () => {
 
       expect(user.id).toBe('u1');
       expect(mockPrisma.user.create).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.signIn.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'u1',
+          email: 'u1@test.com',
+          password: expect.stringContaining('$argon2'),
+        }),
+      });
       expect(mockPrisma.userSettings.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           userId: 'u1',
@@ -410,6 +428,9 @@ describe('Test Data Factories & Scenario Seeder', () => {
             email: args.data.email,
           })),
           deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        signIn: {
+          create: vi.fn().mockResolvedValue({ id: 'sign-in-1' }),
         },
         userSettings: {
           create: vi.fn().mockResolvedValue({ id: 'settings-1' }),

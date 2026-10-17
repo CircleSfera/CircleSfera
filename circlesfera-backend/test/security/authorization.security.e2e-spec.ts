@@ -60,7 +60,7 @@ describe('Authorization Security (e2e)', () => {
       .expect(201);
 
     // Verify email & login A
-    await prisma.user.update({
+    await prisma.signIn.update({
       where: { email: userA.email },
       data: { emailVerified: new Date() },
     });
@@ -89,7 +89,7 @@ describe('Authorization Security (e2e)', () => {
       .expect(201);
 
     // Verify email & login B
-    await prisma.user.update({
+    await prisma.signIn.update({
       where: { email: userB.email },
       data: { emailVerified: new Date() },
     });

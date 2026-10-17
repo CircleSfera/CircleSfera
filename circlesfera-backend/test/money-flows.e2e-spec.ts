@@ -106,8 +106,8 @@ describe('Money flows (e2e)', () => {
     if (!user) throw new Error('e2e user was not created');
     userId = user.id;
 
-    await prisma.user.update({
-      where: { id: userId },
+    await prisma.signIn.updateMany({
+      where: { userId },
       data: { emailVerified: new Date() },
     });
 

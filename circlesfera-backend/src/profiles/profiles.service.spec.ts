@@ -128,6 +128,38 @@ describe('ProfilesService', () => {
       expect(mockCacheManager.set).not.toHaveBeenCalled();
     });
 
+    it("says whether the Profile's email is confirmed from its own sign-in", async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockPrismaService.block.findFirst.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'p-target',
+        userId: 'u-target',
+        username: 'dbuser',
+        verificationLevel: 'BASIC',
+        accountType: 'PERSONAL',
+        privacyLevel: 'PUBLIC',
+        suspendedUntil: null,
+        user: { id: 'u-target', createdAt: new Date(), isActive: true },
+        signIn: { emailVerified: new Date() },
+        _count: { posts: 0, followers: 0, following: 0, strikes: 0 },
+      });
+
+      const result = (await service.getProfile('dbuser')) as unknown as {
+        emailConfirmed: boolean;
+      };
+
+      expect(result.emailConfirmed).toBe(true);
+      // Only the answer is public, not the sign-in or when it was verified.
+      expect(result).not.toHaveProperty('signIn');
+      expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            signIn: { select: { emailVerified: true } },
+          }),
+        }),
+      );
+    });
+
     it('returns the profile normally when there is no block', async () => {
       const cached = { id: 'p-target', username: 'cacheduser' };
       mockCacheManager.get.mockResolvedValue(cached);
@@ -671,7 +703,6 @@ describe('ProfilesService', () => {
           lastSeenAt: new Date(),
           isActive: true,
           strikeCount: 0,
-          emailVerified: new Date(),
           identityVerifiedAt: null,
           signupCountry: 'US',
           botLabeledAt: null,
@@ -684,6 +715,12 @@ describe('ProfilesService', () => {
       };
       mockPrismaService.monetization = {
         findUnique: vi.fn().mockResolvedValue({ verifiedCompany: true }),
+      };
+      mockPrismaService.signIn = {
+        findFirst: vi.fn().mockResolvedValue({
+          email: 'me@example.com',
+          emailVerified: new Date(),
+        }),
       };
 
       const res = await service.getMyProfile('p-me');
@@ -700,8 +737,13 @@ describe('ProfilesService', () => {
       expect(
         mockPrismaService.platformSubscription.findFirst.mock.calls[0][0].where,
       ).not.toHaveProperty('userId');
-      // A session that names no sign-in reads the account.
+      // A session that names no sign-in reads the Profile's own sign-in.
+      expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
+        where: { profiles: { some: { id: 'p-me' } } },
+        select: { email: true, emailVerified: true, isTwoFactorEnabled: true },
+      });
       expect(res.user?.email).toBe('me@example.com');
+      expect(res.user?.isTwoFactorEnabled).toBe(false);
       expect(res.emailConfirmed).toBe(true);
     });
 
@@ -728,6 +770,7 @@ describe('ProfilesService', () => {
         findFirst: vi.fn().mockResolvedValue({
           email: 'shop@example.com',
           emailVerified: null,
+          isTwoFactorEnabled: true,
         }),
       };
 
@@ -736,11 +779,13 @@ describe('ProfilesService', () => {
       // Looked for inside the account of the Profile.
       expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
         where: { id: 'sign-in-own', userId: 'u-me' },
-        select: { email: true, emailVerified: true },
+        select: { email: true, emailVerified: true, isTwoFactorEnabled: true },
       });
       expect(res.user?.email).toBe('shop@example.com');
       expect(res.emailConfirmed).toBe(false);
       expect(res.emailVerified).toBeNull();
+      // Its second step too, for the settings switch.
+      expect(res.user?.isTwoFactorEnabled).toBe(true);
     });
   });
 

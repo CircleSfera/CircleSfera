@@ -50,7 +50,7 @@ describe('Query parameters typed as string are coerced (e2e)', () => {
         dateOfBirth: '1990-01-01',
       })
       .expect(201);
-    await prisma.user.update({
+    await prisma.signIn.update({
       where: { email },
       data: { emailVerified: new Date() },
     });

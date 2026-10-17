@@ -79,18 +79,33 @@ async function main() {
       throw new Error('TEST_ACCOUNT_PASSWORD must be set (12+ characters)');
     }
 
-    await prisma.user.create({
-      data: {
-        email,
-        password: await argon2.hash(password),
-        role: 'USER',
-        isTestAccount: true,
-        emailVerified: new Date(),
-        profiles: {
-          create: { username, fullName: 'CircleSfera Test Account' },
+    // The account, its sign-in (with the credentials) and its Profile.
+    const hash = await argon2.hash(password);
+    await prisma.$transaction(async (tx) => {
+      const account = await tx.user.create({
+        data: {
+          email,
+          role: 'USER',
+          isTestAccount: true,
+          settings: { create: { privacyLevel: 'PRIVATE' } },
         },
-        settings: { create: { privacyLevel: 'PRIVATE' } },
-      },
+      });
+      const signIn = await tx.signIn.create({
+        data: {
+          userId: account.id,
+          email,
+          password: hash,
+          emailVerified: new Date(),
+        },
+      });
+      await tx.profile.create({
+        data: {
+          userId: account.id,
+          signInId: signIn.id,
+          username,
+          fullName: 'CircleSfera Test Account',
+        },
+      });
     });
     console.log('Test Account created.');
   } finally {
