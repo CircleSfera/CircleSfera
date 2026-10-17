@@ -140,7 +140,6 @@ export class AdminAuthService {
         secret: string;
         qrCodeDataUrl: string;
       }
-    | { status: 'OK'; tokens: AdminTokenPair }
   > {
     const admin = await this.loadAdminByEmail(email);
 
@@ -190,7 +189,9 @@ export class AdminAuthService {
       data: { failedLoginCount: 0, lockedUntil: null },
     });
 
-    if (admin.mfaRequired && !admin.totpEnabled) {
+    // A second factor is mandatory for every member of staff. `mfaRequired`
+    // is not read: a staff identity with no authenticator is sent to enrol one.
+    if (!admin.totpEnabled) {
       // Keep an existing enrollment secret so re-login does not invalidate the authenticator.
       const secret = admin.totpSecret
         ? this.cryptoService.decrypt(admin.totpSecret)
@@ -228,20 +229,15 @@ export class AdminAuthService {
       };
     }
 
-    if (admin.mfaRequired && admin.totpEnabled) {
-      const mfaToken = this.signAdminToken(
-        {
-          sub: admin.id,
-          email: admin.email,
-          purpose: 'admin-mfa',
-        },
-        MFA_TOKEN_TTL,
-      );
-      return { status: 'MFA_REQUIRED', mfaToken };
-    }
-
-    const tokens = await this.issueSession(admin.id, admin.email, meta);
-    return { status: 'OK', tokens };
+    const mfaToken = this.signAdminToken(
+      {
+        sub: admin.id,
+        email: admin.email,
+        purpose: 'admin-mfa',
+      },
+      MFA_TOKEN_TTL,
+    );
+    return { status: 'MFA_REQUIRED', mfaToken };
   }
 
   async verifyMfa(
@@ -359,7 +355,14 @@ export class AdminAuthService {
     if (!rawRefresh) {
       throw new UnauthorizedException('Refresh token required');
     }
-    let payload: { sub: string; email: string; jti: string; aud?: string };
+    let payload: {
+      sub: string;
+      email: string;
+      jti: string;
+      aud?: string;
+      typ?: string;
+      mfa?: boolean;
+    };
     try {
       payload = this.jwtService.verify(rawRefresh, {
         secret: this.adminSecret(),
@@ -367,6 +370,11 @@ export class AdminAuthService {
       });
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
+    }
+    // Only a refresh token issued after a verified second factor renews a
+    // session; tokens from before that rule carry no such mark.
+    if (payload.typ !== 'refresh' || payload.mfa !== true) {
+      throw new UnauthorizedException('Sign in again');
     }
 
     const hashed = this.hashRefresh(rawRefresh);
@@ -382,6 +390,17 @@ export class AdminAuthService {
     }
 
     await this.prisma.adminRefreshToken.delete({ where: { id: stored.id } });
+
+    // A staff member who is no longer active, or whose second factor was reset,
+    // is not renewed: they sign in again.
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id: payload.sub },
+      select: { status: true, totpEnabled: true },
+    });
+    if (admin?.status !== 'ACTIVE' || !admin.totpEnabled) {
+      throw new UnauthorizedException('Sign in again');
+    }
+
     return this.issueSession(payload.sub, payload.email, meta);
   }
 
@@ -441,11 +460,12 @@ export class AdminAuthService {
       throw new UnauthorizedException();
     }
 
-    let ok = false;
-    if (dto.password) {
-      ok = await this.passwordIsValid(admin, dto.password);
+    // Step-up proves the second factor again; a password alone never does.
+    if (!admin.totpEnabled) {
+      throw new UnauthorizedException('Step-up verification failed');
     }
-    if (!ok && dto.totpCode && admin.totpSecret) {
+    let ok = false;
+    if (dto.totpCode && admin.totpSecret) {
       const rawSecret = admin.totpSecret;
       const decryptedSecret = this.cryptoService.decrypt(rawSecret);
       ok = this.isTotpValid(dto.totpCode, decryptedSecret);
@@ -478,6 +498,8 @@ export class AdminAuthService {
         sub: admin.id,
         email: admin.email,
         jti: randomUUID(),
+        typ: 'access',
+        mfa: true,
         stepUp: true,
         stepUpExp: Math.floor(Date.now() / 1000) + STEP_UP_TTL_SEC,
       },
@@ -494,11 +516,11 @@ export class AdminAuthService {
   ): Promise<AdminTokenPair> {
     const jti = randomUUID();
     const accessToken = this.signAdminToken(
-      { sub: adminId, email, jti },
+      { sub: adminId, email, jti, typ: 'access', mfa: true },
       ACCESS_TTL,
     );
     const refreshToken = this.signAdminToken(
-      { sub: adminId, email, jti: randomUUID() },
+      { sub: adminId, email, jti: randomUUID(), typ: 'refresh', mfa: true },
       '8h',
     );
 
