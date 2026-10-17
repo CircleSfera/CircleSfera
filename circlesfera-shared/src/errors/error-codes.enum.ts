@@ -117,6 +117,17 @@ export enum ErrorCode {
   IDENTITY_VERIFICATION_REQUIRED = 'IDENTITY_VERIFICATION_REQUIRED',
   // The action is part of a platform plan the Profile does not have.
   PLAN_REQUIRED = 'PLAN_REQUIRED',
+  // Team access to a Business Profile.
+  // The Profile already has 5 members, counting those invited.
+  TEAM_FULL = 'TEAM_FULL',
+  // The person is already invited to, or a member of, the Profile.
+  TEAM_ALREADY_MEMBER = 'TEAM_ALREADY_MEMBER',
+  // The owner cannot invite themselves.
+  TEAM_INVITE_SELF = 'TEAM_INVITE_SELF',
+  // Accepting needs two-step verification on the sign-in in use.
+  TEAM_TWO_FACTOR_REQUIRED = 'TEAM_TWO_FACTOR_REQUIRED',
+  // The invitation or the member does not exist, or is not the person's.
+  TEAM_MEMBER_NOT_FOUND = 'TEAM_MEMBER_NOT_FOUND',
   CAPTCHA_FAILED = 'CAPTCHA_FAILED',
   CAPTCHA_REQUIRED = 'CAPTCHA_REQUIRED',
 }
