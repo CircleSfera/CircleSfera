@@ -7,6 +7,7 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import { getCookieConsent } from './utils/cookieConsent';
+import { isOwnHost } from './utils/sentryHost';
 import { scrubSentryPayload } from './utils/sentryScrub';
 
 let sentryInitialized = false;
@@ -15,6 +16,8 @@ let sentryInitialized = false;
 // Call again after the user accepts analytics in CookieConsent.
 export function initSentry() {
   if (sentryInitialized) return;
+  // A copy of the site on another domain reports nothing.
+  if (!isOwnHost(window.location.hostname)) return;
 
   const consent = getCookieConsent();
   if (!consent?.analytics) {
