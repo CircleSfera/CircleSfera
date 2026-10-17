@@ -10,19 +10,19 @@ confirmation list.
 Facts, verified:
 
 - **Platform plans** are `PlatformPlan` rows, not an enum: `Verified`, `Elite Creator`, `Business`. One
-  active plan per user (ADR-0003).
+  active plan per user (`docs/adr/0003-one-active-platform-plan.md`).
 - **No `CreatorSubscription` Prisma model** (table removed). Do not invent VIP subscription fields or
   routes — verify controllers and schema first.
 - **Platform fee is 20%** on Connect charges via `PLATFORM_FEE_DECIMAL` /
   `PLATFORM_FEE_PERCENT` in `src/common/constants/monetization.constants.ts`. Local ledger credits
   `CREATOR_SHARE_DECIMAL` to `Monetization.lifetimeEarningsCents`. Stripe fee and local credit must
-  always agree. Changing the percentage requires confirmation and supersedes ADR-0010.
+  always agree. Changing the percentage requires confirmation and supersedes `docs/adr/0010-platform-fee-20-percent.md`.
 - **Gift prices are server-side** in `src/live/gift-catalog.ts`. Never trust a client amount.
 - **Currency** is EUR for tips, unlocks and gifts. Integer cents everywhere, never floats.
 - **Webhooks** are deduplicated via `WebhookEvent`, marked `PROCESSED` only after success, and return
   HTTP 5xx on failure so Stripe retries. Never swallow a webhook error.
 - **Payouts are read-only** — Connect balance and recent payouts only. There is no internal payout
-  ledger and reintroducing one would supersede ADR-0002.
+  ledger and reintroducing one would supersede `docs/adr/0002-stripe-connect-payouts.md`.
 - **KYC:** `IdentityVerifiedGuard` protects connect, tip, unlock, unlock-story, checkout and gift
   sending.
 - **Entitlement** is verified server-side against `PostUnlock`, `StoryUnlock`, `MessageUnlock`, or

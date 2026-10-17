@@ -15,7 +15,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      // Standard exclusions (QD-007): the entry point, type-only files,
+      // Standard exclusions: the entry point, type-only files,
       // configuration, generated code and the tests themselves.
       exclude: [
         'node_modules/',
