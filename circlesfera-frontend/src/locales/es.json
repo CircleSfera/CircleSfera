@@ -1099,7 +1099,7 @@
       "paid_by": "@{{username}} ha pagado para promocionar esta publicación.",
       "countries": "Se muestra a personas de {{list}}.",
       "everywhere": "Se muestra a personas de todas partes.",
-      "nothing_else": "Las publicaciones promocionadas no se eligen por tus intereses ni por lo que haces en CircleSfera.",
+      "nothing_else": "Las publicaciones promocionadas no se dirigen según tus intereses ni lo que haces en CircleSfera. La misma promoción se te muestra como mucho tres veces al día.",
       "your_country": "Tu país es el que elegiste en ajustes, o desde el que te registraste.",
       "change_country": "Cambiarlo"
     },

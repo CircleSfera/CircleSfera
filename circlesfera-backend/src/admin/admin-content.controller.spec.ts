@@ -438,6 +438,8 @@ describe('AdminContentController', () => {
     ['a status staff do not set', { status: 'PAUSED', note: 'slow' }],
     ['no status', { note: 'x' }],
     ['a reason too long', { status: 'REJECTED', note: 'x'.repeat(501) }],
+    ['a reason of spaces only', { status: 'REJECTED', note: '   ' }],
+    ['a note that is not text', { status: 'ACTIVE', note: 42 }],
   ])('refuses a promotion review with %s', async (_what, body) => {
     reviewPromotion.execute.mockClear();
 

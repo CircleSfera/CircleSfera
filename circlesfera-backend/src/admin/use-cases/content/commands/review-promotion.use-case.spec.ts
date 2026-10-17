@@ -9,7 +9,11 @@ describe('ReviewPromotionUseCase', () => {
   };
   const notifications = { create: vi.fn() };
   const log = { execute: vi.fn() };
-  const refund = { execute: vi.fn() };
+  const refund = {
+    execute: vi
+      .fn()
+      .mockResolvedValue({ refunded: true, amount: 1, currency: 'EUR' }),
+  };
   let useCase: ReviewPromotionUseCase;
 
   beforeEach(() => {
@@ -52,7 +56,7 @@ describe('ReviewPromotionUseCase', () => {
     const notice = notifications.create.mock.calls[0][0];
     expect(notice).toMatchObject({
       recipientId: 'profile-owner',
-      notice: { key: 'promotion_rejected', note: 'Misleading' },
+      notice: { key: 'promotion_rejected', note: 'Misleading', refunded: true },
       targetType: 'promotion_rejected',
       targetId: 'promo-1',
     });
@@ -72,6 +76,20 @@ describe('ReviewPromotionUseCase', () => {
       notice: { key: 'promotion_approved' },
       targetType: 'promotion_approved',
       targetId: 'promo-1',
+    });
+  });
+
+  it('tells no refund when none was made', async () => {
+    refund.execute.mockResolvedValueOnce({
+      refunded: false,
+      reason: 'no_remaining_budget',
+    });
+    await useCase.execute('admin-1', 'promo-1', 'REJECTED' as never, 'Spam');
+
+    expect(notifications.create.mock.calls[0][0].notice).toEqual({
+      key: 'promotion_rejected',
+      note: 'Spam',
+      refunded: false,
     });
   });
 });

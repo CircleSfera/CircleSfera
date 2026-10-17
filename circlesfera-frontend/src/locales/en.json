@@ -1099,7 +1099,7 @@
       "paid_by": "@{{username}} paid to promote this post.",
       "countries": "It is shown to people in {{list}}.",
       "everywhere": "It is shown to people everywhere.",
-      "nothing_else": "Promoted posts are not chosen from your interests or what you do in CircleSfera.",
+      "nothing_else": "Promoted posts are not aimed by your interests or what you do in CircleSfera. The same promotion is shown to you at most three times a day.",
       "your_country": "Your country is the one you chose in settings, or the one you signed up from.",
       "change_country": "Change it"
     },

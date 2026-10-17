@@ -33,7 +33,7 @@ export type Notice =
   | { key: 'live_host_warned'; reason: string }
   | { key: 'bot_labeled' }
   | { key: 'promotion_approved' }
-  | { key: 'promotion_rejected'; note?: string }
+  | { key: 'promotion_rejected'; note?: string; refunded?: boolean }
   | {
       key: 'profile_warning';
       rule: ReportReason;
@@ -268,7 +268,7 @@ function renderEn(n: Notice): string {
     case 'promotion_approved':
       return 'Your promotion was approved and is now running.';
     case 'promotion_rejected':
-      return `${endSentence(withNote('Your promotion request was rejected.', 'Reason', n.note))} What was not spent is refunded. You can appeal this decision once.`;
+      return `${endSentence(withNote('Your promotion request was rejected.', 'Reason', n.note))}${n.refunded ? ' What was not spent is refunded.' : ''} You can appeal this decision once.`;
     case 'profile_warning':
       return `Warning: this profile broke the community guidelines (${rule('en', n.rule)}). There is no penalty this time. It expires on ${day('en', n.expires)}. You can appeal it.`;
     case 'profile_strike': {
@@ -391,7 +391,7 @@ function renderEs(n: Notice): string {
           'Motivo',
           n.note,
         ),
-      )} Te devolvemos lo que no se haya gastado. Puedes apelar esta decisión una vez.`;
+      )}${n.refunded ? ' Te devolvemos lo que no se haya gastado.' : ''} Puedes apelar esta decisión una vez.`;
     case 'profile_warning':
       return `Advertencia: este perfil ha incumplido las normas de la comunidad (${rule('es', n.rule)}). Esta vez no hay sanción. Caduca el ${day('es', n.expires)}. Puedes apelarla.`;
     case 'profile_strike': {

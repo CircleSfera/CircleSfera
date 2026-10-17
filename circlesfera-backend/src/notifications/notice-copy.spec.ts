@@ -107,12 +107,26 @@ describe('renderNotice', () => {
       'Hemos revisado tu apelación y la decisión se mantiene. Notas: Spam',
     );
     expect(renderNotice('en', { key: 'promotion_rejected', note: '  ' })).toBe(
-      'Your promotion request was rejected. What was not spent is refunded. You can appeal this decision once.',
+      'Your promotion request was rejected. You can appeal this decision once.',
     );
+    // Money back is told only when it came back.
     expect(
-      renderNotice('es', { key: 'promotion_rejected', note: 'Engañosa' }),
+      renderNotice('es', {
+        key: 'promotion_rejected',
+        note: 'Engañosa',
+        refunded: true,
+      }),
     ).toBe(
       'Tu solicitud de promoción ha sido rechazada. Motivo: Engañosa. Te devolvemos lo que no se haya gastado. Puedes apelar esta decisión una vez.',
+    );
+    expect(
+      renderNotice('en', {
+        key: 'promotion_rejected',
+        note: 'Misleading',
+        refunded: true,
+      }),
+    ).toBe(
+      'Your promotion request was rejected. Reason: Misleading. What was not spent is refunded. You can appeal this decision once.',
     );
   });
 

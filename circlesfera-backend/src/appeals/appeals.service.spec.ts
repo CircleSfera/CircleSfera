@@ -182,9 +182,10 @@ describe('AppealsService', () => {
       mockPrismaService.promotion.findFirst.mockResolvedValue({
         id: 'promo-1',
       });
-      mockPrismaService.appeal.findFirst.mockResolvedValueOnce({
-        id: 'appeal-old',
-      });
+      // None pending; one decided earlier, found under the lock.
+      mockPrismaService.appeal.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'appeal-old' });
 
       await expect(
         service.create('user-1', {
@@ -192,8 +193,9 @@ describe('AppealsService', () => {
           targetId: 'promo-1',
           reason: 'The post follows every rule',
         }),
-      ).rejects.toThrow(ConflictException);
-      expect(mockPrismaService.appeal.findFirst).toHaveBeenCalledWith({
+      ).rejects.toThrow('This promotion has already been appealed');
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
+      expect(mockPrismaService.appeal.findFirst).toHaveBeenLastCalledWith({
         where: {
           userId: 'user-1',
           targetType: 'PROMOTION_REJECTION',

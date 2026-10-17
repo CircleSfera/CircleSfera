@@ -110,16 +110,6 @@ export class AppealsService {
           select: { id: true },
         });
         if (!promotion) throw new NotFoundException('Promotion not found');
-        // A rejected promotion may be appealed once, whatever the outcome.
-        const earlier = await this.prisma.appeal.findFirst({
-          where: { userId, targetType: 'PROMOTION_REJECTION', targetId },
-          select: { id: true },
-        });
-        if (earlier) {
-          throw new ConflictException(
-            'This promotion has already been appealed',
-          );
-        }
         return targetId;
       }
       default:
@@ -149,6 +139,19 @@ export class AppealsService {
         throw new ConflictException(
           'An appeal for this decision is already pending',
         );
+      }
+      // A rejected promotion may be appealed once, whatever the outcome:
+      // checked under the lock, so an appeal decided meanwhile still counts.
+      if (dto.targetType === 'PROMOTION_REJECTION') {
+        const earlier = await tx.appeal.findFirst({
+          where: { userId, targetType: 'PROMOTION_REJECTION', targetId },
+          select: { id: true },
+        });
+        if (earlier) {
+          throw new ConflictException(
+            'This promotion has already been appealed',
+          );
+        }
       }
       return tx.appeal.create({
         data: {
