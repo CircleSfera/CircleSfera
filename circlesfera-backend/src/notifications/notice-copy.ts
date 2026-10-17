@@ -141,6 +141,8 @@ const RULES: Record<Locale, Record<ReportReason, string>> = {
     IMPERSONATION: 'impersonation',
     CSAM: 'child sexual abuse material',
     SCAM: 'scam',
+    SELF_HARM: 'self-harm',
+    INTELLECTUAL_PROPERTY: 'an infringement of intellectual property',
     OTHER: 'a community guidelines violation',
   },
   es: {
@@ -152,6 +154,8 @@ const RULES: Record<Locale, Record<ReportReason, string>> = {
     IMPERSONATION: 'suplantación de identidad',
     CSAM: 'material de abuso sexual infantil',
     SCAM: 'estafa',
+    SELF_HARM: 'autolesión',
+    INTELLECTUAL_PROPERTY: 'una infracción de propiedad intelectual',
     OTHER: 'un incumplimiento de las normas de la comunidad',
   },
 };

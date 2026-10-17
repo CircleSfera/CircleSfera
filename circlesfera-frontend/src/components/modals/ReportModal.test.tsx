@@ -97,6 +97,31 @@ describe('ReportModal', () => {
     });
   });
 
+  it('offers self-harm and intellectual property, and sends each by its own reason', async () => {
+    for (const reason of ['SELF_HARM', 'INTELLECTUAL_PROPERTY']) {
+      vi.mocked(reportsApi.create).mockClear();
+      const view = renderWithProviders(
+        <ReportModal
+          isOpen
+          onClose={onClose}
+          targetType="POST"
+          targetId="post-1"
+        />,
+      );
+      const entry = REPORT_REASONS.find((r) => r.id === reason)!;
+      fireEvent.click(screen.getByText(view.i18n!.t(entry.labelKey)));
+      fireEvent.click(
+        screen.getByRole('button', { name: view.i18n!.t('report.submit') }),
+      );
+      await waitFor(() =>
+        expect(reportsApi.create).toHaveBeenCalledWith(
+          expect.objectContaining({ reason }),
+        ),
+      );
+      view.unmount();
+    }
+  });
+
   it('shows success after a report without details', async () => {
     const { i18n } = renderWithProviders(
       <ReportModal
