@@ -24,6 +24,7 @@ const APPEAL_TYPES: AppealTargetType[] = [
   'BOT_LABEL',
   'STRIKE',
   'RESTRICTION',
+  'PROMOTION_REJECTION',
 ];
 
 function parseAppealTargetType(value: string | null): AppealTargetType | null {
@@ -159,6 +160,9 @@ export default function AppealsSettings() {
               <option value="RESTRICTION">
                 {t('settings.appeals.type_restriction')}
               </option>
+              <option value="PROMOTION_REJECTION">
+                {t('settings.appeals.type_promotion')}
+              </option>
             </Select>
           </div>
 
@@ -270,7 +274,9 @@ function AppealRow({ appeal }: { appeal: Appeal }) {
           ? t('settings.appeals.type_strike')
           : appeal.targetType === 'RESTRICTION'
             ? t('settings.appeals.type_restriction')
-            : t('settings.appeals.type_post');
+            : appeal.targetType === 'PROMOTION_REJECTION'
+              ? t('settings.appeals.type_promotion')
+              : t('settings.appeals.type_post');
 
   return (
     <li className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-2">

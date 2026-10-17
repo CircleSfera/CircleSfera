@@ -37,6 +37,8 @@ export class ReviewPromotionUseCase {
       throw new NotFoundException('Promotion not found');
     }
 
+    // The notice says money came back only when it did.
+    let refunded = false;
     if (
       status === PromotionStatus.REJECTED &&
       (promo.status === PromotionStatus.ACTIVE ||
@@ -44,7 +46,11 @@ export class ReviewPromotionUseCase {
         Boolean(promo.chargedAt))
     ) {
       try {
-        await this.refundPromotion.execute(promotionId, 'admin-reject');
+        const result = await this.refundPromotion.execute(
+          promotionId,
+          'admin-reject',
+        );
+        refunded = result.refunded;
       } catch (err) {
         throw new BadRequestException(
           `Could not refund promotion before reject: ${
@@ -56,7 +62,12 @@ export class ReviewPromotionUseCase {
 
     const updated = await this.prisma.promotion.update({
       where: { id: promotionId },
-      data: { status: status as PromotionStatus },
+      data: {
+        status: status as PromotionStatus,
+        // The reason stays with the promotion, for the appeal.
+        rejectionReason:
+          status === PromotionStatus.REJECTED ? (note ?? null) : null,
+      },
     });
 
     await this.logAdminAction.execute(
@@ -86,8 +97,14 @@ export class ReviewPromotionUseCase {
         notice:
           status === PromotionStatus.ACTIVE
             ? { key: 'promotion_approved' }
-            : { key: 'promotion_rejected', note },
-        postId: promo.targetType === 'POST' ? promo.targetId : undefined,
+            : { key: 'promotion_rejected', note, refunded },
+        // About the promotion, not the post: a rejection is appealed as
+        // the promotion's, never as a post removed.
+        targetType:
+          status === PromotionStatus.ACTIVE
+            ? 'promotion_approved'
+            : 'promotion_rejected',
+        targetId: promotionId,
       });
     }
 

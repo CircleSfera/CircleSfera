@@ -6,7 +6,8 @@ export type AppealTargetType =
   | 'POST_REMOVAL'
   | 'BOT_LABEL'
   | 'STRIKE'
-  | 'RESTRICTION';
+  | 'RESTRICTION'
+  | 'PROMOTION_REJECTION';
 export type AppealStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface Appeal {

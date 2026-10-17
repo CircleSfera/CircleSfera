@@ -470,7 +470,7 @@ export default function PromotionsTab({ onToast }: Props) {
         showInput={true}
         inputLabel={t('admin.promotions.reject_reason_label')}
         inputPlaceholder={t('admin.promotions.reject_reason_placeholder')}
-        inputRequired={false}
+        inputRequired={true}
       />
     </div>
   );

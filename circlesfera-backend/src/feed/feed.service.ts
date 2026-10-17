@@ -918,7 +918,14 @@ export class FeedService {
         const promo = activePromotions[promoIndex];
         const postToInject = promotedPostsDict.get(promo.targetId);
         if (postToInject) {
-          finalPosts.push({ ...postToInject, promotionId: promo.id });
+          finalPosts.push({
+            ...postToInject,
+            promotionId: promo.id,
+            // For "Why am I seeing this?": the countries it is aimed at.
+            promotionCountries: promo.countries
+              ? promo.countries.split(',')
+              : [],
+          });
         }
         promoIndex++;
       }

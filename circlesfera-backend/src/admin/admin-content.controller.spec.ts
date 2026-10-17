@@ -420,15 +420,50 @@ describe('AdminContentController', () => {
     await request(app.getHttpServer())
       .patch('/api/v1/admin/promotions/promo-1')
       .set(ADMIN_BEARER)
-      .send({ status: 'PAUSED', note: 'slow' })
+      .send({ status: 'REJECTED', note: '  Misleading claims ' })
       .expect(200);
 
     expect(getPromotions.execute).toHaveBeenCalledWith(1, 10, 'ACTIVE', 'ad');
     expect(reviewPromotion.execute).toHaveBeenCalledWith(
       TEST_ADMIN.adminId,
       'promo-1',
-      'PAUSED',
-      'slow',
+      'REJECTED',
+      'Misleading claims',
+    );
+  });
+
+  it.each([
+    ['a rejection with no reason', { status: 'REJECTED' }],
+    ['a rejection with an empty reason', { status: 'REJECTED', note: '' }],
+    ['a status staff do not set', { status: 'PAUSED', note: 'slow' }],
+    ['no status', { note: 'x' }],
+    ['a reason too long', { status: 'REJECTED', note: 'x'.repeat(501) }],
+    ['a reason of spaces only', { status: 'REJECTED', note: '   ' }],
+    ['a note that is not text', { status: 'ACTIVE', note: 42 }],
+  ])('refuses a promotion review with %s', async (_what, body) => {
+    reviewPromotion.execute.mockClear();
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/promotions/promo-1')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(reviewPromotion.execute).not.toHaveBeenCalled();
+  });
+
+  it('approves without a reason', async () => {
+    reviewPromotion.execute.mockClear();
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/promotions/promo-1')
+      .set(ADMIN_BEARER)
+      .send({ status: 'ACTIVE' })
+      .expect(200);
+    expect(reviewPromotion.execute).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'promo-1',
+      'ACTIVE',
+      undefined,
     );
   });
 

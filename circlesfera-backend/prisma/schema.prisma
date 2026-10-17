@@ -1471,6 +1471,8 @@ model Promotion {
   stripePaymentIntentId String?   @unique
   chargedAt             DateTime?
   refundedAt            DateTime?
+  // Why staff rejected it, told to the advertiser; it may be appealed once.
+  rejectionReason       String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2518,6 +2520,7 @@ enum AppealTargetType {
   BOT_LABEL
   STRIKE
   RESTRICTION
+  PROMOTION_REJECTION
 }
 
 // A warning is the notice for a first minor violation; it has no consequence.

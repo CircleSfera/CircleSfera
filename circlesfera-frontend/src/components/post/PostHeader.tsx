@@ -1,4 +1,5 @@
 import { ArrowLeft, Globe, Lock, MoreHorizontal, Users } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Post } from '../../types';
@@ -7,6 +8,7 @@ import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
 import type { VerificationLevel } from '../VerificationBadge';
 import VerificationBadge from '../VerificationBadge';
+import WhyPromotedDialog from './WhyPromotedDialog';
 
 interface PostHeaderProps {
   post: Post;
@@ -66,6 +68,7 @@ export default function PostHeader({
 }: PostHeaderProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [whyOpen, setWhyOpen] = useState(false);
   const isLg = size === 'lg';
 
   const handleProfileClick = () => {
@@ -119,53 +122,66 @@ export default function PostHeader({
       </Link>
 
       {/* Author info */}
-      <Link
-        to={`/${post.profile.username}`}
-        className="flex-1 min-w-0 min-h-11 flex flex-col justify-center hover:opacity-80 transition-opacity"
-        onClick={handleProfileClick}
-      >
-        {/* Display name + verification */}
-        <div className="flex items-center gap-1 truncate">
+      <div className="flex-1 min-w-0 min-h-11 flex flex-col justify-center">
+        <Link
+          to={`/${post.profile.username}`}
+          className="flex items-center gap-1 truncate hover:opacity-80 transition-opacity"
+          onClick={handleProfileClick}
+        >
+          {/* Display name + verification */}
           <span className="text-sm font-bold text-white truncate leading-tight">
             {post.profile.fullName || post.profile.username}
           </span>
           <VerificationBadge
             level={post.profile.verificationLevel as VerificationLevel}
           />
+        </Link>
+
+        {/* Username + timestamp + visibility, and "Promoted", which opens
+            why the post is shown */}
+        <div className="flex items-center gap-1 mt-0.5 min-w-0">
+          <Link
+            to={`/${post.profile.username}`}
+            className="flex items-center gap-1 min-w-0 hover:opacity-80 transition-opacity"
+            onClick={handleProfileClick}
+            tabIndex={-1}
+          >
+            <span className="text-xs font-medium text-gray-400 truncate leading-tight">
+              @{post.profile.username}
+            </span>
+            {timeAgo && (
+              <>
+                <span className="text-xs text-gray-400" aria-hidden>
+                  ·
+                </span>
+                <span className="text-xs text-gray-400 shrink-0">
+                  {timeAgo}
+                </span>
+              </>
+            )}
+            <VisibilityIcon post={post} />
+          </Link>
           {post.isPromoted && (
             <>
-              <span className="text-gray-400 text-xs" aria-hidden>
+              <span className="text-xs text-gray-400" aria-hidden>
                 ·
               </span>
-              <span
-                className="text-brand-primary-text font-black uppercase shrink-0"
+              <button
+                type="button"
+                onClick={() => setWhyOpen(true)}
+                aria-label={t('post.why.open')}
+                className="inline-flex items-center min-h-11 -my-3.5 px-1 -mx-1 text-brand-primary-text font-black uppercase shrink-0 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
                 style={{
                   fontSize: 'var(--text-badge, 11px)',
                   letterSpacing: '0.06em',
                 }}
               >
                 {t('post.header.promoted')}
-              </span>
+              </button>
             </>
           )}
         </div>
-
-        {/* Username + timestamp + visibility */}
-        <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-xs font-medium text-gray-400 truncate leading-tight">
-            @{post.profile.username}
-          </span>
-          {timeAgo && (
-            <>
-              <span className="text-xs text-gray-400" aria-hidden>
-                ·
-              </span>
-              <span className="text-xs text-gray-400 shrink-0">{timeAgo}</span>
-            </>
-          )}
-          <VisibilityIcon post={post} />
-        </div>
-      </Link>
+      </div>
 
       {/* More menu — 44x44 for mobile density accessibility */}
       <Button
@@ -178,6 +194,14 @@ export default function PostHeader({
       >
         <MoreHorizontal size={18} />
       </Button>
+      {post.isPromoted && (
+        <WhyPromotedDialog
+          isOpen={whyOpen}
+          onClose={() => setWhyOpen(false)}
+          username={post.profile.username}
+          countries={post.promotionCountries ?? []}
+        />
+      )}
     </div>
   );
 }

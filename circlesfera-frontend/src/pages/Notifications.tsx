@@ -253,6 +253,10 @@ export default function Notifications() {
     if (notif.targetType === 'account_bot_label') {
       return '/accounts/appeals?targetType=BOT_LABEL';
     }
+    // A rejected promotion is appealed as such, once.
+    if (notif.targetType === 'promotion_rejected' && notif.targetId) {
+      return `/accounts/appeals?targetType=PROMOTION_REJECTION&targetId=${encodeURIComponent(notif.targetId)}`;
+    }
     const content = (notif.content || '').toLowerCase();
     if (notif.postId) {
       return `/accounts/appeals?targetType=POST_REMOVAL&targetId=${encodeURIComponent(notif.postId)}`;
@@ -401,16 +405,18 @@ export default function Notifications() {
                       notif.content}
                   </span>
                 </p>
-                {notif.type === 'MODERATION' && (
-                  <Link
-                    to={moderationAppealPath(notif)}
-                    className="inline-flex mt-2 min-h-11 items-center rounded-full border border-orange-400/30 bg-orange-500/10 px-3 text-xs font-semibold text-orange-200 hover:bg-orange-500/20 transition-colors"
-                  >
-                    {notif.targetType && STRIKE_NOTICE_KEYS[notif.targetType]
-                      ? t('notifications.strike_details_cta')
-                      : t('notifications.appeal_cta')}
-                  </Link>
-                )}
+                {notif.type === 'MODERATION' &&
+                  // An approval is good news: there is nothing to appeal.
+                  notif.targetType !== 'promotion_approved' && (
+                    <Link
+                      to={moderationAppealPath(notif)}
+                      className="inline-flex mt-2 min-h-11 items-center rounded-full border border-orange-400/30 bg-orange-500/10 px-3 text-xs font-semibold text-orange-200 hover:bg-orange-500/20 transition-colors"
+                    >
+                      {notif.targetType && STRIKE_NOTICE_KEYS[notif.targetType]
+                        ? t('notifications.strike_details_cta')
+                        : t('notifications.appeal_cta')}
+                    </Link>
+                  )}
                 <p className="text-xs font-medium mt-1 text-white/45">
                   {getRelativeTime(String(notif.createdAt))}
                 </p>

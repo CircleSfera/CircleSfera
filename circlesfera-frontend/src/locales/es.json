@@ -399,7 +399,8 @@
         "SCAM": "Estafa",
         "OTHER": "Incumplimiento de las normas de la comunidad"
       },
-      "type_restriction": "Restricción temporal de actividad"
+      "type_restriction": "Restricción temporal de actividad",
+      "type_promotion": "Promoción rechazada"
     },
     "reports": {
       "title": "Reportes",
@@ -1091,6 +1092,16 @@
       "view_all_comments": "Ver los {{count}} comentarios",
       "likes_count": "{{count}} me gusta",
       "comments_count": "{{count}} comentarios"
+    },
+    "why": {
+      "open": "Promocionado. ¿Por qué veo esto?",
+      "title": "¿Por qué veo esto?",
+      "paid_by": "@{{username}} ha pagado para promocionar esta publicación.",
+      "countries": "Se muestra a personas de {{list}}.",
+      "everywhere": "Se muestra a personas de todas partes.",
+      "nothing_else": "Las publicaciones promocionadas no se dirigen según tus intereses ni lo que haces en CircleSfera. La misma promoción se te muestra como mucho tres veces al día.",
+      "your_country": "Tu país es el que elegiste en ajustes, o desde el que te registraste.",
+      "change_country": "Cambiarlo"
     },
     "header": {
       "promoted": "Publicidad",
@@ -3276,6 +3287,7 @@
         "RESTRICTION": "Restricción",
         "ACCOUNT_BAN": "Baneo",
         "POST_REMOVAL": "Retirada de publicación",
+        "PROMOTION_REJECTION": "Rechazo de promoción",
         "BOT_LABEL": "Marca de bot",
         "ADMIN": "Equipo",
         "APPEAL": "Apelación",

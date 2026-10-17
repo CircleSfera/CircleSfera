@@ -130,6 +130,57 @@ describe('Notifications written for the reader', () => {
     ).toHaveAttribute('href', '/accounts/appeals?targetType=BOT_LABEL');
   });
 
+  it('a rejected promotion notice links to the appeal of that promotion', async () => {
+    show([
+      notice({
+        type: 'MODERATION',
+        sender: null,
+        senderId: null,
+        content: 'Your promotion request was rejected. Reason: Misleading.',
+        targetType: 'promotion_rejected',
+        targetId: 'promo-1',
+      }),
+    ]);
+
+    const { i18n } = renderWithProviders(<Notifications />);
+
+    expect(
+      await screen.findByRole('link', {
+        name: i18n!.t('notifications.appeal_cta'),
+      }),
+    ).toHaveAttribute(
+      'href',
+      '/accounts/appeals?targetType=PROMOTION_REJECTION&targetId=promo-1',
+    );
+  });
+
+  it('an approved promotion notice offers nothing to appeal', async () => {
+    show([
+      notice({
+        type: 'MODERATION',
+        sender: null,
+        senderId: null,
+        content: 'Your promotion was approved and is now running.',
+        targetType: 'promotion_approved',
+        targetId: 'promo-1',
+      }),
+    ]);
+
+    const { i18n } = renderWithProviders(<Notifications />);
+
+    expect(
+      await screen.findByText(
+        'Your promotion was approved and is now running.',
+        {
+          exact: false,
+        },
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: i18n!.t('notifications.appeal_cta') }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows an answer of support as coming from Support, with the way to the request', async () => {
     show([
       notice({

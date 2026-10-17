@@ -399,7 +399,8 @@
         "SCAM": "Scam",
         "OTHER": "Community guidelines violation"
       },
-      "type_restriction": "Temporary activity restriction"
+      "type_restriction": "Temporary activity restriction",
+      "type_promotion": "Rejected promotion"
     },
     "reports": {
       "title": "Reports",
@@ -1091,6 +1092,16 @@
       "view_all_comments": "View all {{count}} comments",
       "likes_count": "{{count}} likes",
       "comments_count": "{{count}} comments"
+    },
+    "why": {
+      "open": "Promoted. Why am I seeing this?",
+      "title": "Why am I seeing this?",
+      "paid_by": "@{{username}} paid to promote this post.",
+      "countries": "It is shown to people in {{list}}.",
+      "everywhere": "It is shown to people everywhere.",
+      "nothing_else": "Promoted posts are not aimed by your interests or what you do in CircleSfera. The same promotion is shown to you at most three times a day.",
+      "your_country": "Your country is the one you chose in settings, or the one you signed up from.",
+      "change_country": "Change it"
     },
     "header": {
       "promoted": "Promoted",
@@ -3276,6 +3287,7 @@
         "RESTRICTION": "Restriction",
         "ACCOUNT_BAN": "Ban",
         "POST_REMOVAL": "Post removal",
+        "PROMOTION_REJECTION": "Promotion rejection",
         "BOT_LABEL": "Bot label",
         "ADMIN": "Staff",
         "APPEAL": "Appeal",
