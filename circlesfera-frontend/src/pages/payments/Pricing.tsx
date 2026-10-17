@@ -7,7 +7,7 @@ import {
   Settings,
   ShieldCheck,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -163,6 +163,9 @@ export default function Pricing() {
     return isActive;
   };
 
+  const isPlanActiveRef = useRef(isPlanActive);
+  isPlanActiveRef.current = isPlanActive;
+
   // Before paying for a plan: the consent to start at once and the
   // acknowledgement of losing the withdrawal right.
   const consent = useWithdrawalConsent();
@@ -208,7 +211,11 @@ export default function Pricing() {
     }
     consent.ask((given) => {
       setLoadingPlanId(plan.id);
-      checkoutMutation.mutate({ plan, given });
+      // The billing status may have arrived while the dialog was open: a
+      // plan held by then opens the portal, not a second checkout.
+      checkoutMutation.mutate(
+        isPlanActiveRef.current(plan) ? { plan } : { plan, given },
+      );
     });
   };
 

@@ -25,6 +25,8 @@ export function WithdrawalConsentBox({
     <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm text-gray-200">
       <input
         type="checkbox"
+        required
+        aria-required="true"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         className="mt-0.5 h-5 w-5 shrink-0 accent-brand-primary"
