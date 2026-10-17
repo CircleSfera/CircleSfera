@@ -82,6 +82,9 @@ model User {
   // Relations (account-scoped; social content lives on Profile)
   profiles              Profile[]
   signIns               SignIn[]
+  // Profiles of others this person works on, and the invitations sent.
+  memberships           ProfileMember[]        @relation("ProfileMemberPerson")
+  membersInvited        ProfileMember[]        @relation("ProfileMemberInviter")
   refreshTokens         RefreshToken[]
   passkeys              Passkey[]
   passkeyChallenges     PasskeyChallenge[]
@@ -412,7 +415,9 @@ model Profile {
   // recorded in profile_strikes; nothing reads or writes this column any more.
   strikeCount     Int              @default(0)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // The people who work on this Profile besides its owner (Business only).
+  members ProfileMember[]
 
   // The sign-in this Profile is entered with. Several Profiles of one person
   // may share one. Filled for every Profile by the database; optional in the
@@ -2865,4 +2870,44 @@ model RiskCase {
   @@index([status, score])
   @@index([status, updatedAt])
   @@map("risk_cases")
+}
+
+// A person who works on a Business Profile that is not theirs, with a
+// role. The owner of the Profile is not a row: it is Profile.userId. One
+// row per person and Profile; a new invitation reuses it.
+model ProfileMember {
+  id          String              @id @default(uuid())
+  profileId   String
+  userId      String
+  role        ProfileMemberRole
+  status      ProfileMemberStatus @default(INVITED)
+  // The person who sent the invitation; empty once that account is gone.
+  invitedById String?
+  acceptedAt  DateTime?
+  removedAt   DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user      User    @relation("ProfileMemberPerson", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User?   @relation("ProfileMemberInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([profileId, userId])
+  @@index([userId, status])
+  @@index([profileId, status])
+  @@map("profile_members")
+}
+
+enum ProfileMemberRole {
+  ADMINISTRATOR
+  EDITOR
+}
+
+enum ProfileMemberStatus {
+  INVITED
+  ACTIVE
+  // The Business plan ended: access returns with the plan.
+  PAUSED
+  DECLINED
+  REMOVED
 }
