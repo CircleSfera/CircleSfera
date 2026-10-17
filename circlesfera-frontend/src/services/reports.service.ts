@@ -19,6 +19,9 @@ export const reportsApi = {
     targetId: string;
     reason: string;
     details?: string;
+    // An intellectual-property report: who holds the right, and the work.
+    rightsHolder?: string;
+    workConcerned?: string;
   }) => apiClient.post('reports', data),
 
   getMine: () => apiClient.get<Report[]>('reports/me'),

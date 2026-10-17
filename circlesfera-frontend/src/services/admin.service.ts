@@ -167,6 +167,9 @@ export interface AdminReport {
   } | null;
   resolvedAt?: string | null;
   internalNotes?: string | null;
+  // An intellectual-property report: who holds the right, and the work.
+  rightsHolder?: string | null;
+  workConcerned?: string | null;
   reporter?: {
     profile?: {
       username: string;

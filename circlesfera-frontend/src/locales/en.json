@@ -1898,6 +1898,12 @@
       "self_harm": "Self-harm or suicide",
       "intellectual_property": "Intellectual property (copyright, trademark)",
       "other": "Something else"
+    },
+    "ip": {
+      "rights_holder": "Who holds the right",
+      "rights_holder_placeholder": "Your name, or the person or company you act for",
+      "work": "The work concerned",
+      "work_placeholder": "For example: my photo published on my profile, or the title of the song"
     }
   },
   "notifications": {
@@ -2733,6 +2739,10 @@
         "REVIEWING": "In review",
         "RESOLVED": "Resolved",
         "REJECTED": "Dismissed"
+      },
+      "ip": {
+        "rights_holder": "Right holder",
+        "work": "Work concerned"
       }
     },
     "monetization": {

@@ -286,4 +286,15 @@ describe('a countdown that ended', () => {
       'la cuenta atrás «Fiesta» ha terminado',
     );
   });
+
+  it('tells a person someone is worried about them, with where to find help in their language', () => {
+    const en = renderNotice('en', { key: 'support_resources' });
+    const es = renderNotice('es', { key: 'support_resources' });
+    expect(en).toContain('112');
+    expect(en).toContain('findahelpline.com');
+    expect(es).toContain('024');
+    expect(es).toContain('112');
+    // It never names who reported, and it is not a sanction.
+    expect(`${en} ${es}`).not.toMatch(/report|denunci|appeal|apela/i);
+  });
 });

@@ -25,6 +25,7 @@ describe('ReportsService', () => {
     user: { findFirst: vi.fn(), findUnique: vi.fn() },
     story: { findUnique: vi.fn() },
     message: { findUnique: vi.fn() },
+    notification: { findFirst: vi.fn() },
   };
 
   const mockEventEmitter = {
@@ -121,6 +122,152 @@ describe('ReportsService', () => {
           }),
         );
       }
+    });
+
+    describe('help on a report of self-harm', () => {
+      const report = (targetType: string, targetId: string) =>
+        service.create('reporter-1', {
+          targetType,
+          targetId,
+          reason: 'SELF_HARM',
+        } as any);
+      const helpSent = () =>
+        mockEventEmitter.emit.mock.calls.filter(
+          ([name, payload]) =>
+            name === 'notification.create' &&
+            payload.notice?.key === 'support_resources',
+        );
+
+      beforeEach(() => {
+        mockPrismaService.report.create.mockResolvedValue({ id: 'r-1' });
+        mockPrismaService.notification.findFirst.mockResolvedValue(null);
+        mockPrismaService.user.findFirst.mockResolvedValue({
+          id: 'staff-user',
+          profiles: [{ id: 'staff-profile' }],
+        });
+      });
+
+      it('tells the author privately where to find help, never who reported', async () => {
+        mockPrismaService.post.findUnique.mockResolvedValue({
+          id: 'post-1',
+          profileId: 'author-1',
+        });
+
+        await report('POST', 'post-1');
+
+        expect(helpSent()).toEqual([
+          [
+            'notification.create',
+            {
+              recipientId: 'author-1',
+              senderId: 'staff-profile',
+              type: 'SYSTEM',
+              notice: { key: 'support_resources' },
+              targetType: 'support_resources',
+            },
+          ],
+        ]);
+      });
+
+      it('finds the author of a story, a comment, a message and an account', async () => {
+        mockPrismaService.story.findUnique.mockResolvedValue({
+          profileId: 'a-story',
+        });
+        mockPrismaService.comment.findUnique.mockResolvedValue({
+          profileId: 'a-comment',
+        });
+        mockPrismaService.message.findUnique.mockResolvedValue({
+          senderId: 'a-message',
+        });
+        mockPrismaService.user.findUnique.mockResolvedValue({ id: 'u-9' });
+        mockPrismaService.profile.findFirst.mockResolvedValue({ id: 'a-user' });
+
+        await report('STORY', 's');
+        await report('COMMENT', 'c');
+        await report('MESSAGE', 'm');
+        await report('USER', 'u-9');
+
+        expect(helpSent().map(([, p]) => p.recipientId)).toEqual([
+          'a-story',
+          'a-comment',
+          'a-message',
+          'a-user',
+        ]);
+      });
+
+      it('sends it once a day at most, never for a report about oneself, and not without staff', async () => {
+        mockPrismaService.post.findUnique.mockResolvedValue({
+          profileId: 'author-1',
+        });
+        mockPrismaService.notification.findFirst.mockResolvedValueOnce({
+          id: 'n-today',
+        });
+        await report('POST', 'post-1');
+
+        mockPrismaService.post.findUnique.mockResolvedValue({
+          profileId: 'reporter-1',
+        });
+        await report('POST', 'post-2');
+
+        mockPrismaService.post.findUnique.mockResolvedValue({
+          profileId: 'author-2',
+        });
+        mockPrismaService.user.findFirst.mockResolvedValue(null);
+        await report('POST', 'post-3');
+
+        // An account with no Profile left has no one to tell.
+        mockPrismaService.user.findUnique.mockResolvedValue({ id: 'u-0' });
+        mockPrismaService.profile.findFirst.mockResolvedValue(null);
+        await report('USER', 'u-0');
+
+        expect(helpSent()).toEqual([]);
+        expect(mockPrismaService.notification.findFirst).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              recipientId: 'author-1',
+              targetType: 'support_resources',
+            }),
+          }),
+        );
+      });
+
+      it('another reason offers no help', async () => {
+        mockPrismaService.post.findUnique.mockResolvedValue({
+          profileId: 'author-1',
+        });
+        await service.create('reporter-1', {
+          targetType: 'POST',
+          targetId: 'post-1',
+          reason: 'SPAM',
+        } as any);
+        expect(helpSent()).toEqual([]);
+      });
+    });
+
+    it('keeps who holds the right and the work only on an intellectual-property report', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({ profileId: 'a' });
+      mockPrismaService.report.create.mockResolvedValue({ id: 'r' });
+      const fields = { rightsHolder: 'Ana Ruiz', workConcerned: 'My photo' };
+
+      await service.create('reporter-1', {
+        targetType: 'POST',
+        targetId: 'p',
+        reason: 'INTELLECTUAL_PROPERTY',
+        ...fields,
+      } as any);
+      expect(mockPrismaService.report.create).toHaveBeenLastCalledWith({
+        data: expect.objectContaining(fields),
+      });
+
+      await service.create('reporter-1', {
+        targetType: 'POST',
+        targetId: 'p',
+        reason: 'SPAM',
+        ...fields,
+      } as any);
+      const data = mockPrismaService.report.create.mock.calls.at(-1)?.[0].data;
+      expect(data).not.toHaveProperty('rightsHolder');
+      expect(data).not.toHaveProperty('workConcerned');
     });
 
     it('should handle STORY target type existence check', async () => {
