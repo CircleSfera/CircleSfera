@@ -42,15 +42,21 @@ keep_cookies() { # <jar> <response headers>
     done
 }
 # call <jar> <curl arguments...>: the answer's status in $code, its body in
-# $TMP/body.
+# $TMP/body. A request refused for going too fast (429) is asked once more
+# after the 60-second window of the limit; a second 429 stays a failure.
 call() {
-  local jar=$1 cookies
+  local jar=$1 cookies attempt
   shift
-  cookies=$(paste -sd';' "$jar")
-  code=$(curl -sS -o "$TMP/body" -D "$TMP/headers" -w '%{http_code}' --max-time 20 \
-    ${cookies:+-H "Cookie: $cookies"} -H "x-csrf-token: $csrf" \
-    -H 'Content-Type: application/json' "$@") || code=000
-  keep_cookies "$jar" "$TMP/headers"
+  for attempt in 1 2; do
+    cookies=$(paste -sd';' "$jar")
+    code=$(curl -sS -o "$TMP/body" -D "$TMP/headers" -w '%{http_code}' --max-time 20 \
+      ${cookies:+-H "Cookie: $cookies"} -H "x-csrf-token: $csrf" \
+      -H 'Content-Type: application/json' "$@") || code=000
+    keep_cookies "$jar" "$TMP/headers"
+    [ "$code" = "429" ] && [ "$attempt" = "1" ] || break
+    echo "  WAIT  too many requests; asking again in 61 s"
+    sleep 61
+  done
 }
 # new_session <jar>: an anonymous session and its CSRF token in $csrf.
 new_session() {
