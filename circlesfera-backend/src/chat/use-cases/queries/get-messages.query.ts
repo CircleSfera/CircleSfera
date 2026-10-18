@@ -5,6 +5,10 @@ import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 
+// How many messages a conversation shows at first, and how many more each
+// time the person scrolls up to the top.
+export const MESSAGE_PAGE = 50;
+
 @Injectable()
 export class GetMessagesQuery {
   constructor(
@@ -14,10 +18,14 @@ export class GetMessagesQuery {
     private chatAuth: ChatAuthorizationService,
   ) {}
 
+  // The latest messages of a conversation, oldest first as they are read.
+  // With `before`, the ones sent before that message instead: the app reads
+  // further back as the person scrolls up.
   async execute(
     conversationId: string,
-    limit = 50,
+    limit = MESSAGE_PAGE,
     profileId?: string,
+    before?: { createdAt: Date; id: string },
   ): Promise<(Message & { status: MediaStatus })[]> {
     let isParticipant: Participant | null = null;
     if (profileId) {
@@ -32,6 +40,12 @@ export class GetMessagesQuery {
     if (isParticipant?.clearedAt) {
       whereClause.createdAt = { gt: isParticipant.clearedAt };
     }
+    if (before) {
+      whereClause.OR = [
+        { createdAt: { lt: before.createdAt } },
+        { createdAt: before.createdAt, id: { lt: before.id } },
+      ];
+    }
 
     let viewerUserId: string | undefined;
     if (profileId) {
@@ -42,9 +56,10 @@ export class GetMessagesQuery {
       viewerUserId = viewer?.userId;
     }
 
-    const messages = await this.prisma.message.findMany({
+    // Newest first to take the latest ones, then turned to reading order.
+    const latest = await this.prisma.message.findMany({
       where: whereClause,
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
       include: {
         sender: {
@@ -90,6 +105,7 @@ export class GetMessagesQuery {
       },
     });
 
+    const messages = latest.reverse();
     return (messages as any[]).map((m: any) => {
       if (m.content) {
         m.content = this.cryptoService.decrypt(m.content);

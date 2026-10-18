@@ -1547,4 +1547,50 @@ describe('ChatWindow', () => {
       expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
+
+  describe('older messages', () => {
+    // A full page, the latest 50, oldest first.
+    const page = Array.from({ length: 50 }, (_, i) => ({
+      ...message(`m${i + 10}`, i % 2 ? 'me' : 'p2', `text ${i + 10}`),
+      createdAt: new Date(Date.UTC(2026, 9, 2, 0, i)).toISOString(),
+    }));
+    const listOf = () =>
+      screen.getByTestId('message-m10').closest('.overflow-y-auto') as Element;
+
+    it('reads the ones before the oldest shown when the top is reached, and puts them first', async () => {
+      vi.mocked(chatApi.getMessages)
+        .mockResolvedValueOnce({ data: page } as never)
+        .mockResolvedValueOnce({
+          data: [message('m1', 'p2', 'the very first')],
+        } as never);
+      renderChat();
+      await screen.findByText('text 10');
+
+      fireEvent.scroll(listOf());
+
+      expect(await screen.findByText('the very first')).toBeInTheDocument();
+      expect(chatApi.getMessages).toHaveBeenLastCalledWith('c1', {
+        createdAt: page[0].createdAt,
+        id: 'm10',
+      });
+      const ids = screen
+        .getAllByTestId(/^message-/)
+        .map((el) => el.dataset.testid);
+      expect(ids.slice(0, 2)).toEqual(['message-m1', 'message-m10']);
+
+      // Less than a full page came back: there is nothing before it.
+      fireEvent.scroll(listOf());
+      expect(chatApi.getMessages).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not ask for more when the conversation fits in one page', async () => {
+      await renderLoadedChat();
+
+      fireEvent.scroll(
+        screen.getByTestId('message-m1').closest('.overflow-y-auto') as Element,
+      );
+
+      expect(chatApi.getMessages).toHaveBeenCalledTimes(1);
+    });
+  });
 });

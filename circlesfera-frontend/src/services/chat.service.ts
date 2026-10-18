@@ -35,8 +35,17 @@ export const chatApi = {
   getUnreadCount: () =>
     apiClient.get<{ count: number }>('/chat/conversations/unread-count'),
 
-  getMessages: (conversationId: string) =>
-    apiClient.get<Message[]>(`/chat/conversations/${conversationId}/messages`),
+  // The latest messages, oldest first; with `before`, the ones sent before
+  // that message (its time and id).
+  getMessages: (
+    conversationId: string,
+    before?: { createdAt: string; id: string },
+  ) =>
+    apiClient.get<Message[]>(`/chat/conversations/${conversationId}/messages`, {
+      ...(before
+        ? { params: { before: before.createdAt, beforeId: before.id } }
+        : {}),
+    }),
 
   sendMessage: (data: {
     recipientId?: string;
