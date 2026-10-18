@@ -18,6 +18,7 @@ import { RequireOwnership } from '../auth/decorators/require-ownership.decorator
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
+import { ConversationPageDto } from './dto/conversation-page.dto.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
 import { EditMessageDto } from './dto/edit-message.dto.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
@@ -87,6 +88,21 @@ export class ChatController {
     return this.getConversationsQuery.execute(
       req.user.profileId,
       folder === 'requests' ? 'requests' : 'inbox',
+    );
+  }
+
+  // The list a page at a time, so every conversation can be reached. Before
+  // conversations/:id, which would otherwise take "page" as an id.
+  @Get('conversations/page')
+  async getConversationPage(
+    @Req() req: AuthRequest,
+    @Query() query: ConversationPageDto,
+  ): Promise<{ items: Conversation[]; nextCursor: string | null }> {
+    return this.getConversationsQuery.executePage(
+      req.user.profileId,
+      query.folder ?? 'inbox',
+      query.cursor,
+      query.limit,
     );
   }
 

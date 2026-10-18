@@ -6,7 +6,7 @@ import { renderWithProviders } from '../../test/test-utils';
 import ConversationList from './ConversationList';
 
 vi.mock('../../services/chat.service', () => ({
-  chatApi: { getConversations: vi.fn(), getUnreadCount: vi.fn() },
+  chatApi: { getConversationPage: vi.fn(), getUnreadCount: vi.fn() },
 }));
 vi.mock('./NewChatModal', () => ({ default: () => null }));
 vi.mock('../UserAvatar', () => ({ default: () => null }));
@@ -62,12 +62,17 @@ describe('ConversationList', () => {
     vi.mocked(chatApi.getUnreadCount).mockResolvedValue({
       data: { count: 2 },
     } as never);
-    vi.mocked(chatApi.getConversations).mockImplementation(((folder: string) =>
+    vi.mocked(chatApi.getConversationPage).mockImplementation(((
+      folder: string,
+    ) =>
       Promise.resolve({
-        data:
-          folder === 'requests'
-            ? [conv('c9', 'stranger', 'hola')]
-            : [conv('c1', 'ana', 'first'), conv('c2', 'leo', 'second')],
+        data: {
+          items:
+            folder === 'requests'
+              ? [conv('c9', 'stranger', 'hola')]
+              : [conv('c1', 'ana', 'first'), conv('c2', 'leo', 'second')],
+          nextCursor: null,
+        },
       })) as never);
   });
 
@@ -99,8 +104,8 @@ describe('ConversationList', () => {
   });
 
   it('says there are no requests in the app language', async () => {
-    vi.mocked(chatApi.getConversations).mockResolvedValue({
-      data: [],
+    vi.mocked(chatApi.getConversationPage).mockResolvedValue({
+      data: { items: [], nextCursor: null },
     } as never);
     const { i18n } = renderWithProviders(<ConversationList />, { lng: 'en' });
     await screen.findByText(i18n!.t('chat.no_messages'));
@@ -144,7 +149,7 @@ describe('ConversationList', () => {
     );
     expect(screen.getByText(/just now from leo/)).toBeInTheDocument();
     // The previous message was not overwritten by the new one.
-    expect(chatApi.getConversations).toHaveBeenCalledTimes(2);
+    expect(chatApi.getConversationPage).toHaveBeenCalledTimes(2);
   });
 
   it('a repeated or late event for an older message does not reorder the inbox', async () => {
@@ -191,7 +196,7 @@ describe('ConversationList', () => {
 
     await waitFor(() =>
       expect(
-        vi.mocked(chatApi.getConversations).mock.calls.length,
+        vi.mocked(chatApi.getConversationPage).mock.calls.length,
       ).toBeGreaterThan(2),
     );
   });
@@ -208,5 +213,72 @@ describe('ConversationList', () => {
       expect(screen.queryByText('ana')).not.toBeInTheDocument(),
     );
     expect(screen.getByText('leo')).toBeInTheDocument();
+  });
+
+  describe('a page at a time', () => {
+    // The inbox in two pages; the requests in one, with more to read.
+    beforeEach(() => {
+      vi.mocked(chatApi.getConversationPage).mockImplementation(((
+        folder: string,
+        cursor?: string | null,
+      ) =>
+        Promise.resolve({
+          data:
+            folder === 'requests'
+              ? { items: [conv('c9', 'stranger', 'hola')], nextCursor: 'r2' }
+              : cursor === 'p2'
+                ? { items: [conv('c3', 'eva', 'older')], nextCursor: null }
+                : {
+                    items: [
+                      conv('c1', 'ana', 'first'),
+                      conv('c2', 'leo', 'second'),
+                    ],
+                    nextCursor: 'p2',
+                  },
+        })) as never);
+    });
+
+    it('reads the next page when the end of the list comes into view', async () => {
+      renderWithProviders(<ConversationList />);
+
+      expect(await screen.findByText('eva')).toBeInTheDocument();
+      expect(chatApi.getConversationPage).toHaveBeenCalledWith('inbox', 'p2');
+      expect(order()).toEqual([
+        '/direct/inbox/t/c1',
+        '/direct/inbox/t/c2',
+        '/direct/inbox/t/c3',
+      ]);
+    });
+
+    it('says there are more requests than it has read', async () => {
+      renderWithProviders(<ConversationList />);
+      await screen.findByText('ana');
+
+      expect(await screen.findByText('1+')).toBeInTheDocument();
+    });
+
+    it('moves a conversation from a later page to the top when a message arrives', async () => {
+      renderWithProviders(<ConversationList />);
+      await screen.findByText('eva');
+
+      act(() => {
+        handlers.get('receiveMessage')!({
+          id: 'm-new',
+          conversationId: 'c3',
+          content: 'eva is back',
+          senderId: 'p-c3',
+          createdAt: '2026-10-01T11:00:00.000Z',
+        });
+      });
+
+      await waitFor(() =>
+        expect(order()).toEqual([
+          '/direct/inbox/t/c3',
+          '/direct/inbox/t/c1',
+          '/direct/inbox/t/c2',
+        ]),
+      );
+      expect(screen.getByText(/eva is back/)).toBeInTheDocument();
+    });
   });
 });
