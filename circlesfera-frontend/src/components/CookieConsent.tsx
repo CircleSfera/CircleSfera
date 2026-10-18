@@ -99,13 +99,13 @@ export default function CookieConsent() {
             </div>
 
             {/* Side by side, the same height: saying no is as easy and as
-                visible as saying yes. Halves of the card on a phone; on a
-                wider screen each as wide as its words. */}
-            <div className="grid grid-cols-2 gap-2 mt-4 sm:flex sm:justify-end">
+                visible as saying yes. Halves of the card on a phone;
+                centred, each as wide as the other, on a wider screen. */}
+            <div className="grid grid-cols-2 gap-2 mt-4 sm:flex sm:justify-center">
               <button
                 type="button"
                 onClick={() => decide(false)}
-                className="h-11 flex items-center justify-center gap-1.5 px-3 sm:px-5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+                className="h-11 flex items-center justify-center gap-1.5 px-3 sm:w-44 rounded-xl text-sm font-semibold text-white hover:bg-white/10 transition-colors"
                 style={{
                   background: 'rgba(255,255,255,0.08)',
                   border: '1px solid rgba(255,255,255,0.14)',
@@ -120,7 +120,7 @@ export default function CookieConsent() {
                 type="button"
                 onClick={() => decide(true)}
                 whileTap={{ scale: 0.97 }}
-                className="h-11 flex items-center justify-center px-3 sm:px-5 rounded-xl text-sm font-semibold text-white"
+                className="h-11 flex items-center justify-center px-3 sm:w-44 rounded-xl text-sm font-semibold text-white"
                 style={{
                   background:
                     'linear-gradient(90deg, #ff5757 0%, #884cff 100%)',
