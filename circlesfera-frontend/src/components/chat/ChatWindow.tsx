@@ -114,6 +114,11 @@ export default function ChatWindow() {
   // How many were added at the top by the last read further back, so the
   // view stays on the message the person was looking at.
   const prependedRef = useRef(0);
+  // A read further back in flight, and the conversation it belongs to: an
+  // answer that arrives after the person opened another conversation is
+  // dropped, and a second scroll does not ask the same page again.
+  const loadingOlderRef = useRef(false);
+  const olderReadRef = useRef(0);
   const [isTyping, setIsTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -218,28 +223,37 @@ export default function ChatWindow() {
   // Reads the messages sent before the oldest one shown and puts them on
   // top. Stops when a read brings less than a full page.
   const loadOlder = useCallback(async () => {
-    if (!id || !hasOlder || isLoadingOlder) return;
+    if (!id || !hasOlder || loadingOlderRef.current) return;
     const oldest = messages.find((m) => !m.tempId && m.id && m.createdAt);
     if (!oldest?.id) return;
+    loadingOlderRef.current = true;
+    const read = olderReadRef.current;
     setIsLoadingOlder(true);
     try {
       const res = await chatApi.getMessages(id, {
         createdAt: new Date(oldest.createdAt).toISOString(),
         id: oldest.id,
       });
+      // Another conversation was opened meanwhile: this answer is not its.
+      if (read !== olderReadRef.current) return;
       setHasOlder(res.data.length >= MESSAGE_PAGE);
+      const known = new Set(messages.map((m) => m.id));
+      const older = res.data.filter((m) => !known.has(m.id));
+      if (older.length === 0) return;
+      prependedRef.current = older.length;
       setMessages((prev) => {
-        const known = new Set(prev.map((m) => m.id));
-        const older = res.data.filter((m) => !known.has(m.id));
-        prependedRef.current = older.length;
-        return older.length > 0 ? [...older, ...prev] : prev;
+        const shown = new Set(prev.map((m) => m.id));
+        return [...older.filter((m) => !shown.has(m.id)), ...prev];
       });
     } catch (err) {
       logger.error('Failed to load older messages', err);
     } finally {
-      setIsLoadingOlder(false);
+      if (read === olderReadRef.current) {
+        loadingOlderRef.current = false;
+        setIsLoadingOlder(false);
+      }
     }
-  }, [id, hasOlder, isLoadingOlder, messages]);
+  }, [id, hasOlder, messages]);
 
   // Scroll to bottom on initial load and when new messages arrive
   useEffect(() => {
@@ -333,6 +347,10 @@ export default function ChatWindow() {
     setIsLoading(true);
     setHasOlder(false);
     prependedRef.current = 0;
+    // A read further back of the conversation left behind no longer counts.
+    olderReadRef.current += 1;
+    loadingOlderRef.current = false;
+    setIsLoadingOlder(false);
 
     chatApi
       .getMessages(id)

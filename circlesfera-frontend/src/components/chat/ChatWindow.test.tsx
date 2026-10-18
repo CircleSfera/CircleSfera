@@ -8,7 +8,7 @@ import {
 import type { i18n as I18nInstance } from 'i18next';
 import { createElement, type ReactNode } from 'react';
 import { toast } from 'react-hot-toast';
-import { Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient, chatApi, uploadApi } from '../../services/index';
 import { useAuthStore } from '../../stores/authStore';
@@ -1581,6 +1581,59 @@ describe('ChatWindow', () => {
       // Less than a full page came back: there is nothing before it.
       fireEvent.scroll(listOf());
       expect(chatApi.getMessages).toHaveBeenCalledTimes(2);
+    });
+
+    it('asks once for older messages however many times the top is reached meanwhile', async () => {
+      let answer: (v: unknown) => void = () => {};
+      vi.mocked(chatApi.getMessages)
+        .mockResolvedValueOnce({ data: page } as never)
+        .mockImplementationOnce(
+          () => new Promise((resolve) => (answer = resolve)) as never,
+        );
+      renderChat();
+      await screen.findByText('text 10');
+
+      fireEvent.scroll(listOf());
+      fireEvent.scroll(listOf());
+      fireEvent.scroll(listOf());
+      expect(chatApi.getMessages).toHaveBeenCalledTimes(2);
+
+      await act(async () => answer({ data: [message('m1', 'p2', 'old')] }));
+      expect(await screen.findByText('old')).toBeInTheDocument();
+    });
+
+    it('drops older messages that arrive after another conversation was opened', async () => {
+      let answer: (v: unknown) => void = () => {};
+      vi.mocked(chatApi.getMessages)
+        .mockResolvedValueOnce({ data: page } as never)
+        .mockImplementationOnce(
+          () => new Promise((resolve) => (answer = resolve)) as never,
+        )
+        .mockResolvedValueOnce({
+          data: [message('b1', 'p2', 'in the other conversation')],
+        } as never);
+      renderWithProviders(
+        <>
+          <Link to="/direct/t/c2">open the other</Link>
+          <Routes>
+            <Route path="/direct/t/:id" element={<ChatWindow />} />
+          </Routes>
+        </>,
+        { routerProps: { initialEntries: ['/direct/t/c1'] } },
+      );
+      await screen.findByText('text 10');
+      fireEvent.scroll(listOf());
+
+      fireEvent.click(screen.getByText('open the other'));
+      await screen.findByText('in the other conversation');
+      await act(async () =>
+        answer({ data: [message('a0', 'p2', 'from the first conversation')] }),
+      );
+
+      expect(
+        screen.queryByText('from the first conversation'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('in the other conversation')).toBeInTheDocument();
     });
 
     it('does not ask for more when the conversation fits in one page', async () => {
