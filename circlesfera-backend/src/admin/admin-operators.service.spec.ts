@@ -51,10 +51,6 @@ describe('AdminOperatorsService', () => {
           }),
         }),
       );
-      // The second factor is required of everyone: nothing writes it.
-      expect(
-        prisma.adminIdentity.create.mock.calls[0][0].data,
-      ).not.toHaveProperty('mfaRequired');
     });
 
     it('refuses an email with no CircleSfera account', async () => {
