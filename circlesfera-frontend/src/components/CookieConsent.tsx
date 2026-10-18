@@ -80,40 +80,10 @@ export default function CookieConsent() {
                 </h2>
                 <p
                   id="cookie-consent-desc"
-                  className="text-xs text-gray-400 leading-relaxed mb-4"
+                  className="text-xs text-gray-400 leading-relaxed"
                 >
                   {t('cookieConsent.description')}
                 </p>
-
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <button
-                    type="button"
-                    onClick={() => decide(false)}
-                    className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white transition-all"
-                    style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                    }}
-                  >
-                    <ShieldCheck size={13} />
-                    {t('cookieConsent.essential_only')}
-                  </button>
-                  <motion.button
-                    type="button"
-                    onClick={() => decide(true)}
-                    whileHover={{ scale: 1.02, y: -1 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="flex-1 sm:flex-initial px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white transition-all"
-                    style={{
-                      background:
-                        'linear-gradient(90deg, #ff5757 0%, #884cff 100%)',
-                      boxShadow:
-                        '0 4px 16px rgba(136,76,255,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
-                    }}
-                  >
-                    {t('cookieConsent.accept')}
-                  </motion.button>
-                </div>
               </div>
 
               {/* Dismiss */}
@@ -121,10 +91,42 @@ export default function CookieConsent() {
                 type="button"
                 onClick={() => decide(false)}
                 whileTap={{ scale: 0.9 }}
-                className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/8 transition-all mt-0.5"
+                className="shrink-0 w-11 h-11 -mr-2 -mt-2 rounded-xl flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/8 transition-all"
                 aria-label={t('cookieConsent.dismiss')}
               >
-                <X size={14} />
+                <X size={16} />
+              </motion.button>
+            </div>
+
+            {/* Side by side, the same height: saying no is as easy and as
+                visible as saying yes. Halves of the card on a phone; on a
+                wider screen each as wide as its words. */}
+            <div className="grid grid-cols-2 gap-2 mt-4 sm:flex sm:justify-end">
+              <button
+                type="button"
+                onClick={() => decide(false)}
+                className="h-11 flex items-center justify-center gap-1.5 px-3 sm:px-5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                }}
+              >
+                <ShieldCheck size={16} className="shrink-0" />
+                <span className="truncate">
+                  {t('cookieConsent.essential_only')}
+                </span>
+              </button>
+              <motion.button
+                type="button"
+                onClick={() => decide(true)}
+                whileTap={{ scale: 0.97 }}
+                className="h-11 flex items-center justify-center px-3 sm:px-5 rounded-xl text-sm font-semibold text-white"
+                style={{
+                  background:
+                    'linear-gradient(90deg, #ff5757 0%, #884cff 100%)',
+                }}
+              >
+                <span className="truncate">{t('cookieConsent.accept')}</span>
               </motion.button>
             </div>
           </div>
