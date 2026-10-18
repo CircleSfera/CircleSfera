@@ -238,30 +238,18 @@ jobs:
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           STRIPE_PAYMENT_METHOD_CONFIGURATION: ${{ secrets.STRIPE_PAYMENT_METHOD_CONFIGURATION }}
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
-          # Authenticated post-deploy smoke. Reuses VITE_API_URL (the
-          # same public HTTPS origin the frontend calls, e.g.
-          # https://circlesfera.com/api/v1) rather than a new secret — the
-          # internal 127.0.0.1 loopback used by the unauthenticated checks
-          # below cannot carry Secure cookies, so this must be the real origin.
-          # SMOKE_TEST_EMAIL/PASSWORD must both be set for the check to run
-          # (see scripts/create-smoke-test-user.ts for account setup).
-          SMOKE_TEST_API_URL: ${{ secrets.VITE_API_URL }}
-          SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
-          SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
           # Read by the script as plain variables: a script with no ${{ }} in
           # it is not held to GitHub's 21,000-character limit on expressions.
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEPLOY_SHA: ${{ github.sha }}
-          # "on" once the smoke fixtures exist in production.
-          SMOKE_FIXTURES: ${{ vars.SMOKE_FIXTURES }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,STRIPE_PAYMENT_METHOD_CONFIGURATION,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD,GHCR_USER,GHCR_TOKEN,DEPLOY_SHA,SMOKE_FIXTURES
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,STRIPE_PAYMENT_METHOD_CONFIGURATION,VITE_TURNSTILE_SITE_KEY,GHCR_USER,GHCR_TOKEN,DEPLOY_SHA
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -325,14 +313,10 @@ jobs:
               fi
             fi
 
-            # A fresh random token lets the authenticated smoke check below
-            # sign in without Turnstile. It replaces an IP allowlist, which a
-            # client could match by spoofing X-Forwarded-For. New on every
-            # deploy, never printed, known only to this script and the backend.
+            # Production lets nobody past Turnstile: the signed-in smoke check
+            # that needed it runs on staging. A token or an allowlist left by
+            # an earlier deploy is removed.
             sed -i '/^TURNSTILE_BYPASS_IPS=/d;/^TURNSTILE_BYPASS_TOKEN=/d' .env.production
-            SMOKE_BYPASS_TOKEN=$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')
-            printf 'TURNSTILE_BYPASS_TOKEN=%s\n' "$SMOKE_BYPASS_TOKEN" >> .env.production
-            echo "✅ TURNSTILE_BYPASS_TOKEN rotated."
 
             if ! grep -q '^REDIS_PASSWORD=.\+' .env.production; then
               echo "❌ REDIS_PASSWORD is missing/empty in .env.production (required for compose interpolation)."
@@ -622,263 +606,9 @@ jobs:
             fi
             echo "✅ Post-deploy staff sites check passed."
 
-            # Authenticated smoke — login + CSRF + create/delete one PRIVATE
-            # post as a dedicated low-privilege test account (scripts/create-smoke-test-user.ts).
-            # Runs against the public HTTPS origin: access_token/CSRF cookies are
-            # Secure-flagged in production and curl will not resend a Secure cookie
-            # over the plain-http loopback used by the checks above.
-            # The login carries the smoke password and the Turnstile bypass
-            # token, so a non-HTTPS URL fails the deploy before anything is sent.
-            case "${SMOKE_TEST_API_URL:-}" in
-              ""|https://*) ;;
-              *)
-                echo "❌ SMOKE_TEST_API_URL must start with https://; refusing to send smoke credentials."
-                rollback
-                exit 1
-                ;;
-            esac
-            if [ -n "${SMOKE_TEST_API_URL:-}" ] && [ -n "${SMOKE_TEST_EMAIL:-}" ] && [ -n "${SMOKE_TEST_PASSWORD:-}" ]; then
-              echo "Running post-deploy authenticated smoke..."
-              auth_smoke_ok=1
-              SMOKE_JAR=$(mktemp)
-              SMOKE_POST_ID=""
-
-              cleanup_smoke_post() {
-                if [ -n "$SMOKE_POST_ID" ]; then
-                  curl -sS -o /dev/null -b "$SMOKE_JAR" \
-                    -H "x-csrf-token: ${SMOKE_CSRF_TOKEN:-}" \
-                    -X DELETE "${SMOKE_TEST_API_URL}/posts/${SMOKE_POST_ID}" || true
-                fi
-                rm -f "$SMOKE_JAR"
-              }
-              # Replaces the folder cleanup while the post may exist; both run.
-              trap 'cleanup_smoke_post; rm -rf "$SMOKE_TMP"' EXIT
-
-              csrf_body=$(curl -sS -c "$SMOKE_JAR" "${SMOKE_TEST_API_URL}/csrf-token")
-              SMOKE_CSRF_TOKEN=$(echo "$csrf_body" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
-
-              if [ -z "$SMOKE_CSRF_TOKEN" ]; then
-                echo "  FAIL  could not obtain CSRF token"
-                auth_smoke_ok=0
-              else
-                # Body built with shell builtins (printf, parameter expansion) and
-                # sent on stdin, so the password never appears on a command line
-                # (ps) and backslashes or quotes in it are JSON-escaped. No jq
-                # dependency on the VPS.
-                smoke_email=${SMOKE_TEST_EMAIL//\\/\\\\}
-                smoke_email=${smoke_email//\"/\\\"}
-                smoke_password=${SMOKE_TEST_PASSWORD//\\/\\\\}
-                smoke_password=${smoke_password//\"/\\\"}
-                login_code=$(printf '{"identifier":"%s","password":"%s"}' "$smoke_email" "$smoke_password" \
-                  | curl -sS -o "$SMOKE_TMP"/cs-auth-login -w "%{http_code}" \
-                    -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
-                    -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
-                    -H "x-turnstile-bypass: $SMOKE_BYPASS_TOKEN" \
-                    --data-binary @- \
-                    "${SMOKE_TEST_API_URL}/auth/login")
-                if [ "$login_code" != "200" ]; then
-                  echo "  FAIL  login ($login_code)"
-                  head -c 400 "$SMOKE_TMP"/cs-auth-login; echo
-                  auth_smoke_ok=0
-                else
-                  echo "  OK    login"
-                  # Re-fetch: the CSRF token above is bound to the pre-login (anonymous)
-                  # session identifier and will not validate authenticated requests.
-                  csrf_body=$(curl -sS -b "$SMOKE_JAR" -c "$SMOKE_JAR" "${SMOKE_TEST_API_URL}/csrf-token")
-                  SMOKE_CSRF_TOKEN=$(echo "$csrf_body" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
-
-                  # What a signed-in person must not see or reach, proved against the
-                  # Test Accounts that scripts/create-smoke-fixtures.ts keeps in place
-                  # (run "Ops — smoke fixtures"). Enforced once the repository variable
-                  # SMOKE_FIXTURES is "on".
-                  if [ "${SMOKE_FIXTURES:-}" = "on" ]; then
-                    FX_PRIVATE_POST=5e0c5e0c-0000-4000-8000-0000000000c1
-                    FX_MATURE_POST=5e0c5e0c-0000-4000-8000-0000000000c2
-                    FX_GENERAL_POST=5e0c5e0c-0000-4000-8000-0000000000c3
-                    FX_PUBLIC_PROFILE=5e0c5e0c-0000-4000-8000-0000000000b3
-                    fx_request() {
-                      fx_code=$(curl -sS -o "$SMOKE_TMP"/cs-fx -w "%{http_code}" \
-                        -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
-                        -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
-                        "$@") || fx_code="000"
-                    }
-                    fx_fail() {
-                      echo "  FAIL  $1"
-                      head -c 300 "$SMOKE_TMP"/cs-fx 2>/dev/null; echo
-                      auth_smoke_ok=0
-                    }
-
-                    # People search finds the public fixture, and never the banned one.
-                    fx_request "${SMOKE_TEST_API_URL}/search/users?q=cs_smoke_"
-                    if [ "$fx_code" != "200" ] || ! grep -q '"cs_smoke_public"' "$SMOKE_TMP"/cs-fx; then
-                      fx_fail "people search did not find the public fixture ($fx_code)"
-                    elif grep -q '"cs_smoke_banned"' "$SMOKE_TMP"/cs-fx; then
-                      fx_fail "people search found a banned Profile"
-                    else
-                      echo "  OK    people search leaves out a banned Profile"
-                    fi
-
-                    # A post the account cannot see cannot be saved.
-                    fx_request -X POST "${SMOKE_TEST_API_URL}/bookmarks/${FX_PRIVATE_POST}"
-                    case "$fx_code" in
-                      403|404) echo "  OK    saving a post it cannot see is refused ($fx_code)" ;;
-                      2*)
-                        fx_fail "a post it cannot see was saved ($fx_code)"
-                        # Saving toggles: once more takes it off again.
-                        fx_request -X POST "${SMOKE_TEST_API_URL}/bookmarks/${FX_PRIVATE_POST}"
-                        ;;
-                      *) fx_fail "saving a post it cannot see answered $fx_code" ;;
-                    esac
-
-                    # Nor shared into a conversation. The recipient is a Test Account.
-                    fx_request -X POST \
-                      -d "{\"recipientId\":\"${FX_PUBLIC_PROFILE}\",\"postId\":\"${FX_PRIVATE_POST}\",\"content\":\"smoke check\"}" \
-                      "${SMOKE_TEST_API_URL}/chat/messages"
-                    case "$fx_code" in
-                      400|403|404) echo "  OK    sharing a post it cannot see is refused ($fx_code)" ;;
-                      *) fx_fail "sharing a post it cannot see answered $fx_code" ;;
-                    esac
-
-                    # With the General preference, a Mature post is left out of post search;
-                    # a General one of the same Profile is found.
-                    fx_request "${SMOKE_TEST_API_URL}/search/posts?q=cssmokegeneralfixture"
-                    if [ "$fx_code" != "200" ] || ! grep -q "$FX_GENERAL_POST" "$SMOKE_TMP"/cs-fx; then
-                      fx_fail "post search did not find the General fixture ($fx_code)"
-                    else
-                      fx_request "${SMOKE_TEST_API_URL}/search/posts?q=cssmokematurefixture"
-                      if [ "$fx_code" != "200" ]; then
-                        fx_fail "post search answered $fx_code"
-                      elif grep -q "$FX_MATURE_POST" "$SMOKE_TMP"/cs-fx; then
-                        fx_fail "a Mature post was shown to a General preference"
-                      else
-                        echo "  OK    a Mature post is left out for a General preference"
-                      fi
-                    fi
-
-                    # A banned person who signs in is told so, not that the
-                    # password is wrong. The banned fixture signs in with the smoke
-                    # password, in a session of its own.
-                    FX_JAR=$(mktemp)
-                    fx_csrf=$(curl -sS -c "$FX_JAR" "${SMOKE_TEST_API_URL}/csrf-token" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
-                    fx_code=$(printf '{"identifier":"smoke-fixture-banned@example.invalid","password":"%s"}' "$smoke_password" \
-                      | curl -sS -o "$SMOKE_TMP"/cs-fx -w "%{http_code}" \
-                        -b "$FX_JAR" -c "$FX_JAR" \
-                        -H "x-csrf-token: $fx_csrf" -H "Content-Type: application/json" \
-                        -H "x-turnstile-bypass: $SMOKE_BYPASS_TOKEN" \
-                        --data-binary @- \
-                        "${SMOKE_TEST_API_URL}/auth/login") || fx_code="000"
-                    rm -f "$FX_JAR"
-                    if [ "$fx_code" = "401" ] && grep -q "ACCOUNT_BANNED" "$SMOKE_TMP"/cs-fx; then
-                      echo "  OK    a banned person is told so at sign-in"
-                    elif [ "$fx_code" = "401" ] && grep -q "Invalid credentials" "$SMOKE_TMP"/cs-fx; then
-                      echo "  SKIP  banned sign-in: the fixture has no smoke password yet (run Ops — smoke fixtures)"
-                    else
-                      fx_fail "a banned person signing in answered $fx_code"
-                    fi
-                  else
-                    echo "  SKIP  fixture checks: the SMOKE_FIXTURES variable is not on"
-                  fi
-
-                  # Registration refuses a known leaked password. Every other field
-                  # is valid and new, so the password is the only reason left; the
-                  # refusal comes before anything is stored.
-                  REG_JAR=$(mktemp)
-                  reg_csrf=$(curl -sS -c "$REG_JAR" "${SMOKE_TEST_API_URL}/csrf-token" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
-                  reg_id=$(od -An -tx1 -N6 /dev/urandom | tr -d ' \n')
-                  reg_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-reg -w "%{http_code}" \
-                    -b "$REG_JAR" -c "$REG_JAR" \
-                    -H "x-csrf-token: $reg_csrf" -H "Content-Type: application/json" \
-                    -H "x-turnstile-bypass: $SMOKE_BYPASS_TOKEN" \
-                    -d "{\"email\":\"smoke-register-${reg_id}@example.invalid\",\"username\":\"cs_smoke_reg_${reg_id}\",\"password\":\"password1\",\"dateOfBirth\":\"1990-01-01\"}" \
-                    "${SMOKE_TEST_API_URL}/auth/register") || reg_code="000"
-                  rm -f "$REG_JAR"
-                  if [ "$reg_code" = "400" ] && grep -q "PASSWORD_LEAKED" "$SMOKE_TMP"/cs-auth-reg; then
-                    echo "  OK    registration refuses a leaked password"
-                  elif [ "$reg_code" = "400" ] && grep -q "REGISTRATION_CLOSED" "$SMOKE_TMP"/cs-auth-reg; then
-                    echo "  SKIP  leaked password: registration is closed (system setting)"
-                  else
-                    echo "  FAIL  registration with a leaked password answered $reg_code"
-                    head -c 300 "$SMOKE_TMP"/cs-auth-reg; echo
-                    auth_smoke_ok=0
-                  fi
-
-                  # The caption limit holds when writing: one character over it is
-                  # refused before anything is stored.
-                  SMOKE_LONG_CAPTION=$(printf 'a%.0s' $(seq 1 2201))
-                  long_create_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-long -w "%{http_code}" \
-                    -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
-                    -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
-                    -d "{\"caption\":\"${SMOKE_LONG_CAPTION}\",\"visibility\":\"PRIVATE\"}" \
-                    "${SMOKE_TEST_API_URL}/posts") || long_create_code="000"
-                  if [ "$long_create_code" != "400" ]; then
-                    echo "  FAIL  a caption over the limit was not refused when writing ($long_create_code)"
-                    auth_smoke_ok=0
-                  else
-                    echo "  OK    a caption over the limit is refused when writing"
-                  fi
-
-                  create_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-create -w "%{http_code}" \
-                    -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
-                    -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
-                    -d '{"caption":"CircleSfera post-deploy smoke check — safe to ignore, auto-deleted.","visibility":"PRIVATE"}' \
-                    "${SMOKE_TEST_API_URL}/posts")
-                  if [ "$create_code" = "403" ] && grep -q "CONTENT_POSTING_DISABLED" "$SMOKE_TMP"/cs-auth-create; then
-                    echo "  SKIP  create post: content posting is intentionally disabled (system setting)"
-                  elif [ "$create_code" != "201" ]; then
-                    echo "  FAIL  create post ($create_code)"
-                    head -c 400 "$SMOKE_TMP"/cs-auth-create; echo
-                    auth_smoke_ok=0
-                  else
-                    echo "  OK    create post"
-                    SMOKE_POST_ID=$(grep -o '"id":"[^"]*"' "$SMOKE_TMP"/cs-auth-create | head -1 | cut -d'"' -f4)
-                    if [ -z "$SMOKE_POST_ID" ]; then
-                      echo "  FAIL  could not parse created post id"
-                      auth_smoke_ok=0
-                    else
-                      # The same limit holds when editing.
-                      long_edit_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-long -w "%{http_code}" \
-                        -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
-                        -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
-                        -X PUT -d "{\"caption\":\"${SMOKE_LONG_CAPTION}\"}" \
-                        "${SMOKE_TEST_API_URL}/posts/${SMOKE_POST_ID}") || long_edit_code="000"
-                      if [ "$long_edit_code" != "400" ]; then
-                        echo "  FAIL  a caption over the limit was not refused when editing ($long_edit_code)"
-                        auth_smoke_ok=0
-                      else
-                        echo "  OK    a caption over the limit is refused when editing"
-                      fi
-                      delete_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-delete -w "%{http_code}" \
-                        -b "$SMOKE_JAR" \
-                        -H "x-csrf-token: $SMOKE_CSRF_TOKEN" \
-                        -X DELETE "${SMOKE_TEST_API_URL}/posts/${SMOKE_POST_ID}")
-                      if [ "$delete_code" != "204" ]; then
-                        echo "  FAIL  delete post ($delete_code)"
-                        head -c 400 "$SMOKE_TMP"/cs-auth-delete; echo
-                        auth_smoke_ok=0
-                      else
-                        echo "  OK    delete post"
-                        SMOKE_POST_ID=""
-                      fi
-                    fi
-                  fi
-                fi
-              fi
-
-              trap 'rm -rf "$SMOKE_TMP"' EXIT
-              cleanup_smoke_post
-
-              if [ "$auth_smoke_ok" != "1" ]; then
-                echo "❌ Post-deploy authenticated smoke FAILED."
-                rollback
-                if [ -n "$DEPLOY_WEBHOOK" ]; then
-                  curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* authenticated smoke: login/write path broken; rollback attempted."}' "$DEPLOY_WEBHOOK" || true
-                fi
-                exit 1
-              fi
-              echo "✅ Post-deploy authenticated smoke passed."
-            else
-              echo "⚠️  SMOKE_TEST_API_URL/SMOKE_TEST_EMAIL/SMOKE_TEST_PASSWORD not set — skipping authenticated smoke (not enforced)."
-            fi
+            # The signed-in checks (sign-in, what a person must not see or
+            # reach, writing and deleting a post) run on staging before this
+            # deploy, with staging's own accounts: production keeps none.
 
             trap - EXIT
             rm -rf "$SMOKE_TMP"

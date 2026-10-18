@@ -6,23 +6,24 @@ import pkg from 'pg';
 
 const { Pool } = pkg;
 
-// Staff-only: the data the post-deploy smoke check needs to prove, in
-// production, what a signed-in person must not see or reach. Run again, it
-// puts everything back as it should be and changes nothing else.
+// The data the signed-in smoke check of an environment that is not
+// production needs to prove what a signed-in person must not see or reach
+// (scripts/smoke-signed-in.sh). Run again, it puts everything back as it
+// should be and changes nothing else. Production keeps none of it.
 //
 // Everything here is a Test Account, so no real participant ever sees it,
 // and the smoke account itself is marked as one so that it sees them. A Test
 // Account never becomes a real account again.
 //
-// Runs with plain Node inside the production image:
+// The deploy of the environment runs it with plain Node inside the image,
+// after scripts/create-smoke-test-user.ts:
 //   SMOKE_TEST_EMAIL=... SMOKE_TEST_PASSWORD=... node scripts/create-smoke-fixtures.ts
 //
 // With SMOKE_TEST_PASSWORD, the banned fixture signs in with the smoke
 // password, so that the smoke check can see the answer a banned person gets.
 // The other fixtures keep a random password nobody knows.
 //
-// The fixed identifiers below are the ones the smoke check in
-// .github/workflows/deploy.yml uses.
+// The fixed identifiers below are the ones scripts/smoke-signed-in.sh uses.
 export const SMOKE_FIXTURES = {
   bannedProfileId: '5e0c5e0c-0000-4000-8000-0000000000b1',
   privateProfileId: '5e0c5e0c-0000-4000-8000-0000000000b2',

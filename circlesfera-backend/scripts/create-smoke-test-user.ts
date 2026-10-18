@@ -1,17 +1,12 @@
 /**
- * One-time setup: create (or reset) the dedicated account used by the
- * post-deploy authenticated smoke check (see .github/workflows/deploy.yml).
+ * Creates (or resets) the account the signed-in smoke check of an
+ * environment that is not production uses (scripts/smoke-signed-in.sh). The
+ * deploy of the environment runs it on every deploy, with a new random
+ * password, before scripts/create-smoke-fixtures.ts:
+ *   SMOKE_TEST_EMAIL=... SMOKE_TEST_PASSWORD=... node scripts/create-smoke-test-user.ts
  *
- * This account is intentionally low-privilege (PERSONAL, private) — the
- * smoke check only needs to log in and create/delete one PRIVATE post.
- *
- * Usage (run once against the target DATABASE_URL, e.g. production):
- *   DATABASE_URL=<prod-url> npx tsx scripts/create-smoke-test-user.ts <email> <password> [username]
- *
- * After running, store the email/password as GitHub Actions secrets:
- *   SMOKE_TEST_EMAIL, SMOKE_TEST_PASSWORD
+ * This account is intentionally low-privilege (PERSONAL, private).
  */
-import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
@@ -20,14 +15,13 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 async function main() {
-  const email = process.argv[2];
-  const password = process.argv[3];
-  const username = process.argv[4] || 'circlesfera_smoke_test';
+  // From the environment, so the password is on no command line.
+  const email = process.env.SMOKE_TEST_EMAIL;
+  const password = process.env.SMOKE_TEST_PASSWORD;
+  const username = 'circlesfera_smoke_test';
 
   if (!email || !password) {
-    console.error(
-      'Usage: npx tsx scripts/create-smoke-test-user.ts <email> <password> [username]',
-    );
+    console.error('SMOKE_TEST_EMAIL and SMOKE_TEST_PASSWORD must be set.');
     process.exit(1);
   }
   if (password.length < 12) {
@@ -96,10 +90,6 @@ async function main() {
     console.log(`  userId:   ${user.id}`);
     console.log(`  email:    ${user.email}`);
     console.log(`  username: ${user.profiles[0]?.username ?? username}`);
-    console.log('');
-    console.log(
-      'Next: store this email/password as GitHub Actions secrets SMOKE_TEST_EMAIL / SMOKE_TEST_PASSWORD.',
-    );
   } catch (err) {
     console.error('create-smoke-test-user failed:', err);
     process.exit(1);

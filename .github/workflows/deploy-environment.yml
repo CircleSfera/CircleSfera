@@ -292,8 +292,14 @@ jobs:
               done
             fi
 
+            # A fresh random token lets the signed-in smoke check below sign
+            # in without Turnstile. New on every deploy, never printed, known
+            # only to this script and the backend of the environment.
+            sed -i '/^TURNSTILE_BYPASS_IPS=/d;/^TURNSTILE_BYPASS_TOKEN=/d' .env.new
+            SMOKE_BYPASS_TOKEN=$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')
             {
-              printf '\nENV_NAME=%s\n' "$ENV_NAME"
+              printf '\nTURNSTILE_BYPASS_TOKEN=%s\n' "$SMOKE_BYPASS_TOKEN"
+              printf 'ENV_NAME=%s\n' "$ENV_NAME"
               printf 'PROXY_PORT=%s\n' "$PROXY_PORT"
               printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG"
               printf 'REGISTRY=%s\n' "$REGISTRY"
@@ -356,6 +362,20 @@ jobs:
             check /api/v1/health
             check /
             check /api/v1/payments/plans
+
+            # The signed-in smoke check, with the environment's own Test
+            # Accounts: put in place again on every deploy, the smoke account
+            # with a new random password, then checked through the
+            # environment's proxy. Production keeps no such accounts.
+            SMOKE_TEST_EMAIL="smoke-test@circlesfera.internal"
+            SMOKE_TEST_PASSWORD=$(od -An -tx1 -N24 /dev/urandom | tr -d ' \n')
+            export SMOKE_TEST_EMAIL SMOKE_TEST_PASSWORD SMOKE_BYPASS_TOKEN
+            # -e NAME without a value passes the variable from this shell.
+            docker exec -e SMOKE_TEST_EMAIL -e SMOKE_TEST_PASSWORD "$BACKEND" \
+              node scripts/create-smoke-test-user.ts > /dev/null
+            docker exec -e SMOKE_TEST_EMAIL -e SMOKE_TEST_PASSWORD "$BACKEND" \
+              node scripts/create-smoke-fixtures.ts
+            bash scripts/smoke-signed-in.sh "http://127.0.0.1:${PROXY_PORT}/api/v1"
 
             # Keep the images of this deploy and of the one before it.
             for repo in backend frontend; do
