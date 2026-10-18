@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import EmailVerificationBanner from '../components/auth/EmailVerificationBanner';
-import BrandAmbientBackground from '../components/common/BrandAmbientBackground';
 import { GlobalKeyboardShortcuts } from '../components/common/GlobalKeyboardShortcuts';
 import { OfflineIndicator } from '../components/common/OfflineIndicator';
 import BottomNav from '../components/navigation/BottomNav';
@@ -151,8 +150,6 @@ export default function LayoutWrapper({
         {latestNotification &&
           `New notification: ${latestNotification.content || 'You have a new update'}`}
       </div>
-
-      <BrandAmbientBackground />
 
       {shouldShowNav && !isConversationRoute && !hideTopNavRoute && <TopNav />}
 
