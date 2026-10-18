@@ -1,10 +1,18 @@
-name: Ops — rotate smoke test password
+name: Ops — delete smoke accounts
 
-# Applies the current SMOKE_TEST_PASSWORD secret to the post-deploy smoke-test
-# account in production. Rotation: set a new SMOKE_TEST_PASSWORD secret, then run
-# this workflow before the next deploy, or that deploy's smoke check fails.
+# Production keeps no smoke accounts: the signed-in smoke check runs on
+# staging. This schedules for deletion, now, the smoke account and the three
+# fixtures it used in production (circlesfera-backend/scripts/
+# delete-smoke-accounts.ts); the daily purge of expired accounts then deletes
+# them with all they hold. Only Test Accounts are touched. It runs as a dry
+# run and only prints what it would do, unless `apply` is ticked.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Schedule the deletion (leave unticked to only print what would change)
+        type: boolean
+        default: false
 
 # Shares the deploy-production queue so it never runs during a deploy. GitHub
 # keeps only one *pending* run per queue: if a deploy is triggered (merge to
@@ -19,8 +27,8 @@ permissions:
   contents: read
 
 jobs:
-  rotate:
-    name: Rotate smoke test password
+  delete-smoke-accounts:
+    name: Delete the smoke accounts
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production-ops
@@ -35,27 +43,20 @@ jobs:
             echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
             exit 1
           fi
-      - name: Apply the secret on the VPS
+      - name: Schedule the deletion on the VPS
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
-          SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
-          SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
+          APPLY: ${{ inputs.apply && '1' || '0' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD
+          envs: APPLY
           script: |
             set -euo pipefail
             cd /srv/circlesfera
-            if [ -z "${SMOKE_TEST_EMAIL:-}" ] || [ -z "${SMOKE_TEST_PASSWORD:-}" ]; then
-              echo "SMOKE_TEST_EMAIL and SMOKE_TEST_PASSWORD secrets must be set."
-              exit 1
-            fi
-            # -e NAME without a value passes the variable from this shell, so the
-            # password never appears in a command line.
             docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
-              -e SMOKE_TEST_EMAIL -e SMOKE_TEST_PASSWORD \
-              backend node scripts/rotate-smoke-test-password.ts
+              -e APPLY \
+              backend node scripts/delete-smoke-accounts.ts
