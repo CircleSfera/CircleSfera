@@ -193,6 +193,48 @@ describe('ChatController', () => {
     expect(mockGetConversationsQuery.executePage).not.toHaveBeenCalled();
   });
 
+  it('reads the latest messages, or the ones before a message when given its time and id', async () => {
+    mockGetMessagesQuery.execute.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/conv-1/messages')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get(
+        '/api/v1/chat/conversations/conv-1/messages?before=2026-10-18T11:00:00.000Z&beforeId=m2',
+      )
+      .set(BEARER)
+      .expect(200);
+    // One without the other reads the latest.
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/conv-1/messages?beforeId=m2')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockGetMessagesQuery.execute.mock.calls).toEqual([
+      ['conv-1', 50, TEST_USER.profileId, undefined],
+      [
+        'conv-1',
+        50,
+        TEST_USER.profileId,
+        { createdAt: new Date('2026-10-18T11:00:00.000Z'), id: 'm2' },
+      ],
+      ['conv-1', 50, TEST_USER.profileId, undefined],
+    ]);
+  });
+
+  it('refuses a time that is not a date', async () => {
+    await request(app.getHttpServer())
+      .get(
+        '/api/v1/chat/conversations/conv-1/messages?before=yesterday&beforeId=m2',
+      )
+      .set(BEARER)
+      .expect(400);
+
+    expect(mockGetMessagesQuery.execute).not.toHaveBeenCalled();
+  });
+
   it('returns unread count for the session profile', async () => {
     mockGetUnreadCountQuery.execute.mockResolvedValue(3);
 
@@ -221,6 +263,7 @@ describe('ChatController', () => {
       'conv-1',
       50,
       TEST_USER.profileId,
+      undefined,
     );
   });
 

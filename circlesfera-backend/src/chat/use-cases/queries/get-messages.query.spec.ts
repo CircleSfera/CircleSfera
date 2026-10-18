@@ -3,7 +3,7 @@ import { AppException } from '../../../common/errors/app.exception.js';
 import type { CryptoService } from '../../../common/services/crypto.service.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
-import { GetMessagesQuery } from './get-messages.query.js';
+import { GetMessagesQuery, MESSAGE_PAGE } from './get-messages.query.js';
 
 describe('GetMessagesQuery', () => {
   let query: GetMessagesQuery;
@@ -101,15 +101,8 @@ describe('GetMessagesQuery', () => {
     mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt: null });
     mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-viewer' });
 
+    // The database answers newest first; the result is oldest first.
     mockPrisma.message.findMany.mockResolvedValue([
-      {
-        id: 'msg-locked-unlocked',
-        content: 'enc_unlocked_msg',
-        senderId: 'prof-other',
-        isLocked: true,
-        url: 'https://cdn/media.jpg',
-        messageUnlocks: [{ id: 'unlock-1' }],
-      },
       {
         id: 'msg-locked-own',
         content: 'enc_my_locked_msg',
@@ -117,6 +110,14 @@ describe('GetMessagesQuery', () => {
         isLocked: true,
         url: 'https://cdn/media2.jpg',
         messageUnlocks: [],
+      },
+      {
+        id: 'msg-locked-unlocked',
+        content: 'enc_unlocked_msg',
+        senderId: 'prof-other',
+        isLocked: true,
+        url: 'https://cdn/media.jpg',
+        messageUnlocks: [{ id: 'unlock-1' }],
       },
     ]);
 
@@ -158,9 +159,10 @@ describe('GetMessagesQuery', () => {
   });
 
   it('allows fetching without profileId (system usage) and handles null content', async () => {
+    // Newest first from the database.
     mockPrisma.message.findMany.mockResolvedValue([
-      { id: 'msg-sys', content: 'enc_system' },
       { id: 'msg-null-content', content: null },
+      { id: 'msg-sys', content: 'enc_system' },
     ]);
 
     const result = await query.execute('conv-1', 20);
@@ -168,5 +170,65 @@ describe('GetMessagesQuery', () => {
     expect(mockPrisma.participant.findFirst).not.toHaveBeenCalled();
     expect(result[0].content).toBe('decrypted_enc_system');
     expect(result[1].content).toBeNull();
+  });
+
+  describe('which messages', () => {
+    const msg = (id: string, at: string) => ({
+      id,
+      content: null,
+      senderId: 'prof-2',
+      isLocked: false,
+      createdAt: new Date(at),
+    });
+
+    beforeEach(() => {
+      mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt: null });
+      mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    });
+
+    it('takes the latest ones and gives them oldest first, as they are read', async () => {
+      // The database answers newest first.
+      mockPrisma.message.findMany.mockResolvedValue([
+        msg('m3', '2026-10-18T12:00:00.000Z'),
+        msg('m2', '2026-10-18T11:00:00.000Z'),
+      ]);
+
+      const result = await query.execute('conv-1', 2, 'prof-1');
+
+      expect(mockPrisma.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { conversationId: 'conv-1' },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 2,
+        }),
+      );
+      expect(result.map((m) => m.id)).toEqual(['m2', 'm3']);
+    });
+
+    it('reads strictly before the message it is given, after a clear', async () => {
+      const clearedAt = new Date('2026-10-01T00:00:00.000Z');
+      mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt });
+      mockPrisma.message.findMany.mockResolvedValue([]);
+      const at = new Date('2026-10-18T11:00:00.000Z');
+
+      await query.execute('conv-1', MESSAGE_PAGE, 'prof-1', {
+        createdAt: at,
+        id: 'm2',
+      });
+
+      expect(mockPrisma.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            conversationId: 'conv-1',
+            createdAt: { gt: clearedAt },
+            OR: [
+              { createdAt: { lt: at } },
+              { createdAt: at, id: { lt: 'm2' } },
+            ],
+          },
+          take: MESSAGE_PAGE,
+        }),
+      );
+    });
   });
 });

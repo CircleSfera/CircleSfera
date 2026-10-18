@@ -53,6 +53,8 @@ import {
 // Frequent emojis for the message box; phones already have their own keyboard.
 // The longest message the server accepts.
 const MESSAGE_MAX_LENGTH = 5000;
+// The server's page of messages: a full one means there may be more before.
+const MESSAGE_PAGE = 50;
 
 const MESSAGE_EMOJIS = [
   '😀',
@@ -106,6 +108,17 @@ export default function ChatWindow() {
   const [input, setInput] = useState('');
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Older messages are read as the person scrolls up to the top.
+  const [hasOlder, setHasOlder] = useState(false);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  // How many were added at the top by the last read further back, so the
+  // view stays on the message the person was looking at.
+  const prependedRef = useRef(0);
+  // A read further back in flight, and the conversation it belongs to: an
+  // answer that arrives after the person opened another conversation is
+  // dropped, and a second scroll does not ask the same page again.
+  const loadingOlderRef = useRef(false);
+  const olderReadRef = useRef(0);
   const [isTyping, setIsTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -207,11 +220,57 @@ export default function ChatWindow() {
     }
   }, []);
 
+  // Reads the messages sent before the oldest one shown and puts them on
+  // top. Stops when a read brings less than a full page.
+  const loadOlder = useCallback(async () => {
+    if (!id || !hasOlder || loadingOlderRef.current) return;
+    const oldest = messages.find((m) => !m.tempId && m.id && m.createdAt);
+    if (!oldest?.id) return;
+    loadingOlderRef.current = true;
+    const read = olderReadRef.current;
+    setIsLoadingOlder(true);
+    try {
+      const res = await chatApi.getMessages(id, {
+        createdAt: new Date(oldest.createdAt).toISOString(),
+        id: oldest.id,
+      });
+      // Another conversation was opened meanwhile: this answer is not its.
+      if (read !== olderReadRef.current) return;
+      setHasOlder(res.data.length >= MESSAGE_PAGE);
+      const known = new Set(messages.map((m) => m.id));
+      const older = res.data.filter((m) => !known.has(m.id));
+      if (older.length === 0) return;
+      prependedRef.current = older.length;
+      setMessages((prev) => {
+        const shown = new Set(prev.map((m) => m.id));
+        return [...older.filter((m) => !shown.has(m.id)), ...prev];
+      });
+    } catch (err) {
+      logger.error('Failed to load older messages', err);
+    } finally {
+      if (read === olderReadRef.current) {
+        loadingOlderRef.current = false;
+        setIsLoadingOlder(false);
+      }
+    }
+  }, [id, hasOlder, messages]);
+
   // Scroll to bottom on initial load and when new messages arrive
   useEffect(() => {
     void id;
     if (messages.length === 0) {
       lastMessageCountRef.current = 0;
+      return;
+    }
+
+    // Older messages added at the top keep the view where it was.
+    if (prependedRef.current > 0) {
+      const added = prependedRef.current;
+      prependedRef.current = 0;
+      lastMessageCountRef.current = messages.length;
+      requestAnimationFrame(() => {
+        messageVirtualizer.scrollToIndex(added, { align: 'start' });
+      });
       return;
     }
 
@@ -286,11 +345,19 @@ export default function ChatWindow() {
     setMessages([]);
     setConversation(null);
     setIsLoading(true);
+    setHasOlder(false);
+    prependedRef.current = 0;
+    // A read further back of the conversation left behind no longer counts.
+    olderReadRef.current += 1;
+    loadingOlderRef.current = false;
+    setIsLoadingOlder(false);
 
     chatApi
       .getMessages(id)
       .then((res) => {
         if (cancelled) return;
+        // A full page means there may be more before it.
+        setHasOlder(res.data.length >= MESSAGE_PAGE);
         setMessages((prev) =>
           mergeServerMessagesWithOptimistic(res.data, prev),
         );
@@ -1188,8 +1255,16 @@ export default function ChatWindow() {
       {/* Messages Area */}
       <div
         ref={scrollContainerRef}
+        onScroll={(e) => {
+          if (e.currentTarget.scrollTop < 200) void loadOlder();
+        }}
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-4 custom-scrollbar relative z-0"
       >
+        {isLoadingOlder && (
+          <div className="flex justify-center py-2">
+            <LoadingSpinner size="sm" />
+          </div>
+        )}
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-full gap-3">
             <LoadingSpinner size="md" />

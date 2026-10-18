@@ -21,6 +21,7 @@ import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { ConversationPageDto } from './dto/conversation-page.dto.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
 import { EditMessageDto } from './dto/edit-message.dto.js';
+import { MessagesBeforeDto } from './dto/messages-before.dto.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
 import { UpdateGroupDto } from './dto/update-group.dto.js';
 // Group Commands
@@ -36,7 +37,10 @@ import { MarkAsReadUseCase } from './use-cases/messages/mark-as-read.use-case.js
 import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.js';
 // Queries
 import { GetConversationsQuery } from './use-cases/queries/get-conversations.query.js';
-import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
+import {
+  GetMessagesQuery,
+  MESSAGE_PAGE,
+} from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
 // Request Commands
 import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
@@ -140,8 +144,18 @@ export class ChatController {
   async getMessages(
     @Req() req: AuthRequest,
     @Param('id') id: string,
+    @Query() query: MessagesBeforeDto,
   ): Promise<Message[]> {
-    return this.getMessagesQuery.execute(id, 50, req.user.profileId);
+    const before =
+      query.before && query.beforeId
+        ? { createdAt: new Date(query.before), id: query.beforeId }
+        : undefined;
+    return this.getMessagesQuery.execute(
+      id,
+      MESSAGE_PAGE,
+      req.user.profileId,
+      before,
+    );
   }
 
   @Post('conversations')
