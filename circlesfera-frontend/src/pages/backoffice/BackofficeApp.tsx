@@ -6,7 +6,6 @@ import {
   getAdminHomeTab,
 } from '../../components/admin/adminNav';
 import AdminGuard from '../../components/auth/AdminGuard';
-import BrandAmbientBackground from '../../components/common/BrandAmbientBackground';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import BackofficeHome from './BackofficeHome';
 
@@ -34,7 +33,6 @@ function BackofficeIndex() {
 export default function BackofficeApp() {
   return (
     <div className="relative min-h-dvh text-white selection:bg-brand-primary/30 overflow-x-hidden">
-      <BrandAmbientBackground />
       <Suspense
         fallback={
           <div className="h-screen w-full flex items-center justify-center">

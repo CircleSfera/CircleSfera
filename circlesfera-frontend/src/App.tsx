@@ -11,7 +11,6 @@ import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
 import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
 import GuestGuard from './components/auth/GuestGuard';
-import BrandAmbientBackground from './components/common/BrandAmbientBackground';
 import ScrollToTop from './components/common/ScrollToTop';
 import {
   LegacyPostRedirect,
@@ -158,7 +157,6 @@ function AdminHomeRedirect() {
 function AdminPanelApp() {
   return (
     <div className="relative min-h-dvh text-white selection:bg-brand-primary/30 overflow-x-hidden">
-      <BrandAmbientBackground />
       <ScrollToTop />
       <Suspense
         fallback={

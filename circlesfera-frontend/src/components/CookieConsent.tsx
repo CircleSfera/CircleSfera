@@ -26,15 +26,18 @@ export default function CookieConsent() {
   return (
     <AnimatePresence>
       {visible && (
+        // Fades in where it stays, above the bottom edge: a fixed card that
+        // slides up from the edge makes Safari on iPhone paint a solid strip
+        // behind its address bar.
         <motion.div
-          initial={{ y: 24, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 24, opacity: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ type: 'spring', stiffness: 280, damping: 28 }}
           role="dialog"
           aria-labelledby="cookie-consent-title"
           aria-describedby="cookie-consent-desc"
-          className="fixed bottom-0 inset-x-0 z-200 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pointer-events-none"
+          className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] z-200 pointer-events-none"
         >
           <div
             className="pointer-events-auto mx-auto max-w-lg rounded-2xl p-4 sm:p-5 relative overflow-hidden"

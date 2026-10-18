@@ -1,5 +1,5 @@
-// Global CircleSfera brand wash — same layers as the main app shell.
-// Keep Admin Panel / auth surfaces in sync with LayoutWrapper.
+// The CircleSfera brand wash behind a full-window editor or story, the same
+// layers the page has as its own background (html in index.css).
 //
 // `editor`: the same wash behind a full-window editor that starts where the
 // sidebar ends. It is placed as if it started at the window edge, so the
@@ -7,16 +7,15 @@
 // `story`: as `editor`, and on phones too, so the story camera and editor
 // show the brand's background around the story instead of black.
 const PLACEMENT = {
-  page: 'fixed inset-0 z-[-1]',
   editor:
     'hidden md:block absolute inset-y-0 right-0 -left-17 xl:-left-65 -z-10',
   story: 'absolute inset-y-0 right-0 left-0 md:-left-17 xl:-left-65 -z-10',
 } as const;
 
 export default function BrandAmbientBackground({
-  placement = 'page',
+  placement,
 }: {
-  placement?: keyof typeof PLACEMENT;
+  placement: keyof typeof PLACEMENT;
 }) {
   return (
     <div
