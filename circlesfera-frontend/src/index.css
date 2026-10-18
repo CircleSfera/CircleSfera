@@ -229,6 +229,9 @@
 
   /* Semantic surfaces — background hierarchy */
   --surface-base: #030303; /* Level 0 — pure app background */
+  /* Only where Safari shows the page's background colour under its
+     address bar: the purple the brand wash ends in. */
+  --surface-browser-bars: #1c1130;
   --surface-elevated: #0a0a0a; /* Level 1 — main containers */
   --surface-raised: #1c1c1c; /* Level 2 — cards */
   --surface-high: #262626; /* Level 3 — floating surfaces */
@@ -396,9 +399,13 @@
 /* The brand wash is the page's own background, kept still while the page
    scrolls. It is not a layer fixed over the window: a fixed element that
    touches the bottom of the screen makes Safari on iPhone paint a solid
-   strip behind its address bar, which no other site has. */
+   strip behind its address bar, which no other site has.
+   Under the address bar of a page shorter than the screen, Safari paints
+   the background colour alone, not the images: the colour is the purple
+   the wash ends in, and the near-black base is the last image layer, so
+   the page itself looks the same. */
 html {
-  background-color: var(--surface-base);
+  background-color: var(--surface-browser-bars);
   background-image:
     radial-gradient(
       ellipse 100% 100% at 50% 50%,
@@ -419,7 +426,8 @@ html {
       135deg,
       rgba(255, 87, 87, 0.06) 0%,
       rgba(140, 82, 255, 0.12) 100%
-    );
+    ),
+    linear-gradient(var(--surface-base), var(--surface-base));
   background-attachment: fixed;
 }
 
