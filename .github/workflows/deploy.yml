@@ -610,6 +610,27 @@ jobs:
             # reach, writing and deleting a post) run on staging before this
             # deploy, with staging's own accounts: production keeps none.
 
+            # Every public address, through the host nginx in front of the
+            # proxy and with its certificate checked: the checks above ask the
+            # proxy on its loopback port, so they never see which site the
+            # host nginx gives a name to. A failure here is in the host nginx,
+            # not in this version: it is reported and fails the run at the
+            # end, without a rollback (infra/host/apply-production-addresses.sh).
+            public_ok=1
+            for address in circlesfera.com www.circlesfera.com admin.circlesfera.com backoffice.circlesfera.com; do
+              code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 \
+                --resolve "${address}:443:127.0.0.1" "https://${address}/api/v1/health") || code="000"
+              if [ "$code" = "200" ]; then
+                echo "  OK  $code  https://${address}/api/v1/health"
+              else
+                echo "  FAIL $code  https://${address}/api/v1/health"
+                public_ok=0
+              fi
+            done
+            if [ "$public_ok" != "1" ] && [ -n "$DEPLOY_WEBHOOK" ]; then
+              curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 A public address of CircleSfera does not reach production through the host nginx. The new version stays; see the deploy log."}' "$DEPLOY_WEBHOOK" || true
+            fi
+
             trap - EXIT
             rm -rf "$SMOKE_TMP"
             # The version this deploy replaced, for the emergency rollback.
@@ -621,6 +642,10 @@ jobs:
             # Clean up old SHA-tagged images and dangling layers
             cleanup_old_images
 
+            if [ "$public_ok" != "1" ]; then
+              echo "❌ Deployed, but a public address does not reach production through the host nginx."
+              exit 1
+            fi
             echo "✅ Deployment completed successfully!"
             if [ -n "$DEPLOY_WEBHOOK" ]; then
               curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ *Deployment SUCCESS* to OVH VPS. All containers running."}' "$DEPLOY_WEBHOOK" || true
