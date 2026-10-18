@@ -191,6 +191,8 @@ describe('ChatController', () => {
       .expect(400);
 
     expect(mockGetConversationsQuery.executePage).not.toHaveBeenCalled();
+  });
+
   it('reads the latest messages, or the ones before a message when given its time and id', async () => {
     mockGetMessagesQuery.execute.mockResolvedValue([]);
 
