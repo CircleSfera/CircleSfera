@@ -232,7 +232,13 @@ export async function stubSpaApi(page: Page): Promise<void> {
         url.includes('/stories') ||
         url.includes('/chat/conversations'))
     ) {
-      await route.fulfill({ status: 200, json: [] });
+      // The conversation list is read in pages.
+      await route.fulfill({
+        status: 200,
+        json: url.includes('/chat/conversations/page')
+          ? { items: [], nextCursor: null }
+          : [],
+      });
       return;
     }
 

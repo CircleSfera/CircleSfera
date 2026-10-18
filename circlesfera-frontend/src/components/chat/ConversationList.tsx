@@ -40,12 +40,13 @@ export default function ConversationList() {
   const [folder, setFolder] = useState<'inbox' | 'requests'>('inbox');
 
   const pages = useInfiniteQuery(folderPages(folder));
-  const conversations = pages.data?.pages.flatMap((p) => p.items) ?? [];
+  const conversations = pages.data?.pages.flatMap((p) => p.items ?? []) ?? [];
   const loading = pages.isLoading;
 
   const requestPages = useInfiniteQuery(folderPages('requests'));
   const requestsCount =
-    requestPages.data?.pages.reduce((n, p) => n + p.items.length, 0) ?? 0;
+    requestPages.data?.pages.reduce((n, p) => n + (p.items?.length ?? 0), 0) ??
+    0;
   // More requests than read so far: the count says so.
   const requestsLabel = requestPages.hasNextPage
     ? `${requestsCount}+`
