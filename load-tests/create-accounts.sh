@@ -43,7 +43,7 @@ done
 
 verified=$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At -c \
   "WITH updated AS (
-     UPDATE \"users\" SET \"emailVerified\" = NOW(), \"verificationToken\" = NULL
+     UPDATE \"sign_ins\" SET \"emailVerified\" = NOW(), \"verificationToken\" = NULL
      WHERE email LIKE 'loadtest-%@circlesfera.test' RETURNING 1
    ) SELECT count(*) FROM updated")
 if [ "$verified" -lt "$ACCOUNTS" ]; then
