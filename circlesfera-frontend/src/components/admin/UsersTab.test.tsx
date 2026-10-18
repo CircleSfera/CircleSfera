@@ -137,9 +137,16 @@ describe('UsersTab', () => {
     api.getUsers.mockResolvedValue(
       list([
         user('1'),
-        user('2', { role: 'ADMIN', isActive: false, isTestAccount: true }),
+        user('2', {
+          role: 'ADMIN',
+          isActive: false,
+          isRootBanned: true,
+          isTestAccount: true,
+        }),
         user('3', { suspendedUntil: inDays(3) }),
         user('4', { profile: null }),
+        user('5', { isActive: false, deletedAt: inDays(-1) }),
+        user('6', { isActive: false }),
       ]) as never,
     );
     show();
@@ -163,7 +170,19 @@ describe('UsersTab', () => {
 
     const third = rowOf('@person_3');
     expect(within(third).getByText(/Suspended until/)).toBeInTheDocument();
-    expect(within(third).getByText('Banned')).toBeInTheDocument();
+    expect(within(third).getByText('Suspended')).toBeInTheDocument();
+
+    // An account being deleted, or off for another reason, is not shown as
+    // banned.
+    expect(
+      within(rowOf('@person_5')).getByText('Being deleted'),
+    ).toBeInTheDocument();
+    expect(
+      within(rowOf('@person_5')).queryByText('Banned'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(rowOf('@person_6')).getByText('Inactive'),
+    ).toBeInTheDocument();
 
     expect(rowOf('@user')).toBeTruthy();
   });

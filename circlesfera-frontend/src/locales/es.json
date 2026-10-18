@@ -2614,7 +2614,9 @@
         "banned": "Baneado",
         "registered": "Registrado",
         "disabled": "Desactivado",
-        "suspended": "Suspendido"
+        "suspended": "Suspendido",
+        "deleting": "Eliminándose",
+        "inactive": "Inactiva"
       }
     },
     "users": {
