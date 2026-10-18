@@ -24,7 +24,18 @@ export interface DistributablePost {
 export interface DistributionOptions {
   caption?: string | null;
   uniqueMentions?: string[];
+  // Automatic moderation did not answer before the post was saved: its
+  // check in the background keeps trying for longer, until the service is
+  // back.
+  moderationUnchecked?: boolean;
 }
+
+// The background check of a post published while automatic moderation did
+// not answer: a minute, then doubling, twelve times (about two days in all).
+export const UNCHECKED_MODERATION_RETRY = {
+  attempts: 12,
+  backoff: { type: 'exponential', delay: 60_000 },
+} as const;
 
 @Injectable()
 export class PostDistributionService {
@@ -88,18 +99,25 @@ export class PostDistributionService {
         ?.map((m) => m.thumbnailUrl || m.url)
         .filter((url): url is string => Boolean(url)) || [];
 
+    const moderation = {
+      targetId: post.id,
+      text: caption,
+      targetType: 'POST',
+      mediaUrls,
+    };
     // Background AI processing tasks
     await Promise.all([
       this.aiQueue.add('generate-embedding', {
         postId: post.id,
         text: caption,
       }),
-      this.aiQueue.add('moderate-content', {
-        targetId: post.id,
-        text: caption,
-        targetType: 'POST',
-        mediaUrls,
-      }),
+      options.moderationUnchecked
+        ? this.aiQueue.add(
+            'moderate-content',
+            moderation,
+            UNCHECKED_MODERATION_RETRY,
+          )
+        : this.aiQueue.add('moderate-content', moderation),
       this.aiQueue.add('generate-alt-text', {
         postId: post.id,
       }),
