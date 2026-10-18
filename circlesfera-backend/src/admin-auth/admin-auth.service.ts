@@ -189,8 +189,9 @@ export class AdminAuthService {
       data: { failedLoginCount: 0, lockedUntil: null },
     });
 
-    // A second factor is mandatory for every member of staff. `mfaRequired`
-    // is not read: a staff identity with no authenticator is sent to enrol one.
+    // A second factor is mandatory for every member of staff, with no switch
+    // to turn it off: a staff identity with no authenticator is sent to enrol
+    // one.
     if (!admin.totpEnabled) {
       // Keep an existing enrollment secret so re-login does not invalidate the authenticator.
       const secret = admin.totpSecret

@@ -176,7 +176,6 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         failedLoginCount: 0,
         lockedUntil: null,
-        mfaRequired: true,
         totpEnabled: false,
         totpSecret: null,
         roles: [],
@@ -211,7 +210,6 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         failedLoginCount: 0,
         lockedUntil: null,
-        mfaRequired: true,
         totpEnabled: false,
         totpSecret: 'enc:base32-admin-secret',
         roles: [],
@@ -476,7 +474,6 @@ describe('AdminAuthService', () => {
       status: 'ACTIVE',
       failedLoginCount: 0,
       lockedUntil: null,
-      mfaRequired: true,
       totpEnabled: true,
       roles: [],
     };
@@ -566,7 +563,6 @@ describe('AdminAuthService', () => {
         email: 'admin@circlesfera.com',
         linkedUserId: 'user-1',
         status: 'ACTIVE',
-        mfaRequired: true,
         totpEnabled: true,
         roles: [],
       });
@@ -582,7 +578,7 @@ describe('AdminAuthService', () => {
       }
     });
 
-    it('sends a staff member with no authenticator to enrol one, even when mfaRequired is off', async () => {
+    it('sends a staff member with no authenticator to enrol one', async () => {
       const passwordHash = await argon2.hash('admin-password');
       withSignInPassword(passwordHash);
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
@@ -590,7 +586,6 @@ describe('AdminAuthService', () => {
         email: 'admin@circlesfera.com',
         linkedUserId: 'user-1',
         status: 'ACTIVE',
-        mfaRequired: false,
         totpEnabled: false,
         totpSecret: null,
         roles: [],
@@ -606,7 +601,7 @@ describe('AdminAuthService', () => {
       expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
     });
 
-    it('asks for the second factor of an enrolled staff member, even when mfaRequired is off', async () => {
+    it('asks for the second factor of an enrolled staff member', async () => {
       const passwordHash = await argon2.hash('admin-password');
       withSignInPassword(passwordHash);
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
@@ -614,7 +609,6 @@ describe('AdminAuthService', () => {
         email: 'admin@circlesfera.com',
         linkedUserId: 'user-1',
         status: 'ACTIVE',
-        mfaRequired: false,
         totpEnabled: true,
         roles: [],
       });
@@ -769,7 +763,6 @@ describe('AdminAuthService', () => {
         displayName: 'Super Admin',
         status: 'ACTIVE',
         totpEnabled: true,
-        mfaRequired: true,
         lastLoginAt: new Date('2026-01-01'),
         roles: [
           {

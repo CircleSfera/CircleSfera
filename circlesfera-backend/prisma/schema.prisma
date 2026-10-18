@@ -1699,9 +1699,6 @@ model AdminIdentity {
   status           AdminIdentityStatus @default(ACTIVE)
   totpSecret       String?
   totpEnabled      Boolean             @default(false)
-  // Not read or written any more: every member of staff must use the second
-  // factor. No default, so the client never writes it and it can be dropped.
-  mfaRequired      Boolean?
   lastLoginAt      DateTime?
   lastActivityAt   DateTime?
   failedLoginCount Int                 @default(0)
