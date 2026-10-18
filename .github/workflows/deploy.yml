@@ -754,8 +754,52 @@ jobs:
                         echo "  OK    a Mature post is left out for a General preference"
                       fi
                     fi
+
+                    # A banned person who signs in is told so, not that the
+                    # password is wrong. The banned fixture signs in with the smoke
+                    # password, in a session of its own.
+                    FX_JAR=$(mktemp)
+                    fx_csrf=$(curl -sS -c "$FX_JAR" "${SMOKE_TEST_API_URL}/csrf-token" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
+                    fx_code=$(printf '{"identifier":"smoke-fixture-banned@example.invalid","password":"%s"}' "$smoke_password" \
+                      | curl -sS -o "$SMOKE_TMP"/cs-fx -w "%{http_code}" \
+                        -b "$FX_JAR" -c "$FX_JAR" \
+                        -H "x-csrf-token: $fx_csrf" -H "Content-Type: application/json" \
+                        -H "x-turnstile-bypass: $SMOKE_BYPASS_TOKEN" \
+                        --data-binary @- \
+                        "${SMOKE_TEST_API_URL}/auth/login") || fx_code="000"
+                    rm -f "$FX_JAR"
+                    if [ "$fx_code" = "401" ] && grep -q "ACCOUNT_BANNED" "$SMOKE_TMP"/cs-fx; then
+                      echo "  OK    a banned person is told so at sign-in"
+                    elif [ "$fx_code" = "401" ] && grep -q "Invalid credentials" "$SMOKE_TMP"/cs-fx; then
+                      echo "  SKIP  banned sign-in: the fixture has no smoke password yet (run Ops — smoke fixtures)"
+                    else
+                      fx_fail "a banned person signing in answered $fx_code"
+                    fi
                   else
                     echo "  SKIP  fixture checks: the SMOKE_FIXTURES variable is not on"
+                  fi
+
+                  # Registration refuses a known leaked password. Every other field
+                  # is valid and new, so the password is the only reason left; the
+                  # refusal comes before anything is stored.
+                  REG_JAR=$(mktemp)
+                  reg_csrf=$(curl -sS -c "$REG_JAR" "${SMOKE_TEST_API_URL}/csrf-token" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
+                  reg_id=$(od -An -tx1 -N6 /dev/urandom | tr -d ' \n')
+                  reg_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-reg -w "%{http_code}" \
+                    -b "$REG_JAR" -c "$REG_JAR" \
+                    -H "x-csrf-token: $reg_csrf" -H "Content-Type: application/json" \
+                    -H "x-turnstile-bypass: $SMOKE_BYPASS_TOKEN" \
+                    -d "{\"email\":\"smoke-register-${reg_id}@example.invalid\",\"username\":\"cs_smoke_reg_${reg_id}\",\"password\":\"password1\",\"dateOfBirth\":\"1990-01-01\"}" \
+                    "${SMOKE_TEST_API_URL}/auth/register") || reg_code="000"
+                  rm -f "$REG_JAR"
+                  if [ "$reg_code" = "400" ] && grep -q "PASSWORD_LEAKED" "$SMOKE_TMP"/cs-auth-reg; then
+                    echo "  OK    registration refuses a leaked password"
+                  elif [ "$reg_code" = "400" ] && grep -q "REGISTRATION_CLOSED" "$SMOKE_TMP"/cs-auth-reg; then
+                    echo "  SKIP  leaked password: registration is closed (system setting)"
+                  else
+                    echo "  FAIL  registration with a leaked password answered $reg_code"
+                    head -c 300 "$SMOKE_TMP"/cs-auth-reg; echo
+                    auth_smoke_ok=0
                   fi
 
                   # The caption limit holds when writing: one character over it is

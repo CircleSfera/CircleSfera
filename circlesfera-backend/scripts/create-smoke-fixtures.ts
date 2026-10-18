@@ -15,7 +15,11 @@ const { Pool } = pkg;
 // Account never becomes a real account again.
 //
 // Runs with plain Node inside the production image:
-//   SMOKE_TEST_EMAIL=... node scripts/create-smoke-fixtures.ts
+//   SMOKE_TEST_EMAIL=... SMOKE_TEST_PASSWORD=... node scripts/create-smoke-fixtures.ts
+//
+// With SMOKE_TEST_PASSWORD, the banned fixture signs in with the smoke
+// password, so that the smoke check can see the answer a banned person gets.
+// The other fixtures keep a random password nobody knows.
 //
 // The fixed identifiers below are the ones the smoke check in
 // .github/workflows/deploy.yml uses.
@@ -77,6 +81,7 @@ const POSTS = [
 async function main() {
   const smokeEmail = process.env.SMOKE_TEST_EMAIL;
   if (!smokeEmail) throw new Error('SMOKE_TEST_EMAIL is not set');
+  const smokePassword = process.env.SMOKE_TEST_PASSWORD;
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL is not set');
 
@@ -122,6 +127,10 @@ async function main() {
       // Nobody signs in to these accounts: the password is random and
       // never kept.
       const unusable = await argon2.hash(randomBytes(32).toString('hex'));
+      const known =
+        fixture.banned && smokePassword
+          ? await argon2.hash(smokePassword)
+          : undefined;
       await prisma.$transaction(async (tx) => {
         let signIn = await tx.signIn.findUnique({
           where: { email: fixture.email },
@@ -145,6 +154,12 @@ async function main() {
           where: { id: signIn.userId },
           data: { isTestAccount: true, isActive: true, deactivatedAt: null },
         });
+        if (known) {
+          await tx.signIn.update({
+            where: { id: signIn.id },
+            data: { password: known },
+          });
+        }
         const state = {
           username: fixture.username,
           fullName: 'CircleSfera smoke check',

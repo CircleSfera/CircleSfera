@@ -41,21 +41,24 @@ jobs:
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
+          # The banned fixture signs in with it, so the smoke check sees the
+          # answer a banned person gets.
+          SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: SMOKE_TEST_EMAIL
+          envs: SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD
           script: |
             set -euo pipefail
             cd /srv/circlesfera
-            if [ -z "${SMOKE_TEST_EMAIL:-}" ]; then
-              echo "The SMOKE_TEST_EMAIL secret must be set."
+            if [ -z "${SMOKE_TEST_EMAIL:-}" ] || [ -z "${SMOKE_TEST_PASSWORD:-}" ]; then
+              echo "The SMOKE_TEST_EMAIL and SMOKE_TEST_PASSWORD secrets must be set."
               exit 1
             fi
             # -e NAME without a value passes the variable from this shell.
             docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
-              -e SMOKE_TEST_EMAIL \
+              -e SMOKE_TEST_EMAIL -e SMOKE_TEST_PASSWORD \
               backend node scripts/create-smoke-fixtures.ts
