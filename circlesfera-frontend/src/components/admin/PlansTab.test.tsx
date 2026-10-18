@@ -127,7 +127,12 @@ describe('PlansTab', () => {
 
   it('does not save when the code is wrong', async () => {
     vi.mocked(adminApi.updatePlan).mockRejectedValueOnce(stepUpRequired);
-    vi.mocked(adminAuthApi.stepUp).mockRejectedValue(new Error('bad code'));
+    vi.mocked(adminAuthApi.stepUp).mockRejectedValue({
+      response: {
+        status: 401,
+        data: { message: 'Step-up verification failed' },
+      },
+    });
     const plan = await open();
 
     fireEvent.click(plan.getByRole('checkbox', { name: /On sale/ }));
@@ -140,6 +145,27 @@ describe('PlansTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('That code is not right', 'error'),
     );
+    expect(adminApi.updatePlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not blame the code when the step-up is throttled', async () => {
+    vi.mocked(adminApi.updatePlan).mockRejectedValueOnce(stepUpRequired);
+    vi.mocked(adminAuthApi.stepUp).mockRejectedValue({
+      response: { status: 429, data: { message: 'Too Many Requests' } },
+    });
+    const plan = await open();
+
+    fireEvent.click(plan.getByRole('checkbox', { name: /On sale/ }));
+    fireEvent.click(plan.getByRole('button', { name: 'Save changes' }));
+    fireEvent.change(await plan.findByPlaceholderText('000000'), {
+      target: { value: '123456' },
+    });
+    fireEvent.click(plan.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(expect.any(String), 'error'),
+    );
+    expect(onToast).not.toHaveBeenCalledWith('That code is not right', 'error');
     expect(adminApi.updatePlan).toHaveBeenCalledTimes(1);
   });
 

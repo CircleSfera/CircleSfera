@@ -99,15 +99,19 @@ export default function PlansTab({ onToast }: Props) {
     },
   });
 
-  // The code is checked first; a refusal of the save itself, once the code
-  // is accepted, says why it was refused, not that the code was wrong.
+  // The code is checked first. Only a refused code is reported as a wrong
+  // code; any other failure, of the step-up or of the save, says why.
   const confirmMutation = useMutation({
     mutationFn: async () => {
       if (!pending) return;
       try {
         await adminAuthApi.stepUp({ totpCode: code.trim() });
-      } catch {
-        throw new StepUpRefused();
+      } catch (err) {
+        // Only a refused code is the code's fault; too many tries, a
+        // network failure or a server error say what they are.
+        const status = apiErrorStatus(err);
+        if (status === 400 || status === 401) throw new StepUpRefused();
+        throw err;
       }
       await adminApi.updatePlan(pending.id, pending.changes);
     },
