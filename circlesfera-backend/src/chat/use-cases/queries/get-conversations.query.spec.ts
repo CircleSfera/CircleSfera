@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CryptoService } from '../../../common/services/crypto.service.js';
-import type { PrismaService } from '../../../prisma/prisma.service.js';
 import {
   decodeKeysetCursor,
   encodeKeysetCursor,
 } from '../../../common/pagination/keyset.util.js';
+import type { CryptoService } from '../../../common/services/crypto.service.js';
+import type { PrismaService } from '../../../prisma/prisma.service.js';
 import {
   CONVERSATION_PAGE_DEFAULT,
   CONVERSATION_PAGE_MAX,

@@ -145,7 +145,9 @@ describe('ChatController', () => {
     mockGetConversationsQuery.executePage.mockResolvedValue(page);
 
     const res = await request(app.getHttpServer())
-      .get('/api/v1/chat/conversations/page?folder=requests&cursor=abc&limit=20')
+      .get(
+        '/api/v1/chat/conversations/page?folder=requests&cursor=abc&limit=20',
+      )
       .set(BEARER)
       .expect(200);
 
