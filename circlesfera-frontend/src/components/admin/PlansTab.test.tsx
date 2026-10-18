@@ -138,8 +138,34 @@ describe('PlansTab', () => {
     fireEvent.click(plan.getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith(expect.any(String), 'error'),
+      expect(onToast).toHaveBeenCalledWith('That code is not right', 'error'),
     );
     expect(adminApi.updatePlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('says why the save was refused once the code is accepted, not that the code was wrong', async () => {
+    vi.mocked(adminApi.updatePlan)
+      .mockRejectedValueOnce(stepUpRequired)
+      .mockRejectedValueOnce({
+        response: {
+          status: 400,
+          data: { message: ['each value in features must be one of …'] },
+        },
+      });
+    vi.mocked(adminAuthApi.stepUp).mockResolvedValue({} as never);
+    const plan = await open();
+
+    fireEvent.click(plan.getByRole('checkbox', { name: /On sale/ }));
+    fireEvent.click(plan.getByRole('button', { name: 'Save changes' }));
+    fireEvent.change(await plan.findByPlaceholderText('000000'), {
+      target: { value: '123456' },
+    });
+    fireEvent.click(plan.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => expect(adminApi.updatePlan).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(expect.any(String), 'error'),
+    );
+    expect(onToast).not.toHaveBeenCalledWith('That code is not right', 'error');
   });
 });

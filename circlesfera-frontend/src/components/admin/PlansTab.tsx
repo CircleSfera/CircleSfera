@@ -34,6 +34,8 @@ function isStepUpRequired(err: unknown): boolean {
   );
 }
 
+class StepUpRefused extends Error {}
+
 interface Draft {
   features: string[];
   isActive: boolean;
@@ -97,16 +99,28 @@ export default function PlansTab({ onToast }: Props) {
     },
   });
 
+  // The code is checked first; a refusal of the save itself, once the code
+  // is accepted, says why it was refused, not that the code was wrong.
   const confirmMutation = useMutation({
     mutationFn: async () => {
       if (!pending) return;
-      await adminAuthApi.stepUp({ totpCode: code.trim() });
+      try {
+        await adminAuthApi.stepUp({ totpCode: code.trim() });
+      } catch {
+        throw new StepUpRefused();
+      }
       await adminApi.updatePlan(pending.id, pending.changes);
     },
     onSuccess: () => {
       if (pending) saved(pending.id);
     },
-    onError: () => onToast(t('admin.operators.step_up_failed'), 'error'),
+    onError: (err) =>
+      onToast(
+        err instanceof StepUpRefused
+          ? t('admin.operators.step_up_failed')
+          : apiErrorMessage(err, t, 'admin.plans.toast_failed'),
+        'error',
+      ),
   });
 
   if (isLoading) return <AdminListSkeleton />;

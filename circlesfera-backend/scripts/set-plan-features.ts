@@ -28,12 +28,13 @@ const PLANS = [
   {
     match: ['business'],
     description:
-      'Business badge, priority support, a feed without promoted posts and advanced analytics.',
+      'Business badge, priority support, a feed without promoted posts, advanced analytics and team access for up to 5 people.',
     features: [
       'verified_badge',
       'priority_support',
       'no_promoted_content',
       'advanced_analytics',
+      'team_access',
     ],
   },
 ] as const;
