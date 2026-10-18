@@ -39,6 +39,7 @@ describe('ChatController', () => {
   const mockGetConversationsQuery = {
     execute: vi.fn(),
     executeOne: vi.fn(),
+    executePage: vi.fn(),
   };
   const mockGetMessagesQuery = { execute: vi.fn() };
   const mockGetUnreadCountQuery = { execute: vi.fn() };
@@ -137,6 +138,59 @@ describe('ChatController', () => {
       TEST_USER.profileId,
       'inbox',
     );
+  });
+
+  it('lists a page of conversations as the session profile, not as a conversation called "page"', async () => {
+    const page = { items: [{ id: 'conv-1' }], nextCursor: 'next' };
+    mockGetConversationsQuery.executePage.mockResolvedValue(page);
+
+    const res = await request(app.getHttpServer())
+      .get(
+        '/api/v1/chat/conversations/page?folder=requests&cursor=abc&limit=20',
+      )
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual(page);
+    expect(mockGetConversationsQuery.executePage).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'requests',
+      'abc',
+      20,
+    );
+    expect(mockGetConversationsQuery.executeOne).not.toHaveBeenCalled();
+  });
+
+  it('reads the inbox by default when no folder is given', async () => {
+    mockGetConversationsQuery.executePage.mockResolvedValue({
+      items: [],
+      nextCursor: null,
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/page')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockGetConversationsQuery.executePage).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'inbox',
+      undefined,
+      undefined,
+    );
+  });
+
+  it.each([
+    ['an unknown folder', 'folder=archive'],
+    ['a page larger than the largest', 'limit=51'],
+    ['a page of none', 'limit=0'],
+  ])('refuses %s', async (_label, qs) => {
+    await request(app.getHttpServer())
+      .get(`/api/v1/chat/conversations/page?${qs}`)
+      .set(BEARER)
+      .expect(400);
+
+    expect(mockGetConversationsQuery.executePage).not.toHaveBeenCalled();
   });
 
   it('returns unread count for the session profile', async () => {

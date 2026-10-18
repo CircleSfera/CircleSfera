@@ -70,6 +70,13 @@ async function openInbox(page: Page) {
     if (url.includes('unread-count')) {
       return route.fulfill({ status: 200, json: { count: 1 } });
     }
+    // The list, a page at a time.
+    if (url.includes('/conversations/page')) {
+      return route.fulfill({
+        status: 200,
+        json: { items: [conversation], nextCursor: null },
+      });
+    }
     if (/conversations\/conv-1(\?|$)/.test(url)) {
       return route.fulfill({ status: 200, json: conversation });
     }

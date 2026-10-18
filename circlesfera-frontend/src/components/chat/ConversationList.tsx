@@ -1,4 +1,8 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { TFunction } from 'i18next';
 import { ChevronLeft, Edit, Search } from 'lucide-react';
@@ -8,13 +12,26 @@ import { Link, useParams } from 'react-router-dom';
 import { chatApi } from '../../services/chat.service';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
-import type { Conversation, Message, Participant } from '../../types';
-import { asList } from '../../utils/asList';
+import type { Message, Participant } from '../../types';
 import { getMessagePreviewText } from '../../utils/chatMessageDisplay';
 import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
 import UserAvatar from '../UserAvatar';
+import { updateConversationCache } from './conversationCache';
 import NewChatModal from './NewChatModal';
+
+// The list is read a page at a time as it scrolls, so every conversation can
+// be reached. Requests share their pages with the requests folder.
+const folderPages = (folder: 'inbox' | 'requests') => ({
+  queryKey: ['conversations', 'pages', folder],
+  queryFn: async ({ pageParam }: { pageParam: string | null }) => {
+    const res = await chatApi.getConversationPage(folder, pageParam);
+    return res.data;
+  },
+  initialPageParam: null as string | null,
+  getNextPageParam: (last: { nextCursor: string | null }) =>
+    last.nextCursor ?? undefined,
+});
 
 export default function ConversationList() {
   const { id: activeId } = useParams();
@@ -22,22 +39,18 @@ export default function ConversationList() {
   const listRef = useRef<HTMLDivElement>(null);
   const [folder, setFolder] = useState<'inbox' | 'requests'>('inbox');
 
-  const { data: conversations = [], isLoading: loading } = useQuery({
-    queryKey: ['conversations', folder],
-    queryFn: async () => {
-      const res = await chatApi.getConversations(folder);
-      return asList<Conversation>(res.data);
-    },
-  });
+  const pages = useInfiniteQuery(folderPages(folder));
+  const conversations = pages.data?.pages.flatMap((p) => p.items ?? []) ?? [];
+  const loading = pages.isLoading;
 
-  const { data: requests = [] } = useQuery({
-    queryKey: ['conversations', 'requests'],
-    queryFn: async () => {
-      const res = await chatApi.getConversations('requests');
-      return asList<Conversation>(res.data);
-    },
-  });
-  const requestsCount = requests.length;
+  const requestPages = useInfiniteQuery(folderPages('requests'));
+  const requestsCount =
+    requestPages.data?.pages.reduce((n, p) => n + (p.items?.length ?? 0), 0) ??
+    0;
+  // More requests than read so far: the count says so.
+  const requestsLabel = requestPages.hasNextPage
+    ? `${requestsCount}+`
+    : `${requestsCount}`;
 
   const { data: unreadData } = useQuery({
     queryKey: ['unreadMessages'],
@@ -58,48 +71,49 @@ export default function ConversationList() {
   useEffect(() => {
     if (!socket) return;
 
-    // The list is cached per folder (['conversations', 'inbox' | 'requests']),
-    // so the updates go to every conversations cache, never mutating it.
+    // The list is cached per folder, a page at a time, and the share sheet
+    // keeps a list of its own: the updates go to every conversations cache,
+    // never mutating it.
     const handleNewMessage = (msg: Message) => {
       let found = false;
-      queryClient.setQueriesData<Conversation[]>(
+      queryClient.setQueriesData<unknown>(
         { queryKey: ['conversations'] },
-        (prev) => {
-          if (!Array.isArray(prev)) return prev;
-          const idx = prev.findIndex((c) => c.id === msg.conversationId);
-          if (idx === -1) return prev;
-          found = true;
-          const conv = prev[idx];
-          const current = (conv.messages as Message[]) || [];
-          // A message sent from this device replaces its optimistic copy.
-          const tempIdx = msg.tempId
-            ? current.findIndex((m) => m.tempId === msg.tempId)
-            : -1;
-          if (tempIdx === -1 && current.some((m) => m.id === msg.id)) {
-            // A repeated event for a message already shown changes nothing.
-            return prev;
-          }
-          // Only a message newer than the latest one moves the conversation
-          // to the top; a late event for an older message keeps its place
-          // and lands in time order, so the preview stays the latest one.
-          const time = (m: Message) => new Date(m.createdAt).getTime();
-          const latest = current[0];
-          const isNewest =
-            tempIdx !== -1 || !latest || time(msg) >= time(latest);
-          const messages = [...current];
-          if (tempIdx !== -1) {
-            messages[tempIdx] = msg;
-          } else if (isNewest) {
-            messages.unshift(msg);
-          } else {
-            const at = messages.findIndex((m) => time(m) < time(msg));
-            messages.splice(at === -1 ? messages.length : at, 0, msg);
-          }
-          const updated = { ...conv, messages };
-          return isNewest
-            ? [updated, ...prev.slice(0, idx), ...prev.slice(idx + 1)]
-            : prev.map((c, i) => (i === idx ? updated : c));
-        },
+        (cached: unknown) =>
+          updateConversationCache(cached, (prev) => {
+            const idx = prev.findIndex((c) => c.id === msg.conversationId);
+            if (idx === -1) return prev;
+            found = true;
+            const conv = prev[idx];
+            const current = (conv.messages as Message[]) || [];
+            // A message sent from this device replaces its optimistic copy.
+            const tempIdx = msg.tempId
+              ? current.findIndex((m) => m.tempId === msg.tempId)
+              : -1;
+            if (tempIdx === -1 && current.some((m) => m.id === msg.id)) {
+              // A repeated event for a message already shown changes nothing.
+              return prev;
+            }
+            // Only a message newer than the latest one moves the conversation
+            // to the top; a late event for an older message keeps its place
+            // and lands in time order, so the preview stays the latest one.
+            const time = (m: Message) => new Date(m.createdAt).getTime();
+            const latest = current[0];
+            const isNewest =
+              tempIdx !== -1 || !latest || time(msg) >= time(latest);
+            const messages = [...current];
+            if (tempIdx !== -1) {
+              messages[tempIdx] = msg;
+            } else if (isNewest) {
+              messages.unshift(msg);
+            } else {
+              const at = messages.findIndex((m) => time(m) < time(msg));
+              messages.splice(at === -1 ? messages.length : at, 0, msg);
+            }
+            const updated = { ...conv, messages };
+            return isNewest
+              ? [updated, ...prev.slice(0, idx), ...prev.slice(idx + 1)]
+              : prev.map((c, i) => (i === idx ? updated : c));
+          }),
       );
       // A conversation not in any list yet: load it with its participants.
       if (!found) {
@@ -112,12 +126,14 @@ export default function ConversationList() {
     }: {
       conversationId: string;
     }) => {
-      queryClient.setQueriesData<Conversation[]>(
+      queryClient.setQueriesData<unknown>(
         { queryKey: ['conversations'] },
-        (prev) =>
-          Array.isArray(prev)
-            ? prev.filter((c) => c.id !== conversationId)
-            : prev,
+        (cached: unknown) =>
+          updateConversationCache(cached, (prev) =>
+            prev.some((c) => c.id === conversationId)
+              ? prev.filter((c) => c.id !== conversationId)
+              : prev,
+          ),
       );
     };
 
@@ -147,6 +163,28 @@ export default function ConversationList() {
     estimateSize: () => 72,
     overscan: 8,
   });
+
+  // Near the end of what is read, the next page is read.
+  const virtualItems = virtualizer.getVirtualItems();
+  const lastIndex = virtualItems.at(-1)?.index ?? -1;
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = pages;
+  useEffect(() => {
+    if (
+      hasNextPage &&
+      !isFetchingNextPage &&
+      !searchQuery &&
+      lastIndex >= filteredConversations.length - 5
+    ) {
+      void fetchNextPage();
+    }
+  }, [
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    searchQuery,
+    lastIndex,
+    filteredConversations.length,
+  ]);
 
   if (loading) {
     return (
@@ -232,7 +270,7 @@ export default function ConversationList() {
             <span>{t('chat.requests')}</span>
             {requestsCount > 0 && (
               <span className="min-w-5 px-1.5 text-xs font-bold bg-brand-primary text-white rounded-full text-center">
-                {requestsCount}
+                {requestsLabel}
               </span>
             )}
             {folder === 'requests' && (
@@ -280,7 +318,7 @@ export default function ConversationList() {
             className="relative w-full"
             style={{ height: `${virtualizer.getTotalSize()}px` }}
           >
-            {virtualizer.getVirtualItems().map((virtualRow) => {
+            {virtualItems.map((virtualRow) => {
               const conv = filteredConversations[virtualRow.index];
               if (!conv) return null;
 

@@ -1,11 +1,23 @@
 import type { Conversation, Message } from '../types';
 import { apiClient } from './api';
 
+// A page of the conversation list as the server sends it.
+export interface ConversationPage {
+  items: Conversation[];
+  nextCursor: string | null;
+}
+
 export const chatApi = {
   getConversations: (folder?: 'inbox' | 'requests') =>
     apiClient.get<Conversation[]>(
       folder ? `/chat/conversations?folder=${folder}` : '/chat/conversations',
     ),
+
+  // One page of the list; the cursor is the nextCursor of the page before.
+  getConversationPage: (folder: 'inbox' | 'requests', cursor?: string | null) =>
+    apiClient.get<ConversationPage>('/chat/conversations/page', {
+      params: { folder, ...(cursor ? { cursor } : {}) },
+    }),
 
   getConversation: (id: string) =>
     apiClient.get<Conversation>(`/chat/conversations/${id}`),

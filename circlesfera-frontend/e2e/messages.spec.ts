@@ -69,6 +69,14 @@ test.describe('Direct', () => {
         await route.fulfill({ status: 200, json: { count: 0 } });
         return;
       }
+      // The list, a page at a time.
+      if (url.includes('/conversations/page')) {
+        await route.fulfill({
+          status: 200,
+          json: { items: [conversation], nextCursor: null },
+        });
+        return;
+      }
       // One conversation by its id, or the list of them.
       if (/conversations\/conv-1(\?|$)/.test(url)) {
         await route.fulfill({ status: 200, json: conversation });
