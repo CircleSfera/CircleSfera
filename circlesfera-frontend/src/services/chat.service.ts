@@ -41,11 +41,14 @@ export const chatApi = {
     conversationId: string,
     before?: { createdAt: string; id: string },
   ) =>
-    apiClient.get<Message[]>(`/chat/conversations/${conversationId}/messages`, {
-      ...(before
-        ? { params: { before: before.createdAt, beforeId: before.id } }
-        : {}),
-    }),
+    before
+      ? apiClient.get<Message[]>(
+          `/chat/conversations/${conversationId}/messages`,
+          { params: { before: before.createdAt, beforeId: before.id } },
+        )
+      : apiClient.get<Message[]>(
+          `/chat/conversations/${conversationId}/messages`,
+        ),
 
   sendMessage: (data: {
     recipientId?: string;

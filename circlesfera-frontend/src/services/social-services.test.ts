@@ -662,6 +662,19 @@ const cases: Case[] = [
     ['/chat/conversations/c1/messages'],
   ],
   [
+    'chat.getMessages before a message',
+    () =>
+      chatApi.getMessages('c1', {
+        createdAt: '2026-10-18T11:00:00.000Z',
+        id: 'm2',
+      }),
+    'get',
+    [
+      '/chat/conversations/c1/messages',
+      { params: { before: '2026-10-18T11:00:00.000Z', beforeId: 'm2' } },
+    ],
+  ],
+  [
     'chat.sendMessage',
     () => chatApi.sendMessage({ conversationId: 'c1', content: 'hi' }),
     'post',
