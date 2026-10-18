@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -12,7 +13,7 @@ import {
   type Prisma,
   Visibility,
 } from '@prisma/client';
-import { AIService } from '../ai/ai.service.js';
+import { AIService, type ContentModerationResult } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import {
   canMonetize,
@@ -57,6 +58,8 @@ import { PostPaywallService } from './services/post-paywall.service.js';
 // Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
 @Injectable()
 export class PostsService {
+  private readonly logger = new Logger(PostsService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AnalyticsService)
@@ -111,12 +114,21 @@ export class PostsService {
       (t) => !blockedForAuthor.has(t.profileId),
     );
 
-    // AI Moderation before creation
+    // Automatic moderation before the post is saved. When the service does
+    // not answer, the post is published all the same and checked in the
+    // background once the service is back; reports still reach staff.
     const mediaUrls = dto.media?.map((m) => m.url) || [];
-    const moderation = await this.aiService.moderateContent(
-      dto.caption || '',
-      mediaUrls,
-    );
+    let moderation: ContentModerationResult | null = null;
+    try {
+      moderation = await this.aiService.moderateContent(
+        dto.caption || '',
+        mediaUrls,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Automatic moderation did not answer; the post is published and checked later: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
 
     if (dto.isPremium) {
       const authorProfile = await this.prisma.profile.findUnique({
@@ -178,7 +190,7 @@ export class PostsService {
       }
     }
 
-    if (moderation.flagged) {
+    if (moderation?.flagged) {
       throw new BadRequestException(
         'El contenido infringe las normas de la comunidad y ha sido bloqueado.',
       );
@@ -321,6 +333,7 @@ export class PostsService {
     await this.postDistributionService.dispatchPostPublished(post, {
       caption: dto.caption,
       uniqueMentions,
+      moderationUnchecked: moderation === null,
     });
 
     return post;

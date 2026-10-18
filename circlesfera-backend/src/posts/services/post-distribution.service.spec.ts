@@ -3,7 +3,10 @@ import { Visibility } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
-import { PostDistributionService } from './post-distribution.service.js';
+import {
+  PostDistributionService,
+  UNCHECKED_MODERATION_RETRY,
+} from './post-distribution.service.js';
 
 describe('PostDistributionService', () => {
   let service: PostDistributionService;
@@ -63,6 +66,32 @@ describe('PostDistributionService', () => {
       postId: 'post-1',
       authorId: 'author-1',
     });
+  });
+
+  it('keeps checking a post published while automatic moderation did not answer, until it does', async () => {
+    const post = {
+      id: 'post-2',
+      profileId: 'author-1',
+      visibility: Visibility.PUBLIC,
+      media: [],
+    };
+
+    await service.dispatchPostPublished(post, {
+      caption: 'Published while the check was down',
+      moderationUnchecked: true,
+    });
+
+    expect(mockAiQueue.add).toHaveBeenCalledWith(
+      'moderate-content',
+      {
+        targetId: 'post-2',
+        text: 'Published while the check was down',
+        targetType: 'POST',
+        mediaUrls: [],
+      },
+      UNCHECKED_MODERATION_RETRY,
+    );
+    expect(UNCHECKED_MODERATION_RETRY.attempts).toBeGreaterThan(4);
   });
 
   it('does not enqueue feed fanout for private posts', async () => {

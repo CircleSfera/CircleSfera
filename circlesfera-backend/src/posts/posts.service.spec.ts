@@ -390,6 +390,70 @@ describe('PostsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('publishes the post when automatic moderation does not answer, and has it checked later', async () => {
+      mockAIService.moderateContent.mockRejectedValueOnce(
+        new Error('401 Incorrect API key provided'),
+      );
+      const mockTx = {
+        post: { create: vi.fn().mockResolvedValue({ id: 'unchecked-post' }) },
+        postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi.fn(),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
+      };
+      mockPrismaService.$transaction.mockImplementation(async (cb) =>
+        cb(mockTx),
+      );
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
+        id: 'unchecked-post',
+        media: [],
+      });
+
+      const result = await service.create('user-1', { caption: 'Hello' });
+
+      expect(result).toMatchObject({ id: 'unchecked-post' });
+      expect(
+        mockPostDistributionService.dispatchPostPublished,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'unchecked-post' }),
+        expect.objectContaining({ moderationUnchecked: true }),
+      );
+    });
+
+    it('says the post was checked when automatic moderation answered', async () => {
+      const mockTx = {
+        post: { create: vi.fn().mockResolvedValue({ id: 'checked-post' }) },
+        postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi.fn(),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
+      };
+      mockPrismaService.$transaction.mockImplementation(async (cb) =>
+        cb(mockTx),
+      );
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
+        id: 'checked-post',
+        media: [],
+      });
+
+      await service.create('user-1', { caption: 'Hello' });
+
+      expect(
+        mockPostDistributionService.dispatchPostPublished,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'checked-post' }),
+        expect.objectContaining({ moderationUnchecked: false }),
+      );
+    });
+
     it('supports scheduled posts and defers distribution', async () => {
       const futureDate = new Date(Date.now() + 60000).toISOString();
       const mockTx = {
@@ -513,6 +577,7 @@ describe('PostsService', () => {
       ).toHaveBeenCalledWith(expect.objectContaining({ id: 'post-1' }), {
         caption: 'Hello #world #alpha @user2',
         uniqueMentions: ['user2'],
+        moderationUnchecked: false,
       });
     });
 
