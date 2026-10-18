@@ -56,6 +56,9 @@ export interface AdminUser {
   id: string;
   email: string;
   isActive: boolean;
+  isRootBanned?: boolean;
+  // Set when the account is being deleted.
+  deletedAt?: string | null;
   role: string;
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';

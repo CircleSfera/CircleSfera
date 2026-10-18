@@ -58,6 +58,15 @@ function displayHandle(user: AdminUser) {
   return `@${user.profile?.username || 'user'}`;
 }
 
+// What the list says of an account. Only a ban is shown as one: an account
+// being deleted, or off for another reason, is told apart.
+function accountStatus(user: AdminUser, suspended: boolean) {
+  if (user.isRootBanned) return 'banned';
+  if (suspended) return 'suspended';
+  if (user.deletedAt) return 'deleting';
+  return user.isActive ? 'active' : 'inactive';
+}
+
 function isSuspended(user: AdminUser) {
   if (!user.suspendedUntil) return false;
   return new Date(user.suspendedUntil).getTime() > Date.now();
@@ -498,15 +507,7 @@ export default function Dashboard({ onToast }: Props) {
                         </>
                       }
                       badge={
-                        <StatusBadge
-                          status={
-                            suspended
-                              ? 'banned'
-                              : user.isActive
-                                ? 'active'
-                                : 'banned'
-                          }
-                        />
+                        <StatusBadge status={accountStatus(user, suspended)} />
                       }
                       avatar={
                         <UserAvatar

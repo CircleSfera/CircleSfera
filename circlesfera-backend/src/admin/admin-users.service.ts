@@ -38,6 +38,8 @@ export interface UserWithVerification {
   isActive: boolean;
   isRootBanned: boolean;
   suspendedUntil: Date | null;
+  // Set when the account is being deleted (by the person or by staff).
+  deletedAt: Date | null;
   createdAt: Date;
   role: string;
   profile: any; // We use any or Prisma.ProfileGetPayload here
@@ -227,7 +229,14 @@ export class AdminUsersService {
     }
 
     if (status === 'active') where.isActive = true;
-    if (status === 'banned') where.isActive = false;
+    // Sanctioned: banned, or with a suspension still running, as the list
+    // shows them. An account being deleted or off for another reason is not.
+    if (status === 'banned') {
+      where.OR = [
+        { isRootBanned: true },
+        { profiles: { some: { suspendedUntil: { gt: new Date() } } } },
+      ];
+    }
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -251,6 +260,7 @@ export class AdminUsersService {
           isActive: u.isActive,
           isRootBanned: u.isRootBanned,
           suspendedUntil: u.profiles[0]?.suspendedUntil || null,
+          deletedAt: u.deletedAt,
           createdAt: u.createdAt,
           role:
             u.linkedAdminIdentities && u.linkedAdminIdentities.length > 0

@@ -2614,7 +2614,9 @@
         "banned": "Baneado",
         "registered": "Registrado",
         "disabled": "Desactivado",
-        "suspended": "Suspendido"
+        "suspended": "Suspendido",
+        "deleting": "Eliminándose",
+        "inactive": "Inactiva"
       }
     },
     "users": {
@@ -2691,7 +2693,7 @@
       "kpi_new_week": "Nuevos (esta semana)",
       "kpi_active_today": "Activos hoy",
       "kpi_pending_reports": "Reportes pendientes",
-      "segment_banned": "Baneados",
+      "segment_banned": "Sancionados",
       "segment_admins": "Operadores",
       "suspend_form_title": "Suspender usuario",
       "suspend_form_message": "Indica duración y motivo para @{{username}}."
