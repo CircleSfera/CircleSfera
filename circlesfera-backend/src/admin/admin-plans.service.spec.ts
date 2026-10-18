@@ -45,6 +45,7 @@ describe('AdminPlansService', () => {
     expect(result.plans).toEqual([plan]);
     expect(result.featureKeys).toEqual([
       'verified_badge',
+      'priority_support',
       'no_promoted_content',
       'advanced_analytics',
       'team_access',
