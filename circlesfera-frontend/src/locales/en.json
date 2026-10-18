@@ -2693,7 +2693,7 @@
       "kpi_new_week": "New (this week)",
       "kpi_active_today": "Active today",
       "kpi_pending_reports": "Pending reports",
-      "segment_banned": "Banned",
+      "segment_banned": "Sanctioned",
       "segment_admins": "Operators",
       "suspend_form_title": "Suspend user",
       "suspend_form_message": "Set duration and reason for @{{username}}."

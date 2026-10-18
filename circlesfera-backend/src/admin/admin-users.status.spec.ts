@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminUsersService } from './admin-users.service.js';
 
 // The state of an account in the staff user list: the "banned" filter keeps
-// the accounts off by a sanction, not the ones being deleted, and each row
-// says whether its account is being deleted.
+// the sanctioned accounts (banned or suspended), and each row says whether
+// its account is being deleted.
 describe('AdminUsersService: account state in the list', () => {
   const prisma = {
     user: {
@@ -28,12 +28,25 @@ describe('AdminUsersService: account state in the list', () => {
     );
   });
 
-  it('the banned filter leaves out accounts being deleted', async () => {
+  it('the banned filter lists sanctioned accounts: banned, or suspended for now', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-19T00:00:00.000Z'));
     await service.getUsers(1, 10, undefined, 'banned');
+    vi.useRealTimers();
 
+    // Not merely inactive: an account being deleted or off for another
+    // reason is left out.
     expect(prisma.user.findMany.mock.calls[0][0].where).toEqual({
-      isActive: false,
-      deletedAt: null,
+      OR: [
+        { isRootBanned: true },
+        {
+          profiles: {
+            some: {
+              suspendedUntil: { gt: new Date('2026-10-19T00:00:00.000Z') },
+            },
+          },
+        },
+      ],
     });
   });
 

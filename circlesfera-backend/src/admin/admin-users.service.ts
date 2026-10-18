@@ -229,10 +229,13 @@ export class AdminUsersService {
     }
 
     if (status === 'active') where.isActive = true;
-    // Inactive by a sanction, not an account on its way to being deleted.
+    // Sanctioned: banned, or with a suspension still running, as the list
+    // shows them. An account being deleted or off for another reason is not.
     if (status === 'banned') {
-      where.isActive = false;
-      where.deletedAt = null;
+      where.OR = [
+        { isRootBanned: true },
+        { profiles: { some: { suspendedUntil: { gt: new Date() } } } },
+      ];
     }
 
     const [users, total] = await Promise.all([

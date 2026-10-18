@@ -210,7 +210,7 @@ describe('UsersTab', () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Banned' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sanctioned' }));
     await waitFor(() =>
       expect(api.getUsers).toHaveBeenLastCalledWith(
         1,
