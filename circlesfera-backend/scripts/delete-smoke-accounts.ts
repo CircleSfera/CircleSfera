@@ -9,9 +9,10 @@ const { Pool } = pkg;
 // so the accounts it used in production are deleted: the smoke account and
 // the three fixtures of scripts/create-smoke-fixtures.ts.
 //
-// Each one is scheduled for deletion now, the way a person deleting their
-// account is, so the daily purge of expired accounts deletes it with all it
-// holds (Profiles, posts, files). Only Test Accounts with these emails are
+// Each one is made inactive and its deletion is asked for at once through
+// the outbox, the way a person's own deletion is, so the queue deletes it
+// with all it holds (Profiles, posts, files) without waiting for the daily
+// purge. Only Test Accounts with these emails are
 // touched. Prints what it would do and changes nothing unless APPLY=1. Runs
 // with plain Node inside the production image, through the "Ops — delete
 // smoke accounts" workflow.
@@ -60,8 +61,20 @@ async function main() {
         console.log(`SKIP  ${email} (${names}): not a Test Account`);
         continue;
       }
-      if (user.scheduledDeletionAt && user.scheduledDeletionAt <= now) {
-        console.log(`SAME  ${email} (${names}): already scheduled`);
+      // The deletion itself, asked for now through the outbox, as a person's
+      // own deletion is: the account, its Profiles, posts and files go once
+      // the queue runs it, without waiting for the daily purge.
+      const asked = await prisma.outboxEvent.count({
+        where: {
+          queueName: 'users-processing',
+          eventName: 'hard-delete-user',
+          payload: { path: ['userId'], equals: user.id },
+        },
+      });
+      const scheduled =
+        user.scheduledDeletionAt !== null && user.scheduledDeletionAt <= now;
+      if (scheduled && asked > 0) {
+        console.log(`SAME  ${email} (${names}): deletion already asked for`);
         continue;
       }
       console.log(`${apply ? 'DELETE' : 'WOULD DELETE'}  ${email} (${names})`);
@@ -72,11 +85,28 @@ async function main() {
           data: { isActive: false, deletedAt: now, scheduledDeletionAt: now },
         }),
         prisma.refreshToken.deleteMany({ where: { userId: user.id } }),
+        ...(asked > 0
+          ? []
+          : [
+              prisma.outboxEvent.create({
+                data: {
+                  queueName: 'users-processing',
+                  eventName: 'hard-delete-user',
+                  payload: { userId: user.id },
+                  options: {
+                    jobId: `delete-${user.id}`,
+                    removeOnComplete: true,
+                    removeOnFail: false,
+                  },
+                  status: 'PENDING',
+                },
+              }),
+            ]),
       ]);
     }
     console.log(
       apply
-        ? 'Scheduled: the daily purge of expired accounts deletes them.'
+        ? 'Asked for: each account is deleted as soon as the queue runs it.'
         : 'Dry run: nothing changed.',
     );
   } finally {
