@@ -393,16 +393,29 @@
 
 /* Base */
 
-/* The brand wash is the page's own background, kept still while the page
-   scrolls. It is not a layer fixed over the window: a fixed element that
-   touches the bottom of the screen makes Safari on iPhone paint a solid
-   strip behind its address bar, which no other site has.
-   Safari colours its bars, at the top and the bottom of the screen, with
-   the page's background colour. The wash fades to that same colour at the
-   top and the bottom of the screen, so the bars and the page meet with no
-   strip, on every page and whatever its length. */
+/* The page is one colour, the near-black base, and Safari on iPhone gives
+   its bars, at the top and the bottom of the screen, that same colour.
+   The brand wash is a layer the size of the screen, fixed behind
+   everything, so every page shows it the same whatever its length (Safari
+   on iPhone does not keep a page's own background still: it would stretch
+   the wash over the whole page). The wash fades to the base at the top and
+   the bottom of the screen, so where it touches the bars it is their
+   colour and no strip shows. */
 html {
   background-color: var(--surface-base);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* As tall as the screen with Safari's bars hidden, so scrolling never
+     uncovers its bottom edge. */
+  height: 100lvh;
+  z-index: -1;
+  pointer-events: none;
   background-image:
     linear-gradient(
       to bottom,
@@ -430,9 +443,7 @@ html {
       135deg,
       rgba(255, 87, 87, 0.06) 0%,
       rgba(140, 82, 255, 0.12) 100%
-    ),
-    linear-gradient(var(--surface-base), var(--surface-base));
-  background-attachment: fixed;
+    );
 }
 
 body {
