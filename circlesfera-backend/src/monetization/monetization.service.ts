@@ -381,17 +381,11 @@ export class MonetizationService {
       );
     }
     // The app names the Profile tipped; the person behind it is paid. A
-    // person's id is still accepted, named by their first Profile.
-    const tipped =
-      (await this.prisma.profile.findUnique({
-        where: { id: receiverId },
-        select: { userId: true, username: true },
-      })) ??
-      (await this.prisma.profile.findFirst({
-        where: { userId: receiverId },
-        orderBy: { createdAt: 'asc' },
-        select: { userId: true, username: true },
-      }));
+    // person's id is still accepted, and then no Profile is named.
+    const tipped = await this.prisma.profile.findUnique({
+      where: { id: receiverId },
+      select: { userId: true, username: true },
+    });
     const receiverUserId = tipped?.userId ?? receiverId;
     if (senderId === receiverUserId)
       throw AppException.BadRequest(
