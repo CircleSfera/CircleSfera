@@ -16,6 +16,7 @@ describe('EnrolmentProofService', () => {
       findUnique: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
     };
+    signIn: { findUnique: ReturnType<typeof vi.fn> };
   };
   let email: { sendStaffEnrolmentEmail: ReturnType<typeof vi.fn> };
   let env: Record<string, string | undefined>;
@@ -27,6 +28,10 @@ describe('EnrolmentProofService', () => {
         update: vi.fn().mockResolvedValue({}),
         findUnique: vi.fn(),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      // The password of the sign-in behind the staff email.
+      signIn: {
+        findUnique: vi.fn().mockResolvedValue({ password: 'hash-v1' }),
       },
     };
     email = { sendStaffEnrolmentEmail: vi.fn().mockResolvedValue(undefined) };
@@ -48,12 +53,15 @@ describe('EnrolmentProofService', () => {
 
     const [to, url] = email.sendStaffEnrolmentEmail.mock.calls[0];
     expect(to).toBe('p@example.com');
-    const token = new URL(url).searchParams.get('enrol') as string;
-    expect(url.startsWith('https://admin.example.test/login?enrol=')).toBe(
+    // After a #: never sent to a server, so never in its logs.
+    const token = new URL(url).hash.replace('#enrol=', '');
+    expect(url.startsWith('https://admin.example.test/login#enrol=')).toBe(
       true,
     );
+    expect(new URL(url).search).toBe('');
     expect(token.length).toBeGreaterThanOrEqual(43);
     expect(kept().enrolmentProofHash).toBe(sha256(token));
+    expect(kept().enrolmentProofPasswordMark).toBe(sha256('hash-v1'));
     expect(JSON.stringify(kept())).not.toContain(token);
     const expires = kept().enrolmentProofExpiresAt.getTime();
     expect(expires).toBeGreaterThanOrEqual(before + ENROLMENT_PROOF_TTL_MS);
@@ -63,7 +71,7 @@ describe('EnrolmentProofService', () => {
     await service.sendLink({ id: 'op-1', email: 'p@example.com' });
 
     expect(email.sendStaffEnrolmentEmail.mock.calls[0][1]).toMatch(
-      /^https:\/\/admin\.circlesfera\.com\/login\?enrol=/,
+      /^https:\/\/admin\.circlesfera\.com\/login#enrol=/,
     );
   });
 
@@ -74,17 +82,36 @@ describe('EnrolmentProofService', () => {
       /^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/,
     );
     expect(kept().enrolmentProofHash).toBe(sha256(code.replace(/-/g, '')));
+    // Handed over in person, a code does not depend on the mailbox.
+    expect(kept().enrolmentProofPasswordMark).toBeNull();
   });
 
   describe('using a proof', () => {
     const keepProof = (
       raw: string,
       expiresAt = new Date(Date.now() + 60_000),
+      passwordMark: string | null = null,
     ) =>
       prisma.adminIdentity.findUnique.mockResolvedValue({
+        email: 'p@example.com',
         enrolmentProofHash: sha256(raw),
         enrolmentProofExpiresAt: expiresAt,
+        enrolmentProofPasswordMark: passwordMark,
       });
+
+    it('takes a link while the password is the one it was sent with', async () => {
+      keepProof('Tok_en', undefined, sha256('hash-v1'));
+
+      await expect(service.consume('op-1', 'Tok_en')).resolves.toBe(true);
+    });
+
+    it('refuses a link sent before the password changed', async () => {
+      keepProof('Tok_en', undefined, sha256('hash-v1'));
+      prisma.signIn.findUnique.mockResolvedValue({ password: 'hash-v2' });
+
+      await expect(service.consume('op-1', 'Tok_en')).resolves.toBe(false);
+      expect(prisma.adminIdentity.updateMany).not.toHaveBeenCalled();
+    });
 
     it('takes a link token as it came', async () => {
       keepProof('Tok_en-AbC');
@@ -96,7 +123,11 @@ describe('EnrolmentProofService', () => {
           enrolmentProofHash: sha256('Tok_en-AbC'),
           enrolmentProofExpiresAt: { gt: expect.any(Date) },
         },
-        data: { enrolmentProofHash: null, enrolmentProofExpiresAt: null },
+        data: {
+          enrolmentProofHash: null,
+          enrolmentProofExpiresAt: null,
+          enrolmentProofPasswordMark: null,
+        },
       });
     });
 

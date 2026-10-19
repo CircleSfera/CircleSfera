@@ -131,6 +131,7 @@ describe('AdminOperatorsService', () => {
             totpEnabled: false,
             enrolmentProofHash: null,
             enrolmentProofExpiresAt: null,
+            enrolmentProofPasswordMark: null,
           },
         }),
       );

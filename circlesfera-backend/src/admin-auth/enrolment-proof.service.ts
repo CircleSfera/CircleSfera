@@ -40,27 +40,50 @@ export class EnrolmentProofService {
     @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
-  private async keep(adminId: string, hash: string): Promise<void> {
+  private async keep(
+    adminId: string,
+    hash: string,
+    passwordMark: string | null,
+  ): Promise<void> {
     await this.prisma.adminIdentity.update({
       where: { id: adminId },
       data: {
         enrolmentProofHash: hash,
         enrolmentProofExpiresAt: new Date(Date.now() + ENROLMENT_PROOF_TTL_MS),
+        enrolmentProofPasswordMark: passwordMark,
       },
     });
   }
 
-  /** Sends a new link to the staff email. */
+  // A fingerprint of the password of the sign-in behind the staff email, or
+  // null when there is none.
+  private async passwordMark(email: string): Promise<string | null> {
+    const signIn = await this.prisma.signIn.findUnique({
+      where: { email },
+      select: { password: true },
+    });
+    return signIn?.password ? sha256(signIn.password) : null;
+  }
+
+  /**
+   * Sends a new link to the staff email. The token goes after a `#`, so it
+   * never reaches a server log or the address the app reports on errors,
+   * and the link stops working if the password changes after it is sent.
+   */
   async sendLink(admin: { id: string; email: string }): Promise<void> {
     const token = randomBytes(32).toString('base64url');
-    await this.keep(admin.id, sha256(token));
+    await this.keep(
+      admin.id,
+      sha256(token),
+      await this.passwordMark(admin.email),
+    );
     const base = (
       this.config.get<string>('ADMIN_BASE_URL') ||
       'https://admin.circlesfera.com'
     ).replace(/\/$/, '');
     await this.email.sendStaffEnrolmentEmail(
       admin.email,
-      `${base}/login?enrol=${token}`,
+      `${base}/login#enrol=${token}`,
     );
   }
 
@@ -70,7 +93,7 @@ export class EnrolmentProofService {
     for (let i = 0; i < CODE_LENGTH; i += 1) {
       code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
     }
-    await this.keep(adminId, sha256(code));
+    await this.keep(adminId, sha256(code), null);
     return code.match(/.{4}/g)?.join('-') ?? code;
   }
 
@@ -84,7 +107,12 @@ export class EnrolmentProofService {
     if (!given || given.length > 200) return false;
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
-      select: { enrolmentProofHash: true, enrolmentProofExpiresAt: true },
+      select: {
+        email: true,
+        enrolmentProofHash: true,
+        enrolmentProofExpiresAt: true,
+        enrolmentProofPasswordMark: true,
+      },
     });
     const kept = admin?.enrolmentProofHash;
     if (!kept || !admin.enrolmentProofExpiresAt) return false;
@@ -93,13 +121,25 @@ export class EnrolmentProofService {
       timingSafeEqual(Buffer.from(h), Buffer.from(kept)),
     );
     if (!match) return false;
+    // A link sent before the password changed no longer works.
+    if (
+      admin.enrolmentProofPasswordMark &&
+      admin.enrolmentProofPasswordMark !==
+        (await this.passwordMark(admin.email))
+    ) {
+      return false;
+    }
     const spent = await this.prisma.adminIdentity.updateMany({
       where: {
         id: adminId,
         enrolmentProofHash: match,
         enrolmentProofExpiresAt: { gt: new Date() },
       },
-      data: { enrolmentProofHash: null, enrolmentProofExpiresAt: null },
+      data: {
+        enrolmentProofHash: null,
+        enrolmentProofExpiresAt: null,
+        enrolmentProofPasswordMark: null,
+      },
     });
     return spent.count === 1;
   }

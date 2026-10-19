@@ -3,7 +3,7 @@ import { Copy, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import logoSrc from '../assets/logo.png';
 import { adminTabPath, getAdminHomeTab } from '../components/admin/adminNav';
 import { Button } from '../components/ui';
@@ -20,17 +20,21 @@ export default function AdminPanelLogin() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const setAdmin = useAdminAuthStore((s) => s.setAdmin);
-  const [searchParams, setSearchParams] = useSearchParams();
-  // The token of the set-up link sent to the staff email, kept in memory and
-  // taken off the address so it stays out of the history.
-  const [linkProof] = useState(() => searchParams.get('enrol') ?? '');
+  // The token of the set-up link sent to the staff email. It comes after a
+  // #, so it never reaches a server; it is kept in memory and taken off the
+  // address so it stays out of the history.
+  const [linkProof] = useState(
+    () => new URLSearchParams(window.location.hash.slice(1)).get('enrol') ?? '',
+  );
   useEffect(() => {
-    if (searchParams.has('enrol')) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('enrol');
-      setSearchParams(next, { replace: true });
+    if (window.location.hash.includes('enrol=')) {
+      window.history.replaceState(
+        window.history.state,
+        '',
+        window.location.pathname + window.location.search,
+      );
     }
-  }, [searchParams, setSearchParams]);
+  }, []);
   const [proof, setProof] = useState('');
 
   const [email, setEmail] = useState('');

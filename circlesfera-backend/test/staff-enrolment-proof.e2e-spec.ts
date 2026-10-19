@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import * as argon2 from 'argon2';
 import cookieParser from 'cookie-parser';
 import { generateSync } from 'otplib';
 import request from 'supertest';
@@ -99,6 +100,30 @@ describe('Staff enrolment proof (e2e)', () => {
       .expect(401);
   });
 
+  it('a link stops working when the password changes after it was sent', async () => {
+    const actorId = (
+      await prisma.adminIdentity.findFirstOrThrow({
+        where: { linkedUserId: userIds[0] },
+      })
+    ).id;
+    await operators.sendEnrolmentLinkAgain(actorId, operatorId);
+    const linkToken = new URL(sentLinks.at(-1) as string).hash.replace(
+      '#enrol=',
+      '',
+    );
+    // The same password set again: a new hash, as after a reset.
+    await prisma.signIn.update({
+      where: { email },
+      data: { password: await argon2.hash(password) },
+    });
+
+    const { body } = await login().expect(200);
+    await http()
+      .post('/api/v1/admin-auth/enrol')
+      .send({ mfaToken: body.mfaToken, proof: linkToken })
+      .expect(401);
+  });
+
   it('a code from an administrator replaces the link, works once, and the authenticator it sets up opens a session', async () => {
     const actorId = (
       await prisma.adminIdentity.findFirstOrThrow({
@@ -106,7 +131,7 @@ describe('Staff enrolment proof (e2e)', () => {
       })
     ).id;
     const { code } = await operators.issueEnrolmentCode(actorId, operatorId);
-    const linkToken = new URL(sentLinks[0]).searchParams.get('enrol');
+    const linkToken = new URL(sentLinks[0]).hash.replace('#enrol=', '');
 
     // The link sent before no longer works.
     const first = await login().expect(200);
@@ -150,6 +175,10 @@ describe('Staff enrolment proof (e2e)', () => {
     });
     expect(stored.totpEnabled).toBe(true);
     expect(stored.enrolmentProofHash).toBeNull();
+    const used = await prisma.adminAuditLog.count({
+      where: { targetId: operatorId, action: 'ADMIN_ENROLMENT_USED' },
+    });
+    expect(used).toBe(1);
   });
 
   it('every proof issued is in the audit log, never the proof itself', async () => {
@@ -157,7 +186,7 @@ describe('Staff enrolment proof (e2e)', () => {
       where: { targetId: operatorId, action: 'ADMIN_ENROLMENT_ISSUED' },
     });
 
-    expect(entries).toHaveLength(2);
+    expect(entries).toHaveLength(3);
     for (const entry of entries) {
       expect(entry.details).not.toMatch(/enrol=|[A-Z2-9]{4}-[A-Z2-9]{4}/);
     }

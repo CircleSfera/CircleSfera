@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -242,6 +243,7 @@ describe('AdminAuthService', () => {
           data: {
             totpSecret: 'enc:NEW_GENERATED_BASE32_SECRET',
             failedLoginCount: 0,
+            lockedUntil: null,
           },
         });
         expect(result).toMatchObject({
@@ -249,9 +251,13 @@ describe('AdminAuthService', () => {
           secret: 'NEW_GENERATED_BASE32_SECRET',
           qrCodeDataUrl: expect.stringContaining('data:image/png'),
         });
-        // Confirmed with its first code at the MFA step.
+        // Confirmed with its first code at the MFA step, for this secret.
         expect(jwt.decode(result.mfaToken)).toMatchObject({
           purpose: 'admin-mfa-setup',
+          secretMark: expect.stringMatching(/^[0-9a-f]{32}$/),
+        });
+        expect(mockPrisma.adminAuditLog.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({ action: 'ADMIN_ENROLMENT_USED' }),
         });
       });
 
@@ -797,12 +803,64 @@ describe('AdminAuthService', () => {
       );
     });
 
+    it('refuses a set-up token that does not name the secret kept now', async () => {
+      const token = jwtService.sign(
+        {
+          sub: 'admin-1',
+          email: 'admin@circlesfera.com',
+          purpose: 'admin-mfa-setup',
+          secretMark: 'a-secret-made-by-another-proof',
+        },
+        { secret: adminSecret, audience: 'circlesfera-admin' },
+      );
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        email: 'admin@circlesfera.com',
+        status: 'ACTIVE',
+        totpSecret: 'enc:base32-admin-secret',
+        totpEnabled: false,
+      });
+
+      await expect(service.verifyMfa(token, '123456', {})).rejects.toThrow(
+        'Invalid or expired MFA token',
+      );
+      expect(mockPrisma.adminIdentity.update).not.toHaveBeenCalled();
+    });
+
+    it('does not clear the failed attempts of an identity that still has to enrol', async () => {
+      const passwordHash = await argon2.hash('admin-password-123');
+      withSignInPassword(passwordHash);
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        email: 'admin@circlesfera.com',
+        linkedUserId: 'user-1',
+        status: 'ACTIVE',
+        failedLoginCount: 4,
+        lockedUntil: null,
+        totpEnabled: false,
+        roles: [],
+      });
+
+      await service.login('admin@circlesfera.com', 'admin-password-123', {});
+
+      expect(mockPrisma.adminIdentity.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { failedLoginCount: 0, lockedUntil: null },
+        }),
+      );
+    });
+
     it('enables totp and logs audit during first-time setup verification', async () => {
       const token = jwtService.sign(
         {
           sub: 'admin-1',
           email: 'admin@circlesfera.com',
           purpose: 'admin-mfa-setup',
+          // The secret this token was shown with.
+          secretMark: createHash('sha256')
+            .update('base32-admin-secret')
+            .digest('hex')
+            .slice(0, 32),
         },
         { secret: adminSecret, audience: 'circlesfera-admin' },
       );

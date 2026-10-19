@@ -346,9 +346,10 @@ describe('Admin Panel sign-in', () => {
 
     it('uses the set-up link at once, and takes it off the address', async () => {
       vi.mocked(adminAuthApi.enrol).mockResolvedValue(setupAnswer() as never);
-      const { i18n } = renderWithProviders(<AdminPanelLogin />, {
-        routerProps: { initialEntries: ['/login?enrol=link-token-123'] },
-      });
+      window.history.replaceState(null, '', '/login#enrol=link-token-123');
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      // Taken off the address at once.
+      expect(window.location.hash).toBe('');
 
       submitCredentials(i18n!);
 

@@ -16,6 +16,11 @@ import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EnrolmentProofService } from './enrolment-proof.service.js';
 
+// A short fingerprint of an authenticator secret, never the secret.
+function secretMark(secret: string): string {
+  return createHash('sha256').update(secret).digest('hex').slice(0, 32);
+}
+
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_MINUTES = 15;
 const MFA_TOKEN_TTL = '5m';
@@ -181,10 +186,15 @@ export class AdminAuthService {
       await fail(admin.id);
     }
 
-    await this.prisma.adminIdentity.update({
-      where: { id: admin.id },
-      data: { failedLoginCount: 0, lockedUntil: null },
-    });
+    // A right password clears the failed attempts, except while the
+    // identity still has to enrol: then only a right proof does, so wrong
+    // proofs reach the lockout however often the password is typed.
+    if (admin.totpEnabled) {
+      await this.prisma.adminIdentity.update({
+        where: { id: admin.id },
+        data: { failedLoginCount: 0, lockedUntil: null },
+      });
+    }
 
     // A second factor is mandatory for every member of staff, with no switch
     // to turn it off. A staff identity with no authenticator enrols one only
@@ -281,6 +291,17 @@ export class AdminAuthService {
       data: {
         totpSecret: this.cryptoService.encrypt(secret),
         failedLoginCount: 0,
+        lockedUntil: null,
+      },
+    });
+    await this.prisma.adminAuditLog.create({
+      data: {
+        adminId: admin.id,
+        action: 'ADMIN_ENROLMENT_USED',
+        targetType: 'admin',
+        targetId: admin.id,
+        ipAddress: meta.ip,
+        userAgent: meta.userAgent,
       },
     });
     const otpauthUrl = generateURI({
@@ -295,8 +316,15 @@ export class AdminAuthService {
     });
     return {
       status: 'MFA_SETUP_REQUIRED',
+      // The token names the secret it was shown with, so it confirms only
+      // that one and never a secret made by a later proof.
       mfaToken: this.signAdminToken(
-        { sub: admin.id, email: admin.email, purpose: 'admin-mfa-setup' },
+        {
+          sub: admin.id,
+          email: admin.email,
+          purpose: 'admin-mfa-setup',
+          secretMark: secretMark(secret),
+        },
         MFA_TOKEN_TTL,
       ),
       otpauthUrl,
@@ -310,7 +338,12 @@ export class AdminAuthService {
     code: string,
     meta: { ip?: string; userAgent?: string },
   ): Promise<AdminTokenPair> {
-    let payload: { sub: string; email: string; purpose?: string };
+    let payload: {
+      sub: string;
+      email: string;
+      purpose?: string;
+      secretMark?: string;
+    };
     try {
       payload = this.jwtService.verify(mfaToken, {
         secret: this.adminSecret(),
@@ -336,6 +369,12 @@ export class AdminAuthService {
 
     const rawSecret = admin.totpSecret;
     const decryptedSecret = this.cryptoService.decrypt(rawSecret);
+    if (
+      payload.purpose === 'admin-mfa-setup' &&
+      payload.secretMark !== secretMark(decryptedSecret)
+    ) {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
 
     if (!this.isTotpValid(code, decryptedSecret)) {
       await this.prisma.adminAuditLog.create({

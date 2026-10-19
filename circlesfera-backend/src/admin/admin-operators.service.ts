@@ -364,6 +364,7 @@ export class AdminOperatorsService {
         totpEnabled: false,
         enrolmentProofHash: null,
         enrolmentProofExpiresAt: null,
+        enrolmentProofPasswordMark: null,
       },
       include: { roles: { include: { role: true } } },
     });
