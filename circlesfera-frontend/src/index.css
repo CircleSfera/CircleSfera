@@ -542,6 +542,7 @@ video {
 }
 
 /* Nothing of the page shows under the capsule. A floor of the page's colour
+   (the same colour as the page's background, which Safari gives its bars)
    stands against the bottom edge behind it: clear at the capsule's top,
    solid from its middle down, so the content fades out instead of being cut.
    The floor goes on below the edge too: a phone's browser draws the page
@@ -559,11 +560,7 @@ video {
     1.5rem
   );
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(12, 11, 18, 0) 0%,
-    rgb(12, 11, 18) 55%
-  );
+  background: linear-gradient(180deg, transparent 0%, var(--surface-base) 55%);
 }
 
 .bottom-nav-floor::after {
@@ -573,7 +570,7 @@ video {
   left: 0;
   right: 0;
   height: 50vh;
-  background: rgb(12, 11, 18);
+  background: var(--surface-base);
 }
 
 /* The destination the person is on: a lighter pill of the same glass. */
