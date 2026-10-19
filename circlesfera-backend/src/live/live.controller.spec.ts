@@ -208,6 +208,17 @@ describe('LiveController', () => {
       .set(BEARER)
       .send({ coHostProfileId: 'not-an-id' })
       .expect(400);
+    // Both given: each must be an id.
+    await request(app.getHttpServer())
+      .post('/api/v1/live/stream-1/cohost/invite')
+      .set(BEARER)
+      .send({ coHostProfileId: 'not-an-id', coHostUserId: userId })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/v1/live/stream-1/cohost/invite')
+      .set(BEARER)
+      .send({ coHostProfileId: profileId, coHostUserId: 'not-an-id' })
+      .expect(400);
 
     expect(mockLiveService.inviteCoHost.mock.calls).toEqual([
       ['stream-1', TEST_USER.profileId, { profileId }],
