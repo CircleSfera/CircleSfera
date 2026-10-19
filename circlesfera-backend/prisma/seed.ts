@@ -312,7 +312,6 @@ async function main() {
             passwordHash: hashedPassword,
             displayName,
             status: 'ACTIVE',
-            mfaRequired: true,
             totpEnabled: seedFixedTotp,
             totpSecret: seedFixedTotp ? adminE2eTotpSecret : null,
             linkedUserId: userId,
@@ -339,7 +338,6 @@ async function main() {
               ? {
                   totpEnabled: true,
                   totpSecret: adminE2eTotpSecret,
-                  mfaRequired: true,
                 }
               : {}),
           },
@@ -558,6 +556,8 @@ async function main() {
     await seedFirstPartyAudio(prisma);
   } catch (err) {
     console.error('❌ Error en el sembrado de datos:', err);
+    // A seed that stopped half way must not look like one that finished.
+    process.exitCode = 1;
   } finally {
     await prisma.$disconnect();
   }
