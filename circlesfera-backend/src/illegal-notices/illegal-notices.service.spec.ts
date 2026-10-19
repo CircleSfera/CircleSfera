@@ -215,4 +215,117 @@ describe('IllegalNoticesService', () => {
     );
     expect(plain.isOwnAddress('https://circlesfera.com/p/1')).toBe(true);
   });
+
+  describe('listPage', () => {
+    const at = new Date('2026-10-18T10:00:00.000Z');
+    const row = (id: string, childAbuse = false) => ({
+      id,
+      childAbuse,
+      createdAt: at,
+      decidedAt: at,
+    });
+
+    it('puts waiting notices of child abuse first, then the most recent, and gives a cursor', async () => {
+      prisma.illegalContentNotice.findMany.mockResolvedValueOnce([
+        row('n3', true),
+        row('n2', true),
+      ]);
+
+      const page = await service.listPage('RECEIVED' as never, undefined, 1);
+
+      expect(prisma.illegalContentNotice.findMany).toHaveBeenCalledWith({
+        where: { status: 'RECEIVED' },
+        orderBy: [
+          { childAbuse: 'desc' },
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+        take: 2,
+      });
+      expect(page.items.map((n) => n.id)).toEqual(['n3']);
+
+      prisma.illegalContentNotice.findMany.mockResolvedValueOnce([
+        row('n2', true),
+      ]);
+      const next = await service.listPage(
+        'RECEIVED' as never,
+        page.nextCursor as string,
+        1,
+      );
+      expect(next.nextCursor).toBeNull();
+      // Past the last notice of child abuse come all the others.
+      expect(prisma.illegalContentNotice.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: {
+            status: 'RECEIVED',
+            OR: [
+              { createdAt: { lt: at }, childAbuse: true },
+              { createdAt: at, id: { lt: 'n3' }, childAbuse: true },
+              { childAbuse: false },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('stays among the other waiting notices once past child abuse', async () => {
+      prisma.illegalContentNotice.findMany.mockResolvedValueOnce([
+        row('n5'),
+        row('n4'),
+      ]);
+      const page = await service.listPage('RECEIVED' as never, undefined, 1);
+      prisma.illegalContentNotice.findMany.mockResolvedValueOnce([]);
+
+      await service.listPage('RECEIVED' as never, page.nextCursor as string, 1);
+
+      expect(prisma.illegalContentNotice.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: {
+            status: 'RECEIVED',
+            OR: [
+              { createdAt: { lt: at }, childAbuse: false },
+              { createdAt: at, id: { lt: 'n5' }, childAbuse: false },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('follows the decisions in a decided tab', async () => {
+      prisma.illegalContentNotice.findMany.mockResolvedValueOnce([
+        row('d2'),
+        row('d1'),
+      ]);
+      const page = await service.listPage('ACTIONED' as never, undefined, 1);
+      prisma.illegalContentNotice.findMany.mockResolvedValueOnce([]);
+
+      await service.listPage('ACTIONED' as never, page.nextCursor as string);
+
+      expect(prisma.illegalContentNotice.findMany).toHaveBeenLastCalledWith({
+        where: {
+          status: 'ACTIONED',
+          OR: [{ decidedAt: { lt: at } }, { decidedAt: at, id: { lt: 'd2' } }],
+        },
+        orderBy: [{ decidedAt: 'desc' }, { id: 'desc' }],
+        take: 31,
+      });
+    });
+
+    it.each([
+      'not-base64-json',
+      Buffer.from('{"c":"yes","at":"x","id":1}').toString('base64url'),
+      Buffer.from('null').toString('base64url'),
+    ])(
+      'starts from the top with a cursor it did not give (%s)',
+      async (cursor) => {
+        prisma.illegalContentNotice.findMany.mockResolvedValueOnce([]);
+
+        await service.listPage('NO_ACTION' as never, cursor, 500);
+
+        expect(prisma.illegalContentNotice.findMany).toHaveBeenLastCalledWith(
+          expect.objectContaining({ where: { status: 'NO_ACTION' }, take: 51 }),
+        );
+      },
+    );
+  });
 });
