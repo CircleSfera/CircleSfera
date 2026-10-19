@@ -292,6 +292,33 @@ describe('LiveService', () => {
     );
   });
 
+  it('finds no Profile to invite across a block', async () => {
+    mockPrismaService.liveStream.findUnique.mockResolvedValue({
+      id: 'stream-1',
+      hostId: 'host-profile-1',
+      status: 'LIVE',
+      coHostId: null,
+      title: 'Live!',
+    });
+    mockPrismaService.profile.findFirst.mockResolvedValue({
+      id: 'cohost-profile-2',
+      username: 'cohost_user',
+    });
+    mockPrismaService.profile.findUnique.mockResolvedValue({
+      id: 'host-profile-1',
+      username: 'host_user',
+      avatar: null,
+    });
+    mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b-1' });
+
+    await expect(
+      service.inviteCoHost('stream-1', 'host-profile-1', {
+        profileId: 'cohost-profile-2',
+      }),
+    ).rejects.toThrow(AppException);
+    expect(mockPrismaService.liveStream.update).not.toHaveBeenCalled();
+  });
+
   describe('acceptCoHostInvite', () => {
     it('should throw ForbiddenException if user is not the invited co-host', async () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({

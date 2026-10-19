@@ -190,7 +190,12 @@ describe('ProfilesService', () => {
         pushMessages: false,
         avatarMediaId: 'media-1',
         coverMediaId: 'media-2',
-        user: { id: 'u-target', createdAt: new Date(), isActive: true },
+        createdAt: new Date('2026-02-03T00:00:00.000Z'),
+        user: {
+          id: 'u-target',
+          createdAt: new Date('2020-01-01T00:00:00.000Z'),
+          isActive: true,
+        },
         signIn: { emailVerified: null },
         _count: { posts: 3, followers: 4, following: 5, strikes: 1 },
       });
@@ -226,6 +231,8 @@ describe('ProfilesService', () => {
         _count: { posts: 3, followers: 4, following: 5 },
       });
       expect(result._count).not.toHaveProperty('strikes');
+      // Dated by the Profile, not by the person's sign-up.
+      expect(result.joinedAt).toBe('2026-02-03T00:00:00.000Z');
       // What is cached is the same closed view.
       expect(mockCacheManager.set.mock.calls[0][1]).toEqual(result);
     });

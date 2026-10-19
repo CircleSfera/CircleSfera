@@ -222,7 +222,9 @@ export class ProfilesService {
         : null,
       identityVerified: !!user?.identityVerifiedAt,
       emailConfirmed: !!signIn?.emailVerified,
-      joinedAt: user?.createdAt?.toISOString?.() ?? user?.createdAt,
+      // When this Profile was created: the person's own sign-up date is the
+      // same on all their Profiles and would tie them together.
+      joinedAt: profile.createdAt?.toISOString?.() ?? profile.createdAt,
       signupCountry: user?.signupCountry ?? null,
       // Active strikes of this Profile; warnings are not shown.
       strikeCount: profile._count.strikes,
@@ -502,7 +504,7 @@ export class ProfilesService {
       identityVerified: !!profile.user?.identityVerifiedAt,
       emailConfirmed: !!signedInWith?.emailVerified,
       emailVerified: signedInWith?.emailVerified,
-      joinedAt: profile.user?.createdAt,
+      joinedAt: profile.createdAt,
       signupCountry: profile.user?.signupCountry ?? null,
       strikeCount: profile._count.strikes,
       botLabeled: !!profile.user?.botLabeledAt,

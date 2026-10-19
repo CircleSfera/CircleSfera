@@ -45,6 +45,11 @@ describe('Public profile fields (e2e)', () => {
         pushMessages: false,
       },
     });
+    // The person signed up long before either Profile was created.
+    await prisma.user.update({
+      where: { id: userId },
+      data: { createdAt: new Date('2020-01-01T00:00:00.000Z') },
+    });
     reporterUserId = (await createUserWithProfile(prisma)).user.id;
   });
 
@@ -84,6 +89,11 @@ describe('Public profile fields (e2e)', () => {
     }
     expect(answers.map((a) => a.body.id)).toEqual([main.id, hobby.id]);
     expect(answers[1].text).not.toContain('What staff wrote');
+    // Each Profile is dated by its own creation, not by the person's
+    // sign-up, which is the same on all their Profiles.
+    for (const { text } of answers) {
+      expect(text).not.toContain('2020-01-01');
+    }
   });
 
   it('keeps a report of a Profile against the person behind it', async () => {
@@ -98,6 +108,15 @@ describe('Public profile fields (e2e)', () => {
       reason: 'SPAM',
     });
 
-    expect(report.targetId).toBe(userId);
+    // Kept against the person; the reporter is never told who that is.
+    const stored = await prisma.report.findUniqueOrThrow({
+      where: { id: report.id },
+    });
+    expect(stored.targetId).toBe(userId);
+    expect(JSON.stringify(report)).not.toContain(userId);
+    const mine = await app
+      .get(ReportsService)
+      .findMyReports(reporter.id, { page: 1, limit: 20 });
+    expect(JSON.stringify(mine)).not.toContain(userId);
   });
 });

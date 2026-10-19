@@ -241,6 +241,12 @@ export class LiveService {
         ErrorCode.CANNOT_INVITE_SELF,
         'Cannot invite yourself as co-host',
       );
+    // Across a block the other Profile is not found, as everywhere else.
+    if (await isBlockedEitherWay(this.prisma, hostProfileId, inviteeProfile.id))
+      throw AppException.NotFound(
+        ErrorCode.USER_NOT_FOUND,
+        'Invited user not found',
+      );
 
     await this.prisma.liveStream.update({
       where: { id: streamId },
