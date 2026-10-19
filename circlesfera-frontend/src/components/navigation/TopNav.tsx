@@ -29,7 +29,8 @@ export default function TopNav() {
         height:
           'calc(var(--nav-top-height, 52px) + env(safe-area-inset-top, 0px))',
         paddingTop: 'env(safe-area-inset-top, 0px)',
-        background: 'rgba(8, 6, 15, 0.9)',
+        // The page's colour, which Safari also gives the bar above it.
+        background: 'color-mix(in srgb, var(--surface-base) 92%, transparent)',
         backdropFilter: 'blur(24px) saturate(200%)',
         WebkitBackdropFilter: 'blur(24px) saturate(200%)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
