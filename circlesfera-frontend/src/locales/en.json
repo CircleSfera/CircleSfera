@@ -4225,7 +4225,17 @@
         "FINANCE_ADMIN": "Finance",
         "SECURITY_ADMIN": "Security",
         "ANALYTICS_ADMIN": "Analytics"
-      }
+      },
+      "enrolment_title": "Authenticator set-up",
+      "enrolment_hint": "This person has no authenticator yet. They set it up with the link sent to their email or with a code you give them in person.",
+      "send_link": "Send the link again",
+      "link_sent": "Link sent to their email",
+      "issue_code": "Create a code",
+      "code_title": "Set-up code",
+      "code_hint": "Give it to the person in person. It is shown only now, works once and expires in {{hours}} hours. Creating it stops the previous link or code from working.",
+      "copy_code": "Copy code",
+      "code_copied": "Code copied",
+      "enrolment_error": "It could not be done. Try again."
     },
     "split": {
       "list_region": "List",
@@ -5216,7 +5226,14 @@
       "heading": "Administrative access",
       "email_placeholder": "admin@circlesfera.com",
       "mfa_hint": "Enter the 6-digit code from your authenticator app.",
-      "back": "Back"
+      "back": "Back",
+      "enrol_title": "Set up your authenticator",
+      "enrol_hint": "To set up the authenticator of your staff access, use the link we sent to your email, or type the code an administrator gave you.",
+      "enrol_code": "Set-up code",
+      "enrol_code_placeholder": "XXXX-XXXX-XXXX",
+      "enrol_continue": "Continue",
+      "enrol_from_link": "Checking your set-up link…",
+      "enrol_invalid": "This link or code does not work: it may have been used or have expired. Ask an administrator for a new one."
     }
   },
   "interactive": {

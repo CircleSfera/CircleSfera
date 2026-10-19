@@ -42,6 +42,7 @@ describe('AdminAuthController', () => {
   const mockService = {
     login: vi.fn(),
     verifyMfa: vi.fn(),
+    enrol: vi.fn(),
     refresh: vi.fn(),
     logout: vi.fn(),
     me: vi.fn(),
@@ -170,13 +171,10 @@ describe('AdminAuthController', () => {
     );
   });
 
-  it('forwards MFA setup fields without setting cookies', async () => {
+  it('asks for the enrolment proof without setting cookies or showing a secret', async () => {
     mockService.login.mockResolvedValue({
-      status: 'MFA_SETUP_REQUIRED',
+      status: 'ENROLMENT_PROOF_REQUIRED',
       mfaToken: 'mfa-token-1',
-      otpauthUrl: 'otpauth://test',
-      secret: 'setup-secret-test',
-      qrCodeDataUrl: 'data:image/png;base64,test',
     });
 
     const res = await request(app.getHttpServer())
@@ -185,15 +183,45 @@ describe('AdminAuthController', () => {
       .expect(200);
 
     expect(res.body).toEqual({
-      status: 'MFA_SETUP_REQUIRED',
+      status: 'ENROLMENT_PROOF_REQUIRED',
       mfaToken: 'mfa-token-1',
-      otpauthUrl: 'otpauth://test',
-      secret: 'setup-secret-test',
-      qrCodeDataUrl: 'data:image/png;base64,test',
     });
     expect(setCookies(res).join('')).not.toContain(
       `${ADMIN_ACCESS_TOKEN_COOKIE}=`,
     );
+  });
+
+  it('enrols with the proof and answers the new secret, still without cookies', async () => {
+    mockService.enrol.mockResolvedValue({
+      status: 'MFA_SETUP_REQUIRED',
+      mfaToken: 'mfa-token-2',
+      otpauthUrl: 'otpauth://test',
+      secret: 'setup-secret-test',
+      qrCodeDataUrl: 'data:image/png;base64,test',
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/enrol')
+      .send({ mfaToken: 'mfa-token-1', proof: 'ABCD-EFGH-JKLM' })
+      .expect(200);
+
+    expect(res.body.secret).toBe('setup-secret-test');
+    expect(mockService.enrol).toHaveBeenCalledWith(
+      'mfa-token-1',
+      'ABCD-EFGH-JKLM',
+      expect.any(Object),
+    );
+    expect(setCookies(res).join('')).not.toContain(
+      `${ADMIN_ACCESS_TOKEN_COOKIE}=`,
+    );
+  });
+
+  it('refuses an enrolment without a proof', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/enrol')
+      .send({ mfaToken: 'mfa-token-1', proof: 'short' })
+      .expect(400);
+    expect(mockService.enrol).not.toHaveBeenCalled();
   });
 
   it('verifies MFA and sets admin cookies', async () => {

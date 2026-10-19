@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { createHash, randomInt } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
@@ -324,7 +325,27 @@ async function main() {
             `  E2E MFA pre-enrolled (ADMIN_E2E_FORCE_TOTP=1). Secret for Playwright only.`,
           );
         } else {
-          console.log(`  MFA enrollment pending on first Admin Panel login.`);
+          // Enrolling the authenticator needs a proof beyond the password:
+          // on a local stand, a set-up code printed here.
+          const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+          let code = '';
+          for (let i = 0; i < 12; i += 1) {
+            code += alphabet[randomInt(alphabet.length)];
+          }
+          await prisma.adminIdentity.update({
+            where: { id: admin.id },
+            data: {
+              enrolmentProofHash: createHash('sha256')
+                .update(code)
+                .digest('hex'),
+              enrolmentProofExpiresAt: new Date(
+                Date.now() + 24 * 60 * 60 * 1000,
+              ),
+            },
+          });
+          console.log(
+            `  Set-up code for the first Admin Panel sign-in (24 h): ${code.match(/.{4}/g)?.join('-')}`,
+          );
         }
       } else {
         await prisma.adminIdentity.update({

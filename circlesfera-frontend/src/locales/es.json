@@ -4225,7 +4225,17 @@
         "FINANCE_ADMIN": "Finanzas",
         "SECURITY_ADMIN": "Seguridad",
         "ANALYTICS_ADMIN": "Analítica"
-      }
+      },
+      "enrolment_title": "Alta del autenticador",
+      "enrolment_hint": "Esta persona aún no tiene autenticador. Lo configura con el enlace enviado a su email o con un código que le des en persona.",
+      "send_link": "Enviar el enlace de nuevo",
+      "link_sent": "Enlace enviado a su email",
+      "issue_code": "Crear un código",
+      "code_title": "Código de alta",
+      "code_hint": "Dáselo en persona. Solo se muestra ahora, sirve una vez y caduca en {{hours}} horas. Al crearlo, el enlace o código anterior deja de funcionar.",
+      "copy_code": "Copiar código",
+      "code_copied": "Código copiado",
+      "enrolment_error": "No se ha podido hacer. Inténtalo de nuevo."
     },
     "split": {
       "list_region": "Lista",
@@ -5216,7 +5226,14 @@
       "heading": "Acceso administrativo",
       "email_placeholder": "admin@circlesfera.com",
       "mfa_hint": "Introduce el código de 6 dígitos de tu app de autenticación.",
-      "back": "Volver"
+      "back": "Volver",
+      "enrol_title": "Configura tu autenticador",
+      "enrol_hint": "Para configurar el autenticador de tu acceso de equipo, usa el enlace que te enviamos al email o escribe el código que te dio un administrador.",
+      "enrol_code": "Código de alta",
+      "enrol_code_placeholder": "XXXX-XXXX-XXXX",
+      "enrol_continue": "Continuar",
+      "enrol_from_link": "Comprobando tu enlace de alta…",
+      "enrol_invalid": "Este enlace o código no funciona: puede que ya se haya usado o que haya caducado. Pide uno nuevo a un administrador."
     }
   },
   "interactive": {

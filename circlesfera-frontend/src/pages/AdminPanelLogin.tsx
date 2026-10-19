@@ -3,7 +3,7 @@ import { Copy, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import logoSrc from '../assets/logo.png';
 import { adminTabPath, getAdminHomeTab } from '../components/admin/adminNav';
 import { Button } from '../components/ui';
@@ -12,7 +12,7 @@ import { useAdminAuthStore } from '../stores/adminAuthStore';
 import { isBackofficeHost } from '../utils/adminPanel';
 import { apiErrorMessage, apiErrorStatus } from '../utils/apiErrorMessage';
 
-type Step = 'credentials' | 'mfa' | 'mfa-setup';
+type Step = 'credentials' | 'enrol' | 'mfa' | 'mfa-setup';
 
 // Admin Panel login — same visual language as platform Login (modal-glass),
 // Distinct copy/flow for staff auth.
@@ -20,6 +20,18 @@ export default function AdminPanelLogin() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const setAdmin = useAdminAuthStore((s) => s.setAdmin);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // The token of the set-up link sent to the staff email, kept in memory and
+  // taken off the address so it stays out of the history.
+  const [linkProof] = useState(() => searchParams.get('enrol') ?? '');
+  useEffect(() => {
+    if (searchParams.has('enrol')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('enrol');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+  const [proof, setProof] = useState('');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,12 +88,11 @@ export default function AdminPanelLogin() {
         setStep('mfa');
         return;
       }
-      if (data.status === 'MFA_SETUP_REQUIRED') {
-        setMfaToken(data.mfaToken);
-        setSecret(data.secret);
-        setQrCodeDataUrl(data.qrCodeDataUrl || '');
-        setStep('mfa-setup');
-      }
+      // No authenticator yet: the link's proof goes at once; without one,
+      // the set-up code is asked for.
+      setMfaToken(data.mfaToken);
+      setStep('enrol');
+      if (linkProof) enrolMutation.mutate({ token: data.mfaToken, linkProof });
     },
     onError: (err: unknown) => {
       // A refused sign-in is wrong credentials, except 403: the account is
@@ -91,6 +102,25 @@ export default function AdminPanelLogin() {
           ? 'adminPanel.login.locked'
           : 'adminPanel.login.invalid';
       setError(apiErrorMessage(err, t, refusedKey, { signIn: true }));
+    },
+  });
+
+  const enrolMutation = useMutation({
+    mutationFn: (args: { token: string; linkProof?: string }) =>
+      adminAuthApi.enrol(args.token, (args.linkProof ?? proof).trim()),
+    onSuccess: ({ data }) => {
+      setError(null);
+      setMfaToken(data.mfaToken);
+      setSecret(data.secret);
+      setQrCodeDataUrl(data.qrCodeDataUrl || '');
+      setStep('mfa-setup');
+    },
+    onError: (err: unknown) => {
+      setError(
+        apiErrorStatus(err) === 403
+          ? t('adminPanel.login.locked')
+          : t('adminPanel.login.enrol_invalid'),
+      );
     },
   });
 
@@ -113,6 +143,12 @@ export default function AdminPanelLogin() {
     e.preventDefault();
     setError(null);
     loginMutation.mutate();
+  };
+
+  const handleEnrolSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    enrolMutation.mutate({ token: mfaToken });
   };
 
   const handleMfaSubmit = (e: React.FormEvent) => {
@@ -205,6 +241,75 @@ export default function AdminPanelLogin() {
                 {t('adminPanel.login.continue')}
               </Button>
             </div>
+          </form>
+        )}
+
+        {step === 'enrol' && (
+          <form
+            onSubmit={handleEnrolSubmit}
+            className="space-y-3 sm:space-y-4 relative z-10"
+          >
+            <div className="p-3 bg-white/5 border border-white/10 rounded-lg space-y-1.5">
+              <h2 className="text-sm font-bold text-white">
+                {t('adminPanel.login.enrol_title')}
+              </h2>
+              <p className="text-xs text-white/70 leading-relaxed">
+                {t('adminPanel.login.enrol_hint')}
+              </p>
+            </div>
+            {enrolMutation.isPending && linkProof ? (
+              <p className="text-sm text-gray-400 text-center" role="status">
+                {t('adminPanel.login.enrol_from_link')}
+              </p>
+            ) : (
+              <div>
+                <label
+                  htmlFor="admin-enrol-code"
+                  className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 px-1"
+                >
+                  {t('adminPanel.login.enrol_code')}
+                </label>
+                <input
+                  id="admin-enrol-code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  value={proof}
+                  onChange={(e) => setProof(e.target.value.slice(0, 20))}
+                  className="w-full min-h-12 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-500 outline-none text-base tracking-widest font-mono text-center uppercase"
+                  placeholder={t('adminPanel.login.enrol_code_placeholder')}
+                />
+              </div>
+            )}
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              variant="white"
+              size="lg"
+              isLoading={enrolMutation.isPending}
+              disabled={enrolMutation.isPending || proof.trim().length < 8}
+              className="button-alone font-black text-sm tracking-wide"
+            >
+              {t('adminPanel.login.enrol_continue')}
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep('credentials');
+                setProof('');
+                setError(null);
+              }}
+              className="w-full min-h-11 text-xs text-gray-400 hover:text-white transition-colors uppercase tracking-wide font-bold"
+            >
+              {t('adminPanel.login.back')}
+            </button>
           </form>
         )}
 

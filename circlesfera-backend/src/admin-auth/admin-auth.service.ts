@@ -14,6 +14,7 @@ import { ADMIN_JWT_AUDIENCE } from '../auth/strategies/admin-jwt.strategy.js';
 import { getAdminJwtSecret } from '../common/config/admin-jwt.config.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { EnrolmentProofService } from './enrolment-proof.service.js';
 
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_MINUTES = 15;
@@ -34,6 +35,8 @@ export class AdminAuthService {
     @Inject(JwtService) private readonly jwtService: JwtService,
     @Inject(ConfigService) private readonly config: ConfigService,
     @Inject(CryptoService) private readonly cryptoService: CryptoService,
+    @Inject(EnrolmentProofService)
+    private readonly enrolmentProof: EnrolmentProofService,
   ) {}
 
   private adminSecret(): string {
@@ -133,13 +136,7 @@ export class AdminAuthService {
     meta: { ip?: string; userAgent?: string },
   ): Promise<
     | { status: 'MFA_REQUIRED'; mfaToken: string }
-    | {
-        status: 'MFA_SETUP_REQUIRED';
-        mfaToken: string;
-        otpauthUrl: string;
-        secret: string;
-        qrCodeDataUrl: string;
-      }
+    | { status: 'ENROLMENT_PROOF_REQUIRED'; mfaToken: string }
   > {
     const admin = await this.loadAdminByEmail(email);
 
@@ -190,44 +187,15 @@ export class AdminAuthService {
     });
 
     // A second factor is mandatory for every member of staff, with no switch
-    // to turn it off: a staff identity with no authenticator is sent to enrol
-    // one.
+    // to turn it off. A staff identity with no authenticator enrols one only
+    // with a proof beyond the password: the link sent to its email or a code
+    // from an administrator. Nothing of the authenticator is shown yet.
     if (!admin.totpEnabled) {
-      // Keep an existing enrollment secret so re-login does not invalidate the authenticator.
-      const secret = admin.totpSecret
-        ? this.cryptoService.decrypt(admin.totpSecret)
-        : generateSecret();
-      if (!admin.totpSecret) {
-        await this.prisma.adminIdentity.update({
-          where: { id: admin.id },
-          data: { totpSecret: this.cryptoService.encrypt(secret) },
-        });
-      }
-      const otpauthUrl = generateURI({
-        issuer: 'CircleSfera Admin Panel',
-        label: admin.email,
-        secret,
-      });
-      const qrCodeDataUrl = await qrcode.toDataURL(otpauthUrl, {
-        margin: 1,
-        width: 220,
-        color: { dark: '#000000', light: '#ffffff' },
-      });
       const mfaToken = this.signAdminToken(
-        {
-          sub: admin.id,
-          email: admin.email,
-          purpose: 'admin-mfa-setup',
-        },
+        { sub: admin.id, email: admin.email, purpose: 'admin-enrol-proof' },
         MFA_TOKEN_TTL,
       );
-      return {
-        status: 'MFA_SETUP_REQUIRED',
-        mfaToken,
-        otpauthUrl,
-        secret,
-        qrCodeDataUrl,
-      };
+      return { status: 'ENROLMENT_PROOF_REQUIRED', mfaToken };
     }
 
     const mfaToken = this.signAdminToken(
@@ -239,6 +207,102 @@ export class AdminAuthService {
       MFA_TOKEN_TTL,
     );
     return { status: 'MFA_REQUIRED', mfaToken };
+  }
+
+  // The proof beyond the password, given after it: once it is spent, a new
+  // authenticator secret is made and shown, this once, to be confirmed with
+  // its first code at the MFA step. A wrong proof counts like a wrong
+  // password towards the lockout.
+  async enrol(
+    mfaToken: string,
+    proof: string,
+    meta: { ip?: string; userAgent?: string },
+  ): Promise<{
+    status: 'MFA_SETUP_REQUIRED';
+    mfaToken: string;
+    otpauthUrl: string;
+    secret: string;
+    qrCodeDataUrl: string;
+  }> {
+    let payload: { sub: string; email: string; purpose?: string };
+    try {
+      payload = this.jwtService.verify(mfaToken, {
+        secret: this.adminSecret(),
+        audience: ADMIN_JWT_AUDIENCE,
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
+    if (payload.purpose !== 'admin-enrol-proof') {
+      throw new UnauthorizedException('Invalid MFA token purpose');
+    }
+
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id: payload.sub },
+    });
+    if (admin?.status !== 'ACTIVE' || admin.totpEnabled) {
+      throw new UnauthorizedException('Enrolment not available');
+    }
+    if (admin.lockedUntil && admin.lockedUntil > new Date()) {
+      throw new ForbiddenException('Account temporarily locked');
+    }
+
+    if (!(await this.enrolmentProof.consume(admin.id, proof))) {
+      const updated = await this.prisma.adminIdentity.update({
+        where: { id: admin.id },
+        data: { failedLoginCount: { increment: 1 } },
+      });
+      if (updated.failedLoginCount >= LOCKOUT_THRESHOLD) {
+        await this.prisma.adminIdentity.update({
+          where: { id: admin.id },
+          data: {
+            lockedUntil: new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000),
+          },
+        });
+      }
+      await this.prisma.adminAuditLog.create({
+        data: {
+          adminId: admin.id,
+          action: 'ADMIN_LOGIN_FAILED',
+          targetType: 'admin',
+          targetId: admin.id,
+          details: 'Invalid enrolment proof',
+          ipAddress: meta.ip,
+          userAgent: meta.userAgent,
+        },
+      });
+      throw new UnauthorizedException('Invalid enrolment proof');
+    }
+
+    // A fresh secret for each proof: one shown before is never shown again.
+    const secret = generateSecret();
+    await this.prisma.adminIdentity.update({
+      where: { id: admin.id },
+      data: {
+        totpSecret: this.cryptoService.encrypt(secret),
+        failedLoginCount: 0,
+      },
+    });
+    const otpauthUrl = generateURI({
+      issuer: 'CircleSfera Admin Panel',
+      label: admin.email,
+      secret,
+    });
+    const qrCodeDataUrl = await qrcode.toDataURL(otpauthUrl, {
+      margin: 1,
+      width: 220,
+      color: { dark: '#000000', light: '#ffffff' },
+    });
+    return {
+      status: 'MFA_SETUP_REQUIRED',
+      mfaToken: this.signAdminToken(
+        { sub: admin.id, email: admin.email, purpose: 'admin-mfa-setup' },
+        MFA_TOKEN_TTL,
+      ),
+      otpauthUrl,
+      secret,
+      qrCodeDataUrl,
+    };
   }
 
   async verifyMfa(

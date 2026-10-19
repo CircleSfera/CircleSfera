@@ -62,6 +62,9 @@ describe('AdminAuthService', () => {
       ...extra,
     });
 
+  // The proof beyond the password; each test says whether it is right.
+  const mockEnrolmentProof = { consume: vi.fn() };
+
   const mockCryptoService = {
     encrypt: vi.fn((val: string) => `enc:${val}`),
     decrypt: vi.fn((val: string) =>
@@ -108,6 +111,7 @@ describe('AdminAuthService', () => {
       jwtService,
       config,
       mockCryptoService as unknown as CryptoService,
+      mockEnrolmentProof as never,
     );
   });
 
@@ -139,6 +143,7 @@ describe('AdminAuthService', () => {
         jwtService,
         prodConfig,
         mockCryptoService as unknown as CryptoService,
+        mockEnrolmentProof as never,
       );
 
       expect(() => (prodService as any).adminSecret()).toThrow(
@@ -157,6 +162,7 @@ describe('AdminAuthService', () => {
         jwtService,
         devConfig,
         mockCryptoService as unknown as CryptoService,
+        mockEnrolmentProof as never,
       );
 
       expect((devService as any).adminSecret()).toBe(
@@ -166,7 +172,7 @@ describe('AdminAuthService', () => {
   });
 
   describe('TOTP encryption at rest', () => {
-    it('encrypts newly generated TOTP secret during first-time MFA enrollment', async () => {
+    it('asks a staff member with no authenticator for a proof beyond the password, and shows nothing of it yet', async () => {
       const passwordHash = await argon2.hash('admin-password-123');
       withSignInPassword(passwordHash);
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
@@ -177,40 +183,7 @@ describe('AdminAuthService', () => {
         failedLoginCount: 0,
         lockedUntil: null,
         totpEnabled: false,
-        totpSecret: null,
-        roles: [],
-      });
-
-      const result = await service.login(
-        'admin@circlesfera.com',
-        'admin-password-123',
-        { ip: '127.0.0.1', userAgent: 'test-agent' },
-      );
-
-      expect(mockCryptoService.encrypt).toHaveBeenCalledWith(
-        'NEW_GENERATED_BASE32_SECRET',
-      );
-      expect(mockPrisma.adminIdentity.update).toHaveBeenCalledWith({
-        where: { id: 'admin-1' },
-        data: { totpSecret: 'enc:NEW_GENERATED_BASE32_SECRET' },
-      });
-      expect(result.status).toBe('MFA_SETUP_REQUIRED');
-      if (result.status === 'MFA_SETUP_REQUIRED') {
-        expect(result.qrCodeDataUrl).toBeDefined();
-      }
-    });
-
-    it('decrypts existing pending secret when generating enrollment QR on subsequent login', async () => {
-      const passwordHash = await argon2.hash('admin-password-123');
-      withSignInPassword(passwordHash);
-      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
-        id: 'admin-1',
-        email: 'admin@circlesfera.com',
-        linkedUserId: 'user-1',
-        status: 'ACTIVE',
-        failedLoginCount: 0,
-        lockedUntil: null,
-        totpEnabled: false,
+        // A secret made at an earlier attempt is never shown again.
         totpSecret: 'enc:base32-admin-secret',
         roles: [],
       });
@@ -221,15 +194,125 @@ describe('AdminAuthService', () => {
         { ip: '127.0.0.1', userAgent: 'test-agent' },
       );
 
-      expect(mockCryptoService.decrypt).toHaveBeenCalledWith(
-        'enc:base32-admin-secret',
-      );
+      expect(result).toEqual({
+        status: 'ENROLMENT_PROOF_REQUIRED',
+        mfaToken: expect.any(String),
+      });
+      expect(jwt.decode(result.mfaToken)).toMatchObject({
+        sub: 'admin-1',
+        purpose: 'admin-enrol-proof',
+      });
+      expect(mockCryptoService.decrypt).not.toHaveBeenCalled();
       expect(mockPrisma.adminIdentity.update).not.toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ totpSecret: expect.anything() }),
         }),
       );
-      expect(result.status).toBe('MFA_SETUP_REQUIRED');
+    });
+
+    describe('enrolling with the proof beyond the password', () => {
+      const enrolToken = (purpose = 'admin-enrol-proof') =>
+        jwtService.sign(
+          { sub: 'admin-1', email: 'admin@circlesfera.com', purpose },
+          { secret: adminSecret, audience: 'circlesfera-admin' },
+        );
+      const awaiting = (over: object = {}) =>
+        mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+          id: 'admin-1',
+          email: 'admin@circlesfera.com',
+          status: 'ACTIVE',
+          totpEnabled: false,
+          lockedUntil: null,
+          failedLoginCount: 0,
+          ...over,
+        });
+
+      it('spends the proof, then makes, keeps encrypted and shows a new secret once', async () => {
+        awaiting();
+        mockEnrolmentProof.consume.mockResolvedValueOnce(true);
+
+        const result = await service.enrol(enrolToken(), 'ABCD-EFGH-JKLM', {});
+
+        expect(mockEnrolmentProof.consume).toHaveBeenCalledWith(
+          'admin-1',
+          'ABCD-EFGH-JKLM',
+        );
+        expect(mockPrisma.adminIdentity.update).toHaveBeenCalledWith({
+          where: { id: 'admin-1' },
+          data: {
+            totpSecret: 'enc:NEW_GENERATED_BASE32_SECRET',
+            failedLoginCount: 0,
+          },
+        });
+        expect(result).toMatchObject({
+          status: 'MFA_SETUP_REQUIRED',
+          secret: 'NEW_GENERATED_BASE32_SECRET',
+          qrCodeDataUrl: expect.stringContaining('data:image/png'),
+        });
+        // Confirmed with its first code at the MFA step.
+        expect(jwt.decode(result.mfaToken)).toMatchObject({
+          purpose: 'admin-mfa-setup',
+        });
+      });
+
+      it('refuses a wrong proof, writes it down and counts it towards the lockout', async () => {
+        awaiting({ failedLoginCount: 4 });
+        mockEnrolmentProof.consume.mockResolvedValueOnce(false);
+        mockPrisma.adminIdentity.update.mockResolvedValueOnce({
+          failedLoginCount: 5,
+        });
+
+        await expect(
+          service.enrol(enrolToken(), 'WRONG-PROOF', { ip: '1.2.3.4' }),
+        ).rejects.toThrow('Invalid enrolment proof');
+
+        expect(mockPrisma.adminIdentity.update).toHaveBeenCalledWith({
+          where: { id: 'admin-1' },
+          data: { failedLoginCount: { increment: 1 } },
+        });
+        expect(mockPrisma.adminIdentity.update).toHaveBeenCalledWith({
+          where: { id: 'admin-1' },
+          data: { lockedUntil: expect.any(Date) },
+        });
+        expect(mockPrisma.adminAuditLog.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            action: 'ADMIN_LOGIN_FAILED',
+            details: 'Invalid enrolment proof',
+            ipAddress: '1.2.3.4',
+          }),
+        });
+        expect(mockCryptoService.encrypt).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ['a token of another step', () => enrolToken('admin-mfa'), {}],
+        ['a token that is not one', () => 'not-a-token', {}],
+        [
+          'an identity that already has its authenticator',
+          () => enrolToken(),
+          { totpEnabled: true },
+        ],
+        [
+          'an identity that is not active',
+          () => enrolToken(),
+          { status: 'DISABLED' },
+        ],
+        [
+          'an identity locked out',
+          () => enrolToken(),
+          { lockedUntil: new Date(Date.now() + 60_000) },
+        ],
+      ])(
+        'refuses %s without looking at the proof',
+        async (_name, token, over) => {
+          awaiting(over);
+
+          await expect(
+            service.enrol(token(), 'ANY-PROOF', {}),
+          ).rejects.toThrow();
+          expect(mockEnrolmentProof.consume).not.toHaveBeenCalled();
+        },
+      );
     });
 
     it('decrypts encrypted TOTP secret during verifyMfa and issues tokens', async () => {
@@ -596,7 +679,8 @@ describe('AdminAuthService', () => {
         'admin-password',
         {},
       );
-      expect(result.status).toBe('MFA_SETUP_REQUIRED');
+      expect(result.status).toBe('ENROLMENT_PROOF_REQUIRED');
+      expect(result).not.toHaveProperty('secret');
       expect(result).not.toHaveProperty('tokens');
       expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
     });
