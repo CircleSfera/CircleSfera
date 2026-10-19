@@ -1,7 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { RefreshCw, Scale } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import {
   type IllegalNotice,
   type IllegalNoticeStatus,
@@ -19,20 +24,42 @@ import { adminToast } from './adminToast';
  * Notices of illegal content from anyone, with or without an account
  * (Digital Services Act Art. 16). Child sexual abuse material comes first.
  * Staff decide each one with the reasons, which are emailed to the notifier.
+ * Each tab is read a page at a time, most recent first, and the next page
+ * loads as staff scroll near the end.
  */
 export default function IllegalNoticesTab() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<IllegalNoticeStatus>('RECEIVED');
 
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['admin', 'illegal-notices', status],
-    queryFn: () => illegalNoticesApi.list(status).then((r) => r.data),
+    queryFn: ({ pageParam }) =>
+      illegalNoticesApi
+        .page(status, pageParam || undefined)
+        .then((r) => r.data),
+    initialPageParam: '',
+    getNextPageParam: (last) => last.nextCursor || undefined,
   });
+  const notices = data?.pages.flatMap((p) => p.items ?? []) ?? [];
+  const loadMoreRef = useInfiniteScroll(
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  );
 
   const rows = (
     <div className="space-y-2">
-      {data?.map((notice) => (
+      {notices.map((notice) => (
         <NoticeRow
           key={notice.id}
           notice={notice}
@@ -91,13 +118,15 @@ export default function IllegalNoticesTab() {
       ) : (
         <AdminList
           loading={isLoading}
-          isEmpty={!data?.length}
+          isEmpty={notices.length === 0}
           emptyTitle={t('admin.illegal_notices.empty_title')}
           emptyDescription={t('admin.illegal_notices.empty_description')}
           mobile={rows}
           desktop={rows}
         />
       )}
+      {/* Outside the list, which is drawn twice, once hidden. */}
+      {hasNextPage && <div ref={loadMoreRef} aria-hidden className="h-1" />}
     </div>
   );
 }
