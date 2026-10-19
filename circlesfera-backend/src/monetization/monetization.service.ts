@@ -380,14 +380,27 @@ export class MonetizationService {
         `Minimum tip is €${(MIN_TIP_CENTS / 100).toFixed(2)}`,
       );
     }
-    if (senderId === receiverId)
+    // The app names the Profile tipped; the person behind it is paid. A
+    // person's id is still accepted, named by their first Profile.
+    const tipped =
+      (await this.prisma.profile.findUnique({
+        where: { id: receiverId },
+        select: { userId: true, username: true },
+      })) ??
+      (await this.prisma.profile.findFirst({
+        where: { userId: receiverId },
+        orderBy: { createdAt: 'asc' },
+        select: { userId: true, username: true },
+      }));
+    const receiverUserId = tipped?.userId ?? receiverId;
+    if (senderId === receiverUserId)
       throw AppException.BadRequest(
         ErrorCode.CANNOT_TIP_SELF,
         'Cannot tip yourself',
       );
 
     const receiver = await this.prisma.user.findUnique({
-      where: { id: receiverId },
+      where: { id: receiverUserId },
     });
     if (!receiver?.stripeConnectAccountId) {
       throw AppException.BadRequest(
@@ -410,11 +423,12 @@ export class MonetizationService {
       buyerEmail: sender.email,
       priceCents: amountCents,
       productName: 'Creator Tip',
-      description: `Tip for ${receiver.email}`,
+      // Who pays sees the Profile they tip, never the creator's email.
+      description: tipped ? `Tip for @${tipped.username}` : 'Creator Tip',
       creatorStripeAccountId: receiver.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_TIP',
-        creatorId: receiverId,
+        creatorId: receiverUserId,
         postId: postId || '',
       },
       returnUrl,

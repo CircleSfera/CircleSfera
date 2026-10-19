@@ -20,6 +20,7 @@ describe('MonetizationService', () => {
     },
     profile: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
     transaction: {
       findMany: vi.fn(),
@@ -718,6 +719,55 @@ describe('MonetizationService', () => {
         }),
         { idempotencyKey: 'idemp-tip' },
       );
+    });
+
+    it('pays the person behind the Profile tipped, and shows who pays the Profile, never an email', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'creator-1',
+        username: 'ana_hobby',
+      });
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({
+          id: 'creator-1',
+          email: 'creator@example.com',
+          stripeConnectAccountId: 'acct_1',
+        })
+        .mockResolvedValueOnce({ id: 'fan-1', email: 'fan@example.com' });
+      mockStripeService.createCheckoutSession.mockResolvedValue({
+        url: 'https://checkout.stripe.test/tip',
+      });
+
+      await service.createTipSession(
+        'fan-1',
+        'hobby-profile',
+        tipCents,
+        'http://localhost/return',
+      );
+
+      expect(mockPrismaService.user.findUnique).toHaveBeenNthCalledWith(1, {
+        where: { id: 'creator-1' },
+      });
+      const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
+      expect(session.metadata.creatorId).toBe('creator-1');
+      expect(JSON.stringify(session)).toContain('Tip for @ana_hobby');
+      expect(JSON.stringify(session)).not.toContain('creator@example.com');
+    });
+
+    it('refuses a tip to another Profile of oneself', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'fan-1',
+        username: 'my_other_profile',
+      });
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'my-other-profile',
+          tipCents,
+          'http://localhost/return',
+        ),
+      ).rejects.toThrow('Cannot tip yourself');
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
     it('creates Checkout with omitted postId defaulting to empty string in metadata', async () => {

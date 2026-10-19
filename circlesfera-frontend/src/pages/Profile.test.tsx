@@ -32,6 +32,7 @@ vi.mock('../components/profile/ProfileHeader', () => ({
     handleMessageClick: () => void;
     isMe: boolean;
     setShowReportModal: (show: boolean) => void;
+    setShowTipModal: (show: boolean) => void;
   }) => (
     <div>
       <span>{props.isMe ? 'own header' : 'other header'}</span>
@@ -41,7 +42,15 @@ vi.mock('../components/profile/ProfileHeader', () => ({
       <button type="button" onClick={() => props.setShowReportModal(true)}>
         report
       </button>
+      <button type="button" onClick={() => props.setShowTipModal(true)}>
+        tip
+      </button>
     </div>
+  ),
+}));
+vi.mock('../components/monetization/TipModal', () => ({
+  default: (props: { receiverId: string }) => (
+    <div>tip to {props.receiverId}</div>
   ),
 }));
 vi.mock('../components/modals/ReportModal', () => ({
@@ -104,6 +113,14 @@ describe('Profile', () => {
     expect(await screen.findByText('grid:post-1')).toBeInTheDocument();
     expect(screen.getByText('other header')).toBeInTheDocument();
     expect(postsApi.getByUser).toHaveBeenCalledWith('ana', 1, 18, 'POST');
+  });
+
+  it('tips the Profile itself, never the person behind it', async () => {
+    renderAt();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'tip' }));
+
+    expect(await screen.findByText('tip to prof-ana')).toBeInTheDocument();
   });
 
   it('reports the Profile itself, never the person behind it', async () => {

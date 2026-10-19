@@ -18,6 +18,11 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
           findUnique: vi.fn(),
           findMany: vi.fn().mockResolvedValue([]),
         },
+        // A tip names a Profile; these tests name the person directly.
+        profile: {
+          findUnique: vi.fn().mockResolvedValue(null),
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
         post: {
           findUnique: vi.fn(),
         },

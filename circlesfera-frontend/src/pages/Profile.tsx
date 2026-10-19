@@ -740,7 +740,7 @@ export default function Profile() {
           <TipModal
             isOpen={showTipModal}
             onClose={() => setShowTipModal(false)}
-            receiverId={profile.data.userId}
+            receiverId={profile.data.id}
             receiverName={profile.data.username}
           />
         )}
