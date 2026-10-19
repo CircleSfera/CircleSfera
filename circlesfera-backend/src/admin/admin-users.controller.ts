@@ -29,6 +29,7 @@ import {
   BroadcastEmailDto,
 } from './dto/broadcast-email.dto.js';
 import { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
+import { StaffListPageDto } from './dto/staff-list-page.dto.js';
 import { CreateStaffNoteDto } from './dto/staff-note.dto.js';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto.js';
 import { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
@@ -254,6 +255,16 @@ export class AdminUsersController {
   @Get('users/:id/notes')
   async getStaffNotes(@Param('id') id: string) {
     return this.adminUsersService.getStaffNotes(id);
+  }
+
+  // The notes a page at a time, newest first.
+  @RequireStaffPermissions('users.read')
+  @Get('users/:id/notes/page')
+  async getStaffNotesPage(
+    @Param('id') id: string,
+    @Query() q: StaffListPageDto,
+  ) {
+    return this.adminUsersService.getStaffNotesPage(id, q.cursor, q.limit);
   }
 
   // Whoever may read an account may leave a note on it: a note is not a

@@ -216,6 +216,12 @@ export interface RecurringIncomeDay {
 }
 
 /** A domain no link on a story may point to, nor its subdomains. */
+// A page of a staff list; nextCursor is null on the last page.
+export interface StaffListPage<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
 export interface BlockedLinkDomain {
   id: string;
   domain: string;
@@ -971,8 +977,11 @@ export const adminApi = {
     apiClient.patch(`admin/profiles/${profileId}/lift-suspension`),
 
   // The notes the staff left on an account, newest first.
-  getStaffNotes: (id: string) =>
-    apiClient.get<StaffNote[]>(`admin/users/${id}/notes`),
+  // The notes a page at a time, newest first.
+  getStaffNotesPage: (id: string, cursor?: string) =>
+    apiClient.get<StaffListPage<StaffNote>>(`admin/users/${id}/notes/page`, {
+      params: cursor ? { cursor } : undefined,
+    }),
 
   addStaffNote: (id: string, body: string) =>
     apiClient.post<StaffNote>(`admin/users/${id}/notes`, { body }),
@@ -1171,9 +1180,13 @@ export const adminApi = {
     }),
 
   // Hides a hashtag from people, or shows it again.
-  getLinkDomains: (search?: string) =>
-    apiClient.get<BlockedLinkDomain[]>('admin/link-domains', {
-      params: search ? { search } : undefined,
+  // The blocked domains a page at a time, in alphabetical order.
+  getLinkDomainsPage: (search?: string, cursor?: string) =>
+    apiClient.get<StaffListPage<BlockedLinkDomain>>('admin/link-domains/page', {
+      params:
+        search || cursor
+          ? { ...(search && { search }), ...(cursor && { cursor }) }
+          : undefined,
     }),
 
   blockLinkDomain: (domain: string, reason?: string) =>

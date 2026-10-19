@@ -142,9 +142,56 @@ describe('the domains staff block for links', () => {
     });
   });
 
+  it('are read a page at a time, in order, after the last domain of the page before', async () => {
+    const row = (domain: string) => ({ id: domain, domain });
+    s.prisma.blockedLinkDomain.findMany.mockResolvedValueOnce([
+      row('a.example'),
+      row('b.example'),
+      row('c.example'),
+    ]);
+
+    const first = await s.service.listPage(undefined, undefined, 2);
+
+    expect(first.items.map((r) => r.domain)).toEqual([
+      'a.example',
+      'b.example',
+    ]);
+    expect(s.prisma.blockedLinkDomain.findMany.mock.calls[0][0]).toMatchObject({
+      where: { domain: {} },
+      orderBy: { domain: 'asc' },
+      take: 3,
+    });
+    expect(first.nextCursor).toEqual(expect.any(String));
+
+    s.prisma.blockedLinkDomain.findMany.mockResolvedValueOnce([
+      row('c.example'),
+    ]);
+    const second = await s.service.listPage(' EX ', first.nextCursor ?? '', 2);
+
+    expect(s.prisma.blockedLinkDomain.findMany.mock.calls[1][0].where).toEqual({
+      domain: { contains: 'ex', gt: 'b.example' },
+    });
+    expect(second).toEqual({ items: [row('c.example')], nextCursor: null });
+  });
+
+  it('start a page from the top when the cursor is not one they wrote, and keep its length within bounds', async () => {
+    await s.service.listPage(
+      undefined,
+      Buffer.from('<x>').toString('base64url'),
+    );
+    await s.service.listPage(undefined, undefined, 500);
+    await s.service.listPage(undefined, undefined, 0);
+    await s.service.listPage();
+
+    const calls = s.prisma.blockedLinkDomain.findMany.mock.calls;
+    expect(calls[0][0].where).toEqual({ domain: {} });
+    expect(calls.map((c) => c[0].take)).toEqual([31, 51, 2, 31]);
+  });
+
   it('are reached through staff routes that pass the staff member on', async () => {
     const service = {
       list: vi.fn(),
+      listPage: vi.fn(),
       block: vi.fn(),
       unblock: vi.fn(),
     };
@@ -152,10 +199,12 @@ describe('the domains staff block for links', () => {
     const admin = { adminId: 'admin-1' } as never;
 
     controller.list('ev');
+    controller.page({ search: 'ev', cursor: 'c', limit: 10 });
     controller.block({ domain: 'evil.example', reason: 'x' }, admin);
     controller.unblock('d-1', admin);
 
     expect(service.list).toHaveBeenCalledWith('ev');
+    expect(service.listPage).toHaveBeenCalledWith('ev', 'c', 10);
     expect(service.block).toHaveBeenCalledWith('admin-1', 'evil.example', 'x');
     expect(service.unblock).toHaveBeenCalledWith('admin-1', 'd-1');
   });

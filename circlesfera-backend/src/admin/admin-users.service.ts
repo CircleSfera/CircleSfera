@@ -14,6 +14,11 @@ import { linkedAccountsWhere } from '../common/abuse/linked-accounts.js';
 import { computeTrustScore } from '../common/abuse/trust-score.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { FIRST_SIGN_IN_ORDER } from '../common/auth/sign-in-lookup.js';
+import {
+  decodeKeysetCursor,
+  encodeKeysetCursor,
+  keysetBeforeDesc,
+} from '../common/pagination/keyset.util.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -25,6 +30,10 @@ import type {
   BroadcastEmailDto,
 } from './dto/broadcast-email.dto.js';
 import type { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
+import {
+  STAFF_LIST_PAGE_DEFAULT,
+  STAFF_LIST_PAGE_MAX,
+} from './dto/staff-list-page.dto.js';
 import type { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
 import { resolveAdminNotificationSenderId } from './utils/resolve-admin-notification-sender.js';
 import { userListRoleWhere } from './utils/user-list-role-filter.js';
@@ -98,6 +107,29 @@ export function parseBroadcastLog(details: string | null) {
     sent: Number(found[2]),
     failed: Number(found[3]),
     audience: found[4] ? found[4].split(', ') : [],
+  };
+}
+
+// What a staff note shows: who wrote it, or null once that staff identity
+// is deleted.
+const STAFF_NOTE_SELECT = {
+  id: true,
+  body: true,
+  createdAt: true,
+  author: { select: { displayName: true } },
+} as const;
+
+function toStaffNote(note: {
+  id: string;
+  body: string;
+  createdAt: Date;
+  author: { displayName: string } | null;
+}) {
+  return {
+    id: note.id,
+    body: note.body,
+    createdAt: note.createdAt,
+    author: note.author?.displayName ?? null,
   };
 }
 
@@ -616,19 +648,37 @@ export class AdminUsersService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 100,
-      select: {
-        id: true,
-        body: true,
-        createdAt: true,
-        author: { select: { displayName: true } },
-      },
+      select: STAFF_NOTE_SELECT,
     });
-    return notes.map((note) => ({
-      id: note.id,
-      body: note.body,
-      createdAt: note.createdAt,
-      author: note.author?.displayName ?? null,
-    }));
+    return notes.map(toStaffNote);
+  }
+
+  // One page of the notes, newest first. The cursor names the last note of
+  // the page before (its createdAt and id), so the next page starts strictly
+  // after it however many notes there are; a malformed cursor starts from
+  // the top. nextCursor is null on the last page.
+  async getStaffNotesPage(
+    userId: string,
+    cursor?: string,
+    limit: number = STAFF_LIST_PAGE_DEFAULT,
+  ) {
+    const take = Math.min(Math.max(limit, 1), STAFF_LIST_PAGE_MAX);
+    const after = cursor ? decodeKeysetCursor(cursor) : null;
+    const rows = await this.prisma.staffNote.findMany({
+      where: { userId, ...(after && keysetBeforeDesc(after)) },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+      select: STAFF_NOTE_SELECT,
+    });
+    const items = rows.slice(0, take);
+    const last = items.at(-1);
+    return {
+      items: items.map(toStaffNote),
+      nextCursor:
+        rows.length > take && last
+          ? encodeKeysetCursor({ createdAt: last.createdAt, id: last.id })
+          : null,
+    };
   }
 
   // A note is added, never edited or deleted. It changes nothing in the

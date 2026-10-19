@@ -162,10 +162,16 @@ const cases: Case[] = [
     ['admin/profiles/p1/lift-suspension'],
   ],
   [
-    'getStaffNotes',
-    () => adminApi.getStaffNotes('u1'),
+    'getStaffNotesPage',
+    () => adminApi.getStaffNotesPage('u1'),
     'get',
-    ['admin/users/u1/notes'],
+    ['admin/users/u1/notes/page', { params: undefined }],
+  ],
+  [
+    'getStaffNotesPage after a cursor',
+    () => adminApi.getStaffNotesPage('u1', 'c1'),
+    'get',
+    ['admin/users/u1/notes/page', { params: { cursor: 'c1' } }],
   ],
   [
     'addStaffNote',
@@ -457,16 +463,22 @@ const cases: Case[] = [
     ],
   ],
   [
-    'getLinkDomains',
-    () => adminApi.getLinkDomains(),
+    'getLinkDomainsPage',
+    () => adminApi.getLinkDomainsPage(),
     'get',
-    ['admin/link-domains', { params: undefined }],
+    ['admin/link-domains/page', { params: undefined }],
   ],
   [
-    'getLinkDomains searched',
-    () => adminApi.getLinkDomains('evil'),
+    'getLinkDomainsPage searched',
+    () => adminApi.getLinkDomainsPage('evil'),
     'get',
-    ['admin/link-domains', { params: { search: 'evil' } }],
+    ['admin/link-domains/page', { params: { search: 'evil' } }],
+  ],
+  [
+    'getLinkDomainsPage searched after a cursor',
+    () => adminApi.getLinkDomainsPage('evil', 'c1'),
+    'get',
+    ['admin/link-domains/page', { params: { search: 'evil', cursor: 'c1' } }],
   ],
   [
     'blockLinkDomain',

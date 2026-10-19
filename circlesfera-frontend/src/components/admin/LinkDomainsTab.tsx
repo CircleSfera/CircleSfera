@@ -1,9 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { Link2Off, RefreshCw, Unlock } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { adminApi, type BlockedLinkDomain } from '../../services/admin.service';
 import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
@@ -31,13 +36,33 @@ export default function LinkDomainsTab() {
   const debouncedSearch = useDebouncedValue(search, 400);
   const [toUnblock, setToUnblock] = useState<BlockedLinkDomain | null>(null);
 
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['admin', 'link-domains', debouncedSearch],
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       adminApi
-        .getLinkDomains(debouncedSearch.trim() || undefined)
+        .getLinkDomainsPage(
+          debouncedSearch.trim() || undefined,
+          pageParam || undefined,
+        )
         .then((r) => r.data),
+    initialPageParam: '',
+    getNextPageParam: (last) => last.nextCursor || undefined,
   });
+  const domains = data?.pages.flatMap((p) => p.items ?? []) ?? [];
+  const loadMoreRef = useInfiniteScroll(
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  );
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ['admin', 'link-domains'] });
 
@@ -82,7 +107,7 @@ export default function LinkDomainsTab() {
 
   const rows = (
     <div className="space-y-2">
-      {data?.map((row) => (
+      {domains.map((row) => (
         <AdminListRow
           key={row.id}
           title={
@@ -210,13 +235,16 @@ export default function LinkDomainsTab() {
       ) : (
         <AdminList
           loading={isLoading}
-          isEmpty={!data?.length}
+          isEmpty={domains.length === 0}
           emptyTitle={t('admin.link_domains.empty_title')}
           emptyDescription={t('admin.link_domains.empty_description')}
           mobile={rows}
           desktop={rows}
         />
       )}
+
+      {/* Outside the list, which is drawn twice, once hidden. */}
+      {hasNextPage && <div ref={loadMoreRef} aria-hidden className="h-1" />}
 
       <ConfirmModal
         isOpen={toUnblock !== null}

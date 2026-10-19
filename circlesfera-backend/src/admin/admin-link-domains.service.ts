@@ -8,6 +8,10 @@ import {
 } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  STAFF_LIST_PAGE_DEFAULT,
+  STAFF_LIST_PAGE_MAX,
+} from './dto/staff-list-page.dto.js';
 import { LogAdminActionUseCase } from './use-cases/content/commands/log-admin-action.use-case.js';
 
 /** A domain as staff type it, as the server writes a link's host. */
@@ -24,6 +28,21 @@ export function normaliseDomain(raw: string): string {
     throw new BadRequestException('DOMAIN_INVALID');
   }
   return host;
+}
+
+const DOMAIN_SELECT = {
+  id: true,
+  domain: true,
+  reason: true,
+  createdAt: true,
+  createdBy: { select: { id: true, displayName: true } },
+} as const;
+
+// The domain a page of the list ended on, or null when the cursor is not
+// one this service wrote.
+function decodeDomainCursor(cursor: string): string | null {
+  const domain = Buffer.from(cursor, 'base64url').toString('utf8');
+  return /^[a-z0-9._-]{1,253}$/.test(domain) ? domain : null;
 }
 
 /**
@@ -44,14 +63,42 @@ export class AdminLinkDomainsService {
         : undefined,
       orderBy: { domain: 'asc' },
       take: 200,
-      select: {
-        id: true,
-        domain: true,
-        reason: true,
-        createdAt: true,
-        createdBy: { select: { id: true, displayName: true } },
-      },
+      select: DOMAIN_SELECT,
     });
+  }
+
+  // One page of the list, in alphabetical order. The cursor names the last
+  // domain of the page before, so the next page starts strictly after it
+  // however long the list is; a malformed cursor starts from the top.
+  // nextCursor is null on the last page.
+  async listPage(
+    search?: string,
+    cursor?: string,
+    limit: number = STAFF_LIST_PAGE_DEFAULT,
+  ) {
+    const take = Math.min(Math.max(limit, 1), STAFF_LIST_PAGE_MAX);
+    const after = cursor ? decodeDomainCursor(cursor) : null;
+    const text = search?.trim().toLowerCase();
+    const rows = await this.prisma.blockedLinkDomain.findMany({
+      where: {
+        domain: {
+          ...(text && { contains: text }),
+          ...(after !== null && { gt: after }),
+        },
+      },
+      orderBy: { domain: 'asc' },
+      take: take + 1,
+      select: DOMAIN_SELECT,
+    });
+    const items = rows.slice(0, take);
+    const last = items.at(-1);
+    return {
+      items,
+      nextCursor:
+        rows.length > take && last
+          ? Buffer.from(last.domain).toString('base64url')
+          : null,
+    };
   }
 
   async block(adminId: string, rawDomain: string, reason?: string) {
