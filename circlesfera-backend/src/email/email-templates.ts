@@ -188,6 +188,19 @@ export const EmailTemplates = {
     };
   },
 
+  staffEnrolment: (ctx: EmailContext, url: string): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.staffEnrolment.subject,
+      html: layout(ctx, copy, {
+        title: copy.staffEnrolment.title,
+        content: copy.staffEnrolment.body,
+        button: { text: copy.staffEnrolment.button, url },
+        note: copy.staffEnrolment.footer,
+      }),
+    };
+  },
+
   passwordReset: (ctx: EmailContext, url: string): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
     return {

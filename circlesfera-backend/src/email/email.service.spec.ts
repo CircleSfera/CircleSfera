@@ -209,6 +209,23 @@ describe('EmailService', () => {
       );
     });
 
+    it('enqueues the link that enrols a staff authenticator, with the link as its button', async () => {
+      await service.sendStaffEnrolmentEmail(
+        'staff@example.com',
+        'https://admin.example.test/login?enrol=tok123',
+      );
+      expect(mockEmailQueue.add).toHaveBeenCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({
+          to: 'staff@example.com',
+          subject: 'Configura tu acceso de equipo en CircleSfera',
+          html: expect.stringContaining(
+            'https://admin.example.test/login?enrol=tok123',
+          ),
+        }),
+      );
+    });
+
     it('should enqueue a broadcast email with and without button', async () => {
       await service.sendBroadcastEmail(
         'user@example.com',

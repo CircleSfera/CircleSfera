@@ -23,7 +23,12 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../services/admin-auth.service', () => ({
-  adminAuthApi: { login: vi.fn(), verifyMfa: vi.fn(), me: vi.fn() },
+  adminAuthApi: {
+    login: vi.fn(),
+    enrol: vi.fn(),
+    verifyMfa: vi.fn(),
+    me: vi.fn(),
+  },
 }));
 
 vi.mock('react-hot-toast', () => ({
@@ -292,18 +297,133 @@ describe('Admin Panel sign-in', () => {
   });
 
   describe('first sign-in, setting up the authenticator', () => {
-    async function reachSetupStep(i18n: I18nInstance, qrCodeDataUrl?: string) {
+    const setupAnswer = (qrCodeDataUrl?: string) => ({
+      data: {
+        status: 'MFA_SETUP_REQUIRED',
+        mfaToken: 'setup-token',
+        secret: 'JBSWY3DPEHPK3PXP',
+        qrCodeDataUrl,
+      },
+    });
+
+    beforeEach(() => {
       vi.mocked(adminAuthApi.login).mockResolvedValue({
-        data: {
-          status: 'MFA_SETUP_REQUIRED',
-          mfaToken: 'setup-token',
-          secret: 'JBSWY3DPEHPK3PXP',
-          qrCodeDataUrl,
-        },
+        data: { status: 'ENROLMENT_PROOF_REQUIRED', mfaToken: 'proof-token' },
       } as never);
+    });
+
+    const typeProof = (i18n: I18nInstance, value: string) => {
+      fireEvent.change(
+        screen.getByLabelText(i18n.t('adminPanel.login.enrol_code')),
+        { target: { value } },
+      );
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('adminPanel.login.enrol_continue'),
+        }),
+      );
+    };
+
+    async function reachSetupStep(i18n: I18nInstance, qrCodeDataUrl?: string) {
+      vi.mocked(adminAuthApi.enrol).mockResolvedValue(
+        setupAnswer(qrCodeDataUrl) as never,
+      );
       submitCredentials(i18n);
+      await screen.findByText(i18n.t('adminPanel.login.enrol_title'));
+      typeProof(i18n, 'abcd-efgh-jkmn');
       await screen.findByText(i18n.t('adminPanel.login.mfa_setup'));
     }
+
+    it('asks for the set-up code before showing anything of the authenticator', async () => {
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      await reachSetupStep(i18n!);
+
+      expect(adminAuthApi.enrol).toHaveBeenCalledWith(
+        'proof-token',
+        'abcd-efgh-jkmn',
+      );
+    });
+
+    it('uses the set-up link at once, and takes it off the address', async () => {
+      vi.mocked(adminAuthApi.enrol).mockResolvedValue(setupAnswer() as never);
+      window.history.replaceState(null, '', '/login#enrol=link-token-123');
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      // Taken off the address at once.
+      expect(window.location.hash).toBe('');
+
+      submitCredentials(i18n!);
+
+      expect(
+        await screen.findByText(i18n!.t('adminPanel.login.mfa_setup')),
+      ).toBeInTheDocument();
+      expect(adminAuthApi.enrol).toHaveBeenCalledWith(
+        'proof-token',
+        'link-token-123',
+      );
+    });
+
+    it('says a used or expired link or code does not work, and lets another be typed', async () => {
+      vi.mocked(adminAuthApi.enrol).mockRejectedValue({
+        isAxiosError: true,
+        response: { status: 401, data: {} },
+      });
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      submitCredentials(i18n!);
+      await screen.findByText(i18n!.t('adminPanel.login.enrol_title'));
+
+      typeProof(i18n!, 'WRONG-CODE-123');
+
+      expect(
+        await screen.findByText(i18n!.t('adminPanel.login.enrol_invalid')),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(i18n!.t('adminPanel.login.enrol_code')),
+      ).toBeInTheDocument();
+      expect(adminAuthApi.verifyMfa).not.toHaveBeenCalled();
+    });
+
+    it('goes back to the credentials from the set-up step, with the code and the error cleared', async () => {
+      vi.mocked(adminAuthApi.enrol).mockRejectedValue({
+        isAxiosError: true,
+        response: { status: 401, data: {} },
+      });
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      submitCredentials(i18n!);
+      await screen.findByText(i18n!.t('adminPanel.login.enrol_title'));
+      typeProof(i18n!, 'WRONG-CODE-123');
+      await screen.findByText(i18n!.t('adminPanel.login.enrol_invalid'));
+
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n!.t('adminPanel.login.back') }),
+      );
+
+      expect(
+        screen.getByLabelText(i18n!.t('adminPanel.login.password')),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(i18n!.t('adminPanel.login.enrol_invalid')),
+      ).not.toBeInTheDocument();
+      submitCredentials(i18n!);
+      expect(
+        await screen.findByLabelText(i18n!.t('adminPanel.login.enrol_code')),
+      ).toHaveValue('');
+    });
+
+    it('says the account is locked after too many wrong proofs', async () => {
+      vi.mocked(adminAuthApi.enrol).mockRejectedValue({
+        isAxiosError: true,
+        response: { status: 403, data: {} },
+      });
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      submitCredentials(i18n!);
+      await screen.findByText(i18n!.t('adminPanel.login.enrol_title'));
+
+      typeProof(i18n!, 'WRONG-CODE-123');
+
+      expect(
+        await screen.findByText(i18n!.t('adminPanel.login.locked')),
+      ).toBeInTheDocument();
+    });
 
     it('shows the QR code and the secret, and verifies with the setup token', async () => {
       vi.mocked(adminAuthApi.verifyMfa).mockResolvedValue({

@@ -1134,6 +1134,18 @@ const cases: Case[] = [
     ['admin/operators/o1/reset-mfa'],
   ],
   [
+    'sendOperatorEnrolmentLink',
+    () => adminApi.sendOperatorEnrolmentLink('o1'),
+    'post',
+    ['admin/operators/o1/enrolment-link'],
+  ],
+  [
+    'issueOperatorEnrolmentCode',
+    () => adminApi.issueOperatorEnrolmentCode('o1'),
+    'post',
+    ['admin/operators/o1/enrolment-code'],
+  ],
+  [
     'unlockOperator',
     () => adminApi.unlockOperator('o1'),
     'post',

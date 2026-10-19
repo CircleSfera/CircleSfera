@@ -26,6 +26,17 @@ describe('EmailTemplates', () => {
     expect(verifyEs.html).toContain('Todos los derechos reservados');
   });
 
+  it('the staff set-up email says the link works once and for 24 hours, in each language', () => {
+    const enMail = EmailTemplates.staffEnrolment(en, 'https://x/login?enrol=t');
+    const esMail = EmailTemplates.staffEnrolment(es, 'https://x/login?enrol=t');
+
+    expect(enMail.subject).toBe('Set up your CircleSfera staff access');
+    expect(enMail.html).toContain('expires in 24 hours');
+    expect(enMail.html).toContain('href="https://x/login?enrol=t"');
+    expect(esMail.subject).toBe('Configura tu acceso de equipo en CircleSfera');
+    expect(esMail.html).toContain('caduca en 24 horas');
+  });
+
   it('carries the brand: logo, wordmark, gradient and a solid fallback', () => {
     const { html } = EmailTemplates.passwordReset(en, 'https://x/reset');
 

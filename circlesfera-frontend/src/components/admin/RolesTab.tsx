@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  Copy,
   KeyRound,
   LockOpen,
+  Mail,
   Plus,
   Shield,
   ShieldCheck,
   ShieldOff,
   UserCog,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import {
@@ -95,6 +97,17 @@ export default function RolesTab({ onToast }: Props) {
     () => data?.data.find((o) => o.id === selectedId) ?? null,
     [data, selectedId],
   );
+
+  // A set-up code is shown only right after it is created, for the operator
+  // it was created for.
+  const [issuedCode, setIssuedCode] = useState<{
+    id: string;
+    code: string;
+    hours: number;
+  } | null>(null);
+  useEffect(() => {
+    if (issuedCode && issuedCode.id !== selectedId) setIssuedCode(null);
+  }, [issuedCode, selectedId]);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['admin', 'operators'] });
@@ -210,6 +223,56 @@ export default function RolesTab({ onToast }: Props) {
       }
     },
   });
+
+  const sendLinkMutation = useMutation({
+    mutationFn: () =>
+      runWithStepUp(async () => {
+        if (!selectedId) return;
+        await adminApi.sendOperatorEnrolmentLink(selectedId);
+        setIssuedCode(null);
+        onToast(t('admin.operators.link_sent'), 'success');
+      }),
+    onError: (err: any) => {
+      if (!isStepUpRequired(err)) {
+        onToast(
+          apiErrorMessage(err, t, 'admin.operators.enrolment_error'),
+          'error',
+        );
+      }
+    },
+  });
+
+  const issueCodeMutation = useMutation({
+    mutationFn: () =>
+      runWithStepUp(async () => {
+        if (!selectedId) return;
+        const { data: issued } =
+          await adminApi.issueOperatorEnrolmentCode(selectedId);
+        setIssuedCode({
+          id: selectedId,
+          code: issued.code,
+          hours: issued.expiresInHours,
+        });
+      }),
+    onError: (err: any) => {
+      if (!isStepUpRequired(err)) {
+        onToast(
+          apiErrorMessage(err, t, 'admin.operators.enrolment_error'),
+          'error',
+        );
+      }
+    },
+  });
+
+  const copyIssuedCode = async () => {
+    if (!issuedCode) return;
+    try {
+      await navigator.clipboard.writeText(issuedCode.code);
+      onToast(t('admin.operators.code_copied'), 'success');
+    } catch {
+      onToast(t('admin.operators.enrolment_error'), 'error');
+    }
+  };
 
   const unlockMutation = useMutation({
     mutationFn: () =>
@@ -512,6 +575,65 @@ export default function RolesTab({ onToast }: Props) {
                     </Button>
                   </div>
                 </div>
+                {!selected.totpEnabled && selected.status === 'ACTIVE' && (
+                  <section className="py-4 space-y-2.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
+                      {t('admin.operators.enrolment_title')}
+                    </h4>
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      {t('admin.operators.enrolment_hint')}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="min-h-11 gap-2"
+                        isLoading={sendLinkMutation.isPending}
+                        onClick={() => sendLinkMutation.mutate()}
+                      >
+                        <Mail size={14} />
+                        {t('admin.operators.send_link')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="min-h-11 gap-2"
+                        isLoading={issueCodeMutation.isPending}
+                        onClick={() => issueCodeMutation.mutate()}
+                      >
+                        <KeyRound size={14} />
+                        {t('admin.operators.issue_code')}
+                      </Button>
+                    </div>
+                    {issuedCode?.id === selected.id && (
+                      <div className="space-y-1.5 rounded-lg border border-brand-primary/30 bg-brand-primary/10 p-3">
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-white/70">
+                          {t('admin.operators.code_title')}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="flex-1 font-mono text-base tracking-widest text-white break-all">
+                            {issuedCode.code}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => void copyIssuedCode()}
+                            className="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
+                            aria-label={t('admin.operators.copy_code')}
+                          >
+                            <Copy size={16} />
+                          </button>
+                        </div>
+                        <p className="text-xs text-white/60 leading-relaxed">
+                          {t('admin.operators.code_hint', {
+                            hours: issuedCode.hours,
+                          })}
+                        </p>
+                      </div>
+                    )}
+                  </section>
+                )}
               </div>
             ) : null
           }

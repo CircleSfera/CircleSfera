@@ -29,6 +29,15 @@ export interface EmailCopy {
     button: string;
     footer: string;
   };
+  // A link that lets a member of staff enrol the authenticator of their
+  // staff access.
+  staffEnrolment: {
+    subject: string;
+    title: string;
+    body: string;
+    button: string;
+    footer: string;
+  };
   accountBanned: { subject: string; title: string; body: string };
   // A notice of illegal content: its receipt, and the decision on it.
   noticeReceived: { subject: string; title: string; body: string };
@@ -105,6 +114,14 @@ const en: EmailCopy = {
     button: 'Verify email',
     footer:
       'If you did not create this account, you can safely ignore this email.',
+  },
+  staffEnrolment: {
+    subject: 'Set up your CircleSfera staff access',
+    title: 'Set up your authenticator',
+    body: 'You have been given staff access to CircleSfera. To finish, sign in with the button below and set up an authenticator app on your phone. Staff access always asks for its code.',
+    button: 'Set up my access',
+    footer:
+      'This link works once and expires in 24 hours. If you were not expecting it, ignore this email and tell the person who gave you access.',
   },
   passwordReset: {
     subject: 'Reset your CircleSfera password',
@@ -224,6 +241,14 @@ const es: EmailCopy = {
     button: 'Verificar email',
     footer:
       'Si no has creado esta cuenta, puedes ignorar este correo de forma segura.',
+  },
+  staffEnrolment: {
+    subject: 'Configura tu acceso de equipo en CircleSfera',
+    title: 'Configura tu autenticador',
+    body: 'Te han dado acceso de equipo a CircleSfera. Para terminar, entra con el botón de abajo y configura una app de autenticación en tu móvil. El acceso de equipo siempre pide su código.',
+    button: 'Configurar mi acceso',
+    footer:
+      'Este enlace funciona una vez y caduca en 24 horas. Si no lo esperabas, ignora este mensaje y avisa a quien te dio el acceso.',
   },
   passwordReset: {
     subject: 'Recupera tu contraseña en CircleSfera',

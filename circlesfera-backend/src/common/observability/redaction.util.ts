@@ -272,6 +272,9 @@ export function createPinoRedactPaths(): string[] {
     'req.body.totpSecret',
     'req.body.twoFactorCode',
     'req.body.twoFactorSecret',
+    // The proof that enrols a staff authenticator, and the step token.
+    'req.body.proof',
+    'req.body.mfaToken',
     'req.body.csrfToken',
     'req.body.card',
     'req.body.cardNumber',
@@ -309,6 +312,8 @@ export function createPinoRedactPaths(): string[] {
     'totpCode',
     'twoFactorSecret',
     'twoFactorCode',
+    'proof',
+    'mfaToken',
     'csrfToken',
     'card',
     'cardNumber',

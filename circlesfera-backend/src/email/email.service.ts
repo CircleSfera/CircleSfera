@@ -153,6 +153,13 @@ export class EmailService {
     await this.send(email, EmailTemplates.passwordReset(ctx, url));
   }
 
+  // The one-time link that lets a member of staff enrol the authenticator
+  // of their staff access (it expires in 24 hours). The link is never logged.
+  async sendStaffEnrolmentEmail(email: string, url: string) {
+    const ctx = await this.contextFor(email);
+    await this.send(email, EmailTemplates.staffEnrolment(ctx, url));
+  }
+
   // Staff-written broadcast; the content may contain basic HTML.
   // A newsletter. Sent to an account, it carries a link in its footer and
   // the List-Unsubscribe headers (one click, RFC 8058) that leave the

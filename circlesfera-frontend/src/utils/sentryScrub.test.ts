@@ -56,4 +56,13 @@ describe('scrubSentryPayload', () => {
       none: null,
     });
   });
+
+  it('redacts the token of a staff set-up link, in the query or after a #', () => {
+    expect(scrubUrl('https://admin.circlesfera.com/login#enrol=abc123')).toBe(
+      'https://admin.circlesfera.com/login#enrol=[REDACTED]',
+    );
+    expect(scrubUrl('/login?enrol=abc123')).toBe('/login?enrol=[REDACTED]');
+    // A fragment that is only an anchor stays as it is.
+    expect(scrubUrl('/help#privacy')).toBe('/help#privacy');
+  });
 });

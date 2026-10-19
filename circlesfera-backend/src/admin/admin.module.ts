@@ -1,5 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { AdminAuthModule } from '../admin-auth/admin-auth.module.js';
 import { AIModule } from '../ai/ai.module.js';
 import { AudioModule } from '../audio/audio.module.js';
 import {
@@ -60,6 +61,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
 @Module({
   imports: [
     PrismaModule,
+    AdminAuthModule,
     AudioModule,
     AIModule,
     EmailModule,

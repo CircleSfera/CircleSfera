@@ -7,7 +7,7 @@ const REDACTED = '[REDACTED]';
 
 // Query parameter names whose values must never be sent to telemetry.
 const SENSITIVE_PARAM =
-  /token|secret|password|passwd|code|signature|session_id|api[_-]?key|auth/i;
+  /token|secret|password|passwd|code|signature|session_id|api[_-]?key|auth|enrol/i;
 
 function scrubQuery(query: string): string {
   return query
@@ -30,9 +30,14 @@ function scrubQuery(query: string): string {
 // Redacts sensitive query parameters in every URL found in the text, whether
 // absolute (https://…?token=…) or relative (/reset-password?token=…).
 export function scrubUrl(value: string): string {
-  return value.replace(/\?([^#\s"']*)/g, (_match, query: string) => {
-    return `?${scrubQuery(query)}`;
-  });
+  return value
+    .replace(/\?([^#\s"']*)/g, (_match, query: string) => {
+      return `?${scrubQuery(query)}`;
+    })
+    .replace(/#([^\s"'?]*=[^\s"']*)/g, (_match, fragment: string) => {
+      // A fragment may carry name=value pairs too (a staff set-up link).
+      return `#${scrubQuery(fragment)}`;
+    });
 }
 
 type Scrubbable = Record<string, unknown>;

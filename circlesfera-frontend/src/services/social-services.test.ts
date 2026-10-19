@@ -1001,6 +1001,12 @@ const cases: Case[] = [
     ['/admin-auth/login', { email: 'a@b.c', password: 'pw' }],
   ],
   [
+    'adminAuth.enrol',
+    () => adminAuthApi.enrol('tok', 'ABCD-EFGH-JKMN'),
+    'post',
+    ['/admin-auth/enrol', { mfaToken: 'tok', proof: 'ABCD-EFGH-JKMN' }],
+  ],
+  [
     'adminAuth.verifyMfa',
     () => adminAuthApi.verifyMfa('tok', '123456'),
     'post',

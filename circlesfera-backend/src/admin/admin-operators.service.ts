@@ -4,9 +4,11 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { AdminAction, type AdminIdentityStatus } from '@prisma/client';
+import { EnrolmentProofService } from '../admin-auth/enrolment-proof.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UNUSED_STAFF_PASSWORD_HASH } from './staff-password.constants.js';
 
@@ -23,7 +25,77 @@ const KNOWN_ROLE_IDS = new Set([
 
 @Injectable()
 export class AdminOperatorsService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AdminOperatorsService.name);
+
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(EnrolmentProofService)
+    private readonly enrolmentProof: EnrolmentProofService,
+  ) {}
+
+  // Sends the link that lets the identity enrol its authenticator. A failure
+  // to send never undoes what was done: the link can be sent again.
+  private async sendEnrolmentLink(
+    actorAdminId: string,
+    admin: { id: string; email: string },
+  ) {
+    try {
+      await this.enrolmentProof.sendLink(admin);
+      await this.logAction(
+        actorAdminId,
+        AdminAction.ADMIN_ENROLMENT_ISSUED,
+        'admin',
+        admin.id,
+        'Enrolment link sent to the staff email',
+      );
+    } catch (error) {
+      this.logger.error(
+        `The enrolment link of operator ${admin.id} could not be sent: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+  }
+
+  // An identity that already has its authenticator has nothing to enrol.
+  private async awaitingEnrolment(id: string) {
+    const admin = await this.prisma.adminIdentity.findUnique({ where: { id } });
+    if (!admin) throw new NotFoundException('Operator not found');
+    if (admin.totpEnabled) {
+      throw new ConflictException('This operator already has an authenticator');
+    }
+    if (admin.status !== 'ACTIVE') {
+      throw new ConflictException('This operator is not active');
+    }
+    return admin;
+  }
+
+  // Sends a new enrolment link; the previous link or code stops working.
+  async sendEnrolmentLinkAgain(actorAdminId: string, id: string) {
+    const admin = await this.awaitingEnrolment(id);
+    await this.enrolmentProof.sendLink(admin);
+    await this.logAction(
+      actorAdminId,
+      AdminAction.ADMIN_ENROLMENT_ISSUED,
+      'admin',
+      id,
+      'Enrolment link sent to the staff email',
+    );
+    return { sent: true };
+  }
+
+  // A code to hand over in person, shown only in this answer; the previous
+  // link or code stops working.
+  async issueEnrolmentCode(actorAdminId: string, id: string) {
+    await this.awaitingEnrolment(id);
+    const code = await this.enrolmentProof.issueCode(id);
+    await this.logAction(
+      actorAdminId,
+      AdminAction.ADMIN_ENROLMENT_ISSUED,
+      'admin',
+      id,
+      'Enrolment code issued by an administrator',
+    );
+    return { code, expiresInHours: 24 };
+  }
 
   private async logAction(
     adminId: string,
@@ -207,6 +279,7 @@ export class AdminOperatorsService {
       created.id,
       `Created operator ${email}`,
     );
+    await this.sendEnrolmentLink(actorAdminId, created);
 
     return this.serialize(created);
   }
@@ -289,6 +362,9 @@ export class AdminOperatorsService {
       data: {
         totpSecret: null,
         totpEnabled: false,
+        enrolmentProofHash: null,
+        enrolmentProofExpiresAt: null,
+        enrolmentProofPasswordMark: null,
       },
       include: { roles: { include: { role: true } } },
     });
@@ -302,6 +378,8 @@ export class AdminOperatorsService {
       id,
       'MFA reset — re-enrollment required',
     );
+    // Enrolling again needs a new proof: the link goes to the staff email.
+    await this.sendEnrolmentLink(actorAdminId, updated);
 
     return this.serialize(updated);
   }

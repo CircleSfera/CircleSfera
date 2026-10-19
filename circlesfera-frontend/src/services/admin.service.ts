@@ -1622,4 +1622,14 @@ export const adminApi = {
 
   unlockOperator: (id: string) =>
     apiClient.post<AdminOperator>(`admin/operators/${id}/unlock`),
+
+  // Sends a new link to enrol the authenticator to the operator's email.
+  sendOperatorEnrolmentLink: (id: string) =>
+    apiClient.post<{ sent: boolean }>(`admin/operators/${id}/enrolment-link`),
+
+  // A code to enrol the authenticator, handed over in person; shown once.
+  issueOperatorEnrolmentCode: (id: string) =>
+    apiClient.post<{ code: string; expiresInHours: number }>(
+      `admin/operators/${id}/enrolment-code`,
+    ),
 };

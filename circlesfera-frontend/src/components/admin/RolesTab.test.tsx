@@ -14,6 +14,8 @@ vi.mock('../../services/admin.service', () => ({
     replaceOperatorRoles: vi.fn(),
     resetOperatorMfa: vi.fn(),
     unlockOperator: vi.fn(),
+    sendOperatorEnrolmentLink: vi.fn(),
+    issueOperatorEnrolmentCode: vi.fn(),
   },
 }));
 vi.mock('../../services/admin-auth.service', () => ({
@@ -94,6 +96,12 @@ describe('RolesTab', () => {
     api.replaceOperatorRoles.mockResolvedValue({} as never);
     api.resetOperatorMfa.mockResolvedValue({} as never);
     api.unlockOperator.mockResolvedValue({} as never);
+    api.sendOperatorEnrolmentLink.mockResolvedValue({
+      data: { sent: true },
+    } as never);
+    api.issueOperatorEnrolmentCode.mockResolvedValue({
+      data: { code: 'ABCD-EFGH-JKMN', expiresInHours: 24 },
+    } as never);
     auth.stepUp.mockResolvedValue({} as never);
   });
 
@@ -311,6 +319,91 @@ describe('RolesTab', () => {
         'success',
       ),
     );
+  });
+
+  it('offers the set-up of the authenticator only to an active operator without one', async () => {
+    api.getOperators.mockResolvedValue(
+      list([
+        operator('a'),
+        operator('b', { totpEnabled: false }),
+        operator('c', { totpEnabled: false, status: 'DISABLED' }),
+      ]) as never,
+    );
+    show();
+
+    expect(
+      within(await open('Operator a')).queryByRole('button', {
+        name: 'Create a code',
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(await open('Operator c')).queryByRole('button', {
+        name: 'Create a code',
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(await open('Operator b')).getByRole('button', {
+        name: 'Send the link again',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('sends the set-up link again', async () => {
+    api.getOperators.mockResolvedValue(
+      list([operator('b', { totpEnabled: false })]) as never,
+    );
+    show();
+
+    fireEvent.click(
+      within(await open('Operator b')).getByRole('button', {
+        name: 'Send the link again',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(api.sendOperatorEnrolmentLink).toHaveBeenCalledWith('b'),
+    );
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(
+        'Link sent to their email',
+        'success',
+      ),
+    );
+  });
+
+  it('shows a new set-up code once, for the operator it was made for, and copies it', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    api.getOperators.mockResolvedValue(
+      list([
+        operator('b', { totpEnabled: false }),
+        operator('d', { totpEnabled: false }),
+      ]) as never,
+    );
+    show();
+    const panel = await open('Operator b');
+
+    fireEvent.click(
+      within(panel).getByRole('button', { name: 'Create a code' }),
+    );
+
+    expect(
+      await within(detail()).findByText('ABCD-EFGH-JKMN'),
+    ).toBeInTheDocument();
+    expect(api.issueOperatorEnrolmentCode).toHaveBeenCalledWith('b');
+    fireEvent.click(
+      within(detail()).getByRole('button', { name: 'Copy code' }),
+    );
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith('ABCD-EFGH-JKMN'),
+    );
+
+    // Another operator never sees it.
+    await open('Operator d');
+    expect(screen.queryByText('ABCD-EFGH-JKMN')).not.toBeInTheDocument();
   });
 
   it('clears a lockout without asking for a password', async () => {

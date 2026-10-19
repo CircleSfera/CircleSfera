@@ -56,7 +56,16 @@ export function initSentry() {
       httpHeaders: false,
       httpBodies: [],
       urlQueryParams: {
-        deny: ['token', 'secret', 'password', 'code', 'session', 'key', 'auth'],
+        deny: [
+          'token',
+          'secret',
+          'password',
+          'code',
+          'session',
+          'key',
+          'auth',
+          'enrol',
+        ],
       },
     },
 

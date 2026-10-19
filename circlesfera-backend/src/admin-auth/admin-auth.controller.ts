@@ -29,6 +29,7 @@ import {
 } from '../common/config/cookie.config.js';
 import { AdminAuthService } from './admin-auth.service.js';
 import {
+  AdminEnrolDto,
   AdminLoginDto,
   AdminMfaVerifyDto,
   AdminStepUpDto,
@@ -86,17 +87,20 @@ export class AdminAuthController {
       this.clientMeta(req),
     );
 
-    if (result.status === 'MFA_SETUP_REQUIRED') {
-      return {
-        status: 'MFA_SETUP_REQUIRED',
-        mfaToken: result.mfaToken,
-        otpauthUrl: result.otpauthUrl,
-        secret: result.secret,
-        qrCodeDataUrl: result.qrCodeDataUrl,
-      };
-    }
+    return { status: result.status, mfaToken: result.mfaToken };
+  }
 
-    return { status: 'MFA_REQUIRED', mfaToken: result.mfaToken };
+  // Enrols an authenticator with the proof beyond the password; answers the
+  // new secret, this once, to be confirmed at mfa/verify.
+  @Post('enrol')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  async enrol(@Body() dto: AdminEnrolDto, @Req() req: Request) {
+    return this.adminAuthService.enrol(
+      dto.mfaToken,
+      dto.proof,
+      this.clientMeta(req),
+    );
   }
 
   @Post('mfa/verify')

@@ -1697,20 +1697,29 @@ model StoryUnlock {
 
 /// Admin Panel operator. Separate from platform User.
 model AdminIdentity {
-  id               String              @id @default(uuid())
-  email            String              @unique
-  passwordHash     String
-  displayName      String
-  status           AdminIdentityStatus @default(ACTIVE)
-  totpSecret       String?
-  totpEnabled      Boolean             @default(false)
-  lastLoginAt      DateTime?
-  lastActivityAt   DateTime?
-  failedLoginCount Int                 @default(0)
-  lockedUntil      DateTime?
-  linkedUserId     String?
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  id                         String              @id @default(uuid())
+  email                      String              @unique
+  passwordHash               String
+  displayName                String
+  status                     AdminIdentityStatus @default(ACTIVE)
+  totpSecret                 String?
+  totpEnabled                Boolean             @default(false)
+  /// The one proof that lets this identity enrol its authenticator: the
+  /// SHA-256 of a link token or of a code from an administrator, and when it
+  /// expires. Used once; a new proof replaces it.
+  enrolmentProofHash         String?
+  enrolmentProofExpiresAt    DateTime?
+  /// For a link: a fingerprint of the sign-in password when it was sent. A
+  /// link stops working if the password changes after it (whoever holds the
+  /// mailbox could otherwise reset the password and use the link).
+  enrolmentProofPasswordMark String?
+  lastLoginAt                DateTime?
+  lastActivityAt             DateTime?
+  failedLoginCount           Int                 @default(0)
+  lockedUntil                DateTime?
+  linkedUserId               String?
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
 
   linkedUser            User?                  @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
   roles                 AdminIdentityRole[]
@@ -2519,6 +2528,8 @@ enum AdminAction {
   ADMIN_LOGOUT
   ADMIN_LOGIN_FAILED
   ADMIN_MFA_ENABLED
+  ADMIN_ENROLMENT_ISSUED
+  ADMIN_ENROLMENT_USED
   ROLE_ASSIGNED
   ROLE_REVOKED
   ADMIN_IDENTITY_CREATED

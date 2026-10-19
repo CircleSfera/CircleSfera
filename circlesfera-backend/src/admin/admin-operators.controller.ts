@@ -92,6 +92,26 @@ export class AdminOperatorsController {
     return this.operatorsService.resetMfa(admin.adminId, id);
   }
 
+  // Sends a new link to enrol the authenticator to the staff email.
+  @Post(':id/enrolment-link')
+  @RequireAdminStepUp()
+  sendEnrolmentLink(
+    @CurrentAdmin() admin: CurrentAdminData,
+    @Param('id') id: string,
+  ) {
+    return this.operatorsService.sendEnrolmentLinkAgain(admin.adminId, id);
+  }
+
+  // A code to enrol the authenticator, handed over in person; shown once.
+  @Post(':id/enrolment-code')
+  @RequireAdminStepUp()
+  issueEnrolmentCode(
+    @CurrentAdmin() admin: CurrentAdminData,
+    @Param('id') id: string,
+  ) {
+    return this.operatorsService.issueEnrolmentCode(admin.adminId, id);
+  }
+
   @Post(':id/unlock')
   @RequireAdminStepUp()
   unlock(@CurrentAdmin() admin: CurrentAdminData, @Param('id') id: string) {
