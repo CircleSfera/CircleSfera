@@ -268,8 +268,7 @@ export default function Explore() {
                               alt={profile.username}
                               size="md"
                               verificationLevel={
-                                profile.user
-                                  ?.verificationLevel as VerificationLevel
+                                profile.verificationLevel as VerificationLevel
                               }
                             />
                             <div className="min-w-0">
@@ -277,8 +276,7 @@ export default function Explore() {
                                 {profile.username}
                                 <VerificationBadge
                                   level={
-                                    profile.user
-                                      ?.verificationLevel as VerificationLevel
+                                    profile.verificationLevel as VerificationLevel
                                   }
                                   size={12}
                                 />

@@ -246,6 +246,7 @@ describe('MonetizationService', () => {
         priceCents,
         profileId: 'creator-profile',
         profile: {
+          username: 'ana',
           user: {
             id: 'creator-1',
             email: 'creator@example.com',
@@ -282,6 +283,10 @@ describe('MonetizationService', () => {
         }),
         { idempotencyKey: 'idemp-1' },
       );
+      // Who pays sees the Profile, never the creator's email.
+      const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
+      expect(JSON.stringify(session)).toContain('@ana');
+      expect(JSON.stringify(session)).not.toContain('creator@example.com');
     });
   });
 

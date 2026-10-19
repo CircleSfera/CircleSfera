@@ -2,6 +2,7 @@ import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateHighlightDto } from './dto/create-highlight.dto.js';
 import type { UpdateHighlightDto } from './dto/update-highlight.dto.js';
@@ -74,7 +75,7 @@ export class HighlightsService {
     const highlight = await this.prisma.highlight.findUnique({
       where: { id },
       include: {
-        profile: true,
+        profile: { select: PUBLIC_PROFILE_SELECT },
         stories: {
           include: {
             story: true,

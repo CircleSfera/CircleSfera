@@ -294,9 +294,11 @@ describe('SearchService', () => {
       mockPrismaService.follow.findMany.mockResolvedValue([]);
       mockPrismaService.$queryRaw.mockResolvedValue([]);
 
+      // The Profiles found by meaning, as semanticSearchProfiles gives them:
+      // one also found by name, one only by meaning.
       vi.spyOn(service, 'semanticSearchProfiles').mockResolvedValueOnce([
-        { user: { id: 'prof-1' } },
-        { profileId: 'prof-unique' },
+        { id: 'prof-1', username: 'artlover' },
+        { id: 'prof-unique', username: 'painter' },
         {},
       ]);
 
@@ -309,7 +311,9 @@ describe('SearchService', () => {
         mockPrismaService.hashtag.findMany.mock.calls.at(-1)?.[0].where
           .isHidden,
       ).toBe(false);
-      expect(result.semanticProfiles).toEqual([{ profileId: 'prof-unique' }]);
+      expect(result.semanticProfiles).toEqual([
+        { id: 'prof-unique', username: 'painter' },
+      ]);
       expect(mockCacheManager.set).toHaveBeenCalled();
     });
 
@@ -409,9 +413,9 @@ describe('SearchService', () => {
       mockPrismaService.follow.findMany.mockResolvedValue([]);
       mockPrismaService.$queryRaw.mockResolvedValue([]);
       const byMeaning = [
-        { profileId: 'no-badge', verificationLevel: 'BASIC' },
-        { profileId: 'badge', verificationLevel: 'VERIFIED' },
-        { profileId: 'unknown' },
+        { id: 'no-badge', verificationLevel: 'BASIC' },
+        { id: 'badge', verificationLevel: 'VERIFIED' },
+        { id: 'unknown' },
       ];
       const semantic = vi
         .spyOn(service, 'semanticSearchProfiles')

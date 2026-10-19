@@ -35,7 +35,6 @@ export class DeleteMessageUseCase {
             id: true,
             username: true,
             avatar: true,
-            user: { select: { id: true } },
           },
         },
       },

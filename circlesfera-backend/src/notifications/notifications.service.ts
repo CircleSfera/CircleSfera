@@ -5,7 +5,7 @@ import { DEFAULT_LOCALE } from '../common/constants/locale.constants.js';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
-import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
+import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
 import { pushGroupOf } from '../push/push-groups.js';
@@ -39,7 +39,7 @@ export class NotificationsService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          sender: { include: { user: { select: PUBLIC_USER_SELECT } } },
+          sender: { select: PUBLIC_PROFILE_SELECT },
         },
       }),
       this.prisma.notification.count({ where: { recipientId: profileId } }),
@@ -162,7 +162,7 @@ export class NotificationsService {
               createdAt: new Date(), // Bump to top
             },
             include: {
-              sender: { include: { user: { select: PUBLIC_USER_SELECT } } },
+              sender: { select: PUBLIC_PROFILE_SELECT },
             },
           });
 
@@ -206,7 +206,7 @@ export class NotificationsService {
           targetId: data.targetId,
         } as Prisma.NotificationUncheckedCreateInput,
         include: {
-          sender: { include: { user: { select: PUBLIC_USER_SELECT } } },
+          sender: { select: PUBLIC_PROFILE_SELECT },
         },
       });
 

@@ -26,7 +26,7 @@ import {
   dailyBudgetReached,
   utcDay,
 } from '../common/promotions/promotion-pacing.js';
-import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
+import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -52,7 +52,7 @@ export class FeedService {
 
   private postHydrationInclude(profileId?: string | null) {
     return {
-      profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+      profile: { select: PUBLIC_PROFILE_SELECT },
       media: { include: { media: true } },
       poll: { select: { id: true } },
       qnaBox: { select: { id: true } },
@@ -157,8 +157,8 @@ export class FeedService {
     // key so unrelated users hitting page 1 around the same time still
     // share a cache entry, exactly as before this change.
     const cacheKey = pagination.asOf
-      ? `feed:hybrid:user_${profileId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}:asOf_${asOf.toISOString()}`
-      : `feed:hybrid:user_${profileId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
+      ? `feed:hybrid:v2:user_${profileId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}:asOf_${asOf.toISOString()}`
+      : `feed:hybrid:v2:user_${profileId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
     const cachedFeed = await this.cacheManager.get(cacheKey);
     if (cachedFeed) {
       return cachedFeed;
@@ -670,7 +670,7 @@ export class FeedService {
       currentProfileId ?? null,
     );
     const snapshotKey = asOf ? `:asOf_${asOf.toISOString()}` : '';
-    const cacheKey = `feed:trending:user_${currentProfileId || 'guest'}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}${snapshotKey}`;
+    const cacheKey = `feed:trending:v2:user_${currentProfileId || 'guest'}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}${snapshotKey}`;
     const cachedFeed = await this.cacheManager.get(cacheKey);
     if (cachedFeed) {
       return cachedFeed;

@@ -31,7 +31,7 @@ import {
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
-import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
+import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import {
@@ -255,7 +255,7 @@ export class StoriesService {
           mediaId: media.id,
         },
         include: {
-          profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+          profile: { select: PUBLIC_PROFILE_SELECT },
           audio: true,
           place: true,
           media: true,
@@ -409,7 +409,14 @@ export class StoriesService {
     const stories = await this.prisma.story.findMany({
       where: whereClause,
       include: {
-        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+        // The sanction is read to take the links off, and not returned.
+        profile: {
+          select: {
+            ...PUBLIC_PROFILE_SELECT,
+            isAccountBanned: true,
+            suspendedUntil: true,
+          },
+        },
         audio: true,
         place: true,
         stickers: {
@@ -466,8 +473,14 @@ export class StoriesService {
               new Date(storyData.profile.suspendedUntil) > now),
         },
       );
+      const {
+        isAccountBanned: _banned,
+        suspendedUntil: _until,
+        ...author
+      } = storyData.profile ?? {};
       return {
         ...storyData,
+        profile: storyData.profile ? author : storyData.profile,
         stickers: feedStickers,
         // The first poll and question, in the shape apps already installed
         // read; they are answered through the old routes, on the stickers.
@@ -566,7 +579,7 @@ export class StoriesService {
   async findByUser(username: string, currentProfileId?: string) {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
-      include: { user: { select: PUBLIC_USER_SELECT } },
+      select: { id: true, privacyLevel: true },
     });
 
     if (
@@ -604,7 +617,7 @@ export class StoriesService {
         moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
       },
       include: {
-        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         audio: true,
         place: true,
         media: true,
@@ -647,7 +660,7 @@ export class StoriesService {
         profileId,
       },
       include: {
-        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         media: true,
         _count: {
           select: { views: true },

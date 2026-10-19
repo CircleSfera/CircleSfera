@@ -86,7 +86,6 @@ const ANSWER_PROFILE_SELECT = {
   username: true,
   avatar: true,
   fullName: true,
-  user: { select: { id: true } },
 } as const;
 
 /** An answer to a question, with who gave it, for its owner. */
@@ -99,7 +98,6 @@ function answerShape(
     username: string | null;
     avatar: string | null;
     fullName: string | null;
-    user: { id: string } | null;
   } | null,
 ) {
   const username = profile?.username || 'usuario';
@@ -108,7 +106,8 @@ function answerShape(
     answerText,
     createdAt,
     user: {
-      id: profile?.user?.id ?? profile?.id ?? '',
+      // The Profile that answered, never the person behind it.
+      id: profile?.id ?? '',
       username,
       fullName: profile?.fullName || username,
       avatar: profile?.avatar ?? null,

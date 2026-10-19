@@ -581,12 +581,21 @@ describe('StoriesService', () => {
       ]);
       const stickers = module.get(StoryStickersService);
 
-      await service.findAll('user-1');
+      const shown = await service.findAll('user-1');
 
       const passed = vi
         .mocked(stickers.forFeed)
         .mock.calls.map((call) => call[2]);
       expect(passed.map((n) => n?.linksOff)).toEqual([false, true, true]);
+      // The sanction is read, never shown to who watches the story.
+      for (const story of shown as { profile: object }[]) {
+        expect(story.profile).not.toHaveProperty('isAccountBanned');
+        expect(story.profile).not.toHaveProperty('suspendedUntil');
+      }
+      expect(
+        mockPrismaService.story.findMany.mock.calls.at(-1)?.[0].include.profile
+          .select,
+      ).toMatchObject({ isAccountBanned: true, suspendedUntil: true });
       expect(passed[0]?.blockedDomains).toEqual(new Set(['evil.example']));
     });
 

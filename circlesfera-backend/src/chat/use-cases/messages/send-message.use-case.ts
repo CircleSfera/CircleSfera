@@ -10,7 +10,7 @@ import {
 import { AppException } from '../../../common/errors/app.exception.js';
 import { assertCanAccessPost } from '../../../common/policies/post-access.policy.js';
 import { assertCanAccessStory } from '../../../common/policies/story-access.policy.js';
-import { PUBLIC_USER_SELECT } from '../../../common/selects/public-user.select.js';
+import { PUBLIC_PROFILE_SELECT } from '../../../common/selects/public-profile.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import {
   buildMediaCreateInput,
@@ -271,7 +271,6 @@ export class SendMessageUseCase {
                 id: true,
                 username: true,
                 avatar: true,
-                user: { select: { id: true } },
               },
             },
             media: true,
@@ -279,12 +278,12 @@ export class SendMessageUseCase {
             post: {
               include: {
                 media: true,
-                profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+                profile: { select: PUBLIC_PROFILE_SELECT },
               },
             },
             story: {
               include: {
-                profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+                profile: { select: PUBLIC_PROFILE_SELECT },
               },
             },
             replyTo: {
@@ -293,7 +292,6 @@ export class SendMessageUseCase {
                   select: {
                     id: true,
                     username: true,
-                    user: { select: { id: true } },
                   },
                 },
               },
@@ -303,7 +301,6 @@ export class SendMessageUseCase {
                 profile: {
                   select: {
                     username: true,
-                    user: { select: { id: true } },
                   },
                 },
               },
