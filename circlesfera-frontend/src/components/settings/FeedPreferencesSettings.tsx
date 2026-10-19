@@ -11,6 +11,7 @@ import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { api } from '../../services';
 import { usersApi } from '../../services/users.service';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import { ErrorState } from '../ErrorEmptyStates';
 import { Button, Switch } from '../ui';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
@@ -52,6 +53,10 @@ function usePreferenceList<T>(list: string) {
   return {
     items: query.data?.pages.flatMap((p) => p.items ?? []) ?? [],
     isLoading: query.isLoading,
+    // A list that did not load is not an empty one: its entries could not
+    // be undone.
+    isError: query.isError && !query.data,
+    refetch: query.refetch,
     hasNextPage: query.hasNextPage,
     loadMoreRef,
   };
@@ -241,10 +246,14 @@ export default function FeedPreferencesSettings() {
               </button>
             </li>
           ))}
-          {keywords.items.length === 0 && (
-            <p className="text-white/40 text-sm">
-              {t('feedPrefs.no_keywords')}
-            </p>
+          {keywords.isError ? (
+            <ErrorState onRetry={() => void keywords.refetch()} />
+          ) : (
+            keywords.items.length === 0 && (
+              <p className="text-white/40 text-sm">
+                {t('feedPrefs.no_keywords')}
+              </p>
+            )
           )}
         </ul>
         {keywords.hasNextPage && (
@@ -277,8 +286,14 @@ export default function FeedPreferencesSettings() {
               </Button>
             </li>
           ))}
-          {authors.items.length === 0 && (
-            <p className="text-white/40 text-sm">{t('feedPrefs.no_authors')}</p>
+          {authors.isError ? (
+            <ErrorState onRetry={() => void authors.refetch()} />
+          ) : (
+            authors.items.length === 0 && (
+              <p className="text-white/40 text-sm">
+                {t('feedPrefs.no_authors')}
+              </p>
+            )
           )}
         </ul>
         {authors.hasNextPage && (
@@ -330,8 +345,12 @@ export default function FeedPreferencesSettings() {
               </Button>
             </li>
           ))}
-          {posts.items.length === 0 && (
-            <p className="text-white/40 text-sm">{t('feedPrefs.no_posts')}</p>
+          {posts.isError ? (
+            <ErrorState onRetry={() => void posts.refetch()} />
+          ) : (
+            posts.items.length === 0 && (
+              <p className="text-white/40 text-sm">{t('feedPrefs.no_posts')}</p>
+            )
           )}
         </ul>
         {posts.hasNextPage && (

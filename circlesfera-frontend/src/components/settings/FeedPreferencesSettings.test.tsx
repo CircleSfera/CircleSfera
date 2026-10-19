@@ -123,4 +123,32 @@ describe('FeedPreferencesSettings', () => {
       });
     });
   });
+
+  it('says a list did not load rather than that it is empty, and asks it again', async () => {
+    vi.mocked(api.get).mockImplementation((async (url: string) => {
+      if (url === '/feed/preferences/muted-keywords') throw new Error('500');
+      return { data: { items: [], nextCursor: null } };
+    }) as never);
+    const { i18n } = renderWithProviders(<FeedPreferencesSettings />);
+
+    const retry = await screen.findByRole('button', {
+      name: i18n!.t('common.try_again'),
+    });
+    expect(
+      screen.queryByText(i18n!.t('feedPrefs.no_keywords')),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('feedPrefs.no_authors')),
+    ).toBeInTheDocument();
+
+    vi.mocked(api.get).mockResolvedValue({
+      data: {
+        items: [{ keyword: 'alpha', createdAt: '2026-10-19' }],
+        nextCursor: null,
+      },
+    });
+    fireEvent.click(retry);
+
+    expect(await screen.findByText('alpha')).toBeInTheDocument();
+  });
 });

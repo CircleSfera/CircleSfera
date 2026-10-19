@@ -23,6 +23,7 @@ describe('FeedPreferencesController', () => {
 
   const mockService = {
     listPreferences: vi.fn(),
+    listPage: vi.fn(),
     hidePost: vi.fn(),
     unhidePost: vi.fn(),
     hideAuthor: vi.fn(),
@@ -147,5 +148,34 @@ describe('FeedPreferencesController', () => {
       TEST_USER.profileId,
       'spoiler',
     );
+  });
+
+  it.each(['hidden-posts', 'hidden-authors', 'muted-keywords'] as const)(
+    'reads a page of %s as the session profile',
+    async (list) => {
+      mockService.listPage.mockResolvedValue({ items: [], nextCursor: null });
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/feed/preferences/${list}?cursor=abc&limit=10`)
+        .set(BEARER)
+        .expect(200);
+
+      expect(res.body).toEqual({ items: [], nextCursor: null });
+      expect(mockService.listPage).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        list,
+        'abc',
+        10,
+      );
+    },
+  );
+
+  it('refuses a page larger than the most a page holds', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/feed/preferences/muted-keywords?limit=51')
+      .set(BEARER)
+      .expect(400);
+
+    expect(mockService.listPage).not.toHaveBeenCalled();
   });
 });
