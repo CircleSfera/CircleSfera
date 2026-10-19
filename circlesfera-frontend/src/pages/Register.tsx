@@ -104,7 +104,7 @@ export default function Register() {
           <h1 className="brand-wordmark text-xl font-black text-center mb-2 tracking-tighter">
             {t('auth.register.title')}
           </h1>
-          <p className="text-gray-500 text-center font-medium mb-6 tracking-wide uppercase text-xs">
+          <p className="text-gray-400 text-center font-medium mb-6 tracking-wide uppercase text-xs">
             {t('auth.register.subtitle')}
           </p>
 
@@ -112,7 +112,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+                className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.register.email_label')}
               </label>
@@ -133,7 +133,7 @@ export default function Register() {
               <div>
                 <label
                   htmlFor="username"
-                  className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+                  className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 px-1"
                 >
                   {t('auth.register.username_label')}
                 </label>
@@ -157,7 +157,7 @@ export default function Register() {
               <div>
                 <label
                   htmlFor="fullName"
-                  className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+                  className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 px-1"
                 >
                   {t('auth.register.fullname_label')}
                 </label>
@@ -178,7 +178,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+                className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.register.password_label')}
               </label>
@@ -199,7 +199,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="dateOfBirth"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+                className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.register.dob_label')}
               </label>
@@ -251,7 +251,7 @@ export default function Register() {
               </Button>
             </div>
 
-            <p className="text-center text-xs text-gray-500 pt-2">
+            <p className="text-center text-xs text-gray-400 pt-2">
               {t('auth.register.has_account')}{' '}
               <Link
                 to="/accounts/login"

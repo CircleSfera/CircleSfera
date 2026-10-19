@@ -29,10 +29,9 @@ export default function TopNav() {
         height:
           'calc(var(--nav-top-height, 52px) + env(safe-area-inset-top, 0px))',
         paddingTop: 'env(safe-area-inset-top, 0px)',
-        // The page's colour, which Safari also gives the bar above it.
-        background: 'color-mix(in srgb, var(--surface-base) 92%, transparent)',
-        backdropFilter: 'blur(24px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+        // The page's colour, solid, which Safari also gives the bar above
+        // it: the two meet with no edge.
+        background: 'var(--surface-base)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
       }}
