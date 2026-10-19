@@ -202,6 +202,9 @@ describe('MonetizationWebhookService', () => {
         },
       } as any;
       prisma.profile.findFirst = vi.fn();
+      prisma.profile.findUnique = vi
+        .fn()
+        .mockResolvedValue({ id: 'creator-hobby' });
 
       await service.handleCheckoutSessionCompleted(session);
 
@@ -222,6 +225,36 @@ describe('MonetizationWebhookService', () => {
       );
       // Neither person's first Profile is looked up.
       expect(prisma.profile.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('keeps a tip whose Profile was deleted since the payment, without it', async () => {
+      const session = {
+        id: 'cs_tip_3',
+        client_reference_id: 'tipper1',
+        amount_total: 500,
+        currency: 'eur',
+        payment_intent: 'pi_tip_789',
+        metadata: {
+          type: 'DIRECT_TIP',
+          creatorId: 'creator2',
+          profileId: 'gone-profile',
+          senderProfileId: '',
+          postId: '',
+        },
+      } as any;
+      prisma.profile.findUnique = vi.fn().mockResolvedValue(null);
+      prisma.profile.findFirst = vi.fn().mockResolvedValue({ id: 'first' });
+
+      await service.handleCheckoutSessionCompleted(session);
+
+      expect(prisma.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            receiverId: 'creator2',
+            receiverProfileId: null,
+          }),
+        }),
+      );
     });
 
     it('processes a DIRECT_STORY_UNLOCK checkout', async () => {

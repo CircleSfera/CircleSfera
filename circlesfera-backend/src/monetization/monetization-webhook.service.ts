@@ -350,6 +350,14 @@ export class MonetizationWebhookService {
           : session.id;
 
       if (clientReferenceId && creatorId) {
+        // The Profile tipped, while it still exists: one deleted since the
+        // payment leaves it empty and never loses the record of the payment.
+        const tippedProfile = profileId
+          ? await this.prisma.profile.findUnique({
+              where: { id: profileId },
+              select: { id: true },
+            })
+          : null;
         await this.prisma.$transaction(async (tx) => {
           await tx.transaction.create({
             data: {
@@ -358,7 +366,7 @@ export class MonetizationWebhookService {
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
-              receiverProfileId: profileId || null,
+              receiverProfileId: tippedProfile?.id ?? null,
               postId: postId || null,
               stripePaymentIntentId:
                 typeof session.payment_intent === 'string'
@@ -397,7 +405,7 @@ export class MonetizationWebhookService {
         await this.emitPaymentNotification({
           recipientUserId: creatorId,
           senderUserId: clientReferenceId,
-          recipientProfileId: profileId || undefined,
+          recipientProfileId: tippedProfile?.id,
           senderProfileId: senderProfileId || undefined,
           notice: {
             key: 'tip_received',
