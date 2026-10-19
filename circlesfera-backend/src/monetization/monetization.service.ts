@@ -414,13 +414,28 @@ export class MonetizationService {
       where: { id: receiverId },
       select: TIPPED_PROFILE_SELECT,
     });
-    const tipped =
-      named ??
-      (await this.prisma.profile.findFirst({
-        where: { userId: receiverId },
-        orderBy: { createdAt: 'asc' },
-        select: TIPPED_PROFILE_SELECT,
-      }));
+    // The post a tip is for is one of the Profile tipped. When a person is
+    // named, the Profile tipped is the one the post belongs to, so every
+    // check below is about it.
+    let tipped = named;
+    if (postId) {
+      const post = await this.prisma.post.findUnique({
+        where: { id: postId },
+        select: { profileId: true, profile: { select: TIPPED_PROFILE_SELECT } },
+      });
+      const ofTipped = named
+        ? post?.profileId === named.id
+        : post?.profile.userId === receiverId;
+      if (!post || !ofTipped) {
+        throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
+      }
+      tipped = post.profile;
+    }
+    tipped ??= await this.prisma.profile.findFirst({
+      where: { userId: receiverId },
+      orderBy: { createdAt: 'asc' },
+      select: TIPPED_PROFILE_SELECT,
+    });
     const receiverUserId = tipped?.userId ?? receiverId;
     if (senderId === receiverUserId)
       throw AppException.BadRequest(
@@ -440,21 +455,6 @@ export class MonetizationService {
         ErrorCode.USER_NOT_FOUND,
         'Creator not found',
       );
-    }
-
-    // The post a tip is for is one of the Profile tipped, or of the person
-    // when a person is named.
-    if (postId) {
-      const post = await this.prisma.post.findUnique({
-        where: { id: postId },
-        select: { profileId: true, profile: { select: { userId: true } } },
-      });
-      const ofTipped = named
-        ? post?.profileId === named.id
-        : post?.profile.userId === receiverUserId;
-      if (!ofTipped) {
-        throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
-      }
     }
 
     const receiver = await this.prisma.user.findUnique({
