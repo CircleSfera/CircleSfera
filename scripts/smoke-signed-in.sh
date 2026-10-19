@@ -27,6 +27,7 @@ FX_BANNED_EMAIL=smoke-fixture-banned@example.invalid
 TMP=$(mktemp -d)
 ok=1
 post_id=""
+live_on=""
 csrf=""
 
 # The environment is reached on its loopback port, over plain http, and curl
@@ -78,6 +79,9 @@ json_escape() { local s=${1//\\/\\\\}; printf '%s' "${s//\"/\\\"}"; }
 cleanup() {
   if [ -n "$post_id" ]; then
     call "$TMP/smoke" -X DELETE "$API/posts/$post_id"
+  fi
+  if [ -n "$live_on" ]; then
+    call "$TMP/smoke" -X POST "$API/live/end"
   fi
   rm -rf "$TMP"
 }
@@ -183,6 +187,58 @@ else
     post_id=""
   else
     fail "deleting the post ($code)"
+  fi
+fi
+
+# The profile of someone else never tells who the person or the sign-in
+# behind it is, nor how it was sanctioned or set up. Read with the smoke
+# session: Test Accounts are kept apart from the public, so without a session
+# a fixture is not found at all.
+call "$TMP/smoke" "$API/profiles/cs_smoke_public"
+if [ "$code" != "200" ]; then
+  fail "reading the public fixture ($code)"
+elif grep -qE '"(userId|signInId|user|accountBanReason|banStrikeId|suspensionCause|pushNotifications)":' "$TMP/body"; then
+  fail "a profile carries the person behind it, a sanction or a setting"
+else
+  pass "a profile tells nothing of the person behind it"
+fi
+
+# A Profile is reported by its own id, and the answer never names the person
+# behind it. The report stays in the environment's moderation queue, about a
+# Test Account.
+call "$TMP/smoke" -d "{\"targetType\":\"USER\",\"targetId\":\"$FX_PUBLIC_PROFILE\",\"reason\":\"SPAM\",\"details\":\"smoke check\"}" \
+  "$API/reports"
+if [ "$code" != "201" ]; then
+  fail "reporting a Profile by its id ($code)"
+elif grep -q '"targetId"' "$TMP/body"; then
+  fail "the answer to a report carries its stored target"
+else
+  pass "a Profile is reported by its id, and the answer names no one"
+fi
+
+# A co-host is invited by the id of the Profile named. A live of a few
+# seconds, ended at once; nobody follows the smoke account.
+call "$TMP/smoke" -d '{"title":"CircleSfera smoke check, ended at once."}' "$API/live/start"
+if [ "$code" = "403" ] && grep -q "LIVE_STREAMS_DISABLED" "$TMP/body"; then
+  skip "inviting a co-host: live is turned off (system setting)"
+elif [ "$code" != "201" ]; then
+  skip "inviting a co-host: the live of the environment could not start ($code)"
+else
+  live_on=1
+  stream_id=$(grep -o '"id":"[^"]*"' "$TMP/body" | head -1 | cut -d'"' -f4)
+  call "$TMP/smoke" -d "{\"coHostProfileId\":\"$FX_PUBLIC_PROFILE\"}" \
+    "$API/live/$stream_id/cohost/invite"
+  if [ "$code" = "201" ] && grep -q "\"coHostId\":\"$FX_PUBLIC_PROFILE\"" "$TMP/body"; then
+    pass "a co-host is invited by the id of the Profile named"
+  else
+    fail "inviting a co-host by Profile id answered $code"
+  fi
+  call "$TMP/smoke" -X POST "$API/live/end"
+  if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+    live_on=""
+    pass "ending the live"
+  else
+    fail "ending the live ($code)"
   fi
 fi
 
