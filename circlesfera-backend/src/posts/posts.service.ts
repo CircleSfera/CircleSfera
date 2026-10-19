@@ -36,6 +36,7 @@ import {
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
@@ -311,7 +312,7 @@ export class PostsService {
         tags: true,
         audio: true,
         place: true,
-        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         _count: {
           select: {
             likes: true,
@@ -371,11 +372,7 @@ export class PostsService {
         ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
-          profile: {
-            include: {
-              user: { select: PUBLIC_USER_SELECT },
-            },
-          },
+          profile: { select: PUBLIC_PROFILE_SELECT },
           media: { include: { media: true } },
           _count: {
             select: {
@@ -440,11 +437,7 @@ export class PostsService {
         ...(cursor && { cursor: { id: cursor } }),
         orderBy,
         include: {
-          profile: {
-            include: {
-              user: { select: PUBLIC_USER_SELECT },
-            },
-          },
+          profile: { select: PUBLIC_PROFILE_SELECT },
           media: { include: { media: true } },
           audio: true,
           place: true,
@@ -514,11 +507,7 @@ export class PostsService {
         ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
-          profile: {
-            include: {
-              user: { select: PUBLIC_USER_SELECT },
-            },
-          },
+          profile: { select: PUBLIC_PROFILE_SELECT },
           media: { include: { media: true } },
           audio: true,
           place: true,
@@ -569,11 +558,7 @@ export class PostsService {
     const post = await this.prisma.post.findUnique({
       where: { id },
       include: {
-        profile: {
-          include: {
-            user: { select: PUBLIC_USER_SELECT },
-          },
-        },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         _count: {
           select: {
             likes: true,
@@ -679,11 +664,7 @@ export class PostsService {
         ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
-          profile: {
-            include: {
-              user: { select: PUBLIC_USER_SELECT },
-            },
-          },
+          profile: { select: PUBLIC_PROFILE_SELECT },
           media: { include: { media: true } },
           _count: {
             select: {
@@ -756,11 +737,7 @@ export class PostsService {
         ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
-          profile: {
-            include: {
-              user: { select: PUBLIC_USER_SELECT },
-            },
-          },
+          profile: { select: PUBLIC_PROFILE_SELECT },
           media: { include: { media: true } },
           _count: {
             select: {
@@ -817,11 +794,7 @@ export class PostsService {
         visibility: dto.visibility as Visibility,
       },
       include: {
-        profile: {
-          include: {
-            user: { select: PUBLIC_USER_SELECT },
-          },
-        },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         _count: {
           select: {
             likes: true,

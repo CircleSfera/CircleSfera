@@ -539,7 +539,6 @@ describe('InteractiveService', () => {
             username: 'bea',
             fullName: 'Bea',
             avatar: null,
-            user: { id: 'u-bea' },
           },
         },
       ]);
@@ -547,7 +546,8 @@ describe('InteractiveService', () => {
       expect(forAuthor.totalAnswers).toBe(1);
       expect(forAuthor.answers[0]).toMatchObject({
         answerText: 'Hola',
-        user: { id: 'u-bea', username: 'bea' },
+        // The Profile that answered, never the person behind it.
+        user: { id: 'viewer', username: 'bea' },
       });
     });
   });
@@ -686,7 +686,6 @@ describe('InteractiveService', () => {
           username: 'alice',
           avatar: 'https://cdn/a.png',
           fullName: 'Alice',
-          user: { id: 'user-1' },
         },
       },
       {
@@ -760,7 +759,7 @@ describe('InteractiveService', () => {
         id: 'ans-1',
         answerText: 'Hello',
         user: {
-          id: 'user-1',
+          id: 'profile-1',
           username: 'alice',
           fullName: 'Alice',
           avatar: 'https://cdn/a.png',

@@ -8,7 +8,7 @@ import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verifi
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { visibleToViewerWhere } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
-import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
+import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 
@@ -127,9 +127,7 @@ export class LikesService {
         profile: await visibleToViewerWhere(this.prisma, viewerProfileId),
       },
       include: {
-        profile: {
-          include: { user: { select: PUBLIC_USER_SELECT } },
-        },
+        profile: { select: PUBLIC_PROFILE_SELECT },
       },
     });
 

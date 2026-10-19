@@ -31,6 +31,7 @@ import {
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
+import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
@@ -255,7 +256,7 @@ export class StoriesService {
           mediaId: media.id,
         },
         include: {
-          profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+          profile: { select: PUBLIC_PROFILE_SELECT },
           audio: true,
           place: true,
           media: true,
@@ -409,7 +410,7 @@ export class StoriesService {
     const stories = await this.prisma.story.findMany({
       where: whereClause,
       include: {
-        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         audio: true,
         place: true,
         stickers: {
@@ -604,7 +605,7 @@ export class StoriesService {
         moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
       },
       include: {
-        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         audio: true,
         place: true,
         media: true,
@@ -647,7 +648,7 @@ export class StoriesService {
         profileId,
       },
       include: {
-        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         media: true,
         _count: {
           select: { views: true },

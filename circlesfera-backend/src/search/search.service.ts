@@ -16,7 +16,7 @@ import {
   filterToViewerAudience,
   isTestViewerProfile,
 } from '../common/policies/test-account.policy.js';
-import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
+import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   USER_HARD_DELETED_EVENT,
@@ -74,7 +74,7 @@ export class SearchService {
   ): Promise<any[]> {
     if (!query || query.length < 3) return [];
 
-    const cacheKey = `search:semantic:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
+    const cacheKey = `search:semantic:v2:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
     if (cached) return this.forViewer(cached, profileId);
 
@@ -138,7 +138,7 @@ export class SearchService {
           const post = await this.prisma.post.findUnique({
             where: { id: m.id },
             include: {
-              profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+              profile: { select: PUBLIC_PROFILE_SELECT },
               media: true,
               poll: { select: { id: true } },
               qnaBox: { select: { id: true } },
@@ -166,7 +166,7 @@ export class SearchService {
   ): Promise<any[]> {
     if (!query || query.length < 3) return [];
 
-    const cacheKey = `search:semantic_profiles:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
+    const cacheKey = `search:semantic_profiles:v2:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
     if (cached) return cached;
 
@@ -219,16 +219,11 @@ export class SearchService {
         matches.map(async (m) => {
           const profile = await this.prisma.profile.findUnique({
             where: { id: m.profileId },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  role: true,
-                },
-              },
-            },
+            select: PUBLIC_PROFILE_SELECT,
           });
-          return { ...profile, similarityScore: 1 - m.distance };
+          return profile
+            ? { ...profile, similarityScore: 1 - m.distance }
+            : null;
         }),
       );
 
@@ -260,7 +255,7 @@ export class SearchService {
     }
 
     const sanitizedQuery = query.toLowerCase();
-    const cacheKey = `search:combined:v3:${sanitizedQuery.replace(/\s/g, '_')}:${profileId || 'guest'}:${verifiedOnly ? 'verified' : 'all'}`;
+    const cacheKey = `search:combined:v4:${sanitizedQuery.replace(/\s/g, '_')}:${profileId || 'guest'}:${verifiedOnly ? 'verified' : 'all'}`;
     const cached = await this.cacheManager.get<SearchResponse>(cacheKey);
     if (cached) return cached;
 
@@ -503,7 +498,7 @@ export class SearchService {
         viewerId,
       );
 
-    const cacheKey = `trending_v3:${limit}`;
+    const cacheKey = `trending_v4:${limit}`;
     const cached = await this.cacheManager.get<Post[]>(cacheKey);
     if (cached) return withoutBlocked(cached);
 
@@ -535,7 +530,7 @@ export class SearchService {
     const posts = await this.prisma.post.findMany({
       where: { id: { in: postIds } },
       include: {
-        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         media: true,
         _count: { select: { likes: true, comments: true } },
       },
@@ -570,7 +565,7 @@ export class SearchService {
         },
       },
       include: {
-        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+        profile: { select: PUBLIC_PROFILE_SELECT },
         media: true,
         _count: { select: { likes: true, comments: true } },
       },

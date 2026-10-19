@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { MediaStatus, Message, Participant } from '@prisma/client';
-import { PUBLIC_USER_SELECT } from '../../../common/selects/public-user.select.js';
+import { PUBLIC_PROFILE_SELECT } from '../../../common/selects/public-profile.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
@@ -67,7 +67,6 @@ export class GetMessagesQuery {
             id: true,
             username: true,
             avatar: true,
-            user: { select: { id: true } },
           },
         },
         media: true,
@@ -75,7 +74,7 @@ export class GetMessagesQuery {
         post: {
           include: {
             media: true,
-            profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
+            profile: { select: PUBLIC_PROFILE_SELECT },
           },
         },
         replyTo: {
@@ -84,7 +83,6 @@ export class GetMessagesQuery {
               select: {
                 id: true,
                 username: true,
-                user: { select: { id: true } },
               },
             },
           },
@@ -94,7 +92,6 @@ export class GetMessagesQuery {
             profile: {
               select: {
                 username: true,
-                user: { select: { id: true } },
               },
             },
           },

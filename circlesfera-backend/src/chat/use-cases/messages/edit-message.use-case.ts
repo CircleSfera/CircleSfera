@@ -41,7 +41,6 @@ export class EditMessageUseCase {
             id: true,
             username: true,
             avatar: true,
-            user: { select: { id: true } },
           },
         },
       },
