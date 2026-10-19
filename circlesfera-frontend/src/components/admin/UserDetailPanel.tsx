@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   AlertCircle,
   Copy,
@@ -17,6 +22,7 @@ import {
 import { type ReactNode, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import type { AdminUserDetail } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
@@ -119,10 +125,22 @@ function StaffNotes({ userId }: { userId: string }) {
   const fieldId = useId();
   const [draft, setDraft] = useState('');
   const key = ['admin', 'staff-notes', userId];
-  const { data: notes } = useQuery({
-    queryKey: key,
-    queryFn: () => adminApi.getStaffNotes(userId).then((res) => res.data),
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: key,
+      queryFn: ({ pageParam }) =>
+        adminApi
+          .getStaffNotesPage(userId, pageParam || undefined)
+          .then((res) => res.data),
+      initialPageParam: '',
+      getNextPageParam: (last) => last.nextCursor || undefined,
+    });
+  const notes = data?.pages.flatMap((p) => p.items ?? []);
+  const loadMoreRef = useInfiniteScroll(
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  );
   const add = useMutation({
     mutationFn: () => adminApi.addStaffNote(userId, draft.trim()),
     onSuccess: () => {
@@ -193,6 +211,7 @@ function StaffNotes({ userId }: { userId: string }) {
           ))}
         </ul>
       )}
+      {hasNextPage && <div ref={loadMoreRef} aria-hidden className="h-1" />}
     </section>
   );
 }

@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import toast from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +18,7 @@ vi.mock('../../services/admin.service', () => ({
     getUserDetail: vi.fn(),
     getTrustScore: vi.fn(),
     getLinkedAccounts: vi.fn(),
-    getStaffNotes: vi.fn(),
+    getStaffNotesPage: vi.fn(),
     addStaffNote: vi.fn(),
     getOpenSessions: vi.fn(),
     closeUserSessions: vi.fn(),
@@ -90,7 +96,9 @@ describe('UserDetailPanel', () => {
     api.getUserDetail.mockResolvedValue({ data: dossier() } as never);
     api.getTrustScore.mockRejectedValue(new Error('none'));
     api.getLinkedAccounts.mockRejectedValue(new Error('none'));
-    api.getStaffNotes.mockResolvedValue({ data: [] } as never);
+    api.getStaffNotesPage.mockResolvedValue({
+      data: { items: [], nextCursor: null },
+    } as never);
     api.getOpenSessions.mockResolvedValue({ data: { open: 2 } } as never);
     api.applyBotLabel.mockResolvedValue({} as never);
     api.clearBotLabel.mockResolvedValue({} as never);
@@ -323,25 +331,28 @@ describe('UserDetailPanel', () => {
   it('lists the staff notes of the account with who wrote each, and says when there are none', async () => {
     show();
     expect(await screen.findByText('No notes yet.')).toBeInTheDocument();
-    expect(api.getStaffNotes).toHaveBeenCalledWith('user-1');
+    expect(api.getStaffNotesPage).toHaveBeenCalledWith('user-1', undefined);
   });
 
   it('shows a note with its author, and one whose author is gone', async () => {
-    api.getStaffNotes.mockResolvedValue({
-      data: [
-        {
-          id: 'n2',
-          body: 'Called us: the account is a shop',
-          createdAt: '2026-03-10T11:00:00Z',
-          author: 'Ana Staff',
-        },
-        {
-          id: 'n1',
-          body: 'An older note',
-          createdAt: '2026-01-02T11:00:00Z',
-          author: null,
-        },
-      ],
+    api.getStaffNotesPage.mockResolvedValue({
+      data: {
+        nextCursor: null,
+        items: [
+          {
+            id: 'n2',
+            body: 'Called us: the account is a shop',
+            createdAt: '2026-03-10T11:00:00Z',
+            author: 'Ana Staff',
+          },
+          {
+            id: 'n1',
+            body: 'An older note',
+            createdAt: '2026-01-02T11:00:00Z',
+            author: null,
+          },
+        ],
+      },
     } as never);
     show();
 
@@ -354,6 +365,46 @@ describe('UserDetailPanel', () => {
       'Staff member no longer here',
     );
     expect(screen.queryByText('No notes yet.')).not.toBeInTheDocument();
+  });
+
+  it('reads the next notes when the end of the list scrolls into view', async () => {
+    type Seen = (entries: { isIntersecting: boolean }[]) => void;
+    const observers: Seen[] = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: Seen) {
+          observers.push(callback);
+        }
+        observe = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
+    const note = (id: string, body: string) => ({
+      id,
+      body,
+      createdAt: '2026-03-10T11:00:00Z',
+      author: 'Ana Staff',
+    });
+    api.getStaffNotesPage.mockImplementation((async (
+      _id: string,
+      cursor?: string,
+    ) => ({
+      data: cursor
+        ? { items: [note('n1', 'An older note')], nextCursor: null }
+        : { items: [note('n2', 'A newer note')], nextCursor: 'after-n2' },
+    })) as never);
+    show();
+
+    await screen.findByText('A newer note');
+    expect(screen.queryByText('An older note')).not.toBeInTheDocument();
+
+    act(() => {
+      for (const seen of observers) seen([{ isIntersecting: true }]);
+    });
+
+    expect(await screen.findByText('An older note')).toBeInTheDocument();
+    expect(api.getStaffNotesPage).toHaveBeenCalledWith('user-1', 'after-n2');
   });
 
   it('adds a note trimmed, empties the field and reads the notes again', async () => {
@@ -376,7 +427,7 @@ describe('UserDetailPanel', () => {
       ),
     );
     await waitFor(() => expect(field).toHaveValue(''));
-    await waitFor(() => expect(api.getStaffNotes).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(api.getStaffNotesPage).toHaveBeenCalledTimes(2));
   });
 
   it('keeps what was written and says so when a note cannot be added', async () => {

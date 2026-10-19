@@ -54,6 +54,59 @@ describe('AdminUsersService: staff notes on an account', () => {
     );
   });
 
+  it('reads the notes a page at a time, newest first, after the last note of the page before', async () => {
+    const older = new Date('2026-03-09T11:00:00Z');
+    prisma.staffNote.findMany.mockResolvedValueOnce([
+      { id: 'n3', body: 'Third', createdAt: when, author: null },
+      { id: 'n2', body: 'Second', createdAt: older, author: null },
+      { id: 'n1', body: 'First', createdAt: older, author: null },
+    ]);
+
+    const first = await service.getStaffNotesPage('user-1', undefined, 2);
+
+    expect(first.items.map((n) => n.id)).toEqual(['n3', 'n2']);
+    expect(prisma.staffNote.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: { userId: 'user-1' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 3,
+      }),
+    );
+
+    prisma.staffNote.findMany.mockResolvedValueOnce([
+      { id: 'n1', body: 'First', createdAt: older, author: null },
+    ]);
+    const second = await service.getStaffNotesPage(
+      'user-1',
+      first.nextCursor ?? '',
+      2,
+    );
+
+    expect(prisma.staffNote.findMany.mock.calls[1][0].where).toEqual({
+      userId: 'user-1',
+      OR: [
+        { createdAt: { lt: older } },
+        { createdAt: older, id: { lt: 'n2' } },
+      ],
+    });
+    expect(second).toEqual({
+      items: [{ id: 'n1', body: 'First', createdAt: older, author: null }],
+      nextCursor: null,
+    });
+  });
+
+  it('starts the notes from the top when the cursor is not one it wrote, and keeps a page within bounds', async () => {
+    prisma.staffNote.findMany.mockResolvedValue([]);
+
+    await service.getStaffNotesPage('user-1', 'not-a-cursor');
+    await service.getStaffNotesPage('user-1', undefined, 500);
+    await service.getStaffNotesPage('user-1', undefined, 0);
+
+    const calls = prisma.staffNote.findMany.mock.calls;
+    expect(calls[0][0].where).toEqual({ userId: 'user-1' });
+    expect(calls.map((c) => c[0].take)).toEqual([31, 51, 2]);
+  });
+
   it('adds a note signed by the staff member, and changes nothing else', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
     prisma.staffNote.create.mockResolvedValue({

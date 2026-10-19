@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
 import { renderWithProviders } from '../../test/test-utils';
@@ -7,7 +7,7 @@ import LinkDomainsTab from './LinkDomainsTab';
 
 vi.mock('../../services/admin.service', () => ({
   adminApi: {
-    getLinkDomains: vi.fn(),
+    getLinkDomainsPage: vi.fn(),
     blockLinkDomain: vi.fn(),
     unblockLinkDomain: vi.fn(),
   },
@@ -27,8 +27,8 @@ const evil = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(adminApi.getLinkDomains).mockResolvedValue({
-    data: [evil],
+  vi.mocked(adminApi.getLinkDomainsPage).mockResolvedValue({
+    data: { items: [evil], nextCursor: null },
   } as never);
 });
 
@@ -46,7 +46,10 @@ describe('LinkDomainsTab', () => {
       target: { value: 'evil' },
     });
     await waitFor(() =>
-      expect(adminApi.getLinkDomains).toHaveBeenLastCalledWith('evil'),
+      expect(adminApi.getLinkDomainsPage).toHaveBeenLastCalledWith(
+        'evil',
+        undefined,
+      ),
     );
   });
 
@@ -125,9 +128,11 @@ describe('LinkDomainsTab', () => {
   });
 
   it('says the list could not be loaded, rather than that it is empty, and tries again', async () => {
-    vi.mocked(adminApi.getLinkDomains)
+    vi.mocked(adminApi.getLinkDomainsPage)
       .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValueOnce({ data: [evil] } as never);
+      .mockResolvedValueOnce({
+        data: { items: [evil], nextCursor: null },
+      } as never);
     renderWithProviders(<LinkDomainsTab />, { lng: 'es' });
 
     expect(
@@ -138,5 +143,46 @@ describe('LinkDomainsTab', () => {
     expect((await screen.findAllByText('evil.example')).length).toBeGreaterThan(
       0,
     );
+  });
+
+  it('reads the next page when the end of the list scrolls into view', async () => {
+    type Seen = (entries: { isIntersecting: boolean }[]) => void;
+    const observers: Seen[] = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: Seen) {
+          observers.push(callback);
+        }
+        observe = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
+    vi.mocked(adminApi.getLinkDomainsPage).mockImplementation((async (
+      _search?: string,
+      cursor?: string,
+    ) => ({
+      data: cursor
+        ? {
+            items: [{ ...evil, id: 'd-2', domain: 'zz.example' }],
+            nextCursor: null,
+          }
+        : { items: [evil], nextCursor: 'after-evil' },
+    })) as never);
+    renderWithProviders(<LinkDomainsTab />, { lng: 'es' });
+
+    await screen.findAllByText('evil.example');
+    expect(screen.queryByText('zz.example')).not.toBeInTheDocument();
+
+    act(() => {
+      for (const seen of observers) seen([{ isIntersecting: true }]);
+    });
+
+    expect((await screen.findAllByText('zz.example'))[0]).toBeInTheDocument();
+    expect(adminApi.getLinkDomainsPage).toHaveBeenCalledWith(
+      undefined,
+      'after-evil',
+    );
+    vi.unstubAllGlobals();
   });
 });

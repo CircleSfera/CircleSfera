@@ -26,6 +26,7 @@ describe('AdminUsersController', () => {
   const mockService = {
     sendBroadcastEmail: vi.fn(),
     getStaffNotes: vi.fn(),
+    getStaffNotesPage: vi.fn(),
     addStaffNote: vi.fn(),
     countOpenSessions: vi.fn(),
     closeUserSessions: vi.fn(),
@@ -359,6 +360,32 @@ describe('AdminUsersController', () => {
       TEST_ADMIN.adminId,
       'user-1',
       'The account is a shop',
+    );
+  });
+
+  it('reads the staff notes a page at a time, with the cursor and length given', async () => {
+    mockService.getStaffNotesPage.mockResolvedValue({
+      items: [],
+      nextCursor: null,
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-1/notes/page?cursor=abc&limit=10')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-1/notes/page?limit=51')
+      .set(ADMIN_BEARER)
+      .expect(400);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-1/notes/page')
+      .expect(401);
+
+    expect(mockService.getStaffNotesPage).toHaveBeenCalledTimes(1);
+    expect(mockService.getStaffNotesPage).toHaveBeenCalledWith(
+      'user-1',
+      'abc',
+      10,
     );
   });
 
