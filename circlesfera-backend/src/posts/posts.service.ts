@@ -37,7 +37,6 @@ import {
 } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
-import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import {
@@ -613,7 +612,7 @@ export class PostsService {
 
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
-      include: { user: { select: PUBLIC_USER_SELECT } },
+      select: { id: true, privacyLevel: true },
     });
 
     if (

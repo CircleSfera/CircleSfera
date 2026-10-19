@@ -311,12 +311,8 @@ export class SearchService {
 
     const keywordProfileIds = new Set(users.map((u: { id: string }) => u.id));
     const uniqueSemanticProfiles = (semanticProfiles || []).filter(
-      (p: {
-        user?: { id?: string };
-        profileId?: string;
-        verificationLevel?: string;
-      }) => {
-        const id = p.user?.id || p.profileId;
+      (p: { id?: string; verificationLevel?: string }) => {
+        const id = p.id;
         if (!id || keywordProfileIds.has(id)) return false;
         // The people found by meaning obey the same filter as the ones
         // found by name: with it on, only Profiles with a plan badge.
@@ -414,7 +410,8 @@ export class SearchService {
         ],
       },
       take: 30, // Larger pool for better ranking
-      include: {
+      select: {
+        ...PUBLIC_PROFILE_SELECT,
         _count: {
           select: { followers: true },
         },

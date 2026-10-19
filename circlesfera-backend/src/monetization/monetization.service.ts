@@ -207,7 +207,8 @@ export class MonetizationService {
       buyerEmail: buyer.email,
       priceCents: post.priceCents,
       productName: 'Post unlock',
-      description: `Unlock exclusive content from ${creator.email}`,
+      // Who pays sees the Profile, never the creator's email.
+      description: `Unlock exclusive content from @${(post as any).profile.username}`,
       creatorStripeAccountId: creator.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_POST_UNLOCK',
@@ -272,7 +273,7 @@ export class MonetizationService {
       buyerEmail: buyer.email,
       priceCents: story.priceCents,
       productName: 'Story unlock',
-      description: `Unlock exclusive story from ${creator.email}`,
+      description: `Unlock exclusive story from @${(story as any).profile.username}`,
       creatorStripeAccountId: creator.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_STORY_UNLOCK',
@@ -353,7 +354,7 @@ export class MonetizationService {
       buyerEmail: buyer.email,
       priceCents: message.priceCents,
       productName: 'Locked Message Unlock',
-      description: `Unlock exclusive message from ${creator.email}`,
+      description: `Unlock exclusive message from @${message.sender.username}`,
       creatorStripeAccountId: creator.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_MESSAGE_UNLOCK',
