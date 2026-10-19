@@ -1,0 +1,29 @@
+name: Deploy development every night
+
+# Development is otherwise deployed only by hand, so it falls behind main and
+# can be left broken without anyone noticing (on 19 October its web app
+# answered 403 until it was deployed again). Every night it is deployed again
+# from main, with the same build, settings and checks as a deploy by hand,
+# including the signed-in smoke check. Its data is kept. A deploy by hand of
+# another branch still works and lasts until the next night.
+on:
+  schedule:
+    # 03:30 UTC, away from the working day and from the daily backup.
+    - cron: "30 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  development:
+    name: Development
+    # Only main: a scheduled run on a fork or another branch does nothing.
+    if: ${{ github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: dev
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
