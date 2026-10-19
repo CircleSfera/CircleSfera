@@ -195,6 +195,31 @@ describe('ReportsService', () => {
         ]);
       });
 
+      it('a report of a Profile is kept against the person, and help reaches the Profile reported', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+          id: 'hobby-profile',
+          userId: 'u-7',
+        });
+
+        await report('USER', 'hobby-profile');
+
+        expect(mockPrismaService.report.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            targetType: 'USER',
+            targetId: 'u-7',
+          }),
+        });
+        expect(mockPrismaService.user.findUnique).not.toHaveBeenCalled();
+        expect(helpSent().map(([, p]) => p.recipientId)).toEqual([
+          'hobby-profile',
+        ]);
+        expect(
+          mockEventEmitter.emit.mock.calls.find(
+            ([name]) => name === 'moderation.report_filed',
+          )?.[1],
+        ).toMatchObject({ targetType: 'USER', targetId: 'u-7' });
+      });
+
       it('sends it once a day at most, never for a report about oneself, and not without staff', async () => {
         mockPrismaService.post.findUnique.mockResolvedValue({
           profileId: 'author-1',

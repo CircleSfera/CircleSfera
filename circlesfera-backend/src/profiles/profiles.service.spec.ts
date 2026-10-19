@@ -164,6 +164,89 @@ describe('ProfilesService', () => {
       );
     });
 
+    it('tells nobody who the person behind a Profile is, how it was sanctioned or how it is set up', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockPrismaService.block.findFirst.mockResolvedValue(null);
+      mockPrismaService.platformSubscription.findFirst.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'p-target',
+        userId: 'u-target',
+        signInId: 'si-target',
+        username: 'dbuser',
+        fullName: 'Ana',
+        bio: 'Hi',
+        verificationLevel: 'BASIC',
+        accountType: 'PERSONAL',
+        privacyLevel: 'PUBLIC',
+        isAccountBanned: true,
+        accountBanReason: 'What staff wrote',
+        banStrikeId: 'strike-1',
+        suspensionStrikeId: 'strike-2',
+        suspensionCause: 'STRIKES',
+        sanctionedAt: new Date(),
+        suspendedUntil: null,
+        strikeCount: 2,
+        pushNotifications: true,
+        pushMessages: false,
+        avatarMediaId: 'media-1',
+        coverMediaId: 'media-2',
+        user: { id: 'u-target', createdAt: new Date(), isActive: true },
+        signIn: { emailVerified: null },
+        _count: { posts: 3, followers: 4, following: 5, strikes: 1 },
+      });
+
+      const result = await service.getProfile('dbuser');
+
+      for (const hidden of [
+        'userId',
+        'signInId',
+        'user',
+        'signIn',
+        'isAccountBanned',
+        'accountBanReason',
+        'banStrikeId',
+        'suspensionStrikeId',
+        'suspensionCause',
+        'sanctionedAt',
+        'suspendedUntil',
+        'pushNotifications',
+        'pushMessages',
+        'avatarMediaId',
+        'coverMediaId',
+      ]) {
+        expect(result).not.toHaveProperty(hidden);
+      }
+      expect(result).toMatchObject({
+        id: 'p-target',
+        username: 'dbuser',
+        fullName: 'Ana',
+        bio: 'Hi',
+        strikeCount: 1,
+        accountStanding: expect.any(String),
+        _count: { posts: 3, followers: 4, following: 5 },
+      });
+      expect(result._count).not.toHaveProperty('strikes');
+      // What is cached is the same closed view.
+      expect(mockCacheManager.set.mock.calls[0][1]).toEqual(result);
+    });
+
+    it('cuts a view cached before the list of fields was closed', async () => {
+      mockCacheManager.get.mockResolvedValue({
+        id: 'p-target',
+        username: 'cacheduser',
+        userId: 'u-target',
+        user: { id: 'u-target', createdAt: '2026-01-01' },
+        accountBanReason: 'What staff wrote',
+        _count: { posts: 1, followers: 2, following: 3, strikes: 1 },
+      });
+
+      await expect(service.getProfile('cacheduser')).resolves.toEqual({
+        id: 'p-target',
+        username: 'cacheduser',
+        _count: { posts: 1, followers: 2, following: 3 },
+      });
+    });
+
     it('returns the profile normally when there is no block', async () => {
       const cached = { id: 'p-target', username: 'cacheduser' };
       mockCacheManager.get.mockResolvedValue(cached);

@@ -25,7 +25,6 @@ export class CloseFriendsService {
             avatar: true,
             standardUrl: true,
             thumbnailUrl: true,
-            userId: true,
           },
         },
       },

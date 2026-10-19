@@ -254,14 +254,17 @@ describe('LiveBroadcaster', () => {
 
     it('invites the account and shows it as co-host, with a named way to remove it', async () => {
       vi.mocked(profileApi.getProfile).mockResolvedValue({
-        data: { user: { id: 'user-2' } },
+        data: { id: 'profile-2', username: 'ana' },
       } as never);
       vi.mocked(liveApi.inviteCoHost).mockResolvedValue({} as never);
 
       const { i18n } = await openInvite('@ana');
 
       await waitFor(() =>
-        expect(liveApi.inviteCoHost).toHaveBeenCalledWith('stream-1', 'user-2'),
+        expect(liveApi.inviteCoHost).toHaveBeenCalledWith(
+          'stream-1',
+          'profile-2',
+        ),
       );
       expect(profileApi.getProfile).toHaveBeenCalledWith('ana');
       expect(await screen.findByText('@ana')).toBeInTheDocument();
@@ -285,7 +288,7 @@ describe('LiveBroadcaster', () => {
 
     it('says the invitation failed', async () => {
       vi.mocked(profileApi.getProfile).mockResolvedValue({
-        data: { user: { id: 'user-2' } },
+        data: { id: 'profile-2', username: 'ana' },
       } as never);
       vi.mocked(liveApi.inviteCoHost).mockRejectedValue(new Error('down'));
 

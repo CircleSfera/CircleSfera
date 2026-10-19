@@ -179,7 +179,6 @@ describe('LiveService', () => {
 
   describe('inviteCoHost', () => {
     const hostProfileId = 'host-profile-1';
-    const coHostUserId = 'user-2';
     const coHostProfileId = 'cohost-profile-2';
 
     it('should throw ForbiddenException if caller is not the host', async () => {
@@ -191,7 +190,9 @@ describe('LiveService', () => {
       });
 
       await expect(
-        service.inviteCoHost('stream-1', 'attacker-profile', coHostUserId),
+        service.inviteCoHost('stream-1', 'attacker-profile', {
+          profileId: coHostProfileId,
+        }),
       ).rejects.toThrow(AppException);
     });
 
@@ -211,7 +212,9 @@ describe('LiveService', () => {
       });
 
       await expect(
-        service.inviteCoHost('stream-1', hostProfileId, 'ghost-user'),
+        service.inviteCoHost('stream-1', hostProfileId, {
+          profileId: 'ghost-profile',
+        }),
       ).rejects.toThrow(AppException);
     });
 
@@ -226,7 +229,6 @@ describe('LiveService', () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({
         id: coHostProfileId,
         username: 'cohost_user',
-        userId: coHostUserId,
       });
       mockPrismaService.profile.findUnique.mockResolvedValue({
         id: hostProfileId,
@@ -235,10 +237,13 @@ describe('LiveService', () => {
       });
       mockPrismaService.liveStream.update.mockResolvedValue({});
 
-      const result = await service.inviteCoHost(
-        'stream-1',
-        hostProfileId,
-        coHostUserId,
+      const result = await service.inviteCoHost('stream-1', hostProfileId, {
+        profileId: coHostProfileId,
+      });
+
+      // The Profile named is the one invited.
+      expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: coHostProfileId } }),
       );
 
       expect(mockPrismaService.liveStream.update).toHaveBeenCalledWith({
@@ -254,6 +259,37 @@ describe('LiveService', () => {
       );
       expect(result).toEqual({ success: true, coHostId: coHostProfileId });
     });
+  });
+
+  it('invites the first Profile of a person when an older app names the person', async () => {
+    mockPrismaService.liveStream.findUnique.mockResolvedValue({
+      id: 'stream-1',
+      hostId: 'host-profile-1',
+      status: 'LIVE',
+      coHostId: null,
+      title: 'Live!',
+    });
+    mockPrismaService.profile.findFirst.mockResolvedValue({
+      id: 'cohost-profile-2',
+      username: 'cohost_user',
+    });
+    mockPrismaService.profile.findUnique.mockResolvedValue({
+      id: 'host-profile-1',
+      username: 'host_user',
+      avatar: null,
+    });
+    mockPrismaService.liveStream.update.mockResolvedValue({});
+
+    await service.inviteCoHost('stream-1', 'host-profile-1', {
+      userId: 'user-2',
+    });
+
+    expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 'user-2' },
+        orderBy: { createdAt: 'asc' },
+      }),
+    );
   });
 
   describe('acceptCoHostInvite', () => {

@@ -28,14 +28,25 @@ vi.mock('react-hot-toast', () => {
 });
 vi.mock('../components/common/SEO', () => ({ default: () => null }));
 vi.mock('../components/profile/ProfileHeader', () => ({
-  default: (props: { handleMessageClick: () => void; isMe: boolean }) => (
+  default: (props: {
+    handleMessageClick: () => void;
+    isMe: boolean;
+    setShowReportModal: (show: boolean) => void;
+  }) => (
     <div>
       <span>{props.isMe ? 'own header' : 'other header'}</span>
       <button type="button" onClick={props.handleMessageClick}>
         message
       </button>
+      <button type="button" onClick={() => props.setShowReportModal(true)}>
+        report
+      </button>
     </div>
   ),
+}));
+vi.mock('../components/modals/ReportModal', () => ({
+  default: (props: { isOpen: boolean; targetId: string }) =>
+    props.isOpen ? <div>report of {props.targetId}</div> : null,
 }));
 vi.mock('../components/profile/PostGrid', () => ({
   default: ({ items }: { items: { id: string }[] }) => (
@@ -51,7 +62,6 @@ vi.mock('react-router-dom', async (importOriginal) => ({
 const profileOf = (overrides: Record<string, unknown> = {}) => ({
   data: {
     id: 'prof-ana',
-    userId: 'user-ana',
     username: 'ana',
     isPrivate: false,
     user: { settings: { privacyLevel: 'PUBLIC' } },
@@ -94,6 +104,14 @@ describe('Profile', () => {
     expect(await screen.findByText('grid:post-1')).toBeInTheDocument();
     expect(screen.getByText('other header')).toBeInTheDocument();
     expect(postsApi.getByUser).toHaveBeenCalledWith('ana', 1, 18, 'POST');
+  });
+
+  it('reports the Profile itself, never the person behind it', async () => {
+    renderAt();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'report' }));
+
+    expect(await screen.findByText('report of prof-ana')).toBeInTheDocument();
   });
 
   it('keeps a private account closed to non-followers and asks for nothing private', async () => {

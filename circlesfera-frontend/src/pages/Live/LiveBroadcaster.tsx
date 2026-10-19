@@ -270,18 +270,18 @@ export default function LiveBroadcaster() {
     const username = coHostUsernameInput.trim().replace(/^@/, '');
     setIsInviting(true);
     try {
-      let coHostUserId: string | undefined;
+      let coHostProfileId: string | undefined;
       try {
         const profileRes = await profileApi.getProfile(username);
-        coHostUserId = profileRes.data?.user?.id;
+        coHostProfileId = profileRes.data?.id;
       } catch {
-        coHostUserId = undefined;
+        coHostProfileId = undefined;
       }
-      if (!coHostUserId) {
+      if (!coHostProfileId) {
         toast.error(t('live.cohost_not_found', { username }));
         return;
       }
-      await liveApi.inviteCoHost(streamId, coHostUserId);
+      await liveApi.inviteCoHost(streamId, coHostProfileId);
       setCoHostUsername(username);
       setCoHostUsernameInput('');
       setSheet(null);

@@ -38,8 +38,21 @@ export class ReportsService {
   async create(reporterId: string, dto: CreateReportDto): Promise<Report> {
     // The Profile behind what is reported, to offer it help on self-harm.
     let authorProfileId: string | null = null;
+    // A report of a Profile is kept against the person behind it.
+    let targetId = dto.targetId;
     switch (dto.targetType) {
       case ReportTargetType.USER: {
+        // The app names the Profile reported; the person behind it is never
+        // shown to it. A person's id is still accepted.
+        const reported = await this.prisma.profile.findUnique({
+          where: { id: dto.targetId },
+          select: { id: true, userId: true },
+        });
+        if (reported) {
+          targetId = reported.userId;
+          authorProfileId = reported.id;
+          break;
+        }
         const user = await this.prisma.user.findUnique({
           where: { id: dto.targetId },
         });
@@ -114,7 +127,7 @@ export class ReportsService {
       data: {
         reporterId,
         targetType: dto.targetType,
-        targetId: dto.targetId,
+        targetId,
         reason: dto.reason,
         details: finalDetails,
         // Someone may hurt themselves: staff see it first.
@@ -136,7 +149,7 @@ export class ReportsService {
       reportId: report.id,
       reporterId,
       targetType: dto.targetType,
-      targetId: dto.targetId,
+      targetId,
       reason: dto.reason,
       details: finalDetails || undefined,
     };
