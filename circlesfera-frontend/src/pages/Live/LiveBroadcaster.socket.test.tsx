@@ -160,7 +160,7 @@ vi.mock('../../services/live', () => ({
 }));
 vi.mock('../../services/profile.service', () => ({
   profileApi: {
-    getProfile: vi.fn().mockResolvedValue({ data: { user: { id: 'u2' } } }),
+    getProfile: vi.fn().mockResolvedValue({ data: { id: 'p2' } }),
   },
 }));
 vi.mock('react-router-dom', async (original) => ({

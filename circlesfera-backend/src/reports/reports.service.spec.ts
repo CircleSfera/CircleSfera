@@ -195,6 +195,31 @@ describe('ReportsService', () => {
         ]);
       });
 
+      it('a report of a Profile is kept against the person, and help reaches the Profile reported', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+          id: 'hobby-profile',
+          userId: 'u-7',
+        });
+
+        await report('USER', 'hobby-profile');
+
+        expect(mockPrismaService.report.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            targetType: 'USER',
+            targetId: 'u-7',
+          }),
+        });
+        expect(mockPrismaService.user.findUnique).not.toHaveBeenCalled();
+        expect(helpSent().map(([, p]) => p.recipientId)).toEqual([
+          'hobby-profile',
+        ]);
+        expect(
+          mockEventEmitter.emit.mock.calls.find(
+            ([name]) => name === 'moderation.report_filed',
+          )?.[1],
+        ).toMatchObject({ targetType: 'USER', targetId: 'u-7' });
+      });
+
       it('sends it once a day at most, never for a report about oneself, and not without staff', async () => {
         mockPrismaService.post.findUnique.mockResolvedValue({
           profileId: 'author-1',
@@ -365,6 +390,53 @@ describe('ReportsService', () => {
   });
 
   describe('findMyReports', () => {
+    it('never tells the reporter who is behind a Profile they reported', async () => {
+      mockPrismaService.report.findMany.mockResolvedValue([
+        { id: 'r1', targetType: 'USER', targetId: 'u-7' },
+        { id: 'r2', targetType: 'POST', targetId: 'post-1' },
+      ]);
+      mockPrismaService.report.count.mockResolvedValue(2);
+
+      const result = await service.findMyReports('p-1', {} as any);
+
+      expect(result.data).toEqual([
+        { id: 'r1', targetType: 'USER', targetId: null },
+        { id: 'r2', targetType: 'POST', targetId: 'post-1' },
+      ]);
+    });
+
+    it('answers a new report with what the reporter may know of it', async () => {
+      const createdAt = new Date();
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        id: 'hobby-profile',
+        userId: 'u-7',
+      });
+      mockPrismaService.report.create.mockResolvedValue({
+        id: 'r-1',
+        reporterId: 'p-1',
+        targetType: 'USER',
+        targetId: 'u-7',
+        reason: 'SPAM',
+        status: 'PENDING',
+        details: null,
+        createdAt,
+      });
+
+      await expect(
+        service.create('p-1', {
+          targetType: ReportTargetType.USER,
+          targetId: 'hobby-profile',
+          reason: 'SPAM',
+        } as any),
+      ).resolves.toEqual({
+        id: 'r-1',
+        targetType: 'USER',
+        reason: 'SPAM',
+        status: 'PENDING',
+        createdAt,
+      });
+    });
+
     it('should find my reports paginated with defaults', async () => {
       mockPrismaService.report.findMany.mockResolvedValue([{ id: '1' }]);
       mockPrismaService.report.count.mockResolvedValue(1);

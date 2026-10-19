@@ -16,10 +16,12 @@ describe('MonetizationService', () => {
     },
     user: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       update: vi.fn(),
     },
     profile: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
     transaction: {
       findMany: vi.fn(),
@@ -41,6 +43,9 @@ describe('MonetizationService', () => {
     },
     messageUnlock: {
       findUnique: vi.fn(),
+    },
+    block: {
+      findFirst: vi.fn(),
     },
   };
 
@@ -626,6 +631,32 @@ describe('MonetizationService', () => {
     // MIN_PPV_PRICE_CENTS (the pay-per-view price floor).
     const tipCents = 500;
 
+    // A Profile that may receive a tip, of the person given.
+    const tippable = (userId: string, over: object = {}) => ({
+      id: `${userId}-profile`,
+      userId,
+      username: `${userId}_name`,
+      isAccountBanned: false,
+      suspendedUntil: null,
+      user: { isActive: true, isRootBanned: false, deletedAt: null },
+      ...over,
+    });
+
+    beforeEach(() => {
+      // By default the tests name a person, whose first Profile is checked.
+      mockPrismaService.profile.findUnique.mockReset().mockResolvedValue(null);
+      mockPrismaService.profile.findFirst
+        .mockReset()
+        .mockImplementation(async ({ where }: { where: { userId: string } }) =>
+          tippable(where.userId),
+        );
+      mockPrismaService.user.findUnique.mockReset();
+      mockPrismaService.block.findFirst.mockReset().mockResolvedValue(null);
+      // Both sides are real accounts, of one audience.
+      mockPrismaService.user.findMany.mockReset().mockResolvedValue([]);
+      mockPrismaService.post.findUnique.mockReset();
+    });
+
     it('should throw if amount is below the €2.00 minimum, in euros', async () => {
       await expect(
         service.createTipSession(
@@ -693,6 +724,12 @@ describe('MonetizationService', () => {
         url: 'https://checkout.stripe.test/tip',
       });
 
+      // The post is one of the person tipped.
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        profileId: 'creator-1-profile',
+        profile: tippable('creator-1'),
+      });
+
       const result = await service.createTipSession(
         'fan-1',
         'creator-1',
@@ -718,11 +755,226 @@ describe('MonetizationService', () => {
           metadata: {
             type: 'DIRECT_TIP',
             creatorId: 'creator-1',
+            // A person was named: no Profile is kept.
+            profileId: '',
+            senderProfileId: '',
             postId: 'post-123',
           },
         }),
         { idempotencyKey: 'idemp-tip' },
       );
+    });
+
+    it('pays the person behind the Profile tipped, and shows who pays the Profile, never an email', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce(
+        tippable('creator-1', { id: 'hobby-profile', username: 'ana_hobby' }),
+      );
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({
+          id: 'creator-1',
+          email: 'creator@example.com',
+          stripeConnectAccountId: 'acct_1',
+        })
+        .mockResolvedValueOnce({ id: 'fan-1', email: 'fan@example.com' });
+      mockStripeService.createCheckoutSession.mockResolvedValue({
+        url: 'https://checkout.stripe.test/tip',
+      });
+
+      await service.createTipSession(
+        'fan-1',
+        'hobby-profile',
+        tipCents,
+        'http://localhost/return',
+      );
+
+      expect(mockPrismaService.user.findUnique).toHaveBeenNthCalledWith(1, {
+        where: { id: 'creator-1' },
+      });
+      const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
+      expect(session.metadata.creatorId).toBe('creator-1');
+      // The Profile tipped is kept with the tip.
+      expect(session.metadata.profileId).toBe('hobby-profile');
+      expect(JSON.stringify(session)).toContain('Tip for @ana_hobby');
+      expect(JSON.stringify(session)).not.toContain('creator@example.com');
+    });
+
+    it('refuses a tip to another Profile of oneself', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce(
+        tippable('fan-1', { id: 'my-other-profile' }),
+      );
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'my-other-profile',
+          tipCents,
+          'http://localhost/return',
+        ),
+      ).rejects.toThrow('Cannot tip yourself');
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['banned', { isAccountBanned: true }],
+      ['suspended', { suspendedUntil: new Date(Date.now() + 3_600_000) }],
+      [
+        'of a person deactivated',
+        { user: { isActive: false, isRootBanned: false, deletedAt: null } },
+      ],
+      [
+        'of a person banned',
+        { user: { isActive: true, isRootBanned: true, deletedAt: null } },
+      ],
+      [
+        'of a person deleted',
+        {
+          user: { isActive: true, isRootBanned: false, deletedAt: new Date() },
+        },
+      ],
+    ])('finds no Profile %s to tip', async (_name, state) => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce(
+        tippable('creator-1', { id: 'p-tipped', ...state }),
+      );
+
+      await expect(
+        service.createTipSession('fan-1', 'p-tipped', tipCents, 'http://r'),
+      ).rejects.toThrow('Creator not found');
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('tips a Profile whose suspension has ended', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce(
+        tippable('creator-1', {
+          id: 'p-tipped',
+          suspendedUntil: new Date(Date.now() - 1000),
+        }),
+      );
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'creator-1', stripeConnectAccountId: 'a' })
+        .mockResolvedValueOnce({ id: 'fan-1', email: 'fan@example.com' });
+      mockStripeService.createCheckoutSession.mockResolvedValue({ url: 'u' });
+
+      await service.createTipSession('fan-1', 'p-tipped', tipCents, 'http://r');
+
+      expect(mockStripeService.createCheckoutSession).toHaveBeenCalled();
+    });
+
+    it('finds no Profile to tip across a block with who tips', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce(
+        tippable('creator-1', { id: 'p-tipped' }),
+      );
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b-1' });
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'p-tipped',
+          tipCents,
+          'http://r',
+          undefined,
+          undefined,
+          'fan-profile',
+        ),
+      ).rejects.toThrow('Creator not found');
+      expect(mockPrismaService.block.findFirst).toHaveBeenCalled();
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('takes a post only of the Profile tipped, or of the person named', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue(
+        tippable('creator-1', { id: 'p-tipped' }),
+      );
+      // A post of another Profile of the same person.
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        profileId: 'p-other',
+        profile: { userId: 'creator-1' },
+      });
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'p-tipped',
+          tipCents,
+          'http://r',
+          'post-of-other',
+        ),
+      ).rejects.toThrow('Post not found');
+
+      // An unknown post.
+      mockPrismaService.post.findUnique.mockResolvedValueOnce(null);
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'p-tipped',
+          tipCents,
+          'http://r',
+          'x',
+        ),
+      ).rejects.toThrow('Post not found');
+
+      // Naming the person, any post of theirs is taken, and its Profile is
+      // the one tipped.
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        profileId: 'p-other',
+        profile: tippable('creator-1', { id: 'p-other' }),
+      });
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'creator-1', stripeConnectAccountId: 'a' })
+        .mockResolvedValueOnce({ id: 'fan-1', email: 'fan@example.com' });
+      mockStripeService.createCheckoutSession.mockResolvedValue({ url: 'u' });
+      await service.createTipSession(
+        'fan-1',
+        'creator-1',
+        tipCents,
+        'http://r',
+        'post-of-other',
+      );
+      const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
+      // A person named: no Profile is named or kept.
+      expect(session.metadata.profileId).toBe('');
+      expect(JSON.stringify(session)).not.toContain('creator-1_name');
+      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('naming a person and a post, checks the Profile of the post', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      // The person's first Profile is fine; the post is of a banned one.
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        profileId: 'p-banned',
+        profile: tippable('creator-1', {
+          id: 'p-banned',
+          isAccountBanned: true,
+        }),
+      });
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'creator-1',
+          tipCents,
+          'http://r',
+          'p',
+        ),
+      ).rejects.toThrow('Creator not found');
+
+      // The post is of a Profile that blocked who tips.
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        profileId: 'p-blocking',
+        profile: tippable('creator-1', { id: 'p-blocking' }),
+      });
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b-1' });
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'creator-1',
+          tipCents,
+          'http://r',
+          'p',
+          undefined,
+          'fan-profile',
+        ),
+      ).rejects.toThrow('Creator not found');
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
     it('creates Checkout with omitted postId defaulting to empty string in metadata', async () => {

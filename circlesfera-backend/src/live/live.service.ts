@@ -194,7 +194,7 @@ export class LiveService {
   async inviteCoHost(
     streamId: string,
     hostProfileId: string,
-    coHostUserId: string,
+    invitee: { profileId: string } | { userId: string },
   ) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
@@ -218,8 +218,12 @@ export class LiveService {
 
     const [inviteeProfile, hostProfile] = await Promise.all([
       this.prisma.profile.findFirst({
-        where: { userId: coHostUserId },
-        select: { id: true, username: true, userId: true },
+        where:
+          'profileId' in invitee
+            ? { id: invitee.profileId }
+            : { userId: invitee.userId },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, username: true },
       }),
       this.prisma.profile.findUnique({
         where: { id: hostProfileId },
@@ -236,6 +240,12 @@ export class LiveService {
       throw AppException.Forbidden(
         ErrorCode.CANNOT_INVITE_SELF,
         'Cannot invite yourself as co-host',
+      );
+    // Across a block the other Profile is not found, as everywhere else.
+    if (await isBlockedEitherWay(this.prisma, hostProfileId, inviteeProfile.id))
+      throw AppException.NotFound(
+        ErrorCode.USER_NOT_FOUND,
+        'Invited user not found',
       );
 
     await this.prisma.liveStream.update({

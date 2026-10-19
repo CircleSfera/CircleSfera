@@ -40,7 +40,7 @@ export class ReportsController {
   async create(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreateReportDto,
-  ): Promise<Report> {
+  ) {
     return await this.reportsService.create(user.profileId, dto);
   }
 

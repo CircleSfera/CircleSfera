@@ -11,9 +11,10 @@ export const liveApi = {
     return response.data;
   },
 
-  inviteCoHost: async (streamId: string, coHostUserId: string) => {
+  // The Profile invited, by its id.
+  inviteCoHost: async (streamId: string, coHostProfileId: string) => {
     const response = await api.post(`/live/${streamId}/cohost/invite`, {
-      coHostUserId,
+      coHostProfileId,
     });
     return response.data;
   },

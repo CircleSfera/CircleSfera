@@ -9,6 +9,7 @@ import {
 } from '../common/constants/monetization.constants.js';
 import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
   deriveConnectAccountFlags,
@@ -21,6 +22,31 @@ import { PrismaService } from '../prisma/prisma.service.js';
 function appendCheckoutQuery(returnUrl: string, query: string): string {
   const sep = returnUrl.includes('?') ? '&' : '?';
   return `${returnUrl}${sep}${query}`;
+}
+
+// What a tip reads of the Profile tipped, to pay its person and to know
+// whether it may receive one.
+const TIPPED_PROFILE_SELECT = {
+  id: true,
+  userId: true,
+  username: true,
+  isAccountBanned: true,
+  suspendedUntil: true,
+  user: { select: { isActive: true, isRootBanned: true, deletedAt: true } },
+} as const;
+
+function canReceiveTip(profile: {
+  isAccountBanned: boolean;
+  suspendedUntil: Date | null;
+  user: { isActive: boolean; isRootBanned: boolean; deletedAt: Date | null };
+}): boolean {
+  return (
+    !profile.isAccountBanned &&
+    !(profile.suspendedUntil && profile.suspendedUntil > new Date()) &&
+    profile.user.isActive &&
+    !profile.user.isRootBanned &&
+    !profile.user.deletedAt
+  );
 }
 
 @Injectable()
@@ -374,6 +400,7 @@ export class MonetizationService {
     returnUrl: string,
     postId?: string,
     idempotencyKey?: string,
+    senderProfileId?: string,
   ) {
     if (amountCents < MIN_TIP_CENTS) {
       throw AppException.BadRequest(
@@ -381,14 +408,58 @@ export class MonetizationService {
         `Minimum tip is €${(MIN_TIP_CENTS / 100).toFixed(2)}`,
       );
     }
-    if (senderId === receiverId)
+    // The app names the Profile tipped; the person behind it is paid. A
+    // person's id is still accepted: then their first Profile is checked,
+    // and no Profile is named or kept.
+    const named = await this.prisma.profile.findUnique({
+      where: { id: receiverId },
+      select: TIPPED_PROFILE_SELECT,
+    });
+    // The post a tip is for is one of the Profile tipped. When a person is
+    // named, the Profile tipped is the one the post belongs to, so every
+    // check below is about it.
+    let tipped = named;
+    if (postId) {
+      const post = await this.prisma.post.findUnique({
+        where: { id: postId },
+        select: { profileId: true, profile: { select: TIPPED_PROFILE_SELECT } },
+      });
+      const ofTipped = named
+        ? post?.profileId === named.id
+        : post?.profile.userId === receiverId;
+      if (!post || !ofTipped) {
+        throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
+      }
+      tipped = post.profile;
+    }
+    tipped ??= await this.prisma.profile.findFirst({
+      where: { userId: receiverId },
+      orderBy: { createdAt: 'asc' },
+      select: TIPPED_PROFILE_SELECT,
+    });
+    const receiverUserId = tipped?.userId ?? receiverId;
+    if (senderId === receiverUserId)
       throw AppException.BadRequest(
         ErrorCode.CANNOT_TIP_SELF,
         'Cannot tip yourself',
       );
 
+    // A Profile that is banned or suspended, of a person no longer here, or
+    // across a block with who tips, is not found, as everywhere else.
+    if (
+      !tipped ||
+      !canReceiveTip(tipped) ||
+      (senderProfileId &&
+        (await isBlockedEitherWay(this.prisma, senderProfileId, tipped.id)))
+    ) {
+      throw AppException.NotFound(
+        ErrorCode.USER_NOT_FOUND,
+        'Creator not found',
+      );
+    }
+
     const receiver = await this.prisma.user.findUnique({
-      where: { id: receiverId },
+      where: { id: receiverUserId },
     });
     if (!receiver?.stripeConnectAccountId) {
       throw AppException.BadRequest(
@@ -411,11 +482,16 @@ export class MonetizationService {
       buyerEmail: sender.email,
       priceCents: amountCents,
       productName: 'Creator Tip',
-      description: `Tip for ${receiver.email}`,
+      // Who pays sees the Profile they tip, never the creator's email.
+      description: named ? `Tip for @${named.username}` : 'Creator Tip',
       creatorStripeAccountId: receiver.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_TIP',
-        creatorId: receiverId,
+        creatorId: receiverUserId,
+        // The Profile tipped, kept with the tip; none when a person is named.
+        profileId: named?.id ?? '',
+        // Who tips, as the Profile they tipped from, for the notice.
+        senderProfileId: senderProfileId ?? '',
         postId: postId || '',
       },
       returnUrl,

@@ -187,6 +187,8 @@ describe('MonetizationController', () => {
       'https://example.com/return',
       'post-1',
       'tip-1',
+      // Who tips, for the block check.
+      TEST_USER.profileId,
     );
   });
 

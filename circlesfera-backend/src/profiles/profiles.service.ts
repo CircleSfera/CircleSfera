@@ -34,6 +34,60 @@ import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
 // Service for profile CRUD, username validation, and account lifecycle (deactivate/delete).
 // Uses cache-manager for profile read caching.
+// What anyone may read of a Profile, with or without a session. Nothing
+// that tells who the person or the sign-in behind it is (so two Profiles of
+// one person cannot be linked), how it was sanctioned, or how it is set up.
+const PUBLIC_PROFILE_FIELDS = [
+  'id',
+  'username',
+  'fullName',
+  'bio',
+  'avatar',
+  'standardUrl',
+  'thumbnailUrl',
+  'cover',
+  'coverStandardUrl',
+  'coverThumbnailUrl',
+  'website',
+  'location',
+  'createdAt',
+  'updatedAt',
+  'verificationLevel',
+  'accountType',
+  'accentColor',
+  'privacyLevel',
+  'isPrivate',
+  'isVerified',
+  'companyVerified',
+  'identityVerified',
+  'emailConfirmed',
+  'joinedAt',
+  'signupCountry',
+  'strikeCount',
+  'botLabeled',
+  'lastActiveBucket',
+  'accountStanding',
+  '_count',
+] as const;
+
+export function publicProfileView<T extends object>(profile: T) {
+  const source = profile as Record<string, unknown>;
+  const view: Record<string, unknown> = {};
+  for (const field of PUBLIC_PROFILE_FIELDS) {
+    if (field in source) view[field] = source[field];
+  }
+  // Counts of what anyone can see; strikes are given as strikeCount.
+  const counts = source._count as Record<string, unknown> | undefined;
+  if (counts) {
+    view._count = {
+      posts: counts.posts,
+      followers: counts.followers,
+      following: counts.following,
+    };
+  }
+  return view as { id: string } & Record<string, unknown>;
+}
+
 @Injectable()
 export class ProfilesService {
   constructor(
@@ -92,7 +146,8 @@ export class ProfilesService {
     const cachedProfile = await this.cacheManager.get<{ id: string }>(cacheKey);
     if (cachedProfile) {
       await this.assertNotBlocked(viewerProfileId, cachedProfile.id);
-      return cachedProfile;
+      // A view cached before the list of fields was closed is cut to it too.
+      return publicProfileView(cachedProfile);
     }
 
     const profile = await this.prisma.profile.findFirst({
@@ -150,17 +205,10 @@ export class ProfilesService {
 
     const companyVerified = await this.isVerifiedCompany(profile);
 
-    // Never expose email, role, or abuse hashes on the public profile.
     // The sign-in is read only to say whether the email is confirmed.
-    const { user, signIn, ...profileRest } = profile;
-    const profileWithFields = {
-      ...profileRest,
-      user: user
-        ? {
-            id: user.id,
-            createdAt: user.createdAt,
-          }
-        : undefined,
+    const { user, signIn } = profile;
+    const profileWithFields = publicProfileView({
+      ...profile,
       verificationLevel: profile.verificationLevel,
       accountType: profile.accountType,
       privacyLevel: profile.privacyLevel,
@@ -174,7 +222,9 @@ export class ProfilesService {
         : null,
       identityVerified: !!user?.identityVerifiedAt,
       emailConfirmed: !!signIn?.emailVerified,
-      joinedAt: user?.createdAt?.toISOString?.() ?? user?.createdAt,
+      // When this Profile was created: the person's own sign-up date is the
+      // same on all their Profiles and would tie them together.
+      joinedAt: profile.createdAt?.toISOString?.() ?? profile.createdAt,
       signupCountry: user?.signupCountry ?? null,
       // Active strikes of this Profile; warnings are not shown.
       strikeCount: profile._count.strikes,
@@ -184,7 +234,7 @@ export class ProfilesService {
         isActive: user?.isActive ?? true,
         suspendedUntil: profile.suspendedUntil ?? null,
       }),
-    };
+    });
 
     await this.cacheManager.set(cacheKey, profileWithFields, 600000); // 10 minutes
     return profileWithFields;
@@ -454,7 +504,7 @@ export class ProfilesService {
       identityVerified: !!profile.user?.identityVerifiedAt,
       emailConfirmed: !!signedInWith?.emailVerified,
       emailVerified: signedInWith?.emailVerified,
-      joinedAt: profile.user?.createdAt,
+      joinedAt: profile.createdAt,
       signupCountry: profile.user?.signupCountry ?? null,
       strikeCount: profile._count.strikes,
       botLabeled: !!profile.user?.botLabeledAt,

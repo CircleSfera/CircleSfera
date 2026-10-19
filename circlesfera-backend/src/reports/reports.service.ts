@@ -35,11 +35,24 @@ export class ReportsService {
   // File a new report against a user or content.
   // Param reporterId: The reporting user's ID
   // Param dto: Report details (targetType, targetId, reason, details)
-  async create(reporterId: string, dto: CreateReportDto): Promise<Report> {
+  async create(reporterId: string, dto: CreateReportDto) {
     // The Profile behind what is reported, to offer it help on self-harm.
     let authorProfileId: string | null = null;
+    // A report of a Profile is kept against the person behind it.
+    let targetId = dto.targetId;
     switch (dto.targetType) {
       case ReportTargetType.USER: {
+        // The app names the Profile reported; the person behind it is never
+        // shown to it. A person's id is still accepted.
+        const reported = await this.prisma.profile.findUnique({
+          where: { id: dto.targetId },
+          select: { id: true, userId: true },
+        });
+        if (reported) {
+          targetId = reported.userId;
+          authorProfileId = reported.id;
+          break;
+        }
         const user = await this.prisma.user.findUnique({
           where: { id: dto.targetId },
         });
@@ -114,7 +127,7 @@ export class ReportsService {
       data: {
         reporterId,
         targetType: dto.targetType,
-        targetId: dto.targetId,
+        targetId,
         reason: dto.reason,
         details: finalDetails,
         // Someone may hurt themselves: staff see it first.
@@ -136,13 +149,21 @@ export class ReportsService {
       reportId: report.id,
       reporterId,
       targetType: dto.targetType,
-      targetId: dto.targetId,
+      targetId,
       reason: dto.reason,
       details: finalDetails || undefined,
     };
     this.eventEmitter.emit('moderation.report_filed', event);
 
-    return report;
+    // What the reporter gets back: never the stored target of a report of a
+    // Profile, which is the person behind it.
+    return {
+      id: report.id,
+      targetType: report.targetType,
+      reason: report.reason,
+      status: report.status,
+      createdAt: report.createdAt,
+    };
   }
 
   // Someone is worried the author may hurt themselves: the author is told
@@ -196,7 +217,12 @@ export class ReportsService {
       this.prisma.report.count({ where: { reporterId } }),
     ]);
 
-    return createPaginatedResult(reports, total, page, limit);
+    // A report of a Profile is kept against the person behind it, whom the
+    // reporter is never told.
+    const own = reports.map((r) =>
+      r.targetType === ReportTargetType.USER ? { ...r, targetId: null } : r,
+    );
+    return createPaginatedResult(own, total, page, limit);
   }
 
   // List all reports with reporter profiles (admin only).

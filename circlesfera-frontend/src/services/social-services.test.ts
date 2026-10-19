@@ -941,9 +941,9 @@ const cases: Case[] = [
   ['live.getStream', () => liveApi.getStream('l1'), 'get', ['/live/l1']],
   [
     'live.inviteCoHost',
-    () => liveApi.inviteCoHost('l1', 'u2'),
+    () => liveApi.inviteCoHost('l1', 'p2'),
     'post',
-    ['/live/l1/cohost/invite', { coHostUserId: 'u2' }],
+    ['/live/l1/cohost/invite', { coHostProfileId: 'p2' }],
   ],
   [
     'live.acceptCoHostInvite',

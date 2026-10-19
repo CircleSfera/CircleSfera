@@ -45,7 +45,6 @@ describe('CloseFriendsService', () => {
             avatar: null,
             standardUrl: null,
             thumbnailUrl: null,
-            userId: 'user-2',
           },
         },
       ]);
@@ -61,6 +60,10 @@ describe('CloseFriendsService', () => {
         username: 'alice',
         isCloseFriend: true,
       });
+      // Who the person behind a friend's Profile is is never read.
+      const { include } =
+        mockPrismaService.closeFriend.findMany.mock.calls[0][0];
+      expect(include.friend.select).not.toHaveProperty('userId');
     });
   });
 

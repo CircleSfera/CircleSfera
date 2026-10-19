@@ -83,11 +83,17 @@ export class MonetizationWebhookService {
     senderUserId: string;
     notice: Notice;
     postId?: string;
+    // The Profiles involved, when the payment named them; else each
+    // person's first Profile.
+    recipientProfileId?: string;
+    senderProfileId?: string;
   }) {
     if (!this.eventEmitter) return;
     const [recipientId, senderId] = await Promise.all([
-      primaryProfileIdForUser(this.prisma, params.recipientUserId),
-      primaryProfileIdForUser(this.prisma, params.senderUserId),
+      params.recipientProfileId ??
+        primaryProfileIdForUser(this.prisma, params.recipientUserId),
+      params.senderProfileId ??
+        primaryProfileIdForUser(this.prisma, params.senderUserId),
     ]);
     if (!recipientId) return;
     this.eventEmitter.emit('notification.create', {
@@ -336,7 +342,7 @@ export class MonetizationWebhookService {
       }
     } else if (metadata?.type === 'DIRECT_TIP') {
       const clientReferenceId = session.client_reference_id;
-      const { creatorId, postId } = metadata;
+      const { creatorId, postId, profileId, senderProfileId } = metadata;
       const amount = session.amount_total || 0;
       const paymentIntentId =
         typeof session.payment_intent === 'string'
@@ -344,6 +350,14 @@ export class MonetizationWebhookService {
           : session.id;
 
       if (clientReferenceId && creatorId) {
+        // The Profile tipped, while it still exists: one deleted since the
+        // payment leaves it empty and never loses the record of the payment.
+        const tippedProfile = profileId
+          ? await this.prisma.profile.findUnique({
+              where: { id: profileId },
+              select: { id: true },
+            })
+          : null;
         await this.prisma.$transaction(async (tx) => {
           await tx.transaction.create({
             data: {
@@ -352,6 +366,7 @@ export class MonetizationWebhookService {
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
+              receiverProfileId: tippedProfile?.id ?? null,
               postId: postId || null,
               stripePaymentIntentId:
                 typeof session.payment_intent === 'string'
@@ -390,6 +405,8 @@ export class MonetizationWebhookService {
         await this.emitPaymentNotification({
           recipientUserId: creatorId,
           senderUserId: clientReferenceId,
+          recipientProfileId: tippedProfile?.id,
+          senderProfileId: senderProfileId || undefined,
           notice: {
             key: 'tip_received',
             amountCents: amount,

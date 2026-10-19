@@ -135,9 +135,6 @@ export default function Profile() {
 
     if (success) {
       toast.success(t('profile.messages.checkout_success'));
-      queryClient.invalidateQueries({
-        queryKey: ['creator-subscription', profile?.data.userId],
-      });
       queryClient.invalidateQueries({ queryKey: ['profile', username] });
       queryClient.invalidateQueries({ queryKey: ['userPosts', username] });
     } else {
@@ -149,14 +146,7 @@ export default function Profile() {
     next.delete('canceled');
     next.delete('session_id');
     setSearchParams(next, { replace: true });
-  }, [
-    profile?.data.userId,
-    queryClient,
-    searchParams,
-    setSearchParams,
-    t,
-    username,
-  ]);
+  }, [queryClient, searchParams, setSearchParams, t, username]);
 
   const { data: followStatus, isFetched: isFollowStatusFetched } = useQuery({
     queryKey: ['follow', username],
@@ -731,7 +721,7 @@ export default function Profile() {
           isOpen={showReportModal}
           onClose={() => setShowReportModal(false)}
           targetType="USER"
-          targetId={profile.data.userId}
+          targetId={profile.data.id}
         />
         <BlockModal
           isOpen={showBlockModal}
@@ -750,7 +740,7 @@ export default function Profile() {
           <TipModal
             isOpen={showTipModal}
             onClose={() => setShowTipModal(false)}
-            receiverId={profile.data.userId}
+            receiverId={profile.data.id}
             receiverName={profile.data.username}
           />
         )}

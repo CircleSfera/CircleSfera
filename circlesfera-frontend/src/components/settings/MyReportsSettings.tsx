@@ -7,7 +7,8 @@ import SettingsSection from './SettingsSection';
 type MyReport = {
   id: string;
   targetType: string;
-  targetId: string;
+  // Null for a report of a Profile: who is behind it is never told.
+  targetId: string | null;
   reason: string;
   details: string | null;
   status: string;

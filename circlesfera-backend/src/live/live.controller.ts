@@ -88,7 +88,9 @@ export class LiveController {
     return this.liveService.inviteCoHost(
       streamId,
       user.profileId,
-      dto.coHostUserId,
+      dto.coHostProfileId
+        ? { profileId: dto.coHostProfileId }
+        : { userId: dto.coHostUserId as string },
     );
   }
 

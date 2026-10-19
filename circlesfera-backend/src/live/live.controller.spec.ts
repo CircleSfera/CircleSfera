@@ -182,4 +182,36 @@ describe('LiveController', () => {
       TEST_USER.profileId,
     );
   });
+
+  it('invites as co-host the Profile named, or the first of a person from an older app, and refuses neither', async () => {
+    mockLiveService.inviteCoHost.mockResolvedValue({ success: true });
+    const profileId = '11111111-1111-4111-8111-111111111111';
+    const userId = '22222222-2222-4222-8222-222222222222';
+
+    await request(app.getHttpServer())
+      .post('/api/v1/live/stream-1/cohost/invite')
+      .set(BEARER)
+      .send({ coHostProfileId: profileId })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/live/stream-1/cohost/invite')
+      .set(BEARER)
+      .send({ coHostUserId: userId })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/live/stream-1/cohost/invite')
+      .set(BEARER)
+      .send({})
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/v1/live/stream-1/cohost/invite')
+      .set(BEARER)
+      .send({ coHostProfileId: 'not-an-id' })
+      .expect(400);
+
+    expect(mockLiveService.inviteCoHost.mock.calls).toEqual([
+      ['stream-1', TEST_USER.profileId, { profileId }],
+      ['stream-1', TEST_USER.profileId, { userId }],
+    ]);
+  });
 });
