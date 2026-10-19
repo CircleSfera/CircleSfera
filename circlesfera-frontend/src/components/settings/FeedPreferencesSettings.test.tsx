@@ -1,5 +1,5 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../services';
 import { usersApi } from '../../services/users.service';
 import { renderWithProviders } from '../../test/test-utils';
@@ -38,7 +38,58 @@ describe('FeedPreferencesSettings', () => {
     } as never);
     vi.mocked(usersApi.updateSettings).mockResolvedValue({} as never);
     vi.mocked(api.get).mockResolvedValue({
-      data: { mutedKeywords: [], hiddenAuthors: [], hiddenPosts: [] },
+      data: { items: [], nextCursor: null },
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('reads the next page of a list when its end scrolls into view', async () => {
+    type Seen = (entries: { isIntersecting: boolean }[]) => void;
+    const observers: Seen[] = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: Seen) {
+          observers.push(callback);
+        }
+        observe = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
+    vi.mocked(api.get).mockImplementation((async (
+      url: string,
+      config?: { params?: { cursor?: string } },
+    ) => {
+      if (url !== '/feed/preferences/muted-keywords') {
+        return { data: { items: [], nextCursor: null } };
+      }
+      return config?.params?.cursor === 'after-alpha'
+        ? {
+            data: {
+              items: [{ keyword: 'bravo', createdAt: '2026-10-18' }],
+              nextCursor: null,
+            },
+          }
+        : {
+            data: {
+              items: [{ keyword: 'alpha', createdAt: '2026-10-19' }],
+              nextCursor: 'after-alpha',
+            },
+          };
+    }) as never);
+
+    renderWithProviders(<FeedPreferencesSettings />);
+
+    expect(await screen.findByText('alpha')).toBeInTheDocument();
+    expect(screen.queryByText('bravo')).not.toBeInTheDocument();
+
+    act(() => {
+      for (const seen of observers) seen([{ isIntersecting: true }]);
+    });
+
+    expect(await screen.findByText('bravo')).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledWith('/feed/preferences/muted-keywords', {
+      params: { cursor: 'after-alpha' },
     });
   });
 
@@ -71,5 +122,33 @@ describe('FeedPreferencesSettings', () => {
         contentPreference: 'MATURE',
       });
     });
+  });
+
+  it('says a list did not load rather than that it is empty, and asks it again', async () => {
+    vi.mocked(api.get).mockImplementation((async (url: string) => {
+      if (url === '/feed/preferences/muted-keywords') throw new Error('500');
+      return { data: { items: [], nextCursor: null } };
+    }) as never);
+    const { i18n } = renderWithProviders(<FeedPreferencesSettings />);
+
+    const retry = await screen.findByRole('button', {
+      name: i18n!.t('common.try_again'),
+    });
+    expect(
+      screen.queryByText(i18n!.t('feedPrefs.no_keywords')),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('feedPrefs.no_authors')),
+    ).toBeInTheDocument();
+
+    vi.mocked(api.get).mockResolvedValue({
+      data: {
+        items: [{ keyword: 'alpha', createdAt: '2026-10-19' }],
+        nextCursor: null,
+      },
+    });
+    fireEvent.click(retry);
+
+    expect(await screen.findByText('alpha')).toBeInTheDocument();
   });
 });

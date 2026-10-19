@@ -9,7 +9,7 @@ describe('FeedPreferencesService', () => {
     post: {
       findUnique: ReturnType<typeof vi.fn>;
     };
-    user: {
+    profile: {
       findUnique: ReturnType<typeof vi.fn>;
     };
     feedHiddenPost: {
@@ -35,7 +35,7 @@ describe('FeedPreferencesService', () => {
       post: {
         findUnique: vi.fn(),
       },
-      user: {
+      profile: {
         findUnique: vi.fn(),
       },
       feedHiddenPost: {
@@ -118,7 +118,7 @@ describe('FeedPreferencesService', () => {
     });
 
     it('throws NotFoundException if author does not exist', async () => {
-      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.profile.findUnique.mockResolvedValueOnce(null);
 
       await expect(
         service.hideAuthor('viewer-1', 'author-404'),
@@ -126,7 +126,7 @@ describe('FeedPreferencesService', () => {
     });
 
     it('upserts hidden author successfully', async () => {
-      mockPrisma.user.findUnique.mockResolvedValueOnce({ id: 'author-2' });
+      mockPrisma.profile.findUnique.mockResolvedValueOnce({ id: 'author-2' });
 
       const res = await service.hideAuthor('viewer-1', 'author-2');
       expect(res).toEqual({ success: true });
@@ -264,6 +264,135 @@ describe('FeedPreferencesService', () => {
         hiddenAuthorIds: ['a-1'],
         mutedKeywords: ['ad'],
       });
+    });
+  });
+
+  describe('listPage', () => {
+    const at = new Date('2026-10-18T10:00:00.000Z');
+
+    it('reads one more than the page to know whether another follows, and gives a cursor', async () => {
+      mockPrisma.feedMutedKeyword.findMany.mockResolvedValueOnce([
+        { id: 'k1', keyword: 'alpha', createdAt: at },
+        { id: 'k2', keyword: 'bravo', createdAt: at },
+        { id: 'k3', keyword: 'charlie', createdAt: at },
+      ]);
+
+      const page = await service.listPage(
+        'viewer-1',
+        'muted-keywords',
+        undefined,
+        2,
+      );
+
+      expect(mockPrisma.feedMutedKeyword.findMany).toHaveBeenCalledWith({
+        where: { profileId: 'viewer-1' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 3,
+      });
+      expect(page.items).toEqual([
+        { keyword: 'alpha', createdAt: at },
+        { keyword: 'bravo', createdAt: at },
+      ]);
+      const next = await service.listPage(
+        'viewer-1',
+        'muted-keywords',
+        page.nextCursor as string,
+        2,
+      );
+      expect(next.nextCursor).toBeNull();
+      expect(mockPrisma.feedMutedKeyword.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: {
+            profileId: 'viewer-1',
+            OR: [
+              { createdAt: { lt: at } },
+              { createdAt: at, id: { lt: 'k2' } },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('starts from the top with a cursor it did not give, and keeps the page within bounds', async () => {
+      await service.listPage('viewer-1', 'hidden-authors', 'not-a-cursor', 500);
+
+      expect(mockPrisma.feedHiddenAuthor.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { profileId: 'viewer-1' }, take: 51 }),
+      );
+    });
+
+    it('gives hidden authors with their Profile', async () => {
+      mockPrisma.feedHiddenAuthor.findMany.mockResolvedValueOnce([
+        {
+          id: 'h1',
+          authorId: 'author-2',
+          createdAt: at,
+          author: { id: 'author-2', username: 'marta', avatar: null },
+        },
+      ]);
+
+      const page = await service.listPage('viewer-1', 'hidden-authors');
+
+      expect(page).toEqual({
+        items: [
+          {
+            authorId: 'author-2',
+            username: 'marta',
+            avatar: null,
+            createdAt: at,
+          },
+        ],
+        nextCursor: null,
+      });
+    });
+
+    it('gives hidden posts with their picture and author, whatever is missing', async () => {
+      mockPrisma.feedHiddenPost.findMany.mockResolvedValueOnce([
+        {
+          id: 'p1',
+          postId: 'post-1',
+          createdAt: at,
+          post: {
+            caption: 'Sunset',
+            media: [{ url: 'u', thumbnailUrl: null, standardUrl: 's' }],
+            profile: { username: 'marta', avatar: 'a' },
+          },
+        },
+        { id: 'p2', postId: 'post-2', createdAt: at, post: null },
+      ]);
+
+      const page = await service.listPage(
+        'viewer-1',
+        'hidden-posts',
+        undefined,
+        1,
+      );
+
+      expect(page.items).toEqual([
+        {
+          postId: 'post-1',
+          createdAt: at,
+          caption: 'Sunset',
+          thumbnailUrl: 's',
+          authorUsername: 'marta',
+          authorAvatar: 'a',
+        },
+      ]);
+      expect(page.nextCursor).not.toBeNull();
+      mockPrisma.feedHiddenPost.findMany.mockResolvedValueOnce([
+        { id: 'p2', postId: 'post-2', createdAt: at, post: null },
+      ]);
+      const rest = await service.listPage('viewer-1', 'hidden-posts');
+      expect(rest.items).toEqual([
+        {
+          postId: 'post-2',
+          createdAt: at,
+          caption: null,
+          thumbnailUrl: null,
+          authorUsername: null,
+          authorAvatar: null,
+        },
+      ]);
     });
   });
 });
