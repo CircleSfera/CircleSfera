@@ -15,6 +15,11 @@ export interface IllegalNotice {
   createdAt: string;
 }
 
+export interface IllegalNoticePage {
+  items: IllegalNotice[];
+  nextCursor: string | null;
+}
+
 export const illegalNoticesApi = {
   // From anyone, with or without a session.
   create: (notice: {
@@ -29,10 +34,11 @@ export const illegalNoticesApi = {
   }) =>
     apiClient.post<{ reference: string }>('/illegal-content-notices', notice),
 
-  // Staff with the reports permission.
-  list: (status?: IllegalNoticeStatus) =>
-    apiClient.get<IllegalNotice[]>('admin/illegal-content-notices', {
-      params: status ? { status } : undefined,
+  // Staff with the reports permission: one tab a page at a time, most
+  // recent first.
+  page: (status: IllegalNoticeStatus, cursor?: string) =>
+    apiClient.get<IllegalNoticePage>('admin/illegal-content-notices/page', {
+      params: cursor ? { status, cursor } : { status },
     }),
 
   decide: (id: string, outcome: 'ACTIONED' | 'NO_ACTION', reasons: string) =>

@@ -20,6 +20,7 @@ import {
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { DecideIllegalNoticeDto } from './dto/decide-illegal-notice.dto.js';
+import { IllegalNoticePageDto } from './dto/illegal-notice-page.dto.js';
 import { IllegalNoticesService } from './illegal-notices.service.js';
 
 // Staff who decide reports decide the notices too.
@@ -40,6 +41,13 @@ export class AdminIllegalNoticesController {
         ? (status as IllegalNoticeStatus)
         : undefined,
     );
+  }
+
+  // A tab a page at a time, most recent first.
+  @RequireStaffPermissions('reports')
+  @Get('page')
+  page(@Query() q: IllegalNoticePageDto) {
+    return this.notices.listPage(q.status, q.cursor, q.limit);
   }
 
   @RequireStaffPermissions('reports')
