@@ -373,6 +373,22 @@ jobs:
             check /login
             check /api/v1/payments/plans
 
+            # And through the server's public site, as a visit arrives: the
+            # name leads to this environment (its health answers) and the
+            # site password guards the web app. The password itself is not
+            # needed here: being asked for it is what is checked.
+            public() { # <path> <expected status>
+              code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://${ENV_NAME}.circlesfera.com$1" || echo 000)"
+              if [ "$code" != "$2" ]; then
+                echo "  FAIL ${code} https://${ENV_NAME}.circlesfera.com$1 (expected $2)"
+                exit 1
+              fi
+              echo "  OK   ${code} https://${ENV_NAME}.circlesfera.com$1"
+            }
+            public /api/v1/health 200
+            public / 401
+            public /login 401
+
             # The signed-in smoke check, with the environment's own Test
             # Accounts: put in place again on every deploy, the smoke account
             # with a new random password, then checked through the
