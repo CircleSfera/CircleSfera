@@ -351,16 +351,26 @@ jobs:
               exit 1
             fi
 
+            # Each address is asked twice: as the server itself, and with the
+            # environment's own name, the way a visit arrives through the
+            # server's site. A rule of the proxy that matches that name only
+            # (on 19 October an old one for development blocked its web app)
+            # is seen here instead of by a person.
             check() {
-              code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "http://127.0.0.1:${PROXY_PORT}$1" || echo 000)"
-              if [ "$code" != "200" ]; then
-                echo "  FAIL ${code} $1"
-                exit 1
-              fi
-              echo "  OK   ${code} $1"
+              for host in "" "${ENV_NAME}.circlesfera.com"; do
+                named=()
+                [ -n "$host" ] && named=(-H "Host: ${host}")
+                code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "${named[@]}" "http://127.0.0.1:${PROXY_PORT}$1" || echo 000)"
+                if [ "$code" != "200" ]; then
+                  echo "  FAIL ${code} $1 ${host:+(as ${host})}"
+                  exit 1
+                fi
+                echo "  OK   ${code} $1 ${host:+(as ${host})}"
+              done
             }
             check /api/v1/health
             check /
+            check /login
             check /api/v1/payments/plans
 
             # The signed-in smoke check, with the environment's own Test
