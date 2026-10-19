@@ -71,6 +71,7 @@ export class MonetizationController {
       body.returnUrl,
       body.postId,
       body.idempotencyKey,
+      req.user.profileId,
     );
   }
 

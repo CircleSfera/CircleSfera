@@ -423,48 +423,49 @@ model Profile {
 
   // Social Relations Moved from User
 
-  posts                 Post[]
-  stories               Story[]
-  liveStreams           LiveStream[]           @relation("LiveStreamHost")
-  coHostedStreams       LiveStream[]           @relation("LiveStreamCoHost")
-  comments              Comment[]
-  likes                 Like[]
-  commentLikes          CommentLike[]
-  followers             Follow[]               @relation("UserFollowing")
-  following             Follow[]               @relation("UserFollowers")
-  notifications         Notification[]         @relation("NotificationRecipient")
-  sentNotifications     Notification[]         @relation("NotificationSender")
-  participants          Participant[]
-  messages              Message[]
-  messageReactions      MessageReaction[] // New: User reactions to messages
-  blockedBy             Block[]                @relation("BlockedBy")
-  blocking              Block[]                @relation("Blocking")
-  mutedBy               Mute[]                 @relation("MutedBy")
-  muting                Mute[]                 @relation("Muting")
-  bookmarks             Bookmark[]
-  collections           Collection[]
-  highlights            Highlight[]
-  closeFriends          CloseFriend[]          @relation("CloseFriendOwner")
-  closeFriendOf         CloseFriend[]          @relation("CloseFriendTarget")
-  storyViews            StoryView[]
-  storyReactions        StoryReaction[]
-  taggedPosts           PostTag[]
-  reports               Report[]               @relation("ReportReporter")
-  strikes               ProfileStrike[]
-  riskCases             RiskCase[]
-  searchHistory         SearchHistory[]
-  postViews             PostView[]
-  feedHiddenPosts       FeedHiddenPost[]
-  feedHiddenAuthors     FeedHiddenAuthor[]     @relation("FeedHidingAuthor")
-  feedHiddenByAuthors   FeedHiddenAuthor[]     @relation("FeedHiddenAsAuthor")
-  feedMutedKeywords     FeedMutedKeyword[]
-  editProjects          EditProject[]
-  pollVotes             PollVote[]
-  qnaAnswers            QnaAnswer[]
-  storyStickerResponses StoryStickerResponse[]
-  metrics               ProfileMetric[]
-  embedding             ProfileEmbedding?
-  platformSubscriptions PlatformSubscription[]
+  posts                   Post[]
+  stories                 Story[]
+  liveStreams             LiveStream[]           @relation("LiveStreamHost")
+  coHostedStreams         LiveStream[]           @relation("LiveStreamCoHost")
+  comments                Comment[]
+  likes                   Like[]
+  commentLikes            CommentLike[]
+  followers               Follow[]               @relation("UserFollowing")
+  following               Follow[]               @relation("UserFollowers")
+  notifications           Notification[]         @relation("NotificationRecipient")
+  sentNotifications       Notification[]         @relation("NotificationSender")
+  participants            Participant[]
+  messages                Message[]
+  messageReactions        MessageReaction[] // New: User reactions to messages
+  blockedBy               Block[]                @relation("BlockedBy")
+  blocking                Block[]                @relation("Blocking")
+  mutedBy                 Mute[]                 @relation("MutedBy")
+  muting                  Mute[]                 @relation("Muting")
+  bookmarks               Bookmark[]
+  collections             Collection[]
+  highlights              Highlight[]
+  closeFriends            CloseFriend[]          @relation("CloseFriendOwner")
+  closeFriendOf           CloseFriend[]          @relation("CloseFriendTarget")
+  storyViews              StoryView[]
+  storyReactions          StoryReaction[]
+  taggedPosts             PostTag[]
+  reports                 Report[]               @relation("ReportReporter")
+  strikes                 ProfileStrike[]
+  riskCases               RiskCase[]
+  searchHistory           SearchHistory[]
+  postViews               PostView[]
+  feedHiddenPosts         FeedHiddenPost[]
+  feedHiddenAuthors       FeedHiddenAuthor[]     @relation("FeedHidingAuthor")
+  feedHiddenByAuthors     FeedHiddenAuthor[]     @relation("FeedHiddenAsAuthor")
+  feedMutedKeywords       FeedMutedKeyword[]
+  editProjects            EditProject[]
+  pollVotes               PollVote[]
+  qnaAnswers              QnaAnswer[]
+  storyStickerResponses   StoryStickerResponse[]
+  metrics                 ProfileMetric[]
+  embedding               ProfileEmbedding?
+  platformSubscriptions   PlatformSubscription[]
+  receivedTipTransactions Transaction[]          @relation("ReceivedTipTransactions")
 
   @@index([userId])
   @@index([signInId])
@@ -1574,8 +1575,10 @@ model Transaction {
 
   // Participants
 
-  senderId   String?
-  receiverId String?
+  senderId          String?
+  receiverId        String?
+  // The Profile a tip was given to; the person behind it is receiverId.
+  receiverProfileId String?
 
   // Associated entities
 
@@ -1590,15 +1593,17 @@ model Transaction {
   description String?
   createdAt   DateTime @default(now())
 
-  sender     User?            @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
-  receiver   User?            @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
-  liveStream LiveStream?      @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
-  liveGift   LiveGift?
-  message    Message?         @relation(fields: [messageId], references: [id], onDelete: SetNull)
-  disputes   PaymentDispute[]
+  sender          User?            @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver        User?            @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
+  receiverProfile Profile?         @relation("ReceivedTipTransactions", fields: [receiverProfileId], references: [id], onDelete: SetNull)
+  liveStream      LiveStream?      @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
+  liveGift        LiveGift?
+  message         Message?         @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  disputes        PaymentDispute[]
 
   @@index([senderId])
   @@index([receiverId])
+  @@index([receiverProfileId])
   @@index([type])
   @@index([liveStreamId])
   @@map("transactions")

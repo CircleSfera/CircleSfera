@@ -18,10 +18,20 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
           findUnique: vi.fn(),
           findMany: vi.fn().mockResolvedValue([]),
         },
-        // A tip names a Profile; these tests name the person directly.
+        // A tip names a Profile; these tests name the person directly, whose
+        // first Profile may receive it.
         profile: {
           findUnique: vi.fn().mockResolvedValue(null),
-          findFirst: vi.fn().mockResolvedValue(null),
+          findFirst: vi.fn(
+            async ({ where }: { where: { userId: string } }) => ({
+              id: `${where.userId}-profile`,
+              userId: where.userId,
+              username: 'creator',
+              isAccountBanned: false,
+              suspendedUntil: null,
+              user: { isActive: true, isRootBanned: false, deletedAt: null },
+            }),
+          ),
         },
         post: {
           findUnique: vi.fn(),

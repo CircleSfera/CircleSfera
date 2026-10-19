@@ -186,6 +186,44 @@ describe('MonetizationWebhookService', () => {
       );
     });
 
+    it('keeps the Profile tipped, and tells it as from the Profile that tipped', async () => {
+      const session = {
+        id: 'cs_tip_2',
+        client_reference_id: 'tipper1',
+        amount_total: 500,
+        currency: 'eur',
+        payment_intent: 'pi_tip_456',
+        metadata: {
+          type: 'DIRECT_TIP',
+          creatorId: 'creator2',
+          profileId: 'creator-hobby',
+          senderProfileId: 'tipper-hobby',
+          postId: '',
+        },
+      } as any;
+      prisma.profile.findFirst = vi.fn();
+
+      await service.handleCheckoutSessionCompleted(session);
+
+      expect(prisma.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            receiverId: 'creator2',
+            receiverProfileId: 'creator-hobby',
+          }),
+        }),
+      );
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
+        expect.objectContaining({
+          recipientId: 'creator-hobby',
+          senderId: 'tipper-hobby',
+        }),
+      );
+      // Neither person's first Profile is looked up.
+      expect(prisma.profile.findFirst).not.toHaveBeenCalled();
+    });
+
     it('processes a DIRECT_STORY_UNLOCK checkout', async () => {
       const session = {
         id: 'cs_story_1',
