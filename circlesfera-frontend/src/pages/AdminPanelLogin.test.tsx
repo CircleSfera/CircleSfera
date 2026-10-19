@@ -382,6 +382,33 @@ describe('Admin Panel sign-in', () => {
       expect(adminAuthApi.verifyMfa).not.toHaveBeenCalled();
     });
 
+    it('goes back to the credentials from the set-up step, with the code and the error cleared', async () => {
+      vi.mocked(adminAuthApi.enrol).mockRejectedValue({
+        isAxiosError: true,
+        response: { status: 401, data: {} },
+      });
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      submitCredentials(i18n!);
+      await screen.findByText(i18n!.t('adminPanel.login.enrol_title'));
+      typeProof(i18n!, 'WRONG-CODE-123');
+      await screen.findByText(i18n!.t('adminPanel.login.enrol_invalid'));
+
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n!.t('adminPanel.login.back') }),
+      );
+
+      expect(
+        screen.getByLabelText(i18n!.t('adminPanel.login.password')),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(i18n!.t('adminPanel.login.enrol_invalid')),
+      ).not.toBeInTheDocument();
+      submitCredentials(i18n!);
+      expect(
+        await screen.findByLabelText(i18n!.t('adminPanel.login.enrol_code')),
+      ).toHaveValue('');
+    });
+
     it('says the account is locked after too many wrong proofs', async () => {
       vi.mocked(adminAuthApi.enrol).mockRejectedValue({
         isAxiosError: true,

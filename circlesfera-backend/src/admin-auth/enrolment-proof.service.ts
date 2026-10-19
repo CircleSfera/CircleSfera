@@ -6,6 +6,7 @@ import {
 } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as argon2 from 'argon2';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -55,14 +56,30 @@ export class EnrolmentProofService {
     });
   }
 
-  // A fingerprint of the password of the sign-in behind the staff email, or
-  // null when there is none.
-  private async passwordMark(email: string): Promise<string | null> {
+  // The stored password of the sign-in behind the staff email, or null.
+  private async storedPassword(email: string): Promise<string | null> {
     const signIn = await this.prisma.signIn.findUnique({
       where: { email },
       select: { password: true },
     });
-    return signIn?.password ? sha256(signIn.password) : null;
+    return signIn?.password || null;
+  }
+
+  // A fingerprint of that stored password, made with argon2 like a password:
+  // it tells whether the password changed, never what it is.
+  private async passwordMark(email: string): Promise<string | null> {
+    const stored = await this.storedPassword(email);
+    return stored ? argon2.hash(stored) : null;
+  }
+
+  private async passwordUnchanged(email: string, mark: string) {
+    const stored = await this.storedPassword(email);
+    if (!stored) return false;
+    try {
+      return await argon2.verify(mark, stored);
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -124,8 +141,10 @@ export class EnrolmentProofService {
     // A link sent before the password changed no longer works.
     if (
       admin.enrolmentProofPasswordMark &&
-      admin.enrolmentProofPasswordMark !==
-        (await this.passwordMark(admin.email))
+      !(await this.passwordUnchanged(
+        admin.email,
+        admin.enrolmentProofPasswordMark,
+      ))
     ) {
       return false;
     }

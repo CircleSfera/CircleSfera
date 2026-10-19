@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import * as argon2 from 'argon2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ENROLMENT_PROOF_TTL_MS,
@@ -61,7 +62,10 @@ describe('EnrolmentProofService', () => {
     expect(new URL(url).search).toBe('');
     expect(token.length).toBeGreaterThanOrEqual(43);
     expect(kept().enrolmentProofHash).toBe(sha256(token));
-    expect(kept().enrolmentProofPasswordMark).toBe(sha256('hash-v1'));
+    // An argon2 fingerprint of the stored password, never a copy of it.
+    const mark = kept().enrolmentProofPasswordMark;
+    expect(mark).toMatch(/^\$argon2/);
+    await expect(argon2.verify(mark, 'hash-v1')).resolves.toBe(true);
     expect(JSON.stringify(kept())).not.toContain(token);
     const expires = kept().enrolmentProofExpiresAt.getTime();
     expect(expires).toBeGreaterThanOrEqual(before + ENROLMENT_PROOF_TTL_MS);
@@ -100,13 +104,23 @@ describe('EnrolmentProofService', () => {
       });
 
     it('takes a link while the password is the one it was sent with', async () => {
-      keepProof('Tok_en', undefined, sha256('hash-v1'));
+      keepProof('Tok_en', undefined, await argon2.hash('hash-v1'));
 
       await expect(service.consume('op-1', 'Tok_en')).resolves.toBe(true);
     });
 
+    it('refuses a link whose sign-in is gone, or whose mark cannot be read', async () => {
+      keepProof('Tok_en', undefined, await argon2.hash('hash-v1'));
+      prisma.signIn.findUnique.mockResolvedValueOnce(null);
+      await expect(service.consume('op-1', 'Tok_en')).resolves.toBe(false);
+
+      keepProof('Tok_en', undefined, 'not-an-argon2-hash');
+      await expect(service.consume('op-1', 'Tok_en')).resolves.toBe(false);
+      expect(prisma.adminIdentity.updateMany).not.toHaveBeenCalled();
+    });
+
     it('refuses a link sent before the password changed', async () => {
-      keepProof('Tok_en', undefined, sha256('hash-v1'));
+      keepProof('Tok_en', undefined, await argon2.hash('hash-v1'));
       prisma.signIn.findUnique.mockResolvedValue({ password: 'hash-v2' });
 
       await expect(service.consume('op-1', 'Tok_en')).resolves.toBe(false);
