@@ -1,14 +1,61 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Eye, EyeOff, Hash, UserX, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { api } from '../../services';
 import { usersApi } from '../../services/users.service';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { Button, Switch } from '../ui';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
+
+type MutedKeyword = { keyword: string; createdAt: string };
+type HiddenAuthor = {
+  authorId: string;
+  username?: string;
+  avatar?: string | null;
+};
+type HiddenPost = {
+  postId: string;
+  createdAt: string;
+  caption?: string | null;
+  thumbnailUrl?: string | null;
+  authorUsername?: string | null;
+};
+type PreferencePage<T> = { items: T[]; nextCursor: string | null };
+
+// One list of what the feed leaves out, read a page at a time as the person
+// scrolls, so every entry can be reached and undone however long it grows.
+function usePreferenceList<T>(list: string) {
+  const query = useInfiniteQuery({
+    queryKey: ['feed-preferences', list],
+    queryFn: ({ pageParam }) =>
+      api
+        .get<PreferencePage<T>>(`/feed/preferences/${list}`, {
+          params: pageParam ? { cursor: pageParam } : undefined,
+        })
+        .then((r) => r.data),
+    initialPageParam: '',
+    getNextPageParam: (last) => last.nextCursor || undefined,
+  });
+  const loadMoreRef = useInfiniteScroll(
+    query.fetchNextPage,
+    query.hasNextPage,
+    query.isFetchingNextPage,
+  );
+  return {
+    items: query.data?.pages.flatMap((p) => p.items ?? []) ?? [],
+    isLoading: query.isLoading,
+    hasNextPage: query.hasNextPage,
+    loadMoreRef,
+  };
+}
 
 export default function FeedPreferencesSettings() {
   const { t } = useTranslation();
@@ -47,10 +94,9 @@ export default function FeedPreferencesSettings() {
       });
   };
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['feed-preferences'],
-    queryFn: () => api.get('/feed/preferences').then((r) => r.data),
-  });
+  const keywords = usePreferenceList<MutedKeyword>('muted-keywords');
+  const authors = usePreferenceList<HiddenAuthor>('hidden-authors');
+  const posts = usePreferenceList<HiddenPost>('hidden-posts');
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['feed-preferences'] });
@@ -95,7 +141,7 @@ export default function FeedPreferencesSettings() {
     },
   });
 
-  if (isLoading) {
+  if (keywords.isLoading || authors.isLoading || posts.isLoading) {
     return <p className="text-white/50 text-sm">{t('common.loading')}</p>;
   }
 
@@ -172,132 +218,125 @@ export default function FeedPreferencesSettings() {
           </Button>
         </form>
         <ul className="space-y-2">
-          {(data?.mutedKeywords || []).map(
-            (k: { keyword: string; createdAt: string }) => (
-              <li
-                key={k.keyword}
-                className="flex items-center justify-between p-3 min-h-11 rounded-lg bg-white/5"
+          {keywords.items.map((k) => (
+            <li
+              key={k.keyword}
+              className="flex items-center justify-between p-3 min-h-11 rounded-lg bg-white/5"
+            >
+              <span className="text-white text-sm font-medium flex items-center gap-2">
+                <Hash
+                  size={14}
+                  className="text-brand-primary-text"
+                  aria-hidden
+                />
+                {k.keyword}
+              </span>
+              <button
+                type="button"
+                onClick={() => unmuteKeyword.mutate(k.keyword)}
+                className="p-2 min-h-11 min-w-11 flex items-center justify-center text-white/40 hover:text-white"
+                aria-label={t('feedPrefs.unmute')}
               >
-                <span className="text-white text-sm font-medium flex items-center gap-2">
-                  <Hash
-                    size={14}
-                    className="text-brand-primary-text"
-                    aria-hidden
-                  />
-                  {k.keyword}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => unmuteKeyword.mutate(k.keyword)}
-                  className="p-2 min-h-11 min-w-11 flex items-center justify-center text-white/40 hover:text-white"
-                  aria-label={t('feedPrefs.unmute')}
-                >
-                  <X size={16} />
-                </button>
-              </li>
-            ),
-          )}
-          {(data?.mutedKeywords || []).length === 0 && (
+                <X size={16} />
+              </button>
+            </li>
+          ))}
+          {keywords.items.length === 0 && (
             <p className="text-white/40 text-sm">
               {t('feedPrefs.no_keywords')}
             </p>
           )}
         </ul>
+        {keywords.hasNextPage && (
+          <div ref={keywords.loadMoreRef} aria-hidden className="h-1" />
+        )}
       </SettingsSection>
 
       <SettingsSection title={t('feedPrefs.authors_title')} card={false}>
         <ul className="space-y-2">
-          {(data?.hiddenAuthors || []).map(
-            (a: {
-              authorId: string;
-              username?: string;
-              avatar?: string | null;
-            }) => (
-              <li
-                key={a.authorId}
-                className="flex items-center justify-between p-3 min-h-11 rounded-lg bg-white/5"
+          {authors.items.map((a) => (
+            <li
+              key={a.authorId}
+              className="flex items-center justify-between p-3 min-h-11 rounded-lg bg-white/5"
+            >
+              <span className="text-white text-sm flex items-center gap-2">
+                <UserX
+                  size={14}
+                  className="text-brand-primary-text"
+                  aria-hidden
+                />
+                @{a.username || a.authorId.slice(0, 8)}
+              </span>
+              <Button
+                variant="ghost"
+                size="compact"
+                onClick={() => unhideAuthor.mutate(a.authorId)}
+                className="min-h-11"
               >
-                <span className="text-white text-sm flex items-center gap-2">
-                  <UserX
-                    size={14}
-                    className="text-brand-primary-text"
-                    aria-hidden
-                  />
-                  @{a.username || a.authorId.slice(0, 8)}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="compact"
-                  onClick={() => unhideAuthor.mutate(a.authorId)}
-                  className="min-h-11"
-                >
-                  {t('feedPrefs.show_again')}
-                </Button>
-              </li>
-            ),
-          )}
-          {(data?.hiddenAuthors || []).length === 0 && (
+                {t('feedPrefs.show_again')}
+              </Button>
+            </li>
+          ))}
+          {authors.items.length === 0 && (
             <p className="text-white/40 text-sm">{t('feedPrefs.no_authors')}</p>
           )}
         </ul>
+        {authors.hasNextPage && (
+          <div ref={authors.loadMoreRef} aria-hidden className="h-1" />
+        )}
       </SettingsSection>
 
       <SettingsSection title={t('feedPrefs.posts_title')} card={false}>
         <ul className="space-y-2">
-          {(data?.hiddenPosts || []).map(
-            (p: {
-              postId: string;
-              createdAt: string;
-              caption?: string | null;
-              thumbnailUrl?: string | null;
-              authorUsername?: string | null;
-            }) => (
-              <li
-                key={p.postId}
-                className="flex items-center justify-between gap-3 p-3 min-h-11 rounded-lg bg-white/5"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  {p.thumbnailUrl ? (
-                    <img
-                      src={p.thumbnailUrl}
-                      alt=""
-                      className="w-10 h-10 rounded-lg object-cover shrink-0 border border-white/10"
+          {posts.items.map((p) => (
+            <li
+              key={p.postId}
+              className="flex items-center justify-between gap-3 p-3 min-h-11 rounded-lg bg-white/5"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {p.thumbnailUrl ? (
+                  <img
+                    src={p.thumbnailUrl}
+                    alt=""
+                    className="w-10 h-10 rounded-lg object-cover shrink-0 border border-white/10"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                    <EyeOff
+                      size={14}
+                      className="text-brand-primary-text"
+                      aria-hidden
                     />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                      <EyeOff
-                        size={14}
-                        className="text-brand-primary-text"
-                        aria-hidden
-                      />
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    {p.authorUsername ? (
-                      <p className="text-white text-sm font-medium truncate">
-                        @{p.authorUsername}
-                      </p>
-                    ) : null}
-                    <p className="text-white/50 text-xs line-clamp-2">
-                      {p.caption?.trim() || t('feedPrefs.hidden_post_fallback')}
-                    </p>
                   </div>
+                )}
+                <div className="min-w-0">
+                  {p.authorUsername ? (
+                    <p className="text-white text-sm font-medium truncate">
+                      @{p.authorUsername}
+                    </p>
+                  ) : null}
+                  <p className="text-white/50 text-xs line-clamp-2">
+                    {p.caption?.trim() || t('feedPrefs.hidden_post_fallback')}
+                  </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="compact"
-                  onClick={() => unhidePost.mutate(p.postId)}
-                  className="min-h-11 shrink-0"
-                >
-                  {t('feedPrefs.show_again')}
-                </Button>
-              </li>
-            ),
-          )}
-          {(data?.hiddenPosts || []).length === 0 && (
+              </div>
+              <Button
+                variant="ghost"
+                size="compact"
+                onClick={() => unhidePost.mutate(p.postId)}
+                className="min-h-11 shrink-0"
+              >
+                {t('feedPrefs.show_again')}
+              </Button>
+            </li>
+          ))}
+          {posts.items.length === 0 && (
             <p className="text-white/40 text-sm">{t('feedPrefs.no_posts')}</p>
           )}
         </ul>
+        {posts.hasNextPage && (
+          <div ref={posts.loadMoreRef} aria-hidden className="h-1" />
+        )}
       </SettingsSection>
     </div>
   );

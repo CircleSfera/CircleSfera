@@ -9,7 +9,7 @@ describe('FeedPreferencesService', () => {
     post: {
       findUnique: ReturnType<typeof vi.fn>;
     };
-    user: {
+    profile: {
       findUnique: ReturnType<typeof vi.fn>;
     };
     feedHiddenPost: {
@@ -35,7 +35,7 @@ describe('FeedPreferencesService', () => {
       post: {
         findUnique: vi.fn(),
       },
-      user: {
+      profile: {
         findUnique: vi.fn(),
       },
       feedHiddenPost: {
@@ -118,7 +118,7 @@ describe('FeedPreferencesService', () => {
     });
 
     it('throws NotFoundException if author does not exist', async () => {
-      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.profile.findUnique.mockResolvedValueOnce(null);
 
       await expect(
         service.hideAuthor('viewer-1', 'author-404'),
@@ -126,7 +126,7 @@ describe('FeedPreferencesService', () => {
     });
 
     it('upserts hidden author successfully', async () => {
-      mockPrisma.user.findUnique.mockResolvedValueOnce({ id: 'author-2' });
+      mockPrisma.profile.findUnique.mockResolvedValueOnce({ id: 'author-2' });
 
       const res = await service.hideAuthor('viewer-1', 'author-2');
       expect(res).toEqual({ success: true });
