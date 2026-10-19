@@ -204,7 +204,7 @@ export const PasskeySettings: React.FC = () => {
           <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
             {t('settings.passkey_settings.registered')}
           </span>
-          <span className="text-xs font-bold text-gray-500">
+          <span className="text-xs font-bold text-gray-400">
             {loadFailed ? '–' : passkeys.length} / {MAX_PASSKEYS_PER_ACCOUNT}
           </span>
         </div>

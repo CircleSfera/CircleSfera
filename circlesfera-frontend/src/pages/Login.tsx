@@ -200,7 +200,7 @@ export default function Login() {
           <h1 className="brand-wordmark text-xl md:text-2xl font-black text-center mb-2 tracking-tighter">
             {t('auth.login.title')}
           </h1>
-          <p className="text-gray-500 text-center font-bold mb-6 tracking-wide uppercase text-xs">
+          <p className="text-gray-400 text-center font-bold mb-6 tracking-wide uppercase text-xs">
             {t('auth.login.welcome')}
           </p>
 
@@ -208,7 +208,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="identifier"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+                className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.login.identifier_label')}
               </label>
@@ -229,7 +229,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+                className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.login.password_label')}
               </label>
@@ -330,7 +330,7 @@ export default function Login() {
                 <div>
                   <label
                     htmlFor="appealReason"
-                    className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 px-1"
+                    className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 px-1"
                   >
                     {t('auth.login.appeal_reason_label')}
                   </label>
@@ -365,7 +365,7 @@ export default function Login() {
                       setAppealToken(null);
                       loginMutation.reset();
                     }}
-                    className="w-full text-xs text-gray-500 hover:text-white transition-colors uppercase tracking-wide font-bold pt-2"
+                    className="w-full text-xs text-gray-400 hover:text-white transition-colors uppercase tracking-wide font-bold pt-2"
                   >
                     {t('auth.login.back_to_login')}
                   </button>
@@ -376,7 +376,7 @@ export default function Login() {
                 <div>
                   <label
                     htmlFor="twoFactorCode"
-                    className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 px-1"
+                    className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 px-1"
                   >
                     {t('auth.login.2fa_code')}
                   </label>
@@ -398,14 +398,14 @@ export default function Login() {
                     placeholder="000000"
                     autoComplete="one-time-code"
                   />
-                  <p className="text-xs text-gray-500 mt-2 text-center">
+                  <p className="text-xs text-gray-400 mt-2 text-center">
                     {t('auth.login.2fa_hint')}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => loginMutation.reset()}
-                  className="w-full text-xs text-gray-500 hover:text-white transition-colors uppercase tracking-wide font-bold pt-2"
+                  className="w-full text-xs text-gray-400 hover:text-white transition-colors uppercase tracking-wide font-bold pt-2"
                 >
                   {t('auth.login.back_to_login')}
                 </button>
@@ -429,7 +429,7 @@ export default function Login() {
 
                 <div className="relative flex items-center gap-4 py-2">
                   <div className="flex-1 h-px bg-white/5"></div>
-                  <span className="text-xs font-black text-gray-600 uppercase tracking-wide">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-wide">
                     {t('auth.login.or')}
                   </span>
                   <div className="flex-1 h-px bg-white/5"></div>
@@ -454,7 +454,7 @@ export default function Login() {
             )}
           </form>
 
-          <p className="mt-10 text-center text-gray-600 text-sm font-medium">
+          <p className="mt-10 text-center text-gray-400 text-sm font-medium">
             {t('auth.login.no_account')}{' '}
             <Link
               to="/accounts/signup"

@@ -475,7 +475,7 @@ export default function CommentList({
               </p>
             </div>
           ) : (
-            <div className="text-center py-10 text-gray-500 text-sm">
+            <div className="text-center py-10 text-gray-400 text-sm">
               {t('comments.no_comments')}
             </div>
           )
