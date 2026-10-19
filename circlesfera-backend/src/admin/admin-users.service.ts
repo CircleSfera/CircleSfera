@@ -855,37 +855,41 @@ export class AdminUsersService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    const where = linkedAccountsWhere(user);
-    const linked = await this.prisma.user.findMany({
-      // No IP or device signal: nothing to compare, so no linked accounts.
-      where: where ?? { id: { in: [] } },
-      select: {
-        id: true,
-        createdAt: true,
-        // The account's email counts as verified when its first sign-in's is.
-        signIns: {
-          orderBy: FIRST_SIGN_IN_ORDER,
-          take: 1,
-          select: { emailVerified: true },
-        },
-        identityVerifiedAt: true,
-        botLabeledAt: true,
-        isActive: true,
-        profiles: {
-          select: {
-            username: true,
-            fullName: true,
-            avatar: true,
-            _count: { select: { strikes: { where: activeStrikeWhere() } } },
+    // No IP or device signal: nothing to compare, so no linked accounts.
+    const where = linkedAccountsWhere(user) ?? { id: { in: [] } };
+    // The list shows the newest 50; the size of the cluster counts them all.
+    const [linked, linkedCount] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          createdAt: true,
+          // The account's email counts as verified when its first sign-in's is.
+          signIns: {
+            orderBy: FIRST_SIGN_IN_ORDER,
+            take: 1,
+            select: { emailVerified: true },
+          },
+          identityVerifiedAt: true,
+          botLabeledAt: true,
+          isActive: true,
+          profiles: {
+            select: {
+              username: true,
+              fullName: true,
+              avatar: true,
+              _count: { select: { strikes: { where: activeStrikeWhere() } } },
+            },
           },
         },
-      },
-      take: 50,
-      orderBy: { createdAt: 'desc' },
-    });
+        take: 50,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
 
     return {
-      clusterSize: linked.length + 1,
+      clusterSize: linkedCount + 1,
       accounts: linked.map((a) => ({
         id: a.id,
         username: a.profiles[0]?.username,
