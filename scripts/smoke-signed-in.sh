@@ -23,6 +23,8 @@ FX_MATURE_POST=5e0c5e0c-0000-4000-8000-0000000000c2
 FX_GENERAL_POST=5e0c5e0c-0000-4000-8000-0000000000c3
 FX_PUBLIC_PROFILE=5e0c5e0c-0000-4000-8000-0000000000b3
 FX_BANNED_EMAIL=smoke-fixture-banned@example.invalid
+FX_PUBLIC_STORY=5e0c5e0c-0000-4000-8000-0000000000d1
+FX_PRIVATE_PROFILE=5e0c5e0c-0000-4000-8000-0000000000b2
 
 TMP=$(mktemp -d)
 ok=1
@@ -198,6 +200,17 @@ else
   else
     fail "deleting the post ($code)"
   fi
+fi
+
+# Who reacted to a story is for its author: a viewer who is not the author
+# gets only their own reaction, never the fixture's.
+call "$TMP/smoke" "$API/stories/$FX_PUBLIC_STORY/reactions"
+if [ "$code" != "200" ]; then
+  fail "reading the reactions of a story it can see ($code)"
+elif grep -qE "$FX_PRIVATE_PROFILE|cs_smoke_private" "$TMP/body"; then
+  fail "a viewer read who reacted to a story of someone else"
+else
+  pass "who reacted to a story is told to its author only"
 fi
 
 # The profile of someone else never tells who the person or the sign-in
