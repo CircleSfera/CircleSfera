@@ -25,6 +25,8 @@ FX_PUBLIC_PROFILE=5e0c5e0c-0000-4000-8000-0000000000b3
 FX_BANNED_EMAIL=smoke-fixture-banned@example.invalid
 FX_PUBLIC_STORY=5e0c5e0c-0000-4000-8000-0000000000d1
 FX_PRIVATE_PROFILE=5e0c5e0c-0000-4000-8000-0000000000b2
+FX_CREATOR_EMAIL=smoke-fixture-creator@example.invalid
+FX_CREATOR_POST=5e0c5e0c-0000-4000-8000-0000000000c4
 
 TMP=$(mktemp -d)
 ok=1
@@ -339,6 +341,39 @@ elif [ "$code" = "400" ] && grep -q "REGISTRATION_CLOSED" "$TMP/body"; then
   skip "leaked password: registration is closed (system setting)"
 else
   fail "registration with a leaked password answered $code"
+fi
+
+# A promotion is refused for what the feeds do not show (a story, a Profile)
+# and for an amount or a length outside the fixed ones. Every body is wrong in
+# one field only, so nothing is ever charged. The Creator fixture signs in
+# with the smoke password, in a session of its own.
+new_session "$TMP/creator"
+printf '{"identifier":"%s","password":"%s"}' \
+  "$FX_CREATOR_EMAIL" "$(json_escape "$SMOKE_TEST_PASSWORD")" > "$TMP/login.json"
+call "$TMP/creator" -H "x-turnstile-bypass: $SMOKE_BYPASS_TOKEN" \
+  --data-binary @"$TMP/login.json" "$API/auth/login"
+rm -f "$TMP/login.json"
+if [ "$code" != "200" ]; then
+  fail "the Creator fixture signing in ($code)"
+else
+  call "$TMP/creator" "$API/csrf-token"
+  csrf=$(grep -o '"csrfToken":"[^"]*"' "$TMP/body" | cut -d'"' -f4)
+  answers=""
+  for change in '"targetType":"story"' '"targetType":"PROFILE"' \
+    '"dailyBudget":9999' '"durationDays":365'; do
+    body="{\"targetType\":\"post\",\"targetId\":\"$FX_CREATOR_POST\",\"durationDays\":7,\"dailyBudget\":5,\"withdrawalConsent\":true,$change}"
+    call "$TMP/creator" -d "$body" "$API/creator/promotions"
+    # The refusal must name the field changed, and only it.
+    field=$(printf '%s' "$change" | cut -d'"' -f2)
+    named=$(grep -oE 'targetType|targetId|durationDays|dailyBudget|withdrawalConsent' "$TMP/body" | sort -u | paste -sd, -)
+    [ "$named" = "$field" ] || code="$code($named)"
+    answers="$answers $code"
+  done
+  if [ "$answers" = " 400 400 400 400" ]; then
+    pass "a promotion of a story, of a Profile, or out of its limits is refused"
+  else
+    fail "promotions refused with:$answers (story, Profile, budget, length)"
+  fi
 fi
 
 if [ "$ok" != "1" ]; then

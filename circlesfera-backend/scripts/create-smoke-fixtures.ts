@@ -19,9 +19,10 @@ const { Pool } = pkg;
 // after scripts/create-smoke-test-user.ts:
 //   SMOKE_TEST_EMAIL=... SMOKE_TEST_PASSWORD=... node scripts/create-smoke-fixtures.ts
 //
-// With SMOKE_TEST_PASSWORD, the banned fixture signs in with the smoke
-// password, so that the smoke check can see the answer a banned person gets.
-// The other fixtures keep a random password nobody knows.
+// With SMOKE_TEST_PASSWORD, the banned and the Creator fixtures sign in with
+// the smoke password, so that the smoke check can see the answer a banned
+// person gets and what the creator tools refuse. The other fixtures keep a
+// random password nobody knows.
 //
 // The fixed identifiers below are the ones scripts/smoke-signed-in.sh uses.
 export const SMOKE_FIXTURES = {
@@ -32,6 +33,8 @@ export const SMOKE_FIXTURES = {
   maturePostId: '5e0c5e0c-0000-4000-8000-0000000000c2',
   generalPostId: '5e0c5e0c-0000-4000-8000-0000000000c3',
   publicStoryId: '5e0c5e0c-0000-4000-8000-0000000000d1',
+  creatorProfileId: '5e0c5e0c-0000-4000-8000-0000000000b4',
+  creatorPostId: '5e0c5e0c-0000-4000-8000-0000000000c4',
 };
 
 const ACCOUNTS = [
@@ -40,21 +43,36 @@ const ACCOUNTS = [
     username: 'cs_smoke_banned',
     profileId: SMOKE_FIXTURES.bannedProfileId,
     privacyLevel: 'PUBLIC',
+    accountType: 'PERSONAL',
     banned: true,
+    signsIn: true,
   },
   {
     email: 'smoke-fixture-private@example.invalid',
     username: 'cs_smoke_private',
     profileId: SMOKE_FIXTURES.privateProfileId,
     privacyLevel: 'PRIVATE',
+    accountType: 'PERSONAL',
     banned: false,
+    signsIn: false,
   },
   {
     email: 'smoke-fixture-public@example.invalid',
     username: 'cs_smoke_public',
     profileId: SMOKE_FIXTURES.publicProfileId,
     privacyLevel: 'PUBLIC',
+    accountType: 'PERSONAL',
     banned: false,
+    signsIn: false,
+  },
+  {
+    email: 'smoke-fixture-creator@example.invalid',
+    username: 'cs_smoke_creator',
+    profileId: SMOKE_FIXTURES.creatorProfileId,
+    privacyLevel: 'PUBLIC',
+    accountType: 'CREATOR',
+    banned: false,
+    signsIn: true,
   },
 ] as const;
 
@@ -76,6 +94,12 @@ const POSTS = [
     id: SMOKE_FIXTURES.generalPostId,
     profileId: SMOKE_FIXTURES.publicProfileId,
     caption: 'cssmokegeneralfixture: shown to everyone in the test audience',
+    contentRating: 'GENERAL',
+  },
+  {
+    id: SMOKE_FIXTURES.creatorPostId,
+    profileId: SMOKE_FIXTURES.creatorProfileId,
+    caption: 'cssmokecreatorfixture: a post its Creator may promote',
     contentRating: 'GENERAL',
   },
 ] as const;
@@ -130,7 +154,7 @@ async function main() {
       // never kept.
       const unusable = await argon2.hash(randomBytes(32).toString('hex'));
       const known =
-        fixture.banned && smokePassword
+        fixture.signsIn && smokePassword
           ? await argon2.hash(smokePassword)
           : undefined;
       await prisma.$transaction(async (tx) => {
@@ -166,6 +190,7 @@ async function main() {
           username: fixture.username,
           fullName: 'CircleSfera smoke check',
           privacyLevel: fixture.privacyLevel,
+          accountType: fixture.accountType,
           isAccountBanned: fixture.banned,
           suspendedUntil: null,
         };
