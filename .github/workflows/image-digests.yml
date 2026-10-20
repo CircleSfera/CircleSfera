@@ -1,0 +1,87 @@
+name: Image digests
+
+# Every week, moves the images pinned by digest to what their tags serve
+# that day (scripts/refresh-image-digests.sh), so that the server and the app
+# images keep getting the fixes of their maintainers. Dependabot cannot do it
+# for them: the mirror the Dockerfiles name refuses the listing of tags it
+# needs, and it does not read the Compose files.
+#
+# When something moved, it opens one pull request (or updates the open one)
+# and starts the checks of pull requests on it, which a pull request opened by
+# a workflow does not start by itself. The staging deploy proves the new
+# images before production gets them. Images pinned inside the workflows are
+# listed in that pull request to be changed by hand; when only those moved,
+# the run fails so that someone is told.
+on:
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: image-digests
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh pinned image digests
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BRANCH: chore/image-digests
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read what each pinned tag serves
+        id: refresh
+        run: ./scripts/refresh-image-digests.sh "$RUNNER_TEMP/rows.md"
+
+      - name: Open or update the pull request
+        if: steps.refresh.outputs.moved != '0'
+        run: |
+          set -euo pipefail
+          {
+            echo "The images below are pinned by digest; their tags now serve another one. Same tags, so the same major versions; only the digests move. Opened by the weekly **Image digests** workflow."
+            echo
+            echo "| Image | Before | After | Where |"
+            echo "| --- | --- | --- | --- |"
+            cat "$RUNNER_TEMP/rows.md"
+            echo
+            echo "The staging deploy builds and checks the new images before production gets them. Production keeps its database and cache running through a deploy: after this is deployed, run **Ops — recreate the database and the cache** to move them too."
+            echo
+            echo "Rows marked *workflows: by hand* are pinned inside .github/workflows, which this workflow may not change: change them in a pull request of their own (and run **Ops — copy pinned images** for the copies in this repository's registry)."
+          } > "$RUNNER_TEMP/body.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git commit -qam "chore(images): pinned images move to what their tags serve today"
+          git push --force origin "$BRANCH"
+          number=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --base main --head "$BRANCH" \
+              --title "chore(images): pinned images move to what their tags serve today" \
+              --body-file "$RUNNER_TEMP/body.md"
+          fi
+          gh workflow run pr.yml --ref "$BRANCH"
+
+      - name: Tell when only workflow pins moved, or a tag could not be read
+        if: steps.refresh.outputs.moved == '0' && (steps.refresh.outputs.in_workflows != '0' || steps.refresh.outputs.unreachable != '0')
+        run: |
+          {
+            echo "### Pinned images to change by hand"
+            echo
+            echo "| Image | Before | After | Where |"
+            echo "| --- | --- | --- | --- |"
+            cat "$RUNNER_TEMP/rows.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinned images inside the workflows moved (${{ steps.refresh.outputs.in_workflows }}) or could not be read (${{ steps.refresh.outputs.unreachable }}); see the summary."
+          exit 1

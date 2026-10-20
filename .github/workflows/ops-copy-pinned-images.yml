@@ -39,9 +39,9 @@ jobs:
           set -euo pipefail
           # name:tag | source | digest
           images='
-          pgvector:pg16|mirror.gcr.io/pgvector/pgvector|sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
+          pgvector:pg16|mirror.gcr.io/pgvector/pgvector|sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
           buildkit:buildx-stable-1|mirror.gcr.io/moby/buildkit|sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
-          redis:7-alpine|mirror.gcr.io/library/redis|sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+          redis:7-alpine|mirror.gcr.io/library/redis|sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
           '
           echo "$REGISTRY_TOKEN" | skopeo login ghcr.io --username "$REGISTRY_USER" --password-stdin
           echo "$images" | while IFS='|' read -r name source digest; do
