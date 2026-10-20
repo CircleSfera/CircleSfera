@@ -31,6 +31,7 @@ export const SMOKE_FIXTURES = {
   privatePostId: '5e0c5e0c-0000-4000-8000-0000000000c1',
   maturePostId: '5e0c5e0c-0000-4000-8000-0000000000c2',
   generalPostId: '5e0c5e0c-0000-4000-8000-0000000000c3',
+  publicStoryId: '5e0c5e0c-0000-4000-8000-0000000000d1',
 };
 
 const ACCOUNTS = [
@@ -196,6 +197,40 @@ async function main() {
         update: state,
       });
     }
+
+    // A story of the public fixture with a reaction from the private one:
+    // who reacted is for its author only. It lasts a week from each run.
+    const story = {
+      url: 'https://circlesfera.com/smoke-fixture-story.jpg',
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      moderationStatus: 'VISIBLE',
+      scheduledStatus: 'PUBLISHED',
+      isCloseFriendsOnly: false,
+      isPremium: false,
+    } as const;
+    await prisma.story.upsert({
+      where: { id: SMOKE_FIXTURES.publicStoryId },
+      create: {
+        id: SMOKE_FIXTURES.publicStoryId,
+        profileId: SMOKE_FIXTURES.publicProfileId,
+        ...story,
+      },
+      update: story,
+    });
+    await prisma.storyReaction.upsert({
+      where: {
+        storyId_profileId: {
+          storyId: SMOKE_FIXTURES.publicStoryId,
+          profileId: SMOKE_FIXTURES.privateProfileId,
+        },
+      },
+      create: {
+        storyId: SMOKE_FIXTURES.publicStoryId,
+        profileId: SMOKE_FIXTURES.privateProfileId,
+        reaction: '🔥',
+      },
+      update: {},
+    });
 
     // The smoke account follows none of them, so the private post stays
     // out of its reach.
