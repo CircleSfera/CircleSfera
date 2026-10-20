@@ -44,13 +44,10 @@ export default function TopNav() {
         to="/"
         onClick={triggerHaptic}
         className="min-h-11 flex items-center justify-center gap-1.5 flex-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
-        aria-label={t('nav.home')}
+        aria-label={t('nav.home_logo')}
       >
-        <img
-          src={logoSrc}
-          alt="CircleSfera"
-          className="h-6 w-auto object-contain"
-        />
+        {/* The wordmark beside it already says the name. */}
+        <img src={logoSrc} alt="" className="h-6 w-auto object-contain" />
         <span className="brand-wordmark text-base font-black tracking-tight">
           CircleSfera
         </span>

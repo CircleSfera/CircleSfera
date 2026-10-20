@@ -29,8 +29,9 @@ describe('TopNav', () => {
   it('labels home, notifications, and messages from the catalog', () => {
     const { i18n } = renderWithProviders(<TopNav />);
 
+    // The name of the logo link starts with the wordmark it shows.
     expect(
-      screen.getByRole('link', { name: i18n!.t('nav.home') }),
+      screen.getByRole('link', { name: 'CircleSfera, home' }),
     ).toHaveAttribute('href', '/');
     expect(
       screen.getByRole('link', { name: i18n!.t('nav.notifications') }),
@@ -55,7 +56,7 @@ describe('TopNav', () => {
       screen.getByRole('link', { name: i18n!.t('nav.messages') }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: i18n!.t('nav.home') }),
+      screen.getByRole('link', { name: 'CircleSfera, inicio' }),
     ).toBeInTheDocument();
   });
 
