@@ -50,6 +50,24 @@ const headerProps = {
 };
 
 describe('ProfileHeader', () => {
+  it('names the followers and following buttons by what they show, the count included', () => {
+    const setShowFollowsModal = vi.fn();
+    renderWithProviders(
+      <ProfileHeader
+        {...headerProps}
+        setShowFollowsModal={setShowFollowsModal}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^0\s*Followers$/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^0\s*Following$/ }));
+
+    expect(setShowFollowsModal.mock.calls).toEqual([
+      ['followers'],
+      ['following'],
+    ]);
+  });
+
   it('labels own create/settings chrome from the EN catalog', () => {
     const { i18n } = renderWithProviders(<ProfileHeader {...headerProps} />);
 

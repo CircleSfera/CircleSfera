@@ -341,7 +341,6 @@ export default function ProfileHeader({
                 <button
                   type="button"
                   onClick={() => setShowFollowsModal('followers')}
-                  aria-label={t('profile.stats.followers')}
                   className="min-h-11 min-w-11 shrink-0 flex items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                 >
                   <AnimatedCounter
@@ -352,7 +351,6 @@ export default function ProfileHeader({
                 <button
                   type="button"
                   onClick={() => setShowFollowsModal('following')}
-                  aria-label={t('profile.stats.following')}
                   className="min-h-11 min-w-11 shrink-0 flex items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                 >
                   <AnimatedCounter

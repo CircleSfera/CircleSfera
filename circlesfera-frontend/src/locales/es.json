@@ -12,6 +12,7 @@
   },
   "nav": {
     "home": "Inicio",
+    "home_logo": "CircleSfera, inicio",
     "search": "Buscar",
     "frames": "Frames",
     "create": "Crear",
