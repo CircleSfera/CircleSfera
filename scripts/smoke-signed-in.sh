@@ -175,6 +175,16 @@ elif [ "$code" != "201" ]; then
 else
   post_id=$(grep -o '"id":"[^"]*"' "$TMP/body" | head -1 | cut -d'"' -f4)
   pass "writing a post"
+  # The statistics of a post are answered to the Profile that published it,
+  # and to nobody else.
+  call "$TMP/smoke" "$API/analytics/post/$post_id/insights"
+  own=$code
+  call "$TMP/smoke" "$API/analytics/post/$FX_GENERAL_POST/insights"
+  if [ "$own" = "200" ] && { [ "$code" = "403" ] || [ "$code" = "404" ]; }; then
+    pass "the statistics of a post are answered to its author only"
+  else
+    fail "post statistics: own post $own, a post of another Profile $code"
+  fi
   call "$TMP/smoke" -X PUT -d "{\"caption\":\"$long_caption\"}" "$API/posts/$post_id"
   if [ "$code" = "400" ]; then
     pass "a caption over the limit is refused when editing"
@@ -239,6 +249,53 @@ else
     pass "ending the live"
   else
     fail "ending the live ($code)"
+  fi
+fi
+
+# Limits hold when written: a bio and a comment one character over theirs
+# are refused before anything is stored.
+call "$TMP/smoke" -X PUT -d "{\"bio\":\"$(printf 'b%.0s' $(seq 1 301))\"}" "$API/profiles/me"
+bio=$code
+call "$TMP/smoke" -d "{\"content\":\"$(printf 'c%.0s' $(seq 1 1001))\"}" \
+  "$API/posts/$FX_GENERAL_POST/comments"
+if [ "$bio" = "400" ] && [ "$code" = "400" ]; then
+  pass "a bio and a comment over their limits are refused"
+else
+  fail "over the limit: bio answered $bio, comment answered $code"
+fi
+
+# "Log out other sessions" ends the other session and keeps this one. A
+# second session of the same account is opened for it.
+smoke_csrf=$csrf
+new_session "$TMP/other"
+printf '{"identifier":"%s","password":"%s"}' \
+  "$(json_escape "$SMOKE_TEST_EMAIL")" "$(json_escape "$SMOKE_TEST_PASSWORD")" > "$TMP/login.json"
+call "$TMP/other" -H "x-turnstile-bypass: $SMOKE_BYPASS_TOKEN" \
+  --data-binary @"$TMP/login.json" "$API/auth/login"
+rm -f "$TMP/login.json"
+if [ "$code" != "200" ]; then
+  fail "signing in a second session ($code)"
+  csrf=$smoke_csrf
+else
+  call "$TMP/other" "$API/csrf-token"
+  csrf=$(grep -o '"csrfToken":"[^"]*"' "$TMP/body" | cut -d'"' -f4)
+  other_csrf=$csrf
+  call "$TMP/other" -X POST "$API/auth/refresh"
+  before=$code
+  csrf=$smoke_csrf
+  call "$TMP/smoke" -X DELETE "$API/auth/sessions/other"
+  revoked=$code
+  csrf=$other_csrf
+  call "$TMP/other" -X POST "$API/auth/refresh"
+  after=$code
+  csrf=$smoke_csrf
+  call "$TMP/smoke" "$API/auth/sessions"
+  if [ "$before" = "200" ] && [ "$revoked" = "200" ] &&
+    { [ "$after" = "401" ] || [ "$after" = "403" ]; } &&
+    [ "$code" = "200" ] && grep -q '"isCurrent":true' "$TMP/body"; then
+    pass "logging out other sessions ends them and keeps this one"
+  else
+    fail "other sessions: renewal before $before, logging out $revoked, renewal after $after, this session $code"
   fi
 fi
 
