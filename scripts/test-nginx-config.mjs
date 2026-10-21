@@ -177,18 +177,43 @@ function verifyTrafficPolicies(content) {
   // server in front of it, and a sign-in answer already carries two session
   // cookies: over that buffer, the answer is turned into a 502.
   const policyOnlyThroughMap =
-    !/add_header\s+Content-Security-Policy-Report-Only\s+"/.test(content);
+    !/add_header\s+Content-Security-Policy(-Report-Only)?\s+"/.test(content);
   const mapSkipsApi =
-    /map\s+\$uri\s+\$web_app_csp_report_only\s*\{\s*~\^\/api\/\s+"";/.test(
-      content,
-    );
+    /map\s+\$uri\s+\$web_app_csp\s*\{\s*~\^\/api\/\s+"";/.test(content);
   findings.push({
     rule: 'Page Policy Not Sent With API Answers',
     passed: policyOnlyThroughMap && mapSkipsApi,
     details:
       policyOnlyThroughMap && mapSkipsApi
-        ? 'The report-only page policy is skipped for /api/ answers'
-        : 'The report-only page policy is added to API answers too',
+        ? 'The page policy is skipped for /api/ answers'
+        : 'The page policy is added to API answers too',
+  });
+
+  // Check 8: the page policy is enforced, not only reported.
+  const policyEnforced =
+    /add_header\s+Content-Security-Policy\s+\$web_app_csp\s+always;/.test(
+      content,
+    ) && !/Content-Security-Policy-Report-Only/.test(content);
+  findings.push({
+    rule: 'Page Policy Enforced',
+    passed: policyEnforced,
+    details: policyEnforced
+      ? 'The web app pages carry an enforced Content-Security-Policy'
+      : 'The page policy is missing or only reported',
+  });
+
+  // Check 9: pages have one address. A page on www moves to circlesfera.com,
+  // while the API, the sockets and the app-link files still answer there.
+  const wwwPagesMove =
+    /if \(\$host = "www\.circlesfera\.com"\)/.test(content) &&
+    content.includes('if ($uri ~ "^/(api/|socket\\.io/|\\.well-known/)")') &&
+    /return 301 https:\/\/circlesfera\.com\$request_uri;/.test(content);
+  findings.push({
+    rule: 'Pages Served On One Address',
+    passed: wwwPagesMove,
+    details: wwwPagesMove
+      ? 'Pages on www move to circlesfera.com; API, sockets and app links stay'
+      : 'Pages are served on www too, or the API or app links would move',
   });
 
   return findings;
