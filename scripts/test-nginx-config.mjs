@@ -177,18 +177,69 @@ function verifyTrafficPolicies(content) {
   // server in front of it, and a sign-in answer already carries two session
   // cookies: over that buffer, the answer is turned into a 502.
   const policyOnlyThroughMap =
-    !/add_header\s+Content-Security-Policy-Report-Only\s+"/.test(content);
+    !/add_header\s+Content-Security-Policy(-Report-Only)?\s+"/.test(content);
   const mapSkipsApi =
-    /map\s+\$uri\s+\$web_app_csp_report_only\s*\{\s*~\^\/api\/\s+"";/.test(
-      content,
-    );
+    /map\s+\$uri\s+\$web_app_csp\s*\{\s*~\^\/api\/\s+"";/.test(content);
   findings.push({
     rule: 'Page Policy Not Sent With API Answers',
     passed: policyOnlyThroughMap && mapSkipsApi,
     details:
       policyOnlyThroughMap && mapSkipsApi
-        ? 'The report-only page policy is skipped for /api/ answers'
-        : 'The report-only page policy is added to API answers too',
+        ? 'The page policy is skipped for /api/ answers'
+        : 'The page policy is added to API answers too',
+  });
+
+  // Check 8: the page policy is enforced, not only reported.
+  const policyEnforced =
+    /add_header\s+Content-Security-Policy\s+\$web_app_csp\s+always;/.test(
+      content,
+    ) && !/Content-Security-Policy-Report-Only/.test(content);
+  findings.push({
+    rule: 'Page Policy Enforced',
+    passed: policyEnforced,
+    details: policyEnforced
+      ? 'The web app pages carry an enforced Content-Security-Policy'
+      : 'The page policy is missing or only reported',
+  });
+
+  // Check 9: pages have one address. In the server of circlesfera.com, and in
+  // this order: a page on www moves to circlesfera.com, while the API, the
+  // sockets, the app-link files and the service worker still answer there.
+  const start = content.indexOf(
+    'server_name circlesfera.com www.circlesfera.com;',
+  );
+  const end = content.indexOf('\nserver {', start);
+  const mainServer = start === -1 ? '' : content.slice(start, end);
+  const oneAddressRule = new RegExp(
+    [
+      String.raw`set \$www_page "";\s*`,
+      String.raw`if \(\$host = "www\.circlesfera\.com"\) \{\s*set \$www_page "yes";\s*\}\s*`,
+      String.raw`if \(\$uri ~ "\^/\(api/\|socket\\\.io/\|\\\.well-known/\|service-worker\\\.js\$\)"\) \{\s*set \$www_page "";\s*\}\s*`,
+      String.raw`if \(\$www_page = "yes"\) \{\s*return 301 https://circlesfera\.com\$request_uri;\s*\}`,
+    ].join(''),
+  );
+  const wwwPagesMove = oneAddressRule.test(mainServer);
+  findings.push({
+    rule: 'Pages Served On One Address',
+    passed: wwwPagesMove,
+    details: wwwPagesMove
+      ? 'Pages on www move to circlesfera.com; API, sockets, app links stay'
+      : 'Pages are served on www too, or the API or app links would move',
+  });
+
+  // Check 10: the video editor reads blob: and data: addresses with fetch,
+  // which the policy checks against connect-src.
+  const connectSrc =
+    /default "[^"]*\bconnect-src ([^;"]*);/.exec(content)?.[1] ?? '';
+  const editorCanRead =
+    connectSrc.split(' ').includes('blob:') &&
+    connectSrc.split(' ').includes('data:');
+  findings.push({
+    rule: 'Video Editor Can Read Its Own Copies',
+    passed: editorCanRead,
+    details: editorCanRead
+      ? 'connect-src allows blob: and data:'
+      : 'connect-src blocks blob: or data:, which the video editor fetches',
   });
 
   return findings;
