@@ -2,7 +2,7 @@ name: Pull Request CI
 # A run for the merge queue has no pull request to take its title from: it is
 # named after the commit the queue is about to merge, which carries the title
 # of the pull request.
-run-name: ${{ github.event.pull_request.title || github.event.merge_group.head_commit.message || format('Pull Request CI on {0}', github.ref_name) }}
+run-name: ${{ github.event.pull_request.title || github.event.merge_group.head_commit.message || 'Pull Request CI' }}
 
 on:
   pull_request:
@@ -10,9 +10,6 @@ on:
   # The merge queue checks pull requests together, on top of main and of the
   # ones queued before them, before any of them reaches main.
   merge_group:
-  # A pull request opened by a workflow (the weekly image digests) starts no
-  # checks by itself: that workflow starts this on its branch instead.
-  workflow_dispatch:
 
 concurrency:
   group: pr-${{ github.workflow }}-${{ github.ref }}

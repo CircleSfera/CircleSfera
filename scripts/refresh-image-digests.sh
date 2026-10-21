@@ -9,13 +9,15 @@
 # the workflows read from this repository's registry (…/mirror/<name>:<tag>)
 # are checked against the source listed in ops-copy-pinned-images.yml.
 #
-# Writes a Markdown report to the file given (one row per image that moved),
-# and prints what it does. Needs skopeo. Run from the repository root.
+# Writes a Markdown report to the file given (one row per pin that moved), the
+# images it could not read to the same name with .unread added, and prints
+# what it does. Needs skopeo. Run from the repository root.
 #
 # Usage: refresh-image-digests.sh <report file>
-set -euo pipefail
+
 # The backticks in the report rows are Markdown, not commands.
 # shellcheck disable=SC2016
+set -euo pipefail
 
 report=${1:?Usage: refresh-image-digests.sh <report file>}
 mirror=ghcr.io/circlesfera/circlesfera/mirror
@@ -33,10 +35,10 @@ served() {
 }
 
 : > "$report"
+: > "$report.unread"
 moved=0
 in_workflows=0
 unreachable=0
-seen=" "
 for pin in $pins; do
   image=${pin%@*}
   old=${pin#*@}
@@ -47,6 +49,7 @@ for pin in $pins; do
     source=$(grep -E "^[[:space:]]*$name\|" "$copies" | head -1 | cut -d'|' -f2 | xargs || true)
     if [ -z "$source" ]; then
       echo "No source listed for $image in $copies"
+      printf -- '- `%s`: no source listed in %s\n' "$image" "$copies" >> "$report.unread"
       unreachable=$((unreachable + 1))
       continue
     fi
@@ -54,6 +57,7 @@ for pin in $pins; do
   fi
   if ! new=$(served "$lookup"); then
     echo "Could not read $lookup"
+    printf -- '- `%s`: could not be read\n' "$lookup" >> "$report.unread"
     unreachable=$((unreachable + 1))
     continue
   fi
@@ -61,17 +65,15 @@ for pin in $pins; do
     echo "Current: $image"
     continue
   fi
-  # A copy and its source share their digest: one row for both.
-  [[ $seen == *" $old "* ]] && continue
-  seen="$seen$old "
-
+  # The whole pin is matched, so two tags that once served the same digest
+  # each move to their own.
   echo "Moved: $image ${old:7:12} -> ${new:7:12}"
   # shellcheck disable=SC2086
-  holders=$(grep -lF "$old" $files || true)
+  holders=$(grep -lF "$pin" $files || true)
   outside=$(printf '%s\n' "$holders" | grep -v '^\.github/workflows/' || true)
   inside=$(printf '%s\n' "$holders" | grep '^\.github/workflows/' || true)
   for file in $outside; do
-    sed -i "s/$old/$new/g" "$file"
+    PIN=$pin NEW="$image@$new" perl -pi -e 's/\Q$ENV{PIN}\E/$ENV{NEW}/g' "$file"
   done
   if [ -n "$outside" ]; then
     moved=$((moved + 1))

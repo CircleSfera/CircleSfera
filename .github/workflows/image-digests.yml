@@ -6,12 +6,14 @@ name: Image digests
 # for them: the mirror the Dockerfiles name refuses the listing of tags it
 # needs, and it does not read the Compose files.
 #
-# When something moved, it opens one pull request (or updates the open one)
-# and starts the checks of pull requests on it, which a pull request opened by
-# a workflow does not start by itself. The staging deploy proves the new
-# images before production gets them. Images pinned inside the workflows are
-# listed in that pull request to be changed by hand; when only those moved,
-# the run fails so that someone is told.
+# When something moved, it opens one pull request (or updates the open one).
+# A pull request this workflow opens or pushes to starts no checks, and checks
+# started any other way do not count as its required ones: someone closes and
+# reopens it to start them, as its description says. The staging deploy proves
+# the new images before production gets them. Images pinned inside the
+# workflows are listed in that pull request to be changed by hand; when only
+# those moved, or a tag could not be read, the run fails so that someone is
+# told.
 on:
   schedule:
     - cron: '0 5 * * 1'
@@ -20,7 +22,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  actions: write
 
 concurrency:
   group: image-digests
@@ -54,6 +55,14 @@ jobs:
             echo "| --- | --- | --- | --- |"
             cat "$RUNNER_TEMP/rows.md"
             echo
+            if [ -s "$RUNNER_TEMP/rows.md.unread" ]; then
+              echo "Could not be read this time (their pins are unchanged):"
+              echo
+              cat "$RUNNER_TEMP/rows.md.unread"
+              echo
+            fi
+            echo "**To start the checks, close this pull request and reopen it.** A pull request opened or updated by a workflow starts none, and the merge queue needs them."
+            echo
             echo "The staging deploy builds and checks the new images before production gets them. Production keeps its database and cache running through a deploy: after this is deployed, run **Ops — recreate the database and the cache** to move them too."
             echo
             echo "Rows marked *workflows: by hand* are pinned inside .github/workflows, which this workflow may not change: change them in a pull request of their own (and run **Ops — copy pinned images** for the copies in this repository's registry)."
@@ -71,10 +80,9 @@ jobs:
               --title "chore(images): pinned images move to what their tags serve today" \
               --body-file "$RUNNER_TEMP/body.md"
           fi
-          gh workflow run pr.yml --ref "$BRANCH"
 
       - name: Tell when only workflow pins moved, or a tag could not be read
-        if: steps.refresh.outputs.moved == '0' && (steps.refresh.outputs.in_workflows != '0' || steps.refresh.outputs.unreachable != '0')
+        if: steps.refresh.outputs.unreachable != '0' || (steps.refresh.outputs.moved == '0' && steps.refresh.outputs.in_workflows != '0')
         run: |
           {
             echo "### Pinned images to change by hand"
@@ -82,6 +90,10 @@ jobs:
             echo "| Image | Before | After | Where |"
             echo "| --- | --- | --- | --- |"
             cat "$RUNNER_TEMP/rows.md"
+            echo
+            echo "### Could not be read"
+            echo
+            cat "$RUNNER_TEMP/rows.md.unread"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Pinned images inside the workflows moved (${{ steps.refresh.outputs.in_workflows }}) or could not be read (${{ steps.refresh.outputs.unreachable }}); see the summary."
           exit 1
