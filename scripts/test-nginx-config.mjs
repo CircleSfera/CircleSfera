@@ -261,8 +261,10 @@ function verifyTrafficPolicies(content) {
       'backoffice.staging.circlesfera.com',
       'backoffice.dev.circlesfera.com',
     ],
-  ].every(([prod, ...envs]) =>
-    envs.every((host) => servedWith(host) === servedWith(prod)),
+  ].every(
+    ([prod, ...envs]) =>
+      servedWith(prod) !== undefined &&
+      envs.every((host) => servedWith(host) === servedWith(prod)),
   );
   findings.push({
     rule: 'Environments Served Like Production',
