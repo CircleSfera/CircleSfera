@@ -631,6 +631,58 @@ jobs:
               curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 A public address of CircleSfera does not reach production through the host nginx. The new version stays; see the deploy log."}' "$DEPLOY_WEBHOOK" || true
             fi
 
+            # Postgres and Redis keep running through a deploy, so a new pin
+            # of theirs reaches them only through "Ops — recreate the
+            # database and the cache", run by the owner. Say so when one runs
+            # another image than its pin (pulled above); nothing changes here.
+            data_drift=""
+            for service in postgres redis; do
+              running=$(docker inspect --format '{{.Image}}' \
+                "$(docker compose -f docker-compose.prod.yml --env-file .env.production ps -q "$service")" 2>/dev/null || true)
+              pinned=$(docker image inspect --format '{{.Id}}' \
+                "$(docker compose -f docker-compose.prod.yml --env-file .env.production config --images "$service")" 2>/dev/null || true)
+              if [ -z "$running" ] || [ -z "$pinned" ]; then
+                echo "  ?   $service: could not compare its image with its pin"
+              elif [ "$running" != "$pinned" ]; then
+                echo "  NEW $service runs ${running:7:12}, its pin is ${pinned:7:12}"
+                data_drift="$data_drift $service"
+              else
+                echo "  OK  $service runs its pinned image"
+              fi
+            done
+            if [ -n "$data_drift" ]; then
+              echo "⚠️ A new image is pinned for:$data_drift. Run \"Ops — recreate the database and the cache\" (first without apply)."
+              if [ -n "$DEPLOY_WEBHOOK" ]; then
+                curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"ℹ️ A new image is pinned for:${data_drift}. Production keeps the old one until \\\"Ops — recreate the database and the cache\\\" is run.\"}" "$DEPLOY_WEBHOOK" || true
+              fi
+            fi
+
+            # The host nginx sites of CircleSfera are kept in infra/host and
+            # reach the server only through its scripts, run by the owner.
+            # Say whether each live file matches the repository's: only
+            # "matches" or "differs", never the files (this log is public).
+            host_drift=""
+            for pair in \
+              "/etc/nginx/sites-available/circlesfera:infra/host/nginx/sites/circlesfera-production.conf" \
+              "/etc/nginx/conf.d/circlesfera-staging.conf:infra/host/nginx/sites/circlesfera-staging.conf" \
+              "/etc/nginx/conf.d/circlesfera-dev.conf:infra/host/nginx/sites/circlesfera-dev.conf"; do
+              live="${pair%%:*}"; kept="${pair#*:}"
+              if [ ! -r "$live" ] || [ ! -f "$kept" ]; then
+                echo "  ?   $(basename "$kept"): could not compare"
+              elif cmp -s "$live" "$kept"; then
+                echo "  OK  $(basename "$kept") matches the server's"
+              else
+                echo "  DIFF $(basename "$kept") differs from the server's"
+                host_drift="$host_drift $(basename "$kept")"
+              fi
+            done
+            if [ -n "$host_drift" ]; then
+              echo "⚠️ The host nginx differs from the repository for:$host_drift. A change made by hand on the server, or one not yet applied with infra/host."
+              if [ -n "$DEPLOY_WEBHOOK" ]; then
+                curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"ℹ️ The host nginx differs from the repository for:${host_drift}.\"}" "$DEPLOY_WEBHOOK" || true
+              fi
+            fi
+
             trap - EXIT
             rm -rf "$SMOKE_TMP"
             # The version this deploy replaced, for the emergency rollback.
