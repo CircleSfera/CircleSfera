@@ -206,7 +206,7 @@ function verifyTrafficPolicies(content) {
   // this order: a page on www moves to circlesfera.com, while the API, the
   // sockets, the app-link files and the service worker still answer there.
   const start = content.indexOf(
-    'server_name circlesfera.com www.circlesfera.com;',
+    'server_name circlesfera.com www.circlesfera.com',
   );
   const end = content.indexOf('\nserver {', start);
   const mainServer = start === -1 ? '' : content.slice(start, end);
@@ -240,6 +240,36 @@ function verifyTrafficPolicies(content) {
     details: editorCanRead
       ? 'connect-src allows blob: and data:'
       : 'connect-src blocks blob: or data:, which the video editor fetches',
+  });
+
+  // Check 11: staging and development answer through the servers production
+  // uses, so they carry the same headers and routes; only local stands use
+  // the default server.
+  const names = [...content.matchAll(/server_name ([^;]+);/g)].map((m) =>
+    m[1].split(/\s+/),
+  );
+  const servedWith = (host) => names.find((list) => list.includes(host));
+  const environmentsLikeProduction = [
+    ['circlesfera.com', 'staging.circlesfera.com', 'dev.circlesfera.com'],
+    [
+      'admin.circlesfera.com',
+      'admin.staging.circlesfera.com',
+      'admin.dev.circlesfera.com',
+    ],
+    [
+      'backoffice.circlesfera.com',
+      'backoffice.staging.circlesfera.com',
+      'backoffice.dev.circlesfera.com',
+    ],
+  ].every(([prod, ...envs]) =>
+    envs.every((host) => servedWith(host) === servedWith(prod)),
+  );
+  findings.push({
+    rule: 'Environments Served Like Production',
+    passed: environmentsLikeProduction,
+    details: environmentsLikeProduction
+      ? 'Staging and development hosts share the production servers'
+      : 'Staging or development falls to the default server, without its headers',
   });
 
   return findings;
