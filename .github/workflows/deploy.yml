@@ -631,6 +631,32 @@ jobs:
               curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 A public address of CircleSfera does not reach production through the host nginx. The new version stays; see the deploy log."}' "$DEPLOY_WEBHOOK" || true
             fi
 
+            # Postgres and Redis keep running through a deploy, so a new pin
+            # of theirs reaches them only through "Ops — recreate the
+            # database and the cache", run by the owner. Say so when one runs
+            # another image than its pin (pulled above); nothing changes here.
+            data_drift=""
+            for service in postgres redis; do
+              running=$(docker inspect --format '{{.Image}}' \
+                "$(docker compose -f docker-compose.prod.yml --env-file .env.production ps -q "$service")" 2>/dev/null || true)
+              pinned=$(docker image inspect --format '{{.Id}}' \
+                "$(docker compose -f docker-compose.prod.yml --env-file .env.production config --images "$service")" 2>/dev/null || true)
+              if [ -z "$running" ] || [ -z "$pinned" ]; then
+                echo "  ?   $service: could not compare its image with its pin"
+              elif [ "$running" != "$pinned" ]; then
+                echo "  NEW $service runs ${running:7:12}, its pin is ${pinned:7:12}"
+                data_drift="$data_drift $service"
+              else
+                echo "  OK  $service runs its pinned image"
+              fi
+            done
+            if [ -n "$data_drift" ]; then
+              echo "⚠️ A new image is pinned for:$data_drift. Run \"Ops — recreate the database and the cache\" (first without apply)."
+              if [ -n "$DEPLOY_WEBHOOK" ]; then
+                curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"ℹ️ A new image is pinned for:${data_drift}. Production keeps the old one until \\\"Ops — recreate the database and the cache\\\" is run.\"}" "$DEPLOY_WEBHOOK" || true
+              fi
+            fi
+
             trap - EXIT
             rm -rf "$SMOKE_TMP"
             # The version this deploy replaced, for the emergency rollback.
