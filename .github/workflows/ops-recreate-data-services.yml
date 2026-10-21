@@ -1,0 +1,118 @@
+name: Ops — recreate the database and the cache
+
+# A production deploy recreates the backend, the web app and the proxy, and
+# keeps Postgres and Redis running. When their pinned images move (the weekly
+# Image digests pull request), they keep running the old ones until this is
+# run. It prints, for each, the image running and the image the Compose file
+# pins, and changes nothing unless `apply` is ticked.
+#
+# With `apply`: a dump of the database first (the run stops if it cannot be
+# written), then Postgres and Redis are recreated from the pinned images on
+# the same volumes, and the run waits until both and the backend are healthy.
+# The site pauses for the seconds the database takes to start; data stays in
+# the volumes. Same major versions only: a new major of Postgres needs an
+# upgrade of its data and is not done here.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Recreate Postgres and Redis (leave unticked to only print the images)
+        type: boolean
+        default: false
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: if a deploy is triggered (merge to
+# main) while this run waits for approval or for a running deploy, the newer
+# deploy replaces it and this run is cancelled. Do not merge while it is
+# pending; re-run it if it was cancelled.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  recreate-data-services:
+    name: Recreate the database and the cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Recreate Postgres and Redis on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          APPLY: ${{ inputs.apply && '1' || '0' }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: APPLY
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            compose() { docker compose -f docker-compose.prod.yml --env-file .env.production "$@"; }
+            # Image ids: the one a container runs, and the one the pinned
+            # reference gives. Pulling changes nothing that runs.
+            compose pull --quiet postgres redis
+            running() { docker inspect --format '{{.Image}}' "$(compose ps -q "$1")"; }
+            pinned() { docker image inspect --format '{{.Id}}' "$(compose config --images "$1")"; }
+            changed=0
+            for service in postgres redis; do
+              now=$(running "$service")
+              want=$(pinned "$service")
+              echo "$service: running ${now:7:12}, pinned $(compose config --images "$service") (${want:7:12})"
+              [ "$now" = "$want" ] || changed=1
+            done
+            if [ "$changed" = "0" ]; then
+              echo "Both run the pinned images; nothing to do."
+              exit 0
+            fi
+            if [ "$APPLY" != "1" ]; then
+              echo "Dry run: tick apply to recreate them."
+              exit 0
+            fi
+
+            set -a
+            # shellcheck disable=SC1091
+            source .env.production
+            set +a
+            backup_root=/srv/circlesfera/backups/postgres
+            mkdir -p "$backup_root"
+            backup="$backup_root/pre_data_services_$(date -u +%Y%m%d_%H%M%S).dump"
+            # The dump holds people's data: readable by the operator account only.
+            (umask 077; compose exec -T postgres pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB" > "$backup")
+            echo "Database dump written: $(du -h "$backup" | cut -f1)"
+
+            compose up -d --no-deps postgres redis
+
+            healthy() { [ "$(docker inspect --format '{{.State.Health.Status}}' "$1" 2>/dev/null)" = "healthy" ]; }
+            for name in CircleSfera-Postgres CircleSfera-Redis CircleSfera-Backend; do
+              for i in $(seq 1 36); do
+                healthy "$name" && break
+                sleep 5
+              done
+              if ! healthy "$name"; then
+                echo "$name is not healthy after three minutes."
+                docker logs --tail 50 "$name" 2>&1 | sed 's/^/  /'
+                exit 1
+              fi
+              echo "$name is healthy."
+            done
+            for service in postgres redis; do
+              [ "$(running "$service")" = "$(pinned "$service")" ] || { echo "$service does not run the pinned image."; exit 1; }
+              echo "$service runs the pinned image."
+            done

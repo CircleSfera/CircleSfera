@@ -12,7 +12,7 @@
 #
 # Only the working copy of the build machine is changed. The Dockerfiles in
 # the repository keep naming the public mirror, so local builds need no
-# sign-in and Dependabot keeps updating their digests.
+# sign-in and the weekly Image digests workflow keeps their digests current.
 #
 # Usage: use-own-base-images.sh <target registry prefix> <Dockerfile>...
 # Needs docker buildx and skopeo, both signed in to the target registry.
