@@ -293,6 +293,19 @@ describe('LiveBroadcaster on the live connection', () => {
       expect(floating()).toHaveLength(0);
     });
 
+    it('leaves no reaction waiting to float away once the host has left', async () => {
+      const { unmount } = await goLive();
+      vi.useFakeTimers();
+      const before = vi.getTimerCount();
+
+      fire('live:reaction_received', { reaction: '❤️' });
+      fire('live:heart_received', undefined);
+      expect(vi.getTimerCount()).toBe(before + 2);
+
+      unmount();
+      expect(vi.getTimerCount()).toBeLessThanOrEqual(before);
+    });
+
     it('counts the hearts, and only the hearts, as likes in the summary', async () => {
       await goLive();
       fire('live:viewer_count_update', { viewerCount: 13 });

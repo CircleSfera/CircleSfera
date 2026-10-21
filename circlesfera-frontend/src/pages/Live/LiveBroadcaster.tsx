@@ -221,14 +221,18 @@ export default function LiveBroadcaster() {
 
     // Viewers send every reaction, hearts included, as a reaction; a heart
     // of the host comes as a heart. Both float, and the hearts are counted.
+    // Each floats for two seconds; leaving the live cancels what is left.
+    const floating = new Set<ReturnType<typeof setTimeout>>();
     const showReaction = (emoji: string) => {
       if (emoji === '❤️') setLikesCount((prev) => prev + 1);
       const id = Math.random().toString(36).substring(2, 9);
       const x = Math.random() * 40 - 20;
       setHearts((prev) => [...prev, { id, x, emoji }]);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        floating.delete(timer);
         setHearts((prev) => prev.filter((h) => h.id !== id));
       }, 2000);
+      floating.add(timer);
     };
 
     socket.on('live:heart_received', (data?: { reaction?: string }) => {
@@ -252,6 +256,7 @@ export default function LiveBroadcaster() {
       socket.off('live:question_highlighted');
       socket.off('live:question_cleared');
       socket.off('live:gift');
+      for (const timer of floating) clearTimeout(timer);
     };
   }, [streamId]);
 
