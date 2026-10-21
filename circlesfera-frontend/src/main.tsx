@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AppToaster } from './components/ui/AppToaster';
 import { i18nReady } from './i18n';
 import { initSentry } from './sentry.ts';
+import { moveToOneAddress } from './utils/oneAddress';
 import { watchForStaleBuild } from './utils/staleBuild';
 import './index.css';
 import App from './App.tsx';
@@ -69,7 +70,10 @@ const renderStartupError = () =>
     </main>,
   );
 
-i18nReady.then(renderApp, renderStartupError);
+// A page opened on www leaves for circlesfera.com before the app starts.
+if (!moveToOneAddress()) {
+  i18nReady.then(renderApp, renderStartupError);
+}
 
 // Register Service Worker for PWA & Push Notifications auto-initiation
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

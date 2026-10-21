@@ -4,6 +4,8 @@
 # it does not list, and reports it to the backend. Origins: the app and its
 # API (self), realtime sockets, LiveKit, Sentry, Mapbox and Cloudflare
 # Turnstile; blob: and wasm for the video editor (ffmpeg) and map workers.
+# connect-src takes blob: and data: because the video editor reads its own
+# blob: copies of ffmpeg and of the clips, and a data: picture, with fetch.
 # The pages are served on circlesfera.com only (www moves there, below), so
 # the API the app calls is always the page's own origin.
 #
@@ -14,7 +16,7 @@
 # carries two session cookies.
 map $uri $web_app_csp {
     ~^/api/ "";
-    default "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss://circlesfera.com https://*.livekit.cloud wss://*.livekit.cloud https://*.ingest.de.sentry.io https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/v1/security/csp-report";
+    default "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' blob: data: wss://circlesfera.com https://*.livekit.cloud wss://*.livekit.cloud https://*.ingest.de.sentry.io https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/v1/security/csp-report";
 }
 
 # 1. Unified Proxy (Landing & API)
@@ -26,12 +28,14 @@ server {
     # The API, the sockets and the app-link files still answer on www: the
     # Android app lists www among its link hosts and Android reads
     # /.well-known/assetlinks.json there without following a redirect, and
-    # the deploy checks the health route through every public address.
+    # the deploy checks the health route through every public address. The
+    # service worker answers too: a browser never follows a redirect for it,
+    # so an app installed on www could not update to the build that moves it.
     set $www_page "";
     if ($host = "www.circlesfera.com") {
         set $www_page "yes";
     }
-    if ($uri ~ "^/(api/|socket\.io/|\.well-known/)") {
+    if ($uri ~ "^/(api/|socket\.io/|\.well-known/|service-worker\.js$)") {
         set $www_page "";
     }
     if ($www_page = "yes") {

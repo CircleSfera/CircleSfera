@@ -202,18 +202,44 @@ function verifyTrafficPolicies(content) {
       : 'The page policy is missing or only reported',
   });
 
-  // Check 9: pages have one address. A page on www moves to circlesfera.com,
-  // while the API, the sockets and the app-link files still answer there.
-  const wwwPagesMove =
-    /if \(\$host = "www\.circlesfera\.com"\)/.test(content) &&
-    content.includes('if ($uri ~ "^/(api/|socket\\.io/|\\.well-known/)")') &&
-    /return 301 https:\/\/circlesfera\.com\$request_uri;/.test(content);
+  // Check 9: pages have one address. In the server of circlesfera.com, and in
+  // this order: a page on www moves to circlesfera.com, while the API, the
+  // sockets, the app-link files and the service worker still answer there.
+  const start = content.indexOf(
+    'server_name circlesfera.com www.circlesfera.com;',
+  );
+  const end = content.indexOf('\nserver {', start);
+  const mainServer = start === -1 ? '' : content.slice(start, end);
+  const oneAddressRule = new RegExp(
+    [
+      String.raw`set \$www_page "";\s*`,
+      String.raw`if \(\$host = "www\.circlesfera\.com"\) \{\s*set \$www_page "yes";\s*\}\s*`,
+      String.raw`if \(\$uri ~ "\^/\(api/\|socket\\\.io/\|\\\.well-known/\|service-worker\\\.js\$\)"\) \{\s*set \$www_page "";\s*\}\s*`,
+      String.raw`if \(\$www_page = "yes"\) \{\s*return 301 https://circlesfera\.com\$request_uri;\s*\}`,
+    ].join(''),
+  );
+  const wwwPagesMove = oneAddressRule.test(mainServer);
   findings.push({
     rule: 'Pages Served On One Address',
     passed: wwwPagesMove,
     details: wwwPagesMove
-      ? 'Pages on www move to circlesfera.com; API, sockets and app links stay'
+      ? 'Pages on www move to circlesfera.com; API, sockets, app links stay'
       : 'Pages are served on www too, or the API or app links would move',
+  });
+
+  // Check 10: the video editor reads blob: and data: addresses with fetch,
+  // which the policy checks against connect-src.
+  const connectSrc =
+    /default "[^"]*\bconnect-src ([^;"]*);/.exec(content)?.[1] ?? '';
+  const editorCanRead =
+    connectSrc.split(' ').includes('blob:') &&
+    connectSrc.split(' ').includes('data:');
+  findings.push({
+    rule: 'Video Editor Can Read Its Own Copies',
+    passed: editorCanRead,
+    details: editorCanRead
+      ? 'connect-src allows blob: and data:'
+      : 'connect-src blocks blob: or data:, which the video editor fetches',
   });
 
   return findings;
