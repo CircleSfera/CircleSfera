@@ -1,7 +1,3 @@
-export const PUSH_SW_READY_TIMEOUT_MS = 5000;
-export const PROD_PUSH_SW_URL = '/service-worker.js';
-export const DEV_PUSH_SW_URL = '/push-sw.js';
-
 export type PushSubscribePayload = {
   endpoint: string;
   keys: {
@@ -10,10 +6,6 @@ export type PushSubscribePayload = {
   };
 };
 
-export function pushServiceWorkerScriptUrl(): string {
-  return import.meta.env.PROD ? PROD_PUSH_SW_URL : DEV_PUSH_SW_URL;
-}
-
 export async function getExistingPushRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
   try {
@@ -21,54 +13,6 @@ export async function getExistingPushRegistration(): Promise<ServiceWorkerRegist
   } catch {
     return null;
   }
-}
-
-export function waitForServiceWorkerReady(
-  timeoutMs = PUSH_SW_READY_TIMEOUT_MS,
-): Promise<ServiceWorkerRegistration> {
-  return new Promise((resolve, reject) => {
-    if (!('serviceWorker' in navigator)) {
-      reject(new Error('SERVICE_WORKER_UNSUPPORTED'));
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      reject(new Error('SERVICE_WORKER_TIMEOUT'));
-    }, timeoutMs);
-
-    navigator.serviceWorker.ready.then(
-      (registration) => {
-        window.clearTimeout(timer);
-        resolve(registration);
-      },
-      (error: unknown) => {
-        window.clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
-}
-
-// Returns an active service worker registration, registering one if needed.
-// Never waits on `navigator.serviceWorker.ready` without a timeout — that
-// Promise does not reject when no worker is registered (Vite dev).
-export async function ensurePushServiceWorker(
-  timeoutMs = PUSH_SW_READY_TIMEOUT_MS,
-): Promise<ServiceWorkerRegistration> {
-  if (!('serviceWorker' in navigator)) {
-    throw new Error('SERVICE_WORKER_UNSUPPORTED');
-  }
-
-  const existing = await navigator.serviceWorker.getRegistration();
-  if (existing?.active) {
-    return existing;
-  }
-
-  if (!existing) {
-    await navigator.serviceWorker.register(pushServiceWorkerScriptUrl());
-  }
-
-  return waitForServiceWorkerReady(timeoutMs);
 }
 
 export function urlBase64ToUint8Array(
