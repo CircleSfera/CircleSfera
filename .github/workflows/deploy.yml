@@ -627,6 +627,23 @@ jobs:
                 public_ok=0
               fi
             done
+            # www sends pages to the one address, but the app links file
+            # stays on www without a redirect: Android checks it there for
+            # links to www and does not follow a redirect.
+            www_page=$(curl -sS -o /dev/null -w "%{http_code} %{redirect_url}" --max-time 15 \
+              --resolve "www.circlesfera.com:443:127.0.0.1" "https://www.circlesfera.com/") || www_page="000"
+            if [ "$www_page" = "301 https://circlesfera.com/" ]; then
+              echo "  OK  301  https://www.circlesfera.com/ goes to https://circlesfera.com/"
+            else
+              echo "  FAIL $www_page  https://www.circlesfera.com/ should go to https://circlesfera.com/"
+              public_ok=0
+            fi
+            links=$(curl -sS -o /dev/null -w "%{http_code} %{content_type}" --max-time 15 \
+              --resolve "www.circlesfera.com:443:127.0.0.1" "https://www.circlesfera.com/.well-known/assetlinks.json") || links="000"
+            case "$links" in
+              "200 application/json"*) echo "  OK  200  https://www.circlesfera.com/.well-known/assetlinks.json" ;;
+              *) echo "  FAIL $links  https://www.circlesfera.com/.well-known/assetlinks.json"; public_ok=0 ;;
+            esac
             if [ "$public_ok" != "1" ] && [ -n "$DEPLOY_WEBHOOK" ]; then
               curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 A public address of CircleSfera does not reach production through the host nginx. The new version stays; see the deploy log."}' "$DEPLOY_WEBHOOK" || true
             fi
