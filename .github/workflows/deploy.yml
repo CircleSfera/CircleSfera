@@ -531,6 +531,28 @@ jobs:
             smoke_check "/stories"
             smoke_check "/live/active"
 
+            # The app links file, as Android asks for it on www: answered by
+            # this version's API, through the proxy's www exception, with no
+            # redirect. A 404 does not pass here.
+            links="000"
+            for attempt in 1 2 3 4 5; do
+              links=$(curl -sS -o "$SMOKE_TMP"/cs-smoke-body -w "%{http_code} %{content_type}" --max-time 15 \
+                -H "Host: www.circlesfera.com" "http://127.0.0.1:8082/.well-known/assetlinks.json") || links="000"
+              case "$links" in
+                502*|503*|000*) sleep 2 ;;
+                *) break ;;
+              esac
+            done
+            case "$links" in
+              "200 application/json"|"200 application/json;"*)
+                echo "  OK  200  www.circlesfera.com/.well-known/assetlinks.json" ;;
+              *)
+                echo "  FAIL $links  www.circlesfera.com/.well-known/assetlinks.json"
+                head -c 400 "$SMOKE_TMP"/cs-smoke-body 2>/dev/null || true
+                echo
+                smoke_ok=0 ;;
+            esac
+
             if [ "$smoke_ok" != "1" ]; then
               echo "❌ Post-deploy API smoke FAILED."
               docker logs CircleSfera-Backend --tail=100 2>&1 || true
@@ -629,7 +651,8 @@ jobs:
             done
             # www sends pages to the one address, but the app links file
             # stays on www without a redirect: Android checks it there for
-            # links to www and does not follow a redirect.
+            # links to www and does not follow a redirect. The API's answer is
+            # checked above, with a rollback; here, the host nginx's route.
             www_page=$(curl -sS -o /dev/null -w "%{http_code} %{redirect_url}" --max-time 15 \
               --resolve "www.circlesfera.com:443:127.0.0.1" "https://www.circlesfera.com/") || www_page="000"
             if [ "$www_page" = "301 https://circlesfera.com/" ]; then
@@ -641,7 +664,7 @@ jobs:
             links=$(curl -sS -o /dev/null -w "%{http_code} %{content_type}" --max-time 15 \
               --resolve "www.circlesfera.com:443:127.0.0.1" "https://www.circlesfera.com/.well-known/assetlinks.json") || links="000"
             case "$links" in
-              "200 application/json"*) echo "  OK  200  https://www.circlesfera.com/.well-known/assetlinks.json" ;;
+              "200 application/json"|"200 application/json;"*) echo "  OK  200  https://www.circlesfera.com/.well-known/assetlinks.json" ;;
               *) echo "  FAIL $links  https://www.circlesfera.com/.well-known/assetlinks.json"; public_ok=0 ;;
             esac
             if [ "$public_ok" != "1" ] && [ -n "$DEPLOY_WEBHOOK" ]; then
