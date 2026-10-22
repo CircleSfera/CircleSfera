@@ -615,7 +615,7 @@ jobs:
             # proxy on its loopback port, so they never see which site the
             # host nginx gives a name to. A failure here is in the host nginx,
             # not in this version: it is reported and fails the run at the
-            # end, without a rollback (infra/host/apply-production-addresses.sh).
+            # end, without a rollback (infra/host/apply-production-site.sh).
             public_ok=1
             for address in circlesfera.com www.circlesfera.com admin.circlesfera.com backoffice.circlesfera.com; do
               code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 \

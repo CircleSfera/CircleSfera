@@ -31,7 +31,7 @@ done
 echo "Sites of other projects (not read): ${others}"
 
 # The production site is the one that names admin.circlesfera.com, as
-# apply-production-addresses.sh finds it.
+# apply-production-site.sh finds it.
 mapfile -t files < <(
   grep -RlF admin.circlesfera.com /etc/nginx/sites-enabled /etc/nginx/conf.d 2> /dev/null \
     | xargs -r -n1 readlink -f | sort -u
