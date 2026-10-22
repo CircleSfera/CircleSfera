@@ -37,7 +37,7 @@ export class GetRevenueAnalyticsQuery {
     let giftsCents = 0;
 
     for (const tx of transactions) {
-      const cents = tx.amount > 0 ? tx.amount : 0;
+      const cents = Math.max(tx.amount, 0);
       if (tx.type === 'DIRECT_TIP') tipsCents += cents;
       else if (
         tx.type === 'DIRECT_POST_UNLOCK' ||

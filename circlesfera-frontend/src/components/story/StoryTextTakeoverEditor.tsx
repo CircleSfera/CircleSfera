@@ -73,6 +73,7 @@ export default function StoryTextTakeoverEditor({
           contentEditable
           suppressContentEditableWarning
           onInput={(e) => {
+            // biome-ignore lint/performance/useDomNodeTextContent: the line breaks a person types are only in innerText
             const v = e.currentTarget.innerText.replace(/\n$/, '');
             onTextChange(v);
             if (textTakeover === 'edit' && selectedElementId) {

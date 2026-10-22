@@ -52,6 +52,7 @@ const tool = (name: string) =>
 /** The test DOM has no `innerText`, which the text editor reads on input. */
 function typeStoryText(text: string) {
   const editor = screen.getByRole('textbox', { name: 'Escribe algo…' });
+  // biome-ignore lint/performance/useDomNodeTextContent: the editor reads innerText, so the test sets it
   editor.innerText = text;
   fireEvent.input(editor);
 }
