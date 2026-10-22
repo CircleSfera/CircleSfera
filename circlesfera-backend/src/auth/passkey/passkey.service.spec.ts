@@ -869,7 +869,7 @@ describe('PasskeyService', () => {
     });
   });
 
-  describe('generateAuthenticationOptions', () => {
+  describe('generateAuthenticationOptions error handling', () => {
     it('throws NotFoundException when user is not found', async () => {
       mockPrismaService.user.findFirst.mockResolvedValue(null);
       await expect(

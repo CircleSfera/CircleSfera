@@ -195,25 +195,33 @@ function HistoryLine({
     from: name(event.fromValue),
     to: name(event.toValue),
   });
-  const what = {
-    STATE: () =>
-      t(
+  let what: string;
+  switch (event.kind) {
+    case 'STATE':
+      what = t(
         'admin.support.event.state',
         values((value) => t(`admin.support.event.state_name.${value}`)),
-      ),
-    TOPIC: () =>
-      t(
+      );
+      break;
+    case 'TOPIC':
+      what = t(
         'admin.support.event.topic',
         values((value) => t(`supportPage.category.${value}`)),
-      ),
-    PRIORITY: () =>
-      t(
+      );
+      break;
+    case 'PRIORITY':
+      what = t(
         'admin.support.event.priority',
         values((value) => t(`admin.support.priority.${value}`)),
-      ),
-    ASSIGNMENT: () => t('admin.support.event.assignment', values(agentName)),
-    HANDOVER: () => t('admin.support.event.handover'),
-  }[event.kind]();
+      );
+      break;
+    case 'ASSIGNMENT':
+      what = t('admin.support.event.assignment', values(agentName));
+      break;
+    case 'HANDOVER':
+      what = t('admin.support.event.handover');
+      break;
+  }
   const who =
     event.actorKind === 'REQUESTER'
       ? requester

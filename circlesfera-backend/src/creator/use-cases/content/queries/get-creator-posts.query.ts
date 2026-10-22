@@ -56,7 +56,7 @@ export class GetCreatorPostsQuery {
       const interactions =
         (post._count?.likes || 0) + (post._count?.comments || 0);
 
-      const avg = avgInteractions > 0 ? avgInteractions : 0;
+      const avg = Math.max(avgInteractions, 0);
       const performanceScore =
         avg > 0 ? Math.round((interactions / avg) * 100) : 100;
 
