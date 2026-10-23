@@ -59,6 +59,12 @@ RUN mkdir -p uploads && chown -R node:node uploads
 # Install only production dependencies
 RUN apk add --no-cache ffmpeg
 RUN npm ci --omit=dev
+# Nothing runs npm once the image is built (migrations call the Prisma CLI
+# directly), so npm, npx and corepack leave the image with their own
+# dependencies.
+RUN npm cache clean --force \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+     /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 # Copy the built application from the build stage
 COPY --chown=node:node --from=build /app/circlesfera-backend/dist ./dist
