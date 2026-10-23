@@ -1,0 +1,82 @@
+name: Image vulnerabilities
+
+# Every day, and on pull requests that change an image, scans the images
+# CircleSfera runs for known vulnerabilities (scripts/scan-container-images.mjs):
+# the backend image built from this checkout, and every image pinned in the
+# Dockerfiles and the Compose files. It runs after Image digests, so a fix a
+# maintainer has published shows up as that workflow's pull request and the
+# finding here goes away once it is merged.
+#
+# The run fails only on a CRITICAL finding with a published fix in an
+# application dependency of our own image. Everything else is a warning in the
+# summary: it waits for the maintainer of that image. The log names images and
+# advisories only.
+on:
+  schedule:
+    - cron: '30 5 * * *'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/Dockerfile*'
+      - '**/docker-compose*.yml'
+      - 'scripts/scan-container-images*.mjs'
+      - 'scripts/use-own-base-images.sh'
+      - '.github/workflows/image-vulnerabilities.yml'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: '--no-deprecation'
+
+permissions:
+  contents: read
+  # The build reads its base images from this repository's own copies, and
+  # makes a copy when a digest is new (scripts/use-own-base-images.sh).
+  packages: write
+
+concurrency:
+  group: image-vulnerabilities-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Scan container images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: Test what blocks and what warns
+        run: node --test scripts/scan-container-images.test.mjs
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build the backend image as production runs it
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$REGISTRY_TOKEN" | skopeo login ghcr.io --username "$REGISTRY_USER" --password-stdin
+          ./scripts/use-own-base-images.sh ghcr.io/circlesfera/circlesfera/mirror circlesfera-backend/Dockerfile
+          docker build -t circlesfera-backend:scan -f circlesfera-backend/Dockerfile .
+
+      - name: Keep the vulnerability database between runs
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/trivy-cache
+          key: trivy-db-${{ github.run_id }}
+          restore-keys: trivy-db-
+
+      - name: Scan
+        run: node scripts/scan-container-images.mjs --own circlesfera-backend:scan --summary "$GITHUB_STEP_SUMMARY"
