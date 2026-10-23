@@ -25,10 +25,11 @@ function storedToken(): string | null {
 /**
  * Takes this device off push for the person signed in: the server forgets
  * its token and the phone stops receiving. Called while the session is still
- * valid. Does nothing outside the native app.
+ * valid. Does nothing outside the iOS app.
  */
 export async function forgetNativePushToken(): Promise<void> {
-  if (!Capacitor.isNativePlatform()) return;
+  // Only the iOS app registers for push.
+  if (Capacitor.getPlatform() !== 'ios') return;
   const token = storedToken();
   try {
     if (token) {

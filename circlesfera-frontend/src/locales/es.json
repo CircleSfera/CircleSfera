@@ -452,6 +452,7 @@
       "native_alerts": "Alertas Nativas",
       "native_alerts_desc": "Recibe actualizaciones en tiempo real de likes, comentarios y mensajes incluso cuando no estás en la web.",
       "blocked": "Las notificaciones están bloqueadas en tu navegador.",
+      "android_unavailable": "Las notificaciones push no están disponibles en la app de Android. Tus notificaciones llegan a la página de Notificaciones y, las de tu cuenta, por email. Para recibir push en este móvil, usa CircleSfera en el navegador.",
       "browser_capability": "Capacidad del Navegador",
       "status": "Estado",
       "permission": {

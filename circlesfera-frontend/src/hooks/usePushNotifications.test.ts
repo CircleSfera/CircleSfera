@@ -4,13 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../services';
 import { usePushNotifications } from './usePushNotifications';
 
-// Whether the tests run as the app on a phone; the web by default.
-const platform = vi.hoisted(() => ({ native: false }));
+// Whether the tests run as the app on a phone, and which one; the web by
+// default.
+const platform = vi.hoisted(() => ({
+  native: false,
+  os: 'ios' as 'ios' | 'android',
+}));
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: () => platform.native,
-    getPlatform: () => (platform.native ? 'ios' : 'web'),
+    getPlatform: () => (platform.native ? platform.os : 'web'),
   },
 }));
 
@@ -178,6 +182,45 @@ describe('usePushNotifications (on a phone)', () => {
 
   afterEach(() => {
     platform.native = false;
+    platform.os = 'ios';
+  });
+
+  it("sends the iPhone's Apple token to the server once the phone gives it", async () => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'granted',
+    } as never);
+    vi.mocked(api.post).mockResolvedValue({} as never);
+    renderHook(() => usePushNotifications());
+
+    const calls = vi.mocked(PushNotifications.addListener).mock
+      .calls as unknown as [string, (token: { value: string }) => void][];
+    const registration = calls.find(([event]) => event === 'registration');
+    expect(registration).toBeDefined();
+    registration?.[1]({ value: 'a1b2c3' });
+
+    expect(api.post).toHaveBeenCalledWith('/push/subscribe-native', {
+      token: 'a1b2c3',
+      platform: 'ios',
+    });
+    expect(localStorage.getItem('cs_native_push_token')).toBe('a1b2c3');
+  });
+
+  it('offers no push in the Android app: it asks nothing and registers nothing', async () => {
+    platform.os = 'android';
+    const { result } = renderHook(() => usePushNotifications());
+
+    let subscribed: boolean | undefined;
+    await act(async () => {
+      subscribed = await result.current.requestPermission();
+    });
+
+    expect(subscribed).toBe(false);
+    expect(result.current.isSupported).toBe(false);
+    expect(result.current.isAndroidApp).toBe(true);
+    expect(PushNotifications.checkPermissions).not.toHaveBeenCalled();
+    expect(PushNotifications.requestPermissions).not.toHaveBeenCalled();
+    expect(PushNotifications.addListener).not.toHaveBeenCalled();
+    expect(PushNotifications.register).not.toHaveBeenCalled();
   });
 
   it.each([

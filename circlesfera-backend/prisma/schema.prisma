@@ -289,9 +289,9 @@ model PushSubscription {
   @@map("push_subscriptions")
 }
 
-// A phone or tablet of the person that receives push through the native
-// app: its Firebase Cloud Messaging token. A token Firebase reports as no
-// longer registered is deleted.
+// An iPhone or iPad of the person that receives push through the iOS app:
+// its Apple device token. A token Apple reports as no longer registered is
+// deleted. The Android app has no push.
 model NativePushToken {
   id         String   @id @default(uuid())
   userId     String

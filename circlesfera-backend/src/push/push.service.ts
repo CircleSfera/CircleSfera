@@ -2,9 +2,9 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import webpush from 'web-push';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ApnsSender } from './apns.sender.js';
 import type { SubscribePushDto } from './dto/subscribe.dto.js';
 import type { SubscribeNativeDto } from './dto/subscribe-native.dto.js';
-import { FcmSender } from './fcm.sender.js';
 import { PUSH_GROUP_COLUMN, type PushGroup } from './push-groups.js';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class PushService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ConfigService) private readonly configService: ConfigService,
-    @Inject(FcmSender) private readonly fcm: FcmSender,
+    @Inject(ApnsSender) private readonly apns: ApnsSender,
   ) {
     const publicKey = this.configService.get<string>('VAPID_PUBLIC_KEY');
     const privateKey = this.configService.get<string>('VAPID_PRIVATE_KEY');
@@ -54,7 +54,7 @@ export class PushService {
     });
   }
 
-  // A device of the native app: its token is the person's from now on, also
+  // A device of the iOS app: its token is the person's from now on, also
   // when the device was someone else's before (a shared phone).
   async subscribeNative(userId: string, dto: SubscribeNativeDto) {
     return this.prisma.nativePushToken.upsert({
@@ -136,15 +136,15 @@ export class PushService {
     return results;
   }
 
-  // The same notice to the person's phones and tablets with the native app.
-  // A failure here never stops the web push.
+  // The same notice to the person's iPhones and iPads with the iOS app (the
+  // Android app has no push). A failure here never stops the web push.
   private async sendNative(
     userId: string,
     payload: { title: string; body: string; data?: any },
   ) {
     try {
       const devices = await this.prisma.nativePushToken.findMany({
-        where: { userId },
+        where: { userId, platform: 'ios' },
         select: { token: true },
       });
       if (devices.length === 0) return;
@@ -152,7 +152,7 @@ export class PushService {
       for (const [key, value] of Object.entries(payload.data ?? {})) {
         if (value !== undefined && value !== null) data[key] = String(value);
       }
-      const gone = await this.fcm.send(
+      const gone = await this.apns.send(
         devices.map((d) => d.token),
         { title: payload.title, body: payload.body, data },
       );

@@ -35,6 +35,7 @@ describe('NotificationsSettings', () => {
     } as never);
     vi.mocked(usePushNotifications).mockReturnValue({
       isSupported: true,
+      isAndroidApp: false,
       hasServiceWorker: false,
       permission: 'granted',
       isSubscribed: false,
@@ -88,6 +89,33 @@ describe('NotificationsSettings', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
+  it('says in the Android app that push is not available there, and keeps the switch off', async () => {
+    vi.mocked(usePushNotifications).mockReturnValue({
+      isSupported: false,
+      isAndroidApp: true,
+      hasServiceWorker: true,
+      permission: 'default',
+      isSubscribed: false,
+      loading: false,
+      requestPermission,
+      unsubscribeUser,
+    });
+
+    const { i18n } = renderWithProviders(<NotificationsSettings />);
+
+    const toggle = await screen.findByRole('switch', {
+      name: i18n!.t('settings.notifications_tab.native_alerts'),
+    });
+    expect(toggle).toBeDisabled();
+    expect(
+      screen.getByText(
+        i18n!.t('settings.notifications_tab.android_unavailable'),
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(requestPermission).not.toHaveBeenCalled();
+  });
+
   it('turns native alerts on after a successful subscribe', async () => {
     requestPermission.mockResolvedValue(true);
 
@@ -105,6 +133,7 @@ describe('NotificationsSettings', () => {
 
     vi.mocked(usePushNotifications).mockReturnValue({
       isSupported: true,
+      isAndroidApp: false,
       hasServiceWorker: true,
       permission: 'granted',
       isSubscribed: true,

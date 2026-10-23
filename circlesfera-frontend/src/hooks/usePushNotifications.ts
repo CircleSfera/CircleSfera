@@ -34,6 +34,9 @@ export function usePushNotifications() {
   const [isLoading, setIsLoading] = useState(false);
 
   const isNative = Capacitor.isNativePlatform();
+  // Push reaches the iOS app through Apple. The Android app has no push: on
+  // Android it is the web app in the browser that receives it.
+  const isAndroidApp = isNative && Capacitor.getPlatform() === 'android';
 
   const checkSubscription = useCallback(async () => {
     try {
@@ -53,12 +56,13 @@ export function usePushNotifications() {
   }, [isNative]);
 
   useEffect(() => {
+    if (isAndroidApp) return;
     if (isNative) {
       setIsSupported(true);
       checkSubscription();
 
       // Setup native listeners
-      // The Firebase Cloud Messaging token of this device.
+      // The Apple device token of this iPhone or iPad.
       PushNotifications.addListener('registration', (token) => {
         rememberNativePushToken(token.value);
         api
@@ -78,9 +82,10 @@ export function usePushNotifications() {
       setPermission(Notification.permission);
       checkSubscription();
     }
-  }, [checkSubscription, isNative]);
+  }, [checkSubscription, isAndroidApp, isNative]);
 
   const subscribe = async () => {
+    if (isAndroidApp) return false;
     setIsLoading(true);
     try {
       if (isNative) {
@@ -156,6 +161,7 @@ export function usePushNotifications() {
 
   return {
     isSupported,
+    isAndroidApp,
     permission,
     isSubscribed,
     loading: isLoading,

@@ -123,29 +123,43 @@ describe('PushController', () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/push/subscribe-native')
       .set(BEARER)
-      .send({ token: 'fcm-token', platform: 'ios' })
+      .send({ token: 'a1b2c3d4', platform: 'ios' })
       .expect(201);
 
     expect(res.body).toEqual({ success: true });
     expect(mockService.subscribeNative).toHaveBeenCalledWith(TEST_USER.userId, {
-      token: 'fcm-token',
+      token: 'a1b2c3d4',
       platform: 'ios',
     });
   });
 
   it.each([
-    ['no session', {}, { token: 't', platform: 'ios' }, 401],
+    ['no session', {}, { token: 'a1b2', platform: 'ios' }, 401],
     [
       'a platform it does not know',
       BEARER,
-      { token: 't', platform: 'web' },
+      { token: 'a1b2', platform: 'web' },
       400,
     ],
-    ['no token', BEARER, { platform: 'android' }, 400],
+    ['no token', BEARER, { platform: 'ios' }, 400],
+    // The Android app has no push.
+    [
+      'the Android platform',
+      BEARER,
+      { token: 'a1b2', platform: 'android' },
+      400,
+    ],
     [
       'a token too long',
       BEARER,
-      { token: 'x'.repeat(4097), platform: 'ios' },
+      { token: 'a'.repeat(201), platform: 'ios' },
+      400,
+    ],
+    // The token becomes part of the address Apple is called on.
+    [
+      'a token that is not hexadecimal',
+      BEARER,
+      { token: '../x', platform: 'ios' },
       400,
     ],
   ])('refuses a native token with %s', async (_what, headers, body, code) => {
@@ -161,12 +175,12 @@ describe('PushController', () => {
   it('takes off a device of the native app of the person signed in only', async () => {
     await request(app.getHttpServer())
       .delete('/api/v1/push/unsubscribe-native')
-      .query({ token: 'fcm-token' })
+      .query({ token: 'a1b2c3d4' })
       .set(BEARER)
       .expect(200);
     expect(mockService.unsubscribeNative).toHaveBeenCalledWith(
       TEST_USER.userId,
-      'fcm-token',
+      'a1b2c3d4',
     );
 
     mockService.unsubscribeNative.mockClear();
