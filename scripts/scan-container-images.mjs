@@ -20,12 +20,14 @@
  * Writes a Markdown report to the --summary file (appends), and prints only
  * image names and advisories.
  *
+ * The pinned images are read from the files as committed (HEAD).
+ *
  * Usage: node scripts/scan-container-images.mjs [--own <image>]... [--summary <file>]
  * Needs docker. Run from the repository root.
  */
 
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -175,7 +177,11 @@ function main(argv) {
   const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' })
     .split('\n')
     .filter(Boolean);
-  const pinned = pinnedImages(files, (file) => readFileSync(file, 'utf8'));
+  // The files as committed: a build step may have pointed the working copy
+  // of a Dockerfile at this repository's own copies of the base images.
+  const pinned = pinnedImages(files, (file) =>
+    execFileSync('git', ['show', `HEAD:${file}`], { encoding: 'utf8' }),
+  );
   const images = [
     ...own.map((image) => ({ image, own: true })),
     ...pinned.map((image) => ({ image, own: false })),

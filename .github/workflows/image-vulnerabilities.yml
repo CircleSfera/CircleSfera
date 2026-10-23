@@ -71,12 +71,5 @@ jobs:
           ./scripts/use-own-base-images.sh ghcr.io/circlesfera/circlesfera/mirror circlesfera-backend/Dockerfile
           docker build -t circlesfera-backend:scan -f circlesfera-backend/Dockerfile .
 
-      - name: Keep the vulnerability database between runs
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/trivy-cache
-          key: trivy-db-${{ github.run_id }}
-          restore-keys: trivy-db-
-
       - name: Scan
         run: node scripts/scan-container-images.mjs --own circlesfera-backend:scan --summary "$GITHUB_STEP_SUMMARY"
