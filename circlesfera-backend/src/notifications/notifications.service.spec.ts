@@ -390,7 +390,7 @@ describe('NotificationsService', () => {
       });
       recipientPush.on = true;
       mockPushService.sendNotification.mockRejectedValueOnce(
-        new Error('FCM unreachable'),
+        new Error('push provider unreachable'),
       );
 
       const res = await service.create({

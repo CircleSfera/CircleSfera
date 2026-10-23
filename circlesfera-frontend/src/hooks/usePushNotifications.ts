@@ -2,9 +2,12 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../services';
+import { useAuthStore } from '../stores/authStore';
 import {
   forgetNativePushToken,
+  nativePushOff,
   rememberNativePushToken,
+  setNativePushOff,
 } from '../utils/nativePush';
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -37,14 +40,15 @@ export function usePushNotifications() {
   // Push reaches the iOS app through Apple. The Android app has no push: on
   // Android it is the web app in the browser that receives it.
   const isAndroidApp = isNative && Capacitor.getPlatform() === 'android';
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const checkSubscription = useCallback(async () => {
     try {
       if (isNative) {
-        // We assume subscribed if permission is granted in native
+        // On while the phone allows it, unless the person turned it off here.
         const status = await PushNotifications.checkPermissions();
         setPermission(nativePermission(status.receive));
-        setIsSubscribed(status.receive === 'granted');
+        setIsSubscribed(status.receive === 'granted' && !nativePushOff());
       } else {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
@@ -84,6 +88,21 @@ export function usePushNotifications() {
     }
   }, [checkSubscription, isAndroidApp, isNative]);
 
+  // Apple asks that the app register on every launch: the token can change,
+  // and signing out took this phone off. Once a person is signed in on an
+  // iPhone that allows push, the phone registers again, unless push was
+  // turned off here.
+  useEffect(() => {
+    if (!isNative || isAndroidApp || !isAuthenticated || nativePushOff()) {
+      return;
+    }
+    PushNotifications.checkPermissions()
+      .then((status) =>
+        status.receive === 'granted' ? PushNotifications.register() : undefined,
+      )
+      .catch((error) => console.error('Error registering for push', error));
+  }, [isAndroidApp, isAuthenticated, isNative]);
+
   const subscribe = async () => {
     if (isAndroidApp) return false;
     setIsLoading(true);
@@ -98,6 +117,7 @@ export function usePushNotifications() {
           throw new Error('User denied native permissions');
         }
         setPermission('granted');
+        setNativePushOff(false);
         await PushNotifications.register(); // This will trigger the 'registration' listener
         return true;
       } else {
@@ -134,6 +154,7 @@ export function usePushNotifications() {
     setIsLoading(true);
     try {
       if (isNative) {
+        setNativePushOff(true);
         await forgetNativePushToken();
         setIsSubscribed(false);
         return true;

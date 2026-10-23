@@ -12,6 +12,7 @@ function fakeSession() {
     closed: false,
     destroyed: false,
     close: vi.fn(),
+    destroy: vi.fn(),
     request: vi.fn((headers: Record<string, string>) => {
       const stream = Object.assign(new EventEmitter(), {
         setEncoding: vi.fn(),
@@ -167,10 +168,21 @@ describe('ApnsSender', () => {
     const sender = new ApnsSender(config(APPLE));
     const now = vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
     await sender.send(['ab12'], { title: 'a', body: 'b' });
-    now.mockReturnValue(1_005_000);
+    // Five minutes on: Apple takes no new token yet, so it is kept.
+    now.mockReturnValue(1_000_000 + 5 * 60_000);
+    await sender.send(['ab12'], { title: 'a', body: 'b' });
+    expect(requests[1].headers.authorization).toBe(
+      requests[0].headers.authorization,
+    );
+    // Twenty minutes on, Apple refuses it again: the next send has a new one.
+    now.mockReturnValue(1_000_000 + 21 * 60_000);
+    await sender.send(['ab12'], { title: 'a', body: 'b' });
+    expect(requests[2].headers.authorization).toBe(
+      requests[0].headers.authorization,
+    );
     await sender.send(['ab12'], { title: 'a', body: 'b' });
     now.mockRestore();
-    expect(requests[1].headers.authorization).not.toBe(
+    expect(requests[3].headers.authorization).not.toBe(
       requests[0].headers.authorization,
     );
   });
@@ -219,6 +231,11 @@ describe('ApnsSender', () => {
     expect(ms).toBe(10_000);
     cancel();
     expect(stream.close).toHaveBeenCalledWith(8);
+    // The connection that did not answer is dropped; the next send opens
+    // another.
+    expect(connect.mock.results[0].value.destroy).toHaveBeenCalled();
+    await sender.send(['ab12'], { title: 'a', body: 'b' });
+    expect(connect).toHaveBeenCalledTimes(2);
   });
 
   it('gives up on a request that closes with no answer, and keeps the device', async () => {

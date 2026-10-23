@@ -14,6 +14,29 @@ export function rememberNativePushToken(token: string) {
   }
 }
 
+// Set when the person turns push off with the switch, so that the phone is
+// not registered again on the next launch while the system still allows it.
+// Signing out does not set it: the next person to sign in gets push if the
+// phone allows it.
+const OFF = 'cs_native_push_off';
+
+export function nativePushOff(): boolean {
+  try {
+    return localStorage.getItem(OFF) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setNativePushOff(off: boolean) {
+  try {
+    if (off) localStorage.setItem(OFF, '1');
+    else localStorage.removeItem(OFF);
+  } catch {
+    // Storage may be unavailable; the phone then registers on each launch.
+  }
+}
+
 function storedToken(): string | null {
   try {
     return localStorage.getItem(KEY);

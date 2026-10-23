@@ -2,6 +2,7 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../services';
+import { useAuthStore } from '../stores/authStore';
 import { usePushNotifications } from './usePushNotifications';
 
 // Whether the tests run as the app on a phone, and which one; the web by
@@ -183,6 +184,8 @@ describe('usePushNotifications (on a phone)', () => {
   afterEach(() => {
     platform.native = false;
     platform.os = 'ios';
+    useAuthStore.setState({ isAuthenticated: false });
+    localStorage.clear();
   });
 
   it("sends the iPhone's Apple token to the server once the phone gives it", async () => {
@@ -203,6 +206,50 @@ describe('usePushNotifications (on a phone)', () => {
       platform: 'ios',
     });
     expect(localStorage.getItem('cs_native_push_token')).toBe('a1b2c3');
+  });
+
+  it('registers the iPhone again once a person is signed in and the phone allows push', async () => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'granted',
+    } as never);
+    useAuthStore.setState({ isAuthenticated: false });
+    const { rerender } = renderHook(() => usePushNotifications());
+    await waitFor(() =>
+      expect(PushNotifications.checkPermissions).toHaveBeenCalled(),
+    );
+    expect(PushNotifications.register).not.toHaveBeenCalled();
+
+    act(() => useAuthStore.setState({ isAuthenticated: true }));
+    rerender();
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled());
+  });
+
+  it('does not register again after the person turned push off here, and shows it off', async () => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'granted',
+    } as never);
+    useAuthStore.setState({ isAuthenticated: true });
+    const first = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled());
+
+    await act(async () => {
+      await first.result.current.unsubscribeUser();
+    });
+    first.unmount();
+    vi.mocked(PushNotifications.register).mockClear();
+
+    const { result } = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(result.current.permission).toBe('granted'));
+    expect(result.current.isSubscribed).toBe(false);
+    expect(PushNotifications.register).not.toHaveBeenCalled();
+
+    // Turning it on again here clears that.
+    await act(async () => {
+      await result.current.requestPermission();
+    });
+    expect(PushNotifications.register).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('cs_native_push_off')).toBeNull();
   });
 
   it('offers no push in the Android app: it asks nothing and registers nothing', async () => {

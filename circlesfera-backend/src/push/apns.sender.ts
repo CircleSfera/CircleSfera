@@ -20,6 +20,7 @@ const TOPIC = 'com.circlesfera.app';
 // Apple refuses a signing token older than an hour and asks that a new one
 // be made at most every 20 minutes.
 const TOKEN_LIFETIME_MS = 50 * 60 * 1000;
+const TOKEN_MIN_AGE_MS = 20 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 10_000;
 // A device token is hexadecimal; anything else never reaches the URL.
 const DEVICE_TOKEN = /^[0-9a-f]+$/i;
@@ -131,7 +132,8 @@ export class ApnsSender implements OnModuleDestroy {
     payload: string,
   ): Promise<{ status: number; reason?: string }> {
     return new Promise((resolve, reject) => {
-      const request = this.connection(apple).request({
+      const session = this.connection(apple);
+      const request = session.request({
         ':method': 'POST',
         ':path': `/3/device/${token}`,
         authorization: `bearer ${this.providerToken(apple, Date.now())}`,
@@ -143,9 +145,13 @@ export class ApnsSender implements OnModuleDestroy {
       let status = 0;
       let body = '';
       request.setEncoding('utf8');
-      request.setTimeout(REQUEST_TIMEOUT_MS, () =>
-        request.close(http2.constants.NGHTTP2_CANCEL),
-      );
+      // No answer in time: the connection may be dead without knowing it (a
+      // network that drops idle connections), so the next send opens another.
+      request.setTimeout(REQUEST_TIMEOUT_MS, () => {
+        request.close(http2.constants.NGHTTP2_CANCEL);
+        if (this.session === session) this.session = null;
+        session.destroy();
+      });
       request.on('response', (headers) => {
         status = Number(headers[':status']);
       });
@@ -192,7 +198,15 @@ export class ApnsSender implements OnModuleDestroy {
             gone.push(token);
             return;
           }
-          if (answer.reason === 'ExpiredProviderToken') this.jwt = null;
+          // Apple refuses new signing tokens made more often than every 20
+          // minutes, so an expired one is replaced only once it is that old.
+          if (
+            answer.reason === 'ExpiredProviderToken' &&
+            this.jwt &&
+            Date.now() - this.jwt.madeAt >= TOKEN_MIN_AGE_MS
+          ) {
+            this.jwt = null;
+          }
           this.logger.warn(
             `iOS push refused: ${answer.status} ${answer.reason ?? 'no reason'}`,
           );
