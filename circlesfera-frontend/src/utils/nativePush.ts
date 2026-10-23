@@ -51,8 +51,16 @@ function storedToken(): string | null {
  * valid. Does nothing outside the iOS app.
  */
 export async function forgetNativePushToken(): Promise<void> {
-  // Only the iOS app registers for push.
-  if (Capacitor.getPlatform() !== 'ios') return;
+  // Only the iOS app registers for push. Elsewhere only a token left on the
+  // device by an earlier version is cleared, with no call to the server.
+  if (Capacitor.getPlatform() !== 'ios') {
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      // Nothing to remove.
+    }
+    return;
+  }
   const token = storedToken();
   try {
     if (token) {

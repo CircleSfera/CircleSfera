@@ -52,6 +52,8 @@ describe('native push token', () => {
       platform.mockReturnValue(other);
       rememberNativePushToken('a1b2');
       await forgetNativePushToken();
+      // A token an earlier version left on the device goes.
+      expect(localStorage.getItem('cs_native_push_token')).toBeNull();
     }
     expect(del).not.toHaveBeenCalled();
     expect(unregister).toHaveBeenCalledTimes(1);
