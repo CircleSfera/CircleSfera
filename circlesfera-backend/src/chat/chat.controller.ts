@@ -11,6 +11,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import type { Conversation, Message } from '@prisma/client';
 import type { Request } from 'express';
 import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
@@ -84,7 +85,9 @@ export class ChatController {
     private readonly declineMessageRequestUseCase: DeclineMessageRequestUseCase,
   ) {}
 
+  @ApiQuery({ name: 'folder', required: false })
   @Get('conversations')
+  @ApiResponse({ status: 200 })
   async getConversations(
     @Req() req: AuthRequest,
     @Query('folder') folder?: 'inbox' | 'requests',
@@ -98,6 +101,7 @@ export class ChatController {
   // The list a page at a time, so every conversation can be reached. Before
   // conversations/:id, which would otherwise take "page" as an id.
   @Get('conversations/page')
+  @ApiResponse({ status: 200 })
   async getConversationPage(
     @Req() req: AuthRequest,
     @Query() query: ConversationPageDto,
@@ -111,12 +115,14 @@ export class ChatController {
   }
 
   @Get('conversations/unread-count')
+  @ApiResponse({ status: 200 })
   async getUnreadCount(@Req() req: AuthRequest): Promise<{ count: number }> {
     const count = await this.getUnreadCountQuery.execute(req.user.profileId);
     return { count };
   }
 
   @Get('conversations/:id')
+  @ApiResponse({ status: 200 })
   async getConversation(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -125,6 +131,7 @@ export class ChatController {
   }
 
   @Post('conversations/:id/accept')
+  @ApiResponse({ status: 201 })
   async acceptRequest(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -133,6 +140,7 @@ export class ChatController {
   }
 
   @Post('conversations/:id/decline')
+  @ApiResponse({ status: 201 })
   async declineRequest(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -141,6 +149,7 @@ export class ChatController {
   }
 
   @Get('conversations/:id/messages')
+  @ApiResponse({ status: 200 })
   async getMessages(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -160,6 +169,7 @@ export class ChatController {
 
   @Post('conversations')
   @UseGuards(EmailVerifiedGuard)
+  @ApiResponse({ status: 201, type: Object })
   async createGroup(@Req() req: AuthRequest, @Body() dto: CreateGroupDto) {
     return this.createGroupUseCase.execute(
       req.user.profileId,
@@ -170,6 +180,7 @@ export class ChatController {
 
   @Post('messages')
   @UseGuards(EmailVerifiedGuard)
+  @ApiResponse({ status: 201 })
   async sendMessage(
     @Req() req: AuthRequest,
     @Body() dto: SendMessageDto,
@@ -194,12 +205,15 @@ export class ChatController {
   }
 
   @Put('conversations/:id/read')
+  @ApiResponse({ status: 200 })
   async markRead(@Req() req: AuthRequest, @Param('id') id: string) {
     await this.markAsReadUseCase.execute(id, req.user.profileId);
     return { success: true };
   }
 
+  @ApiQuery({ name: 'mode', required: false })
   @Delete('conversations/:id')
+  @ApiResponse({ status: 200 })
   async deleteConversation(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -210,6 +224,7 @@ export class ChatController {
   }
 
   @Put('conversations/:id/group')
+  @ApiResponse({ status: 200, type: Object })
   async updateGroup(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -224,6 +239,7 @@ export class ChatController {
   }
 
   @Delete('conversations/:id/participants/:profileId')
+  @ApiResponse({ status: 200, type: Object })
   async removeParticipant(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -237,6 +253,7 @@ export class ChatController {
   }
 
   @Delete('conversations/:id/leave')
+  @ApiResponse({ status: 200 })
   async leaveGroup(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.leaveGroupUseCase.execute(req.user.profileId, id);
   }
@@ -244,6 +261,7 @@ export class ChatController {
   @Put('messages/:id')
   @UseGuards(OwnershipGuard)
   @RequireOwnership({ model: 'Message', userIdField: 'senderId' })
+  @ApiResponse({ status: 200, type: Object })
   async editMessage(@Param('id') id: string, @Body() body: EditMessageDto) {
     return this.editMessageUseCase.execute(id, body.content);
   }
@@ -251,6 +269,7 @@ export class ChatController {
   @Delete('messages/:id')
   @UseGuards(OwnershipGuard)
   @RequireOwnership({ model: 'Message', userIdField: 'senderId' })
+  @ApiResponse({ status: 200 })
   async deleteMessage(@Param('id') id: string) {
     return this.deleteMessageUseCase.execute(id);
   }

@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -28,8 +29,10 @@ import { LinkDomainPageDto } from './dto/staff-list-page.dto.js';
 export class AdminLinkDomainsController {
   constructor(private readonly domains: AdminLinkDomainsService) {}
 
+  @ApiQuery({ name: 'search', required: false })
   @RequireStaffPermissions('content')
   @Get()
+  @ApiResponse({ status: 200, type: Object })
   list(@Query('search') search?: string) {
     return this.domains.list(search);
   }
@@ -37,12 +40,14 @@ export class AdminLinkDomainsController {
   // The list a page at a time, in alphabetical order.
   @RequireStaffPermissions('content')
   @Get('page')
+  @ApiResponse({ status: 200 })
   page(@Query() q: LinkDomainPageDto) {
     return this.domains.listPage(q.search, q.cursor, q.limit);
   }
 
   @RequireStaffPermissions('content')
   @Post()
+  @ApiResponse({ status: 201 })
   block(
     @Body() dto: BlockLinkDomainDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -52,6 +57,7 @@ export class AdminLinkDomainsController {
 
   @RequireStaffPermissions('content')
   @Delete(':id')
+  @ApiResponse({ status: 200 })
   unblock(@Param('id') id: string, @CurrentAdmin() admin: CurrentAdminData) {
     return this.domains.unblock(admin.adminId, id);
   }

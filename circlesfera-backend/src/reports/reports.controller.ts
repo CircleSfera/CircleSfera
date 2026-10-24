@@ -11,6 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import type { Report, ReportStatus } from '@prisma/client';
 import {
   CurrentUser,
@@ -37,6 +38,7 @@ export class ReportsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
+  @ApiResponse({ status: HttpStatus.CREATED })
   async create(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreateReportDto,
@@ -47,6 +49,7 @@ export class ReportsController {
   // List reports filed by the current user.
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async findMyReports(
     @CurrentUser() user: CurrentUserData,
     @Query() pagination: PaginationDto,
@@ -58,6 +61,7 @@ export class ReportsController {
   @Get()
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('reports')
+  @ApiResponse({ status: 200, type: Object })
   async findAll(@Query() pagination: PaginationDto): Promise<any> {
     return this.reportsService.findAll(pagination);
   }
@@ -66,6 +70,7 @@ export class ReportsController {
   @Patch(':id')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('reports')
+  @ApiResponse({ status: 200 })
   async update(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,

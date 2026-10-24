@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   CurrentUser,
@@ -15,6 +16,7 @@ export class LikesController {
 
   // Toggle like/unlike on a post.
   @Post('toggle')
+  @ApiResponse({ status: 201 })
   async toggle(
     @Param('postId') postId: string,
     @CurrentUser() user: CurrentUserData,
@@ -25,6 +27,7 @@ export class LikesController {
   // Check if the current user has liked a post.
   @SkipThrottle()
   @Get('check')
+  @ApiResponse({ status: 200 })
   async check(
     @Param('postId') postId: string,
     @CurrentUser() user: CurrentUserData,
@@ -34,6 +37,7 @@ export class LikesController {
 
   // Get all users who liked a post.
   @Get()
+  @ApiResponse({ status: 200, type: [Object] })
   async getLikes(
     @Param('postId') postId: string,
     @CurrentUser() user: CurrentUserData,

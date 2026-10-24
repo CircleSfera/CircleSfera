@@ -7,6 +7,7 @@ import {
   Logger,
   Post,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CspReportStore } from './csp-report.store.js';
 import { parseCspReports } from './csp-report.util.js';
@@ -27,6 +28,7 @@ export class CspReportController {
     short: { limit: 10, ttl: 1000 },
     medium: { limit: 60, ttl: 60000 },
   })
+  @ApiResponse({ status: HttpStatus.NO_CONTENT })
   async receive(@Body() body: unknown): Promise<void> {
     const violations = parseCspReports(body);
     for (const v of violations) {

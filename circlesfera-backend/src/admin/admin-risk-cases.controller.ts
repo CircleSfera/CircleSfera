@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import type { RiskCaseStatus } from '@prisma/client';
 import {
   CurrentAdmin,
@@ -32,8 +33,12 @@ export class AdminRiskCasesController {
     private readonly riskCases: AdminRiskCasesService,
   ) {}
 
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
   @RequireStaffPermissions('users.read')
   @Get()
+  @ApiResponse({ status: 200 })
   list(
     @Query('status') status?: string,
     @Query('page') page?: string,
@@ -51,12 +56,14 @@ export class AdminRiskCasesController {
 
   @RequireStaffPermissions('users.read')
   @Get('stats')
+  @ApiResponse({ status: 200 })
   stats() {
     return this.riskCases.stats();
   }
 
   @RequireStaffPermissions('users.ban')
   @Post(':id/resolve')
+  @ApiResponse({ status: 201, type: Object })
   resolve(
     @Param('id') id: string,
     @Body() dto: ResolveRiskCaseDto,

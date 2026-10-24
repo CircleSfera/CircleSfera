@@ -12,6 +12,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -36,6 +37,7 @@ export class AdminOpsController {
 
   @RequireStaffPermissions('moderation')
   @Get('firewall')
+  @ApiResponse({ status: 200 })
   async getFirewallSignatures(@Query() query: AdminQueryDto) {
     return this.adminOpsService.getFirewallSignatures(
       query.page ?? 1,
@@ -45,6 +47,7 @@ export class AdminOpsController {
 
   @RequireStaffPermissions('moderation')
   @Post('firewall')
+  @ApiResponse({ status: 201 })
   async addFirewallSignature(
     @Body() body: AddFirewallSignatureDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -59,6 +62,7 @@ export class AdminOpsController {
   @RequireStaffPermissions('moderation')
   @RequireAdminStepUp()
   @Delete('firewall/:id')
+  @ApiResponse({ status: 200 })
   async deleteFirewallSignature(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -68,6 +72,7 @@ export class AdminOpsController {
 
   @RequireStaffPermissions('experiments')
   @Get('experiments/users')
+  @ApiResponse({ status: 200 })
   async getUserExperiments(@Query() query: AdminQueryDto) {
     return this.adminOpsService.getUserExperiments(
       query.page ?? 1,
@@ -78,6 +83,7 @@ export class AdminOpsController {
 
   @RequireStaffPermissions('experiments')
   @Post('experiments/users')
+  @ApiResponse({ status: 201, type: Object })
   async assignUserExperiment(
     @Body() body: { userId: string; experimentKey: string; variant: string },
     @CurrentAdmin() admin: CurrentAdminData,
@@ -92,6 +98,7 @@ export class AdminOpsController {
 
   @RequireStaffPermissions('experiments')
   @Delete('experiments/users/:id')
+  @ApiResponse({ status: 200 })
   async removeUserExperiment(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -101,6 +108,7 @@ export class AdminOpsController {
 
   @Get('feature-flags')
   @RequireStaffPermissions('experiments')
+  @ApiResponse({ status: 200 })
   async listFeatureFlags() {
     return this.adminOpsService.listFeatureFlags();
   }
@@ -108,6 +116,7 @@ export class AdminOpsController {
   @Put('feature-flags/:key')
   @RequireStaffPermissions('experiments')
   @RequireAdminStepUp()
+  @ApiResponse({ status: 200 })
   async upsertFeatureFlag(
     @Param('key') key: string,
     @Body()
@@ -129,6 +138,7 @@ export class AdminOpsController {
   @RequireStaffPermissions('experiments')
   @RequireAdminStepUp()
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   async deleteFeatureFlag(
     @Param('key') key: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -138,6 +148,7 @@ export class AdminOpsController {
 
   @Get('webhooks')
   @RequireStaffPermissions('payments')
+  @ApiResponse({ status: 200 })
   async getWebhookEvents(@Query() query: AdminQueryDto) {
     return this.adminOpsService.getWebhookEvents(
       query.page ?? 1,
@@ -148,12 +159,14 @@ export class AdminOpsController {
 
   @Get('webhooks/:id')
   @RequireStaffPermissions('payments')
+  @ApiResponse({ status: 200 })
   async getWebhookEvent(@Param('id') id: string) {
     return this.adminOpsService.getWebhookEvent(id);
   }
 
   @Post('webhooks/:id/replay')
   @RequireStaffPermissions('payments')
+  @ApiResponse({ status: 201, type: Object })
   async replayWebhookEvent(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,

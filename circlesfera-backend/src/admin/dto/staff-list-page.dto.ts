@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsInt,
@@ -14,11 +15,18 @@ export const STAFF_LIST_PAGE_MAX = 50;
 
 /** Where a page of a staff list starts, and how long it is. */
 export class StaffListPageDto {
+  @ApiProperty({ required: false, type: () => String, maxLength: 400 })
   @IsOptional()
   @IsString()
   @MaxLength(400)
   cursor?: string;
 
+  @ApiProperty({
+    required: false,
+    type: () => Number,
+    minimum: 1,
+    maximum: STAFF_LIST_PAGE_MAX,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -29,6 +37,7 @@ export class StaffListPageDto {
 
 /** A page of the blocked link domains, optionally only those matching. */
 export class LinkDomainPageDto extends StaffListPageDto {
+  @ApiProperty({ required: false, type: () => String, maxLength: 253 })
   @IsOptional()
   @IsString()
   @MaxLength(253)

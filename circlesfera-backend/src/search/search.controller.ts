@@ -6,6 +6,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import type { SearchHistory } from '@prisma/client';
 import {
   CurrentUser,
@@ -23,9 +24,11 @@ export class SearchController {
   ) {}
 
   // Search for users and hashtags by text query.
+  @ApiQuery({ name: 'verified', required: false })
   @Get()
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: Object })
   async search(
     @Query('q') query: string,
     @CurrentUser() user: CurrentUserData,
@@ -40,9 +43,11 @@ export class SearchController {
   }
 
   // Get trending posts based on interaction velocity.
+  @ApiQuery({ name: 'limit', required: false })
   @Get('trending')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   async getTrending(
     @CurrentUser() user: CurrentUserData,
     @Query('limit') limit?: number,
@@ -57,6 +62,7 @@ export class SearchController {
   @Get('posts')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   async searchPosts(
     @CurrentUser() user: CurrentUserData,
     @Query('q') query: string,
@@ -68,6 +74,7 @@ export class SearchController {
   @Get('ai')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   async searchSemantic(
     @CurrentUser() user: CurrentUserData,
     @Query('q') query: string,
@@ -79,6 +86,7 @@ export class SearchController {
   @Get('ai/profiles')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   async searchSemanticProfiles(
     @Query('q') query: string,
     @CurrentUser() user: CurrentUserData,
@@ -87,9 +95,11 @@ export class SearchController {
   }
 
   // Search for users by username or full name with Social Discovery ranking.
+  @ApiQuery({ name: 'verified', required: false })
   @Get('users')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   async searchUsers(
     @Query('q') query: string,
     @CurrentUser() user: CurrentUserData,
@@ -105,6 +115,7 @@ export class SearchController {
   // Get the user's recent search history.
   @Get('history')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getHistory(
     @CurrentUser() user: CurrentUserData,
   ): Promise<SearchHistory[]> {
@@ -114,6 +125,7 @@ export class SearchController {
   // Clear the user's search history.
   @Delete('history')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: Object })
   async clearHistory(@CurrentUser() user: CurrentUserData): Promise<any> {
     return await this.searchService.clearHistory(user.profileId);
   }

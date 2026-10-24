@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -16,16 +16,19 @@ export class PlacesController {
   constructor(private readonly placesService: PlacesService) {}
 
   @Get('map')
+  @ApiResponse({ status: 200 })
   getMap(@Query() bbox: MapBboxDto, @CurrentUser() user: CurrentUserData) {
     return this.placesService.getMapPins(bbox, user.profileId);
   }
 
   @Get(':id')
+  @ApiResponse({ status: 200 })
   findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserData) {
     return this.placesService.findOne(id, user.profileId);
   }
 
   @Get(':id/posts')
+  @ApiResponse({ status: 200 })
   getPosts(
     @Param('id') id: string,
     @Query() pagination: PaginationDto,

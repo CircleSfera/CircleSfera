@@ -14,6 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import {
@@ -29,7 +30,6 @@ import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { DataExportService } from './data-export.service.js';
-
 import { UpdateLocaleDto } from './dto/update-locale.dto.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 import { UsersService } from './users.service.js';
@@ -47,8 +47,10 @@ export class UsersController {
   ) {}
 
   // Get suggested users to follow based on popularity.
+  @ApiQuery({ name: 'limit', required: false })
   @Get('suggestions')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   async getSuggestions(
     @CurrentUser() user: CurrentUserData,
     @Query('limit') limit?: string,
@@ -62,6 +64,7 @@ export class UsersController {
   @Patch(':id/ban')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('users.ban')
+  @ApiResponse({ status: 200 })
   async banUser(@Param('id') id: string) {
     return this.usersService.banUser(id);
   }
@@ -70,6 +73,7 @@ export class UsersController {
   @Patch(':id/unban')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('users.ban')
+  @ApiResponse({ status: 200 })
   async unbanUser(@Param('id') id: string) {
     return this.usersService.unbanUser(id);
   }
@@ -78,6 +82,7 @@ export class UsersController {
   @Get('gdpr/export')
   @UseGuards(JwtAuthGuard)
   @Throttle({ short: { limit: 2, ttl: 3600000 } })
+  @ApiResponse({ status: 200 })
   async requestDataExport(@CurrentUser() user: CurrentUserData) {
     return this.dataExportService.requestDataExport(user.userId);
   }
@@ -85,13 +90,16 @@ export class UsersController {
   // GDPR: Get Data Export History.
   @Get('gdpr/exports')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getExportHistory(@CurrentUser() user: CurrentUserData) {
     return this.dataExportService.getExportHistory(user.userId);
   }
 
   // GDPR: Download Data Export archive (.zip)
+  @ApiQuery({ name: 'token', required: false })
   @Get('gdpr/exports/:id/download')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async downloadDataExport(
     @Param('id') id: string,
     @Query('token') token: string | undefined,
@@ -105,6 +113,7 @@ export class UsersController {
   // 30-day flow with full cleanup, never an immediate hard delete.
   @Delete('gdpr/account')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async deleteAccount(@CurrentUser() user: CurrentUserData) {
     return this.deleteMe(user);
   }
@@ -112,6 +121,7 @@ export class UsersController {
   // DELETE /users/me: Scheduled account deletion (GDPR, 30-day grace).
   @Delete('me')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async deleteMe(@CurrentUser() user: CurrentUserData) {
     const scheduledDeletionAt = await this.usersService.scheduleDeletion(
       user.userId,
@@ -126,6 +136,7 @@ export class UsersController {
   // POST /users/me/restore: Cancel scheduled deletion within the grace window.
   @Post('me/restore')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async restoreMe(@CurrentUser() user: CurrentUserData) {
     return this.usersService.cancelScheduledDeletion(user.userId);
   }
@@ -133,6 +144,7 @@ export class UsersController {
   // Get user settings.
   @Get('me/settings')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getSettings(@CurrentUser() user: CurrentUserData) {
     return this.usersService.getSettings(user.userId, user.profileId);
   }
@@ -140,6 +152,7 @@ export class UsersController {
   // Update user settings.
   @Put('me/settings')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @ApiResponse({ status: 200 })
   async updateSettings(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: UpdateSettingsDto,
@@ -151,6 +164,7 @@ export class UsersController {
   // verified-email gate: the verification email itself must use it.
   @Put('me/locale')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async updateLocale(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: UpdateLocaleDto,
@@ -162,6 +176,7 @@ export class UsersController {
 
   @Post('identity-session')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async createIdentitySession(
     @CurrentUser() user: CurrentUserData,
     @Body() body: { returnUrl?: string },
@@ -177,6 +192,7 @@ export class UsersController {
 
   @Post('identity-session/sync')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async syncIdentitySession(
     @CurrentUser() user: CurrentUserData,
   ): Promise<{ status: string }> {

@@ -8,6 +8,7 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { requestAbuseMeta } from '../common/abuse/device-signal.service.js';
@@ -32,6 +33,7 @@ export class IllegalNoticesController {
     short: { limit: 2, ttl: 1000 },
     medium: { limit: 10, ttl: 3_600_000 },
   })
+  @ApiResponse({ status: HttpStatus.CREATED })
   async create(@Body() dto: CreateIllegalNoticeDto, @Req() req: Request) {
     const meta = requestAbuseMeta(
       req as unknown as Parameters<typeof requestAbuseMeta>[0],

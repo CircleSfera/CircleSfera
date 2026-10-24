@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -40,6 +41,7 @@ export class HelpdeskAgentController {
   ) {}
 
   @Get()
+  @ApiResponse({ status: 200 })
   async listTickets(
     @Query() query: AgentTicketsQueryDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -62,24 +64,28 @@ export class HelpdeskAgentController {
   // How fast and how well support answered, for who leads the team.
   @Get('figures')
   @RequireStaffPermissions('support.manage')
+  @ApiResponse({ status: 200 })
   async figures(@Query() query: FiguresQueryDto) {
     return this.figuresService.figures(query.days === '30' ? 30 : 7);
   }
 
   // The agents a ticket can be given to.
   @Get('agents')
+  @ApiResponse({ status: 200, type: [Object] })
   async listAgents() {
     return this.tickets.assignableAgents();
   }
 
   // The ticket with its whole conversation, internal notes included.
   @Get(':id')
+  @ApiResponse({ status: 200 })
   async getTicket(@Param('id') id: string) {
     return this.tickets.getTicket(id);
   }
 
   // An answer to the requester or an internal note.
   @Post(':id/messages')
+  @ApiResponse({ status: 201 })
   async addMessage(
     @Param('id') id: string,
     @Body() dto: AgentMessageDto,
@@ -89,6 +95,7 @@ export class HelpdeskAgentController {
   }
 
   @Patch(':id')
+  @ApiResponse({ status: 200 })
   async updateTicket(
     @Param('id') id: string,
     @Body() body: AgentTicketChangesDto,
@@ -99,6 +106,7 @@ export class HelpdeskAgentController {
 
   // Takes the ticket, lets go of it, or gives it to someone.
   @Post(':id/assignment')
+  @ApiResponse({ status: 201 })
   async assign(
     @Param('id') id: string,
     @Body() dto: AgentAssignmentDto,
@@ -118,6 +126,7 @@ export class HelpdeskAgentController {
 
   // Hands the ticket to another team; in CircleSfera, to moderation.
   @Post(':id/escalate')
+  @ApiResponse({ status: 201 })
   async handOver(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -127,6 +136,7 @@ export class HelpdeskAgentController {
 
   // Read-only: what the host says about who wrote the ticket.
   @Get(':id/account')
+  @ApiResponse({ status: 200, type: Object })
   async accountCard(@Param('id') id: string) {
     return this.tickets.accountCard(id);
   }

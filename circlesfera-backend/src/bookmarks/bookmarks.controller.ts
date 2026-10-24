@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   CurrentUser,
@@ -24,6 +25,7 @@ export class BookmarksController {
 
   // Toggle bookmark on/off for a post, optionally assigning to a collection.
   @Post(':postId')
+  @ApiResponse({ status: 201, type: Object })
   toggle(
     @CurrentUser() user: CurrentUserData,
     @Param('postId') postId: string,
@@ -34,6 +36,7 @@ export class BookmarksController {
 
   // Move a bookmarked post to a different collection.
   @Patch(':postId/collection')
+  @ApiResponse({ status: 200 })
   updateCollection(
     @CurrentUser() user: CurrentUserData,
     @Param('postId') postId: string,
@@ -47,7 +50,11 @@ export class BookmarksController {
   }
 
   // List all bookmarked posts (paginated, optionally filtered by collection).
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'collectionId', required: false })
   @Get()
+  @ApiResponse({ status: 200 })
   getBookmarks(
     @CurrentUser() user: CurrentUserData,
     @Query('page') page = 1,
@@ -65,6 +72,7 @@ export class BookmarksController {
   // Check whether a user has bookmarked a specific post.
   @SkipThrottle()
   @Get(':postId/check')
+  @ApiResponse({ status: 200 })
   check(@CurrentUser() user: CurrentUserData, @Param('postId') postId: string) {
     return this.bookmarksService.check(user.profileId, postId);
   }

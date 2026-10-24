@@ -1,4 +1,5 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { ExperimentsService } from './experiments.service.js';
 
@@ -8,6 +9,7 @@ export class ExperimentsController {
 
   @UseGuards(JwtOptionalGuard)
   @Get('my-flags')
+  @ApiResponse({ status: 200, type: Object })
   async getMyFlags(@Req() req: { user?: { userId?: string } }) {
     const userId = req.user?.userId || null;
     return this.experimentsService.getMyFlags(userId);

@@ -12,6 +12,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -39,6 +40,7 @@ export class AdminSystemController {
   @RequireStaffPermissions('users.read')
   @Get('stats')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   async getStats() {
     return this.adminService.getStats();
   }
@@ -46,12 +48,14 @@ export class AdminSystemController {
   @RequireStaffPermissions('system')
   @Get('health')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   async getSystemHealth() {
     return this.adminService.getSystemHealth();
   }
 
   @RequireStaffPermissions('moderation')
   @Get('firewall/rules')
+  @ApiResponse({ status: 200 })
   async getFirewallRules(@Query() query: AdminQueryDto) {
     return this.adminService.getFirewallRules(
       query.page ?? 1,
@@ -63,6 +67,7 @@ export class AdminSystemController {
   @RequireStaffPermissions('moderation')
   @RequireAdminStepUp()
   @Post('firewall/rules')
+  @ApiResponse({ status: 201 })
   async addFirewallRule(
     @Body() body: CreateFirewallRuleDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -72,6 +77,7 @@ export class AdminSystemController {
 
   @RequireStaffPermissions('moderation')
   @Patch('firewall/rules/:id')
+  @ApiResponse({ status: 200 })
   async updateFirewallRule(
     @Param('id') id: string,
     @Body() body: UpdateFirewallRuleDto,
@@ -83,6 +89,7 @@ export class AdminSystemController {
   @RequireStaffPermissions('moderation')
   @RequireAdminStepUp()
   @Delete('firewall/rules/:id')
+  @ApiResponse({ status: 200 })
   async deleteFirewallRule(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -92,12 +99,14 @@ export class AdminSystemController {
 
   @Get('settings')
   @RequireStaffPermissions('system')
+  @ApiResponse({ status: 200 })
   async getSystemSettings() {
     return this.adminService.getSystemSettings();
   }
 
   @Patch('settings')
   @RequireStaffPermissions('system')
+  @ApiResponse({ status: 200 })
   async updateSystemSettings(
     @Body() body: {
       updates: { key: string; value: string; description?: string }[];

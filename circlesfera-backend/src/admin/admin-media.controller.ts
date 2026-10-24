@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { AdminAction } from '@prisma/client';
 import { AudioService } from '../audio/audio.service.js';
 import { CreateAudioDto } from '../audio/dto/create-audio.dto.js';
@@ -32,8 +33,12 @@ export class AdminMediaController {
     @Inject(AdminService) private readonly adminService: AdminService,
   ) {}
 
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'search', required: false })
   @RequireStaffPermissions('content')
   @Get('audio')
+  @ApiResponse({ status: 200 })
   async getAudio(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
@@ -44,6 +49,7 @@ export class AdminMediaController {
 
   @RequireStaffPermissions('content')
   @Post('audio')
+  @ApiResponse({ status: 201 })
   async createAudio(
     @Body() dto: CreateAudioDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -61,6 +67,7 @@ export class AdminMediaController {
 
   @RequireStaffPermissions('content')
   @Patch('audio/:id')
+  @ApiResponse({ status: 200 })
   async updateAudio(
     @Param('id') id: string,
     @Body() dto: CreateAudioDto,
@@ -79,6 +86,7 @@ export class AdminMediaController {
 
   @RequireStaffPermissions('content')
   @Delete('audio/:id')
+  @ApiResponse({ status: 200 })
   async deleteAudio(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,

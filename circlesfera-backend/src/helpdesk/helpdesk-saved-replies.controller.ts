@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -49,11 +50,13 @@ export class HelpdeskSavedRepliesController {
 
   // The shared ones and the agent's own.
   @Get()
+  @ApiResponse({ status: 200 })
   async list(@CurrentAdmin() admin: CurrentAdminData) {
     return this.replies.list(admin.adminId);
   }
 
   @Post()
+  @ApiResponse({ status: 201 })
   async create(
     @Body() dto: CreateSavedReplyDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -62,6 +65,7 @@ export class HelpdeskSavedRepliesController {
   }
 
   @Patch(':id')
+  @ApiResponse({ status: 200 })
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateSavedReplyDto,
@@ -71,6 +75,7 @@ export class HelpdeskSavedRepliesController {
   }
 
   @Delete(':id')
+  @ApiResponse({ status: 200 })
   async remove(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,

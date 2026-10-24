@@ -7,6 +7,7 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -30,12 +31,14 @@ export class AdminPlansController {
   ) {}
 
   @Get()
+  @ApiResponse({ status: 200 })
   async getPlans() {
     return this.adminPlansService.getPlans();
   }
 
   @RequireAdminStepUp()
   @Patch(':id')
+  @ApiResponse({ status: 200 })
   async updatePlan(
     @Param('id') id: string,
     @Body() dto: UpdatePlanDto,

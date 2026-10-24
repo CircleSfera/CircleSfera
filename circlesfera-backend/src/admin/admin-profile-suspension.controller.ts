@@ -6,6 +6,7 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -28,6 +29,7 @@ export class AdminProfileSuspensionController {
 
   @Patch(':profileId/suspend')
   @RequireStaffPermissions('users.ban')
+  @ApiResponse({ status: 200 })
   suspend(
     @Param('profileId') profileId: string,
     @Body() dto: SuspendProfileDto,
@@ -38,6 +40,7 @@ export class AdminProfileSuspensionController {
 
   @Patch(':profileId/lift-suspension')
   @RequireStaffPermissions('users.ban')
+  @ApiResponse({ status: 200 })
   lift(
     @Param('profileId') profileId: string,
     @CurrentAdmin() admin: CurrentAdminData,

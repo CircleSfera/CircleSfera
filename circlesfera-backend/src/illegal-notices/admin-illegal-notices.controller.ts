@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { IllegalNoticeStatus } from '@prisma/client';
 import {
   CurrentAdmin,
@@ -32,8 +33,10 @@ export class AdminIllegalNoticesController {
     private readonly notices: IllegalNoticesService,
   ) {}
 
+  @ApiQuery({ name: 'status', required: false })
   @RequireStaffPermissions('reports')
   @Get()
+  @ApiResponse({ status: 200 })
   list(@Query('status') status?: string) {
     const known = Object.values(IllegalNoticeStatus) as string[];
     return this.notices.list(
@@ -46,12 +49,14 @@ export class AdminIllegalNoticesController {
   // A tab a page at a time, most recent first.
   @RequireStaffPermissions('reports')
   @Get('page')
+  @ApiResponse({ status: 200 })
   page(@Query() q: IllegalNoticePageDto) {
     return this.notices.listPage(q.status, q.cursor, q.limit);
   }
 
   @RequireStaffPermissions('reports')
   @Post(':id/decide')
+  @ApiResponse({ status: 201 })
   decide(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: DecideIllegalNoticeDto,

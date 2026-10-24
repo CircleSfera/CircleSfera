@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -14,12 +15,14 @@ export class CloseFriendsController {
 
   // List the authenticated profile's close friends.
   @Get()
+  @ApiResponse({ status: 200 })
   async getCloseFriends(@CurrentUser() user: CurrentUserData) {
     return this.closeFriendsService.getCloseFriends(user.profileId);
   }
 
   // Toggle close-friend status for a profile.
   @Post(':friendId')
+  @ApiResponse({ status: 201 })
   async toggleCloseFriend(
     @CurrentUser() user: CurrentUserData,
     @Param('friendId') friendId: string,

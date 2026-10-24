@@ -11,6 +11,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
   CurrentAdmin,
@@ -44,6 +45,7 @@ export class AdminUsersController {
 
   @Post('broadcast')
   @RequireStaffPermissions('system')
+  @ApiResponse({ status: 201 })
   async sendBroadcast(
     @Body() dto: BroadcastEmailDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -53,12 +55,14 @@ export class AdminUsersController {
 
   @Get('broadcast/recipients')
   @RequireStaffPermissions('system')
+  @ApiResponse({ status: 200 })
   async countBroadcastRecipients(@Query() audience: BroadcastAudienceDto) {
     return this.adminUsersService.countBroadcastRecipients(audience);
   }
 
   @Post('broadcast/test')
   @RequireStaffPermissions('system')
+  @ApiResponse({ status: 201 })
   async sendBroadcastTest(
     @Body() dto: BroadcastEmailDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -68,6 +72,7 @@ export class AdminUsersController {
 
   @Get('broadcast/history')
   @RequireStaffPermissions('system')
+  @ApiResponse({ status: 200 })
   async getBroadcastHistory(@Query() query: AdminQueryDto) {
     return this.adminUsersService.getBroadcastHistory(
       query.page ?? 1,
@@ -77,6 +82,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.read')
   @Get('users/export')
+  @ApiResponse({ status: 200 })
   async exportUsersCSV(@Res() res: Response) {
     const csv = await this.adminUsersService.exportUsersCSV();
     res.setHeader('Content-Type', 'text/csv');
@@ -89,6 +95,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.read')
   @Get('users')
+  @ApiResponse({ status: 200 })
   async getUsers(@Query() query: AdminQueryDto) {
     return this.adminUsersService.getUsers(
       query.page,
@@ -102,12 +109,14 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.read')
   @Get('users/kyc/stats')
+  @ApiResponse({ status: 200 })
   async getKycStats() {
     return this.adminUsersService.getKycStats();
   }
 
   @Patch('users/:id/ban')
   @RequireStaffPermissions('users.ban')
+  @ApiResponse({ status: 200, type: Object })
   async banUser(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -117,6 +126,7 @@ export class AdminUsersController {
 
   @Patch('users/:id/unban')
   @RequireStaffPermissions('users.ban')
+  @ApiResponse({ status: 200, type: Object })
   async unbanUser(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -126,6 +136,7 @@ export class AdminUsersController {
 
   @Patch('users/:id/role')
   @RequireStaffPermissions('users.write')
+  @ApiResponse({ status: 200 })
   async updateUserRole(
     @Param('id') id: string,
     @Body() data: { role: string },
@@ -136,6 +147,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.write')
   @Patch('users/:id/status')
+  @ApiResponse({ status: 200 })
   async updateUserStatus(
     @Param('id') id: string,
     @Body()
@@ -147,6 +159,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.write')
   @Post('users/:id/revoke-kyc')
+  @ApiResponse({ status: 201 })
   async revokeUserKYC(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -156,6 +169,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.write')
   @Post('users/:id/sync-kyc')
+  @ApiResponse({ status: 201 })
   async syncUserKYC(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -166,6 +180,7 @@ export class AdminUsersController {
   @RequireStaffPermissions('users.ban')
   @RequireAdminStepUp()
   @Delete('users/:id')
+  @ApiResponse({ status: 200 })
   async deleteUser(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -175,6 +190,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.read')
   @Get('whitelist')
+  @ApiResponse({ status: 200 })
   async getWhitelist(@Query() query: AdminQueryDto) {
     return this.adminUsersService.getWhitelist(
       query.page ?? 1,
@@ -185,6 +201,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.write')
   @Post('whitelist')
+  @ApiResponse({ status: 201 })
   async createWhitelist(
     @Body() data: AdminCreateWhitelistEntryDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -194,6 +211,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.write')
   @Patch('whitelist/:id')
+  @ApiResponse({ status: 200 })
   async updateWhitelist(
     @Param('id') id: string,
     @Body() data: UpdateWhitelistEntryDto,
@@ -204,6 +222,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.write')
   @Delete('whitelist/:id')
+  @ApiResponse({ status: 200 })
   async deleteWhitelist(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -213,6 +232,7 @@ export class AdminUsersController {
 
   @Patch('users/:id/warn')
   @RequireStaffPermissions('users.ban')
+  @ApiResponse({ status: 200 })
   async warnUser(
     @Param('id') id: string,
     @Body('reason') reason: string | undefined,
@@ -223,6 +243,7 @@ export class AdminUsersController {
 
   @Patch('users/:id/suspend')
   @RequireStaffPermissions('users.ban')
+  @ApiResponse({ status: 200 })
   async suspendUser(
     @Param('id') id: string,
     @Body() body: { days?: number; reason?: string },
@@ -238,6 +259,7 @@ export class AdminUsersController {
 
   @Patch('users/:id/restore')
   @RequireStaffPermissions('users.ban')
+  @ApiResponse({ status: 200 })
   async restoreSuspendedUser(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -247,12 +269,14 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.read')
   @Get('users/:id/detail')
+  @ApiResponse({ status: 200 })
   async getUserDetail(@Param('id') id: string) {
     return this.adminUsersService.getUserDetail(id);
   }
 
   @RequireStaffPermissions('users.read')
   @Get('users/:id/notes')
+  @ApiResponse({ status: 200 })
   async getStaffNotes(@Param('id') id: string) {
     return this.adminUsersService.getStaffNotes(id);
   }
@@ -260,6 +284,7 @@ export class AdminUsersController {
   // The notes a page at a time, newest first.
   @RequireStaffPermissions('users.read')
   @Get('users/:id/notes/page')
+  @ApiResponse({ status: 200 })
   async getStaffNotesPage(
     @Param('id') id: string,
     @Query() q: StaffListPageDto,
@@ -271,6 +296,7 @@ export class AdminUsersController {
   // sanction and changes nothing in the account.
   @RequireStaffPermissions('users.read')
   @Post('users/:id/notes')
+  @ApiResponse({ status: 201 })
   async addStaffNote(
     @Param('id') id: string,
     @Body() dto: CreateStaffNoteDto,
@@ -281,6 +307,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.read')
   @Get('users/:id/sessions')
+  @ApiResponse({ status: 200 })
   async countOpenSessions(@Param('id') id: string) {
     return this.adminUsersService.countOpenSessions(id);
   }
@@ -289,6 +316,7 @@ export class AdminUsersController {
   // account.
   @RequireStaffPermissions('users.write')
   @Post('users/:id/sessions/close')
+  @ApiResponse({ status: 201 })
   async closeUserSessions(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -298,18 +326,21 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.read')
   @Get('users/:id/linked-accounts')
+  @ApiResponse({ status: 200 })
   async getLinkedAccounts(@Param('id') id: string) {
     return this.adminUsersService.getLinkedAccounts(id);
   }
 
   @RequireStaffPermissions('users.read')
   @Get('users/:id/trust-score')
+  @ApiResponse({ status: 200 })
   async getTrustScore(@Param('id') id: string) {
     return this.adminUsersService.getTrustScore(id);
   }
 
   @RequireStaffPermissions('users.ban')
   @Post('users/:id/bot-label')
+  @ApiResponse({ status: 201 })
   async applyBotLabel(
     @Param('id') id: string,
     @Body('reason') reason: string,
@@ -320,6 +351,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.ban')
   @Delete('users/:id/bot-label')
+  @ApiResponse({ status: 200 })
   async clearBotLabel(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -329,6 +361,7 @@ export class AdminUsersController {
 
   @RequireStaffPermissions('users.read')
   @Get('trust/funnel')
+  @ApiResponse({ status: 200 })
   async getSignupFunnel() {
     return this.adminUsersService.getSignupFunnelStats();
   }
