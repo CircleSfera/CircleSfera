@@ -6,8 +6,9 @@ export class UpdateGroupDto {
   @MaxLength(100)
   name?: string;
 
+  // null takes the group's photo off.
   @IsOptional()
   @IsString()
   @IsUrl({ require_tld: false })
-  avatarUrl?: string;
+  avatarUrl?: string | null;
 }

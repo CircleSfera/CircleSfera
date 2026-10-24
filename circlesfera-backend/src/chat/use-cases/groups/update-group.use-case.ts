@@ -17,7 +17,7 @@ export class UpdateGroupUseCase {
     profileId: string,
     conversationId: string,
     name?: string,
-    avatarUrl?: string,
+    avatarUrl?: string | null,
   ) {
     await this.chatAuth.assertGroupAdmin(
       conversationId,

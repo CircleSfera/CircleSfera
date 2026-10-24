@@ -165,6 +165,32 @@ describe('GroupDetailsModal', () => {
     });
   });
 
+  it('renames a group with no photo, and an emptied photo is taken off rather than sent empty', () => {
+    const { i18n } = renderModal({ ...group(true), avatarUrl: undefined });
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('chat.group_details.edit_info'),
+      }),
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('chat.group_details.name_label')),
+      { target: { value: 'Saturday' } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('chat.group_details.avatar_label')),
+      { target: { value: '   ' } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('chat.group_details.save') }),
+    );
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      name: 'Saturday',
+      avatarUrl: null,
+    });
+  });
+
   it('cancels edit without saving', () => {
     const { i18n } = renderModal(group(true));
 

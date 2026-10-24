@@ -990,7 +990,7 @@ export default function ChatWindow() {
 
   const handleUpdateGroup = async (data: {
     name?: string;
-    avatarUrl?: string;
+    avatarUrl?: string | null;
   }) => {
     if (!id) return;
     try {

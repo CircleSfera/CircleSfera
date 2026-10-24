@@ -336,10 +336,39 @@ describe('ChatController', () => {
     );
   });
 
+  it('takes the address the upload answers when files are kept on the server disk, as in production', async () => {
+    mockSendMessageUseCase.execute.mockResolvedValue({ id: 'msg-voice' });
+    const voiceUrl = '/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.m4a';
+
+    await request(app.getHttpServer())
+      .post('/api/v1/chat/messages')
+      .set(BEARER)
+      .send({
+        conversationId: 'conv-1',
+        content: 'Nota de voz',
+        voiceUrl,
+        voiceDuration: 3,
+        voiceWaveform: [0.15, 0.5],
+      })
+      .expect(201);
+
+    expect(mockSendMessageUseCase.execute.mock.calls[0][10]).toBe(voiceUrl);
+  });
+
   it('refuses a voice note that is not a recording address, has no sensible length or draws odd bars', async () => {
     for (const change of [
       { voiceUrl: 'javascript:alert(1)' },
       { voiceUrl: 'not a url' },
+      // Only the exact shape of an upload of this server, nothing else
+      // relative to it.
+      { voiceUrl: '/uploads/../../etc/passwd' },
+      { voiceUrl: '/uploads/note.m4a' },
+      { voiceUrl: '//evil.example/0eff3516-d0bc-480f-8de9-33a24b7ded2a.m4a' },
+      { voiceUrl: '/avatars/0eff3516-d0bc-480f-8de9-33a24b7ded2a.m4a' },
+      { voiceUrl: '/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.m4a?x=1' },
+      { voiceUrl: '/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.m4a\n' },
+      { voiceUrl: ['/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.m4a'] },
+      { voiceUrl: 42 },
       { voiceDuration: 0 },
       { voiceDuration: 3601 },
       { voiceDuration: 2.5 },
@@ -491,6 +520,32 @@ describe('ChatController', () => {
       'New Group Name',
       'https://cdn/avatar.jpg',
     );
+  });
+
+  it('takes a group photo off with null, and still refuses an empty or bad address', async () => {
+    mockUpdateGroupUseCase.execute.mockResolvedValue({ id: 'conv-1' });
+
+    await request(app.getHttpServer())
+      .put('/api/v1/chat/conversations/conv-1/group')
+      .set(BEARER)
+      .send({ name: 'Saturday', avatarUrl: null })
+      .expect(200);
+    expect(mockUpdateGroupUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+      'Saturday',
+      null,
+    );
+
+    mockUpdateGroupUseCase.execute.mockClear();
+    for (const avatarUrl of ['', 'javascript:alert(1)']) {
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/conv-1/group')
+        .set(BEARER)
+        .send({ name: 'Saturday', avatarUrl })
+        .expect(400);
+    }
+    expect(mockUpdateGroupUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('removes a participant from a group conversation', async () => {
