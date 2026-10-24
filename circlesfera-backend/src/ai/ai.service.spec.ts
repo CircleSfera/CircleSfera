@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import OpenAI from 'openai';
@@ -421,29 +422,78 @@ describe('AIService', () => {
       );
     });
 
-    it('falls back to default text if choices content is empty', async () => {
+    it('sends an upload kept on the server disk as data, which the model can read', async () => {
       mOpenAI.chat.completions.create.mockResolvedValue({
-        choices: [{ message: { content: '' } }],
+        choices: [{ message: { content: 'A dog on a beach.' } }],
       });
+      (safeFetchMedia as Mock).mockResolvedValue({
+        buffer: Buffer.from('jpeg-bytes'),
+        contentType: 'image/jpeg',
+        ext: 'jpg',
+      });
+      const imageUrl = '/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.jpg';
 
-      const result = await service.generateAltText(
-        'https://cdn.example.com/pic.jpg',
+      const result = await service.generateAltText(imageUrl);
+
+      expect(result).toBe('A dog on a beach.');
+      expect(safeFetchMedia).toHaveBeenCalledWith(
+        imageUrl,
+        expect.objectContaining({
+          allowedMimeTypes: expect.arrayContaining(['image/jpeg']),
+        }),
       );
-      expect(result).toBe('An image shared on CircleSfera.');
+      const content =
+        mOpenAI.chat.completions.create.mock.calls[0][0].messages[0].content;
+      expect(content[1].image_url.url).toBe(
+        `data:image/jpeg;base64,${Buffer.from('jpeg-bytes').toString('base64')}`,
+      );
     });
 
-    it('catches OpenAI errors and returns fallback description', async () => {
+    it('gives a full address to the model as it is, without reading it here', async () => {
+      mOpenAI.chat.completions.create.mockResolvedValue({
+        choices: [{ message: { content: 'A sunset.' } }],
+      });
+
+      await service.generateAltText('https://cdn.example.com/pic.jpg');
+
+      expect(safeFetchMedia).not.toHaveBeenCalled();
+      const content =
+        mOpenAI.chat.completions.create.mock.calls[0][0].messages[0].content;
+      expect(content[1].image_url.url).toBe('https://cdn.example.com/pic.jpg');
+    });
+
+    it('refuses, and does not call the model, when the upload cannot be read', async () => {
+      (safeFetchMedia as Mock).mockRejectedValue(new Error('not an image'));
+
+      await expect(
+        service.generateAltText(
+          '/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.jpg',
+        ),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(mOpenAI.chat.completions.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses rather than make up a description when the model says nothing', async () => {
+      mOpenAI.chat.completions.create.mockResolvedValue({
+        choices: [{ message: { content: '  ' } }],
+      });
+
+      await expect(
+        service.generateAltText('https://cdn.example.com/pic.jpg'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    });
+
+    it('refuses rather than make up a description when the model fails', async () => {
       mOpenAI.chat.completions.create.mockRejectedValue(
         new Error('OpenAI API Error'),
       );
 
-      const result = await service.generateAltText(
-        'https://cdn.example.com/pic.jpg',
-      );
-      expect(result).toBe('An image shared on CircleSfera.');
+      await expect(
+        service.generateAltText('https://cdn.example.com/pic.jpg'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
     });
 
-    it('returns mock alt-text when OpenAI is not configured', async () => {
+    it('refuses rather than make up a description when OpenAI is not configured', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'OPENAI_API_KEY') return undefined;
         if (key === 'NODE_ENV') return 'development';
@@ -458,12 +508,9 @@ describe('AIService', () => {
       }).compile();
 
       const devService = module.get<AIService>(AIService);
-      const result = await devService.generateAltText(
-        'https://cdn.example.com/pic.jpg',
-      );
-      expect(result).toContain(
-        'A beautiful high-quality image from CircleSfera (Ref: pic.jpg)',
-      );
+      await expect(
+        devService.generateAltText('https://cdn.example.com/pic.jpg'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
     });
   });
 
