@@ -8,7 +8,12 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import { TwoFactorCodeDto } from './dto/two-factor-code.dto.js';
@@ -27,6 +32,7 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate a new 2FA secret and QR code URL' })
+  @ApiResponse({ status: 201 })
   async generate(@Req() req: AuthRequest, @Res() res: Response) {
     const { otpauthUrl } =
       await this.twoFactorService.generateTwoFactorAuthenticationSecret({
@@ -48,6 +54,7 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Turn on 2FA' })
+  @ApiResponse({ status: HttpStatus.OK })
   async turnOn(@Req() req: AuthRequest, @Body() body: TwoFactorCodeDto) {
     await this.twoFactorService.turnOnTwoFactorAuthentication(
       req.user.userId,
@@ -62,6 +69,7 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Turn off 2FA' })
+  @ApiResponse({ status: HttpStatus.OK })
   async turnOff(@Req() req: AuthRequest, @Body() body: TwoFactorCodeDto) {
     await this.twoFactorService.turnOffTwoFactorAuthentication(
       req.user.userId,

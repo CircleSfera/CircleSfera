@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsIn,
   IsOptional,
@@ -10,6 +11,13 @@ import {
 } from 'class-validator';
 
 export class CreateProfileDto {
+  @ApiProperty({
+    required: true,
+    type: () => String,
+    minLength: 3,
+    maxLength: 30,
+    pattern: '^[a-zA-Z0-9._]+$',
+  })
   @IsString()
   @MinLength(3)
   @MaxLength(30)
@@ -18,21 +26,30 @@ export class CreateProfileDto {
   })
   username!: string;
 
+  @ApiProperty({ required: false, type: () => String, maxLength: 50 })
   @IsOptional()
   @IsString()
   @MaxLength(50)
   fullName?: string;
 
+  @ApiProperty({ required: false, type: () => String, maxLength: 300 })
   @IsOptional()
   @IsString()
   @MaxLength(300)
   bio?: string;
 
+  @ApiProperty({ required: false, type: () => String, minLength: 1 })
   @IsOptional()
   @IsString()
   @MinLength(1)
   avatar?: string;
 
+  @ApiProperty({
+    required: false,
+    type: () => String,
+    nullable: true,
+    format: 'uri',
+  })
   @IsOptional()
   @IsUrl()
   @ValidateIf(
@@ -40,11 +57,18 @@ export class CreateProfileDto {
   )
   website?: string | null;
 
+  @ApiProperty({
+    required: false,
+    type: () => String,
+    nullable: true,
+    maxLength: 100,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   location?: string | null;
 
+  @ApiProperty({ required: false, enum: ['PERSONAL', 'CREATOR', 'BUSINESS'] })
   @IsOptional()
   @IsIn(['PERSONAL', 'CREATOR', 'BUSINESS'])
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';

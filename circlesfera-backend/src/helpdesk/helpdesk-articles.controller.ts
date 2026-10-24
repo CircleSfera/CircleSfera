@@ -11,6 +11,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -36,16 +37,19 @@ export class HelpdeskArticlesController {
 
   // Drafts and published, with how many readers found each useful.
   @Get()
+  @ApiResponse({ status: 200 })
   async list() {
     return this.articles.list();
   }
 
   @Get(':id')
+  @ApiResponse({ status: 200 })
   async get(@Param('id') id: string) {
     return this.articles.get(id);
   }
 
   @Post()
+  @ApiResponse({ status: 201 })
   async create(
     @Body() dto: CreateArticleDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -54,12 +58,14 @@ export class HelpdeskArticlesController {
   }
 
   @Patch(':id')
+  @ApiResponse({ status: 200 })
   async update(@Param('id') id: string, @Body() dto: UpdateArticleDto) {
     return this.articles.update(id, dto);
   }
 
   @Post(':id/publish')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   async publish(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -69,6 +75,7 @@ export class HelpdeskArticlesController {
 
   @Post(':id/take-back')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   async takeBack(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -77,6 +84,7 @@ export class HelpdeskArticlesController {
   }
 
   @Delete(':id')
+  @ApiResponse({ status: 200 })
   async remove(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,

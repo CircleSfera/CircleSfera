@@ -9,6 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
 import {
   CurrentUser,
@@ -35,6 +36,7 @@ export class LiveController {
 
   @Post('start')
   @UseGuards(EmailVerifiedGuard)
+  @ApiResponse({ status: 201, type: Object })
   async startStream(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: StartStreamDto,
@@ -50,16 +52,19 @@ export class LiveController {
   }
 
   @Post('end')
+  @ApiResponse({ status: 201 })
   endStream(@CurrentUser() user: CurrentUserData) {
     return this.liveService.endStream(user.profileId);
   }
 
   @Get('active')
+  @ApiResponse({ status: 200 })
   getActiveStreams(@CurrentUser() user: CurrentUserData) {
     return this.liveService.getActiveStreams(user.profileId);
   }
 
   @Get(':streamId')
+  @ApiResponse({ status: 200 })
   getStream(
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
@@ -68,6 +73,7 @@ export class LiveController {
   }
 
   @Get('join/:streamId')
+  @ApiResponse({ status: 200 })
   joinStream(
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
@@ -80,6 +86,7 @@ export class LiveController {
   }
 
   @Post(':streamId/cohost/invite')
+  @ApiResponse({ status: 201 })
   inviteCoHost(
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
@@ -95,6 +102,7 @@ export class LiveController {
   }
 
   @Post(':streamId/cohost/accept')
+  @ApiResponse({ status: 201 })
   acceptCoHostInvite(
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
@@ -103,6 +111,7 @@ export class LiveController {
   }
 
   @Delete(':streamId/cohost')
+  @ApiResponse({ status: 200 })
   removeCoHost(
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
@@ -112,6 +121,7 @@ export class LiveController {
 
   @Post(':streamId/gift')
   @UseGuards(IdentityVerifiedGuard)
+  @ApiResponse({ status: 201, type: Object })
   sendGift(
     @Req() req: Request,
     @CurrentUser() user: CurrentUserData,

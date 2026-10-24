@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -44,6 +44,7 @@ export class AppealsController {
 
   @Post()
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 201 })
   create(@Req() req: any, @Body() createAppealDto: CreateAppealDto) {
     let userId: string | undefined;
     let appealProfileId: string | undefined;
@@ -92,13 +93,18 @@ export class AppealsController {
 
   @Get('my-appeals')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   findMyUserAppeals(@CurrentUser() user: CurrentUserData) {
     return this.appealsService.findMyUserAppeals(user.userId);
   }
 
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'status', required: false })
   @Get('admin')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('appeals')
+  @ApiResponse({ status: 200 })
   findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -114,6 +120,7 @@ export class AppealsController {
   @Patch('admin/:id')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('appeals')
+  @ApiResponse({ status: 200 })
   update(
     @Param('id') id: string,
     @Body() updateAppealDto: UpdateAppealDto,

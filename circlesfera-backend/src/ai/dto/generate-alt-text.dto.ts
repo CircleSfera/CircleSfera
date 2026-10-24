@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty,
   IsString,
@@ -14,6 +15,12 @@ export class GenerateAltTextDto {
     (dto: GenerateAltTextDto) =>
       typeof dto.imageUrl !== 'string' || !LOCAL_UPLOAD_URL.test(dto.imageUrl),
   )
+  @ApiProperty({
+    required: true,
+    type: () => String,
+    maxLength: 2048,
+    format: 'uri',
+  })
   @IsString()
   @IsNotEmpty()
   @IsUrl({ require_tld: false })

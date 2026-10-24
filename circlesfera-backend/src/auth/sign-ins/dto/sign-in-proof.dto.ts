@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsObject,
   IsOptional,
@@ -12,6 +13,12 @@ import {
  * verification. One of the two is required.
  */
 export class SignInProofDto {
+  @ApiProperty({
+    required: false,
+    type: () => String,
+    minLength: 1,
+    maxLength: 128,
+  })
   @IsOptional()
   @IsString()
   @MinLength(1)
@@ -19,6 +26,7 @@ export class SignInProofDto {
   currentPassword?: string;
 
   // The answer of the authenticator to the step-up challenge.
+  @ApiProperty({ required: false, type: Object, additionalProperties: true })
   @IsOptional()
   @IsObject()
   passkeyAssertion?: Record<string, unknown>;

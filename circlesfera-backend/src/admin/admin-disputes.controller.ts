@@ -1,4 +1,5 @@
 import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   AdminGuard,
   RequireStaffPermissions,
@@ -17,6 +18,7 @@ export class AdminDisputesController {
   ) {}
 
   @Get()
+  @ApiResponse({ status: 200 })
   async getDisputes(@Query() query: AdminDisputesQueryDto) {
     return this.adminDisputesService.getDisputes(
       query.page ?? 1,

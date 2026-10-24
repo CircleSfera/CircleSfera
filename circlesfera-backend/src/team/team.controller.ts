@@ -12,6 +12,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -29,18 +30,21 @@ export class TeamController {
 
   @Get()
   @MemberAllowed('team.manage')
+  @ApiResponse({ status: 200 })
   get(@CurrentUser() user: CurrentUserData) {
     return this.team.team(user.userId, user.profileId);
   }
 
   @Post('members')
   @MemberAllowed('team.manage')
+  @ApiResponse({ status: 201 })
   invite(@CurrentUser() user: CurrentUserData, @Body() dto: InviteMemberDto) {
     return this.team.invite(user.userId, user.profileId, dto);
   }
 
   @Delete('members/:id')
   @MemberAllowed('team.manage')
+  @ApiResponse({ status: 200 })
   remove(
     @CurrentUser() user: CurrentUserData,
     @Param('id', ParseUUIDPipe) id: string,
@@ -51,6 +55,7 @@ export class TeamController {
   // What was done on the Profile and by whom, for its owner.
   @Get('activity')
   @MemberAllowed('team.manage')
+  @ApiResponse({ status: 200 })
   activity(@CurrentUser() user: CurrentUserData, @Query() page: PaginationDto) {
     return this.team.activity(
       user.userId,
@@ -63,12 +68,14 @@ export class TeamController {
   // The Profiles the person works on as a team member.
   @Get('profiles')
   @MemberAllowed('session')
+  @ApiResponse({ status: 200 })
   profiles(@CurrentUser() user: CurrentUserData) {
     return this.team.memberProfiles(user.userId);
   }
 
   @Get('invitations')
   @MemberAllowed('session')
+  @ApiResponse({ status: 200 })
   invitations(@CurrentUser() user: CurrentUserData) {
     return this.team.invitations(user.userId);
   }
@@ -76,6 +83,7 @@ export class TeamController {
   @Post('invitations/:id/accept')
   @MemberAllowed('session')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   accept(
     @CurrentUser() user: CurrentUserData,
     @Param('id', ParseUUIDPipe) id: string,
@@ -86,6 +94,7 @@ export class TeamController {
   @Post('invitations/:id/decline')
   @MemberAllowed('session')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   decline(
     @CurrentUser() user: CurrentUserData,
     @Param('id', ParseUUIDPipe) id: string,

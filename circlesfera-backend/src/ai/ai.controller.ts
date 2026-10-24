@@ -1,4 +1,5 @@
 import { Body, Controller, Inject, Post, UseGuards } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AIService } from './ai.service.js';
@@ -14,6 +15,7 @@ export class AIController {
 
   @Post('alt-text')
   @Throttle({ short: { limit: 10, ttl: 60000 } })
+  @ApiResponse({ status: 201 })
   async generateAltText(@Body() body: GenerateAltTextDto) {
     const text = await this.aiService.generateAltText(body.imageUrl);
     return { text };

@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiResponse } from '@nestjs/swagger';
 import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -24,12 +25,14 @@ export class PushController {
   ) {}
 
   @Get('public-key')
+  @ApiResponse({ status: 200 })
   getPublicKey() {
     return { publicKey: this.configService.get<string>('VAPID_PUBLIC_KEY') };
   }
 
   @Post('subscribe')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async subscribe(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: SubscribePushDto,
@@ -39,6 +42,7 @@ export class PushController {
 
   @Delete('unsubscribe')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: Object })
   async unsubscribe(
     @CurrentUser() user: CurrentUserData,
     @Query('endpoint') endpoint: string,
@@ -48,6 +52,7 @@ export class PushController {
 
   @Post('subscribe-native')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async subscribeNative(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: SubscribeNativeDto,
@@ -58,6 +63,7 @@ export class PushController {
 
   @Delete('unsubscribe-native')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async unsubscribeNative(
     @CurrentUser() user: CurrentUserData,
     @Query('token') token: string,

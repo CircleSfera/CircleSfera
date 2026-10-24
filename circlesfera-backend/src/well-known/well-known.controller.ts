@@ -1,11 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiResponse } from '@nestjs/swagger';
 
 @Controller('.well-known')
 export class WellKnownController {
   constructor(private configService: ConfigService) {}
 
   @Get('apple-app-site-association')
+  @ApiResponse({ status: 200 })
   getAppleAppSiteAssociation() {
     return {
       applinks: {
@@ -21,6 +23,7 @@ export class WellKnownController {
   }
 
   @Get('assetlinks.json')
+  @ApiResponse({ status: 200 })
   getAssetLinks() {
     const sha256 = this.configService.get<string>('ANDROID_SHA256');
 

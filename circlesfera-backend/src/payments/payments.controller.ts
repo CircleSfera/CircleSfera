@@ -13,6 +13,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type Stripe from 'stripe';
 import {
@@ -39,12 +40,14 @@ export class PaymentsController {
   ) {}
 
   @Get('plans')
+  @ApiResponse({ status: 200 })
   async getPlans() {
     return this.paymentsService.findAllPlans();
   }
 
   @Post('checkout')
   @UseGuards(JwtAuthGuard, IdentityVerifiedGuard)
+  @ApiResponse({ status: 201, type: Object })
   async createCheckout(
     @Req() req: RequestWithUser,
     @Body() body: CheckoutDto,
@@ -60,6 +63,7 @@ export class PaymentsController {
 
   @Get('portal')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: Object })
   async getPortal(
     @Req() req: RequestWithUser,
   ): Promise<Stripe.BillingPortal.Session | { url: string }> {
@@ -70,12 +74,14 @@ export class PaymentsController {
   @Post('plan/cancel')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: HttpStatus.OK })
   async cancelPlan(@Req() req: RequestWithUser) {
     return this.paymentsService.cancelPlan(req.user.userId, req.user.profileId);
   }
 
   @Get('status')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getBillingStatus(@Req() req: RequestWithUser) {
     return this.paymentsService.getBillingStatus(
       req.user.userId,
@@ -87,6 +93,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @Header('Content-Type', 'text/csv')
   @Header('Content-Disposition', 'attachment; filename="ledger.csv"')
+  @ApiResponse({ status: 200, type: String })
   async getLedger(@Req() req: RequestWithUser): Promise<string> {
     return this.paymentsService.getLedgerCsv(req.user.userId);
   }
@@ -96,12 +103,14 @@ export class PaymentsController {
   @RequireStaffPermissions('payments')
   @Header('Content-Type', 'text/csv')
   @Header('Content-Disposition', 'attachment; filename="full-ledger.csv"')
+  @ApiResponse({ status: 200, type: String })
   async getAdminLedger(): Promise<string> {
     return this.paymentsService.getLedgerCsv();
   }
 
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   async handleWebhook(@Req() req: Request) {
     const sig = req.headers['stripe-signature'] as string | undefined;
 

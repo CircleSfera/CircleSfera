@@ -6,6 +6,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { SlackGuard } from './slack.guard.js';
 import { SlackService } from './slack.service.js';
 
@@ -16,6 +17,7 @@ export class SlackController {
 
   @Post('commands')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK, type: Object })
   async handleCommands(@Body() body: any) {
     if (body.command === '/cs-stats') {
       return this.slackService.handleStatsCommand();
@@ -28,6 +30,7 @@ export class SlackController {
 
   @Post('interactions')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK, type: Object })
   async handleInteractions(@Body() body: any) {
     if (!body.payload) {
       return;

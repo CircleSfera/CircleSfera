@@ -1,4 +1,5 @@
 import { Body, Controller, Inject, Post } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { CreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import { WhitelistService } from './whitelist.service.js';
 
@@ -10,6 +11,7 @@ export class WhitelistController {
   ) {}
 
   @Post('signup')
+  @ApiResponse({ status: 201 })
   create(@Body() createWhitelistEntryDto: CreateWhitelistEntryDto) {
     return this.whitelistService.create(createWhitelistEntryDto);
   }

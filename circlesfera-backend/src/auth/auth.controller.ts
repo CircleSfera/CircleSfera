@@ -12,7 +12,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { requestAbuseMeta } from '../common/abuse/device-signal.service.js';
@@ -66,6 +66,7 @@ export class AuthController {
       ttl: 60000,
     },
   })
+  @ApiResponse({ status: 201 })
   async register(
     @Body() dto: RegisterDto,
     @Req() req: Request,
@@ -96,6 +97,7 @@ export class AuthController {
       ttl: 60000,
     },
   })
+  @ApiResponse({ status: HttpStatus.OK })
   async login(
     @Body() dto: LoginDto,
     @Req() req: Request,
@@ -126,6 +128,7 @@ export class AuthController {
       ttl: 60000,
     },
   })
+  @ApiResponse({ status: HttpStatus.OK })
   async refresh(
     @Req() req: Request,
     @Body() body: RefreshTokenDto,
@@ -154,6 +157,7 @@ export class AuthController {
   @MemberAllowed('session')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: HttpStatus.NO_CONTENT })
   async logout(
     @CurrentUser() user: CurrentUserData,
     @Req() req: Request,
@@ -175,6 +179,7 @@ export class AuthController {
       ttl: 60000,
     },
   })
+  @ApiResponse({ status: HttpStatus.OK })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto);
   }
@@ -189,6 +194,7 @@ export class AuthController {
       ttl: 60000,
     },
   })
+  @ApiResponse({ status: HttpStatus.OK })
   async resendVerification(@CurrentUser() user: CurrentUserData) {
     return this.authService.resendVerification(user.userId, user.signInId);
   }
@@ -202,6 +208,7 @@ export class AuthController {
       ttl: 60000,
     },
   })
+  @ApiResponse({ status: HttpStatus.OK })
   async requestReset(@Body() dto: RequestResetDto) {
     return this.authService.requestPasswordReset(dto);
   }
@@ -215,6 +222,7 @@ export class AuthController {
       ttl: 60000,
     },
   })
+  @ApiResponse({ status: HttpStatus.OK })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
@@ -223,6 +231,7 @@ export class AuthController {
   @Get('sessions')
   @MemberAllowed('session')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getSessions(@CurrentUser() user: CurrentUserData) {
     return this.authService.getUserSessions(user.userId, user.sessionId);
   }
@@ -231,6 +240,7 @@ export class AuthController {
   @Delete('sessions/other')
   @MemberAllowed('session')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async revokeOtherSessions(@CurrentUser() user: CurrentUserData) {
     return this.authService.revokeOtherSessions(user.userId, user.sessionId);
   }
@@ -239,6 +249,7 @@ export class AuthController {
   @Delete('sessions/:id')
   @MemberAllowed('session')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async revokeSession(
     @Param('id') sessionId: string,
     @CurrentUser() user: CurrentUserData,

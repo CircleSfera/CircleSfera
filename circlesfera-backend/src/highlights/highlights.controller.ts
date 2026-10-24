@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -30,6 +31,7 @@ export class HighlightsController {
   // Create a new highlight from selected stories (requires auth).
   @UseGuards(JwtAuthGuard)
   @Post()
+  @ApiResponse({ status: 201, type: Object })
   create(
     @CurrentUser() user: CurrentUserData,
     @Body() createHighlightDto: CreateHighlightDto,
@@ -40,6 +42,7 @@ export class HighlightsController {
   // Update a highlight (requires auth).
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @ApiResponse({ status: 200, type: Object })
   update(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -55,6 +58,7 @@ export class HighlightsController {
   // List all highlights for a specific profile.
   @Get('profile/:profileId')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   findAll(
     @Param('profileId') profileId: string,
     @CurrentUser() user: CurrentUserData | null,
@@ -65,6 +69,7 @@ export class HighlightsController {
   // Deprecated: Use GET highlights/profile/:profileId
   @Get('user/:profileId')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   findAllLegacy(
     @Param('profileId') profileId: string,
     @CurrentUser() user: CurrentUserData | null,
@@ -75,6 +80,7 @@ export class HighlightsController {
   // Get a single highlight by ID.
   @Get(':id')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   findOne(
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserData | null,
@@ -85,6 +91,7 @@ export class HighlightsController {
   // Delete a highlight (requires auth).
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
+  @ApiResponse({ status: 200 })
   remove(@CurrentUser() user: CurrentUserData, @Param('id') id: string) {
     return this.highlightsService.remove(id, user.profileId);
   }

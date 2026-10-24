@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsIn,
@@ -11,9 +12,11 @@ import {
 // the advertiser is told the reason and may appeal it. A note sent with an
 // approval is checked too.
 export class ReviewPromotionDto {
+  @ApiProperty({ required: true, enum: ['ACTIVE', 'REJECTED'] })
   @IsIn(['ACTIVE', 'REJECTED'])
   status!: 'ACTIVE' | 'REJECTED';
 
+  @ApiProperty({ required: false, type: () => String, maxLength: 500 })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @ValidateIf(
     (o: ReviewPromotionDto) => o.status === 'REJECTED' || o.note !== undefined,

@@ -12,7 +12,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
+import { ApiExcludeEndpoint, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AppException } from '../common/errors/app.exception.js';
@@ -50,6 +50,7 @@ export class MediaController {
   @UseGuards(JwtOptionalGuard)
   @Get('auth-check')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: HttpStatus.NO_CONTENT })
   async authCheck(
     @Req()
     req: Request & { user?: { userId?: string; profileId?: string } },
@@ -76,6 +77,7 @@ export class MediaController {
   }
 
   @Get('teaser/:mediaId/*file')
+  @ApiResponse({ status: 200 })
   async serveTeaser(
     @Param('mediaId') mediaId: string,
     @Param('file') file: string | string[],

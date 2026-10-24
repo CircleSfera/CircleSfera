@@ -12,7 +12,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -50,6 +50,7 @@ export class PostsController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @MemberAllowed('content.manage')
   @RecordsActivity('POST_PUBLISHED')
+  @ApiResponse({ status: 201 })
   async create(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreatePostDto,
@@ -62,6 +63,7 @@ export class PostsController {
   @Get()
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async findAll(
     @CurrentUser() user: CurrentUserData | null,
     @Query() query: GetPostsDto,
@@ -74,6 +76,7 @@ export class PostsController {
   @Get('frames')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async getFrames(
     @CurrentUser() user: CurrentUserData | null,
     @Query() pagination: PaginationDto,
@@ -85,6 +88,7 @@ export class PostsController {
   @Get('user/:username')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async findByUser(
     @CurrentUser() user: CurrentUserData | null,
     @Param('username') username: string,
@@ -103,6 +107,7 @@ export class PostsController {
   @Get('user/:username/tagged')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async getTaggedPosts(
     @CurrentUser() user: CurrentUserData | null,
     @Param('username') username: string,
@@ -119,6 +124,7 @@ export class PostsController {
   @Get('tags/:tag')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async getByTag(
     @CurrentUser() user: CurrentUserData | null,
     @Param('tag') tag: string,
@@ -131,6 +137,7 @@ export class PostsController {
   @Get(':id')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200, type: Object })
   async findOne(
     @CurrentUser() user: CurrentUserData | null,
     @Param('id') id: string,
@@ -144,6 +151,7 @@ export class PostsController {
   @RequireOwnership({ model: 'Post' })
   @MemberAllowed('content.manage')
   @RecordsActivity('POST_EDITED')
+  @ApiResponse({ status: 200 })
   async update(@Param('id') id: string, @Body() dto: UpdatePostDto) {
     return this.postsService.update(id, dto);
   }
@@ -155,6 +163,7 @@ export class PostsController {
   @MemberAllowed('content.manage')
   @RecordsActivity('POST_DELETED')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: HttpStatus.NO_CONTENT })
   async remove(@Param('id') id: string) {
     await this.postsService.remove(id);
   }
@@ -163,6 +172,7 @@ export class PostsController {
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('content')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: HttpStatus.NO_CONTENT })
   async adminRemove(@Param('id') id: string) {
     await this.postsService.adminRemove(id);
   }

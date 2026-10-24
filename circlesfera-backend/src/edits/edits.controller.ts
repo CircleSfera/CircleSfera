@@ -8,6 +8,7 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import {
   CurrentUser,
@@ -25,6 +26,7 @@ export class EditsController {
   constructor(private readonly editsService: EditsService) {}
 
   @Post()
+  @ApiResponse({ status: 201 })
   create(
     @CurrentUser() user: CurrentUserData,
     @Body() createEditDto: CreateEditDto,
@@ -33,12 +35,14 @@ export class EditsController {
   }
 
   @Get()
+  @ApiResponse({ status: 200 })
   findAll(@CurrentUser() user: CurrentUserData) {
     return this.editsService.findAll(user.profileId);
   }
 
   @Post(':id/captions')
   @Throttle({ short: { limit: 3, ttl: 3600000 } })
+  @ApiResponse({ status: 201 })
   startCaptions(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -48,6 +52,7 @@ export class EditsController {
   }
 
   @Get(':id/captions/:jobId')
+  @ApiResponse({ status: 200, type: Object })
   getCaptionsJob(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -57,11 +62,13 @@ export class EditsController {
   }
 
   @Get(':id')
+  @ApiResponse({ status: 200 })
   findOne(@CurrentUser() user: CurrentUserData, @Param('id') id: string) {
     return this.editsService.findOne(user.profileId, id);
   }
 
   @Put(':id')
+  @ApiResponse({ status: 200 })
   update(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -71,6 +78,7 @@ export class EditsController {
   }
 
   @Delete(':id')
+  @ApiResponse({ status: 200 })
   remove(@CurrentUser() user: CurrentUserData, @Param('id') id: string) {
     return this.editsService.remove(user.profileId, id);
   }
