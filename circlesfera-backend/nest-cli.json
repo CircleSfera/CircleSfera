@@ -1,15 +1,5 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
-  "compilerOptions": {
-    "deleteOutDir": true,
-    "plugins": ["@nestjs/swagger"],
-    "assets": [
-      {
-        "include": "auth/leaked-passwords/leaked-passwords.txt",
-        "outDir": "dist"
-      }
-    ]
-  }
+  "sourceRoot": "src"
 }
