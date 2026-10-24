@@ -36,7 +36,6 @@
     "media:backfill": "tsx src/scripts/backfill-media-entity.ts"
   },
   "overrides": {
-    "js-yaml": "4.3.2",
     "fast-uri": "4.2.3",
     "engine.io": "6.6.11",
     "socket.io-parser": "4.2.7",
