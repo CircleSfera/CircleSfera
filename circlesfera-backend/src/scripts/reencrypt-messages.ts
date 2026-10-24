@@ -4,7 +4,7 @@
 // ENCRYPTION_KEY='your-new-32+-char-secret................' \
 // DATABASE_URL='postgresql://...' \
 // Npx tsx src/scripts/reencrypt-messages.ts [--dry-run]
-// Usage (production container, after nest build):
+// Usage (production container, after the build):
 // Docker compose -f docker-compose.prod.yml exec backend \
 // Node dist/scripts/reencrypt-messages.js [--dry-run]
 // If ENCRYPTION_KEY_LEGACY is omitted, the historical insecure default is used.

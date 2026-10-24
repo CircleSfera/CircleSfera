@@ -32,7 +32,7 @@
  *   # Apply
  *   CONFIRM=YES npx tsx src/scripts/backfill-media-entity.ts
  *
- * Usage (production container, after nest build — see ops-media-backfill.yml):
+ * Usage (production container, after the build — see ops-media-backfill.yml):
  *
  *   docker compose -f docker-compose.prod.yml exec backend \
  *     node dist/scripts/backfill-media-entity.js
