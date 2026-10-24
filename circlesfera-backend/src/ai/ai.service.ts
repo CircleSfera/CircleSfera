@@ -1,4 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI, { APIError } from 'openai';
 import { LOCAL_UPLOAD_URL } from '../common/constants/local-upload.constants.js';
@@ -219,12 +224,14 @@ export class AIService {
 
   // Generate an accessibility description (alt-text) for an image.
   // Param imageUrl: The public URL of the image
+  // Never answers a made-up sentence: whatever it answers is saved as the
+  // image's description and read aloud by screen readers. When no
+  // description can be written (no OpenAI key, the model fails or says
+  // nothing) it refuses, and the app asks the person to write it.
   async generateAltText(imageUrl: string): Promise<string> {
     if (!this.openai) {
-      this.logger.warn(
-        'AI Service unavailable: OPENAI_API_KEY is missing. Mocking alt-text.',
-      );
-      return `A beautiful high-quality image from CircleSfera (Ref: ${imageUrl.split('/').pop()})`;
+      this.logger.warn('Alt text unavailable: OPENAI_API_KEY is missing.');
+      throw new ServiceUnavailableException('Alt text is not available.');
     }
 
     const release = await this.aiConcurrencySemaphore.acquire();
@@ -253,12 +260,12 @@ export class AIService {
         max_tokens: 100,
       });
 
-      return (
-        response.choices[0].message.content || 'An image shared on CircleSfera.'
-      );
+      const text = response.choices[0]?.message.content?.trim();
+      if (!text) throw new Error('The model gave no description');
+      return text;
     } catch (error) {
       this.logger.error('Failed to generate alt-text', error);
-      return 'An image shared on CircleSfera.';
+      throw new ServiceUnavailableException('Alt text could not be written.');
     } finally {
       release();
     }

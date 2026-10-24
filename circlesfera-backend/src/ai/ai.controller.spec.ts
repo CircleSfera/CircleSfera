@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
+import { ServiceUnavailableException } from '@nestjs/common';
 import request from 'supertest';
 import {
   afterAll,
@@ -103,5 +104,19 @@ describe('AIController', () => {
         .expect(400);
     }
     expect(mockService.generateAltText).not.toHaveBeenCalled();
+  });
+
+  it('answers 503, never a made-up description, when none can be written', async () => {
+    mockService.generateAltText.mockRejectedValue(
+      new ServiceUnavailableException('Alt text is not available.'),
+    );
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/ai/alt-text')
+      .set(BEARER)
+      .send({ imageUrl: 'https://cdn.example/cat.jpg' })
+      .expect(503);
+
+    expect(res.body.text).toBeUndefined();
   });
 });
