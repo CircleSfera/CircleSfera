@@ -518,6 +518,32 @@ describe('ChatController', () => {
     );
   });
 
+  it('takes a group photo off with null, and still refuses an empty or bad address', async () => {
+    mockUpdateGroupUseCase.execute.mockResolvedValue({ id: 'conv-1' });
+
+    await request(app.getHttpServer())
+      .put('/api/v1/chat/conversations/conv-1/group')
+      .set(BEARER)
+      .send({ name: 'Saturday', avatarUrl: null })
+      .expect(200);
+    expect(mockUpdateGroupUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+      'Saturday',
+      null,
+    );
+
+    mockUpdateGroupUseCase.execute.mockClear();
+    for (const avatarUrl of ['', 'javascript:alert(1)']) {
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/conv-1/group')
+        .set(BEARER)
+        .send({ name: 'Saturday', avatarUrl })
+        .expect(400);
+    }
+    expect(mockUpdateGroupUseCase.execute).not.toHaveBeenCalled();
+  });
+
   it('removes a participant from a group conversation', async () => {
     mockRemoveParticipantUseCase.execute.mockResolvedValue({ success: true });
 

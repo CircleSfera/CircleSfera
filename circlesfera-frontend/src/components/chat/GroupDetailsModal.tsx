@@ -10,7 +10,7 @@ interface GroupDetailsModalProps {
   isOpen: boolean;
   conversation: Conversation;
   onClose: () => void;
-  onUpdate: (data: { name?: string; avatarUrl?: string }) => void;
+  onUpdate: (data: { name?: string; avatarUrl?: string | null }) => void;
   onRemoveParticipant: (profileId: string) => void;
   onLeaveGroup: () => void;
 }
@@ -38,7 +38,8 @@ export default function GroupDetailsModal({
   const isAdmin = myParticipant?.isAdmin || false;
 
   const handleSave = () => {
-    onUpdate({ name: editName, avatarUrl: editAvatarUrl });
+    // An empty address takes the photo off; the server refuses an empty one.
+    onUpdate({ name: editName, avatarUrl: editAvatarUrl.trim() || null });
     setIsEditing(false);
   };
 

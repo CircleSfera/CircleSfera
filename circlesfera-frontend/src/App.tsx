@@ -13,6 +13,7 @@ import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
 import GuestGuard from './components/auth/GuestGuard';
 import ScrollToTop from './components/common/ScrollToTop';
 import {
+  LegacyConversationRedirect,
   LegacyPostRedirect,
   LegacyTagRedirect,
 } from './components/LegacyRedirects';
@@ -411,10 +412,7 @@ function App() {
           path="/messages"
           element={<Navigate to="/direct/inbox" replace />}
         />
-        <Route
-          path="/messages/:id"
-          element={<Navigate to="/direct/inbox/t/:id" replace />}
-        />
+        <Route path="/messages/:id" element={<LegacyConversationRedirect />} />
 
         {/* Account hub — reserved auth paths declared above */}
         <Route

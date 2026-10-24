@@ -8,6 +8,11 @@ export function LegacyPostRedirect() {
   return <Navigate to={`/p/${encodeURIComponent(id)}`} replace />;
 }
 
+export function LegacyConversationRedirect() {
+  const { id = '' } = useParams<{ id: string }>();
+  return <Navigate to={`/direct/inbox/t/${encodeURIComponent(id)}`} replace />;
+}
+
 export function LegacyTagRedirect() {
   const { tag = '' } = useParams<{ tag: string }>();
   return <Navigate to={`/explore/tags/${encodeURIComponent(tag)}`} replace />;
