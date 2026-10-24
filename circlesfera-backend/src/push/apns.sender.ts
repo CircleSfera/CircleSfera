@@ -147,10 +147,12 @@ export class ApnsSender implements OnModuleDestroy {
       request.setEncoding('utf8');
       // No answer in time: the connection may be dead without knowing it (a
       // network that drops idle connections), so the next send opens another.
+      // close(), not destroy(): the other devices' requests on it finish, or
+      // reach their own timeout, before it goes.
       request.setTimeout(REQUEST_TIMEOUT_MS, () => {
         request.close(http2.constants.NGHTTP2_CANCEL);
         if (this.session === session) this.session = null;
-        session.destroy();
+        session.close();
       });
       request.on('response', (headers) => {
         status = Number(headers[':status']);

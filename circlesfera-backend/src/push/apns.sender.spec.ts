@@ -231,9 +231,10 @@ describe('ApnsSender', () => {
     expect(ms).toBe(10_000);
     cancel();
     expect(stream.close).toHaveBeenCalledWith(8);
-    // The connection that did not answer is dropped; the next send opens
-    // another.
-    expect(connect.mock.results[0].value.destroy).toHaveBeenCalled();
+    // The connection that did not answer is closed, letting the requests of
+    // other devices on it finish; the next send opens another.
+    expect(connect.mock.results[0].value.close).toHaveBeenCalled();
+    expect(connect.mock.results[0].value.destroy).not.toHaveBeenCalled();
     await sender.send(['ab12'], { title: 'a', body: 'b' });
     expect(connect).toHaveBeenCalledTimes(2);
   });
