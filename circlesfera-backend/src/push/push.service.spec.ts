@@ -3,7 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import webpush from 'web-push';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { FcmSender } from './fcm.sender.js';
+import { ApnsSender } from './apns.sender.js';
 import { PushService } from './push.service.js';
 
 vi.mock('web-push', () => ({
@@ -29,7 +29,7 @@ describe('PushService', () => {
       findMany: vi.fn().mockResolvedValue([]),
     },
   };
-  const mockFcm = { send: vi.fn().mockResolvedValue([]) };
+  const mockApns = { send: vi.fn().mockResolvedValue([]) };
 
   const mockConfigService = {
     get: vi.fn((key: string) => {
@@ -50,14 +50,14 @@ describe('PushService', () => {
         PushService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: FcmSender, useValue: mockFcm },
+        { provide: ApnsSender, useValue: mockApns },
       ],
     }).compile();
 
     service = module.get<PushService>(PushService);
     vi.clearAllMocks();
     mockPrismaService.nativePushToken.findMany.mockResolvedValue([]);
-    mockFcm.send.mockResolvedValue([]);
+    mockApns.send.mockResolvedValue([]);
   });
 
   it('should be defined', () => {
@@ -327,7 +327,7 @@ describe('PushService', () => {
           PushService,
           { provide: PrismaService, useValue: mockPrismaService },
           { provide: ConfigService, useValue: customConfig },
-          { provide: FcmSender, useValue: mockFcm },
+          { provide: ApnsSender, useValue: mockApns },
         ],
       }).compile();
 
@@ -343,24 +343,24 @@ describe('PushService', () => {
   describe('native apps', () => {
     it('keeps the token of a device for the person, also when it was someone else', async () => {
       await service.subscribeNative('user-2', {
-        token: 'fcm-1',
-        platform: 'android',
+        token: 'a1b2',
+        platform: 'ios',
       });
       expect(mockPrismaService.nativePushToken.upsert).toHaveBeenCalledWith({
-        where: { token: 'fcm-1' },
-        create: { userId: 'user-2', token: 'fcm-1', platform: 'android' },
+        where: { token: 'a1b2' },
+        create: { userId: 'user-2', token: 'a1b2', platform: 'ios' },
         update: {
           userId: 'user-2',
-          platform: 'android',
+          platform: 'ios',
           lastSeenAt: expect.any(Date),
         },
       });
     });
 
     it('takes off only a device of the person who asks', async () => {
-      await service.unsubscribeNative('user-1', 'fcm-1');
+      await service.unsubscribeNative('user-1', 'a1b2');
       expect(mockPrismaService.nativePushToken.deleteMany).toHaveBeenCalledWith(
-        { where: { token: 'fcm-1', userId: 'user-1' } },
+        { where: { token: 'a1b2', userId: 'user-1' } },
       );
     });
 
@@ -371,10 +371,10 @@ describe('PushService', () => {
       });
       mockPrismaService.pushSubscription.findMany.mockResolvedValue([]);
       mockPrismaService.nativePushToken.findMany.mockResolvedValue([
-        { token: 'fcm-1' },
-        { token: 'fcm-2' },
+        { token: 'a1b2' },
+        { token: 'c3d4' },
       ]);
-      mockFcm.send.mockResolvedValue(['fcm-2']);
+      mockApns.send.mockResolvedValue(['c3d4']);
 
       await service.sendNotification(
         'profile-1',
@@ -386,13 +386,18 @@ describe('PushService', () => {
         null,
       );
 
-      expect(mockFcm.send).toHaveBeenCalledWith(['fcm-1', 'fcm-2'], {
+      // Only iOS devices: the Android app has no push.
+      expect(mockPrismaService.nativePushToken.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', platform: 'ios' },
+        select: { token: true },
+      });
+      expect(mockApns.send).toHaveBeenCalledWith(['a1b2', 'c3d4'], {
         title: 'Hi',
         body: 'New like',
         data: { url: '/p/1', count: '3' },
       });
       expect(mockPrismaService.nativePushToken.deleteMany).toHaveBeenCalledWith(
-        { where: { token: { in: ['fcm-2'] } } },
+        { where: { token: { in: ['c3d4'] } } },
       );
     });
 
@@ -406,7 +411,7 @@ describe('PushService', () => {
         { title: 'a', body: 'b' },
         null,
       );
-      expect(mockFcm.send).not.toHaveBeenCalled();
+      expect(mockApns.send).not.toHaveBeenCalled();
     });
 
     it('still sends web push when the native send fails', async () => {
@@ -415,9 +420,9 @@ describe('PushService', () => {
         pushNotifications: true,
       });
       mockPrismaService.nativePushToken.findMany.mockResolvedValue([
-        { token: 'fcm-1' },
+        { token: 'a1b2' },
       ]);
-      mockFcm.send.mockRejectedValue(new Error('firebase down'));
+      mockApns.send.mockRejectedValue(new Error('apple down'));
       mockPrismaService.pushSubscription.findMany.mockResolvedValue([
         { endpoint: 'https://push.example/1', p256dh: 'k', auth: 'a' },
       ]);

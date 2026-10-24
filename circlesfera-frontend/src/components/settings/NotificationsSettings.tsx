@@ -30,6 +30,7 @@ const PUSH_GROUP_LABEL: Record<PushGroupKey, string> = {
 export default function NotificationsSettings() {
   const {
     isSupported,
+    isAndroidApp,
     permission,
     isSubscribed,
     loading,
@@ -174,6 +175,11 @@ export default function NotificationsSettings() {
                 </button>
               }
             >
+              {isAndroidApp && (
+                <p className="text-xs text-white/60 mt-2">
+                  {t('settings.notifications_tab.android_unavailable')}
+                </p>
+              )}
               {permission === 'denied' && (
                 <p className="text-xs text-brand-secondary font-medium mt-2 flex items-center gap-1">
                   <AlertTriangle size={12} aria-hidden />{' '}

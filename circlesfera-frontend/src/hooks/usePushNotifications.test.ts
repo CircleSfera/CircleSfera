@@ -2,15 +2,20 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../services';
+import { useAuthStore } from '../stores/authStore';
 import { usePushNotifications } from './usePushNotifications';
 
-// Whether the tests run as the app on a phone; the web by default.
-const platform = vi.hoisted(() => ({ native: false }));
+// Whether the tests run as the app on a phone, and which one; the web by
+// default.
+const platform = vi.hoisted(() => ({
+  native: false,
+  os: 'ios' as 'ios' | 'android',
+}));
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: () => platform.native,
-    getPlatform: () => (platform.native ? 'ios' : 'web'),
+    getPlatform: () => (platform.native ? platform.os : 'web'),
   },
 }));
 
@@ -19,6 +24,7 @@ vi.mock('@capacitor/push-notifications', () => ({
     checkPermissions: vi.fn(),
     requestPermissions: vi.fn(),
     register: vi.fn(),
+    unregister: vi.fn(),
     addListener: vi.fn(),
   },
 }));
@@ -167,6 +173,21 @@ describe('usePushNotifications (web)', () => {
   });
 });
 
+// The account signed in on the phone (User.id).
+function signIn(userId: string) {
+  useAuthStore.setState({
+    isAuthenticated: true,
+    profile: { userId } as never,
+  });
+}
+
+// The listener the hook gave the phone for Apple's token.
+function registrationListener() {
+  const calls = vi.mocked(PushNotifications.addListener).mock
+    .calls as unknown as [string, (token: { value: string }) => void][];
+  return calls.find(([event]) => event === 'registration')?.[1];
+}
+
 describe('usePushNotifications (on a phone)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -174,10 +195,171 @@ describe('usePushNotifications (on a phone)', () => {
     vi.mocked(PushNotifications.addListener).mockResolvedValue({
       remove: vi.fn(),
     } as never);
+    vi.mocked(PushNotifications.unregister).mockResolvedValue(
+      undefined as never,
+    );
   });
 
   afterEach(() => {
     platform.native = false;
+    platform.os = 'ios';
+    useAuthStore.setState({ isAuthenticated: false, profile: null });
+    localStorage.clear();
+  });
+
+  it("sends the iPhone's Apple token to the server once the phone gives it", async () => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'granted',
+    } as never);
+    vi.mocked(api.post).mockResolvedValue({} as never);
+    signIn('u1');
+    renderHook(() => usePushNotifications());
+
+    const registration = registrationListener();
+    expect(registration).toBeDefined();
+    registration?.({ value: 'a1b2c3' });
+
+    expect(api.post).toHaveBeenCalledWith('/push/subscribe-native', {
+      token: 'a1b2c3',
+      platform: 'ios',
+    });
+    expect(localStorage.getItem('cs_native_push_token')).toBe('a1b2c3');
+  });
+
+  it('registers the iPhone again once a person is signed in and the phone allows push', async () => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'granted',
+    } as never);
+    useAuthStore.setState({ isAuthenticated: false });
+    const { rerender } = renderHook(() => usePushNotifications());
+    await waitFor(() =>
+      expect(PushNotifications.checkPermissions).toHaveBeenCalled(),
+    );
+    expect(PushNotifications.register).not.toHaveBeenCalled();
+
+    act(() => signIn('u1'));
+    rerender();
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled());
+  });
+
+  it('does not register again after the person turned push off here, and shows it off', async () => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'granted',
+    } as never);
+    signIn('u1');
+    const first = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled());
+
+    await act(async () => {
+      await first.result.current.unsubscribeUser();
+    });
+    first.unmount();
+    vi.mocked(PushNotifications.register).mockClear();
+
+    const { result } = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(result.current.permission).toBe('granted'));
+    expect(result.current.isSubscribed).toBe(false);
+    expect(PushNotifications.register).not.toHaveBeenCalled();
+
+    // Turning it on again here clears that.
+    await act(async () => {
+      await result.current.requestPermission();
+    });
+    expect(PushNotifications.register).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('cs_native_push_off:u1')).toBeNull();
+  });
+
+  it('does not send the token Apple gives after push was turned off here, and takes the phone off again', async () => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'granted',
+    } as never);
+    signIn('u1');
+    const { result } = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled());
+
+    await act(async () => {
+      await result.current.unsubscribeUser();
+    });
+    vi.mocked(PushNotifications.unregister).mockClear();
+    // Apple answers the earlier register() only now.
+    registrationListener()?.({ value: 'a1b2c3' });
+
+    expect(api.post).not.toHaveBeenCalled();
+    expect(PushNotifications.unregister).toHaveBeenCalled();
+    expect(localStorage.getItem('cs_native_push_token')).toBeNull();
+  });
+
+  it('does not send the token Apple gives once nobody is signed in', async () => {
+    renderHook(() => usePushNotifications());
+
+    registrationListener()?.({ value: 'a1b2c3' });
+
+    expect(api.post).not.toHaveBeenCalled();
+    expect(PushNotifications.unregister).toHaveBeenCalled();
+  });
+
+  it('registers nothing when push is turned off while the phone is still being asked', async () => {
+    let answer: (status: { receive: string }) => void = () => undefined;
+    vi.mocked(PushNotifications.checkPermissions).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve as never;
+        }) as never,
+    );
+    signIn('u1');
+    const { result } = renderHook(() => usePushNotifications());
+    await waitFor(() =>
+      expect(PushNotifications.checkPermissions).toHaveBeenCalled(),
+    );
+
+    await act(async () => {
+      await result.current.unsubscribeUser();
+    });
+    await act(async () => {
+      answer({ receive: 'granted' });
+    });
+
+    expect(PushNotifications.register).not.toHaveBeenCalled();
+  });
+
+  it('keeps push turned off for the account that turned it off only', async () => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'granted',
+    } as never);
+    signIn('u1');
+    const first = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled());
+    await act(async () => {
+      await first.result.current.unsubscribeUser();
+    });
+    first.unmount();
+    vi.mocked(PushNotifications.register).mockClear();
+
+    // Another person signs in on the same phone.
+    signIn('u2');
+    const { result } = renderHook(() => usePushNotifications());
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isSubscribed).toBe(true));
+  });
+
+  it('offers no push in the Android app: it asks nothing and registers nothing', async () => {
+    platform.os = 'android';
+    const { result } = renderHook(() => usePushNotifications());
+
+    let subscribed: boolean | undefined;
+    await act(async () => {
+      subscribed = await result.current.requestPermission();
+    });
+
+    expect(subscribed).toBe(false);
+    expect(result.current.isSupported).toBe(false);
+    expect(result.current.isAndroidApp).toBe(true);
+    expect(PushNotifications.checkPermissions).not.toHaveBeenCalled();
+    expect(PushNotifications.requestPermissions).not.toHaveBeenCalled();
+    expect(PushNotifications.addListener).not.toHaveBeenCalled();
+    expect(PushNotifications.register).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const isNative = vi.fn(() => true);
+const platform = vi.fn(() => 'ios');
 const unregister = vi.fn().mockResolvedValue(undefined);
 const del = vi.fn().mockResolvedValue({});
 
 vi.mock('@capacitor/core', () => ({
-  Capacitor: { isNativePlatform: () => isNative() },
+  Capacitor: { getPlatform: () => platform() },
 }));
 vi.mock('@capacitor/push-notifications', () => ({
   PushNotifications: { unregister: () => unregister() },
@@ -20,36 +20,41 @@ describe('native push token', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    isNative.mockReturnValue(true);
+    platform.mockReturnValue('ios');
   });
 
   it('takes this device off: the server forgets its token and the phone stops', async () => {
-    rememberNativePushToken('fcm-1');
+    rememberNativePushToken('a1b2');
 
     await forgetNativePushToken();
 
     expect(del).toHaveBeenCalledWith('/push/unsubscribe-native', {
-      params: { token: 'fcm-1' },
+      params: { token: 'a1b2' },
     });
     expect(unregister).toHaveBeenCalled();
     expect(localStorage.getItem('cs_native_push_token')).toBeNull();
   });
 
   it('still stops the phone when the server cannot be told', async () => {
-    rememberNativePushToken('fcm-1');
+    rememberNativePushToken('a1b2');
     del.mockRejectedValueOnce(new Error('401'));
 
     await expect(forgetNativePushToken()).resolves.toBeUndefined();
     expect(unregister).toHaveBeenCalled();
   });
 
-  it('asks the server nothing without a token, and nothing outside the app', async () => {
+  it('asks the server nothing without a token, and nothing outside the iOS app', async () => {
     await forgetNativePushToken();
     expect(del).not.toHaveBeenCalled();
 
-    isNative.mockReturnValue(false);
-    rememberNativePushToken('fcm-1');
-    await forgetNativePushToken();
+    // The web, and the Android app, which has no push.
+    for (const other of ['web', 'android']) {
+      platform.mockReturnValue(other);
+      rememberNativePushToken('a1b2');
+      await forgetNativePushToken();
+      // A token an earlier version left on the device goes.
+      expect(localStorage.getItem('cs_native_push_token')).toBeNull();
+    }
     expect(del).not.toHaveBeenCalled();
     expect(unregister).toHaveBeenCalledTimes(1);
   });
