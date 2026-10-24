@@ -9,7 +9,12 @@ export class UpdateGroupDto {
   name?: string;
 
   // null takes the group's photo off.
-  @ApiProperty({ required: false, type: () => String, format: 'uri' })
+  @ApiProperty({
+    required: false,
+    type: () => String,
+    format: 'uri',
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   @IsUrl({ require_tld: false })

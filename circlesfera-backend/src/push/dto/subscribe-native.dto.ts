@@ -14,7 +14,7 @@ export class SubscribeNativeDto {
     required: true,
     type: () => String,
     maxLength: 200,
-    pattern: '/^[0-9a-f]+$/i',
+    pattern: '^[0-9a-f]+$',
   })
   @IsString()
   @IsNotEmpty()
