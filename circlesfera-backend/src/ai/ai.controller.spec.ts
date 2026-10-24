@@ -76,4 +76,32 @@ describe('AIController', () => {
       'https://cdn.example/cat.jpg',
     );
   });
+
+  it('takes the address the upload answers when files are kept on the server disk, and nothing else relative', async () => {
+    mockService.generateAltText.mockResolvedValue('A cat on a sofa');
+    const imageUrl = '/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.jpg';
+
+    await request(app.getHttpServer())
+      .post('/api/v1/ai/alt-text')
+      .set(BEARER)
+      .send({ imageUrl })
+      .expect(201);
+    expect(mockService.generateAltText).toHaveBeenCalledWith(imageUrl);
+
+    mockService.generateAltText.mockClear();
+    for (const bad of [
+      '/uploads/../../etc/passwd',
+      '/uploads/cat.jpg',
+      '/avatars/0eff3516-d0bc-480f-8de9-33a24b7ded2a.jpg',
+      ['/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.jpg'],
+      '',
+    ]) {
+      await request(app.getHttpServer())
+        .post('/api/v1/ai/alt-text')
+        .set(BEARER)
+        .send({ imageUrl: bad })
+        .expect(400);
+    }
+    expect(mockService.generateAltText).not.toHaveBeenCalled();
+  });
 });

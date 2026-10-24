@@ -1,9 +1,20 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI, { APIError } from 'openai';
+import { LOCAL_UPLOAD_URL } from '../common/constants/local-upload.constants.js';
 import { safeFetchMedia } from '../common/utils/safe-media-fetcher.js';
 import { Semaphore } from '../common/utils/semaphore.js';
 import { isPrivateOrLocalHost } from '../common/utils/ssrf.util.js';
+
+// What the model is given to describe: the image types it reads, at most
+// 20 MB (its limit for an image).
+const ALT_TEXT_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+];
+const ALT_TEXT_MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 export interface ContentModerationResult {
   flagged: boolean;
@@ -219,6 +230,11 @@ export class AIService {
     const release = await this.aiConcurrencySemaphore.acquire();
     try {
       this.logger.log(`Generating AI alt-text for: ${imageUrl}`);
+      // The model cannot fetch a path on this server: an upload kept on its
+      // disk is read and sent as data.
+      const image = LOCAL_UPLOAD_URL.test(imageUrl)
+        ? await this.uploadAsDataUrl(imageUrl)
+        : imageUrl;
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o',
@@ -230,7 +246,7 @@ export class AIService {
                 type: 'text',
                 text: 'Describe this image for accessibility (alt-text). Be concise, neutral, and descriptive. Do not use phrases like "image of" or "picture of". Max 125 characters.',
               },
-              { type: 'image_url', image_url: { url: imageUrl } },
+              { type: 'image_url', image_url: { url: image } },
             ],
           },
         ],
@@ -246,6 +262,15 @@ export class AIService {
     } finally {
       release();
     }
+  }
+
+  // An image uploaded to this server, as a data: address the model reads.
+  private async uploadAsDataUrl(imageUrl: string): Promise<string> {
+    const { buffer, contentType } = await safeFetchMedia(imageUrl, {
+      maxBytes: ALT_TEXT_MAX_IMAGE_BYTES,
+      allowedMimeTypes: ALT_TEXT_IMAGE_TYPES,
+    });
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
   }
 
   // Generate a morning briefing summary for Slack based on daily metrics.

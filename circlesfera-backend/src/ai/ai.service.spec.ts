@@ -421,6 +421,57 @@ describe('AIService', () => {
       );
     });
 
+    it('sends an upload kept on the server disk as data, which the model can read', async () => {
+      mOpenAI.chat.completions.create.mockResolvedValue({
+        choices: [{ message: { content: 'A dog on a beach.' } }],
+      });
+      (safeFetchMedia as Mock).mockResolvedValue({
+        buffer: Buffer.from('jpeg-bytes'),
+        contentType: 'image/jpeg',
+        ext: 'jpg',
+      });
+      const imageUrl = '/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.jpg';
+
+      const result = await service.generateAltText(imageUrl);
+
+      expect(result).toBe('A dog on a beach.');
+      expect(safeFetchMedia).toHaveBeenCalledWith(
+        imageUrl,
+        expect.objectContaining({
+          allowedMimeTypes: expect.arrayContaining(['image/jpeg']),
+        }),
+      );
+      const content =
+        mOpenAI.chat.completions.create.mock.calls[0][0].messages[0].content;
+      expect(content[1].image_url.url).toBe(
+        `data:image/jpeg;base64,${Buffer.from('jpeg-bytes').toString('base64')}`,
+      );
+    });
+
+    it('gives a full address to the model as it is, without reading it here', async () => {
+      mOpenAI.chat.completions.create.mockResolvedValue({
+        choices: [{ message: { content: 'A sunset.' } }],
+      });
+
+      await service.generateAltText('https://cdn.example.com/pic.jpg');
+
+      expect(safeFetchMedia).not.toHaveBeenCalled();
+      const content =
+        mOpenAI.chat.completions.create.mock.calls[0][0].messages[0].content;
+      expect(content[1].image_url.url).toBe('https://cdn.example.com/pic.jpg');
+    });
+
+    it('falls back to the default text when the upload cannot be read', async () => {
+      (safeFetchMedia as Mock).mockRejectedValue(new Error('not an image'));
+
+      const result = await service.generateAltText(
+        '/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.jpg',
+      );
+
+      expect(result).toBe('An image shared on CircleSfera.');
+      expect(mOpenAI.chat.completions.create).not.toHaveBeenCalled();
+    });
+
     it('falls back to default text if choices content is empty', async () => {
       mOpenAI.chat.completions.create.mockResolvedValue({
         choices: [{ message: { content: '' } }],
