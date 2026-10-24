@@ -12,7 +12,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
@@ -80,6 +80,7 @@ export class AdminAuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 20, ttl: 60000 } })
+  @ApiResponse({ status: HttpStatus.OK })
   async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
     const result = await this.adminAuthService.login(
       dto.email,
@@ -95,6 +96,7 @@ export class AdminAuthController {
   @Post('enrol')
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 10, ttl: 60000 } })
+  @ApiResponse({ status: HttpStatus.OK })
   async enrol(@Body() dto: AdminEnrolDto, @Req() req: Request) {
     return this.adminAuthService.enrol(
       dto.mfaToken,
@@ -106,6 +108,7 @@ export class AdminAuthController {
   @Post('mfa/verify')
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 30, ttl: 60000 } })
+  @ApiResponse({ status: HttpStatus.OK })
   async verifyMfa(
     @Body() dto: AdminMfaVerifyDto,
     @Req() req: Request,
@@ -123,6 +126,7 @@ export class AdminAuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 60, ttl: 60000 } })
+  @ApiResponse({ status: HttpStatus.OK })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -138,6 +142,7 @@ export class AdminAuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AdminJwtAuthGuard)
+  @ApiResponse({ status: HttpStatus.OK })
   async logout(
     @CurrentAdmin() admin: CurrentAdminData,
     @Req() req: Request,
@@ -154,18 +159,21 @@ export class AdminAuthController {
 
   @Get('me')
   @UseGuards(AdminJwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async me(@CurrentAdmin() admin: CurrentAdminData) {
     return this.adminAuthService.me(admin.adminId);
   }
 
   @Get('sessions')
   @UseGuards(AdminJwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async sessions(@CurrentAdmin() admin: CurrentAdminData) {
     return this.adminAuthService.listSessions(admin.adminId);
   }
 
   @Delete('sessions/:id')
   @UseGuards(AdminJwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async revokeSession(
     @CurrentAdmin() admin: CurrentAdminData,
     @Param('id') id: string,
@@ -177,6 +185,7 @@ export class AdminAuthController {
   @Post('step-up')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AdminJwtAuthGuard)
+  @ApiResponse({ status: HttpStatus.OK })
   async stepUp(
     @CurrentAdmin() admin: CurrentAdminData,
     @Body() dto: AdminStepUpDto,

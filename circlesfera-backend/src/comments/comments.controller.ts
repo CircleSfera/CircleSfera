@@ -11,6 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -37,6 +38,7 @@ export class CommentsController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @MemberAllowed('comments.answer')
   @RecordsActivity('COMMENT_WRITTEN')
+  @ApiResponse({ status: 201 })
   async create(
     @Param('postId') postId: string,
     @CurrentUser() user: CurrentUserData,
@@ -49,6 +51,7 @@ export class CommentsController {
   @Get()
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200, type: Object })
   async findByPost(
     @Param('postId') postId: string,
     @Query() pagination: PaginationDto,
@@ -63,6 +66,7 @@ export class CommentsController {
   @RequireOwnership({ model: 'Comment' })
   @MemberAllowed('comments.answer')
   @RecordsActivity('COMMENT_EDITED')
+  @ApiResponse({ status: 200 })
   async update(
     @Param('postId') postId: string,
     @Param('id') id: string,
@@ -79,6 +83,7 @@ export class CommentsController {
   @MemberAllowed('comments.answer')
   @RecordsActivity('COMMENT_DELETED')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: HttpStatus.NO_CONTENT })
   async remove(@Param('id') id: string) {
     await this.commentsService.remove(id);
   }
@@ -86,6 +91,7 @@ export class CommentsController {
   // Like a comment.
   @Post(':id/like')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async likeComment(
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserData,
@@ -98,6 +104,7 @@ export class CommentsController {
   @Delete(':id/like')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: HttpStatus.NO_CONTENT })
   async unlikeComment(
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserData,

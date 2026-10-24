@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentAdmin,
   type CurrentAdminData,
@@ -38,11 +39,13 @@ export class AdminOperatorsController {
   ) {}
 
   @Get('roles')
+  @ApiResponse({ status: 200 })
   listRoles() {
     return this.operatorsService.listRoles();
   }
 
   @Get()
+  @ApiResponse({ status: 200 })
   list(@Query() query: ListAdminOperatorsQueryDto) {
     return this.operatorsService.listOperators(
       Number(query.page) || 1,
@@ -53,12 +56,14 @@ export class AdminOperatorsController {
   }
 
   @Get(':id')
+  @ApiResponse({ status: 200 })
   getOne(@Param('id') id: string) {
     return this.operatorsService.getOperator(id);
   }
 
   @Post()
   @RequireAdminStepUp()
+  @ApiResponse({ status: 201 })
   create(
     @CurrentAdmin() admin: CurrentAdminData,
     @Body() dto: CreateAdminOperatorDto,
@@ -68,6 +73,7 @@ export class AdminOperatorsController {
 
   @Patch(':id/status')
   @RequireAdminStepUp()
+  @ApiResponse({ status: 200 })
   updateStatus(
     @CurrentAdmin() admin: CurrentAdminData,
     @Param('id') id: string,
@@ -78,6 +84,7 @@ export class AdminOperatorsController {
 
   @Put(':id/roles')
   @RequireAdminStepUp()
+  @ApiResponse({ status: 200 })
   replaceRoles(
     @CurrentAdmin() admin: CurrentAdminData,
     @Param('id') id: string,
@@ -88,6 +95,7 @@ export class AdminOperatorsController {
 
   @Post(':id/reset-mfa')
   @RequireAdminStepUp()
+  @ApiResponse({ status: 201 })
   resetMfa(@CurrentAdmin() admin: CurrentAdminData, @Param('id') id: string) {
     return this.operatorsService.resetMfa(admin.adminId, id);
   }
@@ -95,6 +103,7 @@ export class AdminOperatorsController {
   // Sends a new link to enrol the authenticator to the staff email.
   @Post(':id/enrolment-link')
   @RequireAdminStepUp()
+  @ApiResponse({ status: 201 })
   sendEnrolmentLink(
     @CurrentAdmin() admin: CurrentAdminData,
     @Param('id') id: string,
@@ -105,6 +114,7 @@ export class AdminOperatorsController {
   // A code to enrol the authenticator, handed over in person; shown once.
   @Post(':id/enrolment-code')
   @RequireAdminStepUp()
+  @ApiResponse({ status: 201 })
   issueEnrolmentCode(
     @CurrentAdmin() admin: CurrentAdminData,
     @Param('id') id: string,
@@ -114,6 +124,7 @@ export class AdminOperatorsController {
 
   @Post(':id/unlock')
   @RequireAdminStepUp()
+  @ApiResponse({ status: 201 })
   unlock(@CurrentAdmin() admin: CurrentAdminData, @Param('id') id: string) {
     return this.operatorsService.unlock(admin.adminId, id);
   }

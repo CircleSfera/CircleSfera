@@ -1,4 +1,5 @@
 import { Controller, Get, Inject } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   DiskHealthIndicator,
   HealthCheck,
@@ -23,6 +24,7 @@ export class HealthController {
 
   @Get()
   @HealthCheck()
+  @ApiResponse({ status: 200, type: Object })
   check(): Promise<HealthCheckResult> {
     return this.health.check([
       () => this.prismaHealth.pingCheck('database', this.prisma),
@@ -40,6 +42,7 @@ export class HealthController {
    */
   @Get('liveness')
   @HealthCheck()
+  @ApiResponse({ status: 200, type: Object })
   checkLiveness(): Promise<HealthCheckResult> {
     return this.health.check([
       () => this.memory.checkHeap('memory_heap', 1024 * 1024 * 1024), // 1GB
@@ -53,6 +56,7 @@ export class HealthController {
    */
   @Get('readiness')
   @HealthCheck()
+  @ApiResponse({ status: 200, type: Object })
   checkReadiness(): Promise<HealthCheckResult> {
     return this.health.check([
       () => this.prismaHealth.pingCheck('database', this.prisma),

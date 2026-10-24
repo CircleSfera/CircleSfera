@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -17,6 +17,7 @@ export class NotificationsController {
 
   // List all notifications (paginated).
   @Get()
+  @ApiResponse({ status: 200 })
   async findAll(
     @CurrentUser() user: CurrentUserData,
     @Query() pagination: PaginationDto,
@@ -26,12 +27,14 @@ export class NotificationsController {
 
   // Get the count of unread notifications.
   @Get('unread-count')
+  @ApiResponse({ status: 200 })
   async getUnreadCount(@CurrentUser() user: CurrentUserData) {
     return this.notificationsService.getUnreadCount(user.profileId);
   }
 
   // Mark a single notification as read.
   @Put(':id/read')
+  @ApiResponse({ status: 200, type: Object })
   async markAsRead(
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserData,
@@ -41,6 +44,7 @@ export class NotificationsController {
 
   // Mark all notifications as read.
   @Put('read-all')
+  @ApiResponse({ status: 200 })
   async markAllAsRead(@CurrentUser() user: CurrentUserData) {
     await this.notificationsService.markAllAsRead(user.profileId);
     return { success: true };

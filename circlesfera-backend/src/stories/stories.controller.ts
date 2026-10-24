@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import type { StoryReaction, StoryView } from '@prisma/client';
 import {
   CurrentUser,
@@ -41,6 +42,7 @@ export class StoriesController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @MemberAllowed('content.manage')
   @RecordsActivity('STORY_PUBLISHED')
+  @ApiResponse({ status: 201, type: Object })
   create(
     @CurrentUser() user: CurrentUserData,
     @Body() createStoryDto: CreateStoryDto,
@@ -53,6 +55,7 @@ export class StoriesController {
   @Get()
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   findAll(@CurrentUser() user: CurrentUserData | null) {
     return this.storiesService.findAll(user?.profileId);
   }
@@ -61,6 +64,7 @@ export class StoriesController {
   @Get('user/:username')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   findByUser(
     @CurrentUser() user: CurrentUserData | null,
     @Param('username') username: string,
@@ -71,6 +75,7 @@ export class StoriesController {
   // Get all stories (archive) for the current user.
   @Get('archive')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   getArchive(@CurrentUser() user: CurrentUserData) {
     return this.storiesService.getArchive(user.profileId);
   }
@@ -81,6 +86,7 @@ export class StoriesController {
   @RequireOwnership({ model: 'Story' })
   @MemberAllowed('content.manage')
   @RecordsActivity('STORY_DELETED')
+  @ApiResponse({ status: 200 })
   async remove(@Param('id') id: string): Promise<void> {
     return this.storiesService.delete(id);
   }
@@ -89,6 +95,7 @@ export class StoriesController {
   // answer a question. Answers what the sticker has gathered since.
   @Post('stickers/:id/responses')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @ApiResponse({ status: 201, type: Object })
   respondToSticker(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -102,6 +109,7 @@ export class StoriesController {
   @Get('stickers/:id')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: Object })
   stickerResults(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -112,6 +120,7 @@ export class StoriesController {
   // Record a view on a story (idempotent).
   @Post(':id/view')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async view(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -126,6 +135,7 @@ export class StoriesController {
   @Get(':id/views')
   @UseGuards(JwtAuthGuard, OwnershipGuard)
   @RequireOwnership({ model: 'Story' })
+  @ApiResponse({ status: 200 })
   async getViews(@Param('id') id: string, @Query() query: PaginationDto) {
     return this.storiesService.getViews(id, query.cursor, query.limit);
   }
@@ -133,6 +143,7 @@ export class StoriesController {
   // Add or update a reaction on a story.
   @Post(':id/react')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @ApiResponse({ status: 201 })
   async react(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -147,6 +158,7 @@ export class StoriesController {
   // the next page.
   @Get(':id/reactions')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getReactions(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,

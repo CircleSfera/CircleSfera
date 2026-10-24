@@ -1,4 +1,5 @@
 import { COUNTRY_CODES } from '@circlesfera/shared';
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -30,10 +31,12 @@ const upperCaseEach = ({ value }: { value: unknown }) =>
     : value;
 
 export class CreatePromotionDto {
+  @ApiProperty({ required: true, enum: PROMOTION_TARGETS })
   @Transform(lowerCase)
   @IsIn(PROMOTION_TARGETS)
   targetType!: (typeof PROMOTION_TARGETS)[number];
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
@@ -41,12 +44,23 @@ export class CreatePromotionDto {
 
   // One of the fixed lengths and budgets per day; the server works out the
   // whole budget, the amount charged.
+  @ApiProperty({
+    required: true,
+    type: () => Number,
+    enum: PROMOTION_DURATIONS_DAYS,
+  })
   @IsIn(PROMOTION_DURATIONS_DAYS)
   durationDays!: number;
 
+  @ApiProperty({
+    required: true,
+    type: () => Number,
+    enum: PROMOTION_DAILY_BUDGETS_EUROS,
+  })
   @IsIn(PROMOTION_DAILY_BUDGETS_EUROS)
   dailyBudget!: number;
 
+  @ApiProperty({ required: false, type: () => String, enum: ['EUR'] })
   @IsOptional()
   @Transform(upperCase)
   @IsIn(['EUR'])
@@ -54,6 +68,14 @@ export class CreatePromotionDto {
 
   // Countries the promotion is aimed at, from the closed list; none for
   // everywhere.
+  @ApiProperty({
+    required: false,
+    type: () => [String],
+    enum: COUNTRY_CODES,
+    isArray: true,
+    uniqueItems: true,
+    maxItems: COUNTRY_CODES.length,
+  })
   @IsOptional()
   @Transform(upperCaseEach)
   @IsArray()
@@ -64,11 +86,20 @@ export class CreatePromotionDto {
 
   // The buyer consents to start at once and acknowledges losing the right of
   // withdrawal; without it the purchase is refused.
+  @ApiProperty({ required: true, type: () => Boolean })
   @Equals(true, { message: 'withdrawalConsent must be true' })
   withdrawalConsent!: true;
 }
 
 export class UpdatePromotionDto {
+  @ApiProperty({
+    required: false,
+    type: () => [String],
+    enum: COUNTRY_CODES,
+    isArray: true,
+    uniqueItems: true,
+    maxItems: COUNTRY_CODES.length,
+  })
   @IsOptional()
   @Transform(upperCaseEach)
   @IsArray()
@@ -77,10 +108,16 @@ export class UpdatePromotionDto {
   @IsIn(COUNTRY_CODES, { each: true })
   countries?: string[];
 
+  @ApiProperty({ required: false, type: () => String })
   @IsOptional()
   @IsDateString()
   endDate?: string;
 
+  @ApiProperty({
+    required: false,
+    type: () => Number,
+    enum: PROMOTION_DAILY_BUDGETS_EUROS,
+  })
   @IsOptional()
   @IsIn(PROMOTION_DAILY_BUDGETS_EUROS)
   dailyBudget?: number;

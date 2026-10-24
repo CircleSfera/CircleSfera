@@ -8,6 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { NewsletterUnsubscribe } from '../email/newsletter-unsubscribe.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -32,6 +33,7 @@ export class NewsletterController {
     short: { limit: 5, ttl: 1000 },
     medium: { limit: 30, ttl: 60000 },
   })
+  @ApiResponse({ status: HttpStatus.NO_CONTENT })
   async unsubscribe(
     @Query('token') queryToken: unknown,
     @Body() body: unknown,

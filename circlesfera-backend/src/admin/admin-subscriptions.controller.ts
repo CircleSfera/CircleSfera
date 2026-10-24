@@ -1,4 +1,5 @@
 import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   AdminGuard,
   RequireStaffPermissions,
@@ -17,6 +18,7 @@ export class AdminSubscriptionsController {
   ) {}
 
   @Get()
+  @ApiResponse({ status: 200 })
   async getSubscriptions(@Query() query: AdminSubscriptionsQueryDto) {
     return this.adminSubscriptionsService.getSubscriptions(
       query.page ?? 1,

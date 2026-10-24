@@ -14,7 +14,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from '../auth/auth.service.js';
 import {
@@ -52,6 +52,7 @@ export class ProfilesController {
   @Get('search')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async searchProfiles(
     @Query('q') query: string,
     @CurrentUser() user: CurrentUserData | null,
@@ -63,6 +64,7 @@ export class ProfilesController {
   @Get('my-profiles')
   @UseGuards(JwtAuthGuard)
   @MemberAllowed('session')
+  @ApiResponse({ status: 200 })
   async getMyProfiles(@CurrentUser() user: CurrentUserData) {
     return this.profilesService.getMyProfiles(user.userId);
   }
@@ -70,6 +72,7 @@ export class ProfilesController {
   // Create an additional profile under the authenticated user identity (max 5 per identity).
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @ApiResponse({ status: 201 })
   async createProfile(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreateProfileDto,
@@ -81,6 +84,7 @@ export class ProfilesController {
   @Post('switch/:profileId')
   @UseGuards(JwtAuthGuard)
   @MemberAllowed('session')
+  @ApiResponse({ status: 201 })
   async switchProfile(
     @CurrentUser() user: CurrentUserData,
     @Param('profileId') profileId: string,
@@ -128,6 +132,7 @@ export class ProfilesController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @MemberAllowed('session')
+  @ApiResponse({ status: 200, type: Object })
   async getMyProfile(@CurrentUser() user: CurrentUserData) {
     // A team member sees the Profile as anyone does, and their role.
     if (user.memberRole) {
@@ -141,6 +146,7 @@ export class ProfilesController {
 
   // Check if a username is available and valid.
   @Get('check-username/:username')
+  @ApiResponse({ status: 200 })
   checkUsername(@Param('username') username: string) {
     return this.profilesService.checkUsernameAvailability(username);
   }
@@ -149,6 +155,7 @@ export class ProfilesController {
   @Get(':username')
   @UseGuards(JwtOptionalGuard)
   @MemberAllowed('browse')
+  @ApiResponse({ status: 200, type: Object })
   async getProfile(
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData | null,
@@ -161,6 +168,7 @@ export class ProfilesController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @MemberAllowed('profile.edit')
   @RecordsActivity('PROFILE_EDITED')
+  @ApiResponse({ status: 200, type: Object })
   async updateProfile(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: UpdateProfileDto,
@@ -191,6 +199,7 @@ export class ProfilesController {
   // Deactivate the authenticated user's account.
   @Post('me/deactivate')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async deactivateAccount(@CurrentUser() user: CurrentUserData) {
     return this.profilesService.deactivateAccount(user.userId, user.profileId);
   }
@@ -198,6 +207,7 @@ export class ProfilesController {
   // Schedule deletion of the authenticated user's account (30-day grace).
   @Delete('me')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async deleteAccount(@CurrentUser() user: CurrentUserData) {
     return this.profilesService.deleteAccount(user.userId, user.profileId);
   }

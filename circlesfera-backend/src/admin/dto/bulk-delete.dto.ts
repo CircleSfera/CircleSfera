@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -11,6 +12,13 @@ import {
 export const BULK_DELETE_LIMIT = 50;
 
 export class BulkDeleteDto {
+  @ApiProperty({
+    required: true,
+    type: () => [String],
+    uniqueItems: true,
+    minItems: 1,
+    maxItems: BULK_DELETE_LIMIT,
+  })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(BULK_DELETE_LIMIT)

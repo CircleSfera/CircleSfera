@@ -1,5 +1,5 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -15,6 +15,7 @@ export class ProfileStrikesController {
   // Warnings and strikes of the Profile the session acts as.
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   findMine(@CurrentUser() user: CurrentUserData) {
     return this.strikesService.listForProfile(user.profileId);
   }

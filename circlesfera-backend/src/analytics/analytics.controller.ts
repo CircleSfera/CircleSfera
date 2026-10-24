@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import {
   AdminGuard,
@@ -32,6 +33,7 @@ export class AnalyticsController {
   @Post('events')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 201 })
   async logEvent(
     @CurrentUser('userId') userId: string | null,
     @Body() dto: CreateEventDto,
@@ -44,6 +46,7 @@ export class AnalyticsController {
   @Post(['events/batch', 'batch'])
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 201 })
   async logEventsBatch(
     @CurrentUser('userId') userId: string | null,
     @Body() dto: CreateEventBatchDto,
@@ -53,9 +56,11 @@ export class AnalyticsController {
   }
 
   // Get dashboard statistics for the current user (creator)
+  @ApiQuery({ name: 'days', required: false })
   @Get('dashboard')
   @MemberAllowed('analytics.read')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getDashboard(
     @CurrentUser('profileId') profileId: string,
     @Query('days') days?: string,
@@ -70,6 +75,7 @@ export class AnalyticsController {
   @Post('post/:id/view')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async trackView(
     @Param('id') postId: string,
     @CurrentUser('profileId') viewerId: string,
@@ -81,6 +87,7 @@ export class AnalyticsController {
   @Post('post/:id/loop')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async trackLoop(@Param('id') postId: string) {
     return this.analyticsService.trackFrameLoop(postId);
   }
@@ -89,6 +96,7 @@ export class AnalyticsController {
   @Post('post/:id/watch')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async trackWatch(
     @Param('id') postId: string,
     @Query('seconds') seconds: string,
@@ -103,6 +111,7 @@ export class AnalyticsController {
   @Get('post/:id/insights')
   @MemberAllowed('analytics.read')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getPostInsights(
     @Param('id') postId: string,
     @CurrentUser('profileId') profileId: string,
@@ -111,9 +120,11 @@ export class AnalyticsController {
   }
 
   // Manual trigger for testing aggregation (ADMIN only)
+  @ApiQuery({ name: 'profileId', required: false })
   @Post('debug/aggregate')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('system')
+  @ApiResponse({ status: 201 })
   async debugAggregate(@Query('profileId') profileId?: string) {
     const id = profileId?.trim();
     if (!id) {

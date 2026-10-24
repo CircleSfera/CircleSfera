@@ -7,7 +7,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -30,11 +30,13 @@ export class MonetizationController {
   constructor(private readonly monetizationService: MonetizationService) {}
 
   @Get()
+  @ApiResponse({ status: 200 })
   async getMonetization(@Req() req: AuthRequest) {
     return this.monetizationService.getMonetization(req.user.userId);
   }
 
   @Get('transactions')
+  @ApiResponse({ status: 200 })
   async getTransactions(
     @Req() req: AuthRequest,
     @Query() pagination: PaginationDto,
@@ -47,12 +49,14 @@ export class MonetizationController {
   }
 
   @Get('status')
+  @ApiResponse({ status: 200, type: Object })
   async getStatus(@Req() req: AuthRequest) {
     return this.monetizationService.getAccountStatus(req.user.userId);
   }
 
   @Post('connect')
   @UseGuards(IdentityVerifiedGuard)
+  @ApiResponse({ status: 201 })
   async connectStripe(@Req() req: AuthRequest, @Body() body: ConnectStripeDto) {
     return this.monetizationService.onboardConnectAccount(
       req.user.userId,
@@ -63,6 +67,7 @@ export class MonetizationController {
 
   @Post('tip')
   @UseGuards(IdentityVerifiedGuard)
+  @ApiResponse({ status: 201 })
   async sendTip(@Req() req: AuthRequest, @Body() body: SendTipDto) {
     return this.monetizationService.createTipSession(
       req.user.userId,
@@ -77,6 +82,7 @@ export class MonetizationController {
 
   @Post('unlock')
   @UseGuards(IdentityVerifiedGuard)
+  @ApiResponse({ status: 201 })
   async unlockPost(@Req() req: AuthRequest, @Body() body: UnlockPostDto) {
     return this.monetizationService.createPostUnlockSession(
       req.user.userId,
@@ -89,6 +95,7 @@ export class MonetizationController {
 
   @Post('unlock-story')
   @UseGuards(IdentityVerifiedGuard)
+  @ApiResponse({ status: 201 })
   async unlockStory(@Req() req: AuthRequest, @Body() body: UnlockStoryDto) {
     return this.monetizationService.createStoryUnlockSession(
       req.user.userId,
@@ -101,6 +108,7 @@ export class MonetizationController {
 
   @Post('unlock-message')
   @UseGuards(IdentityVerifiedGuard)
+  @ApiResponse({ status: 201 })
   async unlockMessage(@Req() req: AuthRequest, @Body() body: UnlockMessageDto) {
     return this.monetizationService.createMessageUnlockSession(
       req.user.userId,
@@ -110,21 +118,25 @@ export class MonetizationController {
   }
 
   @Get('dashboard')
+  @ApiResponse({ status: 200 })
   async getDashboard(@Req() req: AuthRequest) {
     return this.monetizationService.getDashboardLink(req.user.userId);
   }
 
   @Get('payouts')
+  @ApiResponse({ status: 200 })
   async getPayouts(@Req() req: AuthRequest) {
     return this.monetizationService.getConnectPayoutsSummary(req.user.userId);
   }
 
   @Get('analytics/income')
+  @ApiResponse({ status: 200 })
   async getIncomeAnalytics(@Req() req: AuthRequest) {
     return this.monetizationService.getIncomeStats(req.user.userId);
   }
 
   @Get('analytics/summary')
+  @ApiResponse({ status: 200 })
   async getFinancialSummary(@Req() req: AuthRequest) {
     return this.monetizationService.getFinancialSummary(req.user.userId);
   }

@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsInt,
@@ -57,12 +58,14 @@ export class FeedPreferencesController {
   constructor(private readonly feedPreferences: FeedPreferencesService) {}
 
   @Get()
+  @ApiResponse({ status: 200 })
   list(@CurrentUser() user: CurrentUserData) {
     return this.feedPreferences.listPreferences(user.profileId);
   }
 
   // Each list a page at a time, most recent first.
   @Get('hidden-posts')
+  @ApiResponse({ status: 200, type: Object })
   hiddenPosts(
     @CurrentUser() user: CurrentUserData,
     @Query() q: PreferencePageDto,
@@ -76,6 +79,7 @@ export class FeedPreferencesController {
   }
 
   @Get('hidden-authors')
+  @ApiResponse({ status: 200, type: Object })
   hiddenAuthors(
     @CurrentUser() user: CurrentUserData,
     @Query() q: PreferencePageDto,
@@ -89,6 +93,7 @@ export class FeedPreferencesController {
   }
 
   @Get('muted-keywords')
+  @ApiResponse({ status: 200, type: Object })
   mutedKeywords(
     @CurrentUser() user: CurrentUserData,
     @Query() q: PreferencePageDto,
@@ -102,6 +107,7 @@ export class FeedPreferencesController {
   }
 
   @Post('hide-post/:postId')
+  @ApiResponse({ status: 201 })
   hidePost(
     @CurrentUser() user: CurrentUserData,
     @Param('postId') postId: string,
@@ -110,6 +116,7 @@ export class FeedPreferencesController {
   }
 
   @Delete('hide-post/:postId')
+  @ApiResponse({ status: 200 })
   unhidePost(
     @CurrentUser() user: CurrentUserData,
     @Param('postId') postId: string,
@@ -118,6 +125,7 @@ export class FeedPreferencesController {
   }
 
   @Post('hide-author/:authorId')
+  @ApiResponse({ status: 201 })
   hideAuthor(
     @CurrentUser() user: CurrentUserData,
     @Param('authorId') authorId: string,
@@ -126,6 +134,7 @@ export class FeedPreferencesController {
   }
 
   @Delete('hide-author/:authorId')
+  @ApiResponse({ status: 200 })
   unhideAuthor(
     @CurrentUser() user: CurrentUserData,
     @Param('authorId') authorId: string,
@@ -134,6 +143,7 @@ export class FeedPreferencesController {
   }
 
   @Post('mute-keyword')
+  @ApiResponse({ status: 201 })
   muteKeyword(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: MuteKeywordDto,
@@ -142,6 +152,7 @@ export class FeedPreferencesController {
   }
 
   @Delete('mute-keyword/:keyword')
+  @ApiResponse({ status: 200 })
   unmuteKeyword(
     @CurrentUser() user: CurrentUserData,
     @Param('keyword') keyword: string,

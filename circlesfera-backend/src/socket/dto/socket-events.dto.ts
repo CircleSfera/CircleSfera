@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsIn,
   IsNotEmpty,
@@ -10,11 +11,13 @@ import {
 } from 'class-validator';
 
 export class TypingEventDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   conversationId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
@@ -22,16 +25,19 @@ export class TypingEventDto {
 }
 
 export class SendReactionDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   messageId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   conversationId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 32 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(32)
@@ -39,11 +45,13 @@ export class SendReactionDto {
 }
 
 export class MarkReadDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   conversationId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
@@ -51,22 +59,26 @@ export class MarkReadDto {
 }
 
 export class CallInviteDto {
+  @ApiProperty({ required: false, type: () => String, maxLength: 64 })
   @IsString()
   @IsOptional()
   @MaxLength(64)
   targetId?: string;
 
+  @ApiProperty({ required: false, type: () => String, maxLength: 64 })
   @IsString()
   @IsOptional()
   @MaxLength(64)
   recipientId?: string;
 
+  @ApiProperty({ required: false, enum: ['audio', 'video'] })
   @IsOptional()
   @IsIn(['audio', 'video'])
   type?: 'audio' | 'video';
 }
 
 export class CallAcceptDeclineDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
@@ -74,15 +86,18 @@ export class CallAcceptDeclineDto {
 }
 
 export class CallSignalDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   targetId!: string;
 
+  @ApiProperty({ required: true, type: () => Object })
   signal!: unknown;
 }
 
 export class CallHangupDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
@@ -90,6 +105,7 @@ export class CallHangupDto {
 }
 
 export class LiveStreamIdDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
@@ -97,11 +113,13 @@ export class LiveStreamIdDto {
 }
 
 export class LiveChatDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   streamId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 500 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
@@ -109,26 +127,31 @@ export class LiveChatDto {
 }
 
 export class LivePinCommentDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   streamId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   commentId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 500 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
   message!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 100 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   username!: string;
 
+  @ApiProperty({ required: false, type: () => String, maxLength: 2048 })
   @IsString()
   @IsOptional()
   @MaxLength(2048)
@@ -136,11 +159,13 @@ export class LivePinCommentDto {
 }
 
 export class LiveReactionDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   streamId!: string;
 
+  @ApiProperty({ required: false, type: () => String, maxLength: 32 })
   @IsString()
   @IsOptional()
   @MaxLength(32)
@@ -148,21 +173,25 @@ export class LiveReactionDto {
 }
 
 export class LiveAskQuestionDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   streamId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 500 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
   question!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 100 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   username!: string;
 
+  @ApiProperty({ required: false, type: () => String, maxLength: 2048 })
   @IsString()
   @IsOptional()
   @MaxLength(2048)
@@ -170,26 +199,31 @@ export class LiveAskQuestionDto {
 }
 
 export class LiveHighlightQuestionDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   streamId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   questionId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 500 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
   question!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 100 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   username!: string;
 
+  @ApiProperty({ required: false, type: () => String, maxLength: 2048 })
   @IsString()
   @IsOptional()
   @MaxLength(2048)
@@ -197,16 +231,24 @@ export class LiveHighlightQuestionDto {
 }
 
 export class LiveSetGoalDto {
+  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
   streamId!: string;
 
+  @ApiProperty({ required: true, type: () => String, maxLength: 100 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   title!: string;
 
+  @ApiProperty({
+    required: true,
+    type: () => Number,
+    minimum: 1,
+    maximum: 1000000,
+  })
   @IsNumber()
   @Min(1)
   @Max(1000000)

@@ -7,7 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -30,6 +30,7 @@ export class FollowsController {
 
   // Toggle follow/unfollow for a user.
   @Post(':username/follow/toggle')
+  @ApiResponse({ status: 201, type: Object })
   async toggle(
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
@@ -39,6 +40,7 @@ export class FollowsController {
 
   // Check follow status with a specific user.
   @Get(':username/follow/check')
+  @ApiResponse({ status: 200, type: Object })
   async check(
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
@@ -49,6 +51,7 @@ export class FollowsController {
   // Get followers for a user. Cursor pagination: pass `cursor`
   // (the last item's id from the previous page) to fetch the next page.
   @Get(':username/follow/followers')
+  @ApiResponse({ status: 200 })
   async getFollowers(
     @Param('username') username: string,
     @Query() query: PaginationDto,
@@ -66,6 +69,7 @@ export class FollowsController {
   // `cursor` (the last item's id from the previous page) to fetch the next
   // page.
   @Get(':username/follow/following')
+  @ApiResponse({ status: 200 })
   async getFollowing(
     @Param('username') username: string,
     @Query() query: PaginationDto,
@@ -81,6 +85,7 @@ export class FollowsController {
 
   // Block a user by username.
   @Post(':username/follow/block')
+  @ApiResponse({ status: 201, type: Object })
   async block(
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
@@ -90,6 +95,7 @@ export class FollowsController {
 
   // Unblock a previously blocked user.
   @Post(':username/follow/unblock')
+  @ApiResponse({ status: 201, type: Object })
   async unblock(
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
@@ -99,6 +105,7 @@ export class FollowsController {
 
   // Mute a user by username. Optional body: `{ duration: '24h'|'7d'|'30d'|'forever' }`.
   @Post(':username/follow/mute')
+  @ApiResponse({ status: 201, type: Object })
   async mute(
     @Param('username') username: string,
     @Body() dto: MuteUserDto,
@@ -113,6 +120,7 @@ export class FollowsController {
 
   // Unmute a previously muted user.
   @Post(':username/follow/unmute')
+  @ApiResponse({ status: 201, type: Object })
   async unmute(
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
@@ -122,6 +130,7 @@ export class FollowsController {
 
   // List currently muted users (includes expiresAt).
   @Get('me/follow/muted')
+  @ApiResponse({ status: 200, type: [Object] })
   async getMuted(
     @CurrentUser() user: CurrentUserData,
   ): Promise<MutedUserEntry[]> {
@@ -130,6 +139,7 @@ export class FollowsController {
 
   // List all blocked users.
   @Get('me/follow/blocked')
+  @ApiResponse({ status: 200 })
   async getBlocked(
     @CurrentUser() user: CurrentUserData,
   ): Promise<ProfileWithUser[]> {
@@ -138,6 +148,7 @@ export class FollowsController {
 
   // List pending follow requests (private account).
   @Get('me/follow/pending')
+  @ApiResponse({ status: 200 })
   async getPendingRequests(
     @CurrentUser() user: CurrentUserData,
   ): Promise<ProfileWithUser[]> {
@@ -146,6 +157,7 @@ export class FollowsController {
 
   // Accept a pending follow request.
   @Post(':username/follow/accept')
+  @ApiResponse({ status: 201, type: Object })
   async acceptRequest(
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
@@ -155,6 +167,7 @@ export class FollowsController {
 
   // Reject a pending follow request.
   @Post(':username/follow/reject')
+  @ApiResponse({ status: 201, type: Object })
   async rejectRequest(
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,

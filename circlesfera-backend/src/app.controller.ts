@@ -1,4 +1,5 @@
 import { Controller, Get, Inject, Req, Res } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AppService } from './app.service.js';
 import { generateCsrfToken } from './common/config/csrf.config.js';
@@ -10,12 +11,14 @@ export class AppController {
 
   // Health-check: returns a greeting string from AppService.
   @Get()
+  @ApiResponse({ status: 200, type: String })
   getHello(): string {
     return this.appService.getHello();
   }
 
   // GET /csrf-token: Generates and returns a CSRF token for the frontend.
   @Get('csrf-token')
+  @ApiResponse({ status: 200 })
   getCsrfToken(@Req() req: Request, @Res() res: Response): void {
     const token = generateCsrfToken(req, res);
     res.json({ csrfToken: token });

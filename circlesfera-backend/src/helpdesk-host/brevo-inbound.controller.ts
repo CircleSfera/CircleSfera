@@ -15,6 +15,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import type { InboundEmail } from '../helpdesk/helpdesk-inbound.js';
@@ -118,6 +119,7 @@ export class BrevoInboundController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(InboundTokenGuard)
   @Throttle({ medium: { limit: 60, ttl: 60000 } })
+  @ApiResponse({ status: HttpStatus.OK })
   async receive(@Body() body: unknown): Promise<{ received: number }> {
     const items = (body as { items?: unknown } | null)?.items;
     let received = 0;

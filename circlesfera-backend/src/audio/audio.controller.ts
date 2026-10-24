@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   AdminGuard,
   RequireStaffPermissions,
@@ -25,6 +26,7 @@ export class AudioController {
   @Post()
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('content')
+  @ApiResponse({ status: 201 })
   create(@Body() dto: CreateAudioDto) {
     return this.audioService.create(dto);
   }
@@ -32,6 +34,7 @@ export class AudioController {
   // List all audio tracks.
   @Get()
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   findAll() {
     return this.audioService.findAll();
   }
@@ -39,6 +42,7 @@ export class AudioController {
   // Search audio tracks by title or artist.
   @Get('search')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   search(@Query('q') query: string) {
     return this.audioService.search(query);
   }
@@ -46,6 +50,7 @@ export class AudioController {
   // Get trending audio tracks.
   @Get('trending')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   getTrending() {
     return this.audioService.getTrending();
   }
@@ -53,6 +58,7 @@ export class AudioController {
   // Get a single audio track by ID.
   @Get(':id')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   findOne(@Param('id') id: string) {
     return this.audioService.findOne(id);
   }
@@ -60,6 +66,7 @@ export class AudioController {
   // Get all posts using a specific audio track.
   @Get(':id/posts')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
   getPosts(@Param('id') id: string) {
     return this.audioService.getAudioPosts(id);
   }

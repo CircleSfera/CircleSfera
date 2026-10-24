@@ -8,6 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import {
   CurrentUser,
@@ -30,6 +31,7 @@ export class SignInsController {
   ) {}
 
   @Get()
+  @ApiResponse({ status: 200 })
   async list(@CurrentUser() user: CurrentUserData) {
     return this.signIns.list(user);
   }
@@ -38,6 +40,7 @@ export class SignInsController {
   @Post()
   @HttpCode(HttpStatus.OK)
   @Throttle(PROOF_THROTTLE)
+  @ApiResponse({ status: HttpStatus.OK })
   async giveOwn(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: OwnSignInDto,
@@ -53,6 +56,7 @@ export class SignInsController {
   @Post('share')
   @HttpCode(HttpStatus.OK)
   @Throttle(PROOF_THROTTLE)
+  @ApiResponse({ status: HttpStatus.OK })
   async share(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: ShareSignInDto,

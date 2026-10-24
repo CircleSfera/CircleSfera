@@ -46,7 +46,10 @@
     "brace-expansion@2": "2.1.7",
     "brace-expansion@5": "5.0.12",
     "multer": "2.5.0",
-    "socket.io": "$socket.io"
+    "socket.io": "$socket.io",
+    "@nestjs/swagger": {
+      "typescript": "$typescript"
+    }
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1156.0",
@@ -61,7 +64,6 @@
     "@nestjs/core": "12.2.0",
     "@nestjs/event-emitter": "12.0.1",
     "@nestjs/jwt": "12.0.3",
-    "@nestjs/mapped-types": "12.0.0",
     "@nestjs/passport": "12.0.0",
     "@nestjs/platform-express": "12.2.0",
     "@nestjs/platform-socket.io": "12.2.0",
@@ -119,8 +121,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.3",
-    "@nestjs/cli": "12.0.10",
-    "@nestjs/schematics": "12.0.10",
     "@nestjs/testing": "12.2.0",
     "@swc/core": "1.16.20",
     "@types/archiver": "8.0.0",
@@ -146,7 +146,6 @@
     "ts-node": "10.9.2",
     "tsconfig-paths": "4.2.0",
     "typescript": "7.0.2",
-    "typescript-6": "npm:typescript@6.0.3",
     "unplugin-swc": "2.0.0",
     "vitest": "5.0.5"
   },

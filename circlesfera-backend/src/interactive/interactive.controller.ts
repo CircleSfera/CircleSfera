@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -31,6 +32,7 @@ export class InteractiveController {
   @Post('poll')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
+  @ApiResponse({ status: HttpStatus.CREATED, type: Object })
   async createPoll(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreatePollDto,
@@ -40,6 +42,7 @@ export class InteractiveController {
 
   @Get('poll/:id')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async getPoll(
     @Param('id') id: string,
     @CurrentUser('profileId') profileId: string | null,
@@ -50,6 +53,7 @@ export class InteractiveController {
   @Post('poll/vote')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   async votePoll(
     @CurrentUser() user: CurrentUserData,
     @Body() body: VotePollDto,
@@ -64,6 +68,7 @@ export class InteractiveController {
   @Post('qna')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
+  @ApiResponse({ status: HttpStatus.CREATED, type: Object })
   async createQnaBox(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreateQnaBoxDto,
@@ -75,6 +80,7 @@ export class InteractiveController {
   // that owns the box, which the service decides from the session.
   @Get('qna/:id')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async getQnaBox(
     @Param('id') id: string,
     @CurrentUser('profileId') profileId: string | null,
@@ -85,6 +91,7 @@ export class InteractiveController {
   @Post('qna/answer')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
+  @ApiResponse({ status: HttpStatus.CREATED })
   async answerQna(
     @CurrentUser() user: CurrentUserData,
     @Body() body: AnswerQnaDto,

@@ -11,6 +11,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ApiParam, ApiResponse } from '@nestjs/swagger';
 import { type PromotionStatus, type ReportStatus } from '@prisma/client';
 import type { Response } from 'express';
 import {
@@ -83,6 +84,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Get('posts/export')
+  @ApiResponse({ status: 200 })
   async exportPostsCSV(@Res() res: Response) {
     const csv = await this.getContentQuery.exportPostsCSV();
     res.setHeader('Content-Type', 'text/csv');
@@ -95,6 +97,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Get('posts')
+  @ApiResponse({ status: 200 })
   async getPosts(@Query() query: AdminQueryDto) {
     return this.getPostsQuery.execute(
       query.page ?? 1,
@@ -108,6 +111,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Delete('posts/:id')
+  @ApiResponse({ status: 200 })
   async deletePost(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -120,6 +124,7 @@ export class AdminContentController {
   @RequireStaffPermissions('content')
   @RequireAdminStepUp()
   @Post('posts/bulk-delete')
+  @ApiResponse({ status: 201 })
   async bulkDeletePosts(
     @Body() dto: BulkDeleteDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -129,6 +134,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('reports')
   @Get('reports')
+  @ApiResponse({ status: 200 })
   async getReports(@Query() query: AdminQueryDto) {
     return this.getReportsQuery.execute(
       query.page ?? 1,
@@ -142,6 +148,7 @@ export class AdminContentController {
 
   @Patch('reports/:id')
   @RequireStaffPermissions('reports')
+  @ApiResponse({ status: 200 })
   async updateReport(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,
@@ -158,6 +165,7 @@ export class AdminContentController {
 
   @Post('reports/:id/claim')
   @RequireStaffPermissions('reports')
+  @ApiResponse({ status: 201 })
   async claimReport(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -167,6 +175,7 @@ export class AdminContentController {
 
   @Post('reports/:id/unclaim')
   @RequireStaffPermissions('reports')
+  @ApiResponse({ status: 201 })
   async unclaimReport(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -176,6 +185,7 @@ export class AdminContentController {
 
   @Post('reports/:id/reassign')
   @RequireStaffPermissions('reports')
+  @ApiResponse({ status: 201 })
   async reassignReport(
     @Param('id') id: string,
     @Body() body: ReassignReportDto,
@@ -186,6 +196,7 @@ export class AdminContentController {
 
   @Post('reports/:id/resolve-penalty')
   @RequireStaffPermissions('reports')
+  @ApiResponse({ status: 201 })
   async resolveReportWithPenalty(
     @Param('id') id: string,
     @Body('action') action: 'IGNORE' | 'STRIKE' | 'BAN',
@@ -200,6 +211,7 @@ export class AdminContentController {
 
   @Post('reports/bulk')
   @RequireStaffPermissions('reports')
+  @ApiResponse({ status: 201 })
   async bulkUpdateReports(
     @Body() body: { ids: string[]; status: ReportStatus },
     @CurrentAdmin() admin: CurrentAdminData,
@@ -213,6 +225,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Get('hashtags')
+  @ApiResponse({ status: 200 })
   async getHashtags(@Query() query: AdminQueryDto) {
     return this.getContentQuery.getHashtags(
       query.page ?? 1,
@@ -224,6 +237,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Patch('hashtags/:id')
+  @ApiResponse({ status: 200 })
   async setHashtagHidden(
     @Param('id') id: string,
     @Body() body: SetHashtagHiddenDto,
@@ -234,6 +248,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Get('comments')
+  @ApiResponse({ status: 200 })
   async getComments(@Query() query: AdminQueryDto) {
     return this.getContentQuery.getComments(
       query.page ?? 1,
@@ -246,6 +261,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Delete('comments/:id')
+  @ApiResponse({ status: 200 })
   async deleteComment(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -256,6 +272,7 @@ export class AdminContentController {
   @RequireStaffPermissions('content')
   @RequireAdminStepUp()
   @Post('comments/bulk-delete')
+  @ApiResponse({ status: 201 })
   async bulkDeleteComments(
     @Body() dto: BulkDeleteDto,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -265,6 +282,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Get('stories')
+  @ApiResponse({ status: 200 })
   async getStories(@Query() query: AdminQueryDto) {
     return this.getContentQuery.getStories(query.page ?? 1, query.limit ?? 10, {
       moderationStatus: query.moderationStatus,
@@ -276,6 +294,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Delete('stories/:id')
+  @ApiResponse({ status: 200 })
   async deleteStory(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -285,6 +304,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Get('promotions')
+  @ApiResponse({ status: 200 })
   async getPromotions(@Query() query: AdminQueryDto) {
     return this.getPromotionsQuery.execute(
       query.page ?? 1,
@@ -296,6 +316,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Patch('promotions/:id')
+  @ApiResponse({ status: 200 })
   async updatePromotionStatus(
     @Param('id') id: string,
     @Body() body: ReviewPromotionDto,
@@ -311,6 +332,7 @@ export class AdminContentController {
 
   @RequireStaffPermissions('moderation')
   @Get('moderation/queue')
+  @ApiResponse({ status: 200 })
   async getModerationQueue(@Query() query: AdminQueryDto) {
     return this.getModerationQueueQuery.execute(
       query.page ?? 1,
@@ -320,8 +342,10 @@ export class AdminContentController {
     );
   }
 
+  @ApiParam({ name: 'type', enum: ['POST', 'STORY', 'COMMENT'] })
   @RequireStaffPermissions('moderation')
   @Patch('moderation/:type/:id')
+  @ApiResponse({ status: 200 })
   async updateModerationStatus(
     @Param('type') type: 'POST' | 'STORY' | 'COMMENT',
     @Param('id') id: string,
@@ -340,12 +364,14 @@ export class AdminContentController {
 
   @Get('trust/queue')
   @RequireStaffPermissions('reports')
+  @ApiResponse({ status: 200 })
   async getTrustQueue() {
     return this.getContentQuery.getTrustQueue();
   }
 
   @Get('live')
   @RequireStaffPermissions('live')
+  @ApiResponse({ status: 200 })
   async getLiveStreams(@Query() query: AdminQueryDto) {
     return this.getLiveStreamsQuery.execute(
       query.page ?? 1,
@@ -357,6 +383,7 @@ export class AdminContentController {
 
   @Post('live/:id/end')
   @RequireStaffPermissions('live')
+  @ApiResponse({ status: 201 })
   async endLiveStream(
     @Param('id') id: string,
     @CurrentAdmin() admin: CurrentAdminData,
@@ -366,6 +393,7 @@ export class AdminContentController {
 
   @Post('live/:id/warn')
   @RequireStaffPermissions('live')
+  @ApiResponse({ status: 201 })
   async warnLiveHost(
     @Param('id') id: string,
     @Body() body: WarnLiveHostDto,

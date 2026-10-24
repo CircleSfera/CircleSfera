@@ -8,6 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { ArticleFeedbackDto } from './dto/article-feedback.dto.js';
 import { HelpCentreQueryDto } from './dto/help-centre-query.dto.js';
@@ -27,6 +28,7 @@ export class HelpdeskHelpCentreController {
     short: { limit: 10, ttl: 1000 },
     medium: { limit: 120, ttl: 60000 },
   })
+  @ApiResponse({ status: 200, type: Object })
   async list(@Query() query: HelpCentreQueryDto) {
     return this.helpCentre.list(query);
   }
@@ -36,6 +38,7 @@ export class HelpdeskHelpCentreController {
     short: { limit: 10, ttl: 1000 },
     medium: { limit: 120, ttl: 60000 },
   })
+  @ApiResponse({ status: 200 })
   async article(
     @Param('slug') slug: string,
     @Query() query: HelpCentreQueryDto,
@@ -51,6 +54,7 @@ export class HelpdeskHelpCentreController {
     short: { limit: 2, ttl: 1000 },
     medium: { limit: 10, ttl: 60000 },
   })
+  @ApiResponse({ status: 204 })
   async feedback(
     @Param('slug') slug: string,
     @Body() body: ArticleFeedbackDto,

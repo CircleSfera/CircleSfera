@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -31,6 +32,7 @@ export class HelpdeskRequesterController {
 
   @Post('tickets')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async createTicket(
     @CurrentUser() user: CurrentUserData,
     @Body() createTicketDto: CreateTicketDto,
@@ -45,6 +47,7 @@ export class HelpdeskRequesterController {
   // The tickets of who is signed in.
   @Get('tickets')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async listMyTickets(
     @CurrentUser() user: CurrentUserData,
     @Query() query: PaginationDto,
@@ -59,6 +62,7 @@ export class HelpdeskRequesterController {
   // One of their tickets, with its public messages.
   @Get('tickets/:id')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getMyTicket(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -68,6 +72,7 @@ export class HelpdeskRequesterController {
 
   @Post('tickets/:id/messages')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 201 })
   async replyToMyTicket(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
@@ -79,6 +84,7 @@ export class HelpdeskRequesterController {
   // Whether the answer of one of their solved tickets was good or bad.
   @Put('tickets/:id/rating')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async rateMyTicket(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,

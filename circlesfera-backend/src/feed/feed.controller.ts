@@ -1,4 +1,5 @@
 import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -17,6 +18,7 @@ export class FeedController {
   @Get('foryou')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200 })
   async getForYou(
     @CurrentUser() user: CurrentUserData | null,
     @Query() pagination: PaginationDto,
@@ -32,6 +34,7 @@ export class FeedController {
   @Get('following')
   @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
   async getFollowing(
     @CurrentUser() user: CurrentUserData | null,
     @Query() pagination: PaginationDto,

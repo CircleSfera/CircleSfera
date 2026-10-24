@@ -12,6 +12,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { requestAbuseMeta } from '../../common/abuse/device-signal.service.js';
 import {
@@ -45,6 +46,7 @@ export class PasskeyController {
   // List all registered passkeys for the current user.
   @UseGuards(JwtAuthGuard)
   @Get()
+  @ApiResponse({ status: 200 })
   async listPasskeys(@CurrentUser() user: CurrentUserData) {
     return this.passkeyService.getUserPasskeys(user.userId, user.signInId);
   }
@@ -52,6 +54,7 @@ export class PasskeyController {
   // Generate WebAuthn registration options (requires auth).
   @UseGuards(JwtAuthGuard)
   @Post('register-options')
+  @ApiResponse({ status: 201, type: Object })
   async generateRegistrationOptions(@CurrentUser() user: CurrentUserData) {
     return this.passkeyService.generateRegistrationOptions(
       user.userId,
@@ -63,6 +66,7 @@ export class PasskeyController {
   // Verify WebAuthn registration and store the passkey (requires auth).
   @UseGuards(JwtAuthGuard)
   @Post('register-verify')
+  @ApiResponse({ status: 201, type: Object })
   async verifyRegistration(
     @CurrentUser() user: CurrentUserData,
     @Body() body: RegisterPasskeyDto,
@@ -76,6 +80,7 @@ export class PasskeyController {
 
   // Generate WebAuthn authentication options for passwordless login.
   @Post('login-options')
+  @ApiResponse({ status: 201, type: Object })
   async generateAuthenticationOptions(@Body() dto: GetPasskeyOptionsDto) {
     if (dto.sensitivity) {
       return this.passkeyService.generateAuthenticationOptions(
@@ -89,6 +94,7 @@ export class PasskeyController {
   // Verify WebAuthn authentication response and issue JWT tokens as HTTP-only cookies.
   @Post('login-verify')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   async verifyAuthentication(
     @Req() req: Request,
     @Body() body: AuthenticatePasskeyDto,
@@ -125,6 +131,7 @@ export class PasskeyController {
   // removing a passkey).
   @UseGuards(JwtAuthGuard)
   @Post('step-up-options')
+  @ApiResponse({ status: 201, type: Object })
   async generateStepUpOptions(@CurrentUser() user: CurrentUserData) {
     return this.passkeyService.generateStepUpOptions(
       user.userId,
@@ -135,6 +142,7 @@ export class PasskeyController {
   // Delete a registered passkey (requires auth and a fresh step-up assertion).
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
+  @ApiResponse({ status: 200 })
   async deletePasskey(
     @CurrentUser() user: CurrentUserData,
     @Param('id') passkeyId: string,

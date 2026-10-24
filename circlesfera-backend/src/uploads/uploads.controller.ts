@@ -10,6 +10,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import {
   CurrentUser,
@@ -47,6 +48,7 @@ export class UploadsController {
       },
     }),
   )
+  @ApiResponse({ status: 201 })
   async uploadFile(
     @UploadedFileDecorator(
       new ParseFilePipe({
