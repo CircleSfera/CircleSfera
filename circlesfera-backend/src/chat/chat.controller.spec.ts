@@ -336,10 +336,35 @@ describe('ChatController', () => {
     );
   });
 
+  it('takes the address the upload answers when files are kept on the server disk, as in production', async () => {
+    mockSendMessageUseCase.execute.mockResolvedValue({ id: 'msg-voice' });
+    const voiceUrl = '/uploads/0eff3516-d0bc-480f-8de9-33a24b7ded2a.m4a';
+
+    await request(app.getHttpServer())
+      .post('/api/v1/chat/messages')
+      .set(BEARER)
+      .send({
+        conversationId: 'conv-1',
+        content: 'Nota de voz',
+        voiceUrl,
+        voiceDuration: 3,
+        voiceWaveform: [0.15, 0.5],
+      })
+      .expect(201);
+
+    expect(mockSendMessageUseCase.execute.mock.calls[0][10]).toBe(voiceUrl);
+  });
+
   it('refuses a voice note that is not a recording address, has no sensible length or draws odd bars', async () => {
     for (const change of [
       { voiceUrl: 'javascript:alert(1)' },
       { voiceUrl: 'not a url' },
+      // Only the exact shape of an upload of this server, nothing else
+      // relative to it.
+      { voiceUrl: '/uploads/../../etc/passwd' },
+      { voiceUrl: '/uploads/note.m4a' },
+      { voiceUrl: '//evil.example/0eff3516-d0bc-480f-8de9-33a24b7ded2a.m4a' },
+      { voiceUrl: '/avatars/0eff3516-d0bc-480f-8de9-33a24b7ded2a.m4a' },
       { voiceDuration: 0 },
       { voiceDuration: 3601 },
       { voiceDuration: 2.5 },

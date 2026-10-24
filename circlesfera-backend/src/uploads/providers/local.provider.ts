@@ -2,13 +2,13 @@ import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
+import { LOCAL_UPLOAD_URL } from '../../common/constants/local-upload.constants.js';
 import {
   type HlsArtifactsResult,
   type StorageFileMeta,
   type StorageMediaItem,
   StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
-
 import type { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 import { mimetypeToExt } from '../mime-to-ext.js';
 
@@ -101,9 +101,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   ownsUrl(url: string): boolean {
-    return /^\/uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{2,5}$/i.test(
-      url,
-    );
+    return LOCAL_UPLOAD_URL.test(url);
   }
 
   async delete(url: string): Promise<void> {
