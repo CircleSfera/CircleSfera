@@ -268,7 +268,7 @@ jobs:
             if grep -qE '(sk|rk)_live_' .env.new; then
               refuse "the settings hold a live key of the payment provider; ${ENV_NAME} takes test keys only."
             fi
-            for name in BREVO_API_KEY SMTP_PASS VAPID_PRIVATE_KEY; do
+            for name in BREVO_API_KEY SMTP_PASS VAPID_PRIVATE_KEY APNS_KEY; do
               if [ -n "$(setting "$name")" ]; then
                 refuse "${name} is set; ${ENV_NAME} sends no email and no push."
               fi
