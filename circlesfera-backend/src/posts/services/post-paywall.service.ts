@@ -80,12 +80,13 @@ export class PostPaywallService {
   }
 
   private buildTeaserMedia(m: PaywallMediaItem): PaywallMediaItem {
+    // The teaser route is the API's (MediaController): the app puts the
+    // backend's host in front of this path.
+    const teaser = `/api/v1/media/teaser/${m.id ?? ''}`;
     return {
       ...m,
-      url: m.url ? `/media/teaser/${m.id ?? ''}/${m.url.split('/').pop()}` : '',
-      standardUrl: m.standardUrl
-        ? `/media/teaser/${m.id ?? ''}/master.m3u8`
-        : '',
+      url: m.url ? `${teaser}/${m.url.split('/').pop()}` : '',
+      standardUrl: m.standardUrl ? `${teaser}/master.m3u8` : '',
     };
   }
 }
