@@ -22,6 +22,7 @@ import {
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { MediaProcessorService } from './media-processor.service.js';
 import { MediaSignatureValidator } from './media-signature.validator.js';
+import { StoredFilesService } from './services/stored-files.service.js';
 import { VOICE_NOTE_MIME, VoiceNoteConverter } from './voice-note.converter.js';
 
 export const DEFAULT_MAX_VIDEO_QUEUE_BACKLOG = 20;
@@ -53,6 +54,7 @@ export class UploadsService {
     private readonly mediaProcessor: MediaProcessorService,
     private readonly signatureValidator: MediaSignatureValidator,
     private readonly voiceNoteConverter: VoiceNoteConverter,
+    private readonly storedFiles: StoredFilesService,
     @InjectQueue('video-transcoding') private readonly videoQueue: Queue,
     @Optional() private readonly configService?: ConfigService,
     @Optional()
@@ -116,10 +118,12 @@ export class UploadsService {
   // Processes images into multiple optimized variants (original, standard, thumbnail).
   // Param file: The uploaded file data
   // Param userId: The ID of the user requesting the upload (used for video quota enforcement)
+  // Param profileId: The Profile the person acts as; the stored files belong to it
   // Returns The public URLs and MIME type of the stored file
   async uploadFile(
     received: UploadedFile,
     userId?: string,
+    profileId?: string,
   ): Promise<{
     url: string;
     standardUrl?: string;
@@ -171,6 +175,10 @@ export class UploadsService {
             mimetype: processed.thumbnail.mimetype,
           }),
         ]);
+        await this.recordOrDiscard([orig.url, std.url, thumb.url], {
+          profileId,
+          userId,
+        });
 
         return {
           url: orig.url,
@@ -187,6 +195,7 @@ export class UploadsService {
         buffer: processed.original.buffer,
         mimetype: processed.original.mimetype,
       });
+      await this.recordOrDiscard([result.url], { profileId, userId });
 
       if (file.mimetype.startsWith('video/')) {
         await this.enqueueTranscode(result.url, {
@@ -199,6 +208,26 @@ export class UploadsService {
     } catch (error: unknown) {
       this.logger.error(
         `Upload flow failed for ${file.originalname}: ${error instanceof Error ? error.stack : String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  // Records the files just stored as the Profile's. A file that cannot be
+  // recorded is deleted again: with no owner it could be neither attached
+  // nor deleted by its Profile. A session with no Profile records none.
+  private async recordOrDiscard(
+    keys: string[],
+    by: { profileId?: string; userId?: string },
+  ): Promise<void> {
+    try {
+      await this.storedFiles.record(keys, {
+        profileId: by.profileId || null,
+        uploadedById: by.userId || null,
+      });
+    } catch (error) {
+      await Promise.all(
+        keys.map((key) => this.storageProvider.delete(key).catch(() => {})),
       );
       throw error;
     }

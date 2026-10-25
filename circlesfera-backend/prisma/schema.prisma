@@ -107,6 +107,8 @@ model User {
   userExperiments       UserExperiment[]
   stripePayoutLogs      StripePayoutLog[]
 
+  uploadedFiles StoredFile[]
+
   @@index([isOnline])
   @@index([isTestAccount])
   @@index([scheduledDeletionAt])
@@ -310,6 +312,27 @@ model NativePushToken {
 // === Media
 // =============================================================================
 
+// One row per file this server stores, keyed by the address the storage
+// answered. A file belongs to the Profile it was uploaded for (or the Profile
+// of the content the server made it for); null when it is not known (files
+// stored before the record, used by several Profiles or by none). A Profile's
+// deletion leaves its files' rows without an owner rather than removing them,
+// so that a file an erasure failed to delete can still be found. The person
+// who uploaded it is kept for the record and is not the owner: a team member
+// uploads for a Business Profile.
+model StoredFile {
+  key          String   @id
+  profileId    String?
+  profile      Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([profileId])
+  @@index([uploadedById])
+  @@map("stored_files")
+}
+
 // Shared source of truth for upload lifecycle state, referenced by a nullable
 // mediaId FK from each content model below. Not read by application code yet —
 // existing inline url/standardUrl/thumbnailUrl columns on those models remain
@@ -466,6 +489,8 @@ model Profile {
   embedding               ProfileEmbedding?
   platformSubscriptions   PlatformSubscription[]
   receivedTipTransactions Transaction[]          @relation("ReceivedTipTransactions")
+
+  storedFiles StoredFile[]
 
   @@index([userId])
   @@index([signInId])

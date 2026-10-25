@@ -48,6 +48,7 @@ describe('UploadsController', () => {
       };
       const mockUser: CurrentUserData = {
         userId: 'user-123',
+        profileId: 'profile-123',
         email: 'test@example.com',
       } as CurrentUserData;
 
@@ -59,9 +60,11 @@ describe('UploadsController', () => {
 
       const result = await controller.uploadFile(mockFile, mockUser);
 
+      // The stored files belong to the Profile the person acts as.
       expect(mockUploadsService.uploadFile).toHaveBeenCalledWith(
         mockFile,
         'user-123',
+        'profile-123',
       );
       expect(result).toEqual(expectedResponse);
     });
@@ -83,6 +86,7 @@ describe('UploadsController', () => {
 
       expect(mockUploadsService.uploadFile).toHaveBeenCalledWith(
         mockFile,
+        undefined,
         undefined,
       );
       expect(result).toEqual(expectedResponse);

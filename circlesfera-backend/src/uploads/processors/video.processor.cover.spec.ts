@@ -62,7 +62,9 @@ describe('VideoProcessor: the cover of a frame', () => {
     url: 'https://cdn.example.com/video.mp4',
     coverTimeMs: 4200,
     mediaId: 'm-1',
+    post: { profileId: 'p-1' },
   };
+  const storedFiles = { record: vi.fn().mockResolvedValue(undefined) };
   const job = (postMediaId?: string) =>
     ({ name: 'cover', data: { postMediaId } }) as unknown as Job<{
       url: string;
@@ -90,7 +92,13 @@ describe('VideoProcessor: the cover of a frame', () => {
       Buffer.from('jpeg') as never,
     );
     vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
-    processor = new VideoProcessor(prisma as never, storage as never);
+    storedFiles.record.mockClear();
+    processor = new VideoProcessor(
+      prisma as never,
+      storage as never,
+      undefined,
+      storedFiles as never,
+    );
     vi.spyOn(
       (processor as unknown as { logger: { log: () => void } }).logger,
       'log',
@@ -124,6 +132,14 @@ describe('VideoProcessor: the cover of a frame', () => {
       where: { id: 'm-1' },
       data: { thumbnailUrl: 'https://cdn.example.com/cover.jpg' },
     });
+    // The cover belongs to the Profile of the post, recorded before use.
+    expect(storedFiles.record).toHaveBeenCalledWith(
+      ['https://cdn.example.com/cover.jpg'],
+      { profileId: 'p-1' },
+    );
+    expect(storedFiles.record.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.postMedia.updateMany.mock.invocationCallOrder[0],
+    );
   });
 
   it('takes the last moment when the one asked for is past the end', async () => {
@@ -143,6 +159,17 @@ describe('VideoProcessor: the cover of a frame', () => {
     expect(tool.shot?.timestamps).toEqual([0]);
   });
 
+  it('deletes its image again when it cannot be recorded, and fails to be retried', async () => {
+    storedFiles.record.mockRejectedValueOnce(new Error('db down'));
+
+    await expect(processor.process(job('pm-1'))).rejects.toThrow('db down');
+
+    expect(storage.delete).toHaveBeenCalledWith(
+      'https://cdn.example.com/cover.jpg',
+    );
+    expect(prisma.postMedia.updateMany).not.toHaveBeenCalled();
+  });
+
   it('drops its image when the author chose another moment meanwhile', async () => {
     prisma.postMedia.updateMany.mockResolvedValue({ count: 0 });
 
@@ -152,6 +179,8 @@ describe('VideoProcessor: the cover of a frame', () => {
       'https://cdn.example.com/cover.jpg',
     );
     expect(prisma.media.updateMany).not.toHaveBeenCalled();
+    // It was recorded before being used; the record outlives the file.
+    expect(storedFiles.record).toHaveBeenCalledTimes(1);
   });
 
   it.each([

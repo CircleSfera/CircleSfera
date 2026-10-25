@@ -3,6 +3,7 @@ import { type Job, UnrecoverableError } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import type { StorageProvider } from '../interfaces/storage-provider.interface.js';
+import type { StoredFilesService } from '../services/stored-files.service.js';
 import type { UploadsService } from '../uploads.service.js';
 import { VideoProcessor } from './video.processor.js';
 
@@ -82,6 +83,7 @@ const STORY = {
   url: '/uploads/video.mp4',
   overlayUrl: '/uploads/layer.avif',
   mediaId: 'm-1',
+  profileId: 'p-1',
 };
 const job = (storyId?: string) =>
   ({ name: 'story-overlay', data: { storyId } }) as unknown as Job<{
@@ -116,14 +118,16 @@ function setup({
     ownsUrl: () => true,
     enqueueTranscode: vi.fn().mockResolvedValue(undefined),
   };
+  const storedFiles = { record: vi.fn().mockResolvedValue(undefined) };
   const processor = new VideoProcessor(
     prisma as unknown as PrismaService,
     storage ? (store as unknown as StorageProvider) : undefined,
     uploads as unknown as UploadsService,
+    storedFiles as unknown as StoredFilesService,
   );
   const { logger } = processor as unknown as { logger: { log: () => void } };
   vi.spyOn(logger, 'log').mockImplementation(() => {});
-  return { prisma, store, uploads, processor };
+  return { prisma, store, uploads, storedFiles, processor };
 }
 
 describe('VideoProcessor: joining the layer of a story, step by step', () => {
@@ -135,7 +139,7 @@ describe('VideoProcessor: joining the layer of a story, step by step', () => {
   afterEach(() => vi.useRealTimers());
 
   it('crops to 9:16, lays the layer over the video, stores the result and makes it the story’s', async () => {
-    const { prisma, store, uploads, processor } = setup();
+    const { prisma, store, uploads, storedFiles, processor } = setup();
 
     await processor.process(job('s-1'));
 
@@ -166,15 +170,24 @@ describe('VideoProcessor: joining the layer of a story, step by step', () => {
     );
     expect(store.delete).toHaveBeenCalledWith(STORY.overlayUrl);
     expect(store.delete).toHaveBeenCalledWith(STORY.url);
+    // The joined video belongs to the story's Profile, written with the story.
+    expect(storedFiles.record).toHaveBeenCalledWith(
+      ['/uploads/joined.mp4'],
+      { profileId: 'p-1' },
+      prisma,
+    );
   });
 
   it('keeps nothing when the story changed meanwhile, and writes no media of a story without one', async () => {
-    const { prisma, store, uploads, processor } = setup({ written: 0 });
+    const { prisma, store, uploads, storedFiles, processor } = setup({
+      written: 0,
+    });
     prisma.story.findUnique.mockResolvedValue({ ...STORY, mediaId: null });
 
     await processor.process(job('s-1'));
 
     expect(store.delete).toHaveBeenCalledWith('/uploads/joined.mp4');
+    expect(storedFiles.record).not.toHaveBeenCalled();
     expect(prisma.media.updateMany).not.toHaveBeenCalled();
     expect(uploads.enqueueTranscode).not.toHaveBeenCalled();
 

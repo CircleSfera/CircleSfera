@@ -72,6 +72,10 @@ export class UploadsController {
     this.logger.log(
       `Incoming POST /uploads: ${file.originalname} (${file.mimetype}) by user ${user?.userId ?? 'anonymous'}`,
     );
-    return await this.uploadsService.uploadFile(file, user?.userId);
+    return await this.uploadsService.uploadFile(
+      file,
+      user?.userId,
+      user?.profileId,
+    );
   }
 }
