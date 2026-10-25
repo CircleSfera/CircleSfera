@@ -696,26 +696,19 @@ export class StoriesService {
       throw new NotFoundException('Story not found');
     }
 
-    if (story.url)
-      await this.uploadsService
-        .deleteFile(story.url)
-        .catch((e) => console.error(e));
-    if (story.standardUrl)
-      await this.uploadsService
-        .deleteFile(story.standardUrl)
-        .catch((e) => console.error(e));
-    if (story.thumbnailUrl)
-      await this.uploadsService
-        .deleteFile(story.thumbnailUrl)
-        .catch((e) => console.error(e));
-    if (story.overlayUrl)
-      await this.uploadsService
-        .deleteFile(story.overlayUrl)
-        .catch((e) => console.error(e));
-
+    // The row goes first: a file is deleted only once no row uses it, and
+    // only if it is the author's own (TD-008).
     await this.prisma.story.delete({
       where: { id: story.id },
     });
+    await this.uploadsService
+      .deleteContentFiles(story.profileId, [
+        story.url,
+        story.standardUrl,
+        story.thumbnailUrl,
+        story.overlayUrl,
+      ])
+      .catch((e) => this.logger.warn(`Files of story ${story.id} kept`, e));
   }
 
   // Record a story view. Idempotent — returns existing view if already viewed.
@@ -890,33 +883,37 @@ export class StoriesService {
         },
       });
 
-      for (const story of expiredStories) {
-        if (story.url)
-          await this.uploadsService
-            .deleteFile(story.url)
-            .catch((e) => console.error(e));
-        if (story.standardUrl)
-          await this.uploadsService
-            .deleteFile(story.standardUrl)
-            .catch((e) => console.error(e));
-        if (story.thumbnailUrl)
-          await this.uploadsService
-            .deleteFile(story.thumbnailUrl)
-            .catch((e) => console.error(e));
-        if (story.overlayUrl)
-          await this.uploadsService
-            .deleteFile(story.overlayUrl)
-            .catch((e) => console.error(e));
-      }
-
+      // The rows read go first, under the same conditions, so a story
+      // added to a highlight meanwhile is kept; then the files of the
+      // stories that are gone, the author's own only (TD-008).
+      const ids = expiredStories.map((story) => story.id);
       const deleted = await this.prisma.story.deleteMany({
         where: {
+          id: { in: ids },
           expiresAt: { lt: new Date() },
           highlightStories: { none: {} },
-          // Kept, hidden, until its countdown has been told.
           stickers: { none: { kind: 'COUNTDOWN', announcedAt: null } },
         },
       });
+      const kept = new Set(
+        (
+          await this.prisma.story.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          })
+        ).map((story) => story.id),
+      );
+      for (const story of expiredStories) {
+        if (kept.has(story.id)) continue;
+        await this.uploadsService
+          .deleteContentFiles(story.profileId, [
+            story.url,
+            story.standardUrl,
+            story.thumbnailUrl,
+            story.overlayUrl,
+          ])
+          .catch((e) => this.logger.warn(`Files of story ${story.id} kept`, e));
+      }
       if (deleted.count > 0) {
         this.logger.log(`Cleaned up ${deleted.count} expired stories.`);
       }

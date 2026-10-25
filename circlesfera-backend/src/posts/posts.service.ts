@@ -832,7 +832,7 @@ export class PostsService {
 
     // Ownership check is handled by OwnershipGuard at the controller level
     await this.prisma.post.delete({ where: { id } });
-    await this.postMediaCleanupService.cleanupMedia(post.media);
+    await this.postMediaCleanupService.cleanupMedia(post.profileId, post.media);
   }
 
   // Admin-only post deletion (bypasses ownership check).
@@ -848,7 +848,7 @@ export class PostsService {
     }
 
     await this.prisma.post.delete({ where: { id } });
-    await this.postMediaCleanupService.cleanupMedia(post.media);
+    await this.postMediaCleanupService.cleanupMedia(post.profileId, post.media);
   }
 
   // Returns a Prisma filter for global/discovery feeds.

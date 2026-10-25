@@ -6,7 +6,10 @@ function service() {
   const prisma = { storedFile: { createMany: vi.fn().mockResolvedValue({}) } };
   return {
     prisma,
-    files: new StoredFilesService(prisma as unknown as PrismaService),
+    files: new StoredFilesService(
+      prisma as unknown as PrismaService,
+      { inUse: async () => new Set<string>() } as never,
+    ),
   };
 }
 
@@ -61,6 +64,7 @@ describe('StoredFilesService.assertOwnedBy', () => {
       prisma,
       files: new StoredFilesService(
         prisma as unknown as PrismaService,
+        { inUse: async () => new Set<string>() } as never,
         storage as never,
       ),
     };
@@ -112,5 +116,69 @@ describe('StoredFilesService.assertOwnedBy', () => {
         profileId: { in: ['p-1', 'p-2'] },
       },
     });
+  });
+});
+
+describe('StoredFilesService.deletableBy', () => {
+  it("names only the author's own files that no other row still uses", async () => {
+    const prisma = {
+      storedFile: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { key: '/uploads/own-free.jpg' },
+            { key: '/uploads/own-still-used.jpg' },
+          ]),
+      },
+    };
+    const references = {
+      inUse: vi
+        .fn()
+        .mockResolvedValue(new Set(['/uploads/own-still-used.jpg'])),
+    };
+    const files = new StoredFilesService(
+      prisma as unknown as PrismaService,
+      references as never,
+    );
+
+    const deletable = await files.deletableBy('author', [
+      '/uploads/own-free.jpg',
+      '/uploads/own-still-used.jpg',
+      '/uploads/someone-elses.jpg',
+      null,
+      '',
+    ]);
+
+    expect(deletable).toEqual(['/uploads/own-free.jpg']);
+    // Another Profile's file, or one with no owner, is not even considered.
+    expect(prisma.storedFile.findMany).toHaveBeenCalledWith({
+      where: {
+        key: {
+          in: [
+            '/uploads/own-free.jpg',
+            '/uploads/own-still-used.jpg',
+            '/uploads/someone-elses.jpg',
+          ],
+        },
+        profileId: 'author',
+      },
+      select: { key: true },
+    });
+    expect(references.inUse).toHaveBeenCalledWith([
+      '/uploads/own-free.jpg',
+      '/uploads/own-still-used.jpg',
+    ]);
+  });
+
+  it('asks nothing for content with no file', async () => {
+    const prisma = { storedFile: { findMany: vi.fn() } };
+    const files = new StoredFilesService(
+      prisma as unknown as PrismaService,
+      { inUse: vi.fn() } as never,
+    );
+    await expect(
+      files.deletableBy('author', [null, undefined]),
+    ).resolves.toEqual([]);
+    expect(prisma.storedFile.findMany).not.toHaveBeenCalled();
   });
 });

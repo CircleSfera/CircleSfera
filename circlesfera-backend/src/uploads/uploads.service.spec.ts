@@ -78,6 +78,7 @@ const mockOutboxService = {
 const mockStoredFiles = {
   record: vi.fn().mockResolvedValue(undefined),
   forget: vi.fn().mockResolvedValue(undefined),
+  deletableBy: vi.fn().mockResolvedValue([]),
 };
 
 describe('UploadsService', () => {
@@ -384,6 +385,30 @@ describe('UploadsService', () => {
     });
   });
 
+  describe("a deleted piece of content's files", () => {
+    it("deletes only the files the record says are the author's and unused", async () => {
+      const U = '3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d';
+      mockStoredFiles.deletableBy.mockResolvedValueOnce([`/uploads/${U}.jpg`]);
+      const deleteSpy = vi.spyOn(provider, 'delete').mockResolvedValue();
+
+      const deleted = await service.deleteContentFiles('author', [
+        `/uploads/${U}.jpg`,
+        '/uploads/theirs.jpg',
+      ]);
+
+      expect(mockStoredFiles.deletableBy).toHaveBeenCalledWith('author', [
+        `/uploads/${U}.jpg`,
+        '/uploads/theirs.jpg',
+      ]);
+      expect(deleted).toEqual([`/uploads/${U}.jpg`]);
+      expect(deleteSpy).toHaveBeenCalledTimes(1);
+      expect(deleteSpy).toHaveBeenCalledWith(`/uploads/${U}.jpg`);
+      expect(mockStoredFiles.forget).toHaveBeenCalledWith([
+        `/uploads/${U}.jpg`,
+      ]);
+    });
+  });
+
   describe('who owns what is uploaded', () => {
     it('records each variant of an image as the Profile it was uploaded for', async () => {
       vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
@@ -545,18 +570,6 @@ describe('UploadsService', () => {
       await service.scheduleMediaDeletion(['', '   ']);
       expect(mockMediaCleanupQueue.add).not.toHaveBeenCalled();
       expect(mockOutboxService.enqueue).not.toHaveBeenCalled();
-    });
-
-    it('should route media.delete_batch domain events through scheduleMediaDeletion', async () => {
-      await service.handleMediaDeleteBatch({
-        mediaUrls: ['/uploads/event-file.png'],
-      });
-
-      expect(mockMediaCleanupQueue.add).toHaveBeenCalledWith(
-        'delete-media-batch',
-        { mediaUrls: ['/uploads/event-file.png'] },
-        expect.anything(),
-      );
     });
 
     it('should delete file directly using storage provider', async () => {

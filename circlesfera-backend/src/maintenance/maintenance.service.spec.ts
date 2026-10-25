@@ -12,6 +12,7 @@ describe('MaintenanceService', () => {
   let service: MaintenanceService;
   const mockStories = {
     announcePublished: vi.fn().mockResolvedValue(undefined),
+    cleanupExpiredStories: vi.fn().mockResolvedValue({ count: 0 }),
   };
   const mockPostDistribution = {
     dispatchScheduledPostPublished: vi.fn().mockResolvedValue(undefined),
@@ -104,67 +105,18 @@ describe('MaintenanceService', () => {
   });
 
   describe('cleanupExpiredStories', () => {
-    it('should return early if no expired stories exist', async () => {
-      mockPrismaService.story.findMany.mockResolvedValue([]);
-
+    it("leaves the work to the stories' own cleanup, which keeps highlighted stories", async () => {
       await service.cleanupExpiredStories();
-      expect(mockPrismaService.story.findMany).toHaveBeenCalled();
+
+      expect(mockStories.cleanupExpiredStories).toHaveBeenCalledTimes(1);
+      // It no longer deletes stories or files on its own.
+      expect(mockPrismaService.story.delete).not.toHaveBeenCalled();
       expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
     });
 
-    it('should delete expired story media and records', async () => {
-      mockPrismaService.story.findMany.mockResolvedValue([
-        {
-          id: 's-1',
-          url: 'https://cdn.example.com/story.jpg',
-          thumbnailUrl: 'https://cdn.example.com/story_thumb.jpg',
-          overlayUrl: 'https://cdn.example.com/story_layer.png',
-        },
-      ]);
-      mockPrismaService.story.delete.mockResolvedValue({ id: 's-1' });
-
-      await service.cleanupExpiredStories();
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/story_layer.png',
-      );
-      // A story whose countdown is still to be told is kept, hidden.
-      expect(
-        mockPrismaService.story.findMany.mock.calls[0][0].where.stickers,
-      ).toEqual({ none: { kind: 'COUNTDOWN', announcedAt: null } });
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/story.jpg',
-      );
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/story_thumb.jpg',
-      );
-      expect(mockPrismaService.story.delete).toHaveBeenCalledWith({
-        where: { id: 's-1' },
-      });
-    });
-
-    it('should handle media deletion failures and story delete exceptions in loop', async () => {
-      mockUploadsService.deleteFile.mockRejectedValue(
-        new Error('Upload error'),
-      );
-      mockPrismaService.story.findMany.mockResolvedValue([
-        {
-          id: 's-err',
-          url: 'https://cdn.example.com/story.jpg',
-          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-        },
-      ]);
-      mockPrismaService.story.delete.mockRejectedValueOnce(
-        new Error('DB delete failure'),
-      );
-
-      await expect(service.cleanupExpiredStories()).resolves.not.toThrow();
-    });
-
-    it('should catch top-level database failures gracefully', async () => {
-      mockPrismaService.story.findMany.mockRejectedValueOnce(
-        new Error('Connection error'),
-      );
-      await expect(service.cleanupExpiredStories()).resolves.not.toThrow();
+    it('does not fail the cron when the cleanup fails', async () => {
+      mockStories.cleanupExpiredStories.mockRejectedValueOnce(new Error('db'));
+      await expect(service.cleanupExpiredStories()).resolves.toBeUndefined();
     });
   });
 
@@ -713,32 +665,6 @@ describe('MaintenanceService', () => {
       await service.recoverStoryOverlays();
 
       expect(log).toHaveBeenCalledWith('Join of story s-9 retried again');
-    });
-  });
-
-  describe('cleanupExpiredStories, when a layer cannot be deleted', () => {
-    it('warns and goes on', async () => {
-      mockPrismaService.story.findMany.mockResolvedValueOnce([
-        {
-          id: 's-l',
-          url: null,
-          thumbnailUrl: null,
-          overlayUrl: '/uploads/l.png',
-        },
-      ]);
-      mockUploadsService.deleteFile.mockRejectedValueOnce(new Error('gone'));
-      mockPrismaService.story.delete.mockResolvedValue({ id: 's-l' });
-      const warn = vi.spyOn(
-        (service as unknown as { logger: Logger }).logger,
-        'warn',
-      );
-
-      await service.cleanupExpiredStories();
-
-      expect(warn).toHaveBeenCalledWith(
-        'Failed to delete story layer: /uploads/l.png',
-        expect.any(Error),
-      );
     });
   });
 

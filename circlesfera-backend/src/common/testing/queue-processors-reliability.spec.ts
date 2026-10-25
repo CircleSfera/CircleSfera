@@ -280,18 +280,21 @@ describe('Queue Processors Reliability & Error Handling', () => {
 
     it('re-throws failure during media deletion so BullMQ retries', async () => {
       const mockUploads = {
-        deleteFile: vi.fn().mockRejectedValue(new Error('S3 503 SlowDown')),
+        deleteContentFiles: vi
+          .fn()
+          .mockRejectedValue(new Error('S3 503 SlowDown')),
       } as any;
 
       const proc = new PostsProcessor(mockUploads);
       const job = {
         name: 'delete-post-media',
-        data: { mediaUrls: ['https://cdn.example.com/file1.png'] },
+        data: {
+          authorProfileId: 'author-1',
+          mediaUrls: ['https://cdn.example.com/file1.png'],
+        },
       } as any;
 
-      await expect(proc.process(job)).rejects.toThrow(
-        /Failed to delete 1\/1 media files/,
-      );
+      await expect(proc.process(job)).rejects.toThrow('S3 503 SlowDown');
     });
   });
 

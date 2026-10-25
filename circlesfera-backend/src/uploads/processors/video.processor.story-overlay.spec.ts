@@ -42,6 +42,13 @@ function setup(story: unknown, written = 1) {
   const uploads = {
     ownsUrl: (url: string) => storage.ownsUrl(url),
     enqueueTranscode: vi.fn().mockResolvedValue(undefined),
+    // As if both originals were the story's own and nothing else used them.
+    deleteContentFiles: vi.fn(
+      async (_author: string, keys: Array<string | null>) => {
+        for (const key of keys) if (key) await storage.delete(key);
+        return keys;
+      },
+    ),
   };
   const processor = new VideoProcessor(
     prisma as unknown as PrismaService,

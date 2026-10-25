@@ -8,12 +8,14 @@ describe('PostsProcessor', () => {
   let processor: PostsProcessor;
   let mockUploadsService: {
     deleteFile: ReturnType<typeof vi.fn>;
+    deleteContentFiles: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockUploadsService = {
       deleteFile: vi.fn().mockResolvedValue(undefined),
+      deleteContentFiles: vi.fn().mockResolvedValue([]),
     };
 
     processor = new PostsProcessor(
@@ -62,41 +64,43 @@ describe('PostsProcessor', () => {
     expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
   });
 
-  it('successfully deletes media files when all uploadsService calls resolve', async () => {
-    const urls = [
-      'https://cdn.example.com/p1.jpg',
-      'https://cdn.example.com/p2.jpg',
-    ];
+  it("deletes only the author's own files, by the author the job names", async () => {
+    const urls = ['/uploads/p1.jpg', '/uploads/p2.jpg'];
     const job = {
       name: 'delete-post-media',
-      data: { mediaUrls: urls },
+      data: { authorProfileId: 'author-1', mediaUrls: urls },
     } as unknown as Job;
 
     await processor.process(job);
 
-    expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(urls[0]);
-    expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(urls[1]);
+    expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledWith(
+      'author-1',
+      urls,
+    );
+    expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
   });
 
-  it('throws Error detailing failures when any deleteFile call rejects', async () => {
-    const urls = [
-      'https://cdn.example.com/ok.jpg',
-      'https://cdn.example.com/fail.jpg',
-    ];
-    mockUploadsService.deleteFile.mockImplementation((url: string) => {
-      if (url.includes('fail')) {
-        return Promise.reject(new Error('S3 error'));
-      }
-      return Promise.resolve();
-    });
-
+  it('leaves the files of a job that names no author, rather than delete by address', async () => {
     const job = {
       name: 'delete-post-media',
-      data: { mediaUrls: urls },
+      data: { mediaUrls: ['/uploads/p1.jpg'] },
     } as unknown as Job;
 
-    await expect(processor.process(job)).rejects.toThrow(
-      'Failed to delete 1/2 media files: S3 error',
+    await processor.process(job);
+
+    expect(mockUploadsService.deleteContentFiles).not.toHaveBeenCalled();
+    expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
+  });
+
+  it('fails, to be retried, when the files cannot be deleted', async () => {
+    mockUploadsService.deleteContentFiles.mockRejectedValueOnce(
+      new Error('disk busy'),
     );
+    const job = {
+      name: 'delete-post-media',
+      data: { authorProfileId: 'author-1', mediaUrls: ['/uploads/p1.jpg'] },
+    } as unknown as Job;
+
+    await expect(processor.process(job)).rejects.toThrow('disk busy');
   });
 });

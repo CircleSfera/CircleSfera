@@ -117,6 +117,7 @@ function setup({
   const uploads = {
     ownsUrl: () => true,
     enqueueTranscode: vi.fn().mockResolvedValue(undefined),
+    deleteContentFiles: vi.fn().mockResolvedValue([]),
   };
   const storedFiles = { record: vi.fn().mockResolvedValue(undefined) };
   const processor = new VideoProcessor(
@@ -168,8 +169,12 @@ describe('VideoProcessor: joining the layer of a story, step by step', () => {
     expect(uploads.enqueueTranscode).toHaveBeenCalledWith(
       '/uploads/joined.mp4',
     );
-    expect(store.delete).toHaveBeenCalledWith(STORY.overlayUrl);
-    expect(store.delete).toHaveBeenCalledWith(STORY.url);
+    // The originals go only if they are the story's own and unused (TD-008).
+    expect(uploads.deleteContentFiles).toHaveBeenCalledWith('p-1', [
+      STORY.overlayUrl,
+      STORY.url,
+    ]);
+    expect(store.delete).not.toHaveBeenCalledWith(STORY.url);
     // The joined video belongs to the story's Profile, written with the story.
     expect(storedFiles.record).toHaveBeenCalledWith(
       ['/uploads/joined.mp4'],

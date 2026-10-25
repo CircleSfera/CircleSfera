@@ -26,86 +26,18 @@ export class MaintenanceService {
     private readonly helpdeskData: HelpdeskDataPort,
   ) {}
 
-  // Cleans up stories that have expired (expiresAt < now).
+  // Cleans up stories that have expired (expiresAt < now), with the same
+  // rule as the stories' own job: a story kept in a highlight, or whose
+  // countdown is still to be told, stays; files go only if they are the
+  // author's own and nothing else uses them.
   // Runs every hour.
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredStories() {
     this.logger.log('Starting cleanup of expired stories...');
-
     try {
-      const now = new Date();
-
-      // Find all expired stories
-      const expiredStories = await this.prisma.story.findMany({
-        where: {
-          expiresAt: { lt: now },
-          // Kept, hidden, until its countdown has been told.
-          stickers: { none: { kind: 'COUNTDOWN', announcedAt: null } },
-        },
-      });
-
-      if (expiredStories.length === 0) {
-        this.logger.log('No expired stories found to clean up.');
-        return;
-      }
-
-      this.logger.log(
-        `Found ${expiredStories.length} expired stories to delete.`,
-      );
-
-      // We process them one by one or in batches to handle file deletion
-      for (const story of expiredStories) {
-        try {
-          // Delete physical files
-          if (story.url) {
-            await this.uploadsService
-              .deleteFile(story.url)
-              .catch((e) =>
-                this.logger.warn(
-                  `Failed to delete story media: ${story.url}`,
-                  e,
-                ),
-              );
-          }
-          if (story.thumbnailUrl) {
-            await this.uploadsService
-              .deleteFile(story.thumbnailUrl)
-              .catch((e) =>
-                this.logger.warn(
-                  `Failed to delete story thumbnail: ${story.thumbnailUrl}`,
-                  e,
-                ),
-              );
-          }
-          if (story.overlayUrl) {
-            await this.uploadsService
-              .deleteFile(story.overlayUrl)
-              .catch((e) =>
-                this.logger.warn(
-                  `Failed to delete story layer: ${story.overlayUrl}`,
-                  e,
-                ),
-              );
-          }
-
-          // Delete DB record
-          // (Cascade delete handles StoryView, StoryReaction via Prisma schema if configured)
-          await this.prisma.story.delete({
-            where: { id: story.id },
-          });
-        } catch (err) {
-          this.logger.error(
-            `Failed to process story deletion: ${story.id}`,
-            err,
-          );
-        }
-      }
-
-      this.logger.log(
-        `Successfully cleaned up ${expiredStories.length} expired stories.`,
-      );
+      await this.stories.cleanupExpiredStories();
     } catch (error) {
-      this.logger.error('Error in cleanupExpiredStories cron job', error);
+      this.logger.error('Failed to clean up expired stories', error);
     }
   }
 

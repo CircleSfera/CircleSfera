@@ -29,31 +29,28 @@ export class PostsProcessor extends WorkerHost {
     }
   }
 
-  private async deletePostMedia(data: { mediaUrls: string[] }): Promise<void> {
-    const { mediaUrls } = data ?? {};
+  private async deletePostMedia(data: {
+    authorProfileId?: string;
+    mediaUrls: string[];
+  }): Promise<void> {
+    const { authorProfileId, mediaUrls } = data ?? {};
     if (!mediaUrls || !Array.isArray(mediaUrls)) {
       throw new UnrecoverableError(
         'Invalid mediaUrls payload for delete-post-media',
       );
     }
     if (mediaUrls.length === 0) return;
-
-    this.logger.log(`Deleting ${mediaUrls.length} media files for post...`);
-
-    const results = await Promise.allSettled(
-      mediaUrls.map((url) => this.uploadsService.deleteFile(url)),
-    );
-
-    const failures = results.filter((r) => r.status === 'rejected');
-    if (failures.length > 0) {
-      this.logger.warn(`Failed to delete ${failures.length} media files.`);
-      const failureMessages = failures
-        .map((f: any) => f.reason?.message ?? String(f.reason))
-        .join(', ');
-      throw new Error(
-        `Failed to delete ${failures.length}/${mediaUrls.length} media files: ${failureMessages}`,
+    // A job queued before files had owners names no author: its files are
+    // left to the orphan sweep rather than deleted by address.
+    if (!authorProfileId) {
+      this.logger.warn(
+        `Left ${mediaUrls.length} files of a deleted post: the job names no author.`,
       );
+      return;
     }
+
+    this.logger.log(`Deleting the media files of a deleted post...`);
+    await this.uploadsService.deleteContentFiles(authorProfileId, mediaUrls);
 
     this.logger.log(`Successfully deleted all media files.`);
   }
