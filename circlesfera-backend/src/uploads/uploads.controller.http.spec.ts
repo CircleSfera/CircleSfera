@@ -72,6 +72,7 @@ describe('UploadsController over HTTP', () => {
       expect(mockService.uploadFile).toHaveBeenCalledWith(
         expect.objectContaining({ mimetype: contentType }),
         TEST_USER.userId,
+        TEST_USER.profileId,
       );
     },
   );

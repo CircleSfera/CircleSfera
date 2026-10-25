@@ -62,7 +62,9 @@ describe('VideoProcessor: the cover of a frame', () => {
     url: 'https://cdn.example.com/video.mp4',
     coverTimeMs: 4200,
     mediaId: 'm-1',
+    post: { profileId: 'p-1' },
   };
+  const storedFiles = { record: vi.fn().mockResolvedValue(undefined) };
   const job = (postMediaId?: string) =>
     ({ name: 'cover', data: { postMediaId } }) as unknown as Job<{
       url: string;
@@ -90,7 +92,13 @@ describe('VideoProcessor: the cover of a frame', () => {
       Buffer.from('jpeg') as never,
     );
     vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
-    processor = new VideoProcessor(prisma as never, storage as never);
+    storedFiles.record.mockClear();
+    processor = new VideoProcessor(
+      prisma as never,
+      storage as never,
+      undefined,
+      storedFiles as never,
+    );
     vi.spyOn(
       (processor as unknown as { logger: { log: () => void } }).logger,
       'log',
@@ -124,6 +132,11 @@ describe('VideoProcessor: the cover of a frame', () => {
       where: { id: 'm-1' },
       data: { thumbnailUrl: 'https://cdn.example.com/cover.jpg' },
     });
+    // The cover belongs to the Profile of the post.
+    expect(storedFiles.record).toHaveBeenCalledWith(
+      ['https://cdn.example.com/cover.jpg'],
+      { profileId: 'p-1' },
+    );
   });
 
   it('takes the last moment when the one asked for is past the end', async () => {
@@ -152,6 +165,7 @@ describe('VideoProcessor: the cover of a frame', () => {
       'https://cdn.example.com/cover.jpg',
     );
     expect(prisma.media.updateMany).not.toHaveBeenCalled();
+    expect(storedFiles.record).not.toHaveBeenCalled();
   });
 
   it.each([

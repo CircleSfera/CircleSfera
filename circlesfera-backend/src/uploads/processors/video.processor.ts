@@ -21,6 +21,7 @@ import {
   STORAGE_PROVIDER,
   type StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
+import { StoredFilesService } from '../services/stored-files.service.js';
 import { UploadsService } from '../uploads.service.js';
 
 /** A story's video once its painted layer is on it: 9:16, as on screen. */
@@ -52,6 +53,10 @@ export class VideoProcessor extends WorkerHost {
     @Optional()
     @Inject(UploadsService)
     private readonly uploads?: UploadsService,
+    // A file made from another belongs to the same Profile.
+    @Optional()
+    @Inject(StoredFilesService)
+    private readonly storedFiles?: StoredFilesService,
   ) {
     super();
   }
@@ -468,7 +473,13 @@ export class VideoProcessor extends WorkerHost {
     }
     const media = await this.prisma.postMedia.findUnique({
       where: { id: postMediaId },
-      select: { id: true, url: true, coverTimeMs: true, mediaId: true },
+      select: {
+        id: true,
+        url: true,
+        coverTimeMs: true,
+        mediaId: true,
+        post: { select: { profileId: true } },
+      },
     });
     // Deleted meanwhile, or no longer a chosen cover: nothing to make.
     if (!media || media.coverTimeMs === null) return;
@@ -503,6 +514,9 @@ export class VideoProcessor extends WorkerHost {
         await this.storageProvider.delete(stored.url).catch(() => {});
         return;
       }
+      await this.storedFiles?.record([stored.url], {
+        profileId: media.post.profileId,
+      });
       if (media.mediaId) {
         await this.prisma.media.updateMany({
           where: { id: media.mediaId },
@@ -530,7 +544,13 @@ export class VideoProcessor extends WorkerHost {
     }
     const story = await this.prisma.story.findUnique({
       where: { id: storyId },
-      select: { id: true, url: true, overlayUrl: true, mediaId: true },
+      select: {
+        id: true,
+        url: true,
+        overlayUrl: true,
+        mediaId: true,
+        profileId: true,
+      },
     });
     // Deleted meanwhile, or already joined: nothing to do.
     if (!story?.overlayUrl) return;
@@ -593,6 +613,13 @@ export class VideoProcessor extends WorkerHost {
               where: { id: story.mediaId },
               data: { url: stored.url, standardUrl: null, thumbnailUrl: null },
             });
+          }
+          if (changed.count > 0) {
+            await this.storedFiles?.record(
+              [stored.url],
+              { profileId: story.profileId },
+              tx,
+            );
           }
           return changed.count;
         })

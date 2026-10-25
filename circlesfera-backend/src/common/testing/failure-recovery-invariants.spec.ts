@@ -86,9 +86,12 @@ describe('Failure Injection & Recovery Invariants', () => {
         { isRecordedVoice: () => false } as unknown as ConstructorParameters<
           typeof UploadsService
         >[3],
-        mockVideoQueue as unknown as ConstructorParameters<
+        { record: async () => {} } as unknown as ConstructorParameters<
           typeof UploadsService
         >[4],
+        mockVideoQueue as unknown as ConstructorParameters<
+          typeof UploadsService
+        >[5],
         mockConfigService,
       );
     });

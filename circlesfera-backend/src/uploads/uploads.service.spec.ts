@@ -12,6 +12,7 @@ import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { MediaProcessorService } from './media-processor.service.js';
 import { MediaSignatureValidator } from './media-signature.validator.js';
 import { LocalStorageProvider } from './providers/local.provider.js';
+import { StoredFilesService } from './services/stored-files.service.js';
 import { UploadsService } from './uploads.service.js';
 import { VoiceNoteConverter } from './voice-note.converter.js';
 
@@ -74,6 +75,10 @@ const mockOutboxService = {
   enqueue: vi.fn().mockResolvedValue({ id: 'outbox-1' }),
 };
 
+const mockStoredFiles = {
+  record: vi.fn().mockResolvedValue(undefined),
+};
+
 describe('UploadsService', () => {
   let service: UploadsService;
   let provider: LocalStorageProvider;
@@ -100,6 +105,7 @@ describe('UploadsService', () => {
           useValue: { validate: vi.fn().mockResolvedValue(undefined) },
         },
         { provide: VoiceNoteConverter, useValue: mockVoiceNoteConverter },
+        { provide: StoredFilesService, useValue: mockStoredFiles },
         {
           provide: STORAGE_PROVIDER,
           useFactory: (_config: ConfigService) => new LocalStorageProvider(),
@@ -374,6 +380,51 @@ describe('UploadsService', () => {
       expect(result.url).toBeDefined();
       expect(mockVideoQueue.getWaitingCount).not.toHaveBeenCalled();
       expect(mockVideoQueue.add).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('who owns what is uploaded', () => {
+    it('records each variant of an image as the Profile it was uploaded for', async () => {
+      vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+      const imageFile: UploadedFile = {
+        originalname: 'photo.png',
+        mimetype: 'image/png',
+        buffer: Buffer.from('fake-image-bytes'),
+      };
+
+      const result = await service.uploadFile(
+        imageFile,
+        'member-user',
+        'business-profile',
+      );
+
+      expect(mockStoredFiles.record).toHaveBeenCalledWith(
+        [result.url, result.standardUrl, result.thumbnailUrl],
+        { profileId: 'business-profile', uploadedById: 'member-user' },
+      );
+    });
+
+    it('records a video, and fails the upload when it cannot be recorded', async () => {
+      vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+      const videoFile: UploadedFile = {
+        originalname: 'clip.mp4',
+        mimetype: 'video/mp4',
+        buffer: Buffer.from('fake-video-bytes'),
+      };
+
+      const result = await service.uploadFile(videoFile, 'user-1', 'profile-1');
+      expect(mockStoredFiles.record).toHaveBeenCalledWith([result.url], {
+        profileId: 'profile-1',
+        uploadedById: 'user-1',
+      });
+
+      // A file with no owner could never be attached nor deleted by its
+      // Profile: the upload is refused instead of answered.
+      mockStoredFiles.record.mockRejectedValueOnce(new Error('db down'));
+      await expect(
+        service.uploadFile(videoFile, 'user-1', 'profile-1'),
+      ).rejects.toThrow('db down');
+      expect(mockVideoQueue.add).toHaveBeenCalledTimes(1);
     });
   });
 
