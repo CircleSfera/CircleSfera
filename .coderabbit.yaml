@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Unresolved review threads block the merge queue, so reviews stay on what can
+# be wrong: generated files are skipped and style nitpicks are left to Biome.
+language: en-US
+reviews:
+  profile: chill
+  high_level_summary: false
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!**/package-lock.json"
+    - "!**/Package.resolved"
+    - "!**/*.snap"
+    - "!**/dist/**"
+  path_instructions:
+    - path: "**/*"
+      instructions: >-
+        Formatting and import order are checked by Biome in CI; do not comment on them.
+        The repository runs Node.js 24 (engines >=24 <25) and TypeScript 7; check a claim
+        about runtime or library behaviour against those versions before raising it.
