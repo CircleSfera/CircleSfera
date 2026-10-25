@@ -95,8 +95,19 @@ export class MediaAuthService {
 
     // Normalise to handle both "/uploads/foo/bar.jpg" and "foo/bar.jpg".
     const normalised = pathOnly.replace(/^\/uploads\//, '');
-    if (!normalised || normalised.includes('..')) {
-      this.logger.warn(`Rejected traversal/empty upload path: ${uploadPath}`);
+    // Only a canonical path is looked up: Nginx resolves "./", "%2e/", "//"
+    // and the like before it serves the file, but the database rows hold the
+    // canonical address, so any other spelling would match no row and fall
+    // through to the public-asset default while the protected file is served.
+    const segments = normalised.split('/');
+    if (
+      !normalised ||
+      normalised.includes('\\') ||
+      segments.some(
+        (segment) => segment === '' || segment === '.' || segment === '..',
+      )
+    ) {
+      this.logger.warn(`Rejected non-canonical upload path: ${uploadPath}`);
       return false;
     }
 
