@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Inject,
   Logger,
+  NotFoundException,
   Param,
   Req,
   Res,
@@ -103,7 +104,16 @@ export class MediaController {
         req.user?.profileId ?? null,
       ).then(
         () => true,
-        () => false,
+        (error: unknown) => {
+          // A refusal answers as missing; any other failure is a failure.
+          if (
+            error instanceof NotFoundException ||
+            error instanceof ForbiddenException
+          ) {
+            return false;
+          }
+          throw error;
+        },
       ));
     if (!media?.standardUrl || !canSeeCard) {
       this.logger.warn(

@@ -195,6 +195,21 @@ describe('MediaController (HTTP integration)', () => {
       .expect(404);
   });
 
+  it('answers a failure to read the post as a failure, not as missing media', async () => {
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: PAID,
+    });
+    mockPrismaService.post.findUnique.mockRejectedValue(
+      new Error('database unavailable'),
+    );
+    fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
+
+    await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/master.m3u8')
+      .expect(500);
+  });
+
   it('returns 404 when the media record has no standardUrl', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue(null);
 
