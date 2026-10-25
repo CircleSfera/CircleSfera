@@ -1,12 +1,12 @@
 import * as path from 'node:path';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   STORAGE_PROVIDER,
   StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
 import { UploadsService } from '../uploads.service.js';
+import { MediaReferencesService } from './media-references.service.js';
 
 export interface OrphanDetectionOptions {
   olderThanHours?: number;
@@ -33,95 +33,17 @@ export class MediaReconciliationService {
   private readonly logger = new Logger(MediaReconciliationService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly mediaReferences: MediaReferencesService,
     private readonly uploadsService: UploadsService,
     @Inject(STORAGE_PROVIDER)
     private readonly storageProvider: StorageProvider,
   ) {}
 
   /**
-   * Scans the database and collects all active media URLs and basenames across all models.
+   * Every address and file name that some row names (MEDIA_COLUMNS).
    */
   async getReferencedMediaKeys(): Promise<Set<string>> {
-    const keys = new Set<string>();
-
-    const addRef = (rawUrl?: string | null) => {
-      if (!rawUrl || typeof rawUrl !== 'string') return;
-      keys.add(rawUrl.trim());
-      const base = path.basename(rawUrl.trim());
-      if (base) {
-        keys.add(base);
-      }
-    };
-
-    // 1. Post Media
-    const postMedias = await this.prisma.postMedia.findMany({
-      select: { url: true, standardUrl: true, thumbnailUrl: true },
-    });
-    for (const pm of postMedias) {
-      addRef(pm.url);
-      addRef(pm.standardUrl);
-      addRef(pm.thumbnailUrl);
-    }
-
-    // 2. Profiles (avatar, cover, and resized variants)
-    const profiles = await this.prisma.profile.findMany({
-      select: {
-        avatar: true,
-        standardUrl: true,
-        thumbnailUrl: true,
-        cover: true,
-        coverStandardUrl: true,
-        coverThumbnailUrl: true,
-      },
-    });
-    for (const p of profiles) {
-      addRef(p.avatar);
-      addRef(p.standardUrl);
-      addRef(p.thumbnailUrl);
-      addRef(p.cover);
-      addRef(p.coverStandardUrl);
-      addRef(p.coverThumbnailUrl);
-    }
-
-    // 3. Stories
-    const stories = await this.prisma.story.findMany({
-      select: {
-        url: true,
-        standardUrl: true,
-        thumbnailUrl: true,
-        overlayUrl: true,
-      },
-    });
-    for (const s of stories) {
-      addRef(s.url);
-      addRef(s.standardUrl);
-      addRef(s.thumbnailUrl);
-      addRef(s.overlayUrl);
-    }
-
-    // 4. Messages (attachments)
-    const messages = await this.prisma.message.findMany({
-      where: {
-        OR: [{ attachmentUrl: { not: null } }, { thumbnailUrl: { not: null } }],
-      },
-      select: { attachmentUrl: true, thumbnailUrl: true },
-    });
-    for (const m of messages) {
-      addRef(m.attachmentUrl);
-      addRef(m.thumbnailUrl);
-    }
-
-    // 5. Audio tracks
-    const audios = await this.prisma.audio.findMany({
-      select: { url: true, thumbnailUrl: true },
-    });
-    for (const a of audios) {
-      addRef(a.url);
-      addRef(a.thumbnailUrl);
-    }
-
-    return keys;
+    return this.mediaReferences.referencedKeys();
   }
 
   /**
@@ -208,7 +130,8 @@ export class MediaReconciliationService {
   }
 
   /**
-   * Daily reconciliation scheduled cron running at 04:00 AM server time.
+   * Daily reconciliation scheduled cron running at 04:00 AM server time. It
+   * reports only: the owner enables deletion with these reports in hand.
    */
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async handleDailyReconciliation(): Promise<void> {
@@ -216,10 +139,14 @@ export class MediaReconciliationService {
     try {
       const result = await this.detectAndReconcileOrphans({
         olderThanHours: 24,
-        dryRun: false,
+        dryRun: true,
       });
+      const bytes = result.orphans.reduce(
+        (sum, orphan) => sum + (orphan.sizeBytes ?? 0),
+        0,
+      );
       this.logger.log(
-        `Daily media reconciliation finished: found ${result.orphanCount} orphans across ${result.scannedCount} files.`,
+        `Daily media reconciliation (report only): ${result.orphanCount} of ${result.scannedCount} files are used by no row, ${bytes} bytes; nothing deleted.`,
       );
     } catch (err: unknown) {
       this.logger.error(
