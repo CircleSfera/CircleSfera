@@ -159,6 +159,17 @@ describe('VideoProcessor: the cover of a frame', () => {
     expect(tool.shot?.timestamps).toEqual([0]);
   });
 
+  it('deletes its image again when it cannot be recorded, and fails to be retried', async () => {
+    storedFiles.record.mockRejectedValueOnce(new Error('db down'));
+
+    await expect(processor.process(job('pm-1'))).rejects.toThrow('db down');
+
+    expect(storage.delete).toHaveBeenCalledWith(
+      'https://cdn.example.com/cover.jpg',
+    );
+    expect(prisma.postMedia.updateMany).not.toHaveBeenCalled();
+  });
+
   it('drops its image when the author chose another moment meanwhile', async () => {
     prisma.postMedia.updateMany.mockResolvedValue({ count: 0 });
 

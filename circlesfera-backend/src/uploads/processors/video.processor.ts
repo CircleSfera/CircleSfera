@@ -507,9 +507,15 @@ export class VideoProcessor extends WorkerHost {
 
       // Recorded before it is used, so that a cover in use always has its
       // owner; a cover dropped below keeps a record of a file that is gone.
-      await this.storedFiles?.record([stored.url], {
-        profileId: media.post.profileId,
-      });
+      try {
+        await this.storedFiles?.record([stored.url], {
+          profileId: media.post.profileId,
+        });
+      } catch (error) {
+        // Not left on the disk with no owner; the retry makes it again.
+        await this.storageProvider.delete(stored.url).catch(() => {});
+        throw error;
+      }
       // Written only if the author has not chosen another moment meanwhile.
       const written = await this.prisma.postMedia.updateMany({
         where: { id: media.id, coverTimeMs: media.coverTimeMs },
