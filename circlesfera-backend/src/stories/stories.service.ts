@@ -8,7 +8,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   NotificationType,
   type Prisma,
@@ -924,40 +924,6 @@ export class StoriesService {
     } catch (error) {
       this.logger.error('Failed to clean up expired stories', error);
       throw error;
-    }
-  }
-
-  @OnEvent('user.hard_deleted')
-  async handleUserDeleted(payload: {
-    profileId?: string;
-    profileIds?: string[];
-  }) {
-    const ids =
-      payload.profileIds && payload.profileIds.length > 0
-        ? payload.profileIds
-        : payload.profileId
-          ? [payload.profileId]
-          : [];
-
-    if (ids.length === 0) return;
-
-    const userStories = await this.prisma.story.findMany({
-      where: { profileId: { in: ids } },
-    });
-
-    const mediaUrls = new Set<string>();
-    for (const story of userStories) {
-      if (story.url) mediaUrls.add(story.url);
-      if (story.thumbnailUrl) mediaUrls.add(story.thumbnailUrl);
-    }
-
-    if (mediaUrls.size > 0) {
-      this.logger.log(
-        `Emitting media.delete_batch for ${mediaUrls.size} files...`,
-      );
-      this.eventEmitter.emit('media.delete_batch', {
-        mediaUrls: Array.from(mediaUrls),
-      });
     }
   }
 }

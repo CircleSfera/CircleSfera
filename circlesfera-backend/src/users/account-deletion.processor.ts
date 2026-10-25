@@ -181,12 +181,9 @@ export class AccountDeletionProcessor extends WorkerHost {
         mediaUrls: profileMediaUrls,
       });
 
-      // Purge profile media assets (avatar, cover, variants)
-      if (profileMediaUrls.length > 0) {
-        this.eventEmitter.emit('media.delete_batch', {
-          mediaUrls: profileMediaUrls,
-        });
-      }
+      // The account's files are deleted from the record of what its Profiles
+      // uploaded, queued in the transaction that deletes it (Phase 4), not
+      // from the addresses its rows name, which may be someone else's files.
 
       this.logger.log(
         `Emitting ${USER_HARD_DELETED_EVENT} event for user ${userId} (profiles: ${profileIds.join(', ') || 'none'})...`,

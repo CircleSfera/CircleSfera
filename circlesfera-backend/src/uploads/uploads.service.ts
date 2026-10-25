@@ -311,6 +311,7 @@ export class UploadsService {
   // Param url: The file URL to delete
   async deleteFile(fileUrl: string): Promise<void> {
     await this.storageProvider.delete(fileUrl);
+    await this.storedFiles.forget([fileUrl]);
   }
 
   /**

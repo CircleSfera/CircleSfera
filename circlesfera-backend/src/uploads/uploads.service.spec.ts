@@ -77,6 +77,7 @@ const mockOutboxService = {
 
 const mockStoredFiles = {
   record: vi.fn().mockResolvedValue(undefined),
+  forget: vi.fn().mockResolvedValue(undefined),
 };
 
 describe('UploadsService', () => {

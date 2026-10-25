@@ -64,6 +64,12 @@ export class StoredFilesService {
     }
   }
 
+  /** Forgets the files the storage has just deleted. */
+  async forget(keys: string[]): Promise<void> {
+    if (keys.length === 0) return;
+    await this.prisma.storedFile.deleteMany({ where: { key: { in: keys } } });
+  }
+
   /**
    * Records files the storage just stored. A file already recorded keeps its
    * first owner.

@@ -15,11 +15,16 @@ import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 import {
   ContentPreferenceDto,
   VisibilityDto,
 } from './dto/update-settings.dto.js';
 import { UsersService } from './users.service.js';
+
+const mockUploadsService = {
+  scheduleMediaDeletion: vi.fn().mockResolvedValue(undefined),
+};
 
 describe('UsersService', () => {
   const mockCacheManager = { del: vi.fn() };
@@ -131,6 +136,7 @@ describe('UsersService', () => {
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
         { provide: CryptoService, useValue: mockCrypto },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: UploadsService, useValue: mockUploadsService },
         {
           provide: getQueueToken('users-processing'),
           useValue: mockUsersQueue,
@@ -487,7 +493,18 @@ describe('UsersService', () => {
   });
 
   describe('deleteScheduledUser', () => {
-    it('deleteScheduledUser returns true when user is deleted', async () => {
+    beforeEach(() => {
+      mockPrismaService.storedFile = {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { key: '/uploads/own-1.jpg' },
+            { key: '/uploads/own-2.mp4' },
+          ]),
+      };
+    });
+
+    it('deletes the account and queues every file its Profiles uploaded, in one transaction', async () => {
       mockPrismaService.user.deleteMany.mockResolvedValue({ count: 1 });
       const res = await service.deleteScheduledUser('u_sched');
       expect(res).toBe(true);
@@ -501,12 +518,22 @@ describe('UsersService', () => {
           ],
         },
       });
+      // From the record of its own files, not the addresses its rows name.
+      expect(mockPrismaService.storedFile.findMany).toHaveBeenCalledWith({
+        where: { profile: { userId: 'u_sched' } },
+        select: { key: true },
+      });
+      expect(mockUploadsService.scheduleMediaDeletion).toHaveBeenCalledWith(
+        ['/uploads/own-1.jpg', '/uploads/own-2.mp4'],
+        { tx: mockPrismaService },
+      );
     });
 
-    it('deleteScheduledUser returns false when count is 0', async () => {
+    it('queues no file when the account was restored meanwhile', async () => {
       mockPrismaService.user.deleteMany.mockResolvedValue({ count: 0 });
       const res = await service.deleteScheduledUser('u_restored');
       expect(res).toBe(false);
+      expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
     });
   });
 

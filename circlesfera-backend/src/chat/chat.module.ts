@@ -38,7 +38,6 @@ import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message
 import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
 // System Commands
 import { CleanupExpiredMessagesUseCase } from './use-cases/system/cleanup-expired-messages.use-case.js';
-import { HandleUserDeletedUseCase } from './use-cases/system/handle-user-deleted.use-case.js';
 
 const useCases = [
   GetConversationsQuery,
@@ -57,7 +56,6 @@ const useCases = [
   AcceptMessageRequestUseCase,
   DeclineMessageRequestUseCase,
   CleanupExpiredMessagesUseCase,
-  HandleUserDeletedUseCase,
 ];
 
 @Module({

@@ -184,7 +184,7 @@ describe('AccountDeletionProcessor', () => {
       expect(executionOrder).toEqual(['emitAsync', 'deleteScheduledUser']);
     });
 
-    it('cleans up profile media assets (avatar, cover, variants) via media.delete_batch', async () => {
+    it("deletes no file by the addresses its profile rows name: they may be someone else's", async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-media',
         isActive: false,
@@ -208,14 +208,12 @@ describe('AccountDeletionProcessor', () => {
 
       await processor.hardDeleteUser('user-media');
 
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith('media.delete_batch', {
-        mediaUrls: expect.arrayContaining([
-          'https://cdn.example.com/avatar1.jpg',
-          'https://cdn.example.com/avatar1-std.jpg',
-          'https://cdn.example.com/avatar1-thumb.jpg',
-          'https://cdn.example.com/cover1.jpg',
-        ]),
-      });
+      // The account's own files are queued by deleteScheduledUser, from
+      // the record of what its Profiles uploaded.
+      expect(mockEventEmitter.emit).not.toHaveBeenCalledWith(
+        'media.delete_batch',
+        expect.anything(),
+      );
 
       expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
         'user.hard_deleted',

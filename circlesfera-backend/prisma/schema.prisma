@@ -1055,8 +1055,9 @@ model LiveStream {
   hlsUrl      String?
   replayUrl   String?
 
-  host         Profile       @relation("LiveStreamHost", fields: [hostId], references: [id])
-  coHost       Profile?      @relation("LiveStreamCoHost", fields: [coHostId], references: [id])
+  // A host's streams are erased with the host (TD-009).
+  host         Profile       @relation("LiveStreamHost", fields: [hostId], references: [id], onDelete: Cascade)
+  coHost       Profile?      @relation("LiveStreamCoHost", fields: [coHostId], references: [id], onDelete: SetNull)
   gifts        LiveGift[]
   transactions Transaction[]
 
