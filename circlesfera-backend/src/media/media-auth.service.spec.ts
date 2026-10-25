@@ -92,6 +92,40 @@ describe('MediaAuthService', () => {
       expect(mockPrismaService.postMedia.findMany).not.toHaveBeenCalled();
     });
 
+    it.each([
+      ['a dot segment', '/uploads/./3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg'],
+      [
+        'an encoded dot segment',
+        '/uploads/%2e/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
+      ],
+      [
+        'an encoded upper-case dot',
+        '/uploads/%2E/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
+      ],
+      ['a double slash', '/uploads//3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg'],
+      [
+        'an encoded slash pair',
+        '/uploads/%2F3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
+      ],
+      [
+        'a dot inside a folder',
+        '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d/./master.m3u8',
+      ],
+      [
+        'a trailing slash',
+        '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg/',
+      ],
+      ['a backslash', '/uploads/.\\3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg'],
+    ])(
+      'refuses a path with %s, which Nginx would resolve to a protected file the rows hold under its canonical address',
+      async (_kind, uploadPath) => {
+        await expect(
+          service.isAccessAllowed(uploadPath, null, null),
+        ).resolves.toBe(false);
+        expect(mockPrismaService.postMedia.findMany).not.toHaveBeenCalled();
+      },
+    );
+
     it('allows public asset access when no content-owning row matches', async () => {
       expect(
         await service.isAccessAllowed('/uploads/avatars/user.png', null, null),
