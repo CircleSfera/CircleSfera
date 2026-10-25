@@ -4,8 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { EditsService } from './edits.service.js';
+
+// Every file in these tests is the sending Profile's own unless a test says so.
+const mockStoredFiles = {
+  assertOwnedBy: vi.fn().mockResolvedValue(undefined),
+  record: vi.fn().mockResolvedValue(undefined),
+};
 
 describe('EditsService', () => {
   let service: EditsService;
@@ -43,6 +50,7 @@ describe('EditsService', () => {
       providers: [
         EditsService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: StoredFilesService, useValue: mockStoredFiles },
         { provide: UploadsService, useValue: mockUploadsService },
         { provide: AIService, useValue: mockAiService },
         { provide: getQueueToken('ai-processing'), useValue: mockAiQueue },
@@ -58,6 +66,28 @@ describe('EditsService', () => {
   });
 
   describe('create', () => {
+    it("refuses another Profile's stored file, the project's media or a clip", async () => {
+      mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+        new Error('FILE_NOT_OWNED'),
+      );
+
+      await expect(
+        service.create('p-1', {
+          mediaUrl: '/uploads/m.mp4',
+          mediaType: 'video',
+          state: {
+            version: 3,
+            studio: { tracks: [{ clips: [{ fileUrl: '/uploads/c.mp4' }] }] },
+          },
+        } as never),
+      ).rejects.toThrow('FILE_NOT_OWNED');
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('p-1', [
+        '/uploads/m.mp4',
+        '/uploads/c.mp4',
+      ]);
+      expect(mockPrismaService.editProject.create).not.toHaveBeenCalled();
+    });
+
     it('should create an edit project', async () => {
       const dto = {
         mediaUrl: 'https://cdn.example.com/photo.jpg',
@@ -231,6 +261,30 @@ describe('EditsService', () => {
   });
 
   describe('update', () => {
+    it('checks only clips added to the project, and refuses one of another Profile', async () => {
+      const clips = (...urls: string[]) => ({
+        version: 3,
+        studio: { tracks: [{ clips: urls.map((fileUrl) => ({ fileUrl })) }] },
+      });
+      mockPrismaService.editProject.findFirst.mockResolvedValue({
+        id: 'e-1',
+        state: clips('/uploads/kept.mp4'),
+      });
+      mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+        new Error('FILE_NOT_OWNED'),
+      );
+
+      await expect(
+        service.update('p-1', 'e-1', {
+          state: clips('/uploads/kept.mp4', '/uploads/added.mp4'),
+        } as never),
+      ).rejects.toThrow('FILE_NOT_OWNED');
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('p-1', [
+        '/uploads/added.mp4',
+      ]);
+      expect(mockPrismaService.editProject.update).not.toHaveBeenCalled();
+    });
+
     it('updates project name and state', async () => {
       mockPrismaService.editProject.findFirst.mockResolvedValue({
         id: 'e-1',

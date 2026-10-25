@@ -2,7 +2,14 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { HighlightsService } from './highlights.service.js';
+
+// Every file in these tests is the sending Profile's own unless a test says so.
+const mockStoredFiles = {
+  assertOwnedBy: vi.fn().mockResolvedValue(undefined),
+  record: vi.fn().mockResolvedValue(undefined),
+};
 
 describe('HighlightsService', () => {
   let service: HighlightsService;
@@ -33,6 +40,7 @@ describe('HighlightsService', () => {
       providers: [
         HighlightsService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: StoredFilesService, useValue: mockStoredFiles },
       ],
     }).compile();
 
@@ -45,6 +53,24 @@ describe('HighlightsService', () => {
   });
 
   describe('create', () => {
+    it("refuses another Profile's stored file as its cover", async () => {
+      mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+        new Error('FILE_NOT_OWNED'),
+      );
+
+      await expect(
+        service.create('user-1', {
+          title: 't',
+          coverUrl: '/uploads/x.jpg',
+          storyIds: [],
+        }),
+      ).rejects.toThrow('FILE_NOT_OWNED');
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('user-1', [
+        '/uploads/x.jpg',
+      ]);
+      expect(mockPrismaService.highlight.create).not.toHaveBeenCalled();
+    });
+
     it('should create a story highlight', async () => {
       const dto = {
         title: 'Summer 2026',
@@ -171,6 +197,25 @@ describe('HighlightsService', () => {
   });
 
   describe('update', () => {
+    it('checks only a new cover: the one it has is sent back as it is', async () => {
+      mockPrismaService.highlight.findFirst.mockResolvedValue({
+        id: 'hl-1',
+        profileId: 'user-1',
+        coverUrl: '/uploads/kept.jpg',
+      });
+      mockPrismaService.highlight.update.mockResolvedValue({ id: 'hl-1' });
+
+      await service.update('hl-1', 'user-1', { coverUrl: '/uploads/kept.jpg' });
+      expect(mockStoredFiles.assertOwnedBy).not.toHaveBeenCalled();
+
+      mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+        new Error('FILE_NOT_OWNED'),
+      );
+      await expect(
+        service.update('hl-1', 'user-1', { coverUrl: '/uploads/new.jpg' }),
+      ).rejects.toThrow('FILE_NOT_OWNED');
+    });
+
     it('should throw NotFoundException if highlight not found or permission denied', async () => {
       mockPrismaService.highlight.findFirst.mockResolvedValue(null);
 

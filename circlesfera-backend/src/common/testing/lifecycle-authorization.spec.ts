@@ -314,6 +314,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
           trackWrite: vi.fn().mockResolvedValue(undefined),
           recordText: vi.fn().mockResolvedValue(undefined),
         } as never,
+        { assertOwnedBy: vi.fn().mockResolvedValue(undefined) } as never,
       );
     });
 

@@ -23,6 +23,8 @@ describe('SendMessageUseCase', () => {
   let useCase: SendMessageUseCase;
   let mockPrisma: any;
   let mockTx: any;
+  // Every file here is the sender's own unless a test says so.
+  const storedFiles = { assertOwnedBy: vi.fn().mockResolvedValue(undefined) };
   let mockCryptoService: {
     encrypt: ReturnType<typeof vi.fn>;
   };
@@ -86,7 +88,29 @@ describe('SendMessageUseCase', () => {
         trackWrite: vi.fn().mockResolvedValue(undefined),
         recordText: vi.fn().mockResolvedValue(undefined),
       } as never,
+      storedFiles as never,
     );
+  });
+
+  it("refuses another Profile's stored file before anything else", async () => {
+    storedFiles.assertOwnedBy.mockRejectedValueOnce(
+      new Error('FILE_NOT_OWNED'),
+    );
+
+    await expect(
+      useCase.execute(
+        'sender-1',
+        'recipient-1',
+        'Hi',
+        '/uploads/theirs.jpg',
+        'image',
+      ),
+    ).rejects.toThrow('FILE_NOT_OWNED');
+    expect(storedFiles.assertOwnedBy).toHaveBeenCalledWith('sender-1', [
+      '/uploads/theirs.jpg',
+      undefined,
+    ]);
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('throws BadRequest when neither conversationId nor recipientId is provided', async () => {

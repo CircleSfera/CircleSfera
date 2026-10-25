@@ -5409,6 +5409,7 @@
       "INVALID_MEDIA_PATH": "That file can't be used.",
       "PREMIUM_CONTENT_LOCKED": "Unlock this content to see it.",
       "MEDIA_ACCESS_DENIED": "You don't have access to this file.",
+      "FILE_NOT_OWNED": "This file can't be used here. Upload it again from your device.",
       "COLLECTION_NOT_FOUND": "We couldn't find that collection.",
       "HIGHLIGHT_NOT_FOUND": "We couldn't find that highlight.",
       "EDIT_PROJECT_NOT_FOUND": "We couldn't find that project.",

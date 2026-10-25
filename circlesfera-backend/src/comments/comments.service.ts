@@ -32,6 +32,7 @@ import {
   encodeKeysetCursor,
   keysetBeforeDesc,
 } from '../common/pagination/keyset.util.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { UpdateCommentDto } from './dto/update-comment.dto.js';
 
@@ -46,6 +47,8 @@ export class CommentsService {
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
     @Inject(ActionLimitsService)
     private readonly actionLimits: ActionLimitsService,
+    @Inject(StoredFilesService)
+    private readonly storedFiles: StoredFilesService,
   ) {}
 
   // Create a comment on a post. Sends notifications to the post owner, mentioned users,
@@ -61,6 +64,9 @@ export class CommentsService {
     if (post.turnOffComments) {
       throw new ForbiddenException('Comments are disabled for this post');
     }
+
+    // Only the sending Profile's own stored files can be attached.
+    await this.storedFiles.assertOwnedBy(profileId, [dto.url, dto.voiceUrl]);
 
     // Per-Profile comment caps (spam protection).
     await this.actionLimits.consume(profileId, 'comment');

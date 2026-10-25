@@ -1,5 +1,5 @@
 import { Readable } from 'node:stream';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
 import { StorageProvider } from '../interfaces/storage-provider.interface.js';
@@ -7,6 +7,7 @@ import type { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 
 @Injectable()
 export class CloudinaryProvider implements StorageProvider {
+  private readonly logger = new Logger(CloudinaryProvider.name);
   constructor(
     @Inject(ConfigService) private readonly configService: ConfigService,
   ) {
@@ -57,6 +58,13 @@ export class CloudinaryProvider implements StorageProvider {
   }
 
   async delete(url: string): Promise<void> {
+    // Only an address this storage answers for one of its own files is
+    // deleted: any other shape (another folder, a trailing slash, a host)
+    // could still name someone else's file by its base name.
+    if (!this.ownsUrl(url)) {
+      this.logger.warn(`Not deleting ${url}: not an address of this storage`);
+      return;
+    }
     try {
       const parts = url.split('/');
       const filenameWithExt = parts[parts.length - 1];

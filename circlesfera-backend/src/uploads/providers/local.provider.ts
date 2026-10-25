@@ -105,6 +105,13 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async delete(url: string): Promise<void> {
+    // Only an address this storage answers for one of its own files is
+    // deleted: any other shape (another folder, a trailing slash, a host)
+    // could still name someone else's file by its base name.
+    if (!this.ownsUrl(url)) {
+      this.logger.warn(`Not deleting ${url}: not an address of this storage`);
+      return;
+    }
     try {
       const filename = path.basename(url);
       const filepath = path.join(this.uploadDir, filename);

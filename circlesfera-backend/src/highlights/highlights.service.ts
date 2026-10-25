@@ -4,19 +4,26 @@ import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import type { CreateHighlightDto } from './dto/create-highlight.dto.js';
 import type { UpdateHighlightDto } from './dto/update-highlight.dto.js';
 
 // Service for story highlights: permanent curated groups of expired stories.
 @Injectable()
 export class HighlightsService {
-  constructor(@Inject(PrismaService) private prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(StoredFilesService)
+    private readonly storedFiles: StoredFilesService,
+  ) {}
 
   // Create a new highlight from selected stories.
   // Param profileId: The owner's profile ID
   // Param createHighlightDto: Title, coverUrl, and story IDs
   async create(profileId: string, createHighlightDto: CreateHighlightDto) {
     const { title, coverUrl, storyIds } = createHighlightDto;
+    // Only the sending Profile's own stored files can be attached.
+    await this.storedFiles.assertOwnedBy(profileId, [coverUrl]);
 
     const highlight = await this.prisma.highlight.create({
       data: {
@@ -170,6 +177,11 @@ export class HighlightsService {
     const existing = await this.prisma.highlight.findFirst({
       where: { id, profileId },
     });
+    // A new cover must be the Profile's own stored file; the one it has is
+    // sent back as it is.
+    if (existing && coverUrl !== existing.coverUrl) {
+      await this.storedFiles.assertOwnedBy(profileId, [coverUrl]);
+    }
 
     if (!existing) {
       throw AppException.NotFound(

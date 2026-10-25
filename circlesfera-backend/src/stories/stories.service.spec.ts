@@ -7,10 +7,17 @@ import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import type { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoriesService } from './stories.service.js';
+
+// Every file in these tests is the sending Profile's own unless a test says so.
+const mockStoredFiles = {
+  assertOwnedBy: vi.fn().mockResolvedValue(undefined),
+  record: vi.fn().mockResolvedValue(undefined),
+};
 
 vi.mock('../common/utils/media-duration.util.js', () => ({
   assertVideoUrlDuration: vi.fn().mockResolvedValue(undefined),
@@ -95,6 +102,7 @@ describe('StoriesService', () => {
       providers: [
         StoriesService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: StoredFilesService, useValue: mockStoredFiles },
         { provide: 'BullQueue_ai-processing', useValue: mockAiQueue },
         { provide: UploadsService, useValue: mockUploadsService },
         { provide: EventEmitter2, useValue: { emit: vi.fn() } },
@@ -128,6 +136,29 @@ describe('StoriesService', () => {
   });
 
   describe('create', () => {
+    it("refuses another Profile's stored file before creating anything", async () => {
+      mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+        new Error('FILE_NOT_OWNED'),
+      );
+
+      await expect(
+        service.create('user-1', {
+          url: '/uploads/a.jpg',
+          standardUrl: '/uploads/b.webp',
+          thumbnailUrl: '/uploads/c.webp',
+          overlayUrl: '/uploads/d.png',
+          mediaType: 'image',
+        } as never),
+      ).rejects.toThrow('FILE_NOT_OWNED');
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('user-1', [
+        '/uploads/a.jpg',
+        '/uploads/b.webp',
+        '/uploads/c.webp',
+        '/uploads/d.png',
+      ]);
+      expect(mockPrismaService.story.create).not.toHaveBeenCalled();
+    });
+
     describe('a video story and its painted layer', () => {
       const video = 'https://cdn.example.com/circlesfera/v.mp4';
       const layer = 'https://cdn.example.com/circlesfera/l.png';

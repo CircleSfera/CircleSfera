@@ -454,7 +454,9 @@ describe('UploadsService', () => {
         .spyOn(fs.promises, 'unlink')
         .mockResolvedValue(undefined);
 
-      await provider.delete('/uploads/photo.jpg');
+      await provider.delete(
+        '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
+      );
       expect(unlinkSpy).toHaveBeenCalled();
     });
 
@@ -473,9 +475,9 @@ describe('UploadsService', () => {
       err.code = 'EIO';
       vi.spyOn(fs.promises, 'unlink').mockRejectedValue(err);
 
-      await expect(provider.delete('/uploads/photo.jpg')).rejects.toThrow(
-        'Disk I/O error',
-      );
+      await expect(
+        provider.delete('/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg'),
+      ).rejects.toThrow('Disk I/O error');
     });
 
     it('should list files with timestamps and sizes, ignoring hidden files', async () => {

@@ -113,49 +113,46 @@ describe('S3Provider', () => {
         .mockResolvedValueOnce({} as any);
 
       await provider.delete(
-        'https://test-bucket.s3.us-east-1.amazonaws.com/circlesfera/direct.jpg',
+        'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
       );
 
       expect(sendSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           input: expect.objectContaining({
             Bucket: 'test-bucket',
-            Key: 'circlesfera/direct.jpg',
+            Key: 'circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
           }),
         }),
       );
     });
 
-    it('should extract key using circlesfera/ fallback index', async () => {
-      const sendSpy = vi
-        .spyOn((provider as any).s3Client, 'send')
-        .mockResolvedValueOnce({} as any);
+    it('deletes nothing for an address that is not exactly one of its own', async () => {
+      const sendSpy = vi.spyOn((provider as any).s3Client, 'send');
 
       await provider.delete(
-        'https://custom-proxy.io/static/circlesfera/fallback.jpg',
+        'https://custom-proxy.io/static/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
+      );
+      await provider.delete(
+        'https://cdn.example.com/other/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
       );
 
-      expect(sendSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          input: expect.objectContaining({
-            Bucket: 'test-bucket',
-            Key: 'circlesfera/fallback.jpg',
-          }),
-        }),
-      );
+      expect(sendSpy).not.toHaveBeenCalled();
     });
+
     it('should delete object from S3 successfully', async () => {
       const sendSpy = vi
         .spyOn((provider as any).s3Client, 'send')
         .mockResolvedValueOnce({} as any);
 
-      await provider.delete('https://cdn.example.com/circlesfera/item.jpg');
+      await provider.delete(
+        'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
+      );
 
       expect(sendSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           input: expect.objectContaining({
             Bucket: 'test-bucket',
-            Key: 'circlesfera/item.jpg',
+            Key: 'circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
           }),
         }),
       );
@@ -169,7 +166,9 @@ describe('S3Provider', () => {
       );
 
       await expect(
-        provider.delete('https://cdn.example.com/circlesfera/missing.jpg'),
+        provider.delete(
+          'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
+        ),
       ).resolves.not.toThrow();
     });
 
@@ -180,7 +179,9 @@ describe('S3Provider', () => {
       );
 
       await expect(
-        provider.delete('https://cdn.example.com/circlesfera/broken.jpg'),
+        provider.delete(
+          'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.png',
+        ),
       ).rejects.toThrow('Internal S3 Error');
     });
 

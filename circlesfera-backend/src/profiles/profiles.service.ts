@@ -28,6 +28,7 @@ import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { followTeamPlan } from '../team/team-plan.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { UsersService } from '../users/users.service.js';
 import { CreateProfileDto } from './dto/create-profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -95,6 +96,8 @@ export class ProfilesService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @Inject(UsersService) private readonly usersService: UsersService,
+    @Inject(StoredFilesService)
+    private readonly storedFiles: StoredFilesService,
   ) {}
 
   private buildProfileEmbeddingText(profile: {
@@ -318,6 +321,12 @@ export class ProfilesService {
         ErrorCode.PROFILE_NOT_FOUND,
         'Profile not found',
       );
+    }
+
+    // A new photo must be the Profile's own stored file; the one it has is
+    // sent back as it is.
+    if (dto.avatar !== undefined && dto.avatar !== profile.avatar) {
+      await this.storedFiles.assertOwnedBy(profileId, [dto.avatar]);
     }
 
     if (dto.accentColor && !canPersonalizeProfile(profile.verificationLevel)) {
@@ -638,6 +647,18 @@ export class ProfilesService {
   // Create an additional profile under the authenticated user identity:
   // up to 5 per identity, 10 when one of its Profiles is on the Business plan.
   async createProfile(userId: string, dto: CreateProfileDto) {
+    // The photo of a new Profile is uploaded while acting as another Profile
+    // of the same person: any of their Profiles' stored files will do.
+    if (dto.avatar) {
+      const own = await this.prisma.profile.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      await this.storedFiles.assertOwnedBy(
+        own.map((p) => p.id),
+        [dto.avatar],
+      );
+    }
     const profileCount = await this.prisma.profile.count({
       where: { userId },
     });
@@ -664,17 +685,28 @@ export class ProfilesService {
       );
     }
 
-    const profile = await this.prisma.profile.create({
-      data: {
-        userId,
-        username: dto.username,
-        fullName: dto.fullName || null,
-        bio: dto.bio || null,
-        avatar: dto.avatar || null,
-        website: dto.website || null,
-        location: dto.location || null,
-        accountType: (dto.accountType as AccountType) || 'PERSONAL',
-      },
+    const profile = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.profile.create({
+        data: {
+          userId,
+          username: dto.username,
+          fullName: dto.fullName || null,
+          bio: dto.bio || null,
+          avatar: dto.avatar || null,
+          website: dto.website || null,
+          location: dto.location || null,
+          accountType: (dto.accountType as AccountType) || 'PERSONAL',
+        },
+      });
+      // The photo becomes the new Profile's: deleting the Profile it was
+      // uploaded from must not take it, and deleting this one must.
+      if (dto.avatar) {
+        await tx.storedFile.updateMany({
+          where: { key: dto.avatar, profileId: { not: null } },
+          data: { profileId: created.id },
+        });
+      }
+      return created;
     });
 
     const embeddingText = this.buildProfileEmbeddingText(profile);
