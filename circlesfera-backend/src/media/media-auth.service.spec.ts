@@ -34,6 +34,9 @@ describe('MediaAuthService', () => {
     collection: {
       findMany: vi.fn(),
     },
+    editProject: {
+      findMany: vi.fn(),
+    },
     follow: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -54,6 +57,7 @@ describe('MediaAuthService', () => {
     mockPrismaService.story.findMany.mockResolvedValue([]);
     mockPrismaService.message.findMany.mockResolvedValue([]);
     mockPrismaService.comment.findMany.mockResolvedValue([]);
+    mockPrismaService.editProject.findMany.mockResolvedValue([]);
     mockPrismaService.collection.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -244,6 +248,35 @@ describe('MediaAuthService', () => {
   });
 
   describe('Post media', () => {
+    it("keeps a private account's public post for its followers, as the post itself is", async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-p',
+          post: {
+            profileId: 'private-author',
+            visibility: 'PUBLIC',
+            isPremium: false,
+            profile: { privacyLevel: 'PRIVATE' },
+          },
+        },
+      ]);
+
+      await expect(
+        service.isAccessAllowed('/uploads/p.jpg', null, null),
+      ).resolves.toBe(false);
+      mockPrismaService.follow.findFirst.mockResolvedValueOnce(null);
+      await expect(
+        service.isAccessAllowed('/uploads/p.jpg', 'u-2', 'stranger'),
+      ).resolves.toBe(false);
+      mockPrismaService.follow.findFirst.mockResolvedValueOnce({ id: 'f-1' });
+      await expect(
+        service.isAccessAllowed('/uploads/p.jpg', 'u-3', 'follower'),
+      ).resolves.toBe(true);
+      await expect(
+        service.isAccessAllowed('/uploads/p.jpg', 'u-1', 'private-author'),
+      ).resolves.toBe(true);
+    });
+
     it('allows public free post media access to anyone including anonymous', async () => {
       mockPrismaService.postMedia.findMany.mockResolvedValue([
         {
@@ -566,6 +599,42 @@ describe('MediaAuthService', () => {
   });
 
   describe('Message media', () => {
+    it("looks a voice note up by the message's voice column, and refuses it to a stranger", async () => {
+      mockPrismaService.message.findMany.mockResolvedValue([
+        {
+          id: 'msg-v',
+          conversationId: 'conv-1',
+          senderId: 'sender-p',
+          isLocked: false,
+        },
+      ]);
+
+      await expect(
+        service.isAccessAllowed('/uploads/voice.m4a', null, null),
+      ).resolves.toBe(false);
+      const { where } = mockPrismaService.message.findMany.mock.calls[0][0];
+      expect(where.OR).toContainEqual({ voiceUrl: { contains: 'voice.m4a' } });
+    });
+
+    it("refuses a draft's media to anyone but its author, and asks for a comment's voice and a story's layer", async () => {
+      mockPrismaService.editProject.findMany.mockResolvedValue([
+        { profileId: 'author-1' },
+      ]);
+
+      await expect(
+        service.isAccessAllowed('/uploads/draft.mp4', 'u-2', 'other-2'),
+      ).resolves.toBe(false);
+      await expect(
+        service.isAccessAllowed('/uploads/draft.mp4', 'u-1', 'author-1'),
+      ).resolves.toBe(true);
+      expect(
+        mockPrismaService.comment.findMany.mock.calls[0][0].where.OR,
+      ).toContainEqual({ voiceUrl: { contains: 'draft.mp4' } });
+      expect(
+        mockPrismaService.story.findMany.mock.calls[0][0].where.OR,
+      ).toContainEqual({ overlayUrl: { contains: 'draft.mp4' } });
+    });
+
     it('denies anonymous access to a DM attachment', async () => {
       mockPrismaService.message.findMany.mockResolvedValue([
         {

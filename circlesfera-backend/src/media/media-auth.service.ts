@@ -6,6 +6,7 @@ interface PostLikeAccess {
   profileId: string;
   visibility: Visibility;
   isPremium: boolean;
+  profile?: { privacyLevel?: Visibility } | null;
 }
 
 interface StoryAccess {
@@ -138,49 +139,67 @@ export class MediaAuthService {
     });
     const urlMatch = matchOn('url', 'standardUrl', 'thumbnailUrl');
 
-    const [postMedia, story, message, comment, collection] = await Promise.all([
-      this.prisma.postMedia.findMany({
-        where: urlMatch,
-        select: {
-          postId: true,
-          post: {
-            select: { profileId: true, visibility: true, isPremium: true },
+    const [postMedia, story, message, comment, collection, editProject] =
+      await Promise.all([
+        this.prisma.postMedia.findMany({
+          where: urlMatch,
+          select: {
+            postId: true,
+            post: {
+              select: {
+                profileId: true,
+                visibility: true,
+                isPremium: true,
+                profile: { select: { privacyLevel: true } },
+              },
+            },
           },
-        },
-      }),
-      this.prisma.story.findMany({
-        where: urlMatch,
-        select: {
-          id: true,
-          profileId: true,
-          isPremium: true,
-          isCloseFriendsOnly: true,
-          profile: { select: { privacyLevel: true } },
-        },
-      }),
-      this.prisma.message.findMany({
-        where: urlMatch,
-        select: {
-          id: true,
-          conversationId: true,
-          senderId: true,
-          isLocked: true,
-        },
-      }),
-      this.prisma.comment.findMany({
-        where: urlMatch,
-        select: {
-          postId: true,
-          post: {
-            select: { profileId: true, visibility: true, isPremium: true },
+        }),
+        // A story's painted layer is the story's as much as its picture.
+        this.prisma.story.findMany({
+          where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'overlayUrl'),
+          select: {
+            id: true,
+            profileId: true,
+            isPremium: true,
+            isCloseFriendsOnly: true,
+            profile: { select: { privacyLevel: true } },
           },
-        },
-      }),
-      this.prisma.collection.findMany({
-        where: matchOn('coverUrl', 'standardUrl', 'thumbnailUrl'),
-        select: { profileId: true },
-      }),
-    ]);
+        }),
+        // A voice note is the message's: personal data, for its conversation.
+        this.prisma.message.findMany({
+          where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'voiceUrl'),
+          select: {
+            id: true,
+            conversationId: true,
+            senderId: true,
+            isLocked: true,
+          },
+        }),
+        this.prisma.comment.findMany({
+          where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'voiceUrl'),
+          select: {
+            postId: true,
+            post: {
+              select: {
+                profileId: true,
+                visibility: true,
+                isPremium: true,
+                profile: { select: { privacyLevel: true } },
+              },
+            },
+          },
+        }),
+        this.prisma.collection.findMany({
+          where: matchOn('coverUrl', 'standardUrl', 'thumbnailUrl'),
+          select: { profileId: true },
+        }),
+        // A draft's media is its author's only.
+        this.prisma.editProject.findMany({
+          where: matchOn('mediaUrl'),
+          select: { profileId: true },
+        }),
+      ]);
 
     // A file's own randomUUID()-based name should only ever genuinely match
     // one row, one table. But a `contains` match is substring-based, not an
@@ -217,6 +236,9 @@ export class MediaAuthService {
       ...collection.map((item) =>
         Promise.resolve(item.profileId === viewerProfileId),
       ),
+      ...editProject.map((item) =>
+        Promise.resolve(item.profileId === viewerProfileId),
+      ),
     ];
 
     if (accessChecks.length > 0) {
@@ -240,7 +262,14 @@ export class MediaAuthService {
     viewerUserId: string | null,
     viewerProfileId: string | null,
   ): Promise<boolean> {
-    if (post.visibility === Visibility.PUBLIC && !post.isPremium) {
+    // A post of a private account is its followers' only, whatever the
+    // post's own audience, as the post itself is (assertCanAccessPost).
+    const privateAccount = post.profile?.privacyLevel === Visibility.PRIVATE;
+    if (
+      post.visibility === Visibility.PUBLIC &&
+      !post.isPremium &&
+      !privateAccount
+    ) {
       return true;
     }
 
@@ -249,6 +278,24 @@ export class MediaAuthService {
     }
 
     if (post.profileId === viewerProfileId) {
+      return true;
+    }
+
+    const follows = () =>
+      this.prisma.follow
+        .findFirst({
+          where: {
+            followerId: viewerProfileId,
+            followingId: post.profileId,
+            status: FollowStatus.ACCEPTED,
+          },
+          select: { id: true },
+        })
+        .then((follow) => !!follow);
+    if (privateAccount && !(await follows())) {
+      return false;
+    }
+    if (post.visibility === Visibility.PUBLIC && !post.isPremium) {
       return true;
     }
 
