@@ -63,7 +63,12 @@ met by checking: tests that would fail without the change, types, lint, a look a
 **No extra confirmation needed:** small refactors, typing, lint or format changes that don't alter
 logic, readability improvements, focused tests of existing behavior. Schema changes and their
 migrations when the work that was asked for needs them: identify the change, make it, and say in
-the summary what the migration does.
+the summary what the migration does. Also (ED-014): a dev-only dependency that another workspace
+already uses, at the same exact version; moving a dependency already in the repository to its
+latest stable patch or minor release (in `package.json` or only in a lockfile); local, recoverable
+clean-up (Docker build cache, dangling images, merged worktrees; never a named volume or another
+project's files); making a quality-gate check work again as it did when it stopped checking.
+Anything destructive in production, money, authentication and secrets stay gated.
 
 **Explicit confirmation required, then full implementation:** public API contracts; auth,
 permissions, roles or monetization; deleting code, tables or endpoints; critical business logic;
@@ -82,6 +87,26 @@ Product Foundation → Product Scope & Boundaries, section 8a):
 
 Native iOS and Android apps (Capacitor `android/` and `ios/`) are **in scope**, built from the same
 frontend as the web app (Notion → Governance → Decision Register, PD-009).
+
+## Working rules
+
+- **Dependencies:** latest stable release, exact pin (never `^` or `~`); prereleases and `@types/node`
+  beyond the production Node line excluded. Lockfiles are written with the CI npm:
+  `npx -y npm@11.19.0 install --package-lock-only --save-exact --ignore-scripts`. Whenever a lockfile
+  changes, compare every direct dependency and override of the four workspaces with its latest
+  stable release and move what is behind. What is held back and why: Notion → Engineering →
+  Technical Operations → Dependency & Supply Chain Management.
+- **Pull requests:** one branch and worktree per pull request, never a push to `main`; `main` merges
+  only through the merge queue, with every required check green and no unresolved review thread.
+  CI runs only on pull requests whose base is `main`: when restacking, retarget the base before
+  pushing. A pull request that touches `.github/workflows/` is merged by the owner.
+- **Before pushing:** `npx biome ci <changed files>` from the root (the packages' `npm run lint` does
+  not check formatting or import order), plus the package's types, lint and tests.
+- **Stored files:** a file is deleted only through `UploadsService.deleteFile`, which keeps a file
+  any row still names; delete the row first, then its files. A column added for a stored file
+  belongs in `MEDIA_COLUMNS` (`circlesfera-backend/src/uploads/services/media-references.service.ts`).
+- **Production:** verified after every deploy (health and the error tracker at least); a check that
+  was not run is reported as not run. Production logs and environment files are not read.
 
 ## Before and after changing code
 
