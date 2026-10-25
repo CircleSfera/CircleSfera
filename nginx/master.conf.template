@@ -189,8 +189,10 @@ server {
         auth_request_set $auth_status $upstream_status;
 
         alias /usr/share/nginx/html/uploads/;
+        # Each file passes a per-viewer check: a browser may keep it, a
+        # shared cache must not serve it to someone else.
         expires 30d;
-        add_header Cache-Control "public, no-transform";
+        add_header Cache-Control "private, no-transform";
     }
 
     # Internal auth subrequest — not reachable from the public internet.
@@ -398,8 +400,10 @@ server {
         auth_request_set $auth_status $upstream_status;
 
         alias /usr/share/nginx/html/uploads/;
+        # Each file passes a per-viewer check: a browser may keep it, a
+        # shared cache must not serve it to someone else.
         expires 30d;
-        add_header Cache-Control "public, no-transform";
+        add_header Cache-Control "private, no-transform";
     }
 
     # Internal auth subrequest — not reachable from the public internet.
@@ -561,8 +565,10 @@ server {
         auth_request_set $auth_status $upstream_status;
 
         alias /usr/share/nginx/html/uploads/;
+        # Each file passes a per-viewer check: a browser may keep it, a
+        # shared cache must not serve it to someone else.
         expires 30d;
-        add_header Cache-Control "public, no-transform";
+        add_header Cache-Control "private, no-transform";
     }
 
     # Internal auth subrequest — not reachable from the public internet.
@@ -725,8 +731,10 @@ server {
         auth_request_set $auth_status $upstream_status;
 
         alias /usr/share/nginx/html/uploads/;
+        # Each file passes a per-viewer check: a browser may keep it, a
+        # shared cache must not serve it to someone else.
         expires 30d;
-        add_header Cache-Control "public, no-transform";
+        add_header Cache-Control "private, no-transform";
     }
 
     # Internal auth subrequest — not reachable from the public internet.
