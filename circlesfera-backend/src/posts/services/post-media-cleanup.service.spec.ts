@@ -13,13 +13,13 @@ describe('PostMediaCleanupService', () => {
   });
 
   it('does nothing when cleanupMedia is called with empty or null media', async () => {
-    await service.cleanupMedia(null);
-    await service.cleanupMedia([]);
+    await service.cleanupMedia('author-1', null);
+    await service.cleanupMedia('author-1', []);
     expect(mockPostsQueue.add).not.toHaveBeenCalled();
   });
 
-  it('enqueues unique media URLs for deletion in cleanupMedia', async () => {
-    await service.cleanupMedia([
+  it('enqueues unique media URLs for deletion, with the author whose files they may be', async () => {
+    await service.cleanupMedia('author-1', [
       {
         url: 'https://cdn/original.jpg',
         standardUrl: 'https://cdn/std.jpg',
@@ -33,6 +33,7 @@ describe('PostMediaCleanupService', () => {
     ]);
 
     expect(mockPostsQueue.add).toHaveBeenCalledWith('delete-post-media', {
+      authorProfileId: 'author-1',
       mediaUrls: expect.arrayContaining([
         'https://cdn/original.jpg',
         'https://cdn/std.jpg',

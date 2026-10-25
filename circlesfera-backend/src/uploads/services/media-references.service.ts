@@ -36,7 +36,10 @@ export const MEDIA_COLUMNS = {
 type MediaModel = keyof typeof MEDIA_COLUMNS;
 type Row = Record<string, string | null>;
 interface MediaDelegate {
-  findMany(args: { select: Record<string, true> }): Promise<Row[]>;
+  findMany(args: {
+    where?: { OR: object[] };
+    select: Record<string, true>;
+  }): Promise<Row[]>;
 }
 
 @Injectable()
@@ -49,6 +52,47 @@ export class MediaReferencesService {
 
   private static select(model: MediaModel): Record<string, true> {
     return Object.fromEntries(MEDIA_COLUMNS[model].map((c) => [c, true]));
+  }
+
+  /**
+   * The stored files of the list that some row still names, by their exact
+   * key: a file attached since TD-008 is named by the key it was recorded
+   * with.
+   */
+  async inUse(keys: string[]): Promise<Set<string>> {
+    const wanted = new Set(keys);
+    const used = new Set<string>();
+    if (wanted.size === 0) return used;
+    // A video's stream and cover live in a folder named after it
+    // (/uploads/<base>/...); a row naming one of them uses the video too.
+    const folders = new Map<string, string>();
+    for (const key of wanted) {
+      const ext = path.extname(key);
+      if (ext) folders.set(`${key.slice(0, -ext.length)}/`, key);
+    }
+    for (const model of Object.keys(MEDIA_COLUMNS) as MediaModel[]) {
+      const rows = await this.delegate(model).findMany({
+        where: {
+          OR: MEDIA_COLUMNS[model].flatMap((column) => [
+            { [column]: { in: [...wanted] } },
+            ...[...folders.keys()].map((folder) => ({
+              [column]: { startsWith: folder },
+            })),
+          ]),
+        },
+        select: MediaReferencesService.select(model),
+      });
+      for (const row of rows) {
+        for (const value of Object.values(row)) {
+          if (!value) continue;
+          if (wanted.has(value)) used.add(value);
+          for (const [folder, key] of folders) {
+            if (value.startsWith(folder)) used.add(key);
+          }
+        }
+      }
+    }
+    return used;
   }
 
   /**

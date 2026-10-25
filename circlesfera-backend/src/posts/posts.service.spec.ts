@@ -1459,9 +1459,10 @@ describe('PostsService', () => {
       expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
         where: { id: 'post-1' },
       });
-      expect(mockPostMediaCleanupService.cleanupMedia).toHaveBeenCalledWith([
-        { url: 'https://cdn/img.jpg' },
-      ]);
+      expect(mockPostMediaCleanupService.cleanupMedia).toHaveBeenCalledWith(
+        'me',
+        [{ url: 'https://cdn/img.jpg' }],
+      );
     });
 
     it('throws when the post is missing', async () => {
@@ -1484,6 +1485,7 @@ describe('PostsService', () => {
     it('deletes post and triggers media cleanup on success', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
         id: 'p-admin',
+        profileId: 'author-1',
         media: [{ url: 'http://cdn/1.jpg' }],
       });
       mockPrismaService.post.delete.mockResolvedValueOnce({ id: 'p-admin' });
@@ -1492,9 +1494,11 @@ describe('PostsService', () => {
       expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
         where: { id: 'p-admin' },
       });
-      expect(mockPostMediaCleanupService.cleanupMedia).toHaveBeenCalledWith([
-        { url: 'http://cdn/1.jpg' },
-      ]);
+      // Only the author's own files may go with the post.
+      expect(mockPostMediaCleanupService.cleanupMedia).toHaveBeenCalledWith(
+        'author-1',
+        [{ url: 'http://cdn/1.jpg' }],
+      );
     });
   });
 });

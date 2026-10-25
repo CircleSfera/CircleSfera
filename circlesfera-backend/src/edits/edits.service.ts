@@ -143,31 +143,29 @@ export class EditsService {
     return [...urls];
   }
 
+  // Called once the project's row is gone: only the author's own files that
+  // no other row uses are deleted (TD-008).
   private async deleteProjectMedia(edit: {
+    profileId: string;
     mediaUrl: string | null;
     state: unknown;
   }) {
-    const urls = new Set<string>();
-    if (edit.mediaUrl) urls.add(edit.mediaUrl);
-    for (const url of this.collectStudioMediaUrls(edit.state)) {
-      urls.add(url);
-    }
-    for (const url of urls) {
-      await this.uploadsService
-        .deleteFile(url)
-        .catch((e) =>
-          this.logger.warn(`Failed to delete studio media: ${url}`, e),
-        );
-    }
+    await this.uploadsService
+      .deleteContentFiles(edit.profileId, [
+        edit.mediaUrl,
+        ...this.collectStudioMediaUrls(edit.state),
+      ])
+      .catch((e) => this.logger.warn('Failed to delete studio media', e));
   }
 
   async remove(profileId: string, id: string) {
     const edit = await this.findOne(profileId, id);
-    await this.deleteProjectMedia(edit);
 
+    // The row goes first: a file is deleted only once no row uses it.
     await this.prisma.editProject.delete({
       where: { id: edit.id },
     });
+    await this.deleteProjectMedia(edit);
 
     return { success: true };
   }
@@ -291,15 +289,23 @@ export class EditsService {
         where: { updatedAt: { lt: thirtyDaysAgo } },
       });
 
-      for (const draft of draftsToDelete) {
-        await this.deleteProjectMedia(draft);
-      }
-
+      // The drafts read go first, under the same condition, so a draft
+      // edited meanwhile is kept; then the files of the drafts that are gone.
+      const ids = draftsToDelete.map((draft) => draft.id);
       const deleted = await this.prisma.editProject.deleteMany({
-        where: {
-          updatedAt: { lt: thirtyDaysAgo },
-        },
+        where: { id: { in: ids }, updatedAt: { lt: thirtyDaysAgo } },
       });
+      const kept = new Set(
+        (
+          await this.prisma.editProject.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          })
+        ).map((draft) => draft.id),
+      );
+      for (const draft of draftsToDelete) {
+        if (!kept.has(draft.id)) await this.deleteProjectMedia(draft);
+      }
       if (deleted.count > 0) {
         this.logger.log(`Cleaned up ${deleted.count} abandoned edit drafts.`);
       }

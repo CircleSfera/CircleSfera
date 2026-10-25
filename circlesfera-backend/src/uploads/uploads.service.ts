@@ -10,7 +10,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OnEvent } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import { queueJobId } from '../common/utils/queue-job-id.util.js';
@@ -315,6 +314,44 @@ export class UploadsService {
   }
 
   /**
+   * Deletes the files of a deleted piece of content whose author is not
+   * known, each as its recorded owner's, under the same rule.
+   */
+  async deleteContentFilesByRecordedOwner(
+    addresses: Array<string | null | undefined>,
+  ): Promise<string[]> {
+    const keys = addresses.filter((a): a is string => !!a);
+    const byOwner = new Map<string, string[]>();
+    for (const [key, owner] of await this.storedFiles.ownersOf(keys)) {
+      byOwner.set(owner, [...(byOwner.get(owner) ?? []), key]);
+    }
+    const deleted: string[] = [];
+    for (const [owner, ownedKeys] of byOwner) {
+      deleted.push(...(await this.deleteContentFiles(owner, ownedKeys)));
+    }
+    return deleted;
+  }
+
+  /**
+   * Deletes the files of a piece of content its row named, once the row is
+   * gone: only its author's own, and only those no other row still uses.
+   * Answers the files deleted.
+   */
+  async deleteContentFiles(
+    authorProfileId: string,
+    addresses: Array<string | null | undefined>,
+  ): Promise<string[]> {
+    const deletable = await this.storedFiles.deletableBy(
+      authorProfileId,
+      addresses,
+    );
+    for (const key of deletable) {
+      await this.deleteFile(key);
+    }
+    return deletable;
+  }
+
+  /**
    * Schedules durable deletion for a batch of media URLs.
    * - If a Prisma transaction client is provided and OutboxService is available,
    *   the cleanup event is persisted transactionally to the outbox.
@@ -399,13 +436,5 @@ export class UploadsService {
         this.logger.warn(`Fallback delete failed for ${url}: ${err?.message}`);
       });
     }
-  }
-
-  @OnEvent('media.delete_batch', { async: true })
-  async handleMediaDeleteBatch(payload: { mediaUrls: string[] }) {
-    this.logger.log(
-      `Processing media.delete_batch for ${payload.mediaUrls?.length ?? 0} files...`,
-    );
-    await this.scheduleMediaDeletion(payload.mediaUrls);
   }
 }

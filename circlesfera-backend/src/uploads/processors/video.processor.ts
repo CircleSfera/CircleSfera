@@ -642,8 +642,11 @@ export class VideoProcessor extends WorkerHost {
       }
       // Should this fail, the five-minute recovery asks for the stream again.
       await this.uploads.enqueueTranscode(stored.url);
-      await this.storageProvider.delete(story.overlayUrl).catch(() => {});
-      await this.storageProvider.delete(story.url).catch(() => {});
+      // The story no longer names them: the originals go if they are the
+      // story's own and nothing else uses them (TD-008).
+      await this.uploads
+        .deleteContentFiles(story.profileId, [story.overlayUrl, story.url])
+        .catch(() => {});
       this.logger.log(`Painted layer joined to the video of story ${story.id}`);
     } finally {
       await fs.promises

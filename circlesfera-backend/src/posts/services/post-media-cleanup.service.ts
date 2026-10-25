@@ -17,7 +17,10 @@ export class PostMediaCleanupService {
   /**
    * Enqueues background cleanup for the media files associated with a post.
    */
-  async cleanupMedia(media?: PostMediaItemLike[] | null): Promise<void> {
+  async cleanupMedia(
+    authorProfileId: string,
+    media?: PostMediaItemLike[] | null,
+  ): Promise<void> {
     if (!media || media.length === 0) {
       return;
     }
@@ -30,7 +33,9 @@ export class PostMediaCleanupService {
     }
 
     if (mediaUrls.size > 0) {
+      // Only the author's own files are deleted, by the job (TD-008).
       await this.postsQueue.add('delete-post-media', {
+        authorProfileId,
         mediaUrls: Array.from(mediaUrls),
       });
     }

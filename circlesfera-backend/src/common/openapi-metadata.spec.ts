@@ -30,7 +30,9 @@ async function classesOf(file: string): Promise<[string, Class][]> {
   );
 }
 
-describe('API documentation decorators', () => {
+// Each test loads every DTO and controller of the backend: on a busy machine
+// that takes longer than the default five seconds.
+describe('API documentation decorators', { timeout: 60_000 }, () => {
   it('documents every validated property of every DTO with @ApiProperty', async () => {
     for (const file of files('.dto.ts')) await import(pathToFileURL(file).href);
     // Every class class-validator knows, exported or not (nested DTOs often

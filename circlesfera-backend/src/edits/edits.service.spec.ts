@@ -33,6 +33,7 @@ describe('EditsService', () => {
 
   const mockUploadsService = {
     deleteFile: vi.fn().mockResolvedValue(true),
+    deleteContentFiles: vi.fn().mockResolvedValue([]),
   };
 
   const mockAiService = {
@@ -202,10 +203,10 @@ describe('EditsService', () => {
   });
 
   describe('remove', () => {
-    it('deletes mediaUrl and clip fileUrls from v3 studio state', async () => {
+    it("deletes the project, then the author's own media and clip files", async () => {
       mockPrismaService.editProject.findFirst.mockResolvedValue({
         id: 'edit-1',
-        userId: 'user-1',
+        profileId: 'user-1',
         mediaUrl: 'https://cdn.example.com/cover.mp4',
         state: {
           version: 3,
@@ -232,16 +233,16 @@ describe('EditsService', () => {
 
       await service.remove('user-1', 'edit-1');
 
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/cover.mp4',
+      // Only the author's own files no other row uses go (TD-008).
+      expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledWith(
+        'user-1',
+        [
+          'https://cdn.example.com/cover.mp4',
+          'https://cdn.example.com/clip-a.mp4',
+          'https://cdn.example.com/clip-b.jpg',
+        ],
       );
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/clip-a.mp4',
-      );
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/clip-b.jpg',
-      );
-      expect(mockPrismaService.editProject.delete).toHaveBeenCalled();
+      expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
     });
   });
 
@@ -417,10 +418,31 @@ describe('EditsService', () => {
   });
 
   describe('cleanupAbandonedDrafts', () => {
+    it('keeps a draft edited meanwhile, and its files', async () => {
+      mockPrismaService.editProject.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'old-2',
+            profileId: 'p-1',
+            mediaUrl: '/uploads/d.mp4',
+            state: null,
+          },
+        ])
+        // Still there after the delete: it was edited in between.
+        .mockResolvedValueOnce([{ id: 'old-2' }]);
+      mockPrismaService.editProject.deleteMany.mockResolvedValue({ count: 0 });
+
+      const res = await service.cleanupAbandonedDrafts();
+
+      expect(res.count).toBe(0);
+      expect(mockUploadsService.deleteContentFiles).not.toHaveBeenCalled();
+    });
+
     it('finds and deletes abandoned drafts and their studio media', async () => {
-      mockPrismaService.editProject.findMany.mockResolvedValue([
+      mockPrismaService.editProject.findMany.mockResolvedValueOnce([
         {
           id: 'old-1',
+          profileId: 'p-1',
           mediaUrl: 'https://cdn.example.com/draft.mp4',
           state: {
             version: 3,
@@ -440,15 +462,21 @@ describe('EditsService', () => {
           },
         },
       ]);
+      // None of the drafts read is still there after the delete.
+      mockPrismaService.editProject.findMany.mockResolvedValueOnce([]);
       mockPrismaService.editProject.deleteMany.mockResolvedValue({ count: 1 });
 
       const res = await service.cleanupAbandonedDrafts();
       expect(res.count).toBe(1);
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/draft.mp4',
-      );
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/clip.mp4',
+      expect(mockPrismaService.editProject.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['old-1'] }, updatedAt: { lt: expect.any(Date) } },
+      });
+      expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledWith(
+        'p-1',
+        [
+          'https://cdn.example.com/draft.mp4',
+          'https://cdn.example.com/clip.mp4',
+        ],
       );
     });
 
@@ -475,10 +503,11 @@ describe('EditsService', () => {
     it('catches upload deletion failures gracefully', async () => {
       mockPrismaService.editProject.findFirst.mockResolvedValue({
         id: 'edit-err',
+        profileId: 'u-1',
         mediaUrl: 'https://cdn.example.com/broken.mp4',
         state: null,
       });
-      mockUploadsService.deleteFile.mockRejectedValueOnce(
+      mockUploadsService.deleteContentFiles.mockRejectedValueOnce(
         new Error('S3 delete error'),
       );
       mockPrismaService.editProject.delete.mockResolvedValue({});

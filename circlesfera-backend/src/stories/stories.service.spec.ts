@@ -30,6 +30,7 @@ describe('StoriesService', () => {
   let mockAiQueue: { add: ReturnType<typeof vi.fn> };
   let mockUploadsService: {
     deleteFile: ReturnType<typeof vi.fn>;
+    deleteContentFiles: ReturnType<typeof vi.fn>;
     ownsUrl: ReturnType<typeof vi.fn>;
     enqueueStoryOverlay: ReturnType<typeof vi.fn>;
   };
@@ -94,6 +95,7 @@ describe('StoriesService', () => {
     mockAiQueue = { add: vi.fn().mockResolvedValue({ id: 'ai-job-1' }) };
     mockUploadsService = {
       deleteFile: vi.fn().mockResolvedValue(undefined),
+      deleteContentFiles: vi.fn().mockResolvedValue([]),
       ownsUrl: vi.fn(() => true),
       enqueueStoryOverlay: vi.fn().mockResolvedValue(undefined),
     };
@@ -943,7 +945,7 @@ describe('StoriesService', () => {
   });
 
   describe('delete', () => {
-    it('deletes story and its files, handling deleteFile failures gracefully', async () => {
+    it("deletes the story, then only its author's own files, and goes on when they cannot be", async () => {
       mockPrismaService.story.findUnique.mockResolvedValueOnce({
         id: 'story-1',
         profileId: 'user-1',
@@ -952,28 +954,32 @@ describe('StoriesService', () => {
         thumbnailUrl: 'https://cdn.example.com/s-th.jpg',
         overlayUrl: 'https://cdn.example.com/s-layer.png',
       });
-      mockUploadsService.deleteFile.mockRejectedValue(new Error('S3 error'));
+      mockUploadsService.deleteContentFiles.mockRejectedValueOnce(
+        new Error('S3 error'),
+      );
       mockPrismaService.story.delete.mockResolvedValue({});
 
       await service.delete('story-1');
 
-      // A layer not yet joined goes with the story.
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/s-layer.png',
-      );
-
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/s.jpg',
-      );
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/s-std.jpg',
-      );
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/s-th.jpg',
-      );
       expect(mockPrismaService.story.delete).toHaveBeenCalledWith({
         where: { id: 'story-1' },
       });
+      // A layer not yet joined goes with the story; never by address alone.
+      expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledWith(
+        'user-1',
+        [
+          'https://cdn.example.com/s.jpg',
+          'https://cdn.example.com/s-std.jpg',
+          'https://cdn.example.com/s-th.jpg',
+          'https://cdn.example.com/s-layer.png',
+        ],
+      );
+      expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
+      expect(
+        mockPrismaService.story.delete.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        mockUploadsService.deleteContentFiles.mock.invocationCallOrder[0],
+      );
     });
 
     it('throws NotFoundException when story is not found', async () => {
@@ -1260,37 +1266,71 @@ describe('StoriesService', () => {
   });
 
   describe('cleanupExpiredStories', () => {
-    it('deletes expired stories and their media, logging count when positive', async () => {
-      mockPrismaService.story.findMany.mockResolvedValueOnce([
-        {
-          id: 'exp-1',
-          url: 'https://cdn.example.com/exp.jpg',
-          standardUrl: 'https://cdn.example.com/exp-std.jpg',
-          thumbnailUrl: 'https://cdn.example.com/exp-th.jpg',
-          overlayUrl: 'https://cdn.example.com/exp-layer.png',
-        },
-      ]);
-      mockUploadsService.deleteFile.mockRejectedValue(new Error('fail'));
+    it('goes on with the next story when the files of one cannot be deleted', async () => {
+      mockPrismaService.story.findMany
+        .mockResolvedValueOnce([
+          { id: 'e-1', profileId: 'a-1', url: '/uploads/1.jpg' },
+          { id: 'e-2', profileId: 'a-2', url: '/uploads/2.jpg' },
+        ])
+        .mockResolvedValueOnce([]);
+      mockPrismaService.story.deleteMany.mockResolvedValueOnce({ count: 2 });
+      mockUploadsService.deleteContentFiles.mockRejectedValueOnce(
+        new Error('disk busy'),
+      );
+
+      await expect(service.cleanupExpiredStories()).resolves.toEqual({
+        count: 2,
+      });
+      expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledTimes(2);
+    });
+
+    it("deletes the expired stories read, then the author's own files of those that went", async () => {
+      mockPrismaService.story.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'exp-1',
+            profileId: 'a-1',
+            url: 'https://cdn.example.com/exp.jpg',
+            standardUrl: null,
+            thumbnailUrl: null,
+            overlayUrl: 'https://cdn.example.com/exp-layer.png',
+          },
+          {
+            id: 'exp-2',
+            profileId: 'a-2',
+            url: 'https://cdn.example.com/kept.jpg',
+            standardUrl: null,
+            thumbnailUrl: null,
+            overlayUrl: null,
+          },
+        ])
+        // exp-2 was added to a highlight meanwhile: it is still there.
+        .mockResolvedValueOnce([{ id: 'exp-2' }]);
       mockPrismaService.story.deleteMany.mockResolvedValueOnce({ count: 1 });
 
       const result = await service.cleanupExpiredStories();
+
       expect(result).toEqual({ count: 1 });
-      // A story whose countdown is still to be told is kept, hidden.
-      for (const call of [
-        mockPrismaService.story.findMany.mock.calls.at(-1),
-        mockPrismaService.story.deleteMany.mock.calls.at(-1),
-      ]) {
-        expect(call?.[0].where.stickers).toEqual({
-          none: { kind: 'COUNTDOWN', announcedAt: null },
-        });
-      }
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/exp-layer.png',
+      // A story whose countdown is still to be told, or kept in a highlight,
+      // stays: the delete repeats the conditions for the rows read.
+      expect(mockPrismaService.story.deleteMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: ['exp-1', 'exp-2'] },
+          expiresAt: { lt: expect.any(Date) },
+          highlightStories: { none: {} },
+          stickers: { none: { kind: 'COUNTDOWN', announcedAt: null } },
+        },
+      });
+      expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledTimes(1);
+      expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledWith(
+        'a-1',
+        [
+          'https://cdn.example.com/exp.jpg',
+          null,
+          null,
+          'https://cdn.example.com/exp-layer.png',
+        ],
       );
-      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/exp.jpg',
-      );
-      expect(mockPrismaService.story.deleteMany).toHaveBeenCalled();
     });
 
     it('handles zero expired stories gracefully without logging count', async () => {

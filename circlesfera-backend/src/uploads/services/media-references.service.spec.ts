@@ -82,3 +82,61 @@ describe('MediaReferencesService', () => {
     );
   });
 });
+
+describe('MediaReferencesService.inUse', () => {
+  it('finds the stored files some row names by their exact key, in every listed column', async () => {
+    const prisma = prismaWith({
+      comment: [{ voiceUrl: '/uploads/a.m4a', url: '/uploads/not-asked.jpg' }],
+      profile: [{ avatar: '/uploads/b.jpg' }],
+    });
+    const service = new MediaReferencesService(
+      prisma as unknown as PrismaService,
+    );
+
+    const used = await service.inUse([
+      '/uploads/a.m4a',
+      '/uploads/b.jpg',
+      '/uploads/free.jpg',
+    ]);
+
+    expect([...used].sort()).toEqual(['/uploads/a.m4a', '/uploads/b.jpg']);
+    for (const [model, columns] of Object.entries(MEDIA_COLUMNS)) {
+      const { where } = prisma[model].findMany.mock.calls.at(-1)?.[0] ?? {};
+      for (const column of columns) {
+        expect(where.OR).toContainEqual({
+          [column]: {
+            in: ['/uploads/a.m4a', '/uploads/b.jpg', '/uploads/free.jpg'],
+          },
+        });
+      }
+    }
+  });
+
+  it('asks nothing for no file', async () => {
+    const prisma = prismaWith();
+    const service = new MediaReferencesService(
+      prisma as unknown as PrismaService,
+    );
+    await expect(service.inUse([])).resolves.toEqual(new Set());
+    expect(prisma.message.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('MediaReferencesService.inUse, for a video', () => {
+  it('counts a row that names a file of its stream folder as a use of the video', async () => {
+    const prisma = prismaWith({
+      collection: [{ coverUrl: '/uploads/v1/thumb.jpg' }],
+    });
+    const service = new MediaReferencesService(
+      prisma as unknown as PrismaService,
+    );
+
+    const used = await service.inUse(['/uploads/v1.mp4', '/uploads/v2.mp4']);
+
+    expect([...used]).toEqual(['/uploads/v1.mp4']);
+    const { where } = prisma.collection.findMany.mock.calls[0][0];
+    expect(where.OR).toContainEqual({
+      coverUrl: { startsWith: '/uploads/v1/' },
+    });
+  });
+});

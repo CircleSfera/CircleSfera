@@ -7,6 +7,7 @@ import {
   STORAGE_PROVIDER,
   type StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
+import { MediaReferencesService } from './media-references.service.js';
 
 export const FILE_NOT_OWNED = ErrorCode.FILE_NOT_OWNED;
 
@@ -26,10 +27,34 @@ export interface StoredFileOwner {
 export class StoredFilesService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly references: MediaReferencesService,
     @Optional()
     @Inject(STORAGE_PROVIDER)
     private readonly storage?: StorageProvider,
   ) {}
+
+  /**
+   * The files of a deleted piece of content that may be deleted with it: the
+   * ones recorded as its Profile's and that no other row still uses. A file
+   * of another Profile, or with no owner, is never deleted by a person's
+   * action; it is left to the orphan sweep.
+   */
+  async deletableBy(
+    profileId: string,
+    keys: Array<string | null | undefined>,
+  ): Promise<string[]> {
+    const wanted = [
+      ...new Set(keys.filter((k): k is string => !!k && k.length > 0)),
+    ];
+    if (wanted.length === 0) return [];
+    const owned = await this.prisma.storedFile.findMany({
+      where: { key: { in: wanted }, profileId },
+      select: { key: true },
+    });
+    const ownedKeys = owned.map((file) => file.key);
+    const used = await this.references.inUse(ownedKeys);
+    return ownedKeys.filter((key) => !used.has(key));
+  }
 
   /**
    * Refuses a file of this server's storage that does not belong to one of
@@ -62,6 +87,18 @@ export class StoredFilesService {
         'A stored file that this Profile did not upload cannot be attached',
       );
     }
+  }
+
+  /** The recorded owner of each of the files that has one. */
+  async ownersOf(keys: string[]): Promise<Map<string, string>> {
+    if (keys.length === 0) return new Map();
+    const rows = await this.prisma.storedFile.findMany({
+      where: { key: { in: keys }, profileId: { not: null } },
+      select: { key: true, profileId: true },
+    });
+    return new Map(
+      rows.flatMap((row) => (row.profileId ? [[row.key, row.profileId]] : [])),
+    );
   }
 
   /** Forgets the files the storage has just deleted. */
