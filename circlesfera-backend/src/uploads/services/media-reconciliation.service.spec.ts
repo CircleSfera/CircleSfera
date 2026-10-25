@@ -173,10 +173,13 @@ describe('MediaReconciliationService', () => {
     ]);
   });
 
-  it('records with no owner every file on the disk the record does not know', async () => {
+  it('records with no owner the files on the disk past the grace period', async () => {
+    const twoDaysAgo = new Date(Date.now() - 48 * 3600 * 1000);
     mockStorageProvider.listFiles!.mockResolvedValue([
-      { url: '/uploads/a.jpg', lastModified: new Date(), sizeBytes: 1 },
-      { url: '/uploads/b.mp4', lastModified: new Date(), sizeBytes: 2 },
+      { url: '/uploads/a.jpg', lastModified: twoDaysAgo, sizeBytes: 1 },
+      { url: '/uploads/b.mp4', lastModified: twoDaysAgo, sizeBytes: 2 },
+      // Still being written by an upload, which records it with its owner.
+      { url: '/uploads/fresh.mp4', lastModified: new Date(), sizeBytes: 3 },
     ]);
 
     await service.detectAndReconcileOrphans({ dryRun: true });

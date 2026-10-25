@@ -78,8 +78,15 @@ export class MediaReconciliationService {
     // A file on the disk the record does not know (stored before it, or by
     // a server that did not write it) is recorded with no owner: it is never
     // deleted by a person's action, only by this sweep when no row uses it.
+    // Only files past the grace period: a file still being written by an
+    // upload is recorded by that upload with its owner.
+    const graceCutoff = new Date(
+      Date.now() - (options?.olderThanHours ?? 24) * 60 * 60 * 1000,
+    );
     await this.storedFilesRecord.record(
-      storedFiles.map((file) => file.url),
+      storedFiles
+        .filter((file) => file.lastModified && file.lastModified <= graceCutoff)
+        .map((file) => file.url),
       { profileId: null },
     );
 

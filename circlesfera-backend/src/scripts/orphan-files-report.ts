@@ -15,6 +15,7 @@
  *     node dist/scripts/orphan-files-report.js
  */
 import 'dotenv/config';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -40,6 +41,9 @@ async function main(): Promise<void> {
   });
   try {
     const storage = new LocalStorageProvider();
+    // The storage answers no file when it cannot read its folder: a report
+    // of zero must not stand for a folder that could not be read.
+    await fs.promises.readdir(path.join(process.cwd(), 'uploads'));
     const references = new MediaReferencesService(
       prisma as unknown as PrismaService,
     );

@@ -12,8 +12,12 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 // out on purpose: it repeats the address of the post,
 // message or comment it was made for and is not removed with them, so it
 // would keep every file for good.
-// Where a studio project keeps the file of each clip (state version 3).
-export const EDIT_CLIP_PATH = 'lax $.studio.tracks[*].clips[*].fileUrl';
+// Where a studio project keeps the file of each clip: the clips that are not
+// text, in a state of version 3. The same clips EditsService checks for
+// ownership (collectStudioMediaUrls): a clip that check never saw must not
+// count as a use, or anyone could keep another person's file for good.
+export const EDIT_CLIP_PATH =
+  'lax $.studio.tracks[*].clips[*] ? (!exists(@.type ? (@ == "text"))).fileUrl';
 
 export const MEDIA_COLUMNS = {
   postMedia: ['url', 'standardUrl', 'thumbnailUrl'],
@@ -106,12 +110,16 @@ export class MediaReferencesService {
       ? await this.prisma.$queryRaw<Array<{ key: string }>>`
           SELECT DISTINCT clip #>> '{}' AS key
           FROM "edit_projects" e,
-            jsonb_path_query(e."state"::jsonb, ${EDIT_CLIP_PATH}::jsonpath) clip
-          WHERE clip #>> '{}' = ANY(${only})`
+            jsonb_path_query(e."state", ${EDIT_CLIP_PATH}::jsonpath) clip
+          WHERE e."state" -> 'version' = '3'::jsonb
+            AND jsonb_typeof(clip) = 'string'
+            AND clip #>> '{}' = ANY(${only})`
       : await this.prisma.$queryRaw<Array<{ key: string }>>`
           SELECT DISTINCT clip #>> '{}' AS key
           FROM "edit_projects" e,
-            jsonb_path_query(e."state"::jsonb, ${EDIT_CLIP_PATH}::jsonpath) clip`;
+            jsonb_path_query(e."state", ${EDIT_CLIP_PATH}::jsonpath) clip
+          WHERE e."state" -> 'version' = '3'::jsonb
+            AND jsonb_typeof(clip) = 'string'`;
     return rows.map((row) => row.key).filter((key) => !!key);
   }
 
