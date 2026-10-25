@@ -6,8 +6,7 @@ import { MediaAuthService } from './media-auth.service.js';
 
 // No file is detached unless a test says so.
 const mockStoredFiles = {
-  keyOfFolder: vi.fn().mockResolvedValue(null),
-  isReadableBy: vi.fn().mockResolvedValue(true),
+  areReadableBy: vi.fn().mockResolvedValue(true),
 };
 
 describe('MediaAuthService', () => {
@@ -186,39 +185,47 @@ describe('MediaAuthService', () => {
       );
     });
 
-    it('serves a detached file only to its owner', async () => {
-      mockStoredFiles.isReadableBy.mockImplementation(
-        async (_key: string, viewer: string | null) => viewer === 'owner-1',
+    it('serves a detached file only to its owner, before any content row is looked up', async () => {
+      mockStoredFiles.areReadableBy.mockImplementation(
+        async (_keys: string[], viewer: string | null) => viewer === 'owner-1',
       );
 
       await expect(
         service.isAccessAllowed('/uploads/a.jpg', 'u-2', 'other-2'),
       ).resolves.toBe(false);
       await expect(
-        service.isAccessAllowed('/uploads/a.jpg', null, null),
-      ).resolves.toBe(false);
-      await expect(
         service.isAccessAllowed('/uploads/a.jpg', 'u-1', 'owner-1'),
       ).resolves.toBe(true);
-      expect(mockStoredFiles.isReadableBy).toHaveBeenCalledWith(
-        '/uploads/a.jpg',
-        'owner-1',
+      expect(mockStoredFiles.areReadableBy).toHaveBeenCalledWith(
+        ['/uploads/a.jpg'],
+        'other-2',
       );
-      mockStoredFiles.isReadableBy.mockResolvedValue(true);
+      // The deny wins: a row naming it in another shape cannot reopen it.
+      expect(
+        mockStoredFiles.areReadableBy.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        mockPrismaService.postMedia.findMany.mock.invocationCallOrder[0] ??
+          Number.POSITIVE_INFINITY,
+      );
+      mockStoredFiles.areReadableBy.mockResolvedValue(true);
     });
 
-    it("judges a file of a video's stream folder by the video", async () => {
-      mockStoredFiles.keyOfFolder.mockResolvedValueOnce('/uploads/v1.mp4');
-      mockStoredFiles.isReadableBy.mockResolvedValueOnce(false);
+    it("judges a file of a video's stream folder by the video, by exact keys", async () => {
+      mockStoredFiles.areReadableBy.mockResolvedValueOnce(false);
 
       await expect(
         service.isAccessAllowed('/uploads/v1/master.m3u8', null, null),
       ).resolves.toBe(false);
-      expect(mockStoredFiles.keyOfFolder).toHaveBeenCalledWith('/uploads/v1');
-      expect(mockStoredFiles.isReadableBy).toHaveBeenCalledWith(
-        '/uploads/v1.mp4',
+      expect(mockStoredFiles.areReadableBy).toHaveBeenCalledWith(
+        [
+          '/uploads/v1.mp4',
+          '/uploads/v1.mov',
+          '/uploads/v1.webm',
+          '/uploads/v1.m4v',
+        ],
         null,
       );
+      expect(mockPrismaService.postMedia.findMany).not.toHaveBeenCalled();
     });
 
     it('allows public asset access when no content-owning row matches', async () => {

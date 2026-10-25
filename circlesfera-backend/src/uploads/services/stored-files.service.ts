@@ -69,26 +69,22 @@ export class StoredFilesService {
       .map((file) => file.key);
   }
 
-  /** The recorded video whose stream folder this is, if any. */
-  async keyOfFolder(folder: string): Promise<string | null> {
-    const file = await this.prisma.storedFile.findFirst({
-      where: { key: { startsWith: `${folder}.` } },
-      select: { key: true },
-    });
-    return file?.key ?? null;
-  }
-
-  /** Whether a viewer may read a stored file: a detached one is its owner's. */
-  async isReadableBy(
-    key: string,
+  /**
+   * Whether a viewer may read stored files, by their exact keys: a detached
+   * one is its owner's only. A key that is not recorded is not this check's.
+   */
+  async areReadableBy(
+    keys: string[],
     viewerProfileId: string | null,
   ): Promise<boolean> {
-    const file = await this.prisma.storedFile.findUnique({
-      where: { key },
-      select: { profileId: true, detachedAt: true },
+    if (keys.length === 0) return true;
+    const detached = await this.prisma.storedFile.findMany({
+      where: { key: { in: keys }, detachedAt: { not: null } },
+      select: { profileId: true },
     });
-    if (!file?.detachedAt) return true;
-    return !!viewerProfileId && file.profileId === viewerProfileId;
+    return detached.every(
+      (file) => !!viewerProfileId && file.profileId === viewerProfileId,
+    );
   }
 
   /**

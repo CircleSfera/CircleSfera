@@ -63,6 +63,8 @@ interface MessageAccess {
 // The name of a video's stream folder: the UUID of the video file.
 const STREAM_FOLDER =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// The extensions a stored video can have, for the files of its stream folder.
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v'];
 
 @Injectable()
 export class MediaAuthService {
@@ -128,10 +130,22 @@ export class MediaAuthService {
       return false;
     }
 
-    // A file of a video's stream folder (<uuid>/master.m3u8, its segments,
-    // its cover) is the video's: no row names a segment, so it is matched by
-    // the folder, and gets the access of the content that holds the video.
+    // A file a content deletion left detached is its owner's only, until the
+    // sweep deletes it, whatever row may name it in another shape: checked
+    // first, so that the deny wins. A file of a video's stream folder
+    // (<uuid>/master.m3u8, its segments, its cover) goes with the video.
     const [first, ...inFolder] = normalised.split('/');
+    const candidates =
+      inFolder.length > 0
+        ? VIDEO_EXTENSIONS.map((ext) => `/uploads/${first}.${ext}`)
+        : [`/uploads/${normalised}`];
+    if (!(await this.storedFiles.areReadableBy(candidates, viewerProfileId))) {
+      this.logger.debug(`Access denied — detached file: ${uploadPath}`);
+      return false;
+    }
+
+    // No row names a segment: a file of a stream folder is matched by the
+    // folder, and gets the access of the content that holds the video.
     const needles =
       inFolder.length > 0 && STREAM_FOLDER.test(first)
         ? [`${first}/`, `${first}.`]
@@ -256,19 +270,7 @@ export class MediaAuthService {
       return allowed;
     }
 
-    // No content-owning table references this file → public asset (avatar,
-    // etc.), unless a content deletion left it detached: then it is only
-    // its owner's until the sweep deletes it. A file in a video's folder
-    // (<base>/master.m3u8, <base>/thumb.jpg) goes with the video.
-    const [folder, ...rest] = normalised.split('/');
-    const key =
-      rest.length > 0
-        ? await this.storedFiles.keyOfFolder(`/uploads/${folder}`)
-        : `/uploads/${normalised}`;
-    if (key && !(await this.storedFiles.isReadableBy(key, viewerProfileId))) {
-      this.logger.debug(`Access denied — detached file: ${uploadPath}`);
-      return false;
-    }
+    // No content-owning table references this file → public asset (avatar, etc.)
     return true;
   }
 

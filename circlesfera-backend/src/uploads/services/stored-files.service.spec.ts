@@ -204,44 +204,55 @@ describe('StoredFilesService.release', () => {
   });
 });
 
-describe('StoredFilesService.isReadableBy', () => {
-  function reader(record: object | null) {
+describe('StoredFilesService.areReadableBy', () => {
+  function reader(detached: Array<{ profileId: string | null }>) {
     const prisma = {
-      storedFile: { findUnique: vi.fn().mockResolvedValue(record) },
+      storedFile: { findMany: vi.fn().mockResolvedValue(detached) },
     };
-    return new StoredFilesService(
-      prisma as unknown as PrismaService,
-      { inUse: vi.fn() } as never,
-    );
+    return {
+      prisma,
+      files: new StoredFilesService(
+        prisma as unknown as PrismaService,
+        { inUse: vi.fn() } as never,
+      ),
+    };
   }
 
-  it('lets anyone read a file that is not detached, or not recorded', async () => {
-    await expect(
-      reader(null).isReadableBy('/uploads/a.jpg', null),
-    ).resolves.toBe(true);
-    await expect(
-      reader({ profileId: 'p-1', detachedAt: null }).isReadableBy(
-        '/uploads/a.jpg',
-        null,
-      ),
-    ).resolves.toBe(true);
+  it('lets anyone read files that are not detached, or not recorded', async () => {
+    const { prisma, files } = reader([]);
+    await expect(files.areReadableBy(['/uploads/a.jpg'], null)).resolves.toBe(
+      true,
+    );
+    expect(prisma.storedFile.findMany).toHaveBeenCalledWith({
+      where: { key: { in: ['/uploads/a.jpg'] }, detachedAt: { not: null } },
+      select: { profileId: true },
+    });
+    await expect(files.areReadableBy([], null)).resolves.toBe(true);
   });
 
-  it('lets only its owner read a detached file', async () => {
-    const detached = { profileId: 'p-1', detachedAt: new Date() };
+  it('lets only its owner read a detached file, and no one one with no owner', async () => {
     await expect(
-      reader(detached).isReadableBy('/uploads/a.jpg', 'p-1'),
+      reader([{ profileId: 'p-1' }]).files.areReadableBy(
+        ['/uploads/a.jpg'],
+        'p-1',
+      ),
     ).resolves.toBe(true);
     await expect(
-      reader(detached).isReadableBy('/uploads/a.jpg', 'p-2'),
+      reader([{ profileId: 'p-1' }]).files.areReadableBy(
+        ['/uploads/a.jpg'],
+        'p-2',
+      ),
     ).resolves.toBe(false);
     await expect(
-      reader(detached).isReadableBy('/uploads/a.jpg', null),
-    ).resolves.toBe(false);
-    await expect(
-      reader({ profileId: null, detachedAt: new Date() }).isReadableBy(
-        '/uploads/a.jpg',
+      reader([{ profileId: 'p-1' }]).files.areReadableBy(
+        ['/uploads/a.jpg'],
         null,
+      ),
+    ).resolves.toBe(false);
+    await expect(
+      reader([{ profileId: null }]).files.areReadableBy(
+        ['/uploads/a.jpg'],
+        'p-1',
       ),
     ).resolves.toBe(false);
   });

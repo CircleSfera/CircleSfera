@@ -412,7 +412,11 @@ describe('UploadsService', () => {
       expect(mockStoredFiles.release).toHaveBeenCalledWith('p-2', [
         '/uploads/c.jpg',
       ]);
-      expect(mockStoredFiles.release).toHaveBeenCalledTimes(2);
+      // The file with no owner is made private, deleted by no one.
+      expect(mockStoredFiles.release).toHaveBeenCalledWith('', [
+        '/uploads/unowned.jpg',
+      ]);
+      expect(mockStoredFiles.release).toHaveBeenCalledTimes(3);
     });
 
     it("deletes only the files the record says are the author's and unused", async () => {
