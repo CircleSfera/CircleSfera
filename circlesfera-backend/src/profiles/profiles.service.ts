@@ -685,17 +685,28 @@ export class ProfilesService {
       );
     }
 
-    const profile = await this.prisma.profile.create({
-      data: {
-        userId,
-        username: dto.username,
-        fullName: dto.fullName || null,
-        bio: dto.bio || null,
-        avatar: dto.avatar || null,
-        website: dto.website || null,
-        location: dto.location || null,
-        accountType: (dto.accountType as AccountType) || 'PERSONAL',
-      },
+    const profile = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.profile.create({
+        data: {
+          userId,
+          username: dto.username,
+          fullName: dto.fullName || null,
+          bio: dto.bio || null,
+          avatar: dto.avatar || null,
+          website: dto.website || null,
+          location: dto.location || null,
+          accountType: (dto.accountType as AccountType) || 'PERSONAL',
+        },
+      });
+      // The photo becomes the new Profile's: deleting the Profile it was
+      // uploaded from must not take it, and deleting this one must.
+      if (dto.avatar) {
+        await tx.storedFile.updateMany({
+          where: { key: dto.avatar, profileId: { not: null } },
+          data: { profileId: created.id },
+        });
+      }
+      return created;
     });
 
     const embeddingText = this.buildProfileEmbeddingText(profile);

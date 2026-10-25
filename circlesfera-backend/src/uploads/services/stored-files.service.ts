@@ -1,17 +1,14 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Optional,
-} from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { AppException } from '../../common/errors/app.exception.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   STORAGE_PROVIDER,
   type StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
 
-export const FILE_NOT_OWNED = 'FILE_NOT_OWNED';
+export const FILE_NOT_OWNED = ErrorCode.FILE_NOT_OWNED;
 
 /** Who a stored file is recorded for. */
 export interface StoredFileOwner {
@@ -60,7 +57,10 @@ export class StoredFilesService {
       where: { key: { in: stored }, profileId: { in: owners } },
     });
     if (owned < stored.length) {
-      throw new BadRequestException(FILE_NOT_OWNED);
+      throw AppException.BadRequest(
+        ErrorCode.FILE_NOT_OWNED,
+        'A stored file that this Profile did not upload cannot be attached',
+      );
     }
   }
 

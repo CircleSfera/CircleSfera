@@ -19,6 +19,7 @@ describe('ProfilesService', () => {
 
   const mockPrismaService: any = {
     $transaction: vi.fn((cb: any) => cb(mockPrismaService)),
+    storedFile: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     profileMember: {
       findUnique: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn(),
@@ -994,6 +995,29 @@ describe('ProfilesService', () => {
     });
 
     describe('createProfile', () => {
+      it("makes the photo the new Profile's own, in the same transaction", async () => {
+        mockPrismaService.profile.findMany.mockResolvedValueOnce([
+          { id: 'p-a' },
+        ]);
+        mockPrismaService.profile.count.mockResolvedValue(1);
+        mockPrismaService.profile.findFirst.mockResolvedValue(null);
+        mockPrismaService.profile.create.mockResolvedValue({
+          id: 'p-new',
+          userId: 'u-1',
+          username: 'new_one',
+        });
+
+        await service.createProfile('u-1', {
+          username: 'new_one',
+          avatar: '/uploads/face.jpg',
+        } as never);
+
+        expect(mockPrismaService.storedFile.updateMany).toHaveBeenCalledWith({
+          where: { key: '/uploads/face.jpg', profileId: { not: null } },
+          data: { profileId: 'p-new' },
+        });
+      });
+
       it("takes as a new Profile's photo a file of any of the person's Profiles, and no other", async () => {
         mockPrismaService.profile.findMany.mockResolvedValueOnce([
           { id: 'p-a' },

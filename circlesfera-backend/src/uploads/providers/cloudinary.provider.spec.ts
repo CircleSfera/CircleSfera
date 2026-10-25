@@ -187,13 +187,22 @@ describe('CloudinaryProvider', () => {
   });
 
   describe('delete', () => {
+    it('deletes nothing for an address that is not exactly one of its own', async () => {
+      await provider.delete(
+        'https://res.cloudinary.com/other-cloud/image/upload/circlesfera/abc.jpg',
+      );
+      await provider.delete('/elsewhere/abc.jpg');
+
+      expect(cloudinary.uploader.destroy).not.toHaveBeenCalled();
+    });
+
     it('deletes file successfully when result is ok', async () => {
       vi.mocked(cloudinary.uploader.destroy).mockResolvedValueOnce({
         result: 'ok',
       });
 
       await provider.delete(
-        'https://res.cloudinary.com/demo/image/upload/v1/sample.jpg',
+        'https://res.cloudinary.com/test-cloud/image/upload/v1/circlesfera/sample.jpg',
       );
       expect(cloudinary.uploader.destroy).toHaveBeenCalledWith(
         'circlesfera/sample',
@@ -206,7 +215,7 @@ describe('CloudinaryProvider', () => {
       });
 
       await provider.delete(
-        'https://res.cloudinary.com/demo/image/upload/v1/missing.jpg',
+        'https://res.cloudinary.com/test-cloud/image/upload/v1/circlesfera/missing.jpg',
       );
       expect(cloudinary.uploader.destroy).toHaveBeenCalledWith(
         'circlesfera/missing',
@@ -224,7 +233,7 @@ describe('CloudinaryProvider', () => {
 
       await expect(
         provider.delete(
-          'https://res.cloudinary.com/demo/image/upload/v1/forbidden.jpg',
+          'https://res.cloudinary.com/test-cloud/image/upload/v1/circlesfera/forbidden.jpg',
         ),
       ).rejects.toThrow('Cloudinary deletion failed with result: unauthorized');
 

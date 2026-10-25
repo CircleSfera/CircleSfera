@@ -112,10 +112,28 @@ describe('LocalStorageProvider', () => {
         .spyOn(fs.promises, 'unlink')
         .mockResolvedValueOnce(undefined);
 
-      await provider.delete('/uploads/test.jpg');
-      expect(unlinkSpy).toHaveBeenCalledWith(
-        expect.stringContaining('test.jpg'),
+      await provider.delete(
+        '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
       );
+      expect(unlinkSpy).toHaveBeenCalledWith(
+        expect.stringContaining('3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg'),
+      );
+    });
+
+    it('deletes nothing for an address that is not exactly one of its own', async () => {
+      const unlinkSpy = vi.spyOn(fs.promises, 'unlink');
+      for (const url of [
+        '/x/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.webp',
+        '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.webp/',
+        '/uploads//3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.webp',
+        '3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.webp',
+        '/uploads/../uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.webp',
+        'https://circlesfera.com/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.webp',
+      ]) {
+        await provider.delete(url);
+      }
+      // Each of these ends in a real file's name; none of them may delete it.
+      expect(unlinkSpy).not.toHaveBeenCalled();
     });
 
     it('handles ENOENT gracefully as no-op', async () => {
@@ -124,7 +142,7 @@ describe('LocalStorageProvider', () => {
       vi.spyOn(fs.promises, 'unlink').mockRejectedValueOnce(err);
 
       await expect(
-        provider.delete('/uploads/missing.jpg'),
+        provider.delete('/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.png'),
       ).resolves.not.toThrow();
     });
 
@@ -133,9 +151,9 @@ describe('LocalStorageProvider', () => {
       err.code = 'EACCES';
       vi.spyOn(fs.promises, 'unlink').mockRejectedValueOnce(err);
 
-      await expect(provider.delete('/uploads/forbidden.jpg')).rejects.toThrow(
-        'EACCES',
-      );
+      await expect(
+        provider.delete('/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.gif'),
+      ).rejects.toThrow('EACCES');
     });
   });
 

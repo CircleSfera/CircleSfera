@@ -90,40 +90,31 @@ export class S3Provider implements StorageProvider {
     }
   }
 
-  ownsUrl(url: string): boolean {
-    const base = this.cdnUrl
+  // The address its uploads answer with: behind the CDN when there is one.
+  private get base(): string {
+    return this.cdnUrl
       ? this.cdnUrl
       : `https://${this.bucket}.s3.${this.region}.amazonaws.com`;
-    if (!url.startsWith(`${base}/circlesfera/`)) return false;
+  }
+
+  ownsUrl(url: string): boolean {
+    if (!url.startsWith(`${this.base}/circlesfera/`)) return false;
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{2,5}$/i.test(
-      url.slice(`${base}/circlesfera/`.length),
+      url.slice(`${this.base}/circlesfera/`.length),
     );
   }
 
   async delete(url: string): Promise<void> {
+    // Only an address this storage answers for one of its own files is
+    // deleted: any other shape (another folder, a trailing slash, a host)
+    // could still name someone else's file by its base name.
+    if (!this.ownsUrl(url)) {
+      this.logger.warn(`Not deleting ${url}: not an address of this storage`);
+      return;
+    }
     try {
-      // Extract key from URL
-      let key = '';
-      if (this.cdnUrl && url.startsWith(this.cdnUrl)) {
-        key = url.replace(`${this.cdnUrl}/`, '');
-      } else {
-        // Standard S3 URL parsing
-        const parts = url.split('.amazonaws.com/');
-        if (parts.length > 1) {
-          key = parts[1];
-        } else {
-          // Fallback: try to find circlesfera/ prefix
-          const index = url.indexOf('circlesfera/');
-          if (index !== -1) {
-            key = url.substring(index);
-          }
-        }
-      }
-
-      if (!key) {
-        this.logger.warn(`Could not extract S3 key from URL: ${url}`);
-        return;
-      }
+      // An address it owns is its base followed by the key.
+      const key = url.slice(`${this.base}/`.length);
 
       this.logger.debug(`Deleting file from S3: ${key}`);
       await this.s3Client.send(

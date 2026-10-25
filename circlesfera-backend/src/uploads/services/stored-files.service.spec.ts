@@ -85,7 +85,7 @@ describe('StoredFilesService.assertOwnedBy', () => {
 
     await expect(
       files.assertOwnedBy('p-1', ['/uploads/mine.jpg', '/uploads/theirs.jpg']),
-    ).rejects.toThrow(FILE_NOT_OWNED);
+    ).rejects.toMatchObject({ errorCode: FILE_NOT_OWNED, status: 400 });
   });
 
   it('leaves addresses of other storages alone, and asks nothing when none is its own', async () => {
@@ -105,7 +105,7 @@ describe('StoredFilesService.assertOwnedBy', () => {
 
     await expect(
       files.assertOwnedBy(['p-1', 'p-2'], ['https://anything/x.jpg']),
-    ).rejects.toThrow(FILE_NOT_OWNED);
+    ).rejects.toMatchObject({ errorCode: FILE_NOT_OWNED, status: 400 });
     expect(prisma.storedFile.count).toHaveBeenCalledWith({
       where: {
         key: { in: ['https://anything/x.jpg'] },

@@ -5409,6 +5409,7 @@
       "INVALID_MEDIA_PATH": "Ese archivo no se puede usar.",
       "PREMIUM_CONTENT_LOCKED": "Desbloquea este contenido para verlo.",
       "MEDIA_ACCESS_DENIED": "No tienes acceso a este archivo.",
+      "FILE_NOT_OWNED": "Este archivo no se puede usar aquí. Vuelve a subirlo desde tu dispositivo.",
       "COLLECTION_NOT_FOUND": "No hemos encontrado esa colección.",
       "HIGHLIGHT_NOT_FOUND": "No hemos encontrado esa historia destacada.",
       "EDIT_PROJECT_NOT_FOUND": "No hemos encontrado ese proyecto.",
