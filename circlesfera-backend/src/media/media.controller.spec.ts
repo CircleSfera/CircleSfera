@@ -74,6 +74,23 @@ const mockPrismaService = {
   postMedia: {
     findUnique: vi.fn(),
   },
+  // The post a teaser belongs to, read by the post access rule.
+  post: { findUnique: vi.fn() },
+  block: { findFirst: vi.fn().mockResolvedValue(null) },
+  // Test accounts are kept apart from real ones; none here.
+  user: { findMany: vi.fn().mockResolvedValue([]) },
+  follow: { findUnique: vi.fn().mockResolvedValue(null) },
+};
+
+// A paid post everyone may see the card of.
+const PAID = { id: 'post-1', isPremium: true };
+const paidCard = {
+  id: 'post-1',
+  profileId: 'author-1',
+  visibility: 'PUBLIC',
+  moderationStatus: 'APPROVED',
+  turnOffComments: false,
+  profile: { privacyLevel: 'PUBLIC' },
 };
 
 describe('MediaController (HTTP integration)', () => {
@@ -103,6 +120,10 @@ describe('MediaController (HTTP integration)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrismaService.post.findUnique.mockResolvedValue(paidCard);
+    mockPrismaService.block.findFirst.mockResolvedValue(null);
+    mockPrismaService.user.findMany.mockResolvedValue([]);
+    mockPrismaService.follow.findUnique.mockResolvedValue(null);
     // Restore default mock implementation after clearAllMocks
     mockStorageProvider.getMediaArtifact.mockImplementation(
       async (params: { baseFolder: string; relativePath: string }) => {
@@ -137,6 +158,58 @@ describe('MediaController (HTTP integration)', () => {
     );
   });
 
+  it('serves no teaser of a post that is not paid', async () => {
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: { id: 'post-1', isPremium: false },
+    });
+    // The file is there: only the rule keeps it.
+    fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
+
+    await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/master.m3u8')
+      .expect(404);
+  });
+
+  it.each([
+    ['private', { visibility: 'PRIVATE' }],
+    [
+      'for followers, to a viewer who does not follow',
+      { visibility: 'FOLLOWERS' },
+    ],
+    ['on a private account', { profile: { privacyLevel: 'PRIVATE' } }],
+    ['removed', { moderationStatus: 'REMOVED' }],
+  ])('serves no teaser of a paid post that is %s', async (_why, change) => {
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: PAID,
+    });
+    mockPrismaService.post.findUnique.mockResolvedValue({
+      ...paidCard,
+      ...change,
+    });
+    fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
+
+    await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/master.m3u8')
+      .expect(404);
+  });
+
+  it('answers a failure to read the post as a failure, not as missing media', async () => {
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: PAID,
+    });
+    mockPrismaService.post.findUnique.mockRejectedValue(
+      new Error('database unavailable'),
+    );
+    fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
+
+    await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/master.m3u8')
+      .expect(500);
+  });
+
   it('returns 404 when the media record has no standardUrl', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue(null);
 
@@ -148,6 +221,7 @@ describe('MediaController (HTTP integration)', () => {
   it('returns 404 when standardUrl has an unexpected format', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue({
       standardUrl: 'https://cdn.example.com/not-a-local-path.mp4',
+      post: PAID,
     });
 
     await request(app.getHttpServer())
@@ -156,7 +230,10 @@ describe('MediaController (HTTP integration)', () => {
   });
 
   it('blocks path traversal attempts outside the media folder', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({ standardUrl });
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: PAID,
+    });
 
     const traversal = encodeURIComponent('../../etc/passwd');
     await request(app.getHttpServer())
@@ -165,7 +242,10 @@ describe('MediaController (HTTP integration)', () => {
   });
 
   it('returns 404 when the resolved file does not exist in storage', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({ standardUrl });
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: PAID,
+    });
 
     await request(app.getHttpServer())
       .get('/api/v1/media/teaser/media-1/missing.m3u8')
@@ -173,7 +253,10 @@ describe('MediaController (HTTP integration)', () => {
   });
 
   it('truncates an .m3u8 playlist to the first two segments', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({ standardUrl });
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: PAID,
+    });
     fs.writeFileSync(
       path.join(mediaDir, 'master.m3u8'),
       [
@@ -202,7 +285,10 @@ describe('MediaController (HTTP integration)', () => {
   });
 
   it('serves the first two .ts segments', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({ standardUrl });
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: PAID,
+    });
     fs.writeFileSync(path.join(mediaDir, 'stream_1.ts'), 'segment-bytes');
 
     const res = await request(app.getHttpServer())
@@ -214,7 +300,10 @@ describe('MediaController (HTTP integration)', () => {
   });
 
   it('locks .ts segments beyond the free preview window', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({ standardUrl });
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: PAID,
+    });
     fs.writeFileSync(path.join(mediaDir, 'stream_2.ts'), 'locked');
 
     await request(app.getHttpServer())
@@ -223,7 +312,10 @@ describe('MediaController (HTTP integration)', () => {
   });
 
   it('serves other file types (e.g. thumbnails) via storage provider', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({ standardUrl });
+    mockPrismaService.postMedia.findUnique.mockResolvedValue({
+      standardUrl,
+      post: PAID,
+    });
     fs.writeFileSync(path.join(mediaDir, 'thumb.jpg'), 'jpeg-bytes');
 
     const res = await request(app.getHttpServer())

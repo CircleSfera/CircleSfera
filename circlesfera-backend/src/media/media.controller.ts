@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Inject,
   Logger,
+  NotFoundException,
   Param,
   Req,
   Res,
@@ -16,6 +17,7 @@ import { ApiExcludeEndpoint, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   STORAGE_PROVIDER,
@@ -77,18 +79,43 @@ export class MediaController {
   }
 
   @Get('teaser/:mediaId/*file')
+  @UseGuards(JwtOptionalGuard)
   @ApiResponse({ status: 200 })
   async serveTeaser(
     @Param('mediaId') mediaId: string,
     @Param('file') file: string | string[],
-    @Req() req: Request,
+    @Req() req: Request & { user?: { profileId?: string } },
     @Res() res: Response,
   ) {
     const media = await this.prisma.postMedia.findUnique({
       where: { id: mediaId },
+      include: { post: { select: { id: true, isPremium: true } } },
     });
 
-    if (!media?.standardUrl) {
+    // A teaser is the free start of a paid post's video, for whoever may see
+    // the post's card: never of a post that is not paid, nor of one the
+    // viewer may not see (private, followers-only, blocked, removed). Both
+    // answer as missing, so neither is revealed.
+    const canSeeCard =
+      !!media?.post?.isPremium &&
+      (await assertCanAccessPost(
+        this.prisma,
+        media.post.id,
+        req.user?.profileId ?? null,
+      ).then(
+        () => true,
+        (error: unknown) => {
+          // A refusal answers as missing; any other failure is a failure.
+          if (
+            error instanceof NotFoundException ||
+            error instanceof ForbiddenException
+          ) {
+            return false;
+          }
+          throw error;
+        },
+      ));
+    if (!media?.standardUrl || !canSeeCard) {
       this.logger.warn(
         `Teaser requested for missing media: ${mediaId} by ${req.ip}`,
       );
