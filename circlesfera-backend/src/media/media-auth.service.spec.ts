@@ -248,6 +248,35 @@ describe('MediaAuthService', () => {
   });
 
   describe('Post media', () => {
+    it("keeps a private account's public post for its followers, as the post itself is", async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-p',
+          post: {
+            profileId: 'private-author',
+            visibility: 'PUBLIC',
+            isPremium: false,
+            profile: { privacyLevel: 'PRIVATE' },
+          },
+        },
+      ]);
+
+      await expect(
+        service.isAccessAllowed('/uploads/p.jpg', null, null),
+      ).resolves.toBe(false);
+      mockPrismaService.follow.findFirst.mockResolvedValueOnce(null);
+      await expect(
+        service.isAccessAllowed('/uploads/p.jpg', 'u-2', 'stranger'),
+      ).resolves.toBe(false);
+      mockPrismaService.follow.findFirst.mockResolvedValueOnce({ id: 'f-1' });
+      await expect(
+        service.isAccessAllowed('/uploads/p.jpg', 'u-3', 'follower'),
+      ).resolves.toBe(true);
+      await expect(
+        service.isAccessAllowed('/uploads/p.jpg', 'u-1', 'private-author'),
+      ).resolves.toBe(true);
+    });
+
     it('allows public free post media access to anyone including anonymous', async () => {
       mockPrismaService.postMedia.findMany.mockResolvedValue([
         {

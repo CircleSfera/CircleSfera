@@ -6,6 +6,7 @@ interface PostLikeAccess {
   profileId: string;
   visibility: Visibility;
   isPremium: boolean;
+  profile?: { privacyLevel?: Visibility } | null;
 }
 
 interface StoryAccess {
@@ -145,7 +146,12 @@ export class MediaAuthService {
           select: {
             postId: true,
             post: {
-              select: { profileId: true, visibility: true, isPremium: true },
+              select: {
+                profileId: true,
+                visibility: true,
+                isPremium: true,
+                profile: { select: { privacyLevel: true } },
+              },
             },
           },
         }),
@@ -175,7 +181,12 @@ export class MediaAuthService {
           select: {
             postId: true,
             post: {
-              select: { profileId: true, visibility: true, isPremium: true },
+              select: {
+                profileId: true,
+                visibility: true,
+                isPremium: true,
+                profile: { select: { privacyLevel: true } },
+              },
             },
           },
         }),
@@ -251,7 +262,14 @@ export class MediaAuthService {
     viewerUserId: string | null,
     viewerProfileId: string | null,
   ): Promise<boolean> {
-    if (post.visibility === Visibility.PUBLIC && !post.isPremium) {
+    // A post of a private account is its followers' only, whatever the
+    // post's own audience, as the post itself is (assertCanAccessPost).
+    const privateAccount = post.profile?.privacyLevel === Visibility.PRIVATE;
+    if (
+      post.visibility === Visibility.PUBLIC &&
+      !post.isPremium &&
+      !privateAccount
+    ) {
       return true;
     }
 
@@ -260,6 +278,24 @@ export class MediaAuthService {
     }
 
     if (post.profileId === viewerProfileId) {
+      return true;
+    }
+
+    const follows = () =>
+      this.prisma.follow
+        .findFirst({
+          where: {
+            followerId: viewerProfileId,
+            followingId: post.profileId,
+            status: FollowStatus.ACCEPTED,
+          },
+          select: { id: true },
+        })
+        .then((follow) => !!follow);
+    if (privateAccount && !(await follows())) {
+      return false;
+    }
+    if (post.visibility === Visibility.PUBLIC && !post.isPremium) {
       return true;
     }
 
