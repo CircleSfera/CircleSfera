@@ -11,6 +11,7 @@ import type { Queue } from 'bullmq';
 import { AIService } from '../ai/ai.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
 import { UpdateEditDto } from './dto/update-edit.dto.js';
@@ -26,9 +27,16 @@ export class EditsService {
     @Inject(UploadsService) private readonly uploadsService: UploadsService,
     @Inject(AIService) private readonly aiService: AIService,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
+    @Inject(StoredFilesService)
+    private readonly storedFiles: StoredFilesService,
   ) {}
 
   async create(profileId: string, createEditDto: CreateEditDto) {
+    // Only the sending Profile's own stored files can be attached.
+    await this.storedFiles.assertOwnedBy(profileId, [
+      createEditDto.mediaUrl,
+      ...this.collectStudioMediaUrls(createEditDto.state),
+    ]);
     try {
       if (!this.prisma.editProject) {
         throw new Error(
@@ -80,6 +88,15 @@ export class EditsService {
 
   async update(profileId: string, id: string, updateEditDto: UpdateEditDto) {
     const edit = await this.findOne(profileId, id);
+    // A clip added must be the Profile's own stored file; the clips the
+    // project already has are sent back as they are.
+    const kept = new Set(this.collectStudioMediaUrls(edit.state));
+    await this.storedFiles.assertOwnedBy(
+      profileId,
+      this.collectStudioMediaUrls(updateEditDto.state).filter(
+        (url) => !kept.has(url),
+      ),
+    );
 
     return this.prisma.editProject.update({
       where: { id: edit.id },

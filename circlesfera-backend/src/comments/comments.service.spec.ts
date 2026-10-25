@@ -5,7 +5,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ActionLimitsService } from '../trust/action-limits.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { CommentsService } from './comments.service.js';
+
+// Every file in these tests is the sending Profile's own unless a test says so.
+const mockStoredFiles = {
+  assertOwnedBy: vi.fn().mockResolvedValue(undefined),
+  record: vi.fn().mockResolvedValue(undefined),
+};
 
 describe('CommentsService', () => {
   let service: CommentsService;
@@ -70,6 +77,7 @@ describe('CommentsService', () => {
           },
         },
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: StoredFilesService, useValue: mockStoredFiles },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: 'BullQueue_ai-processing', useValue: { add: vi.fn() } },
         {
@@ -91,6 +99,25 @@ describe('CommentsService', () => {
   });
 
   describe('create', () => {
+    it("refuses another Profile's stored file before creating anything", async () => {
+      mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+        new Error('FILE_NOT_OWNED'),
+      );
+
+      await expect(
+        service.create('post-1', 'viewer-1', {
+          content: 'hi',
+          url: '/uploads/a.jpg',
+          voiceUrl: '/uploads/v.m4a',
+        } as never),
+      ).rejects.toThrow('FILE_NOT_OWNED');
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('viewer-1', [
+        '/uploads/a.jpg',
+        '/uploads/v.m4a',
+      ]);
+      expect(mockPrismaService.comment.create).not.toHaveBeenCalled();
+    });
+
     it('rejects comments across a block without creating anything', async () => {
       mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
 

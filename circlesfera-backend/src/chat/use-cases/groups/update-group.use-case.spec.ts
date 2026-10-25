@@ -9,20 +9,31 @@ describe('UpdateGroupUseCase', () => {
   let useCase: UpdateGroupUseCase;
   let mockPrisma: {
     participant: { findFirst: ReturnType<typeof vi.fn> };
-    conversation: { update: ReturnType<typeof vi.fn> };
+    conversation: {
+      update: ReturnType<typeof vi.fn>;
+      findUnique: ReturnType<typeof vi.fn>;
+    };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
+  let storedFiles: { assertOwnedBy: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockPrisma = {
       participant: { findFirst: vi.fn() },
-      conversation: { update: vi.fn() },
+      conversation: {
+        update: vi.fn(),
+        findUnique: vi
+          .fn()
+          .mockResolvedValue({ avatarUrl: '/uploads/old.jpg' }),
+      },
     };
+    storedFiles = { assertOwnedBy: vi.fn().mockResolvedValue(undefined) };
     mockEventEmitter = { emit: vi.fn() };
     useCase = new UpdateGroupUseCase(
       mockPrisma as unknown as PrismaService,
       mockEventEmitter as unknown as EventEmitter2,
       new ChatAuthorizationService(mockPrisma as unknown as PrismaService),
+      storedFiles as never,
     );
   });
 
@@ -74,6 +85,29 @@ describe('UpdateGroupUseCase', () => {
         payload: updated,
       },
     );
+  });
+
+  it("keeps the group's current photo whoever set it, and refuses a new one that is not the admin's", async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({ isAdmin: true });
+    mockPrisma.conversation.update.mockResolvedValue({
+      id: 'conv-1',
+      participants: [],
+    });
+
+    await useCase.execute('prof-1', 'conv-1', 'Renamed', '/uploads/old.jpg');
+    expect(storedFiles.assertOwnedBy).not.toHaveBeenCalled();
+
+    storedFiles.assertOwnedBy.mockRejectedValueOnce(
+      new Error('FILE_NOT_OWNED'),
+    );
+    mockPrisma.conversation.update.mockClear();
+    await expect(
+      useCase.execute('prof-1', 'conv-1', undefined, '/uploads/theirs.jpg'),
+    ).rejects.toThrow('FILE_NOT_OWNED');
+    expect(storedFiles.assertOwnedBy).toHaveBeenCalledWith('prof-1', [
+      '/uploads/theirs.jpg',
+    ]);
+    expect(mockPrisma.conversation.update).not.toHaveBeenCalled();
   });
 
   it('handles updating with only name or only avatarUrl and fallback participants array', async () => {

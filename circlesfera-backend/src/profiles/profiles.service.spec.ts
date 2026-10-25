@@ -4,8 +4,15 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { UsersService } from '../users/users.service.js';
 import { ProfilesService } from './profiles.service.js';
+
+// Every file in these tests is the sending Profile's own unless a test says so.
+const mockStoredFiles = {
+  assertOwnedBy: vi.fn().mockResolvedValue(undefined),
+  record: vi.fn().mockResolvedValue(undefined),
+};
 
 describe('ProfilesService', () => {
   let service: ProfilesService;
@@ -59,6 +66,7 @@ describe('ProfilesService', () => {
       providers: [
         ProfilesService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: StoredFilesService, useValue: mockStoredFiles },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
         { provide: getQueueToken('ai-processing'), useValue: mockAiQueue },
         { provide: UsersService, useValue: mockUsersService },
@@ -310,6 +318,25 @@ describe('ProfilesService', () => {
   });
 
   describe('updateProfile', () => {
+    it('checks only a new photo: the one it has is sent back as it is', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        avatar: '/uploads/kept.jpg',
+      });
+      mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+        new Error('FILE_NOT_OWNED'),
+      );
+
+      await expect(
+        service.updateProfile('p-1', { avatar: '/uploads/theirs.jpg' }),
+      ).rejects.toThrow('FILE_NOT_OWNED');
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('p-1', [
+        '/uploads/theirs.jpg',
+      ]);
+      expect(mockPrismaService.profile.update).not.toHaveBeenCalled();
+    });
+
     describe('profile colour', () => {
       const stored = (verificationLevel: string) => ({
         id: 'p-1',
@@ -967,6 +994,28 @@ describe('ProfilesService', () => {
     });
 
     describe('createProfile', () => {
+      it("takes as a new Profile's photo a file of any of the person's Profiles, and no other", async () => {
+        mockPrismaService.profile.findMany.mockResolvedValueOnce([
+          { id: 'p-a' },
+          { id: 'p-b' },
+        ]);
+        mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+          new Error('FILE_NOT_OWNED'),
+        );
+
+        await expect(
+          service.createProfile('u-1', {
+            username: 'new_one',
+            avatar: '/uploads/face.jpg',
+          } as never),
+        ).rejects.toThrow('FILE_NOT_OWNED');
+        expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith(
+          ['p-a', 'p-b'],
+          ['/uploads/face.jpg'],
+        );
+        expect(mockPrismaService.profile.create).not.toHaveBeenCalled();
+      });
+
       it('creates an additional profile under the user and enqueues embedding', async () => {
         mockPrismaService.profile.count.mockResolvedValue(1);
         mockPrismaService.profile.findFirst.mockResolvedValue(null); // username available

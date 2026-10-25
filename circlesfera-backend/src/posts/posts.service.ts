@@ -47,6 +47,7 @@ import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { captionMentions } from './caption-mentions.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
@@ -75,6 +76,8 @@ export class PostsService {
     private readonly postMediaCleanupService: PostMediaCleanupService,
     @Inject(FrameCoverService)
     private readonly frameCover: FrameCoverService,
+    @Inject(StoredFilesService)
+    private readonly storedFiles: StoredFilesService,
   ) {}
 
   // Create a new post with media, caption, hashtags, and mentions.
@@ -95,6 +98,12 @@ export class PostsService {
     if (dto.coverTimeMs !== undefined && dto.type !== 'FRAME') {
       throw new BadRequestException('Only a frame has a cover to choose');
     }
+
+    // Only the sending Profile's own stored files can be attached.
+    await this.storedFiles.assertOwnedBy(
+      profileId,
+      (dto.media ?? []).flatMap((m) => [m.url, m.standardUrl, m.thumbnailUrl]),
+    );
 
     // Extract hashtags and mentions
     // Extract hashtags and mentions with ReDoS-safe, robust patterns

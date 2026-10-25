@@ -6,11 +6,13 @@ import {
 } from '../common/constants/queue-policy.constants.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { TrustModule } from '../trust/trust.module.js';
+import { UploadsModule } from '../uploads/uploads.module.js';
 import { CommentsController } from './comments.controller.js';
 import { CommentsService } from './comments.service.js';
 
 @Module({
   imports: [
+    UploadsModule,
     PrismaModule,
     TrustModule,
     BullModule.registerQueue(

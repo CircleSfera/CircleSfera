@@ -12,12 +12,19 @@ import { AnalyticsService } from '../analytics/analytics.service.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
 import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
+
+// Every file in these tests is the sending Profile's own unless a test says so.
+const mockStoredFiles = {
+  assertOwnedBy: vi.fn().mockResolvedValue(undefined),
+  record: vi.fn().mockResolvedValue(undefined),
+};
 
 vi.mock('../common/utils/media-duration.util.js', () => ({
   assertVideoUrlDuration: vi.fn().mockResolvedValue(undefined),
@@ -112,6 +119,7 @@ describe('PostsService', () => {
       providers: [
         PostsService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: StoredFilesService, useValue: mockStoredFiles },
         { provide: AIService, useValue: mockAIService },
         {
           provide: AnalyticsService,
@@ -142,6 +150,30 @@ describe('PostsService', () => {
   });
 
   describe('create', () => {
+    it("refuses another Profile's stored file before creating anything", async () => {
+      mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+        new Error('FILE_NOT_OWNED'),
+      );
+      const media = [
+        {
+          url: '/uploads/a.jpg',
+          standardUrl: '/uploads/b.webp',
+          thumbnailUrl: '/uploads/c.webp',
+          type: 'IMAGE',
+        },
+      ];
+
+      await expect(
+        service.create('user-1', { caption: 'x', media } as never),
+      ).rejects.toThrow('FILE_NOT_OWNED');
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('user-1', [
+        '/uploads/a.jpg',
+        '/uploads/b.webp',
+        '/uploads/c.webp',
+      ]);
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
+    });
+
     it('throws ForbiddenException when content posting is disabled', async () => {
       mockSystemSettingsService.isEnabled.mockResolvedValueOnce(false);
       await expect(

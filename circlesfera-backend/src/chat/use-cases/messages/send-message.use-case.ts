@@ -20,6 +20,7 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { PushService } from '../../../push/push.service.js';
 import { ActionLimitsService } from '../../../trust/action-limits.service.js';
+import { StoredFilesService } from '../../../uploads/services/stored-files.service.js';
 
 @Injectable()
 export class SendMessageUseCase {
@@ -32,6 +33,8 @@ export class SendMessageUseCase {
     @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
     @Inject(ActionLimitsService)
     private readonly actionLimits: ActionLimitsService,
+    @Inject(StoredFilesService)
+    private readonly storedFiles: StoredFilesService,
   ) {}
 
   private async assertShareable(
@@ -78,6 +81,9 @@ export class SendMessageUseCase {
     isLocked?: boolean,
     priceCents?: number,
   ): Promise<Message> {
+    // Only the sending Profile's own stored files can be attached.
+    await this.storedFiles.assertOwnedBy(senderId, [url, voiceUrl]);
+
     if (isLocked) {
       const senderProfile = await this.prisma.profile.findUnique({
         where: { id: senderId },

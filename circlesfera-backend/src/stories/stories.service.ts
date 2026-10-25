@@ -47,6 +47,7 @@ import {
 } from '../story-stickers/story-stickers.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
 
@@ -135,6 +136,8 @@ export class StoriesService {
     private readonly systemSettings: SystemSettingsService,
     @Inject(StoryStickersService)
     private readonly stickers: StoryStickersService,
+    @Inject(StoredFilesService)
+    private readonly storedFiles: StoredFilesService,
   ) {}
 
   // Create a new ephemeral story with a 24-hour expiry.
@@ -147,6 +150,14 @@ export class StoriesService {
     if (!postingEnabled) {
       throw new ForbiddenException('CONTENT_POSTING_DISABLED');
     }
+
+    // Only the sending Profile's own stored files can be attached.
+    await this.storedFiles.assertOwnedBy(profileId, [
+      dto.url,
+      dto.standardUrl,
+      dto.thumbnailUrl,
+      dto.overlayUrl,
+    ]);
 
     if (dto.isPremium) {
       const authorProfile = await this.prisma.profile.findUnique({
