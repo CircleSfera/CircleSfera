@@ -41,6 +41,9 @@ const PROFILE_PUSH_SELECT = Object.fromEntries(
 ) as Record<(typeof PROFILE_PUSH_FIELDS)[number], true>;
 
 // Service for user management: follow suggestions, banning, and unbanning.
+// Files of an erased account deleted by one job.
+const ERASE_FILES_PER_JOB = 500;
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
@@ -557,11 +560,15 @@ export class UsersService {
         },
       });
       if (result.count === 0) return false;
-      // Queued with the deletion itself: both happen, or neither.
-      await this.uploads.scheduleMediaDeletion(
-        files.map((file) => file.key),
-        { tx },
-      );
+      // Queued with the deletion itself: both happen, or neither. In batches,
+      // so that one failure retries a few hundred files, not all of them.
+      const keys = files.map((file) => file.key);
+      for (let i = 0; i < keys.length; i += ERASE_FILES_PER_JOB) {
+        await this.uploads.scheduleMediaDeletion(
+          keys.slice(i, i + ERASE_FILES_PER_JOB),
+          { tx },
+        );
+      }
       return true;
     });
   }

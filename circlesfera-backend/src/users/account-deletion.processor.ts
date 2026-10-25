@@ -59,6 +59,14 @@ export class AccountDeletionProcessor extends WorkerHost {
 
       let queuedCount = 0;
       for (const user of expiredUsers) {
+        // A job kept by its id is not added again: one that failed is tried
+        // again, so an erasure that once failed is not left for good.
+        const existing = await this.usersQueue.getJob(`delete-${user.id}`);
+        if (existing && (await existing.isFailed())) {
+          await existing.retry('failed');
+          queuedCount++;
+          continue;
+        }
         await this.usersQueue.add(
           'hard-delete-user',
           { userId: user.id },

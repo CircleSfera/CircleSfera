@@ -1070,7 +1070,9 @@ model LiveStream {
 /// Paid virtual gift sent during a live stream (Stripe Checkout + webhook).
 model LiveGift {
   id                      String            @id @default(uuid())
-  streamId                String
+  // Null once the stream is erased with its host (TD-009): the gift is a
+  // financial record kept for seven years, whoever is erased.
+  streamId                String?
   // Nullable for financial retention: senderId/receiverId are set to NULL on
   // user hard-deletion (onDelete: SetNull). The row survives for fiscal audit
   // compliance (7-year retention), matching Transaction/StripePayoutLog/
@@ -1086,7 +1088,7 @@ model LiveGift {
   createdAt               DateTime          @default(now())
   completedAt             DateTime?
 
-  stream      LiveStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  stream      LiveStream?  @relation(fields: [streamId], references: [id], onDelete: SetNull)
   sender      User?        @relation("LiveGiftSender", fields: [senderId], references: [id], onDelete: SetNull)
   receiver    User?        @relation("LiveGiftReceiver", fields: [receiverId], references: [id], onDelete: SetNull)
   transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)

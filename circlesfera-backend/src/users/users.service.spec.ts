@@ -527,6 +527,20 @@ describe('UsersService', () => {
       );
     });
 
+    it('queues the files of a large account in batches of five hundred', async () => {
+      storedFile.findMany.mockResolvedValueOnce(
+        Array.from({ length: 1201 }, (_, i) => ({ key: `/uploads/${i}.jpg` })),
+      );
+      mockPrismaService.user.deleteMany.mockResolvedValue({ count: 1 });
+
+      await service.deleteScheduledUser('u_big');
+
+      const batches = mockUploadsService.scheduleMediaDeletion.mock.calls.map(
+        ([keys]) => keys.length,
+      );
+      expect(batches).toEqual([500, 500, 201]);
+    });
+
     it('queues no file when the account was restored meanwhile', async () => {
       mockPrismaService.user.deleteMany.mockResolvedValue({ count: 0 });
       const res = await service.deleteScheduledUser('u_restored');

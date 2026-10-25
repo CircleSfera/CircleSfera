@@ -41,6 +41,7 @@ describe('AccountDeletionProcessor', () => {
 
     mockQueue = {
       add: vi.fn(),
+      getJob: vi.fn().mockResolvedValue(undefined),
     };
 
     processor = new AccountDeletionProcessor(
@@ -348,6 +349,22 @@ describe('AccountDeletionProcessor', () => {
         { jobId: 'delete-u_exp_2' },
       );
       expect(res).toEqual({ queuedCount: 2 });
+    });
+
+    it('tries again an erasure whose job failed, instead of leaving it for good', async () => {
+      mockPrisma.user.findMany.mockResolvedValue([{ id: 'u_failed' }]);
+      const failed = {
+        isFailed: vi.fn().mockResolvedValue(true),
+        retry: vi.fn().mockResolvedValue(undefined),
+      };
+      mockQueue.getJob.mockResolvedValueOnce(failed);
+
+      const res = await processor.cleanExpiredAccounts();
+
+      expect(mockQueue.getJob).toHaveBeenCalledWith('delete-u_failed');
+      expect(failed.retry).toHaveBeenCalledWith('failed');
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(res).toEqual({ queuedCount: 1 });
     });
 
     it('rethrows if user query throws error', async () => {
