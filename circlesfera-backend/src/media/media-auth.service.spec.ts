@@ -126,6 +126,54 @@ describe('MediaAuthService', () => {
       },
     );
 
+    it("gives a segment of a video's stream folder the access of the post that holds the video", async () => {
+      const V = '3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d';
+      mockPrismaService.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-1',
+          post: {
+            profileId: 'author-1',
+            visibility: 'PRIVATE',
+            isPremium: false,
+          },
+        },
+      ]);
+
+      await expect(
+        service.isAccessAllowed(`/uploads/${V}/720p_003.ts`, null, null),
+      ).resolves.toBe(false);
+      // No row names a segment: the folder and the video file are looked up.
+      expect(mockPrismaService.postMedia.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            OR: [
+              { url: { contains: `${V}/` } },
+              { url: { contains: `${V}.` } },
+              { standardUrl: { contains: `${V}/` } },
+              { standardUrl: { contains: `${V}.` } },
+              { thumbnailUrl: { contains: `${V}/` } },
+              { thumbnailUrl: { contains: `${V}.` } },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('keeps looking up a file in an ordinary folder by its own path', async () => {
+      await service.isAccessAllowed('/uploads/avatars/user.png', null, null);
+      expect(mockPrismaService.postMedia.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            OR: [
+              { url: { contains: 'avatars/user.png' } },
+              { standardUrl: { contains: 'avatars/user.png' } },
+              { thumbnailUrl: { contains: 'avatars/user.png' } },
+            ],
+          },
+        }),
+      );
+    });
+
     it('allows public asset access when no content-owning row matches', async () => {
       expect(
         await service.isAccessAllowed('/uploads/avatars/user.png', null, null),

@@ -58,6 +58,10 @@ interface MessageAccess {
  * Collection: owner-only -- there is no shared/public collection viewing
  * feature in the API today.
  */
+// The name of a video's stream folder: the UUID of the video file.
+const STREAM_FOLDER =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class MediaAuthService {
   private readonly logger = new Logger(MediaAuthService.name);
@@ -119,13 +123,20 @@ export class MediaAuthService {
       return false;
     }
 
-    const urlMatch = {
-      OR: [
-        { url: { contains: normalised } },
-        { standardUrl: { contains: normalised } },
-        { thumbnailUrl: { contains: normalised } },
-      ],
-    };
+    // A file of a video's stream folder (<uuid>/master.m3u8, its segments,
+    // its cover) is the video's: no row names a segment, so it is matched by
+    // the folder, and gets the access of the content that holds the video.
+    const [first, ...inFolder] = normalised.split('/');
+    const needles =
+      inFolder.length > 0 && STREAM_FOLDER.test(first)
+        ? [`${first}/`, `${first}.`]
+        : [normalised];
+    const matchOn = (...columns: string[]) => ({
+      OR: columns.flatMap((column) =>
+        needles.map((needle) => ({ [column]: { contains: needle } })),
+      ),
+    });
+    const urlMatch = matchOn('url', 'standardUrl', 'thumbnailUrl');
 
     const [postMedia, story, message, comment, collection] = await Promise.all([
       this.prisma.postMedia.findMany({
@@ -166,13 +177,7 @@ export class MediaAuthService {
         },
       }),
       this.prisma.collection.findMany({
-        where: {
-          OR: [
-            { coverUrl: { contains: normalised } },
-            { standardUrl: { contains: normalised } },
-            { thumbnailUrl: { contains: normalised } },
-          ],
-        },
+        where: matchOn('coverUrl', 'standardUrl', 'thumbnailUrl'),
         select: { profileId: true },
       }),
     ]);
