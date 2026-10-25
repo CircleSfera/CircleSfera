@@ -115,6 +115,28 @@ describe('StoredFilesService.assertOwnedBy', () => {
     expect(prisma.storedFile.count).not.toHaveBeenCalled();
   });
 
+  it("takes a file of a video's stream folder only from the video's owner", async () => {
+    const V = '3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d';
+    const { prisma, files } = checker(0);
+
+    await expect(
+      files.assertOwnedBy('p-1', [`/uploads/${V}/master.m3u8`]),
+    ).rejects.toMatchObject({ errorCode: FILE_NOT_OWNED, status: 400 });
+    expect(prisma.storedFile.count).toHaveBeenCalledWith({
+      where: {
+        key: {
+          in: ['mp4', 'mov', 'webm', 'm4v'].map((e) => `/uploads/${V}.${e}`),
+        },
+        profileId: { in: ['p-1'] },
+      },
+    });
+
+    const owner = checker(1);
+    await expect(
+      owner.files.assertOwnedBy('p-1', [`/uploads/${V}/thumb.jpg`]),
+    ).resolves.toBeUndefined();
+  });
+
   it('checks every address when the storage cannot tell its own', async () => {
     const { prisma, files } = checker(0, {});
 

@@ -11,6 +11,11 @@ import { MediaReferencesService } from './media-references.service.js';
 
 export const FILE_NOT_OWNED = ErrorCode.FILE_NOT_OWNED;
 
+// A file inside a video's stream folder, and the extensions a video can have.
+const STREAM_FOLDER_FILE =
+  /^\/uploads\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/[^/]+$/i;
+export const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v'];
+
 /** Who a stored file is recorded for. */
 export interface StoredFileOwner {
   // The Profile the file belongs to; null when it is not known.
@@ -108,6 +113,35 @@ export class StoredFilesService {
         ),
       ),
     ];
+    // A file of a video's stream folder (/uploads/<uuid>/...) is the
+    // video's: it is attachable only if the video is the sender's own.
+    const folders = [
+      ...new Set(
+        addresses.flatMap((address) => {
+          const match =
+            typeof address === 'string'
+              ? STREAM_FOLDER_FILE.exec(address)
+              : null;
+          return match ? [match[1]] : [];
+        }),
+      ),
+    ];
+    for (const folder of folders) {
+      const video = await this.prisma.storedFile.count({
+        where: {
+          key: {
+            in: VIDEO_EXTENSIONS.map((ext) => `/uploads/${folder}.${ext}`),
+          },
+          profileId: { in: owners },
+        },
+      });
+      if (video === 0) {
+        throw AppException.BadRequest(
+          ErrorCode.FILE_NOT_OWNED,
+          'A stored file that this Profile did not upload cannot be attached',
+        );
+      }
+    }
     if (stored.length === 0) return;
     const owned = await this.prisma.storedFile.count({
       where: { key: { in: stored }, profileId: { in: owners } },

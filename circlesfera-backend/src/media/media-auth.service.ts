@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FollowStatus, Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { StoredFilesService } from '../uploads/services/stored-files.service.js';
+import {
+  StoredFilesService,
+  VIDEO_EXTENSIONS,
+} from '../uploads/services/stored-files.service.js';
 
 interface PostLikeAccess {
   profileId: string;
@@ -63,8 +66,6 @@ interface MessageAccess {
 // The name of a video's stream folder: the UUID of the video file.
 const STREAM_FOLDER =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-// The extensions a stored video can have, for the files of its stream folder.
-const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v'];
 
 @Injectable()
 export class MediaAuthService {
