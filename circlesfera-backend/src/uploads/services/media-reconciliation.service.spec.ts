@@ -7,10 +7,12 @@ import {
   MEDIA_COLUMNS,
   MediaReferencesService,
 } from './media-references.service.js';
+import type { StoredFilesService } from './stored-files.service.js';
 
 describe('MediaReconciliationService', () => {
   let service: MediaReconciliationService;
   let mockPrisma: any;
+  let mockStoredFiles: { record: ReturnType<typeof vi.fn> };
   let mockUploadsService: {
     scheduleMediaDeletion: ReturnType<typeof vi.fn>;
   };
@@ -30,7 +32,9 @@ describe('MediaReconciliationService', () => {
         { findMany: vi.fn().mockResolvedValue([]) },
       ]),
     );
+    mockPrisma.$queryRaw = vi.fn().mockResolvedValue([]);
 
+    mockStoredFiles = { record: vi.fn().mockResolvedValue(undefined) };
     mockUploadsService = {
       scheduleMediaDeletion: vi.fn().mockResolvedValue(undefined),
     };
@@ -45,6 +49,7 @@ describe('MediaReconciliationService', () => {
       new MediaReferencesService(mockPrisma as unknown as PrismaService),
       mockUploadsService as unknown as UploadsService,
       mockStorageProvider as unknown as StorageProvider,
+      mockStoredFiles as unknown as StoredFilesService,
     );
   });
 
@@ -166,6 +171,21 @@ describe('MediaReconciliationService', () => {
     expect(mockUploadsService.scheduleMediaDeletion).toHaveBeenCalledWith([
       '/uploads/orphan-old.png',
     ]);
+  });
+
+  it('records with no owner every file on the disk the record does not know', async () => {
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/a.jpg', lastModified: new Date(), sizeBytes: 1 },
+      { url: '/uploads/b.mp4', lastModified: new Date(), sizeBytes: 2 },
+    ]);
+
+    await service.detectAndReconcileOrphans({ dryRun: true });
+
+    // Files already recorded keep their owner (record skips duplicates).
+    expect(mockStoredFiles.record).toHaveBeenCalledWith(
+      ['/uploads/a.jpg', '/uploads/b.mp4'],
+      { profileId: null },
+    );
   });
 
   it('should detect orphan files but NOT schedule deletion when dryRun is true', async () => {

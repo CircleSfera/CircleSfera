@@ -1,0 +1,52 @@
+name: Ops — orphan files report
+
+# Reports how many stored files the nightly orphan sweep would delete, so the
+# owner can decide with numbers before its deletion is turned on (TD-008,
+# QF-065). Read-only: it lists the files on the server's disk and reads the
+# database; it writes and deletes nothing. Actions logs are public, so the
+# report prints only counts and sizes, never a file name or an address.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Report the orphan files
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Count stored files no row uses
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            # The script prints only counts and sizes; its error names only
+            # the kind of error.
+            $DC exec -T backend node dist/scripts/orphan-files-report.js
