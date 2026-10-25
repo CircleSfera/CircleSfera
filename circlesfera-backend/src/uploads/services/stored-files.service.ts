@@ -89,6 +89,18 @@ export class StoredFilesService {
     }
   }
 
+  /** The recorded owner of each of the files that has one. */
+  async ownersOf(keys: string[]): Promise<Map<string, string>> {
+    if (keys.length === 0) return new Map();
+    const rows = await this.prisma.storedFile.findMany({
+      where: { key: { in: keys }, profileId: { not: null } },
+      select: { key: true, profileId: true },
+    });
+    return new Map(
+      rows.flatMap((row) => (row.profileId ? [[row.key, row.profileId]] : [])),
+    );
+  }
+
   /** Forgets the files the storage has just deleted. */
   async forget(keys: string[]): Promise<void> {
     if (keys.length === 0) return;

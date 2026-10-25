@@ -79,6 +79,7 @@ const mockStoredFiles = {
   record: vi.fn().mockResolvedValue(undefined),
   forget: vi.fn().mockResolvedValue(undefined),
   deletableBy: vi.fn().mockResolvedValue([]),
+  ownersOf: vi.fn().mockResolvedValue(new Map()),
 };
 
 describe('UploadsService', () => {
@@ -386,6 +387,34 @@ describe('UploadsService', () => {
   });
 
   describe("a deleted piece of content's files", () => {
+    it("with no author known, goes by each file's recorded owner under the same rule", async () => {
+      mockStoredFiles.ownersOf.mockResolvedValueOnce(
+        new Map([
+          ['/uploads/a.jpg', 'p-1'],
+          ['/uploads/b.jpg', 'p-1'],
+          ['/uploads/c.jpg', 'p-2'],
+        ]),
+      );
+      mockStoredFiles.deletableBy.mockResolvedValue([]);
+
+      await service.deleteContentFilesByRecordedOwner([
+        '/uploads/a.jpg',
+        '/uploads/b.jpg',
+        '/uploads/c.jpg',
+        '/uploads/unowned.jpg',
+        null,
+      ]);
+
+      expect(mockStoredFiles.deletableBy).toHaveBeenCalledWith('p-1', [
+        '/uploads/a.jpg',
+        '/uploads/b.jpg',
+      ]);
+      expect(mockStoredFiles.deletableBy).toHaveBeenCalledWith('p-2', [
+        '/uploads/c.jpg',
+      ]);
+      expect(mockStoredFiles.deletableBy).toHaveBeenCalledTimes(2);
+    });
+
     it("deletes only the files the record says are the author's and unused", async () => {
       const U = '3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d';
       mockStoredFiles.deletableBy.mockResolvedValueOnce([`/uploads/${U}.jpg`]);

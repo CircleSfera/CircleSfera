@@ -63,18 +63,32 @@ export class MediaReferencesService {
     const wanted = new Set(keys);
     const used = new Set<string>();
     if (wanted.size === 0) return used;
+    // A video's stream and cover live in a folder named after it
+    // (/uploads/<base>/...); a row naming one of them uses the video too.
+    const folders = new Map<string, string>();
+    for (const key of wanted) {
+      const ext = path.extname(key);
+      if (ext) folders.set(`${key.slice(0, -ext.length)}/`, key);
+    }
     for (const model of Object.keys(MEDIA_COLUMNS) as MediaModel[]) {
       const rows = await this.delegate(model).findMany({
         where: {
-          OR: MEDIA_COLUMNS[model].map((column) => ({
-            [column]: { in: [...wanted] },
-          })),
+          OR: MEDIA_COLUMNS[model].flatMap((column) => [
+            { [column]: { in: [...wanted] } },
+            ...[...folders.keys()].map((folder) => ({
+              [column]: { startsWith: folder },
+            })),
+          ]),
         },
         select: MediaReferencesService.select(model),
       });
       for (const row of rows) {
         for (const value of Object.values(row)) {
-          if (value && wanted.has(value)) used.add(value);
+          if (!value) continue;
+          if (wanted.has(value)) used.add(value);
+          for (const [folder, key] of folders) {
+            if (value.startsWith(folder)) used.add(key);
+          }
         }
       }
     }

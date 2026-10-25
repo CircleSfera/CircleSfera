@@ -40,17 +40,15 @@ export class PostsProcessor extends WorkerHost {
       );
     }
     if (mediaUrls.length === 0) return;
-    // A job queued before files had owners names no author: its files are
-    // left to the orphan sweep rather than deleted by address.
-    if (!authorProfileId) {
-      this.logger.warn(
-        `Left ${mediaUrls.length} files of a deleted post: the job names no author.`,
-      );
+    this.logger.log(`Deleting the media files of a deleted post...`);
+    if (authorProfileId) {
+      await this.uploadsService.deleteContentFiles(authorProfileId, mediaUrls);
       return;
     }
-
-    this.logger.log(`Deleting the media files of a deleted post...`);
-    await this.uploadsService.deleteContentFiles(authorProfileId, mediaUrls);
+    // A job queued before it named its author: each file goes by the owner
+    // the record has for it, under the same rule. A file with no owner is
+    // left to the orphan sweep rather than deleted by address.
+    await this.uploadsService.deleteContentFilesByRecordedOwner(mediaUrls);
 
     this.logger.log(`Successfully deleted all media files.`);
   }

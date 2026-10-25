@@ -12,7 +12,6 @@ describe('MaintenanceService', () => {
   let service: MaintenanceService;
   const mockStories = {
     announcePublished: vi.fn().mockResolvedValue(undefined),
-    cleanupExpiredStories: vi.fn().mockResolvedValue({ count: 0 }),
   };
   const mockPostDistribution = {
     dispatchScheduledPostPublished: vi.fn().mockResolvedValue(undefined),
@@ -102,22 +101,6 @@ describe('MaintenanceService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
-  });
-
-  describe('cleanupExpiredStories', () => {
-    it("leaves the work to the stories' own cleanup, which keeps highlighted stories", async () => {
-      await service.cleanupExpiredStories();
-
-      expect(mockStories.cleanupExpiredStories).toHaveBeenCalledTimes(1);
-      // It no longer deletes stories or files on its own.
-      expect(mockPrismaService.story.delete).not.toHaveBeenCalled();
-      expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
-    });
-
-    it('does not fail the cron when the cleanup fails', async () => {
-      mockStories.cleanupExpiredStories.mockRejectedValueOnce(new Error('db'));
-      await expect(service.cleanupExpiredStories()).resolves.toBeUndefined();
-    });
   });
 
   describe('checkExpiredPromotions', () => {

@@ -26,20 +26,8 @@ export class MaintenanceService {
     private readonly helpdeskData: HelpdeskDataPort,
   ) {}
 
-  // Cleans up stories that have expired (expiresAt < now), with the same
-  // rule as the stories' own job: a story kept in a highlight, or whose
-  // countdown is still to be told, stays; files go only if they are the
-  // author's own and nothing else uses them.
-  // Runs every hour.
-  @Cron(CronExpression.EVERY_HOUR)
-  async cleanupExpiredStories() {
-    this.logger.log('Starting cleanup of expired stories...');
-    try {
-      await this.stories.cleanupExpiredStories();
-    } catch (error) {
-      this.logger.error('Failed to clean up expired stories', error);
-    }
-  }
+  // Expired stories are cleaned by the stories' own hourly job
+  // (cleanup-expired in StoriesModule): one rule, one run.
 
   // Checks for promotions that have ended and marks them COMPLETED.
   // Runs every 30 minutes.

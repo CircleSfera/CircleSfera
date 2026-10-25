@@ -71,23 +71,6 @@ describe('CriticalDomainEvent contracts', () => {
     }
   });
 
-  it('correctly discriminates MediaDeleteBatchEvent', () => {
-    const event: CriticalDomainEvent = {
-      type: 'media.delete_batch',
-      payload: {
-        urls: [
-          'https://cdn.example.com/img1.png',
-          'https://cdn.example.com/img2.png',
-        ],
-      },
-    };
-
-    expect(isCriticalEvent('media.delete_batch', event)).toBe(true);
-    if (isCriticalEvent('media.delete_batch', event)) {
-      expect(event.payload.urls).toHaveLength(2);
-    }
-  });
-
   it('enforces compile-time type safety on payload extractor', () => {
     type LiveGiftPayload = CriticalEventPayload<'payment.live_gift_completed'>;
     const samplePayload: LiveGiftPayload = {
@@ -143,7 +126,6 @@ describe('CriticalDomainEvent contracts', () => {
       'payment.live_gift_completed',
       'user.hard_deleted',
       'notification.dispatched',
-      'media.delete_batch',
       'system.incident',
       'system.metrics.operational',
       'chat.message.sent',

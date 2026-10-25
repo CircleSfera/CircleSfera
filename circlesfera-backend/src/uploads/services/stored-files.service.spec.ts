@@ -182,3 +182,25 @@ describe('StoredFilesService.deletableBy', () => {
     expect(prisma.storedFile.findMany).not.toHaveBeenCalled();
   });
 });
+
+describe('StoredFilesService.ownersOf', () => {
+  it('answers the recorded owner of each file that has one', async () => {
+    const prisma = {
+      storedFile: {
+        findMany: vi.fn().mockResolvedValue([
+          { key: '/uploads/a.jpg', profileId: 'p-1' },
+          { key: '/uploads/b.jpg', profileId: null },
+        ]),
+      },
+    };
+    const files = new StoredFilesService(
+      prisma as unknown as PrismaService,
+      { inUse: vi.fn() } as never,
+    );
+
+    const owners = await files.ownersOf(['/uploads/a.jpg', '/uploads/b.jpg']);
+
+    expect([...owners]).toEqual([['/uploads/a.jpg', 'p-1']]);
+    await expect(files.ownersOf([])).resolves.toEqual(new Map());
+  });
+});

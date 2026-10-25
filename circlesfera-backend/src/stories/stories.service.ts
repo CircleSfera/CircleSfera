@@ -903,16 +903,24 @@ export class StoriesService {
           })
         ).map((story) => story.id),
       );
+      // One check per author for all their stories that went.
+      const byAuthor = new Map<string, Array<string | null>>();
       for (const story of expiredStories) {
         if (kept.has(story.id)) continue;
+        byAuthor.set(story.profileId, [
+          ...(byAuthor.get(story.profileId) ?? []),
+          story.url,
+          story.standardUrl,
+          story.thumbnailUrl,
+          story.overlayUrl,
+        ]);
+      }
+      for (const [author, addresses] of byAuthor) {
         await this.uploadsService
-          .deleteContentFiles(story.profileId, [
-            story.url,
-            story.standardUrl,
-            story.thumbnailUrl,
-            story.overlayUrl,
-          ])
-          .catch((e) => this.logger.warn(`Files of story ${story.id} kept`, e));
+          .deleteContentFiles(author, addresses)
+          .catch((e) =>
+            this.logger.warn(`Files of ${author}'s stories kept`, e),
+          );
       }
       if (deleted.count > 0) {
         this.logger.log(`Cleaned up ${deleted.count} expired stories.`);

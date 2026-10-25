@@ -45,13 +45,6 @@ export interface NotificationDispatchedEvent {
   };
 }
 
-export interface MediaDeleteBatchEvent {
-  type: 'media.delete_batch';
-  payload: {
-    urls: string[];
-  };
-}
-
 export interface SystemIncidentEvent {
   type: 'system.incident';
   payload: {
@@ -221,7 +214,6 @@ export type CriticalDomainEvent =
   | PaymentLiveGiftCompletedEvent
   | UserHardDeletedEvent
   | NotificationDispatchedEvent
-  | MediaDeleteBatchEvent
   | SystemIncidentEvent
   | SystemOperationalMetricsEvent
   | ChatMessageSentEvent
@@ -259,15 +251,14 @@ export function isCriticalEvent<T extends CriticalEventType>(
 /**
  * The service responsible for each event's contract: for events with a
  * single canonical consumer, the listener that owns the business logic;
- * for fan-out events with several independent listeners (user.hard_deleted,
- * media.delete_batch), the emitter, since it is the unambiguous single
+ * for fan-out events with several independent listeners (user.hard_deleted),
+ * the emitter, since it is the unambiguous single
  * source of truth for the payload shape and when the event fires.
  */
 export const EVENT_OWNERS: Record<CriticalEventType, string> = {
   'payment.live_gift_completed': 'LiveGiftService',
   'user.hard_deleted': 'AccountDeletionProcessor',
   'notification.dispatched': 'AppGateway',
-  'media.delete_batch': 'AccountDeletionProcessor / UploadsService',
   'system.incident': 'SlackService',
   'system.metrics.operational': 'OperationalMetricsService',
   'chat.message.sent': 'AppGateway',

@@ -15,7 +15,7 @@ In practice the backend has grown well beyond that single signal. `EventEmitterM
 Accept the following four categories as the full, closed list of what `EventEmitter2` may be used for in this codebase. Anything outside this list requires a new ADR, or an amendment to this one, before being added — it is not a general-purpose event bus or CQRS mechanism.
 
 1. **Realtime transport bridge** — `chat.conversation.created|updated|deleted`, `chat.message.sent|edited|deleted`, `notification.dispatched`. Decouples chat/notification write paths (`src/chat/use-cases/**`, `NotificationsService`) from `AppGateway`, the only Socket.IO emission point for these events.
-2. **Fan-out cleanup after an authoritative write** — `user.hard_deleted` (`USER_HARD_DELETED_EVENT`), `media.delete_batch`. Lets independently-owned modules (chat, posts, stories, search, feed inbox, uploads) react to a hard account delete or a batch media removal without the originating service (`AccountDeletionProcessor`, post/story cleanup) needing to know about every downstream module.
+2. **Fan-out cleanup after an authoritative write** — `user.hard_deleted` (`USER_HARD_DELETED_EVENT`). Lets independently-owned modules (search, feed inbox) react to a hard account delete without the originating service (`AccountDeletionProcessor`) needing to know about every downstream module. `media.delete_batch` was on this list until TD-008: stored files are now deleted from the record of who owns them (the erasure queues them in its own transaction; content deletion calls `UploadsService.deleteContentFiles`), not from the addresses rows name, so the event and its listeners were removed.
 3. **Centralized notification creation** — `notification.create`. A single entry point (`NotificationsService.create`) so every module that can trigger a notification (comments, likes, follows, posts, reports, payments, the AI processor) does not duplicate persistence/dispatch/aggregation logic.
 4. **Narrow cross-module operational signals** — `user.session.terminate` (already-approved session eviction), `payment.live_gift_completed` (payments → live gift overlay trigger), `system.incident` (uploads cleanup → Slack alerting), `moderation.report_filed` (reports/appeals → Slack moderation alerting, INT-002), `payment.alert` (payments/monetization webhooks → Slack payment alerting, INT-002), `support.ticket_created` (support → Slack support alerting, INT-002).
 
@@ -26,7 +26,7 @@ interface in `CriticalDomainEvent` (`circlesfera-shared/src/events/critical-even
 plus an entry in the co-located `EVENT_OWNERS` map naming the service
 responsible for its contract — the single canonical listener for events with
 one consumer, or the emitter for fan-out events with several independent
-listeners (`user.hard_deleted`, `media.delete_batch`), since the emitter is
+listeners (`user.hard_deleted`), since the emitter is
 the unambiguous source of truth for the payload shape and firing conditions.
 Emit call sites declare their payload against `EventName['payload']` (or
 `CriticalEventPayload<'event.name'>`) before calling `.emit()`; `@OnEvent`

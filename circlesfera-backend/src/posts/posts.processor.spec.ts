@@ -9,6 +9,7 @@ describe('PostsProcessor', () => {
   let mockUploadsService: {
     deleteFile: ReturnType<typeof vi.fn>;
     deleteContentFiles: ReturnType<typeof vi.fn>;
+    deleteContentFilesByRecordedOwner: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -16,6 +17,7 @@ describe('PostsProcessor', () => {
     mockUploadsService = {
       deleteFile: vi.fn().mockResolvedValue(undefined),
       deleteContentFiles: vi.fn().mockResolvedValue([]),
+      deleteContentFilesByRecordedOwner: vi.fn().mockResolvedValue([]),
     };
 
     processor = new PostsProcessor(
@@ -80,7 +82,7 @@ describe('PostsProcessor', () => {
     expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
   });
 
-  it('leaves the files of a job that names no author, rather than delete by address', async () => {
+  it('deletes the files of a job that names no author by their recorded owners, never by address', async () => {
     const job = {
       name: 'delete-post-media',
       data: { mediaUrls: ['/uploads/p1.jpg'] },
@@ -88,6 +90,9 @@ describe('PostsProcessor', () => {
 
     await processor.process(job);
 
+    expect(
+      mockUploadsService.deleteContentFilesByRecordedOwner,
+    ).toHaveBeenCalledWith(['/uploads/p1.jpg']);
     expect(mockUploadsService.deleteContentFiles).not.toHaveBeenCalled();
     expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
   });

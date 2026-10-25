@@ -314,6 +314,25 @@ export class UploadsService {
   }
 
   /**
+   * Deletes the files of a deleted piece of content whose author is not
+   * known, each as its recorded owner's, under the same rule.
+   */
+  async deleteContentFilesByRecordedOwner(
+    addresses: Array<string | null | undefined>,
+  ): Promise<string[]> {
+    const keys = addresses.filter((a): a is string => !!a);
+    const byOwner = new Map<string, string[]>();
+    for (const [key, owner] of await this.storedFiles.ownersOf(keys)) {
+      byOwner.set(owner, [...(byOwner.get(owner) ?? []), key]);
+    }
+    const deleted: string[] = [];
+    for (const [owner, ownedKeys] of byOwner) {
+      deleted.push(...(await this.deleteContentFiles(owner, ownedKeys)));
+    }
+    return deleted;
+  }
+
+  /**
    * Deletes the files of a piece of content its row named, once the row is
    * gone: only its author's own, and only those no other row still uses.
    * Answers the files deleted.
