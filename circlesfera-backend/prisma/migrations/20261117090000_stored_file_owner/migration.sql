@@ -18,13 +18,15 @@ CREATE INDEX "stored_files_profileId_idx" ON "stored_files"("profileId");
 CREATE INDEX "stored_files_uploadedById_idx" ON "stored_files"("uploadedById");
 
 -- AddForeignKey
-ALTER TABLE "stored_files" ADD CONSTRAINT "stored_files_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "stored_files" ADD CONSTRAINT "stored_files_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "profiles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "stored_files" ADD CONSTRAINT "stored_files_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- Files already stored. Only this server's own uploads are recorded: a file
--- directly under /uploads (a video's stream folder belongs to its source).
+-- Files already stored. Only this server's own uploads are recorded, by the
+-- pattern the storage itself answers (/uploads/<uuid>.<ext>; a video's stream
+-- folder belongs to its source). The shared media rows are read too: they
+-- still name the original file of a message or comment whose row lost it.
 -- A file belongs to the Profile of the rows that use it; when several
 -- Profiles use it, or a row has no Profile (a group photo, the audio
 -- library), it has no owner and no person's action will delete it.
@@ -63,6 +65,21 @@ WITH refs ("key", "profileId") AS (
     CROSS JOIN LATERAL jsonb_path_query(e."state"::jsonb, 'lax $.studio.tracks[*].clips[*].fileUrl') AS clip_json
     CROSS JOIN LATERAL (SELECT clip_json #>> '{}') clip("key")
   UNION ALL
+    SELECT v."key", own."profileId"
+    FROM (
+        SELECT pm."mediaId" AS "mediaId", p."profileId" FROM "post_media" pm JOIN "posts" p ON p."id" = pm."postId"
+        UNION ALL SELECT s."mediaId", s."profileId" FROM "stories" s
+        UNION ALL SELECT m."mediaId", m."senderId" FROM "messages" m
+        UNION ALL SELECT m."voiceMediaId", m."senderId" FROM "messages" m
+        UNION ALL SELECT c."mediaId", c."profileId" FROM "comments" c
+        UNION ALL SELECT c."voiceMediaId", c."profileId" FROM "comments" c
+        UNION ALL SELECT pr."avatarMediaId", pr."id" FROM "profiles" pr
+        UNION ALL SELECT pr."coverMediaId", pr."id" FROM "profiles" pr
+        UNION ALL SELECT co."mediaId", co."profileId" FROM "collections" co
+    ) own
+    JOIN "media" md ON md."id" = own."mediaId"
+    CROSS JOIN LATERAL (VALUES (md."url"), (md."standardUrl"), (md."thumbnailUrl")) v("key")
+  UNION ALL
     SELECT cv."avatarUrl", NULL FROM "conversations" cv
   UNION ALL
     SELECT v."key", NULL
@@ -77,5 +94,6 @@ SELECT
             THEN MIN(r."profileId")
     END
 FROM refs r
-WHERE r."key" ~ '^/uploads/[^/]+$'
-GROUP BY r."key";
+WHERE r."key" ~* '^/uploads/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{2,5}$'
+GROUP BY r."key"
+ON CONFLICT ("key") DO NOTHING;

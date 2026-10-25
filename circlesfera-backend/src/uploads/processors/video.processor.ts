@@ -505,6 +505,11 @@ export class VideoProcessor extends WorkerHost {
         mimetype: 'image/jpeg',
       });
 
+      // Recorded before it is used, so that a cover in use always has its
+      // owner; a cover dropped below keeps a record of a file that is gone.
+      await this.storedFiles?.record([stored.url], {
+        profileId: media.post.profileId,
+      });
       // Written only if the author has not chosen another moment meanwhile.
       const written = await this.prisma.postMedia.updateMany({
         where: { id: media.id, coverTimeMs: media.coverTimeMs },
@@ -514,9 +519,6 @@ export class VideoProcessor extends WorkerHost {
         await this.storageProvider.delete(stored.url).catch(() => {});
         return;
       }
-      await this.storedFiles?.record([stored.url], {
-        profileId: media.post.profileId,
-      });
       if (media.mediaId) {
         await this.prisma.media.updateMany({
           where: { id: media.mediaId },

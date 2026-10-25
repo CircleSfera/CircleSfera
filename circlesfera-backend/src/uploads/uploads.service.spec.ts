@@ -421,10 +421,30 @@ describe('UploadsService', () => {
       // A file with no owner could never be attached nor deleted by its
       // Profile: the upload is refused instead of answered.
       mockStoredFiles.record.mockRejectedValueOnce(new Error('db down'));
+      const deleteSpy = vi.spyOn(provider, 'delete').mockResolvedValue();
       await expect(
         service.uploadFile(videoFile, 'user-1', 'profile-1'),
       ).rejects.toThrow('db down');
       expect(mockVideoQueue.add).toHaveBeenCalledTimes(1);
+      // The file that could not be recorded is not left on the disk.
+      const discarded = mockStoredFiles.record.mock.calls.at(-1)?.[0][0];
+      expect(deleteSpy).toHaveBeenCalledWith(discarded);
+    });
+
+    it('records no owner for a session that acts as no Profile', async () => {
+      vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+      const voice: UploadedFile = {
+        originalname: 'song.mp3',
+        mimetype: 'audio/mpeg',
+        buffer: Buffer.from('fake-audio'),
+      };
+
+      await service.uploadFile(voice, 'user-1', '');
+
+      expect(mockStoredFiles.record).toHaveBeenCalledWith(expect.any(Array), {
+        profileId: null,
+        uploadedById: 'user-1',
+      });
     });
   });
 

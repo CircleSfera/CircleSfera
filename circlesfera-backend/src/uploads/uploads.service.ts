@@ -175,9 +175,9 @@ export class UploadsService {
             mimetype: processed.thumbnail.mimetype,
           }),
         ]);
-        await this.storedFiles.record([orig.url, std.url, thumb.url], {
-          profileId: profileId ?? null,
-          uploadedById: userId,
+        await this.recordOrDiscard([orig.url, std.url, thumb.url], {
+          profileId,
+          userId,
         });
 
         return {
@@ -195,10 +195,7 @@ export class UploadsService {
         buffer: processed.original.buffer,
         mimetype: processed.original.mimetype,
       });
-      await this.storedFiles.record([result.url], {
-        profileId: profileId ?? null,
-        uploadedById: userId,
-      });
+      await this.recordOrDiscard([result.url], { profileId, userId });
 
       if (file.mimetype.startsWith('video/')) {
         await this.enqueueTranscode(result.url, {
@@ -211,6 +208,26 @@ export class UploadsService {
     } catch (error: unknown) {
       this.logger.error(
         `Upload flow failed for ${file.originalname}: ${error instanceof Error ? error.stack : String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  // Records the files just stored as the Profile's. A file that cannot be
+  // recorded is deleted again: with no owner it could be neither attached
+  // nor deleted by its Profile. A session with no Profile records none.
+  private async recordOrDiscard(
+    keys: string[],
+    by: { profileId?: string; userId?: string },
+  ): Promise<void> {
+    try {
+      await this.storedFiles.record(keys, {
+        profileId: by.profileId || null,
+        uploadedById: by.userId || null,
+      });
+    } catch (error) {
+      await Promise.all(
+        keys.map((key) => this.storageProvider.delete(key).catch(() => {})),
       );
       throw error;
     }

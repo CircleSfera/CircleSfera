@@ -132,10 +132,13 @@ describe('VideoProcessor: the cover of a frame', () => {
       where: { id: 'm-1' },
       data: { thumbnailUrl: 'https://cdn.example.com/cover.jpg' },
     });
-    // The cover belongs to the Profile of the post.
+    // The cover belongs to the Profile of the post, recorded before use.
     expect(storedFiles.record).toHaveBeenCalledWith(
       ['https://cdn.example.com/cover.jpg'],
       { profileId: 'p-1' },
+    );
+    expect(storedFiles.record.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.postMedia.updateMany.mock.invocationCallOrder[0],
     );
   });
 
@@ -165,7 +168,8 @@ describe('VideoProcessor: the cover of a frame', () => {
       'https://cdn.example.com/cover.jpg',
     );
     expect(prisma.media.updateMany).not.toHaveBeenCalled();
-    expect(storedFiles.record).not.toHaveBeenCalled();
+    // It was recorded before being used; the record outlives the file.
+    expect(storedFiles.record).toHaveBeenCalledTimes(1);
   });
 
   it.each([
