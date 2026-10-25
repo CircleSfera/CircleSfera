@@ -1,7 +1,14 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { MediaAuthService } from './media-auth.service.js';
+
+// No file is detached unless a test says so.
+const mockStoredFiles = {
+  keyOfFolder: vi.fn().mockResolvedValue(null),
+  isReadableBy: vi.fn().mockResolvedValue(true),
+};
 
 describe('MediaAuthService', () => {
   let service: MediaAuthService;
@@ -64,6 +71,7 @@ describe('MediaAuthService', () => {
       providers: [
         MediaAuthService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: StoredFilesService, useValue: mockStoredFiles },
       ],
     }).compile();
 
@@ -175,6 +183,41 @@ describe('MediaAuthService', () => {
             ],
           },
         }),
+      );
+    });
+
+    it('serves a detached file only to its owner', async () => {
+      mockStoredFiles.isReadableBy.mockImplementation(
+        async (_key: string, viewer: string | null) => viewer === 'owner-1',
+      );
+
+      await expect(
+        service.isAccessAllowed('/uploads/a.jpg', 'u-2', 'other-2'),
+      ).resolves.toBe(false);
+      await expect(
+        service.isAccessAllowed('/uploads/a.jpg', null, null),
+      ).resolves.toBe(false);
+      await expect(
+        service.isAccessAllowed('/uploads/a.jpg', 'u-1', 'owner-1'),
+      ).resolves.toBe(true);
+      expect(mockStoredFiles.isReadableBy).toHaveBeenCalledWith(
+        '/uploads/a.jpg',
+        'owner-1',
+      );
+      mockStoredFiles.isReadableBy.mockResolvedValue(true);
+    });
+
+    it("judges a file of a video's stream folder by the video", async () => {
+      mockStoredFiles.keyOfFolder.mockResolvedValueOnce('/uploads/v1.mp4');
+      mockStoredFiles.isReadableBy.mockResolvedValueOnce(false);
+
+      await expect(
+        service.isAccessAllowed('/uploads/v1/master.m3u8', null, null),
+      ).resolves.toBe(false);
+      expect(mockStoredFiles.keyOfFolder).toHaveBeenCalledWith('/uploads/v1');
+      expect(mockStoredFiles.isReadableBy).toHaveBeenCalledWith(
+        '/uploads/v1.mp4',
+        null,
       );
     });
 

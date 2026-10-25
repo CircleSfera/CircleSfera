@@ -78,7 +78,7 @@ const mockOutboxService = {
 const mockStoredFiles = {
   record: vi.fn().mockResolvedValue(undefined),
   forget: vi.fn().mockResolvedValue(undefined),
-  deletableBy: vi.fn().mockResolvedValue([]),
+  release: vi.fn().mockResolvedValue([]),
   ownersOf: vi.fn().mockResolvedValue(new Map()),
 };
 
@@ -395,7 +395,7 @@ describe('UploadsService', () => {
           ['/uploads/c.jpg', 'p-2'],
         ]),
       );
-      mockStoredFiles.deletableBy.mockResolvedValue([]);
+      mockStoredFiles.release.mockResolvedValue([]);
 
       await service.deleteContentFilesByRecordedOwner([
         '/uploads/a.jpg',
@@ -405,19 +405,19 @@ describe('UploadsService', () => {
         null,
       ]);
 
-      expect(mockStoredFiles.deletableBy).toHaveBeenCalledWith('p-1', [
+      expect(mockStoredFiles.release).toHaveBeenCalledWith('p-1', [
         '/uploads/a.jpg',
         '/uploads/b.jpg',
       ]);
-      expect(mockStoredFiles.deletableBy).toHaveBeenCalledWith('p-2', [
+      expect(mockStoredFiles.release).toHaveBeenCalledWith('p-2', [
         '/uploads/c.jpg',
       ]);
-      expect(mockStoredFiles.deletableBy).toHaveBeenCalledTimes(2);
+      expect(mockStoredFiles.release).toHaveBeenCalledTimes(2);
     });
 
     it("deletes only the files the record says are the author's and unused", async () => {
       const U = '3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d';
-      mockStoredFiles.deletableBy.mockResolvedValueOnce([`/uploads/${U}.jpg`]);
+      mockStoredFiles.release.mockResolvedValueOnce([`/uploads/${U}.jpg`]);
       const deleteSpy = vi.spyOn(provider, 'delete').mockResolvedValue();
 
       const deleted = await service.deleteContentFiles('author', [
@@ -425,7 +425,7 @@ describe('UploadsService', () => {
         '/uploads/theirs.jpg',
       ]);
 
-      expect(mockStoredFiles.deletableBy).toHaveBeenCalledWith('author', [
+      expect(mockStoredFiles.release).toHaveBeenCalledWith('author', [
         `/uploads/${U}.jpg`,
         '/uploads/theirs.jpg',
       ]);

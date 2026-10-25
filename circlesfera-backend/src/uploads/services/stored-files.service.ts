@@ -34,12 +34,14 @@ export class StoredFilesService {
   ) {}
 
   /**
-   * The files of a deleted piece of content that may be deleted with it: the
-   * ones recorded as its Profile's and that no other row still uses. A file
-   * of another Profile, or with no owner, is never deleted by a person's
-   * action; it is left to the orphan sweep.
+   * Settles the files of a deleted piece of content, once its row is gone.
+   * Every recorded file that no row uses any more is marked detached: from
+   * then on only its owner may read it, until it is deleted. Answers the
+   * ones that may be deleted with the content: recorded as the author's own.
+   * A file of another Profile, or with no owner, is never deleted by a
+   * person's action; it is left, detached, to the orphan sweep.
    */
-  async deletableBy(
+  async release(
     profileId: string,
     keys: Array<string | null | undefined>,
   ): Promise<string[]> {
@@ -47,13 +49,46 @@ export class StoredFilesService {
       ...new Set(keys.filter((k): k is string => !!k && k.length > 0)),
     ];
     if (wanted.length === 0) return [];
-    const owned = await this.prisma.storedFile.findMany({
-      where: { key: { in: wanted }, profileId },
+    const recorded = await this.prisma.storedFile.findMany({
+      where: { key: { in: wanted } },
+      select: { key: true, profileId: true },
+    });
+    const used = await this.references.inUse(recorded.map((file) => file.key));
+    const unused = recorded.filter((file) => !used.has(file.key));
+    if (unused.length > 0) {
+      await this.prisma.storedFile.updateMany({
+        where: {
+          key: { in: unused.map((file) => file.key) },
+          detachedAt: null,
+        },
+        data: { detachedAt: new Date() },
+      });
+    }
+    return unused
+      .filter((file) => file.profileId === profileId)
+      .map((file) => file.key);
+  }
+
+  /** The recorded video whose stream folder this is, if any. */
+  async keyOfFolder(folder: string): Promise<string | null> {
+    const file = await this.prisma.storedFile.findFirst({
+      where: { key: { startsWith: `${folder}.` } },
       select: { key: true },
     });
-    const ownedKeys = owned.map((file) => file.key);
-    const used = await this.references.inUse(ownedKeys);
-    return ownedKeys.filter((key) => !used.has(key));
+    return file?.key ?? null;
+  }
+
+  /** Whether a viewer may read a stored file: a detached one is its owner's. */
+  async isReadableBy(
+    key: string,
+    viewerProfileId: string | null,
+  ): Promise<boolean> {
+    const file = await this.prisma.storedFile.findUnique({
+      where: { key },
+      select: { profileId: true, detachedAt: true },
+    });
+    if (!file?.detachedAt) return true;
+    return !!viewerProfileId && file.profileId === viewerProfileId;
   }
 
   /**
@@ -87,6 +122,11 @@ export class StoredFilesService {
         'A stored file that this Profile did not upload cannot be attached',
       );
     }
+    // Attached again: no longer detached.
+    await this.prisma.storedFile.updateMany({
+      where: { key: { in: stored }, detachedAt: { not: null } },
+      data: { detachedAt: null },
+    });
   }
 
   /** The recorded owner of each of the files that has one. */

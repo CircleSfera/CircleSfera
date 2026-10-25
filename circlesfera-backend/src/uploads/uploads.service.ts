@@ -341,7 +341,7 @@ export class UploadsService {
     authorProfileId: string,
     addresses: Array<string | null | undefined>,
   ): Promise<string[]> {
-    const deletable = await this.storedFiles.deletableBy(
+    const deletable = await this.storedFiles.release(
       authorProfileId,
       addresses,
     );

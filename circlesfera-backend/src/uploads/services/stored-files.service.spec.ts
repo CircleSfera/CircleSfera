@@ -58,7 +58,10 @@ describe('StoredFilesService.assertOwnedBy', () => {
     storage: object | undefined = ownStorage,
   ) {
     const prisma = {
-      storedFile: { count: vi.fn().mockResolvedValue(ownedCount) },
+      storedFile: {
+        count: vi.fn().mockResolvedValue(ownedCount),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
     };
     return {
       prisma,
@@ -81,6 +84,14 @@ describe('StoredFilesService.assertOwnedBy', () => {
         key: { in: ['/uploads/a.jpg', '/uploads/b.webp'] },
         profileId: { in: ['p-1'] },
       },
+    });
+    // Attached again, a detached file is no longer private.
+    expect(prisma.storedFile.updateMany).toHaveBeenCalledWith({
+      where: {
+        key: { in: ['/uploads/a.jpg', '/uploads/b.webp'] },
+        detachedAt: { not: null },
+      },
+      data: { detachedAt: null },
     });
   });
 
@@ -119,16 +130,17 @@ describe('StoredFilesService.assertOwnedBy', () => {
   });
 });
 
-describe('StoredFilesService.deletableBy', () => {
-  it("names only the author's own files that no other row still uses", async () => {
+describe('StoredFilesService.release', () => {
+  it("marks every recorded file no row uses as detached, and answers only the author's own", async () => {
     const prisma = {
       storedFile: {
-        findMany: vi
-          .fn()
-          .mockResolvedValue([
-            { key: '/uploads/own-free.jpg' },
-            { key: '/uploads/own-still-used.jpg' },
-          ]),
+        findMany: vi.fn().mockResolvedValue([
+          { key: '/uploads/own-free.jpg', profileId: 'author' },
+          { key: '/uploads/own-still-used.jpg', profileId: 'author' },
+          { key: '/uploads/theirs-free.jpg', profileId: 'other' },
+          { key: '/uploads/ownerless-free.jpg', profileId: null },
+        ]),
+        updateMany: vi.fn().mockResolvedValue({ count: 3 }),
       },
     };
     const references = {
@@ -141,45 +153,97 @@ describe('StoredFilesService.deletableBy', () => {
       references as never,
     );
 
-    const deletable = await files.deletableBy('author', [
+    const deletable = await files.release('author', [
       '/uploads/own-free.jpg',
       '/uploads/own-still-used.jpg',
-      '/uploads/someone-elses.jpg',
+      '/uploads/theirs-free.jpg',
+      '/uploads/ownerless-free.jpg',
       null,
       '',
     ]);
 
     expect(deletable).toEqual(['/uploads/own-free.jpg']);
-    // Another Profile's file, or one with no owner, is not even considered.
-    expect(prisma.storedFile.findMany).toHaveBeenCalledWith({
+    // Unused files that stay are private from now on, until the sweep.
+    expect(prisma.storedFile.updateMany).toHaveBeenCalledWith({
       where: {
         key: {
           in: [
             '/uploads/own-free.jpg',
-            '/uploads/own-still-used.jpg',
-            '/uploads/someone-elses.jpg',
+            '/uploads/theirs-free.jpg',
+            '/uploads/ownerless-free.jpg',
           ],
         },
-        profileId: 'author',
+        detachedAt: null,
       },
-      select: { key: true },
+      data: { detachedAt: expect.any(Date) },
     });
-    expect(references.inUse).toHaveBeenCalledWith([
-      '/uploads/own-free.jpg',
-      '/uploads/own-still-used.jpg',
-    ]);
   });
 
-  it('asks nothing for content with no file', async () => {
-    const prisma = { storedFile: { findMany: vi.fn() } };
+  it('asks nothing for content with no file, and marks nothing when every file is in use', async () => {
+    const prisma = {
+      storedFile: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ key: '/uploads/a.jpg', profileId: 'x' }]),
+        updateMany: vi.fn(),
+      },
+    };
     const files = new StoredFilesService(
+      prisma as unknown as PrismaService,
+      {
+        inUse: vi.fn().mockResolvedValue(new Set(['/uploads/a.jpg'])),
+      } as never,
+    );
+    await expect(files.release('author', [null, undefined])).resolves.toEqual(
+      [],
+    );
+    expect(prisma.storedFile.findMany).not.toHaveBeenCalled();
+
+    await expect(files.release('x', ['/uploads/a.jpg'])).resolves.toEqual([]);
+    expect(prisma.storedFile.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('StoredFilesService.isReadableBy', () => {
+  function reader(record: object | null) {
+    const prisma = {
+      storedFile: { findUnique: vi.fn().mockResolvedValue(record) },
+    };
+    return new StoredFilesService(
       prisma as unknown as PrismaService,
       { inUse: vi.fn() } as never,
     );
+  }
+
+  it('lets anyone read a file that is not detached, or not recorded', async () => {
     await expect(
-      files.deletableBy('author', [null, undefined]),
-    ).resolves.toEqual([]);
-    expect(prisma.storedFile.findMany).not.toHaveBeenCalled();
+      reader(null).isReadableBy('/uploads/a.jpg', null),
+    ).resolves.toBe(true);
+    await expect(
+      reader({ profileId: 'p-1', detachedAt: null }).isReadableBy(
+        '/uploads/a.jpg',
+        null,
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('lets only its owner read a detached file', async () => {
+    const detached = { profileId: 'p-1', detachedAt: new Date() };
+    await expect(
+      reader(detached).isReadableBy('/uploads/a.jpg', 'p-1'),
+    ).resolves.toBe(true);
+    await expect(
+      reader(detached).isReadableBy('/uploads/a.jpg', 'p-2'),
+    ).resolves.toBe(false);
+    await expect(
+      reader(detached).isReadableBy('/uploads/a.jpg', null),
+    ).resolves.toBe(false);
+    await expect(
+      reader({ profileId: null, detachedAt: new Date() }).isReadableBy(
+        '/uploads/a.jpg',
+        null,
+      ),
+    ).resolves.toBe(false);
   });
 });
 

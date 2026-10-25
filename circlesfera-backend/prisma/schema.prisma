@@ -321,12 +321,15 @@ model NativePushToken {
 // who uploaded it is kept for the record and is not the owner: a team member
 // uploads for a Business Profile.
 model StoredFile {
-  key          String   @id
+  key          String    @id
   profileId    String?
-  profile      Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  profile      Profile?  @relation(fields: [profileId], references: [id], onDelete: SetNull)
   uploadedById String?
-  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
+  uploadedBy   User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  // Set when a content deletion left the file on the disk with no row using
+  // it: from then on only its owner may read it, until the sweep deletes it.
+  detachedAt   DateTime?
 
   @@index([profileId])
   @@index([uploadedById])

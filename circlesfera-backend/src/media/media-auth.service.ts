@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FollowStatus, Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 
 interface PostLikeAccess {
   profileId: string;
@@ -67,7 +68,10 @@ const STREAM_FOLDER =
 export class MediaAuthService {
   private readonly logger = new Logger(MediaAuthService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storedFiles: StoredFilesService,
+  ) {}
 
   /**
    * Check whether `viewerProfileId` (may be null for anonymous) is allowed
@@ -252,7 +256,19 @@ export class MediaAuthService {
       return allowed;
     }
 
-    // No content-owning table references this file → public asset (avatar, etc.)
+    // No content-owning table references this file → public asset (avatar,
+    // etc.), unless a content deletion left it detached: then it is only
+    // its owner's until the sweep deletes it. A file in a video's folder
+    // (<base>/master.m3u8, <base>/thumb.jpg) goes with the video.
+    const [folder, ...rest] = normalised.split('/');
+    const key =
+      rest.length > 0
+        ? await this.storedFiles.keyOfFolder(`/uploads/${folder}`)
+        : `/uploads/${normalised}`;
+    if (key && !(await this.storedFiles.isReadableBy(key, viewerProfileId))) {
+      this.logger.debug(`Access denied — detached file: ${uploadPath}`);
+      return false;
+    }
     return true;
   }
 
