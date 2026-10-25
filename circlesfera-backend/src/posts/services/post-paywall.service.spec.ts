@@ -36,7 +36,7 @@ describe('PostPaywallService', () => {
     expect(result[0].media?.[0].url).toBe('https://cdn/img.jpg');
   });
 
-  it('locks premium posts and builds teaser URLs for guests', async () => {
+  it('locks premium posts and points their media at the API teaser route for guests', async () => {
     const posts = [
       {
         id: 'p1',
@@ -53,9 +53,11 @@ describe('PostPaywallService', () => {
     ];
     const result = await service.applyPaywall(posts);
     expect(result[0].isLocked).toBe(true);
-    expect(result[0].media?.[0].url).toBe('/media/teaser/m1/post_123.mp4');
+    expect(result[0].media?.[0].url).toBe(
+      '/api/v1/media/teaser/m1/post_123.mp4',
+    );
     expect(result[0].media?.[0].standardUrl).toBe(
-      '/media/teaser/m1/master.m3u8',
+      '/api/v1/media/teaser/m1/master.m3u8',
     );
   });
 
@@ -107,6 +109,6 @@ describe('PostPaywallService', () => {
     ];
     const result = await service.applyPaywall(posts, 'viewer-1');
     expect(result[0].isLocked).toBe(true);
-    expect(result[0].media?.[0].url).toBe('/media/teaser/m1/locked.mp4');
+    expect(result[0].media?.[0].url).toBe('/api/v1/media/teaser/m1/locked.mp4');
   });
 });
