@@ -59,6 +59,14 @@ export class AccountDeletionProcessor extends WorkerHost {
 
       let queuedCount = 0;
       for (const user of expiredUsers) {
+        // A job kept by its id is not added again: one that failed is tried
+        // again, so an erasure that once failed is not left for good.
+        const existing = await this.usersQueue.getJob(`delete-${user.id}`);
+        if (existing && (await existing.isFailed())) {
+          await existing.retry('failed');
+          queuedCount++;
+          continue;
+        }
         await this.usersQueue.add(
           'hard-delete-user',
           { userId: user.id },
@@ -181,12 +189,9 @@ export class AccountDeletionProcessor extends WorkerHost {
         mediaUrls: profileMediaUrls,
       });
 
-      // Purge profile media assets (avatar, cover, variants)
-      if (profileMediaUrls.length > 0) {
-        this.eventEmitter.emit('media.delete_batch', {
-          mediaUrls: profileMediaUrls,
-        });
-      }
+      // The account's files are deleted from the record of what its Profiles
+      // uploaded, queued in the transaction that deletes it (Phase 4), not
+      // from the addresses its rows name, which may be someone else's files.
 
       this.logger.log(
         `Emitting ${USER_HARD_DELETED_EVENT} event for user ${userId} (profiles: ${profileIds.join(', ') || 'none'})...`,

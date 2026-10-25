@@ -115,6 +115,14 @@ export class LocalStorageProvider implements StorageProvider {
     try {
       const filename = path.basename(url);
       const filepath = path.join(this.uploadDir, filename);
+      // A video's stream and cover live in a folder named after it.
+      await fs.promises.rm(
+        path.join(
+          this.uploadDir,
+          path.basename(filename, path.extname(filename)),
+        ),
+        { recursive: true, force: true },
+      );
       await fs.promises.unlink(filepath);
     } catch (error: any) {
       if (error?.code === 'ENOENT') {

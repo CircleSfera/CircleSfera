@@ -23,6 +23,7 @@ import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { followTeamPlan } from '../team/team-plan.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 
 // The push switches of a Profile: the pause and the five groups.
@@ -40,6 +41,9 @@ const PROFILE_PUSH_SELECT = Object.fromEntries(
 ) as Record<(typeof PROFILE_PUSH_FIELDS)[number], true>;
 
 // Service for user management: follow suggestions, banning, and unbanning.
+// Files of an erased account deleted by one job.
+const ERASE_FILES_PER_JOB = 500;
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
@@ -53,6 +57,7 @@ export class UsersService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @Inject(CryptoService) private readonly crypto: CryptoService,
     @Inject(EmailService) private readonly emailService: EmailService,
+    @Inject(UploadsService) private readonly uploads: UploadsService,
   ) {}
 
   // Get follow suggestions for a user. Excludes already-followed, pending,
@@ -537,6 +542,13 @@ export class UsersService {
   // Returns true if the account was deleted, false if the account was restored or cancelled concurrently.
   async deleteScheduledUser(userId: string): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
+      // Every file its Profiles uploaded, read before the cascade leaves
+      // their records without an owner (TD-008). Files of other people that
+      // its rows name are not among them.
+      const files = await tx.storedFile.findMany({
+        where: { profile: { userId } },
+        select: { key: true },
+      });
       const result = await tx.user.deleteMany({
         where: {
           id: userId,
@@ -547,7 +559,17 @@ export class UsersService {
           ],
         },
       });
-      return result.count > 0;
+      if (result.count === 0) return false;
+      // Queued with the deletion itself: both happen, or neither. In batches,
+      // so that one failure retries a few hundred files, not all of them.
+      const keys = files.map((file) => file.key);
+      for (let i = 0; i < keys.length; i += ERASE_FILES_PER_JOB) {
+        await this.uploads.scheduleMediaDeletion(
+          keys.slice(i, i + ERASE_FILES_PER_JOB),
+          { tx },
+        );
+      }
+      return true;
     });
   }
 

@@ -120,6 +120,25 @@ describe('LocalStorageProvider', () => {
       );
     });
 
+    it("takes a video's stream folder with it, and nothing else", async () => {
+      vi.spyOn(fs.promises, 'unlink').mockResolvedValueOnce(undefined);
+      const rmSpy = vi
+        .spyOn(fs.promises, 'rm')
+        .mockResolvedValueOnce(undefined);
+
+      await provider.delete(
+        '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+      );
+
+      expect(rmSpy).toHaveBeenCalledTimes(1);
+      expect(rmSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /uploads[\\/]3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d$/,
+        ),
+        { recursive: true, force: true },
+      );
+    });
+
     it('deletes nothing for an address that is not exactly one of its own', async () => {
       const unlinkSpy = vi.spyOn(fs.promises, 'unlink');
       for (const url of [
