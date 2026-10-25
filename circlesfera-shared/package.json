@@ -11,11 +11,12 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check --write .",
-    "check:deps": "depcruise src"
+    "check:deps": "node ../scripts/check-module-boundaries.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.3",
     "@prisma/client": "7.10.1",
+    "@swc/core": "1.16.20",
     "dependency-cruiser": "18.7.0",
     "typescript": "7.0.2"
   },
