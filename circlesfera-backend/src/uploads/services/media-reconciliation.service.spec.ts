@@ -3,6 +3,10 @@ import type { PrismaService } from '../../prisma/prisma.service.js';
 import type { StorageProvider } from '../interfaces/storage-provider.interface.js';
 import type { UploadsService } from '../uploads.service.js';
 import { MediaReconciliationService } from './media-reconciliation.service.js';
+import {
+  MEDIA_COLUMNS,
+  MediaReferencesService,
+} from './media-references.service.js';
 
 describe('MediaReconciliationService', () => {
   let service: MediaReconciliationService;
@@ -19,14 +23,13 @@ describe('MediaReconciliationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockPrisma = {
-      postMedia: { findMany: vi.fn().mockResolvedValue([]) },
-      profile: { findMany: vi.fn().mockResolvedValue([]) },
-      story: { findMany: vi.fn().mockResolvedValue([]) },
-      message: { findMany: vi.fn().mockResolvedValue([]) },
-      liveGift: { findMany: vi.fn().mockResolvedValue([]) },
-      audio: { findMany: vi.fn().mockResolvedValue([]) },
-    };
+    // Every model the reference list reads, with no rows unless a test says so.
+    mockPrisma = Object.fromEntries(
+      Object.keys(MEDIA_COLUMNS).map((model) => [
+        model,
+        { findMany: vi.fn().mockResolvedValue([]) },
+      ]),
+    );
 
     mockUploadsService = {
       scheduleMediaDeletion: vi.fn().mockResolvedValue(undefined),
@@ -39,7 +42,7 @@ describe('MediaReconciliationService', () => {
     };
 
     service = new MediaReconciliationService(
-      mockPrisma as unknown as PrismaService,
+      new MediaReferencesService(mockPrisma as unknown as PrismaService),
       mockUploadsService as unknown as UploadsService,
       mockStorageProvider as unknown as StorageProvider,
     );
@@ -76,7 +79,23 @@ describe('MediaReconciliationService', () => {
       },
     ]);
     mockPrisma.message.findMany.mockResolvedValue([
-      { attachmentUrl: '/uploads/chat_file.pdf', thumbnailUrl: null },
+      {
+        url: '/uploads/chat_photo.jpg',
+        standardUrl: null,
+        thumbnailUrl: null,
+        voiceUrl: '/uploads/voice.webm',
+      },
+    ]);
+    mockPrisma.comment.findMany.mockResolvedValue([
+      {
+        url: null,
+        standardUrl: null,
+        thumbnailUrl: null,
+        voiceUrl: '/uploads/reply.webm',
+      },
+    ]);
+    mockPrisma.collection.findMany.mockResolvedValue([
+      { coverUrl: '/uploads/saved.jpg', standardUrl: null, thumbnailUrl: null },
     ]);
     mockPrisma.audio.findMany.mockResolvedValue([
       { url: '/uploads/song.mp3', thumbnailUrl: '/uploads/song_thumb.jpg' },
@@ -91,7 +110,12 @@ describe('MediaReconciliationService', () => {
     expect(keys.has('/uploads/story.mp4')).toBe(true);
     // A layer still waiting to be joined is not an orphan.
     expect(keys.has('/uploads/story_layer.png')).toBe(true);
-    expect(keys.has('/uploads/chat_file.pdf')).toBe(true);
+    // A chat photo, a voice note, a comment's voice and a collection's cover
+    // are in use too: the sweep used to know none of them.
+    expect(keys.has('/uploads/chat_photo.jpg')).toBe(true);
+    expect(keys.has('/uploads/voice.webm')).toBe(true);
+    expect(keys.has('/uploads/reply.webm')).toBe(true);
+    expect(keys.has('/uploads/saved.jpg')).toBe(true);
     expect(keys.has('/uploads/song.mp3')).toBe(true);
     expect(keys.has('/uploads/song_thumb.jpg')).toBe(true);
   });
@@ -168,6 +192,19 @@ describe('MediaReconciliationService', () => {
   it('should handle cron execution without throwing errors', async () => {
     mockStorageProvider.listFiles!.mockResolvedValue([]);
     await expect(service.handleDailyReconciliation()).resolves.not.toThrow();
+  });
+
+  it('reports only at night: it deletes nothing, however many files no row uses', async () => {
+    const twoDaysAgo = new Date(Date.now() - 48 * 3600 * 1000);
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/orphan.jpg', lastModified: twoDaysAgo, sizeBytes: 3000 },
+    ]);
+    const sweep = vi.spyOn(service, 'detectAndReconcileOrphans');
+
+    await service.handleDailyReconciliation();
+
+    expect(sweep).toHaveBeenCalledWith({ olderThanHours: 24, dryRun: true });
+    expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
   });
 
   it('should catch and log error when reconciliation fails during cron', async () => {
