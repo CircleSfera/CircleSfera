@@ -493,15 +493,13 @@ describe('UsersService', () => {
   });
 
   describe('deleteScheduledUser', () => {
+    const storedFile = { findMany: vi.fn() };
     beforeEach(() => {
-      mockPrismaService.storedFile = {
-        findMany: vi
-          .fn()
-          .mockResolvedValue([
-            { key: '/uploads/own-1.jpg' },
-            { key: '/uploads/own-2.mp4' },
-          ]),
-      };
+      storedFile.findMany.mockResolvedValue([
+        { key: '/uploads/own-1.jpg' },
+        { key: '/uploads/own-2.mp4' },
+      ]);
+      (mockPrismaService as Record<string, unknown>).storedFile = storedFile;
     });
 
     it('deletes the account and queues every file its Profiles uploaded, in one transaction', async () => {
@@ -519,7 +517,7 @@ describe('UsersService', () => {
         },
       });
       // From the record of its own files, not the addresses its rows name.
-      expect(mockPrismaService.storedFile.findMany).toHaveBeenCalledWith({
+      expect(storedFile.findMany).toHaveBeenCalledWith({
         where: { profile: { userId: 'u_sched' } },
         select: { key: true },
       });
