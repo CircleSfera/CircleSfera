@@ -266,6 +266,7 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
         participant: { findFirst: vi.fn() },
         comment: { findMany: vi.fn().mockResolvedValue([]) },
         collection: { findMany: vi.fn().mockResolvedValue([]) },
+        editProject: { findMany: vi.fn().mockResolvedValue([]) },
         follow: { findUnique: vi.fn(), findFirst: vi.fn() },
         closeFriend: { findUnique: vi.fn(), findFirst: vi.fn() },
       };

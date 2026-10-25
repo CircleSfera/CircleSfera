@@ -138,49 +138,57 @@ export class MediaAuthService {
     });
     const urlMatch = matchOn('url', 'standardUrl', 'thumbnailUrl');
 
-    const [postMedia, story, message, comment, collection] = await Promise.all([
-      this.prisma.postMedia.findMany({
-        where: urlMatch,
-        select: {
-          postId: true,
-          post: {
-            select: { profileId: true, visibility: true, isPremium: true },
+    const [postMedia, story, message, comment, collection, editProject] =
+      await Promise.all([
+        this.prisma.postMedia.findMany({
+          where: urlMatch,
+          select: {
+            postId: true,
+            post: {
+              select: { profileId: true, visibility: true, isPremium: true },
+            },
           },
-        },
-      }),
-      this.prisma.story.findMany({
-        where: urlMatch,
-        select: {
-          id: true,
-          profileId: true,
-          isPremium: true,
-          isCloseFriendsOnly: true,
-          profile: { select: { privacyLevel: true } },
-        },
-      }),
-      this.prisma.message.findMany({
-        where: urlMatch,
-        select: {
-          id: true,
-          conversationId: true,
-          senderId: true,
-          isLocked: true,
-        },
-      }),
-      this.prisma.comment.findMany({
-        where: urlMatch,
-        select: {
-          postId: true,
-          post: {
-            select: { profileId: true, visibility: true, isPremium: true },
+        }),
+        // A story's painted layer is the story's as much as its picture.
+        this.prisma.story.findMany({
+          where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'overlayUrl'),
+          select: {
+            id: true,
+            profileId: true,
+            isPremium: true,
+            isCloseFriendsOnly: true,
+            profile: { select: { privacyLevel: true } },
           },
-        },
-      }),
-      this.prisma.collection.findMany({
-        where: matchOn('coverUrl', 'standardUrl', 'thumbnailUrl'),
-        select: { profileId: true },
-      }),
-    ]);
+        }),
+        // A voice note is the message's: personal data, for its conversation.
+        this.prisma.message.findMany({
+          where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'voiceUrl'),
+          select: {
+            id: true,
+            conversationId: true,
+            senderId: true,
+            isLocked: true,
+          },
+        }),
+        this.prisma.comment.findMany({
+          where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'voiceUrl'),
+          select: {
+            postId: true,
+            post: {
+              select: { profileId: true, visibility: true, isPremium: true },
+            },
+          },
+        }),
+        this.prisma.collection.findMany({
+          where: matchOn('coverUrl', 'standardUrl', 'thumbnailUrl'),
+          select: { profileId: true },
+        }),
+        // A draft's media is its author's only.
+        this.prisma.editProject.findMany({
+          where: matchOn('mediaUrl'),
+          select: { profileId: true },
+        }),
+      ]);
 
     // A file's own randomUUID()-based name should only ever genuinely match
     // one row, one table. But a `contains` match is substring-based, not an
@@ -215,6 +223,9 @@ export class MediaAuthService {
         ),
       ),
       ...collection.map((item) =>
+        Promise.resolve(item.profileId === viewerProfileId),
+      ),
+      ...editProject.map((item) =>
         Promise.resolve(item.profileId === viewerProfileId),
       ),
     ];
