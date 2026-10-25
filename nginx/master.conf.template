@@ -189,8 +189,10 @@ server {
         auth_request_set $auth_status $upstream_status;
 
         alias /usr/share/nginx/html/uploads/;
+        # Each file passes a per-viewer check: a browser may keep it, a
+        # shared cache must not serve it to someone else.
         expires 30d;
-        add_header Cache-Control "public, no-transform";
+        add_header Cache-Control "private, no-transform";
     }
 
     # Internal auth subrequest — not reachable from the public internet.
@@ -275,7 +277,7 @@ server {
 # file in its own proxy, behind its own host site and password
 # (infra/host/nginx/sites/), and the servers above name their addresses.
 
-# 3. Local Development (localhost - No Auth)
+# 3. Local Development (localhost; the default server, so media keeps its auth)
 server {
     listen 80 default_server;
     server_name localhost 127.0.0.1;
@@ -389,11 +391,38 @@ server {
         proxy_request_buffering on;
     }
 
-    # Internal Uploads Proxy
+    # Media delivery with per-file authorization via auth_request, as on the
+    # named sites: this server is the default one, so any request whose
+    # address names no other site lands here, and must not get files the
+    # named sites protect.
     location /uploads/ {
+        auth_request /internal/media-auth;
+        auth_request_set $auth_status $upstream_status;
+
         alias /usr/share/nginx/html/uploads/;
+        # Each file passes a per-viewer check: a browser may keep it, a
+        # shared cache must not serve it to someone else.
         expires 30d;
-        add_header Cache-Control "public, no-transform";
+        add_header Cache-Control "private, no-transform";
+    }
+
+    # Internal auth subrequest — not reachable from the public internet.
+    location = /internal/media-auth {
+        internal;
+        proxy_pass $backend_upstream/api/v1/media/auth-check;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Strict internal timeouts
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 10s;
+        proxy_send_timeout 10s;
     }
 
     # Vite Frontend & HMR
@@ -536,8 +565,10 @@ server {
         auth_request_set $auth_status $upstream_status;
 
         alias /usr/share/nginx/html/uploads/;
+        # Each file passes a per-viewer check: a browser may keep it, a
+        # shared cache must not serve it to someone else.
         expires 30d;
-        add_header Cache-Control "public, no-transform";
+        add_header Cache-Control "private, no-transform";
     }
 
     # Internal auth subrequest — not reachable from the public internet.
@@ -700,8 +731,10 @@ server {
         auth_request_set $auth_status $upstream_status;
 
         alias /usr/share/nginx/html/uploads/;
+        # Each file passes a per-viewer check: a browser may keep it, a
+        # shared cache must not serve it to someone else.
         expires 30d;
-        add_header Cache-Control "public, no-transform";
+        add_header Cache-Control "private, no-transform";
     }
 
     # Internal auth subrequest — not reachable from the public internet.
