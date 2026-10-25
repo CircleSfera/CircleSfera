@@ -102,9 +102,10 @@ frontend as the web app (Notion → Governance → Decision Register, PD-009).
   pushing. A pull request that touches `.github/workflows/` is merged by the owner.
 - **Before pushing:** `npx biome ci <changed files>` from the root (the packages' `npm run lint` does
   not check formatting or import order), plus the package's types, lint and tests.
-- **Stored files:** a file is deleted only through `UploadsService.deleteFile`, which keeps a file
-  any row still names; delete the row first, then its files. A column added for a stored file
-  belongs in `MEDIA_COLUMNS` (`circlesfera-backend/src/uploads/services/media-references.service.ts`).
+- **Stored files:** a column added for a stored file belongs in `MEDIA_COLUMNS`
+  (`circlesfera-backend/src/uploads/services/media-references.service.ts`); a spec fails otherwise.
+  A stored file belongs to the person who uploaded it (TD-008, being built): never delete a file
+  because a row a person wrote names it.
 - **Production:** verified after every deploy (health and the error tracker at least); a check that
   was not run is reported as not run. Production logs and environment files are not read.
 
