@@ -75,6 +75,35 @@ describe('GetConversationsQuery', () => {
     expect(result[2].messages[0].content).toBe('');
   });
 
+  it('shows no file of a deleted last message in the preview', async () => {
+    mockPrisma.conversation.findMany.mockResolvedValue([
+      {
+        id: 'conv-1',
+        messages: [
+          {
+            id: 'msg-1',
+            content: '',
+            isDeleted: true,
+            url: null,
+            standardUrl: '/uploads/v/master.m3u8',
+            thumbnailUrl: '/uploads/v/thumb.jpg',
+            mediaType: 'video',
+            voiceUrl: '/uploads/voice.webm',
+          },
+        ],
+      },
+    ]);
+
+    const result = await query.execute('prof-1');
+
+    expect(result[0].messages[0]).toMatchObject({
+      standardUrl: null,
+      thumbnailUrl: null,
+      mediaType: null,
+      voiceUrl: null,
+    });
+  });
+
   it('fetches request conversations when folder is requests', async () => {
     mockPrisma.conversation.findMany.mockResolvedValue([]);
 

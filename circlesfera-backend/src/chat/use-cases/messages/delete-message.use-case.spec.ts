@@ -1,4 +1,5 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../../common/errors/app.exception.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
@@ -13,6 +14,7 @@ describe('DeleteMessageUseCase', () => {
     };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
+  let mockUploads: { deleteContentFiles: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockPrisma = {
@@ -24,9 +26,11 @@ describe('DeleteMessageUseCase', () => {
     mockEventEmitter = {
       emit: vi.fn(),
     };
+    mockUploads = { deleteContentFiles: vi.fn().mockResolvedValue([]) };
     useCase = new DeleteMessageUseCase(
       mockPrisma as unknown as PrismaService,
       mockEventEmitter as unknown as EventEmitter2,
+      mockUploads as never,
     );
   });
 
@@ -36,7 +40,7 @@ describe('DeleteMessageUseCase', () => {
     await expect(useCase.execute('msg-1')).rejects.toThrow(AppException);
   });
 
-  it('soft deletes message, clears media, emits event, and returns result', async () => {
+  it("soft deletes the message, clears every address of its files, emits the event and deletes the sender's own files", async () => {
     const participants = [
       { profileId: 'profile-1' },
       { profileId: 'profile-2' },
@@ -44,6 +48,16 @@ describe('DeleteMessageUseCase', () => {
     mockPrisma.message.findUnique.mockResolvedValue({
       id: 'msg-1',
       senderId: 'profile-1',
+      url: null,
+      standardUrl: '/uploads/v/master.m3u8',
+      thumbnailUrl: '/uploads/v/thumb.jpg',
+      voiceUrl: '/uploads/voice.webm',
+      media: {
+        url: '/uploads/v.mp4',
+        standardUrl: '/uploads/v/master.m3u8',
+        thumbnailUrl: '/uploads/v/thumb.jpg',
+      },
+      voiceMedia: { url: '/uploads/voice.webm' },
       conversation: { participants },
     });
 
@@ -66,13 +80,49 @@ describe('DeleteMessageUseCase', () => {
         content: '',
         isDeleted: true,
         url: null,
+        standardUrl: null,
+        thumbnailUrl: null,
         mediaType: null,
+        mediaId: null,
+        voiceUrl: null,
+        voiceDuration: null,
+        voiceWaveform: Prisma.DbNull,
+        voiceMediaId: null,
       },
       include: expect.any(Object),
     });
+    expect(mockUploads.deleteContentFiles).toHaveBeenCalledWith('profile-1', [
+      null,
+      '/uploads/v/master.m3u8',
+      '/uploads/v/thumb.jpg',
+      '/uploads/voice.webm',
+      '/uploads/v.mp4',
+      '/uploads/v/master.m3u8',
+      '/uploads/v/thumb.jpg',
+      '/uploads/voice.webm',
+    ]);
+    // The row is cleared before any file goes.
+    expect(mockPrisma.message.update.mock.invocationCallOrder[0]).toBeLessThan(
+      mockUploads.deleteContentFiles.mock.invocationCallOrder[0],
+    );
     expect(mockEventEmitter.emit).toHaveBeenCalledWith('chat.message.deleted', {
       participants,
       payload: { messageId: 'msg-1' },
+    });
+  });
+
+  it('still deletes the message when its files cannot be deleted', async () => {
+    mockPrisma.message.findUnique.mockResolvedValue({
+      id: 'msg-1',
+      senderId: 'profile-1',
+      url: '/uploads/a.jpg',
+      conversation: { participants: [] },
+    });
+    mockPrisma.message.update.mockResolvedValue({ id: 'msg-1' });
+    mockUploads.deleteContentFiles.mockRejectedValue(new Error('disk'));
+
+    await expect(useCase.execute('msg-1')).resolves.toMatchObject({
+      success: true,
     });
   });
 });
