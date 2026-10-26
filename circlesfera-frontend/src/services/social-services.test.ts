@@ -693,10 +693,11 @@ const cases: Case[] = [
     ['/chat/conversations', { participantIds: ['a', 'b'], name: 'G' }],
   ],
   [
-    'chat.deleteConversation for both',
+    // Deleting a chat removes it only for you: there is no other mode.
+    'chat.deleteConversation by default',
     () => chatApi.deleteConversation('c1'),
     'delete',
-    ['/chat/conversations/c1?mode=both'],
+    ['/chat/conversations/c1?mode=me'],
   ],
   [
     'chat.deleteConversation for me',
