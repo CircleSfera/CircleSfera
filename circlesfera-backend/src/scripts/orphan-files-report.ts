@@ -15,14 +15,13 @@
  *     node dist/scripts/orphan-files-report.js
  */
 import 'dotenv/config';
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service.js';
-import { LocalStorageProvider } from '../uploads/providers/local.provider.js';
 import { MediaReferencesService } from '../uploads/services/media-references.service.js';
+import { listStoredFilesOnDisk } from './stored-files-on-disk.js';
 
 // The sweep keeps a file this recent: it may be an upload in progress.
 const GRACE_HOURS = 24;
@@ -32,7 +31,8 @@ function megabytes(bytes: number): string {
 }
 
 async function main(): Promise<void> {
-  // The storage logs where it keeps files: not for a public log.
+  // Nothing it uses should log, but a log may name where files are kept: not
+  // for a public log.
   Logger.overrideLogger(false);
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set');
@@ -40,15 +40,13 @@ async function main(): Promise<void> {
     adapter: new PrismaPg({ connectionString: url }),
   });
   try {
-    const storage = new LocalStorageProvider();
-    // The storage answers no file when it cannot read its folder: a report
-    // of zero must not stand for a folder that could not be read.
-    await fs.promises.readdir(path.join(process.cwd(), 'uploads'));
     const references = new MediaReferencesService(
       prisma as unknown as PrismaService,
     );
     const [files, referenced, records] = await Promise.all([
-      storage.listFiles(),
+      // Read only, and strict: the storage would create a missing folder and
+      // write a test file in it, and answers no file when it cannot read it.
+      listStoredFilesOnDisk(path.join(process.cwd(), 'uploads')),
       references.referencedKeys(),
       prisma.storedFile.findMany({ select: { key: true, profileId: true } }),
     ]);
@@ -61,14 +59,14 @@ async function main(): Promise<void> {
     let unusedRecent = 0;
     let totalBytes = 0;
     for (const file of files) {
-      totalBytes += file.sizeBytes ?? 0;
+      totalBytes += file.sizeBytes;
       if (referenced.has(file.url) || referenced.has(path.basename(file.url))) {
         used++;
-      } else if (file.lastModified && file.lastModified.getTime() > cutoff) {
+      } else if (file.lastModified.getTime() > cutoff) {
         unusedRecent++;
       } else {
         unusedOld++;
-        unusedOldBytes += file.sizeBytes ?? 0;
+        unusedOldBytes += file.sizeBytes;
       }
     }
     const owned = records.filter((record) => record.profileId).length;

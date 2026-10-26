@@ -15,9 +15,11 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 // Where a studio project keeps the file of each clip: the clips that are not
 // text, in a state of version 3. The same clips EditsService checks for
 // ownership (collectStudioMediaUrls): a clip that check never saw must not
-// count as a use, or anyone could keep another person's file for good.
+// count as a use, or anyone could keep another person's file for good. So a
+// file still on the device (blob: or data:, in any case, after any spaces) is
+// left out too: its address may end in another person's file name.
 export const EDIT_CLIP_PATH =
-  'lax $.studio.tracks[*].clips[*] ? (!exists(@.type ? (@ == "text"))).fileUrl';
+  'lax $.studio.tracks[*].clips[*] ? (!exists(@.type ? (@ == "text")) && !(@.fileUrl like_regex "^[[:space:]]*(blob|data):" flag "i")).fileUrl';
 
 export const MEDIA_COLUMNS = {
   postMedia: ['url', 'standardUrl', 'thumbnailUrl'],
