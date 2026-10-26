@@ -72,10 +72,11 @@ export class DeleteMessageUseCase {
     };
     this.eventEmitter.emit('chat.message.deleted', event);
 
-    // Then its files: only the sender's own, and only those no other row
-    // still uses (a forwarded copy keeps them).
+    // Then its files: kept 30 days, readable by their owner only, then
+    // erased (PD-040); a message cannot be restored, but its files are kept
+    // all the same. A forwarded copy that still names a file keeps it.
     await this.uploadsService
-      .deleteContentFiles(message.senderId, [
+      .releaseContentFiles([
         message.url,
         message.standardUrl,
         message.thumbnailUrl,
@@ -87,7 +88,7 @@ export class DeleteMessageUseCase {
       ])
       .catch((error: unknown) =>
         this.logger.warn(
-          `Failed to delete the files of message ${messageId}: ${error instanceof Error ? error.message : String(error)}`,
+          `Failed to settle the files of message ${messageId}: ${error instanceof Error ? error.message : String(error)}`,
         ),
       );
 
