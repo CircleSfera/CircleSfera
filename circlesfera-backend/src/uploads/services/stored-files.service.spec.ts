@@ -358,3 +358,74 @@ describe('StoredFilesService, the files of deleted content', () => {
     });
   });
 });
+
+describe('StoredFilesService, taking an expired record', () => {
+  const cutoff = new Date('2026-10-31T03:00:00Z');
+  function files(row: unknown, taken = 1) {
+    const storedFile = {
+      findUnique: vi.fn().mockResolvedValue(row),
+      deleteMany: vi.fn().mockResolvedValue({ count: taken }),
+      createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    return {
+      storedFile,
+      service: new StoredFilesService(
+        { storedFile } as unknown as PrismaService,
+        { inUse: vi.fn() } as never,
+      ),
+    };
+  }
+
+  it('takes the record of a file with an owner detached before the cutoff', async () => {
+    const detachedAt = new Date('2026-10-01T00:00:00Z');
+    const { storedFile, service } = files({ profileId: 'p-1', detachedAt });
+
+    await expect(
+      service.claimExpired('/uploads/a.jpg', cutoff),
+    ).resolves.toEqual({ profileId: 'p-1', detachedAt });
+    expect(storedFile.deleteMany).toHaveBeenCalledWith({
+      where: {
+        key: '/uploads/a.jpg',
+        detachedAt: { lt: cutoff },
+        profileId: 'p-1',
+      },
+    });
+  });
+
+  it('takes nothing for a file attached again, within its days, with no owner, or taken by another server', async () => {
+    for (const row of [
+      null,
+      { profileId: 'p-1', detachedAt: null },
+      { profileId: 'p-1', detachedAt: new Date('2026-11-15T00:00:00Z') },
+      { profileId: null, detachedAt: new Date('2026-10-01T00:00:00Z') },
+    ]) {
+      const { storedFile, service } = files(row);
+      await expect(
+        service.claimExpired('/uploads/a.jpg', cutoff),
+      ).resolves.toBeNull();
+      expect(storedFile.deleteMany).not.toHaveBeenCalled();
+    }
+    const raced = files(
+      { profileId: 'p-1', detachedAt: new Date('2026-10-01T00:00:00Z') },
+      0,
+    );
+    await expect(
+      raced.service.claimExpired('/uploads/a.jpg', cutoff),
+    ).resolves.toBeNull();
+  });
+
+  it('puts a taken record back as it was', async () => {
+    const detachedAt = new Date('2026-10-01T00:00:00Z');
+    const { storedFile, service } = files(null);
+
+    await service.restoreClaimed('/uploads/a.jpg', {
+      profileId: 'p-1',
+      detachedAt,
+    });
+
+    expect(storedFile.createMany).toHaveBeenCalledWith({
+      data: [{ key: '/uploads/a.jpg', profileId: 'p-1', detachedAt }],
+      skipDuplicates: true,
+    });
+  });
+});

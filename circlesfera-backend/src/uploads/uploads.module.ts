@@ -13,6 +13,7 @@ import { VideoProcessor } from './processors/video.processor.js';
 import { CloudinaryProvider } from './providers/cloudinary.provider.js';
 import { LocalStorageProvider } from './providers/local.provider.js';
 import { S3Provider } from './providers/s3.provider.js';
+import { DetachedFilesErasureService } from './services/detached-files-erasure.service.js';
 import { MediaReconciliationService } from './services/media-reconciliation.service.js';
 import { MediaReferencesService } from './services/media-references.service.js';
 import { StoredFilesService } from './services/stored-files.service.js';
@@ -36,6 +37,7 @@ import { VoiceNoteConverter } from './voice-note.converter.js';
     VoiceNoteConverter,
     VideoProcessor,
     MediaCleanupProcessor,
+    DetachedFilesErasureService,
     MediaReconciliationService,
     MediaReferencesService,
     StoredFilesService,

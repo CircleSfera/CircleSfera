@@ -186,6 +186,42 @@ export class StoredFilesService {
     return rows.map((row) => row.key);
   }
 
+  /**
+   * Takes the record of a file whose 30 days are over, so that it can be
+   * deleted: answers it only if the file is still detached since before the
+   * cutoff and has an owner. Once taken, the file can no longer be attached
+   * again (FILE_NOT_OWNED), so a deletion cannot race a new attach.
+   */
+  async claimExpired(
+    key: string,
+    cutoff: Date,
+  ): Promise<{ profileId: string; detachedAt: Date } | null> {
+    const row = await this.prisma.storedFile.findUnique({
+      where: { key },
+      select: { profileId: true, detachedAt: true },
+    });
+    if (!row?.profileId || !row.detachedAt || row.detachedAt >= cutoff) {
+      return null;
+    }
+    const taken = await this.prisma.storedFile.deleteMany({
+      where: { key, detachedAt: { lt: cutoff }, profileId: row.profileId },
+    });
+    return taken.count > 0
+      ? { profileId: row.profileId, detachedAt: row.detachedAt }
+      : null;
+  }
+
+  /** Puts back the record of a file that could not be deleted after all. */
+  async restoreClaimed(
+    key: string,
+    claimed: { profileId: string; detachedAt: Date },
+  ): Promise<void> {
+    await this.prisma.storedFile.createMany({
+      data: [{ key, ...claimed }],
+      skipDuplicates: true,
+    });
+  }
+
   /** Files detached at or after the given time: still within their days. */
   async detachedSince(cutoff: Date): Promise<Set<string>> {
     const rows = await this.prisma.storedFile.findMany({
