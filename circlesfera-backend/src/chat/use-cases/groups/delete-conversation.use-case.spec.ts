@@ -10,29 +10,23 @@ describe('DeleteConversationUseCase', () => {
     participant: {
       findFirst: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
-      findMany: ReturnType<typeof vi.fn>;
     };
-    conversation: {
-      delete: ReturnType<typeof vi.fn>;
-    };
+    conversation: { delete: ReturnType<typeof vi.fn> };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
+  let mockLeaveGroup: { execute: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockPrisma = {
-      participant: {
-        findFirst: vi.fn(),
-        update: vi.fn(),
-        findMany: vi.fn(),
-      },
-      conversation: {
-        delete: vi.fn(),
-      },
+      participant: { findFirst: vi.fn(), update: vi.fn() },
+      conversation: { delete: vi.fn() },
     };
     mockEventEmitter = { emit: vi.fn() };
+    mockLeaveGroup = { execute: vi.fn().mockResolvedValue({ success: true }) };
     useCase = new DeleteConversationUseCase(
       mockPrisma as unknown as PrismaService,
       mockEventEmitter as unknown as EventEmitter2,
+      mockLeaveGroup as never,
     );
   });
 
@@ -44,95 +38,51 @@ describe('DeleteConversationUseCase', () => {
     );
   });
 
-  describe('Group conversation deletion', () => {
-    it('throws Forbidden if participant is not an admin', async () => {
+  it.each([
+    ['an admin', true],
+    ['a member', false],
+  ])(
+    'in a group, %s leaves it: the others keep the group and every message',
+    async (_who, isAdmin) => {
       mockPrisma.participant.findFirst.mockResolvedValue({
         id: 'part-1',
-        isAdmin: false,
+        isAdmin,
         conversation: { isGroup: true, participants: [] },
       });
 
-      await expect(useCase.execute('prof-1', 'conv-group')).rejects.toThrow(
-        AppException,
-      );
-    });
-
-    it('deletes conversation and emits event when admin requests deletion', async () => {
-      const participants = [{ profileId: 'prof-1' }, { profileId: 'prof-2' }];
-      mockPrisma.participant.findFirst.mockResolvedValue({
-        id: 'part-1',
-        isAdmin: true,
-        conversation: { isGroup: true, participants },
+      await expect(useCase.execute('prof-1', 'conv-group')).resolves.toEqual({
+        success: true,
       });
-      mockPrisma.conversation.delete.mockResolvedValue({ id: 'conv-group' });
 
-      const result = await useCase.execute('prof-1', 'conv-group');
-
-      expect(result).toEqual({ success: true });
-      expect(mockPrisma.conversation.delete).toHaveBeenCalledWith({
-        where: { id: 'conv-group' },
-      });
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'chat.conversation.deleted',
-        {
-          participants,
-          payload: { conversationId: 'conv-group' },
-        },
-      );
-    });
-  });
-
-  describe('Direct conversation deletion', () => {
-    it('soft deletes participant record for direct conversation when other participant is still active', async () => {
-      mockPrisma.participant.findFirst.mockResolvedValue({
-        id: 'part-1',
-        isAdmin: false,
-        conversation: {
-          isGroup: false,
-          participants: [{ profileId: 'prof-1' }, { profileId: 'prof-2' }],
-        },
-      });
-      mockPrisma.participant.update.mockResolvedValue({ id: 'part-1' });
-      mockPrisma.participant.findMany.mockResolvedValue([{ id: 'part-2' }]); // Other participant active
-
-      const result = await useCase.execute('prof-1', 'conv-direct');
-
-      expect(result).toEqual({ success: true });
-      expect(mockPrisma.participant.update).toHaveBeenCalledWith({
-        where: { id: 'part-1' },
-        data: {
-          deletedAt: expect.any(Date),
-          clearedAt: expect.any(Date),
-        },
-      });
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'chat.conversation.deleted',
-        {
-          participants: [{ profileId: 'prof-1' }],
-          payload: { conversationId: 'conv-direct' },
-        },
+      expect(mockLeaveGroup.execute).toHaveBeenCalledWith(
+        'prof-1',
+        'conv-group',
       );
       expect(mockPrisma.conversation.delete).not.toHaveBeenCalled();
+    },
+  );
+
+  it("in a 1:1 chat, removes it from the caller's inbox only, and never deletes the conversation", async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({
+      id: 'part-1',
+      conversation: { isGroup: false, participants: [] },
     });
 
-    it('hard deletes direct conversation when both participants have deleted it', async () => {
-      mockPrisma.participant.findFirst.mockResolvedValue({
-        id: 'part-1',
-        isAdmin: false,
-        conversation: {
-          isGroup: false,
-          participants: [{ profileId: 'prof-1' }],
-        },
-      });
-      mockPrisma.participant.update.mockResolvedValue({ id: 'part-1' });
-      mockPrisma.participant.findMany.mockResolvedValue([]); // No remaining active participants
+    const result = await useCase.execute('prof-1', 'conv-direct');
 
-      const result = await useCase.execute('prof-1', 'conv-direct');
-
-      expect(result).toEqual({ success: true });
-      expect(mockPrisma.conversation.delete).toHaveBeenCalledWith({
-        where: { id: 'conv-direct' },
-      });
+    expect(result).toEqual({ success: true });
+    expect(mockPrisma.participant.update).toHaveBeenCalledWith({
+      where: { id: 'part-1' },
+      data: { deletedAt: expect.any(Date), clearedAt: expect.any(Date) },
     });
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      'chat.conversation.deleted',
+      {
+        participants: [{ profileId: 'prof-1' }],
+        payload: { conversationId: 'conv-direct' },
+      },
+    );
+    expect(mockPrisma.conversation.delete).not.toHaveBeenCalled();
+    expect(mockLeaveGroup.execute).not.toHaveBeenCalled();
   });
 });

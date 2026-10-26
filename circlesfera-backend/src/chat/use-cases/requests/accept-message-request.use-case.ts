@@ -2,6 +2,7 @@ import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { GroupAdminSuccessionService } from '../../services/group-admin-succession.service.js';
 
 interface ParticipantRecord {
   id: string;
@@ -11,7 +12,11 @@ interface ParticipantRecord {
 
 @Injectable()
 export class AcceptMessageRequestUseCase {
-  constructor(@Inject(PrismaService) private prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(GroupAdminSuccessionService)
+    private succession: GroupAdminSuccessionService,
+  ) {}
 
   async execute(profileId: string, conversationId: string) {
     const participant = (await this.prisma.participant.findFirst({
@@ -26,12 +31,17 @@ export class AcceptMessageRequestUseCase {
     }
 
     if (!participant.hasAccepted) {
-      await this.prisma.participant.update({
-        where: { id: participant.id },
-        data: {
-          hasAccepted: true,
-          lastReadAt: new Date(),
-        },
+      // A group whose admin left while every other member was still invited
+      // gets one as soon as someone accepts (PD-042).
+      await this.prisma.$transaction(async (tx) => {
+        await tx.participant.update({
+          where: { id: participant.id },
+          data: {
+            hasAccepted: true,
+            lastReadAt: new Date(),
+          },
+        });
+        await this.succession.ensureAdmin(conversationId, tx);
       });
     }
 

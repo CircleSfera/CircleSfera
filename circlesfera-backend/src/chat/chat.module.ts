@@ -17,6 +17,7 @@ import { UploadsModule } from '../uploads/uploads.module.js';
 import { ChatController } from './chat.controller.js';
 import { ChatProcessor } from './processors/chat.processor.js';
 import { ChatAuthorizationService } from './services/chat-authorization.service.js';
+import { GroupAdminSuccessionService } from './services/group-admin-succession.service.js';
 // Group Commands
 import { CreateGroupUseCase } from './use-cases/groups/create-group.use-case.js';
 import { DeleteConversationUseCase } from './use-cases/groups/delete-conversation.use-case.js';
@@ -82,6 +83,7 @@ const useCases = [
     CryptoService,
     ChatProcessor,
     ChatAuthorizationService,
+    GroupAdminSuccessionService,
   ],
   controllers: [ChatController],
   exports: [AddReactionUseCase], // Exported for AppGateway

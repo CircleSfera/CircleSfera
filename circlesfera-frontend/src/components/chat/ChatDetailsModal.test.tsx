@@ -10,7 +10,6 @@ function renderDetails(
     onClose: vi.fn(),
     onViewProfile: vi.fn(),
     onDeleteForMe: vi.fn(),
-    onDeleteForEveryone: vi.fn(),
   };
   const view = renderWithProviders(
     <ChatDetailsModal
@@ -35,27 +34,22 @@ describe('ChatDetailsModal', () => {
     expect(screen.getByRole('img', { name: 'ana' })).toBeInTheDocument();
   });
 
-  it('offers the way to the profile and the two ways to delete', () => {
-    const { onViewProfile, onDeleteForMe, onDeleteForEveryone } =
-      renderDetails();
+  it('offers the way to the profile and deleting it for you only', () => {
+    const { onViewProfile, onDeleteForMe } = renderDetails();
 
     fireEvent.click(screen.getByRole('button', { name: 'Ver perfil' }));
     expect(onViewProfile).toHaveBeenCalledTimes(1);
 
-    // Each way to delete says what it does.
+    // Deleting says what it does; nobody deletes it for the other person.
     fireEvent.click(
       screen.getByRole('button', {
         name: /Eliminar para mí.*Desaparece solo de tu bandeja\./,
       }),
     );
     expect(onDeleteForMe).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /Eliminar para todos.*Desaparece para las dos personas\./,
-      }),
-    );
-    expect(onDeleteForEveryone).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole('button', { name: /Eliminar para todos/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('mentions the encryption only when the conversation has it', () => {

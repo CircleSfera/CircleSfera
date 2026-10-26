@@ -2103,16 +2103,13 @@
     "remote_user": "Usuario remoto",
     "delete_confirm": {
       "me_title": "¿Eliminar la conversación para ti?",
-      "me_message": "Desaparecerá de tu bandeja. Las demás personas la seguirán viendo.",
-      "everyone_title": "¿Eliminar la conversación para todos?",
-      "everyone_message": "Se borrará para todas las personas de la conversación. No se puede deshacer."
+      "me_message": "Desaparecerá de tu bandeja. Las demás personas la seguirán viendo."
     },
     "details": {
       "title": "Detalles",
       "view_profile": "Ver perfil",
       "encrypted": "Cifrado de extremo a extremo",
-      "delete_for_me_hint": "Desaparece solo de tu bandeja.",
-      "delete_for_everyone_hint": "Desaparece para las dos personas."
+      "delete_for_me_hint": "Desaparece solo de tu bandeja."
     },
     "group_details": {
       "title": "Detalles del grupo",
@@ -2137,7 +2134,6 @@
     "unlock_success": "Mensaje desbloqueado. ¡Gracias por tu apoyo!",
     "unlock_canceled": "Se canceló el pago del desbloqueo.",
     "delete_for_me": "Eliminar para mí",
-    "delete_for_everyone": "Eliminar para todos",
     "editing_message": "Editando mensaje",
     "read": "Leído",
     "delivered": "Entregado",

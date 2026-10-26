@@ -21,7 +21,6 @@ interface ChatDetailsModalProps {
   isEncrypted: boolean;
   onViewProfile: () => void;
   onDeleteForMe: () => void;
-  onDeleteForEveryone: () => void;
 }
 
 /**
@@ -36,7 +35,6 @@ export default function ChatDetailsModal({
   isEncrypted,
   onViewProfile,
   onDeleteForMe,
-  onDeleteForEveryone,
 }: ChatDetailsModalProps) {
   const { t } = useTranslation();
 
@@ -45,11 +43,6 @@ export default function ChatDetailsModal({
       label: t('chat.delete_for_me'),
       hint: t('chat.details.delete_for_me_hint'),
       onClick: onDeleteForMe,
-    },
-    {
-      label: t('chat.delete_for_everyone'),
-      hint: t('chat.details.delete_for_everyone_hint'),
-      onClick: onDeleteForEveryone,
     },
   ];
 

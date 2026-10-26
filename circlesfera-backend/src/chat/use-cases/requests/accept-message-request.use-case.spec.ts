@@ -9,11 +9,19 @@ describe('AcceptMessageRequestUseCase', () => {
       findFirst: vi.fn(),
       update: vi.fn(),
     },
+    $transaction: vi.fn(),
   };
+  const mockSuccession = { ensureAdmin: vi.fn() };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    useCase = new AcceptMessageRequestUseCase(mockPrisma as any);
+    mockPrisma.$transaction.mockImplementation((fn: (tx: unknown) => unknown) =>
+      fn(mockPrisma),
+    );
+    useCase = new AcceptMessageRequestUseCase(
+      mockPrisma as any,
+      mockSuccession as never,
+    );
   });
 
   it('throws NotFound if participant does not exist', async () => {
@@ -76,5 +84,23 @@ describe('AcceptMessageRequestUseCase', () => {
 
     expect(result).toEqual({ success: true });
     expect(mockPrisma.participant.update).not.toHaveBeenCalled();
+  });
+
+  it('names an admin for a group left without one, in the same transaction as the acceptance', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({
+      id: 'part-1',
+      deletedAt: null,
+      hasAccepted: false,
+    });
+
+    await useCase.execute('profile-1', 'conv-1');
+
+    expect(mockSuccession.ensureAdmin).toHaveBeenCalledWith(
+      'conv-1',
+      mockPrisma,
+    );
+    expect(
+      mockPrisma.participant.update.mock.invocationCallOrder[0],
+    ).toBeLessThan(mockSuccession.ensureAdmin.mock.invocationCallOrder[0]);
   });
 });

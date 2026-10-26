@@ -165,11 +165,9 @@ for (const [label, viewport] of [
       });
       expect(smallest).toBeGreaterThanOrEqual(12);
       // Deleting asks first, and "no" keeps the conversation.
-      await details
-        .getByRole('button', { name: /Eliminar para todos/ })
-        .click();
+      await details.getByRole('button', { name: /Eliminar para mí/ }).click();
       const question = page.getByRole('heading', {
-        name: '¿Eliminar la conversación para todos?',
+        name: '¿Eliminar la conversación para ti?',
       });
       await expect(question).toBeVisible();
       await page.getByRole('button', { name: 'Cancelar' }).click();

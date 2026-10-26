@@ -2103,16 +2103,13 @@
     "remote_user": "Remote user",
     "delete_confirm": {
       "me_title": "Delete the conversation for you?",
-      "me_message": "It will leave your inbox. The other people will still see it.",
-      "everyone_title": "Delete the conversation for everyone?",
-      "everyone_message": "It will be removed for everyone in the conversation. This cannot be undone."
+      "me_message": "It will leave your inbox. The other people will still see it."
     },
     "details": {
       "title": "Details",
       "view_profile": "View profile",
       "encrypted": "End-to-end encrypted",
-      "delete_for_me_hint": "Removed from your inbox only.",
-      "delete_for_everyone_hint": "Removed for both of you."
+      "delete_for_me_hint": "Removed from your inbox only."
     },
     "group_details": {
       "title": "Group details",
@@ -2137,7 +2134,6 @@
     "unlock_success": "Message unlocked. Thanks for your support!",
     "unlock_canceled": "Unlock checkout was canceled.",
     "delete_for_me": "Delete for me",
-    "delete_for_everyone": "Delete for everyone",
     "editing_message": "Editing message",
     "read": "Read",
     "delivered": "Delivered",
