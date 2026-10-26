@@ -14,7 +14,7 @@ describe('DeleteMessageUseCase', () => {
     };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
-  let mockUploads: { deleteContentFiles: ReturnType<typeof vi.fn> };
+  let mockUploads: { releaseContentFiles: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockPrisma = {
@@ -26,7 +26,7 @@ describe('DeleteMessageUseCase', () => {
     mockEventEmitter = {
       emit: vi.fn(),
     };
-    mockUploads = { deleteContentFiles: vi.fn().mockResolvedValue([]) };
+    mockUploads = { releaseContentFiles: vi.fn().mockResolvedValue(undefined) };
     useCase = new DeleteMessageUseCase(
       mockPrisma as unknown as PrismaService,
       mockEventEmitter as unknown as EventEmitter2,
@@ -40,7 +40,7 @@ describe('DeleteMessageUseCase', () => {
     await expect(useCase.execute('msg-1')).rejects.toThrow(AppException);
   });
 
-  it("soft deletes the message, clears every address of its files, emits the event and deletes the sender's own files", async () => {
+  it('soft deletes the message, clears every address of its files, emits the event and keeps its files for 30 days', async () => {
     const participants = [
       { profileId: 'profile-1' },
       { profileId: 'profile-2' },
@@ -91,7 +91,7 @@ describe('DeleteMessageUseCase', () => {
       },
       include: expect.any(Object),
     });
-    expect(mockUploads.deleteContentFiles).toHaveBeenCalledWith('profile-1', [
+    expect(mockUploads.releaseContentFiles).toHaveBeenCalledWith([
       null,
       '/uploads/v/master.m3u8',
       '/uploads/v/thumb.jpg',
@@ -103,7 +103,7 @@ describe('DeleteMessageUseCase', () => {
     ]);
     // The row is cleared before any file goes.
     expect(mockPrisma.message.update.mock.invocationCallOrder[0]).toBeLessThan(
-      mockUploads.deleteContentFiles.mock.invocationCallOrder[0],
+      mockUploads.releaseContentFiles.mock.invocationCallOrder[0],
     );
     expect(mockEventEmitter.emit).toHaveBeenCalledWith('chat.message.deleted', {
       participants,
@@ -119,7 +119,7 @@ describe('DeleteMessageUseCase', () => {
       conversation: { participants: [] },
     });
     mockPrisma.message.update.mockResolvedValue({ id: 'msg-1' });
-    mockUploads.deleteContentFiles.mockRejectedValue(new Error('disk'));
+    mockUploads.releaseContentFiles.mockRejectedValue(new Error('disk'));
 
     await expect(useCase.execute('msg-1')).resolves.toMatchObject({
       success: true,
