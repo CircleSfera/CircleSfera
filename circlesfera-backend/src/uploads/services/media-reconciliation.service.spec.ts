@@ -12,7 +12,10 @@ import type { StoredFilesService } from './stored-files.service.js';
 describe('MediaReconciliationService', () => {
   let service: MediaReconciliationService;
   let mockPrisma: any;
-  let mockStoredFiles: { record: ReturnType<typeof vi.fn> };
+  let mockStoredFiles: {
+    record: ReturnType<typeof vi.fn>;
+    detachedSince: ReturnType<typeof vi.fn>;
+  };
   let mockUploadsService: {
     scheduleMediaDeletion: ReturnType<typeof vi.fn>;
   };
@@ -34,7 +37,10 @@ describe('MediaReconciliationService', () => {
     );
     mockPrisma.$queryRaw = vi.fn().mockResolvedValue([]);
 
-    mockStoredFiles = { record: vi.fn().mockResolvedValue(undefined) };
+    mockStoredFiles = {
+      record: vi.fn().mockResolvedValue(undefined),
+      detachedSince: vi.fn().mockResolvedValue(new Set<string>()),
+    };
     mockUploadsService = {
       scheduleMediaDeletion: vi.fn().mockResolvedValue(undefined),
     };
@@ -235,5 +241,24 @@ describe('MediaReconciliationService', () => {
       new Error('Reconciliation error'),
     );
     await expect(service.handleDailyReconciliation()).resolves.not.toThrow();
+  });
+
+  it('counts as no orphan the file of content deleted less than 30 days ago', async () => {
+    const old = new Date(Date.now() - 72 * 60 * 60 * 1000);
+    mockStorageProvider.listFiles?.mockResolvedValue([
+      { url: '/uploads/kept.jpg', lastModified: old },
+      { url: '/uploads/orphan.jpg', lastModified: old },
+    ]);
+    mockStoredFiles.detachedSince.mockResolvedValue(
+      new Set(['/uploads/kept.jpg']),
+    );
+
+    const result = await service.detectAndReconcileOrphans({ dryRun: true });
+
+    expect(result.orphans.map((o) => o.url)).toEqual(['/uploads/orphan.jpg']);
+    const cutoff = mockStoredFiles.detachedSince.mock.calls[0][0] as Date;
+    expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(
+      30 * 24 * 60 * 60 * 1000 - 1000,
+    );
   });
 });

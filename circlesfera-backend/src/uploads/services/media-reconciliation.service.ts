@@ -7,7 +7,10 @@ import {
 } from '../interfaces/storage-provider.interface.js';
 import { UploadsService } from '../uploads.service.js';
 import { MediaReferencesService } from './media-references.service.js';
-import { StoredFilesService } from './stored-files.service.js';
+import {
+  DELETED_CONTENT_KEPT_DAYS,
+  StoredFilesService,
+} from './stored-files.service.js';
 
 export interface OrphanDetectionOptions {
   olderThanHours?: number;
@@ -91,6 +94,11 @@ export class MediaReconciliationService {
     );
 
     const cutoffTime = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
+    // The files of content deleted less than 30 days ago are kept (PD-040):
+    // not orphans until their time comes.
+    const kept = await this.storedFilesRecord.detachedSince(
+      new Date(Date.now() - DELETED_CONTENT_KEPT_DAYS * 24 * 60 * 60 * 1000),
+    );
     const orphans: OrphanMediaItem[] = [];
 
     for (const file of storedFiles) {
@@ -98,7 +106,7 @@ export class MediaReconciliationService {
       const base = path.basename(url);
 
       const isReferenced = referencedKeys.has(url) || referencedKeys.has(base);
-      if (isReferenced) {
+      if (isReferenced || kept.has(url)) {
         continue;
       }
 
