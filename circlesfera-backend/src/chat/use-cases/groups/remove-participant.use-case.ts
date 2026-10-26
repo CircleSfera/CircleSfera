@@ -7,6 +7,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
+import { GroupAdminSuccessionService } from '../../services/group-admin-succession.service.js';
 
 @Injectable()
 export class RemoveParticipantUseCase {
@@ -15,6 +16,8 @@ export class RemoveParticipantUseCase {
     @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
     @Inject(ChatAuthorizationService)
     private chatAuth: ChatAuthorizationService,
+    @Inject(GroupAdminSuccessionService)
+    private succession: GroupAdminSuccessionService,
   ) {}
 
   async execute(
@@ -36,8 +39,10 @@ export class RemoveParticipantUseCase {
       throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Participant not found');
     }
 
-    await this.prisma.participant.delete({
-      where: { id: targetParticipant.id },
+    // An admin who removes themselves leaves the group with an admin.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.participant.delete({ where: { id: targetParticipant.id } });
+      await this.succession.ensureAdmin(conversationId, tx);
     });
 
     const updated = await this.prisma.conversation.findUnique({

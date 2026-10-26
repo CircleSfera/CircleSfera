@@ -16,6 +16,7 @@ describe('LeaveGroupUseCase', () => {
     };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
+  let mockSuccession: { ensureAdmin: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockPrisma = {
@@ -28,9 +29,15 @@ describe('LeaveGroupUseCase', () => {
       },
     };
     mockEventEmitter = { emit: vi.fn() };
+    mockSuccession = { ensureAdmin: vi.fn().mockResolvedValue(null) };
+    // The leave and the naming of the next admin run in one transaction.
+    (mockPrisma as unknown as { $transaction: unknown }).$transaction = vi.fn(
+      (fn: (tx: unknown) => unknown) => fn(mockPrisma),
+    );
     useCase = new LeaveGroupUseCase(
       mockPrisma as unknown as PrismaService,
       mockEventEmitter as unknown as EventEmitter2,
+      mockSuccession as never,
     );
   });
 
@@ -91,5 +98,20 @@ describe('LeaveGroupUseCase', () => {
       'chat.conversation.deleted',
       expect.anything(),
     );
+  });
+
+  it('names the next admin in the same transaction, when the group would have none', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({ id: 'part-1' });
+    mockPrisma.conversation.findUnique.mockResolvedValue(null);
+
+    await useCase.execute('prof-1', 'conv-1');
+
+    expect(mockSuccession.ensureAdmin).toHaveBeenCalledWith(
+      'conv-1',
+      mockPrisma,
+    );
+    expect(
+      mockPrisma.participant.delete.mock.invocationCallOrder[0],
+    ).toBeLessThan(mockSuccession.ensureAdmin.mock.invocationCallOrder[0]);
   });
 });

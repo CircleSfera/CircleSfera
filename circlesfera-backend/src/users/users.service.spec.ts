@@ -494,12 +494,55 @@ describe('UsersService', () => {
 
   describe('deleteScheduledUser', () => {
     const storedFile = { findMany: vi.fn() };
+    const participant = {
+      findMany: vi.fn(),
+      count: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    };
+    const conversation = { findUnique: vi.fn() };
     beforeEach(() => {
       storedFile.findMany.mockResolvedValue([
         { key: '/uploads/own-1.jpg' },
         { key: '/uploads/own-2.mp4' },
       ]);
+      participant.findMany.mockResolvedValue([]);
       (mockPrismaService as Record<string, unknown>).storedFile = storedFile;
+      (mockPrismaService as Record<string, unknown>).participant = participant;
+      (mockPrismaService as Record<string, unknown>).conversation =
+        conversation;
+    });
+
+    it('names a new admin for each group the account administered, in the same transaction', async () => {
+      participant.findMany.mockResolvedValueOnce([
+        { conversationId: 'group-1' },
+      ]);
+      conversation.findUnique.mockResolvedValueOnce({ isGroup: true });
+      participant.count.mockResolvedValueOnce(0);
+      participant.findFirst.mockResolvedValueOnce({
+        id: 'part-oldest',
+        profileId: 'p-oldest',
+      });
+      mockPrismaService.user.deleteMany.mockResolvedValue({ count: 1 });
+
+      await expect(service.deleteScheduledUser('u_admin')).resolves.toBe(true);
+
+      expect(participant.findMany).toHaveBeenCalledWith({
+        where: {
+          isAdmin: true,
+          profile: { userId: 'u_admin' },
+          conversation: { isGroup: true },
+        },
+        select: { conversationId: true },
+      });
+      // Read before the cascade removes the account's participation.
+      expect(participant.findMany.mock.invocationCallOrder[0]).toBeLessThan(
+        mockPrismaService.user.deleteMany.mock.invocationCallOrder[0],
+      );
+      expect(participant.update).toHaveBeenCalledWith({
+        where: { id: 'part-oldest' },
+        data: { isAdmin: true },
+      });
     });
 
     it('deletes the account and queues every file its Profiles uploaded, in one transaction', async () => {

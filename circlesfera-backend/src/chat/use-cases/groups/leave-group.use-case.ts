@@ -7,12 +7,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { GroupAdminSuccessionService } from '../../services/group-admin-succession.service.js';
 
 @Injectable()
 export class LeaveGroupUseCase {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
+    @Inject(GroupAdminSuccessionService)
+    private succession: GroupAdminSuccessionService,
   ) {}
 
   async execute(profileId: string, conversationId: string) {
@@ -27,8 +30,11 @@ export class LeaveGroupUseCase {
       );
     }
 
-    await this.prisma.participant.delete({
-      where: { id: participant.id },
+    // Leaving and naming the next admin, if the group would have none, go
+    // together.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.participant.delete({ where: { id: participant.id } });
+      await this.succession.ensureAdmin(conversationId, tx);
     });
 
     const updated = await this.prisma.conversation.findUnique({

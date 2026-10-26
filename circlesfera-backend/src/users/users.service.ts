@@ -15,6 +15,7 @@ import {
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
+import { ensureGroupAdmin } from '../chat/services/group-admin-succession.service.js';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
@@ -549,6 +550,15 @@ export class UsersService {
         where: { profile: { userId } },
         select: { key: true },
       });
+      // The groups its Profiles administer: each keeps an admin (PD-042).
+      const administered = await tx.participant.findMany({
+        where: {
+          isAdmin: true,
+          profile: { userId },
+          conversation: { isGroup: true },
+        },
+        select: { conversationId: true },
+      });
       const result = await tx.user.deleteMany({
         where: {
           id: userId,
@@ -560,6 +570,9 @@ export class UsersService {
         },
       });
       if (result.count === 0) return false;
+      for (const { conversationId } of administered) {
+        await ensureGroupAdmin(tx, conversationId);
+      }
       // Queued with the deletion itself: both happen, or neither. In batches,
       // so that one failure retries a few hundred files, not all of them.
       const keys = files.map((file) => file.key);
