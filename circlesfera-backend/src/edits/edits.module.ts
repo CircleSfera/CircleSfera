@@ -6,11 +6,10 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
-import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
+import { removeRecurringJob } from '../common/queues/recurring-jobs.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { EditsController } from './edits.controller.js';
 import { EditsService } from './edits.service.js';
-import { EditsProcessor } from './processors/edits.processor.js';
 
 @Module({
   imports: [
@@ -22,7 +21,7 @@ import { EditsProcessor } from './processors/edits.processor.js';
     ),
   ],
   controllers: [EditsController],
-  providers: [EditsService, EditsProcessor],
+  providers: [EditsService],
 })
 export class EditsModule implements OnApplicationBootstrap {
   private readonly logger = new Logger(EditsModule.name);
@@ -31,15 +30,16 @@ export class EditsModule implements OnApplicationBootstrap {
     @InjectQueue('edits-processing') private readonly editsQueue: Queue,
   ) {}
 
+  // A draft never expires: it goes only when its author discards or
+  // publishes it. The daily job that deleted drafts left untouched for 30
+  // days is taken off the queue, with its pending next run.
   async onApplicationBootstrap() {
-    await registerRecurringJob(
+    const removed = await removeRecurringJob(
       this.editsQueue,
-      'edits_cleanup_cron',
       'cleanup-abandoned-drafts',
-      '0 0 * * *',
     );
-    this.logger.log(
-      'Registered repeatable job: cleanup-abandoned-drafts (0 0 * * *)',
-    );
+    if (removed > 0) {
+      this.logger.log('Removed the daily deletion of untouched drafts');
+    }
   }
 }

@@ -4,7 +4,6 @@ import { AIProcessor } from '../../ai/processors/ai.processor.js';
 import { AnalyticsProcessor } from '../../analytics/processors/analytics.processor.js';
 import { ChatProcessor } from '../../chat/processors/chat.processor.js';
 import { CleanupExpiredMessagesUseCase } from '../../chat/use-cases/system/cleanup-expired-messages.use-case.js';
-import { EditsProcessor } from '../../edits/processors/edits.processor.js';
 import { FeedFanoutProcessor } from '../../feed/processors/feed-fanout.processor.js';
 import { NotificationsProcessor } from '../../notifications/processors/notifications.processor.js';
 import { PostsProcessor } from '../../posts/posts.processor.js';
@@ -253,15 +252,6 @@ describe('Queue Processors Reliability & Error Handling', () => {
 
       const useCase = new CleanupExpiredMessagesUseCase(mockPrisma);
       await expect(useCase.execute()).rejects.toThrow('Prisma query timeout');
-    });
-  });
-
-  describe('EditsProcessor', () => {
-    it('throws UnrecoverableError on unknown job name', async () => {
-      const proc = new EditsProcessor({} as any);
-      const job = { name: 'unknown-edit-job', data: {} } as any;
-
-      await expect(proc.process(job)).rejects.toThrow(UnrecoverableError);
     });
   });
 
