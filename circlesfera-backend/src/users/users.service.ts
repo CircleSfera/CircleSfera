@@ -585,17 +585,45 @@ export class UsersService {
   // Param userId: The user ID
   // Returns The scheduled hard-deletion date
   async scheduleDeletion(userId: string) {
-    const now = new Date();
-    const scheduledDeletionAt = new Date(now);
+    const scheduledDeletionAt = new Date();
     scheduledDeletionAt.setDate(scheduledDeletionAt.getDate() + 30);
-    const delayMs = 30 * 24 * 60 * 60 * 1000;
+    await this.markForErasure(userId, scheduledDeletionAt, {
+      delay: 30 * 24 * 60 * 60 * 1000,
+      jobId: `delete-${userId}`,
+      reason: 'Account scheduled for deletion',
+    });
+    return scheduledDeletionAt;
+  }
 
+  // Erases an account now, through the same erasure as a scheduled one: its
+  // files, its Stripe subscriptions, its domain events and the admins of the
+  // groups it ran are all handled by the hard-delete job. For staff, who must
+  // never delete the row directly. Its own job id, so that a deletion the
+  // person already scheduled (delete-<id>, delayed) does not hold it back.
+  async eraseNow(userId: string) {
+    const now = new Date();
+    await this.markForErasure(userId, now, {
+      delay: 0,
+      jobId: `delete-now-${userId}`,
+      reason: 'Account deleted by staff',
+    });
+    return now;
+  }
+
+  // Marks the account deleted, signs it out everywhere and queues its
+  // hard-delete, all in one transaction with the outbox, so a crash between
+  // the write and the queue cannot lose the erasure.
+  private async markForErasure(
+    userId: string,
+    scheduledDeletionAt: Date,
+    job: { delay: number; jobId: string; reason: string },
+  ) {
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
         data: {
           isActive: false,
-          deletedAt: now,
+          deletedAt: new Date(),
           scheduledDeletionAt,
         } satisfies Prisma.UserUpdateInput,
       });
@@ -611,8 +639,8 @@ export class UsersService {
         eventName: 'hard-delete-user',
         payload: { userId },
         options: {
-          delay: delayMs,
-          jobId: `delete-${userId}`,
+          delay: job.delay,
+          jobId: job.jobId,
           removeOnComplete: true,
           removeOnFail: false,
         },
@@ -621,14 +649,12 @@ export class UsersService {
 
     const deleteEvent: UserSessionTerminateEvent['payload'] = {
       userId,
-      reason: 'Account scheduled for deletion',
+      reason: job.reason,
     };
     this.eventEmitter.emit('user.session.terminate', deleteEvent);
 
     // Trigger immediate outbox publish for sub-second delivery after commit.
     this.outboxService.triggerImmediatePublish();
-
-    return scheduledDeletionAt;
   }
 
   // Cancel a pending scheduled deletion within the grace window.
