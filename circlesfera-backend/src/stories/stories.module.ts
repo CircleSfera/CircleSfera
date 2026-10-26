@@ -5,10 +5,9 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
-import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
+import { removeRecurringJob } from '../common/queues/recurring-jobs.js';
 import { StoryStickersModule } from '../story-stickers/story-stickers.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
-import { StoriesProcessor } from './processors/stories.processor.js';
 import { StoriesController } from './stories.controller.js';
 import { StoriesService } from './stories.service.js';
 
@@ -22,7 +21,7 @@ import { StoriesService } from './stories.service.js';
     UploadsModule,
   ],
   controllers: [StoriesController],
-  providers: [StoriesService, StoriesProcessor],
+  providers: [StoriesService],
   exports: [StoriesService],
 })
 export class StoriesModule implements OnApplicationBootstrap {
@@ -32,13 +31,16 @@ export class StoriesModule implements OnApplicationBootstrap {
     @InjectQueue('stories-processing') private readonly storiesQueue: Queue,
   ) {}
 
+  // Expired stories are no longer deleted: each stays in its author's
+  // archive. The hourly job that deleted them is taken off the queue, with
+  // its pending next run.
   async onApplicationBootstrap() {
-    await registerRecurringJob(
+    const removed = await removeRecurringJob(
       this.storiesQueue,
-      'cleanup_stories_cron',
       'cleanup-expired',
-      '0 * * * *',
     );
-    this.logger.log('Registered repeatable job: cleanup-expired (0 * * * *)');
+    if (removed > 0) {
+      this.logger.log('Removed the hourly deletion of expired stories');
+    }
   }
 }

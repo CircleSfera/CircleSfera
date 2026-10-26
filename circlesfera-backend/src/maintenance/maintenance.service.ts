@@ -26,8 +26,7 @@ export class MaintenanceService {
     private readonly helpdeskData: HelpdeskDataPort,
   ) {}
 
-  // Expired stories are cleaned by the stories' own hourly job
-  // (cleanup-expired in StoriesModule): one rule, one run.
+  // Expired stories are not deleted: each stays in its author's archive.
 
   // Checks for promotions that have ended and marks them COMPLETED.
   // Runs every 30 minutes.
