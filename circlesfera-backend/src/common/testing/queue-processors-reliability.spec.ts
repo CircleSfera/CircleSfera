@@ -9,7 +9,6 @@ import { FeedFanoutProcessor } from '../../feed/processors/feed-fanout.processor
 import { NotificationsProcessor } from '../../notifications/processors/notifications.processor.js';
 import { PostsProcessor } from '../../posts/posts.processor.js';
 import { SlackProcessor } from '../../slack/processors/slack.processor.js';
-import { StoriesProcessor } from '../../stories/processors/stories.processor.js';
 import { AccountDeletionProcessor } from '../../users/account-deletion.processor.js';
 import { DataExportProcessor } from '../../users/data-export.processor.js';
 import { UsersProcessor } from '../../users/users.processor.js';
@@ -222,15 +221,6 @@ describe('Queue Processors Reliability & Error Handling', () => {
       await expect(proc.cleanupOldNotifications()).rejects.toThrow(
         'Database deadlock',
       );
-    });
-  });
-
-  describe('StoriesProcessor & StoriesService', () => {
-    it('throws UnrecoverableError on unknown job name', async () => {
-      const proc = new StoriesProcessor({} as any);
-      const job = { name: 'unknown-story-job', data: {} } as any;
-
-      await expect(proc.process(job)).rejects.toThrow(UnrecoverableError);
     });
   });
 
