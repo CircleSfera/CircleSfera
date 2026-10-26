@@ -126,6 +126,17 @@ export class GetMessagesQuery {
       delete m.media;
       delete m.voiceMedia;
 
+      // A deleted message shows no file, whatever a row may still name.
+      if (m.isDeleted) {
+        m.url = null;
+        m.standardUrl = null;
+        m.thumbnailUrl = null;
+        m.mediaType = null;
+        m.voiceUrl = null;
+        m.voiceDuration = null;
+        m.voiceWaveform = null;
+      }
+
       if (m.isLocked && profileId && m.senderId !== profileId) {
         const isUnlocked = m.messageUnlocks && m.messageUnlocks.length > 0;
         if (!isUnlocked) {

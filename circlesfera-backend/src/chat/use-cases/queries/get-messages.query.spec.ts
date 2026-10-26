@@ -159,6 +159,46 @@ describe('GetMessagesQuery', () => {
     expect(result[0]).not.toHaveProperty('voiceMedia');
   });
 
+  it('shows no file of a deleted message, even one its row or its Media rows still name', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt: null });
+    mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.message.findMany.mockResolvedValue([
+      {
+        id: 'msg-1',
+        content: '',
+        senderId: 'prof-2',
+        isLocked: false,
+        isDeleted: true,
+        url: null,
+        standardUrl: '/uploads/v/master.m3u8',
+        thumbnailUrl: '/uploads/v/thumb.jpg',
+        mediaType: 'video',
+        voiceUrl: '/uploads/voice.webm',
+        voiceDuration: 3,
+        voiceWaveform: [0.5],
+        media: {
+          url: '/uploads/v.mp4',
+          standardUrl: '/uploads/v/master.m3u8',
+          thumbnailUrl: '/uploads/v/thumb.jpg',
+          status: 'READY',
+        },
+        voiceMedia: { url: '/uploads/voice.webm' },
+      },
+    ]);
+
+    const [message] = await query.execute('conv-1', 50, 'prof-1');
+
+    expect(message).toMatchObject({
+      url: null,
+      standardUrl: null,
+      thumbnailUrl: null,
+      mediaType: null,
+      voiceUrl: null,
+      voiceDuration: null,
+      voiceWaveform: null,
+    });
+  });
+
   it('allows fetching without profileId (system usage) and handles null content', async () => {
     // Newest first from the database.
     mockPrisma.message.findMany.mockResolvedValue([

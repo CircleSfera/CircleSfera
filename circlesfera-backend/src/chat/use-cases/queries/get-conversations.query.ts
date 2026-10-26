@@ -161,13 +161,30 @@ export class GetConversationsQuery {
     return this.withReadablePreview(conv);
   }
 
-  // The latest message is stored encrypted; the list shows it in clear.
+  // The latest message is stored encrypted; the list shows it in clear. A
+  // deleted one shows no file, whatever its row may still name.
   private withReadablePreview<
     T extends { messages: { content: string | null }[] },
   >(conv: T): T {
-    const lastMsg = conv.messages?.[0];
+    const lastMsg = conv.messages?.[0] as
+      | (T['messages'][number] & {
+          isDeleted?: boolean;
+          url?: string | null;
+          standardUrl?: string | null;
+          thumbnailUrl?: string | null;
+          mediaType?: string | null;
+          voiceUrl?: string | null;
+        })
+      | undefined;
     if (lastMsg?.content) {
       lastMsg.content = this.cryptoService.decrypt(lastMsg.content);
+    }
+    if (lastMsg?.isDeleted) {
+      lastMsg.url = null;
+      lastMsg.standardUrl = null;
+      lastMsg.thumbnailUrl = null;
+      lastMsg.mediaType = null;
+      lastMsg.voiceUrl = null;
     }
     return conv;
   }
