@@ -55,7 +55,21 @@ for pin in $pins; do
     fi
     lookup="$source:${name#*:}"
   fi
-  if ! new=$(served "$lookup"); then
+  # The public mirror the Dockerfiles name refuses anonymous readers once its
+  # allowance for the runner's address is used up; Google's mirror of Docker
+  # Hub and Docker Hub serve the same tags with the same digests.
+  lookups=$lookup
+  ecr=public.ecr.aws/docker/library/
+  if [[ $lookup == "$ecr"* ]]; then
+    lookups="$lookup mirror.gcr.io/library/${lookup#"$ecr"} docker.io/library/${lookup#"$ecr"}"
+  fi
+  new=
+  for candidate in $lookups; do
+    if new=$(served "$candidate"); then break; fi
+    echo "Could not read $candidate"
+    new=
+  done
+  if [ -z "$new" ]; then
     echo "Could not read $lookup"
     printf -- '- `%s`: could not be read\n' "$lookup" >> "$report.unread"
     unreachable=$((unreachable + 1))

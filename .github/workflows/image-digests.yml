@@ -1,6 +1,6 @@
 name: Image digests
 
-# Every week, moves the images pinned by digest to what their tags serve
+# Every day, moves the images pinned by digest to what their tags serve
 # that day (scripts/refresh-image-digests.sh), so that the server and the app
 # images keep getting the fixes of their maintainers. Dependabot cannot do it
 # for them: the mirror the Dockerfiles name refuses the listing of tags it
@@ -16,7 +16,7 @@ name: Image digests
 # told.
 on:
   schedule:
-    - cron: '0 5 * * 1'
+    - cron: '0 5 * * *'
   workflow_dispatch:
 
 permissions:
@@ -49,7 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           {
-            echo "The images below are pinned by digest; their tags now serve another one. Same tags, so the same major versions; only the digests move. Opened by the weekly **Image digests** workflow."
+            echo "The images below are pinned by digest; their tags now serve another one. Same tags, so the same major versions; only the digests move. Opened by the daily **Image digests** workflow."
             echo
             echo "| Image | Before | After | Where |"
             echo "| --- | --- | --- | --- |"
