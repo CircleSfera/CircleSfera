@@ -280,39 +280,4 @@ export class EditsService {
     }
     return { status: state };
   }
-
-  async cleanupAbandonedDrafts() {
-    try {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-      const draftsToDelete = await this.prisma.editProject.findMany({
-        where: { updatedAt: { lt: thirtyDaysAgo } },
-      });
-
-      // The drafts read go first, under the same condition, so a draft
-      // edited meanwhile is kept; then the files of the drafts that are gone.
-      const ids = draftsToDelete.map((draft) => draft.id);
-      const deleted = await this.prisma.editProject.deleteMany({
-        where: { id: { in: ids }, updatedAt: { lt: thirtyDaysAgo } },
-      });
-      const kept = new Set(
-        (
-          await this.prisma.editProject.findMany({
-            where: { id: { in: ids } },
-            select: { id: true },
-          })
-        ).map((draft) => draft.id),
-      );
-      for (const draft of draftsToDelete) {
-        if (!kept.has(draft.id)) await this.deleteProjectMedia(draft);
-      }
-      if (deleted.count > 0) {
-        this.logger.log(`Cleaned up ${deleted.count} abandoned edit drafts.`);
-      }
-      return { count: deleted.count };
-    } catch (error) {
-      this.logger.error('Failed to clean up abandoned drafts', error);
-      throw error;
-    }
-  }
 }
