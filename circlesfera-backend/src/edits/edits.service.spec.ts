@@ -223,6 +223,9 @@ describe('EditsService', () => {
                     fileUrl: 'https://cdn.example.com/clip-b.jpg',
                   },
                   { type: 'text', content: 'hi' },
+                  // Still on the device: never a stored file of this server.
+                  { type: 'image', fileUrl: 'blob:https://app/clip-c' },
+                  { type: 'image', fileUrl: 'data:image/png;base64,AAAA' },
                 ],
               },
             ],
