@@ -12,8 +12,8 @@ type Client = Pick<Prisma.TransactionClient, 'conversation' | 'participant'>;
  * Names an admin for a group that has none left, and answers the Profile
  * named; null when the group still has an admin, is not a group, or has no
  * member who may be one. A member who may be one is still in the group,
- * accepted it, and has an account that is neither banned, suspended nor
- * being erased. Ties go to the lowest participant id, never at random. A
+ * accepted it, and has an active account: not deactivated, banned,
+ * suspended nor being erased. Ties go to the lowest participant id, never at random. A
  * plain function, so that account erasure can run it in its transaction.
  */
 export async function ensureGroupAdmin(
@@ -33,29 +33,38 @@ export async function ensureGroupAdmin(
   });
   if (hasAdmin > 0) return null;
 
-  const next = await client.participant.findFirst({
-    where: {
-      ...inGroup,
-      profile: {
-        isAccountBanned: false,
-        OR: [{ suspendedUntil: null }, { suspendedUntil: { lte: now } }],
-        user: {
-          isRootBanned: false,
-          deletedAt: null,
-          scheduledDeletionAt: null,
+  // A candidate who leaves at this very moment is passed over for the next
+  // one, rather than failing the leave that asked for a successor.
+  const passedOver: string[] = [];
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const next = await client.participant.findFirst({
+      where: {
+        ...inGroup,
+        ...(passedOver.length > 0 ? { id: { notIn: passedOver } } : {}),
+        profile: {
+          isAccountBanned: false,
+          OR: [{ suspendedUntil: null }, { suspendedUntil: { lte: now } }],
+          user: {
+            isActive: true,
+            isRootBanned: false,
+            deletedAt: null,
+            scheduledDeletionAt: null,
+          },
         },
       },
-    },
-    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    select: { id: true, profileId: true },
-  });
-  if (!next) return null;
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true, profileId: true },
+    });
+    if (!next) return null;
 
-  await client.participant.update({
-    where: { id: next.id },
-    data: { isAdmin: true },
-  });
-  return next.profileId;
+    const promoted = await client.participant.updateMany({
+      where: { id: next.id, deletedAt: null },
+      data: { isAdmin: true },
+    });
+    if (promoted.count > 0) return next.profileId;
+    passedOver.push(next.id);
+  }
+  return null;
 }
 
 @Injectable()

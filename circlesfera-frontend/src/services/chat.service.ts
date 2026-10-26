@@ -73,7 +73,7 @@ export const chatApi = {
   createGroup: (data: { participantIds: string[]; name?: string }) =>
     apiClient.post<Conversation>('/chat/conversations', data),
 
-  deleteConversation: (id: string, mode: 'me' | 'both' = 'both') =>
+  deleteConversation: (id: string, mode: 'me' = 'me') =>
     apiClient.delete(`/chat/conversations/${id}?mode=${mode}`),
 
   updateGroup: (

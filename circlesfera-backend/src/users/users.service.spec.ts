@@ -498,7 +498,7 @@ describe('UsersService', () => {
       findMany: vi.fn(),
       count: vi.fn(),
       findFirst: vi.fn(),
-      update: vi.fn(),
+      updateMany: vi.fn(),
     };
     const conversation = { findUnique: vi.fn() };
     beforeEach(() => {
@@ -523,6 +523,7 @@ describe('UsersService', () => {
         id: 'part-oldest',
         profileId: 'p-oldest',
       });
+      participant.updateMany.mockResolvedValueOnce({ count: 1 });
       mockPrismaService.user.deleteMany.mockResolvedValue({ count: 1 });
 
       await expect(service.deleteScheduledUser('u_admin')).resolves.toBe(true);
@@ -539,8 +540,8 @@ describe('UsersService', () => {
       expect(participant.findMany.mock.invocationCallOrder[0]).toBeLessThan(
         mockPrismaService.user.deleteMany.mock.invocationCallOrder[0],
       );
-      expect(participant.update).toHaveBeenCalledWith({
-        where: { id: 'part-oldest' },
+      expect(participant.updateMany).toHaveBeenCalledWith({
+        where: { id: 'part-oldest', deletedAt: null },
         data: { isAdmin: true },
       });
     });

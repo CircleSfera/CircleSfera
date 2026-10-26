@@ -889,13 +889,10 @@ describe('ChatWindow', () => {
       return i18n;
     }
 
+    // Deleting removes the chat from your inbox only: nobody deletes it
+    // for the others.
     const CASES = [
       ['chat.delete_for_me', 'me', 'chat.delete_confirm.me_title'],
-      [
-        'chat.delete_for_everyone',
-        'both',
-        'chat.delete_confirm.everyone_title',
-      ],
     ] as const;
 
     /** The confirmation that deleting asks for, found by its question. */
@@ -957,17 +954,45 @@ describe('ChatWindow', () => {
       },
     );
 
+    it('in a group, offers leaving it, and asks first', async () => {
+      vi.mocked(chatApi.getConversation).mockResolvedValue({
+        data: groupConversation(),
+      } as never);
+      vi.mocked(chatApi.deleteConversation).mockResolvedValue({} as never);
+      const i18n = await openMenu();
+
+      expect(
+        screen.queryByRole('button', { name: i18n.t('chat.delete_for_me') }),
+      ).not.toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('chat.group_details.leave_group'),
+        }),
+      );
+      const dialog = await confirmation(i18n, 'chat.group_details.leave_group');
+      expect(
+        within(dialog).getByText(i18n.t('chat.group_details.leave_confirm')),
+      ).toBeInTheDocument();
+      expect(chatApi.deleteConversation).not.toHaveBeenCalled();
+
+      fireEvent.click(
+        within(dialog).getByRole('button', {
+          name: i18n.t('chat.group_details.leave_group'),
+        }),
+      );
+      await waitFor(() =>
+        expect(chatApi.deleteConversation).toHaveBeenCalledWith('c1', 'me'),
+      );
+    });
+
     it('keeps the conversation when the question is answered with no', async () => {
       const i18n = await openMenu();
       fireEvent.click(
         screen.getByRole('button', {
-          name: i18n.t('chat.delete_for_everyone'),
+          name: i18n.t('chat.delete_for_me'),
         }),
       );
-      const dialog = await confirmation(
-        i18n,
-        'chat.delete_confirm.everyone_title',
-      );
+      const dialog = await confirmation(i18n, 'chat.delete_confirm.me_title');
 
       fireEvent.click(
         within(dialog).getByRole('button', { name: i18n.t('chat.cancel') }),

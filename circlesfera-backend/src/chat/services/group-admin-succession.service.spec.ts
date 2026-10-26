@@ -18,7 +18,7 @@ function client({
     participant: {
       count: vi.fn().mockResolvedValue(admins),
       findFirst: vi.fn().mockResolvedValue(next),
-      update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   };
 }
@@ -48,6 +48,7 @@ describe('ensureGroupAdmin', () => {
           isAccountBanned: false,
           OR: [{ suspendedUntil: null }, { suspendedUntil: { lte: now } }],
           user: {
+            isActive: true,
             isRootBanned: false,
             deletedAt: null,
             scheduledDeletionAt: null,
@@ -58,8 +59,8 @@ describe('ensureGroupAdmin', () => {
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       select: { id: true, profileId: true },
     });
-    expect(c.participant.update).toHaveBeenCalledWith({
-      where: { id: 'part-2' },
+    expect(c.participant.updateMany).toHaveBeenCalledWith({
+      where: { id: 'part-2', deletedAt: null },
       data: { isAdmin: true },
     });
   });
@@ -69,7 +70,7 @@ describe('ensureGroupAdmin', () => {
 
     await expect(ensureGroupAdmin(c as never, 'g-1', now)).resolves.toBeNull();
     expect(c.participant.findFirst).not.toHaveBeenCalled();
-    expect(c.participant.update).not.toHaveBeenCalled();
+    expect(c.participant.updateMany).not.toHaveBeenCalled();
   });
 
   it('changes nothing in a 1:1 chat, or when no member may be admin', async () => {
@@ -83,6 +84,21 @@ describe('ensureGroupAdmin', () => {
     await expect(
       ensureGroupAdmin(nobody as never, 'g-1', now),
     ).resolves.toBeNull();
-    expect(nobody.participant.update).not.toHaveBeenCalled();
+    expect(nobody.participant.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('passes over a candidate who leaves at that very moment, for the next one', async () => {
+    const c = client();
+    c.participant.findFirst
+      .mockResolvedValueOnce({ id: 'part-2', profileId: 'p-2' })
+      .mockResolvedValueOnce({ id: 'part-3', profileId: 'p-3' });
+    c.participant.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    await expect(ensureGroupAdmin(c as never, 'g-1', now)).resolves.toBe('p-3');
+    expect(c.participant.findFirst.mock.calls[1][0].where.id).toEqual({
+      notIn: ['part-2'],
+    });
   });
 });

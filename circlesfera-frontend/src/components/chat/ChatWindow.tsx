@@ -130,9 +130,7 @@ export default function ChatWindow() {
   const [showMenu, setShowMenu] = useState(false);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [showChatDetails, setShowChatDetails] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<'me' | 'both' | null>(
-    null,
-  );
+  const [pendingDelete, setPendingDelete] = useState<'me' | null>(null);
   const [isDeletingConversation, setIsDeletingConversation] = useState(false);
   const [isLockPopoverOpen, setIsLockPopoverOpen] = useState(false);
   const [lockedPrice, setLockedPrice] = useState<number | null>(null);
@@ -1221,6 +1219,8 @@ export default function ChatWindow() {
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
                   className="absolute right-0 top-full mt-2 w-56 bg-surface-high border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 backdrop-blur-2xl"
                 >
+                  {/* Deleting a chat removes it from your inbox only; in a
+                      group it is leaving it. Nobody deletes it for others. */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -1231,19 +1231,9 @@ export default function ChatWindow() {
                     className="w-full min-h-11 text-left px-4 text-sm text-brand-secondary hover:bg-brand-secondary/10 transition-colors flex items-center gap-3 font-medium"
                   >
                     <Trash2 size={16} />
-                    {t('chat.delete_for_me')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowMenu(false);
-                      setPendingDelete('both');
-                    }}
-                    className="w-full min-h-11 text-left px-4 text-sm text-brand-secondary hover:bg-brand-secondary/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
-                  >
-                    <Trash2 size={16} />
-                    {t('chat.delete_for_everyone')}
+                    {chatInfo.isGroup
+                      ? t('chat.group_details.leave_group')
+                      : t('chat.delete_for_me')}
                   </button>
                 </motion.div>
               )}
@@ -1725,10 +1715,6 @@ export default function ChatWindow() {
             setShowChatDetails(false);
             setPendingDelete('me');
           }}
-          onDeleteForEveryone={() => {
-            setShowChatDetails(false);
-            setPendingDelete('both');
-          }}
         />
       )}
       <ConfirmModal
@@ -1736,18 +1722,18 @@ export default function ChatWindow() {
         onClose={() => setPendingDelete(null)}
         onConfirm={deleteConversation}
         title={t(
-          pendingDelete === 'both'
-            ? 'chat.delete_confirm.everyone_title'
+          chatInfo.isGroup
+            ? 'chat.group_details.leave_group'
             : 'chat.delete_confirm.me_title',
         )}
         message={t(
-          pendingDelete === 'both'
-            ? 'chat.delete_confirm.everyone_message'
+          chatInfo.isGroup
+            ? 'chat.group_details.leave_confirm'
             : 'chat.delete_confirm.me_message',
         )}
         confirmText={t(
-          pendingDelete === 'both'
-            ? 'chat.delete_for_everyone'
+          chatInfo.isGroup
+            ? 'chat.group_details.leave_group'
             : 'chat.delete_for_me',
         )}
         cancelText={t('chat.cancel')}
