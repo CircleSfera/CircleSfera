@@ -33,7 +33,7 @@ describe('EditsService', () => {
 
   const mockUploadsService = {
     deleteFile: vi.fn().mockResolvedValue(true),
-    deleteContentFiles: vi.fn().mockResolvedValue([]),
+    releaseContentFiles: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockAiService = {
@@ -203,7 +203,7 @@ describe('EditsService', () => {
   });
 
   describe('remove', () => {
-    it("deletes the project, then the author's own media and clip files", async () => {
+    it('deletes the project and keeps its media and clip files for 30 days', async () => {
       mockPrismaService.editProject.findFirst.mockResolvedValue({
         id: 'edit-1',
         profileId: 'user-1',
@@ -236,15 +236,12 @@ describe('EditsService', () => {
 
       await service.remove('user-1', 'edit-1');
 
-      // Only the author's own files no other row uses go (TD-008).
-      expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledWith(
-        'user-1',
-        [
-          'https://cdn.example.com/cover.mp4',
-          'https://cdn.example.com/clip-a.mp4',
-          'https://cdn.example.com/clip-b.jpg',
-        ],
-      );
+      // Its files are kept 30 days, then erased (PD-040): none goes now.
+      expect(mockUploadsService.releaseContentFiles).toHaveBeenCalledWith([
+        'https://cdn.example.com/cover.mp4',
+        'https://cdn.example.com/clip-a.mp4',
+        'https://cdn.example.com/clip-b.jpg',
+      ]);
       expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
     });
   });
@@ -428,7 +425,7 @@ describe('EditsService', () => {
         mediaUrl: 'https://cdn.example.com/broken.mp4',
         state: null,
       });
-      mockUploadsService.deleteContentFiles.mockRejectedValueOnce(
+      mockUploadsService.releaseContentFiles.mockRejectedValueOnce(
         new Error('S3 delete error'),
       );
       mockPrismaService.editProject.delete.mockResolvedValue({});

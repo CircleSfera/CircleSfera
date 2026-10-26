@@ -301,3 +301,60 @@ describe('StoredFilesService.ownersOf', () => {
     await expect(files.ownersOf([])).resolves.toEqual(new Map());
   });
 });
+
+describe('StoredFilesService, the files of deleted content', () => {
+  function withPrisma(storedFile: Record<string, unknown>) {
+    return new StoredFilesService(
+      { storedFile } as unknown as PrismaService,
+      { inUse: vi.fn() } as never,
+    );
+  }
+
+  it('reads, a page at a time, the files with an owner detached before a time', async () => {
+    const findMany = vi.fn().mockResolvedValue([{ key: '/uploads/b.jpg' }]);
+    const cutoff = new Date('2026-10-31T03:00:00Z');
+
+    await expect(
+      withPrisma({ findMany }).detachedBefore(cutoff, '/uploads/a.jpg', 500),
+    ).resolves.toEqual(['/uploads/b.jpg']);
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        detachedAt: { lt: cutoff },
+        profileId: { not: null },
+        key: { gt: '/uploads/a.jpg' },
+      },
+      orderBy: { key: 'asc' },
+      take: 500,
+      select: { key: true },
+    });
+
+    await withPrisma({ findMany }).detachedBefore(cutoff, null, 10);
+    expect(findMany.mock.calls[1][0].where).toEqual({
+      detachedAt: { lt: cutoff },
+      profileId: { not: null },
+    });
+  });
+
+  it('reads the files still within their days, and reattaches files a row uses again', async () => {
+    const findMany = vi.fn().mockResolvedValue([{ key: '/uploads/k.jpg' }]);
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const files = withPrisma({ findMany, updateMany });
+    const cutoff = new Date('2026-10-31T03:00:00Z');
+
+    await expect(files.detachedSince(cutoff)).resolves.toEqual(
+      new Set(['/uploads/k.jpg']),
+    );
+    expect(findMany).toHaveBeenCalledWith({
+      where: { detachedAt: { gte: cutoff } },
+      select: { key: true },
+    });
+
+    await files.reattach([]);
+    expect(updateMany).not.toHaveBeenCalled();
+    await files.reattach(['/uploads/b.jpg']);
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { key: { in: ['/uploads/b.jpg'] }, detachedAt: { not: null } },
+      data: { detachedAt: null },
+    });
+  });
+});

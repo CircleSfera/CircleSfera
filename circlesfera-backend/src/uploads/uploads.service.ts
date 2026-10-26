@@ -314,35 +314,23 @@ export class UploadsService {
   }
 
   /**
-   * Deletes the files of a deleted piece of content whose author is not
-   * known, each as its recorded owner's, under the same rule.
+   * Settles the files of a deleted piece of content, once its row is gone:
+   * each file no row uses any more is marked detached, readable by its owner
+   * only, and is deleted 30 days later by the nightly erasure
+   * (eraseExpiredDetachedFiles), not now: deleted content is kept that long
+   * (PD-040). Deletes nothing.
    */
-  async deleteContentFilesByRecordedOwner(
+  async releaseContentFiles(
     addresses: Array<string | null | undefined>,
-  ): Promise<string[]> {
-    const keys = addresses.filter((a): a is string => !!a);
-    const owners = await this.storedFiles.ownersOf(keys);
-    const byOwner = new Map<string, string[]>();
-    for (const [key, owner] of owners) {
-      byOwner.set(owner, [...(byOwner.get(owner) ?? []), key]);
-    }
-    // Files with no owner are deleted by no one, but made private all the
-    // same once no row uses them.
-    await this.storedFiles.release(
-      '',
-      keys.filter((key) => !owners.has(key)),
-    );
-    const deleted: string[] = [];
-    for (const [owner, ownedKeys] of byOwner) {
-      deleted.push(...(await this.deleteContentFiles(owner, ownedKeys)));
-    }
-    return deleted;
+  ): Promise<void> {
+    await this.storedFiles.release('', addresses);
   }
 
   /**
-   * Deletes the files of a piece of content its row named, once the row is
-   * gone: only its author's own, and only those no other row still uses.
-   * Answers the files deleted.
+   * Deletes the files a piece of content no longer names because the server
+   * replaced them (a story's video joined with its painted layer): only its
+   * author's own, and only those no other row still uses. Answers the files
+   * deleted. Content a person deletes goes through releaseContentFiles.
    */
   async deleteContentFiles(
     authorProfileId: string,

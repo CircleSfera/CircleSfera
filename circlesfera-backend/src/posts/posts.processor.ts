@@ -33,23 +33,17 @@ export class PostsProcessor extends WorkerHost {
     authorProfileId?: string;
     mediaUrls: string[];
   }): Promise<void> {
-    const { authorProfileId, mediaUrls } = data ?? {};
+    const { mediaUrls } = data ?? {};
     if (!mediaUrls || !Array.isArray(mediaUrls)) {
       throw new UnrecoverableError(
         'Invalid mediaUrls payload for delete-post-media',
       );
     }
     if (mediaUrls.length === 0) return;
-    this.logger.log(`Deleting the media files of a deleted post...`);
-    if (authorProfileId) {
-      await this.uploadsService.deleteContentFiles(authorProfileId, mediaUrls);
-      return;
-    }
-    // A job queued before it named its author: each file goes by the owner
-    // the record has for it, under the same rule. A file with no owner is
-    // left to the orphan sweep rather than deleted by address.
-    await this.uploadsService.deleteContentFilesByRecordedOwner(mediaUrls);
-
-    this.logger.log(`Successfully deleted all media files.`);
+    // The files are kept 30 days, readable by their owner only, then erased
+    // by the nightly erasure (PD-040). A job queued before it named its
+    // author is settled the same way: the author is not needed.
+    await this.uploadsService.releaseContentFiles(mediaUrls);
+    this.logger.log(`Settled the media files of a deleted post.`);
   }
 }

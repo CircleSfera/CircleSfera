@@ -16,6 +16,10 @@ const STREAM_FOLDER_FILE =
   /^\/uploads\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/[^/]+$/i;
 export const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v'];
 
+// How long the files of deleted content are kept, readable by their owner
+// only, before the nightly erasure deletes them (PD-040).
+export const DELETED_CONTENT_KEPT_DAYS = 30;
+
 /** Who a stored file is recorded for. */
 export interface StoredFileOwner {
   // The Profile the file belongs to; null when it is not known.
@@ -155,6 +159,47 @@ export class StoredFilesService {
     // Attached again: no longer detached.
     await this.prisma.storedFile.updateMany({
       where: { key: { in: stored }, detachedAt: { not: null } },
+      data: { detachedAt: null },
+    });
+  }
+
+  /**
+   * Files with an owner detached before the given time, a page at a time in
+   * the order of their keys, from after the key given. A file with no owner
+   * is the orphan sweep's, not the erasure's.
+   */
+  async detachedBefore(
+    cutoff: Date,
+    afterKey: string | null,
+    take: number,
+  ): Promise<string[]> {
+    const rows = await this.prisma.storedFile.findMany({
+      where: {
+        detachedAt: { lt: cutoff },
+        profileId: { not: null },
+        ...(afterKey ? { key: { gt: afterKey } } : {}),
+      },
+      orderBy: { key: 'asc' },
+      take,
+      select: { key: true },
+    });
+    return rows.map((row) => row.key);
+  }
+
+  /** Files detached at or after the given time: still within their days. */
+  async detachedSince(cutoff: Date): Promise<Set<string>> {
+    const rows = await this.prisma.storedFile.findMany({
+      where: { detachedAt: { gte: cutoff } },
+      select: { key: true },
+    });
+    return new Set(rows.map((row) => row.key));
+  }
+
+  /** Files a row uses again: no longer detached. */
+  async reattach(keys: string[]): Promise<void> {
+    if (keys.length === 0) return;
+    await this.prisma.storedFile.updateMany({
+      where: { key: { in: keys }, detachedAt: { not: null } },
       data: { detachedAt: null },
     });
   }
