@@ -41,7 +41,7 @@ jobs:
           images='
           pgvector:pg16|mirror.gcr.io/pgvector/pgvector|sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
           buildkit:buildx-stable-1|mirror.gcr.io/moby/buildkit|sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
-          redis:7-alpine|mirror.gcr.io/library/redis|sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+          redis:7-alpine|mirror.gcr.io/library/redis|sha256:57e4255cc971b1c8d6f8a6ca283ac01bc3ecdd914273ef6bfaede87aaecd6541
           '
           echo "$REGISTRY_TOKEN" | skopeo login ghcr.io --username "$REGISTRY_USER" --password-stdin
           echo "$images" | while IFS='|' read -r name source digest; do
