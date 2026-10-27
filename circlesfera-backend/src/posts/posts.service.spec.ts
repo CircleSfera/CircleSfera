@@ -17,13 +17,13 @@ import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
 
 // Every file in these tests is the sending Profile's own unless a test says so.
 const mockStoredFiles = {
   assertOwnedBy: vi.fn().mockResolvedValue(undefined),
   record: vi.fn().mockResolvedValue(undefined),
+  release: vi.fn().mockResolvedValue([]),
 };
 
 vi.mock('../common/utils/media-duration.util.js', () => ({
@@ -40,6 +40,8 @@ describe('PostsService', () => {
       findMany: vi.fn().mockResolvedValue([]),
     },
     $transaction: vi.fn(),
+    // No comment unless a test says so.
+    comment: { findMany: vi.fn().mockResolvedValue([]) },
     post: {
       findUnique: vi.fn(),
       findUniqueOrThrow: vi.fn(),
@@ -100,10 +102,6 @@ describe('PostsService', () => {
 
   const mockFrameCover = { choose: vi.fn() };
 
-  const mockPostMediaCleanupService = {
-    cleanupMedia: vi.fn().mockResolvedValue(undefined),
-  };
-
   const mockAnalyticsService = {
     trackPostView: vi.fn().mockResolvedValue(undefined),
   };
@@ -133,10 +131,6 @@ describe('PostsService', () => {
         {
           provide: PostDistributionService,
           useValue: mockPostDistributionService,
-        },
-        {
-          provide: PostMediaCleanupService,
-          useValue: mockPostMediaCleanupService,
         },
         { provide: FrameCoverService, useValue: mockFrameCover },
       ],
@@ -1454,15 +1448,64 @@ describe('PostsService', () => {
       });
 
       mockPrismaService.post.delete.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.comment.findMany.mockResolvedValueOnce([
+        {
+          id: 'c-1',
+          url: null,
+          standardUrl: null,
+          thumbnailUrl: null,
+          voiceUrl: '/uploads/voice.webm',
+          media: null,
+          voiceMedia: null,
+        },
+      ]);
+
+      const tx = {
+        comment: { findMany: mockPrismaService.comment.findMany },
+        post: { delete: vi.fn().mockResolvedValue({ id: 'post-1' }) },
+        $queryRaw: vi.fn().mockResolvedValue([]),
+      };
+      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
 
       await service.remove('post-1');
-      expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
+      expect(tx.post.delete).toHaveBeenCalledWith({
         where: { id: 'post-1' },
       });
-      expect(mockPostMediaCleanupService.cleanupMedia).toHaveBeenCalledWith(
-        'me',
-        [{ url: 'https://cdn/img.jpg' }],
+      // Locked before its comments are read: none can be added meanwhile.
+      const [sql, id] = tx.$queryRaw.mock.calls[0];
+      expect(sql.join('?')).toContain('FOR UPDATE');
+      expect(id).toBe('post-1');
+      expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        mockPrismaService.comment.findMany.mock.invocationCallOrder[0],
       );
+      // Its comments go with it, and so are settled with its own files, in
+      // the transaction that deletes the rows.
+      expect(mockPrismaService.comment.findMany.mock.calls[0][0].where).toEqual(
+        { postId: 'post-1' },
+      );
+      expect(mockStoredFiles.release).toHaveBeenCalledWith(
+        '',
+        ['https://cdn/img.jpg', undefined, undefined, '/uploads/voice.webm'],
+        tx,
+      );
+    });
+
+    it('fails, and so keeps the post, when its files cannot be settled', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post-1',
+        profileId: 'me',
+        media: [],
+      });
+      mockPrismaService.$transaction.mockImplementationOnce((cb) =>
+        cb({
+          comment: { findMany: vi.fn().mockResolvedValue([]) },
+          post: { delete: vi.fn() },
+          $queryRaw: vi.fn(),
+        }),
+      );
+      mockStoredFiles.release.mockRejectedValueOnce(new Error('db down'));
+
+      await expect(service.remove('post-1')).rejects.toThrow('db down');
     });
 
     it('throws when the post is missing', async () => {
@@ -1470,7 +1513,7 @@ describe('PostsService', () => {
       mockPrismaService.post.delete.mockClear();
       await expect(service.remove('missing')).rejects.toThrow('Post not found');
       expect(mockPrismaService.post.delete).not.toHaveBeenCalled();
-      expect(mockPostMediaCleanupService.cleanupMedia).not.toHaveBeenCalled();
+      expect(mockStoredFiles.release).not.toHaveBeenCalled();
     });
   });
 
@@ -1488,16 +1531,22 @@ describe('PostsService', () => {
         profileId: 'author-1',
         media: [{ url: 'http://cdn/1.jpg' }],
       });
-      mockPrismaService.post.delete.mockResolvedValueOnce({ id: 'p-admin' });
+      const tx = {
+        comment: { findMany: vi.fn().mockResolvedValue([]) },
+        post: { delete: vi.fn().mockResolvedValue({ id: 'p-admin' }) },
+        $queryRaw: vi.fn().mockResolvedValue([]),
+      };
+      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
 
       await service.adminRemove('p-admin');
-      expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
+      expect(tx.post.delete).toHaveBeenCalledWith({
         where: { id: 'p-admin' },
       });
-      // Only the author's own files may go with the post.
-      expect(mockPostMediaCleanupService.cleanupMedia).toHaveBeenCalledWith(
-        'author-1',
-        [{ url: 'http://cdn/1.jpg' }],
+      // Kept 30 days, readable by their owner only; none is deleted now.
+      expect(mockStoredFiles.release).toHaveBeenCalledWith(
+        '',
+        ['http://cdn/1.jpg', undefined, undefined],
+        tx,
       );
     });
   });

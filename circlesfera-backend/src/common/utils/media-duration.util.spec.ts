@@ -4,11 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ffprobe } from '../media/ffmpeg-runner.js';
 import {
   assertVideoUrlDuration,
+  PROBE_TIME_LIMIT_MS,
   probeMediaDurationSec,
   resolveMediaInputPath,
 } from './media-duration.util.js';
 
-vi.mock('../media/ffmpeg-runner.js', () => ({ ffprobe: vi.fn() }));
+vi.mock('../media/ffmpeg-runner.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../media/ffmpeg-runner.js')>()),
+  ffprobe: vi.fn(),
+}));
 
 const probed = (duration?: string) =>
   vi.mocked(ffprobe).mockResolvedValue({ format: { duration }, streams: [] });
@@ -38,7 +42,28 @@ describe('media duration', () => {
     await expect(probeMediaDurationSec('/uploads/a.mp4')).resolves.toBe(12.48);
     expect(ffprobe).toHaveBeenCalledWith(
       path.join(process.cwd(), '/uploads/a.mp4'),
+      { signal: expect.any(AbortSignal) },
     );
+  });
+
+  it('gives up after its time limit and stops ffprobe', async () => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      vi.mocked(ffprobe).mockImplementation((_input, options) => {
+        signal = options?.signal;
+        return new Promise(() => {});
+      });
+
+      const probe = probeMediaDurationSec('https://slow.example.com/a.mp4');
+      const refused = expect(probe).rejects.toThrow('ffprobe_timeout');
+      await vi.advanceTimersByTimeAsync(PROBE_TIME_LIMIT_MS);
+
+      await refused;
+      expect(signal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it.each([

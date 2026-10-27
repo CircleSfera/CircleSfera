@@ -284,16 +284,15 @@ export class LiveGiftService {
       // metadata IDs). Transaction.senderId/receiverId and Monetization.userId
       // are real foreign keys, so writing a deleted user's ID would violate
       // the constraint on INSERT rather than silently succeeding.
-      const [sender, creator] = await Promise.all([
-        tx.user.findUnique({
-          where: { id: params.senderId },
-          select: { id: true },
-        }),
-        tx.user.findUnique({
-          where: { id: params.creatorId },
-          select: { id: true },
-        }),
-      ]);
+      // One query at a time: a transaction has a single connection.
+      const sender = await tx.user.findUnique({
+        where: { id: params.senderId },
+        select: { id: true },
+      });
+      const creator = await tx.user.findUnique({
+        where: { id: params.creatorId },
+        select: { id: true },
+      });
 
       const transaction = await tx.transaction.create({
         data: {

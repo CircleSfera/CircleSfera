@@ -289,8 +289,10 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
       mockPrisma = {
         comment: {
           findUnique: vi.fn(),
+          findMany: vi.fn().mockResolvedValue([]),
           delete: vi.fn().mockResolvedValue({ id: 'comm-1' }),
         },
+        $transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(mockPrisma)),
       };
 
       mockEventEmitter = {
@@ -315,7 +317,10 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
           trackWrite: vi.fn().mockResolvedValue(undefined),
           recordText: vi.fn().mockResolvedValue(undefined),
         } as never,
-        { assertOwnedBy: vi.fn().mockResolvedValue(undefined) } as never,
+        {
+          assertOwnedBy: vi.fn().mockResolvedValue(undefined),
+          release: vi.fn().mockResolvedValue([]),
+        } as never,
       );
     });
 
