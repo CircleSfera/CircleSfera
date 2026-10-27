@@ -5482,6 +5482,7 @@
       "GIFT_NOT_FOUND": "Ese regalo no está disponible.",
       "CANNOT_RECONNECT_GUEST": "No puedes volver a entrar como invitado.",
       "LIVE_STREAMS_DISABLED": "Los directos están desactivados ahora mismo.",
+      "RECORDING_NOT_READY": "Esta grabación no está lista.",
       "MAINTENANCE_MODE": "CircleSfera está en mantenimiento. Inténtalo en un rato.",
       "REGISTRATION_CLOSED": "El registro está cerrado ahora mismo.",
       "CONTENT_POSTING_DISABLED": "Publicar está desactivado ahora mismo.",
