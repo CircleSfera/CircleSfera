@@ -1095,6 +1095,96 @@ describe('MediaAuthService', () => {
       expect(notStaff).not.toHaveBeenCalled();
     });
 
+    it("asks for whether the post or story is in its author's Recently deleted", async () => {
+      await service.isAccessAllowed('/uploads/x.jpg', null, null, notStaff);
+      expect(
+        mockPrismaService.postMedia.findMany.mock.calls[0][0].select.post.select
+          .deletedAt,
+      ).toBe(true);
+      expect(
+        mockPrismaService.story.findMany.mock.calls[0][0].select.deletedAt,
+      ).toBe(true);
+      expect(
+        mockPrismaService.comment.findMany.mock.calls[0][0].select.post.select
+          .deletedAt,
+      ).toBe(true);
+    });
+
+    it('gives a file of a deleted post, frame, story, or of a comment on a deleted post, to its author only', async () => {
+      const deletedPost = { ...publicPost('VISIBLE'), deletedAt: new Date() };
+      const cases = [
+        () =>
+          mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+            { postId: 'post-1', post: deletedPost },
+          ]),
+        () =>
+          mockPrismaService.story.findMany.mockResolvedValueOnce([
+            {
+              id: 'story-1',
+              profileId: 'author-1',
+              isPremium: false,
+              isCloseFriendsOnly: false,
+              moderationStatus: 'VISIBLE',
+              deletedAt: new Date(),
+              profile: { privacyLevel: 'PUBLIC' },
+            },
+          ]),
+        () =>
+          mockPrismaService.comment.findMany.mockResolvedValueOnce([
+            {
+              postId: 'post-1',
+              moderationStatus: 'VISIBLE',
+              post: deletedPost,
+            },
+          ]),
+      ];
+      for (const match of cases) {
+        for (const [user, profile] of [
+          ['viewer-u', 'viewer-1'],
+          [null, null],
+        ]) {
+          match();
+          expect(
+            await service.isAccessAllowed(
+              '/uploads/x.jpg',
+              user,
+              profile,
+              staff,
+            ),
+          ).toBe(false);
+        }
+        match();
+        expect(
+          await service.isAccessAllowed(
+            '/uploads/x.jpg',
+            'author-u',
+            'author-1',
+            notStaff,
+          ),
+        ).toBe(true);
+      }
+    });
+
+    it("still checks the other rows naming a file of the author's deleted post", async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+        {
+          postId: 'post-1',
+          post: { ...publicPost('VISIBLE'), deletedAt: new Date() },
+        },
+      ]);
+      mockPrismaService.collection.findMany.mockResolvedValueOnce([
+        { profileId: 'someone-else' },
+      ]);
+      expect(
+        await service.isAccessAllowed(
+          '/uploads/x.jpg',
+          'author-u',
+          'author-1',
+          notStaff,
+        ),
+      ).toBe(false);
+    });
+
     it('lets staff past a removed post but still checks the other rows naming the file', async () => {
       mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
         { postId: 'post-1', post: publicPost('REMOVED') },

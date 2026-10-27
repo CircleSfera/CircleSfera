@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Visibility } from '@prisma/client';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import { isBlockedEitherWay } from './block.policy.js';
+import { isGone } from './removed-content.policy.js';
 
 type PrismaReader = Pick<
   PrismaService,
@@ -27,12 +28,14 @@ export async function assertCanAccessStory(
       expiresAt: true,
       isCloseFriendsOnly: true,
       moderationStatus: true,
+      deletedAt: true,
       profile: { select: { privacyLevel: true } },
     },
   });
-  // A story removed by moderation is kept for six months and shown to
-  // nobody, its author included.
-  if (!story || story.moderationStatus === 'REMOVED') {
+  // A story removed by moderation is kept for six months, and one its author
+  // deleted waits in their Recently deleted: both are shown to nobody here,
+  // the author included.
+  if (!story || isGone(story)) {
     throw new NotFoundException('Story not found');
   }
   const result = { profileId: story.profileId, expiresAt: story.expiresAt };

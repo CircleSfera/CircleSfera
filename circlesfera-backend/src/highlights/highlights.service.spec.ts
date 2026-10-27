@@ -256,7 +256,9 @@ describe('HighlightsService', () => {
         },
         include: {
           stories: {
-            where: { story: { moderationStatus: { not: 'REMOVED' } } },
+            where: {
+              story: { moderationStatus: { not: 'REMOVED' }, deletedAt: null },
+            },
             include: {
               story: true,
             },
@@ -288,7 +290,9 @@ describe('HighlightsService', () => {
         },
         include: {
           stories: {
-            where: { story: { moderationStatus: { not: 'REMOVED' } } },
+            where: {
+              story: { moderationStatus: { not: 'REMOVED' }, deletedAt: null },
+            },
             include: {
               story: true,
             },

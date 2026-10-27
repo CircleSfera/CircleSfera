@@ -118,6 +118,28 @@ describe('MediaReferencesService.inUse, with rows about to be erased', () => {
   });
 });
 
+describe('MediaReferencesService.inUse, for who may still see a file', () => {
+  it("leaves out the rows of posts and stories in their author's Recently deleted only when asked", async () => {
+    const prisma = prismaWith();
+    const service = new MediaReferencesService(
+      prisma as unknown as PrismaService,
+    );
+
+    await service.inUse(['/uploads/a.jpg'], undefined, {}, true);
+    const whereOf = (model: string, call = 0) =>
+      prisma[model].findMany.mock.calls[call][0].where;
+    expect(whereOf('postMedia').post).toEqual({ deletedAt: null });
+    expect(whereOf('story').deletedAt).toBeNull();
+    expect(whereOf('message')).not.toHaveProperty('deletedAt');
+    expect(whereOf('comment')).not.toHaveProperty('post');
+
+    // By default every row counts: the sweeps keep what waits there.
+    await service.inUse(['/uploads/a.jpg']);
+    expect(whereOf('postMedia', 1)).not.toHaveProperty('post');
+    expect(whereOf('story', 1)).not.toHaveProperty('deletedAt');
+  });
+});
+
 describe('MediaReferencesService.inUse', () => {
   it('finds the stored files some row names by their exact key, in every listed column', async () => {
     const prisma = prismaWith({

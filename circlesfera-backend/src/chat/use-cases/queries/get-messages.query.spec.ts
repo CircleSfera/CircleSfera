@@ -89,12 +89,26 @@ describe('GetMessagesQuery', () => {
         postId: 'post-removed',
         post: { id: 'post-removed', moderationStatus: 'REMOVED' },
       },
+      {
+        id: 'msg-0',
+        content: null,
+        senderId: 'prof-1',
+        isLocked: false,
+        postId: 'post-deleted',
+        post: {
+          id: 'post-deleted',
+          moderationStatus: 'VISIBLE',
+          deletedAt: new Date(),
+        },
+      },
     ]);
 
     const result = await query.execute('conv-1', 50, 'prof-1');
 
-    expect(result[0]).toMatchObject({ postId: 'post-removed', post: null });
-    expect(result[1]).toMatchObject({
+    // One its author deleted is shown as not available, as a removed one.
+    expect(result[0]).toMatchObject({ postId: 'post-deleted', post: null });
+    expect(result[1]).toMatchObject({ postId: 'post-removed', post: null });
+    expect(result[2]).toMatchObject({
       post: { id: 'post-hidden', moderationStatus: 'HIDDEN' },
     });
   });

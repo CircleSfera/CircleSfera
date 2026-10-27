@@ -73,6 +73,19 @@ describe('FeedPreferencesService', () => {
       );
     });
 
+    it("throws NotFoundException for a post in its author's Recently deleted", async () => {
+      mockPrisma.post.findUnique.mockResolvedValueOnce({
+        id: 'post-gone',
+        profileId: 'author-2',
+        deletedAt: new Date(),
+      });
+
+      await expect(service.hidePost('viewer-1', 'post-gone')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrisma.feedHiddenPost.upsert).not.toHaveBeenCalled();
+    });
+
     it('throws BadRequestException if user tries to hide their own post', async () => {
       mockPrisma.post.findUnique.mockResolvedValueOnce({
         id: 'post-mine',

@@ -334,7 +334,8 @@ export class UploadsService {
    * Deletes the files a piece of content no longer names because the server
    * replaced them (a story's video joined with its painted layer): only its
    * author's own, and only those no other row still uses. Answers the files
-   * deleted. Content a person deletes goes through releaseContentFiles.
+   * deleted. A comment or draft a person deletes goes through
+   * releaseContentFiles; a post or story waits in Recently deleted first.
    */
   async deleteContentFiles(
     authorProfileId: string,

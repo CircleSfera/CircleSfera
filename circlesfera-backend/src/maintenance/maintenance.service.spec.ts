@@ -266,8 +266,15 @@ describe('MaintenanceService', () => {
 
       await service.publishScheduledPosts();
 
+      // One its author deleted waits in Recently deleted, unpublished.
+      expect(
+        mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].where,
+      ).toMatchObject({ scheduledStatus: 'SCHEDULED', deletedAt: null });
+      expect(
+        mockPrismaService.story.findMany.mock.calls.at(-1)?.[0].where,
+      ).toMatchObject({ scheduledStatus: 'SCHEDULED', deletedAt: null });
       expect(mockPrismaService.post.updateMany).toHaveBeenCalledWith({
-        where: { id: 'post-1', scheduledStatus: 'SCHEDULED' },
+        where: { id: 'post-1', scheduledStatus: 'SCHEDULED', deletedAt: null },
         data: expect.objectContaining({
           scheduledStatus: 'PUBLISHED',
           createdAt: expect.any(Date),
@@ -279,7 +286,11 @@ describe('MaintenanceService', () => {
         mockPostDistribution.dispatchScheduledPostPublished,
       ).toHaveBeenCalledWith('post-1');
       expect(mockPrismaService.story.updateMany).toHaveBeenCalledWith({
-        where: { id: 'story-1', scheduledStatus: 'SCHEDULED' },
+        where: {
+          id: 'story-1',
+          scheduledStatus: 'SCHEDULED',
+          deletedAt: null,
+        },
         data: expect.objectContaining({
           scheduledStatus: 'PUBLISHED',
           expiresAt: expect.any(Date),

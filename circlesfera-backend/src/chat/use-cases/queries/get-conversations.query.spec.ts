@@ -139,9 +139,26 @@ describe('GetConversationsQuery', () => {
           },
         ],
       },
+      {
+        id: 'conv-3',
+        messages: [
+          {
+            id: 'msg-3',
+            content: null,
+            post: {
+              id: 'post-3',
+              moderationStatus: 'VISIBLE',
+              deletedAt: new Date(),
+            },
+          },
+        ],
+      },
     ]);
 
     const result = await query.execute('prof-1');
+
+    // Nor one its author deleted.
+    expect(result[2].messages[0].post).toBeNull();
 
     expect(result[0].messages[0]).toEqual({
       id: 'msg-1',

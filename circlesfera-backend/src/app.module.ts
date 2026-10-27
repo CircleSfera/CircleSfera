@@ -76,6 +76,7 @@ import { PostsModule } from './posts/posts.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ProfilesModule } from './profiles/profiles.module.js';
 import { PushModule } from './push/push.module.js';
+import { RecentlyDeletedModule } from './recently-deleted/recently-deleted.module.js';
 import { ReportsModule } from './reports/reports.module.js';
 import { SearchModule } from './search/search.module.js';
 import { SecurityReportsModule } from './security-reports/security-reports.module.js';
@@ -170,6 +171,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     AdminAuthModule,
     ProfilesModule,
     PostsModule,
+    RecentlyDeletedModule,
     CommentsModule,
     LikesModule,
     FollowsModule,

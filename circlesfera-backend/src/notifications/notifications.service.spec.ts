@@ -187,7 +187,7 @@ describe('NotificationsService', () => {
       });
     });
 
-    it('leaves out what links to removed content, but not the notices of the decision', () => {
+    it('leaves out what links to removed or deleted content, but not the notices of the decision', () => {
       expect(LINKS_TO_SHOWN_CONTENT).toEqual({
         OR: [
           { type: 'MODERATION' },
@@ -195,6 +195,8 @@ describe('NotificationsService', () => {
             NOT: [
               { post: { moderationStatus: 'REMOVED' } },
               { story: { moderationStatus: 'REMOVED' } },
+              { post: { deletedAt: { not: null } } },
+              { story: { deletedAt: { not: null } } },
             ],
           },
         ],

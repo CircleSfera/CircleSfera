@@ -256,17 +256,19 @@ export class AnalyticsService {
 
     // 2. Get current lifetime stats
     const [posts, followers, totalLikes] = await Promise.all([
-      this.prisma.post.count({ where: { profileId } }),
+      this.prisma.post.count({ where: { profileId, deletedAt: null } }),
       this.prisma.follow.count({
         where: { followingId: profileId, status: 'ACCEPTED' },
       }),
-      this.prisma.like.count({ where: { post: { profileId } } }),
+      this.prisma.like.count({
+        where: { post: { profileId, deletedAt: null } },
+      }),
     ]);
 
     // 3. Calculate recent engagement
     // We look at posts from the last 30 days
     const recentPosts = await this.prisma.post.findMany({
-      where: { profileId, createdAt: { gte: startDate } },
+      where: { profileId, createdAt: { gte: startDate }, deletedAt: null },
       select: {
         id: true,
         views: true,
@@ -327,10 +329,12 @@ export class AnalyticsService {
       this.prisma.follow.count({
         where: { followerId: profileId, status: 'ACCEPTED' },
       }),
-      this.prisma.post.count({ where: { profileId } }),
-      this.prisma.like.count({ where: { post: { profileId } } }),
+      this.prisma.post.count({ where: { profileId, deletedAt: null } }),
+      this.prisma.like.count({
+        where: { post: { profileId, deletedAt: null } },
+      }),
       this.prisma.post.aggregate({
-        where: { profileId },
+        where: { profileId, deletedAt: null },
         _sum: { views: true },
       }),
     ]);

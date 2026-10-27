@@ -52,7 +52,6 @@ import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
-import { commentFiles } from '../uploads/comment-files.js';
 import {
   DELETION_TRANSACTION,
   StoredFilesService,
@@ -62,7 +61,6 @@ import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import type { PostMediaItemLike } from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
 
 // Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
@@ -822,23 +820,37 @@ export class PostsService {
     return { ...post, media: post.media.map(resolveMediaFields) };
   }
 
-  // Delete a post. Only the author can delete their own posts.
-  // Param id: The post ID
-  // Param profileId: The requesting user's ID (must be the author)
-  // Throws NotFoundException if post not found
-  // Throws ForbiddenException if user is not the author
+  // Delete a post (a frame too) into its author's Recently deleted: it is
+  // shown to nobody else from now on, and its author can restore it for 30
+  // days, as it was, with its likes and comments; then it is erased. The
+  // author's files of it are marked detached with it, readable by them only:
+  // both happen, or neither. Ownership is checked by OwnershipGuard.
+  // Throws NotFoundException if the post is not found or already deleted.
   async remove(id: string) {
-    const post = await this.prisma.post.findUnique({
-      where: { id },
-      include: { media: true },
-    });
-
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
-
-    // Ownership check is handled by OwnershipGuard at the controller level
-    await this.deleteWithFiles(post);
+    await this.prisma.$transaction(async (tx) => {
+      // Locked first: a restore or a second delete waits for this one.
+      const held = await tx.$queryRaw<
+        Array<{ profileId: string; deletedAt: Date | null }>
+      >`SELECT "profileId", "deletedAt" FROM "posts" WHERE id = ${id} FOR UPDATE`;
+      const post = held[0];
+      if (!post || post.deletedAt) {
+        throw new NotFoundException('Post not found');
+      }
+      await tx.post.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+        select: { id: true },
+      });
+      const media = await tx.postMedia.findMany({
+        where: { postId: id },
+        select: { url: true, standardUrl: true, thumbnailUrl: true },
+      });
+      await this.storedFiles.detachDeleted(
+        post.profileId,
+        media.flatMap((m) => [m.url, m.standardUrl, m.thumbnailUrl]),
+        tx,
+      );
+    }, DELETION_TRANSACTION);
   }
 
   // Staff removal of a post (bypasses ownership check). The post is not
@@ -857,30 +869,6 @@ export class PostsService {
     await setModerationStatus(this.prisma, 'POST', id, 'REMOVED');
   }
 
-  // The post's comments go with it. Its files and theirs are kept 30 days,
-  // readable by their owner only, then erased, and are settled with the
-  // deletion: if that fails, the post stays, so its files are never left
-  // public.
-  private async deleteWithFiles(post: {
-    id: string;
-    media: PostMediaItemLike[];
-  }) {
-    await this.prisma.$transaction(async (tx) => {
-      // Locked first: no comment can be added while the post goes.
-      await tx.$queryRaw`SELECT id FROM "posts" WHERE id = ${post.id} FOR UPDATE`;
-      const commentAddresses = await commentFiles(tx, { postId: post.id });
-      await tx.post.delete({ where: { id: post.id } });
-      await this.storedFiles.release(
-        '',
-        [
-          ...post.media.flatMap((m) => [m.url, m.standardUrl, m.thumbnailUrl]),
-          ...commentAddresses,
-        ],
-        tx,
-      );
-    }, DELETION_TRANSACTION);
-  }
-
   // Returns a Prisma filter for global/discovery feeds.
   // Shows only PUBLIC posts from non-private profiles, plus user's own posts.
   private async getGlobalVisibilityFilter(
@@ -891,6 +879,7 @@ export class PostsService {
     const baseFilter: Prisma.PostWhereInput = {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE',
+      deletedAt: null,
       ...matureWhere(content),
       profile: {
         AND: [
@@ -914,7 +903,8 @@ export class PostsService {
     currentProfileId: string | undefined,
     content: ViewerContent,
   ): Prisma.PostWhereInput {
-    // The author sees all of theirs but what moderation removed.
+    // The author sees all of theirs but what moderation removed and what
+    // they deleted.
     if (authorId === currentProfileId) return { ...NOT_REMOVED };
 
     const publicFilter: Prisma.PostWhereInput = {
@@ -927,12 +917,14 @@ export class PostsService {
       return {
         ...publicFilter,
         moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+        deletedAt: null,
         ...matureWhere(content),
       };
     }
 
     return {
       moderationStatus: { in: ['VISIBLE', 'FLAGGED'] }, // Still show flagged but not hidden
+      deletedAt: null,
       ...matureWhere(content),
       OR: [
         publicFilter,

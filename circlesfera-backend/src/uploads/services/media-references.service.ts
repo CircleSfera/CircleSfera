@@ -50,13 +50,21 @@ export type IgnoredRows = Partial<Record<MediaModel, string[]>>;
 type Row = Record<string, string | null>;
 interface MediaDelegate {
   findMany(args: {
-    where?: { OR: object[]; id?: { notIn: string[] } };
+    where?: { OR: object[]; id?: { notIn: string[] } } & object;
     select: Record<string, true>;
   }): Promise<Row[]>;
 }
 
 // The database, or a transaction on it.
 export type ReferencesClient = Prisma.TransactionClient;
+
+// The rows of a post or story its author deleted: they still name their
+// files, which wait with them in Recently deleted, but show them to nobody
+// else.
+const DELETED_ROWS: Partial<Record<MediaModel, object>> = {
+  postMedia: { post: { deletedAt: null } },
+  story: { deletedAt: null },
+};
 
 @Injectable()
 export class MediaReferencesService {
@@ -78,12 +86,15 @@ export class MediaReferencesService {
    * key: a file attached since TD-008 is named by the key it was recorded
    * with. Given a transaction, it reads what that transaction sees: a row
    * it has just deleted names nothing. The rows of `ignoring` do not count:
-   * the rows about to be erased with the files.
+   * the rows about to be erased with the files. With `shownOnly`, the rows
+   * of a post or story its author deleted do not count either: what is
+   * asked is whether anyone but the owner may still see the file.
    */
   async inUse(
     keys: string[],
     client: ReferencesClient = this.prisma,
     ignoring: IgnoredRows = {},
+    shownOnly = false,
   ): Promise<Set<string>> {
     const wanted = new Set(keys);
     const used = new Set<string>();
@@ -106,6 +117,7 @@ export class MediaReferencesService {
             })),
           ]),
           ...(ignored.length > 0 ? { id: { notIn: ignored } } : {}),
+          ...(shownOnly ? (DELETED_ROWS[model] ?? {}) : {}),
         },
         select: MediaReferencesService.select(model),
       });

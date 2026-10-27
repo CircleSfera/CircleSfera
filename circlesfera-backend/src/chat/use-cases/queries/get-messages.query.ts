@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { MediaStatus, Message, Participant } from '@prisma/client';
-import { isRemoved } from '../../../common/policies/removed-content.policy.js';
+import { isGone } from '../../../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../../../common/selects/public-profile.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
@@ -127,8 +127,9 @@ export class GetMessagesQuery {
       delete m.media;
       delete m.voiceMedia;
       // A shared post that moderation removed is kept for its appeal and
-      // shown to nobody: the message stays, without the post.
-      if (m.post && isRemoved(m.post)) m.post = null;
+      // shown to nobody, and one its author deleted is in their Recently
+      // deleted: the message stays, without the post (shown as unavailable).
+      if (m.post && isGone(m.post)) m.post = null;
 
       // A reply quotes its original: a deleted original shows no file
       // either.

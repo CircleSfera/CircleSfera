@@ -562,7 +562,14 @@ export class StoryStickersService {
   @Cron(CronExpression.EVERY_MINUTE)
   async announceEndedCountdowns(now = new Date()): Promise<number> {
     const ended = await this.prisma.storySticker.findMany({
-      where: { kind: 'COUNTDOWN', endsAt: { lte: now }, announcedAt: null },
+      // A story in its author's Recently deleted tells nobody until it is
+      // restored.
+      where: {
+        kind: 'COUNTDOWN',
+        endsAt: { lte: now },
+        announcedAt: null,
+        story: { deletedAt: null },
+      },
       select: {
         id: true,
         settings: true,

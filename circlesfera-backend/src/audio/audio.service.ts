@@ -106,7 +106,12 @@ export class AudioService {
   // Param id: The audio track's ID
   async getAudioPosts(id: string) {
     return await this.prisma.post.findMany({
-      where: { audioId: id, visibility: 'PUBLIC', moderationStatus: 'VISIBLE' },
+      where: {
+        audioId: id,
+        visibility: 'PUBLIC',
+        moderationStatus: 'VISIBLE',
+        deletedAt: null,
+      },
       include: {
         profile: {
           select: {

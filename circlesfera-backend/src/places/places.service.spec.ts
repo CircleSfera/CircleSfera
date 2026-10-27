@@ -227,5 +227,13 @@ describe('PlacesService', () => {
     expect(eligibility.profileId.notIn).toEqual(
       expect.arrayContaining(['blocked-user', 'blocked-me']),
     );
+    // Neither someone else's nor the viewer's own post shows once deleted
+    // or removed.
+    expect(eligibility.deletedAt).toBeNull();
+    expect(whereArg.posts.some.OR[1]).toEqual({
+      profileId: 'viewer',
+      moderationStatus: { not: 'REMOVED' },
+      deletedAt: null,
+    });
   });
 });

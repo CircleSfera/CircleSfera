@@ -102,6 +102,7 @@ export class SearchService {
           JOIN "users" u ON u.id = pr."userId"
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
+            AND p."deletedAt" IS NULL
             AND pr."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
             AND u."isActive" = true
@@ -123,6 +124,7 @@ export class SearchService {
           JOIN "users" u ON u.id = pr."userId"
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
+            AND p."deletedAt" IS NULL
             AND pr."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
             AND u."isActive" = true
@@ -523,6 +525,7 @@ export class SearchService {
       WHERE p."createdAt" > NOW() - INTERVAL '48 hours'
         AND p.visibility = 'PUBLIC'
         AND p."moderationStatus" = 'VISIBLE'
+        AND p."deletedAt" IS NULL
         AND pr."privacyLevel" = 'PUBLIC'
         AND u."deactivatedAt" IS NULL
       ORDER BY velocity_score DESC
@@ -563,6 +566,7 @@ export class SearchService {
         caption: { contains: sanitizedQuery, mode: 'insensitive' },
         visibility: 'PUBLIC',
         moderationStatus: 'VISIBLE',
+        deletedAt: null,
         profile: {
           privacyLevel: 'PUBLIC',
           user: { deactivatedAt: null },

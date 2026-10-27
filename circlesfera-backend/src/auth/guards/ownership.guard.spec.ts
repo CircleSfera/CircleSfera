@@ -258,6 +258,44 @@ describe('OwnershipGuard', () => {
     ).resolves.toBe(true);
   });
 
+  it('answers a post or story its author deleted as missing, to its author too', async () => {
+    storyFindUnique.mockResolvedValue({
+      profileId: 'p1',
+      moderationStatus: 'VISIBLE',
+      deletedAt: new Date(),
+    });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'x-1' } },
+          { model: 'Story' },
+        ),
+      ),
+    ).rejects.toThrow(NotFoundException);
+    expect(storyFindUnique).toHaveBeenCalledWith({
+      where: { id: 'x-1' },
+      select: { profileId: true, moderationStatus: true, deletedAt: true },
+    });
+
+    // A comment has no Recently deleted: it is not asked for.
+    commentFindUnique.mockResolvedValue({
+      profileId: 'p1',
+      moderationStatus: 'VISIBLE',
+    });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'c-1' } },
+          { model: 'Comment' },
+        ),
+      ),
+    ).resolves.toBe(true);
+    expect(commentFindUnique).toHaveBeenLastCalledWith({
+      where: { id: 'c-1' },
+      select: { profileId: true, moderationStatus: true },
+    });
+  });
+
   it('validates ownership for Story, Highlight, Notification, Collection, and Profile', async () => {
     storyFindUnique.mockResolvedValue({ profileId: 'p1' });
     await expect(

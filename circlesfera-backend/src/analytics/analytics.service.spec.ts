@@ -411,8 +411,9 @@ describe('AnalyticsService', () => {
           where: {
             id: 'p-1',
             profileId: 'prof-other',
-            // Nor one that moderation removed.
+            // Nor one that moderation removed, nor one they deleted.
             moderationStatus: { not: 'REMOVED' },
+            deletedAt: null,
           },
         }),
       );

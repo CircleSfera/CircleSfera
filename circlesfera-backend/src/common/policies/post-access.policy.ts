@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { type Prisma, Visibility } from '@prisma/client';
 import { isBlockedEitherWay } from './block.policy.js';
+import { isGone } from './removed-content.policy.js';
 
 type PostAccessReader = Pick<
   Prisma.TransactionClient,
@@ -12,6 +13,7 @@ export type AccessiblePost = {
   profileId: string;
   visibility: Visibility;
   moderationStatus: string;
+  deletedAt: Date | null;
   turnOffComments: boolean;
   hideLikes?: boolean;
   profile?: { privacyLevel?: Visibility } | null;
@@ -22,7 +24,8 @@ export type AccessiblePost = {
 // posts answer NotFound so neither the block nor the moderation is revealed;
 // privacy and audience restrictions answer Forbidden, as the detail endpoint
 // always has. The author has access to their own post unless moderation
-// removed it. Accepts a post id, or a post the caller already loaded with
+// removed it or they deleted it (it is then only in their Recently deleted,
+// which reads it on its own). Accepts a post id, or a post the caller already loaded with
 // these fields (avoids a second query on the detail endpoint).
 export async function assertCanAccessPost(
   db: PostAccessReader,
@@ -32,9 +35,10 @@ export async function assertCanAccessPost(
   const post =
     typeof postOrId === 'string' ? await loadPost(db, postOrId) : postOrId;
 
-  // A post removed by moderation is kept for its appeal and shown to
-  // nobody, its author included.
-  if (!post || post.moderationStatus === 'REMOVED') {
+  // A post removed by moderation is kept for its appeal, and one its author
+  // deleted waits in their Recently deleted: both are shown to nobody here,
+  // the author included.
+  if (!post || isGone(post)) {
     throw new NotFoundException('Post not found');
   }
 
@@ -86,6 +90,7 @@ function loadPost(
       profileId: true,
       visibility: true,
       moderationStatus: true,
+      deletedAt: true,
       turnOffComments: true,
       hideLikes: true,
       profile: { select: { privacyLevel: true } },
