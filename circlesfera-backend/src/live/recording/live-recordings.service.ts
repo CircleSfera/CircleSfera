@@ -329,8 +329,7 @@ export class LiveRecordingsService {
                 }[]
               >`SELECT "recordingStatus", "publishedAt", "endedByStaff" FROM "live_streams" WHERE id = ${row.id} FOR UPDATE`;
               if (
-                !held ||
-                held.recordingStatus !== 'READY' ||
+                held?.recordingStatus !== 'READY' ||
                 held.publishedAt !== null ||
                 held.endedByStaff !== endedByStaff
               ) {
