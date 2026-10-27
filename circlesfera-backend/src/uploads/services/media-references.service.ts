@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 // Every column that can hold the address of a stored file, by Prisma model.
@@ -52,12 +53,18 @@ interface MediaDelegate {
   }): Promise<Row[]>;
 }
 
+// The database, or a transaction on it.
+export type ReferencesClient = Prisma.TransactionClient;
+
 @Injectable()
 export class MediaReferencesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private delegate(model: MediaModel): MediaDelegate {
-    return (this.prisma as unknown as Record<MediaModel, MediaDelegate>)[model];
+  private delegate(
+    model: MediaModel,
+    client: ReferencesClient = this.prisma,
+  ): MediaDelegate {
+    return (client as unknown as Record<MediaModel, MediaDelegate>)[model];
   }
 
   private static select(model: MediaModel): Record<string, true> {
@@ -67,9 +74,13 @@ export class MediaReferencesService {
   /**
    * The stored files of the list that some row still names, by their exact
    * key: a file attached since TD-008 is named by the key it was recorded
-   * with.
+   * with. Given a transaction, it reads what that transaction sees: a row
+   * it has just deleted names nothing.
    */
-  async inUse(keys: string[]): Promise<Set<string>> {
+  async inUse(
+    keys: string[],
+    client: ReferencesClient = this.prisma,
+  ): Promise<Set<string>> {
     const wanted = new Set(keys);
     const used = new Set<string>();
     if (wanted.size === 0) return used;
@@ -81,7 +92,7 @@ export class MediaReferencesService {
       if (ext) folders.set(`${key.slice(0, -ext.length)}/`, key);
     }
     for (const model of Object.keys(MEDIA_COLUMNS) as MediaModel[]) {
-      const rows = await this.delegate(model).findMany({
+      const rows = await this.delegate(model, client).findMany({
         where: {
           OR: MEDIA_COLUMNS[model].flatMap((column) => [
             { [column]: { in: [...wanted] } },
@@ -102,14 +113,19 @@ export class MediaReferencesService {
         }
       }
     }
-    for (const clip of await this.editClips([...wanted])) used.add(clip);
+    for (const clip of await this.editClips([...wanted], client)) {
+      used.add(clip);
+    }
     return used;
   }
 
   // The clip files edit projects name: all of them, or those of the list.
-  private async editClips(only?: string[]): Promise<string[]> {
+  private async editClips(
+    only?: string[],
+    client: ReferencesClient = this.prisma,
+  ): Promise<string[]> {
     const rows = only
-      ? await this.prisma.$queryRaw<Array<{ key: string }>>`
+      ? await client.$queryRaw<Array<{ key: string }>>`
           SELECT DISTINCT clip #>> '{}' AS key
           FROM "edit_projects" e,
             jsonb_path_query(e."state", ${EDIT_CLIP_PATH}::jsonpath) clip

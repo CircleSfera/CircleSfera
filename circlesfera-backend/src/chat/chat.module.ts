@@ -17,11 +17,13 @@ import { UploadsModule } from '../uploads/uploads.module.js';
 import { ChatController } from './chat.controller.js';
 import { ChatProcessor } from './processors/chat.processor.js';
 import { ChatAuthorizationService } from './services/chat-authorization.service.js';
+import { EndedConversationsErasureService } from './services/ended-conversations-erasure.service.js';
 import { GroupAdminSuccessionService } from './services/group-admin-succession.service.js';
 // Group Commands
 import { CreateGroupUseCase } from './use-cases/groups/create-group.use-case.js';
 import { DeleteConversationUseCase } from './use-cases/groups/delete-conversation.use-case.js';
 import { LeaveGroupUseCase } from './use-cases/groups/leave-group.use-case.js';
+import { MakeGroupAdminUseCase } from './use-cases/groups/make-group-admin.use-case.js';
 import { RemoveParticipantUseCase } from './use-cases/groups/remove-participant.use-case.js';
 import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js';
 // Message Commands
@@ -52,6 +54,7 @@ const useCases = [
   CreateGroupUseCase,
   DeleteConversationUseCase,
   LeaveGroupUseCase,
+  MakeGroupAdminUseCase,
   RemoveParticipantUseCase,
   UpdateGroupUseCase,
   AcceptMessageRequestUseCase,
@@ -84,6 +87,7 @@ const useCases = [
     ChatProcessor,
     ChatAuthorizationService,
     GroupAdminSuccessionService,
+    EndedConversationsErasureService,
   ],
   controllers: [ChatController],
   exports: [AddReactionUseCase], // Exported for AppGateway

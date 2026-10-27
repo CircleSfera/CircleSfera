@@ -21,6 +21,7 @@ import { PrismaService } from '../../../prisma/prisma.service.js';
 import { PushService } from '../../../push/push.service.js';
 import { ActionLimitsService } from '../../../trust/action-limits.service.js';
 import { StoredFilesService } from '../../../uploads/services/stored-files.service.js';
+import { isNotice } from '../../message-kind.js';
 
 @Injectable()
 export class SendMessageUseCase {
@@ -132,8 +133,13 @@ export class SendMessageUseCase {
               'Conversation not found',
             );
 
+          // In a group, a declined invitation is no longer membership: only
+          // a row still in the group may write. A 1:1 chat removed by the
+          // sender comes back when they write in it.
           const isParticipant = conv.participants.some(
-            (p: any) => p.profileId === senderId,
+            (p: any) =>
+              p.profileId === senderId &&
+              (!conv.isGroup || p.deletedAt === null),
           );
           if (!isParticipant)
             throw AppException.Forbidden(
@@ -229,6 +235,24 @@ export class SendMessageUseCase {
           });
         }
 
+        // A notice from the app cannot be replied to. A reply to a message
+        // that no longer exists is sent as a plain message.
+        let replyTarget = replyToId;
+        if (replyToId) {
+          const repliedTo = await tx.message.findUnique({
+            where: { id: replyToId },
+            select: { kind: true },
+          });
+          if (!repliedTo) {
+            replyTarget = undefined;
+          } else if (isNotice(repliedTo)) {
+            throw AppException.BadRequest(
+              ErrorCode.MESSAGE_IS_NOTICE,
+              'A notice cannot be replied to',
+            );
+          }
+        }
+
         // A first message to someone who does not follow the sender is a
         // message request, which has its own per-Profile cap. Checked after
         // the block check so a refused attempt is not counted; a refusal
@@ -262,7 +286,7 @@ export class SendMessageUseCase {
             mediaId: media?.id,
             postId,
             storyId,
-            replyToId,
+            replyToId: replyTarget,
             voiceUrl,
             voiceDuration,
             voiceMediaId: voiceMedia?.id,
@@ -314,15 +338,19 @@ export class SendMessageUseCase {
           },
         });
 
-        await tx.participant.updateMany({
-          where: {
-            conversationId: conv.id,
-            deletedAt: { not: null },
-          },
-          data: {
-            deletedAt: null,
-          },
-        });
+        // A new message brings a removed 1:1 chat back for both sides. A
+        // group never: whoever declined it stays out.
+        if (!conv.isGroup) {
+          await tx.participant.updateMany({
+            where: {
+              conversationId: conv.id,
+              deletedAt: { not: null },
+            },
+            data: {
+              deletedAt: null,
+            },
+          });
+        }
 
         return { message: msg, conversation: conv };
       },

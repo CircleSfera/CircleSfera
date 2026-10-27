@@ -75,6 +75,19 @@ describe('GetConversationsQuery', () => {
     expect(result[2].messages[0].content).toBe('');
   });
 
+  it('never takes a notice from the app as the latest message, in the list or the unread count', async () => {
+    mockPrisma.conversation.findMany.mockResolvedValue([]);
+
+    await query.execute('prof-1');
+
+    const { include } = mockPrisma.conversation.findMany.mock.calls[0][0];
+    expect(include.messages).toMatchObject({
+      where: { kind: 'USER' },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+    });
+  });
+
   it('fetches request conversations when folder is requests', async () => {
     mockPrisma.conversation.findMany.mockResolvedValue([]);
 

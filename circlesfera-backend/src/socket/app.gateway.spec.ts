@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AppGateway, type SocketWithAuth } from './app.gateway.js';
+import {
+  AppGateway,
+  CHAT_EVENT_BURST,
+  CHAT_EVENTS_PER_SECOND,
+  type SocketWithAuth,
+} from './app.gateway.js';
 
 interface ServiceOverrides {
   socketAuthService?: {
@@ -13,6 +18,7 @@ interface ServiceOverrides {
   };
   chatRealtimeService?: {
     addReaction: ReturnType<typeof vi.fn>;
+    membersOf?: ReturnType<typeof vi.fn>;
   };
   webrtcSignalingService?: {
     authorizeSignal: ReturnType<typeof vi.fn>;
@@ -46,7 +52,13 @@ function gatewayWithServer(
       setUserOnline: vi.fn().mockResolvedValue(undefined),
       setUserOffline: vi.fn().mockResolvedValue({ lastSeenAt: new Date() }),
     },
-    (overrides.chatRealtimeService as any) ?? { addReaction: vi.fn() },
+    (overrides.chatRealtimeService as any) ?? {
+      addReaction: vi.fn(),
+      // Everyone asked about is in the conversation.
+      membersOf: vi.fn(
+        async (_conversationId: string, ids: string[]) => new Set(ids),
+      ),
+    },
     (overrides.webrtcSignalingService as any) ?? {
       authorizeSignal: vi.fn(),
       authorizeAndAcceptCall: vi.fn(),
@@ -147,12 +159,48 @@ describe('AppGateway connection and presence routing', () => {
     expect(client.join).toHaveBeenCalledWith('user:prof-1');
     expect(client.join).toHaveBeenCalledWith(['presence:prof-2']);
     expect(client.join).toHaveBeenCalledWith('presence:prof-1');
+    // An app that did not say it understands notices gets none.
+    expect(client.join).not.toHaveBeenCalledWith('chat-notices:prof-1');
     expect(mockPresenceService.setUserOnline).toHaveBeenCalledWith('user-1');
     expect(mockTo).toHaveBeenCalledWith('presence:prof-1');
     expect(mockEmit).toHaveBeenCalledWith('user_status', {
       profileId: 'prof-1',
       isOnline: true,
     });
+  });
+
+  it('puts an app that understands notices from the app in their room', async () => {
+    const gateway = gatewayWithServer(
+      { to: vi.fn().mockReturnValue({ emit: vi.fn() }) },
+      {
+        socketAuthService: {
+          authenticate: vi.fn().mockResolvedValue({
+            user: {
+              sub: 'user-1',
+              email: 'u1@example.com',
+              profileId: 'prof-1',
+            },
+            conversationIds: new Set(),
+          }),
+        },
+        socketPresenceService: {
+          getFollowPresenceRooms: vi.fn().mockResolvedValue([]),
+          setUserOnline: vi.fn().mockResolvedValue(undefined),
+          setUserOffline: vi.fn(),
+        },
+      },
+    );
+
+    const modern = mockSocket('prof-1');
+    (modern as any).handshake = { auth: { features: ['chat-notices'] } };
+    await gateway.handleConnection(modern);
+    expect(modern.join).toHaveBeenCalledWith('chat-notices:prof-1');
+
+    // A string, or any other feature, is not the list it expects.
+    const odd = mockSocket('prof-1');
+    (odd as any).handshake = { auth: { features: 'chat-notices' } };
+    await gateway.handleConnection(odd);
+    expect(odd.join).not.toHaveBeenCalledWith('chat-notices:prof-1');
   });
 
   it('propagates correlation id from handshake headers onto socket client data', async () => {
@@ -383,7 +431,6 @@ describe('AppGateway payload bounds and authorization', () => {
     const mockChatRealtime = {
       addReaction: vi.fn().mockResolvedValue({
         success: true,
-        grantConversationAccess: true,
         reactionRecord: { id: 'rec-1', reaction: '❤️' },
         participantProfileIds: ['profile-user', 'profile-other'],
       }),
@@ -410,7 +457,6 @@ describe('AppGateway payload bounds and authorization', () => {
       'conv-1',
       'profile-user',
       '❤️',
-      false,
     );
     expect(socket.data.conversationIds?.has('conv-1')).toBe(true);
     expect(mockTo).toHaveBeenCalledWith('user:profile-user');
@@ -955,6 +1001,248 @@ describe('AppGateway payload bounds and authorization', () => {
       );
       expect(mockTo).not.toHaveBeenCalled();
     });
+
+    it('asks the database whether sender and recipient are in it now', async () => {
+      const membersOf = vi.fn().mockResolvedValue(new Set(['prof-sender']));
+      const mockTo = vi.fn().mockReturnValue({ emit: vi.fn() });
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { chatRealtimeService: { addReaction: vi.fn(), membersOf } },
+      );
+      const socket = mockSocket('prof-sender');
+      socket.data.conversationIds = new Set(['c-1']);
+
+      // The recipient is no longer in it: nothing is said to them, and the
+      // sender keeps the conversation.
+      await gateway.handleTypingStart(
+        { conversationId: 'c-1', recipientId: 'prof-gone' } as any,
+        socket,
+      );
+
+      expect(membersOf).toHaveBeenCalledWith('c-1', [
+        'prof-sender',
+        'prof-gone',
+      ]);
+      expect(mockTo).not.toHaveBeenCalled();
+      expect(socket.data.conversationIds.has('c-1')).toBe(true);
+    });
+
+    it('stops a socket whose Profile left from typing, reading or telling anything', async () => {
+      const membersOf = vi.fn().mockResolvedValue(new Set(['prof-rec']));
+      const mockTo = vi.fn().mockReturnValue({ emit: vi.fn() });
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { chatRealtimeService: { addReaction: vi.fn(), membersOf } },
+      );
+      const socket = mockSocket('prof-left');
+      socket.data.conversationIds = new Set(['c-1']);
+
+      await gateway.handleTypingStart(
+        { conversationId: 'c-1', recipientId: 'prof-rec' } as any,
+        socket,
+      );
+
+      expect(mockTo).not.toHaveBeenCalled();
+      expect(socket.data.conversationIds.has('c-1')).toBe(false);
+
+      // The socket forgot it, so the next event is not even looked up.
+      membersOf.mockClear();
+      await gateway.handleMarkRead(
+        { conversationId: 'c-1', recipientId: 'prof-rec' } as any,
+        socket,
+      );
+      await gateway.handleTypingStop(
+        { conversationId: 'c-1', recipientId: 'prof-rec' } as any,
+        socket,
+      );
+      expect(membersOf).not.toHaveBeenCalled();
+      expect(mockTo).not.toHaveBeenCalled();
+    });
+
+    it('ignores typing from a socket with no Profile', async () => {
+      const mockTo = vi.fn().mockReturnValue({ emit: vi.fn() });
+      const gateway = gatewayWithServer({ to: mockTo });
+      const socket = mockSocket('prof-sender');
+      (socket.data.user as any) = null;
+
+      await gateway.handleTypingStart(
+        { conversationId: 'c-1', recipientId: 'prof-rec' } as any,
+        socket,
+      );
+
+      expect(mockTo).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the allowance of chat events of a socket', () => {
+    it('drops what a socket sends past its burst, says so once, and lets it go on later', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-01T00:00:00Z') });
+      try {
+        const membersOf = vi.fn(
+          async (_c: string, ids: string[]) => new Set(ids),
+        );
+        const addReaction = vi.fn().mockResolvedValue({ success: false });
+        const mockTo = vi.fn().mockReturnValue({ emit: vi.fn() });
+        const gateway = gatewayWithServer(
+          { to: mockTo },
+          { chatRealtimeService: { addReaction, membersOf } },
+        );
+        const warn = vi.spyOn(
+          (gateway as unknown as { logger: { warn: (m: string) => void } })
+            .logger,
+          'warn',
+        );
+        const socket = mockSocket('prof-sender');
+        socket.data.conversationIds = new Set(['c-1']);
+        const typing = { conversationId: 'c-1', recipientId: 'prof-rec' };
+
+        for (let i = 0; i < CHAT_EVENT_BURST; i++) {
+          await gateway.handleTypingStart(typing as any, socket);
+        }
+        expect(membersOf).toHaveBeenCalledTimes(CHAT_EVENT_BURST);
+
+        // Past the burst, neither typing, reading nor reacting is looked up.
+        await gateway.handleTypingStop(typing as any, socket);
+        await gateway.handleMarkRead(typing as any, socket);
+        await gateway.handleSendReaction(
+          { messageId: 'm-1', conversationId: 'c-1', reaction: '👍' },
+          socket,
+        );
+        expect(membersOf).toHaveBeenCalledTimes(CHAT_EVENT_BURST);
+        expect(addReaction).not.toHaveBeenCalled();
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining('prof-sender'),
+        );
+
+        // The allowance comes back with time, up to the burst.
+        vi.advanceTimersByTime(1000);
+        for (let i = 0; i < CHAT_EVENTS_PER_SECOND + 1; i++) {
+          await gateway.handleTypingStart(typing as any, socket);
+        }
+        expect(membersOf).toHaveBeenCalledTimes(
+          CHAT_EVENT_BURST + CHAT_EVENTS_PER_SECOND,
+        );
+        vi.advanceTimersByTime(60_000);
+        expect(socket.data.chatBudget?.tokens).toBeLessThan(1);
+        await gateway.handleSendReaction(
+          { messageId: 'm-1', conversationId: 'c-1', reaction: '👍' },
+          socket,
+        );
+        expect(addReaction).toHaveBeenCalledTimes(1);
+        expect(socket.data.chatBudget?.tokens).toBe(CHAT_EVENT_BURST - 1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('keeps an allowance for each socket', async () => {
+      const membersOf = vi.fn(
+        async (_c: string, ids: string[]) => new Set(ids),
+      );
+      const gateway = gatewayWithServer(
+        { to: vi.fn().mockReturnValue({ emit: vi.fn() }) },
+        { chatRealtimeService: { addReaction: vi.fn(), membersOf } },
+      );
+      const busy = mockSocket('prof-sender');
+      const other = mockSocket('prof-sender');
+      for (const socket of [busy, other]) {
+        socket.data.conversationIds = new Set(['c-1']);
+      }
+      const typing = { conversationId: 'c-1', recipientId: 'prof-rec' };
+
+      for (let i = 0; i <= CHAT_EVENT_BURST; i++) {
+        await gateway.handleTypingStart(typing as any, busy);
+      }
+      await gateway.handleTypingStart(typing as any, other);
+
+      expect(membersOf).toHaveBeenCalledTimes(CHAT_EVENT_BURST + 1);
+    });
+  });
+
+  describe('a Profile that leaves a conversation', () => {
+    it('has it taken from every one of its sockets when it deletes or leaves it', () => {
+      const phone = mockSocket('p-1');
+      const laptop = mockSocket('p-1');
+      const other = mockSocket('p-2');
+      const noList = mockSocket('p-1');
+      for (const socket of [phone, laptop, other]) {
+        socket.data.conversationIds = new Set(['c-1', 'c-2']);
+      }
+      delete (noList.data as any).conversationIds;
+      const gateway = gatewayWithServer({
+        sockets: new Map([
+          ['s-1', phone],
+          ['s-2', laptop],
+          ['s-3', other],
+          ['s-4', noList],
+        ]),
+        to: vi.fn().mockReturnValue({ emit: vi.fn() }),
+      });
+
+      gateway.handleChatConversationDeleted({
+        participants: [{ profileId: 'p-1' }],
+        payload: { conversationId: 'c-1' },
+      });
+
+      expect([...phone.data.conversationIds!]).toEqual(['c-2']);
+      expect([...laptop.data.conversationIds!]).toEqual(['c-2']);
+      expect([...other.data.conversationIds!]).toEqual(['c-1', 'c-2']);
+      expect(noList.data.conversationIds).toBeUndefined();
+    });
+
+    it('has it taken from its sockets when removed from the group', () => {
+      const removed = mockSocket('p-removed');
+      const stays = mockSocket('p-stays');
+      const declined = mockSocket('p-declined');
+      for (const socket of [removed, stays, declined]) {
+        socket.data.conversationIds = new Set(['c-1']);
+      }
+      const gateway = gatewayWithServer({
+        sockets: new Map([
+          ['s-1', removed],
+          ['s-2', stays],
+          ['s-3', declined],
+        ]),
+        to: vi.fn().mockReturnValue({ emit: vi.fn() }),
+      });
+
+      gateway.handleChatConversationUpdated({
+        participants: [
+          { profileId: 'p-stays' },
+          { profileId: 'p-declined' },
+          { profileId: 'p-removed' },
+        ],
+        payload: {
+          id: 'c-1',
+          participants: [
+            { profileId: 'p-stays', deletedAt: null },
+            { profileId: 'p-declined', deletedAt: new Date() },
+            null,
+          ],
+        },
+      });
+
+      expect(removed.data.conversationIds?.has('c-1')).toBe(false);
+      expect(declined.data.conversationIds?.has('c-1')).toBe(false);
+      expect(stays.data.conversationIds?.has('c-1')).toBe(true);
+    });
+
+    it('keeps every socket as it is when the update names no members', () => {
+      const socket = mockSocket('p-1');
+      socket.data.conversationIds = new Set(['c-1']);
+      const gateway = gatewayWithServer({
+        sockets: new Map([['s-1', socket]]),
+        to: vi.fn().mockReturnValue({ emit: vi.fn() }),
+      });
+
+      gateway.handleChatConversationUpdated({
+        participants: [{ profileId: 'p-1' }],
+        payload: { id: 'c-1', name: 'Renamed' },
+      });
+
+      expect(socket.data.conversationIds.has('c-1')).toBe(true);
+    });
   });
 
   describe('WebRTC call signaling flows', () => {
@@ -1407,6 +1695,38 @@ describe('AppGateway payload bounds and authorization', () => {
       });
     });
 
+    it('sends a notice from the app only to the apps that understand it', () => {
+      const mockEmit = vi.fn();
+      const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+      const gateway = gatewayWithServer({ to: mockTo, sockets: new Map() });
+      const notice = {
+        id: 'n-1',
+        conversationId: 'c-1',
+        senderId: 'p-2',
+        content: '',
+        kind: 'ADMIN_GRANTED',
+      };
+
+      gateway.handleChatMessageSent({
+        participants: [{ profileId: 'p-1' }, { profileId: 'p-2' }],
+        payload: notice,
+      });
+
+      expect(mockTo.mock.calls).toEqual([
+        ['chat-notices:p-1'],
+        ['chat-notices:p-2'],
+      ]);
+      expect(mockEmit).toHaveBeenCalledWith('receiveMessage', notice);
+
+      // A message a member wrote still goes to every app.
+      mockTo.mockClear();
+      gateway.handleChatMessageSent({
+        participants: [{ profileId: 'p-1' }],
+        payload: { ...notice, id: 'm-1', kind: 'USER', content: 'hola' },
+      });
+      expect(mockTo.mock.calls).toEqual([['user:p-1']]);
+    });
+
     it('redacts a locked message content/media over the socket for non-sender participants', () => {
       // Security regression test: a freshly-sent locked message must never
       // leak its real content/media to a recipient over the realtime
@@ -1608,11 +1928,10 @@ describe('AppGateway payload bounds and authorization', () => {
       expect(mockChatRealtime.addReaction).toHaveBeenCalled();
     });
 
-    it('initializes conversationIds Set in handleSendReaction when grantConversationAccess is true', async () => {
+    it('initializes conversationIds Set in handleSendReaction once the reaction is recorded', async () => {
       const mockChatRealtime = {
         addReaction: vi.fn().mockResolvedValue({
           success: true,
-          grantConversationAccess: true,
           reactionRecord: { id: 'r-1', reaction: '👍' },
           participantProfileIds: [],
         }),

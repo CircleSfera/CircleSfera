@@ -36,6 +36,19 @@ describe('AddReactionUseCase', () => {
     );
   });
 
+  it('refuses a reaction to a notice from the app', async () => {
+    mockPrisma.message.findUnique.mockResolvedValue({
+      id: 'notice-1',
+      kind: 'ADMIN_GRANTED',
+      conversation: { participants: [{ profileId: 'prof-1' }] },
+    });
+
+    await expect(
+      useCase.execute('notice-1', 'prof-1', '❤️'),
+    ).rejects.toMatchObject({ errorCode: 'MESSAGE_IS_NOTICE', status: 400 });
+    expect(mockPrisma.messageReaction.create).not.toHaveBeenCalled();
+  });
+
   it('throws Forbidden if caller is not a conversation participant', async () => {
     mockPrisma.message.findUnique.mockResolvedValue({
       id: 'msg-1',

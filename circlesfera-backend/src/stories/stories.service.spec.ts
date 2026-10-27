@@ -7,7 +7,10 @@ import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
-import { StoredFilesService } from '../uploads/services/stored-files.service.js';
+import {
+  DELETION_TRANSACTION,
+  StoredFilesService,
+} from '../uploads/services/stored-files.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import type { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoriesService } from './stories.service.js';
@@ -946,39 +949,53 @@ describe('StoriesService', () => {
   });
 
   describe('delete', () => {
-    it('deletes the story and keeps its files for 30 days, deleting none, and goes on when they cannot be settled', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValueOnce({
-        id: 'story-1',
-        profileId: 'user-1',
-        url: 'https://cdn.example.com/s.jpg',
-        standardUrl: 'https://cdn.example.com/s-std.jpg',
-        thumbnailUrl: 'https://cdn.example.com/s-th.jpg',
-        overlayUrl: 'https://cdn.example.com/s-layer.png',
-      });
-      mockUploadsService.releaseContentFiles.mockRejectedValueOnce(
-        new Error('S3 error'),
-      );
-      mockPrismaService.story.delete.mockResolvedValue({});
+    const story = {
+      id: 'story-1',
+      profileId: 'user-1',
+      url: 'https://cdn.example.com/s.jpg',
+      standardUrl: 'https://cdn.example.com/s-std.jpg',
+      thumbnailUrl: 'https://cdn.example.com/s-th.jpg',
+      overlayUrl: 'https://cdn.example.com/s-layer.png',
+    };
+
+    it('deletes the story and keeps its files for 30 days, settled in the same transaction', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValueOnce(story);
+      const tx = { story: { delete: vi.fn().mockResolvedValue({}) } };
+      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
 
       await service.delete('story-1');
 
-      expect(mockPrismaService.story.delete).toHaveBeenCalledWith({
+      expect(tx.story.delete).toHaveBeenCalledWith({
         where: { id: 'story-1' },
       });
+      expect(mockPrismaService.story.delete).not.toHaveBeenCalled();
+      expect(
+        (mockPrismaService.$transaction.mock.calls.at(-1) as unknown[])[1],
+      ).toEqual(DELETION_TRANSACTION);
       // A layer not yet joined goes with the story.
-      expect(mockUploadsService.releaseContentFiles).toHaveBeenCalledWith([
-        'https://cdn.example.com/s.jpg',
-        'https://cdn.example.com/s-std.jpg',
-        'https://cdn.example.com/s-th.jpg',
-        'https://cdn.example.com/s-layer.png',
-      ]);
+      expect(mockUploadsService.releaseContentFiles).toHaveBeenCalledWith(
+        [
+          'https://cdn.example.com/s.jpg',
+          'https://cdn.example.com/s-std.jpg',
+          'https://cdn.example.com/s-th.jpg',
+          'https://cdn.example.com/s-layer.png',
+        ],
+        tx,
+      );
       expect(mockUploadsService.deleteContentFiles).not.toHaveBeenCalled();
       expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
-      expect(
-        mockPrismaService.story.delete.mock.invocationCallOrder[0],
-      ).toBeLessThan(
+      expect(tx.story.delete.mock.invocationCallOrder[0]).toBeLessThan(
         mockUploadsService.releaseContentFiles.mock.invocationCallOrder[0],
       );
+    });
+
+    it('fails, and so keeps the story, when its files cannot be settled', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValueOnce(story);
+      mockUploadsService.releaseContentFiles.mockRejectedValueOnce(
+        new Error('db down'),
+      );
+
+      await expect(service.delete('story-1')).rejects.toThrow('db down');
     });
 
     it('throws NotFoundException when story is not found', async () => {

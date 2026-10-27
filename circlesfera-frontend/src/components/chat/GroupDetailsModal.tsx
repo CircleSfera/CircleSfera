@@ -1,10 +1,11 @@
-import { LogOut, Shield, Trash2 } from 'lucide-react';
+import { LogOut, Shield, ShieldPlus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import type { Conversation } from '../../types';
 import UserAvatar from '../UserAvatar';
 import { Dialog } from '../ui/Dialog';
+import { adminCandidates, needsSuccessor } from './groupAdmins';
 
 interface GroupDetailsModalProps {
   isOpen: boolean;
@@ -12,6 +13,9 @@ interface GroupDetailsModalProps {
   onClose: () => void;
   onUpdate: (data: { name?: string; avatarUrl?: string | null }) => void;
   onRemoveParticipant: (profileId: string) => void;
+  onMakeAdmin: (profileId: string) => void;
+  // Called without asking when the person is the only admin: leaving then
+  // first asks who becomes admin.
   onLeaveGroup: () => void;
 }
 
@@ -21,6 +25,7 @@ export default function GroupDetailsModal({
   onClose,
   onUpdate,
   onRemoveParticipant,
+  onMakeAdmin,
   onLeaveGroup,
 }: GroupDetailsModalProps) {
   const { t } = useTranslation();
@@ -36,6 +41,9 @@ export default function GroupDetailsModal({
     (p) => p.profileId === myProfileId,
   );
   const isAdmin = myParticipant?.isAdmin || false;
+  const mayBeMadeAdmin = new Set(
+    adminCandidates(conversation, myProfileId).map((p) => p.profileId),
+  );
 
   const handleSave = () => {
     // An empty address takes the photo off; the server refuses an empty one.
@@ -179,24 +187,49 @@ export default function GroupDetailsModal({
                   </div>
 
                   {isAdmin && p.profileId !== myProfileId && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            t('chat.group_details.remove_confirm', {
-                              username: p.profile?.username ?? '',
-                            }),
-                          )
-                        ) {
-                          onRemoveParticipant(p.profileId);
-                        }
-                      }}
-                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 min-h-11 min-w-11 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition-all shrink-0"
-                      title={t('chat.group_details.remove_title')}
-                    >
-                      <Trash2 size={16} aria-hidden />
-                    </button>
+                    <div className="flex items-center shrink-0">
+                      {mayBeMadeAdmin.has(p.profileId) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                t('chat.group_details.make_admin_confirm', {
+                                  username: p.profile?.username ?? '',
+                                }),
+                              )
+                            ) {
+                              onMakeAdmin(p.profileId);
+                            }
+                          }}
+                          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 p-2 min-h-11 min-w-11 flex items-center justify-center text-brand-primary-text hover:bg-brand-primary/10 rounded-full transition-all"
+                          title={t('chat.group_details.make_admin')}
+                          aria-label={t('chat.group_details.make_admin_for', {
+                            username: p.profile?.username ?? '',
+                          })}
+                        >
+                          <ShieldPlus size={16} aria-hidden />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              t('chat.group_details.remove_confirm', {
+                                username: p.profile?.username ?? '',
+                              }),
+                            )
+                          ) {
+                            onRemoveParticipant(p.profileId);
+                          }
+                        }}
+                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 min-h-11 min-w-11 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition-all shrink-0"
+                        title={t('chat.group_details.remove_title')}
+                      >
+                        <Trash2 size={16} aria-hidden />
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -208,7 +241,10 @@ export default function GroupDetailsModal({
           <button
             type="button"
             onClick={() => {
-              if (window.confirm(t('chat.group_details.leave_confirm'))) {
+              if (
+                needsSuccessor(conversation, myProfileId) ||
+                window.confirm(t('chat.group_details.leave_confirm'))
+              ) {
                 onLeaveGroup();
               }
             }}

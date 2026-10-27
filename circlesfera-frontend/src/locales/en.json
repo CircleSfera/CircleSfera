@@ -2123,7 +2123,10 @@
       "remove_title": "Remove from group",
       "remove_confirm": "Remove @{{username}} from this group?",
       "leave_confirm": "Leave this group? You will stop receiving new messages.",
-      "leave_group": "Leave group"
+      "leave_group": "Leave group",
+      "make_admin": "Make admin",
+      "make_admin_for": "Make @{{username}} an admin",
+      "make_admin_confirm": "Make @{{username}} an admin? They will be able to edit the group and manage its members."
     },
     "locked_title": "Exclusive message",
     "locked_subtitle": "Unlock to view this content",
@@ -2167,7 +2170,21 @@
     "request_declined": "Request declined",
     "request_decline_error": "Could not decline the request",
     "request_title": "Accept this message request?",
-    "request_description": "If you accept, they will see when you are online and whether you have read their messages. They won't know you have read them until you accept."
+    "request_description": "If you accept, they will see when you are online and whether you have read their messages. They won't know you have read them until you accept.",
+    "choose_admin": {
+      "title": "Choose a new admin",
+      "description": "You're the only admin. Choose who manages the group after you leave, or let the group choose: the member who has been in it longest becomes admin.",
+      "members": "Members who can be admin",
+      "make_admin_and_leave": "Make admin and leave",
+      "leave_and_group_chooses": "Leave and let the group choose"
+    },
+    "notice": {
+      "admin_granted": "{{name}} is now an admin",
+      "you_admin": "You are now an admin",
+      "someone": "Someone"
+    },
+    "make_admin_error": "Couldn't make them an admin. Try again.",
+    "leave_group_error": "Couldn't leave the group. Try again."
   },
   "creator": {
     "title": "Creator Studio",
@@ -5456,7 +5473,9 @@
       "TEAM_INVITE_SELF": "You already own this profile.",
       "TEAM_TWO_FACTOR_REQUIRED": "Turn on two-step verification in Security to join a team.",
       "TEAM_MEMBER_NOT_FOUND": "That invitation or person is no longer there.",
-      "TEAM_MEMBER_NOT_ALLOWED": "Your role on this team profile does not include this."
+      "TEAM_MEMBER_NOT_ALLOWED": "Your role on this team profile does not include this.",
+      "MESSAGE_IS_NOTICE": "This is a notice from CircleSfera and can't be changed.",
+      "GROUP_ADMIN_NOT_ELIGIBLE": "This member can't be an admin of the group."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

@@ -43,6 +43,9 @@ class RealtimeService {
       withCredentials: true,
       transports: ['polling', 'websocket'],
       autoConnect: false,
+      // This app shows notices from the app in a chat (someone became
+      // admin); the server sends them only to apps that say so.
+      auth: { features: ['chat-notices'] },
     });
 
     this.socket.on('connect', () => {

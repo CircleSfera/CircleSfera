@@ -60,6 +60,7 @@ describe('GetMessagesQuery', () => {
       expect.objectContaining({
         where: {
           conversationId: 'conv-1',
+          kind: 'USER',
           createdAt: { gt: clearedDate },
         },
         take: 50,
@@ -197,12 +198,31 @@ describe('GetMessagesQuery', () => {
 
       expect(mockPrisma.message.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { conversationId: 'conv-1' },
+          where: { conversationId: 'conv-1', kind: 'USER' },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
           take: 2,
         }),
       );
       expect(result.map((m) => m.id)).toEqual(['m2', 'm3']);
+    });
+
+    it('gives notices from the app only to an app that understands them', async () => {
+      mockPrisma.message.findMany.mockResolvedValue([
+        { ...msg('n1', '2026-10-18T12:00:00.000Z'), kind: 'ADMIN_GRANTED' },
+      ]);
+
+      const result = await query.execute(
+        'conv-1',
+        MESSAGE_PAGE,
+        'prof-1',
+        undefined,
+        true,
+      );
+
+      expect(mockPrisma.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { conversationId: 'conv-1' } }),
+      );
+      expect(result[0]).toMatchObject({ id: 'n1', kind: 'ADMIN_GRANTED' });
     });
 
     it('reads strictly before the message it is given, after a clear', async () => {
@@ -220,6 +240,7 @@ describe('GetMessagesQuery', () => {
         expect.objectContaining({
           where: {
             conversationId: 'conv-1',
+            kind: 'USER',
             createdAt: { gt: clearedAt },
             OR: [
               { createdAt: { lt: at } },

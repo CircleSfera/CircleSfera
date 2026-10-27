@@ -57,10 +57,27 @@ describe('DeleteConversationUseCase', () => {
       expect(mockLeaveGroup.execute).toHaveBeenCalledWith(
         'prof-1',
         'conv-group',
+        undefined,
       );
       expect(mockPrisma.conversation.delete).not.toHaveBeenCalled();
     },
   );
+
+  it('in a group, passes on the member an admin names to be admin after them', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({
+      id: 'part-1',
+      isAdmin: true,
+      conversation: { isGroup: true, participants: [] },
+    });
+
+    await useCase.execute('prof-1', 'conv-group', 'prof-2');
+
+    expect(mockLeaveGroup.execute).toHaveBeenCalledWith(
+      'prof-1',
+      'conv-group',
+      'prof-2',
+    );
+  });
 
   it("in a 1:1 chat, removes it from the caller's inbox only, and never deletes the conversation", async () => {
     mockPrisma.participant.findFirst.mockResolvedValue({

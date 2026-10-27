@@ -318,12 +318,15 @@ export class UploadsService {
    * each file no row uses any more is marked detached, readable by its owner
    * only, and is deleted 30 days later by the nightly erasure
    * (eraseExpiredDetachedFiles), not now: deleted content is kept that long
-   * (PD-040). Deletes nothing.
+   * (PD-040). Deletes nothing. Given the transaction that deletes the
+   * content's row, the files are settled in it: if this fails, the content
+   * is not deleted, so its files can never be left public.
    */
   async releaseContentFiles(
     addresses: Array<string | null | undefined>,
+    client?: Parameters<StoredFilesService['release']>[2],
   ): Promise<void> {
-    await this.storedFiles.release('', addresses);
+    await this.storedFiles.release('', addresses, client);
   }
 
   /**

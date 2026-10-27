@@ -56,6 +56,21 @@ import { SocketPresenceService } from './services/socket-presence.service.js';
 
 export type { JwtPayload, SocketAuthUser };
 
+// What an app says it understands when it connects (handshake auth
+// `features`). An app that has not said "chat-notices" is an older one that
+// would draw a notice from the app as an empty message.
+export const CHAT_NOTICES_FEATURE = 'chat-notices';
+
+// The room of a Profile's sockets that understand notices from the app.
+export const noticesRoom = (profileId: string) => `chat-notices:${profileId}`;
+
+function declaresFeature(client: Socket, feature: string): boolean {
+  const features = (
+    client.handshake?.auth as Record<string, unknown> | undefined
+  )?.features;
+  return Array.isArray(features) && features.includes(feature);
+}
+
 export interface SocketWithAuth extends Socket {
   data: {
     user: SocketAuthUser;
@@ -69,8 +84,16 @@ export interface SocketWithAuth extends Socket {
     // by the time the 'disconnect' event fires, so handleDisconnect can't
     // read client.rooms to reconcile abandoned viewer counts.
     liveStreamIds?: Set<string>;
+    // What is left of this socket's allowance of chat events (typing, read
+    // receipts, reactions), each of which reads the database.
+    chatBudget?: { tokens: number; at: number; warned: boolean };
   };
 }
+
+// A socket may send a burst of this many chat events, then this many a
+// second; the rest are dropped. A person typing and reading sends far fewer.
+export const CHAT_EVENT_BURST = 20;
+export const CHAT_EVENTS_PER_SECOND = 5;
 
 @WebSocketGateway({
   cors: {
@@ -143,6 +166,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       await CorrelationContext.run(correlationId, async () => {
         await client.join(`user:${profileId}`);
+        if (declaresFeature(client, CHAT_NOTICES_FEATURE)) {
+          await client.join(noticesRoom(profileId));
+        }
 
         const followRooms =
           await this.socketPresenceService.getFollowPresenceRooms(profileId);
@@ -273,6 +299,71 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // Takes a conversation away from every socket of this Profile on this
+  // server: once they left it, were removed or deleted the chat, their open
+  // apps stop typing, reading and reacting in it.
+  removeConversationFromSocket(profileId: string, conversationId: string) {
+    for (const client of this.connectedSockets()) {
+      if (client.data?.user?.profileId === profileId) {
+        client.data.conversationIds?.delete(conversationId);
+      }
+    }
+  }
+
+  // Whether this socket may send one more chat event now. Each of them asks
+  // the database who is in the conversation, so a socket sending too many has
+  // the excess dropped, without an answer; it is logged once per socket.
+  private withinChatBudget(client: SocketWithAuth): boolean {
+    const now = Date.now();
+    client.data.chatBudget ??= {
+      tokens: CHAT_EVENT_BURST,
+      at: now,
+      warned: false,
+    };
+    const budget = client.data.chatBudget;
+    budget.tokens = Math.min(
+      CHAT_EVENT_BURST,
+      budget.tokens + ((now - budget.at) / 1000) * CHAT_EVENTS_PER_SECOND,
+    );
+    budget.at = now;
+    if (budget.tokens >= 1) {
+      budget.tokens -= 1;
+      return true;
+    }
+    if (!budget.warned) {
+      budget.warned = true;
+      this.logger.warn(
+        `A socket of profile ${client.data.user.profileId} sends chat events too fast; the excess is dropped`,
+      );
+    }
+    return false;
+  }
+
+  // Whether this socket's Profile may tell the recipient something about the
+  // conversation: both must be in it now. What the socket remembers only
+  // filters; the database decides, because a member may have left from
+  // another device or another server since. A socket whose Profile is no
+  // longer in it forgets it.
+  private async mayTellAbout(
+    client: SocketWithAuth,
+    conversationId: string,
+    recipientId: string,
+  ): Promise<boolean> {
+    const profileId = client.data?.user?.profileId;
+    if (!profileId) return false;
+    if (!client.data.conversationIds?.has(conversationId)) return false;
+    if (!this.withinChatBudget(client)) return false;
+    const members = await this.chatRealtimeService.membersOf(conversationId, [
+      profileId,
+      recipientId,
+    ]);
+    if (!members.has(profileId)) {
+      client.data.conversationIds.delete(conversationId);
+      return false;
+    }
+    return members.has(recipientId);
+  }
+
   // Chat Actions (Typing, Reactions, etc.)
   @SubscribeMessage('typing_start')
   async handleTypingStart(
@@ -280,7 +371,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     if (!payload?.conversationId || !payload?.recipientId) return;
-    if (!client.data?.conversationIds?.has(payload.conversationId)) return;
+    if (
+      !(await this.mayTellAbout(
+        client,
+        payload.conversationId,
+        payload.recipientId,
+      ))
+    ) {
+      return;
+    }
 
     this.server.to(`user:${payload.recipientId}`).emit('user_typing', {
       profileId: client.data.user.profileId,
@@ -294,7 +393,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     if (!payload?.conversationId || !payload?.recipientId) return;
-    if (!client.data?.conversationIds?.has(payload.conversationId)) return;
+    if (
+      !(await this.mayTellAbout(
+        client,
+        payload.conversationId,
+        payload.recipientId,
+      ))
+    ) {
+      return;
+    }
 
     this.server.to(`user:${payload.recipientId}`).emit('user_stopped_typing', {
       profileId: client.data.user.profileId,
@@ -320,26 +427,23 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
+    if (!this.withinChatBudget(client)) return;
 
-    const hasConversationAccess =
-      client.data.conversationIds?.has(payload.conversationId) ?? false;
-
+    // The service checks that the caller is in the conversation now; the
+    // socket's own list is not asked.
     const result = await this.chatRealtimeService.addReaction(
       payload.messageId,
       payload.conversationId,
       callerProfileId,
       payload.reaction,
-      hasConversationAccess,
     );
 
     if (!result.success || !result.reactionRecord) return;
 
-    if (result.grantConversationAccess) {
-      if (!client.data.conversationIds) {
-        client.data.conversationIds = new Set();
-      }
-      client.data.conversationIds.add(payload.conversationId);
+    if (!client.data.conversationIds) {
+      client.data.conversationIds = new Set();
     }
+    client.data.conversationIds.add(payload.conversationId);
 
     const eventPayload = {
       messageId: payload.messageId,
@@ -359,7 +463,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     if (!payload?.conversationId || !payload?.recipientId) return;
-    if (!client.data?.conversationIds?.has(payload.conversationId)) return;
+    if (
+      !(await this.mayTellAbout(
+        client,
+        payload.conversationId,
+        payload.recipientId,
+      ))
+    ) {
+      return;
+    }
 
     this.server.to(`user:${payload.recipientId}`).emit('messages_read', {
       conversationId: payload.conversationId,
@@ -912,6 +1024,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @OnEvent('chat.message.sent')
   handleChatMessageSent(event: ChatMessageSentEvent['payload']) {
+    // A notice from the app (someone became admin) goes only to the apps
+    // that understand it; older ones still get the group's update.
+    const kind = event.payload.kind;
+    if (kind !== undefined && kind !== 'USER') {
+      event.participants?.forEach((p) => {
+        this.addConversationToSocket(p.profileId, event.payload.conversationId);
+        this.server
+          .to(noticesRoom(p.profileId))
+          .emit('receiveMessage', event.payload);
+      });
+      return;
+    }
     event.participants?.forEach((p) => {
       this.addConversationToSocket(p.profileId, event.payload.conversationId);
       // A message just sent can't have been unlocked yet by anyone but the
@@ -960,6 +1084,23 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         .to(`user:${p.profileId}`)
         .emit('conversation_updated', event.payload);
     });
+    // Those told who are no longer in the group (removed from it) have it
+    // taken from their sockets.
+    const members = event.payload?.participants;
+    if (!Array.isArray(members)) return;
+    const stillIn = new Set(
+      members
+        .filter(
+          (m): m is { profileId: string } =>
+            typeof m?.profileId === 'string' && !m.deletedAt,
+        )
+        .map((m) => m.profileId),
+    );
+    event.participants?.forEach((p) => {
+      if (!stillIn.has(p.profileId)) {
+        this.removeConversationFromSocket(p.profileId, event.payload.id);
+      }
+    });
   }
 
   @OnEvent('chat.conversation.deleted')
@@ -967,6 +1108,10 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     event: ChatConversationDeletedEvent['payload'],
   ) {
     event.participants?.forEach((p) => {
+      this.removeConversationFromSocket(
+        p.profileId,
+        event.payload.conversationId,
+      );
       this.server
         .to(`user:${p.profileId}`)
         .emit('conversationDeleted', event.payload);

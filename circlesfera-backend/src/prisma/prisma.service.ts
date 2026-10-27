@@ -3,9 +3,9 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
-import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import pkg from 'pg';
+import { SerialTransactionPrismaPg } from './serial-transaction-adapter.js';
 
 const { Pool } = pkg;
 
@@ -40,7 +40,8 @@ export class PrismaService
 {
   constructor(dbUrl: string) {
     const pool = new Pool({ connectionString: dbUrl });
-    const adapter = new PrismaPg(pool);
+    // Each transaction runs its queries one after another on its connection.
+    const adapter = new SerialTransactionPrismaPg(pool);
     super({ adapter, omit: clientOmit });
   }
 

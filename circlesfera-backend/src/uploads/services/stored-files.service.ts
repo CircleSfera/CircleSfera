@@ -20,6 +20,13 @@ export const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v'];
 // only, before the nightly erasure deletes them (PD-040).
 export const DELETED_CONTENT_KEPT_DAYS = 30;
 
+// A deletion settles its files in its own transaction, which reads every
+// table that may name them: it gets more time than Prisma's 5 seconds.
+export const DELETION_TRANSACTION = { timeout: 30_000, maxWait: 5_000 };
+
+// The database, or the transaction that deletes a piece of content.
+type ReleaseClient = Prisma.TransactionClient;
+
 /** Who a stored file is recorded for. */
 export interface StoredFileOwner {
   // The Profile the file belongs to; null when it is not known.
@@ -56,24 +63,30 @@ export class StoredFilesService {
    * then on only its owner may read it, until it is deleted. Answers the
    * ones that may be deleted with the content: recorded as the author's own.
    * A file of another Profile, or with no owner, is never deleted by a
-   * person's action; it is left, detached, to the orphan sweep.
+   * person's action; it is left, detached, to the orphan sweep. Given the
+   * transaction that deletes the row, the files are settled with it: both
+   * happen, or neither.
    */
   async release(
     profileId: string,
     keys: Array<string | null | undefined>,
+    client: ReleaseClient = this.prisma,
   ): Promise<string[]> {
     const wanted = [
       ...new Set(keys.filter((k): k is string => !!k && k.length > 0)),
     ];
     if (wanted.length === 0) return [];
-    const recorded = await this.prisma.storedFile.findMany({
+    const recorded = await client.storedFile.findMany({
       where: { key: { in: wanted } },
       select: { key: true, profileId: true },
     });
-    const used = await this.references.inUse(recorded.map((file) => file.key));
+    const used = await this.references.inUse(
+      recorded.map((file) => file.key),
+      client,
+    );
     const unused = recorded.filter((file) => !used.has(file.key));
     if (unused.length > 0) {
-      await this.prisma.storedFile.updateMany({
+      await client.storedFile.updateMany({
         where: {
           key: { in: unused.map((file) => file.key) },
           detachedAt: null,
