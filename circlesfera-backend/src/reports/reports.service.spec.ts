@@ -345,7 +345,25 @@ describe('ReportsService', () => {
         } as any),
       ).rejects.toThrow(AppException);
 
-      mockPrismaService.message.findUnique.mockResolvedValue({ id: 'm-ok' });
+      // A notice from the app was written by nobody: it cannot be reported.
+      mockPrismaService.message.findUnique.mockResolvedValue({
+        id: 'm-notice',
+        kind: 'ADMIN_GRANTED',
+        senderId: 'p-new-admin',
+      });
+      await expect(
+        service.create('reporter-1', {
+          targetType: ReportTargetType.MESSAGE,
+          targetId: 'm-notice',
+          reason: 'SCAM',
+        } as any),
+      ).rejects.toMatchObject({ errorCode: 'MESSAGE_IS_NOTICE', status: 400 });
+      expect(mockPrismaService.report.create).not.toHaveBeenCalled();
+
+      mockPrismaService.message.findUnique.mockResolvedValue({
+        id: 'm-ok',
+        kind: 'USER',
+      });
       mockPrismaService.report.create.mockResolvedValue({ id: 'rep-m' });
       const res = await service.create('reporter-1', {
         targetType: ReportTargetType.MESSAGE,

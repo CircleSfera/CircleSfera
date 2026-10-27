@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { MessageReaction } from '@prisma/client';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { isNotice } from '../../message-kind.js';
 
 @Injectable()
 export class AddReactionUseCase {
@@ -34,6 +35,14 @@ export class AddReactionUseCase {
       throw AppException.Forbidden(
         ErrorCode.FORBIDDEN_ACCESS,
         'Not a participant in this conversation',
+      );
+    }
+
+    // A notice from the app is not a member's message to react to.
+    if (isNotice(message)) {
+      throw AppException.BadRequest(
+        ErrorCode.MESSAGE_IS_NOTICE,
+        'A notice cannot be reacted to',
       );
     }
 

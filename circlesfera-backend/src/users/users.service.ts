@@ -15,7 +15,11 @@ import {
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
-import { ensureGroupAdmin } from '../chat/services/group-admin-succession.service.js';
+import {
+  type AdminNotice,
+  announceAdminNotices,
+  ensureGroupAdmin,
+} from '../chat/services/group-admin-succession.service.js';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
@@ -266,6 +270,9 @@ export class UsersService {
                 select: {
                   id: true,
                   conversationId: true,
+                  // A notice from the app that names this Profile (it
+                  // became admin of a group) is told apart from what it wrote.
+                  kind: true,
                   content: true,
                   url: true,
                   mediaType: true,
@@ -542,7 +549,9 @@ export class UsersService {
   // Atomically deletes a user scheduled for deletion, guarding against concurrent restoration.
   // Returns true if the account was deleted, false if the account was restored or cancelled concurrently.
   async deleteScheduledUser(userId: string): Promise<boolean> {
-    return this.prisma.$transaction(async (tx) => {
+    // The groups that get a new admin are told once the erasure commits.
+    const notices: AdminNotice[] = [];
+    const erased = await this.prisma.$transaction(async (tx) => {
       // Every file its Profiles uploaded, read before the cascade leaves
       // their records without an owner (TD-008). Files of other people that
       // its rows name are not among them.
@@ -571,7 +580,8 @@ export class UsersService {
       });
       if (result.count === 0) return false;
       for (const { conversationId } of administered) {
-        await ensureGroupAdmin(tx, conversationId);
+        const notice = await ensureGroupAdmin(tx, conversationId);
+        if (notice) notices.push(notice);
       }
       // Queued with the deletion itself: both happen, or neither. In batches,
       // so that one failure retries a few hundred files, not all of them.
@@ -584,6 +594,10 @@ export class UsersService {
       }
       return true;
     });
+    if (erased) {
+      await announceAdminNotices(this.prisma, this.eventEmitter, notices);
+    }
+    return erased;
   }
 
   // Schedule user account for deletion after 30 days (GDPR grace window).

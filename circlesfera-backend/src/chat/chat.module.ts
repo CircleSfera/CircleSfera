@@ -22,6 +22,7 @@ import { GroupAdminSuccessionService } from './services/group-admin-succession.s
 import { CreateGroupUseCase } from './use-cases/groups/create-group.use-case.js';
 import { DeleteConversationUseCase } from './use-cases/groups/delete-conversation.use-case.js';
 import { LeaveGroupUseCase } from './use-cases/groups/leave-group.use-case.js';
+import { MakeGroupAdminUseCase } from './use-cases/groups/make-group-admin.use-case.js';
 import { RemoveParticipantUseCase } from './use-cases/groups/remove-participant.use-case.js';
 import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js';
 // Message Commands
@@ -52,6 +53,7 @@ const useCases = [
   CreateGroupUseCase,
   DeleteConversationUseCase,
   LeaveGroupUseCase,
+  MakeGroupAdminUseCase,
   RemoveParticipantUseCase,
   UpdateGroupUseCase,
   AcceptMessageRequestUseCase,

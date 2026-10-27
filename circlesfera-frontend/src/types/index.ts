@@ -138,6 +138,7 @@ export interface PostMediaItem {
 }
 export type Participant = IParticipant & {
   isAdmin?: boolean;
+  deletedAt?: string | null;
 };
 export type Conversation = Omit<IConversation, 'messages' | 'participants'> & {
   avatarUrl?: string | null;

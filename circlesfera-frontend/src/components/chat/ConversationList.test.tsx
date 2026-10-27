@@ -180,6 +180,39 @@ describe('ConversationList', () => {
     expect(screen.queryByText(/from yesterday/)).not.toBeInTheDocument();
   });
 
+  it('a notice from the app is never the latest message: the inbox keeps its order and preview', async () => {
+    renderWithProviders(<ConversationList />);
+    await screen.findByText('ana');
+    const callsBefore = vi.mocked(chatApi.getConversationPage).mock.calls
+      .length;
+
+    act(() => {
+      handlers.get('receiveMessage')!({
+        id: 'n-1',
+        conversationId: 'c2',
+        content: '',
+        kind: 'ADMIN_GRANTED',
+        senderId: 'p-c2',
+        createdAt: '2026-10-01T11:00:00.000Z',
+      });
+      // Nor does one for a conversation the list does not know load it.
+      handlers.get('receiveMessage')!({
+        id: 'n-2',
+        conversationId: 'c-new',
+        content: '',
+        kind: 'ADMIN_GRANTED',
+        senderId: 'p-new',
+        createdAt: '2026-10-01T11:00:00.000Z',
+      });
+    });
+
+    expect(order()).toEqual(['/direct/inbox/t/c1', '/direct/inbox/t/c2']);
+    expect(screen.getByText(/second/)).toBeInTheDocument();
+    expect(vi.mocked(chatApi.getConversationPage).mock.calls.length).toBe(
+      callsBefore,
+    );
+  });
+
   it('loads a conversation it does not know yet when a message arrives for it', async () => {
     renderWithProviders(<ConversationList />);
     await screen.findByText('ana');

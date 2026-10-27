@@ -11,6 +11,7 @@ import {
   type ReportStatus,
 } from '@prisma/client';
 import { resolveSystemModeratorActor } from '../admin/utils/resolve-admin-notification-sender.js';
+import { isNotice } from '../chat/message-kind.js';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
@@ -115,6 +116,13 @@ export class ReportsService {
           throw AppException.NotFound(
             ErrorCode.MESSAGE_NOT_FOUND,
             'Target message not found',
+          );
+        // A notice from the app was written by nobody: its sender is only
+        // who it is about.
+        if (isNotice(message))
+          throw AppException.BadRequest(
+            ErrorCode.MESSAGE_IS_NOTICE,
+            'A notice cannot be reported',
           );
         authorProfileId = message.senderId;
         break;

@@ -18,7 +18,14 @@ export class LeaveGroupUseCase {
     private succession: GroupAdminSuccessionService,
   ) {}
 
-  async execute(profileId: string, conversationId: string) {
+  // An admin who leaves may name the member who becomes admin after them
+  // (successorId). Naming them and leaving happen together, or neither does.
+  // Without one, or if they do not stay admin, the group still gets an admin.
+  async execute(
+    profileId: string,
+    conversationId: string,
+    successorId?: string,
+  ) {
     const participant = await this.prisma.participant.findFirst({
       where: { conversationId, profileId },
     });
@@ -30,11 +37,29 @@ export class LeaveGroupUseCase {
       );
     }
 
-    // Leaving and naming the next admin, if the group would have none, go
-    // together.
-    await this.prisma.$transaction(async (tx) => {
+    if (successorId !== undefined) {
+      if (!participant.isAdmin) {
+        throw AppException.Forbidden(
+          ErrorCode.FORBIDDEN_ACCESS,
+          'Only group admins can name an admin',
+        );
+      }
+      if (successorId === profileId) {
+        throw AppException.BadRequest(
+          ErrorCode.GROUP_ADMIN_NOT_ELIGIBLE,
+          'Name another member of the group',
+        );
+      }
+    }
+
+    const notices = await this.prisma.$transaction(async (tx) => {
+      await this.succession.lock(conversationId, tx);
+      const named = successorId
+        ? await this.succession.grantAdmin(conversationId, successorId, tx)
+        : null;
       await tx.participant.delete({ where: { id: participant.id } });
-      await this.succession.ensureAdmin(conversationId, tx);
+      const fallback = await this.succession.ensureAdmin(conversationId, tx);
+      return [named, fallback];
     });
 
     const updated = await this.prisma.conversation.findUnique({
@@ -62,6 +87,8 @@ export class LeaveGroupUseCase {
       };
       this.eventEmitter.emit('chat.conversation.updated', updatedEvent);
     }
+
+    await this.succession.announce(notices);
 
     const deletedEvent: ChatConversationDeletedEvent['payload'] = {
       participants: [{ profileId }],

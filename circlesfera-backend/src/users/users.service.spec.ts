@@ -501,7 +501,13 @@ describe('UsersService', () => {
       updateMany: vi.fn(),
     };
     const conversation = { findUnique: vi.fn() };
+    const message = { create: vi.fn() };
     beforeEach(() => {
+      message.create.mockImplementation(
+        ({ data }: { data: { conversationId: string; senderId: string } }) =>
+          Promise.resolve({ id: 'notice-1', ...data }),
+      );
+      (mockPrismaService as Record<string, unknown>).message = message;
       storedFile.findMany.mockResolvedValue([
         { key: '/uploads/own-1.jpg' },
         { key: '/uploads/own-2.mp4' },
@@ -525,6 +531,8 @@ describe('UsersService', () => {
       });
       participant.updateMany.mockResolvedValueOnce({ count: 1 });
       mockPrismaService.user.deleteMany.mockResolvedValue({ count: 1 });
+      // Everyone left in the group, read once the erasure commits.
+      participant.findMany.mockResolvedValueOnce([{ profileId: 'p-oldest' }]);
 
       await expect(service.deleteScheduledUser('u_admin')).resolves.toBe(true);
 
@@ -541,9 +549,44 @@ describe('UsersService', () => {
         mockPrismaService.user.deleteMany.mock.invocationCallOrder[0],
       );
       expect(participant.updateMany).toHaveBeenCalledWith({
-        where: { id: 'part-oldest', deletedAt: null },
+        where: { id: 'part-oldest', deletedAt: null, isAdmin: false },
         data: { isAdmin: true },
       });
+      // The group is told who its new admin is.
+      expect(message.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            conversationId: 'group-1',
+            senderId: 'p-oldest',
+            content: '',
+            kind: 'ADMIN_GRANTED',
+          },
+        }),
+      );
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith('chat.message.sent', {
+        participants: [{ profileId: 'p-oldest' }],
+        payload: expect.objectContaining({
+          conversationId: 'group-1',
+          senderId: 'p-oldest',
+          kind: 'ADMIN_GRANTED',
+        }),
+      });
+    });
+
+    it('tells no group anything when the account was restored meanwhile', async () => {
+      participant.findMany.mockResolvedValueOnce([
+        { conversationId: 'group-1' },
+      ]);
+      mockPrismaService.user.deleteMany.mockResolvedValue({ count: 0 });
+      mockEventEmitter.emit.mockClear();
+
+      await expect(service.deleteScheduledUser('u_back')).resolves.toBe(false);
+
+      expect(message.create).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalledWith(
+        'chat.message.sent',
+        expect.anything(),
+      );
     });
 
     it('deletes the account and queues every file its Profiles uploaded, in one transaction', async () => {

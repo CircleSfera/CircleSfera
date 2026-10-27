@@ -40,9 +40,10 @@ export class RemoveParticipantUseCase {
     }
 
     // An admin who removes themselves leaves the group with an admin.
-    await this.prisma.$transaction(async (tx) => {
+    const notice = await this.prisma.$transaction(async (tx) => {
+      await this.succession.lock(conversationId, tx);
       await tx.participant.delete({ where: { id: targetParticipant.id } });
-      await this.succession.ensureAdmin(conversationId, tx);
+      return this.succession.ensureAdmin(conversationId, tx);
     });
 
     const updated = await this.prisma.conversation.findUnique({
@@ -70,6 +71,7 @@ export class RemoveParticipantUseCase {
       };
       this.eventEmitter.emit('chat.conversation.updated', event);
     }
+    await this.succession.announce([notice]);
 
     return updated;
   }

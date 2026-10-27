@@ -1271,11 +1271,20 @@ model Participant {
   @@map("participants")
 }
 
+// What a message of a chat is: one a member wrote, or a notice from the app
+// about the group, such as someone becoming admin. A notice names its subject
+// as the sender, has empty content and is shown in each reader's language.
+enum MessageKind {
+  USER
+  ADMIN_GRANTED
+}
+
 model Message {
-  id             String  @id @default(uuid())
+  id             String      @id @default(uuid())
   conversationId String
   senderId       String
   content        String
+  kind           MessageKind @default(USER)
   url            String?
   standardUrl    String? // New: Optimized variant (HLS)
   thumbnailUrl   String? // New: Optimized variant

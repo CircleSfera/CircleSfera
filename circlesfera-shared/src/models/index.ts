@@ -230,11 +230,18 @@ export interface Collection {
   };
 }
 
+// What a chat message is: one a member wrote, or a notice from the app about
+// the group. A notice names its subject as the sender, has empty content and
+// is written out by each reader in their own language.
+export type MessageKind = 'USER' | 'ADMIN_GRANTED';
+
 export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
   content: string;
+  // Absent on messages from before notices existed; those are USER.
+  kind?: MessageKind;
   url?: string;
   standardUrl?: string;
   thumbnailUrl?: string;

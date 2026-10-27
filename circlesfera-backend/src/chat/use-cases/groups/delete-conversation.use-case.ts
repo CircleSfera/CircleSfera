@@ -19,8 +19,13 @@ export class DeleteConversationUseCase {
   // Deleting a chat removes it from your inbox only (PD-042): the others keep
   // it and every message. In a group it is leaving it, and the group keeps an
   // admin. A conversation is never deleted here: its messages stay out of
-  // reach of anyone who is no longer in it.
-  async execute(profileId: string, conversationId: string) {
+  // reach of anyone who is no longer in it. In a group, an admin may name
+  // who becomes admin after them (successorId), as when leaving it.
+  async execute(
+    profileId: string,
+    conversationId: string,
+    successorId?: string,
+  ) {
     const participant = await this.prisma.participant.findFirst({
       where: { conversationId, profileId },
       include: { conversation: { include: { participants: true } } },
@@ -34,7 +39,7 @@ export class DeleteConversationUseCase {
     }
 
     if (participant.conversation.isGroup) {
-      return this.leaveGroup.execute(profileId, conversationId);
+      return this.leaveGroup.execute(profileId, conversationId, successorId);
     }
 
     await this.prisma.participant.update({

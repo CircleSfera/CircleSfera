@@ -21,6 +21,7 @@ import { PrismaService } from '../../../prisma/prisma.service.js';
 import { PushService } from '../../../push/push.service.js';
 import { ActionLimitsService } from '../../../trust/action-limits.service.js';
 import { StoredFilesService } from '../../../uploads/services/stored-files.service.js';
+import { isNotice } from '../../message-kind.js';
 
 @Injectable()
 export class SendMessageUseCase {
@@ -229,6 +230,24 @@ export class SendMessageUseCase {
           });
         }
 
+        // A notice from the app cannot be replied to. A reply to a message
+        // that no longer exists is sent as a plain message.
+        let replyTarget = replyToId;
+        if (replyToId) {
+          const repliedTo = await tx.message.findUnique({
+            where: { id: replyToId },
+            select: { kind: true },
+          });
+          if (!repliedTo) {
+            replyTarget = undefined;
+          } else if (isNotice(repliedTo)) {
+            throw AppException.BadRequest(
+              ErrorCode.MESSAGE_IS_NOTICE,
+              'A notice cannot be replied to',
+            );
+          }
+        }
+
         // A first message to someone who does not follow the sender is a
         // message request, which has its own per-Profile cap. Checked after
         // the block check so a refused attempt is not counted; a refusal
@@ -262,7 +281,7 @@ export class SendMessageUseCase {
             mediaId: media?.id,
             postId,
             storyId,
-            replyToId,
+            replyToId: replyTarget,
             voiceUrl,
             voiceDuration,
             voiceMediaId: voiceMedia?.id,

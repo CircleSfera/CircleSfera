@@ -55,6 +55,12 @@ export enum ErrorCode {
   MEDIA_NOT_FOUND = 'MEDIA_NOT_FOUND',
   COMMENT_NOT_FOUND = 'COMMENT_NOT_FOUND',
   MESSAGE_NOT_FOUND = 'MESSAGE_NOT_FOUND',
+  // A notice from the app in a chat, such as someone becoming admin: it
+  // cannot be edited, deleted, reacted to, replied to or reported.
+  MESSAGE_IS_NOTICE = 'MESSAGE_IS_NOTICE',
+  // The member named to be a group admin may not be one: not in the group,
+  // has not accepted it, or their account is not active.
+  GROUP_ADMIN_NOT_ELIGIBLE = 'GROUP_ADMIN_NOT_ELIGIBLE',
   INVALID_MEDIA_PATH = 'INVALID_MEDIA_PATH',
   PREMIUM_CONTENT_LOCKED = 'PREMIUM_CONTENT_LOCKED',
   MEDIA_ACCESS_DENIED = 'MEDIA_ACCESS_DENIED',

@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { isNotice } from '../../message-kind.js';
 
 @Injectable()
 export class EditMessageUseCase {
@@ -22,6 +23,13 @@ export class EditMessageUseCase {
 
     if (!message)
       throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Message not found');
+    // A notice from the app is nobody's to change, not even its subject's.
+    if (isNotice(message)) {
+      throw AppException.BadRequest(
+        ErrorCode.MESSAGE_IS_NOTICE,
+        'A notice cannot be edited',
+      );
+    }
     if (message.isDeleted) {
       throw AppException.BadRequest(
         ErrorCode.BAD_REQUEST,

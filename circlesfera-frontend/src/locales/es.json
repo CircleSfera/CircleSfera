@@ -2123,7 +2123,10 @@
       "remove_title": "Expulsar del grupo",
       "remove_confirm": "¿Expulsar a @{{username}} de este grupo?",
       "leave_confirm": "¿Abandonar este grupo? Dejarás de recibir mensajes nuevos.",
-      "leave_group": "Abandonar grupo"
+      "leave_group": "Abandonar grupo",
+      "make_admin": "Hacer admin",
+      "make_admin_for": "Hacer admin a @{{username}}",
+      "make_admin_confirm": "¿Hacer admin a @{{username}}? Podrá editar el grupo y gestionar a sus miembros."
     },
     "locked_title": "Mensaje exclusivo",
     "locked_subtitle": "Desbloquea para ver el contenido",
@@ -2167,7 +2170,21 @@
     "request_declined": "Solicitud rechazada",
     "request_decline_error": "Error al rechazar la solicitud",
     "request_title": "¿Aceptar solicitud de mensaje?",
-    "request_description": "Si aceptas, podrán ver cuándo estás conectado y si has leído sus mensajes. No sabrán que lo has leído hasta que aceptes."
+    "request_description": "Si aceptas, podrán ver cuándo estás conectado y si has leído sus mensajes. No sabrán que lo has leído hasta que aceptes.",
+    "choose_admin": {
+      "title": "Elige un nuevo admin",
+      "description": "Eres el único admin. Elige quién gestiona el grupo cuando salgas, o deja que elija el grupo: pasará a ser admin el miembro que lleva más tiempo en él.",
+      "members": "Miembros que pueden ser admin",
+      "make_admin_and_leave": "Hacer admin y salir",
+      "leave_and_group_chooses": "Salir y que elija el grupo"
+    },
+    "notice": {
+      "admin_granted": "{{name}} ahora es admin",
+      "you_admin": "Ahora eres admin",
+      "someone": "Alguien"
+    },
+    "make_admin_error": "No se ha podido hacer admin. Inténtalo de nuevo.",
+    "leave_group_error": "No se ha podido salir del grupo. Inténtalo de nuevo."
   },
   "creator": {
     "title": "Creator Studio",
@@ -5456,7 +5473,9 @@
       "TEAM_INVITE_SELF": "Ya eres el dueño de este perfil.",
       "TEAM_TWO_FACTOR_REQUIRED": "Activa la verificación en dos pasos en Seguridad para unirte a un equipo.",
       "TEAM_MEMBER_NOT_FOUND": "Esa invitación o persona ya no está.",
-      "TEAM_MEMBER_NOT_ALLOWED": "Tu rol en este perfil de equipo no incluye esto."
+      "TEAM_MEMBER_NOT_ALLOWED": "Tu rol en este perfil de equipo no incluye esto.",
+      "MESSAGE_IS_NOTICE": "Es un aviso de CircleSfera y no se puede cambiar.",
+      "GROUP_ADMIN_NOT_ELIGIBLE": "Este miembro no puede ser admin del grupo."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",
