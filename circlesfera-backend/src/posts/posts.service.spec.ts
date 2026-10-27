@@ -1460,14 +1460,24 @@ describe('PostsService', () => {
         },
       ]);
 
-      mockPrismaService.$transaction.mockImplementationOnce((cb) =>
-        cb(mockPrismaService),
-      );
+      const tx = {
+        comment: { findMany: mockPrismaService.comment.findMany },
+        post: { delete: vi.fn().mockResolvedValue({ id: 'post-1' }) },
+        $queryRaw: vi.fn().mockResolvedValue([]),
+      };
+      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
 
       await service.remove('post-1');
-      expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
+      expect(tx.post.delete).toHaveBeenCalledWith({
         where: { id: 'post-1' },
       });
+      // Locked before its comments are read: none can be added meanwhile.
+      const [sql, id] = tx.$queryRaw.mock.calls[0];
+      expect(sql.join('?')).toContain('FOR UPDATE');
+      expect(id).toBe('post-1');
+      expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        mockPrismaService.comment.findMany.mock.invocationCallOrder[0],
+      );
       // Its comments go with it, and so are settled with its own files, in
       // the transaction that deletes the rows.
       expect(mockPrismaService.comment.findMany.mock.calls[0][0].where).toEqual(
@@ -1476,7 +1486,7 @@ describe('PostsService', () => {
       expect(mockStoredFiles.release).toHaveBeenCalledWith(
         '',
         ['https://cdn/img.jpg', undefined, undefined, '/uploads/voice.webm'],
-        mockPrismaService,
+        tx,
       );
     });
 
@@ -1487,7 +1497,11 @@ describe('PostsService', () => {
         media: [],
       });
       mockPrismaService.$transaction.mockImplementationOnce((cb) =>
-        cb(mockPrismaService),
+        cb({
+          comment: { findMany: vi.fn().mockResolvedValue([]) },
+          post: { delete: vi.fn() },
+          $queryRaw: vi.fn(),
+        }),
       );
       mockStoredFiles.release.mockRejectedValueOnce(new Error('db down'));
 
@@ -1517,20 +1531,22 @@ describe('PostsService', () => {
         profileId: 'author-1',
         media: [{ url: 'http://cdn/1.jpg' }],
       });
-      mockPrismaService.post.delete.mockResolvedValueOnce({ id: 'p-admin' });
-      mockPrismaService.$transaction.mockImplementationOnce((cb) =>
-        cb(mockPrismaService),
-      );
+      const tx = {
+        comment: { findMany: vi.fn().mockResolvedValue([]) },
+        post: { delete: vi.fn().mockResolvedValue({ id: 'p-admin' }) },
+        $queryRaw: vi.fn().mockResolvedValue([]),
+      };
+      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
 
       await service.adminRemove('p-admin');
-      expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
+      expect(tx.post.delete).toHaveBeenCalledWith({
         where: { id: 'p-admin' },
       });
       // Kept 30 days, readable by their owner only; none is deleted now.
       expect(mockStoredFiles.release).toHaveBeenCalledWith(
         '',
         ['http://cdn/1.jpg', undefined, undefined],
-        mockPrismaService,
+        tx,
       );
     });
   });

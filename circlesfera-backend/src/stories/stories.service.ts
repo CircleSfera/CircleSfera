@@ -46,7 +46,10 @@ import {
 } from '../story-stickers/story-stickers.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
-import { StoredFilesService } from '../uploads/services/stored-files.service.js';
+import {
+  DELETION_TRANSACTION,
+  StoredFilesService,
+} from '../uploads/services/stored-files.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
 
@@ -702,7 +705,7 @@ export class StoriesService {
         [story.url, story.standardUrl, story.thumbnailUrl, story.overlayUrl],
         tx,
       );
-    });
+    }, DELETION_TRANSACTION);
   }
 
   // Record a story view. Idempotent — returns existing view if already viewed.

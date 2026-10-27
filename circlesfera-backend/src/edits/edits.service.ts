@@ -11,7 +11,10 @@ import type { Queue } from 'bullmq';
 import { AIService } from '../ai/ai.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { StoredFilesService } from '../uploads/services/stored-files.service.js';
+import {
+  DELETION_TRANSACTION,
+  StoredFilesService,
+} from '../uploads/services/stored-files.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
 import { UpdateEditDto } from './dto/update-edit.dto.js';
@@ -155,7 +158,7 @@ export class EditsService {
         [edit.mediaUrl, ...this.collectStudioMediaUrls(edit.state)],
         tx,
       );
-    });
+    }, DELETION_TRANSACTION);
 
     return { success: true };
   }

@@ -543,11 +543,19 @@ describe('CommentsService', () => {
         ])
         .mockResolvedValueOnce([]);
 
+      const tx = {
+        comment: {
+          findMany: mockPrismaService.comment.findMany,
+          delete: vi.fn().mockResolvedValue({}),
+        },
+        $queryRaw: vi.fn().mockResolvedValue([]),
+      };
+      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
+
       await service.remove('1');
 
-      expect(mockPrismaService.comment.delete).toHaveBeenCalledWith({
-        where: { id: '1' },
-      });
+      expect(tx.comment.delete).toHaveBeenCalledWith({ where: { id: '1' } });
+      expect(mockPrismaService.comment.delete).not.toHaveBeenCalled();
       // Its replies go with it: their files are settled too, after the rows.
       expect(mockPrismaService.comment.findMany.mock.calls[1][0].where).toEqual(
         { parentId: { in: ['1'] } },
@@ -556,11 +564,11 @@ describe('CommentsService', () => {
       expect(mockStoredFiles.release).toHaveBeenCalledWith(
         '',
         ['/uploads/photo.jpg', '/uploads/reply.webm', '/uploads/reply.m4a'],
-        mockPrismaService,
+        tx,
       );
-      expect(
-        mockPrismaService.comment.delete.mock.invocationCallOrder[0],
-      ).toBeLessThan(mockStoredFiles.release.mock.invocationCallOrder[0]);
+      expect(tx.comment.delete.mock.invocationCallOrder[0]).toBeLessThan(
+        mockStoredFiles.release.mock.invocationCallOrder[0],
+      );
     });
 
     it('fails, and so keeps the comment, when its files cannot be settled', async () => {

@@ -48,7 +48,10 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { commentFiles } from '../uploads/comment-files.js';
-import { StoredFilesService } from '../uploads/services/stored-files.service.js';
+import {
+  DELETION_TRANSACTION,
+  StoredFilesService,
+} from '../uploads/services/stored-files.service.js';
 import { captionMentions } from './caption-mentions.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
@@ -857,6 +860,8 @@ export class PostsService {
     media: PostMediaItemLike[];
   }) {
     await this.prisma.$transaction(async (tx) => {
+      // Locked first: no comment can be added while the post goes.
+      await tx.$queryRaw`SELECT id FROM "posts" WHERE id = ${post.id} FOR UPDATE`;
       const commentAddresses = await commentFiles(tx, { postId: post.id });
       await tx.post.delete({ where: { id: post.id } });
       await this.storedFiles.release(
@@ -867,7 +872,7 @@ export class PostsService {
         ],
         tx,
       );
-    });
+    }, DELETION_TRANSACTION);
   }
 
   // Returns a Prisma filter for global/discovery feeds.

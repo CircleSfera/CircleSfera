@@ -33,7 +33,10 @@ import {
   keysetBeforeDesc,
 } from '../common/pagination/keyset.util.js';
 import { commentFiles } from '../uploads/comment-files.js';
-import { StoredFilesService } from '../uploads/services/stored-files.service.js';
+import {
+  DELETION_TRANSACTION,
+  StoredFilesService,
+} from '../uploads/services/stored-files.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { UpdateCommentDto } from './dto/update-comment.dto.js';
 
@@ -397,7 +400,7 @@ export class CommentsService {
       const files = await commentFiles(tx, { id });
       await tx.comment.delete({ where: { id } });
       await this.storedFiles.release('', files, tx);
-    });
+    }, DELETION_TRANSACTION);
 
     // Trigger score recalculation
     await this.analyticsQueue.add('update-performance-score', {

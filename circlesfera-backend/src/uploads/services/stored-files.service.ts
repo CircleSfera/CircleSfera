@@ -20,6 +20,10 @@ export const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v'];
 // only, before the nightly erasure deletes them (PD-040).
 export const DELETED_CONTENT_KEPT_DAYS = 30;
 
+// A deletion settles its files in its own transaction, which reads every
+// table that may name them: it gets more time than Prisma's 5 seconds.
+export const DELETION_TRANSACTION = { timeout: 30_000, maxWait: 5_000 };
+
 // The database, or the transaction that deletes a piece of content.
 type ReleaseClient = Prisma.TransactionClient;
 

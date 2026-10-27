@@ -233,9 +233,17 @@ describe('EditsService', () => {
           },
         },
       });
-      mockPrismaService.editProject.delete.mockResolvedValue({});
+      const tx = { editProject: { delete: vi.fn().mockResolvedValue({}) } };
+      mockPrismaService.$transaction.mockImplementationOnce(
+        (cb: (t: unknown) => unknown) => cb(tx),
+      );
 
       await service.remove('user-1', 'edit-1');
+
+      expect(tx.editProject.delete).toHaveBeenCalledWith({
+        where: { id: 'edit-1' },
+      });
+      expect(mockPrismaService.editProject.delete).not.toHaveBeenCalled();
 
       // Its files are kept 30 days, then erased (PD-040): none goes now.
       // They are settled in the transaction that deletes the row.
@@ -245,7 +253,7 @@ describe('EditsService', () => {
           'https://cdn.example.com/clip-a.mp4',
           'https://cdn.example.com/clip-b.jpg',
         ],
-        mockPrismaService,
+        tx,
       );
       expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
     });
