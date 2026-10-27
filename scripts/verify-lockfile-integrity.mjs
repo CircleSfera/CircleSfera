@@ -15,7 +15,10 @@
  *   5. All declared dependencies in package.json have a corresponding
  *      entry in the lockfile (no phantom deps).
  *   6. Integrity hashes are well-formed sha512 SRI strings.
- *   7. (Optional, skipped with --skip-signatures) Spot-check a sample
+ *   7. Every package with an install script is named in the workspace's
+ *      `allowScripts`, allowed or denied: npm warns at each install about
+ *      one that is not, and will refuse to run it.
+ *   8. (Optional, skipped with --skip-signatures) Spot-check a sample
  *      of registry-resolved packages against the npm registry for
  *      published integrity metadata.
  *
@@ -241,7 +244,27 @@ async function verifyWorkspace(workspace) {
     );
   }
 
-  // Check 7 (optional): Registry spot-check
+  // Check 7: every install script is decided in allowScripts. An entry
+  // names the package only, so that an upgrade does not leave it behind.
+  const decided = new Set(
+    Object.keys(packageJson.allowScripts ?? {}).map((entry) =>
+      entry.replace(/(.)@.*$/, '$1'),
+    ),
+  );
+  for (const [pkgPath, pkg] of installable) {
+    if (!pkg.hasInstallScript) continue;
+    const pkgName = pkgPath.slice(
+      pkgPath.lastIndexOf('node_modules/') + 'node_modules/'.length,
+    );
+    if (!decided.has(pkgName)) {
+      fail(
+        name,
+        `"${pkgName}" has an install script that allowScripts in package.json neither allows nor denies`,
+      );
+    }
+  }
+
+  // Check 8 (optional): Registry spot-check
   if (!SKIP_SIGNATURES && registrySpotCheckCandidates.length > 0) {
     console.log(
       `  \u21b3 Spot-checking ${Math.min(REGISTRY_SPOT_CHECK_SAMPLE, registrySpotCheckCandidates.length)} packages against npm registry\u2026`,
