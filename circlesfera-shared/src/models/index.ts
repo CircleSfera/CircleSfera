@@ -289,6 +289,10 @@ export interface Notification {
   // with the strike id for a moderation notice.
   targetType?: string | null;
   targetId?: string | null;
+  // On a notice of removed content ('post_removed', 'story_removed',
+  // 'comment_removed'): whether it can still be appealed from there. Only a
+  // post can be; the appeal is checked again when it is filed.
+  appealable?: boolean;
   sender: ProfileWithUser | null;
 }
 

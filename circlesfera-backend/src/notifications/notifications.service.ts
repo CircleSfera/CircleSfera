@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { $Enums, type Locale, Prisma } from '@prisma/client';
+import { appealDeadline } from '../appeals/appeal-window.js';
 import { DEFAULT_LOCALE } from '../common/constants/locale.constants.js';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
@@ -10,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
 import { pushGroupOf } from '../push/push-groups.js';
 import { type Notice, renderNotice } from './notice-copy.js';
+import { REMOVAL_TARGET_TYPES } from './removal-notice.js';
 
 type NotificationType = $Enums.NotificationType;
 
@@ -65,7 +67,69 @@ export class NotificationsService {
       }),
     ]);
 
-    return createPaginatedResult(notifications, total, page, limit);
+    return createPaginatedResult(
+      await this.withAppealable(notifications),
+      total,
+      page,
+      limit,
+    );
+  }
+
+  // A notice of removed content says whether the author can still appeal
+  // it from there: only a post (or frame) can be, while it is still kept
+  // removed, within its six months, and not appealed since it was removed.
+  // The appeal itself checks all of this again.
+  private async withAppealable<
+    T extends { targetType: string | null; targetId: string | null },
+  >(notifications: T[]): Promise<Array<T & { appealable?: boolean }>> {
+    const removalTypes: Array<string | null> =
+      Object.values(REMOVAL_TARGET_TYPES);
+    if (!notifications.some((n) => removalTypes.includes(n.targetType))) {
+      return notifications;
+    }
+    const postIds = notifications
+      .filter((n) => n.targetType === REMOVAL_TARGET_TYPES.POST && n.targetId)
+      .map((n) => n.targetId as string);
+
+    const [posts, appeals] = postIds.length
+      ? await Promise.all([
+          this.prisma.post.findMany({
+            where: { id: { in: postIds } },
+            select: { id: true, moderationStatus: true, moderatedAt: true },
+          }),
+          this.prisma.appeal.findMany({
+            where: { targetType: 'POST_REMOVAL', targetId: { in: postIds } },
+            select: { targetId: true, createdAt: true },
+          }),
+        ])
+      : [[], []];
+    const now = new Date();
+    const appealable = new Set(
+      posts
+        .filter(
+          (post) =>
+            post.moderationStatus === $Enums.ModerationStatus.REMOVED &&
+            post.moderatedAt !== null &&
+            appealDeadline(post.moderatedAt) >= now &&
+            !appeals.some(
+              (a) =>
+                a.targetId === post.id &&
+                a.createdAt >= (post.moderatedAt as Date),
+            ),
+        )
+        .map((post) => post.id),
+    );
+
+    return notifications.map((n) =>
+      removalTypes.includes(n.targetType)
+        ? {
+            ...n,
+            appealable:
+              n.targetType === REMOVAL_TARGET_TYPES.POST &&
+              appealable.has(n.targetId as string),
+          }
+        : n,
+    );
   }
 
   // Mark a single notification as read.

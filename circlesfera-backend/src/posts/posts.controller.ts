@@ -14,6 +14,10 @@ import {
 } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
+  CurrentAdmin,
+  type CurrentAdminData,
+} from '../auth/decorators/current-admin.decorator.js';
+import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
@@ -173,7 +177,10 @@ export class PostsController {
   @RequireStaffPermissions('content')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiResponse({ status: HttpStatus.NO_CONTENT })
-  async adminRemove(@Param('id') id: string) {
-    await this.postsService.adminRemove(id);
+  async adminRemove(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    await this.postsService.adminRemove(id, admin.adminId);
   }
 }

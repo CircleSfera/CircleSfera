@@ -26,6 +26,8 @@ describe('NotificationsService', () => {
       findFirst: vi.fn().mockResolvedValue({ pushNotifications: true }),
     },
     block: { findFirst: vi.fn().mockResolvedValue(null) },
+    post: { findMany: vi.fn() },
+    appeal: { findMany: vi.fn() },
     // Recipient account language and the sender's username; and, when the
     // push switch is asked for, the one of the Profile that receives.
     profile: {
@@ -129,6 +131,122 @@ describe('NotificationsService', () => {
       const result = await service.findAll('user-1', { page: 1, limit: 10 });
       expect(result.data).toHaveLength(1);
       expect(result.meta.total).toBe(1);
+      expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
+    });
+
+    it('says which removed posts can still be appealed from their notice', async () => {
+      vi.useFakeTimers({ now: new Date('2026-10-27T12:00:00.000Z') });
+      const removedAt = new Date('2026-10-01T00:00:00.000Z');
+      const notice = (
+        id: string,
+        targetType: string | null,
+        targetId = id,
+      ) => ({
+        id: `n-${id}`,
+        type: 'MODERATION',
+        targetType,
+        targetId,
+      });
+      mockPrismaService.notification.findMany.mockResolvedValue([
+        notice('open', 'post_removed'),
+        notice('appealed', 'post_removed'),
+        notice('appealed-before', 'post_removed'),
+        notice('late', 'post_removed'),
+        notice('restored', 'post_removed'),
+        notice('erased', 'post_removed'),
+        notice('story', 'story_removed'),
+        notice('comment', 'comment_removed'),
+        notice('like', null),
+      ]);
+      mockPrismaService.notification.count.mockResolvedValue(9);
+      const removed = { moderationStatus: 'REMOVED', moderatedAt: removedAt };
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: 'open', ...removed },
+        { id: 'appealed', ...removed },
+        { id: 'appealed-before', ...removed },
+        {
+          id: 'late',
+          moderationStatus: 'REMOVED',
+          moderatedAt: new Date('2026-04-01T00:00:00.000Z'),
+        },
+        { id: 'restored', moderationStatus: 'VISIBLE', moderatedAt: removedAt },
+        { id: 'no-date', moderationStatus: 'REMOVED', moderatedAt: null },
+      ]);
+      mockPrismaService.appeal.findMany.mockResolvedValue([
+        { targetId: 'appealed', createdAt: new Date('2026-10-02') },
+        // An appeal of an earlier removal does not count for this one.
+        { targetId: 'appealed-before', createdAt: new Date('2026-09-01') },
+      ]);
+
+      try {
+        const result = await service.findAll('user-1', { page: 1, limit: 20 });
+        expect(
+          result.data.map((n) => [
+            n.id,
+            (n as { appealable?: boolean }).appealable,
+          ]),
+        ).toEqual([
+          ['n-open', true],
+          ['n-appealed', false],
+          ['n-appealed-before', true],
+          ['n-late', false],
+          ['n-restored', false],
+          ['n-erased', false],
+          ['n-story', false],
+          ['n-comment', false],
+          ['n-like', undefined],
+        ]);
+        expect(mockPrismaService.post.findMany).toHaveBeenCalledWith({
+          where: {
+            id: {
+              in: [
+                'open',
+                'appealed',
+                'appealed-before',
+                'late',
+                'restored',
+                'erased',
+              ],
+            },
+          },
+          select: { id: true, moderationStatus: true, moderatedAt: true },
+        });
+        expect(mockPrismaService.appeal.findMany).toHaveBeenCalledWith({
+          where: {
+            targetType: 'POST_REMOVAL',
+            targetId: { in: expect.any(Array) },
+          },
+          select: { targetId: true, createdAt: true },
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('a removed story or comment is never appealable, and no post is looked up', async () => {
+      mockPrismaService.notification.findMany.mockResolvedValue([
+        { id: 'n-1', targetType: 'story_removed', targetId: 's-1' },
+        { id: 'n-2', targetType: 'post_removed', targetId: null },
+      ]);
+      mockPrismaService.notification.count.mockResolvedValue(2);
+
+      const result = await service.findAll('user-1', { page: 1, limit: 10 });
+      expect(result.data).toEqual([
+        {
+          id: 'n-1',
+          targetType: 'story_removed',
+          targetId: 's-1',
+          appealable: false,
+        },
+        {
+          id: 'n-2',
+          targetType: 'post_removed',
+          targetId: null,
+          appealable: false,
+        },
+      ]);
+      expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
+      expect(mockPrismaService.appeal.findMany).not.toHaveBeenCalled();
     });
   });
 

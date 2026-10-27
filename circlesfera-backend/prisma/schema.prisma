@@ -1096,10 +1096,11 @@ model LiveStream {
   endedByStaff        Boolean             @default(false)
 
   // A host's streams are erased with the host (TD-009).
-  host         Profile       @relation("LiveStreamHost", fields: [hostId], references: [id], onDelete: Cascade)
-  coHost       Profile?      @relation("LiveStreamCoHost", fields: [coHostId], references: [id], onDelete: SetNull)
-  gifts        LiveGift[]
-  transactions Transaction[]
+  host           Profile             @relation("LiveStreamHost", fields: [hostId], references: [id], onDelete: Cascade)
+  coHost         Profile?            @relation("LiveStreamCoHost", fields: [coHostId], references: [id], onDelete: SetNull)
+  gifts          LiveGift[]
+  transactions   Transaction[]
+  recordingParts LiveRecordingPart[]
 
   @@index([status])
   @@index([hostId])
@@ -1107,6 +1108,30 @@ model LiveStream {
   @@index([recordingStatus])
   @@index([hostId, publishedAt])
   @@map("live_streams")
+}
+
+// One file the recorder writes for a broadcast: the host's camera and
+// microphone, or a co-host's, each recorded apart while they are on air. A
+// co-host who joins again has a new part. The replay is composed from them.
+model LiveRecordingPart {
+  id         String                  @id @default(uuid())
+  streamId   String
+  role       LiveRecordingRole
+  // The recorder's job; empty until the recorder answers.
+  egressId   String?                 @unique
+  // The file's name in the recorder's folder.
+  file       String                  @unique
+  status     LiveRecordingPartStatus @default(RECORDING)
+  startedAt  DateTime                @default(now())
+  endedAt    DateTime?
+  durationMs Int?
+  sizeBytes  BigInt?
+
+  stream LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+
+  @@index([streamId])
+  @@index([status])
+  @@map("live_recording_parts")
 }
 
 /// Paid virtual gift sent during a live stream (Stripe Checkout + webhook).
@@ -2709,6 +2734,19 @@ enum LiveRecordingStatus {
   READY
   FAILED
   SKIPPED_LIMIT
+}
+
+// Whose camera and microphone a recording part holds.
+enum LiveRecordingRole {
+  HOST
+  COHOST
+}
+
+// Where one part of a recording is: being written, written, or lost.
+enum LiveRecordingPartStatus {
+  RECORDING
+  DONE
+  FAILED
 }
 
 // Shared media lifecycle. PENDING/PROCESSING/FAILED are only ever reached by video

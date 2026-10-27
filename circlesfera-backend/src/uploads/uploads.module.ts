@@ -8,6 +8,7 @@ import {
 import { STORAGE_PROVIDER } from './interfaces/storage-provider.interface.js';
 import { MediaProcessorService } from './media-processor.service.js';
 import { MediaSignatureValidator } from './media-signature.validator.js';
+import { LiveReplayMaker } from './processors/live-replay.maker.js';
 import { MediaCleanupProcessor } from './processors/media-cleanup.processor.js';
 import { VideoProcessor } from './processors/video.processor.js';
 import { CloudinaryProvider } from './providers/cloudinary.provider.js';
@@ -36,6 +37,7 @@ import { VoiceNoteConverter } from './voice-note.converter.js';
     MediaSignatureValidator,
     VoiceNoteConverter,
     VideoProcessor,
+    LiveReplayMaker,
     MediaCleanupProcessor,
     DetachedFilesErasureService,
     MediaReconciliationService,

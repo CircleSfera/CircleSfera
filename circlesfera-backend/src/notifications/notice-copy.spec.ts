@@ -182,6 +182,54 @@ describe('renderNotice', () => {
     ).toBe('Your appeal was approved.');
   });
 
+  it('says why staff removed content: their note, else the reason the removal email gives', () => {
+    expect(
+      renderNotice('en', {
+        key: 'content_moderated',
+        contentType: 'POST',
+        status: 'removed',
+        note: ' Spam ',
+      }),
+    ).toBe(
+      'Moderation removed your post. Reason: Spam. You can appeal this decision once, within six months. You can also turn to a certified out-of-court dispute settlement body or to the courts.',
+    );
+    expect(
+      renderNotice('es', {
+        key: 'content_moderated',
+        contentType: 'STORY',
+        status: 'removed',
+        note: '  ',
+      }),
+    ).toBe(
+      'Moderación ha retirado tu historia. Motivo: Incumplimiento de las normas de la comunidad. Puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
+    );
+    expect(
+      renderNotice('en', {
+        key: 'content_moderated',
+        contentType: 'COMMENT',
+        status: 'removed',
+      }),
+    ).toContain('Reason: Violation of the community guidelines.');
+    // An automated removal shows no assessment, and a note on any other
+    // decision is shown as a note.
+    expect(
+      renderNotice('en', {
+        key: 'content_moderated',
+        contentType: 'POST',
+        status: 'removed',
+        automated: true,
+      }),
+    ).not.toContain('Reason');
+    expect(
+      renderNotice('es', {
+        key: 'content_moderated',
+        contentType: 'POST',
+        status: 'restored',
+        note: 'Revisado',
+      }),
+    ).toBe('Moderación ha restaurado tu publicación. Nota: Revisado');
+  });
+
   it('names what was moderated or reported in each language', () => {
     expect(
       renderNotice('es', {

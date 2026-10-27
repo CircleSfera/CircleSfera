@@ -225,6 +225,30 @@ const REDRESS_ONLY: Record<Locale, string> = {
   es: 'Puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
 };
 
+// Why staff removed something, when they wrote no note: the same words the
+// removal email uses.
+const GENERIC_REASON: Record<Locale, string> = {
+  en: 'Violation of the community guidelines',
+  es: 'Incumplimiento de las normas de la comunidad',
+};
+
+// A note on a removal by staff is its reason, and there always is one.
+// Other decisions show the note as it is, and an automated decision never
+// shows its assessment.
+function moderationNote(
+  locale: Locale,
+  n: Extract<Notice, { key: 'content_moderated' }>,
+): { label: 'note' | 'reason'; note?: string } {
+  if (n.status !== 'removed' || n.automated) {
+    return { label: 'note', note: n.note };
+  }
+  return { label: 'reason', note: n.note?.trim() || GENERIC_REASON[locale] };
+}
+
+// The redress follows the note as a sentence of its own.
+const withRedress = (text: string, redress: string) =>
+  redress ? `${endSentence(text)}${redress}` : text;
+
 // What a moderated item's notice says about redress. Only a post can be
 // appealed today; a hidden or removed comment or story names the other
 // ways to seek redress, and nothing is said when content is restored.
@@ -276,11 +300,15 @@ function renderEn(n: Notice): string {
         flagged: 'flagged for review',
       }[n.status];
       const who = n.automated ? 'Automated moderation' : 'Moderation';
-      return withNote(
-        `${who} ${verb} your ${CONTENT.en[contentType(n.contentType)]}.`,
-        'Note',
-        n.note,
-      ).concat(noticeAppeal('en', n.status, n.contentType));
+      const { label, note } = moderationNote('en', n);
+      return withRedress(
+        withNote(
+          `${who} ${verb} your ${CONTENT.en[contentType(n.contentType)]}.`,
+          label === 'reason' ? 'Reason' : 'Note',
+          note,
+        ),
+        noticeAppeal('en', n.status, n.contentType),
+      );
     }
     case 'report_updated':
       return `Your report about a ${CONTENT.en[contentType(n.reportType)]} is now ${REPORT_STATUS.en[n.status] ?? n.status.toLowerCase()}.`;
@@ -403,11 +431,15 @@ function renderEs(n: Notice): string {
         flagged: 'ha marcado para revisión',
       }[n.status];
       const who = n.automated ? 'La moderación automática' : 'Moderación';
-      return withNote(
-        `${who} ${verb} tu ${CONTENT.es[contentType(n.contentType)]}.`,
-        'Nota',
-        n.note,
-      ).concat(noticeAppeal('es', n.status, n.contentType));
+      const { label, note } = moderationNote('es', n);
+      return withRedress(
+        withNote(
+          `${who} ${verb} tu ${CONTENT.es[contentType(n.contentType)]}.`,
+          label === 'reason' ? 'Motivo' : 'Nota',
+          note,
+        ),
+        noticeAppeal('es', n.status, n.contentType),
+      );
     }
     case 'report_updated': {
       const type = contentType(n.reportType);
