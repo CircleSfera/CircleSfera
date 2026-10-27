@@ -1,6 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { likesApi } from '../services';
 import { renderWithProviders } from '../test/test-utils';
 import LikeButton from './LikeButton';
@@ -89,6 +89,8 @@ describe('LikeButton', () => {
   });
 
   it('goes back when the like cannot be saved', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     vi.mocked(likesApi.toggle).mockRejectedValue(new Error('offline'));
     const onToggle = vi.fn();
     renderWithProviders(<LikeButton postId="post-1" onToggle={onToggle} />);
@@ -100,6 +102,12 @@ describe('LikeButton', () => {
     expect(
       await screen.findByRole('button', { name: 'Like post' }),
     ).toBeInTheDocument();
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to toggle like:',
+      new Error('offline'),
+      'for post:',
+      expect.anything(),
+    );
   });
 
   it('follows a like given elsewhere on the screen', async () => {

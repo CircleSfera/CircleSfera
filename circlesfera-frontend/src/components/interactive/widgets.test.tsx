@@ -236,8 +236,9 @@ describe('QnaWidget', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('does not send an empty answer', () => {
+    it('does not send an empty answer', async () => {
       renderWithProviders(<QnaWidget qnaBoxId="box-1" />);
+      await screen.findByText('Where should I go next?');
 
       fireEvent.change(field(), { target: { value: '   ' } });
       fireEvent.submit(field());
@@ -246,9 +247,10 @@ describe('QnaWidget', () => {
       expect(apiClient.post).not.toHaveBeenCalled();
     });
 
-    it('takes no second press while the answer is on its way', () => {
+    it('takes no second press while the answer is on its way', async () => {
       vi.mocked(apiClient.post).mockReturnValue(new Promise(() => {}));
       renderWithProviders(<QnaWidget qnaBoxId="box-1" />);
+      await screen.findByText('Where should I go next?');
 
       fireEvent.change(field(), { target: { value: 'Lisbon' } });
       fireEvent.click(send());

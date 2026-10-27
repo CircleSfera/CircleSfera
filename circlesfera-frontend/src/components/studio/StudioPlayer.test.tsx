@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStudioStore } from '../../stores/studioStore';
 import { renderWithProviders } from '../../test/test-utils';
@@ -159,6 +159,9 @@ describe('StudioPlayer', () => {
   });
 
   afterEach(() => {
+    // Unmount first: the store change would otherwise re-render the screen
+    // after the test, outside act.
+    cleanup();
     vi.useRealTimers();
     vi.unstubAllGlobals();
     useStudioStore.setState({ project: null, playhead: 0, isPlaying: false });

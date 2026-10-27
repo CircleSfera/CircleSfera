@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import { PullToRefresh } from './PullToRefresh';
@@ -89,7 +89,7 @@ describe('PullToRefresh', () => {
 
     await act(async () => finish());
     expect(container.querySelector('.animate-spin')).toBeNull();
-    await vi.waitFor(() => expect(pulled(content)).toBe(0));
+    await waitFor(() => expect(pulled(content)).toBe(0));
   });
 
   it('goes back up without refreshing when let go before the mark', async () => {
@@ -101,7 +101,7 @@ describe('PullToRefresh', () => {
     });
 
     expect(onRefresh).not.toHaveBeenCalled();
-    await vi.waitFor(() => expect(pulled(content)).toBe(0));
+    await waitFor(() => expect(pulled(content)).toBe(0));
   });
 
   it('goes back up without refreshing when the system takes the touch away', async () => {
@@ -112,7 +112,7 @@ describe('PullToRefresh', () => {
       fireEvent.touchCancel(area);
     });
 
-    await vi.waitFor(() => expect(pulled(content)).toBe(0));
+    await waitFor(() => expect(pulled(content)).toBe(0));
     await act(async () => {
       fireEvent.touchEnd(area);
     });
@@ -199,7 +199,7 @@ describe('PullToRefresh', () => {
     });
 
     expect(container.querySelector('.animate-spin')).toBeNull();
-    await vi.waitFor(() => expect(pulled(content)).toBe(0));
+    await waitFor(() => expect(pulled(content)).toBe(0));
   });
 
   it('stops listening when it goes away', () => {

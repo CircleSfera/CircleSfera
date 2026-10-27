@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { i18n as I18n } from 'i18next';
 import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -91,9 +97,12 @@ async function endStream(i18n: I18n) {
     screen.getByRole('button', { name: i18n.t('live.end_stream') }),
   );
   const dialog = await screen.findByRole('dialog');
-  fireEvent.click(
-    within(dialog).getByRole('button', { name: i18n.t('live.end_stream') }),
-  );
+  // The answer of the server is awaited with the press.
+  await act(async () => {
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: i18n.t('live.end_stream') }),
+    );
+  });
 }
 
 describe('LiveBroadcaster', () => {
@@ -244,11 +253,14 @@ describe('LiveBroadcaster', () => {
         }),
         { target: { value: username } },
       );
-      fireEvent.click(
-        screen.getByRole('button', {
-          name: view.i18n!.t('live.cohost_invite_send'),
-        }),
-      );
+      // The answer of the server is awaited with the press.
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole('button', {
+            name: view.i18n!.t('live.cohost_invite_send'),
+          }),
+        );
+      });
       return view;
     }
 

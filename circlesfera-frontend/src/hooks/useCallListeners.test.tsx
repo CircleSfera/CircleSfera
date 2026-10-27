@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { webrtcService } from '../services/webrtc.service';
 import { useSocketStore } from '../stores/socketStore';
@@ -65,25 +65,31 @@ describe('useCallListeners', () => {
   it('shows an incoming call when the line is free, and ignores it during another call', () => {
     renderHook(() => useCallListeners());
 
-    receive('call:incoming', { caller: ana, type: 'video' });
+    act(() => {
+      receive('call:incoming', { caller: ana, type: 'video' });
+    });
     expect(useCallStore.getState()).toMatchObject({
       status: 'incoming',
       remoteUser: ana,
       callType: 'video',
     });
 
-    receive('call:incoming', {
-      caller: { id: 'u-luis', profile: { username: 'luis' } },
-      type: 'audio',
+    act(() => {
+      receive('call:incoming', {
+        caller: { id: 'u-luis', profile: { username: 'luis' } },
+        type: 'audio',
+      });
     });
     expect(useCallStore.getState().remoteUser).toBe(ana);
   });
 
   it('opens the connection with the other person once they answer', async () => {
     renderHook(() => useCallListeners());
-    useCallStore.setState({ status: 'ringing', callType: 'audio' });
+    act(() => useCallStore.setState({ status: 'ringing', callType: 'audio' }));
 
-    await receive('call:accepted', { receiverId: 'u-ana' });
+    await act(async () => {
+      await receive('call:accepted', { receiverId: 'u-ana' });
+    });
 
     expect(useCallStore.getState().status).toBe('active');
     expect(webrtcService.startCall).toHaveBeenCalledWith('u-ana', 'audio');
@@ -138,9 +144,11 @@ describe('useCallListeners', () => {
     'closes the connection and frees the line on %s',
     (name) => {
       renderHook(() => useCallListeners());
-      useCallStore.setState({ status: 'active', remoteUser: ana });
+      act(() => useCallStore.setState({ status: 'active', remoteUser: ana }));
 
-      receive(name);
+      act(() => {
+        receive(name);
+      });
 
       expect(webrtcService.cleanup).toHaveBeenCalled();
       expect(useCallStore.getState()).toMatchObject({

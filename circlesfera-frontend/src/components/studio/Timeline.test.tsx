@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStudioStore } from '../../stores/studioStore';
 import { renderWithProviders } from '../../test/test-utils';
@@ -71,6 +71,9 @@ describe('Timeline', () => {
   });
 
   afterEach(() => {
+    // Unmount first: the store change would otherwise re-render the screen
+    // after the test, outside act.
+    cleanup();
     vi.unstubAllGlobals();
     useStudioStore.setState({ project: null });
   });

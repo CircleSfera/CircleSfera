@@ -213,10 +213,15 @@ describe('AudioClipWaveform', () => {
   });
 
   it('shows the whole strip as chosen for a track of unknown length', async () => {
+    const error = vi.spyOn(console, 'error');
     const { container, strip, onStartMsChange } = await show({
       trackDurationMs: 0,
       startMs: 0,
     });
+    // Every bar starts at 0 here, and each one is still its own bar.
+    expect(container.querySelectorAll('.rounded-sm')).toHaveLength(72);
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
     const window = container.querySelector('.border-x-2') as HTMLElement;
     expect(window.style.left).toBe('0%');
     expect(window.style.width).toBe('100%');

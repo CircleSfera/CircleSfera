@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { commentsApi, uploadApi } from '../services';
@@ -177,8 +183,13 @@ describe('CommentList actions', () => {
       );
 
       fireEvent.click(screen.getByRole('button', { name: 'Reply' }));
+      write('Not yet');
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(screen.queryByText('Replying to')).not.toBeInTheDocument();
+      // Calling the reply off does not post what was written.
+      await act(async () => {});
+      expect(commentsApi.create).toHaveBeenCalledTimes(1);
+      expect(field()).toHaveValue('Not yet');
     });
 
     const thread = [
@@ -286,6 +297,9 @@ describe('CommentList actions', () => {
         screen.queryByRole('img', { name: /preview/i }),
       ).not.toBeInTheDocument();
       expect(post()).toBeDisabled();
+      // Taking the file away does not post the comment the form holds.
+      await act(async () => {});
+      expect(commentsApi.create).not.toHaveBeenCalled();
     });
 
     it('says so when the file could not be uploaded', async () => {

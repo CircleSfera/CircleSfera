@@ -1,6 +1,6 @@
 import { toBlob } from 'html-to-image';
 import { toast } from 'react-hot-toast';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 import {
   exportStoryCanvas,
@@ -37,6 +37,9 @@ describe('story export', () => {
   beforeEach(() => {
     vi.mocked(toBlob).mockReset();
     vi.mocked(toast.error).mockReset();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('hands the image of the canvas, and its size, to the owner', async () => {
@@ -141,8 +144,13 @@ describe('story export', () => {
   });
 
   it('tells the user the story could not be exported, without the technical cause', () => {
-    reportStoryExportError(new Error('SecurityError: tainted canvas'));
+    const failure = new Error('SecurityError: tainted canvas');
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 
+    reportStoryExportError(failure);
+
+    // The technical cause goes to the log only.
+    expect(log).toHaveBeenCalledWith('Story export failed:', failure);
     expect(toast.error).toHaveBeenCalledTimes(1);
     const message = vi.mocked(toast.error).mock.calls[0][0] as string;
     expect(message).toBe(i18n.t('createPost.storyComposer.export_error'));

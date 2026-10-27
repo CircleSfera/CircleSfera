@@ -1,5 +1,5 @@
 import { PushNotifications } from '@capacitor/push-notifications';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -76,6 +76,7 @@ describe('usePushNotifications (web)', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('detects web push support', async () => {
@@ -127,6 +128,7 @@ describe('usePushNotifications (web)', () => {
     vi.mocked(window.Notification.requestPermission).mockResolvedValueOnce(
       'denied',
     );
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = renderHook(() => usePushNotifications());
 
@@ -143,6 +145,10 @@ describe('usePushNotifications (web)', () => {
     expect(result.current.isSubscribed).toBe(false);
     expect(result.current.loading).toBe(false);
     expect(api.post).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to subscribe to push notifications',
+      new Error('Permission not granted for web push notifications'),
+    );
   });
 
   it('unsubscribes and notifies backend', async () => {
@@ -201,6 +207,10 @@ describe('usePushNotifications (on a phone)', () => {
   });
 
   afterEach(() => {
+    // The hook goes before the account does: signing out under a mounted hook
+    // would start a new check of the phone after the test.
+    cleanup();
+    vi.restoreAllMocks();
     platform.native = false;
     platform.os = 'ios';
     useAuthStore.setState({ isAuthenticated: false, profile: null });
@@ -213,11 +223,12 @@ describe('usePushNotifications (on a phone)', () => {
     } as never);
     vi.mocked(api.post).mockResolvedValue({} as never);
     signIn('u1');
-    renderHook(() => usePushNotifications());
+    const { result } = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(result.current.permission).toBe('granted'));
 
     const registration = registrationListener();
     expect(registration).toBeDefined();
-    registration?.({ value: 'a1b2c3' });
+    act(() => registration?.({ value: 'a1b2c3' }));
 
     expect(api.post).toHaveBeenCalledWith('/push/subscribe-native', {
       token: 'a1b2c3',
@@ -231,16 +242,15 @@ describe('usePushNotifications (on a phone)', () => {
       receive: 'granted',
     } as never);
     useAuthStore.setState({ isAuthenticated: false });
-    const { rerender } = renderHook(() => usePushNotifications());
-    await waitFor(() =>
-      expect(PushNotifications.checkPermissions).toHaveBeenCalled(),
-    );
+    const { result, rerender } = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(result.current.permission).toBe('granted'));
     expect(PushNotifications.register).not.toHaveBeenCalled();
 
     act(() => signIn('u1'));
     rerender();
 
     await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isSubscribed).toBe(true));
   });
 
   it('does not register again after the person turned push off here, and shows it off', async () => {
@@ -291,7 +301,11 @@ describe('usePushNotifications (on a phone)', () => {
   });
 
   it('does not send the token Apple gives once nobody is signed in', async () => {
-    renderHook(() => usePushNotifications());
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'granted',
+    } as never);
+    const { result } = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(result.current.permission).toBe('granted'));
 
     registrationListener()?.({ value: 'a1b2c3' });
 
@@ -385,6 +399,7 @@ describe('usePushNotifications (on a phone)', () => {
     vi.mocked(PushNotifications.requestPermissions).mockResolvedValue({
       receive: 'denied',
     } as never);
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { result } = renderHook(() => usePushNotifications());
     await waitFor(() =>
       expect(PushNotifications.checkPermissions).toHaveBeenCalled(),
@@ -398,5 +413,9 @@ describe('usePushNotifications (on a phone)', () => {
     expect(subscribed).toBe(false);
     expect(result.current.permission).toBe('denied');
     expect(PushNotifications.register).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to subscribe to push notifications',
+      new Error('User denied native permissions'),
+    );
   });
 });

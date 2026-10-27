@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStudioStore } from '../../../stores/studioStore';
 import { renderWithProviders } from '../../../test/test-utils';
@@ -32,6 +32,9 @@ describe('StudioPlaybackControls', () => {
   });
 
   afterEach(() => {
+    // Unmount first: the store change would otherwise re-render the screen
+    // after the test, outside act.
+    cleanup();
     useStudioStore.setState({ project: null, playhead: 0, isPlaying: false });
   });
 

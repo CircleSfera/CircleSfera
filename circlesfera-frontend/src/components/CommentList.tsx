@@ -332,6 +332,7 @@ export default function CommentList({
             </span>
           </span>
           <Button
+            type="button"
             onClick={() => setReplyingTo(null)}
             variant="ghost"
             size="icon"
@@ -351,6 +352,7 @@ export default function CommentList({
             className="w-20 h-20 object-cover rounded-lg border border-white/20"
           />
           <Button
+            type="button"
             onClick={() => setMedia(null)}
             variant="danger"
             size="icon"

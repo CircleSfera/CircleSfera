@@ -1,6 +1,14 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import toast from 'react-hot-toast';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import { authApi, profileApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import { renderWithProviders } from '../test/test-utils';
@@ -117,11 +125,17 @@ describe('Register', () => {
   it('still goes to onboarding when the profile cannot be loaded yet', async () => {
     vi.mocked(authApi.register).mockResolvedValue({} as never);
     vi.mocked(profileApi.getMyProfile).mockRejectedValue(new Error('later'));
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     const { i18n } = renderWithProviders(<Register />);
 
     fillForm(i18n!, yearsAgo(30));
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/onboarding'));
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to fetch profile:',
+      new Error('later'),
+    );
   });
 
   it('requires a date of birth and refuses anyone under 16', async () => {

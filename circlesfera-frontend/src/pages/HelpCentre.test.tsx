@@ -1,5 +1,13 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { apiClient } from '../services/api';
 import { renderWithProviders } from '../test/test-utils';
 import HelpCentre from './HelpCentre';
@@ -13,6 +21,27 @@ const articles = [
 ];
 
 describe('HelpCentre', () => {
+  // Browsers make <search> a plain HTMLElement; jsdom does not know it yet
+  // and makes it an unknown one. Here it is made what a browser makes it.
+  const createElement = Document.prototype.createElement;
+  beforeAll(() => {
+    Document.prototype.createElement = function (
+      this: Document,
+      ...args: Parameters<Document['createElement']>
+    ) {
+      const element = createElement.apply(this, args);
+      if (element.localName === 'search') {
+        Object.defineProperty(element, Symbol.toStringTag, {
+          value: 'HTMLElement',
+        });
+      }
+      return element;
+    } as Document['createElement'];
+  });
+  afterAll(() => {
+    Document.prototype.createElement = createElement;
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -92,7 +121,7 @@ describe('HelpCentre', () => {
       }),
       { target: { value: 'a' } },
     );
-    await new Promise((done) => setTimeout(done, 400));
+    await act(() => new Promise((done) => setTimeout(done, 400)));
 
     expect(apiClient.get).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('link', { name: 'Is it free?' })).toBeVisible();

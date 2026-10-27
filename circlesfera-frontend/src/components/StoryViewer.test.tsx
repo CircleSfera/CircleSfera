@@ -117,7 +117,14 @@ const reactionsOf = (rows: unknown[]) =>
     ReturnType<typeof storiesApi.getReactions>
   >;
 
-function show(stories: Story[], initialIndex = 0) {
+/**
+ * Lets the requests the viewer makes for the story on screen (its view and
+ * its reactions) come back.
+ */
+const settle = () => act(async () => {});
+
+/** Opens the viewer, and lets the requests of its first story come back. */
+async function show(stories: Story[], initialIndex = 0) {
   const onClose = vi.fn();
   const view = renderWithProviders(
     <StoryViewer
@@ -126,6 +133,7 @@ function show(stories: Story[], initialIndex = 0) {
       onClose={onClose}
     />,
   );
+  await settle();
   return { onClose, ...view };
 }
 
@@ -154,11 +162,12 @@ describe('StoryViewer', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   describe("someone else's story", () => {
     it('records the view and offers a reply and a like', async () => {
-      show([story('s1')]);
+      await show([story('s1')]);
 
       await waitFor(() =>
         expect(storiesApi.markViewed).toHaveBeenCalledWith('s1'),
@@ -172,7 +181,7 @@ describe('StoryViewer', () => {
 
     it('sends the reply as a message about that story', async () => {
       const user = userEvent.setup();
-      show([story('s1')]);
+      await show([story('s1')]);
 
       const send = screen.getByRole('button', { name: 'Send reply' });
       expect(send).toBeDisabled();
@@ -190,7 +199,7 @@ describe('StoryViewer', () => {
 
     it('does not send a reply made only of spaces', async () => {
       const user = userEvent.setup();
-      show([story('s1')]);
+      await show([story('s1')]);
 
       await user.type(screen.getByPlaceholderText('Reply...'), '   {Enter}');
 
@@ -199,19 +208,24 @@ describe('StoryViewer', () => {
 
     it('keeps the text when the reply cannot be sent', async () => {
       const user = userEvent.setup();
-      vi.mocked(chatApi.sendMessage).mockRejectedValue(new Error('offline'));
-      show([story('s1')]);
+      const failure = new Error('offline');
+      vi.mocked(chatApi.sendMessage).mockRejectedValue(failure);
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await show([story('s1')]);
 
       await user.type(screen.getByPlaceholderText('Reply...'), 'Hello{Enter}');
 
-      await waitFor(() => expect(chatApi.sendMessage).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(log).toHaveBeenCalledWith('Failed to send story reply', failure),
+      );
+      expect(chatApi.sendMessage).toHaveBeenCalled();
       expect(screen.getByPlaceholderText('Reply...')).toHaveValue('Hello');
     });
 
     it('stops the timer of the reaction burst when the viewer closes', async () => {
       const clear = vi.spyOn(globalThis, 'clearTimeout');
       const user = userEvent.setup();
-      const { unmount } = show([story('s1')]);
+      const { unmount } = await show([story('s1')]);
       await waitFor(() =>
         expect(storiesApi.getReactions).toHaveBeenCalledTimes(1),
       );
@@ -228,7 +242,7 @@ describe('StoryViewer', () => {
 
     it('adds a heart and reads the reactions again', async () => {
       const user = userEvent.setup();
-      show([story('s1')]);
+      await show([story('s1')]);
       await waitFor(() =>
         expect(storiesApi.getReactions).toHaveBeenCalledTimes(1),
       );
@@ -251,8 +265,8 @@ describe('StoryViewer', () => {
       );
     });
 
-    it('shows the question box to visitors and the poll to everyone', () => {
-      show([story('s1', { poll: { id: 'p1' }, qnaBox: { id: 'q1' } })]);
+    it('shows the question box to visitors and the poll to everyone', async () => {
+      await show([story('s1', { poll: { id: 'p1' }, qnaBox: { id: 'q1' } })]);
 
       expect(screen.getByTestId('poll')).toHaveTextContent('p1');
       expect(screen.getByTestId('qna')).toHaveTextContent('q1');
@@ -270,8 +284,8 @@ describe('StoryViewer', () => {
       rotation: 0,
     });
 
-    it('shows each poll and question of a story where it was placed, through the routes of stickers', () => {
-      show([
+    it('shows each poll and question of a story where it was placed, through the routes of stickers', async () => {
+      await show([
         story('s1', {
           stickers: [
             sticker('st-1', 'POLL'),
@@ -293,8 +307,8 @@ describe('StoryViewer', () => {
       expect(screen.getAllByTestId('placed-sticker')).toHaveLength(3);
     });
 
-    it('hides a question sticker from the author of the story', () => {
-      show([
+    it('hides a question sticker from the author of the story', async () => {
+      await show([
         story('s1', {
           profileId: 'me',
           stickers: [sticker('st-2', 'QUESTION', { prompt: 'Ask me' })],
@@ -304,8 +318,8 @@ describe('StoryViewer', () => {
       expect(screen.queryByTestId('qna')).not.toBeInTheDocument();
     });
 
-    it('opens a mention and a place, and leaves out one the server could not name', () => {
-      show([
+    it('opens a mention and a place, and leaves out one the server could not name', async () => {
+      await show([
         story('s1', {
           stickers: [
             sticker('st-m', 'MENTION', { profileId: 'p-ana', username: 'ana' }),
@@ -329,8 +343,8 @@ describe('StoryViewer', () => {
       expect(screen.getAllByTestId('placed-sticker')).toHaveLength(2);
     });
 
-    it('says where a link leads before opening it, and leaves out a link the server sent empty', () => {
-      show([
+    it('says where a link leads before opening it, and leaves out a link the server sent empty', async () => {
+      await show([
         story('s1', {
           stickers: [
             sticker('st-l', 'LINK', {
@@ -354,8 +368,8 @@ describe('StoryViewer', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('shows the song of the story, which turns its sound on and off', () => {
-      show([
+    it('shows the song of the story, which turns its sound on and off', async () => {
+      await show([
         story('s1', {
           stickers: [
             sticker('st-m', 'MUSIC', { title: 'Luz', artist: 'Ana' }),
@@ -372,9 +386,9 @@ describe('StoryViewer', () => {
       expect(screen.getAllByTestId('placed-sticker')).toHaveLength(1);
     });
 
-    it('keeps the story going when its song is turned on or off', () => {
+    it('keeps the story going when its song is turned on or off', async () => {
       vi.useFakeTimers();
-      show([
+      await show([
         story('s1', {
           stickers: [sticker('st-m', 'MUSIC', { title: 'Luz', artist: 'Ana' })],
         } as Partial<Story>),
@@ -388,12 +402,13 @@ describe('StoryViewer', () => {
       act(() => {
         vi.advanceTimersByTime(8000);
       });
+      await settle();
 
       expect(position()).toMatch(/^Story 2 of 2/);
     });
 
-    it('shows a countdown where it was placed, for a viewer to be reminded', () => {
-      show([
+    it('shows a countdown where it was placed, for a viewer to be reminded', async () => {
+      await show([
         story('s1', {
           stickers: [
             sticker('st-c', 'COUNTDOWN', { title: 'Fiesta', endsAt: '' }),
@@ -413,8 +428,8 @@ describe('StoryViewer', () => {
         ...over,
       } as Partial<Story>);
 
-    it('lets the person mentioned add it to their story, with its picture and a mention of its author', () => {
-      show([mentionsMe()]);
+    it('lets the person mentioned add it to their story, with its picture and a mention of its author', async () => {
+      await show([mentionsMe()]);
 
       fireEvent.click(
         screen.getByRole('button', { name: 'Add to your story' }),
@@ -438,8 +453,8 @@ describe('StoryViewer', () => {
       });
     });
 
-    it('starts from the cover of a video story', () => {
-      show([
+    it('starts from the cover of a video story', async () => {
+      await show([
         mentionsMe({
           mediaType: 'video',
           thumbnailUrl: 'https://media.test/s1-cover.jpg',
@@ -455,9 +470,9 @@ describe('StoryViewer', () => {
       );
     });
 
-    it('offers it to nobody else, and not for a story for close friends or a paid one', () => {
-      const offered = (s: Story) => {
-        const view = show([s]);
+    it('offers it to nobody else, and not for a story for close friends or a paid one', async () => {
+      const offered = async (s: Story) => {
+        const view = await show([s]);
         const found = screen.queryByRole('button', {
           name: 'Add to your story',
         });
@@ -466,7 +481,7 @@ describe('StoryViewer', () => {
       };
 
       expect(
-        offered(
+        await offered(
           story('s1', {
             stickers: [
               sticker('st-m', 'MENTION', {
@@ -477,11 +492,13 @@ describe('StoryViewer', () => {
           } as Partial<Story>),
         ),
       ).toBe(false);
-      expect(offered(mentionsMe({ isCloseFriendsOnly: true }))).toBe(false);
-      expect(offered(mentionsMe({ isPremium: true, priceCents: 300 }))).toBe(
+      expect(await offered(mentionsMe({ isCloseFriendsOnly: true }))).toBe(
         false,
       );
-      expect(offered(mentionsMe())).toBe(true);
+      expect(
+        await offered(mentionsMe({ isPremium: true, priceCents: 300 })),
+      ).toBe(false);
+      expect(await offered(mentionsMe())).toBe(true);
     });
   });
 
@@ -495,7 +512,7 @@ describe('StoryViewer', () => {
           { reaction: '🔥', profileId: 'p2', profile: { username: 'luis' } },
         ]),
       );
-      show([mine({ _count: { views: 7 } } as Partial<Story>)]);
+      await show([mine({ _count: { views: 7 } } as Partial<Story>)]);
 
       expect(await screen.findByText('luis')).toBeInTheDocument();
       expect(screen.getByText(/7\s+Views/)).toBeInTheDocument();
@@ -503,8 +520,8 @@ describe('StoryViewer', () => {
       expect(screen.queryByPlaceholderText('Reply...')).not.toBeInTheDocument();
     });
 
-    it('hides its question sticker from its author, who reads the responses instead', () => {
-      show([
+    it('hides its question sticker from its author, who reads the responses instead', async () => {
+      await show([
         mine({
           stickers: [
             {
@@ -531,7 +548,7 @@ describe('StoryViewer', () => {
           data: [{ id: 'v1', profile: { id: 'v1', username: 'marta' } }],
         },
       } as never);
-      show([mine()]);
+      await show([mine()]);
 
       await user.click(screen.getByRole('button', { name: /Views/ }));
 
@@ -584,7 +601,7 @@ describe('StoryViewer', () => {
               },
       }));
       const at = { x: 0, y: 0, scale: 1, rotation: 0 };
-      show([
+      await show([
         mine({
           stickers: [
             { id: 'st-1', kind: 'POLL', settings: {}, ...at },
@@ -604,7 +621,7 @@ describe('StoryViewer', () => {
 
     it('deletes it after confirming, and closes', async () => {
       const user = userEvent.setup();
-      const { onClose, queryClient } = show([mine()]);
+      const { onClose, queryClient } = await show([mine()]);
       const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
       await user.click(
@@ -620,7 +637,7 @@ describe('StoryViewer', () => {
 
     it('keeps it when the question is cancelled', async () => {
       const user = userEvent.setup();
-      const { onClose } = show([mine()]);
+      const { onClose } = await show([mine()]);
 
       await user.click(
         screen.getByRole('button', { name: 'Delete this story' }),
@@ -634,8 +651,10 @@ describe('StoryViewer', () => {
 
     it('says so when it cannot be deleted, and stays open', async () => {
       const user = userEvent.setup();
-      vi.mocked(storiesApi.delete).mockRejectedValue(new Error('nope'));
-      const { onClose } = show([mine()]);
+      const failure = new Error('nope');
+      vi.mocked(storiesApi.delete).mockRejectedValue(failure);
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { onClose } = await show([mine()]);
 
       await user.click(
         screen.getByRole('button', { name: 'Delete this story' }),
@@ -645,6 +664,7 @@ describe('StoryViewer', () => {
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith('Failed to delete story'),
       );
+      expect(log).toHaveBeenCalledWith('Failed to delete story:', failure);
       expect(onClose).not.toHaveBeenCalled();
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
@@ -654,8 +674,8 @@ describe('StoryViewer', () => {
     const locked = () =>
       story('s1', { isLocked: true, priceCents: 250, poll: { id: 'p1' } });
 
-    it('shows the price in whole currency and hides the poll', () => {
-      show([locked()]);
+    it('shows the price in whole currency and hides the poll', async () => {
+      await show([locked()]);
 
       expect(
         screen.getByRole('button', { name: 'unlock for 2.5' }),
@@ -666,7 +686,7 @@ describe('StoryViewer', () => {
     it('says it is unlocked when no payment page is needed', async () => {
       const user = userEvent.setup();
       vi.mocked(monetizationApi.unlockStory).mockResolvedValue({} as never);
-      const { queryClient } = show([locked()]);
+      const { queryClient } = await show([locked()]);
       const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
       await user.click(screen.getByRole('button', { name: /unlock for/ }));
@@ -686,27 +706,29 @@ describe('StoryViewer', () => {
   describe('moving between stories', () => {
     const three = () => [story('s1'), story('s2'), story('s3')];
 
-    it('goes forward on a tap on the right and back on the left edge', () => {
-      show(three(), 1);
+    it('goes forward on a tap on the right and back on the left edge', async () => {
+      await show(three(), 1);
       expect(position()).toBe('Story 2 of 3 from ana');
 
       tapAt(250);
+      await settle();
       expect(position()).toBe('Story 3 of 3 from ana');
 
       tapAt(20);
+      await settle();
       expect(position()).toBe('Story 2 of 3 from ana');
     });
 
-    it('closes after the last one', () => {
-      const { onClose } = show(three(), 2);
+    it('closes after the last one', async () => {
+      const { onClose } = await show(three(), 2);
 
       tapAt(250);
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('stays on the first one on a tap on the left edge', () => {
-      const { onClose } = show(three(), 0);
+    it('stays on the first one on a tap on the left edge', async () => {
+      const { onClose } = await show(three(), 0);
 
       tapAt(20);
 
@@ -714,9 +736,9 @@ describe('StoryViewer', () => {
       expect(onClose).not.toHaveBeenCalled();
     });
 
-    it('treats a long press as a pause, not as a tap', () => {
+    it('treats a long press as a pause, not as a tap', async () => {
       vi.useFakeTimers();
-      show(three(), 0);
+      await show(three(), 0);
       const stage = document.querySelector<HTMLElement>(
         '[data-content-shell="playback"] .z-30',
       )!;
@@ -730,8 +752,8 @@ describe('StoryViewer', () => {
       expect(position()).toBe('Story 1 of 3 from ana');
     });
 
-    it('ignores a swipe', () => {
-      show(three(), 0);
+    it('ignores a swipe', async () => {
+      await show(three(), 0);
       const stage = document.querySelector<HTMLElement>(
         '[data-content-shell="playback"] .z-30',
       )!;
@@ -742,20 +764,21 @@ describe('StoryViewer', () => {
       expect(position()).toBe('Story 1 of 3 from ana');
     });
 
-    it('moves on by itself when the time of a photo runs out', () => {
+    it('moves on by itself when the time of a photo runs out', async () => {
       vi.useFakeTimers();
-      show(three(), 0);
+      await show(three(), 0);
 
       act(() => {
         vi.advanceTimersByTime(5200);
       });
+      await settle();
 
       expect(position()).toBe('Story 2 of 3 from ana');
     });
 
     it('waits while the delete question is open', async () => {
       vi.useFakeTimers();
-      show([story('s1', { profileId: 'me' }), story('s2')], 0);
+      await show([story('s1', { profileId: 'me' }), story('s2')], 0);
 
       fireEvent.click(
         screen.getByRole('button', { name: 'Delete this story' }),
@@ -768,7 +791,7 @@ describe('StoryViewer', () => {
     });
 
     it('marks each story as seen when it comes up', async () => {
-      show(three(), 0);
+      await show(three(), 0);
       await waitFor(() =>
         expect(storiesApi.markViewed).toHaveBeenCalledWith('s1'),
       );
@@ -781,8 +804,8 @@ describe('StoryViewer', () => {
     });
   });
 
-  it('shows what was painted over a video story until the server joins them', () => {
-    show([
+  it('shows what was painted over a video story until the server joins them', async () => {
+    await show([
       story('s1', {
         mediaType: 'video',
         url: 'https://media.test/s1.mp4',
@@ -801,8 +824,8 @@ describe('StoryViewer', () => {
     );
   });
 
-  it('plays a video story in the player', () => {
-    show([
+  it('plays a video story in the player', async () => {
+    await show([
       story('s1', { mediaType: 'video', url: 'https://media.test/s1.mp4' }),
     ]);
 
@@ -817,7 +840,7 @@ describe('StoryViewer', () => {
 
   it('switches the sound and closes from the header', async () => {
     const user = userEvent.setup();
-    const { onClose } = show([story('s1')]);
+    const { onClose } = await show([story('s1')]);
 
     await user.click(screen.getByRole('button', { name: 'Mute' }));
     expect(screen.getByRole('button', { name: 'Unmute' })).toBeInTheDocument();
@@ -828,8 +851,8 @@ describe('StoryViewer', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('closes at once when there is nothing to show', () => {
-    const { onClose } = show([]);
+  it('closes at once when there is nothing to show', async () => {
+    const { onClose } = await show([]);
 
     expect(onClose).toHaveBeenCalled();
     expect(

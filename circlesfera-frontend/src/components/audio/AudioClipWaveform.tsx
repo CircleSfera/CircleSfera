@@ -109,7 +109,12 @@ export default function AudioClipWaveform({
   const selectionWidthPct =
     trackDurationMs > 0 ? (windowMs / trackDurationMs) * 100 : 100;
 
-  const bars = peaks ?? Array.from({ length: BAR_COUNT }, () => 0.2);
+  // Each bar is a fixed slot along the track and never moves, so its slot
+  // names it. Its start time cannot: with no known duration every bar
+  // starts at 0.
+  const bars = (peaks ?? Array.from({ length: BAR_COUNT }, () => 0.2)).map(
+    (peak, slot) => ({ peak, slot }),
+  );
 
   return (
     <div className="space-y-2">
@@ -157,14 +162,14 @@ export default function AudioClipWaveform({
           className="absolute inset-0 flex items-center gap-px px-1.5"
           aria-hidden
         >
-          {bars.map((peak, i) => {
-            const barStart = (i / bars.length) * trackDurationMs;
-            const barEnd = ((i + 1) / bars.length) * trackDurationMs;
+          {bars.map(({ peak, slot }) => {
+            const barStart = (slot / bars.length) * trackDurationMs;
+            const barEnd = ((slot + 1) / bars.length) * trackDurationMs;
             const inSelection =
               barEnd > startMs && barStart < startMs + windowMs;
             return (
               <div
-                key={`bar-${barStart.toFixed(0)}`}
+                key={`bar-${slot}`}
                 className={`flex-1 min-w-0 rounded-sm transition-colors ${
                   inSelection ? 'bg-brand-primary' : 'bg-neutral-600/70'
                 } ${isLoading ? 'animate-pulse' : ''}`}

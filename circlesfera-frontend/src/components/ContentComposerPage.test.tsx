@@ -193,6 +193,9 @@ function compose(
   return { hook: composer.state, ...view };
 }
 
+/** Lets the screen finish reading the length of the video it was given. */
+const videoRead = () => act(async () => {});
+
 describe('ContentComposerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -287,13 +290,14 @@ describe('ContentComposerPage', () => {
       expect(hook.handleSubmit).toHaveBeenCalledTimes(1);
     });
 
-    it('shares a story straight from editing: it has no caption step', () => {
+    it('shares a story straight from editing: it has no caption step', async () => {
       const { hook } = compose({
         mode: 'STORY',
         step: 'edit',
         mediaFiles: [clip()],
         isComposed: true,
       });
+      await videoRead();
 
       fireEvent.click(screen.getByRole('button', { name: 'Share' }));
 
@@ -510,12 +514,13 @@ describe('ContentComposerPage', () => {
       );
     });
 
-    it('opens music, place and close friends from the story bar', () => {
+    it('opens music, place and close friends from the story bar', async () => {
       const { hook } = compose({
         mode: 'STORY',
         step: 'edit',
         mediaFiles: [clip()],
       });
+      await videoRead();
 
       seen.storyBar.onOpenMusic();
       seen.storyBar.onOpenLocation();
@@ -555,7 +560,7 @@ describe('ContentComposerPage', () => {
       expect(seen.overlay.initialEditorTab).toBe('filters');
     });
 
-    it('shows the trim of a frame alone, and tells the editors what is being created', () => {
+    it('shows the trim of a frame alone, and tells the editors what is being created', async () => {
       const frame = compose({ mode: 'FRAME', showFrameTrim: true });
       expect(seen.overlay.mode).toBe('FRAME');
       expect(screen.getByTestId('editor')).toBeInTheDocument();
@@ -563,6 +568,7 @@ describe('ContentComposerPage', () => {
       frame.unmount();
 
       compose({ mode: 'POST', mediaFiles: [clip()], currentEditIndex: 0 });
+      await videoRead();
       expect(seen.overlay.mode).toBe('POST');
     });
   });
@@ -589,7 +595,7 @@ describe('ContentComposerPage', () => {
   });
 
   describe('the cover of a frame', () => {
-    it('tells the caption step whether one was chosen', () => {
+    it('tells the caption step whether one was chosen', async () => {
       compose({
         mode: 'FRAME',
         step: 'caption',
@@ -603,10 +609,11 @@ describe('ContentComposerPage', () => {
         mediaFiles: [clip()],
         coverTimeMs: 0,
       });
+      await videoRead();
       expect(seen.caption.hasChosenCover).toBe(true);
     });
 
-    it('hands the chosen moment to its screen', () => {
+    it('hands the chosen moment to its screen', async () => {
       const setCoverTimeMs = vi.fn();
       compose({
         mode: 'FRAME',
@@ -615,6 +622,7 @@ describe('ContentComposerPage', () => {
         coverTimeMs: 1500,
         setCoverTimeMs,
       });
+      await videoRead();
 
       expect(seen.subScreen.coverTimeMs).toBe(1500);
       expect(seen.subScreen.setCoverTimeMs).toBe(setCoverTimeMs);

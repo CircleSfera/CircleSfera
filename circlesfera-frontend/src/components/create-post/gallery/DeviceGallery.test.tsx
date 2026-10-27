@@ -73,6 +73,14 @@ const tile = (name: string) => screen.getByRole('button', { name });
 const ready = (name = 'Foto 1') =>
   waitFor(() => expect(tile(name)).toHaveAttribute('aria-pressed', 'true'));
 
+/** The larger picture of the item on show has replaced its thumbnail. */
+const largePictureShown = () =>
+  waitFor(() =>
+    expect(
+      document.querySelector('img[src="data:image/jpeg;base64,big"]'),
+    ).not.toBeNull(),
+  );
+
 describe('DeviceGallery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -125,6 +133,7 @@ describe('DeviceGallery', () => {
     fireEvent.click(tile('Foto 2'));
     expect(tile('Foto 2')).toHaveAttribute('aria-pressed', 'false');
     expect(tile('Foto 1')).toHaveAttribute('aria-pressed', 'true');
+    await largePictureShown();
   });
 
   it('brings a chosen item back on show without leaving it out', async () => {
@@ -140,6 +149,7 @@ describe('DeviceGallery', () => {
       id: 'id-1',
       size: 1080,
     });
+    await largePictureShown();
   });
 
   it('chooses no more than the limit, and says why', async () => {
@@ -153,6 +163,7 @@ describe('DeviceGallery', () => {
     expect(toast.error).toHaveBeenCalledWith(
       'Una publicación admite hasta 2 fotos y vídeos.',
     );
+    await largePictureShown();
   });
 
   it('nothing chosen, nothing to go on with', async () => {
@@ -182,6 +193,7 @@ describe('DeviceGallery', () => {
     expect(
       within(tile('Vídeo 2, 1:15')).queryByText('1', { exact: true }),
     ).not.toBeInTheDocument();
+    await largePictureShown();
   });
 
   it('hands the chosen items, in order, to the file input as files', async () => {

@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { chatApi } from '../../services';
 import { renderWithProviders } from '../../test/test-utils';
 import type { Conversation, Post, ProfileWithUser } from '../../types';
@@ -180,6 +180,8 @@ describe('SharePostModal', () => {
   });
 
   it('lets the user retry after a failed send', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     vi.mocked(chatApi.getConversations).mockResolvedValue({
       data: [dm],
     } as never);
@@ -209,6 +211,10 @@ describe('SharePostModal', () => {
     await waitFor(() => {
       expect(chatApi.sendMessage).toHaveBeenCalledTimes(2);
     });
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to share post',
+      new Error('network'),
+    );
   });
 
   it('uses the frame sheet title and preview and closes without sending', async () => {

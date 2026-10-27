@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { chatApi, followsApi, searchApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
@@ -194,9 +194,13 @@ describe('NewChatModal', () => {
       target: { value: 'b' },
     });
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 400);
-    });
+    // The wait for the typing to stop runs out inside it.
+    await act(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(resolve, 400);
+        }),
+    );
     expect(searchApi.searchUsers).not.toHaveBeenCalled();
   });
 
