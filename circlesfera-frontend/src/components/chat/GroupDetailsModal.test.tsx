@@ -72,6 +72,7 @@ describe('GroupDetailsModal', () => {
   const onClose = vi.fn();
   const onUpdate = vi.fn();
   const onRemoveParticipant = vi.fn();
+  const onMakeAdmin = vi.fn();
   const onLeaveGroup = vi.fn();
 
   beforeEach(() => {
@@ -88,6 +89,7 @@ describe('GroupDetailsModal', () => {
         onClose={onClose}
         onUpdate={onUpdate}
         onRemoveParticipant={onRemoveParticipant}
+        onMakeAdmin={onMakeAdmin}
         onLeaveGroup={onLeaveGroup}
       />,
     );
@@ -249,6 +251,60 @@ describe('GroupDetailsModal', () => {
     expect(window.confirm).toHaveBeenCalledWith(
       i18n!.t('chat.group_details.leave_confirm'),
     );
+    expect(onLeaveGroup).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets an admin make a member admin, only after confirm', () => {
+    const { i18n } = renderModal(group(true));
+    const makeAdmin = screen.getByRole('button', {
+      name: i18n!.t('chat.group_details.make_admin_for', { username: 'bob' }),
+    });
+
+    vi.mocked(window.confirm).mockReturnValueOnce(false);
+    fireEvent.click(makeAdmin);
+    expect(onMakeAdmin).not.toHaveBeenCalled();
+
+    fireEvent.click(makeAdmin);
+    expect(window.confirm).toHaveBeenCalledWith(
+      i18n!.t('chat.group_details.make_admin_confirm', { username: 'bob' }),
+    );
+    expect(onMakeAdmin).toHaveBeenCalledWith('bob-1');
+  });
+
+  it('offers no one to make admin to a member, nor a member who is admin already or has not accepted', () => {
+    const { i18n, unmount } = renderModal(group(false));
+    expect(
+      screen.queryByTitle(i18n!.t('chat.group_details.make_admin')),
+    ).not.toBeInTheDocument();
+    unmount();
+
+    const carol = { ...bob, id: 'carol-1', username: 'carol' };
+    renderModal({
+      ...group(true),
+      participants: [
+        participant(me, true),
+        participant(bob, true),
+        { ...participant(carol), hasAccepted: false },
+      ],
+    });
+    expect(
+      screen.queryByTitle(i18n!.t('chat.group_details.make_admin')),
+    ).not.toBeInTheDocument();
+  });
+
+  it('the only admin leaving goes straight to choosing the next admin, without the plain confirm', () => {
+    const { i18n } = renderModal({
+      ...group(true),
+      participants: [participant(me, true), participant(bob, false)],
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('chat.group_details.leave_group'),
+      }),
+    );
+
+    expect(window.confirm).not.toHaveBeenCalled();
     expect(onLeaveGroup).toHaveBeenCalledTimes(1);
   });
 });

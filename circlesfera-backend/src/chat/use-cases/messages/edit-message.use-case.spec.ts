@@ -48,6 +48,21 @@ describe('EditMessageUseCase', () => {
     );
   });
 
+  it('refuses to edit a notice from the app, even for the member it names', async () => {
+    mockPrisma.message.findUnique.mockResolvedValue({
+      id: 'notice-1',
+      kind: 'ADMIN_GRANTED',
+      isDeleted: false,
+      conversation: { participants: [] },
+    });
+
+    await expect(useCase.execute('notice-1', 'new text')).rejects.toMatchObject(
+      { errorCode: 'MESSAGE_IS_NOTICE', status: 400 },
+    );
+    expect(mockPrisma.message.update).not.toHaveBeenCalled();
+    expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+  });
+
   it('throws BadRequest if message is deleted', async () => {
     mockPrisma.message.findUnique.mockResolvedValue({
       id: 'msg-1',

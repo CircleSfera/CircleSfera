@@ -36,6 +36,21 @@ describe('DeleteMessageUseCase', () => {
     await expect(useCase.execute('msg-1')).rejects.toThrow(AppException);
   });
 
+  it('refuses to delete a notice from the app, even for the member it names', async () => {
+    mockPrisma.message.findUnique.mockResolvedValue({
+      id: 'notice-1',
+      kind: 'ADMIN_GRANTED',
+      conversation: { participants: [] },
+    });
+
+    await expect(useCase.execute('notice-1')).rejects.toMatchObject({
+      errorCode: 'MESSAGE_IS_NOTICE',
+      status: 400,
+    });
+    expect(mockPrisma.message.update).not.toHaveBeenCalled();
+    expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+  });
+
   it('soft deletes message, clears media, emits event, and returns result', async () => {
     const participants = [
       { profileId: 'profile-1' },

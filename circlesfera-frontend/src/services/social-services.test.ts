@@ -718,10 +718,28 @@ const cases: Case[] = [
     ['/chat/conversations/c1/participants/u2'],
   ],
   [
+    'chat.deleteConversation of a group, naming the next admin',
+    () => chatApi.deleteConversation('c1', 'me', 'p2'),
+    'delete',
+    ['/chat/conversations/c1?mode=me', { params: { successorId: 'p2' } }],
+  ],
+  [
     'chat.leaveGroup',
     () => chatApi.leaveGroup('c1'),
     'delete',
     ['/chat/conversations/c1/leave'],
+  ],
+  [
+    'chat.leaveGroup naming the next admin',
+    () => chatApi.leaveGroup('c1', 'p2'),
+    'delete',
+    ['/chat/conversations/c1/leave', { params: { successorId: 'p2' } }],
+  ],
+  [
+    'chat.makeAdmin',
+    () => chatApi.makeAdmin('c1', 'p2'),
+    'put',
+    ['/chat/conversations/c1/participants/p2/admin'],
   ],
   [
     'chat.editMessage',

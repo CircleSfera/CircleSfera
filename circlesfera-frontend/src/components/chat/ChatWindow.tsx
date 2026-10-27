@@ -43,7 +43,9 @@ import { LoadingSpinner } from '../LoadingStates';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import ChatDetailsModal from './ChatDetailsModal';
+import ChooseAdminSheet from './ChooseAdminSheet';
 import GroupDetailsModal from './GroupDetailsModal';
+import { adminCandidates, isNotice, needsSuccessor } from './groupAdmins';
 import MessageBubble from './MessageBubble';
 import {
   mergeServerMessagesWithOptimistic,
@@ -131,6 +133,9 @@ export default function ChatWindow() {
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [showChatDetails, setShowChatDetails] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<'me' | null>(null);
+  // The only admin leaving a group first chooses who becomes admin.
+  const [showChooseAdmin, setShowChooseAdmin] = useState(false);
+  const [isLeavingGroup, setIsLeavingGroup] = useState(false);
   const [isDeletingConversation, setIsDeletingConversation] = useState(false);
   const [isLockPopoverOpen, setIsLockPopoverOpen] = useState(false);
   const [lockedPrice, setLockedPrice] = useState<number | null>(null);
@@ -438,6 +443,23 @@ export default function ChatWindow() {
     if (!socket || !id) return;
 
     const handleReceiveMessage = (msg: Message) => {
+      if (msg.conversationId === id && isNotice(msg)) {
+        setMessages((prev) =>
+          prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
+        );
+        // The member it names is admin from now on.
+        setConversation((prev) =>
+          prev
+            ? {
+                ...prev,
+                participants: prev.participants.map((p: Participant) =>
+                  p.profileId === msg.senderId ? { ...p, isAdmin: true } : p,
+                ),
+              }
+            : prev,
+        );
+        return;
+      }
       if (msg.conversationId === id) {
         setMessages((prev) => {
           // Check if we have a temp message with this ID
@@ -1010,15 +1032,58 @@ export default function ChatWindow() {
     }
   };
 
-  const handleLeaveGroup = async () => {
+  const handleMakeAdmin = async (profileId: string) => {
     if (!id) return;
     try {
-      await chatApi.leaveGroup(id);
+      const res = await chatApi.makeAdmin(id, profileId);
+      setConversation(res.data);
+    } catch (err) {
+      logger.error('Failed to make a member admin', err);
+      toast.error(t('chat.make_admin_error'));
+    }
+  };
+
+  // With a member named, they become admin and the person leaves, together.
+  const handleLeaveGroup = async (successorId?: string) => {
+    if (!id) return;
+    setIsLeavingGroup(true);
+    try {
+      await (successorId
+        ? chatApi.leaveGroup(id, successorId)
+        : chatApi.leaveGroup(id));
+      setShowChooseAdmin(false);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       navigate('/direct/inbox');
     } catch (err) {
       logger.error('Failed to leave group', err);
+      toast.error(t('chat.leave_group_error'));
+    } finally {
+      setIsLeavingGroup(false);
     }
+  };
+
+  // From the group's details: the only admin first chooses the next one.
+  const requestLeaveGroup = () => {
+    if (conversation && needsSuccessor(conversation, currentProfileId)) {
+      setShowGroupDetails(false);
+      setShowChooseAdmin(true);
+      return;
+    }
+    void handleLeaveGroup();
+  };
+
+  // A notice from the app, in the reader's language: who is now admin.
+  const noticeText = (msg: Message) => {
+    if (msg.senderId === currentProfileId) return t('chat.notice.you_admin');
+    const member = conversation?.participants.find(
+      (p: Participant) => p.profileId === msg.senderId,
+    );
+    const name =
+      member?.profile?.fullName ||
+      member?.profile?.username ||
+      msg.sender?.username ||
+      t('chat.notice.someone');
+    return t('chat.notice.admin_granted', { name });
   };
 
   return (
@@ -1226,7 +1291,14 @@ export default function ChatWindow() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowMenu(false);
-                      setPendingDelete('me');
+                      if (
+                        conversation &&
+                        needsSuccessor(conversation, currentProfileId)
+                      ) {
+                        setShowChooseAdmin(true);
+                      } else {
+                        setPendingDelete('me');
+                      }
                     }}
                     className="w-full min-h-11 text-left px-4 text-sm text-brand-secondary hover:bg-brand-secondary/10 transition-colors flex items-center gap-3 font-medium"
                   >
@@ -1281,9 +1353,26 @@ export default function ChatWindow() {
               const msg = messages[virtualRow.index];
               if (!msg) return null;
               const idx = virtualRow.index;
+              if (isNotice(msg)) {
+                return (
+                  <div
+                    key={msg.id}
+                    ref={messageVirtualizer.measureElement}
+                    data-index={virtualRow.index}
+                    className="absolute left-0 top-0 w-full px-0"
+                    style={{ transform: `translateY(${virtualRow.start}px)` }}
+                  >
+                    <p className="mx-auto my-2 max-w-[85%] text-center text-xs text-white/50">
+                      {noticeText(msg)}
+                    </p>
+                  </div>
+                );
+              }
               const isMe = msg.senderId === currentProfileId;
               const isSeq =
-                idx > 0 && messages[idx - 1].senderId === msg.senderId;
+                idx > 0 &&
+                !isNotice(messages[idx - 1]) &&
+                messages[idx - 1].senderId === msg.senderId;
               const showAvatar = !isMe && !isSeq;
 
               const othersReadAt =
@@ -1746,7 +1835,17 @@ export default function ChatWindow() {
           onClose={() => setShowGroupDetails(false)}
           onUpdate={handleUpdateGroup}
           onRemoveParticipant={handleRemoveParticipant}
-          onLeaveGroup={handleLeaveGroup}
+          onMakeAdmin={handleMakeAdmin}
+          onLeaveGroup={requestLeaveGroup}
+        />
+      )}
+      {conversation?.isGroup && (
+        <ChooseAdminSheet
+          isOpen={showChooseAdmin}
+          onClose={() => setShowChooseAdmin(false)}
+          candidates={adminCandidates(conversation, currentProfileId)}
+          onLeave={(successorId) => void handleLeaveGroup(successorId)}
+          isLoading={isLeavingGroup}
         />
       )}
     </div>

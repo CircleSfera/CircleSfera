@@ -22,6 +22,7 @@ import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { ConversationPageDto } from './dto/conversation-page.dto.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
 import { EditMessageDto } from './dto/edit-message.dto.js';
+import { DeleteConversationDto, LeaveGroupDto } from './dto/leave-group.dto.js';
 import { MessagesBeforeDto } from './dto/messages-before.dto.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
 import { UpdateGroupDto } from './dto/update-group.dto.js';
@@ -29,6 +30,7 @@ import { UpdateGroupDto } from './dto/update-group.dto.js';
 import { CreateGroupUseCase } from './use-cases/groups/create-group.use-case.js';
 import { DeleteConversationUseCase } from './use-cases/groups/delete-conversation.use-case.js';
 import { LeaveGroupUseCase } from './use-cases/groups/leave-group.use-case.js';
+import { MakeGroupAdminUseCase } from './use-cases/groups/make-group-admin.use-case.js';
 import { RemoveParticipantUseCase } from './use-cases/groups/remove-participant.use-case.js';
 import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js';
 // Message Commands
@@ -77,6 +79,8 @@ export class ChatController {
     private readonly removeParticipantUseCase: RemoveParticipantUseCase,
     @Inject(LeaveGroupUseCase)
     private readonly leaveGroupUseCase: LeaveGroupUseCase,
+    @Inject(MakeGroupAdminUseCase)
+    private readonly makeGroupAdminUseCase: MakeGroupAdminUseCase,
     @Inject(DeleteConversationUseCase)
     private readonly deleteConversationUseCase: DeleteConversationUseCase,
     @Inject(AcceptMessageRequestUseCase)
@@ -211,16 +215,20 @@ export class ChatController {
     return { success: true };
   }
 
-  @ApiQuery({ name: 'mode', required: false })
   @Delete('conversations/:id')
   @ApiResponse({ status: 200 })
   async deleteConversation(
     @Req() req: AuthRequest,
     @Param('id') id: string,
-    @Query('mode') _mode: 'me' | 'both' = 'me',
+    @Query() query: DeleteConversationDto,
   ) {
-    // Mode is intentionally ignored by the use case for security but maintained in the signature for frontend compat.
-    return this.deleteConversationUseCase.execute(req.user.profileId, id);
+    // The mode is ignored: a conversation is only ever removed from the
+    // caller's inbox. It stays accepted for the apps that send it.
+    return this.deleteConversationUseCase.execute(
+      req.user.profileId,
+      id,
+      query.successorId,
+    );
   }
 
   @Put('conversations/:id/group')
@@ -252,10 +260,33 @@ export class ChatController {
     );
   }
 
+  // An admin makes another member of the group admin.
+  @Put('conversations/:id/participants/:profileId/admin')
+  @ApiResponse({ status: 200, type: Object })
+  async makeAdmin(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Param('profileId') targetProfileId: string,
+  ) {
+    return this.makeGroupAdminUseCase.execute(
+      req.user.profileId,
+      id,
+      targetProfileId,
+    );
+  }
+
   @Delete('conversations/:id/leave')
   @ApiResponse({ status: 200 })
-  async leaveGroup(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.leaveGroupUseCase.execute(req.user.profileId, id);
+  async leaveGroup(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Query() query: LeaveGroupDto,
+  ) {
+    return this.leaveGroupUseCase.execute(
+      req.user.profileId,
+      id,
+      query.successorId,
+    );
   }
 
   @Put('messages/:id')

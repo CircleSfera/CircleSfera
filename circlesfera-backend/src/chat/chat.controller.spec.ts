@@ -21,6 +21,7 @@ import { ChatController } from './chat.controller.js';
 import { CreateGroupUseCase } from './use-cases/groups/create-group.use-case.js';
 import { DeleteConversationUseCase } from './use-cases/groups/delete-conversation.use-case.js';
 import { LeaveGroupUseCase } from './use-cases/groups/leave-group.use-case.js';
+import { MakeGroupAdminUseCase } from './use-cases/groups/make-group-admin.use-case.js';
 import { RemoveParticipantUseCase } from './use-cases/groups/remove-participant.use-case.js';
 import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js';
 import { DeleteMessageUseCase } from './use-cases/messages/delete-message.use-case.js';
@@ -51,6 +52,7 @@ describe('ChatController', () => {
   const mockUpdateGroupUseCase = { execute: vi.fn() };
   const mockRemoveParticipantUseCase = { execute: vi.fn() };
   const mockLeaveGroupUseCase = { execute: vi.fn() };
+  const mockMakeGroupAdminUseCase = { execute: vi.fn() };
   const mockDeleteConversationUseCase = { execute: vi.fn() };
   const mockAcceptMessageRequestUseCase = { execute: vi.fn() };
   const mockDeclineMessageRequestUseCase = { execute: vi.fn() };
@@ -73,6 +75,10 @@ describe('ChatController', () => {
           useValue: mockRemoveParticipantUseCase,
         },
         { provide: LeaveGroupUseCase, useValue: mockLeaveGroupUseCase },
+        {
+          provide: MakeGroupAdminUseCase,
+          useValue: mockMakeGroupAdminUseCase,
+        },
         {
           provide: DeleteConversationUseCase,
           useValue: mockDeleteConversationUseCase,
@@ -500,7 +506,37 @@ describe('ChatController', () => {
     expect(mockDeleteConversationUseCase.execute).toHaveBeenCalledWith(
       TEST_USER.profileId,
       'conv-1',
+      undefined,
     );
+  });
+
+  it('deleting a group passes on the member named to be admin after the caller', async () => {
+    mockDeleteConversationUseCase.execute.mockResolvedValue({
+      success: true,
+    });
+
+    await request(app.getHttpServer())
+      .delete('/api/v1/chat/conversations/conv-1')
+      .query({ mode: 'me', successorId: 'prof-2' })
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockDeleteConversationUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+      'prof-2',
+    );
+  });
+
+  it('refuses deleting with an unknown mode or another query field', async () => {
+    for (const query of [{ mode: 'everyone' }, { senderId: 'x' }]) {
+      await request(app.getHttpServer())
+        .delete('/api/v1/chat/conversations/conv-1')
+        .query(query)
+        .set(BEARER)
+        .expect(400);
+    }
+    expect(mockDeleteConversationUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('updates a group conversation as the session profile', async () => {
@@ -576,7 +612,55 @@ describe('ChatController', () => {
     expect(mockLeaveGroupUseCase.execute).toHaveBeenCalledWith(
       TEST_USER.profileId,
       'conv-1',
+      undefined,
     );
+  });
+
+  it('leaves a group naming the member who becomes admin, and refuses a too long id', async () => {
+    mockLeaveGroupUseCase.execute.mockResolvedValue({ success: true });
+
+    await request(app.getHttpServer())
+      .delete('/api/v1/chat/conversations/conv-1/leave')
+      .query({ successorId: 'prof-2' })
+      .set(BEARER)
+      .expect(200);
+    expect(mockLeaveGroupUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+      'prof-2',
+    );
+
+    mockLeaveGroupUseCase.execute.mockClear();
+    await request(app.getHttpServer())
+      .delete('/api/v1/chat/conversations/conv-1/leave')
+      .query({ successorId: 'x'.repeat(65) })
+      .set(BEARER)
+      .expect(400);
+    expect(mockLeaveGroupUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('makes a member admin as the session profile', async () => {
+    const updated = { id: 'conv-1', participants: [] };
+    mockMakeGroupAdminUseCase.execute.mockResolvedValue(updated);
+
+    const res = await request(app.getHttpServer())
+      .put('/api/v1/chat/conversations/conv-1/participants/prof-2/admin')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual(updated);
+    expect(mockMakeGroupAdminUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+      'prof-2',
+    );
+  });
+
+  it('refuses making admins without a session', async () => {
+    await request(app.getHttpServer())
+      .put('/api/v1/chat/conversations/conv-1/participants/prof-2/admin')
+      .expect(401);
+    expect(mockMakeGroupAdminUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('gets conversations filtered by folder=requests', async () => {

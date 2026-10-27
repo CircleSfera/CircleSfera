@@ -22,7 +22,9 @@ export const CONVERSATION_PAGE_DEFAULT = 30;
 export const CONVERSATION_PAGE_MAX = 50;
 
 // What a conversation of the list carries: who is in it and its latest
-// message, with the post it shares.
+// message, with the post it shares. A notice from the app (someone became
+// admin) is never the latest message: the list shows what members wrote,
+// and the unread count, read from that same message, never counts a notice.
 const CONVERSATION_INCLUDE = {
   participants: {
     include: {
@@ -37,6 +39,7 @@ const CONVERSATION_INCLUDE = {
     },
   },
   messages: {
+    where: { kind: 'USER' },
     orderBy: {
       createdAt: 'desc',
     },

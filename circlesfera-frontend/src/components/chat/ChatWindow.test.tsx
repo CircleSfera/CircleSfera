@@ -39,6 +39,7 @@ vi.mock('../../services/index', () => ({
     updateGroup: vi.fn(),
     removeParticipant: vi.fn(),
     leaveGroup: vi.fn(),
+    makeAdmin: vi.fn(),
   },
 }));
 
@@ -184,14 +185,19 @@ vi.mock('./GroupDetailsModal', () => ({
     onClose,
     onUpdate,
     onRemoveParticipant,
+    onMakeAdmin,
     onLeaveGroup,
   }: {
     onClose: () => void;
     onUpdate: (data: { name?: string }) => void;
     onRemoveParticipant: (id: string) => void;
+    onMakeAdmin: (id: string) => void;
     onLeaveGroup: () => void;
   }) => (
     <div data-testid="group-details">
+      <button type="button" onClick={() => onMakeAdmin('p3')}>
+        make leo admin
+      </button>
       <button type="button" onClick={() => onUpdate({ name: 'Renamed' })}>
         rename group
       </button>
@@ -1570,6 +1576,225 @@ describe('ChatWindow', () => {
         screen.getByText(i18n.t('chat.members', { count: 3 })),
       ).toBeInTheDocument();
       expect(mockNavigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('group admins', () => {
+    // The person is the group's only admin.
+    const adminGroup = () => ({
+      ...groupConversation(),
+      participants: groupConversation().participants.map((p) =>
+        p.profileId === 'me' ? { ...p, isAdmin: true } : p,
+      ),
+    });
+    const notice = (id: string, senderId: string) => ({
+      ...message(id, senderId, ''),
+      kind: 'ADMIN_GRANTED' as const,
+    });
+
+    beforeEach(() => {
+      vi.mocked(chatApi.getConversation).mockResolvedValue({
+        data: adminGroup(),
+      } as never);
+      vi.mocked(chatApi.leaveGroup).mockResolvedValue({} as never);
+    });
+
+    async function openLeave(i18n: I18nInstance) {
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('chat.more_options') }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('chat.group_details.leave_group'),
+        }),
+      );
+      return screen.findByRole('dialog', {
+        name: i18n.t('chat.choose_admin.title'),
+      });
+    }
+
+    it('shows a notice as a line from the app in the reader language, not as a message', async () => {
+      vi.mocked(chatApi.getMessages).mockResolvedValue({
+        data: [...HISTORY, notice('n1', 'p2'), notice('n2', 'me')],
+      } as never);
+      const i18n = await renderLoadedChat();
+
+      expect(
+        await screen.findByText(
+          i18n.t('chat.notice.admin_granted', { name: 'Ana Ruiz' }),
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(i18n.t('chat.notice.you_admin')),
+      ).toBeInTheDocument();
+      // No bubble, so no reply, reaction, edit or delete.
+      expect(screen.queryByTestId('message-n1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('message-n2')).not.toBeInTheDocument();
+    });
+
+    it('names a member no longer in the group by the notice sender, or as someone', async () => {
+      vi.mocked(chatApi.getMessages).mockResolvedValue({
+        data: [
+          ...HISTORY,
+          { ...notice('n1', 'gone-1'), sender: { username: 'old_friend' } },
+          notice('n2', 'gone-2'),
+        ],
+      } as never);
+      const i18n = await renderLoadedChat();
+
+      expect(
+        await screen.findByText(
+          i18n.t('chat.notice.admin_granted', { name: 'old_friend' }),
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          i18n.t('chat.notice.admin_granted', {
+            name: i18n.t('chat.notice.someone'),
+          }),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('a notice arriving is shown once, is not marked read, and the member it names is admin from then on', async () => {
+      const i18n = await renderLoadedChat();
+      await waitFor(() => expect(chatApi.markAsRead).toHaveBeenCalledTimes(1));
+
+      emit('receiveMessage', notice('n3', 'p2'));
+      emit('receiveMessage', notice('n3', 'p2'));
+
+      expect(
+        screen.getAllByText(
+          i18n.t('chat.notice.admin_granted', { name: 'Ana Ruiz' }),
+        ),
+      ).toHaveLength(1);
+      expect(chatApi.markAsRead).toHaveBeenCalledTimes(1);
+      expect(socketState.markRead).not.toHaveBeenCalled();
+
+      // With Ana admin too, leaving no longer asks who comes next.
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('chat.more_options') }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('chat.group_details.leave_group'),
+        }),
+      );
+      expect(
+        await screen.findByText(i18n.t('chat.group_details.leave_confirm')),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('dialog', {
+          name: i18n.t('chat.choose_admin.title'),
+        }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('the only admin leaving chooses the next admin, and both happen together', async () => {
+      const i18n = await renderLoadedChat();
+      const sheet = await openLeave(i18n);
+
+      const confirm = within(sheet).getByRole('button', {
+        name: i18n.t('chat.choose_admin.make_admin_and_leave'),
+      });
+      expect(confirm).toBeDisabled();
+      fireEvent.click(within(sheet).getByRole('button', { name: /Ana Ruiz/ }));
+      fireEvent.click(confirm);
+
+      await waitFor(() =>
+        expect(chatApi.leaveGroup).toHaveBeenCalledWith('c1', 'p2'),
+      );
+      expect(chatApi.deleteConversation).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(mockNavigate).toHaveBeenCalledWith('/direct/inbox'),
+      );
+    });
+
+    it('the only admin may leave and let the group choose', async () => {
+      const i18n = await renderLoadedChat();
+      const sheet = await openLeave(i18n);
+
+      fireEvent.click(
+        within(sheet).getByRole('button', {
+          name: i18n.t('chat.choose_admin.leave_and_group_chooses'),
+        }),
+      );
+
+      await waitFor(() =>
+        expect(chatApi.leaveGroup).toHaveBeenCalledWith('c1'),
+      );
+    });
+
+    it('stays in the group and says so when leaving fails', async () => {
+      vi.mocked(chatApi.leaveGroup).mockRejectedValue(new Error('down'));
+      const i18n = await renderLoadedChat();
+      const sheet = await openLeave(i18n);
+
+      fireEvent.click(
+        within(sheet).getByRole('button', {
+          name: i18n.t('chat.choose_admin.leave_and_group_chooses'),
+        }),
+      );
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          i18n.t('chat.leave_group_error'),
+        ),
+      );
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('leaving from the details as the only admin opens the choice, and it can be closed', async () => {
+      const i18n = await renderLoadedChat();
+
+      fireEvent.click(await screen.findByText('Trip'));
+      fireEvent.click(screen.getByRole('button', { name: 'leave group' }));
+
+      const sheet = await screen.findByRole('dialog', {
+        name: i18n.t('chat.choose_admin.title'),
+      });
+      expect(screen.queryByTestId('group-details')).not.toBeInTheDocument();
+      expect(chatApi.leaveGroup).not.toHaveBeenCalled();
+
+      fireEvent.click(
+        within(sheet).getByRole('button', {
+          name: i18n.t('common.close_dialog'),
+        }),
+      );
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('dialog', {
+            name: i18n.t('chat.choose_admin.title'),
+          }),
+        ).not.toBeInTheDocument(),
+      );
+    });
+
+    it('makes a member admin from the details, and says so when it fails', async () => {
+      vi.mocked(chatApi.makeAdmin)
+        .mockResolvedValueOnce({
+          data: {
+            ...adminGroup(),
+            participants: adminGroup().participants.map((p) =>
+              p.profileId === 'p3' ? { ...p, isAdmin: true } : p,
+            ),
+          },
+        } as never)
+        .mockRejectedValueOnce(new Error('down'));
+      const i18n = await renderLoadedChat();
+
+      fireEvent.click(await screen.findByText('Trip'));
+      fireEvent.click(screen.getByRole('button', { name: 'make leo admin' }));
+      await waitFor(() =>
+        expect(chatApi.makeAdmin).toHaveBeenCalledWith('c1', 'p3'),
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'make leo admin' }));
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          i18n.t('chat.make_admin_error'),
+        ),
+      );
     });
   });
 

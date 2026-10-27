@@ -17,7 +17,10 @@ describe('RemoveParticipantUseCase', () => {
     };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
-  let mockSuccession: { ensureAdmin: ReturnType<typeof vi.fn> };
+  let mockSuccession: {
+    ensureAdmin: ReturnType<typeof vi.fn>;
+    announce: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     mockPrisma = {
@@ -30,7 +33,10 @@ describe('RemoveParticipantUseCase', () => {
       },
     };
     mockEventEmitter = { emit: vi.fn() };
-    mockSuccession = { ensureAdmin: vi.fn().mockResolvedValue(null) };
+    mockSuccession = {
+      ensureAdmin: vi.fn().mockResolvedValue(null),
+      announce: vi.fn().mockResolvedValue(undefined),
+    };
     // The leave and the naming of the next admin run in one transaction.
     (mockPrisma as unknown as { $transaction: unknown }).$transaction = vi.fn(
       (fn: (tx: unknown) => unknown) => fn(mockPrisma),
@@ -138,6 +144,8 @@ describe('RemoveParticipantUseCase', () => {
       .mockResolvedValueOnce({ id: 'part-admin', profileId: 'prof-1' });
     mockPrisma.conversation.findUnique.mockResolvedValue(null);
 
+    mockSuccession.ensureAdmin.mockResolvedValue({ id: 'notice-2' });
+
     await useCase.execute('prof-1', 'conv-1', 'prof-1');
 
     expect(mockPrisma.participant.delete).toHaveBeenCalledWith({
@@ -147,5 +155,7 @@ describe('RemoveParticipantUseCase', () => {
       'conv-1',
       mockPrisma,
     );
+    // The group is told who the new admin is.
+    expect(mockSuccession.announce).toHaveBeenCalledWith([{ id: 'notice-2' }]);
   });
 });

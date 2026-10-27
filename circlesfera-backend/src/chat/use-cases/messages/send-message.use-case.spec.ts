@@ -47,6 +47,7 @@ describe('SendMessageUseCase', () => {
       },
       message: {
         create: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue({ kind: 'USER' }),
       },
       participant: {
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -176,6 +177,69 @@ describe('SendMessageUseCase', () => {
     ).rejects.toThrow(AppException);
   });
 
+  describe('replying', () => {
+    const participants = [
+      { profileId: 'sender-1', profile: { id: 'sender-1' } },
+      { profileId: 'recipient-1', profile: { id: 'recipient-1' } },
+    ];
+    const send = (replyToId: string) =>
+      useCase.execute(
+        'sender-1',
+        undefined,
+        'Hello',
+        undefined,
+        undefined,
+        'conv-1',
+        undefined,
+        undefined,
+        undefined,
+        replyToId,
+      );
+
+    beforeEach(() => {
+      mockTx.conversation.findUnique.mockResolvedValue({
+        id: 'conv-1',
+        participants,
+      });
+      mockTx.message.create.mockResolvedValue({
+        id: 'msg-2',
+        content: 'encrypted_Hello',
+        senderId: 'sender-1',
+        conversationId: 'conv-1',
+        sender: { id: 'sender-1', username: 'sender_user' },
+      });
+    });
+
+    it('replies to a message a member wrote', async () => {
+      await expect(send('msg-1')).resolves.toMatchObject({ id: 'msg-2' });
+      expect(mockTx.message.findUnique).toHaveBeenCalledWith({
+        where: { id: 'msg-1' },
+        select: { kind: true },
+      });
+      expect(mockTx.message.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ replyToId: 'msg-1' }),
+        }),
+      );
+    });
+
+    it('refuses a reply to a notice from the app, and sends nothing', async () => {
+      mockTx.message.findUnique.mockResolvedValue({ kind: 'ADMIN_GRANTED' });
+
+      await expect(send('notice-1')).rejects.toMatchObject({
+        errorCode: 'MESSAGE_IS_NOTICE',
+        status: 400,
+      });
+      expect(mockTx.message.create).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('leaves a reply to a message that is gone to the database, as before', async () => {
+      mockTx.message.findUnique.mockResolvedValue(null);
+
+      await expect(send('gone-1')).resolves.toMatchObject({ id: 'msg-2' });
+    });
+  });
   it('sends message to existing conversation with push notification to recipient', async () => {
     const participants = [
       { profileId: 'sender-1', profile: { id: 'sender-1' } },

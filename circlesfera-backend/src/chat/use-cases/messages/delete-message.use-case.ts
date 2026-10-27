@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { isNotice } from '../../message-kind.js';
 
 @Injectable()
 export class DeleteMessageUseCase {
@@ -20,6 +21,13 @@ export class DeleteMessageUseCase {
 
     if (!message)
       throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Message not found');
+    // A notice from the app is nobody's to delete, not even its subject's.
+    if (isNotice(message)) {
+      throw AppException.BadRequest(
+        ErrorCode.MESSAGE_IS_NOTICE,
+        'A notice cannot be deleted',
+      );
+    }
 
     const updated = await this.prisma.message.update({
       where: { id: messageId },

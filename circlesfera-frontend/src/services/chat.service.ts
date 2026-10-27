@@ -73,8 +73,13 @@ export const chatApi = {
   createGroup: (data: { participantIds: string[]; name?: string }) =>
     apiClient.post<Conversation>('/chat/conversations', data),
 
-  deleteConversation: (id: string, mode: 'me' = 'me') =>
-    apiClient.delete(`/chat/conversations/${id}?mode=${mode}`),
+  // In a group it is leaving it; an admin may name who becomes admin after.
+  deleteConversation: (id: string, mode: 'me' = 'me', successorId?: string) =>
+    successorId
+      ? apiClient.delete(`/chat/conversations/${id}?mode=${mode}`, {
+          params: { successorId },
+        })
+      : apiClient.delete(`/chat/conversations/${id}?mode=${mode}`),
 
   updateGroup: (
     id: string,
@@ -86,8 +91,23 @@ export const chatApi = {
       `/chat/conversations/${id}/participants/${userId}`,
     ),
 
-  leaveGroup: (id: string) =>
-    apiClient.delete<{ success: boolean }>(`/chat/conversations/${id}/leave`),
+  // An admin may name the member who becomes admin after them; both happen
+  // together, or neither does.
+  leaveGroup: (id: string, successorId?: string) =>
+    successorId
+      ? apiClient.delete<{ success: boolean }>(
+          `/chat/conversations/${id}/leave`,
+          { params: { successorId } },
+        )
+      : apiClient.delete<{ success: boolean }>(
+          `/chat/conversations/${id}/leave`,
+        ),
+
+  // An admin makes another member of the group admin.
+  makeAdmin: (id: string, profileId: string) =>
+    apiClient.put<Conversation>(
+      `/chat/conversations/${id}/participants/${profileId}/admin`,
+    ),
 
   editMessage: (id: string, content: string) =>
     apiClient.put<Message>(`/chat/messages/${id}`, { content }),

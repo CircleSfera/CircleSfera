@@ -18,6 +18,7 @@ import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
 import UserAvatar from '../UserAvatar';
 import { updateConversationCache } from './conversationCache';
+import { isNotice } from './groupAdmins';
 import NewChatModal from './NewChatModal';
 
 // The list is read a page at a time as it scrolls, so every conversation can
@@ -75,6 +76,10 @@ export default function ConversationList() {
     // keeps a list of its own: the updates go to every conversations cache,
     // never mutating it.
     const handleNewMessage = (msg: Message) => {
+      // A notice from the app (someone became admin) is shown in the chat
+      // only: it is never a conversation's latest message nor unread, as the
+      // server's list does not take it either.
+      if (isNotice(msg)) return;
       let found = false;
       queryClient.setQueriesData<unknown>(
         { queryKey: ['conversations'] },
