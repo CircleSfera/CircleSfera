@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AppGateway, type SocketWithAuth } from './app.gateway.js';
+import {
+  AppGateway,
+  CHAT_EVENT_BURST,
+  CHAT_EVENTS_PER_SECOND,
+  type SocketWithAuth,
+} from './app.gateway.js';
 
 interface ServiceOverrides {
   socketAuthService?: {
@@ -1066,6 +1071,92 @@ describe('AppGateway payload bounds and authorization', () => {
       );
 
       expect(mockTo).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the allowance of chat events of a socket', () => {
+    it('drops what a socket sends past its burst, says so once, and lets it go on later', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-01T00:00:00Z') });
+      try {
+        const membersOf = vi.fn(
+          async (_c: string, ids: string[]) => new Set(ids),
+        );
+        const addReaction = vi.fn().mockResolvedValue({ success: false });
+        const mockTo = vi.fn().mockReturnValue({ emit: vi.fn() });
+        const gateway = gatewayWithServer(
+          { to: mockTo },
+          { chatRealtimeService: { addReaction, membersOf } },
+        );
+        const warn = vi.spyOn(
+          (gateway as unknown as { logger: { warn: (m: string) => void } })
+            .logger,
+          'warn',
+        );
+        const socket = mockSocket('prof-sender');
+        socket.data.conversationIds = new Set(['c-1']);
+        const typing = { conversationId: 'c-1', recipientId: 'prof-rec' };
+
+        for (let i = 0; i < CHAT_EVENT_BURST; i++) {
+          await gateway.handleTypingStart(typing as any, socket);
+        }
+        expect(membersOf).toHaveBeenCalledTimes(CHAT_EVENT_BURST);
+
+        // Past the burst, neither typing, reading nor reacting is looked up.
+        await gateway.handleTypingStop(typing as any, socket);
+        await gateway.handleMarkRead(typing as any, socket);
+        await gateway.handleSendReaction(
+          { messageId: 'm-1', conversationId: 'c-1', reaction: '👍' },
+          socket,
+        );
+        expect(membersOf).toHaveBeenCalledTimes(CHAT_EVENT_BURST);
+        expect(addReaction).not.toHaveBeenCalled();
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining('prof-sender'),
+        );
+
+        // The allowance comes back with time, up to the burst.
+        vi.advanceTimersByTime(1000);
+        for (let i = 0; i < CHAT_EVENTS_PER_SECOND + 1; i++) {
+          await gateway.handleTypingStart(typing as any, socket);
+        }
+        expect(membersOf).toHaveBeenCalledTimes(
+          CHAT_EVENT_BURST + CHAT_EVENTS_PER_SECOND,
+        );
+        vi.advanceTimersByTime(60_000);
+        expect(socket.data.chatBudget?.tokens).toBeLessThan(1);
+        await gateway.handleSendReaction(
+          { messageId: 'm-1', conversationId: 'c-1', reaction: '👍' },
+          socket,
+        );
+        expect(addReaction).toHaveBeenCalledTimes(1);
+        expect(socket.data.chatBudget?.tokens).toBe(CHAT_EVENT_BURST - 1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('keeps an allowance for each socket', async () => {
+      const membersOf = vi.fn(
+        async (_c: string, ids: string[]) => new Set(ids),
+      );
+      const gateway = gatewayWithServer(
+        { to: vi.fn().mockReturnValue({ emit: vi.fn() }) },
+        { chatRealtimeService: { addReaction: vi.fn(), membersOf } },
+      );
+      const busy = mockSocket('prof-sender');
+      const other = mockSocket('prof-sender');
+      for (const socket of [busy, other]) {
+        socket.data.conversationIds = new Set(['c-1']);
+      }
+      const typing = { conversationId: 'c-1', recipientId: 'prof-rec' };
+
+      for (let i = 0; i <= CHAT_EVENT_BURST; i++) {
+        await gateway.handleTypingStart(typing as any, busy);
+      }
+      await gateway.handleTypingStart(typing as any, other);
+
+      expect(membersOf).toHaveBeenCalledTimes(CHAT_EVENT_BURST + 1);
     });
   });
 

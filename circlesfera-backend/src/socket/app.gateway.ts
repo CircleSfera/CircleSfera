@@ -84,8 +84,16 @@ export interface SocketWithAuth extends Socket {
     // by the time the 'disconnect' event fires, so handleDisconnect can't
     // read client.rooms to reconcile abandoned viewer counts.
     liveStreamIds?: Set<string>;
+    // What is left of this socket's allowance of chat events (typing, read
+    // receipts, reactions), each of which reads the database.
+    chatBudget?: { tokens: number; at: number; warned: boolean };
   };
 }
+
+// A socket may send a burst of this many chat events, then this many a
+// second; the rest are dropped. A person typing and reading sends far fewer.
+export const CHAT_EVENT_BURST = 20;
+export const CHAT_EVENTS_PER_SECOND = 5;
 
 @WebSocketGateway({
   cors: {
@@ -302,6 +310,35 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // Whether this socket may send one more chat event now. Each of them asks
+  // the database who is in the conversation, so a socket sending too many has
+  // the excess dropped, without an answer; it is logged once per socket.
+  private withinChatBudget(client: SocketWithAuth): boolean {
+    const now = Date.now();
+    client.data.chatBudget ??= {
+      tokens: CHAT_EVENT_BURST,
+      at: now,
+      warned: false,
+    };
+    const budget = client.data.chatBudget;
+    budget.tokens = Math.min(
+      CHAT_EVENT_BURST,
+      budget.tokens + ((now - budget.at) / 1000) * CHAT_EVENTS_PER_SECOND,
+    );
+    budget.at = now;
+    if (budget.tokens >= 1) {
+      budget.tokens -= 1;
+      return true;
+    }
+    if (!budget.warned) {
+      budget.warned = true;
+      this.logger.warn(
+        `A socket of profile ${client.data.user.profileId} sends chat events too fast; the excess is dropped`,
+      );
+    }
+    return false;
+  }
+
   // Whether this socket's Profile may tell the recipient something about the
   // conversation: both must be in it now. What the socket remembers only
   // filters; the database decides, because a member may have left from
@@ -315,6 +352,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const profileId = client.data?.user?.profileId;
     if (!profileId) return false;
     if (!client.data.conversationIds?.has(conversationId)) return false;
+    if (!this.withinChatBudget(client)) return false;
     const members = await this.chatRealtimeService.membersOf(conversationId, [
       profileId,
       recipientId,
@@ -389,6 +427,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
+    if (!this.withinChatBudget(client)) return;
 
     // The service checks that the caller is in the conversation now; the
     // socket's own list is not asked.
