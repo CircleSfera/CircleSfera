@@ -2,6 +2,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
+import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MonetizationWebhookService } from './monetization-webhook.service.js';
 
@@ -9,17 +10,24 @@ describe('MonetizationWebhookService', () => {
   let service: MonetizationWebhookService;
   let prisma: any;
   let eventEmitter: { emit: ReturnType<typeof vi.fn> };
+  // The payment provider is replaced: nothing here reaches it.
+  let stripe: { refundDestinationCharge: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    stripe = { refundDestinationCharge: vi.fn().mockResolvedValue({}) };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MonetizationWebhookService,
+        { provide: StripeService, useValue: stripe },
         {
           provide: PrismaService,
           useValue: {
             postUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
             storyUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
             messageUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
+            message: {
+              findUnique: vi.fn().mockResolvedValue({ id: 'msg1' }),
+            },
             transaction: {
               create: vi.fn(),
               findUnique: vi.fn(),
@@ -28,7 +36,7 @@ describe('MonetizationWebhookService', () => {
             monetization: { upsert: vi.fn() },
             stripePayoutLog: { upsert: vi.fn() },
             promotion: { update: vi.fn(), updateMany: vi.fn() },
-            user: { findFirst: vi.fn() },
+            user: { findFirst: vi.fn(), findUnique: vi.fn() },
             profile: { findFirst: vi.fn() },
             $transaction: vi.fn((callback) => callback(prisma)),
           },
@@ -323,6 +331,360 @@ describe('MonetizationWebhookService', () => {
           notice: expect.objectContaining({ key: 'message_unlocked' }),
         }),
       );
+      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'creator1' } }),
+      );
+      expect(prisma.transaction.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          messageId: 'msg1',
+          status: 'COMPLETED',
+        }),
+      });
+      expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+    });
+
+    describe('a paid message that is deleted or gone', () => {
+      const session = {
+        id: 'cs_msg_gone',
+        client_reference_id: 'buyer1',
+        amount_total: 400,
+        currency: 'eur',
+        payment_intent: 'pi_msg_gone',
+        metadata: {
+          type: 'DIRECT_MESSAGE_UNLOCK',
+          messageId: 'msg_gone',
+          creatorId: 'creator1',
+        },
+      } as any;
+      const refundAsked = {
+        paymentIntentId: 'pi_msg_gone',
+        amountInCents: 400,
+        idempotencyKey: 'message-unlock-refund-cs_msg_gone',
+        metadata: {
+          type: 'DIRECT_MESSAGE_UNLOCK',
+          reason: 'message_no_longer_exists',
+          checkoutSessionId: 'cs_msg_gone',
+        },
+      };
+      const alerted = (eventType: string) =>
+        eventEmitter.emit.mock.calls.filter(
+          ([name, payload]) =>
+            name === 'payment.alert' && payload.eventType === eventType,
+        );
+
+      beforeEach(() => {
+        prisma.message.findUnique.mockResolvedValue(null);
+        prisma.transaction.findUnique.mockResolvedValue(null);
+        prisma.transaction.create.mockResolvedValue({
+          id: 'tx_gone',
+          status: 'PENDING',
+        });
+        prisma.user.findUnique.mockImplementation(({ where }: any) =>
+          Promise.resolve({ id: where.id }),
+        );
+      });
+
+      it.each([
+        ['is gone', null],
+        ['was deleted by its sender', { id: 'msg_gone', isDeleted: true }],
+      ])(
+        'records the payment, refunds it in full once, pays the creator nothing and tells staff when the message %s',
+        async (_case, message) => {
+          prisma.message.findUnique.mockResolvedValue(message);
+
+          await expect(
+            service.handleCheckoutSessionCompleted(session),
+          ).resolves.toBeUndefined();
+
+          expect(prisma.message.findUnique).toHaveBeenCalledWith({
+            where: { id: 'msg_gone' },
+            select: { id: true, isDeleted: true },
+          });
+          expect(prisma.transaction.create).toHaveBeenCalledWith({
+            data: {
+              type: 'DIRECT_MESSAGE_UNLOCK',
+              amount: 400,
+              currency: 'EUR',
+              senderId: 'buyer1',
+              receiverId: 'creator1',
+              messageId: null,
+              stripePaymentIntentId: 'pi_msg_gone',
+              status: 'PENDING',
+              description: expect.stringContaining('is deleted or gone'),
+            },
+            select: { id: true, status: true },
+          });
+          expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+          expect(stripe.refundDestinationCharge).toHaveBeenCalledWith(
+            refundAsked,
+          );
+          expect(prisma.transaction.update).toHaveBeenCalledWith({
+            where: { id: 'tx_gone' },
+            data: { status: 'REFUNDED' },
+          });
+          expect(prisma.$transaction).not.toHaveBeenCalled();
+          expect(prisma.messageUnlock.upsert).not.toHaveBeenCalled();
+          expect(prisma.monetization.upsert).not.toHaveBeenCalled();
+          expect(eventEmitter.emit).not.toHaveBeenCalledWith(
+            'notification.create',
+            expect.anything(),
+          );
+          expect(alerted('Message Unlock Refunded')).toEqual([
+            [
+              'payment.alert',
+              expect.objectContaining({
+                amount: 400,
+                currency: 'EUR',
+                userId: 'buyer1',
+              }),
+            ],
+          ]);
+        },
+      );
+
+      it('refunds once when the same event arrives again', async () => {
+        let stored: { id: string; status: string } | null = null;
+        prisma.transaction.findUnique.mockImplementation(() =>
+          Promise.resolve(stored),
+        );
+        prisma.transaction.create.mockImplementation(() => {
+          stored = { id: 'tx_gone', status: 'PENDING' };
+          return Promise.resolve(stored);
+        });
+        prisma.transaction.update.mockImplementation(({ data }: any) => {
+          stored = { id: 'tx_gone', status: data.status };
+          return Promise.resolve(stored);
+        });
+
+        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session);
+
+        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+        expect(prisma.transaction.create).toHaveBeenCalledTimes(1);
+        expect(prisma.transaction.update).toHaveBeenCalledTimes(1);
+        expect(alerted('Message Unlock Refunded')).toHaveLength(1);
+      });
+
+      it('asks again with the same key after a refund that failed, without a second record', async () => {
+        prisma.transaction.findUnique.mockResolvedValue({
+          id: 'tx_gone',
+          status: 'PENDING',
+        });
+
+        await service.handleCheckoutSessionCompleted(session);
+
+        expect(prisma.transaction.create).not.toHaveBeenCalled();
+        expect(stripe.refundDestinationCharge).toHaveBeenCalledWith(
+          refundAsked,
+        );
+        expect(prisma.transaction.update).toHaveBeenCalledWith({
+          where: { id: 'tx_gone' },
+          data: { status: 'REFUNDED' },
+        });
+      });
+
+      it('keeps the payment without the people who were erased since', async () => {
+        prisma.user.findUnique.mockResolvedValue(null);
+
+        await service.handleCheckoutSessionCompleted(session);
+
+        expect(prisma.transaction.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              senderId: null,
+              receiverId: null,
+            }),
+          }),
+        );
+        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+      });
+
+      it('fails, so the provider retries, and tells staff when the refund fails', async () => {
+        const failure = new Error('provider unavailable');
+        stripe.refundDestinationCharge.mockRejectedValue(failure);
+
+        await expect(
+          service.handleCheckoutSessionCompleted(session),
+        ).rejects.toBe(failure);
+
+        expect(prisma.transaction.update).not.toHaveBeenCalled();
+        expect(alerted('Message Unlock Refund Failed')).toHaveLength(1);
+        expect(alerted('Message Unlock Refunded')).toHaveLength(0);
+      });
+
+      it('counts the payment refunded when the provider says it already is', async () => {
+        stripe.refundDestinationCharge.mockRejectedValue(
+          Object.assign(new Error('already refunded'), {
+            code: 'charge_already_refunded',
+          }),
+        );
+
+        await expect(
+          service.handleCheckoutSessionCompleted(session),
+        ).resolves.toBeUndefined();
+
+        expect(prisma.transaction.update).toHaveBeenCalledWith({
+          where: { id: 'tx_gone' },
+          data: { status: 'REFUNDED' },
+        });
+        expect(alerted('Message Unlock Refund Failed')).toHaveLength(0);
+      });
+
+      it.each(['COMPLETED', 'FAILED'])(
+        'refunds nothing and asks staff to decide when the payment is already %s',
+        async (status) => {
+          const logger = (service as any).logger;
+          vi.spyOn(logger, 'warn').mockImplementation(() => {});
+          prisma.transaction.findUnique.mockResolvedValue({
+            id: 'tx_earlier',
+            status,
+          });
+
+          await expect(
+            service.handleCheckoutSessionCompleted(session),
+          ).resolves.toBeUndefined();
+
+          expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+          expect(prisma.transaction.create).not.toHaveBeenCalled();
+          expect(prisma.transaction.update).not.toHaveBeenCalled();
+          expect(prisma.monetization.upsert).not.toHaveBeenCalled();
+          expect(alerted('Message Unlock Refund Review')).toEqual([
+            [
+              'payment.alert',
+              expect.objectContaining({
+                description: expect.stringMatching(
+                  new RegExp(`msg_gone.*cs_msg_gone.*tx_earlier.*${status}`),
+                ),
+              }),
+            ],
+          ]);
+        },
+      );
+
+      it.each([
+        'amount_too_large',
+        'charge_disputed',
+        'refund_disputed_payment',
+        'charge_not_refundable',
+      ])(
+        'answers the notice and asks staff to finish by hand when the provider refuses the full refund (%s)',
+        async (code) => {
+          stripe.refundDestinationCharge.mockRejectedValue(
+            Object.assign(new Error('refused'), { code }),
+          );
+
+          await expect(
+            service.handleCheckoutSessionCompleted(session),
+          ).resolves.toBeUndefined();
+
+          expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+          // Kept pending, never counted as the creator's, with a note for staff.
+          expect(prisma.transaction.update).toHaveBeenCalledTimes(1);
+          expect(prisma.transaction.update).toHaveBeenCalledWith({
+            where: { id: 'tx_gone' },
+            data: {
+              description: expect.stringContaining(`refund by hand`),
+            },
+          });
+          expect(prisma.monetization.upsert).not.toHaveBeenCalled();
+          expect(alerted('Message Unlock Refund Needed')).toHaveLength(1);
+          expect(alerted('Message Unlock Refund Failed')).toHaveLength(0);
+          expect(alerted('Message Unlock Refunded')).toHaveLength(0);
+        },
+      );
+
+      it('ends refunded, once, when the provider tells of the refund before it is marked', async () => {
+        let stored: { id: string; status: string; type: string } | null = null;
+        prisma.transaction.findUnique.mockImplementation(() =>
+          Promise.resolve(stored && { ...stored }),
+        );
+        prisma.transaction.create.mockImplementation(() => {
+          stored = {
+            id: 'tx_gone',
+            status: 'PENDING',
+            type: 'DIRECT_MESSAGE_UNLOCK',
+          };
+          return Promise.resolve({ ...stored });
+        });
+        prisma.transaction.update.mockImplementation(({ data }: any) => {
+          stored = { ...(stored as any), ...data };
+          return Promise.resolve({ ...stored });
+        });
+        // The provider's refund notice arrives while the payment is still
+        // pending, before this handler marks it.
+        stripe.refundDestinationCharge.mockImplementation(async () => {
+          await service.handleChargeRefundedOrDisputed({
+            payment_intent: 'pi_msg_gone',
+          });
+          return { id: 're_1' };
+        });
+
+        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session);
+        await service.handleChargeRefundedOrDisputed({
+          payment_intent: 'pi_msg_gone',
+        });
+
+        expect(stored).toEqual(expect.objectContaining({ status: 'REFUNDED' }));
+        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+        expect(prisma.transaction.create).toHaveBeenCalledTimes(1);
+        expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.storyUnlock.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.messageUnlock.deleteMany).not.toHaveBeenCalled();
+      });
+
+      it('asks staff to refund by hand when the checkout names no payment', async () => {
+        const logger = (service as any).logger;
+        const error = vi.spyOn(logger, 'error').mockImplementation(() => {});
+
+        await expect(
+          service.handleCheckoutSessionCompleted({
+            ...session,
+            payment_intent: null,
+            currency: null,
+          }),
+        ).resolves.toBeUndefined();
+
+        expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+        expect(prisma.transaction.create).not.toHaveBeenCalled();
+        expect(error).toHaveBeenCalledTimes(1);
+        expect(alerted('Message Unlock Refund Needed')).toEqual([
+          ['payment.alert', expect.objectContaining({ currency: 'EUR' })],
+        ]);
+      });
+
+      it('follows the same rules for a deleted message: one refund per payment, earlier payments left to staff', async () => {
+        prisma.message.findUnique.mockResolvedValue({
+          id: 'msg_gone',
+          isDeleted: true,
+        });
+        vi.spyOn((service as any).logger, 'warn').mockImplementation(() => {});
+        prisma.transaction.findUnique
+          .mockResolvedValueOnce({ id: 'tx_gone', status: 'REFUNDED' })
+          .mockResolvedValueOnce({ id: 'tx_earlier', status: 'COMPLETED' });
+
+        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session);
+
+        expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+        expect(prisma.transaction.create).not.toHaveBeenCalled();
+        expect(prisma.messageUnlock.upsert).not.toHaveBeenCalled();
+        expect(alerted('Message Unlock Refund Review')).toHaveLength(1);
+      });
+
+      it('refunds without telling staff when nobody listens for alerts', async () => {
+        const quiet = new MonetizationWebhookService(
+          prisma,
+          stripe as never,
+          undefined,
+        );
+
+        await expect(
+          quiet.handleCheckoutSessionCompleted(session),
+        ).resolves.toBeUndefined();
+
+        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('processes a DIRECT_LIVE_GIFT checkout by emitting payment.live_gift_completed', async () => {
@@ -370,6 +732,7 @@ describe('MonetizationWebhookService', () => {
     it('handles DIRECT_LIVE_GIFT without an eventEmitter or missing metadata', async () => {
       const serviceNoEmitter = new MonetizationWebhookService(
         prisma,
+        stripe as never,
         undefined,
       );
       await expect(
@@ -405,6 +768,7 @@ describe('MonetizationWebhookService', () => {
     it('exits early when eventEmitter is missing or recipient has no profile', async () => {
       const serviceNoEmitter = new MonetizationWebhookService(
         prisma,
+        stripe as never,
         undefined,
       );
       await (serviceNoEmitter as any).emitPaymentNotification({

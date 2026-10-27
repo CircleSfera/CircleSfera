@@ -437,7 +437,6 @@ describe('Failure Injection & Recovery Invariants', () => {
         'convo-unauthorized',
         'caller-profile',
         '❤️',
-        false, // hasConversationAccess is false
       );
       expect(mockEmit).not.toHaveBeenCalled();
     });

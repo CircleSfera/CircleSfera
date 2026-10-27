@@ -163,8 +163,9 @@ export class GetConversationsQuery {
   }
 
   // The latest message is stored encrypted; the list shows it in clear. A
-  // post it shares that moderation removed is kept for its appeal and shown
-  // to nobody: the message stays, without the post.
+  // deleted one shows no file, whatever its row may still name. A post it
+  // shares that moderation removed is kept for its appeal and shown to
+  // nobody: the message stays, without the post.
   private withReadablePreview<
     T extends {
       messages: {
@@ -173,9 +174,25 @@ export class GetConversationsQuery {
       }[];
     },
   >(conv: T): T {
-    const lastMsg = conv.messages?.[0];
+    const lastMsg = conv.messages?.[0] as
+      | (T['messages'][number] & {
+          isDeleted?: boolean;
+          url?: string | null;
+          standardUrl?: string | null;
+          thumbnailUrl?: string | null;
+          mediaType?: string | null;
+          voiceUrl?: string | null;
+        })
+      | undefined;
     if (lastMsg?.content) {
       lastMsg.content = this.cryptoService.decrypt(lastMsg.content);
+    }
+    if (lastMsg?.isDeleted) {
+      lastMsg.url = null;
+      lastMsg.standardUrl = null;
+      lastMsg.thumbnailUrl = null;
+      lastMsg.mediaType = null;
+      lastMsg.voiceUrl = null;
     }
     if (lastMsg?.post && isRemoved(lastMsg.post)) {
       (lastMsg as { post: unknown }).post = null;

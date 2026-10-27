@@ -159,6 +159,28 @@ export class StripeService implements OnModuleInit {
     );
   }
 
+  // Refund in full a payment made to a creator through a destination charge.
+  // What was sent to the creator's account and the platform fee both come
+  // back, so the creator keeps nothing of it.
+  async refundDestinationCharge(params: {
+    paymentIntentId: string;
+    amountInCents: number;
+    idempotencyKey: string;
+    metadata?: Stripe.MetadataParam;
+  }): Promise<Stripe.Refund> {
+    return this.stripe.refunds.create(
+      {
+        payment_intent: params.paymentIntentId,
+        amount: params.amountInCents,
+        reason: 'requested_by_customer',
+        reverse_transfer: true,
+        refund_application_fee: true,
+        metadata: params.metadata,
+      },
+      { idempotencyKey: params.idempotencyKey },
+    );
+  }
+
   async createCustomer(
     email: string,
     name?: string,

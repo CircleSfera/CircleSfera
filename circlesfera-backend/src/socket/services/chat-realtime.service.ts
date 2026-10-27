@@ -4,7 +4,6 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface AddReactionResult {
   success: boolean;
-  grantConversationAccess?: boolean;
   reactionRecord?: {
     id: string;
     reaction: string;
@@ -23,35 +22,43 @@ export class ChatRealtimeService {
   ) {}
 
   /**
+   * The Profiles of the list that are in the conversation now: a row of
+   * theirs that they have not removed. Read from the database each time, so a
+   * member who left, was removed or deleted the chat a moment ago is not one.
+   * A pending invitation counts as in.
+   */
+  async membersOf(
+    conversationId: string,
+    profileIds: string[],
+  ): Promise<Set<string>> {
+    const rows = await this.prisma.participant.findMany({
+      where: {
+        conversationId,
+        profileId: { in: [...new Set(profileIds)] },
+        deletedAt: null,
+      },
+      select: { profileId: true },
+    });
+    return new Set(rows.map((row) => row.profileId));
+  }
+
+  /**
    * Authorizes and records a reaction on a chat message, retrieving conversation participants for broadcast.
+   * Whether the caller is in the conversation is read from the database
+   * every time, never from what the socket remembers.
    */
   async addReaction(
     messageId: string,
     conversationId: string,
     callerProfileId: string,
     reaction: string,
-    hasConversationAccess: boolean,
   ): Promise<AddReactionResult> {
-    let grantConversationAccess = false;
-
-    if (!hasConversationAccess) {
-      const participant = await this.prisma.participant.findUnique({
-        where: {
-          conversationId_profileId: {
-            conversationId,
-            profileId: callerProfileId,
-          },
-        },
-      });
-
-      if (!participant || participant.deletedAt) {
-        this.logger.warn(
-          `Unauthorized send_reaction attempt by profile ${callerProfileId} in conversation ${conversationId}`,
-        );
-        return { success: false };
-      }
-
-      grantConversationAccess = true;
+    const members = await this.membersOf(conversationId, [callerProfileId]);
+    if (!members.has(callerProfileId)) {
+      this.logger.warn(
+        `Unauthorized send_reaction attempt by profile ${callerProfileId} in conversation ${conversationId}`,
+      );
+      return { success: false };
     }
 
     try {
@@ -72,7 +79,6 @@ export class ChatRealtimeService {
 
       return {
         success: true,
-        grantConversationAccess,
         reactionRecord: {
           id: reactionRecord.id,
           reaction: reactionRecord.reaction,

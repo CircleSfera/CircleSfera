@@ -88,6 +88,35 @@ describe('GetConversationsQuery', () => {
     });
   });
 
+  it('shows no file of a deleted last message in the preview', async () => {
+    mockPrisma.conversation.findMany.mockResolvedValue([
+      {
+        id: 'conv-1',
+        messages: [
+          {
+            id: 'msg-1',
+            content: '',
+            isDeleted: true,
+            url: null,
+            standardUrl: '/uploads/v/master.m3u8',
+            thumbnailUrl: '/uploads/v/thumb.jpg',
+            mediaType: 'video',
+            voiceUrl: '/uploads/voice.webm',
+          },
+        ],
+      },
+    ]);
+
+    const result = await query.execute('prof-1');
+
+    expect(result[0].messages[0]).toMatchObject({
+      standardUrl: null,
+      thumbnailUrl: null,
+      mediaType: null,
+      voiceUrl: null,
+    });
+  });
+
   it('shows the latest message without a shared post that moderation removed', async () => {
     mockPrisma.conversation.findMany.mockResolvedValue([
       {
