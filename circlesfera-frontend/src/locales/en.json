@@ -52,6 +52,7 @@
     },
     "groups": {
       "you": "Your account",
+      "activity": "Your activity",
       "control": "Privacy & control",
       "trust": "Security & trust",
       "money": "Plan & growth"
@@ -116,6 +117,10 @@
       "team": {
         "label": "Teams",
         "desc": "People who work on a Business profile"
+      },
+      "recently_deleted": {
+        "label": "Recently deleted",
+        "desc": "Restore what you deleted"
       }
     },
     "profile": {
@@ -680,6 +685,37 @@
       },
       "accepted_paused": "You joined the team. Your access starts when the profile is back on the Business plan.",
       "paused_note": "The team is paused, not removed: each person gets their access back when the Business plan returns."
+    },
+    "recently_deleted": {
+      "intro": "Posts, frames and stories you delete stay here for 30 days. After that they are deleted for good.",
+      "empty_title": "Nothing deleted recently",
+      "empty_message": "When you delete a post, frame or story, you can restore it from here for 30 days.",
+      "error_title": "Recently deleted could not be loaded",
+      "error_message": "Check your connection and try again.",
+      "days_left_one": "{{count}} day left",
+      "days_left_other": "{{count}} days left",
+      "days_left_none": "Less than a day left",
+      "days_short_one": "{{count}} day",
+      "days_short_other": "{{count}} days",
+      "days_short_none": "< 1 day",
+      "kind": {
+        "POST": "Post",
+        "FRAME": "Frame",
+        "STORY": "Story"
+      },
+      "open": "Open deleted {{kind}}, {{days}}",
+      "restore": "Restore",
+      "restoring": "Restoring…",
+      "delete": "Delete",
+      "confirm_title": "Delete for good?",
+      "confirm_message": "This can't be undone.",
+      "confirm_delete": "Delete for good",
+      "cancel": "Cancel",
+      "restored": "Restored",
+      "restored_archive": "Restored to your story archive",
+      "deleted": "Deleted for good",
+      "restore_error": "It could not be restored. Try again.",
+      "delete_error": "It could not be deleted. Try again."
     }
   },
   "auth": {
@@ -1226,8 +1262,8 @@
       "not_interested": "Not interested"
     },
     "modals": {
-      "delete_title": "Delete Post?",
-      "delete_warning": "This action cannot be undone.",
+      "delete_title": "Delete post?",
+      "delete_warning": "It will go to Recently deleted, where you can restore it for 30 days.",
       "cancel": "Cancel",
       "delete": "Delete",
       "deleting": "Deleting...",
@@ -1269,8 +1305,8 @@
     "you": "You",
     "yours": "Your story",
     "view_of": "View {{username}}'s stories",
-    "delete_title": "Delete Story?",
-    "delete_warning": "This action cannot be undone.",
+    "delete_title": "Delete story?",
+    "delete_warning": "It will go to Recently deleted, where you can restore it for 30 days.",
     "delete": "Delete",
     "cancel": "Cancel",
     "viewers": "Viewers",
@@ -5050,8 +5086,8 @@
     "playback_area": "Video playback area",
     "progress": "Video progress",
     "close": "Close",
-    "delete_title": "Delete Frame",
-    "delete_message": "Are you sure you want to delete this frame? This action cannot be undone.",
+    "delete_title": "Delete frame?",
+    "delete_message": "It will go to Recently deleted, where you can restore it for 30 days.",
     "delete_confirm": "Delete",
     "delete_pending": "Deleting..."
   },

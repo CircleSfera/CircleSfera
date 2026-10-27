@@ -765,7 +765,7 @@ describe('FrameItem', () => {
       const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
       act(() => actions()?.onDelete());
-      expect(await screen.findByText('Delete Frame')).toBeInTheDocument();
+      expect(await screen.findByText('Delete frame?')).toBeInTheDocument();
       expect(postsApi.delete).not.toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole('button', { name: 'Delete' }));

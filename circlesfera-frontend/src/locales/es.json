@@ -52,6 +52,7 @@
     },
     "groups": {
       "you": "Tu cuenta",
+      "activity": "Tu actividad",
       "control": "Privacidad y control",
       "trust": "Seguridad y confianza",
       "money": "Plan y crecimiento"
@@ -116,6 +117,10 @@
       "team": {
         "label": "Equipos",
         "desc": "Personas que trabajan en un perfil Business"
+      },
+      "recently_deleted": {
+        "label": "Eliminado recientemente",
+        "desc": "Restaura lo que eliminaste"
       }
     },
     "profile": {
@@ -680,6 +685,37 @@
       },
       "accepted_paused": "Te has unido al equipo. Tu acceso empezará cuando el perfil vuelva al plan Business.",
       "paused_note": "El equipo está en pausa, no eliminado: cada persona recupera su acceso cuando vuelve el plan Business."
+    },
+    "recently_deleted": {
+      "intro": "Las publicaciones, frames e historias que eliminas se quedan aquí 30 días. Después se eliminan definitivamente.",
+      "empty_title": "No has eliminado nada recientemente",
+      "empty_message": "Cuando elimines una publicación, un frame o una historia, podrás restaurarlo desde aquí durante 30 días.",
+      "error_title": "No se pudo cargar Eliminado recientemente",
+      "error_message": "Comprueba tu conexión e inténtalo de nuevo.",
+      "days_left_one": "Queda {{count}} día",
+      "days_left_other": "Quedan {{count}} días",
+      "days_left_none": "Queda menos de un día",
+      "days_short_one": "{{count}} día",
+      "days_short_other": "{{count}} días",
+      "days_short_none": "< 1 día",
+      "kind": {
+        "POST": "Publicación",
+        "FRAME": "Frame",
+        "STORY": "Historia"
+      },
+      "open": "Abrir {{kind}} eliminada, {{days}}",
+      "restore": "Restaurar",
+      "restoring": "Restaurando…",
+      "delete": "Eliminar",
+      "confirm_title": "¿Eliminar definitivamente?",
+      "confirm_message": "No se puede deshacer.",
+      "confirm_delete": "Eliminar definitivamente",
+      "cancel": "Cancelar",
+      "restored": "Restaurado",
+      "restored_archive": "Restaurada en tu archivo de historias",
+      "deleted": "Eliminado definitivamente",
+      "restore_error": "No se pudo restaurar. Inténtalo de nuevo.",
+      "delete_error": "No se pudo eliminar. Inténtalo de nuevo."
     }
   },
   "auth": {
@@ -1227,7 +1263,7 @@
     },
     "modals": {
       "delete_title": "¿Eliminar publicación?",
-      "delete_warning": "Esta acción no se puede deshacer.",
+      "delete_warning": "Irá a Eliminado recientemente, donde podrás restaurarla durante 30 días.",
       "cancel": "Cancelar",
       "delete": "Eliminar",
       "deleting": "Eliminando...",
@@ -1270,7 +1306,7 @@
     "yours": "Tu historia",
     "view_of": "Ver historias de {{username}}",
     "delete_title": "¿Eliminar historia?",
-    "delete_warning": "Esta acción no se puede deshacer.",
+    "delete_warning": "Irá a Eliminado recientemente, donde podrás restaurarla durante 30 días.",
     "delete": "Eliminar",
     "cancel": "Cancelar",
     "viewers": "Espectadores",
@@ -5050,8 +5086,8 @@
     "playback_area": "Área de reproducción de vídeo",
     "progress": "Progreso del vídeo",
     "close": "Cerrar",
-    "delete_title": "Eliminar Frame",
-    "delete_message": "¿Estás seguro de que quieres eliminar este frame? Esta acción no se puede deshacer.",
+    "delete_title": "¿Eliminar frame?",
+    "delete_message": "Irá a Eliminado recientemente, donde podrás restaurarlo durante 30 días.",
     "delete_confirm": "Eliminar",
     "delete_pending": "Eliminando..."
   },

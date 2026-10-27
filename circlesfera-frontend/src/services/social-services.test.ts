@@ -31,6 +31,7 @@ import { notificationsApi } from './notifications.service';
 import { placesApi } from './places.service';
 import { postsApi } from './posts.service';
 import { pushApi } from './push.service';
+import { recentlyDeletedApi } from './recentlyDeleted.service';
 import { searchApi } from './search.service';
 import { storiesApi } from './stories.service';
 import { uploadApi } from './upload.service';
@@ -248,6 +249,37 @@ const cases: Case[] = [
     ['stories/s1/reactions', { params: { cursor: 'c2', limit: 20 } }],
   ],
   ['stories.delete', () => storiesApi.delete('s1'), 'delete', ['stories/s1']],
+  // Recently deleted
+  [
+    'recentlyDeleted.list',
+    () => recentlyDeletedApi.list(),
+    'get',
+    ['users/me/recently-deleted'],
+  ],
+  [
+    'recentlyDeleted.restorePost',
+    () => recentlyDeletedApi.restorePost('p1'),
+    'post',
+    ['posts/p1/restore'],
+  ],
+  [
+    'recentlyDeleted.restoreStory',
+    () => recentlyDeletedApi.restoreStory('s1'),
+    'post',
+    ['stories/s1/restore'],
+  ],
+  [
+    'recentlyDeleted.deletePostForGood',
+    () => recentlyDeletedApi.deletePostForGood('p1'),
+    'delete',
+    ['posts/p1/permanent'],
+  ],
+  [
+    'recentlyDeleted.deleteStoryForGood',
+    () => recentlyDeletedApi.deleteStoryForGood('s1'),
+    'delete',
+    ['stories/s1/permanent'],
+  ],
   [
     'highlights.create',
     () => highlightsApi.create({ title: 't', storyIds: ['s1'] }),

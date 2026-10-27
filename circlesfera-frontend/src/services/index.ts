@@ -31,6 +31,7 @@ export * from './places.service';
 export * from './posts.service';
 export * from './profile.service';
 export * from './push.service';
+export * from './recentlyDeleted.service';
 export * from './reports.service';
 export * from './search.service';
 export * from './stories.service';
