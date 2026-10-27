@@ -132,8 +132,13 @@ export class SendMessageUseCase {
               'Conversation not found',
             );
 
+          // In a group, a declined invitation is no longer membership: only
+          // a row still in the group may write. A 1:1 chat removed by the
+          // sender comes back when they write in it.
           const isParticipant = conv.participants.some(
-            (p: any) => p.profileId === senderId,
+            (p: any) =>
+              p.profileId === senderId &&
+              (!conv.isGroup || p.deletedAt === null),
           );
           if (!isParticipant)
             throw AppException.Forbidden(
@@ -314,15 +319,19 @@ export class SendMessageUseCase {
           },
         });
 
-        await tx.participant.updateMany({
-          where: {
-            conversationId: conv.id,
-            deletedAt: { not: null },
-          },
-          data: {
-            deletedAt: null,
-          },
-        });
+        // A new message brings a removed 1:1 chat back for both sides. A
+        // group never: whoever declined it stays out.
+        if (!conv.isGroup) {
+          await tx.participant.updateMany({
+            where: {
+              conversationId: conv.id,
+              deletedAt: { not: null },
+            },
+            data: {
+              deletedAt: null,
+            },
+          });
+        }
 
         return { message: msg, conversation: conv };
       },

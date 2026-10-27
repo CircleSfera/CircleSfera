@@ -154,6 +154,138 @@ describe('SendMessageUseCase', () => {
     ).rejects.toThrow(AppException);
   });
 
+  it('refuses, as a non-member, someone who declined the group', async () => {
+    mockTx.conversation.findUnique.mockResolvedValue({
+      id: 'group-1',
+      isGroup: true,
+      participants: [
+        {
+          profileId: 'sender-1',
+          deletedAt: new Date(),
+          profile: { id: 'sender-1' },
+        },
+        { profileId: 'member-1', deletedAt: null, profile: { id: 'member-1' } },
+      ],
+    });
+
+    await expect(
+      useCase.execute(
+        'sender-1',
+        undefined,
+        'Hello',
+        undefined,
+        undefined,
+        'group-1',
+      ),
+    ).rejects.toMatchObject({ errorCode: 'FORBIDDEN_ACCESS', status: 403 });
+    expect(mockTx.message.create).not.toHaveBeenCalled();
+    expect(mockTx.participant.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('still lets a pending invitee write in the group', async () => {
+    mockTx.conversation.findUnique.mockResolvedValue({
+      id: 'group-1',
+      isGroup: true,
+      participants: [
+        {
+          profileId: 'sender-1',
+          hasAccepted: false,
+          deletedAt: null,
+          profile: { id: 'sender-1' },
+        },
+        { profileId: 'member-1', deletedAt: null, profile: { id: 'member-1' } },
+      ],
+    });
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-1',
+      content: 'encrypted_Hello',
+      senderId: 'sender-1',
+      conversationId: 'group-1',
+    });
+
+    await useCase.execute(
+      'sender-1',
+      undefined,
+      'Hello',
+      undefined,
+      undefined,
+      'group-1',
+    );
+    expect(mockTx.message.create).toHaveBeenCalled();
+  });
+
+  it('never brings back into a group anyone who declined it', async () => {
+    mockTx.conversation.findUnique.mockResolvedValue({
+      id: 'group-1',
+      isGroup: true,
+      participants: [
+        { profileId: 'sender-1', deletedAt: null, profile: { id: 'sender-1' } },
+        {
+          profileId: 'declined-1',
+          deletedAt: new Date(),
+          profile: { id: 'declined-1' },
+        },
+      ],
+    });
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-1',
+      content: 'encrypted_Hello',
+      senderId: 'sender-1',
+      conversationId: 'group-1',
+    });
+
+    await useCase.execute(
+      'sender-1',
+      undefined,
+      'Hello',
+      undefined,
+      undefined,
+      'group-1',
+    );
+
+    expect(mockTx.message.create).toHaveBeenCalled();
+    expect(mockTx.participant.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('lets someone write in a 1:1 chat they removed, and brings it back', async () => {
+    mockTx.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      isGroup: false,
+      participants: [
+        {
+          profileId: 'sender-1',
+          deletedAt: new Date(),
+          profile: { id: 'sender-1' },
+        },
+        {
+          profileId: 'recipient-1',
+          deletedAt: null,
+          profile: { id: 'recipient-1' },
+        },
+      ],
+    });
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-1',
+      content: 'encrypted_Hello',
+      senderId: 'sender-1',
+      conversationId: 'conv-1',
+    });
+
+    await useCase.execute(
+      'sender-1',
+      undefined,
+      'Hello',
+      undefined,
+      undefined,
+      'conv-1',
+    );
+
+    expect(mockTx.participant.updateMany).toHaveBeenCalledWith({
+      where: { conversationId: 'conv-1', deletedAt: { not: null } },
+      data: { deletedAt: null },
+    });
+  });
+
   it('throws Forbidden if participant is blocked or blocks sender', async () => {
     mockTx.conversation.findUnique.mockResolvedValue({
       id: 'conv-1',
