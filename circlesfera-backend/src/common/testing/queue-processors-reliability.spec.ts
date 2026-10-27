@@ -6,7 +6,6 @@ import { ChatProcessor } from '../../chat/processors/chat.processor.js';
 import { CleanupExpiredMessagesUseCase } from '../../chat/use-cases/system/cleanup-expired-messages.use-case.js';
 import { FeedFanoutProcessor } from '../../feed/processors/feed-fanout.processor.js';
 import { NotificationsProcessor } from '../../notifications/processors/notifications.processor.js';
-import { PostsProcessor } from '../../posts/posts.processor.js';
 import { SlackProcessor } from '../../slack/processors/slack.processor.js';
 import { AccountDeletionProcessor } from '../../users/account-deletion.processor.js';
 import { DataExportProcessor } from '../../users/data-export.processor.js';
@@ -242,39 +241,6 @@ describe('Queue Processors Reliability & Error Handling', () => {
 
       const useCase = new CleanupExpiredMessagesUseCase(mockPrisma);
       await expect(useCase.execute()).rejects.toThrow('Prisma query timeout');
-    });
-  });
-
-  describe('PostsProcessor', () => {
-    it('throws UnrecoverableError on unknown job name or invalid mediaUrls', async () => {
-      const proc = new PostsProcessor({} as any);
-
-      await expect(
-        proc.process({ name: 'unknown-post-job', data: {} } as any),
-      ).rejects.toThrow(UnrecoverableError);
-
-      await expect(
-        proc.process({ name: 'delete-post-media', data: {} } as any),
-      ).rejects.toThrow(UnrecoverableError);
-    });
-
-    it('re-throws a failure to settle the media so BullMQ retries', async () => {
-      const mockUploads = {
-        releaseContentFiles: vi
-          .fn()
-          .mockRejectedValue(new Error('S3 503 SlowDown')),
-      } as any;
-
-      const proc = new PostsProcessor(mockUploads);
-      const job = {
-        name: 'delete-post-media',
-        data: {
-          authorProfileId: 'author-1',
-          mediaUrls: ['https://cdn.example.com/file1.png'],
-        },
-      } as any;
-
-      await expect(proc.process(job)).rejects.toThrow('S3 503 SlowDown');
     });
   });
 

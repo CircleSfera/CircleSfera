@@ -9,19 +9,14 @@ import {
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { PostsController } from './posts.controller.js';
-import { PostsProcessor } from './posts.processor.js';
 import { PostsService } from './posts.service.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
 
 @Module({
   imports: [
     BullModule.registerQueue(getRegisterQueueOptions(QUEUE_NAMES.FEED_FANOUT)),
-    BullModule.registerQueue(
-      getRegisterQueueOptions(QUEUE_NAMES.POSTS_PROCESSING),
-    ),
     // Asking for the cover of a frame is a job of the video queue.
     BullModule.registerQueue(
       getRegisterQueueOptions(QUEUE_NAMES.VIDEO_TRANSCODING),
@@ -34,17 +29,10 @@ import { PostPaywallService } from './services/post-paywall.service.js';
   controllers: [PostsController],
   providers: [
     PostsService,
-    PostsProcessor,
     PostPaywallService,
     PostDistributionService,
-    PostMediaCleanupService,
     FrameCoverService,
   ],
-  exports: [
-    PostsService,
-    PostPaywallService,
-    PostDistributionService,
-    PostMediaCleanupService,
-  ],
+  exports: [PostsService, PostPaywallService, PostDistributionService],
 })
 export class PostsModule {}
