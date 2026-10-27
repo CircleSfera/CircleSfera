@@ -228,18 +228,28 @@ export class LiveRecordingsService {
    */
   async remove(hostId: string, streamId: string) {
     const row = await this.ownReady(hostId, streamId);
-    const changed = await this.prisma.liveStream.updateMany({
-      where: { id: streamId, hostId, recordingStatus: 'READY' },
-      data: {
-        recordingStatus: 'NONE',
-        replayUrl: null,
-        thumbnailUrl: null,
-        publishedAt: null,
+    // The recording and its files are settled together: if the files
+    // cannot be set aside, the recording stays and can be deleted again.
+    await this.prisma.$transaction(
+      async (tx) => {
+        const changed = await tx.liveStream.updateMany({
+          where: { id: streamId, hostId, recordingStatus: 'READY' },
+          data: {
+            recordingStatus: 'NONE',
+            replayUrl: null,
+            thumbnailUrl: null,
+            publishedAt: null,
+          },
+        });
+        if (changed.count > 0) {
+          await this.uploads.releaseContentFiles(
+            [replayFileKey(row.replayUrl)],
+            tx,
+          );
+        }
       },
-    });
-    if (changed.count > 0) {
-      await this.uploads.releaseContentFiles([replayFileKey(row.replayUrl)]);
-    }
+      { timeout: 30_000, maxWait: 5_000 },
+    );
     return { success: true };
   }
 
@@ -305,24 +315,45 @@ export class LiveRecordingsService {
       for (const row of page) {
         if (!row.endedAt || !over(row.endedAt)) continue;
         try {
-          const taken = await this.prisma.liveStream.updateMany({
-            where: {
-              id: row.id,
-              recordingStatus: 'READY',
-              publishedAt: null,
-              endedByStaff,
+          // The row is held while its files go, so a publish at that moment
+          // waits and then finds it gone. Files first: if one cannot be
+          // deleted, the row is kept and tried again tomorrow, and no file
+          // is ever left named by no row.
+          const done = await this.prisma.$transaction(
+            async (tx) => {
+              const [held] = await tx.$queryRaw<
+                {
+                  recordingStatus: string;
+                  publishedAt: Date | null;
+                  endedByStaff: boolean;
+                }[]
+              >`SELECT "recordingStatus", "publishedAt", "endedByStaff" FROM "live_streams" WHERE id = ${row.id} FOR UPDATE`;
+              if (
+                !held ||
+                held.recordingStatus !== 'READY' ||
+                held.publishedAt !== null ||
+                held.endedByStaff !== endedByStaff
+              ) {
+                return false;
+              }
+              await this.uploads.deleteFilesOfErasedContent(
+                row.hostId,
+                [replayFileKey(row.replayUrl)],
+                { liveStream: [row.id] },
+              );
+              await tx.liveStream.update({
+                where: { id: row.id },
+                data: {
+                  recordingStatus: 'NONE',
+                  replayUrl: null,
+                  thumbnailUrl: null,
+                },
+              });
+              return true;
             },
-            data: {
-              recordingStatus: 'NONE',
-              replayUrl: null,
-              thumbnailUrl: null,
-            },
-          });
-          if (taken.count === 0) continue;
-          await this.uploads.deleteContentFiles(row.hostId, [
-            replayFileKey(row.replayUrl),
-          ]);
-          erased++;
+            { timeout: 60_000, maxWait: 5_000 },
+          );
+          if (done) erased++;
         } catch (error: unknown) {
           this.logger.warn(
             `The recording of broadcast ${row.id} could not be deleted; it is tried again tomorrow: ${error instanceof Error ? error.message : String(error)}`,
@@ -343,15 +374,23 @@ export class LiveRecordingsService {
       const file = path.join(folder, name);
       const stat = await fs.promises.stat(file).catch(() => null);
       if (!stat || now.getTime() - stat.mtimeMs < RAW_KEPT_MS) continue;
-      await fs.promises.rm(file, { force: true });
-      await this.prisma.liveStream.updateMany({
-        where: { recordingFile: name, recordingStatus: 'PROCESSING' },
-        data: { recordingStatus: 'FAILED' },
-      });
-      await this.prisma.liveStream.updateMany({
-        where: { recordingFile: name },
-        data: { recordingFile: null },
-      });
+      // The rows first, then the file: both can be repeated, and one file
+      // that fails does not stop the others.
+      try {
+        await this.prisma.liveStream.updateMany({
+          where: { recordingFile: name, recordingStatus: 'PROCESSING' },
+          data: { recordingStatus: 'FAILED' },
+        });
+        await this.prisma.liveStream.updateMany({
+          where: { recordingFile: name },
+          data: { recordingFile: null },
+        });
+        await fs.promises.rm(file, { force: true });
+      } catch (error: unknown) {
+        this.logger.warn(
+          `The recorder file ${name} could not be cleared; it is tried again tomorrow: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
   }
 }

@@ -16,6 +16,17 @@ const FOLDER = '0f8e7d6c-5b4a-4c3d-8e2f-1a0b9c8d7e6f';
 const REPLAY = `/uploads/${FOLDER}/master.m3u8`;
 const KEY = `/uploads/${FOLDER}.mp4`;
 
+const HELD_A = {
+  recordingStatus: 'READY',
+  publishedAt: null,
+  endedByStaff: false,
+};
+const HELD_B = {
+  recordingStatus: 'READY',
+  publishedAt: new Date(),
+  endedByStaff: false,
+};
+
 describe('LiveRecordingsService', () => {
   const prisma = {
     liveStream: {
@@ -27,10 +38,17 @@ describe('LiveRecordingsService', () => {
     profile: { findUnique: vi.fn(), findMany: vi.fn() },
     user: { findMany: vi.fn() },
     follow: { findUnique: vi.fn() },
+    $transaction: vi.fn(),
+  };
+  // The transaction a deletion runs in, apart from the service's client.
+  const tx = {
+    liveStream: { updateMany: vi.fn(), update: vi.fn() },
+    $queryRaw: vi.fn(),
   };
   const uploads = {
     releaseContentFiles: vi.fn(async () => undefined),
     deleteContentFiles: vi.fn(async () => [KEY]),
+    deleteFilesOfErasedContent: vi.fn(async () => [KEY]),
   };
   const service = new LiveRecordingsService(
     prisma as unknown as PrismaService,
@@ -53,6 +71,12 @@ describe('LiveRecordingsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.liveStream.updateMany.mockResolvedValue({ count: 1 });
+    prisma.$transaction.mockImplementation(
+      async (work: (client: typeof tx) => unknown) => work(tx),
+    );
+    tx.liveStream.updateMany.mockResolvedValue({ count: 1 });
+    tx.liveStream.update.mockResolvedValue({});
+    tx.$queryRaw.mockResolvedValue([]);
     prisma.liveStream.findMany.mockResolvedValue([]);
     prisma.block.findFirst.mockResolvedValue(null);
     prisma.profile.findMany.mockResolvedValue([]);
@@ -277,9 +301,9 @@ describe('LiveRecordingsService', () => {
       });
     });
 
-    it('deletes the recording and keeps its files 30 days for the host only', async () => {
+    it('deletes the recording and sets its files aside in one transaction', async () => {
       expect(await service.remove('host', 's1')).toEqual({ success: true });
-      expect(prisma.liveStream.updateMany).toHaveBeenCalledWith({
+      expect(tx.liveStream.updateMany).toHaveBeenCalledWith({
         where: { id: 's1', hostId: 'host', recordingStatus: 'READY' },
         data: {
           recordingStatus: 'NONE',
@@ -288,13 +312,19 @@ describe('LiveRecordingsService', () => {
           publishedAt: null,
         },
       });
-      expect(uploads.releaseContentFiles).toHaveBeenCalledWith([KEY]);
+      expect(uploads.releaseContentFiles).toHaveBeenCalledWith([KEY], tx);
+      expect(prisma.liveStream.updateMany).not.toHaveBeenCalled();
     });
 
     it('releases nothing when another request deleted it first', async () => {
-      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
+      tx.liveStream.updateMany.mockResolvedValue({ count: 0 });
       await service.remove('host', 's1');
       expect(uploads.releaseContentFiles).not.toHaveBeenCalled();
+    });
+
+    it('fails, and so keeps the recording, when its files cannot be set aside', async () => {
+      uploads.releaseContentFiles.mockRejectedValueOnce(new Error('db down'));
+      await expect(service.remove('host', 's1')).rejects.toThrow('db down');
     });
   });
 
@@ -306,10 +336,10 @@ describe('LiveRecordingsService', () => {
           { id: 'b', hostId: 'h2', replayUrl: REPLAY, endedAt: daysAgo(31) },
         ])
         .mockResolvedValueOnce([]);
-      prisma.liveStream.updateMany
-        .mockResolvedValueOnce({ count: 1 })
-        // Published or deleted meanwhile.
-        .mockResolvedValueOnce({ count: 0 });
+      tx.$queryRaw
+        .mockResolvedValueOnce([HELD_A])
+        // Published meanwhile: the row held says so, and it is kept.
+        .mockResolvedValueOnce([HELD_B]);
 
       expect(await service.eraseExpired(NOW)).toBe(1);
       expect(prisma.liveStream.findMany).toHaveBeenNthCalledWith(1, {
@@ -323,23 +353,27 @@ describe('LiveRecordingsService', () => {
         orderBy: { id: 'asc' },
         take: 100,
       });
-      expect(prisma.liveStream.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: 'a',
-          recordingStatus: 'READY',
-          publishedAt: null,
-          endedByStaff: false,
-        },
+      // Held first, then its files, then the row.
+      expect(tx.$queryRaw.mock.calls[0][0].join('?')).toContain('FOR UPDATE');
+      expect(uploads.deleteFilesOfErasedContent).toHaveBeenCalledTimes(1);
+      expect(uploads.deleteFilesOfErasedContent).toHaveBeenCalledWith(
+        'h1',
+        [KEY],
+        { liveStream: ['a'] },
+      );
+      expect(tx.liveStream.update).toHaveBeenCalledWith({
+        where: { id: 'a' },
         data: { recordingStatus: 'NONE', replayUrl: null, thumbnailUrl: null },
       });
+      expect(
+        uploads.deleteFilesOfErasedContent.mock.invocationCallOrder[0],
+      ).toBeLessThan(tx.liveStream.update.mock.invocationCallOrder[0]);
       expect(prisma.liveStream.findMany).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
           where: expect.objectContaining({ id: { gt: 'b' } }),
         }),
       );
-      expect(uploads.deleteContentFiles).toHaveBeenCalledTimes(1);
-      expect(uploads.deleteContentFiles).toHaveBeenCalledWith('h1', [KEY]);
     });
 
     it('deletes the recordings of broadcasts ended by staff once their six months of review are over', async () => {
@@ -364,6 +398,9 @@ describe('LiveRecordingsService', () => {
           { id: 'z', hostId: 'h3', replayUrl: REPLAY, endedAt: null },
         ])
         .mockResolvedValueOnce([]);
+      tx.$queryRaw.mockResolvedValueOnce([
+        { recordingStatus: 'READY', publishedAt: null, endedByStaff: true },
+      ]);
 
       expect(await service.eraseExpired(NOW)).toBe(1);
       expect(prisma.liveStream.findMany).toHaveBeenNthCalledWith(
@@ -377,27 +414,49 @@ describe('LiveRecordingsService', () => {
           },
         }),
       );
-      expect(prisma.liveStream.updateMany).toHaveBeenCalledTimes(1);
-      expect(prisma.liveStream.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ id: 'x', endedByStaff: true }),
-        }),
+      expect(tx.liveStream.update).toHaveBeenCalledTimes(1);
+      expect(uploads.deleteFilesOfErasedContent).toHaveBeenCalledWith(
+        'h1',
+        [KEY],
+        { liveStream: ['x'] },
       );
-      expect(uploads.deleteContentFiles).toHaveBeenCalledWith('h1', [KEY]);
     });
 
-    it('goes on with the others when one cannot be deleted', async () => {
+    it('keeps a recording whose row is gone or no longer of its kind', async () => {
+      prisma.liveStream.findMany
+        .mockResolvedValueOnce([
+          { id: 'a', hostId: 'h1', replayUrl: REPLAY, endedAt: daysAgo(31) },
+          { id: 'b', hostId: 'h2', replayUrl: REPLAY, endedAt: daysAgo(31) },
+          { id: 'c', hostId: 'h3', replayUrl: REPLAY, endedAt: daysAgo(31) },
+        ])
+        .mockResolvedValueOnce([]);
+      tx.$queryRaw
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { recordingStatus: 'NONE', publishedAt: null, endedByStaff: false },
+        ])
+        .mockResolvedValueOnce([
+          { recordingStatus: 'READY', publishedAt: null, endedByStaff: true },
+        ]);
+
+      expect(await service.eraseExpired(NOW)).toBe(0);
+      expect(uploads.deleteFilesOfErasedContent).not.toHaveBeenCalled();
+    });
+
+    it('keeps the row, and goes on with the others, when its files cannot be deleted', async () => {
       prisma.liveStream.findMany
         .mockResolvedValueOnce([
           { id: 'a', hostId: 'h1', replayUrl: REPLAY, endedAt: daysAgo(31) },
           { id: 'b', hostId: 'h2', replayUrl: REPLAY, endedAt: daysAgo(31) },
         ])
         .mockResolvedValueOnce([]);
-      uploads.deleteContentFiles
+      tx.$queryRaw.mockResolvedValue([HELD_A]);
+      uploads.deleteFilesOfErasedContent
         .mockRejectedValueOnce(new Error('disk'))
         .mockRejectedValueOnce('disk');
       expect(await service.eraseExpired(NOW)).toBe(0);
-      expect(uploads.deleteContentFiles).toHaveBeenCalledTimes(2);
+      expect(uploads.deleteFilesOfErasedContent).toHaveBeenCalledTimes(2);
+      expect(tx.liveStream.update).not.toHaveBeenCalled();
     });
 
     it("deletes the recorder's files left more than 48 hours, and fails a replay waiting for one", async () => {
@@ -427,6 +486,30 @@ describe('LiveRecordingsService', () => {
         where: { recordingFile: old },
         data: { recordingFile: null },
       });
+    });
+
+    it("keeps a recorder's file whose rows cannot be updated, and goes on with the others", async () => {
+      const names = [
+        'live-11111111-2222-4333-8444-555555555555-host.mp4',
+        'live-11111111-2222-4333-8444-666666666666-host.mp4',
+      ];
+      const long = new Date(NOW.getTime() - 3 * 24 * 60 * 60 * 1000);
+      for (const name of names) {
+        const file = path.join(recordings, name);
+        fs.writeFileSync(file, 'raw');
+        fs.utimesSync(file, long, long);
+      }
+      prisma.liveStream.updateMany
+        .mockRejectedValueOnce(new Error('db down'))
+        .mockResolvedValue({ count: 0 });
+
+      await service.eraseExpired(NOW);
+
+      // The rows first: the file whose rows failed is still there.
+      const left = names.filter((name) =>
+        fs.existsSync(path.join(recordings, name)),
+      );
+      expect(left).toHaveLength(1);
     });
 
     it("skips a recorder's file that vanished while being read", async () => {
