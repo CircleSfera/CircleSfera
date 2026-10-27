@@ -8,12 +8,14 @@ import { LiveService } from './live.service.js';
 import { LiveGiftService } from './live-gift.service.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
 import { LiveStartNoticeService } from './live-start-notice.service.js';
+import { LiveRecordingModule } from './recording/live-recording.module.js';
 
 @Module({
   imports: [
     PrismaModule,
     StripeModule,
     NotificationsModule,
+    LiveRecordingModule,
     forwardRef(() => SocketModule),
   ],
   controllers: [LiveController],

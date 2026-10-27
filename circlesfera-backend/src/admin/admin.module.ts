@@ -9,6 +9,7 @@ import {
 } from '../common/constants/queue-policy.constants.js';
 import { CreatorModule } from '../creator/creator.module.js';
 import { EmailModule } from '../email/email.module.js';
+import { LiveRecordingModule } from '../live/recording/live-recording.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PaymentsModule } from '../payments/payments.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
@@ -71,6 +72,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     CreatorModule,
     UsersModule,
     PaymentsModule,
+    LiveRecordingModule,
     BullModule.registerQueue(
       getRegisterQueueOptions(QUEUE_NAMES.AI_PROCESSING),
       getRegisterQueueOptions(QUEUE_NAMES.ANALYTICS_PROCESSING),

@@ -236,6 +236,7 @@ export default defineConfig({
           lines: 100,
         },
         'src/media/media-auth.service.ts': { statements: 100, lines: 100 },
+        'src/live/recording/**': { statements: 100, lines: 100 },
         'src/media/media.controller.ts': { statements: 100, lines: 100 },
         'src/interactive/interactive.service.ts': {
           statements: 100,
