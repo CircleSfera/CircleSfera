@@ -38,7 +38,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: circlesfera/circlesfera
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  NODE_OPTIONS: "--no-deprecation"
 
 permissions:
   contents: read
