@@ -30,10 +30,14 @@ export class DetachedFilesErasureService {
 
   /**
    * Answers how many files were deleted. Each file's record is taken before
-   * its bytes go, so a post attaching it at that moment is refused rather
-   * than left with a broken file; a file whose bytes cannot be deleted gets
-   * its record back and is tried again the next night. Running on two
-   * servers at once is harmless: only one takes each record.
+   * its bytes go, so a post attaching it from then on is refused, and the
+   * file is looked up again once taken, so a post saved since the page was
+   * read keeps it. What remains is a post that checked the file before it
+   * was taken and is saved between that second look and the deletion, a
+   * moment of a few milliseconds, at night, on a file deleted 30 days ago.
+   * A file whose bytes cannot be deleted gets its record back and is tried
+   * again the next night. Running on two servers at once is harmless: only
+   * one takes each record.
    */
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async eraseExpired(now: Date = new Date()): Promise<number> {
@@ -55,6 +59,12 @@ export class DetachedFilesErasureService {
           if (used.has(key)) continue;
           const claimed = await this.storedFiles.claimExpired(key, cutoff);
           if (!claimed) continue;
+          // A row may have been saved since the page was read: keep it.
+          if ((await this.references.inUse([key])).has(key)) {
+            await this.storedFiles.restoreClaimed(key, claimed);
+            await this.storedFiles.reattach([key]);
+            continue;
+          }
           try {
             await this.storage.delete(key);
             erased++;

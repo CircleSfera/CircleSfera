@@ -4,7 +4,12 @@ import { DetachedFilesErasureService } from './detached-files-erasure.service.js
 describe('DetachedFilesErasureService', () => {
   const now = new Date('2026-11-30T03:00:00Z');
   const cutoff = new Date('2026-10-31T03:00:00Z');
-  const claimed = { profileId: 'p-1', detachedAt: new Date('2026-10-01') };
+  const claimed = {
+    profileId: 'p-1',
+    uploadedById: 'u-1',
+    createdAt: new Date('2026-09-01'),
+    detachedAt: new Date('2026-10-01'),
+  };
   let storedFiles: {
     detachedBefore: ReturnType<typeof vi.fn>;
     reattach: ReturnType<typeof vi.fn>;
@@ -36,9 +41,10 @@ describe('DetachedFilesErasureService', () => {
       .mockResolvedValueOnce(['/uploads/a.jpg', '/uploads/b.jpg'])
       .mockResolvedValueOnce(['/uploads/c.jpg'])
       .mockResolvedValueOnce([]);
-    references.inUse
-      .mockResolvedValueOnce(new Set(['/uploads/b.jpg']))
-      .mockResolvedValueOnce(new Set());
+    references.inUse.mockImplementation(
+      async (keys: string[]) =>
+        new Set(keys.filter((key) => key === '/uploads/b.jpg')),
+    );
 
     await expect(service.eraseExpired(now)).resolves.toBe(2);
 
@@ -76,6 +82,24 @@ describe('DetachedFilesErasureService', () => {
     storedFiles.claimExpired.mockResolvedValueOnce(null);
 
     await expect(service.eraseExpired(now)).resolves.toBe(0);
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it('keeps a file a row started to use after the page was read, with its record back', async () => {
+    storedFiles.detachedBefore
+      .mockResolvedValueOnce(['/uploads/a.jpg'])
+      .mockResolvedValueOnce([]);
+    references.inUse
+      .mockResolvedValueOnce(new Set())
+      .mockResolvedValueOnce(new Set(['/uploads/a.jpg']));
+
+    await expect(service.eraseExpired(now)).resolves.toBe(0);
+    expect(references.inUse).toHaveBeenLastCalledWith(['/uploads/a.jpg']);
+    expect(storedFiles.restoreClaimed).toHaveBeenCalledWith(
+      '/uploads/a.jpg',
+      claimed,
+    );
+    expect(storedFiles.reattach).toHaveBeenLastCalledWith(['/uploads/a.jpg']);
     expect(storage.delete).not.toHaveBeenCalled();
   });
 

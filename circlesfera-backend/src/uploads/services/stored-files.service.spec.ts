@@ -413,11 +413,18 @@ describe('StoredFilesService, taking an expired record', () => {
 
   it('takes the record of a file with an owner detached before the cutoff', async () => {
     const detachedAt = new Date('2026-10-01T00:00:00Z');
-    const { storedFile, service } = files({ profileId: 'p-1', detachedAt });
+    const record = {
+      profileId: 'p-1',
+      uploadedById: 'u-1',
+      createdAt: new Date('2026-09-01T00:00:00Z'),
+      detachedAt,
+    };
+    const { storedFile, service } = files(record);
 
+    // Whole, so that putting it back loses neither who uploaded it nor when.
     await expect(
       service.claimExpired('/uploads/a.jpg', cutoff),
-    ).resolves.toEqual({ profileId: 'p-1', detachedAt });
+    ).resolves.toEqual(record);
     expect(storedFile.deleteMany).toHaveBeenCalledWith({
       where: {
         key: '/uploads/a.jpg',
@@ -453,13 +460,24 @@ describe('StoredFilesService, taking an expired record', () => {
     const detachedAt = new Date('2026-10-01T00:00:00Z');
     const { storedFile, service } = files(null);
 
+    const createdAt = new Date('2026-09-01T00:00:00Z');
     await service.restoreClaimed('/uploads/a.jpg', {
       profileId: 'p-1',
+      uploadedById: 'u-1',
+      createdAt,
       detachedAt,
     });
 
     expect(storedFile.createMany).toHaveBeenCalledWith({
-      data: [{ key: '/uploads/a.jpg', profileId: 'p-1', detachedAt }],
+      data: [
+        {
+          key: '/uploads/a.jpg',
+          profileId: 'p-1',
+          uploadedById: 'u-1',
+          createdAt,
+          detachedAt,
+        },
+      ],
       skipDuplicates: true,
     });
   });

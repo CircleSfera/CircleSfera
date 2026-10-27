@@ -29,6 +29,14 @@ export interface StoredFileOwner {
   uploadedById?: string | null;
 }
 
+/** The record of a file taken for erasure, kept whole to be put back. */
+export interface ClaimedFile {
+  profileId: string;
+  uploadedById: string | null;
+  createdAt: Date;
+  detachedAt: Date;
+}
+
 // The record of who owns each file this server stores. It is written only
 // from what the storage answered (an upload, or a file the server made from
 // another), never from an address a person sends.
@@ -198,13 +206,15 @@ export class StoredFilesService {
    * cutoff and has an owner. Once taken, the file can no longer be attached
    * again (FILE_NOT_OWNED), so a deletion cannot race a new attach.
    */
-  async claimExpired(
-    key: string,
-    cutoff: Date,
-  ): Promise<{ profileId: string; detachedAt: Date } | null> {
+  async claimExpired(key: string, cutoff: Date): Promise<ClaimedFile | null> {
     const row = await this.prisma.storedFile.findUnique({
       where: { key },
-      select: { profileId: true, detachedAt: true },
+      select: {
+        profileId: true,
+        uploadedById: true,
+        createdAt: true,
+        detachedAt: true,
+      },
     });
     if (!row?.profileId || !row.detachedAt || row.detachedAt >= cutoff) {
       return null;
@@ -213,15 +223,17 @@ export class StoredFilesService {
       where: { key, detachedAt: { lt: cutoff }, profileId: row.profileId },
     });
     return taken.count > 0
-      ? { profileId: row.profileId, detachedAt: row.detachedAt }
+      ? {
+          profileId: row.profileId,
+          uploadedById: row.uploadedById,
+          createdAt: row.createdAt,
+          detachedAt: row.detachedAt,
+        }
       : null;
   }
 
   /** Puts back the record of a file that could not be deleted after all. */
-  async restoreClaimed(
-    key: string,
-    claimed: { profileId: string; detachedAt: Date },
-  ): Promise<void> {
+  async restoreClaimed(key: string, claimed: ClaimedFile): Promise<void> {
     await this.prisma.storedFile.createMany({
       data: [{ key, ...claimed }],
       skipDuplicates: true,
