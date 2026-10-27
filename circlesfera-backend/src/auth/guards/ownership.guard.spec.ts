@@ -219,8 +219,43 @@ describe('OwnershipGuard', () => {
     ).resolves.toBe(true);
     expect(commentFindUnique).toHaveBeenCalledWith({
       where: { id: 'c-1' },
-      select: { profileId: true },
+      select: { profileId: true, moderationStatus: true },
     });
+  });
+
+  it('answers a post, story or comment that moderation removed as missing, to its author too', async () => {
+    commentFindUnique.mockResolvedValue({
+      profileId: 'p1',
+      moderationStatus: 'REMOVED',
+    });
+    storyFindUnique.mockResolvedValue({
+      profileId: 'p1',
+      moderationStatus: 'REMOVED',
+    });
+    for (const model of ['Comment', 'Story'] as const) {
+      await expect(
+        guard.canActivate(
+          ctx(
+            { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'x-1' } },
+            { model },
+          ),
+        ),
+      ).rejects.toThrow(NotFoundException);
+    }
+
+    // A hidden one is still its author's to change or delete.
+    commentFindUnique.mockResolvedValue({
+      profileId: 'p1',
+      moderationStatus: 'HIDDEN',
+    });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'x-1' } },
+          { model: 'Comment' },
+        ),
+      ),
+    ).resolves.toBe(true);
   });
 
   it('validates ownership for Story, Highlight, Notification, Collection, and Profile', async () => {

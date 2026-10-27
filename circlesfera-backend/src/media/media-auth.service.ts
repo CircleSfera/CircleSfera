@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FollowStatus, Visibility } from '@prisma/client';
+import { isRemoved } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   StoredFilesService,
@@ -11,6 +12,7 @@ interface PostLikeAccess {
   visibility: Visibility;
   isPremium: boolean;
   profile?: { privacyLevel?: Visibility } | null;
+  moderationStatus?: string;
 }
 
 interface StoryAccess {
@@ -62,7 +64,20 @@ interface MessageAccess {
  *
  * Collection: owner-only -- there is no shared/public collection viewing
  * feature in the API today.
+ *
+ * A post, story or comment removed by moderation is kept for its appeal and
+ * shown to nobody, its author included: its files are for staff who
+ * moderate content only (`isStaff`), and a comment's go with its post.
  */
+// What a post's access is decided on, its moderation included.
+const POST_ACCESS_SELECT = {
+  profileId: true,
+  visibility: true,
+  isPremium: true,
+  moderationStatus: true,
+  profile: { select: { privacyLevel: true } },
+} as const;
+
 // The name of a video's stream folder: the UUID of the video file.
 const STREAM_FOLDER =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -86,6 +101,7 @@ export class MediaAuthService {
     uploadPath: string,
     viewerUserId: string | null,
     viewerProfileId: string | null,
+    isStaff: () => Promise<boolean> = () => Promise.resolve(false),
   ): Promise<boolean> {
     // Nginx passes the raw, undecoded $request_uri (including any query
     // string/fragment) via X-Original-URI, but its own `location /uploads/`
@@ -158,20 +174,13 @@ export class MediaAuthService {
     });
     const urlMatch = matchOn('url', 'standardUrl', 'thumbnailUrl');
 
-    const [postMedia, story, message, comment, collection, editProject] =
+    let [postMedia, story, message, comment, collection, editProject] =
       await Promise.all([
         this.prisma.postMedia.findMany({
           where: urlMatch,
           select: {
             postId: true,
-            post: {
-              select: {
-                profileId: true,
-                visibility: true,
-                isPremium: true,
-                profile: { select: { privacyLevel: true } },
-              },
-            },
+            post: { select: POST_ACCESS_SELECT },
           },
         }),
         // A story's painted layer is the story's as much as its picture.
@@ -182,6 +191,7 @@ export class MediaAuthService {
             profileId: true,
             isPremium: true,
             isCloseFriendsOnly: true,
+            moderationStatus: true,
             profile: { select: { privacyLevel: true } },
           },
         }),
@@ -199,14 +209,8 @@ export class MediaAuthService {
           where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'voiceUrl'),
           select: {
             postId: true,
-            post: {
-              select: {
-                profileId: true,
-                visibility: true,
-                isPremium: true,
-                profile: { select: { privacyLevel: true } },
-              },
-            },
+            moderationStatus: true,
+            post: { select: POST_ACCESS_SELECT },
           },
         }),
         this.prisma.collection.findMany({
@@ -229,6 +233,41 @@ export class MediaAuthService {
     // access to someone else's private/PPV file. Requiring every matched
     // owner (across every table) to independently grant access closes that
     // without costing anything in the normal, non-adversarial case.
+    // A file of removed content: staff who moderate content may see it,
+    // nobody else. The other rows naming the file are still checked.
+    const removedPostMedia = postMedia.filter((media) => isRemoved(media.post));
+    const removedStories = story.filter((item) => isRemoved(item));
+    const removedComments = comment.filter(
+      (item) => isRemoved(item) || isRemoved(item.post),
+    );
+    if (
+      removedPostMedia.length + removedStories.length + removedComments.length >
+      0
+    ) {
+      if (!(await isStaff())) {
+        this.logger.debug(
+          `Removed content, not for this viewer: ${uploadPath}`,
+        );
+        return false;
+      }
+      postMedia = postMedia.filter(
+        (media) => !removedPostMedia.includes(media),
+      );
+      story = story.filter((item) => !removedStories.includes(item));
+      comment = comment.filter((item) => !removedComments.includes(item));
+      if (
+        postMedia.length +
+          story.length +
+          message.length +
+          comment.length +
+          collection.length +
+          editProject.length ===
+        0
+      ) {
+        return true;
+      }
+    }
+
     const accessChecks: Promise<boolean>[] = [
       ...postMedia.map((media) =>
         this.checkPostAccess(

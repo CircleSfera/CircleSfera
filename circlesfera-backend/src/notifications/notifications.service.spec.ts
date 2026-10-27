@@ -3,7 +3,10 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
-import { NotificationsService } from './notifications.service.js';
+import {
+  LINKS_TO_SHOWN_CONTENT,
+  NotificationsService,
+} from './notifications.service.js';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -176,7 +179,25 @@ describe('NotificationsService', () => {
       const result = await service.getUnreadCount('user-1');
       expect(result).toEqual({ count: 3 });
       expect(mockPrismaService.notification.count).toHaveBeenCalledWith({
-        where: { recipientId: 'user-1', read: false },
+        where: {
+          recipientId: 'user-1',
+          read: false,
+          ...LINKS_TO_SHOWN_CONTENT,
+        },
+      });
+    });
+
+    it('leaves out what links to removed content, but not the notices of the decision', () => {
+      expect(LINKS_TO_SHOWN_CONTENT).toEqual({
+        OR: [
+          { type: 'MODERATION' },
+          {
+            NOT: [
+              { post: { moderationStatus: 'REMOVED' } },
+              { story: { moderationStatus: 'REMOVED' } },
+            ],
+          },
+        ],
       });
     });
   });

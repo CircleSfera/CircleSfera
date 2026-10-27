@@ -13,6 +13,10 @@ import {
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import {
+  NOT_REMOVED,
+  SHOWN_COMMENTS_COUNT,
+} from '../common/policies/removed-content.policy.js';
+import {
   filterToViewerAudience,
   isTestViewerProfile,
 } from '../common/policies/test-account.policy.js';
@@ -142,7 +146,9 @@ export class SearchService {
               media: true,
               poll: { select: { id: true } },
               qnaBox: { select: { id: true } },
-              _count: { select: { likes: true, comments: true } },
+              _count: {
+                select: { likes: true, comments: SHOWN_COMMENTS_COUNT },
+              },
             },
           });
           return { ...post, similarityScore: 1 - m.distance };
@@ -289,10 +295,12 @@ export class SearchService {
             },
             // One hidden by staff is not offered.
             isHidden: false,
-            // Only tags used by Profiles the viewer can see (blocks).
+            // Only tags used by Profiles the viewer can see (blocks), on
+            // posts moderation has not removed.
             posts: {
               some: {
                 post: {
+                  ...NOT_REMOVED,
                   profile: await visibleToViewerWhere(this.prisma, profileId),
                 },
               },
@@ -529,7 +537,7 @@ export class SearchService {
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },
         media: true,
-        _count: { select: { likes: true, comments: true } },
+        _count: { select: { likes: true, comments: SHOWN_COMMENTS_COUNT } },
       },
     });
 
@@ -564,7 +572,7 @@ export class SearchService {
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },
         media: true,
-        _count: { select: { likes: true, comments: true } },
+        _count: { select: { likes: true, comments: SHOWN_COMMENTS_COUNT } },
       },
       take: 50,
     });

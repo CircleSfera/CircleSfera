@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
 import { emailForProfile } from '../../../../common/auth/sign-in-lookup.js';
+import { setModerationStatus } from '../../../../common/policies/moderation-decision.js';
 import { EmailService } from '../../../../email/email.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
@@ -21,7 +22,7 @@ export class DeletePostUseCase {
     // reason in the author's language.
     reason?: string,
   ) {
-    const { deletedPost, author } = await this.remove(adminId, postId);
+    const { removedPost, author } = await this.remove(adminId, postId, reason);
 
     if (author) {
       await this.emailService.sendPostRemovedEmail(
@@ -31,13 +32,14 @@ export class DeletePostUseCase {
       );
     }
 
-    return deletedPost;
+    return removedPost;
   }
 
-  // Deletes the post and writes it in the audit log, and says who its
-  // author is without writing to them: whoever deletes several tells each
-  // author once.
-  async remove(adminId: string, postId: string) {
+  // Removes the post and writes it in the audit log, and says who its
+  // author is without writing to them: whoever removes several tells each
+  // author once. The post is not deleted: it is kept, shown to nobody, for
+  // the six months its author has to appeal, and erased after.
+  async remove(adminId: string, postId: string, reason?: string) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
       include: {
@@ -54,15 +56,20 @@ export class DeletePostUseCase {
       postId,
     );
 
-    const deletedPost = await this.prisma.post.delete({
-      where: { id: postId },
-    });
+    const { profile: _author, ...kept } = post;
+    const removed = await setModerationStatus(
+      this.prisma,
+      'POST',
+      postId,
+      'REMOVED',
+      reason,
+    );
 
     // About a Profile: to the email that Profile signs in with.
     const email = await emailForProfile(this.prisma, post.profileId);
 
     return {
-      deletedPost,
+      removedPost: { ...kept, ...removed },
       author: email
         ? { email, name: post.profile?.fullName || post.profile?.username }
         : null,

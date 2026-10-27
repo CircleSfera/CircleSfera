@@ -13,6 +13,21 @@ import { type Notice, renderNotice } from './notice-copy.js';
 
 type NotificationType = $Enums.NotificationType;
 
+// A notification about a post or story that moderation removed leads to
+// nothing anybody may see, and is left out. The ones telling the author of
+// the decision stay: they are what the author appeals from.
+export const LINKS_TO_SHOWN_CONTENT = {
+  OR: [
+    { type: $Enums.NotificationType.MODERATION },
+    {
+      NOT: [
+        { post: { moderationStatus: $Enums.ModerationStatus.REMOVED } },
+        { story: { moderationStatus: $Enums.ModerationStatus.REMOVED } },
+      ],
+    },
+  ],
+} satisfies Prisma.NotificationWhereInput;
+
 // Service for in-app notifications (CRUD, read status, unread count).
 // Dispatches domain events for real-time delivery via transport adapters.
 @Injectable()
@@ -34,7 +49,7 @@ export class NotificationsService {
 
     const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where: { recipientId: profileId },
+        where: { recipientId: profileId, ...LINKS_TO_SHOWN_CONTENT },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -42,7 +57,9 @@ export class NotificationsService {
           sender: { select: PUBLIC_PROFILE_SELECT },
         },
       }),
-      this.prisma.notification.count({ where: { recipientId: profileId } }),
+      this.prisma.notification.count({
+        where: { recipientId: profileId, ...LINKS_TO_SHOWN_CONTENT },
+      }),
     ]);
 
     return createPaginatedResult(notifications, total, page, limit);
@@ -80,7 +97,11 @@ export class NotificationsService {
   // Returns `{ count: number }`
   async getUnreadCount(profileId: string) {
     const count = await this.prisma.notification.count({
-      where: { recipientId: profileId, read: false },
+      where: {
+        recipientId: profileId,
+        read: false,
+        ...LINKS_TO_SHOWN_CONTENT,
+      },
     });
 
     return { count };

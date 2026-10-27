@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
+import { setModerationStatus } from '../../../../common/policies/moderation-decision.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
 
@@ -11,8 +12,10 @@ export class DeleteCommentUseCase {
     private readonly logAdminAction: LogAdminActionUseCase,
   ) {}
 
+  // The comment is not deleted: it is kept, shown to nobody, its author
+  // included, for six months, and erased after.
   async execute(adminId: string, commentId: string) {
-    await this.prisma.comment.delete({ where: { id: commentId } });
+    await setModerationStatus(this.prisma, 'COMMENT', commentId, 'REMOVED');
     await this.logAdminAction.execute(
       adminId,
       AdminAction.DELETE_COMMENT,

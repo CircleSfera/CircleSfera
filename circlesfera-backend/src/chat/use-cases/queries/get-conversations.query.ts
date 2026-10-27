@@ -6,6 +6,7 @@ import {
   decodeKeysetCursor,
   encodeKeysetCursor,
 } from '../../../common/pagination/keyset.util.js';
+import { isRemoved } from '../../../common/policies/removed-content.policy.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 
@@ -161,13 +162,23 @@ export class GetConversationsQuery {
     return this.withReadablePreview(conv);
   }
 
-  // The latest message is stored encrypted; the list shows it in clear.
+  // The latest message is stored encrypted; the list shows it in clear. A
+  // post it shares that moderation removed is kept for its appeal and shown
+  // to nobody: the message stays, without the post.
   private withReadablePreview<
-    T extends { messages: { content: string | null }[] },
+    T extends {
+      messages: {
+        content: string | null;
+        post?: { moderationStatus: string } | null;
+      }[];
+    },
   >(conv: T): T {
     const lastMsg = conv.messages?.[0];
     if (lastMsg?.content) {
       lastMsg.content = this.cryptoService.decrypt(lastMsg.content);
+    }
+    if (lastMsg?.post && isRemoved(lastMsg.post)) {
+      (lastMsg as { post: unknown }).post = null;
     }
     return conv;
   }

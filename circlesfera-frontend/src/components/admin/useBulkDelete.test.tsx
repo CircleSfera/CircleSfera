@@ -34,11 +34,11 @@ const box = (id: string) =>
   within(screen.getByTestId(`row-${id}`)).getByRole('checkbox');
 const selectAll = () => screen.getByRole('checkbox', { name: 'Select all' });
 const deleteChosen = () =>
-  screen.queryByRole('button', { name: 'Delete the chosen' });
+  screen.queryByRole('button', { name: 'Remove the chosen' });
 const confirm = async () => {
   fireEvent.click(deleteChosen() as HTMLElement);
   const dialog = await screen.findByRole('dialog');
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
 };
 
 describe('deleting several items of a list at once', () => {
@@ -90,8 +90,8 @@ describe('deleting several items of a list at once', () => {
 
     fireEvent.click(deleteChosen() as HTMLElement);
     const dialog = await screen.findByRole('dialog');
-    expect(dialog).toHaveTextContent('Delete 2 items?');
-    expect(dialog).toHaveTextContent('It cannot be undone.');
+    expect(dialog).toHaveTextContent('Remove 2 items?');
+    expect(dialog).toHaveTextContent('erased after six months');
     expect(remove).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() =>
@@ -104,7 +104,7 @@ describe('deleting several items of a list at once', () => {
 
     await waitFor(() => expect(remove).toHaveBeenCalledWith(['a', 'c']));
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('2 deleted', 'success'),
+      expect(onToast).toHaveBeenCalledWith('2 removed', 'success'),
     );
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(box('a')).not.toBeChecked();
@@ -117,7 +117,7 @@ describe('deleting several items of a list at once', () => {
     await confirm();
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(
-        '1 deleted, 1 could not be',
+        '1 removed, 1 could not be',
         'success',
       ),
     );
@@ -127,7 +127,7 @@ describe('deleting several items of a list at once', () => {
     await confirm();
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(
-        '0 deleted, 2 could not be',
+        '0 removed, 2 could not be',
         'error',
       ),
     );
@@ -136,7 +136,7 @@ describe('deleting several items of a list at once', () => {
     fireEvent.click(selectAll());
     await confirm();
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Nothing could be deleted', 'error'),
+      expect(onToast).toHaveBeenCalledWith('Nothing could be removed', 'error'),
     );
     expect(box('a')).toBeChecked();
   });
@@ -157,7 +157,7 @@ describe('deleting several items of a list at once', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('1 deleted', 'success'),
+      expect(onToast).toHaveBeenCalledWith('1 removed', 'success'),
     );
     expect(remove).toHaveBeenCalledTimes(2);
     expect(adminAuthApi.stepUp).toHaveBeenCalledWith({ totpCode: '123456' });
