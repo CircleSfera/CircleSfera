@@ -126,6 +126,29 @@ export class GetMessagesQuery {
       delete m.media;
       delete m.voiceMedia;
 
+      // A reply quotes its original: a deleted original shows no file
+      // either.
+      if (m.replyTo?.isDeleted) {
+        m.replyTo.url = null;
+        m.replyTo.standardUrl = null;
+        m.replyTo.thumbnailUrl = null;
+        m.replyTo.mediaType = null;
+        m.replyTo.voiceUrl = null;
+        m.replyTo.voiceDuration = null;
+        m.replyTo.voiceWaveform = null;
+      }
+
+      // A deleted message shows no file, whatever a row may still name.
+      if (m.isDeleted) {
+        m.url = null;
+        m.standardUrl = null;
+        m.thumbnailUrl = null;
+        m.mediaType = null;
+        m.voiceUrl = null;
+        m.voiceDuration = null;
+        m.voiceWaveform = null;
+      }
+
       if (m.isLocked && profileId && m.senderId !== profileId) {
         const isUnlocked = m.messageUnlocks && m.messageUnlocks.length > 0;
         if (!isUnlocked) {

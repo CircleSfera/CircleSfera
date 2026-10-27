@@ -159,6 +159,84 @@ describe('GetMessagesQuery', () => {
     expect(result[0]).not.toHaveProperty('voiceMedia');
   });
 
+  it('shows no file of a deleted message, even one its row or its Media rows still name', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt: null });
+    mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.message.findMany.mockResolvedValue([
+      {
+        id: 'msg-1',
+        content: '',
+        senderId: 'prof-2',
+        isLocked: false,
+        isDeleted: true,
+        url: null,
+        standardUrl: '/uploads/v/master.m3u8',
+        thumbnailUrl: '/uploads/v/thumb.jpg',
+        mediaType: 'video',
+        voiceUrl: '/uploads/voice.webm',
+        voiceDuration: 3,
+        voiceWaveform: [0.5],
+        media: {
+          url: '/uploads/v.mp4',
+          standardUrl: '/uploads/v/master.m3u8',
+          thumbnailUrl: '/uploads/v/thumb.jpg',
+          status: 'READY',
+        },
+        voiceMedia: { url: '/uploads/voice.webm' },
+      },
+    ]);
+
+    const [message] = await query.execute('conv-1', 50, 'prof-1');
+
+    expect(message).toMatchObject({
+      url: null,
+      standardUrl: null,
+      thumbnailUrl: null,
+      mediaType: null,
+      voiceUrl: null,
+      voiceDuration: null,
+      voiceWaveform: null,
+    });
+  });
+
+  it('shows no file of a deleted message quoted by a reply', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt: null });
+    mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    const quoted = {
+      id: 'msg-1',
+      isDeleted: true,
+      url: '/uploads/a.jpg',
+      standardUrl: '/uploads/a_std.webp',
+      thumbnailUrl: '/uploads/a_thumb.webp',
+      mediaType: 'image',
+      voiceUrl: '/uploads/voice.webm',
+      voiceDuration: 3,
+      voiceWaveform: [0.5],
+    };
+    const live = { ...quoted, id: 'msg-0', isDeleted: false };
+    mockPrisma.message.findMany.mockResolvedValue([
+      { id: 'msg-2', content: '', senderId: 'prof-2', replyTo: quoted },
+      { id: 'msg-3', content: '', senderId: 'prof-2', replyTo: live },
+    ]);
+
+    const result = (await query.execute('conv-1', 50, 'prof-1')) as unknown as {
+      replyTo: Record<string, unknown>;
+    }[];
+    const [toLive, toDeleted] = result;
+
+    expect(toDeleted.replyTo).toMatchObject({
+      url: null,
+      standardUrl: null,
+      thumbnailUrl: null,
+      mediaType: null,
+      voiceUrl: null,
+      voiceDuration: null,
+      voiceWaveform: null,
+    });
+    // A reply to a message still there quotes it as it is.
+    expect(toLive.replyTo.url).toBe('/uploads/a.jpg');
+  });
+
   it('allows fetching without profileId (system usage) and handles null content', async () => {
     // Newest first from the database.
     mockPrisma.message.findMany.mockResolvedValue([
