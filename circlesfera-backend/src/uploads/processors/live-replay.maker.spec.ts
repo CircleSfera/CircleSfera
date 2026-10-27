@@ -3,10 +3,14 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { UnrecoverableError } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { runFfmpeg } from '../../common/media/ffmpeg-runner.js';
+import { ffprobe, runFfmpeg } from '../../common/media/ffmpeg-runner.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import type { StoredFilesService } from '../services/stored-files.service.js';
-import { LiveReplayMaker, replayArgs } from './live-replay.maker.js';
+import {
+  composeArgs,
+  LiveReplayMaker,
+  replayArgs,
+} from './live-replay.maker.js';
 
 vi.mock('../../common/media/ffmpeg-runner.js', async (importOriginal) => {
   const actual =
@@ -26,7 +30,11 @@ vi.mock('../../common/media/ffmpeg-runner.js', async (importOriginal) => {
 });
 
 const STREAM = '11111111-2222-4333-8444-555555555555';
-const FILE = `live-${STREAM}.mp4`;
+const FILE = `live-${STREAM}-host.mp4`;
+const CO1 = `live-${STREAM}-cohost-1.mp4`;
+const CO2 = `live-${STREAM}-cohost-2.mp4`;
+const AT = new Date('2026-10-27T12:00:00Z');
+const later = (ms: number) => new Date(AT.getTime() + ms);
 
 describe('LiveReplayMaker', () => {
   let root: string;
@@ -49,7 +57,13 @@ describe('LiveReplayMaker', () => {
     recordingStatus: 'PROCESSING',
     recordingFile: FILE,
     recordingDurationMs: 90_000,
+    recordingParts: [{ role: 'HOST', file: FILE, startedAt: AT }],
     ...over,
+  });
+  const coHostPart = (file: string, startedAt: Date) => ({
+    role: 'COHOST',
+    file,
+    startedAt,
   });
   const folders = () =>
     fs.readdirSync(path.join(root, 'uploads')).filter((name) => name);
@@ -190,6 +204,181 @@ describe('LiveReplayMaker', () => {
       if (String(target).endsWith(FILE)) throw 'read-only';
     });
     await expect(maker.make(STREAM)).resolves.toBeUndefined();
+  });
+
+  describe('with co-hosts', () => {
+    const SPLIT =
+      'scale=720:640:force_original_aspect_ratio=increase,crop=720:640,setsar=1,fps=30';
+    const encoding = (out: string) => [
+      '-c:v',
+      'libx264',
+      '-preset',
+      'medium',
+      '-profile:v',
+      'main',
+      '-pix_fmt',
+      'yuv420p',
+      '-crf',
+      '26',
+      '-maxrate',
+      '1200k',
+      '-bufsize',
+      '2400k',
+      '-g',
+      '60',
+      '-keyint_min',
+      '60',
+      '-sc_threshold',
+      '0',
+      '-threads',
+      '2',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '96k',
+      '-ar',
+      '48000',
+      '-f',
+      'hls',
+      '-hls_time',
+      '4',
+      '-hls_playlist_type',
+      'vod',
+      '-hls_segment_filename',
+      path.join(out, '720p_%03d.ts'),
+      path.join(out, 'master.m3u8'),
+    ];
+
+    it('stacks the host over each co-host at the moment they began, and mixes every sound', () => {
+      expect(
+        composeArgs(
+          { file: 'host.mp4', audio: true },
+          [
+            { file: 'co1.mp4', audio: true, offsetMs: 5000 },
+            { file: 'co2.mp4', audio: false, offsetMs: 61_250 },
+          ],
+          'out',
+          path.join('out', 'master.m3u8'),
+        ),
+      ).toEqual([
+        '-i',
+        'host.mp4',
+        '-i',
+        'co1.mp4',
+        '-i',
+        'co2.mp4',
+        '-y',
+        '-filter_complex_threads',
+        '2',
+        '-filter_complex',
+        [
+          `[0:v]setpts=PTS-STARTPTS,${SPLIT}[top]`,
+          'color=c=black:s=720x640:r=30[bg0]',
+          `[1:v]setpts=PTS-STARTPTS+5.000/TB,${SPLIT}[co1]`,
+          '[bg0][co1]overlay=eof_action=pass:repeatlast=0[bg1]',
+          '[1:a]aresample=48000,asetpts=PTS-STARTPTS,adelay=5000:all=1[a1]',
+          `[2:v]setpts=PTS-STARTPTS+61.250/TB,${SPLIT}[co2]`,
+          '[bg1][co2]overlay=eof_action=pass:repeatlast=0[bg2]',
+          '[top][bg2]vstack=inputs=2:shortest=1,format=yuv420p[v]',
+          '[0:a]aresample=48000,asetpts=PTS-STARTPTS[a0]',
+          '[a0][a1]amix=inputs=2:duration=first:normalize=0[a]',
+        ].join(';'),
+        '-map',
+        '[v]',
+        '-map',
+        '[a]',
+        '-shortest',
+        ...encoding('out'),
+      ]);
+    });
+
+    it('puts silence in place of a host with no sound', () => {
+      const graph = composeArgs(
+        { file: 'host.mp4', audio: false },
+        [{ file: 'co1.mp4', audio: true, offsetMs: 0 }],
+        'out',
+        'out/master.m3u8',
+      )[8];
+      expect(graph).toContain('anullsrc=r=48000:cl=stereo[a0]');
+      expect(graph).toContain(
+        '[a0][a1]amix=inputs=2:duration=first:normalize=0[a]',
+      );
+    });
+
+    it('maps no sound when nobody had any', () => {
+      const args = composeArgs(
+        { file: 'host.mp4', audio: false },
+        [{ file: 'co1.mp4', audio: false, offsetMs: 0 }],
+        'out',
+        'out/master.m3u8',
+      );
+      expect(args[8]).not.toContain('amix');
+      expect(args).not.toContain('[a]');
+    });
+
+    it("composes the co-hosts' parts that are in the recorder's folder, and deletes every file", async () => {
+      fs.writeFileSync(path.join(recordings, CO1), 'raw');
+      fs.writeFileSync(path.join(recordings, CO2), 'raw');
+      prisma.liveStream.findUnique.mockResolvedValue(
+        waiting({
+          recordingParts: [
+            // Begun a moment before the host's: placed at the start.
+            coHostPart(CO1, later(-300)),
+            { role: 'HOST', file: FILE, startedAt: AT },
+            coHostPart(CO2, later(42_500)),
+            // Not missing from the folder only: never a name of another.
+            coHostPart(`live-${STREAM}-cohost-x.mp4`, later(1)),
+            coHostPart('live-other-cohost-1.mp4', later(1)),
+            coHostPart(`live-${STREAM}-cohost-3.mp4`, later(1)),
+          ],
+        }),
+      );
+      vi.mocked(ffprobe)
+        .mockResolvedValueOnce({
+          format: { duration: '100' },
+          streams: [
+            { codec_type: 'video', width: 720, height: 1280 },
+            { codec_type: 'audio' },
+          ],
+        })
+        .mockResolvedValueOnce({ streams: [{ codec_type: 'audio' }] })
+        .mockResolvedValueOnce({});
+
+      await maker.make(STREAM);
+
+      const [folder] = folders();
+      const out = path.join(root, 'uploads', folder);
+      expect(vi.mocked(runFfmpeg).mock.calls[1][0]).toEqual(
+        composeArgs(
+          { file: path.join(recordings, FILE), audio: true },
+          [
+            {
+              file: path.join(recordings, CO1),
+              audio: true,
+              offsetMs: 0,
+            },
+            {
+              file: path.join(recordings, CO2),
+              audio: false,
+              offsetMs: 42_500,
+            },
+          ],
+          out,
+          path.join(out, 'master.m3u8'),
+        ),
+      );
+      expect(fs.readdirSync(recordings)).toEqual([]);
+    });
+
+    it("makes a host's replay when the host's part is not known", async () => {
+      fs.writeFileSync(path.join(recordings, CO1), 'raw');
+      prisma.liveStream.findUnique.mockResolvedValue(
+        waiting({ recordingParts: [coHostPart(CO1, AT)] }),
+      );
+      await maker.make(STREAM);
+      expect(vi.mocked(runFfmpeg).mock.calls[1][0]).toContain('-vf');
+      expect(fs.readdirSync(recordings)).toEqual([CO1]);
+    });
   });
 
   describe('markFailed', () => {

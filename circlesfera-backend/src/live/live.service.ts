@@ -81,7 +81,7 @@ export class LiveService {
         // Not waited for: the host is on air whether or not the recorder
         // has started. A broadcast ended above has its recording stopped by
         // the recorder's check.
-        void this.recording.start(stream.id);
+        void this.recording.start(stream.id, hostProfileId);
         return { stream, token };
       } finally {
         this.startStreamInFlight.delete(hostProfileId);
@@ -251,6 +251,10 @@ export class LiveService {
       where: { id: streamId },
       data: { coHostId: inviteeProfile.id },
     });
+    // The co-host this one replaces is no longer recorded.
+    if (stream.coHostId && stream.coHostId !== inviteeProfile.id) {
+      await this.recording.stopCoHost(streamId);
+    }
 
     this.gateway.server
       .to(`user:${inviteeProfile.id}`)
@@ -303,6 +307,10 @@ export class LiveService {
       true,
     );
 
+    // Not waited for: the co-host is on air whether or not the recorder
+    // has started.
+    void this.recording.startCoHost(streamId, profileId);
+
     this.logger.log(
       `Profile ${profileId} accepted co-host role for stream ${streamId}`,
     );
@@ -334,6 +342,7 @@ export class LiveService {
     });
 
     if (removedCoHostId) {
+      await this.recording.stopCoHost(streamId);
       this.gateway.server
         .to(`user:${removedCoHostId}`)
         .emit('live:cohost_removed', { streamId });
