@@ -7,6 +7,7 @@ import {
   type RecentlyDeletedItem,
   recentlyDeletedApi,
 } from '../../services/recentlyDeleted.service';
+import { useAuthStore } from '../../stores/authStore';
 import { EmptyState, ErrorState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
 import ConfirmModal from '../modals/ConfirmModal';
@@ -14,6 +15,8 @@ import { Button } from '../ui';
 import { BUTTON_STACK } from '../ui/buttonWidth';
 import { Dialog } from '../ui/Dialog';
 
+// Each Profile has its own list: another account signing in on this device
+// never sees the previous one's, even for the moment a refetch takes.
 const LIST_KEY = ['recentlyDeleted'];
 
 // What shows the content again once it is restored or gone for good: the
@@ -64,7 +67,11 @@ function Tile({
         aria-label={t('settings.recently_deleted.open', { kind, days })}
         className="relative block w-full aspect-3/4 overflow-hidden rounded-lg bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
       >
-        {item.mediaType === 'video' ? (
+        {!item.url ? (
+          <span className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-white/70 line-clamp-4">
+            {item.caption || kind}
+          </span>
+        ) : item.mediaType === 'video' ? (
           <video
             src={videoPreviewSrc(item)}
             poster={item.thumbnailUrl || undefined}
@@ -121,15 +128,18 @@ export default function RecentlyDeletedSettings() {
   const [selected, setSelected] = useState<RecentlyDeletedItem | null>(null);
   const [confirming, setConfirming] = useState(false);
 
+  const profileId = useAuthStore((state) => state.profile?.id);
+  const listKey = [...LIST_KEY, profileId];
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: LIST_KEY,
+    queryKey: listKey,
+    enabled: Boolean(profileId),
     queryFn: () => recentlyDeletedApi.list(),
   });
   const items = data?.data?.items ?? [];
 
   // Takes the item off the list at once and refreshes what shows content.
   const settle = (id: string) => {
-    queryClient.setQueryData<typeof data>(LIST_KEY, (old) =>
+    queryClient.setQueryData<typeof data>(listKey, (old) =>
       old?.data
         ? {
             ...old,
@@ -231,7 +241,7 @@ export default function RecentlyDeletedSettings() {
       >
         {selected ? (
           <div className="flex flex-col items-center gap-4 pt-12">
-            {selected.mediaType === 'video' ? (
+            {!selected.url ? null : selected.mediaType === 'video' ? (
               <video
                 src={selected.url}
                 poster={selected.thumbnailUrl || undefined}

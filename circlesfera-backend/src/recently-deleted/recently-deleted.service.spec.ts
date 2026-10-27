@@ -102,7 +102,7 @@ describe('RecentlyDeletedService', () => {
             },
           ],
         },
-        // A post with no media left is not listed.
+        // A post with no picture is listed too, as a plain tile.
         {
           id: 'empty',
           type: 'POST',
@@ -129,23 +129,30 @@ describe('RecentlyDeletedService', () => {
 
       expect(items.map((item) => [item.kind, item.id, item.daysLeft])).toEqual([
         ['FRAME', 'frame-1', 29],
+        ['POST', 'empty', 27],
         ['STORY', 'story-1', 25],
         ['POST', 'post-1', 1],
       ]);
+      expect(items[1]).toMatchObject({
+        url: '',
+        standardUrl: null,
+        thumbnailUrl: null,
+        mediaCount: 0,
+      });
       expect(items[0]).toMatchObject({
         mediaType: 'video',
         url: '/uploads/v/master.m3u8',
         thumbnailUrl: '/uploads/v/cover.jpg',
         mediaCount: 1,
       });
-      expect(items[2]).toMatchObject({
+      expect(items[3]).toMatchObject({
         caption: 'Beach',
         mediaType: 'image',
         url: '/uploads/a.jpg',
         standardUrl: '/uploads/a-std.jpg',
         mediaCount: 2,
       });
-      expect(items[1]).toMatchObject({ caption: null, mediaCount: 1 });
+      expect(items[2]).toMatchObject({ caption: null, mediaCount: 1 });
 
       // Only the Profile's own, within the 30 days, and never what
       // moderation removed: that is kept for its appeal, out of reach.

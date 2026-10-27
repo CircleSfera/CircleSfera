@@ -122,7 +122,9 @@ export class RecentlyDeletedService {
     const items: RecentlyDeletedItem[] = [];
     for (const post of posts) {
       const first = post.media[0] ? resolveMediaFields(post.media[0]) : null;
-      if (!post.deletedAt || !first) continue;
+      // A post may have no picture at all: it is listed all the same, with
+      // an empty address the app shows as a plain tile.
+      if (!post.deletedAt) continue;
       items.push({
         kind: post.type === 'FRAME' ? 'FRAME' : 'POST',
         id: post.id,
@@ -130,10 +132,10 @@ export class RecentlyDeletedService {
         createdAt: post.createdAt,
         daysLeft: daysLeft(post.deletedAt, now),
         caption: post.caption,
-        mediaType: mediaTypeOf(first.type),
-        url: first.url,
-        standardUrl: first.standardUrl,
-        thumbnailUrl: first.thumbnailUrl,
+        mediaType: mediaTypeOf(first?.type),
+        url: first?.url ?? '',
+        standardUrl: first?.standardUrl ?? null,
+        thumbnailUrl: first?.thumbnailUrl ?? null,
         mediaCount: post.media.length,
       });
     }

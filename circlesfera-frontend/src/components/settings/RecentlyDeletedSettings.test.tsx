@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { recentlyDeletedApi } from '../../services/recentlyDeleted.service';
+import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import RecentlyDeletedSettings from './RecentlyDeletedSettings';
 
@@ -40,6 +41,40 @@ describe('RecentlyDeletedSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.list.mockResolvedValue({ data: { items: [] } } as never);
+    useAuthStore.setState({ profile: { id: 'me' } as never });
+  });
+
+  it('asks nothing until it knows whose list it is', async () => {
+    useAuthStore.setState({ profile: null });
+    show();
+
+    await waitFor(() => expect(api.list).not.toHaveBeenCalled());
+  });
+
+  it('shows a deleted post with no picture as a plain tile with its text', async () => {
+    api.list.mockResolvedValue({
+      data: {
+        items: [
+          {
+            kind: 'POST',
+            id: 'text-only',
+            deletedAt: '2026-10-20T00:00:00.000Z',
+            createdAt: '2026-10-01T00:00:00.000Z',
+            daysLeft: 20,
+            caption: 'Just words',
+            mediaType: 'image',
+            url: '',
+            standardUrl: null,
+            thumbnailUrl: null,
+            mediaCount: 0,
+          },
+        ],
+      },
+    } as never);
+    show();
+
+    expect(await screen.findByText('Just words')).toBeInTheDocument();
+    expect(document.querySelector('img[src=""]')).toBeNull();
   });
 
   it('says when nothing was deleted', async () => {
