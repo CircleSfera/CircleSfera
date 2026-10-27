@@ -11,6 +11,7 @@ import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constant
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { isStreamCoHost, isStreamHost } from './live-authorization.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
+import { LiveRecordingService } from './recording/live-recording.service.js';
 
 @Injectable()
 export class LiveService {
@@ -23,6 +24,7 @@ export class LiveService {
     private gateway: AppGateway,
     private systemSettings: SystemSettingsService,
     private liveKitTokenService: LiveKitTokenService,
+    private recording: LiveRecordingService,
   ) {}
 
   private mapStreamHost(
@@ -76,6 +78,10 @@ export class LiveService {
           hostProfileId,
           true,
         );
+        // Not waited for: the host is on air whether or not the recorder
+        // has started. A broadcast ended above has its recording stopped by
+        // the recorder's check.
+        void this.recording.start(stream.id);
         return { stream, token };
       } finally {
         this.startStreamInFlight.delete(hostProfileId);
@@ -118,20 +124,13 @@ export class LiveService {
       where: { hostId: hostProfileId, status: 'LIVE' },
     });
 
-    if (activeStreams.length > 0) {
-      await Promise.all(
-        activeStreams.map((stream) =>
-          this.prisma.liveStream.update({
-            where: { id: stream.id },
-            data: {
-              status: 'ENDED',
-              endedAt: new Date(),
-              // Prefer recorded HLS; never invent a CDN URL that does not exist.
-              replayUrl: stream.hlsUrl ?? null,
-            },
-          }),
-        ),
-      );
+    // The replay is set once the recording is made into one, never here.
+    for (const stream of activeStreams) {
+      await this.prisma.liveStream.update({
+        where: { id: stream.id },
+        data: { status: 'ENDED', endedAt: new Date() },
+      });
+      await this.recording.stop(stream.id);
     }
 
     return { success: true, endedCount: activeStreams.length };

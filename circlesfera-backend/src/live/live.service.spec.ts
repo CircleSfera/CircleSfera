@@ -7,6 +7,7 @@ import { AppGateway } from '../socket/app.gateway.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { LiveService } from './live.service.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
+import { LiveRecordingService } from './recording/live-recording.service.js';
 
 describe('LiveService', () => {
   let service: LiveService;
@@ -37,6 +38,11 @@ describe('LiveService', () => {
     $transaction: vi.fn((fn) => fn(mockPrismaService)),
   };
 
+  const mockRecording = {
+    start: vi.fn(async () => undefined),
+    stop: vi.fn(async () => undefined),
+  };
+
   const mockConfigService = {
     get: vi.fn((key: string) => {
       if (key === 'LIVEKIT_API_KEY') return 'test_key';
@@ -57,6 +63,7 @@ describe('LiveService', () => {
           provide: SystemSettingsService,
           useValue: { isEnabled: vi.fn(async () => true) },
         },
+        { provide: LiveRecordingService, useValue: mockRecording },
         {
           provide: LiveKitTokenService,
           useValue: new LiveKitTokenService(
@@ -94,6 +101,7 @@ describe('LiveService', () => {
       });
       expect(result.stream).toEqual(mockStream);
       expect(typeof result.token).toBe('string');
+      expect(mockRecording.start).toHaveBeenCalledWith('stream-1');
     });
   });
 
@@ -132,7 +140,7 @@ describe('LiveService', () => {
   });
 
   describe('endStream', () => {
-    it('should update active streams status to ENDED and assign replayUrl', async () => {
+    it('ends each live stream, sets no replay address and stops its recording', async () => {
       mockPrismaService.liveStream.findMany.mockResolvedValue([
         { id: 'stream-1', hostId: 'user-1', hlsUrl: null },
       ]);
@@ -144,11 +152,9 @@ describe('LiveService', () => {
       const result = await service.endStream('user-1');
       expect(mockPrismaService.liveStream.update).toHaveBeenCalledWith({
         where: { id: 'stream-1' },
-        data: expect.objectContaining({
-          status: 'ENDED',
-          replayUrl: null,
-        }),
+        data: { status: 'ENDED', endedAt: expect.any(Date) },
       });
+      expect(mockRecording.stop).toHaveBeenCalledWith('stream-1');
       expect(result).toEqual({ success: true, endedCount: 1 });
     });
   });

@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
+import { LiveRecordingService } from '../../../../live/recording/live-recording.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
 
@@ -9,6 +10,8 @@ export class EndLiveStreamUseCase {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(LogAdminActionUseCase)
     private readonly logAdminAction: LogAdminActionUseCase,
+    @Inject(LiveRecordingService)
+    private readonly recording: LiveRecordingService,
   ) {}
 
   async execute(adminId: string, streamId: string) {
@@ -22,14 +25,12 @@ export class EndLiveStreamUseCase {
 
     const updated = await this.prisma.liveStream.update({
       where: { id: streamId },
-      data: {
-        status: 'ENDED',
-        endedAt: new Date(),
-        replayUrl:
-          stream.hlsUrl ||
-          `https://cdn.circlesfera.com/vod/replays/${stream.id}.m3u8`,
-      },
+      // Its recording is kept for staff to review and never offered to the
+      // host. No replay address is set here: there is no file behind one
+      // until the recording is made into its replay.
+      data: { status: 'ENDED', endedAt: new Date(), endedByStaff: true },
     });
+    await this.recording.stop(streamId);
 
     await this.logAdminAction.execute(
       adminId,

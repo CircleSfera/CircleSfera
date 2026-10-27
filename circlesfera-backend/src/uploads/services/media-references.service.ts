@@ -40,7 +40,7 @@ export const MEDIA_COLUMNS = {
   conversation: ['avatarUrl'],
   audio: ['url', 'thumbnailUrl'],
   editProject: ['mediaUrl'],
-  liveStream: ['hlsUrl', 'replayUrl'],
+  liveStream: ['hlsUrl', 'replayUrl', 'thumbnailUrl'],
   dataExportRequest: ['url'],
 } as const;
 

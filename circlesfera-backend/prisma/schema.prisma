@@ -1055,16 +1055,35 @@ model EditProject {
 // =============================================================================
 
 model LiveStream {
-  id          String     @id @default(uuid())
-  hostId      String
-  coHostId    String?
-  title       String?
-  status      LiveStatus @default(LIVE)
-  viewerCount Int        @default(0)
-  startedAt   DateTime   @default(now())
-  endedAt     DateTime?
-  hlsUrl      String?
-  replayUrl   String?
+  id           String     @id @default(uuid())
+  hostId       String
+  coHostId     String?
+  title        String?
+  status       LiveStatus @default(LIVE)
+  viewerCount  Int        @default(0)
+  startedAt    DateTime   @default(now())
+  endedAt      DateTime?
+  hlsUrl       String?
+  replayUrl    String?
+  // The picture shown before a recording plays.
+  thumbnailUrl String?
+
+  // The recording of the broadcast, made by the environment's own recorder.
+  recordingStatus     LiveRecordingStatus @default(NONE)
+  // The recorder's job for this broadcast.
+  egressId            String?             @unique
+  recordingStartedAt  DateTime?
+  // The file the recorder wrote, by its name in the recorder's folder; empty
+  // once the replay is made from it and the file deleted.
+  recordingFile       String?
+  recordingDurationMs Int?
+  recordingSizeBytes  BigInt?
+  // When the host put the recording on their Profile. Null: it is in the
+  // host's archive, deleted 30 days after the broadcast ended.
+  publishedAt         DateTime?
+  // Ended by staff: the recording is kept for their review, never offered to
+  // the host.
+  endedByStaff        Boolean             @default(false)
 
   // A host's streams are erased with the host (TD-009).
   host         Profile       @relation("LiveStreamHost", fields: [hostId], references: [id], onDelete: Cascade)
@@ -1075,6 +1094,8 @@ model LiveStream {
   @@index([status])
   @@index([hostId])
   @@index([coHostId])
+  @@index([recordingStatus])
+  @@index([hostId, publishedAt])
   @@map("live_streams")
 }
 
@@ -2667,6 +2688,17 @@ enum FollowStatus {
 enum LiveStatus {
   LIVE
   ENDED
+}
+
+// Where the recording of a broadcast is. SKIPPED_LIMIT: the recorder already
+// had as many recordings as it may make at once.
+enum LiveRecordingStatus {
+  NONE
+  RECORDING
+  PROCESSING
+  READY
+  FAILED
+  SKIPPED_LIMIT
 }
 
 // Shared media lifecycle. PENDING/PROCESSING/FAILED are only ever reached by video
