@@ -21,7 +21,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // A recorder's file still there after this long is deleted by the nightly
 // clean-up, whatever became of its replay.
 const RAW_KEPT_MS = 48 * 60 * 60 * 1000;
-const RAW_FILE = /^live-[0-9a-f-]{36}\.mp4$/i;
+// The host's file of a broadcast, or one of its co-host's.
+const RAW_FILE = /^live-[0-9a-f-]{36}-(?:host|cohost-\d+)\.mp4$/i;
 const ERASE_PAGE = 100;
 const PAGE_MAX = 50;
 

@@ -401,19 +401,23 @@ describe('LiveRecordingsService', () => {
     });
 
     it("deletes the recorder's files left more than 48 hours, and fails a replay waiting for one", async () => {
-      const old = 'live-11111111-2222-4333-8444-555555555555.mp4';
-      const fresh = 'live-11111111-2222-4333-8444-666666666666.mp4';
-      for (const name of [old, fresh, 'notes.txt']) {
+      const old = 'live-11111111-2222-4333-8444-555555555555-host.mp4';
+      const oldCoHost =
+        'live-11111111-2222-4333-8444-555555555555-cohost-2.mp4';
+      const fresh = 'live-11111111-2222-4333-8444-666666666666-host.mp4';
+      const other = 'live-11111111-2222-4333-8444-555555555555.mp4';
+      for (const name of [old, oldCoHost, fresh, other, 'notes.txt']) {
         fs.writeFileSync(path.join(recordings, name), 'raw');
       }
       const longAgo = daysAgo(3);
-      fs.utimesSync(path.join(recordings, old), longAgo, longAgo);
-      fs.utimesSync(path.join(recordings, 'notes.txt'), longAgo, longAgo);
+      for (const name of [old, oldCoHost, other, 'notes.txt']) {
+        fs.utimesSync(path.join(recordings, name), longAgo, longAgo);
+      }
 
       await service.eraseExpired(NOW);
 
       expect(fs.readdirSync(recordings).sort()).toEqual(
-        [fresh, 'notes.txt'].sort(),
+        [fresh, other, 'notes.txt'].sort(),
       );
       expect(prisma.liveStream.updateMany).toHaveBeenCalledWith({
         where: { recordingFile: old, recordingStatus: 'PROCESSING' },
@@ -427,7 +431,10 @@ describe('LiveRecordingsService', () => {
 
     it("skips a recorder's file that vanished while being read", async () => {
       fs.writeFileSync(
-        path.join(recordings, 'live-11111111-2222-4333-8444-555555555555.mp4'),
+        path.join(
+          recordings,
+          'live-11111111-2222-4333-8444-555555555555-host.mp4',
+        ),
         'raw',
       );
       vi.spyOn(fs.promises, 'stat').mockRejectedValue(new Error('gone'));
