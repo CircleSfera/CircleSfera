@@ -275,6 +275,6 @@ describe('PostsController', () => {
       .set(ADMIN_BEARER)
       .expect(204);
 
-    expect(mockService.adminRemove).toHaveBeenCalledWith('post-1');
+    expect(mockService.adminRemove).toHaveBeenCalledWith('post-1', 'admin-1');
   });
 });

@@ -18,7 +18,8 @@ export class BulkDeleteContentUseCase {
   ) {}
 
   // Each author is told once, with how many of their posts were removed:
-  // one e-mail per post reads as spam to who receives them.
+  // one e-mail per post reads as spam to who receives them. In the app each
+  // removed post has its own notice: each is appealed on its own.
   async posts(adminId: string, ids: string[]) {
     const removed = new Map<
       string,

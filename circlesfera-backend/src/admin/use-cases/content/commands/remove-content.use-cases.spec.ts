@@ -35,8 +35,31 @@ describe('staff removal of content', () => {
     notifications.create.mockResolvedValue({});
   });
 
-  it('removes a story without deleting it, and logs it as before', async () => {
-    await new DeleteStoryUseCase(asPrisma, asLog).execute('admin-1', 's-1');
+  const asNotifications = notifications as unknown as NotificationsService;
+
+  // Told in the app, with no way to appeal: a story or comment cannot be.
+  const told = (kind: 'STORY' | 'COMMENT', id: string) => [
+    {
+      recipientId: 'author',
+      senderId: undefined,
+      type: 'MODERATION',
+      notice: {
+        key: 'content_moderated',
+        contentType: kind,
+        status: 'removed',
+        note: undefined,
+      },
+      postId: undefined,
+      targetType: kind === 'STORY' ? 'story_removed' : 'comment_removed',
+      targetId: id,
+    },
+  ];
+
+  it('removes a story without deleting it, logs it as before and tells its author', async () => {
+    await new DeleteStoryUseCase(asPrisma, asLog, asNotifications).execute(
+      'admin-1',
+      's-1',
+    );
 
     expect(prisma.story.delete).not.toHaveBeenCalled();
     expect(prisma.story.update).toHaveBeenCalledWith({
@@ -54,10 +77,14 @@ describe('staff removal of content', () => {
       'story',
       's-1',
     );
+    expect(notifications.create.mock.calls).toEqual([told('STORY', 's-1')]);
   });
 
-  it('removes a comment without deleting it, and logs it as before', async () => {
-    await new DeleteCommentUseCase(asPrisma, asLog).execute('admin-1', 'c-1');
+  it('removes a comment without deleting it, logs it as before and tells its author', async () => {
+    await new DeleteCommentUseCase(asPrisma, asLog, asNotifications).execute(
+      'admin-1',
+      'c-1',
+    );
 
     expect(prisma.comment.delete).not.toHaveBeenCalled();
     expect(prisma.comment.update).toHaveBeenCalledWith({
@@ -75,6 +102,19 @@ describe('staff removal of content', () => {
       'comment',
       'c-1',
     );
+    expect(notifications.create.mock.calls).toEqual([told('COMMENT', 'c-1')]);
+  });
+
+  it('keeps a story removed when its author cannot be told', async () => {
+    prisma.adminIdentity.findUnique.mockRejectedValue(new Error('down'));
+    await expect(
+      new DeleteStoryUseCase(asPrisma, asLog, asNotifications).execute(
+        'admin-1',
+        's-1',
+      ),
+    ).resolves.toBeUndefined();
+    expect(prisma.story.update).toHaveBeenCalledTimes(1);
+    expect(notifications.create).not.toHaveBeenCalled();
   });
 
   it('a moderation decision records when, for each kind of content, and tells the author', async () => {
@@ -106,8 +146,20 @@ describe('staff removal of content', () => {
     expect(notifications.create).toHaveBeenCalledWith(
       expect.objectContaining({
         recipientId: 'author',
-        notice: expect.objectContaining({ status: 'removed' }),
+        notice: expect.objectContaining({ status: 'removed', note: 'Spam' }),
         postId: undefined,
+        targetType: 'comment_removed',
+        targetId: 'c-1',
+      }),
+    );
+
+    // A removed post carries the post to appeal from the notice.
+    await useCase.execute('admin-1', 'POST', 'p-1', 'REMOVED');
+    expect(notifications.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        postId: 'p-1',
+        targetType: 'post_removed',
+        targetId: 'p-1',
       }),
     );
 
@@ -116,6 +168,10 @@ describe('staff removal of content', () => {
       expect.objectContaining({
         data: expect.objectContaining({ moderatedAt: expect.any(Date) }),
       }),
+    );
+    // Hiding is told as before, with nothing to appeal from here.
+    expect(notifications.create).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({ targetType: expect.anything() }),
     );
 
     await useCase.execute('admin-1', 'POST', 'p-1', 'VISIBLE');

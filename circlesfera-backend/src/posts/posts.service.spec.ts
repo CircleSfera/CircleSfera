@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ContentRating, Visibility } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -35,6 +36,7 @@ describe('PostsService', () => {
 
   const mockPrismaService = {
     user: { findMany: vi.fn().mockResolvedValue([]) },
+    adminIdentity: { findUnique: vi.fn().mockResolvedValue(null) },
     block: {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
@@ -101,6 +103,7 @@ describe('PostsService', () => {
   };
 
   const mockFrameCover = { choose: vi.fn() };
+  const mockEventEmitter = { emit: vi.fn() };
 
   const mockAnalyticsService = {
     trackPostView: vi.fn().mockResolvedValue(undefined),
@@ -133,6 +136,7 @@ describe('PostsService', () => {
           useValue: mockPostDistributionService,
         },
         { provide: FrameCoverService, useValue: mockFrameCover },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
@@ -1535,18 +1539,23 @@ describe('PostsService', () => {
   describe('adminRemove', () => {
     it('throws NotFoundException when post does not exist', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce(null);
-      await expect(service.adminRemove('not-found')).rejects.toThrow(
+      await expect(service.adminRemove('not-found', 'admin-1')).rejects.toThrow(
         'Post not found',
       );
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
 
-    it('marks the post removed and keeps it with its files', async () => {
+    it('marks the post removed, keeps it with its files and tells its author', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
         id: 'p-admin',
       });
-      mockPrismaService.post.update.mockResolvedValueOnce({ id: 'p-admin' });
+      mockPrismaService.post.update.mockResolvedValueOnce({
+        id: 'p-admin',
+        profileId: 'author-1',
+        moderationStatus: 'REMOVED',
+      });
 
-      await service.adminRemove('p-admin');
+      await service.adminRemove('p-admin', 'admin-1');
       expect(mockPrismaService.post.update).toHaveBeenCalledWith({
         where: { id: 'p-admin' },
         data: {
@@ -1558,6 +1567,16 @@ describe('PostsService', () => {
       });
       expect(mockPrismaService.post.delete).not.toHaveBeenCalled();
       expect(mockStoredFiles.release).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
+        expect.objectContaining({
+          recipientId: 'author-1',
+          type: 'MODERATION',
+          postId: 'p-admin',
+          targetType: 'post_removed',
+          targetId: 'p-admin',
+        }),
+      );
     });
   });
 });

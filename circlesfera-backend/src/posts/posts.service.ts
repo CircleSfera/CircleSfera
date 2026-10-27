@@ -7,12 +7,14 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ContentRating,
   type PostType,
   type Prisma,
   Visibility,
 } from '@prisma/client';
+import { tellAuthorOfRemoval } from '../admin/utils/tell-author-of-removal.js';
 import { AIService, type ContentModerationResult } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import {
@@ -85,6 +87,7 @@ export class PostsService {
     private readonly frameCover: FrameCoverService,
     @Inject(StoredFilesService)
     private readonly storedFiles: StoredFilesService,
+    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // Create a new post with media, caption, hashtags, and mentions.
@@ -844,8 +847,9 @@ export class PostsService {
   // Staff removal of a post (bypasses ownership check). The post is not
   // deleted: it is kept with its files, shown to nobody, its author
   // included, for the six months its author has to appeal, and erased after.
+  // The author is told in the app, with a way to appeal.
   // Throws NotFoundException if post not found
-  async adminRemove(id: string) {
+  async adminRemove(id: string, adminId: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
       select: { id: true },
@@ -854,7 +858,18 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    await setModerationStatus(this.prisma, 'POST', id, 'REMOVED');
+    const removed = await setModerationStatus(
+      this.prisma,
+      'POST',
+      id,
+      'REMOVED',
+    );
+    await tellAuthorOfRemoval(
+      this.prisma,
+      (notice) => this.eventEmitter.emit('notification.create', notice),
+      adminId,
+      { kind: 'POST', id, authorProfileId: removed.profileId },
+    );
   }
 
   // The post's comments go with it. Its files and theirs are kept 30 days,

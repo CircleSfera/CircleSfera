@@ -35,6 +35,37 @@ const STRIKE_NOTICE_KEYS: Record<string, string> = {
     'notifications.types.moderation_restriction_review',
 };
 
+// Notices that staff removed a post, story or comment. Only a post (or
+// frame) can be appealed, and the server says whether it still can be.
+const REMOVAL_NOTICES = new Set([
+  'post_removed',
+  'story_removed',
+  'comment_removed',
+]);
+
+const isRemovalNotice = (notif: Notification) =>
+  notif.type === 'MODERATION' &&
+  !!notif.targetType &&
+  REMOVAL_NOTICES.has(notif.targetType);
+
+/**
+ * Whether a moderation notice offers a way to appeal. An approval is good
+ * news, and a removed story or comment cannot be appealed. A notice that
+ * has just arrived carries no answer yet: a removal just decided can be.
+ */
+function offersAppeal(notif: Notification): boolean {
+  if (notif.type !== 'MODERATION') return false;
+  if (notif.targetType === 'promotion_approved') return false;
+  if (isRemovalNotice(notif)) {
+    return (
+      notif.targetType === 'post_removed' &&
+      !!notif.targetId &&
+      notif.appealable !== false
+    );
+  }
+  return true;
+}
+
 /**
  * The page a notice leads to when it is about something other than a post
  * or a person: a support request, or a live broadcast that has started.
@@ -237,6 +268,10 @@ export default function Notifications() {
   };
 
   const moderationAppealPath = (notif: Notification) => {
+    // A removed post opens the appeal form filled in with that post.
+    if (notif.targetType === 'post_removed' && notif.targetId) {
+      return `/accounts/appeals?targetType=POST_REMOVAL&targetId=${encodeURIComponent(notif.targetId)}`;
+    }
     // Warning and strike notices open the profile standing, which shows the
     // details and an appeal action for each record.
     // A protective restriction is appealed directly, as its own decision.
@@ -405,18 +440,18 @@ export default function Notifications() {
                       notif.content}
                   </span>
                 </p>
-                {notif.type === 'MODERATION' &&
-                  // An approval is good news: there is nothing to appeal.
-                  notif.targetType !== 'promotion_approved' && (
-                    <Link
-                      to={moderationAppealPath(notif)}
-                      className="inline-flex mt-2 min-h-11 items-center rounded-full border border-orange-400/30 bg-orange-500/10 px-3 text-xs font-semibold text-orange-200 hover:bg-orange-500/20 transition-colors"
-                    >
-                      {notif.targetType && STRIKE_NOTICE_KEYS[notif.targetType]
+                {offersAppeal(notif) && (
+                  <Link
+                    to={moderationAppealPath(notif)}
+                    className="inline-flex mt-2 min-h-11 items-center rounded-full border border-orange-400/30 bg-orange-500/10 px-3 text-xs font-semibold text-orange-200 hover:bg-orange-500/20 transition-colors"
+                  >
+                    {isRemovalNotice(notif)
+                      ? t('notifications.removal_appeal_cta')
+                      : notif.targetType && STRIKE_NOTICE_KEYS[notif.targetType]
                         ? t('notifications.strike_details_cta')
                         : t('notifications.appeal_cta')}
-                    </Link>
-                  )}
+                  </Link>
+                )}
                 <p className="text-xs font-medium mt-1 text-white/45">
                   {getRelativeTime(String(notif.createdAt))}
                 </p>
@@ -442,27 +477,29 @@ export default function Notifications() {
                   <ChevronRight size={18} aria-hidden="true" />
                 </Link>
               )}
-              {notif.type === 'MODERATION' && notif.postId && (
-                <Link
-                  to={moderationAppealPath(notif)}
-                  className="shrink-0 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-200"
-                  aria-label={t('notifications.appeal_cta')}
-                >
-                  <div
-                    className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center"
-                    style={{
-                      background:
-                        'linear-gradient(135deg, rgba(249,115,22,0.2), rgba(234,88,12,0.15))',
-                      border: '1px solid rgba(249,115,22,0.25)',
-                    }}
+              {notif.type === 'MODERATION' &&
+                notif.postId &&
+                !isRemovalNotice(notif) && (
+                  <Link
+                    to={moderationAppealPath(notif)}
+                    className="shrink-0 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-200"
+                    aria-label={t('notifications.appeal_cta')}
                   >
-                    <Shield
-                      size={16}
-                      style={{ color: 'rgba(253,186,116,0.9)' }}
-                    />
-                  </div>
-                </Link>
-              )}
+                    <div
+                      className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center"
+                      style={{
+                        background:
+                          'linear-gradient(135deg, rgba(249,115,22,0.2), rgba(234,88,12,0.15))',
+                        border: '1px solid rgba(249,115,22,0.25)',
+                      }}
+                    >
+                      <Shield
+                        size={16}
+                        style={{ color: 'rgba(253,186,116,0.9)' }}
+                      />
+                    </div>
+                  </Link>
+                )}
             </article>
           ))
         )}
