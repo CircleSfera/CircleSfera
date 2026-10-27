@@ -143,15 +143,15 @@ export class EditsService {
     return [...urls];
   }
 
-  // Called once the project's row is gone: only the author's own files that
-  // no other row uses are deleted (TD-008).
+  // Called once the project's row is gone: its files are kept 30 days,
+  // readable by their owner only, then erased (PD-040, TD-008).
   private async deleteProjectMedia(edit: {
     profileId: string;
     mediaUrl: string | null;
     state: unknown;
   }) {
     await this.uploadsService
-      .deleteContentFiles(edit.profileId, [
+      .releaseContentFiles([
         edit.mediaUrl,
         ...this.collectStudioMediaUrls(edit.state),
       ])

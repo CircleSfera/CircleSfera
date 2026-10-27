@@ -258,9 +258,9 @@ describe('Queue Processors Reliability & Error Handling', () => {
       ).rejects.toThrow(UnrecoverableError);
     });
 
-    it('re-throws failure during media deletion so BullMQ retries', async () => {
+    it('re-throws a failure to settle the media so BullMQ retries', async () => {
       const mockUploads = {
-        deleteContentFiles: vi
+        releaseContentFiles: vi
           .fn()
           .mockRejectedValue(new Error('S3 503 SlowDown')),
       } as any;

@@ -8,16 +8,14 @@ describe('PostsProcessor', () => {
   let processor: PostsProcessor;
   let mockUploadsService: {
     deleteFile: ReturnType<typeof vi.fn>;
-    deleteContentFiles: ReturnType<typeof vi.fn>;
-    deleteContentFilesByRecordedOwner: ReturnType<typeof vi.fn>;
+    releaseContentFiles: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockUploadsService = {
       deleteFile: vi.fn().mockResolvedValue(undefined),
-      deleteContentFiles: vi.fn().mockResolvedValue([]),
-      deleteContentFilesByRecordedOwner: vi.fn().mockResolvedValue([]),
+      releaseContentFiles: vi.fn().mockResolvedValue(undefined),
     };
 
     processor = new PostsProcessor(
@@ -66,39 +64,29 @@ describe('PostsProcessor', () => {
     expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
   });
 
-  it("deletes only the author's own files, by the author the job names", async () => {
+  it('keeps the files of a deleted post for 30 days, deleting none, with or without the author named', async () => {
     const urls = ['/uploads/p1.jpg', '/uploads/p2.jpg'];
-    const job = {
+    await processor.process({
       name: 'delete-post-media',
       data: { authorProfileId: 'author-1', mediaUrls: urls },
-    } as unknown as Job;
+    } as unknown as Job);
+    await processor.process({
+      name: 'delete-post-media',
+      data: { mediaUrls: ['/uploads/p3.jpg'] },
+    } as unknown as Job);
 
-    await processor.process(job);
-
-    expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledWith(
-      'author-1',
+    expect(mockUploadsService.releaseContentFiles).toHaveBeenNthCalledWith(
+      1,
       urls,
     );
+    expect(mockUploadsService.releaseContentFiles).toHaveBeenNthCalledWith(2, [
+      '/uploads/p3.jpg',
+    ]);
     expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
   });
 
-  it('deletes the files of a job that names no author by their recorded owners, never by address', async () => {
-    const job = {
-      name: 'delete-post-media',
-      data: { mediaUrls: ['/uploads/p1.jpg'] },
-    } as unknown as Job;
-
-    await processor.process(job);
-
-    expect(
-      mockUploadsService.deleteContentFilesByRecordedOwner,
-    ).toHaveBeenCalledWith(['/uploads/p1.jpg']);
-    expect(mockUploadsService.deleteContentFiles).not.toHaveBeenCalled();
-    expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
-  });
-
-  it('fails, to be retried, when the files cannot be deleted', async () => {
-    mockUploadsService.deleteContentFiles.mockRejectedValueOnce(
+  it('fails, to be retried, when the files cannot be settled', async () => {
+    mockUploadsService.releaseContentFiles.mockRejectedValueOnce(
       new Error('disk busy'),
     );
     const job = {

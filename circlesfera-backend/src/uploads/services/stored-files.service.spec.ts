@@ -85,14 +85,9 @@ describe('StoredFilesService.assertOwnedBy', () => {
         profileId: { in: ['p-1'] },
       },
     });
-    // Attached again, a detached file is no longer private.
-    expect(prisma.storedFile.updateMany).toHaveBeenCalledWith({
-      where: {
-        key: { in: ['/uploads/a.jpg', '/uploads/b.webp'] },
-        detachedAt: { not: null },
-      },
-      data: { detachedAt: null },
-    });
+    // The content may still fail to save: a detached file stays private
+    // until a row uses it.
+    expect(prisma.storedFile.updateMany).not.toHaveBeenCalled();
   });
 
   it('refuses a stored file of another Profile, or one with no owner', async () => {
@@ -227,15 +222,27 @@ describe('StoredFilesService.release', () => {
 });
 
 describe('StoredFilesService.areReadableBy', () => {
-  function reader(detached: Array<{ profileId: string | null }>) {
+  function reader(
+    detached: Array<{ profileId: string | null; key?: string }>,
+    used: string[] = [],
+  ) {
     const prisma = {
-      storedFile: { findMany: vi.fn().mockResolvedValue(detached) },
+      storedFile: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue(
+            detached.map((file) => ({ key: '/uploads/a.jpg', ...file })),
+          ),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
     };
+    const references = { inUse: vi.fn().mockResolvedValue(new Set(used)) };
     return {
       prisma,
+      references,
       files: new StoredFilesService(
         prisma as unknown as PrismaService,
-        { inUse: vi.fn() } as never,
+        references as never,
       ),
     };
   }
@@ -247,7 +254,7 @@ describe('StoredFilesService.areReadableBy', () => {
     );
     expect(prisma.storedFile.findMany).toHaveBeenCalledWith({
       where: { key: { in: ['/uploads/a.jpg'] }, detachedAt: { not: null } },
-      select: { profileId: true },
+      select: { key: true, profileId: true },
     });
     await expect(files.areReadableBy([], null)).resolves.toBe(true);
   });
@@ -278,6 +285,34 @@ describe('StoredFilesService.areReadableBy', () => {
       ),
     ).resolves.toBe(false);
   });
+
+  it('opens a detached file again to everyone once a saved row uses it', async () => {
+    const { prisma, references, files } = reader(
+      [{ profileId: 'p-1' }],
+      ['/uploads/a.jpg'],
+    );
+
+    await expect(files.areReadableBy(['/uploads/a.jpg'], 'p-2')).resolves.toBe(
+      true,
+    );
+    expect(references.inUse).toHaveBeenCalledWith(['/uploads/a.jpg']);
+    expect(prisma.storedFile.updateMany).toHaveBeenCalledWith({
+      where: { key: { in: ['/uploads/a.jpg'] }, detachedAt: { not: null } },
+      data: { detachedAt: null },
+    });
+  });
+
+  it('opens a video again when a row names its stream folder, and keeps closed a file no row uses', async () => {
+    const V = '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4';
+    const video = reader([{ profileId: 'p-1', key: V }], [V]);
+    await expect(video.files.areReadableBy([V], null)).resolves.toBe(true);
+
+    const unused = reader([{ profileId: 'p-1' }], []);
+    await expect(
+      unused.files.areReadableBy(['/uploads/a.jpg'], 'p-2'),
+    ).resolves.toBe(false);
+    expect(unused.prisma.storedFile.updateMany).not.toHaveBeenCalled();
+  });
 });
 
 describe('StoredFilesService.ownersOf', () => {
@@ -299,5 +334,151 @@ describe('StoredFilesService.ownersOf', () => {
 
     expect([...owners]).toEqual([['/uploads/a.jpg', 'p-1']]);
     await expect(files.ownersOf([])).resolves.toEqual(new Map());
+  });
+});
+
+describe('StoredFilesService, the files of deleted content', () => {
+  function withPrisma(storedFile: Record<string, unknown>) {
+    return new StoredFilesService(
+      { storedFile } as unknown as PrismaService,
+      { inUse: vi.fn() } as never,
+    );
+  }
+
+  it('reads, a page at a time, the files with an owner detached before a time', async () => {
+    const findMany = vi.fn().mockResolvedValue([{ key: '/uploads/b.jpg' }]);
+    const cutoff = new Date('2026-10-31T03:00:00Z');
+
+    await expect(
+      withPrisma({ findMany }).detachedBefore(cutoff, '/uploads/a.jpg', 500),
+    ).resolves.toEqual(['/uploads/b.jpg']);
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        detachedAt: { lt: cutoff },
+        profileId: { not: null },
+        key: { gt: '/uploads/a.jpg' },
+      },
+      orderBy: { key: 'asc' },
+      take: 500,
+      select: { key: true },
+    });
+
+    await withPrisma({ findMany }).detachedBefore(cutoff, null, 10);
+    expect(findMany.mock.calls[1][0].where).toEqual({
+      detachedAt: { lt: cutoff },
+      profileId: { not: null },
+    });
+  });
+
+  it('reads the files still within their days, and reattaches files a row uses again', async () => {
+    const findMany = vi.fn().mockResolvedValue([{ key: '/uploads/k.jpg' }]);
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const files = withPrisma({ findMany, updateMany });
+    const cutoff = new Date('2026-10-31T03:00:00Z');
+
+    await expect(files.detachedSince(cutoff)).resolves.toEqual(
+      new Set(['/uploads/k.jpg']),
+    );
+    expect(findMany).toHaveBeenCalledWith({
+      where: { detachedAt: { gte: cutoff } },
+      select: { key: true },
+    });
+
+    await files.reattach([]);
+    expect(updateMany).not.toHaveBeenCalled();
+    await files.reattach(['/uploads/b.jpg']);
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { key: { in: ['/uploads/b.jpg'] }, detachedAt: { not: null } },
+      data: { detachedAt: null },
+    });
+  });
+});
+
+describe('StoredFilesService, taking an expired record', () => {
+  const cutoff = new Date('2026-10-31T03:00:00Z');
+  function files(row: unknown, taken = 1) {
+    const storedFile = {
+      findUnique: vi.fn().mockResolvedValue(row),
+      deleteMany: vi.fn().mockResolvedValue({ count: taken }),
+      createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    return {
+      storedFile,
+      service: new StoredFilesService(
+        { storedFile } as unknown as PrismaService,
+        { inUse: vi.fn() } as never,
+      ),
+    };
+  }
+
+  it('takes the record of a file with an owner detached before the cutoff', async () => {
+    const detachedAt = new Date('2026-10-01T00:00:00Z');
+    const record = {
+      profileId: 'p-1',
+      uploadedById: 'u-1',
+      createdAt: new Date('2026-09-01T00:00:00Z'),
+      detachedAt,
+    };
+    const { storedFile, service } = files(record);
+
+    // Whole, so that putting it back loses neither who uploaded it nor when.
+    await expect(
+      service.claimExpired('/uploads/a.jpg', cutoff),
+    ).resolves.toEqual(record);
+    expect(storedFile.deleteMany).toHaveBeenCalledWith({
+      where: {
+        key: '/uploads/a.jpg',
+        detachedAt: { lt: cutoff },
+        profileId: 'p-1',
+      },
+    });
+  });
+
+  it('takes nothing for a file attached again, within its days, with no owner, or taken by another server', async () => {
+    for (const row of [
+      null,
+      { profileId: 'p-1', detachedAt: null },
+      { profileId: 'p-1', detachedAt: new Date('2026-11-15T00:00:00Z') },
+      { profileId: null, detachedAt: new Date('2026-10-01T00:00:00Z') },
+    ]) {
+      const { storedFile, service } = files(row);
+      await expect(
+        service.claimExpired('/uploads/a.jpg', cutoff),
+      ).resolves.toBeNull();
+      expect(storedFile.deleteMany).not.toHaveBeenCalled();
+    }
+    const raced = files(
+      { profileId: 'p-1', detachedAt: new Date('2026-10-01T00:00:00Z') },
+      0,
+    );
+    await expect(
+      raced.service.claimExpired('/uploads/a.jpg', cutoff),
+    ).resolves.toBeNull();
+  });
+
+  it('puts a taken record back as it was', async () => {
+    const detachedAt = new Date('2026-10-01T00:00:00Z');
+    const { storedFile, service } = files(null);
+
+    const createdAt = new Date('2026-09-01T00:00:00Z');
+    await service.restoreClaimed('/uploads/a.jpg', {
+      profileId: 'p-1',
+      uploadedById: 'u-1',
+      createdAt,
+      detachedAt,
+    });
+
+    expect(storedFile.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          key: '/uploads/a.jpg',
+          profileId: 'p-1',
+          uploadedById: 'u-1',
+          createdAt,
+          detachedAt,
+        },
+      ],
+      skipDuplicates: true,
+    });
   });
 });

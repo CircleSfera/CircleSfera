@@ -696,13 +696,13 @@ export class StoriesService {
       throw new NotFoundException('Story not found');
     }
 
-    // The row goes first: a file is deleted only once no row uses it, and
-    // only if it is the author's own (TD-008).
+    // The row goes first; its files are kept 30 days, readable by their
+    // owner only, then erased (PD-040, TD-008).
     await this.prisma.story.delete({
       where: { id: story.id },
     });
     await this.uploadsService
-      .deleteContentFiles(story.profileId, [
+      .releaseContentFiles([
         story.url,
         story.standardUrl,
         story.thumbnailUrl,

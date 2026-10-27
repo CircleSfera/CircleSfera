@@ -131,9 +131,9 @@ export class MediaAuthService {
       return false;
     }
 
-    // A file a content deletion left detached is its owner's only, until the
-    // sweep deletes it, whatever row may name it in another shape: checked
-    // first, so that the deny wins. A file of a video's stream folder
+    // A file a content deletion left detached is its owner's only, until a
+    // saved row uses it again or the erasure deletes it: checked first, so
+    // that the deny wins. A file of a video's stream folder
     // (<uuid>/master.m3u8, its segments, its cover) goes with the video.
     const [first, ...inFolder] = normalised.split('/');
     const candidates =

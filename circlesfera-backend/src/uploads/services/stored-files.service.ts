@@ -16,6 +16,10 @@ const STREAM_FOLDER_FILE =
   /^\/uploads\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/[^/]+$/i;
 export const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v'];
 
+// How long the files of deleted content are kept, readable by their owner
+// only, before the nightly erasure deletes them (PD-040).
+export const DELETED_CONTENT_KEPT_DAYS = 30;
+
 /** Who a stored file is recorded for. */
 export interface StoredFileOwner {
   // The Profile the file belongs to; null when it is not known.
@@ -23,6 +27,14 @@ export interface StoredFileOwner {
   // The person who uploaded it, for the record only: a team member uploads
   // for a Business Profile that is not theirs.
   uploadedById?: string | null;
+}
+
+/** The record of a file taken for erasure, kept whole to be put back. */
+export interface ClaimedFile {
+  profileId: string;
+  uploadedById: string | null;
+  createdAt: Date;
+  detachedAt: Date;
 }
 
 // The record of who owns each file this server stores. It is written only
@@ -76,7 +88,10 @@ export class StoredFilesService {
 
   /**
    * Whether a viewer may read stored files, by their exact keys: a detached
-   * one is its owner's only. A key that is not recorded is not this check's.
+   * one is its owner's only, until a row uses it again. A row is the only
+   * proof of a new attach: it exists once the content holding it is saved,
+   * and never if that save failed. A key that is not recorded is not this
+   * check's.
    */
   async areReadableBy(
     keys: string[],
@@ -85,11 +100,17 @@ export class StoredFilesService {
     if (keys.length === 0) return true;
     const detached = await this.prisma.storedFile.findMany({
       where: { key: { in: keys }, detachedAt: { not: null } },
-      select: { profileId: true },
+      select: { key: true, profileId: true },
     });
-    return detached.every(
-      (file) => !!viewerProfileId && file.profileId === viewerProfileId,
-    );
+    const closed = detached
+      .filter((file) => !viewerProfileId || file.profileId !== viewerProfileId)
+      .map((file) => file.key);
+    if (closed.length === 0) return true;
+    // A file of a video's stream folder is used by a row naming the folder.
+    const used = await this.references.inUse(closed);
+    if (!closed.every((key) => used.has(key))) return false;
+    await this.reattach(closed);
+    return true;
   }
 
   /**
@@ -152,9 +173,87 @@ export class StoredFilesService {
         'A stored file that this Profile did not upload cannot be attached',
       );
     }
-    // Attached again: no longer detached.
+    // A detached file stays detached here: the content may still fail to
+    // save. Once a row uses it, the media check opens it again.
+  }
+
+  /**
+   * Files with an owner detached before the given time, a page at a time in
+   * the order of their keys, from after the key given. A file with no owner
+   * is the orphan sweep's, not the erasure's.
+   */
+  async detachedBefore(
+    cutoff: Date,
+    afterKey: string | null,
+    take: number,
+  ): Promise<string[]> {
+    const rows = await this.prisma.storedFile.findMany({
+      where: {
+        detachedAt: { lt: cutoff },
+        profileId: { not: null },
+        ...(afterKey ? { key: { gt: afterKey } } : {}),
+      },
+      orderBy: { key: 'asc' },
+      take,
+      select: { key: true },
+    });
+    return rows.map((row) => row.key);
+  }
+
+  /**
+   * Takes the record of a file whose 30 days are over, so that it can be
+   * deleted: answers it only if the file is still detached since before the
+   * cutoff and has an owner. Once taken, the file can no longer be attached
+   * again (FILE_NOT_OWNED), so a deletion cannot race a new attach.
+   */
+  async claimExpired(key: string, cutoff: Date): Promise<ClaimedFile | null> {
+    const row = await this.prisma.storedFile.findUnique({
+      where: { key },
+      select: {
+        profileId: true,
+        uploadedById: true,
+        createdAt: true,
+        detachedAt: true,
+      },
+    });
+    if (!row?.profileId || !row.detachedAt || row.detachedAt >= cutoff) {
+      return null;
+    }
+    const taken = await this.prisma.storedFile.deleteMany({
+      where: { key, detachedAt: { lt: cutoff }, profileId: row.profileId },
+    });
+    return taken.count > 0
+      ? {
+          profileId: row.profileId,
+          uploadedById: row.uploadedById,
+          createdAt: row.createdAt,
+          detachedAt: row.detachedAt,
+        }
+      : null;
+  }
+
+  /** Puts back the record of a file that could not be deleted after all. */
+  async restoreClaimed(key: string, claimed: ClaimedFile): Promise<void> {
+    await this.prisma.storedFile.createMany({
+      data: [{ key, ...claimed }],
+      skipDuplicates: true,
+    });
+  }
+
+  /** Files detached at or after the given time: still within their days. */
+  async detachedSince(cutoff: Date): Promise<Set<string>> {
+    const rows = await this.prisma.storedFile.findMany({
+      where: { detachedAt: { gte: cutoff } },
+      select: { key: true },
+    });
+    return new Set(rows.map((row) => row.key));
+  }
+
+  /** Files a row uses again: no longer detached. */
+  async reattach(keys: string[]): Promise<void> {
+    if (keys.length === 0) return;
     await this.prisma.storedFile.updateMany({
-      where: { key: { in: stored }, detachedAt: { not: null } },
+      where: { key: { in: keys }, detachedAt: { not: null } },
       data: { detachedAt: null },
     });
   }

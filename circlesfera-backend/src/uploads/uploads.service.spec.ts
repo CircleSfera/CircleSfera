@@ -387,36 +387,17 @@ describe('UploadsService', () => {
   });
 
   describe("a deleted piece of content's files", () => {
-    it("with no author known, goes by each file's recorded owner under the same rule", async () => {
-      mockStoredFiles.ownersOf.mockResolvedValueOnce(
-        new Map([
-          ['/uploads/a.jpg', 'p-1'],
-          ['/uploads/b.jpg', 'p-1'],
-          ['/uploads/c.jpg', 'p-2'],
-        ]),
-      );
-      mockStoredFiles.release.mockResolvedValue([]);
+    it('keeps the files of deleted content: marks the unused ones detached and deletes none', async () => {
+      const deleteSpy = vi.spyOn(provider, 'delete').mockResolvedValue();
 
-      await service.deleteContentFilesByRecordedOwner([
+      await service.releaseContentFiles(['/uploads/a.jpg', null]);
+
+      expect(mockStoredFiles.release).toHaveBeenCalledWith('', [
         '/uploads/a.jpg',
-        '/uploads/b.jpg',
-        '/uploads/c.jpg',
-        '/uploads/unowned.jpg',
         null,
       ]);
-
-      expect(mockStoredFiles.release).toHaveBeenCalledWith('p-1', [
-        '/uploads/a.jpg',
-        '/uploads/b.jpg',
-      ]);
-      expect(mockStoredFiles.release).toHaveBeenCalledWith('p-2', [
-        '/uploads/c.jpg',
-      ]);
-      // The file with no owner is made private, deleted by no one.
-      expect(mockStoredFiles.release).toHaveBeenCalledWith('', [
-        '/uploads/unowned.jpg',
-      ]);
-      expect(mockStoredFiles.release).toHaveBeenCalledTimes(3);
+      expect(deleteSpy).not.toHaveBeenCalled();
+      expect(mockStoredFiles.forget).not.toHaveBeenCalled();
     });
 
     it("deletes only the files the record says are the author's and unused", async () => {

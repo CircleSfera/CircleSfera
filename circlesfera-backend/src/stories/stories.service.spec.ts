@@ -30,6 +30,7 @@ describe('StoriesService', () => {
   let mockUploadsService: {
     deleteFile: ReturnType<typeof vi.fn>;
     deleteContentFiles: ReturnType<typeof vi.fn>;
+    releaseContentFiles: ReturnType<typeof vi.fn>;
     ownsUrl: ReturnType<typeof vi.fn>;
     enqueueStoryOverlay: ReturnType<typeof vi.fn>;
   };
@@ -95,6 +96,7 @@ describe('StoriesService', () => {
     mockUploadsService = {
       deleteFile: vi.fn().mockResolvedValue(undefined),
       deleteContentFiles: vi.fn().mockResolvedValue([]),
+      releaseContentFiles: vi.fn().mockResolvedValue(undefined),
       ownsUrl: vi.fn(() => true),
       enqueueStoryOverlay: vi.fn().mockResolvedValue(undefined),
     };
@@ -944,7 +946,7 @@ describe('StoriesService', () => {
   });
 
   describe('delete', () => {
-    it("deletes the story, then only its author's own files, and goes on when they cannot be", async () => {
+    it('deletes the story and keeps its files for 30 days, deleting none, and goes on when they cannot be settled', async () => {
       mockPrismaService.story.findUnique.mockResolvedValueOnce({
         id: 'story-1',
         profileId: 'user-1',
@@ -953,7 +955,7 @@ describe('StoriesService', () => {
         thumbnailUrl: 'https://cdn.example.com/s-th.jpg',
         overlayUrl: 'https://cdn.example.com/s-layer.png',
       });
-      mockUploadsService.deleteContentFiles.mockRejectedValueOnce(
+      mockUploadsService.releaseContentFiles.mockRejectedValueOnce(
         new Error('S3 error'),
       );
       mockPrismaService.story.delete.mockResolvedValue({});
@@ -963,21 +965,19 @@ describe('StoriesService', () => {
       expect(mockPrismaService.story.delete).toHaveBeenCalledWith({
         where: { id: 'story-1' },
       });
-      // A layer not yet joined goes with the story; never by address alone.
-      expect(mockUploadsService.deleteContentFiles).toHaveBeenCalledWith(
-        'user-1',
-        [
-          'https://cdn.example.com/s.jpg',
-          'https://cdn.example.com/s-std.jpg',
-          'https://cdn.example.com/s-th.jpg',
-          'https://cdn.example.com/s-layer.png',
-        ],
-      );
+      // A layer not yet joined goes with the story.
+      expect(mockUploadsService.releaseContentFiles).toHaveBeenCalledWith([
+        'https://cdn.example.com/s.jpg',
+        'https://cdn.example.com/s-std.jpg',
+        'https://cdn.example.com/s-th.jpg',
+        'https://cdn.example.com/s-layer.png',
+      ]);
+      expect(mockUploadsService.deleteContentFiles).not.toHaveBeenCalled();
       expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
       expect(
         mockPrismaService.story.delete.mock.invocationCallOrder[0],
       ).toBeLessThan(
-        mockUploadsService.deleteContentFiles.mock.invocationCallOrder[0],
+        mockUploadsService.releaseContentFiles.mock.invocationCallOrder[0],
       );
     });
 
