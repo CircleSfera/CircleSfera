@@ -122,8 +122,9 @@
     "vitest": "5.0.5"
   },
   "allowScripts": {
-    "esbuild@0.28.2": true,
-    "@biomejs/biome@2.5.12": true
+    "@swc/core": true,
+    "canvas": true,
+    "fsevents": true
   },
   "engines": {
     "node": ">=24.0.0 <25.0.0"

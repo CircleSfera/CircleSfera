@@ -150,15 +150,15 @@
     "vitest": "5.0.5"
   },
   "allowScripts": {
-    "argon2@0.45.1": true,
-    "bcrypt@6.0.0": true,
-    "prisma@7.10.0": true,
-    "@prisma/engines@7.10.0": true,
-    "@swc/core@1.16.2": true,
-    "@sentry/node-cpu-profiler@2.4.4": true,
-    "msgpackr-extract@3.0.4": true,
+    "@prisma/engines": true,
     "@scarf/scarf": false,
-    "@biomejs/biome@2.5.12": true
+    "@sentry/node-cpu-profiler": true,
+    "@swc/core": true,
+    "argon2": true,
+    "bcrypt": true,
+    "fsevents": true,
+    "msgpackr-extract": true,
+    "prisma": true
   },
   "engines": {
     "node": ">=24.0.0 <25.0.0"

@@ -9,7 +9,6 @@ import { StoryStickersService } from '../story-stickers/story-stickers.service.j
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
-import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import type { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoriesService } from './stories.service.js';
 
