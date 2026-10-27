@@ -15,9 +15,10 @@ import { REMOVAL_TARGET_TYPES } from './removal-notice.js';
 
 type NotificationType = $Enums.NotificationType;
 
-// A notification about a post or story that moderation removed leads to
-// nothing anybody may see, and is left out. The ones telling the author of
-// the decision stay: they are what the author appeals from.
+// A notification about a post or story that moderation removed, or that its
+// author deleted, leads to nothing anybody may see, and is left out. The ones
+// telling the author of a moderation decision stay: they are what the author
+// appeals from. A restored post or story brings its notifications back.
 export const LINKS_TO_SHOWN_CONTENT = {
   OR: [
     { type: $Enums.NotificationType.MODERATION },
@@ -25,6 +26,8 @@ export const LINKS_TO_SHOWN_CONTENT = {
       NOT: [
         { post: { moderationStatus: $Enums.ModerationStatus.REMOVED } },
         { story: { moderationStatus: $Enums.ModerationStatus.REMOVED } },
+        { post: { deletedAt: { not: null } } },
+        { story: { deletedAt: { not: null } } },
       ],
     },
   ],

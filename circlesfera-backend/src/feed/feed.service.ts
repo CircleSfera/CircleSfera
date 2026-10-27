@@ -248,6 +248,7 @@ export class FeedService {
           
           WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND rel.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
+            AND p."deletedAt" IS NULL
             AND p."profileId" != ${profileId}
             AND p.id NOT IN (SELECT "postId" FROM "likes" WHERE "profileId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId} AND ("expiresAt" IS NULL OR "expiresAt" > NOW()))
@@ -305,6 +306,7 @@ export class FeedService {
           
           WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND rel.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
+            AND p."deletedAt" IS NULL
             AND p."profileId" != ${profileId}
             AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId} AND ("expiresAt" IS NULL OR "expiresAt" > NOW()))
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
@@ -467,6 +469,7 @@ export class FeedService {
           id: { in: inboxPostIds },
           profile: await viewerAudienceWhere(this.prisma, profileId),
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          deletedAt: null,
           scheduledStatus: 'PUBLISHED',
           // Mature posts only for who allows them; their own always.
           AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
@@ -555,6 +558,7 @@ export class FeedService {
             profile: await viewerAudienceWhere(this.prisma, profileId),
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            deletedAt: null,
             scheduledStatus: 'PUBLISHED',
             ...preferenceFilter,
             AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
@@ -574,6 +578,7 @@ export class FeedService {
             profileId: { in: followingIds },
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            deletedAt: null,
             scheduledStatus: 'PUBLISHED',
             ...preferenceFilter,
             AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
@@ -702,6 +707,7 @@ export class FeedService {
     const where = {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE' as const,
+      deletedAt: null,
       scheduledStatus: 'PUBLISHED' as const,
       profile: {
         privacyLevel: Visibility.PUBLIC,

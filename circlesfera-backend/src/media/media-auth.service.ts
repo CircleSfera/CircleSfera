@@ -70,6 +70,11 @@ interface MessageAccess {
  * shown to nobody, its author included: its files are for staff who
  * moderate content only (`isStaff`), and a comment's go with its post.
  *
+ * A post or story its author deleted waits in their Recently deleted: its
+ * files are its author's only, and so are those of the comments on a
+ * deleted post.
+ *
+
  * Live recording: its host's only until published; once published, the
  * Profile's audience (blocks hide it both ways; a private Profile's is its
  * accepted followers). A broadcast ended by staff is no one's here.
@@ -80,6 +85,7 @@ const POST_ACCESS_SELECT = {
   visibility: true,
   isPremium: true,
   moderationStatus: true,
+  deletedAt: true,
   profile: { select: { privacyLevel: true } },
 } as const;
 
@@ -204,6 +210,7 @@ export class MediaAuthService {
           isPremium: true,
           isCloseFriendsOnly: true,
           moderationStatus: true,
+          deletedAt: true,
           profile: { select: { privacyLevel: true } },
         },
       }),
@@ -289,6 +296,31 @@ export class MediaAuthService {
       ) {
         return true;
       }
+    }
+
+    // A file of a post or story its author deleted: theirs only, while it
+    // waits in their Recently deleted. The other rows naming the file are
+    // still checked.
+    const deletedPostMedia = postMedia.filter((media) => media.post.deletedAt);
+    const deletedStories = story.filter((item) => item.deletedAt);
+    const deletedComments = comment.filter((item) => item.post.deletedAt);
+    const deletedOwners = [
+      ...deletedPostMedia.map((media) => media.post.profileId),
+      ...deletedStories.map((item) => item.profileId),
+      ...deletedComments.map((item) => item.post.profileId),
+    ];
+    if (deletedOwners.length > 0) {
+      if (deletedOwners.some((owner) => owner !== viewerProfileId)) {
+        this.logger.debug(
+          `Deleted content, not for this viewer: ${uploadPath}`,
+        );
+        return false;
+      }
+      postMedia = postMedia.filter(
+        (media) => !deletedPostMedia.includes(media),
+      );
+      story = story.filter((item) => !deletedStories.includes(item));
+      comment = comment.filter((item) => !deletedComments.includes(item));
     }
 
     const accessChecks: Promise<boolean>[] = [

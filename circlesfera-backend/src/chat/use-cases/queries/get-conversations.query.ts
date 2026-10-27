@@ -6,7 +6,7 @@ import {
   decodeKeysetCursor,
   encodeKeysetCursor,
 } from '../../../common/pagination/keyset.util.js';
-import { isRemoved } from '../../../common/policies/removed-content.policy.js';
+import { isGone } from '../../../common/policies/removed-content.policy.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 
@@ -165,12 +165,13 @@ export class GetConversationsQuery {
   // The latest message is stored encrypted; the list shows it in clear. A
   // deleted one shows no file, whatever its row may still name. A post it
   // shares that moderation removed is kept for its appeal and shown to
-  // nobody: the message stays, without the post.
+  // nobody, and one its author deleted is in their Recently deleted: the
+  // message stays, without the post.
   private withReadablePreview<
     T extends {
       messages: {
         content: string | null;
-        post?: { moderationStatus: string } | null;
+        post?: { moderationStatus: string; deletedAt: Date | null } | null;
       }[];
     },
   >(conv: T): T {
@@ -194,7 +195,7 @@ export class GetConversationsQuery {
       lastMsg.mediaType = null;
       lastMsg.voiceUrl = null;
     }
-    if (lastMsg?.post && isRemoved(lastMsg.post)) {
+    if (lastMsg?.post && isGone(lastMsg.post)) {
       (lastMsg as { post: unknown }).post = null;
     }
     return conv;

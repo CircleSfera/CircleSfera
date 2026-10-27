@@ -97,9 +97,9 @@ export class FeedPreferencesService {
   async hidePost(profileId: string, postId: string) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true, profileId: true },
+      select: { id: true, profileId: true, deletedAt: true },
     });
-    if (!post) throw new NotFoundException('Post not found');
+    if (!post || post.deletedAt) throw new NotFoundException('Post not found');
     if (post.profileId === profileId) {
       throw new BadRequestException('Cannot hide your own post');
     }

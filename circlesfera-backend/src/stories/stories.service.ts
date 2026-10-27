@@ -393,6 +393,7 @@ export class StoriesService {
       expiresAt: { gt: new Date() },
       createdAt: { gt: oneDayAgo },
       moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+      deletedAt: null,
       scheduledStatus: 'PUBLISHED',
     };
 
@@ -627,6 +628,7 @@ export class StoriesService {
           gt: new Date(),
         },
         moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+        deletedAt: null,
       },
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },
@@ -687,25 +689,40 @@ export class StoriesService {
     return stories.map(resolveMediaFields);
   }
 
-  // Delete a story. Ownership is enforced by OwnershipGuard at the controller level.
-  // Param id: The story ID
-  // Throws NotFoundException if story not found
+  // Delete a story into its author's Recently deleted: it leaves the tray,
+  // the archive and the highlights for everyone, its author included, and
+  // its author can restore it for 30 days; then it is erased. The author's
+  // files of it are marked detached with it, readable by them only: both
+  // happen, or neither. Ownership is enforced by OwnershipGuard.
+  // Throws NotFoundException if the story is not found or already deleted.
   async delete(id: string): Promise<void> {
-    const story = await this.prisma.story.findUnique({
-      where: { id },
-    });
-
-    if (!story) {
-      throw new NotFoundException('Story not found');
-    }
-
-    // Its files are kept 30 days, readable by their owner only, then erased
-    // (PD-040, TD-008). They are settled with the deletion: if that fails,
-    // the story stays, so its files are never left public.
     await this.prisma.$transaction(async (tx) => {
-      await tx.story.delete({ where: { id: story.id } });
-      await this.uploadsService.releaseContentFiles(
-        [story.url, story.standardUrl, story.thumbnailUrl, story.overlayUrl],
+      // Locked first: a restore or a second delete waits for this one.
+      const held = await tx.$queryRaw<
+        Array<{ profileId: string; deletedAt: Date | null }>
+      >`SELECT "profileId", "deletedAt" FROM "stories" WHERE id = ${id} FOR UPDATE`;
+      const story = held[0];
+      if (!story || story.deletedAt) {
+        throw new NotFoundException('Story not found');
+      }
+      const deleted = await tx.story.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+        select: {
+          url: true,
+          standardUrl: true,
+          thumbnailUrl: true,
+          overlayUrl: true,
+        },
+      });
+      await this.storedFiles.detachDeleted(
+        story.profileId,
+        [
+          deleted.url,
+          deleted.standardUrl,
+          deleted.thumbnailUrl,
+          deleted.overlayUrl,
+        ],
         tx,
       );
     }, DELETION_TRANSACTION);
@@ -833,6 +850,7 @@ export class StoriesService {
         where: {
           id: storyId,
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          deletedAt: null,
           scheduledStatus: 'PUBLISHED',
         },
       }))

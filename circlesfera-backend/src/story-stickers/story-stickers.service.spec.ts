@@ -622,6 +622,7 @@ describe('StoryStickersService', () => {
           kind: 'COUNTDOWN',
           endsAt: { lte: now },
           announcedAt: null,
+          story: { deletedAt: null },
         });
         expect(prisma.storySticker.updateMany).toHaveBeenCalledWith({
           where: { id: 'st-1', announcedAt: null },

@@ -53,6 +53,8 @@ function getPrismaDelegate(
 }
 
 const MODERATED_MODELS = new Set(['Post', 'Story', 'Comment']);
+// Content its author can delete into Recently deleted.
+const RECENTLY_DELETED_MODELS = new Set(['Post', 'Story']);
 
 @Injectable()
 export class OwnershipGuard implements CanActivate {
@@ -112,17 +114,25 @@ export class OwnershipGuard implements CanActivate {
 
     // A post, story or comment removed by moderation is kept for its
     // appeal, out of its author's reach: they can neither change nor delete
-    // it, and it answers as missing.
+    // it, and it answers as missing. A post or story its author deleted
+    // answers as missing too: only Recently deleted acts on it, and checks
+    // its author itself.
     const moderated = MODERATED_MODELS.has(model);
+    const deletable = RECENTLY_DELETED_MODELS.has(model);
     const resource = await delegate.findUnique({
       where: { id: resourceId },
       select: {
         [ownerField]: true,
         ...(moderated ? { moderationStatus: true } : {}),
+        ...(deletable ? { deletedAt: true } : {}),
       },
     });
 
-    if (!resource || (moderated && resource.moderationStatus === 'REMOVED')) {
+    if (
+      !resource ||
+      (moderated && resource.moderationStatus === 'REMOVED') ||
+      (deletable && resource.deletedAt)
+    ) {
       throw new NotFoundException(`${model} not found`);
     }
 

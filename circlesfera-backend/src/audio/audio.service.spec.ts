@@ -174,6 +174,7 @@ describe('AudioService', () => {
           audioId: 'audio-1',
           visibility: 'PUBLIC',
           moderationStatus: 'VISIBLE',
+          deletedAt: null,
         },
         include: expect.any(Object),
         orderBy: { createdAt: 'desc' },

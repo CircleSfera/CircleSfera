@@ -9,6 +9,7 @@ import {
   Scale,
   Shield,
   Star,
+  Trash2,
   User,
   UserCog,
   UserPlus,
@@ -33,6 +34,7 @@ export type SettingsSectionId =
   | 'feed_prefs'
   | 'appeals'
   | 'reports'
+  | 'recently_deleted'
   | 'account';
 
 export interface SettingsNavItem {
@@ -42,7 +44,7 @@ export interface SettingsNavItem {
 }
 
 export interface SettingsNavGroup {
-  id: 'you' | 'control' | 'trust' | 'money';
+  id: 'you' | 'activity' | 'control' | 'trust' | 'money';
   labelKey: string;
   items: SettingsNavItem[];
 }
@@ -69,6 +71,7 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'feed_prefs',
   'appeals',
   'reports',
+  'recently_deleted',
   'account',
 ];
 
@@ -101,6 +104,17 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'account',
         labelKey: 'settings.tabs.account.label',
         icon: UserCog,
+      },
+    ],
+  },
+  {
+    id: 'activity',
+    labelKey: 'settings.groups.activity',
+    items: [
+      {
+        id: 'recently_deleted',
+        labelKey: 'settings.tabs.recently_deleted.label',
+        icon: Trash2,
       },
     ],
   },

@@ -547,6 +547,9 @@ model Post {
   // When it was last hidden or removed by moderation: the six months to
   // appeal it count from then.
   moderatedAt      DateTime?
+  // When its author deleted it: it waits in their Recently deleted, shown to
+  // nobody else, for 30 days, then it is erased.
+  deletedAt        DateTime?
 
   // Premium Content
 
@@ -572,6 +575,8 @@ model Post {
   @@index([moderationStatus, visibility, createdAt(sort: Desc)])
   @@index([scheduledStatus, scheduledAt])
   @@index([placeId])
+  @@index([profileId, deletedAt])
+  @@index([deletedAt])
   @@map("posts")
 }
 
@@ -737,6 +742,9 @@ model Story {
   // When it was last hidden or removed by moderation. Removed content is
   // kept for the six months its author has to appeal, then erased.
   moderatedAt      DateTime?
+  // When its author deleted it: it waits in their Recently deleted, shown to
+  // nobody else, for 30 days, then it is erased.
+  deletedAt        DateTime?
 
   // Relation to highlights
 
@@ -775,6 +783,8 @@ model Story {
   @@index([createdAt])
   @@index([placeId])
   @@index([moderationStatus, moderatedAt])
+  @@index([profileId, deletedAt])
+  @@index([deletedAt])
   @@map("stories")
 }
 

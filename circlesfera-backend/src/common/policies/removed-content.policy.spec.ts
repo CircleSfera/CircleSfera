@@ -3,14 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setModerationStatus } from './moderation-decision.js';
 import { assertCanAccessPost } from './post-access.policy.js';
 import {
+  isGone,
   isRemoved,
   NOT_REMOVED,
   SHOWN_COMMENTS_COUNT,
 } from './removed-content.policy.js';
 
 describe('removed content', () => {
-  it('leaves out of lists and counts only what moderation removed', () => {
-    expect(NOT_REMOVED).toEqual({ moderationStatus: { not: 'REMOVED' } });
+  it('leaves out of lists and counts what moderation removed and what its author deleted', () => {
+    expect(NOT_REMOVED).toEqual({
+      moderationStatus: { not: 'REMOVED' },
+      deletedAt: null,
+    });
     // A post's comment count counts what its list shows: no hidden or
     // removed comment, and no reply under one.
     const shown = { in: ['VISIBLE', 'FLAGGED'] };
@@ -28,6 +32,15 @@ describe('removed content', () => {
       expect(isRemoved({ moderationStatus })).toBe(false);
     }
     expect(isRemoved({})).toBe(false);
+    // Deleted by its author counts as gone; removed is gone too.
+    expect(isGone({ moderationStatus: 'VISIBLE', deletedAt: new Date() })).toBe(
+      true,
+    );
+    expect(isGone({ moderationStatus: 'REMOVED', deletedAt: null })).toBe(true);
+    expect(isGone({ moderationStatus: 'VISIBLE', deletedAt: null })).toBe(
+      false,
+    );
+    expect(isGone({})).toBe(false);
   });
 
   it('a removed post is found by nobody, its author included; a hidden one by its author', async () => {
@@ -36,6 +49,7 @@ describe('removed content', () => {
       profileId: 'author',
       visibility: 'PUBLIC' as const,
       turnOffComments: false,
+      deletedAt: null,
       profile: { privacyLevel: 'PUBLIC' as const },
     };
     const db = { block: { findFirst: vi.fn() } } as never;
@@ -56,6 +70,24 @@ describe('removed content', () => {
         'author',
       ),
     ).resolves.toMatchObject({ id: 'p-1' });
+  });
+
+  it('a post its author deleted is found by nobody, its author included', async () => {
+    const post = {
+      id: 'p-1',
+      profileId: 'author',
+      visibility: 'PUBLIC' as const,
+      turnOffComments: false,
+      moderationStatus: 'VISIBLE',
+      deletedAt: new Date(),
+      profile: { privacyLevel: 'PUBLIC' as const },
+    };
+    const db = { block: { findFirst: vi.fn() } } as never;
+    for (const viewer of ['author', 'viewer', null]) {
+      await expect(assertCanAccessPost(db, post, viewer)).rejects.toThrow(
+        NotFoundException,
+      );
+    }
   });
 });
 

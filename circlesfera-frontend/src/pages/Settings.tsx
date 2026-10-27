@@ -11,6 +11,7 @@ import NotificationsSettings from '../components/settings/NotificationsSettings'
 import PrivacySettings from '../components/settings/PrivacySettings';
 import ProfileSettings from '../components/settings/ProfileSettings';
 import ProfilesSettings from '../components/settings/ProfilesSettings';
+import RecentlyDeletedSettings from '../components/settings/RecentlyDeletedSettings';
 import RequestsSettings from '../components/settings/RequestsSettings';
 import SecuritySettings from '../components/settings/SecuritySettings';
 import SettingsHubIndex from '../components/settings/SettingsHubIndex';
@@ -51,6 +52,8 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <AppealsSettings />;
     case 'reports':
       return <MyReportsSettings />;
+    case 'recently_deleted':
+      return <RecentlyDeletedSettings />;
     case 'account':
       return <AccountSettings />;
     default:

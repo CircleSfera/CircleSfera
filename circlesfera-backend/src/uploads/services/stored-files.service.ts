@@ -146,7 +146,8 @@ export class StoredFilesService {
       .map((file) => file.key);
     if (closed.length === 0) return true;
     // A file of a video's stream folder is used by a row naming the folder.
-    const used = await this.references.inUse(closed);
+    // A post or story in its author's Recently deleted is no such use.
+    const used = await this.references.inUse(closed, undefined, {}, true);
     if (!closed.every((key) => used.has(key))) return false;
     await this.reattach(closed);
     return true;
@@ -288,11 +289,49 @@ export class StoredFilesService {
     return new Set(rows.map((row) => row.key));
   }
 
+  /**
+   * Marks detached the owner's files of a post or story its author has just
+   * deleted into Recently deleted, in the transaction that deletes it: from
+   * then on only the owner may read them. Its row still names them, so
+   * `release` would find them in use. A file another shown row still uses is
+   * left as it is, and so is a file of another Profile: the content's gate
+   * keeps those from everyone but the author.
+   */
+  async detachDeleted(
+    profileId: string,
+    keys: Array<string | null | undefined>,
+    client: ReleaseClient = this.prisma,
+  ): Promise<void> {
+    const wanted = [
+      ...new Set(keys.filter((k): k is string => !!k && k.length > 0)),
+    ];
+    if (wanted.length === 0) return;
+    const owned = await client.storedFile.findMany({
+      where: { key: { in: wanted }, profileId, detachedAt: null },
+      select: { key: true },
+    });
+    const ownedKeys = owned.map((file) => file.key);
+    if (ownedKeys.length === 0) return;
+    const used = await this.references.inUse(ownedKeys, client, {}, true);
+    const unused = ownedKeys.filter((key) => !used.has(key));
+    if (unused.length === 0) return;
+    await client.storedFile.updateMany({
+      where: { key: { in: unused }, detachedAt: null },
+      data: { detachedAt: new Date() },
+    });
+  }
+
   /** Files a row uses again: no longer detached. */
-  async reattach(keys: string[]): Promise<void> {
-    if (keys.length === 0) return;
-    await this.prisma.storedFile.updateMany({
-      where: { key: { in: keys }, detachedAt: { not: null } },
+  async reattach(
+    keys: Array<string | null | undefined>,
+    client: Pick<Prisma.TransactionClient, 'storedFile'> = this.prisma,
+  ): Promise<void> {
+    const wanted = [
+      ...new Set(keys.filter((k): k is string => !!k && k.length > 0)),
+    ];
+    if (wanted.length === 0) return;
+    await client.storedFile.updateMany({
+      where: { key: { in: wanted }, detachedAt: { not: null } },
       data: { detachedAt: null },
     });
   }

@@ -7,7 +7,7 @@ export class GetAudienceRetentionQuery {
 
   async execute(profileId: string) {
     const posts = await this.prisma.post.findMany({
-      where: { profileId },
+      where: { profileId, deletedAt: null },
       select: { id: true, performanceScore: true, views: true },
     });
 

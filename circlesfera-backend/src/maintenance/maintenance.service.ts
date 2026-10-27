@@ -237,6 +237,8 @@ export class MaintenanceService {
         where: {
           scheduledStatus: 'SCHEDULED',
           scheduledAt: { lte: now },
+          // One its author deleted goes out only if they restore it.
+          deletedAt: null,
         },
         select: { id: true },
       });
@@ -245,6 +247,8 @@ export class MaintenanceService {
         where: {
           scheduledStatus: 'SCHEDULED',
           scheduledAt: { lte: now },
+          // One its author deleted goes out only if they restore it.
+          deletedAt: null,
         },
         select: { id: true },
       });
@@ -258,7 +262,7 @@ export class MaintenanceService {
       for (const p of scheduledPosts) {
         // Taken as published first, so two servers never send it out twice.
         const published = await this.prisma.post.updateMany({
-          where: { id: p.id, scheduledStatus: 'SCHEDULED' },
+          where: { id: p.id, scheduledStatus: 'SCHEDULED', deletedAt: null },
           data: {
             scheduledStatus: 'PUBLISHED',
             createdAt: now,
@@ -274,7 +278,7 @@ export class MaintenanceService {
       for (const s of scheduledStories) {
         // Taken as published first, so two servers never announce it twice.
         const published = await this.prisma.story.updateMany({
-          where: { id: s.id, scheduledStatus: 'SCHEDULED' },
+          where: { id: s.id, scheduledStatus: 'SCHEDULED', deletedAt: null },
           data: {
             scheduledStatus: 'PUBLISHED',
             createdAt: now,

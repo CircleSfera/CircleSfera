@@ -6,8 +6,16 @@ import {
   appealDeadline,
 } from '../appeals/appeal-window.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { IgnoredRows } from '../uploads/services/media-references.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
+import {
+  COMMENT_FILES,
+  type CommentFileColumns,
+  commentFiles,
+  deleteErasedFiles,
+  erasePost,
+  eraseStory,
+  STORY_FILES,
+} from './content-erasure.js';
 
 // Rows read and erased at a time, and the most batches of each kind a night
 // goes through: what is left waits for the next night.
@@ -16,7 +24,6 @@ export const ERASURE_MAX_BATCHES = 50;
 // How long one erasure may hold its row while its files are deleted.
 export const ERASURE_TRANSACTION_TIMEOUT_MS = 60_000;
 
-type Files = Array<string | null | undefined>;
 type Tx = Prisma.TransactionClient;
 interface Removed {
   id: string;
@@ -162,37 +169,7 @@ export class RemovedContentErasureService {
           select: { id: true },
         });
         if (open) return false;
-        const media = await tx.postMedia.findMany({
-          where: { postId: post.id },
-          select: {
-            id: true,
-            url: true,
-            standardUrl: true,
-            thumbnailUrl: true,
-          },
-        });
-        const comments = await tx.comment.findMany({
-          where: { postId: post.id },
-          select: { id: true, ...COMMENT_FILES },
-        });
-        await this.deleteFiles(
-          [
-            {
-              profileId: post.profileId,
-              files: media.flatMap((m) => [
-                m.url,
-                m.standardUrl,
-                m.thumbnailUrl,
-              ]),
-            },
-            ...comments.map(commentFiles),
-          ],
-          {
-            postMedia: media.map((m) => m.id),
-            comment: comments.map((c) => c.id),
-          },
-        );
-        await tx.post.delete({ where: { id: post.id } });
+        await erasePost(tx, this.uploads, post);
         return true;
       },
     );
@@ -211,10 +188,7 @@ export class RemovedContentErasureService {
             id: true,
             profileId: true,
             moderatedAt: true,
-            url: true,
-            standardUrl: true,
-            thumbnailUrl: true,
-            overlayUrl: true,
+            ...STORY_FILES,
           },
         }),
       async (tx, story) => {
@@ -225,21 +199,7 @@ export class RemovedContentErasureService {
         if (!RemovedContentErasureService.stillRemoved(held, story)) {
           return false;
         }
-        await this.deleteFiles(
-          [
-            {
-              profileId: story.profileId,
-              files: [
-                story.url,
-                story.standardUrl,
-                story.thumbnailUrl,
-                story.overlayUrl,
-              ],
-            },
-          ],
-          { story: [story.id] },
-        );
-        await tx.story.delete({ where: { id: story.id } });
+        await eraseStory(tx, this.uploads, story);
         return true;
       },
     );
@@ -267,7 +227,7 @@ export class RemovedContentErasureService {
         }
         const replies = await this.repliesOf(tx, comment.id);
         const erased = [comment, ...replies];
-        await this.deleteFiles(erased.map(commentFiles), {
+        await deleteErasedFiles(this.uploads, erased.map(commentFiles), {
           comment: erased.map((c) => c.id),
         });
         await tx.comment.delete({ where: { id: comment.id } });
@@ -290,48 +250,4 @@ export class RemovedContentErasureService {
     }
     return replies;
   }
-
-  // The files of the rows about to be erased, each as its author's: only the
-  // author's own, and only those no other row names, are deleted. A failure
-  // is thrown, so the rows are kept and tried again the next night.
-  private async deleteFiles(
-    groups: Array<{ profileId: string; files: Files }>,
-    ignoring: IgnoredRows,
-  ): Promise<void> {
-    for (const { profileId, files } of groups) {
-      if (!files.some(Boolean)) continue;
-      await this.uploads.deleteFilesOfErasedContent(profileId, files, ignoring);
-    }
-  }
-}
-
-const COMMENT_FILES = {
-  profileId: true,
-  url: true,
-  standardUrl: true,
-  thumbnailUrl: true,
-  voiceUrl: true,
-} as const;
-
-interface CommentFileColumns {
-  profileId: string;
-  url: string | null;
-  standardUrl: string | null;
-  thumbnailUrl: string | null;
-  voiceUrl: string | null;
-}
-
-function commentFiles(comment: CommentFileColumns): {
-  profileId: string;
-  files: Files;
-} {
-  return {
-    profileId: comment.profileId,
-    files: [
-      comment.url,
-      comment.standardUrl,
-      comment.thumbnailUrl,
-      comment.voiceUrl,
-    ],
-  };
 }

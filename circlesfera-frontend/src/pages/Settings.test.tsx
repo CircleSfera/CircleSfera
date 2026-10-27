@@ -37,6 +37,9 @@ vi.mock('../components/settings/ProfileSettings', () => ({
 vi.mock('../components/settings/ProfilesSettings', () => ({
   default: () => <div>panel:profiles</div>,
 }));
+vi.mock('../components/settings/RecentlyDeletedSettings', () => ({
+  default: () => <div>panel:recently_deleted</div>,
+}));
 vi.mock('../components/settings/RequestsSettings', () => ({
   default: () => <div>panel:requests</div>,
 }));

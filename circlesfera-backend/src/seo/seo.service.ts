@@ -24,6 +24,7 @@ const PUBLIC_POST_WHERE = {
   visibility: Visibility.PUBLIC,
   isPremium: false,
   moderationStatus: 'VISIBLE',
+  deletedAt: null,
   scheduledStatus: 'PUBLISHED',
   profile: PUBLIC_PROFILE_WHERE,
 } satisfies Prisma.PostWhereInput;

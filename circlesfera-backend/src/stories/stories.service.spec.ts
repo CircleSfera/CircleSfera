@@ -19,6 +19,7 @@ import { StoriesService } from './stories.service.js';
 const mockStoredFiles = {
   assertOwnedBy: vi.fn().mockResolvedValue(undefined),
   record: vi.fn().mockResolvedValue(undefined),
+  detachDeleted: vi.fn().mockResolvedValue(undefined),
 };
 
 vi.mock('../common/utils/media-duration.util.js', () => ({
@@ -958,22 +959,30 @@ describe('StoriesService', () => {
       overlayUrl: 'https://cdn.example.com/s-layer.png',
     };
 
-    it('deletes the story and keeps its files for 30 days, settled in the same transaction', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValueOnce(story);
-      const tx = { story: { delete: vi.fn().mockResolvedValue({}) } };
+    const txFor = (held: unknown[]) => ({
+      $queryRaw: vi.fn().mockResolvedValue(held),
+      story: { update: vi.fn().mockResolvedValue(story) },
+    });
+
+    it("moves the story to Recently deleted and makes its files the author's only, in one transaction", async () => {
+      const tx = txFor([{ profileId: 'user-1', deletedAt: null }]);
       mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
 
       await service.delete('story-1');
 
-      expect(tx.story.delete).toHaveBeenCalledWith({
-        where: { id: 'story-1' },
-      });
+      expect(tx.story.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'story-1' },
+          data: { deletedAt: expect.any(Date) },
+        }),
+      );
       expect(mockPrismaService.story.delete).not.toHaveBeenCalled();
       expect(
         (mockPrismaService.$transaction.mock.calls.at(-1) as unknown[])[1],
       ).toEqual(DELETION_TRANSACTION);
       // A layer not yet joined goes with the story.
-      expect(mockUploadsService.releaseContentFiles).toHaveBeenCalledWith(
+      expect(mockStoredFiles.detachDeleted).toHaveBeenCalledWith(
+        'user-1',
         [
           'https://cdn.example.com/s.jpg',
           'https://cdn.example.com/s-std.jpg',
@@ -982,29 +991,30 @@ describe('StoriesService', () => {
         ],
         tx,
       );
-      expect(mockUploadsService.deleteContentFiles).not.toHaveBeenCalled();
+      expect(mockUploadsService.releaseContentFiles).not.toHaveBeenCalled();
       expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
-      expect(tx.story.delete.mock.invocationCallOrder[0]).toBeLessThan(
-        mockUploadsService.releaseContentFiles.mock.invocationCallOrder[0],
-      );
     });
 
-    it('fails, and so keeps the story, when its files cannot be settled', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValueOnce(story);
-      mockUploadsService.releaseContentFiles.mockRejectedValueOnce(
-        new Error('db down'),
-      );
+    it('fails, and so keeps the story shown, when its files cannot be marked', async () => {
+      const tx = txFor([{ profileId: 'user-1', deletedAt: null }]);
+      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
+      mockStoredFiles.detachDeleted.mockRejectedValueOnce(new Error('db down'));
 
       await expect(service.delete('story-1')).rejects.toThrow('db down');
     });
 
-    it('throws NotFoundException when story is not found', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValueOnce(null);
-
-      await expect(service.delete('missing-story')).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(mockPrismaService.story.delete).not.toHaveBeenCalled();
+    it('answers not found for a story that is missing or already deleted', async () => {
+      for (const held of [
+        [],
+        [{ profileId: 'user-1', deletedAt: new Date() }],
+      ]) {
+        const tx = txFor(held);
+        mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
+        await expect(service.delete('story-1')).rejects.toThrow(
+          NotFoundException,
+        );
+        expect(tx.story.update).not.toHaveBeenCalled();
+      }
     });
   });
 
@@ -1053,7 +1063,11 @@ describe('StoriesService', () => {
       // What moderation removed is kept six months, not in the archive.
       expect(mockPrismaService.story.findMany).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          where: { profileId: 'u1', moderationStatus: { not: 'REMOVED' } },
+          where: {
+            profileId: 'u1',
+            moderationStatus: { not: 'REMOVED' },
+            deletedAt: null,
+          },
         }),
       );
     });
@@ -1181,6 +1195,7 @@ describe('StoriesService', () => {
         where: {
           id: 's1',
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          deletedAt: null,
           scheduledStatus: 'PUBLISHED',
         },
       });

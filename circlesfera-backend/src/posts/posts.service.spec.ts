@@ -25,6 +25,7 @@ const mockStoredFiles = {
   assertOwnedBy: vi.fn().mockResolvedValue(undefined),
   record: vi.fn().mockResolvedValue(undefined),
   release: vi.fn().mockResolvedValue([]),
+  detachDeleted: vi.fn().mockResolvedValue(undefined),
 };
 
 vi.mock('../common/utils/media-duration.util.js', () => ({
@@ -1299,14 +1300,17 @@ describe('PostsService', () => {
       const where =
         mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].where;
       expect(where.hashtags).toBeDefined();
-      // The viewer's own posts are listed too, but not a removed one.
+      // The viewer's own posts are listed too, but not a removed one nor one
+      // they deleted.
       expect(where.OR[1]).toEqual({
         profileId: 'viewer-1',
         moderationStatus: { not: 'REMOVED' },
+        deletedAt: null,
       });
       expect(where.OR[0]).toMatchObject({
         visibility: Visibility.PUBLIC,
         moderationStatus: 'VISIBLE',
+        deletedAt: null,
         profile: {
           AND: [
             { privacyLevel: Visibility.PUBLIC },
@@ -1459,80 +1463,67 @@ describe('PostsService', () => {
   });
 
   describe('remove', () => {
-    it('should delete post and trigger media cleanup', async () => {
-      mockPrismaService.post.findUnique.mockResolvedValue({
-        id: 'post-1',
-        profileId: 'me',
-        media: [{ url: 'https://cdn/img.jpg' }],
-      });
+    const txFor = (held: unknown[]) => ({
+      $queryRaw: vi.fn().mockResolvedValue(held),
+      post: { update: vi.fn().mockResolvedValue({ id: 'post-1' }) },
+      postMedia: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            url: 'https://cdn/img.jpg',
+            standardUrl: 'https://cdn/img-std.jpg',
+            thumbnailUrl: null,
+          },
+        ]),
+      },
+    });
 
-      mockPrismaService.post.delete.mockResolvedValue({ id: 'post-1' });
-      mockPrismaService.comment.findMany.mockResolvedValueOnce([
-        {
-          id: 'c-1',
-          url: null,
-          standardUrl: null,
-          thumbnailUrl: null,
-          voiceUrl: '/uploads/voice.webm',
-          media: null,
-          voiceMedia: null,
-        },
-      ]);
-
-      const tx = {
-        comment: { findMany: mockPrismaService.comment.findMany },
-        post: { delete: vi.fn().mockResolvedValue({ id: 'post-1' }) },
-        $queryRaw: vi.fn().mockResolvedValue([]),
-      };
+    it("moves the post to Recently deleted and makes its files the author's only, in one transaction", async () => {
+      const tx = txFor([{ profileId: 'me', deletedAt: null }]);
       mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
+      mockPrismaService.post.delete.mockClear();
 
       await service.remove('post-1');
-      expect(tx.post.delete).toHaveBeenCalledWith({
-        where: { id: 'post-1' },
-      });
-      // Locked before its comments are read: none can be added meanwhile.
+
+      // Locked first: a restore or a second delete waits for this one.
       const [sql, id] = tx.$queryRaw.mock.calls[0];
       expect(sql.join('?')).toContain('FOR UPDATE');
       expect(id).toBe('post-1');
-      expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
-        mockPrismaService.comment.findMany.mock.invocationCallOrder[0],
-      );
-      // Its comments go with it, and so are settled with its own files, in
-      // the transaction that deletes the rows.
-      expect(mockPrismaService.comment.findMany.mock.calls[0][0].where).toEqual(
-        { postId: 'post-1' },
-      );
-      expect(mockStoredFiles.release).toHaveBeenCalledWith(
-        '',
-        ['https://cdn/img.jpg', undefined, undefined, '/uploads/voice.webm'],
-        tx,
-      );
-    });
-
-    it('fails, and so keeps the post, when its files cannot be settled', async () => {
-      mockPrismaService.post.findUnique.mockResolvedValue({
-        id: 'post-1',
-        profileId: 'me',
-        media: [],
-      });
-      mockPrismaService.$transaction.mockImplementationOnce((cb) =>
-        cb({
-          comment: { findMany: vi.fn().mockResolvedValue([]) },
-          post: { delete: vi.fn() },
-          $queryRaw: vi.fn(),
+      expect(tx.post.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'post-1' },
+          data: { deletedAt: expect.any(Date) },
         }),
       );
-      mockStoredFiles.release.mockRejectedValueOnce(new Error('db down'));
+      // Nothing is deleted: comments, likes and files wait with the post.
+      expect(mockPrismaService.post.delete).not.toHaveBeenCalled();
+      expect(mockStoredFiles.release).not.toHaveBeenCalled();
+      expect(mockStoredFiles.detachDeleted).toHaveBeenCalledWith(
+        'me',
+        ['https://cdn/img.jpg', 'https://cdn/img-std.jpg', null],
+        tx,
+      );
+      expect(
+        (mockPrismaService.$transaction.mock.calls.at(-1) as unknown[])[1],
+      ).toEqual({ timeout: 30_000, maxWait: 5_000 });
+    });
+
+    it('fails, and so keeps the post shown, when its files cannot be marked', async () => {
+      const tx = txFor([{ profileId: 'me', deletedAt: null }]);
+      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
+      mockStoredFiles.detachDeleted.mockRejectedValueOnce(new Error('db down'));
 
       await expect(service.remove('post-1')).rejects.toThrow('db down');
     });
 
-    it('throws when the post is missing', async () => {
-      mockPrismaService.post.findUnique.mockResolvedValue(null);
-      mockPrismaService.post.delete.mockClear();
-      await expect(service.remove('missing')).rejects.toThrow('Post not found');
-      expect(mockPrismaService.post.delete).not.toHaveBeenCalled();
-      expect(mockStoredFiles.release).not.toHaveBeenCalled();
+    it('answers not found for a post that is missing or already deleted', async () => {
+      for (const held of [[], [{ profileId: 'me', deletedAt: new Date() }]]) {
+        const tx = txFor(held);
+        mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
+        await expect(service.remove('post-1')).rejects.toThrow(
+          'Post not found',
+        );
+        expect(tx.post.update).not.toHaveBeenCalled();
+      }
     });
   });
 

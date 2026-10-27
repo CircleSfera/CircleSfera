@@ -376,7 +376,13 @@ describe('StoredFilesService.areReadableBy', () => {
     await expect(files.areReadableBy(['/uploads/a.jpg'], 'p-2')).resolves.toBe(
       true,
     );
-    expect(references.inUse).toHaveBeenCalledWith(['/uploads/a.jpg']);
+    // Only a shown row counts: not one in its author's Recently deleted.
+    expect(references.inUse).toHaveBeenCalledWith(
+      ['/uploads/a.jpg'],
+      undefined,
+      {},
+      true,
+    );
     expect(prisma.storedFile.updateMany).toHaveBeenCalledWith({
       where: { key: { in: ['/uploads/a.jpg'] }, detachedAt: { not: null } },
       data: { detachedAt: null },
@@ -561,5 +567,87 @@ describe('StoredFilesService, taking an expired record', () => {
       ],
       skipDuplicates: true,
     });
+  });
+});
+
+describe('StoredFilesService, content in Recently deleted', () => {
+  function detacher(owned: string[], used: string[] = []) {
+    const tx = {
+      storedFile: {
+        findMany: vi.fn().mockResolvedValue(owned.map((key) => ({ key }))),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const references = { inUse: vi.fn().mockResolvedValue(new Set(used)) };
+    const files = new StoredFilesService(
+      { storedFile: { updateMany: vi.fn() } } as unknown as PrismaService,
+      references as never,
+    );
+    return { tx, references, files };
+  }
+
+  it("marks the owner's files of a deleted post detached, in its transaction, but one another shown row still uses", async () => {
+    const { tx, references, files } = detacher(
+      ['/uploads/a.jpg', '/uploads/b.jpg'],
+      ['/uploads/b.jpg'],
+    );
+
+    await files.detachDeleted(
+      'p-1',
+      ['/uploads/a.jpg', '/uploads/b.jpg', '/uploads/a.jpg', null, ''],
+      tx as never,
+    );
+
+    // Only the owner's own, still attached.
+    expect(tx.storedFile.findMany).toHaveBeenCalledWith({
+      where: {
+        key: { in: ['/uploads/a.jpg', '/uploads/b.jpg'] },
+        profileId: 'p-1',
+        detachedAt: null,
+      },
+      select: { key: true },
+    });
+    // The deleted row itself is no use: only shown rows count.
+    expect(references.inUse).toHaveBeenCalledWith(
+      ['/uploads/a.jpg', '/uploads/b.jpg'],
+      tx,
+      {},
+      true,
+    );
+    expect(tx.storedFile.updateMany).toHaveBeenCalledWith({
+      where: { key: { in: ['/uploads/a.jpg'] }, detachedAt: null },
+      data: { detachedAt: expect.any(Date) },
+    });
+  });
+
+  it("marks nothing when there is no file, none is the owner's, or every one is still used", async () => {
+    const none = detacher([]);
+    await none.files.detachDeleted('p-1', [null], none.tx as never);
+    expect(none.tx.storedFile.findMany).not.toHaveBeenCalled();
+
+    await none.files.detachDeleted('p-1', ['/uploads/x.jpg'], none.tx as never);
+    expect(none.references.inUse).not.toHaveBeenCalled();
+    expect(none.tx.storedFile.updateMany).not.toHaveBeenCalled();
+
+    const used = detacher(['/uploads/a.jpg'], ['/uploads/a.jpg']);
+    await used.files.detachDeleted('p-1', ['/uploads/a.jpg'], used.tx as never);
+    expect(used.tx.storedFile.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("opens the files of a restored post again in the restore's transaction", async () => {
+    const { files } = detacher([]);
+    const tx = { storedFile: { updateMany: vi.fn() } };
+
+    await files.reattach(
+      ['/uploads/a.jpg', null, '/uploads/a.jpg'],
+      tx as never,
+    );
+    expect(tx.storedFile.updateMany).toHaveBeenCalledWith({
+      where: { key: { in: ['/uploads/a.jpg'] }, detachedAt: { not: null } },
+      data: { detachedAt: null },
+    });
+
+    await files.reattach([undefined, ''], tx as never);
+    expect(tx.storedFile.updateMany).toHaveBeenCalledTimes(1);
   });
 });

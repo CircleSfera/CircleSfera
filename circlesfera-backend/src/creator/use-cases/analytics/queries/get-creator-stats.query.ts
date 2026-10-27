@@ -36,12 +36,12 @@ export class GetCreatorStatsQuery {
 
     const results = await Promise.all([
       this.prisma.post.count({
-        where: { profileId, type: 'POST' },
+        where: { profileId, type: 'POST', deletedAt: null },
       }),
       this.prisma.post.count({
-        where: { profileId, type: 'FRAME' },
+        where: { profileId, type: 'FRAME', deletedAt: null },
       }),
-      this.prisma.story.count({ where: { profileId } }),
+      this.prisma.story.count({ where: { profileId, deletedAt: null } }),
       this.prisma.follow.count({
         where: { followingId: profileId, status: 'ACCEPTED' },
       }),
@@ -53,13 +53,13 @@ export class GetCreatorStatsQuery {
         },
       }),
       this.prisma.like.count({
-        where: { post: { profileId } },
+        where: { post: { profileId, deletedAt: null } },
       }),
       this.prisma.comment.count({
-        where: { post: { profileId } },
+        where: { post: { profileId, deletedAt: null } },
       }),
       this.prisma.bookmark.count({
-        where: { post: { profileId } },
+        where: { post: { profileId, deletedAt: null } },
       }),
       userId
         ? this.prisma.promotion.count({
@@ -67,16 +67,19 @@ export class GetCreatorStatsQuery {
           })
         : Promise.resolve(0),
       this.prisma.post.aggregate({
-        where: { profileId },
+        where: { profileId, deletedAt: null },
         _sum: {
           views: true,
         },
       }) as unknown as Promise<PostViewsAggregation>,
       this.prisma.storyView.count({
-        where: { story: { profileId } },
+        where: { story: { profileId, deletedAt: null } },
       }),
       this.prisma.like.findMany({
-        where: { post: { profileId }, createdAt: { gte: sevenDaysAgo } },
+        where: {
+          post: { profileId, deletedAt: null },
+          createdAt: { gte: sevenDaysAgo },
+        },
         select: { createdAt: true },
       }),
       this.prisma.follow.count({
