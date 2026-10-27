@@ -103,6 +103,22 @@ describe('DetachedFilesErasureService', () => {
     expect(storage.delete).not.toHaveBeenCalled();
   });
 
+  it('puts the record back when the second look cannot be made, and deletes nothing', async () => {
+    storedFiles.detachedBefore
+      .mockResolvedValueOnce(['/uploads/a.jpg'])
+      .mockResolvedValueOnce([]);
+    references.inUse
+      .mockResolvedValueOnce(new Set())
+      .mockRejectedValueOnce(new Error('db down'));
+
+    await expect(service.eraseExpired(now)).resolves.toBe(0);
+    expect(storedFiles.restoreClaimed).toHaveBeenCalledWith(
+      '/uploads/a.jpg',
+      claimed,
+    );
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
   it('puts the record back when the bytes cannot be deleted, for the next night', async () => {
     storedFiles.detachedBefore
       .mockResolvedValueOnce(['/uploads/a.jpg', '/uploads/b.jpg'])

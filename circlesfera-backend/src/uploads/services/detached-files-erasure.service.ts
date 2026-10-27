@@ -59,13 +59,13 @@ export class DetachedFilesErasureService {
           if (used.has(key)) continue;
           const claimed = await this.storedFiles.claimExpired(key, cutoff);
           if (!claimed) continue;
-          // A row may have been saved since the page was read: keep it.
-          if ((await this.references.inUse([key])).has(key)) {
-            await this.storedFiles.restoreClaimed(key, claimed);
-            await this.storedFiles.reattach([key]);
-            continue;
-          }
           try {
+            // A row may have been saved since the page was read: keep it.
+            if ((await this.references.inUse([key])).has(key)) {
+              await this.storedFiles.restoreClaimed(key, claimed);
+              await this.storedFiles.reattach([key]);
+              continue;
+            }
             await this.storage.delete(key);
             erased++;
           } catch (error: unknown) {
