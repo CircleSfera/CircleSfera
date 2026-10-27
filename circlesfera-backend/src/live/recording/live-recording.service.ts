@@ -213,10 +213,19 @@ export class LiveRecordingService {
           }),
         },
       );
-      await this.prisma.liveStream.updateMany({
+      const attached = await this.prisma.liveStream.updateMany({
         where: { id: streamId, recordingStatus: 'RECORDING' },
         data: { egressId: info.egressId },
       });
+      if (attached.count === 0) {
+        // The minute check gave this recording up while the recorder was
+        // still answering: the job it started is tracked by no row.
+        this.logger.warn(
+          `Recording of broadcast ${streamId} was given up before its job started: stopping it`,
+        );
+        await this.stopStrayJobs(streamId);
+        return;
+      }
       this.logger.log(`Recording broadcast ${streamId} (${info.egressId})`);
     } catch (error: unknown) {
       this.logger.error(

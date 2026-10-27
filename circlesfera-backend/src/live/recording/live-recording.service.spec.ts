@@ -211,6 +211,22 @@ describe('LiveRecordingService', () => {
       });
     });
 
+    it('stops the job when the check gave the recording up before the recorder answered', async () => {
+      // No row takes the job's id any more: it was marked failed meanwhile.
+      prisma.liveStream.updateMany.mockImplementation(
+        async (args: { data: { egressId?: string } }) => ({
+          count: args.data.egressId ? 0 : 1,
+        }),
+      );
+      sdk.listEgress.mockResolvedValue([{ egressId: 'EG_1' }]);
+      fs.writeFileSync(rawFile(), 'raw');
+
+      await service.start('s1');
+
+      expect(sdk.stopEgress).toHaveBeenCalledWith('EG_1');
+      expect(fs.existsSync(rawFile())).toBe(false);
+    });
+
     it('still marks the recording failed when stray jobs cannot be listed', async () => {
       sdk.startRoomCompositeEgress.mockRejectedValue(new Error('timed out'));
       sdk.listEgress.mockRejectedValue(new Error('unreachable'));
