@@ -522,6 +522,109 @@ describe('MonetizationWebhookService', () => {
         expect(alerted('Message Unlock Refund Failed')).toHaveLength(0);
       });
 
+      it.each(['COMPLETED', 'FAILED'])(
+        'refunds nothing and asks staff to decide when the payment is already %s',
+        async (status) => {
+          const logger = (service as any).logger;
+          vi.spyOn(logger, 'warn').mockImplementation(() => {});
+          prisma.transaction.findUnique.mockResolvedValue({
+            id: 'tx_earlier',
+            status,
+          });
+
+          await expect(
+            service.handleCheckoutSessionCompleted(session),
+          ).resolves.toBeUndefined();
+
+          expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+          expect(prisma.transaction.create).not.toHaveBeenCalled();
+          expect(prisma.transaction.update).not.toHaveBeenCalled();
+          expect(prisma.monetization.upsert).not.toHaveBeenCalled();
+          expect(alerted('Message Unlock Refund Review')).toEqual([
+            [
+              'payment.alert',
+              expect.objectContaining({
+                description: expect.stringMatching(
+                  new RegExp(`msg_gone.*cs_msg_gone.*tx_earlier.*${status}`),
+                ),
+              }),
+            ],
+          ]);
+        },
+      );
+
+      it.each([
+        'amount_too_large',
+        'charge_disputed',
+        'refund_disputed_payment',
+        'charge_not_refundable',
+      ])(
+        'answers the notice and asks staff to finish by hand when the provider refuses the full refund (%s)',
+        async (code) => {
+          stripe.refundDestinationCharge.mockRejectedValue(
+            Object.assign(new Error('refused'), { code }),
+          );
+
+          await expect(
+            service.handleCheckoutSessionCompleted(session),
+          ).resolves.toBeUndefined();
+
+          expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+          // Kept pending, never counted as the creator's, with a note for staff.
+          expect(prisma.transaction.update).toHaveBeenCalledTimes(1);
+          expect(prisma.transaction.update).toHaveBeenCalledWith({
+            where: { id: 'tx_gone' },
+            data: {
+              description: expect.stringContaining(`refund by hand`),
+            },
+          });
+          expect(prisma.monetization.upsert).not.toHaveBeenCalled();
+          expect(alerted('Message Unlock Refund Needed')).toHaveLength(1);
+          expect(alerted('Message Unlock Refund Failed')).toHaveLength(0);
+          expect(alerted('Message Unlock Refunded')).toHaveLength(0);
+        },
+      );
+
+      it('ends refunded, once, when the provider tells of the refund before it is marked', async () => {
+        let stored: { id: string; status: string; type: string } | null = null;
+        prisma.transaction.findUnique.mockImplementation(() =>
+          Promise.resolve(stored && { ...stored }),
+        );
+        prisma.transaction.create.mockImplementation(() => {
+          stored = {
+            id: 'tx_gone',
+            status: 'PENDING',
+            type: 'DIRECT_MESSAGE_UNLOCK',
+          };
+          return Promise.resolve({ ...stored });
+        });
+        prisma.transaction.update.mockImplementation(({ data }: any) => {
+          stored = { ...(stored as any), ...data };
+          return Promise.resolve({ ...stored });
+        });
+        // The provider's refund notice arrives while the payment is still
+        // pending, before this handler marks it.
+        stripe.refundDestinationCharge.mockImplementation(async () => {
+          await service.handleChargeRefundedOrDisputed({
+            payment_intent: 'pi_msg_gone',
+          });
+          return { id: 're_1' };
+        });
+
+        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session);
+        await service.handleChargeRefundedOrDisputed({
+          payment_intent: 'pi_msg_gone',
+        });
+
+        expect(stored).toEqual(expect.objectContaining({ status: 'REFUNDED' }));
+        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+        expect(prisma.transaction.create).toHaveBeenCalledTimes(1);
+        expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.storyUnlock.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.messageUnlock.deleteMany).not.toHaveBeenCalled();
+      });
+
       it('asks staff to refund by hand when the checkout names no payment', async () => {
         const logger = (service as any).logger;
         const error = vi.spyOn(logger, 'error').mockImplementation(() => {});

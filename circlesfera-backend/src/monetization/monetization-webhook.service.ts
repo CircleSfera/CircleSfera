@@ -66,6 +66,16 @@ const CLOSED_DISPUTE_STATUSES: ReadonlySet<string> = new Set([
   'warning_closed',
 ]);
 
+// Answers of the payment provider that refuse a full refund for good: more
+// than what is left of the charge (part was refunded by hand), or a charge
+// that is disputed or cannot be refunded. Retrying never changes them.
+const REFUND_NEEDS_A_PERSON_CODES: ReadonlySet<string> = new Set([
+  'amount_too_large',
+  'charge_disputed',
+  'refund_disputed_payment',
+  'charge_not_refundable',
+]);
+
 const stripeId = (
   value: string | { id: string } | null | undefined,
 ): string | undefined => (typeof value === 'string' ? value : value?.id);
@@ -525,6 +535,19 @@ export class MonetizationWebhookService {
     if (payment?.status === 'REFUNDED') {
       return;
     }
+    // A payment recorded another way, such as an unlock that was paid to
+    // the creator before the message was erased: refunding it now is a
+    // decision for a person, not for a replayed notice.
+    if (payment && payment.status !== 'PENDING') {
+      this.logger.warn(
+        `Checkout ${session.id} for message ${messageId}, which no longer exists, matches Transaction ${payment.id} in state ${payment.status}; not refunded`,
+      );
+      alert(
+        'Message Unlock Refund Review',
+        `Message ${messageId} no longer exists; checkout ${session.id} matches Transaction ${payment.id} in state ${payment.status}, so it was not refunded. Decide by hand`,
+      );
+      return;
+    }
     if (!payment) {
       // Either person may have been erased since: the payment is kept
       // without them rather than lost.
@@ -567,13 +590,37 @@ export class MonetizationWebhookService {
         },
       });
     } catch (err: unknown) {
+      const code =
+        typeof err === 'object' && err !== null && 'code' in err
+          ? (err as { code: unknown }).code
+          : undefined;
       // Refunded already, by staff or by an earlier attempt whose key the
-      // provider no longer keeps: the money is back with the buyer.
-      const alreadyRefunded =
-        typeof err === 'object' &&
-        err !== null &&
-        'code' in err &&
-        (err as { code: unknown }).code === 'charge_already_refunded';
+      // provider no longer keeps: the money is back with the buyer, and the
+      // payment is marked refunded below.
+      const alreadyRefunded = code === 'charge_already_refunded';
+      if (
+        !alreadyRefunded &&
+        typeof code === 'string' &&
+        REFUND_NEEDS_A_PERSON_CODES.has(code)
+      ) {
+        // The provider will never take a full refund of this payment: part
+        // of it was refunded by hand, or it is disputed. Asking again would
+        // fail the same way, so the notice is answered and a person
+        // finishes it. The payment stays PENDING, never counted as the
+        // creator's; the provider's refund notice marks it refunded once
+        // the rest is given back.
+        await this.prisma.transaction.update({
+          where: { id: payment.id },
+          data: {
+            description: `Direct Message Unlock, the message no longer exists; full refund refused (${code}), refund by hand (Intent: ${paymentIntentId})`,
+          },
+        });
+        alert(
+          'Message Unlock Refund Needed',
+          `Message ${messageId} no longer exists; the provider refused the full refund of checkout ${session.id} (${code}). Refund the rest to the buyer by hand`,
+        );
+        return;
+      }
       if (!alreadyRefunded) {
         alert(
           'Message Unlock Refund Failed',
