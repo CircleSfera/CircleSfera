@@ -276,6 +276,10 @@ describe('MonetizationService', () => {
       );
 
       expect(res.url).toBe('https://checkout.stripe.test/unlock');
+      // Only the checkout of a paid message is shortened.
+      expect(
+        mockStripeService.createCheckoutSession.mock.calls[0][0],
+      ).not.toHaveProperty('expires_at');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
           success_url:
@@ -599,13 +603,20 @@ describe('MonetizationService', () => {
         url: 'https://checkout.stripe.test/message',
       });
 
+      const before = Math.floor(Date.now() / 1000);
       const res = await service.createMessageUnlockSession(
         'u-1',
         'm-1',
         'http://return',
       );
+      const after = Math.floor(Date.now() / 1000);
 
       expect(res.url).toBe('https://checkout.stripe.test/message');
+      // The checkout closes after about 30 minutes, the shortest Stripe
+      // allows, instead of its default of a day.
+      const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
+      expect(session.expires_at).toBeGreaterThanOrEqual(before + 30 * 60);
+      expect(session.expires_at).toBeLessThanOrEqual(after + 31 * 60);
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
           payment_intent_data: {

@@ -287,6 +287,35 @@ describe('StripeService refund of a checkout', () => {
   });
 });
 
+describe('StripeService refund of a payment to a creator', () => {
+  it('refunds it in full, taking back the transfer and the fee, once per key', async () => {
+    const { service } = serviceWith();
+    client.refunds.create.mockResolvedValue({ id: 're_9' });
+
+    await expect(
+      service.refundDestinationCharge({
+        paymentIntentId: 'pi_9',
+        amountInCents: 499,
+        idempotencyKey: 'key-9',
+        metadata: { reason: 'gone' },
+      }),
+    ).resolves.toEqual({ id: 're_9' });
+
+    expect(client.refunds.create).toHaveBeenCalledTimes(1);
+    expect(client.refunds.create).toHaveBeenCalledWith(
+      {
+        payment_intent: 'pi_9',
+        amount: 499,
+        reason: 'requested_by_customer',
+        reverse_transfer: true,
+        refund_application_fee: true,
+        metadata: { reason: 'gone' },
+      },
+      { idempotencyKey: 'key-9' },
+    );
+  });
+});
+
 describe('StripeService notices of the provider', () => {
   const payload = Buffer.from('{}');
 

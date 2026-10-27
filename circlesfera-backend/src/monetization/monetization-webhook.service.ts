@@ -13,6 +13,7 @@ import {
   type ConnectAccountCompanyFields,
   deriveConnectAccountFlags,
   isVerifiedCompanyAccount,
+  StripeService,
 } from '../common/stripe/stripe.service.js';
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import type { Notice } from '../notifications/notice-copy.js';
@@ -75,6 +76,7 @@ export class MonetizationWebhookService {
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(StripeService) private readonly stripeService: StripeService,
     @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -286,6 +288,23 @@ export class MonetizationWebhookService {
           : session.payment_intent?.id || session.id;
 
       if (clientReferenceId && messageId && creatorId) {
+        // The message can be gone by the time the buyer pays: its sender's
+        // account was erased while the checkout was open, taking it along.
+        // Nothing can be unlocked then, so the buyer gets the money back.
+        const message = await this.prisma.message.findUnique({
+          where: { id: messageId },
+          select: { id: true },
+        });
+        if (!message) {
+          await this.refundUnlockOfMissingMessage(session, {
+            buyerId: clientReferenceId,
+            creatorId,
+            messageId,
+            amount,
+          });
+          return;
+        }
+
         await this.prisma.$transaction(async (tx) => {
           await tx.messageUnlock.upsert({
             where: {
@@ -458,6 +477,123 @@ export class MonetizationWebhookService {
       // VIP Subscriptions removed in Phase 11
       this.logger.debug('Legacy VIP Subscription event ignored.');
     }
+  }
+
+  // Records the payment for a message that no longer exists and gives it
+  // back to the buyer in full. The creator earns nothing from it. A replay
+  // of the event finds the payment already refunded and does nothing; a
+  // retry after a failed refund asks the provider again with the same key,
+  // so the buyer is never refunded twice.
+  private async refundUnlockOfMissingMessage(
+    session: Stripe.Checkout.Session,
+    params: {
+      buyerId: string;
+      creatorId: string;
+      messageId: string;
+      amount: number;
+    },
+  ): Promise<void> {
+    const { buyerId, creatorId, messageId, amount } = params;
+    const currency = (session.currency || 'eur').toUpperCase();
+    const paymentIntentId = stripeId(session.payment_intent);
+    const alert = (eventType: string, description: string) => {
+      const payload: PaymentAlertEvent['payload'] = {
+        eventType,
+        amount,
+        currency,
+        description,
+        userId: buyerId,
+      };
+      this.eventEmitter?.emit('payment.alert', payload);
+    };
+
+    if (!paymentIntentId) {
+      this.logger.error(
+        `Checkout ${session.id} paid for message ${messageId}, which no longer exists, and names no payment to refund`,
+      );
+      alert(
+        'Message Unlock Refund Needed',
+        `Message ${messageId} no longer exists and checkout ${session.id} names no payment: refund the buyer by hand`,
+      );
+      return;
+    }
+
+    let payment = await this.prisma.transaction.findUnique({
+      where: { stripePaymentIntentId: paymentIntentId },
+      select: { id: true, status: true },
+    });
+    if (payment?.status === 'REFUNDED') {
+      return;
+    }
+    if (!payment) {
+      // Either person may have been erased since: the payment is kept
+      // without them rather than lost.
+      const [buyer, creator] = await Promise.all([
+        this.prisma.user.findUnique({
+          where: { id: buyerId },
+          select: { id: true },
+        }),
+        this.prisma.user.findUnique({
+          where: { id: creatorId },
+          select: { id: true },
+        }),
+      ]);
+      payment = await this.prisma.transaction.create({
+        data: {
+          type: 'DIRECT_MESSAGE_UNLOCK',
+          amount,
+          currency,
+          senderId: buyer?.id ?? null,
+          receiverId: creator?.id ?? null,
+          messageId: null,
+          stripePaymentIntentId: paymentIntentId,
+          // Refunded below; until then the payment is not the creator's.
+          status: 'PENDING',
+          description: `Direct Message Unlock refunded, the message no longer exists (Intent: ${paymentIntentId})`,
+        },
+        select: { id: true, status: true },
+      });
+    }
+
+    try {
+      await this.stripeService.refundDestinationCharge({
+        paymentIntentId,
+        amountInCents: amount,
+        idempotencyKey: `message-unlock-refund-${session.id}`,
+        metadata: {
+          type: 'DIRECT_MESSAGE_UNLOCK',
+          reason: 'message_no_longer_exists',
+          checkoutSessionId: session.id,
+        },
+      });
+    } catch (err: unknown) {
+      // Refunded already, by staff or by an earlier attempt whose key the
+      // provider no longer keeps: the money is back with the buyer.
+      const alreadyRefunded =
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code: unknown }).code === 'charge_already_refunded';
+      if (!alreadyRefunded) {
+        alert(
+          'Message Unlock Refund Failed',
+          `Message ${messageId} no longer exists; refunding checkout ${session.id} failed and is retried. Refund the buyer by hand if it keeps failing`,
+        );
+        throw err;
+      }
+    }
+
+    await this.prisma.transaction.update({
+      where: { id: payment.id },
+      data: { status: 'REFUNDED' },
+    });
+    this.logger.log(
+      `Refunded checkout ${session.id}: message ${messageId} no longer exists`,
+    );
+    alert(
+      'Message Unlock Refunded',
+      `Message ${messageId} no longer exists; buyer ${buyerId} refunded in full, creator ${creatorId} earns nothing (checkout ${session.id})`,
+    );
   }
 
   async handleCheckoutSessionExpired(
