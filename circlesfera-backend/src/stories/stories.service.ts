@@ -29,6 +29,7 @@ import {
   toKeysetPage,
 } from '../common/pagination/keyset.util.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
@@ -669,6 +670,8 @@ export class StoriesService {
     const stories = await this.prisma.story.findMany({
       where: {
         profileId,
+        // What moderation removed is kept for six months, not shown.
+        ...NOT_REMOVED,
       },
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },

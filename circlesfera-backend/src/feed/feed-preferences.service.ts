@@ -10,6 +10,7 @@ import {
   type KeysetCursor,
   keysetBeforeDesc,
 } from '../common/pagination/keyset.util.js';
+import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // The settings read each list a page at a time, so every entry can be
@@ -169,7 +170,7 @@ export class FeedPreferencesService {
   async listPreferences(profileId: string) {
     const [hiddenPosts, hiddenAuthors, mutedKeywords] = await Promise.all([
       this.prisma.feedHiddenPost.findMany({
-        where: { profileId },
+        where: { profileId, post: NOT_REMOVED },
         select: HIDDEN_POST_SELECT,
         orderBy: { createdAt: 'desc' },
         take: 100,
@@ -210,8 +211,9 @@ export class FeedPreferencesService {
     const orderBy = [{ createdAt: 'desc' }, { id: 'desc' }] as const;
 
     if (list === 'hidden-posts') {
+      // A post moderation removed is kept for its appeal, shown nowhere.
       const rows = await this.prisma.feedHiddenPost.findMany({
-        where,
+        where: { ...where, post: NOT_REMOVED },
         select: HIDDEN_POST_SELECT,
         orderBy: [...orderBy],
         take,

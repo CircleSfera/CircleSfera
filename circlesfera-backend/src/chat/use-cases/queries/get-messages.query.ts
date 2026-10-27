@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { MediaStatus, Message, Participant } from '@prisma/client';
+import { isRemoved } from '../../../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../../../common/selects/public-profile.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
@@ -119,6 +120,9 @@ export class GetMessagesQuery {
       m.voiceUrl = m.voiceMedia?.url ?? m.voiceUrl;
       delete m.media;
       delete m.voiceMedia;
+      // A shared post that moderation removed is kept for its appeal and
+      // shown to nobody: the message stays, without the post.
+      if (m.post && isRemoved(m.post)) m.post = null;
 
       if (m.isLocked && profileId && m.senderId !== profileId) {
         const isUnlocked = m.messageUnlocks && m.messageUnlocks.length > 0;

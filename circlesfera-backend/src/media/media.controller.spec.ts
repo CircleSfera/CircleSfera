@@ -20,6 +20,7 @@ import {
 } from '../uploads/interfaces/storage-provider.interface.js';
 import { MediaController } from './media.controller.js';
 import { MediaAuthService } from './media-auth.service.js';
+import { MediaStaffViewerService } from './media-staff-viewer.service.js';
 
 const MEDIA_FOLDER = 'video_teaser_http_spec';
 const mediaDir = path.resolve(process.cwd(), 'uploads', MEDIA_FOLDER);
@@ -99,6 +100,7 @@ describe('MediaController (HTTP integration)', () => {
   const mockMediaAuthService = {
     isAccessAllowed: vi.fn().mockResolvedValue(true),
   };
+  const mockStaffViewer = { isContentStaff: vi.fn() };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -106,6 +108,7 @@ describe('MediaController (HTTP integration)', () => {
       providers: [
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: MediaAuthService, useValue: mockMediaAuthService },
+        { provide: MediaStaffViewerService, useValue: mockStaffViewer },
         { provide: STORAGE_PROVIDER, useValue: mockStorageProvider },
       ],
       guards: [{ guard: JwtOptionalGuard, mode: 'optional' }],
@@ -346,7 +349,27 @@ describe('MediaController (HTTP integration)', () => {
         '/uploads/posts/img.jpg',
         null,
         null,
+        expect.any(Function),
       );
+    });
+
+    it('asks whether the request is staff only through the check it hands over', async () => {
+      mockStaffViewer.isContentStaff.mockResolvedValueOnce(true);
+      mockMediaAuthService.isAccessAllowed.mockImplementationOnce(
+        async (
+          _uri: string,
+          _user: string | null,
+          _profile: string | null,
+          isStaff: () => Promise<boolean>,
+        ) => isStaff(),
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/media/auth-check')
+        .set('x-original-uri', '/uploads/removed.jpg')
+        .expect(204);
+
+      expect(mockStaffViewer.isContentStaff).toHaveBeenCalledTimes(1);
     });
 
     it('returns 403 when access is denied', async () => {

@@ -1,7 +1,10 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
+import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+const SHOWN_BOOKMARKS = { post: NOT_REMOVED };
 
 // Service for bookmark collections (CRUD). Each collection groups bookmarked posts
 // And auto-derives a cover image from the first bookmark.
@@ -32,7 +35,10 @@ export class CollectionsService {
     const collections = await this.prisma.collection.findMany({
       where: { profileId },
       include: {
+        // Saved posts that moderation removed are kept for their appeal,
+        // shown nowhere: not the cover, not counted.
         bookmarks: {
+          where: SHOWN_BOOKMARKS,
           take: 1,
           orderBy: { createdAt: 'desc' },
           include: {
@@ -44,7 +50,7 @@ export class CollectionsService {
           },
         },
         _count: {
-          select: { bookmarks: true },
+          select: { bookmarks: { where: SHOWN_BOOKMARKS } },
         },
       },
     });
@@ -76,6 +82,7 @@ export class CollectionsService {
       where: { id },
       include: {
         bookmarks: {
+          where: SHOWN_BOOKMARKS,
           include: {
             post: true,
           },

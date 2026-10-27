@@ -402,6 +402,22 @@ describe('CommentsService', () => {
       expect(result.meta.total).toBe(1);
     });
 
+    it('leaves out what moderation removed or hid, replies included, and does not count the removed', async () => {
+      mockPrismaService.comment.findMany.mockResolvedValue([]);
+      mockPrismaService.comment.count.mockResolvedValue(0);
+
+      for (const cursor of [undefined, 'not-a-cursor']) {
+        await service.findByPost('post-1', { page: 1, limit: 10, cursor });
+        const args = mockPrismaService.comment.findMany.mock.calls.at(-1)?.[0];
+        const shown = { in: ['VISIBLE', 'FLAGGED'] };
+        expect(args.where.moderationStatus).toEqual(shown);
+        expect(args.include.replies.where.moderationStatus).toEqual(shown);
+        expect(mockPrismaService.comment.count).toHaveBeenLastCalledWith({
+          where: { postId: 'post-1', moderationStatus: { not: 'REMOVED' } },
+        });
+      }
+    });
+
     it('should use default page and limit when not specified in pagination', async () => {
       mockPrismaService.comment.findMany.mockResolvedValue([{ id: '1' }]);
       mockPrismaService.comment.count.mockResolvedValue(1);
@@ -536,6 +552,20 @@ describe('CommentsService', () => {
       );
     });
 
+    it('answers a comment moderation removed as not found, and likes nothing', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValue({
+        id: 'c-1',
+        postId: 'post-1',
+        profileId: 'author-1',
+        moderationStatus: 'REMOVED',
+      });
+
+      await expect(service.likeComment('c-1', 'p-1')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.commentLike.create).not.toHaveBeenCalled();
+    });
+
     it('rejects liking a comment across a block without creating anything', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({
         id: 'c-1',
@@ -642,6 +672,20 @@ describe('CommentsService', () => {
 
     it('rejects editing a non-existent comment', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.update('post-1', 'c-1', 'author-1', { content: 'edited' }),
+      ).rejects.toThrow('Comment not found');
+      expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects editing a comment moderation removed, also by its author', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValueOnce({
+        id: 'c-1',
+        postId: 'post-1',
+        profileId: 'author-1',
+        moderationStatus: 'REMOVED',
+      });
 
       await expect(
         service.update('post-1', 'c-1', 'author-1', { content: 'edited' }),

@@ -267,15 +267,16 @@ export class AIProcessor extends WorkerHost {
       moderationNote: string;
     },
   ): Promise<string | null> {
+    // The six months to appeal hidden or removed content count from now.
+    const data =
+      updateData.moderationStatus === 'HIDDEN' ||
+      updateData.moderationStatus === 'REMOVED'
+        ? { ...updateData, moderatedAt: new Date() }
+        : updateData;
     if (targetType === 'POST') {
       const res = await this.prisma.post.update({
         where: { id: targetId },
-        // The six months to appeal a hidden or removed post count from now.
-        data:
-          updateData.moderationStatus === 'HIDDEN' ||
-          updateData.moderationStatus === 'REMOVED'
-            ? { ...updateData, moderatedAt: new Date() }
-            : updateData,
+        data,
         select: { profileId: true },
       });
       return res.profileId;
@@ -283,14 +284,14 @@ export class AIProcessor extends WorkerHost {
     if (targetType === 'STORY') {
       const res = await this.prisma.story.update({
         where: { id: targetId },
-        data: updateData,
+        data,
         select: { profileId: true },
       });
       return res.profileId;
     }
     const res = await this.prisma.comment.update({
       where: { id: targetId },
-      data: updateData,
+      data,
       select: { profileId: true },
     });
     return res.profileId;

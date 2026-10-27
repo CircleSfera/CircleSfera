@@ -15,6 +15,10 @@ import {
 } from '../common/dto/pagination.dto.js';
 import { getBlockedProfileIds } from '../common/policies/block.policy.js';
 import {
+  NOT_REMOVED,
+  SHOWN_COMMENTS_COUNT,
+} from '../common/policies/removed-content.policy.js';
+import {
   isTestViewerProfile,
   viewerAudienceWhere,
 } from '../common/policies/test-account.policy.js';
@@ -56,7 +60,7 @@ export class FeedService {
       media: { include: { media: true } },
       poll: { select: { id: true } },
       qnaBox: { select: { id: true } },
-      _count: { select: { likes: true, comments: true } },
+      _count: { select: { likes: true, comments: SHOWN_COMMENTS_COUNT } },
       likes: profileId ? { where: { profileId }, take: 1 } : false,
     };
   }
@@ -875,6 +879,8 @@ export class FeedService {
     const promotedPostsRaw = await this.prisma.post.findMany({
       where: {
         id: { in: promotedPostIds },
+        // A promoted post that moderation removed is shown to nobody.
+        ...NOT_REMOVED,
         deletedAt: null,
         visibility: 'PUBLIC',
         author: {

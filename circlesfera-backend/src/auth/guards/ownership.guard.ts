@@ -52,6 +52,8 @@ function getPrismaDelegate(
   }
 }
 
+const MODERATED_MODELS = new Set(['Post', 'Story', 'Comment']);
+
 @Injectable()
 export class OwnershipGuard implements CanActivate {
   constructor(
@@ -108,12 +110,19 @@ export class OwnershipGuard implements CanActivate {
         ? user.userId
         : user.profileId;
 
+    // A post, story or comment removed by moderation is kept for its
+    // appeal, out of its author's reach: they can neither change nor delete
+    // it, and it answers as missing.
+    const moderated = MODERATED_MODELS.has(model);
     const resource = await delegate.findUnique({
       where: { id: resourceId },
-      select: { [ownerField]: true },
+      select: {
+        [ownerField]: true,
+        ...(moderated ? { moderationStatus: true } : {}),
+      },
     });
 
-    if (!resource) {
+    if (!resource || (moderated && resource.moderationStatus === 'REMOVED')) {
       throw new NotFoundException(`${model} not found`);
     }
 

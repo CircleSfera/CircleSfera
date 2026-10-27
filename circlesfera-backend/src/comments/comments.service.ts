@@ -12,6 +12,10 @@ import { Queue } from 'bullmq';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import {
+  isRemoved,
+  NOT_REMOVED,
+} from '../common/policies/removed-content.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import {
   buildMediaCreateInput,
@@ -273,22 +277,26 @@ export class CommentsService {
 
     // Comments by the other audience are left out, replies included.
     const audience = await viewerAudienceWhere(this.prisma, currentProfileId);
+    const shown = {
+      in: ['VISIBLE', 'FLAGGED'] as ('VISIBLE' | 'FLAGGED')[],
+    };
     const baseWhere = {
       postId,
       parentId: null,
       profile: audience,
-      moderationStatus: {
-        in: ['VISIBLE', 'FLAGGED'] as ('VISIBLE' | 'FLAGGED')[],
-      },
+      moderationStatus: shown,
     };
+    // The count leaves out what moderation removed, replies included.
+    const countWhere = { postId, ...NOT_REMOVED };
     const include = {
       profile: { select: profileSelect },
       likes: likeInclude,
       media: true,
       voiceMedia: true,
       _count: { select: { likes: true } },
+      // Replies are shown as the comments they answer are.
       replies: {
-        where: { profile: audience },
+        where: { profile: audience, moderationStatus: shown },
         orderBy: { createdAt: 'asc' as const },
         include: {
           profile: { select: profileSelect },
@@ -332,7 +340,7 @@ export class CommentsService {
           take: limit + 1,
           include,
         }),
-        this.prisma.comment.count({ where: { postId } }),
+        this.prisma.comment.count({ where: countWhere }),
       ]);
 
       const hasMore = comments.length > limit;
@@ -358,11 +366,7 @@ export class CommentsService {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         include,
       }),
-      this.prisma.comment.count({
-        where: {
-          postId,
-        },
-      }),
+      this.prisma.comment.count({ where: countWhere }),
     ]);
 
     const last = comments[comments.length - 1];
@@ -427,7 +431,9 @@ export class CommentsService {
       },
     });
 
-    if (!comment || comment.postId !== postId) {
+    // A comment removed by moderation is kept for six months, out of its
+    // author's reach.
+    if (!comment || comment.postId !== postId || isRemoved(comment)) {
       throw AppException.NotFound(
         ErrorCode.COMMENT_NOT_FOUND,
         'Comment not found',
@@ -521,7 +527,9 @@ export class CommentsService {
       where: { id: commentId },
       include: { profile: true },
     });
-    if (!comment) throw new NotFoundException('Comment not found');
+    if (!comment || isRemoved(comment)) {
+      throw new NotFoundException('Comment not found');
+    }
     await assertCanAccessPost(this.prisma, comment.postId, profileId);
     if (await isBlockedEitherWay(this.prisma, profileId, comment.profileId)) {
       throw new NotFoundException('Comment not found');

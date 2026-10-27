@@ -408,7 +408,12 @@ describe('AnalyticsService', () => {
 
       expect(mockPrismaService.post.findUnique).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          where: { id: 'p-1', profileId: 'prof-other' },
+          where: {
+            id: 'p-1',
+            profileId: 'prof-other',
+            // Nor one that moderation removed.
+            moderationStatus: { not: 'REMOVED' },
+          },
         }),
       );
       expect(mockPrismaService.postView.findMany).not.toHaveBeenCalled();

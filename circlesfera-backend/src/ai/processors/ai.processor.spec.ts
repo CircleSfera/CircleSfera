@@ -745,6 +745,8 @@ describe('AIProcessor', () => {
           data: {
             moderationStatus: ModerationStatus.HIDDEN,
             moderationNote: expect.stringContaining(cat),
+            // The six months to appeal count from now, as for a post.
+            moderatedAt: expect.any(Date),
           },
           select: { profileId: true },
         });

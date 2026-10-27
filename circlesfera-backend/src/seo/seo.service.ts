@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type Prisma, Visibility } from '@prisma/client';
+import {
+  NOT_REMOVED,
+  SHOWN_COMMENTS_COUNT,
+} from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // Public, unauthenticated surfaces (sitemap, Open Graph) may only describe
@@ -287,7 +291,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       where: { id: postId, ...PUBLIC_POST_WHERE },
       include: {
         profile: true,
-        _count: { select: { likes: true, comments: true } },
+        _count: { select: { likes: true, comments: SHOWN_COMMENTS_COUNT } },
       },
     });
 
@@ -340,7 +344,13 @@ Sitemap: ${baseUrl}/sitemap.xml
         ...PUBLIC_PROFILE_WHERE,
       },
       include: {
-        _count: { select: { followers: true, following: true, posts: true } },
+        _count: {
+          select: {
+            followers: true,
+            following: true,
+            posts: { where: NOT_REMOVED },
+          },
+        },
       },
     });
 

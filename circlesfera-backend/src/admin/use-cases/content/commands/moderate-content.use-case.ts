@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { $Enums, AdminAction } from '@prisma/client';
+import { setModerationStatus } from '../../../../common/policies/moderation-decision.js';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
@@ -36,41 +37,16 @@ export class ModerateContentUseCase {
       throw new BadRequestException(`Invalid status: ${status}`);
     }
 
-    const data = {
-      moderationStatus: status as $Enums.ModerationStatus,
-      moderationNote: note,
-    };
-
-    let result: {
-      id: string;
-      profileId: string;
-      moderationStatus: $Enums.ModerationStatus;
-    };
-    let authorProfileId: string | undefined;
-    if (targetType === 'POST') {
-      result = await this.prisma.post.update({
-        where: { id: targetId },
-        // The six months to appeal a hidden or removed post count from now.
-        data:
-          status === 'VISIBLE' ? data : { ...data, moderatedAt: new Date() },
-        select: { id: true, profileId: true, moderationStatus: true },
-      });
-      authorProfileId = result.profileId;
-    } else if (targetType === 'STORY') {
-      result = await this.prisma.story.update({
-        where: { id: targetId },
-        data,
-        select: { id: true, profileId: true, moderationStatus: true },
-      });
-      authorProfileId = result.profileId;
-    } else {
-      result = await this.prisma.comment.update({
-        where: { id: targetId },
-        data,
-        select: { id: true, profileId: true, moderationStatus: true },
-      });
-      authorProfileId = result.profileId;
-    }
+    // Removing keeps the row: it is hidden from everyone, its author
+    // included, until the six months to appeal are over.
+    const result = await setModerationStatus(
+      this.prisma,
+      targetType,
+      targetId,
+      status,
+      note,
+    );
+    const authorProfileId = result.profileId;
 
     const action =
       status === 'VISIBLE'

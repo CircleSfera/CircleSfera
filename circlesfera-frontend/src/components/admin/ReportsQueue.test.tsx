@@ -618,17 +618,17 @@ describe('ReportsTab, the rest of the queue', () => {
       show();
       const pane = await open('1');
 
-      fireEvent.click(within(pane).getByRole('button', { name: 'Delete' }));
+      fireEvent.click(within(pane).getByRole('button', { name: 'Remove' }));
       expect(
         within(dialog()).getByText(
-          'Are you sure you want to permanently delete this content?',
+          'It is hidden from everyone, its author included, and erased after six months. The author of a post can appeal in that time.',
         ),
       ).toBeInTheDocument();
       fireEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       expect(api[call]).not.toHaveBeenCalled();
 
-      fireEvent.click(within(pane).getByRole('button', { name: 'Delete' }));
+      fireEvent.click(within(pane).getByRole('button', { name: 'Remove' }));
       fireEvent.click(
         within(dialog()).getByRole('button', { name: 'Confirm' }),
       );
@@ -640,7 +640,7 @@ describe('ReportsTab, the rest of the queue', () => {
           internalNotes: 'Seen before',
         }),
       );
-      expect(onToast).toHaveBeenCalledWith('Content deleted', 'success');
+      expect(onToast).toHaveBeenCalledWith('Content removed', 'success');
       await waitFor(() =>
         expect(onToast).toHaveBeenCalledWith('Report updated', 'success'),
       );
@@ -652,11 +652,11 @@ describe('ReportsTab, the rest of the queue', () => {
     show();
     const pane = await open('1');
 
-    fireEvent.click(within(pane).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(pane).getByRole('button', { name: 'Remove' }));
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Failed to delete', 'error'),
+      expect(onToast).toHaveBeenCalledWith('Failed to remove', 'error'),
     );
     expect(api.updateReport).not.toHaveBeenCalled();
     expect(within(detail()).getByText(reference('1'))).toBeInTheDocument();

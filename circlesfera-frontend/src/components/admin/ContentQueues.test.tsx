@@ -321,10 +321,10 @@ describe('PostsTab', () => {
     fireEvent.click(boxes[2]);
     // Choosing a post does not open it: no row is the open one.
     expect(document.querySelector('[aria-current="true"]')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Delete the chosen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove the chosen' }));
     fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
-        name: 'Delete',
+        name: 'Remove',
       }),
     );
 
@@ -332,7 +332,7 @@ describe('PostsTab', () => {
       expect(api.bulkDeletePosts).toHaveBeenCalledWith(['a', 'c']),
     );
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('2 deleted', 'success'),
+      expect(onToast).toHaveBeenCalledWith('2 removed', 'success'),
     );
     await waitFor(() =>
       expect(api.getPosts.mock.calls.length).toBeGreaterThan(asked),
@@ -414,18 +414,18 @@ describe('PostsTab', () => {
     fireEvent.click(rowOf('Caption a'));
 
     fireEvent.click(
-      within(rowOf('Caption a')).getByRole('button', { name: 'Delete' }),
+      within(rowOf('Caption a')).getByRole('button', { name: 'Remove' }),
     );
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Delete this post?')).toBeInTheDocument();
+    expect(within(dialog).getByText('Remove this post?')).toBeInTheDocument();
     expect(api.deletePost).not.toHaveBeenCalled();
 
     api.getPosts.mockResolvedValue(list([]) as never);
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
 
     await waitFor(() => expect(api.deletePost).toHaveBeenCalledWith('a'));
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Post deleted', 'success'),
+      expect(onToast).toHaveBeenCalledWith('Post removed', 'success'),
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(await screen.findByText('No posts')).toBeInTheDocument();
@@ -440,7 +440,7 @@ describe('PostsTab', () => {
     await screen.findByText('Caption a');
 
     fireEvent.click(
-      within(rowOf('Caption a')).getByRole('button', { name: 'Delete' }),
+      within(rowOf('Caption a')).getByRole('button', { name: 'Remove' }),
     );
     fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
@@ -453,15 +453,15 @@ describe('PostsTab', () => {
     expect(api.deletePost).not.toHaveBeenCalled();
 
     fireEvent.click(
-      within(rowOf('Caption a')).getByRole('button', { name: 'Delete' }),
+      within(rowOf('Caption a')).getByRole('button', { name: 'Remove' }),
     );
     fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
-        name: 'Delete',
+        name: 'Remove',
       }),
     );
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Failed to delete post', 'error'),
+      expect(onToast).toHaveBeenCalledWith('Failed to remove post', 'error'),
     );
     expect(screen.getByText('Caption a')).toBeInTheDocument();
   });
@@ -699,10 +699,10 @@ describe('CommentsTab', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
     expect(screen.getByText('2 chosen')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Delete the chosen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove the chosen' }));
     fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
-        name: 'Delete',
+        name: 'Remove',
       }),
     );
 
@@ -710,7 +710,7 @@ describe('CommentsTab', () => {
       expect(api.bulkDeleteComments).toHaveBeenCalledWith(['a', 'b']),
     );
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('2 deleted', 'success'),
+      expect(onToast).toHaveBeenCalledWith('2 removed', 'success'),
     );
     expect(api.deleteComment).not.toHaveBeenCalled();
   });
@@ -741,17 +741,17 @@ describe('CommentsTab', () => {
     fireEvent.click(rowOf('No content'));
     expect(within(detail()).getByText('No content')).toBeInTheDocument();
 
-    fireEvent.click(within(detail()).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(detail()).getByRole('button', { name: 'Remove' }));
     const dialog = await screen.findByRole('dialog');
     expect(
-      within(dialog).getByText('Delete this comment?'),
+      within(dialog).getByText('Remove this comment?'),
     ).toBeInTheDocument();
     api.getComments.mockResolvedValue(list([]) as never);
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
 
     await waitFor(() => expect(api.deleteComment).toHaveBeenCalledWith('a'));
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Comment deleted', 'success'),
+      expect(onToast).toHaveBeenCalledWith('Comment removed', 'success'),
     );
     expect(api.updateModerationStatus).not.toHaveBeenCalled();
     expect(screen.queryByText('Comment detail')).not.toBeInTheDocument();
@@ -763,7 +763,7 @@ describe('CommentsTab', () => {
     await screen.findByText('Comment a');
 
     fireEvent.click(
-      within(rowOf('Comment a')).getByRole('button', { name: 'Delete' }),
+      within(rowOf('Comment a')).getByRole('button', { name: 'Remove' }),
     );
     fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
@@ -792,15 +792,15 @@ describe('CommentsTab', () => {
     );
 
     fireEvent.click(
-      within(rowOf('Comment a')).getByRole('button', { name: 'Delete' }),
+      within(rowOf('Comment a')).getByRole('button', { name: 'Remove' }),
     );
     fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
-        name: 'Delete',
+        name: 'Remove',
       }),
     );
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Failed to delete comment', 'error'),
+      expect(onToast).toHaveBeenCalledWith('Failed to remove comment', 'error'),
     );
     expect(screen.getByText('Comment a')).toBeInTheDocument();
   });
@@ -1040,10 +1040,10 @@ describe('StoriesTab', () => {
     await screen.findAllByText('@teller_a');
 
     fireEvent.click(
-      within(card('teller_a')).getByRole('button', { name: 'Delete' }),
+      within(card('teller_a')).getByRole('button', { name: 'Remove' }),
     );
     let dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Delete this story?')).toBeInTheDocument();
+    expect(within(dialog).getByText('Remove this story?')).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() =>
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
@@ -1051,14 +1051,14 @@ describe('StoriesTab', () => {
     expect(api.deleteStory).not.toHaveBeenCalled();
 
     fireEvent.click(
-      within(card('teller_a')).getByRole('button', { name: 'Delete' }),
+      within(card('teller_a')).getByRole('button', { name: 'Remove' }),
     );
     dialog = await screen.findByRole('dialog');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
 
     await waitFor(() => expect(api.deleteStory).toHaveBeenCalledWith('a'));
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Story deleted', 'success'),
+      expect(onToast).toHaveBeenCalledWith('Story removed', 'success'),
     );
     expect(api.getStories).toHaveBeenCalledTimes(2);
   });
@@ -1081,15 +1081,15 @@ describe('StoriesTab', () => {
     );
 
     fireEvent.click(
-      within(card('teller_a')).getByRole('button', { name: 'Delete' }),
+      within(card('teller_a')).getByRole('button', { name: 'Remove' }),
     );
     fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
-        name: 'Delete',
+        name: 'Remove',
       }),
     );
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Failed to delete story', 'error'),
+      expect(onToast).toHaveBeenCalledWith('Failed to remove story', 'error'),
     );
     expect(api.getStories).toHaveBeenCalledTimes(1);
   });

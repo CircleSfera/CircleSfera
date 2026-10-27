@@ -2,11 +2,16 @@ import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import type { CreateHighlightDto } from './dto/create-highlight.dto.js';
 import type { UpdateHighlightDto } from './dto/update-highlight.dto.js';
+
+// A story removed by moderation is kept for six months and shown in no
+// highlight, its author's included.
+const SHOWN_STORIES = { story: NOT_REMOVED };
 
 // Service for story highlights: permanent curated groups of expired stories.
 @Injectable()
@@ -38,6 +43,7 @@ export class HighlightsService {
       },
       include: {
         stories: {
+          where: SHOWN_STORIES,
           include: {
             story: true,
           },
@@ -58,6 +64,7 @@ export class HighlightsService {
       where: { profileId },
       include: {
         stories: {
+          where: SHOWN_STORIES,
           include: {
             story: true,
           },
@@ -84,6 +91,7 @@ export class HighlightsService {
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },
         stories: {
+          where: SHOWN_STORIES,
           include: {
             story: true,
           },
@@ -206,6 +214,7 @@ export class HighlightsService {
       },
       include: {
         stories: {
+          where: SHOWN_STORIES,
           include: {
             story: true,
           },

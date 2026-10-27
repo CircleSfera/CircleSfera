@@ -68,6 +68,36 @@ describe('GetMessagesQuery', () => {
     expect(result[0].content).toBe('decrypted_enc_hello');
   });
 
+  it('keeps a message that shares a post moderation removed, without the post', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt: null });
+    mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.message.findMany.mockResolvedValue([
+      {
+        id: 'msg-2',
+        content: null,
+        senderId: 'prof-1',
+        isLocked: false,
+        postId: 'post-hidden',
+        post: { id: 'post-hidden', moderationStatus: 'HIDDEN' },
+      },
+      {
+        id: 'msg-1',
+        content: null,
+        senderId: 'prof-1',
+        isLocked: false,
+        postId: 'post-removed',
+        post: { id: 'post-removed', moderationStatus: 'REMOVED' },
+      },
+    ]);
+
+    const result = await query.execute('conv-1', 50, 'prof-1');
+
+    expect(result[0]).toMatchObject({ postId: 'post-removed', post: null });
+    expect(result[1]).toMatchObject({
+      post: { id: 'post-hidden', moderationStatus: 'HIDDEN' },
+    });
+  });
+
   it('masks locked message content and media if viewer has not unlocked it', async () => {
     mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt: null });
     mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-viewer' });
