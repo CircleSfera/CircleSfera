@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import pg from 'pg';
-import { afterAll, vi } from 'vitest';
+import { afterAll, beforeAll, vi } from 'vitest';
 import '../src/auth/passkey/disable-experimental-webcrypto-pqc.js';
 
 // Silence NestJS chatty log levels to keep the e2e output readable.
@@ -24,15 +24,23 @@ type BusyAwareClient = {
 };
 type QueryArg = string | { text?: string } | undefined;
 
+// Whether the client is running or holding a query. It reads fields of
+// `pg` that are not part of its public API: the check below proves they
+// still mean this, so that a rename fails loudly instead of letting every
+// spec pass unchecked.
+function isBusy(client: BusyAwareClient): boolean {
+  return (
+    client._getActiveQuery?.() != null || (client._queryQueue?.length ?? 0) > 0
+  );
+}
+
 const originalQuery = pg.Client.prototype.query;
 const queriesWhileBusy: string[] = [];
 pg.Client.prototype.query = function (
   this: BusyAwareClient,
   ...args: unknown[]
 ) {
-  const busy =
-    this._getActiveQuery?.() != null || (this._queryQueue?.length ?? 0) > 0;
-  if (busy) {
+  if (isBusy(this)) {
     const first = args[0] as QueryArg;
     const sql = typeof first === 'string' ? first : first?.text;
     queriesWhileBusy.push(
@@ -41,6 +49,33 @@ pg.Client.prototype.query = function (
   }
   return (originalQuery as (...a: unknown[]) => unknown).apply(this, args);
 } as typeof originalQuery;
+
+// Proves the check against the installed `pg`, on a real connection: idle
+// before, busy while a query runs, idle after. It never sends a second query
+// meanwhile, so it does not itself do what it guards against.
+beforeAll(async () => {
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    const idleBefore = !isBusy(client as BusyAwareClient);
+    const running = (
+      originalQuery as (this: pg.Client, sql: string) => Promise<unknown>
+    ).call(client, 'SELECT pg_sleep(0.05)');
+    const busyDuring = isBusy(client as BusyAwareClient);
+    await running;
+    const idleAfter = !isBusy(client as BusyAwareClient);
+    if (!(idleBefore && busyDuring && idleAfter)) {
+      throw new Error(
+        'The check for queries sent to a busy database connection no longer ' +
+          "works with the installed pg: it reads pg's _getActiveQuery and " +
+          '_queryQueue, which this version changed. Update isBusy in ' +
+          'test/setup.e2e.ts.',
+      );
+    }
+  } finally {
+    await client.end();
+  }
+});
 
 afterAll(() => {
   pg.Client.prototype.query = originalQuery;
