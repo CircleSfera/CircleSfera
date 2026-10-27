@@ -16,6 +16,7 @@ import HighlightBubble from '../components/HighlightBubble';
 import { ProfileSkeleton, Skeleton } from '../components/LoadingStates';
 import PostGrid from '../components/profile/PostGrid';
 import ProfileHeader from '../components/profile/ProfileHeader';
+import ProfileLives from '../components/profile/ProfileLives';
 import ProfileTabs, { type TabType } from '../components/profile/ProfileTabs';
 import { profileTabFromParam } from '../components/profile/profileTabUtils';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
@@ -670,6 +671,10 @@ export default function Profile() {
                   hasMore={!!hasNextFrames}
                   isLoadingMore={isFetchingNextFrames}
                 />
+              )}
+
+              {activeTab === 'lives' && (
+                <ProfileLives profileId={profile.data.id} isMe={isMe} />
               )}
 
               {activeTab === 'saved' && renderSavedContent()}

@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { Bookmark, Clapperboard, Grid, UserSquare2 } from 'lucide-react';
+import { Bookmark, Clapperboard, Grid, Radio, UserSquare2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-export type TabType = 'posts' | 'frames' | 'saved' | 'tagged';
+export type TabType = 'posts' | 'frames' | 'lives' | 'saved' | 'tagged';
 
 interface ProfileTabsProps {
   activeTab: TabType;
@@ -14,6 +14,7 @@ interface ProfileTabsProps {
 const TABS = [
   { id: 'posts', icon: Grid, onlyMine: false },
   { id: 'frames', icon: Clapperboard, onlyMine: false },
+  { id: 'lives', icon: Radio, onlyMine: false },
   { id: 'saved', icon: Bookmark, onlyMine: true },
   { id: 'tagged', icon: UserSquare2, onlyMine: false },
 ] as const;

@@ -1,6 +1,12 @@
 import type { TabType } from './ProfileTabs';
 
-export const PROFILE_TABS: TabType[] = ['posts', 'frames', 'saved', 'tagged'];
+export const PROFILE_TABS: TabType[] = [
+  'posts',
+  'frames',
+  'lives',
+  'saved',
+  'tagged',
+];
 
 export function profileTabFromParam(
   tab: string | null,

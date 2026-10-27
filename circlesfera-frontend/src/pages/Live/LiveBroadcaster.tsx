@@ -46,6 +46,7 @@ import LivePinnedComment, {
 import LiveQnAPanel, {
   type LiveQuestion,
 } from '../../components/live/LiveQnAPanel';
+import LiveRecordingChoice from '../../components/live/LiveRecordingChoice';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
@@ -481,6 +482,7 @@ export default function LiveBroadcaster() {
               </li>
             ))}
           </ul>
+          {streamId && <LiveRecordingChoice streamId={streamId} />}
           <button
             type="button"
             onClick={() => navigate(-1)}
