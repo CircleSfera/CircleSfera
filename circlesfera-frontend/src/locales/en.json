@@ -5446,6 +5446,7 @@
       "GIFT_NOT_FOUND": "That gift isn't available.",
       "CANNOT_RECONNECT_GUEST": "You can't rejoin as a guest.",
       "LIVE_STREAMS_DISABLED": "Live streams are turned off right now.",
+      "RECORDING_NOT_READY": "This recording isn't ready.",
       "MAINTENANCE_MODE": "CircleSfera is under maintenance. Try again shortly.",
       "REGISTRATION_CLOSED": "Sign-ups are closed right now.",
       "CONTENT_POSTING_DISABLED": "Posting is turned off right now.",

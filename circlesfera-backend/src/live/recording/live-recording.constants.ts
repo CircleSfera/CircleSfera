@@ -27,6 +27,9 @@ export const RECORDING_ENCODING = {
   keyFrameIntervalSec: 2,
 } as const;
 
+/** How long a recording the host neither published nor deleted is kept. */
+export const RECORDING_KEPT_DAYS = 30;
+
 /** The recorder's folder, as the recorder itself names it. */
 export const RECORDER_FOLDER = '/out';
 

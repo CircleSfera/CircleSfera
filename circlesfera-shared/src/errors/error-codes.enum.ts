@@ -94,6 +94,8 @@ export enum ErrorCode {
   GIFT_NOT_FOUND = 'GIFT_NOT_FOUND',
   CANNOT_RECONNECT_GUEST = 'CANNOT_RECONNECT_GUEST',
   LIVE_STREAMS_DISABLED = 'LIVE_STREAMS_DISABLED',
+  // The broadcast is still on, or its recording is not ready (or gone).
+  RECORDING_NOT_READY = 'RECORDING_NOT_READY',
 
   // Sign-in
   // The account already has as many passkeys as it may register; details
