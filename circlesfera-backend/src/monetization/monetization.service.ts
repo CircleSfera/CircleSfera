@@ -335,7 +335,14 @@ export class MonetizationService {
       include: { sender: { include: { user: true } } },
     })) as any;
 
-    if (!message?.isLocked || !message.priceCents) {
+    // A message its sender deleted cannot be bought, as one that is gone.
+    if (!message || message.isDeleted) {
+      throw AppException.NotFound(
+        ErrorCode.MESSAGE_NOT_FOUND,
+        'Message not found',
+      );
+    }
+    if (!message.isLocked || !message.priceCents) {
       throw AppException.BadRequest(
         ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
         'This message is not locked or has no price',

@@ -298,14 +298,15 @@ export class MonetizationWebhookService {
           : session.payment_intent?.id || session.id;
 
       if (clientReferenceId && messageId && creatorId) {
-        // The message can be gone by the time the buyer pays: its sender's
-        // account was erased while the checkout was open, taking it along.
-        // Nothing can be unlocked then, so the buyer gets the money back.
+        // The message can be gone by the time the buyer pays: its sender
+        // deleted it, or their account was erased and took it along, while
+        // the checkout was open. Nothing can be unlocked then, so the buyer
+        // gets the money back.
         const message = await this.prisma.message.findUnique({
           where: { id: messageId },
-          select: { id: true },
+          select: { id: true, isDeleted: true },
         });
-        if (!message) {
+        if (!message || message.isDeleted) {
           await this.refundUnlockOfMissingMessage(session, {
             buyerId: clientReferenceId,
             creatorId,
@@ -489,7 +490,7 @@ export class MonetizationWebhookService {
     }
   }
 
-  // Records the payment for a message that no longer exists and gives it
+  // Records the payment for a message that is deleted or gone and gives it
   // back to the buyer in full. The creator earns nothing from it. A replay
   // of the event finds the payment already refunded and does nothing; a
   // retry after a failed refund asks the provider again with the same key,
@@ -519,11 +520,11 @@ export class MonetizationWebhookService {
 
     if (!paymentIntentId) {
       this.logger.error(
-        `Checkout ${session.id} paid for message ${messageId}, which no longer exists, and names no payment to refund`,
+        `Checkout ${session.id} paid for message ${messageId}, which is deleted or gone, and names no payment to refund`,
       );
       alert(
         'Message Unlock Refund Needed',
-        `Message ${messageId} no longer exists and checkout ${session.id} names no payment: refund the buyer by hand`,
+        `Message ${messageId} is deleted or gone and checkout ${session.id} names no payment: refund the buyer by hand`,
       );
       return;
     }
@@ -540,11 +541,11 @@ export class MonetizationWebhookService {
     // decision for a person, not for a replayed notice.
     if (payment && payment.status !== 'PENDING') {
       this.logger.warn(
-        `Checkout ${session.id} for message ${messageId}, which no longer exists, matches Transaction ${payment.id} in state ${payment.status}; not refunded`,
+        `Checkout ${session.id} for message ${messageId}, which is deleted or gone, matches Transaction ${payment.id} in state ${payment.status}; not refunded`,
       );
       alert(
         'Message Unlock Refund Review',
-        `Message ${messageId} no longer exists; checkout ${session.id} matches Transaction ${payment.id} in state ${payment.status}, so it was not refunded. Decide by hand`,
+        `Message ${messageId} is deleted or gone; checkout ${session.id} matches Transaction ${payment.id} in state ${payment.status}, so it was not refunded. Decide by hand`,
       );
       return;
     }
@@ -572,7 +573,7 @@ export class MonetizationWebhookService {
           stripePaymentIntentId: paymentIntentId,
           // Refunded below; until then the payment is not the creator's.
           status: 'PENDING',
-          description: `Direct Message Unlock refunded, the message no longer exists (Intent: ${paymentIntentId})`,
+          description: `Direct Message Unlock refunded, the message is deleted or gone (Intent: ${paymentIntentId})`,
         },
         select: { id: true, status: true },
       });
@@ -612,19 +613,19 @@ export class MonetizationWebhookService {
         await this.prisma.transaction.update({
           where: { id: payment.id },
           data: {
-            description: `Direct Message Unlock, the message no longer exists; full refund refused (${code}), refund by hand (Intent: ${paymentIntentId})`,
+            description: `Direct Message Unlock, the message is deleted or gone; full refund refused (${code}), refund by hand (Intent: ${paymentIntentId})`,
           },
         });
         alert(
           'Message Unlock Refund Needed',
-          `Message ${messageId} no longer exists; the provider refused the full refund of checkout ${session.id} (${code}). Refund the rest to the buyer by hand`,
+          `Message ${messageId} is deleted or gone; the provider refused the full refund of checkout ${session.id} (${code}). Refund the rest to the buyer by hand`,
         );
         return;
       }
       if (!alreadyRefunded) {
         alert(
           'Message Unlock Refund Failed',
-          `Message ${messageId} no longer exists; refunding checkout ${session.id} failed and is retried. Refund the buyer by hand if it keeps failing`,
+          `Message ${messageId} is deleted or gone; refunding checkout ${session.id} failed and is retried. Refund the buyer by hand if it keeps failing`,
         );
         throw err;
       }
@@ -635,11 +636,11 @@ export class MonetizationWebhookService {
       data: { status: 'REFUNDED' },
     });
     this.logger.log(
-      `Refunded checkout ${session.id}: message ${messageId} no longer exists`,
+      `Refunded checkout ${session.id}: message ${messageId} is deleted or gone`,
     );
     alert(
       'Message Unlock Refunded',
-      `Message ${messageId} no longer exists; buyer ${buyerId} refunded in full, creator ${creatorId} earns nothing (checkout ${session.id})`,
+      `Message ${messageId} is deleted or gone; buyer ${buyerId} refunded in full, creator ${creatorId} earns nothing (checkout ${session.id})`,
     );
   }
 

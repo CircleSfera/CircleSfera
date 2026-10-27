@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
@@ -461,12 +462,28 @@ describe('MonetizationService', () => {
   });
 
   describe('createMessageUnlockSession', () => {
-    it('should throw if message is not found or not locked or has no price', async () => {
-      mockPrismaService.message.findUnique.mockResolvedValueOnce(null);
-      await expect(
-        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow('This message is not locked or has no price');
+    it.each([
+      ['is gone', null],
+      [
+        'was deleted by its sender',
+        { id: 'm-1', isLocked: true, priceCents: 500, isDeleted: true },
+      ],
+    ])(
+      'answers not found, and starts no checkout, when the message %s',
+      async (_case, message) => {
+        mockPrismaService.message.findUnique.mockResolvedValueOnce(message);
 
+        await expect(
+          service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
+        ).rejects.toMatchObject({
+          errorCode: ErrorCode.MESSAGE_NOT_FOUND,
+          status: 404,
+        });
+        expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should throw if message is not locked or has no price', async () => {
       mockPrismaService.message.findUnique.mockResolvedValueOnce({
         id: 'm-1',
         isLocked: false,

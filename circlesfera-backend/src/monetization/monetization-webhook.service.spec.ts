@@ -343,7 +343,7 @@ describe('MonetizationWebhookService', () => {
       expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
     });
 
-    describe('a paid message that no longer exists', () => {
+    describe('a paid message that is deleted or gone', () => {
       const session = {
         id: 'cs_msg_gone',
         client_reference_id: 'buyer1',
@@ -384,55 +384,63 @@ describe('MonetizationWebhookService', () => {
         );
       });
 
-      it('records the payment, refunds it in full once, pays the creator nothing and tells staff', async () => {
-        await expect(
-          service.handleCheckoutSessionCompleted(session),
-        ).resolves.toBeUndefined();
+      it.each([
+        ['is gone', null],
+        ['was deleted by its sender', { id: 'msg_gone', isDeleted: true }],
+      ])(
+        'records the payment, refunds it in full once, pays the creator nothing and tells staff when the message %s',
+        async (_case, message) => {
+          prisma.message.findUnique.mockResolvedValue(message);
 
-        expect(prisma.message.findUnique).toHaveBeenCalledWith({
-          where: { id: 'msg_gone' },
-          select: { id: true },
-        });
-        expect(prisma.transaction.create).toHaveBeenCalledWith({
-          data: {
-            type: 'DIRECT_MESSAGE_UNLOCK',
-            amount: 400,
-            currency: 'EUR',
-            senderId: 'buyer1',
-            receiverId: 'creator1',
-            messageId: null,
-            stripePaymentIntentId: 'pi_msg_gone',
-            status: 'PENDING',
-            description: expect.stringContaining('no longer exists'),
-          },
-          select: { id: true, status: true },
-        });
-        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
-        expect(stripe.refundDestinationCharge).toHaveBeenCalledWith(
-          refundAsked,
-        );
-        expect(prisma.transaction.update).toHaveBeenCalledWith({
-          where: { id: 'tx_gone' },
-          data: { status: 'REFUNDED' },
-        });
-        expect(prisma.$transaction).not.toHaveBeenCalled();
-        expect(prisma.messageUnlock.upsert).not.toHaveBeenCalled();
-        expect(prisma.monetization.upsert).not.toHaveBeenCalled();
-        expect(eventEmitter.emit).not.toHaveBeenCalledWith(
-          'notification.create',
-          expect.anything(),
-        );
-        expect(alerted('Message Unlock Refunded')).toEqual([
-          [
-            'payment.alert',
-            expect.objectContaining({
+          await expect(
+            service.handleCheckoutSessionCompleted(session),
+          ).resolves.toBeUndefined();
+
+          expect(prisma.message.findUnique).toHaveBeenCalledWith({
+            where: { id: 'msg_gone' },
+            select: { id: true, isDeleted: true },
+          });
+          expect(prisma.transaction.create).toHaveBeenCalledWith({
+            data: {
+              type: 'DIRECT_MESSAGE_UNLOCK',
               amount: 400,
               currency: 'EUR',
-              userId: 'buyer1',
-            }),
-          ],
-        ]);
-      });
+              senderId: 'buyer1',
+              receiverId: 'creator1',
+              messageId: null,
+              stripePaymentIntentId: 'pi_msg_gone',
+              status: 'PENDING',
+              description: expect.stringContaining('is deleted or gone'),
+            },
+            select: { id: true, status: true },
+          });
+          expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+          expect(stripe.refundDestinationCharge).toHaveBeenCalledWith(
+            refundAsked,
+          );
+          expect(prisma.transaction.update).toHaveBeenCalledWith({
+            where: { id: 'tx_gone' },
+            data: { status: 'REFUNDED' },
+          });
+          expect(prisma.$transaction).not.toHaveBeenCalled();
+          expect(prisma.messageUnlock.upsert).not.toHaveBeenCalled();
+          expect(prisma.monetization.upsert).not.toHaveBeenCalled();
+          expect(eventEmitter.emit).not.toHaveBeenCalledWith(
+            'notification.create',
+            expect.anything(),
+          );
+          expect(alerted('Message Unlock Refunded')).toEqual([
+            [
+              'payment.alert',
+              expect.objectContaining({
+                amount: 400,
+                currency: 'EUR',
+                userId: 'buyer1',
+              }),
+            ],
+          ]);
+        },
+      );
 
       it('refunds once when the same event arrives again', async () => {
         let stored: { id: string; status: string } | null = null;
@@ -643,6 +651,25 @@ describe('MonetizationWebhookService', () => {
         expect(alerted('Message Unlock Refund Needed')).toEqual([
           ['payment.alert', expect.objectContaining({ currency: 'EUR' })],
         ]);
+      });
+
+      it('follows the same rules for a deleted message: one refund per payment, earlier payments left to staff', async () => {
+        prisma.message.findUnique.mockResolvedValue({
+          id: 'msg_gone',
+          isDeleted: true,
+        });
+        vi.spyOn((service as any).logger, 'warn').mockImplementation(() => {});
+        prisma.transaction.findUnique
+          .mockResolvedValueOnce({ id: 'tx_gone', status: 'REFUNDED' })
+          .mockResolvedValueOnce({ id: 'tx_earlier', status: 'COMPLETED' });
+
+        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session);
+
+        expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+        expect(prisma.transaction.create).not.toHaveBeenCalled();
+        expect(prisma.messageUnlock.upsert).not.toHaveBeenCalled();
+        expect(alerted('Message Unlock Refund Review')).toHaveLength(1);
       });
 
       it('refunds without telling staff when nobody listens for alerts', async () => {
