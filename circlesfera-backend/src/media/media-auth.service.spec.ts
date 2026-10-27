@@ -43,6 +43,19 @@ describe('MediaAuthService', () => {
     editProject: {
       findMany: vi.fn(),
     },
+    liveStream: {
+      findMany: vi.fn(),
+    },
+    block: {
+      findFirst: vi.fn(),
+    },
+    profile: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+    },
+    user: {
+      findMany: vi.fn(),
+    },
     follow: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -65,6 +78,10 @@ describe('MediaAuthService', () => {
     mockPrismaService.comment.findMany.mockResolvedValue([]);
     mockPrismaService.editProject.findMany.mockResolvedValue([]);
     mockPrismaService.collection.findMany.mockResolvedValue([]);
+    mockPrismaService.liveStream.findMany.mockResolvedValue([]);
+    mockPrismaService.block.findFirst.mockResolvedValue(null);
+    mockPrismaService.profile.findMany.mockResolvedValue([]);
+    mockPrismaService.user.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -1105,6 +1122,84 @@ describe('MediaAuthService', () => {
       expect(
         await service.isAccessAllowed('/uploads/x.jpg', null, null, staff),
       ).toBe(false);
+    });
+  });
+
+  describe('Live recordings', () => {
+    const replay = (over: Record<string, unknown> = {}) => ({
+      hostId: 'host-1',
+      publishedAt: new Date('2026-10-01T00:00:00Z'),
+      endedByStaff: false,
+      ...over,
+    });
+    const segment = '/uploads/0f8e7d6c-5b4a-4c3d-8e2f-1a0b9c8d7e6f/720p_001.ts';
+
+    it('looks a recording up by its stream folder', async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([replay()]);
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        privacyLevel: 'PUBLIC',
+      });
+      expect(await service.isAccessAllowed(segment, null, null)).toBe(true);
+      expect(mockPrismaService.liveStream.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: expect.arrayContaining([
+            {
+              replayUrl: {
+                contains: '0f8e7d6c-5b4a-4c3d-8e2f-1a0b9c8d7e6f/',
+              },
+            },
+          ]),
+        },
+        select: { hostId: true, publishedAt: true, endedByStaff: true },
+      });
+    });
+
+    it('keeps a recording not published for its host only', async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([
+        replay({ publishedAt: null }),
+      ]);
+      expect(await service.isAccessAllowed(segment, 'u-1', 'host-1')).toBe(
+        true,
+      );
+      expect(await service.isAccessAllowed(segment, 'u-2', 'viewer-1')).toBe(
+        false,
+      );
+    });
+
+    it('gives the recording of a broadcast ended by staff to no one, not even its host', async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([
+        replay({ endedByStaff: true }),
+      ]);
+      expect(await service.isAccessAllowed(segment, 'u-1', 'host-1')).toBe(
+        false,
+      );
+    });
+
+    it('hides a published recording across a block', async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([replay()]);
+      mockPrismaService.block.findFirst.mockResolvedValue({ id: 'b-1' });
+      expect(await service.isAccessAllowed(segment, 'u-2', 'viewer-1')).toBe(
+        false,
+      );
+    });
+
+    it("keeps a private Profile's published recording for its accepted followers", async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([replay()]);
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        privacyLevel: 'PRIVATE',
+      });
+      mockPrismaService.follow.findUnique.mockResolvedValueOnce({
+        status: 'ACCEPTED',
+      });
+      expect(await service.isAccessAllowed(segment, 'u-2', 'viewer-1')).toBe(
+        true,
+      );
+      mockPrismaService.follow.findUnique.mockResolvedValueOnce({
+        status: 'PENDING',
+      });
+      expect(await service.isAccessAllowed(segment, 'u-2', 'viewer-1')).toBe(
+        false,
+      );
     });
   });
 });

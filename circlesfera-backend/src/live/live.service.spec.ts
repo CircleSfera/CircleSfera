@@ -41,6 +41,8 @@ describe('LiveService', () => {
   const mockRecording = {
     start: vi.fn(async () => undefined),
     stop: vi.fn(async () => undefined),
+    startCoHost: vi.fn(async () => undefined),
+    stopCoHost: vi.fn(async () => undefined),
   };
 
   const mockConfigService = {
@@ -101,7 +103,7 @@ describe('LiveService', () => {
       });
       expect(result.stream).toEqual(mockStream);
       expect(typeof result.token).toBe('string');
-      expect(mockRecording.start).toHaveBeenCalledWith('stream-1');
+      expect(mockRecording.start).toHaveBeenCalledWith('stream-1', 'user-1');
     });
   });
 
@@ -264,6 +266,32 @@ describe('LiveService', () => {
         }),
       );
       expect(result).toEqual({ success: true, coHostId: coHostProfileId });
+      expect(mockRecording.stopCoHost).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['stops recording the co-host it replaces', 'earlier-cohost', 1],
+      ['keeps recording the same co-host invited again', coHostProfileId, 0],
+    ])('%s', async (_name, previous, stops) => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        hostId: hostProfileId,
+        status: 'LIVE',
+        coHostId: previous,
+        title: 'Live!',
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: coHostProfileId,
+        username: 'cohost_user',
+      });
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      mockPrismaService.liveStream.update.mockResolvedValue({});
+
+      await service.inviteCoHost('stream-1', hostProfileId, {
+        profileId: coHostProfileId,
+      });
+
+      expect(mockRecording.stopCoHost).toHaveBeenCalledTimes(stops);
     });
   });
 
@@ -349,6 +377,10 @@ describe('LiveService', () => {
       expect(result).toHaveProperty('token');
       expect(typeof result.token).toBe('string');
       expect(result.streamId).toBe('stream-1');
+      expect(mockRecording.startCoHost).toHaveBeenCalledWith(
+        'stream-1',
+        'user-2',
+      );
     });
   });
 
@@ -386,7 +418,21 @@ describe('LiveService', () => {
       expect(mockServer.emit).toHaveBeenCalledWith('live:cohost_removed', {
         streamId: 'stream-1',
       });
+      expect(mockRecording.stopCoHost).toHaveBeenCalledWith('stream-1');
       expect(result).toEqual({ success: true });
+    });
+
+    it('stops no recording when there was no co-host', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        hostId: hostProfileId,
+        coHostId: null,
+      });
+      mockPrismaService.liveStream.update.mockResolvedValue({});
+
+      await service.removeCoHost('stream-1', hostProfileId);
+
+      expect(mockRecording.stopCoHost).not.toHaveBeenCalled();
     });
   });
 });

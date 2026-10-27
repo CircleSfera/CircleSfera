@@ -262,6 +262,27 @@ export class UploadsService {
     );
   }
 
+  /** Makes the replay of a recorded broadcast, once per broadcast. */
+  async enqueueLiveReplay(streamId: string): Promise<void> {
+    await this.videoQueue.add(
+      'live-replay',
+      { streamId },
+      { jobId: queueJobId('live-replay', streamId), ...VIDEO_JOB_RETRIES },
+    );
+  }
+
+  /**
+   * Asks again for the replay of a recording waiting for one when no job
+   * for it is kept. A job kept, done or failed, is left as it is.
+   */
+  async recoverLiveReplay(streamId: string): Promise<boolean> {
+    if (await this.videoQueue.getJob(queueJobId('live-replay', streamId))) {
+      return false;
+    }
+    await this.enqueueLiveReplay(streamId);
+    return true;
+  }
+
   /**
    * Gives a story's join another chance when it was lost: its job is gone,
    * or a server that did not know the job turned it down (as one still on
