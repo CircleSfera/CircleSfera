@@ -617,6 +617,43 @@ describe('UsersService', () => {
       expect(mockOutboxService.triggerImmediatePublish).toHaveBeenCalled();
     });
 
+    it('eraseNow queues the hard delete at once, with its own job id, through the same transaction', async () => {
+      mockPrismaService.user.update.mockResolvedValue({});
+
+      const at = await service.eraseNow('user-now');
+
+      expect(at).toBeInstanceOf(Date);
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-now' },
+        data: {
+          isActive: false,
+          deletedAt: expect.any(Date),
+          scheduledDeletionAt: at,
+        },
+      });
+      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-now' },
+      });
+      // Not delete-<id>: a deletion the person scheduled earlier, still
+      // delayed under that id, must not hold this one back.
+      expect(mockOutboxService.enqueue).toHaveBeenCalledWith(
+        mockPrismaService,
+        expect.objectContaining({
+          queueName: 'users-processing',
+          eventName: 'hard-delete-user',
+          payload: { userId: 'user-now' },
+          options: expect.objectContaining({
+            delay: 0,
+            jobId: 'delete-now-user-now',
+          }),
+        }),
+      );
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'user.session.terminate',
+        { userId: 'user-now', reason: 'Account deleted by staff' },
+      );
+    });
+
     it('cancelScheduledDeletion throws error when user not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       await expect(

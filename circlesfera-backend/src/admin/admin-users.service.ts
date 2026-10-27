@@ -535,7 +535,11 @@ export class AdminUsersService {
       userId,
       'Full account deletion',
     );
-    return this.prisma.user.delete({ where: { id: userId } });
+    // Through the account erasure, never a direct delete of the row: that
+    // left the account's files public, its Stripe subscriptions running and
+    // its groups without an admin.
+    const scheduledDeletionAt = await this.usersService.eraseNow(userId);
+    return { success: true, scheduledDeletionAt };
   }
 
   async suspendUser(
