@@ -210,6 +210,8 @@ export class MediaAuthService {
           select: {
             postId: true,
             moderationStatus: true,
+            // A reply under a removed comment is not shown either.
+            parent: { select: { moderationStatus: true } },
             post: { select: POST_ACCESS_SELECT },
           },
         }),
@@ -238,7 +240,10 @@ export class MediaAuthService {
     const removedPostMedia = postMedia.filter((media) => isRemoved(media.post));
     const removedStories = story.filter((item) => isRemoved(item));
     const removedComments = comment.filter(
-      (item) => isRemoved(item) || isRemoved(item.post),
+      (item) =>
+        isRemoved(item) ||
+        isRemoved(item.post) ||
+        (!!item.parent && isRemoved(item.parent)),
     );
     if (
       removedPostMedia.length + removedStories.length + removedComments.length >

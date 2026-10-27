@@ -21,6 +21,7 @@ import {
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { MediaProcessorService } from './media-processor.service.js';
 import { MediaSignatureValidator } from './media-signature.validator.js';
+import type { IgnoredRows } from './services/media-references.service.js';
 import { StoredFilesService } from './services/stored-files.service.js';
 import { VOICE_NOTE_MIME, VoiceNoteConverter } from './voice-note.converter.js';
 
@@ -347,6 +348,29 @@ export class UploadsService {
       await this.deleteFile(key);
     }
     return deletable;
+  }
+
+  /**
+   * Deletes the files of content about to be erased, before its rows go:
+   * only its author's own, and only those no other row names (the rows being
+   * erased, `ignoring`, do not count). A failure stops here and is thrown,
+   * so the caller keeps the rows and tries again later. Answers the files
+   * deleted.
+   */
+  async deleteFilesOfErasedContent(
+    authorProfileId: string,
+    addresses: Array<string | null | undefined>,
+    ignoring: IgnoredRows,
+  ): Promise<string[]> {
+    const erasable = await this.storedFiles.erasableWith(
+      authorProfileId,
+      addresses,
+      ignoring,
+    );
+    for (const key of erasable) {
+      await this.deleteFile(key);
+    }
+    return erasable;
   }
 
   /**

@@ -216,6 +216,12 @@ export class AppealsService {
       // Serialize appeals of one account so two concurrent requests cannot
       // both pass the check below.
       await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`;
+      // The nightly erasure of removed posts holds the same lock while it
+      // checks for an open appeal: an appeal is either seen by it, or finds
+      // the post already erased.
+      if (dto.targetType === 'POST_REMOVAL' && targetId) {
+        await this.lockAppealedPost(tx, targetId);
+      }
       // Each decision is appealed once, whatever the outcome; a rejected
       // appeal is not reopened. A later decision about the same item (a
       // post removed again) is a new decision, with its own appeal. Only a
@@ -528,6 +534,7 @@ export class AppealsService {
           });
         }
         if (appeal.targetType === 'POST_REMOVAL' && appeal.targetId) {
+          await this.lockAppealedPost(tx, appeal.targetId);
           await tx.post.update({
             where: { id: appeal.targetId },
             data: { moderationStatus: 'VISIBLE' },
@@ -612,6 +619,24 @@ export class AppealsService {
     }
 
     return updatedAppeal;
+  }
+
+  // Holds the appealed post until the transaction ends, the lock the nightly
+  // erasure of removed posts takes too. A post already erased (its six
+  // months were over) cannot be appealed nor restored, and says so.
+  private async lockAppealedPost(
+    tx: Prisma.TransactionClient,
+    postId: string,
+  ): Promise<void> {
+    const rows = await tx.$queryRaw<
+      Array<{ id: string }>
+    >`SELECT id FROM posts WHERE id = ${postId} FOR UPDATE`;
+    if (rows.length === 0) {
+      throw AppException.NotFound(
+        ErrorCode.POST_NOT_FOUND,
+        'The post of this appeal is no longer kept',
+      );
+    }
   }
 
   // The Profile the appealed decision was about, to send the outcome there;

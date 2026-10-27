@@ -14,7 +14,7 @@ import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
   isRemoved,
-  NOT_REMOVED,
+  SHOWN_COMMENT_STATUSES,
 } from '../common/policies/removed-content.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import {
@@ -281,17 +281,30 @@ export class CommentsService {
 
     // Comments by the other audience are left out, replies included.
     const audience = await viewerAudienceWhere(this.prisma, currentProfileId);
-    const shown = {
-      in: ['VISIBLE', 'FLAGGED'] as ('VISIBLE' | 'FLAGGED')[],
-    };
+    const shown = SHOWN_COMMENT_STATUSES;
     const baseWhere = {
       postId,
       parentId: null,
       profile: audience,
       moderationStatus: shown,
     };
-    // The count leaves out what moderation removed, replies included.
-    const countWhere = { postId, ...NOT_REMOVED };
+    // The count counts what the list shows: the shown comments and the shown
+    // replies under them, of the viewer's audience.
+    const countWhere = {
+      postId,
+      profile: audience,
+      moderationStatus: shown,
+      OR: [
+        { parentId: null },
+        {
+          parent: {
+            parentId: null,
+            moderationStatus: shown,
+            profile: audience,
+          },
+        },
+      ],
+    };
     const include = {
       profile: { select: profileSelect },
       likes: likeInclude,

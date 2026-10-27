@@ -185,7 +185,11 @@ describe('Content removed by moderation (e2e)', () => {
       other.cookie,
     ).expect(200);
     expect(comments.body.data).toEqual([]);
-    expect(comments.body.meta.total).toBe(1);
+    // The count counts what the list shows: the reply under the removed
+    // comment is not shown, so not counted either.
+    expect(comments.body.meta.total).toBe(0);
+    const shown = await get(`/posts/${keptPost.id}`, other.cookie).expect(200);
+    expect(shown.body._count.comments).toBe(0);
     const archive = await get('/stories/archive', author.cookie).expect(200);
     expect(archive.body.map((s: { id: string }) => s.id)).not.toContain(
       story.id,
@@ -208,5 +212,22 @@ describe('Content removed by moderation (e2e)', () => {
     // Running again erases nothing more and does not fail.
     await erasure.eraseExpired(new Date(Date.now() + SEVEN_MONTHS_MS));
     expect(await prisma.post.count({ where: { id: keptPost.id } })).toBe(1);
+
+    // An appeal about a post already erased cannot bring it back, and says
+    // so instead of failing.
+    const late = await prisma.appeal.create({
+      data: {
+        userId: author.user.id,
+        targetType: 'POST_REMOVAL',
+        targetId: post.id,
+        reason: 'Filed just before the erasure',
+      },
+    });
+    await expect(
+      app.get(AppealsService).update(late.id, { status: 'APPROVED' }, adminId),
+    ).rejects.toThrow('The post of this appeal is no longer kept');
+    expect(
+      await prisma.appeal.findUniqueOrThrow({ where: { id: late.id } }),
+    ).toMatchObject({ status: 'PENDING' });
   });
 });

@@ -11,8 +11,17 @@ import {
 describe('removed content', () => {
   it('leaves out of lists and counts only what moderation removed', () => {
     expect(NOT_REMOVED).toEqual({ moderationStatus: { not: 'REMOVED' } });
+    // A post's comment count counts what its list shows: no hidden or
+    // removed comment, and no reply under one.
+    const shown = { in: ['VISIBLE', 'FLAGGED'] };
     expect(SHOWN_COMMENTS_COUNT).toEqual({
-      where: { moderationStatus: { not: 'REMOVED' } },
+      where: {
+        moderationStatus: shown,
+        OR: [
+          { parentId: null },
+          { parent: { parentId: null, moderationStatus: shown } },
+        ],
+      },
     });
     expect(isRemoved({ moderationStatus: 'REMOVED' })).toBe(true);
     for (const moderationStatus of ['VISIBLE', 'FLAGGED', 'HIDDEN', null]) {

@@ -44,11 +44,13 @@ export const MEDIA_COLUMNS = {
   dataExportRequest: ['url'],
 } as const;
 
-type MediaModel = keyof typeof MEDIA_COLUMNS;
+export type MediaModel = keyof typeof MEDIA_COLUMNS;
+// Rows not to count as a use, by model: the rows about to be erased.
+export type IgnoredRows = Partial<Record<MediaModel, string[]>>;
 type Row = Record<string, string | null>;
 interface MediaDelegate {
   findMany(args: {
-    where?: { OR: object[] };
+    where?: { OR: object[]; id?: { notIn: string[] } };
     select: Record<string, true>;
   }): Promise<Row[]>;
 }
@@ -75,11 +77,13 @@ export class MediaReferencesService {
    * The stored files of the list that some row still names, by their exact
    * key: a file attached since TD-008 is named by the key it was recorded
    * with. Given a transaction, it reads what that transaction sees: a row
-   * it has just deleted names nothing.
+   * it has just deleted names nothing. The rows of `ignoring` do not count:
+   * the rows about to be erased with the files.
    */
   async inUse(
     keys: string[],
     client: ReferencesClient = this.prisma,
+    ignoring: IgnoredRows = {},
   ): Promise<Set<string>> {
     const wanted = new Set(keys);
     const used = new Set<string>();
@@ -92,6 +96,7 @@ export class MediaReferencesService {
       if (ext) folders.set(`${key.slice(0, -ext.length)}/`, key);
     }
     for (const model of Object.keys(MEDIA_COLUMNS) as MediaModel[]) {
+      const ignored = ignoring[model] ?? [];
       const rows = await this.delegate(model, client).findMany({
         where: {
           OR: MEDIA_COLUMNS[model].flatMap((column) => [
@@ -100,6 +105,7 @@ export class MediaReferencesService {
               [column]: { startsWith: folder },
             })),
           ]),
+          ...(ignored.length > 0 ? { id: { notIn: ignored } } : {}),
         },
         select: MediaReferencesService.select(model),
       });

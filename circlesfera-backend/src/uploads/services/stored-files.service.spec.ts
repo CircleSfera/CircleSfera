@@ -173,6 +173,61 @@ describe('StoredFilesService.release, in a transaction', () => {
   });
 });
 
+describe('StoredFilesService.erasableWith', () => {
+  it("answers the author's own files no other row names, the rows being erased left out, and marks nothing", async () => {
+    const prisma = {
+      storedFile: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { key: '/uploads/own.jpg' },
+            { key: '/uploads/own-shared.jpg' },
+          ]),
+        updateMany: vi.fn(),
+      },
+    };
+    const references = {
+      inUse: vi.fn().mockResolvedValue(new Set(['/uploads/own-shared.jpg'])),
+    };
+    const files = new StoredFilesService(
+      prisma as unknown as PrismaService,
+      references as never,
+    );
+    const ignoring = { postMedia: ['m-1'] };
+
+    await expect(
+      files.erasableWith(
+        'author',
+        [
+          '/uploads/own.jpg',
+          '/uploads/own-shared.jpg',
+          '/uploads/own.jpg',
+          null,
+        ],
+        ignoring,
+      ),
+    ).resolves.toEqual(['/uploads/own.jpg']);
+    expect(prisma.storedFile.findMany).toHaveBeenCalledWith({
+      where: {
+        key: { in: ['/uploads/own.jpg', '/uploads/own-shared.jpg'] },
+        profileId: 'author',
+      },
+      select: { key: true },
+    });
+    expect(references.inUse).toHaveBeenCalledWith(
+      ['/uploads/own.jpg', '/uploads/own-shared.jpg'],
+      undefined,
+      ignoring,
+    );
+    expect(prisma.storedFile.updateMany).not.toHaveBeenCalled();
+
+    await expect(files.erasableWith('author', [null, ''], {})).resolves.toEqual(
+      [],
+    );
+    expect(prisma.storedFile.findMany).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('StoredFilesService.release', () => {
   it("marks every recorded file no row uses as detached, and answers only the author's own", async () => {
     const prisma = {

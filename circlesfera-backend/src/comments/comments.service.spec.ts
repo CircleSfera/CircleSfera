@@ -403,18 +403,39 @@ describe('CommentsService', () => {
       expect(result.meta.total).toBe(1);
     });
 
-    it('leaves out what moderation removed or hid, replies included, and does not count the removed', async () => {
+    it('leaves out what moderation removed or hid, replies included, and counts what it lists', async () => {
       mockPrismaService.comment.findMany.mockResolvedValue([]);
       mockPrismaService.comment.count.mockResolvedValue(0);
 
       for (const cursor of [undefined, 'not-a-cursor']) {
-        await service.findByPost('post-1', { page: 1, limit: 10, cursor });
+        await service.findByPost(
+          'post-1',
+          { page: 1, limit: 10, cursor },
+          'viewer-1',
+        );
         const args = mockPrismaService.comment.findMany.mock.calls.at(-1)?.[0];
         const shown = { in: ['VISIBLE', 'FLAGGED'] };
         expect(args.where.moderationStatus).toEqual(shown);
         expect(args.include.replies.where.moderationStatus).toEqual(shown);
+        const audience = args.where.profile;
+        // Hidden ones too, for their author as for anyone, as the list does;
+        // and a reply only under a comment the list shows.
         expect(mockPrismaService.comment.count).toHaveBeenLastCalledWith({
-          where: { postId: 'post-1', moderationStatus: { not: 'REMOVED' } },
+          where: {
+            postId: 'post-1',
+            profile: audience,
+            moderationStatus: shown,
+            OR: [
+              { parentId: null },
+              {
+                parent: {
+                  parentId: null,
+                  moderationStatus: shown,
+                  profile: audience,
+                },
+              },
+            ],
+          },
         });
       }
     });

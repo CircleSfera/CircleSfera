@@ -996,6 +996,21 @@ describe('MediaAuthService', () => {
         mockPrismaService.comment.findMany.mock.calls[0][0].select;
       expect(commentSelect.moderationStatus).toBe(true);
       expect(commentSelect.post.select.moderationStatus).toBe(true);
+      expect(commentSelect.parent.select.moderationStatus).toBe(true);
+    });
+
+    it('keeps a reply under a visible comment as public as its post', async () => {
+      mockPrismaService.comment.findMany.mockResolvedValueOnce([
+        {
+          postId: 'post-1',
+          moderationStatus: 'VISIBLE',
+          parent: { moderationStatus: 'VISIBLE' },
+          post: publicPost('VISIBLE'),
+        },
+      ]);
+      expect(
+        await service.isAccessAllowed('/uploads/x.jpg', null, null, notStaff),
+      ).toBe(true);
     });
 
     it('refuses a removed post, story or comment to everyone but staff, its author included', async () => {
@@ -1020,6 +1035,16 @@ describe('MediaAuthService', () => {
             {
               postId: 'post-1',
               moderationStatus: 'REMOVED',
+              post: publicPost('VISIBLE'),
+            },
+          ]),
+        // A reply's file goes with the comment it answers.
+        () =>
+          mockPrismaService.comment.findMany.mockResolvedValueOnce([
+            {
+              postId: 'post-1',
+              moderationStatus: 'VISIBLE',
+              parent: { moderationStatus: 'REMOVED' },
               post: publicPost('VISIBLE'),
             },
           ]),
