@@ -7,10 +7,12 @@ import {
   MEDIA_COLUMNS,
   MediaReferencesService,
 } from './media-references.service.js';
+import type { StoredFilesService } from './stored-files.service.js';
 
 describe('MediaReconciliationService', () => {
   let service: MediaReconciliationService;
   let mockPrisma: any;
+  let mockStoredFiles: { record: ReturnType<typeof vi.fn> };
   let mockUploadsService: {
     scheduleMediaDeletion: ReturnType<typeof vi.fn>;
   };
@@ -30,7 +32,9 @@ describe('MediaReconciliationService', () => {
         { findMany: vi.fn().mockResolvedValue([]) },
       ]),
     );
+    mockPrisma.$queryRaw = vi.fn().mockResolvedValue([]);
 
+    mockStoredFiles = { record: vi.fn().mockResolvedValue(undefined) };
     mockUploadsService = {
       scheduleMediaDeletion: vi.fn().mockResolvedValue(undefined),
     };
@@ -45,6 +49,7 @@ describe('MediaReconciliationService', () => {
       new MediaReferencesService(mockPrisma as unknown as PrismaService),
       mockUploadsService as unknown as UploadsService,
       mockStorageProvider as unknown as StorageProvider,
+      mockStoredFiles as unknown as StoredFilesService,
     );
   });
 
@@ -166,6 +171,24 @@ describe('MediaReconciliationService', () => {
     expect(mockUploadsService.scheduleMediaDeletion).toHaveBeenCalledWith([
       '/uploads/orphan-old.png',
     ]);
+  });
+
+  it('records with no owner the files on the disk past the grace period', async () => {
+    const twoDaysAgo = new Date(Date.now() - 48 * 3600 * 1000);
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/a.jpg', lastModified: twoDaysAgo, sizeBytes: 1 },
+      { url: '/uploads/b.mp4', lastModified: twoDaysAgo, sizeBytes: 2 },
+      // Still being written by an upload, which records it with its owner.
+      { url: '/uploads/fresh.mp4', lastModified: new Date(), sizeBytes: 3 },
+    ]);
+
+    await service.detectAndReconcileOrphans({ dryRun: true });
+
+    // Files already recorded keep their owner (record skips duplicates).
+    expect(mockStoredFiles.record).toHaveBeenCalledWith(
+      ['/uploads/a.jpg', '/uploads/b.mp4'],
+      { profileId: null },
+    );
   });
 
   it('should detect orphan files but NOT schedule deletion when dryRun is true', async () => {

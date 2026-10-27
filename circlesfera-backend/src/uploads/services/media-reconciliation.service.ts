@@ -7,6 +7,7 @@ import {
 } from '../interfaces/storage-provider.interface.js';
 import { UploadsService } from '../uploads.service.js';
 import { MediaReferencesService } from './media-references.service.js';
+import { StoredFilesService } from './stored-files.service.js';
 
 export interface OrphanDetectionOptions {
   olderThanHours?: number;
@@ -37,6 +38,7 @@ export class MediaReconciliationService {
     private readonly uploadsService: UploadsService,
     @Inject(STORAGE_PROVIDER)
     private readonly storageProvider: StorageProvider,
+    private readonly storedFilesRecord: StoredFilesService,
   ) {}
 
   /**
@@ -73,6 +75,20 @@ export class MediaReconciliationService {
       this.storageProvider.listFiles(),
       this.getReferencedMediaKeys(),
     ]);
+    // A file on the disk the record does not know (stored before it, or by
+    // a server that did not write it) is recorded with no owner: it is never
+    // deleted by a person's action, only by this sweep when no row uses it.
+    // Only files past the grace period: a file still being written by an
+    // upload is recorded by that upload with its owner.
+    const graceCutoff = new Date(
+      Date.now() - (options?.olderThanHours ?? 24) * 60 * 60 * 1000,
+    );
+    await this.storedFilesRecord.record(
+      storedFiles
+        .filter((file) => file.lastModified && file.lastModified <= graceCutoff)
+        .map((file) => file.url),
+      { profileId: null },
+    );
 
     const cutoffTime = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
     const orphans: OrphanMediaItem[] = [];

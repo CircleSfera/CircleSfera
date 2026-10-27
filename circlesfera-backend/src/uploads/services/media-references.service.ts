@@ -7,10 +7,20 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 // file name (an address may be stored relative or absolute). A column added to
 // the schema for a stored file belongs here: a file the list does not know is
 // taken for unused by the nightly sweep.
-// Not covered: the clips an edit project keeps inside its JSON state. The
-// Media table is left out on purpose: it repeats the address of the post,
+// The clips an edit project keeps inside its JSON state are read apart, by
+// the same path the studio writes (EDIT_CLIP_PATH). The Media table is left
+// out on purpose: it repeats the address of the post,
 // message or comment it was made for and is not removed with them, so it
 // would keep every file for good.
+// Where a studio project keeps the file of each clip: the clips that are not
+// text, in a state of version 3. The same clips EditsService checks for
+// ownership (collectStudioMediaUrls): a clip that check never saw must not
+// count as a use, or anyone could keep another person's file for good. So a
+// file still on the device (blob: or data:, in any case, after any spaces) is
+// left out too: its address may end in another person's file name.
+export const EDIT_CLIP_PATH =
+  'lax $.studio.tracks[*].clips[*] ? (!exists(@.type ? (@ == "text")) && !(@.fileUrl like_regex "^[[:space:]]*(blob|data):" flag "i")).fileUrl';
+
 export const MEDIA_COLUMNS = {
   postMedia: ['url', 'standardUrl', 'thumbnailUrl'],
   profile: [
@@ -92,7 +102,27 @@ export class MediaReferencesService {
         }
       }
     }
+    for (const clip of await this.editClips([...wanted])) used.add(clip);
     return used;
+  }
+
+  // The clip files edit projects name: all of them, or those of the list.
+  private async editClips(only?: string[]): Promise<string[]> {
+    const rows = only
+      ? await this.prisma.$queryRaw<Array<{ key: string }>>`
+          SELECT DISTINCT clip #>> '{}' AS key
+          FROM "edit_projects" e,
+            jsonb_path_query(e."state", ${EDIT_CLIP_PATH}::jsonpath) clip
+          WHERE e."state" -> 'version' = '3'::jsonb
+            AND jsonb_typeof(clip) = 'string'
+            AND clip #>> '{}' = ANY(${only})`
+      : await this.prisma.$queryRaw<Array<{ key: string }>>`
+          SELECT DISTINCT clip #>> '{}' AS key
+          FROM "edit_projects" e,
+            jsonb_path_query(e."state", ${EDIT_CLIP_PATH}::jsonpath) clip
+          WHERE e."state" -> 'version' = '3'::jsonb
+            AND jsonb_typeof(clip) = 'string'`;
+    return rows.map((row) => row.key).filter((key) => !!key);
   }
 
   /**
@@ -112,6 +142,11 @@ export class MediaReferencesService {
           if (name) keys.add(name);
         }
       }
+    }
+    // A draft's clips are in use too: the sweep would otherwise take them.
+    for (const clip of await this.editClips()) {
+      keys.add(clip);
+      keys.add(path.basename(clip));
     }
     return keys;
   }

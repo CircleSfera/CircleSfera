@@ -28,6 +28,10 @@ function prismaWith(rows: Partial<Record<string, object[]>> = {}) {
   for (const model of Object.keys(MEDIA_COLUMNS)) {
     prisma[model] = { findMany: vi.fn().mockResolvedValue(rows[model] ?? []) };
   }
+  // The clips of edit projects, read with SQL from their JSON state.
+  (prisma as Record<string, unknown>).$queryRaw = vi
+    .fn()
+    .mockResolvedValue(rows.editClips ?? []);
   return prisma;
 }
 
@@ -70,6 +74,7 @@ describe('MediaReferencesService', () => {
     const prisma = prismaWith({
       comment: [{ voiceUrl: '/uploads/c.webm', url: null }],
       collection: [{ coverUrl: '/uploads/cover.jpg' }],
+      editClips: [{ key: '/uploads/clip.mp4' }],
     });
     const service = new MediaReferencesService(
       prisma as unknown as PrismaService,
@@ -78,7 +83,15 @@ describe('MediaReferencesService', () => {
     const keys = await service.referencedKeys();
 
     expect(keys).toEqual(
-      new Set(['/uploads/c.webm', 'c.webm', '/uploads/cover.jpg', 'cover.jpg']),
+      new Set([
+        '/uploads/c.webm',
+        'c.webm',
+        '/uploads/cover.jpg',
+        'cover.jpg',
+        // A draft's clip is in use too.
+        '/uploads/clip.mp4',
+        'clip.mp4',
+      ]),
     );
   });
 });
@@ -88,6 +101,7 @@ describe('MediaReferencesService.inUse', () => {
     const prisma = prismaWith({
       comment: [{ voiceUrl: '/uploads/a.m4a', url: '/uploads/not-asked.jpg' }],
       profile: [{ avatar: '/uploads/b.jpg' }],
+      editClips: [{ key: '/uploads/c.mp4' }],
     });
     const service = new MediaReferencesService(
       prisma as unknown as PrismaService,
@@ -96,16 +110,27 @@ describe('MediaReferencesService.inUse', () => {
     const used = await service.inUse([
       '/uploads/a.m4a',
       '/uploads/b.jpg',
+      '/uploads/c.mp4',
       '/uploads/free.jpg',
     ]);
 
-    expect([...used].sort()).toEqual(['/uploads/a.m4a', '/uploads/b.jpg']);
+    // A clip of an edit project counts as a use.
+    expect([...used].sort()).toEqual([
+      '/uploads/a.m4a',
+      '/uploads/b.jpg',
+      '/uploads/c.mp4',
+    ]);
     for (const [model, columns] of Object.entries(MEDIA_COLUMNS)) {
       const { where } = prisma[model].findMany.mock.calls.at(-1)?.[0] ?? {};
       for (const column of columns) {
         expect(where.OR).toContainEqual({
           [column]: {
-            in: ['/uploads/a.m4a', '/uploads/b.jpg', '/uploads/free.jpg'],
+            in: [
+              '/uploads/a.m4a',
+              '/uploads/b.jpg',
+              '/uploads/c.mp4',
+              '/uploads/free.jpg',
+            ],
           },
         });
       }
