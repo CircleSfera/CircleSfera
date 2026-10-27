@@ -32,9 +32,14 @@ export class CreatePromotionUseCase {
     const profileIds = ownedProfiles.map((p) => p.id);
 
     if (targetType === 'post' || targetType === 'frame') {
-      // Content in Recently deleted cannot be promoted.
+      // Content in Recently deleted or in the archive cannot be promoted.
       const post = await this.prisma.post.findFirst({
-        where: { id: targetId, profileId: { in: profileIds }, deletedAt: null },
+        where: {
+          id: targetId,
+          profileId: { in: profileIds },
+          deletedAt: null,
+          archivedAt: null,
+        },
       });
       if (!post) throw new Error('Post not found or not owned by user');
     } else if (targetType === 'story') {

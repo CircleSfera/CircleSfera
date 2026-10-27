@@ -13,7 +13,13 @@ import {
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSyncedLibraryAudio } from '../hooks/useSyncedLibraryAudio';
-import { bookmarksApi, followsApi, likesApi, postsApi } from '../services';
+import {
+  archiveApi,
+  bookmarksApi,
+  followsApi,
+  likesApi,
+  postsApi,
+} from '../services';
 import { creatorApi } from '../services/creator.service';
 import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
@@ -121,6 +127,24 @@ export default function FrameItem({
     },
   });
 
+  // Archiving takes the frame off the profile and every list, into its
+  // author's archive, with its likes and comments.
+  const archiveMutation = useMutation({
+    mutationFn: () => archiveApi.archive(post.id),
+    onSuccess: () => {
+      toast.success(t('settings.archive.archived'));
+      queryClient.invalidateQueries({ queryKey: ['frames'] });
+      queryClient.invalidateQueries({ queryKey: ['userFrames'] });
+      queryClient.invalidateQueries({ queryKey: ['archive'] });
+    },
+    onError: () => {
+      toast.error(t('settings.archive.archive_error'));
+    },
+  });
+  // The same function on every render: handing it to the menu does not
+  // hand the menu over again.
+  const archiveFrame = archiveMutation.mutate;
+
   // Only the caption of a published frame can be changed here; its video
   // cannot.
   const captionMutation = useMutation({
@@ -170,10 +194,11 @@ export default function FrameItem({
       onReport: () => setShowReportModal(true),
       onSave: () => onSaveOpenRef.current?.(),
       onPromote: canPromote ? () => setShowPromoteModal(true) : undefined,
+      onArchive: () => archiveFrame(),
     });
 
     return () => onRegisterMenuActions(null);
-  }, [isActive, onRegisterMenuActions, canPromote]);
+  }, [isActive, onRegisterMenuActions, canPromote, archiveFrame]);
 
   useEffect(() => {
     if (isActive && videoRef.current) {

@@ -10,7 +10,10 @@ import {
 import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
-import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
+import {
+  LISTED_POST,
+  NOT_REMOVED,
+} from '../common/policies/removed-content.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
   deriveConnectAccountFlags,
@@ -213,7 +216,7 @@ export class MonetizationService {
   ) {
     // A post moderation removed is shown to nobody, and sold to nobody.
     const post = await this.prisma.post.findUnique({
-      where: { id: postId, ...NOT_REMOVED },
+      where: { id: postId, ...LISTED_POST },
       include: { profile: { include: { user: true } } },
     });
 
@@ -446,7 +449,7 @@ export class MonetizationService {
     if (postId) {
       // No tip for a post moderation removed: it is shown to nobody.
       const post = await this.prisma.post.findUnique({
-        where: { id: postId, ...NOT_REMOVED },
+        where: { id: postId, ...LISTED_POST },
         select: { profileId: true, profile: { select: TIPPED_PROFILE_SELECT } },
       });
       const ofTipped = named

@@ -232,6 +232,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
           profileId: { in: followingIds },
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
           deletedAt: null,
+          archivedAt: null,
           scheduledStatus: 'PUBLISHED',
         },
         select: { id: true, createdAt: true },

@@ -388,6 +388,7 @@ export default function Frames() {
                     onDelete={menuActions.onDelete}
                     onReport={menuActions.onReport}
                     onSave={menuActions.onSave}
+                    onArchive={menuActions.onArchive}
                     onPromote={
                       canPromoteFrame ? menuActions.onPromote : undefined
                     }

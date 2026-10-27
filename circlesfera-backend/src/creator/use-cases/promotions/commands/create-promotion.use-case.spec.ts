@@ -83,7 +83,12 @@ describe('CreatePromotionUseCase', () => {
     );
 
     expect(mockPrismaService.post.findFirst).toHaveBeenCalledWith({
-      where: { id: 'post-100', profileId: { in: ['p-1'] }, deletedAt: null },
+      where: {
+        id: 'post-100',
+        profileId: { in: ['p-1'] },
+        deletedAt: null,
+        archivedAt: null,
+      },
     });
     expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
       expect.objectContaining({

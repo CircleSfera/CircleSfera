@@ -58,6 +58,20 @@ describe('FrameOptionsSheet', () => {
     expect(options()).toEqual(['Promote Post', 'Edit', 'Delete', 'Save']);
   });
 
+  it('offers the owner to archive the frame, and closes the sheet first', () => {
+    const onArchive = vi.fn(() => order.push('archive'));
+    show({ isOwner: true, onArchive });
+    expect(options()).toEqual(['Edit', 'Archive', 'Delete', 'Save']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
+    expect(order).toEqual(['close', 'archive']);
+  });
+
+  it('does not offer a viewer to archive', () => {
+    show({ onArchive: vi.fn() });
+    expect(options()).toEqual(['Report', 'Save']);
+  });
+
   it.each([
     ['Report', 'report', false],
     ['Save', 'save', false],

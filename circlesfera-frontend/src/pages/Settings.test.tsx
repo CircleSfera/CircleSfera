@@ -31,6 +31,9 @@ vi.mock('../components/settings/NotificationsSettings', () => ({
 vi.mock('../components/settings/PrivacySettings', () => ({
   default: () => <div>panel:privacy</div>,
 }));
+vi.mock('../components/settings/ArchiveSettings', () => ({
+  default: () => <div>panel:archive</div>,
+}));
 vi.mock('../components/settings/ProfileSettings', () => ({
   default: () => <div>panel:profile</div>,
 }));

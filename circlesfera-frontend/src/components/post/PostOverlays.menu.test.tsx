@@ -2,12 +2,15 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import toast from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
-import { api } from '../../services';
+import { api, archiveApi } from '../../services';
 import { renderWithProviders } from '../../test/test-utils';
 import type { Post } from '../../types';
 import PostOverlays from './PostOverlays';
 
-vi.mock('../../services', () => ({ api: { post: vi.fn() } }));
+vi.mock('../../services', () => ({
+  api: { post: vi.fn() },
+  archiveApi: { archive: vi.fn(), unarchive: vi.fn() },
+}));
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn() },
 }));
@@ -26,6 +29,7 @@ vi.mock('./PostMenu', () => ({
         'onDelete',
         'onReport',
         'onPromote',
+        'onArchive',
         'onAddToCollection',
         'onMute',
         'onHidePost',
@@ -217,6 +221,7 @@ describe('PostOverlays', () => {
       'onEdit',
       'onDelete',
       'onReport',
+      'onArchive',
       'onAddToCollection',
     ]);
     plain.unmount();
@@ -246,6 +251,55 @@ describe('PostOverlays', () => {
     const second = show({}, post({ caption: null as never }));
     press('onEdit');
     expect(second.interactions.setEditCaption).toHaveBeenCalledWith('');
+  });
+
+  it("archives the owner's post from the menu, and says so", async () => {
+    vi.mocked(archiveApi.archive).mockResolvedValue({} as never);
+    const { interactions } = show({ isOwner: true });
+    press('onArchive');
+    expect(interactions.setShowMenu).toHaveBeenCalledWith(false);
+    await waitFor(() =>
+      expect(archiveApi.archive).toHaveBeenCalledWith('post-1'),
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        'Archived. Only you see it, in your archive.',
+      ),
+    );
+  });
+
+  it('shows an archived post on the profile again from the menu', async () => {
+    vi.mocked(archiveApi.unarchive).mockResolvedValue({} as never);
+    show({ isOwner: true }, post({ archivedAt: '2026-10-20T00:00:00Z' }));
+    press('onArchive');
+    await waitFor(() =>
+      expect(archiveApi.unarchive).toHaveBeenCalledWith('post-1'),
+    );
+    expect(archiveApi.archive).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Back on your profile'),
+    );
+  });
+
+  it('says when archiving or showing again failed', async () => {
+    vi.mocked(archiveApi.archive).mockRejectedValue(new Error('down'));
+    vi.mocked(archiveApi.unarchive).mockRejectedValue(new Error('down'));
+    const first = show({ isOwner: true });
+    press('onArchive');
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'It could not be archived. Try again.',
+      ),
+    );
+    first.unmount();
+
+    show({ isOwner: true }, post({ archivedAt: '2026-10-20T00:00:00Z' }));
+    press('onArchive');
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'It could not be shown on your profile. Try again.',
+      ),
+    );
   });
 
   it('opens the promotion from the menu', () => {

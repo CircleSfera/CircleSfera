@@ -377,6 +377,7 @@ describe('FeedInboxService', () => {
           profileId: { in: ['creator-A', 'creator-B'] },
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
           deletedAt: null,
+          archivedAt: null,
           scheduledStatus: 'PUBLISHED',
         },
         select: { id: true, createdAt: true },

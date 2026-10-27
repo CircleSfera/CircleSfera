@@ -13,7 +13,7 @@ import {
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import {
-  NOT_REMOVED,
+  LISTED_POST,
   SHOWN_COMMENTS_COUNT,
 } from '../common/policies/removed-content.policy.js';
 import {
@@ -103,6 +103,7 @@ export class SearchService {
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
             AND p."deletedAt" IS NULL
+            AND p."archivedAt" IS NULL
             AND pr."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
             AND u."isActive" = true
@@ -125,6 +126,7 @@ export class SearchService {
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
             AND p."deletedAt" IS NULL
+            AND p."archivedAt" IS NULL
             AND pr."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
             AND u."isActive" = true
@@ -302,7 +304,7 @@ export class SearchService {
             posts: {
               some: {
                 post: {
-                  ...NOT_REMOVED,
+                  ...LISTED_POST,
                   profile: await visibleToViewerWhere(this.prisma, profileId),
                 },
               },
@@ -526,6 +528,7 @@ export class SearchService {
         AND p.visibility = 'PUBLIC'
         AND p."moderationStatus" = 'VISIBLE'
         AND p."deletedAt" IS NULL
+        AND p."archivedAt" IS NULL
         AND pr."privacyLevel" = 'PUBLIC'
         AND u."deactivatedAt" IS NULL
       ORDER BY velocity_score DESC
@@ -567,6 +570,7 @@ export class SearchService {
         visibility: 'PUBLIC',
         moderationStatus: 'VISIBLE',
         deletedAt: null,
+        archivedAt: null,
         profile: {
           privacyLevel: 'PUBLIC',
           user: { deactivatedAt: null },

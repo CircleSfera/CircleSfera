@@ -121,6 +121,10 @@
       "recently_deleted": {
         "label": "Recently deleted",
         "desc": "Restore what you deleted"
+      },
+      "archive": {
+        "label": "Archive",
+        "desc": "What only you see"
       }
     },
     "profile": {
@@ -716,6 +720,60 @@
       "deleted": "Deleted for good",
       "restore_error": "It could not be restored. Try again.",
       "delete_error": "It could not be deleted. Try again."
+    },
+    "archive": {
+      "intro": "Only you see your archive. Your stories come here when their 24 hours end, and the posts and frames you archive wait here until you show them on your profile again.",
+      "tabs_label": "What the archive shows",
+      "tabs": {
+        "STORY": "Stories",
+        "POST": "Posts",
+        "FRAME": "Frames"
+      },
+      "kind": {
+        "STORY": "story",
+        "POST": "post",
+        "FRAME": "frame"
+      },
+      "save_stories": "Save stories to archive",
+      "save_stories_desc": "Keep each story here when its 24 hours end. Off, the stories that end are not kept, except those in a highlight.",
+      "saved": "Setting saved",
+      "save_error": "The setting could not be saved. Try again.",
+      "empty": {
+        "STORY": {
+          "title": "No stories yet",
+          "message": "Your stories come here when their 24 hours end."
+        },
+        "POST": {
+          "title": "No archived posts",
+          "message": "Archive a post from its menu to take it off your profile without deleting it."
+        },
+        "FRAME": {
+          "title": "No archived frames",
+          "message": "Archive a frame from its menu to take it off your profile without deleting it."
+        }
+      },
+      "error_title": "Your archive could not be loaded",
+      "error_message": "Check your connection and try again.",
+      "open": "Open {{kind}} from the archive",
+      "likes_one": "{{count}} like",
+      "likes_other": "{{count}} likes",
+      "comments_one": "{{count}} comment",
+      "comments_other": "{{count}} comments",
+      "show_on_profile": "Show on profile",
+      "showing": "Showing…",
+      "shown": "Back on your profile",
+      "show_error": "It could not be shown on your profile. Try again.",
+      "open_post": "Open",
+      "add_to_highlight": "Add to highlight",
+      "delete": "Delete",
+      "confirm_title": "Delete?",
+      "confirm_message": "It will go to Recently deleted, where you can restore it for 30 days.",
+      "confirm_delete": "Delete",
+      "cancel": "Cancel",
+      "deleted": "Moved to Recently deleted",
+      "delete_error": "It could not be deleted. Try again.",
+      "archived": "Archived. Only you see it, in your archive.",
+      "archive_error": "It could not be archived. Try again."
     }
   },
   "auth": {
@@ -1259,7 +1317,9 @@
       "promote": "Promote Post",
       "hide_author": "Hide author",
       "mute": "Mute user",
-      "not_interested": "Not interested"
+      "not_interested": "Not interested",
+      "archive": "Archive",
+      "show_on_profile": "Show on profile"
     },
     "modals": {
       "delete_title": "Delete post?",

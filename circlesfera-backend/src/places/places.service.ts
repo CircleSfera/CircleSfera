@@ -5,7 +5,7 @@ import {
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
 import {
-  NOT_REMOVED,
+  LISTED_POST,
   SHOWN_COMMENTS_COUNT,
 } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -281,6 +281,7 @@ export class PlacesService {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE',
       deletedAt: null,
+      archivedAt: null,
       profile: { privacyLevel: Visibility.PUBLIC },
     };
 
@@ -306,9 +307,10 @@ export class PlacesService {
       ...(excluded.size > 0 ? { profileId: { notIn: [...excluded] } } : {}),
     };
 
-    // The viewer's own, but what moderation removed or they deleted.
+    // The viewer's own, but what moderation removed or they deleted or
+    // archived.
     return {
-      OR: [filter, { profileId: currentProfileId, ...NOT_REMOVED }],
+      OR: [filter, { profileId: currentProfileId, ...LISTED_POST }],
     };
   }
 }

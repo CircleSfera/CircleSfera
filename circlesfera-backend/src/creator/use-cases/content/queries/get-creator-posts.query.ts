@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  NOT_REMOVED,
+  LISTED_POST,
   SHOWN_COMMENTS_COUNT,
 } from '../../../../common/policies/removed-content.policy.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
@@ -29,7 +29,7 @@ export class GetCreatorPostsQuery {
     // author included.
     const where = {
       profileId,
-      ...NOT_REMOVED,
+      ...LISTED_POST,
       ...(type ? { type: type as 'POST' | 'FRAME' } : {}),
     };
 

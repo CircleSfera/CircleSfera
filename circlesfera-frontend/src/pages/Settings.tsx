@@ -1,6 +1,7 @@
 import { Navigate, useParams } from 'react-router-dom';
 import AccountSettings from '../components/settings/AccountSettings';
 import AppealsSettings from '../components/settings/AppealsSettings';
+import ArchiveSettings from '../components/settings/ArchiveSettings';
 import BillingSettings from '../components/settings/BillingSettings';
 import CloseFriendsSettings from '../components/settings/CloseFriendsSettings';
 import FeedPreferencesSettings from '../components/settings/FeedPreferencesSettings';
@@ -54,6 +55,8 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <MyReportsSettings />;
     case 'recently_deleted':
       return <RecentlyDeletedSettings />;
+    case 'archive':
+      return <ArchiveSettings />;
     case 'account':
       return <AccountSettings />;
     default:

@@ -1301,16 +1301,18 @@ describe('PostsService', () => {
         mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].where;
       expect(where.hashtags).toBeDefined();
       // The viewer's own posts are listed too, but not a removed one nor one
-      // they deleted.
+      // they deleted or archived.
       expect(where.OR[1]).toEqual({
         profileId: 'viewer-1',
         moderationStatus: { not: 'REMOVED' },
         deletedAt: null,
+        archivedAt: null,
       });
       expect(where.OR[0]).toMatchObject({
         visibility: Visibility.PUBLIC,
         moderationStatus: 'VISIBLE',
         deletedAt: null,
+        archivedAt: null,
         profile: {
           AND: [
             { privacyLevel: Visibility.PUBLIC },

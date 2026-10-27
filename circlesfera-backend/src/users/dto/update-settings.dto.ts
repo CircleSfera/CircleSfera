@@ -76,6 +76,14 @@ export class UpdateSettingsDto {
   @IsOptional()
   pushLive?: boolean;
 
+  // Whether the Profile's stories are kept in its archive when their 24
+  // hours end. Off, a story that ends while it is off is erased, unless it
+  // is in a highlight; what the archive holds already stays.
+  @ApiProperty({ required: false, type: () => Boolean })
+  @IsBoolean()
+  @IsOptional()
+  saveStoriesToArchive?: boolean;
+
   // The newsletter about CircleSfera, apart from the email notices.
   @ApiProperty({ required: false, type: () => Boolean })
   @IsBoolean()

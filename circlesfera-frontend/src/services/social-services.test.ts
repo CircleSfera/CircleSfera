@@ -13,6 +13,7 @@ vi.mock('./api', () => ({ apiClient: client }));
 
 import { adminAuthApi } from './admin-auth.service';
 import { aiApi } from './ai.service';
+import { archiveApi } from './archive.service';
 import { audioApi } from './audio.service';
 import { chatApi } from './chat.service';
 import { closeFriendsApi } from './closeFriends.service';
@@ -279,6 +280,24 @@ const cases: Case[] = [
     () => recentlyDeletedApi.deleteStoryForGood('s1'),
     'delete',
     ['stories/s1/permanent'],
+  ],
+  [
+    'archive.listPosts',
+    () => archiveApi.listPosts('FRAME', 'c1'),
+    'get',
+    ['users/me/archive/posts', { params: { type: 'FRAME', cursor: 'c1' } }],
+  ],
+  [
+    'archive.archive',
+    () => archiveApi.archive('p1'),
+    'post',
+    ['posts/p1/archive'],
+  ],
+  [
+    'archive.unarchive',
+    () => archiveApi.unarchive('p1'),
+    'post',
+    ['posts/p1/unarchive'],
   ],
   [
     'highlights.create',

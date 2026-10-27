@@ -1,10 +1,10 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
-import { api } from '../../services';
+import { api, archiveApi } from '../../services';
 import type { Post } from '../../types';
 import AddToCollectionModal from '../modals/AddToCollectionModal';
 import MuteDurationModal from '../modals/MuteDurationModal';
@@ -59,6 +59,40 @@ export default function PostOverlays({
   } = interactions;
 
   const queryClient = useQueryClient();
+
+  // Archiving takes the post off the profile and every list, for everyone,
+  // the author included; showing it again puts it back in its place.
+  const isArchived = Boolean(post.archivedAt);
+  const archiveMutation = useMutation({
+    mutationFn: () =>
+      isArchived ? archiveApi.unarchive(post.id) : archiveApi.archive(post.id),
+    onSuccess: () => {
+      toast.success(
+        isArchived
+          ? t('settings.archive.shown')
+          : t('settings.archive.archived'),
+      );
+      for (const queryKey of [
+        ['feed'],
+        ['posts'],
+        ['userPosts'],
+        ['frames'],
+        ['userFrames'],
+        ['profile'],
+        ['archive'],
+        ['post', post.id],
+      ]) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
+    },
+    onError: () => {
+      toast.error(
+        isArchived
+          ? t('settings.archive.show_error')
+          : t('settings.archive.archive_error'),
+      );
+    },
+  });
 
   const hidePost = async () => {
     setShowMenu(false);
@@ -116,6 +150,15 @@ export default function PostOverlays({
                   }
                 : undefined
             }
+            onArchive={
+              isOwner
+                ? () => {
+                    setShowMenu(false);
+                    archiveMutation.mutate();
+                  }
+                : undefined
+            }
+            isArchived={isArchived}
             onAddToCollection={() => {
               setShowMenu(false);
               setShowAddToCollectionModal(true);

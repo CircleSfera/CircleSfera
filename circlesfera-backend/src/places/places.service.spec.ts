@@ -234,6 +234,7 @@ describe('PlacesService', () => {
       profileId: 'viewer',
       moderationStatus: { not: 'REMOVED' },
       deletedAt: null,
+      archivedAt: null,
     });
   });
 });

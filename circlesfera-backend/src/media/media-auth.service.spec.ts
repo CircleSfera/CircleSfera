@@ -1182,6 +1182,58 @@ describe('MediaAuthService', () => {
       }
     });
 
+    it('gives a file of an archived post or frame, or of a comment on one, to its author only', async () => {
+      const archivedPost = {
+        ...publicPost('VISIBLE'),
+        deletedAt: null,
+        archivedAt: new Date(),
+      };
+      await service.isAccessAllowed('/uploads/x.jpg', null, null, notStaff);
+      expect(
+        mockPrismaService.postMedia.findMany.mock.calls[0][0].select.post.select
+          .archivedAt,
+      ).toBe(true);
+      const cases = [
+        () =>
+          mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+            { postId: 'post-1', post: archivedPost },
+          ]),
+        () =>
+          mockPrismaService.comment.findMany.mockResolvedValueOnce([
+            {
+              postId: 'post-1',
+              moderationStatus: 'VISIBLE',
+              post: archivedPost,
+            },
+          ]),
+      ];
+      for (const match of cases) {
+        for (const [user, profile] of [
+          ['viewer-u', 'viewer-1'],
+          [null, null],
+        ]) {
+          match();
+          expect(
+            await service.isAccessAllowed(
+              '/uploads/x.jpg',
+              user,
+              profile,
+              staff,
+            ),
+          ).toBe(false);
+        }
+        match();
+        expect(
+          await service.isAccessAllowed(
+            '/uploads/x.jpg',
+            'author-u',
+            'author-1',
+            notStaff,
+          ),
+        ).toBe(true);
+      }
+    });
+
     it("still checks the other rows naming a file of the author's deleted post", async () => {
       mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
         {

@@ -427,6 +427,11 @@ model Profile {
   pushFollows        Boolean    @default(true) // new followers and requests
   pushMessages       Boolean    @default(true)
   pushLive           Boolean    @default(true) // live broadcasts
+  // Whether a story is kept in the archive when its 24 hours end. Off, a
+  // story that ends while it is off is erased, unless it is in a highlight;
+  // storyArchiveOffAt is when it was turned off.
+  saveStoriesToArchive Boolean   @default(true)
+  storyArchiveOffAt    DateTime?
 
   // Why staff suspended this Profile directly; empty for a suspension that
   // comes from strikes or from the review of unusual activity.
@@ -498,6 +503,7 @@ model Profile {
   @@index([userId])
   @@index([signInId])
   @@index([privacyLevel])
+  @@index([saveStoriesToArchive])
   @@map("profiles")
 }
 
@@ -550,6 +556,9 @@ model Post {
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
   deletedAt        DateTime?
+  // When its author archived it: shown in their archive only, with its likes
+  // and comments, until they show it on their profile again.
+  archivedAt       DateTime?
 
   // Premium Content
 
@@ -577,6 +586,7 @@ model Post {
   @@index([placeId])
   @@index([profileId, deletedAt])
   @@index([deletedAt])
+  @@index([profileId, archivedAt])
   @@map("posts")
 }
 

@@ -735,7 +735,11 @@ export class UsersService {
 
     const profile = await this.prisma.profile.findFirst({
       where: { id: profileId, userId },
-      select: { privacyLevel: true, ...PROFILE_PUSH_SELECT },
+      select: {
+        privacyLevel: true,
+        saveStoriesToArchive: true,
+        ...PROFILE_PUSH_SELECT,
+      },
     });
     return {
       ...settings,
@@ -746,6 +750,7 @@ export class UsersService {
       pushFollows: profile?.pushFollows ?? true,
       pushMessages: profile?.pushMessages ?? true,
       pushLive: profile?.pushLive ?? true,
+      saveStoriesToArchive: profile?.saveStoriesToArchive ?? true,
     };
   }
 
@@ -797,6 +802,19 @@ export class UsersService {
       );
       if (Object.keys(push).length > 0) {
         await tx.profile.update({ where: { id: profileId }, data: push });
+      }
+      // Turned off, it keeps when: only the stories that end from then on
+      // are erased. Turning it off again keeps the first time.
+      if (dto.saveStoriesToArchive === false) {
+        await tx.profile.updateMany({
+          where: { id: profileId, saveStoriesToArchive: true },
+          data: { saveStoriesToArchive: false, storyArchiveOffAt: new Date() },
+        });
+      } else if (dto.saveStoriesToArchive === true) {
+        await tx.profile.update({
+          where: { id: profileId },
+          data: { saveStoriesToArchive: true, storyArchiveOffAt: null },
+        });
       }
       if (dto.privacyLevel !== undefined) {
         await setProfilePrivacy(tx, profileId, dto.privacyLevel as Visibility);

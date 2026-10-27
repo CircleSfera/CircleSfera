@@ -6,7 +6,7 @@ import {
   decodeKeysetCursor,
   encodeKeysetCursor,
 } from '../../../common/pagination/keyset.util.js';
-import { isGone } from '../../../common/policies/removed-content.policy.js';
+import { isUnlisted } from '../../../common/policies/removed-content.policy.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 
@@ -195,7 +195,7 @@ export class GetConversationsQuery {
       lastMsg.mediaType = null;
       lastMsg.voiceUrl = null;
     }
-    if (lastMsg?.post && isGone(lastMsg.post)) {
+    if (lastMsg?.post && isUnlisted(lastMsg.post)) {
       (lastMsg as { post: unknown }).post = null;
     }
     return conv;

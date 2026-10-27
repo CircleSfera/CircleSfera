@@ -7,7 +7,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
-  NOT_REMOVED,
+  LISTED_POST,
   SHOWN_COMMENTS_COUNT,
 } from '../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
@@ -168,7 +168,7 @@ export class BookmarksService {
 
     // A saved post that moderation removed is kept for its appeal, shown
     // nowhere: not listed, not counted.
-    const where: Prisma.BookmarkWhereInput = { profileId, post: NOT_REMOVED };
+    const where: Prisma.BookmarkWhereInput = { profileId, post: LISTED_POST };
     if (collectionId) {
       where.collectionId = collectionId;
     }
@@ -259,7 +259,7 @@ export class BookmarksService {
 
     const [bookmarks, total] = await Promise.all([
       this.prisma.bookmark.findMany({
-        where: { profileId, collectionId, post: NOT_REMOVED },
+        where: { profileId, collectionId, post: LISTED_POST },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -278,7 +278,7 @@ export class BookmarksService {
         },
       }),
       this.prisma.bookmark.count({
-        where: { profileId, collectionId, post: NOT_REMOVED },
+        where: { profileId, collectionId, post: LISTED_POST },
       }),
     ]);
 
