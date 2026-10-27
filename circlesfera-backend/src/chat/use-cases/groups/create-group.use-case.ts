@@ -72,7 +72,34 @@ export class CreateGroupUseCase {
         },
       });
 
-      if (existing) return existing;
+      if (existing) {
+        const mine = existing.participants.find(
+          (p) => p.profileId === profileId,
+        );
+        if (!mine?.deletedAt) return existing;
+        // The caller had removed this chat: it comes back for them, as a
+        // new message brings it back. Its row is held first, so the nightly
+        // erasure of chats everybody left cannot take it at that moment; if
+        // it already did, a new chat is started instead.
+        const back = await this.prisma.$transaction(async (tx) => {
+          const held = await tx.$queryRaw<Array<{ id: string }>>`
+            SELECT id FROM "conversations" WHERE id = ${existing.id} FOR UPDATE`;
+          if (held.length === 0) return false;
+          await tx.participant.update({
+            where: { id: mine.id },
+            data: { deletedAt: null },
+          });
+          return true;
+        });
+        if (back) {
+          return {
+            ...existing,
+            participants: existing.participants.map((p) =>
+              p.id === mine.id ? { ...p, deletedAt: null } : p,
+            ),
+          };
+        }
+      }
 
       const recipientFollows = await this.prisma.follow.findFirst({
         where: {

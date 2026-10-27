@@ -7,6 +7,7 @@ import { CreateGroupUseCase } from './create-group.use-case.js';
 describe('CreateGroupUseCase', () => {
   let useCase: CreateGroupUseCase;
   let mockPrisma: {
+    $transaction: ReturnType<typeof vi.fn>;
     block: { findMany: ReturnType<typeof vi.fn> };
     conversation: {
       findFirst: ReturnType<typeof vi.fn>;
@@ -18,9 +19,18 @@ describe('CreateGroupUseCase', () => {
     };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
+  let tx: {
+    $queryRaw: ReturnType<typeof vi.fn>;
+    participant: { update: ReturnType<typeof vi.fn> };
+  };
 
   beforeEach(() => {
+    tx = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'conv-1on1' }]),
+      participant: { update: vi.fn().mockResolvedValue({}) },
+    };
     mockPrisma = {
+      $transaction: vi.fn(async (fn: (client: typeof tx) => unknown) => fn(tx)),
       block: { findMany: vi.fn().mockResolvedValue([]) },
       conversation: {
         findFirst: vi.fn(),
@@ -58,13 +68,62 @@ describe('CreateGroupUseCase', () => {
   });
 
   it('returns existing 1-on-1 conversation when it already exists and name is not specified', async () => {
-    const existing = { id: 'conv-1on1', isGroup: false };
+    const existing = {
+      id: 'conv-1on1',
+      isGroup: false,
+      participants: [
+        { id: 'part-1', profileId: 'prof-1', deletedAt: null },
+        { id: 'part-2', profileId: 'prof-2', deletedAt: new Date() },
+      ],
+    };
     mockPrisma.conversation.findFirst.mockResolvedValue(existing);
 
     const result = await useCase.execute('prof-1', ['prof-2']);
 
     expect(result).toBe(existing);
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     expect(mockPrisma.conversation.create).not.toHaveBeenCalled();
+  });
+
+  describe('a one-to-one chat the caller had removed', () => {
+    const removedByCaller = () => ({
+      id: 'conv-1on1',
+      isGroup: false,
+      participants: [
+        { id: 'part-1', profileId: 'prof-1', deletedAt: new Date() },
+        { id: 'part-2', profileId: 'prof-2', deletedAt: new Date() },
+      ],
+    });
+
+    it('comes back for the caller only, once its row is held', async () => {
+      const existing = removedByCaller();
+      mockPrisma.conversation.findFirst.mockResolvedValue(existing);
+
+      const result = await useCase.execute('prof-1', ['prof-2']);
+
+      expect(tx.participant.update).toHaveBeenCalledWith({
+        where: { id: 'part-1' },
+        data: { deletedAt: null },
+      });
+      expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        tx.participant.update.mock.invocationCallOrder[0],
+      );
+      expect(result.participants[0].deletedAt).toBeNull();
+      expect(result.participants[1].deletedAt).toEqual(expect.any(Date));
+      expect(mockPrisma.conversation.create).not.toHaveBeenCalled();
+    });
+
+    it('is started anew when the night erasure took it in the meantime', async () => {
+      mockPrisma.conversation.findFirst.mockResolvedValue(removedByCaller());
+      tx.$queryRaw.mockResolvedValue([]);
+      const created = { id: 'conv-new', isGroup: false };
+      mockPrisma.conversation.create.mockResolvedValue(created);
+
+      const result = await useCase.execute('prof-1', ['prof-2']);
+
+      expect(tx.participant.update).not.toHaveBeenCalled();
+      expect(result).toBe(created);
+    });
   });
 
   it('creates new 1-on-1 request when recipient does not follow creator', async () => {
