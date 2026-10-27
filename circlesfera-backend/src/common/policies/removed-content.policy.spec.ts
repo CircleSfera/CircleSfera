@@ -5,6 +5,8 @@ import { assertCanAccessPost } from './post-access.policy.js';
 import {
   isGone,
   isRemoved,
+  isUnlisted,
+  LISTED_POST,
   NOT_REMOVED,
   SHOWN_COMMENTS_COUNT,
 } from './removed-content.policy.js';
@@ -41,6 +43,28 @@ describe('removed content', () => {
       false,
     );
     expect(isGone({})).toBe(false);
+  });
+
+  it('leaves an archived post out of lists too, for everyone, its author included', () => {
+    expect(LISTED_POST).toEqual({
+      moderationStatus: { not: 'REMOVED' },
+      deletedAt: null,
+      archivedAt: null,
+    });
+    expect(
+      isUnlisted({ moderationStatus: 'VISIBLE', archivedAt: new Date() }),
+    ).toBe(true);
+    expect(isUnlisted({ moderationStatus: 'REMOVED', archivedAt: null })).toBe(
+      true,
+    );
+    expect(isUnlisted({ deletedAt: new Date() })).toBe(true);
+    expect(
+      isUnlisted({
+        moderationStatus: 'VISIBLE',
+        deletedAt: null,
+        archivedAt: null,
+      }),
+    ).toBe(false);
   });
 
   it('a removed post is found by nobody, its author included; a hidden one by its author', async () => {
@@ -84,6 +108,26 @@ describe('removed content', () => {
     };
     const db = { block: { findFirst: vi.fn() } } as never;
     for (const viewer of ['author', 'viewer', null]) {
+      await expect(assertCanAccessPost(db, post, viewer)).rejects.toThrow(
+        NotFoundException,
+      );
+    }
+  });
+
+  it('a post its author archived is found by its author only, from their archive', async () => {
+    const post = {
+      id: 'p-1',
+      profileId: 'author',
+      visibility: 'PUBLIC' as const,
+      turnOffComments: false,
+      moderationStatus: 'VISIBLE',
+      deletedAt: null,
+      archivedAt: new Date(),
+      profile: { privacyLevel: 'PUBLIC' as const },
+    };
+    const db = { block: { findFirst: vi.fn() } } as never;
+    await expect(assertCanAccessPost(db, post, 'author')).resolves.toBe(post);
+    for (const viewer of ['viewer', null]) {
       await expect(assertCanAccessPost(db, post, viewer)).rejects.toThrow(
         NotFoundException,
       );

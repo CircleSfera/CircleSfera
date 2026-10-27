@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type Prisma, Visibility } from '@prisma/client';
 import {
-  NOT_REMOVED,
+  LISTED_POST,
   SHOWN_COMMENTS_COUNT,
 } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -25,6 +25,7 @@ const PUBLIC_POST_WHERE = {
   isPremium: false,
   moderationStatus: 'VISIBLE',
   deletedAt: null,
+  archivedAt: null,
   scheduledStatus: 'PUBLISHED',
   profile: PUBLIC_PROFILE_WHERE,
 } satisfies Prisma.PostWhereInput;
@@ -349,7 +350,7 @@ Sitemap: ${baseUrl}/sitemap.xml
           select: {
             followers: true,
             following: true,
-            posts: { where: NOT_REMOVED },
+            posts: { where: LISTED_POST },
           },
         },
       },

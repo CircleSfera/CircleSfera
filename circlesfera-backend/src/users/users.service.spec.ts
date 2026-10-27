@@ -785,7 +785,7 @@ describe('UsersService', () => {
   describe('getSettings and updateSettings', () => {
     const tx = {
       userSettings: { upsert: vi.fn() },
-      profile: { findUnique: vi.fn(), update: vi.fn() },
+      profile: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
       follow: { updateMany: vi.fn() },
     };
 
@@ -822,6 +822,7 @@ describe('UsersService', () => {
         where: { id: 'p-1', userId: 'u-1' },
         select: {
           privacyLevel: true,
+          saveStoriesToArchive: true,
           pushNotifications: true,
           pushLikes: true,
           pushComments: true,
@@ -922,6 +923,53 @@ describe('UsersService', () => {
       );
       expect(tx.profile.update).not.toHaveBeenCalled();
       expect(tx.follow.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps when stories stopped being saved, the first time it is turned off', async () => {
+      const now = new Date('2026-11-23T10:00:00.000Z');
+      vi.useFakeTimers({ now, toFake: ['Date'] });
+      try {
+        await service.updateSettings('u-1', 'p-1', {
+          saveStoriesToArchive: false,
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      // Only a Profile that still saves them changes: turning it off again
+      // keeps the first time, so what ended in between stays kept.
+      expect(tx.profile.updateMany).toHaveBeenCalledWith({
+        where: { id: 'p-1', saveStoriesToArchive: true },
+        data: { saveStoriesToArchive: false, storyArchiveOffAt: now },
+      });
+      expect(tx.profile.update).not.toHaveBeenCalled();
+    });
+
+    it('saves stories again, and forgets when it was off', async () => {
+      await service.updateSettings('u-1', 'p-1', {
+        saveStoriesToArchive: true,
+      });
+
+      expect(tx.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p-1' },
+        data: { saveStoriesToArchive: true, storyArchiveOffAt: null },
+      });
+      expect(tx.profile.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('answers whether stories are saved, on unless the Profile turned it off', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        privacyLevel: 'PUBLIC',
+        saveStoriesToArchive: false,
+      });
+      await expect(service.getSettings('u-1', 'p-1')).resolves.toMatchObject({
+        saveStoriesToArchive: false,
+      });
+
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce(null);
+      await expect(service.getSettings('u-1', 'p-1')).resolves.toMatchObject({
+        saveStoriesToArchive: true,
+      });
     });
 
     it("refuses the settings of a Profile that is not the person's", async () => {

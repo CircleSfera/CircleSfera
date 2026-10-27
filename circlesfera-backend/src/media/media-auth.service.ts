@@ -70,10 +70,9 @@ interface MessageAccess {
  * shown to nobody, its author included: its files are for staff who
  * moderate content only (`isStaff`), and a comment's go with its post.
  *
- * A post or story its author deleted waits in their Recently deleted: its
- * files are its author's only, and so are those of the comments on a
- * deleted post.
- *
+ * A post or story its author deleted waits in their Recently deleted, and a
+ * post they archived is in their archive: its files are its author's only,
+ * and so are those of the comments on such a post.
 
  * Live recording: its host's only until published; once published, the
  * Profile's audience (blocks hide it both ways; a private Profile's is its
@@ -86,6 +85,7 @@ const POST_ACCESS_SELECT = {
   isPremium: true,
   moderationStatus: true,
   deletedAt: true,
+  archivedAt: true,
   profile: { select: { privacyLevel: true } },
 } as const;
 
@@ -299,11 +299,18 @@ export class MediaAuthService {
     }
 
     // A file of a post or story its author deleted: theirs only, while it
-    // waits in their Recently deleted. The other rows naming the file are
-    // still checked.
-    const deletedPostMedia = postMedia.filter((media) => media.post.deletedAt);
+    // waits in their Recently deleted; a post they archived likewise, while
+    // it is in their archive. The other rows naming the file are still
+    // checked.
+    const ownersOnly = (post: {
+      deletedAt: Date | null;
+      archivedAt: Date | null;
+    }) => !!post.deletedAt || !!post.archivedAt;
+    const deletedPostMedia = postMedia.filter((media) =>
+      ownersOnly(media.post),
+    );
     const deletedStories = story.filter((item) => item.deletedAt);
-    const deletedComments = comment.filter((item) => item.post.deletedAt);
+    const deletedComments = comment.filter((item) => ownersOnly(item.post));
     const deletedOwners = [
       ...deletedPostMedia.map((media) => media.post.profileId),
       ...deletedStories.map((item) => item.profileId),

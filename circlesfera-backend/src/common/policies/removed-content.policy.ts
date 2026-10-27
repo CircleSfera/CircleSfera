@@ -10,6 +10,13 @@ export const NOT_REMOVED = {
   deletedAt: null,
 };
 
+// A post (frame included) its author archived is shown in their archive
+// only, with its likes and comments: every list, count and lookup that
+// leaves out removed and deleted posts leaves it out too, for everyone, its
+// author included. Stories have no such state: each one is in its author's
+// archive once its 24 hours end.
+export const LISTED_POST = { ...NOT_REMOVED, archivedAt: null };
+
 // The moderation states a comment is listed in, for everyone.
 export const SHOWN_COMMENT_STATUSES = {
   in: ['VISIBLE', 'FLAGGED'] as Array<'VISIBLE' | 'FLAGGED'>,
@@ -41,4 +48,14 @@ export function isGone(content: {
   deletedAt?: Date | null;
 }): boolean {
   return isRemoved(content) || !!content.deletedAt;
+}
+
+// Whether a post is out of everyone's sight but its author's archive: gone,
+// or archived by its author.
+export function isUnlisted(post: {
+  moderationStatus?: string | null;
+  deletedAt?: Date | null;
+  archivedAt?: Date | null;
+}): boolean {
+  return isGone(post) || !!post.archivedAt;
 }

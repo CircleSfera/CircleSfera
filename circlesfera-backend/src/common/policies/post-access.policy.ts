@@ -14,6 +14,7 @@ export type AccessiblePost = {
   visibility: Visibility;
   moderationStatus: string;
   deletedAt: Date | null;
+  archivedAt?: Date | null;
   turnOffComments: boolean;
   hideLikes?: boolean;
   profile?: { privacyLevel?: Visibility } | null;
@@ -25,8 +26,10 @@ export type AccessiblePost = {
 // privacy and audience restrictions answer Forbidden, as the detail endpoint
 // always has. The author has access to their own post unless moderation
 // removed it or they deleted it (it is then only in their Recently deleted,
-// which reads it on its own). Accepts a post id, or a post the caller already loaded with
-// these fields (avoids a second query on the detail endpoint).
+// which reads it on its own). A post its author archived is theirs only: they
+// open it from their archive, and anyone else is answered NotFound. Accepts a
+// post id, or a post the caller already loaded with these fields (avoids a
+// second query on the detail endpoint).
 export async function assertCanAccessPost(
   db: PostAccessReader,
   postOrId: string | AccessiblePost,
@@ -45,6 +48,7 @@ export async function assertCanAccessPost(
   if (viewerProfileId === post.profileId) return post;
 
   if (
+    post.archivedAt ||
     post.moderationStatus === 'HIDDEN' ||
     (await isBlockedEitherWay(db, viewerProfileId, post.profileId))
   ) {
@@ -91,6 +95,7 @@ function loadPost(
       visibility: true,
       moderationStatus: true,
       deletedAt: true,
+      archivedAt: true,
       turnOffComments: true,
       hideLikes: true,
       profile: { select: { privacyLevel: true } },

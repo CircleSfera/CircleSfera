@@ -74,6 +74,19 @@ describe('GetMessagesQuery', () => {
     mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-1' });
     mockPrisma.message.findMany.mockResolvedValue([
       {
+        id: 'msg-3',
+        content: null,
+        senderId: 'prof-1',
+        isLocked: false,
+        postId: 'post-archived',
+        post: {
+          id: 'post-archived',
+          moderationStatus: 'VISIBLE',
+          deletedAt: null,
+          archivedAt: new Date(),
+        },
+      },
+      {
         id: 'msg-2',
         content: null,
         senderId: 'prof-1',
@@ -111,6 +124,8 @@ describe('GetMessagesQuery', () => {
     expect(result[2]).toMatchObject({
       post: { id: 'post-hidden', moderationStatus: 'HIDDEN' },
     });
+    // One its author archived is in their archive only: not available here.
+    expect(result[3]).toMatchObject({ postId: 'post-archived', post: null });
   });
 
   it('masks locked message content and media if viewer has not unlocked it', async () => {

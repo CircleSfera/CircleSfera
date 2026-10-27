@@ -3,7 +3,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
-import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
+import {
+  LISTED_POST,
+  NOT_REMOVED,
+} from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreatePollDto } from './dto/create-poll.dto.js';
 import type { CreateQnaBoxDto } from './dto/create-qna.dto.js';
@@ -146,7 +149,7 @@ export class InteractiveService {
 
     if (dto.postId) {
       const post = await this.prisma.post.findUnique({
-        where: { id: dto.postId, ...NOT_REMOVED },
+        where: { id: dto.postId, ...LISTED_POST },
       });
       if (!post)
         throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
@@ -235,7 +238,7 @@ export class InteractiveService {
 
     if (dto.postId) {
       const post = await this.prisma.post.findUnique({
-        where: { id: dto.postId, ...NOT_REMOVED },
+        where: { id: dto.postId, ...LISTED_POST },
       });
       if (!post)
         throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');

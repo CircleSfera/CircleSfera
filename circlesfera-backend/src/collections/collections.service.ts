@@ -1,10 +1,10 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
-import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
+import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-const SHOWN_BOOKMARKS = { post: NOT_REMOVED };
+const SHOWN_BOOKMARKS = { post: LISTED_POST };
 
 // Service for bookmark collections (CRUD). Each collection groups bookmarked posts
 // And auto-derives a cover image from the first bookmark.

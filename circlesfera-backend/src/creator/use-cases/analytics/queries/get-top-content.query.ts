@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  NOT_REMOVED,
+  LISTED_POST,
   SHOWN_COMMENTS_COUNT,
 } from '../../../../common/policies/removed-content.policy.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
@@ -12,7 +12,7 @@ export class GetTopContentQuery {
   async execute(profileId: string, limit = 5) {
     const topPosts = await this.prisma.post.findMany({
       // What moderation removed is kept for its appeal, shown to nobody.
-      where: { profileId, type: 'POST', ...NOT_REMOVED },
+      where: { profileId, type: 'POST', ...LISTED_POST },
       take: limit,
       orderBy: { performanceScore: 'desc' },
       include: {

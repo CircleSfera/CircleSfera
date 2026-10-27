@@ -111,6 +111,7 @@ export class AudioService {
         visibility: 'PUBLIC',
         moderationStatus: 'VISIBLE',
         deletedAt: null,
+        archivedAt: null,
       },
       include: {
         profile: {

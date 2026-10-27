@@ -26,6 +26,7 @@ import { AnalyticsModule } from './analytics/analytics.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AppealsModule } from './appeals/appeals.module.js';
+import { ArchiveModule } from './archive/archive.module.js';
 import { AudioModule } from './audio/audio.module.js';
 import { AccountStateModule } from './auth/account-state.module.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -172,6 +173,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     ProfilesModule,
     PostsModule,
     RecentlyDeletedModule,
+    ArchiveModule,
     CommentsModule,
     LikesModule,
     FollowsModule,

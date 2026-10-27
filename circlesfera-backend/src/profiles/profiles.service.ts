@@ -24,7 +24,7 @@ import {
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
-import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
+import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
@@ -172,7 +172,7 @@ export class ProfilesService {
         signIn: { select: { emailVerified: true } },
         _count: {
           select: {
-            posts: { where: NOT_REMOVED },
+            posts: { where: LISTED_POST },
             followers: { where: { status: 'ACCEPTED' } },
             following: { where: { status: 'ACCEPTED' } },
             strikes: { where: activeStrikeWhere() },
@@ -616,7 +616,7 @@ export class ProfilesService {
         createdAt: true,
         _count: {
           select: {
-            posts: { where: NOT_REMOVED },
+            posts: { where: LISTED_POST },
             followers: { where: { status: 'ACCEPTED' } },
             following: { where: { status: 'ACCEPTED' } },
           },

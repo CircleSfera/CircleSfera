@@ -40,7 +40,7 @@ import {
 import { setModerationStatus } from '../common/policies/moderation-decision.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
-  NOT_REMOVED,
+  LISTED_POST,
   SHOWN_COMMENTS_COUNT,
 } from '../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
@@ -895,6 +895,7 @@ export class PostsService {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE',
       deletedAt: null,
+      archivedAt: null,
       ...matureWhere(content),
       profile: {
         AND: [
@@ -907,7 +908,7 @@ export class PostsService {
     if (!currentProfileId) return baseFilter;
 
     return {
-      OR: [baseFilter, { profileId: currentProfileId, ...NOT_REMOVED }],
+      OR: [baseFilter, { profileId: currentProfileId, ...LISTED_POST }],
     };
   }
 
@@ -919,8 +920,8 @@ export class PostsService {
     content: ViewerContent,
   ): Prisma.PostWhereInput {
     // The author sees all of theirs but what moderation removed and what
-    // they deleted.
-    if (authorId === currentProfileId) return { ...NOT_REMOVED };
+    // they deleted or archived.
+    if (authorId === currentProfileId) return { ...LISTED_POST };
 
     const publicFilter: Prisma.PostWhereInput = {
       visibility: Visibility.PUBLIC,
@@ -933,6 +934,7 @@ export class PostsService {
         ...publicFilter,
         moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
         deletedAt: null,
+        archivedAt: null,
         ...matureWhere(content),
       };
     }
@@ -940,6 +942,7 @@ export class PostsService {
     return {
       moderationStatus: { in: ['VISIBLE', 'FLAGGED'] }, // Still show flagged but not hidden
       deletedAt: null,
+      archivedAt: null,
       ...matureWhere(content),
       OR: [
         publicFilter,
