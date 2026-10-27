@@ -321,10 +321,17 @@ export class UploadsService {
     addresses: Array<string | null | undefined>,
   ): Promise<string[]> {
     const keys = addresses.filter((a): a is string => !!a);
+    const owners = await this.storedFiles.ownersOf(keys);
     const byOwner = new Map<string, string[]>();
-    for (const [key, owner] of await this.storedFiles.ownersOf(keys)) {
+    for (const [key, owner] of owners) {
       byOwner.set(owner, [...(byOwner.get(owner) ?? []), key]);
     }
+    // Files with no owner are deleted by no one, but made private all the
+    // same once no row uses them.
+    await this.storedFiles.release(
+      '',
+      keys.filter((key) => !owners.has(key)),
+    );
     const deleted: string[] = [];
     for (const [owner, ownedKeys] of byOwner) {
       deleted.push(...(await this.deleteContentFiles(owner, ownedKeys)));
@@ -341,7 +348,7 @@ export class UploadsService {
     authorProfileId: string,
     addresses: Array<string | null | undefined>,
   ): Promise<string[]> {
-    const deletable = await this.storedFiles.deletableBy(
+    const deletable = await this.storedFiles.release(
       authorProfileId,
       addresses,
     );

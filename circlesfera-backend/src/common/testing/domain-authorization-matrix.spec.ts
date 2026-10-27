@@ -272,6 +272,9 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
       };
       mediaAuthService = new MediaAuthService(
         mockPrisma as unknown as PrismaService,
+        {
+          areReadableBy: async () => true,
+        } as never,
       );
     });
 

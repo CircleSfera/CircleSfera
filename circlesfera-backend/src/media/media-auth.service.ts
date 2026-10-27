@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FollowStatus, Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  StoredFilesService,
+  VIDEO_EXTENSIONS,
+} from '../uploads/services/stored-files.service.js';
 
 interface PostLikeAccess {
   profileId: string;
@@ -67,7 +71,10 @@ const STREAM_FOLDER =
 export class MediaAuthService {
   private readonly logger = new Logger(MediaAuthService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storedFiles: StoredFilesService,
+  ) {}
 
   /**
    * Check whether `viewerProfileId` (may be null for anonymous) is allowed
@@ -124,10 +131,22 @@ export class MediaAuthService {
       return false;
     }
 
-    // A file of a video's stream folder (<uuid>/master.m3u8, its segments,
-    // its cover) is the video's: no row names a segment, so it is matched by
-    // the folder, and gets the access of the content that holds the video.
+    // A file a content deletion left detached is its owner's only, until the
+    // sweep deletes it, whatever row may name it in another shape: checked
+    // first, so that the deny wins. A file of a video's stream folder
+    // (<uuid>/master.m3u8, its segments, its cover) goes with the video.
     const [first, ...inFolder] = normalised.split('/');
+    const candidates =
+      inFolder.length > 0
+        ? VIDEO_EXTENSIONS.map((ext) => `/uploads/${first}.${ext}`)
+        : [`/uploads/${normalised}`];
+    if (!(await this.storedFiles.areReadableBy(candidates, viewerProfileId))) {
+      this.logger.debug(`Access denied — detached file: ${uploadPath}`);
+      return false;
+    }
+
+    // No row names a segment: a file of a stream folder is matched by the
+    // folder, and gets the access of the content that holds the video.
     const needles =
       inFolder.length > 0 && STREAM_FOLDER.test(first)
         ? [`${first}/`, `${first}.`]

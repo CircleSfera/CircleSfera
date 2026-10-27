@@ -805,7 +805,9 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
         },
       };
 
-      mediaAuthService = new MediaAuthService(mockPrisma);
+      mediaAuthService = new MediaAuthService(mockPrisma, {
+        areReadableBy: async () => true,
+      } as never);
     });
 
     it('blocks direct static access to export artifacts across any media route', async () => {
