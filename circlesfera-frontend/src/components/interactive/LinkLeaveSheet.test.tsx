@@ -1,5 +1,13 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import { reportsApi } from '../../services/reports.service';
 import { renderWithProviders } from '../../test/test-utils';
 import { LinkLeaveSheet, LinkSticker } from './LinkLeaveSheet';
@@ -81,6 +89,8 @@ describe('a link on a story', () => {
   });
 
   it('says so when the report could not be sent', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     vi.mocked(reportsApi.create).mockRejectedValue(new Error('offline'));
     show();
 
@@ -88,6 +98,10 @@ describe('a link on a story', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No se pudo enviar la denuncia.',
+    );
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to report a link:',
+      new Error('offline'),
     );
   });
 

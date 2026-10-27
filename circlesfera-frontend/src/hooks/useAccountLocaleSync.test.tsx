@@ -75,7 +75,9 @@ describe('useAccountLocaleSync', () => {
       profile: null,
     });
     setup('en');
-    useAuthStore.setState({ isAuthenticated: false, isSessionChecked: true });
+    act(() =>
+      useAuthStore.setState({ isAuthenticated: false, isSessionChecked: true }),
+    );
 
     await new Promise((r) => setTimeout(r, 0));
     expect(usersApi.updateLocale).not.toHaveBeenCalled();

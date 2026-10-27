@@ -1,5 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { adminAuthApi } from '../../services/admin-auth.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { renderWithProviders } from '../../test/test-utils';
@@ -33,6 +33,13 @@ const operator = {
   permissions: [],
 };
 
+/** Holds the warning the guard logs for a visitor without a staff session. */
+function catchLoggedWarning() {
+  const logged = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  onTestFinished(() => logged.mockRestore());
+  return logged;
+}
+
 describe('BackofficeApp', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,10 +53,14 @@ describe('BackofficeApp', () => {
 
   it('sends a visitor without a staff session to the staff sign-in', async () => {
     vi.mocked(adminAuthApi.me).mockRejectedValue(new Error('401'));
+    const logged = catchLoggedWarning();
 
     renderWithProviders(<BackofficeApp />);
 
     expect(await screen.findByTestId('staff-sign-in')).toBeInTheDocument();
+    expect(logged).toHaveBeenCalledWith(
+      'Admin Panel: unauthenticated access attempt at /',
+    );
   });
 
   it('shows the home to an operator with no section, with who they are', async () => {
@@ -80,6 +91,7 @@ describe('BackofficeApp', () => {
 
   it('signing out ends the session and returns to the sign-in', async () => {
     vi.mocked(adminAuthApi.me).mockResolvedValue({ data: operator } as never);
+    const logged = catchLoggedWarning();
 
     const { i18n } = renderWithProviders(<BackofficeApp />);
     fireEvent.click(
@@ -88,5 +100,8 @@ describe('BackofficeApp', () => {
 
     expect(await screen.findByTestId('staff-sign-in')).toBeInTheDocument();
     expect(adminAuthApi.logout).toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(
+      'Admin Panel: unauthenticated access attempt at /',
+    );
   });
 });

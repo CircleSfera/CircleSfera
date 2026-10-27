@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import toast from 'react-hot-toast';
 import { Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -111,7 +111,7 @@ describe('HighlightViewerPage', () => {
     await waitFor(() => expect(viewer().isOpen).toBe(true));
     expect(navigate).not.toHaveBeenCalled();
 
-    useStoryStore.getState().closeStories();
+    act(() => useStoryStore.getState().closeStories());
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith(-1));
   });

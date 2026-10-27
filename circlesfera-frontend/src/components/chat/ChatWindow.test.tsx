@@ -83,6 +83,8 @@ vi.mock('framer-motion', () => {
       initial: _initial,
       exit: _exit,
       transition: _transition,
+      whileHover: _whileHover,
+      whileTap: _whileTap,
       ...props
     }: Record<string, unknown> & { children?: ReactNode }) =>
       createElement(tag, props, children);

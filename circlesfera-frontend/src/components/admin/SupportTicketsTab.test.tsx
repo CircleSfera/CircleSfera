@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
@@ -660,7 +666,7 @@ describe('SupportTicketsTab', () => {
         const { sendButton } = await startWriting();
         vi.mocked(adminApi.getSupportTicket).mockResolvedValue(withTheirs);
 
-        await vi.advanceTimersByTimeAsync(20_000);
+        await act(() => vi.advanceTimersByTimeAsync(20_000));
 
         expect(await screen.findByRole('status')).toBeInTheDocument();
         expect(sendButton()).toBeDisabled();

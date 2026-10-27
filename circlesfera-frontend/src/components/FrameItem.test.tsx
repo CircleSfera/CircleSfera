@@ -356,7 +356,7 @@ describe('FrameItem', () => {
       expect(video().paused).toBe(false);
     });
 
-    it('takes two quick taps as one gesture and keeps playing', () => {
+    it('takes two quick taps as one gesture and keeps playing', async () => {
       vi.useFakeTimers();
       show(frame());
 
@@ -368,9 +368,14 @@ describe('FrameItem', () => {
 
       expect(video().paused).toBe(false);
       expect(pause).not.toHaveBeenCalled();
+      // The gesture is a like, saved once the timers run again.
+      vi.useRealTimers();
+      await waitFor(() =>
+        expect(screen.getByTestId('likes')).toHaveTextContent('4'),
+      );
     });
 
-    it('still takes them as one gesture when the video advances in between', () => {
+    it('still takes them as one gesture when the video advances in between', async () => {
       vi.useFakeTimers();
       show(frame());
 
@@ -385,6 +390,11 @@ describe('FrameItem', () => {
 
       expect(video().paused).toBe(false);
       expect(pause).not.toHaveBeenCalled();
+      // The gesture is a like, saved once the timers run again.
+      vi.useRealTimers();
+      await waitFor(() =>
+        expect(screen.getByTestId('likes')).toHaveTextContent('4'),
+      );
     });
   });
 
@@ -474,6 +484,7 @@ describe('FrameItem', () => {
 
     it('undo the like on screen when it cannot be saved', async () => {
       vi.mocked(likesApi.toggle).mockRejectedValue(new Error('offline'));
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
       show(frame());
 
       twoTaps();
@@ -482,6 +493,11 @@ describe('FrameItem', () => {
       await waitFor(() =>
         expect(screen.getByTestId('likes')).toHaveTextContent('3'),
       );
+      expect(logged).toHaveBeenCalledWith(
+        'Failed to like the frame',
+        new Error('offline'),
+      );
+      logged.mockRestore();
     });
   });
 

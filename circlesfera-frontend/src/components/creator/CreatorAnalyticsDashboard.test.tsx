@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { creatorApi } from '../../services/creator.service';
 import { renderWithProviders } from '../../test/test-utils';
 import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
@@ -158,6 +158,8 @@ describe('CreatorAnalyticsDashboard', () => {
   });
 
   it('says so when the answer does not arrive, and asks again on request', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     const user = userEvent.setup();
     vi.mocked(creatorApi.getRevenueAnalytics).mockRejectedValueOnce(
       new Error('down'),
@@ -173,6 +175,10 @@ describe('CreatorAnalyticsDashboard', () => {
 
     expect(await screen.findByText('€1,000.00')).toBeInTheDocument();
     expect(creatorApi.getRevenueAnalytics).toHaveBeenCalledTimes(2);
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to fetch creator analytics:',
+      new Error('down'),
+    );
   });
 
   it('writes its headings in Spanish for a Spanish reader', async () => {

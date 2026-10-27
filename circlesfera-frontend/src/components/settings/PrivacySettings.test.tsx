@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { profileApi } from '../../services';
 import { renderWithProviders } from '../../test/test-utils';
 import PrivacySettings from './PrivacySettings';
@@ -79,6 +79,8 @@ describe('PrivacySettings', () => {
   });
 
   it('goes back to what it was when the change is refused', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     api.updateProfile.mockRejectedValue(new Error('down'));
     await show({ username: 'ana', isPrivate: false });
 
@@ -86,6 +88,7 @@ describe('PrivacySettings', () => {
 
     await waitFor(() => expect(api.updateProfile).toHaveBeenCalled());
     await waitFor(() => expect(lock()).not.toBeChecked());
+    expect(logged).toHaveBeenCalledWith('Failed to update privacy settings');
   });
 
   it('points to where the data export is', async () => {

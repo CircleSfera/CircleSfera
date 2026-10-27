@@ -18,20 +18,23 @@ vi.mock('../../services/admin.service', () => ({
 vi.mock('../common/SafeResponsiveContainer', () => ({
   default: ({ children }: { children: ReactNode }) => children,
 }));
+// The chart draws an svg, as the real one does: the gradients the screen
+// defines for it only exist inside one.
 vi.mock('recharts', () => ({
   AreaChart: ({ data, children }: { data: unknown[]; children: ReactNode }) => (
-    <div data-testid="chart" data-days={data.length}>
+    <svg data-testid="chart" data-days={data.length}>
+      <title>chart</title>
       {children}
-    </div>
+    </svg>
   ),
   Area: ({ name, dataKey }: { name: string; dataKey: string }) => (
-    <span data-testid={`series-${dataKey}`}>{name}</span>
+    <text data-testid={`series-${dataKey}`}>{name}</text>
   ),
   XAxis: ({ tickFormatter }: { tickFormatter: (v: string) => string }) => (
-    <span data-testid="tick">{tickFormatter('2026-03-10')}</span>
+    <text data-testid="tick">{tickFormatter('2026-03-10')}</text>
   ),
   Tooltip: ({ labelFormatter }: { labelFormatter: (v: string) => string }) => (
-    <span data-testid="tooltip">{labelFormatter('2026-03-10')}</span>
+    <text data-testid="tooltip">{labelFormatter('2026-03-10')}</text>
   ),
   YAxis: () => null,
   CartesianGrid: () => null,

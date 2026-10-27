@@ -10,6 +10,10 @@ vi.mock('../../services', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../services')>();
   return { ...actual, profileApi: { getMyProfiles: vi.fn() } };
 });
+// The account belongs to no team here: the list of team profiles is empty.
+vi.mock('../../services/team.service', () => ({
+  teamApi: { profiles: vi.fn().mockResolvedValue([]) },
+}));
 
 describe('ProfileSwitcher', () => {
   beforeEach(() => {

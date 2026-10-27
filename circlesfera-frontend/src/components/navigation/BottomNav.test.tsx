@@ -1,5 +1,5 @@
 import { Haptics } from '@capacitor/haptics';
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
@@ -68,7 +68,9 @@ describe('BottomNav', () => {
       screen.getByRole('link', { name: i18n!.t('nav.search') }),
     ).toHaveAttribute('href', '/explore');
 
-    useAuthStore.setState({ isCreatorModeActive: false, profile: null });
+    act(() =>
+      useAuthStore.setState({ isCreatorModeActive: false, profile: null }),
+    );
   });
 
   it('handles the rejected haptics call when the platform cannot vibrate', async () => {

@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { apiClient } from '../../services/api';
 import { renderWithProviders } from '../../test/test-utils';
 import { timeLeft } from './CountdownClock';
@@ -99,6 +99,8 @@ describe('CountdownWidget', () => {
   });
 
   it('says so when the reminder could not be saved', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     vi.mocked(apiClient.get).mockResolvedValue(countdown() as never);
     vi.mocked(apiClient.post).mockRejectedValue(new Error('offline'));
     renderWithProviders(<CountdownWidget stickerId="cd" />, { lng: 'es' });
@@ -110,14 +112,24 @@ describe('CountdownWidget', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No se pudo guardar el recordatorio.',
     );
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to set the reminder:',
+      new Error('offline'),
+    );
   });
 
   it('says so when the countdown could not be loaded', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     vi.mocked(apiClient.get).mockRejectedValue(new Error('offline'));
     renderWithProviders(<CountdownWidget stickerId="cd" />, { lng: 'es' });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No se pudo cargar la cuenta atrás.',
+    );
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to load countdown:',
+      new Error('offline'),
     );
   });
 

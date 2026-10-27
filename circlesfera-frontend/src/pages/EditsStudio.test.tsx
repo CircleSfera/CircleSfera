@@ -1,4 +1,10 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { uploadApi } from '../services/upload.service';
@@ -204,6 +210,9 @@ describe('Studio', () => {
   });
 
   afterEach(() => {
+    // Unmount first: the store change would otherwise re-render the screen
+    // after the test, outside act.
+    cleanup();
     vi.restoreAllMocks();
     useStudioStore.setState({ project: null });
   });
@@ -395,7 +404,9 @@ describe('Studio', () => {
       await open();
       act(() => useStudioStore.setState({ playhead: 3 }));
 
-      await act(() => seen.sheet.onAddMediaFile(picked('a.mp4', 'video/mp4')));
+      await act(async () =>
+        seen.sheet.onAddMediaFile(picked('a.mp4', 'video/mp4')),
+      );
 
       await waitFor(() =>
         expect(clipsOf('video')[0]).toMatchObject({
@@ -415,7 +426,9 @@ describe('Studio', () => {
     it('puts a picture on the timeline for three seconds, silent', async () => {
       await open();
 
-      await act(() => seen.sheet.onAddMediaFile(picked('a.png', 'image/png')));
+      await act(async () =>
+        seen.sheet.onAddMediaFile(picked('a.png', 'image/png')),
+      );
 
       await waitFor(() =>
         expect(clipsOf('video')[0]).toMatchObject({
@@ -430,7 +443,9 @@ describe('Studio', () => {
     it('puts a sound on the audio track', async () => {
       await open();
 
-      await act(() => seen.sheet.onAddAudioFile(picked('a.mp3', 'audio/mpeg')));
+      await act(async () =>
+        seen.sheet.onAddAudioFile(picked('a.mp3', 'audio/mpeg')),
+      );
 
       await waitFor(() =>
         expect(clipsOf('audio')[0]).toMatchObject({
@@ -447,7 +462,9 @@ describe('Studio', () => {
       mediaLength = 'unreadable';
       await open();
 
-      await act(() => seen.sheet.onAddMediaFile(picked('a.mp4', 'video/mp4')));
+      await act(async () =>
+        seen.sheet.onAddMediaFile(picked('a.mp4', 'video/mp4')),
+      );
 
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith('Could not upload media'),
@@ -460,7 +477,9 @@ describe('Studio', () => {
       vi.mocked(uploadApi.upload).mockRejectedValue(new Error('offline'));
       await open();
 
-      await act(() => seen.sheet.onAddMediaFile(picked('a.png', 'image/png')));
+      await act(async () =>
+        seen.sheet.onAddMediaFile(picked('a.png', 'image/png')),
+      );
 
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith('Could not upload media'),

@@ -1,6 +1,14 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import { followsApi, profileApi, uploadApi, usersApi } from '../services';
 import { renderWithProviders } from '../test/test-utils';
 import Onboarding from './Onboarding';
@@ -214,6 +222,8 @@ describe('Onboarding finish', () => {
 
   it('lets the account in without the photo when it cannot be uploaded, and says so', async () => {
     vi.mocked(uploadApi.upload).mockRejectedValue(new Error('too large'));
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     const { i18n } = renderOnboarding();
 
     fireEvent.change(
@@ -227,6 +237,10 @@ describe('Onboarding finish', () => {
       i18n!.t('onboarding.avatar_error'),
     );
     expect(profileApi.updateProfile).toHaveBeenCalledWith({ bio: 'Hola' });
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to upload the onboarding photo:',
+      new Error('too large'),
+    );
   });
 
   it('does not upload anything when no photo was chosen', async () => {

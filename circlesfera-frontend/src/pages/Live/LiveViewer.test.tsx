@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -219,7 +219,7 @@ describe('LiveViewer', () => {
           name: i18n!.t('live.send_reaction', { emoji: '💎' }),
         }),
       ).not.toBeInTheDocument();
-      useAuthStore.setState({ profile: null } as never);
+      act(() => useAuthStore.setState({ profile: null } as never));
     });
 
     it.each(['ELITE', 'BUSINESS'])(
@@ -237,7 +237,7 @@ describe('LiveViewer', () => {
             }),
           ).toBeInTheDocument();
         }
-        useAuthStore.setState({ profile: null } as never);
+        act(() => useAuthStore.setState({ profile: null } as never));
       },
     );
 

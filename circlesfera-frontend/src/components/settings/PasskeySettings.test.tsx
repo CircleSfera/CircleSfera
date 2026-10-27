@@ -1,5 +1,13 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import PasskeySettings from './PasskeySettings';
 
@@ -34,6 +42,13 @@ const ONE_KEY = {
     },
   ],
 };
+
+/** Holds the error the screen logs, for the test to check it was logged. */
+function catchLoggedError() {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  onTestFinished(() => logged.mockRestore());
+  return logged;
+}
 
 describe('PasskeySettings', () => {
   beforeEach(() => {
@@ -70,6 +85,7 @@ describe('PasskeySettings', () => {
     'says the list could not be loaded when it %s, instead of "none", and does not offer to add one',
     async (_case, answer) => {
       vi.mocked(passkeyApi.listPasskeys).mockImplementation(answer as never);
+      const logged = catchLoggedError();
       const { i18n } = renderWithProviders(<PasskeySettings />);
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -81,6 +97,10 @@ describe('PasskeySettings', () => {
       for (const button of screen.getAllByRole('button')) {
         expect(button).toBeDisabled();
       }
+      expect(logged).toHaveBeenCalledWith(
+        'Failed to fetch passkeys:',
+        expect.any(Error),
+      );
     },
   );
 
@@ -145,6 +165,7 @@ describe('PasskeySettings', () => {
       data: { challenge: 'c' },
     } as never);
     vi.mocked(startAuthentication).mockRejectedValue(new Error('cancelled'));
+    const logged = catchLoggedError();
 
     const { i18n } = renderWithProviders(<PasskeySettings />);
     fireEvent.click(
@@ -159,6 +180,10 @@ describe('PasskeySettings', () => {
       ),
     ).toBeInTheDocument();
     expect(passkeyApi.deletePasskey).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to delete passkey:',
+      new Error('cancelled'),
+    );
   });
 
   it('adds a passkey after the browser creates it and lists it', async () => {
@@ -200,6 +225,7 @@ describe('PasskeySettings', () => {
     vi.mocked(startRegistration).mockRejectedValue(
       new Error('The operation either timed out or was not allowed.'),
     );
+    const logged = catchLoggedError();
     const { i18n } = renderWithProviders(<PasskeySettings />);
     await screen.findByText(i18n!.t('settings.passkey_settings.empty'));
 
@@ -216,10 +242,15 @@ describe('PasskeySettings', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/timed out/)).not.toBeInTheDocument();
     expect(passkeyApi.verifyRegistration).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(
+      'Passkey registration error:',
+      new Error('The operation either timed out or was not allowed.'),
+    );
   });
 
   it('still shows the screen when the passkeys cannot be listed', async () => {
     vi.mocked(passkeyApi.listPasskeys).mockRejectedValue(new Error('down'));
+    const logged = catchLoggedError();
     const { i18n } = renderWithProviders(<PasskeySettings />);
 
     // The screen is there, and it does not claim to know how many there are.
@@ -230,6 +261,10 @@ describe('PasskeySettings', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.queryByText('0 / 5')).not.toBeInTheDocument();
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to fetch passkeys:',
+      new Error('down'),
+    );
   });
 
   it('shows how many passkeys the account has out of the limit', async () => {
@@ -268,6 +303,7 @@ describe('PasskeySettings', () => {
         data: { errorCode: 'PASSKEY_LIMIT_REACHED', details: { max: 5 } },
       }),
     );
+    const logged = catchLoggedError();
     const { i18n } = renderWithProviders(<PasskeySettings />);
     await screen.findByText(i18n!.t('settings.passkey_settings.empty'));
 
@@ -283,6 +319,10 @@ describe('PasskeySettings', () => {
       ),
     ).toBeInTheDocument();
     expect(startRegistration).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(
+      'Passkey registration error:',
+      expect.objectContaining({ message: 'Passkey limit reached' }),
+    );
   });
 
   describe('what the device can do', () => {

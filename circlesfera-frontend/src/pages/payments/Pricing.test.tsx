@@ -1,7 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { toast } from 'react-hot-toast';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import { helpCentreApi } from '../../services/helpCentre.service';
 import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
@@ -533,10 +541,18 @@ describe('Pricing', () => {
       vi.mocked(usersApi.syncIdentitySession).mockRejectedValue(
         new Error('down'),
       );
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+      onTestFinished(() => logged.mockRestore());
       renderWithProviders(<Pricing />);
 
       expect(await screen.findByText('Premium')).toBeInTheDocument();
       expect(usersApi.syncIdentitySession).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(logged).toHaveBeenCalledWith(
+          'Failed to sync identity session:',
+          new Error('down'),
+        ),
+      );
       expect(toast.success).not.toHaveBeenCalled();
     });
 

@@ -2,7 +2,15 @@ import { startAuthentication } from '@simplewebauthn/browser';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { i18n as I18nInstance } from 'i18next';
 import { toast } from 'react-hot-toast';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import { authApi, passkeyApi, profileApi } from '../services';
 import { apiClient } from '../services/api';
 import { renderWithProviders } from '../test/test-utils';
@@ -33,6 +41,12 @@ vi.mock('../services/socketStore', () => ({
     disconnect: vi.fn(),
     socket: null,
   })),
+}));
+
+// A signed-in page opens the live connection; here there is no server to
+// reach.
+vi.mock('../services/realtime.service', () => ({
+  realtimeService: { connect: vi.fn(), disconnect: vi.fn() },
 }));
 
 vi.mock('../utils/visitorId', () => ({
@@ -448,11 +462,17 @@ describe('Login Page Integration', () => {
 
   it('opens the home page even when the profile cannot be loaded', async () => {
     vi.mocked(profileApi.getMyProfile).mockRejectedValue(new Error('down'));
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => logged.mockRestore());
     const { i18n } = renderWithProviders(<Login />);
 
     fillAndSubmit(i18n!);
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/'));
+    expect(logged).toHaveBeenCalledWith(
+      'Failed to fetch profile:',
+      new Error('down'),
+    );
   });
 
   describe('security check', () => {
@@ -595,6 +615,8 @@ describe('Login Page Integration', () => {
       vi.mocked(startAuthentication).mockRejectedValue(
         new Error('The operation either timed out or was not allowed.'),
       );
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+      onTestFinished(() => logged.mockRestore());
       const { i18n } = renderWithProviders(<Login />);
       fireEvent.change(
         screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
@@ -609,6 +631,10 @@ describe('Login Page Integration', () => {
       expect(screen.queryByText(/timed out/)).not.toBeInTheDocument();
       expect(passkeyApi.verifyLogin).not.toHaveBeenCalled();
       expect(mockNavigate).not.toHaveBeenCalled();
+      expect(logged).toHaveBeenCalledWith(
+        'Passkey authentication error:',
+        new Error('The operation either timed out or was not allowed.'),
+      );
     });
   });
 

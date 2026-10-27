@@ -85,7 +85,11 @@ describe('useStoryComposerState', () => {
 
   afterEach(async () => {
     vi.useRealTimers();
-    await i18n.changeLanguage('en');
+    vi.restoreAllMocks();
+    // The hook of the test is still on screen: it follows the language.
+    await act(async () => {
+      await i18n.changeLanguage('en');
+    });
   });
 
   describe('opening', () => {
@@ -511,10 +515,13 @@ describe('useStoryComposerState', () => {
     it('tells the user when the image could not be made and lets them try again', async () => {
       const { result } = setup();
       withCanvas(result);
-      vi.mocked(exportStoryCanvas).mockRejectedValue(new Error('canvas'));
+      const failure = new Error('canvas');
+      vi.mocked(exportStoryCanvas).mockRejectedValue(failure);
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       await act(() => result.current.handlePost());
 
+      expect(log).toHaveBeenCalledWith('Story export failed:', failure);
       expect(toast.error).toHaveBeenCalledTimes(1);
       expect(result.current.isExporting).toBe(false);
       expect(result.current.canPost).toBe(true);
