@@ -1117,6 +1117,8 @@ describe('PostsService', () => {
           where: expect.objectContaining({
             profileId: 'user-1',
             type: 'FRAME',
+            // Their own grid leaves out what moderation removed.
+            moderationStatus: { not: 'REMOVED' },
           }),
           skip: 1,
           cursor: { id: 'c-user' },
@@ -1258,7 +1260,7 @@ describe('PostsService', () => {
       );
     });
 
-    it('hides HIDDEN and REMOVED posts from everyone but the author', async () => {
+    it('hides HIDDEN posts from everyone but the author, and REMOVED ones from the author too', async () => {
       for (const moderationStatus of ['HIDDEN', 'REMOVED']) {
         mockPrismaService.post.findUnique.mockResolvedValueOnce({
           ...publicPost,
@@ -1271,9 +1273,17 @@ describe('PostsService', () => {
 
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
         ...publicPost,
-        moderationStatus: 'REMOVED',
+        moderationStatus: 'HIDDEN',
       });
       await expect(service.findOne('p-1', 'author-1')).resolves.toBeDefined();
+
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        ...publicPost,
+        moderationStatus: 'REMOVED',
+      });
+      await expect(service.findOne('p-1', 'author-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('applies the public visibility filter, including blocks, to hashtag pages', async () => {
@@ -1285,6 +1295,11 @@ describe('PostsService', () => {
       const where =
         mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].where;
       expect(where.hashtags).toBeDefined();
+      // The viewer's own posts are listed too, but not a removed one.
+      expect(where.OR[1]).toEqual({
+        profileId: 'viewer-1',
+        moderationStatus: { not: 'REMOVED' },
+      });
       expect(where.OR[0]).toMatchObject({
         visibility: Visibility.PUBLIC,
         moderationStatus: 'VISIBLE',
@@ -1525,29 +1540,24 @@ describe('PostsService', () => {
       );
     });
 
-    it('deletes post and triggers media cleanup on success', async () => {
+    it('marks the post removed and keeps it with its files', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
         id: 'p-admin',
-        profileId: 'author-1',
-        media: [{ url: 'http://cdn/1.jpg' }],
       });
-      const tx = {
-        comment: { findMany: vi.fn().mockResolvedValue([]) },
-        post: { delete: vi.fn().mockResolvedValue({ id: 'p-admin' }) },
-        $queryRaw: vi.fn().mockResolvedValue([]),
-      };
-      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
+      mockPrismaService.post.update.mockResolvedValueOnce({ id: 'p-admin' });
 
       await service.adminRemove('p-admin');
-      expect(tx.post.delete).toHaveBeenCalledWith({
+      expect(mockPrismaService.post.update).toHaveBeenCalledWith({
         where: { id: 'p-admin' },
+        data: {
+          moderationStatus: 'REMOVED',
+          moderationNote: undefined,
+          moderatedAt: expect.any(Date),
+        },
+        select: { id: true, profileId: true, moderationStatus: true },
       });
-      // Kept 30 days, readable by their owner only; none is deleted now.
-      expect(mockStoredFiles.release).toHaveBeenCalledWith(
-        '',
-        ['http://cdn/1.jpg', undefined, undefined],
-        tx,
-      );
+      expect(mockPrismaService.post.delete).not.toHaveBeenCalled();
+      expect(mockStoredFiles.release).not.toHaveBeenCalled();
     });
   });
 });

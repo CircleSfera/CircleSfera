@@ -235,12 +235,12 @@ describe('ModerationTab', () => {
     show();
     fireEvent.click(await waitFor(() => rowOf('Caption 1')));
     fireEvent.click(
-      await within(detail()).findByRole('button', { name: 'Delete' }),
+      await within(detail()).findByRole('button', { name: 'Remove' }),
     );
 
     expect(
       within(dialog()).getByText(
-        'This action will permanently remove the content from the platform. Are you sure?',
+        'It is hidden from everyone, its author included, and erased after six months. The author of a post can appeal in that time.',
       ),
     ).toBeInTheDocument();
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
@@ -249,16 +249,16 @@ describe('ModerationTab', () => {
     );
     expect(api.updateModerationStatus).not.toHaveBeenCalled();
 
-    fireEvent.click(within(detail()).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(detail()).getByRole('button', { name: 'Remove' }));
     fireEvent.click(
-      within(dialog()).getByRole('button', { name: 'Yes, delete' }),
+      within(dialog()).getByRole('button', { name: 'Yes, remove' }),
     );
     await waitFor(() =>
       expect(api.updateModerationStatus).toHaveBeenCalledWith(
         'STORY',
         '1',
         'REMOVED',
-        'Permanently removed by moderation',
+        'Removed by moderation',
       ),
     );
     await waitFor(() =>
@@ -329,14 +329,14 @@ describe('ModerationTab', () => {
     await waitFor(() => expect(openedHandle()).toBe('@person_1'));
     press('R');
     fireEvent.click(
-      within(dialog()).getByRole('button', { name: 'Yes, delete' }),
+      within(dialog()).getByRole('button', { name: 'Yes, remove' }),
     );
     await waitFor(() =>
       expect(api.updateModerationStatus).toHaveBeenCalledWith(
         'POST',
         '1',
         'REMOVED',
-        'Permanently removed by moderation',
+        'Removed by moderation',
       ),
     );
   });

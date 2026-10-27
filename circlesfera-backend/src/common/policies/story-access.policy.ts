@@ -30,14 +30,15 @@ export async function assertCanAccessStory(
       profile: { select: { privacyLevel: true } },
     },
   });
-  if (!story) throw new NotFoundException('Story not found');
+  // A story removed by moderation is kept for six months and shown to
+  // nobody, its author included.
+  if (!story || story.moderationStatus === 'REMOVED') {
+    throw new NotFoundException('Story not found');
+  }
   const result = { profileId: story.profileId, expiresAt: story.expiresAt };
   if (story.profileId === viewerProfileId) return result;
 
-  if (
-    story.moderationStatus === 'HIDDEN' ||
-    story.moderationStatus === 'REMOVED'
-  ) {
+  if (story.moderationStatus === 'HIDDEN') {
     throw new NotFoundException('Story not found');
   }
 

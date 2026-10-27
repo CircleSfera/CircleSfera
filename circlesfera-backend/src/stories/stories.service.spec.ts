@@ -1050,6 +1050,12 @@ describe('StoriesService', () => {
       ]);
       const result = await service.getArchive('u1');
       expect(result).toHaveLength(2);
+      // What moderation removed is kept six months, not in the archive.
+      expect(mockPrismaService.story.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: { profileId: 'u1', moderationStatus: { not: 'REMOVED' } },
+        }),
+      );
     });
   });
 

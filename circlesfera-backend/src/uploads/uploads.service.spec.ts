@@ -79,6 +79,7 @@ const mockStoredFiles = {
   record: vi.fn().mockResolvedValue(undefined),
   forget: vi.fn().mockResolvedValue(undefined),
   release: vi.fn().mockResolvedValue([]),
+  erasableWith: vi.fn().mockResolvedValue([]),
   ownersOf: vi.fn().mockResolvedValue(new Map()),
 };
 
@@ -423,6 +424,40 @@ describe('UploadsService', () => {
       expect(mockStoredFiles.forget).toHaveBeenCalledWith([
         `/uploads/${U}.jpg`,
       ]);
+    });
+
+    it('deletes the files of content about to be erased, before its rows, and stops at the first failure', async () => {
+      const ignoring = { story: ['s-1'] };
+      mockStoredFiles.erasableWith.mockResolvedValueOnce([
+        '/uploads/a.jpg',
+        '/uploads/b.jpg',
+      ]);
+      const deleteSpy = vi.spyOn(provider, 'delete').mockResolvedValue();
+
+      await expect(
+        service.deleteFilesOfErasedContent(
+          'author',
+          ['/uploads/a.jpg', '/uploads/b.jpg', null],
+          ignoring,
+        ),
+      ).resolves.toEqual(['/uploads/a.jpg', '/uploads/b.jpg']);
+      expect(mockStoredFiles.erasableWith).toHaveBeenCalledWith(
+        'author',
+        ['/uploads/a.jpg', '/uploads/b.jpg', null],
+        ignoring,
+      );
+      expect(deleteSpy).toHaveBeenCalledTimes(2);
+
+      mockStoredFiles.erasableWith.mockResolvedValueOnce([
+        '/uploads/a.jpg',
+        '/uploads/b.jpg',
+      ]);
+      deleteSpy.mockReset();
+      deleteSpy.mockRejectedValueOnce(new Error('disk'));
+      await expect(
+        service.deleteFilesOfErasedContent('author', ['/uploads/a.jpg'], {}),
+      ).rejects.toThrow('disk');
+      expect(deleteSpy).toHaveBeenCalledTimes(1);
     });
   });
 

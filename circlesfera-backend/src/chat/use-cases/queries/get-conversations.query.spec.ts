@@ -117,6 +117,43 @@ describe('GetConversationsQuery', () => {
     });
   });
 
+  it('shows the latest message without a shared post that moderation removed', async () => {
+    mockPrisma.conversation.findMany.mockResolvedValue([
+      {
+        id: 'conv-1',
+        messages: [
+          {
+            id: 'msg-1',
+            content: null,
+            post: { id: 'post-1', moderationStatus: 'REMOVED' },
+          },
+        ],
+      },
+      {
+        id: 'conv-2',
+        messages: [
+          {
+            id: 'msg-2',
+            content: null,
+            post: { id: 'post-2', moderationStatus: 'VISIBLE' },
+          },
+        ],
+      },
+    ]);
+
+    const result = await query.execute('prof-1');
+
+    expect(result[0].messages[0]).toEqual({
+      id: 'msg-1',
+      content: null,
+      post: null,
+    });
+    expect(result[1].messages[0].post).toEqual({
+      id: 'post-2',
+      moderationStatus: 'VISIBLE',
+    });
+  });
+
   it('fetches request conversations when folder is requests', async () => {
     mockPrisma.conversation.findMany.mockResolvedValue([]);
 

@@ -4,6 +4,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { format, startOfDay, subDays } from 'date-fns';
 import { AppException } from '../common/errors/app.exception.js';
+import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateEventBatchDto, CreateEventDto } from './dto/create-event.dto.js';
 
@@ -367,7 +368,9 @@ export class AnalyticsService {
   // like a post that does not exist.
   async getPostInsights(postId: string, profileId: string) {
     const post = await this.prisma.post.findUnique({
-      where: { id: postId, profileId },
+      // A post moderation removed is kept for its appeal and shown to
+      // nobody, its author included.
+      where: { id: postId, profileId, ...NOT_REMOVED },
       select: {
         id: true,
         caption: true,

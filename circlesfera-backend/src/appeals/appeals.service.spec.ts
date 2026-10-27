@@ -76,6 +76,8 @@ describe('AppealsService', () => {
     vi.clearAllMocks();
     mockPrismaService.appeal.findFirst.mockResolvedValue(null);
     mockPrismaService.adminAuditLog.create.mockResolvedValue({});
+    // Row locks find the row they hold.
+    mockPrismaService.$queryRaw.mockResolvedValue([{ id: 'locked' }]);
     mockPrismaService.$transaction.mockImplementation(
       async (fn: (tx: typeof mockPrismaService) => unknown) =>
         fn(mockPrismaService),

@@ -7,7 +7,10 @@ import {
   STORAGE_PROVIDER,
   type StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
-import { MediaReferencesService } from './media-references.service.js';
+import {
+  type IgnoredRows,
+  MediaReferencesService,
+} from './media-references.service.js';
 
 export const FILE_NOT_OWNED = ErrorCode.FILE_NOT_OWNED;
 
@@ -97,6 +100,29 @@ export class StoredFilesService {
     return unused
       .filter((file) => file.profileId === profileId)
       .map((file) => file.key);
+  }
+
+  /**
+   * The files of content about to be erased that go with it: recorded as its
+   * author's own, and named by no row but the ones being erased (`ignoring`).
+   * Marks nothing: the caller deletes them before it erases the rows.
+   */
+  async erasableWith(
+    profileId: string,
+    keys: Array<string | null | undefined>,
+    ignoring: IgnoredRows,
+  ): Promise<string[]> {
+    const wanted = [
+      ...new Set(keys.filter((k): k is string => !!k && k.length > 0)),
+    ];
+    if (wanted.length === 0) return [];
+    const owned = await this.prisma.storedFile.findMany({
+      where: { key: { in: wanted }, profileId },
+      select: { key: true },
+    });
+    const ownedKeys = owned.map((file) => file.key);
+    const used = await this.references.inUse(ownedKeys, undefined, ignoring);
+    return ownedKeys.filter((key) => !used.has(key));
   }
 
   /**

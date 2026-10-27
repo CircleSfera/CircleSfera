@@ -4,6 +4,7 @@ import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
+import { SHOWN_COMMENTS_COUNT } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { MapBboxDto } from './dto/map-bbox.dto.js';
 
@@ -241,7 +242,7 @@ export class PlacesService {
           _count: {
             select: {
               likes: true,
-              comments: true,
+              comments: SHOWN_COMMENTS_COUNT,
             },
           },
           likes: currentProfileId

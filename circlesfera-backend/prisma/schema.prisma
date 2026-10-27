@@ -734,6 +734,9 @@ model Story {
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?
+  // When it was last hidden or removed by moderation. Removed content is
+  // kept for the six months its author has to appeal, then erased.
+  moderatedAt      DateTime?
 
   // Relation to highlights
 
@@ -771,6 +774,7 @@ model Story {
   @@index([expiresAt])
   @@index([createdAt])
   @@index([placeId])
+  @@index([moderationStatus, moderatedAt])
   @@map("stories")
 }
 
@@ -846,6 +850,9 @@ model Comment {
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?
+  // When it was last hidden or removed by moderation. Removed content is
+  // kept for the six months its author has to appeal, then erased.
+  moderatedAt      DateTime?
 
   // Voice Notes Support
 
@@ -876,6 +883,7 @@ model Comment {
   @@index([profileId])
   @@index([parentId])
   @@index([createdAt])
+  @@index([moderationStatus, moderatedAt])
   @@map("comments")
 }
 

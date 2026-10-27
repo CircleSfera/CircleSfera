@@ -24,6 +24,7 @@ import {
   type StorageProvider,
 } from '../uploads/interfaces/storage-provider.interface.js';
 import { MediaAuthService } from './media-auth.service.js';
+import { MediaStaffViewerService } from './media-staff-viewer.service.js';
 
 @ApiTags('Media')
 @Controller('media')
@@ -33,6 +34,7 @@ export class MediaController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mediaAuthService: MediaAuthService,
+    private readonly staffViewer: MediaStaffViewerService,
     @Inject(STORAGE_PROVIDER)
     private readonly storageProvider: StorageProvider,
   ) {}
@@ -64,10 +66,12 @@ export class MediaController {
     const viewerUserId = req.user?.userId ?? null;
     const viewerProfileId = req.user?.profileId ?? null;
 
+    // Staff are recognised only when a file of removed content is asked for.
     const allowed = await this.mediaAuthService.isAccessAllowed(
       originalUri,
       viewerUserId,
       viewerProfileId,
+      () => this.staffViewer.isContentStaff(req),
     );
 
     if (!allowed) {

@@ -969,4 +969,142 @@ describe('MediaAuthService', () => {
       ).toBe(true);
     });
   });
+
+  // Content removed by moderation is kept for its appeal and shown to
+  // nobody, its author included: its files are for staff who moderate.
+  describe('Removed content', () => {
+    const publicPost = (moderationStatus: string) => ({
+      profileId: 'author-1',
+      visibility: 'PUBLIC',
+      isPremium: false,
+      moderationStatus,
+      profile: { privacyLevel: 'PUBLIC' },
+    });
+    const staff = () => Promise.resolve(true);
+    const notStaff = vi.fn(() => Promise.resolve(false));
+
+    it('asks for whether the post is removed, its comments and stories too', async () => {
+      await service.isAccessAllowed('/uploads/a.jpg', null, null);
+
+      const postSelect =
+        mockPrismaService.postMedia.findMany.mock.calls[0][0].select;
+      expect(postSelect.post.select.moderationStatus).toBe(true);
+      const storySelect =
+        mockPrismaService.story.findMany.mock.calls[0][0].select;
+      expect(storySelect.moderationStatus).toBe(true);
+      const commentSelect =
+        mockPrismaService.comment.findMany.mock.calls[0][0].select;
+      expect(commentSelect.moderationStatus).toBe(true);
+      expect(commentSelect.post.select.moderationStatus).toBe(true);
+      expect(commentSelect.parent.select.moderationStatus).toBe(true);
+    });
+
+    it('keeps a reply under a visible comment as public as its post', async () => {
+      mockPrismaService.comment.findMany.mockResolvedValueOnce([
+        {
+          postId: 'post-1',
+          moderationStatus: 'VISIBLE',
+          parent: { moderationStatus: 'VISIBLE' },
+          post: publicPost('VISIBLE'),
+        },
+      ]);
+      expect(
+        await service.isAccessAllowed('/uploads/x.jpg', null, null, notStaff),
+      ).toBe(true);
+    });
+
+    it('refuses a removed post, story or comment to everyone but staff, its author included', async () => {
+      const cases = [
+        () =>
+          mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+            { postId: 'post-1', post: publicPost('REMOVED') },
+          ]),
+        () =>
+          mockPrismaService.story.findMany.mockResolvedValueOnce([
+            {
+              id: 'story-1',
+              profileId: 'author-1',
+              isPremium: false,
+              isCloseFriendsOnly: false,
+              moderationStatus: 'REMOVED',
+              profile: { privacyLevel: 'PUBLIC' },
+            },
+          ]),
+        () =>
+          mockPrismaService.comment.findMany.mockResolvedValueOnce([
+            {
+              postId: 'post-1',
+              moderationStatus: 'REMOVED',
+              post: publicPost('VISIBLE'),
+            },
+          ]),
+        // A reply's file goes with the comment it answers.
+        () =>
+          mockPrismaService.comment.findMany.mockResolvedValueOnce([
+            {
+              postId: 'post-1',
+              moderationStatus: 'VISIBLE',
+              parent: { moderationStatus: 'REMOVED' },
+              post: publicPost('VISIBLE'),
+            },
+          ]),
+        // A comment's file goes with its post.
+        () =>
+          mockPrismaService.comment.findMany.mockResolvedValueOnce([
+            {
+              postId: 'post-1',
+              moderationStatus: 'VISIBLE',
+              post: publicPost('REMOVED'),
+            },
+          ]),
+      ];
+      for (const match of cases) {
+        for (const [user, profile] of [
+          ['author-u', 'author-1'],
+          ['viewer-u', 'viewer-1'],
+          [null, null],
+        ]) {
+          match();
+          expect(
+            await service.isAccessAllowed('/uploads/x.jpg', user, profile),
+          ).toBe(false);
+          match();
+          expect(
+            await service.isAccessAllowed(
+              '/uploads/x.jpg',
+              user,
+              profile,
+              notStaff,
+            ),
+          ).toBe(false);
+        }
+        match();
+        expect(
+          await service.isAccessAllowed('/uploads/x.jpg', null, null, staff),
+        ).toBe(true);
+      }
+    });
+
+    it('asks whether the viewer is staff only for a file of removed content', async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+        { postId: 'post-1', post: publicPost('VISIBLE') },
+      ]);
+      expect(
+        await service.isAccessAllowed('/uploads/x.jpg', null, null, notStaff),
+      ).toBe(true);
+      expect(notStaff).not.toHaveBeenCalled();
+    });
+
+    it('lets staff past a removed post but still checks the other rows naming the file', async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+        { postId: 'post-1', post: publicPost('REMOVED') },
+      ]);
+      mockPrismaService.collection.findMany.mockResolvedValueOnce([
+        { profileId: 'someone-else' },
+      ]);
+      expect(
+        await service.isAccessAllowed('/uploads/x.jpg', null, null, staff),
+      ).toBe(false);
+    });
+  });
 });

@@ -1,4 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  NOT_REMOVED,
+  SHOWN_COMMENTS_COUNT,
+} from '../../../../common/policies/removed-content.policy.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { GetCreatorStatsQuery } from '../../analytics/queries/get-creator-stats.query.js';
 
@@ -21,8 +25,11 @@ export class GetCreatorPostsQuery {
   ) {}
 
   async execute(profileId: string, page = 1, limit = 10, type?: string) {
+    // What moderation removed is kept for its appeal, shown to nobody, its
+    // author included.
     const where = {
       profileId,
+      ...NOT_REMOVED,
       ...(type ? { type: type as 'POST' | 'FRAME' } : {}),
     };
 
@@ -41,7 +48,11 @@ export class GetCreatorPostsQuery {
           createdAt: true,
           media: { take: 1, select: { url: true, type: true } },
           _count: {
-            select: { likes: true, comments: true, bookmarks: true },
+            select: {
+              likes: true,
+              comments: SHOWN_COMMENTS_COUNT,
+              bookmarks: true,
+            },
           },
         },
       }) as unknown as Promise<CreatorPost[]>,

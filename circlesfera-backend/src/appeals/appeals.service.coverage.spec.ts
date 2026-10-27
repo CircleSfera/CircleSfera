@@ -31,7 +31,7 @@ function makePrisma() {
     user: { update: vi.fn(), findUnique: vi.fn().mockResolvedValue(null) },
     adminIdentity: { findUnique: vi.fn().mockResolvedValue(null) },
     adminAuditLog: { create: vi.fn().mockResolvedValue({}) },
-    $queryRaw: vi.fn(),
+    $queryRaw: vi.fn().mockResolvedValue([{ id: 'locked' }]),
     $transaction: vi.fn(),
   };
   prisma.$transaction.mockImplementation(
@@ -107,6 +107,26 @@ describe('AppealsService.create — every appeal type', () => {
     } as never);
 
     expect(appeal).toMatchObject({ targetId: 'post-1' });
+    // The post is held as the nightly erasure holds it, before the check.
+    const lock = t.prisma.$queryRaw.mock.calls[1];
+    expect(lock[0].join('?')).toContain('FROM posts WHERE id = ? FOR UPDATE');
+    expect(lock[1]).toBe('post-1');
+  });
+
+  it('refuses an appeal about a post erased while it was being filed', async () => {
+    t.prisma.post.findFirst.mockResolvedValue({ id: 'post-1' });
+    t.prisma.$queryRaw
+      .mockResolvedValueOnce([{ id: 'user-1' }])
+      .mockResolvedValueOnce([]);
+
+    await expect(
+      t.service.create('user-1', {
+        targetType: 'POST_REMOVAL',
+        targetId: 'post-1',
+        reason,
+      } as never),
+    ).rejects.toThrow('The post of this appeal is no longer kept');
+    expect(t.prisma.appeal.create).not.toHaveBeenCalled();
   });
 
   it('files an appeal about an own strike', async () => {
@@ -539,6 +559,30 @@ describe('AppealsService.update — effects and notices', () => {
       where: { id: 'user-1' },
       data: { botLabeledAt: null, botLabelReason: null },
     });
+  });
+
+  it('approving holds the post first, and says so clearly when it was already erased', async () => {
+    t.prisma.appeal.findUnique.mockResolvedValue(
+      stored({ targetType: 'POST_REMOVAL', targetId: 'post-1' }),
+    );
+    t.prisma.$queryRaw.mockResolvedValueOnce([]);
+
+    await expect(
+      t.service.update('appeal-1', { status: 'APPROVED' } as never, 'admin-1'),
+    ).rejects.toThrow('The post of this appeal is no longer kept');
+    expect(t.prisma.post.update).not.toHaveBeenCalled();
+
+    await t.service.update(
+      'appeal-1',
+      { status: 'APPROVED' } as never,
+      'admin-1',
+    );
+    const lock = t.prisma.$queryRaw.mock.calls.at(-1);
+    expect(lock?.[0].join('?')).toContain('FROM posts WHERE id = ? FOR UPDATE');
+    expect(lock?.[1]).toBe('post-1');
+    expect(t.prisma.$queryRaw.mock.invocationCallOrder.at(-1)).toBeLessThan(
+      t.prisma.post.update.mock.invocationCallOrder[0],
+    );
   });
 
   it('an approved post appeal makes the post visible and links it in the notice', async () => {

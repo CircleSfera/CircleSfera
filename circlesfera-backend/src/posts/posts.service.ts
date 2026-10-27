@@ -35,7 +35,12 @@ import {
   isBlockedEitherWay,
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
+import { setModerationStatus } from '../common/policies/moderation-decision.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import {
+  NOT_REMOVED,
+  SHOWN_COMMENTS_COUNT,
+} from '../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
@@ -326,7 +331,7 @@ export class PostsService {
         _count: {
           select: {
             likes: true,
-            comments: true,
+            comments: SHOWN_COMMENTS_COUNT,
           },
         },
       },
@@ -387,7 +392,7 @@ export class PostsService {
           _count: {
             select: {
               likes: true,
-              comments: true,
+              comments: SHOWN_COMMENTS_COUNT,
             },
           },
         },
@@ -454,7 +459,7 @@ export class PostsService {
           _count: {
             select: {
               likes: true,
-              comments: true,
+              comments: SHOWN_COMMENTS_COUNT,
             },
           },
           likes: currentProfileId
@@ -524,7 +529,7 @@ export class PostsService {
           _count: {
             select: {
               likes: true,
-              comments: true,
+              comments: SHOWN_COMMENTS_COUNT,
             },
           },
           likes: currentProfileId
@@ -572,7 +577,7 @@ export class PostsService {
         _count: {
           select: {
             likes: true,
-            comments: true,
+            comments: SHOWN_COMMENTS_COUNT,
           },
         },
         likes: currentProfileId
@@ -679,7 +684,7 @@ export class PostsService {
           _count: {
             select: {
               likes: true,
-              comments: true,
+              comments: SHOWN_COMMENTS_COUNT,
             },
           },
           likes: currentProfileId
@@ -752,7 +757,7 @@ export class PostsService {
           _count: {
             select: {
               likes: true,
-              comments: true,
+              comments: SHOWN_COMMENTS_COUNT,
             },
           },
         },
@@ -808,7 +813,7 @@ export class PostsService {
         _count: {
           select: {
             likes: true,
-            comments: true,
+            comments: SHOWN_COMMENTS_COUNT,
           },
         },
         media: { include: { media: true } },
@@ -836,19 +841,20 @@ export class PostsService {
     await this.deleteWithFiles(post);
   }
 
-  // Admin-only post deletion (bypasses ownership check).
-  // Param id: The post ID to remove
+  // Staff removal of a post (bypasses ownership check). The post is not
+  // deleted: it is kept with its files, shown to nobody, its author
+  // included, for the six months its author has to appeal, and erased after.
   // Throws NotFoundException if post not found
   async adminRemove(id: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
-      include: { media: true },
+      select: { id: true },
     });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
 
-    await this.deleteWithFiles(post);
+    await setModerationStatus(this.prisma, 'POST', id, 'REMOVED');
   }
 
   // The post's comments go with it. Its files and theirs are kept 30 days,
@@ -896,7 +902,9 @@ export class PostsService {
 
     if (!currentProfileId) return baseFilter;
 
-    return { OR: [baseFilter, { profileId: currentProfileId }] };
+    return {
+      OR: [baseFilter, { profileId: currentProfileId, ...NOT_REMOVED }],
+    };
   }
 
   // Returns a Prisma filter for a specific user's profile.
@@ -906,7 +914,8 @@ export class PostsService {
     currentProfileId: string | undefined,
     content: ViewerContent,
   ): Prisma.PostWhereInput {
-    if (authorId === currentProfileId) return {}; // Author sees everything
+    // The author sees all of theirs but what moderation removed.
+    if (authorId === currentProfileId) return { ...NOT_REMOVED };
 
     const publicFilter: Prisma.PostWhereInput = {
       visibility: Visibility.PUBLIC,

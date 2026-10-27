@@ -96,6 +96,28 @@ describe('MediaReferencesService', () => {
   });
 });
 
+describe('MediaReferencesService.inUse, with rows about to be erased', () => {
+  it('does not count the rows it is told to leave out, and still counts the others', async () => {
+    const prisma = prismaWith();
+    const service = new MediaReferencesService(
+      prisma as unknown as PrismaService,
+    );
+
+    await service.inUse(['/uploads/a.jpg'], undefined, {
+      postMedia: ['m-1'],
+      comment: ['c-1', 'c-2'],
+      story: [],
+    });
+
+    const whereOf = (model: string) =>
+      prisma[model].findMany.mock.calls[0][0].where;
+    expect(whereOf('postMedia').id).toEqual({ notIn: ['m-1'] });
+    expect(whereOf('comment').id).toEqual({ notIn: ['c-1', 'c-2'] });
+    expect(whereOf('story').id).toBeUndefined();
+    expect(whereOf('message').id).toBeUndefined();
+  });
+});
+
 describe('MediaReferencesService.inUse', () => {
   it('finds the stored files some row names by their exact key, in every listed column', async () => {
     const prisma = prismaWith({

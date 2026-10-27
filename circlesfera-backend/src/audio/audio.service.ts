@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { SHOWN_COMMENTS_COUNT } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateAudioDto } from './dto/create-audio.dto.js';
 
@@ -116,7 +117,7 @@ export class AudioService {
           },
         },
         media: true,
-        _count: { select: { likes: true, comments: true } },
+        _count: { select: { likes: true, comments: SHOWN_COMMENTS_COUNT } },
       },
       orderBy: { createdAt: 'desc' },
     });

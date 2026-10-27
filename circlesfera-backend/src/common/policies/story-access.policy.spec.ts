@@ -46,14 +46,26 @@ describe('assertCanAccessStory', () => {
     }
   });
 
-  it('its author still reaches a moderated story', async () => {
+  it('its author still reaches a hidden story', async () => {
     prisma.story.findUnique.mockResolvedValue(
-      story({ moderationStatus: 'REMOVED' }),
+      story({ moderationStatus: 'HIDDEN' }),
     );
 
     await expect(
       assertCanAccessStory(prisma as never, 's1', 'author'),
     ).resolves.toEqual({ profileId: 'author', expiresAt });
+  });
+
+  it('a removed story is kept for its six months and found by nobody, its author included', async () => {
+    prisma.story.findUnique.mockResolvedValue(
+      story({ moderationStatus: 'REMOVED' }),
+    );
+
+    for (const viewer of ['author', 'viewer']) {
+      await expect(
+        assertCanAccessStory(prisma as never, 's1', viewer),
+      ).rejects.toThrow(NotFoundException);
+    }
   });
 
   it('a flagged story waiting for review stays visible', async () => {

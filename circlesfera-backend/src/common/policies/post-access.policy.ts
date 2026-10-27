@@ -21,9 +21,9 @@ export type AccessiblePost = {
 // engages with it (detail, comments, likes). Blocked viewers and moderated-out
 // posts answer NotFound so neither the block nor the moderation is revealed;
 // privacy and audience restrictions answer Forbidden, as the detail endpoint
-// always has. The author always has access to their own post. Accepts a post
-// id, or a post the caller already loaded with these fields (avoids a second
-// query on the detail endpoint).
+// always has. The author has access to their own post unless moderation
+// removed it. Accepts a post id, or a post the caller already loaded with
+// these fields (avoids a second query on the detail endpoint).
 export async function assertCanAccessPost(
   db: PostAccessReader,
   postOrId: string | AccessiblePost,
@@ -32,13 +32,16 @@ export async function assertCanAccessPost(
   const post =
     typeof postOrId === 'string' ? await loadPost(db, postOrId) : postOrId;
 
-  if (!post) throw new NotFoundException('Post not found');
+  // A post removed by moderation is kept for its appeal and shown to
+  // nobody, its author included.
+  if (!post || post.moderationStatus === 'REMOVED') {
+    throw new NotFoundException('Post not found');
+  }
 
   if (viewerProfileId === post.profileId) return post;
 
   if (
     post.moderationStatus === 'HIDDEN' ||
-    post.moderationStatus === 'REMOVED' ||
     (await isBlockedEitherWay(db, viewerProfileId, post.profileId))
   ) {
     throw new NotFoundException('Post not found');
