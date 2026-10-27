@@ -28,7 +28,7 @@ describe('MonetizationWebhookService: disputes', () => {
     vi.clearAllMocks();
     prisma.paymentDispute.findUnique.mockResolvedValue(null);
     prisma.transaction.findUnique.mockResolvedValue({ id: 'tx_1' });
-    service = new MonetizationWebhookService(prisma as never);
+    service = new MonetizationWebhookService(prisma as never, {} as never);
   });
 
   it('stores a new dispute with its amount in cents, reason, state and due day', async () => {

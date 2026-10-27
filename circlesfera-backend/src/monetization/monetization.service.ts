@@ -24,6 +24,12 @@ function appendCheckoutQuery(returnUrl: string, query: string): string {
   return `${returnUrl}${sep}${query}`;
 }
 
+// How long the checkout of a paid message stays open, in seconds. The message
+// can be erased meanwhile, so the window is kept short: Stripe's shortest is
+// 30 minutes after it creates the session, and the extra minute covers the
+// time the request takes and any difference between the two clocks.
+const MESSAGE_CHECKOUT_LIFETIME_SECONDS = 31 * 60;
+
 // What a tip reads of the Profile tipped, to pay its person and to know
 // whether it may receive one.
 const TIPPED_PROFILE_SELECT = {
@@ -149,6 +155,9 @@ export class MonetizationService {
     metadata: Record<string, string>;
     returnUrl: string;
     idempotencyKey?: string;
+    // When the checkout closes, in seconds since the epoch; Stripe's default
+    // of 24 hours when not given.
+    expiresAt?: number;
   }): Promise<{ url: string | null }> {
     await assertRealMoneyAllowed(this.prisma, params.buyerId);
     const platformFee = Math.floor(params.priceCents * PLATFORM_FEE_DECIMAL);
@@ -179,6 +188,9 @@ export class MonetizationService {
           },
         },
         metadata: params.metadata,
+        ...(params.expiresAt !== undefined && {
+          expires_at: params.expiresAt,
+        }),
         success_url: appendCheckoutQuery(
           params.returnUrl,
           'success=true&session_id={CHECKOUT_SESSION_ID}',
@@ -323,7 +335,14 @@ export class MonetizationService {
       include: { sender: { include: { user: true } } },
     })) as any;
 
-    if (!message?.isLocked || !message.priceCents) {
+    // A message its sender deleted cannot be bought, as one that is gone.
+    if (!message || message.isDeleted) {
+      throw AppException.NotFound(
+        ErrorCode.MESSAGE_NOT_FOUND,
+        'Message not found',
+      );
+    }
+    if (!message.isLocked || !message.priceCents) {
       throw AppException.BadRequest(
         ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
         'This message is not locked or has no price',
@@ -390,6 +409,8 @@ export class MonetizationService {
       },
       returnUrl,
       idempotencyKey,
+      expiresAt:
+        Math.floor(Date.now() / 1000) + MESSAGE_CHECKOUT_LIFETIME_SECONDS,
     });
   }
 

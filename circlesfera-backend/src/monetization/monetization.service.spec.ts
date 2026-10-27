@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
@@ -276,6 +277,10 @@ describe('MonetizationService', () => {
       );
 
       expect(res.url).toBe('https://checkout.stripe.test/unlock');
+      // Only the checkout of a paid message is shortened.
+      expect(
+        mockStripeService.createCheckoutSession.mock.calls[0][0],
+      ).not.toHaveProperty('expires_at');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
           success_url:
@@ -457,12 +462,28 @@ describe('MonetizationService', () => {
   });
 
   describe('createMessageUnlockSession', () => {
-    it('should throw if message is not found or not locked or has no price', async () => {
-      mockPrismaService.message.findUnique.mockResolvedValueOnce(null);
-      await expect(
-        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow('This message is not locked or has no price');
+    it.each([
+      ['is gone', null],
+      [
+        'was deleted by its sender',
+        { id: 'm-1', isLocked: true, priceCents: 500, isDeleted: true },
+      ],
+    ])(
+      'answers not found, and starts no checkout, when the message %s',
+      async (_case, message) => {
+        mockPrismaService.message.findUnique.mockResolvedValueOnce(message);
 
+        await expect(
+          service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
+        ).rejects.toMatchObject({
+          errorCode: ErrorCode.MESSAGE_NOT_FOUND,
+          status: 404,
+        });
+        expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should throw if message is not locked or has no price', async () => {
       mockPrismaService.message.findUnique.mockResolvedValueOnce({
         id: 'm-1',
         isLocked: false,
@@ -599,13 +620,20 @@ describe('MonetizationService', () => {
         url: 'https://checkout.stripe.test/message',
       });
 
+      const before = Math.floor(Date.now() / 1000);
       const res = await service.createMessageUnlockSession(
         'u-1',
         'm-1',
         'http://return',
       );
+      const after = Math.floor(Date.now() / 1000);
 
       expect(res.url).toBe('https://checkout.stripe.test/message');
+      // The checkout closes after about 30 minutes, the shortest Stripe
+      // allows, instead of its default of a day.
+      const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
+      expect(session.expires_at).toBeGreaterThanOrEqual(before + 30 * 60);
+      expect(session.expires_at).toBeLessThanOrEqual(after + 31 * 60);
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
           payment_intent_data: {
