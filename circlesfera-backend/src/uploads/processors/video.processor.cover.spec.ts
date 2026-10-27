@@ -6,45 +6,41 @@ import { VideoProcessor } from './video.processor.js';
 
 /** What the image tool was last asked for, and how it should end. */
 const tool = vi.hoisted(() => ({
-  input: '' as string,
-  shot: undefined as
-    | { timestamps: number[]; filename: string; folder: string; size: string }
-    | undefined,
+  args: undefined as string[] | undefined,
+  signal: undefined as AbortSignal | undefined,
   fails: false,
   hangs: false,
-  kill: vi.fn(),
   /** The tool says it ended, whenever that happens. */
   end: () => {},
 }));
 
-vi.mock('fluent-ffmpeg', () => {
-  const command = () => {
-    const handlers: Record<string, (error?: Error) => void> = {};
-    const self = {
-      kill: tool.kill,
-      screenshots(options: NonNullable<typeof tool.shot>) {
-        tool.shot = options;
-        if (tool.hangs) return self;
-        setTimeout(() => {
-          if (tool.fails) handlers.error?.(new Error('no such frame'));
-          else handlers.end?.();
-        }, 0);
-        return self;
-      },
-      on(event: string, handler: (error?: Error) => void) {
-        handlers[event] = handler;
-        if (event === 'end') tool.end = () => handler();
-        return self;
-      },
-    };
-    return self;
+vi.mock('../../common/media/ffmpeg-runner.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('../../common/media/ffmpeg-runner.js')
+    >();
+  return {
+    ...actual,
+    runFfmpeg: vi.fn(
+      (args: string[], options: { signal?: AbortSignal } = {}) =>
+        new Promise<void>((resolve, reject) => {
+          tool.args = args;
+          tool.signal = options.signal;
+          tool.end = () => resolve();
+          // Killed when the time is up, as the real runner does.
+          options.signal?.addEventListener('abort', () =>
+            reject(options.signal?.reason),
+          );
+          if (tool.hangs) return;
+          if (tool.fails) reject(new Error('no such frame'));
+          else resolve();
+        }),
+    ),
   };
-  const ffmpeg = vi.fn((input: string) => {
-    tool.input = input;
-    return command();
-  });
-  return { default: ffmpeg };
 });
+
+/** The moment the image was asked at. */
+const shotAt = () => Number(tool.args?.[1]);
 
 vi.mock('../../common/utils/media-duration.util.js', () => ({
   probeMediaDurationSec: vi.fn(),
@@ -74,10 +70,10 @@ describe('VideoProcessor: the cover of a frame', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    tool.shot = undefined;
+    tool.args = undefined;
+    tool.signal = undefined;
     tool.fails = false;
     tool.hangs = false;
-    tool.kill.mockReset();
     vi.mocked(probeMediaDurationSec).mockResolvedValue(30);
     prisma.postMedia.findUnique.mockResolvedValue(media);
     prisma.postMedia.updateMany.mockResolvedValue({ count: 1 });
@@ -112,12 +108,22 @@ describe('VideoProcessor: the cover of a frame', () => {
   it('takes the image at the chosen moment of the frame’s own video and makes it the cover', async () => {
     await processor.process(job('pm-1'));
 
-    expect(tool.input).toBe('resolved:https://cdn.example.com/video.mp4');
-    expect(tool.shot).toMatchObject({
-      timestamps: [4.2],
-      filename: 'cover.jpg',
-      folder: '/tmp/frame-cover-x',
-    });
+    // The same arguments the processor started ffmpeg with before: one
+    // frame at the moment, 540 px wide, written as cover.jpg.
+    expect(tool.args).toEqual([
+      '-ss',
+      '4.2',
+      '-i',
+      'resolved:https://cdn.example.com/video.mp4',
+      '-y',
+      '-filter_complex',
+      'scale=w=540:h=trunc(ow/a/2)*2[size0];[size0]split=1[screen0]',
+      '-vframes',
+      '1',
+      '-map',
+      '[screen0]',
+      '/tmp/frame-cover-x/cover.jpg',
+    ]);
     expect(storage.upload).toHaveBeenCalledWith({
       originalname: expect.stringMatching(/\.jpg$/),
       buffer: Buffer.from('jpeg'),
@@ -147,7 +153,7 @@ describe('VideoProcessor: the cover of a frame', () => {
 
     await processor.process(job('pm-1'));
 
-    expect(tool.shot?.timestamps[0]).toBeCloseTo(2.9);
+    expect(shotAt()).toBeCloseTo(2.9);
   });
 
   it('never asks for a moment before the start', async () => {
@@ -156,7 +162,7 @@ describe('VideoProcessor: the cover of a frame', () => {
 
     await processor.process(job('pm-1'));
 
-    expect(tool.shot?.timestamps).toEqual([0]);
+    expect(shotAt()).toBe(0);
   });
 
   it('deletes its image again when it cannot be recorded, and fails to be retried', async () => {
@@ -191,7 +197,7 @@ describe('VideoProcessor: the cover of a frame', () => {
 
     await processor.process(job('pm-1'));
 
-    expect(tool.shot).toBeUndefined();
+    expect(tool.args).toBeUndefined();
     expect(storage.upload).not.toHaveBeenCalled();
     expect(prisma.postMedia.updateMany).not.toHaveBeenCalled();
   });
@@ -210,18 +216,9 @@ describe('VideoProcessor: the cover of a frame', () => {
     });
   });
 
-  it.each([
-    ['stops', () => undefined],
-    [
-      'is already gone',
-      () => {
-        throw new Error('no such process');
-      },
-    ],
-  ])('gives up after two minutes on a tool that %s', async (_how, kill) => {
+  it('gives up after two minutes on a tool that does not end', async () => {
     vi.useFakeTimers();
     tool.hangs = true;
-    tool.kill.mockImplementation(kill);
 
     const run = processor.process(job('pm-1'));
     const refused = expect(run).rejects.toThrow(
@@ -230,7 +227,8 @@ describe('VideoProcessor: the cover of a frame', () => {
     await vi.advanceTimersByTimeAsync(120_001);
     await refused;
 
-    expect(tool.kill).toHaveBeenCalledWith('SIGKILL');
+    // The run was told to stop: the runner kills the program then.
+    expect(tool.signal?.aborted).toBe(true);
     // An answer of the tool after that changes nothing.
     tool.end();
     expect(storage.upload).not.toHaveBeenCalled();

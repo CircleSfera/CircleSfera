@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import {
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
@@ -9,49 +10,34 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // takes its answer, is what these tests read.
 const run = vi.hoisted(() => ({
   outcome: 'end' as 'end' | 'error' | 'never',
-  asked: [] as Array<[string, ...unknown[]]>,
-  killed: 0,
+  asked: [] as string[][],
+  stopped: 0,
 }));
 
-vi.mock('fluent-ffmpeg', async () => {
+vi.mock('../common/media/ffmpeg-runner.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../common/media/ffmpeg-runner.js')>();
   const fsReal = await vi.importActual<typeof import('node:fs')>('node:fs');
-  const ffmpeg = vi.fn((input: string) => {
-    const handlers: Record<string, (arg?: unknown) => void> = {};
-    const record =
-      (name: string) =>
-      (...args: unknown[]) => {
-        run.asked.push([name, ...args]);
-        return command;
-      };
-    const command: Record<string, unknown> = {
-      noVideo: record('noVideo'),
-      audioCodec: record('audioCodec'),
-      audioChannels: record('audioChannels'),
-      audioBitrate: record('audioBitrate'),
-      duration: record('duration'),
-      outputOptions: record('outputOptions'),
-      format: record('format'),
-      on: (event: string, handler: (arg?: unknown) => void) => {
-        handlers[event] = handler;
-        return command;
-      },
-      kill: () => {
-        run.killed += 1;
-      },
-      save: (output: string) => {
-        run.asked.push(['save', input, output]);
-        if (run.outcome === 'end') {
-          fsReal.writeFileSync(output, 'converted');
-          handlers.end?.();
-        } else if (run.outcome === 'error') {
-          handlers.error?.(new Error('no sound in it'));
-        }
-        return command;
-      },
-    };
-    return command;
-  });
-  return { default: ffmpeg };
+  return {
+    ...actual,
+    runFfmpeg: vi.fn(
+      (args: string[], options: { signal?: AbortSignal } = {}) =>
+        new Promise<void>((resolve, reject) => {
+          run.asked.push(args);
+          // Killed when the time is up, as the real runner does.
+          options.signal?.addEventListener('abort', () => {
+            run.stopped += 1;
+            reject(options.signal?.reason);
+          });
+          if (run.outcome === 'end') {
+            fsReal.writeFileSync(args[args.length - 1], 'converted');
+            resolve();
+          } else if (run.outcome === 'error') {
+            reject(new Error('no sound in it'));
+          }
+        }),
+    ),
+  };
 });
 
 import {
@@ -66,7 +52,7 @@ describe('VoiceNoteConverter', () => {
   beforeEach(() => {
     run.outcome = 'end';
     run.asked = [];
-    run.killed = 0;
+    run.stopped = 0;
     converter = new VoiceNoteConverter();
     vi.spyOn(
       (converter as unknown as { logger: { warn: () => void } }).logger,
@@ -90,14 +76,31 @@ describe('VoiceNoteConverter', () => {
     const converted = await converter.toM4a(Buffer.from('a recording'));
 
     expect(converted.toString()).toBe('converted');
-    const asked = Object.fromEntries(
-      run.asked.map(([name, ...args]) => [name, args]),
-    );
-    expect(asked.noVideo).toEqual([]);
-    expect(asked.audioCodec).toEqual(['aac']);
-    expect(asked.duration).toEqual([MAX_VOICE_NOTE_SECONDS]);
-    expect(asked.outputOptions).toEqual([
-      ['-map_metadata', '-1', '-movflags', '+faststart'],
+    // The same arguments the converter started ffmpeg with before.
+    expect(run.asked).toHaveLength(1);
+    const [args] = run.asked;
+    const folder = path.dirname(args[1]);
+    expect(path.basename(folder)).toMatch(/^voice-note-/);
+    expect(args).toEqual([
+      '-i',
+      path.join(folder, 'recording'),
+      '-y',
+      '-acodec',
+      'aac',
+      '-ac',
+      '1',
+      '-b:a',
+      '64k',
+      '-vn',
+      '-t',
+      String(MAX_VOICE_NOTE_SECONDS),
+      '-map_metadata',
+      '-1',
+      '-movflags',
+      '+faststart',
+      '-f',
+      'ipod',
+      path.join(folder, 'voice.m4a'),
     ]);
   });
 
@@ -106,9 +109,7 @@ describe('VoiceNoteConverter', () => {
     run.outcome = 'error';
     await converter.toM4a(Buffer.from('not a recording')).catch(() => {});
 
-    const folders = run.asked
-      .filter(([name]) => name === 'save')
-      .map(([, input]) => (input as string).replace(/\/recording$/, ''));
+    const folders = run.asked.map((args) => path.dirname(args[1]));
     expect(folders).toHaveLength(2);
     for (const folder of folders) {
       expect(fs.existsSync(folder)).toBe(false);
@@ -138,12 +139,10 @@ describe('VoiceNoteConverter', () => {
     const refused = expect(pending).rejects.toThrow(
       UnsupportedMediaTypeException,
     );
-    await vi.waitFor(() =>
-      expect(run.asked.some(([name]) => name === 'save')).toBe(true),
-    );
+    await vi.waitFor(() => expect(run.asked).toHaveLength(1));
     await vi.advanceTimersByTimeAsync(60_000);
 
     await refused;
-    expect(run.killed).toBe(1);
+    expect(run.stopped).toBe(1);
   });
 });

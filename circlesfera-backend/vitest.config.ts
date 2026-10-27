@@ -282,6 +282,12 @@ export default defineConfig({
           statements: 100,
           lines: 100,
         },
+        // Starting ffmpeg and ffprobe, and reading the length of a video
+        'src/common/media/ffmpeg-runner.ts': { statements: 100, lines: 100 },
+        'src/common/utils/media-duration.util.ts': {
+          statements: 100,
+          lines: 100,
+        },
         'src/uploads/uploads.service.ts': { statements: 100, lines: 100 },
         'src/uploads/uploads.controller.ts': { statements: 100, lines: 100 },
         'src/uploads/media-processor.service.ts': {

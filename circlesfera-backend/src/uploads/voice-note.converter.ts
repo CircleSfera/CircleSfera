@@ -7,7 +7,7 @@ import {
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
-import ffmpeg from 'fluent-ffmpeg';
+import { runFfmpeg, withTimeout } from '../common/media/ffmpeg-runner.js';
 import { Semaphore } from '../common/utils/semaphore.js';
 
 // What a browser declares for a recording of the microphone: Chrome, Firefox
@@ -63,36 +63,37 @@ export class VoiceNoteConverter {
     }
   }
 
+  // Sound only (-vn), AAC in one channel at 64 kb/s, at most the length of a
+  // voice note (-t), no metadata, written as an m4a file (-f ipod).
   private convert(input: string, output: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      let finished = false;
-      const command = ffmpeg(input, { timeout: CONVERSION_TIMEOUT_SECONDS });
-      const done = (error?: Error) => {
-        if (finished) return;
-        finished = true;
-        clearTimeout(timer);
-        if (error) reject(error);
-        else resolve();
-      };
-      const timer = setTimeout(() => {
-        try {
-          command.kill('SIGKILL');
-        } catch {
-          // Already gone.
-        }
-        done(new Error('Converting a voice note timed out'));
-      }, CONVERSION_TIMEOUT_SECONDS * 1000);
-      command
-        .noVideo()
-        .audioCodec('aac')
-        .audioChannels(1)
-        .audioBitrate('64k')
-        .duration(MAX_VOICE_NOTE_SECONDS)
-        .outputOptions(['-map_metadata', '-1', '-movflags', '+faststart'])
-        .format('ipod')
-        .on('end', () => done())
-        .on('error', (err: Error) => done(err))
-        .save(output);
-    });
+    return withTimeout(
+      CONVERSION_TIMEOUT_SECONDS * 1000,
+      'Converting a voice note timed out',
+      (signal) =>
+        runFfmpeg(
+          [
+            '-i',
+            input,
+            '-y',
+            '-acodec',
+            'aac',
+            '-ac',
+            '1',
+            '-b:a',
+            '64k',
+            '-vn',
+            '-t',
+            String(MAX_VOICE_NOTE_SECONDS),
+            '-map_metadata',
+            '-1',
+            '-movflags',
+            '+faststart',
+            '-f',
+            'ipod',
+            output,
+          ],
+          { signal },
+        ),
+    );
   }
 }

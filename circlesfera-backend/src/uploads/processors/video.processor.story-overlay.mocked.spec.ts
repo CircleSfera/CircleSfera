@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { type Job, UnrecoverableError } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
@@ -10,53 +11,40 @@ import { VideoProcessor } from './video.processor.js';
 /** How the video tool should end, and what it was asked for. */
 const tool = vi.hoisted(() => ({
   mode: 'ok' as 'ok' | 'fail' | 'hang',
+  args: [] as string[],
   filters: [] as string[],
-  kill: vi.fn(),
+  signal: undefined as AbortSignal | undefined,
 }));
 
-vi.mock('fluent-ffmpeg', () => {
-  const command = () => {
-    const handlers: Record<string, (error?: Error) => void> = {};
-    let output = '';
-    const self = {
-      input: () => self,
-      inputOptions: () => self,
-      complexFilter: (filters: string[]) => {
-        tool.filters = filters;
-        return self;
-      },
-      outputOptions: () => self,
-      output: (path: string) => {
-        output = path;
-        return self;
-      },
-      on: (event: string, handler: (error?: Error) => void) => {
-        handlers[event] = handler;
-        return self;
-      },
-      // A killed tool still says it ended in error, after the time is up.
-      kill: (signal: string) => {
-        try {
-          tool.kill(signal);
-        } finally {
-          queueMicrotask(() => handlers.error?.(new Error('killed')));
-        }
-      },
-      run: () => {
-        if (tool.mode === 'hang') return;
-        setTimeout(() => {
-          if (tool.mode === 'fail') {
-            handlers.error?.(new Error('ffmpeg exited with code 1'));
-            return;
-          }
-          fs.writeFileSync(output, 'joined');
-          handlers.end?.();
-        }, 0);
-      },
-    };
-    return self;
+vi.mock('../../common/media/ffmpeg-runner.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('../../common/media/ffmpeg-runner.js')
+    >();
+  return {
+    ...actual,
+    runFfmpeg: vi.fn(
+      (args: string[], options: { signal?: AbortSignal } = {}) =>
+        new Promise<void>((resolve, reject) => {
+          tool.args = args;
+          tool.filters = args[args.indexOf('-filter_complex') + 1].split(';');
+          tool.signal = options.signal;
+          // Killed when the time is up, as the real runner does.
+          options.signal?.addEventListener('abort', () =>
+            reject(options.signal?.reason),
+          );
+          if (tool.mode === 'hang') return;
+          setTimeout(() => {
+            if (tool.mode === 'fail') {
+              reject(new Error('ffmpeg exited with code 1'));
+              return;
+            }
+            fs.writeFileSync(args[args.length - 1], 'joined');
+            resolve();
+          }, 0);
+        }),
+    ),
   };
-  return { default: vi.fn(() => command()) };
 });
 
 vi.mock('sharp', () => ({
@@ -134,8 +122,9 @@ function setup({
 describe('VideoProcessor: joining the layer of a story, step by step', () => {
   beforeEach(() => {
     tool.mode = 'ok';
+    tool.args = [];
     tool.filters = [];
-    tool.kill.mockReset();
+    tool.signal = undefined;
   });
   afterEach(() => vi.useRealTimers());
 
@@ -146,6 +135,39 @@ describe('VideoProcessor: joining the layer of a story, step by step', () => {
 
     expect(tool.filters[0]).toContain('crop=720:1280');
     expect(tool.filters[1]).toContain('overlay=0:0:shortest=1');
+    // The same arguments the processor started ffmpeg with before.
+    const workDir = path.dirname(tool.args[tool.args.length - 1]);
+    expect(tool.args).toEqual([
+      '-i',
+      path.join(process.cwd(), STORY.url),
+      '-loop',
+      '1',
+      '-i',
+      path.join(workDir, 'layer.png'),
+      '-y',
+      '-filter_complex',
+      '[0:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1[video];[video][1:v]overlay=0:0:shortest=1:format=auto[out]',
+      '-map',
+      '[out]',
+      '-map',
+      '0:a?',
+      '-c:v',
+      'h264',
+      '-preset',
+      'veryfast',
+      '-crf',
+      '23',
+      '-pix_fmt',
+      'yuv420p',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '128k',
+      '-movflags',
+      '+faststart',
+      path.join(workDir, 'story.mp4'),
+    ]);
+    expect(path.basename(workDir)).toMatch(/^story-overlay-/);
     expect(store.upload).toHaveBeenCalledWith(
       expect.objectContaining({ mimetype: 'video/mp4' }),
     );
@@ -224,13 +246,11 @@ describe('VideoProcessor: joining the layer of a story, step by step', () => {
     const joining = processor.process(job('s-1'));
     const outcome = expect(joining).rejects.toThrow('timed out');
     await vi.waitFor(() => expect(tool.filters).toHaveLength(2));
-    tool.kill.mockImplementationOnce(() => {
-      throw new Error('already gone');
-    });
     await vi.advanceTimersByTimeAsync(300_000);
 
     await outcome;
-    expect(tool.kill).toHaveBeenCalledWith('SIGKILL');
+    // The run was told to stop: the runner kills the program then.
+    expect(tool.signal?.aborted).toBe(true);
   });
 
   it('writes the story and its media together, and leaves the stream to the recovery when it cannot be queued', async () => {

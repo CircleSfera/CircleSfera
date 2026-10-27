@@ -5,12 +5,18 @@ import * as path from 'node:path';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { type Job, UnrecoverableError } from 'bullmq';
-import ffmpeg from 'fluent-ffmpeg';
 import sharp from 'sharp';
 import {
   getWorkerOptions,
   QUEUE_NAMES,
 } from '../../common/constants/queue-policy.constants.js';
+import {
+  ffprobe,
+  momentAtPercent,
+  runFfmpeg,
+  screenshotArgs,
+  withTimeout,
+} from '../../common/media/ffmpeg-runner.js';
 import {
   probeMediaDurationSec,
   resolveMediaInputPath,
@@ -179,109 +185,81 @@ export class VideoProcessor extends WorkerHost {
         }
         fs.mkdirSync(outputDir, { recursive: true });
 
-        // 3. Extract Thumbnail (with 5-minute timeout and explicit process termination guard)
-        await new Promise<void>((resolve, reject) => {
-          let finished = false;
-          const ffmpegCmd = ffmpeg(inputPath, { timeout: 300 });
-
-          const timer = setTimeout(() => {
-            if (!finished) {
-              finished = true;
-              try {
-                ffmpegCmd.kill('SIGKILL');
-              } catch {
-                // Ignore kill errors if already exited
-              }
-              reject(
-                new Error(
-                  `Thumbnail extraction timed out after 300s for ${url}`,
-                ),
-              );
-            }
-          }, 300_000);
-
-          ffmpegCmd
-            .screenshots({
-              timestamps: ['10%'], // Take screenshot at 10% of video
-              filename: 'thumb.jpg',
-              folder: outputDir,
-              size: '300x?',
-            })
-            .on('end', () => {
-              if (!finished) {
-                finished = true;
-                clearTimeout(timer);
-                resolve();
-              }
-            })
-            .on('error', (err: Error) => {
-              if (!finished) {
-                finished = true;
-                clearTimeout(timer);
-                reject(err);
-              }
+        // 3. Extract Thumbnail: 300 px wide, at 10% of the video (with a
+        // 5-minute limit; the program is killed when it is reached)
+        await withTimeout(
+          300_000,
+          `Thumbnail extraction timed out after 300s for ${url}`,
+          async (signal) => {
+            const atSec = momentAtPercent(
+              await ffprobe(inputPath, { signal }),
+              10,
+            );
+            await runFfmpeg(screenshotArgs(inputPath, atSec, 300, thumbPath), {
+              signal,
             });
-        });
+          },
+        );
 
-        // 4. Transcode to HLS (with 5-minute timeout and explicit process termination guard)
+        // 4. Transcode to HLS (with a 5-minute limit; the program is killed
+        // when it is reached)
         // Simplified: single quality 720p for now
-        await new Promise<void>((resolve, reject) => {
-          let finished = false;
-          const ffmpegCmd = ffmpeg(inputPath, { timeout: 300 });
-
-          const timer = setTimeout(() => {
-            if (!finished) {
-              finished = true;
-              try {
-                ffmpegCmd.kill('SIGKILL');
-              } catch {
-                // Ignore kill errors if already exited
-              }
-              reject(
-                new Error(`HLS transcoding timed out after 300s for ${url}`),
+        await withTimeout(
+          300_000,
+          `HLS transcoding timed out after 300s for ${url}`,
+          async (signal) => {
+            try {
+              await runFfmpeg(
+                [
+                  '-i',
+                  inputPath,
+                  '-y',
+                  '-profile:v',
+                  'main',
+                  '-vf',
+                  'scale=w=-2:h=720',
+                  '-c:a',
+                  'aac',
+                  '-ar',
+                  '48000',
+                  '-b:a',
+                  '128k',
+                  '-c:v',
+                  'h264',
+                  '-crf',
+                  '20',
+                  '-g',
+                  '48',
+                  '-keyint_min',
+                  '48',
+                  '-sc_threshold',
+                  '0',
+                  '-b:v',
+                  '2500k',
+                  '-maxrate',
+                  '2675k',
+                  '-bufsize',
+                  '3750k',
+                  '-hls_time',
+                  '4',
+                  '-hls_playlist_type',
+                  'vod',
+                  '-hls_segment_filename',
+                  path.join(outputDir, '720p_%03d.ts'),
+                  masterPlaylistPath,
+                ],
+                { signal },
               );
+            } catch (err) {
+              // A run stopped by the time limit is reported as the time out.
+              if (!signal.aborted) {
+                this.logger.error(`FFMPEG Error: ${(err as Error).message}`);
+              }
+              throw err;
             }
-          }, 300_000);
-
-          ffmpegCmd
-            .outputOptions([
-              '-profile:v main',
-              '-vf scale=w=-2:h=720',
-              '-c:a aac',
-              '-ar 48000',
-              '-b:a 128k',
-              '-c:v h264',
-              '-crf 20',
-              '-g 48',
-              '-keyint_min 48',
-              '-sc_threshold 0',
-              '-b:v 2500k',
-              '-maxrate 2675k',
-              '-bufsize 3750k',
-              '-hls_time 4',
-              '-hls_playlist_type vod',
-              '-hls_segment_filename',
-              path.join(outputDir, '720p_%03d.ts'),
-            ])
-            .output(masterPlaylistPath)
-            .on('end', () => {
-              if (!finished) {
-                finished = true;
-                clearTimeout(timer);
-                this.logger.log(`FFMPEG Transcoding finished for ${url}`);
-                resolve();
-              }
-            })
-            .on('error', (err: Error) => {
-              if (!finished) {
-                finished = true;
-                clearTimeout(timer);
-                this.logger.error(`FFMPEG Error: ${err.message}`);
-                reject(err);
-              }
-            })
-            .run();
-        });
+            this.logger.log(`FFMPEG Transcoding finished for ${url}`);
+          },
+        );
       }
 
       // 5. Store HLS artifacts via StorageProvider abstraction
@@ -656,97 +634,70 @@ export class VideoProcessor extends WorkerHost {
   }
 
   // The video cropped to the story's frame with the layer over it, as MP4.
+  // The layer is an image repeated (-loop 1) for the whole of the video.
   private joinLayer(
     video: string,
     layer: string,
     output: string,
   ): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      let finished = false;
-      const command = ffmpeg({ timeout: 300 })
-        .input(video)
-        .input(layer)
-        .inputOptions(['-loop 1']);
-      const done = (error?: Error) => {
-        if (finished) return;
-        finished = true;
-        clearTimeout(timer);
-        if (error) reject(error);
-        else resolve();
-      };
-      const timer = setTimeout(() => {
-        try {
-          command.kill('SIGKILL');
-        } catch {
-          // Already gone.
-        }
-        done(new Error('Joining the layer of a story timed out'));
-      }, 300_000);
-      command
-        .complexFilter([
-          `[0:v]scale=${STORY_WIDTH}:${STORY_HEIGHT}:force_original_aspect_ratio=increase,crop=${STORY_WIDTH}:${STORY_HEIGHT},setsar=1[video]`,
-          '[video][1:v]overlay=0:0:shortest=1:format=auto[out]',
-        ])
-        .outputOptions([
-          '-map',
-          '[out]',
-          '-map',
-          '0:a?',
-          '-c:v',
-          'h264',
-          '-preset',
-          'veryfast',
-          '-crf',
-          '23',
-          '-pix_fmt',
-          'yuv420p',
-          '-c:a',
-          'aac',
-          '-b:a',
-          '128k',
-          '-movflags',
-          '+faststart',
-        ])
-        .output(output)
-        .on('end', () => done())
-        .on('error', (err: Error) => done(err))
-        .run();
-    });
+    return withTimeout(
+      300_000,
+      'Joining the layer of a story timed out',
+      (signal) =>
+        runFfmpeg(
+          [
+            '-i',
+            video,
+            '-loop',
+            '1',
+            '-i',
+            layer,
+            '-y',
+            '-filter_complex',
+            [
+              `[0:v]scale=${STORY_WIDTH}:${STORY_HEIGHT}:force_original_aspect_ratio=increase,crop=${STORY_WIDTH}:${STORY_HEIGHT},setsar=1[video]`,
+              '[video][1:v]overlay=0:0:shortest=1:format=auto[out]',
+            ].join(';'),
+            '-map',
+            '[out]',
+            '-map',
+            '0:a?',
+            '-c:v',
+            'h264',
+            '-preset',
+            'veryfast',
+            '-crf',
+            '23',
+            '-pix_fmt',
+            'yuv420p',
+            '-c:a',
+            'aac',
+            '-b:a',
+            '128k',
+            '-movflags',
+            '+faststart',
+            output,
+          ],
+          { signal },
+        ),
+    );
   }
 
-  // One image of a video at a moment, written as cover.jpg in a folder.
+  // One image of a video at a moment, 540 px wide, written as cover.jpg in a
+  // folder.
   private screenshot(
     input: string,
     atSec: number,
     folder: string,
   ): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      let finished = false;
-      const command = ffmpeg(input, { timeout: 120 });
-      const done = (error?: Error) => {
-        if (finished) return;
-        finished = true;
-        clearTimeout(timer);
-        if (error) reject(error);
-        else resolve();
-      };
-      const timer = setTimeout(() => {
-        try {
-          command.kill('SIGKILL');
-        } catch {
-          // Already gone.
-        }
-        done(new Error('Making the cover of a frame timed out'));
-      }, 120_000);
-      command
-        .screenshots({
-          timestamps: [atSec],
-          filename: 'cover.jpg',
-          folder,
-          size: '540x?',
-        })
-        .on('end', () => done())
-        .on('error', (err: Error) => done(err));
-    });
+    return withTimeout(
+      120_000,
+      'Making the cover of a frame timed out',
+      (signal) =>
+        runFfmpeg(
+          screenshotArgs(input, atSec, 540, path.join(folder, 'cover.jpg')),
+          { signal },
+        ),
+    );
   }
 }
