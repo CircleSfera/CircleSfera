@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -32,6 +33,7 @@ import {
   encodeKeysetCursor,
   keysetBeforeDesc,
 } from '../common/pagination/keyset.util.js';
+import { commentFiles } from '../uploads/comment-files.js';
 import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { UpdateCommentDto } from './dto/update-comment.dto.js';
@@ -40,6 +42,8 @@ import { UpdateCommentDto } from './dto/update-comment.dto.js';
 // Supports threaded replies (parentId), media attachments, and @mention notifications.
 @Injectable()
 export class CommentsService {
+  private readonly logger = new Logger(CommentsService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
@@ -388,7 +392,14 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
 
+    // Its replies go with it. The files of all of them are read first and
+    // settled once the rows are gone: kept 30 days, readable by their owner
+    // only, then erased.
+    const files = await commentFiles(this.prisma, { id });
     await this.prisma.comment.delete({ where: { id } });
+    await this.storedFiles
+      .release('', files)
+      .catch((e) => this.logger.warn(`Files of comment ${id} kept`, e));
 
     // Trigger score recalculation
     await this.analyticsQueue.add('update-performance-score', {

@@ -40,6 +40,8 @@ describe('PostsService', () => {
       findMany: vi.fn().mockResolvedValue([]),
     },
     $transaction: vi.fn(),
+    // No comment unless a test says so.
+    comment: { findMany: vi.fn().mockResolvedValue([]) },
     post: {
       findUnique: vi.fn(),
       findUniqueOrThrow: vi.fn(),
@@ -1454,14 +1456,29 @@ describe('PostsService', () => {
       });
 
       mockPrismaService.post.delete.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.comment.findMany.mockResolvedValueOnce([
+        {
+          id: 'c-1',
+          url: null,
+          standardUrl: null,
+          thumbnailUrl: null,
+          voiceUrl: '/uploads/voice.webm',
+          media: null,
+          voiceMedia: null,
+        },
+      ]);
 
       await service.remove('post-1');
       expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
         where: { id: 'post-1' },
       });
+      // Its comments go with it, and so are settled with its own files.
+      expect(mockPrismaService.comment.findMany.mock.calls[0][0].where).toEqual(
+        { postId: 'post-1' },
+      );
       expect(mockPostMediaCleanupService.cleanupMedia).toHaveBeenCalledWith(
         'me',
-        [{ url: 'https://cdn/img.jpg' }],
+        [{ url: 'https://cdn/img.jpg' }, { url: '/uploads/voice.webm' }],
       );
     });
 

@@ -47,13 +47,17 @@ import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { commentFiles } from '../uploads/comment-files.js';
 import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { captionMentions } from './caption-mentions.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
+import {
+  PostMediaCleanupService,
+  type PostMediaItemLike,
+} from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
 
 // Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
@@ -831,8 +835,7 @@ export class PostsService {
     }
 
     // Ownership check is handled by OwnershipGuard at the controller level
-    await this.prisma.post.delete({ where: { id } });
-    await this.postMediaCleanupService.cleanupMedia(post.profileId, post.media);
+    await this.deleteWithFiles(post);
   }
 
   // Admin-only post deletion (bypasses ownership check).
@@ -847,8 +850,24 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    await this.prisma.post.delete({ where: { id } });
-    await this.postMediaCleanupService.cleanupMedia(post.profileId, post.media);
+    await this.deleteWithFiles(post);
+  }
+
+  // The post's comments go with it: their files are read first and settled
+  // with the post's own once the rows are gone.
+  private async deleteWithFiles(post: {
+    id: string;
+    profileId: string;
+    media: PostMediaItemLike[];
+  }) {
+    const commentAddresses = await commentFiles(this.prisma, {
+      postId: post.id,
+    });
+    await this.prisma.post.delete({ where: { id: post.id } });
+    await this.postMediaCleanupService.cleanupMedia(post.profileId, [
+      ...post.media,
+      ...commentAddresses.map((url) => ({ url })),
+    ]);
   }
 
   // Returns a Prisma filter for global/discovery feeds.
