@@ -795,6 +795,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
           findMany: vi.fn().mockResolvedValue([]),
         },
         editProject: { findMany: vi.fn().mockResolvedValue([]) },
+        liveStream: { findMany: vi.fn().mockResolvedValue([]) },
         follow: {
           findFirst: vi.fn(),
           findUnique: vi.fn(),

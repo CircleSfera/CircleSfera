@@ -197,6 +197,31 @@ describe('UploadsService', () => {
       );
     });
 
+    it('makes the replay of a broadcast by one job per broadcast, asked again only when none is kept', async () => {
+      await service.enqueueLiveReplay('s-1');
+      expect(mockVideoQueue.add).toHaveBeenCalledWith(
+        'live-replay',
+        { streamId: 's-1' },
+        expect.objectContaining({
+          jobId: expect.stringContaining('s-1'),
+          attempts: 3,
+        }),
+      );
+
+      mockVideoQueue.add.mockClear();
+      mockVideoQueue.getJob.mockResolvedValueOnce({ id: 'kept' });
+      await expect(service.recoverLiveReplay('s-1')).resolves.toBe(false);
+      expect(mockVideoQueue.add).not.toHaveBeenCalled();
+
+      mockVideoQueue.getJob.mockResolvedValueOnce(undefined);
+      await expect(service.recoverLiveReplay('s-1')).resolves.toBe(true);
+      expect(mockVideoQueue.add).toHaveBeenCalledWith(
+        'live-replay',
+        { streamId: 's-1' },
+        expect.anything(),
+      );
+    });
+
     it('is read only from the files of its storage, and from none without a way to tell', () => {
       expect(
         service.ownsUrl('/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.png'),

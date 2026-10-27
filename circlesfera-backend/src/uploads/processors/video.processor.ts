@@ -29,6 +29,7 @@ import {
 } from '../interfaces/storage-provider.interface.js';
 import { StoredFilesService } from '../services/stored-files.service.js';
 import { UploadsService } from '../uploads.service.js';
+import { LiveReplayMaker } from './live-replay.maker.js';
 
 /** A story's video once its painted layer is on it: 9:16, as on screen. */
 const STORY_WIDTH = 720;
@@ -63,6 +64,9 @@ export class VideoProcessor extends WorkerHost {
     @Optional()
     @Inject(StoredFilesService)
     private readonly storedFiles?: StoredFilesService,
+    @Optional()
+    @Inject(LiveReplayMaker)
+    private readonly liveReplays?: LiveReplayMaker,
   ) {
     super();
   }
@@ -74,6 +78,7 @@ export class VideoProcessor extends WorkerHost {
       userId?: string;
       postMediaId?: string;
       storyId?: string;
+      streamId?: string;
     }>,
   ): Promise<void> {
     if (job.name === 'cover') {
@@ -82,6 +87,10 @@ export class VideoProcessor extends WorkerHost {
     }
     if (job.name === 'story-overlay') {
       await this.joinStoryOverlay(job.data?.storyId);
+      return;
+    }
+    if (job.name === 'live-replay') {
+      await this.makeLiveReplay(job);
       return;
     }
     if (job.name && job.name !== 'transcode' && job.name !== '__default__') {
@@ -434,6 +443,28 @@ export class VideoProcessor extends WorkerHost {
             `Failed to clean up output directory ${createdOutputDir}: ${cleanupErr}`,
           );
         }
+      }
+      throw error;
+    }
+  }
+
+  // The replay of a recorded broadcast. Once every try failed, the
+  // recording is marked failed; the recorder's file is kept until the
+  // nightly clean-up.
+  private async makeLiveReplay(job: Job<{ streamId?: string }>): Promise<void> {
+    if (!this.liveReplays) {
+      throw new UnrecoverableError('No maker of live replays');
+    }
+    try {
+      await this.liveReplays.make(job.data?.streamId);
+    } catch (error) {
+      const finalAttempt =
+        error instanceof UnrecoverableError ||
+        (job.attemptsMade ?? 0) + 1 >= (job.opts?.attempts ?? 1);
+      if (finalAttempt) {
+        await this.liveReplays
+          .markFailed(job.data?.streamId)
+          .catch(() => undefined);
       }
       throw error;
     }

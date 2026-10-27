@@ -16,6 +16,7 @@ import {
   VideoCodec,
 } from 'livekit-server-sdk';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { UploadsService } from '../../uploads/uploads.service.js';
 import {
   RECORDER_FOLDER,
   RECORDING_ENCODING,
@@ -67,6 +68,7 @@ export class LiveRecordingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly uploads: UploadsService,
   ) {}
 
   /**
@@ -261,7 +263,9 @@ export class LiveRecordingService {
   /**
    * Every minute, asks the recorder about each running recording: stops the
    * one whose broadcast ended or that reached its longest, takes the file of
-   * the one that finished, and gives up the one that failed or was lost.
+   * the one that finished and asks for its replay, and gives up the one that
+   * failed or was lost. A recording still waiting for its replay with no job
+   * kept for it is asked for again.
    * Safe on two servers: each change is made only from the state it was
    * read in. Never throws.
    */
@@ -291,6 +295,21 @@ export class LiveRecordingService {
             `The recording of broadcast ${stream.id} could not be checked: ${errorText(error)}`,
           );
         }
+      }
+      // A recording whose replay was never asked for, or whose job is gone.
+      const waiting = await this.prisma.liveStream.findMany({
+        where: { recordingStatus: 'PROCESSING' },
+        select: { id: true },
+        take: POLL_PAGE,
+      });
+      for (const stream of waiting) {
+        await this.uploads
+          .recoverLiveReplay(stream.id)
+          .catch((error: unknown) =>
+            this.logger.warn(
+              `The replay of broadcast ${stream.id} could not be asked for: ${errorText(error)}`,
+            ),
+          );
       }
     } catch (error: unknown) {
       this.logger.error(`Checking the recordings stopped: ${errorText(error)}`);
@@ -382,6 +401,14 @@ export class LiveRecordingService {
     });
     if (taken.count === 0) return false;
     this.logger.log(`Recording of broadcast ${streamId} finished`);
+    // Not asked now, it is asked again by the next check.
+    await this.uploads
+      .enqueueLiveReplay(streamId)
+      .catch((error: unknown) =>
+        this.logger.warn(
+          `The replay of broadcast ${streamId} could not be asked for now: ${errorText(error)}`,
+        ),
+      );
     return true;
   }
 

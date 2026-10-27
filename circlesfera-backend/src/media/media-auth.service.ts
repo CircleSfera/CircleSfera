@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FollowStatus, Visibility } from '@prisma/client';
+import { canWatchLiveReplay } from '../common/policies/live-replay-access.policy.js';
 import { isRemoved } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -68,6 +69,10 @@ interface MessageAccess {
  * A post, story or comment removed by moderation is kept for its appeal and
  * shown to nobody, its author included: its files are for staff who
  * moderate content only (`isStaff`), and a comment's go with its post.
+ *
+ * Live recording: its host's only until published; once published, the
+ * Profile's audience (blocks hide it both ways; a private Profile's is its
+ * accepted followers). A broadcast ended by staff is no one's here.
  */
 // What a post's access is decided on, its moderation included.
 const POST_ACCESS_SELECT = {
@@ -174,57 +179,69 @@ export class MediaAuthService {
     });
     const urlMatch = matchOn('url', 'standardUrl', 'thumbnailUrl');
 
-    let [postMedia, story, message, comment, collection, editProject] =
-      await Promise.all([
-        this.prisma.postMedia.findMany({
-          where: urlMatch,
-          select: {
-            postId: true,
-            post: { select: POST_ACCESS_SELECT },
-          },
-        }),
-        // A story's painted layer is the story's as much as its picture.
-        this.prisma.story.findMany({
-          where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'overlayUrl'),
-          select: {
-            id: true,
-            profileId: true,
-            isPremium: true,
-            isCloseFriendsOnly: true,
-            moderationStatus: true,
-            profile: { select: { privacyLevel: true } },
-          },
-        }),
-        // A voice note is the message's: personal data, for its conversation.
-        this.prisma.message.findMany({
-          where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'voiceUrl'),
-          select: {
-            id: true,
-            conversationId: true,
-            senderId: true,
-            isLocked: true,
-          },
-        }),
-        this.prisma.comment.findMany({
-          where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'voiceUrl'),
-          select: {
-            postId: true,
-            moderationStatus: true,
-            // A reply under a removed comment is not shown either.
-            parent: { select: { moderationStatus: true } },
-            post: { select: POST_ACCESS_SELECT },
-          },
-        }),
-        this.prisma.collection.findMany({
-          where: matchOn('coverUrl', 'standardUrl', 'thumbnailUrl'),
-          select: { profileId: true },
-        }),
-        // A draft's media is its author's only.
-        this.prisma.editProject.findMany({
-          where: matchOn('mediaUrl'),
-          select: { profileId: true },
-        }),
-      ]);
+    let [
+      postMedia,
+      story,
+      message,
+      comment,
+      collection,
+      editProject,
+      liveStream,
+    ] = await Promise.all([
+      this.prisma.postMedia.findMany({
+        where: urlMatch,
+        select: {
+          postId: true,
+          post: { select: POST_ACCESS_SELECT },
+        },
+      }),
+      // A story's painted layer is the story's as much as its picture.
+      this.prisma.story.findMany({
+        where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'overlayUrl'),
+        select: {
+          id: true,
+          profileId: true,
+          isPremium: true,
+          isCloseFriendsOnly: true,
+          moderationStatus: true,
+          profile: { select: { privacyLevel: true } },
+        },
+      }),
+      // A voice note is the message's: personal data, for its conversation.
+      this.prisma.message.findMany({
+        where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'voiceUrl'),
+        select: {
+          id: true,
+          conversationId: true,
+          senderId: true,
+          isLocked: true,
+        },
+      }),
+      this.prisma.comment.findMany({
+        where: matchOn('url', 'standardUrl', 'thumbnailUrl', 'voiceUrl'),
+        select: {
+          postId: true,
+          moderationStatus: true,
+          // A reply under a removed comment is not shown either.
+          parent: { select: { moderationStatus: true } },
+          post: { select: POST_ACCESS_SELECT },
+        },
+      }),
+      this.prisma.collection.findMany({
+        where: matchOn('coverUrl', 'standardUrl', 'thumbnailUrl'),
+        select: { profileId: true },
+      }),
+      // A draft's media is its author's only.
+      this.prisma.editProject.findMany({
+        where: matchOn('mediaUrl'),
+        select: { profileId: true },
+      }),
+      // The recording of a broadcast: its host's until published.
+      this.prisma.liveStream.findMany({
+        where: matchOn('hlsUrl', 'replayUrl', 'thumbnailUrl'),
+        select: { hostId: true, publishedAt: true, endedByStaff: true },
+      }),
+    ]);
 
     // A file's own randomUUID()-based name should only ever genuinely match
     // one row, one table. But a `contains` match is substring-based, not an
@@ -266,7 +283,8 @@ export class MediaAuthService {
           message.length +
           comment.length +
           collection.length +
-          editProject.length ===
+          editProject.length +
+          liveStream.length ===
         0
       ) {
         return true;
@@ -301,6 +319,9 @@ export class MediaAuthService {
       ),
       ...editProject.map((item) =>
         Promise.resolve(item.profileId === viewerProfileId),
+      ),
+      ...liveStream.map((item) =>
+        canWatchLiveReplay(this.prisma, item, viewerProfileId),
       ),
     ];
 

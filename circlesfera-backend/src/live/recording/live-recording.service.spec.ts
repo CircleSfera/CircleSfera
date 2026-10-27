@@ -5,6 +5,7 @@ import type { ConfigService } from '@nestjs/config';
 import { EgressStatus, ServerError } from 'livekit-server-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
+import type { UploadsService } from '../../uploads/uploads.service.js';
 import { LiveRecordingService } from './live-recording.service.js';
 
 const sdk = vi.hoisted(() => ({
@@ -57,6 +58,10 @@ describe('LiveRecordingService', () => {
   let service: LiveRecordingService;
   let recordings: string;
   const rawFile = (id = 's1') => path.join(recordings, `live-${id}.mp4`);
+  let uploads: {
+    enqueueLiveReplay: ReturnType<typeof vi.fn>;
+    recoverLiveReplay: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -85,9 +90,14 @@ describe('LiveRecordingService', () => {
     sdk.startRoomCompositeEgress.mockResolvedValue({ egressId: 'EG_1' });
     sdk.stopEgress.mockResolvedValue({});
     sdk.listEgress.mockResolvedValue([]);
+    uploads = {
+      enqueueLiveReplay: vi.fn(async () => undefined),
+      recoverLiveReplay: vi.fn(async () => true),
+    };
     service = new LiveRecordingService(
       prisma as unknown as PrismaService,
       { get: (key: string) => settings[key] } as unknown as ConfigService,
+      uploads as unknown as UploadsService,
     );
   });
 
@@ -324,7 +334,7 @@ describe('LiveRecordingService', () => {
     });
 
     it('leaves a recording of a broadcast still on air', async () => {
-      prisma.liveStream.findMany.mockResolvedValue([running()]);
+      prisma.liveStream.findMany.mockResolvedValueOnce([running()]);
       sdk.listEgress.mockResolvedValue([
         { status: EgressStatus.EGRESS_ACTIVE, fileResults: [] },
       ]);
@@ -335,7 +345,7 @@ describe('LiveRecordingService', () => {
     });
 
     it('stops the recording of a broadcast that ended', async () => {
-      prisma.liveStream.findMany.mockResolvedValue([
+      prisma.liveStream.findMany.mockResolvedValueOnce([
         running({ status: 'ENDED', endedAt: minutesAgo(1) }),
       ]);
       sdk.listEgress.mockResolvedValue([
@@ -346,7 +356,7 @@ describe('LiveRecordingService', () => {
     });
 
     it('stops a recording at four hours while the broadcast goes on', async () => {
-      prisma.liveStream.findMany.mockResolvedValue([
+      prisma.liveStream.findMany.mockResolvedValueOnce([
         running({ recordingStartedAt: minutesAgo(240) }),
       ]);
       sdk.listEgress.mockResolvedValue([
@@ -357,7 +367,7 @@ describe('LiveRecordingService', () => {
     });
 
     it('leaves a recording the recorder is closing', async () => {
-      prisma.liveStream.findMany.mockResolvedValue([running()]);
+      prisma.liveStream.findMany.mockResolvedValueOnce([running()]);
       sdk.listEgress.mockResolvedValue([
         { status: EgressStatus.EGRESS_ENDING, fileResults: [] },
       ]);
@@ -368,7 +378,7 @@ describe('LiveRecordingService', () => {
     it.each([EgressStatus.EGRESS_COMPLETE, EgressStatus.EGRESS_LIMIT_REACHED])(
       'takes the file of a finished recording (status %s)',
       async (status) => {
-        prisma.liveStream.findMany.mockResolvedValue([running()]);
+        prisma.liveStream.findMany.mockResolvedValueOnce([running()]);
         sdk.listEgress.mockResolvedValue([{ status, fileResults: [fileOf()] }]);
         expect(await service.check(NOW)).toBe(1);
         expect(prisma.liveStream.updateMany).toHaveBeenCalledWith({
@@ -383,8 +393,41 @@ describe('LiveRecordingService', () => {
       },
     );
 
+    it('asks for the replay of the file taken', async () => {
+      prisma.liveStream.findMany.mockResolvedValueOnce([running()]);
+      sdk.listEgress.mockResolvedValue([
+        { status: EgressStatus.EGRESS_COMPLETE, fileResults: [fileOf()] },
+      ]);
+      await service.check(NOW);
+      expect(uploads.enqueueLiveReplay).toHaveBeenCalledWith('s1');
+    });
+
+    it('still counts the file taken when its replay cannot be asked for now', async () => {
+      prisma.liveStream.findMany.mockResolvedValueOnce([running()]);
+      sdk.listEgress.mockResolvedValue([
+        { status: EgressStatus.EGRESS_COMPLETE, fileResults: [fileOf()] },
+      ]);
+      uploads.enqueueLiveReplay.mockRejectedValue(new Error('redis down'));
+      expect(await service.check(NOW)).toBe(1);
+    });
+
+    it('asks again for the replay of each recording still waiting for one', async () => {
+      prisma.liveStream.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 's7' }, { id: 's8' }]);
+      uploads.recoverLiveReplay.mockRejectedValueOnce('redis down');
+      await service.check(NOW);
+      expect(prisma.liveStream.findMany).toHaveBeenLastCalledWith({
+        where: { recordingStatus: 'PROCESSING' },
+        select: { id: true },
+        take: 50,
+      });
+      expect(uploads.recoverLiveReplay).toHaveBeenCalledWith('s7');
+      expect(uploads.recoverLiveReplay).toHaveBeenCalledWith('s8');
+    });
+
     it('counts nothing when another server took the file first', async () => {
-      prisma.liveStream.findMany.mockResolvedValue([running()]);
+      prisma.liveStream.findMany.mockResolvedValueOnce([running()]);
       sdk.listEgress.mockResolvedValue([
         { status: EgressStatus.EGRESS_COMPLETE, fileResults: [fileOf()] },
       ]);
@@ -397,7 +440,7 @@ describe('LiveRecordingService', () => {
       ['an empty file', [fileOf({ size: 0n })]],
       ['a file of another name', [fileOf({ filename: '/out/other.mp4' })]],
     ])('marks failed a finished recording with %s', async (_label, files) => {
-      prisma.liveStream.findMany.mockResolvedValue([running()]);
+      prisma.liveStream.findMany.mockResolvedValueOnce([running()]);
       sdk.listEgress.mockResolvedValue([
         { status: EgressStatus.EGRESS_COMPLETE, fileResults: files },
       ]);
@@ -411,7 +454,7 @@ describe('LiveRecordingService', () => {
     it.each([EgressStatus.EGRESS_FAILED, EgressStatus.EGRESS_ABORTED])(
       'marks failed a recording the recorder gave up (status %s)',
       async (status) => {
-        prisma.liveStream.findMany.mockResolvedValue([running()]);
+        prisma.liveStream.findMany.mockResolvedValueOnce([running()]);
         sdk.listEgress.mockResolvedValue([
           { status, fileResults: [], error: 'boom' },
         ]);
@@ -424,7 +467,7 @@ describe('LiveRecordingService', () => {
     );
 
     it('gives up a recording whose job was never answered for', async () => {
-      prisma.liveStream.findMany.mockResolvedValue([
+      prisma.liveStream.findMany.mockResolvedValueOnce([
         running({ egressId: null, recordingStartedAt: minutesAgo(3) }),
         running({
           id: 's2',
@@ -472,11 +515,12 @@ describe('LiveRecordingService', () => {
       release([]);
       await first;
       await service.check(NOW);
-      expect(prisma.liveStream.findMany).toHaveBeenCalledTimes(2);
+      // Two reads a check: the running recordings, then those waiting.
+      expect(prisma.liveStream.findMany).toHaveBeenCalledTimes(4);
     });
 
     it('gives up a recording the recorder no longer knows, an hour after the broadcast', async () => {
-      prisma.liveStream.findMany.mockResolvedValue([
+      prisma.liveStream.findMany.mockResolvedValueOnce([
         running({ status: 'ENDED', endedAt: minutesAgo(61) }),
         running({ id: 's2', status: 'ENDED', endedAt: minutesAgo(5) }),
         // Still on air: given up an hour past its longest.
@@ -492,7 +536,7 @@ describe('LiveRecordingService', () => {
     });
 
     it('goes on with the others when one cannot be checked', async () => {
-      prisma.liveStream.findMany.mockResolvedValue([
+      prisma.liveStream.findMany.mockResolvedValueOnce([
         running(),
         running({ id: 's2', egressId: 'EG_2' }),
       ]);
