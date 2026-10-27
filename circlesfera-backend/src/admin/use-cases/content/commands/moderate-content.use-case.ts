@@ -7,6 +7,7 @@ import {
 import { $Enums, AdminAction } from '@prisma/client';
 import { setModerationStatus } from '../../../../common/policies/moderation-decision.js';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
+import { removalNotice } from '../../../../notifications/removal-notice.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
@@ -75,18 +76,28 @@ export class ModerateContentUseCase {
         adminId,
       );
       await this.notificationsService
-        .create({
-          recipientId: authorProfileId,
-          senderId,
-          type: $Enums.NotificationType.MODERATION,
-          notice: {
-            key: 'content_moderated',
-            contentType: targetType,
-            status: statusLabel,
-            note,
-          },
-          postId: targetType === 'POST' ? targetId : undefined,
-        })
+        .create(
+          status === 'REMOVED'
+            ? removalNotice({
+                kind: targetType,
+                id: targetId,
+                authorProfileId,
+                senderId,
+                note,
+              })
+            : {
+                recipientId: authorProfileId,
+                senderId,
+                type: $Enums.NotificationType.MODERATION,
+                notice: {
+                  key: 'content_moderated',
+                  contentType: targetType,
+                  status: statusLabel,
+                  note,
+                },
+                postId: targetType === 'POST' ? targetId : undefined,
+              },
+        )
         .catch((e) => this.logger.error(e));
     }
 
