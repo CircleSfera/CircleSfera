@@ -1,6 +1,8 @@
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Job } from 'bullmq';
+import { ffprobe, runFfmpeg } from '../../common/media/ffmpeg-runner.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { VideoProcessor } from './video.processor.js';
 
@@ -27,8 +29,6 @@ vi.mock('node:fs', async (importOriginal) => {
   };
 });
 
-let ffmpegEndTrigger: (() => void) | null = null;
-let ffmpegErrorTrigger: ((err: Error) => void) | null = null;
 let shouldFailThumbnail = false;
 let shouldFailTranscode = false;
 let shouldHangThumbnail = false;
@@ -36,50 +36,53 @@ let shouldHangTranscode = false;
 const thumbnailError = new Error('FFmpeg failed to extract thumbnail');
 const transcodeError = new Error('FFmpeg failed to transcode HLS');
 
-const mockFfmpegInstance: any = {
-  kill: vi.fn(),
-  screenshots: vi.fn(function (this: any) {
-    if (shouldHangThumbnail) return this;
-    setTimeout(() => {
-      if (shouldFailThumbnail) {
-        ffmpegErrorTrigger?.(thumbnailError);
-      } else {
-        ffmpegEndTrigger?.();
-      }
-    }, 0);
-    return this;
-  }),
-  outputOptions: vi.fn().mockReturnThis(),
-  output: vi.fn().mockReturnThis(),
-  on: vi.fn(function (this: any, event: string, cb: any) {
-    if (event === 'end') {
-      ffmpegEndTrigger = cb;
-    } else if (event === 'error') {
-      ffmpegErrorTrigger = cb;
-    }
-    return this;
-  }),
-  run: vi.fn(function (this: any) {
-    if (shouldHangTranscode) return this;
-    setTimeout(() => {
-      if (shouldFailTranscode) {
-        ffmpegErrorTrigger?.(transcodeError);
-      } else {
-        ffmpegEndTrigger?.();
-      }
-    }, 0);
-    return this;
-  }),
-};
-
-vi.mock('fluent-ffmpeg', () => {
-  const fn = vi.fn((_input: any, _options?: any) => mockFfmpegInstance);
-  (fn as any).default = fn;
+// The programs are replaced: what they are asked is recorded, and each run
+// ends as the test says. A run that hangs ends only when its time is up, as
+// the real runner does when it kills the program.
+vi.mock('../../common/media/ffmpeg-runner.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('../../common/media/ffmpeg-runner.js')
+    >();
   return {
-    default: fn,
-    __esModule: true,
+    ...actual,
+    ffprobe: vi.fn(async () => ({
+      format: { duration: '10.000000' },
+      streams: [
+        {
+          codec_type: 'video',
+          width: 1280,
+          height: 720,
+          duration: '10.000000',
+        },
+      ],
+    })),
+    runFfmpeg: vi.fn(
+      (args: readonly string[], options: { signal?: AbortSignal } = {}) => {
+        const thumbnail = args.includes('-vframes');
+        const hangs = thumbnail ? shouldHangThumbnail : shouldHangTranscode;
+        const fails = thumbnail ? shouldFailThumbnail : shouldFailTranscode;
+        if (hangs) {
+          return new Promise<void>((_resolve, reject) => {
+            options.signal?.addEventListener('abort', () =>
+              reject(options.signal?.reason),
+            );
+          });
+        }
+        return fails
+          ? Promise.reject(thumbnail ? thumbnailError : transcodeError)
+          : Promise.resolve();
+      },
+    ),
   };
 });
+
+const thumbnailRuns = () =>
+  vi.mocked(runFfmpeg).mock.calls.filter(([args]) => args.includes('-vframes'));
+const transcodeRuns = () =>
+  vi
+    .mocked(runFfmpeg)
+    .mock.calls.filter(([args]) => !args.includes('-vframes'));
 
 describe('VideoProcessor', () => {
   let processor: VideoProcessor;
@@ -104,8 +107,6 @@ describe('VideoProcessor', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    ffmpegEndTrigger = null;
-    ffmpegErrorTrigger = null;
     shouldFailThumbnail = false;
     shouldFailTranscode = false;
     shouldHangThumbnail = false;
@@ -236,7 +237,88 @@ describe('VideoProcessor', () => {
     } as unknown as Job<{ url: string }>;
 
     await processor.process(job);
-    expect(mockFfmpegInstance.screenshots).toHaveBeenCalled();
+    const remote = `https://cdn.example.com/videos/${validUuid}.mp4`;
+    expect(ffprobe).toHaveBeenCalledWith(remote, expect.anything());
+    expect(thumbnailRuns()[0][0].slice(0, 4)).toEqual([
+      '-ss',
+      '1',
+      '-i',
+      remote,
+    ]);
+    expect(transcodeRuns()[0][0].slice(0, 2)).toEqual(['-i', remote]);
+  });
+
+  // The exact arguments each program is started with, as the processor
+  // had them when it built them through a command builder.
+  it('starts ffmpeg with the same arguments as before for the thumbnail and the stream', async () => {
+    const validUuid = '12345678-1234-4234-8234-123456789abc';
+    const job = {
+      id: 'job-argv',
+      data: { url: `/uploads/${validUuid}.mp4` },
+    } as unknown as Job<{ url: string }>;
+    const input = path.join(process.cwd(), `/uploads/${validUuid}.mp4`);
+    const outputDir = path.join(process.cwd(), 'uploads', validUuid);
+
+    await processor.process(job);
+
+    // The length is read first: the image is taken at 10% of it.
+    expect(ffprobe).toHaveBeenCalledWith(input, {
+      signal: expect.any(AbortSignal),
+    });
+    expect(vi.mocked(runFfmpeg).mock.calls.map(([args]) => args)).toEqual([
+      [
+        '-ss',
+        '1',
+        '-i',
+        input,
+        '-y',
+        '-filter_complex',
+        'scale=w=300:h=trunc(ow/a/2)*2[size0];[size0]split=1[screen0]',
+        '-vframes',
+        '1',
+        '-map',
+        '[screen0]',
+        path.join(outputDir, 'thumb.jpg'),
+      ],
+      [
+        '-i',
+        input,
+        '-y',
+        '-profile:v',
+        'main',
+        '-vf',
+        'scale=w=-2:h=720',
+        '-c:a',
+        'aac',
+        '-ar',
+        '48000',
+        '-b:a',
+        '128k',
+        '-c:v',
+        'h264',
+        '-crf',
+        '20',
+        '-g',
+        '48',
+        '-keyint_min',
+        '48',
+        '-sc_threshold',
+        '0',
+        '-b:v',
+        '2500k',
+        '-maxrate',
+        '2675k',
+        '-bufsize',
+        '3750k',
+        '-hls_time',
+        '4',
+        '-hls_playlist_type',
+        'vod',
+        '-hls_segment_filename',
+        path.join(outputDir, '720p_%03d.ts'),
+        path.join(outputDir, 'master.m3u8'),
+      ],
+    ]);
   });
 
   it('should transcode video, generate master playlist and thumbnail, and update database', async () => {
@@ -256,8 +338,8 @@ describe('VideoProcessor', () => {
 
     await processor.process(job);
 
-    expect(mockFfmpegInstance.screenshots).toHaveBeenCalled();
-    expect(mockFfmpegInstance.run).toHaveBeenCalled();
+    expect(thumbnailRuns()).toHaveLength(1);
+    expect(transcodeRuns()).toHaveLength(1);
     expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
       where: { url: `/uploads/${validUuid}.mp4`, coverTimeMs: null },
       data: {
@@ -300,13 +382,12 @@ describe('VideoProcessor', () => {
 
     await processor.process(job);
 
-    expect(mockFfmpegInstance.output).toHaveBeenCalledTimes(1);
-    expect(mockFfmpegInstance.outputOptions).toHaveBeenCalledTimes(1);
-    const [outputOptions] = mockFfmpegInstance.outputOptions.mock.calls[0];
-    const scaleOptions = outputOptions.filter((opt: string) =>
-      opt.startsWith('-vf scale='),
-    );
-    expect(scaleOptions).toEqual(['-vf scale=w=-2:h=720']);
+    expect(transcodeRuns()).toHaveLength(1);
+    const [args] = transcodeRuns()[0];
+    // One video filter and one output: the playlist, last.
+    expect(args.filter((arg) => arg === '-vf')).toHaveLength(1);
+    expect(args[args.indexOf('-vf') + 1]).toBe('scale=w=-2:h=720');
+    expect(args.filter((arg) => arg.endsWith('.m3u8'))).toEqual([args.at(-1)]);
   });
 
   it('should be idempotent and skip FFmpeg when complete artifacts already exist', async () => {
@@ -330,8 +411,8 @@ describe('VideoProcessor', () => {
     await processor.process(job);
 
     // FFmpeg is not called!
-    expect(mockFfmpegInstance.screenshots).not.toHaveBeenCalled();
-    expect(mockFfmpegInstance.run).not.toHaveBeenCalled();
+    expect(ffprobe).not.toHaveBeenCalled();
+    expect(runFfmpeg).not.toHaveBeenCalled();
 
     // Database reconciliation still executes
     expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
@@ -375,7 +456,7 @@ describe('VideoProcessor', () => {
       expect.stringContaining(validUuid),
       { recursive: true },
     );
-    expect(mockFfmpegInstance.screenshots).toHaveBeenCalled();
+    expect(thumbnailRuns()).toHaveLength(1);
   });
 
   it('should clean up output directory on transcoding failure', async () => {
@@ -679,7 +760,7 @@ describe('VideoProcessor', () => {
     });
 
     await processor.process(job);
-    expect(mockFfmpegInstance.screenshots).toHaveBeenCalled();
+    expect(thumbnailRuns()).toHaveLength(1);
   });
 
   it('handles staging cleanup failure gracefully when storeHlsArtifacts returns remote URL', async () => {
@@ -764,7 +845,37 @@ describe('VideoProcessor', () => {
     await vi.advanceTimersByTimeAsync(300_001);
 
     await rejectionExpectation;
-    expect(mockFfmpegInstance.kill).toHaveBeenCalledWith('SIGKILL');
+    // The run was told to stop: the runner kills the program then.
+    const [, options] = thumbnailRuns()[0];
+    expect(options?.signal?.aborted).toBe(true);
+    expect(transcodeRuns()).toHaveLength(0);
+    vi.useRealTimers();
+  });
+
+  it('times out when reading the length of the video for its thumbnail hangs', async () => {
+    vi.useFakeTimers();
+    vi.mocked(ffprobe).mockImplementationOnce(
+      (_input, options) =>
+        new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener('abort', () =>
+            reject(options.signal?.reason),
+          );
+        }),
+    );
+    const validUuid = '12345678-1234-4234-8234-123456789abc';
+    const job = {
+      id: 'job-probe-timeout',
+      data: { url: `/uploads/${validUuid}.mp4` },
+    } as unknown as Job<{ url: string }>;
+
+    const processPromise = processor.process(job);
+    const rejectionExpectation = expect(processPromise).rejects.toThrow(
+      /Thumbnail extraction timed out after 300s/,
+    );
+    await vi.advanceTimersByTimeAsync(300_001);
+
+    await rejectionExpectation;
+    expect(runFfmpeg).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
@@ -777,10 +888,6 @@ describe('VideoProcessor', () => {
       data: { url: `/uploads/${validUuid}.mp4` },
     } as unknown as Job<{ url: string }>;
 
-    mockFfmpegInstance.kill.mockImplementationOnce(() => {
-      throw new Error('already killed');
-    });
-
     const processPromise = processor.process(job);
     const rejectionExpectation = expect(processPromise).rejects.toThrow(
       /HLS transcoding timed out after 300s/,
@@ -788,7 +895,26 @@ describe('VideoProcessor', () => {
     await vi.advanceTimersByTimeAsync(300_001);
 
     await rejectionExpectation;
-    expect(mockFfmpegInstance.kill).toHaveBeenCalled();
+    const [, options] = transcodeRuns()[0];
+    expect(options?.signal?.aborted).toBe(true);
+    // A run stopped by the time limit is not reported as an ffmpeg error.
+    expect((processor as any).logger.error).not.toHaveBeenCalledWith(
+      expect.stringContaining('FFMPEG Error'),
+    );
     vi.useRealTimers();
+  });
+
+  it('reports an ffmpeg error of the stream in the log', async () => {
+    shouldFailTranscode = true;
+    const validUuid = '12345678-1234-4234-8234-123456789abc';
+    const job = {
+      id: 'job-transcode-error-log',
+      data: { url: `/uploads/${validUuid}.mp4` },
+    } as unknown as Job<{ url: string }>;
+
+    await expect(processor.process(job)).rejects.toThrow(transcodeError);
+    expect((processor as any).logger.error).toHaveBeenCalledWith(
+      'FFMPEG Error: FFmpeg failed to transcode HLS',
+    );
   });
 });
