@@ -85,14 +85,9 @@ describe('StoredFilesService.assertOwnedBy', () => {
         profileId: { in: ['p-1'] },
       },
     });
-    // Attached again, a detached file is no longer private.
-    expect(prisma.storedFile.updateMany).toHaveBeenCalledWith({
-      where: {
-        key: { in: ['/uploads/a.jpg', '/uploads/b.webp'] },
-        detachedAt: { not: null },
-      },
-      data: { detachedAt: null },
-    });
+    // The content may still fail to save: a detached file stays private
+    // until a row uses it.
+    expect(prisma.storedFile.updateMany).not.toHaveBeenCalled();
   });
 
   it('refuses a stored file of another Profile, or one with no owner', async () => {
@@ -227,15 +222,27 @@ describe('StoredFilesService.release', () => {
 });
 
 describe('StoredFilesService.areReadableBy', () => {
-  function reader(detached: Array<{ profileId: string | null }>) {
+  function reader(
+    detached: Array<{ profileId: string | null; key?: string }>,
+    used: string[] = [],
+  ) {
     const prisma = {
-      storedFile: { findMany: vi.fn().mockResolvedValue(detached) },
+      storedFile: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue(
+            detached.map((file) => ({ key: '/uploads/a.jpg', ...file })),
+          ),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
     };
+    const references = { inUse: vi.fn().mockResolvedValue(new Set(used)) };
     return {
       prisma,
+      references,
       files: new StoredFilesService(
         prisma as unknown as PrismaService,
-        { inUse: vi.fn() } as never,
+        references as never,
       ),
     };
   }
@@ -247,7 +254,7 @@ describe('StoredFilesService.areReadableBy', () => {
     );
     expect(prisma.storedFile.findMany).toHaveBeenCalledWith({
       where: { key: { in: ['/uploads/a.jpg'] }, detachedAt: { not: null } },
-      select: { profileId: true },
+      select: { key: true, profileId: true },
     });
     await expect(files.areReadableBy([], null)).resolves.toBe(true);
   });
@@ -277,6 +284,34 @@ describe('StoredFilesService.areReadableBy', () => {
         'p-1',
       ),
     ).resolves.toBe(false);
+  });
+
+  it('opens a detached file again to everyone once a saved row uses it', async () => {
+    const { prisma, references, files } = reader(
+      [{ profileId: 'p-1' }],
+      ['/uploads/a.jpg'],
+    );
+
+    await expect(files.areReadableBy(['/uploads/a.jpg'], 'p-2')).resolves.toBe(
+      true,
+    );
+    expect(references.inUse).toHaveBeenCalledWith(['/uploads/a.jpg']);
+    expect(prisma.storedFile.updateMany).toHaveBeenCalledWith({
+      where: { key: { in: ['/uploads/a.jpg'] }, detachedAt: { not: null } },
+      data: { detachedAt: null },
+    });
+  });
+
+  it('opens a video again when a row names its stream folder, and keeps closed a file no row uses', async () => {
+    const V = '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4';
+    const video = reader([{ profileId: 'p-1', key: V }], [V]);
+    await expect(video.files.areReadableBy([V], null)).resolves.toBe(true);
+
+    const unused = reader([{ profileId: 'p-1' }], []);
+    await expect(
+      unused.files.areReadableBy(['/uploads/a.jpg'], 'p-2'),
+    ).resolves.toBe(false);
+    expect(unused.prisma.storedFile.updateMany).not.toHaveBeenCalled();
   });
 });
 

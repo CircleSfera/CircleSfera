@@ -80,7 +80,10 @@ export class StoredFilesService {
 
   /**
    * Whether a viewer may read stored files, by their exact keys: a detached
-   * one is its owner's only. A key that is not recorded is not this check's.
+   * one is its owner's only, until a row uses it again. A row is the only
+   * proof of a new attach: it exists once the content holding it is saved,
+   * and never if that save failed. A key that is not recorded is not this
+   * check's.
    */
   async areReadableBy(
     keys: string[],
@@ -89,11 +92,17 @@ export class StoredFilesService {
     if (keys.length === 0) return true;
     const detached = await this.prisma.storedFile.findMany({
       where: { key: { in: keys }, detachedAt: { not: null } },
-      select: { profileId: true },
+      select: { key: true, profileId: true },
     });
-    return detached.every(
-      (file) => !!viewerProfileId && file.profileId === viewerProfileId,
-    );
+    const closed = detached
+      .filter((file) => !viewerProfileId || file.profileId !== viewerProfileId)
+      .map((file) => file.key);
+    if (closed.length === 0) return true;
+    // A file of a video's stream folder is used by a row naming the folder.
+    const used = await this.references.inUse(closed);
+    if (!closed.every((key) => used.has(key))) return false;
+    await this.reattach(closed);
+    return true;
   }
 
   /**
@@ -156,11 +165,8 @@ export class StoredFilesService {
         'A stored file that this Profile did not upload cannot be attached',
       );
     }
-    // Attached again: no longer detached.
-    await this.prisma.storedFile.updateMany({
-      where: { key: { in: stored }, detachedAt: { not: null } },
-      data: { detachedAt: null },
-    });
+    // A detached file stays detached here: the content may still fail to
+    // save. Once a row uses it, the media check opens it again.
   }
 
   /**
