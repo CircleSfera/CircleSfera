@@ -390,12 +390,15 @@ describe('UploadsService', () => {
     it('keeps the files of deleted content: marks the unused ones detached and deletes none', async () => {
       const deleteSpy = vi.spyOn(provider, 'delete').mockResolvedValue();
 
-      await service.releaseContentFiles(['/uploads/a.jpg', null]);
+      const tx = { storedFile: {} };
+      await service.releaseContentFiles(['/uploads/a.jpg', null], tx as never);
 
-      expect(mockStoredFiles.release).toHaveBeenCalledWith('', [
-        '/uploads/a.jpg',
-        null,
-      ]);
+      // In the transaction that deletes the content, when one is given.
+      expect(mockStoredFiles.release).toHaveBeenCalledWith(
+        '',
+        ['/uploads/a.jpg', null],
+        tx,
+      );
       expect(deleteSpy).not.toHaveBeenCalled();
       expect(mockStoredFiles.forget).not.toHaveBeenCalled();
     });

@@ -47,13 +47,17 @@ import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
-import { StoredFilesService } from '../uploads/services/stored-files.service.js';
+import { commentFiles } from '../uploads/comment-files.js';
+import {
+  DELETION_TRANSACTION,
+  StoredFilesService,
+} from '../uploads/services/stored-files.service.js';
 import { captionMentions } from './caption-mentions.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
+import type { PostMediaItemLike } from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
 
 // Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
@@ -72,8 +76,6 @@ export class PostsService {
     private readonly postPaywallService: PostPaywallService,
     @Inject(PostDistributionService)
     private readonly postDistributionService: PostDistributionService,
-    @Inject(PostMediaCleanupService)
-    private readonly postMediaCleanupService: PostMediaCleanupService,
     @Inject(FrameCoverService)
     private readonly frameCover: FrameCoverService,
     @Inject(StoredFilesService)
@@ -831,8 +833,7 @@ export class PostsService {
     }
 
     // Ownership check is handled by OwnershipGuard at the controller level
-    await this.prisma.post.delete({ where: { id } });
-    await this.postMediaCleanupService.cleanupMedia(post.profileId, post.media);
+    await this.deleteWithFiles(post);
   }
 
   // Admin-only post deletion (bypasses ownership check).
@@ -847,8 +848,31 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    await this.prisma.post.delete({ where: { id } });
-    await this.postMediaCleanupService.cleanupMedia(post.profileId, post.media);
+    await this.deleteWithFiles(post);
+  }
+
+  // The post's comments go with it. Its files and theirs are kept 30 days,
+  // readable by their owner only, then erased, and are settled with the
+  // deletion: if that fails, the post stays, so its files are never left
+  // public.
+  private async deleteWithFiles(post: {
+    id: string;
+    media: PostMediaItemLike[];
+  }) {
+    await this.prisma.$transaction(async (tx) => {
+      // Locked first: no comment can be added while the post goes.
+      await tx.$queryRaw`SELECT id FROM "posts" WHERE id = ${post.id} FOR UPDATE`;
+      const commentAddresses = await commentFiles(tx, { postId: post.id });
+      await tx.post.delete({ where: { id: post.id } });
+      await this.storedFiles.release(
+        '',
+        [
+          ...post.media.flatMap((m) => [m.url, m.standardUrl, m.thumbnailUrl]),
+          ...commentAddresses,
+        ],
+        tx,
+      );
+    }, DELETION_TRANSACTION);
   }
 
   // Returns a Prisma filter for global/discovery feeds.

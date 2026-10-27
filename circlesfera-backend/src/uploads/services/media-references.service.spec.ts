@@ -137,6 +137,22 @@ describe('MediaReferencesService.inUse', () => {
     }
   });
 
+  it('reads through the transaction it is given, which no longer sees a row it deleted', async () => {
+    const prisma = prismaWith({ comment: [{ voiceUrl: '/uploads/a.m4a' }] });
+    const tx = prismaWith();
+    const service = new MediaReferencesService(
+      prisma as unknown as PrismaService,
+    );
+
+    const used = await service.inUse(['/uploads/a.m4a'], tx as never);
+
+    expect(used).toEqual(new Set());
+    expect(tx.comment.findMany).toHaveBeenCalled();
+    expect(tx.$queryRaw).toHaveBeenCalled();
+    expect(prisma.comment.findMany).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
+  });
+
   it('asks nothing for no file', async () => {
     const prisma = prismaWith();
     const service = new MediaReferencesService(

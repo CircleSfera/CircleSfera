@@ -12,6 +12,7 @@ import { CommentsService } from './comments.service.js';
 const mockStoredFiles = {
   assertOwnedBy: vi.fn().mockResolvedValue(undefined),
   record: vi.fn().mockResolvedValue(undefined),
+  release: vi.fn().mockResolvedValue([]),
 };
 
 describe('CommentsService', () => {
@@ -513,11 +514,69 @@ describe('CommentsService', () => {
         profileId: 'user-1',
       });
 
+      mockPrismaService.comment.findMany
+        .mockResolvedValueOnce([
+          {
+            id: '1',
+            url: '/uploads/photo.jpg',
+            standardUrl: null,
+            thumbnailUrl: null,
+            voiceUrl: null,
+            media: null,
+            voiceMedia: null,
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: '2',
+            url: null,
+            standardUrl: null,
+            thumbnailUrl: null,
+            voiceUrl: '/uploads/reply.webm',
+            media: null,
+            voiceMedia: {
+              url: '/uploads/reply.m4a',
+              standardUrl: null,
+              thumbnailUrl: null,
+            },
+          },
+        ])
+        .mockResolvedValueOnce([]);
+
+      const tx = {
+        comment: {
+          findMany: mockPrismaService.comment.findMany,
+          delete: vi.fn().mockResolvedValue({}),
+        },
+        $queryRaw: vi.fn().mockResolvedValue([]),
+      };
+      mockPrismaService.$transaction.mockImplementationOnce((cb) => cb(tx));
+
       await service.remove('1');
 
-      expect(mockPrismaService.comment.delete).toHaveBeenCalledWith({
-        where: { id: '1' },
-      });
+      expect(tx.comment.delete).toHaveBeenCalledWith({ where: { id: '1' } });
+      expect(mockPrismaService.comment.delete).not.toHaveBeenCalled();
+      // Its replies go with it: their files are settled too, after the rows.
+      expect(mockPrismaService.comment.findMany.mock.calls[1][0].where).toEqual(
+        { parentId: { in: ['1'] } },
+      );
+      // Settled in the transaction that deletes the rows.
+      expect(mockStoredFiles.release).toHaveBeenCalledWith(
+        '',
+        ['/uploads/photo.jpg', '/uploads/reply.webm', '/uploads/reply.m4a'],
+        tx,
+      );
+      expect(tx.comment.delete.mock.invocationCallOrder[0]).toBeLessThan(
+        mockStoredFiles.release.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('fails, and so keeps the comment, when its files cannot be settled', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValue({ id: '1' });
+      mockPrismaService.comment.findMany.mockResolvedValueOnce([]);
+      mockStoredFiles.release.mockRejectedValueOnce(new Error('db down'));
+
+      await expect(service.remove('1')).rejects.toThrow('db down');
     });
 
     it('should throw NotFoundException if comment does not exist', async () => {
