@@ -17,7 +17,8 @@ const mockStoredFiles = {
 describe('EditsService', () => {
   let service: EditsService;
 
-  const mockPrismaService = {
+  const mockPrismaService: any = {
+    $transaction: vi.fn((cb) => cb(mockPrismaService)),
     editProject: {
       create: vi.fn(),
       findMany: vi.fn(),
@@ -237,11 +238,15 @@ describe('EditsService', () => {
       await service.remove('user-1', 'edit-1');
 
       // Its files are kept 30 days, then erased (PD-040): none goes now.
-      expect(mockUploadsService.releaseContentFiles).toHaveBeenCalledWith([
-        'https://cdn.example.com/cover.mp4',
-        'https://cdn.example.com/clip-a.mp4',
-        'https://cdn.example.com/clip-b.jpg',
-      ]);
+      // They are settled in the transaction that deletes the row.
+      expect(mockUploadsService.releaseContentFiles).toHaveBeenCalledWith(
+        [
+          'https://cdn.example.com/cover.mp4',
+          'https://cdn.example.com/clip-a.mp4',
+          'https://cdn.example.com/clip-b.jpg',
+        ],
+        mockPrismaService,
+      );
       expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
     });
   });
@@ -418,7 +423,7 @@ describe('EditsService', () => {
   });
 
   describe('deleteProjectMedia error resilience and state branches', () => {
-    it('catches upload deletion failures gracefully', async () => {
+    it('fails, and so keeps the project, when its files cannot be settled', async () => {
       mockPrismaService.editProject.findFirst.mockResolvedValue({
         id: 'edit-err',
         profileId: 'u-1',
@@ -430,8 +435,9 @@ describe('EditsService', () => {
       );
       mockPrismaService.editProject.delete.mockResolvedValue({});
 
-      const res = await service.remove('u-1', 'edit-err');
-      expect(res.success).toBe(true);
+      await expect(service.remove('u-1', 'edit-err')).rejects.toThrow(
+        'S3 delete error',
+      );
     });
 
     it('handles invalid or legacy states in remove and findClipMediaUrl', async () => {

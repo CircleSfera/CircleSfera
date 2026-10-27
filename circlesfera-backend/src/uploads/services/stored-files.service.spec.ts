@@ -147,6 +147,32 @@ describe('StoredFilesService.assertOwnedBy', () => {
   });
 });
 
+describe('StoredFilesService.release, in a transaction', () => {
+  it('reads and marks through the transaction that deletes the content', async () => {
+    const prisma = { storedFile: { findMany: vi.fn(), updateMany: vi.fn() } };
+    const tx = {
+      storedFile: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ key: '/uploads/a.jpg', profileId: 'p-1' }]),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const references = { inUse: vi.fn().mockResolvedValue(new Set()) };
+    const files = new StoredFilesService(
+      prisma as unknown as PrismaService,
+      references as never,
+    );
+
+    await files.release('', ['/uploads/a.jpg'], tx as never);
+
+    expect(references.inUse).toHaveBeenCalledWith(['/uploads/a.jpg'], tx);
+    expect(tx.storedFile.updateMany).toHaveBeenCalled();
+    expect(prisma.storedFile.findMany).not.toHaveBeenCalled();
+    expect(prisma.storedFile.updateMany).not.toHaveBeenCalled();
+  });
+});
+
 describe('StoredFilesService.release', () => {
   it("marks every recorded file no row uses as detached, and answers only the author's own", async () => {
     const prisma = {

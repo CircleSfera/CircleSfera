@@ -5,7 +5,6 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -125,8 +124,6 @@ function legacyStickerFields(stickers: FeedSticker[]) {
 
 @Injectable()
 export class StoriesService {
-  private readonly logger = new Logger(StoriesService.name);
-
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
@@ -696,19 +693,16 @@ export class StoriesService {
       throw new NotFoundException('Story not found');
     }
 
-    // The row goes first; its files are kept 30 days, readable by their
-    // owner only, then erased (PD-040, TD-008).
-    await this.prisma.story.delete({
-      where: { id: story.id },
+    // Its files are kept 30 days, readable by their owner only, then erased
+    // (PD-040, TD-008). They are settled with the deletion: if that fails,
+    // the story stays, so its files are never left public.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.story.delete({ where: { id: story.id } });
+      await this.uploadsService.releaseContentFiles(
+        [story.url, story.standardUrl, story.thumbnailUrl, story.overlayUrl],
+        tx,
+      );
     });
-    await this.uploadsService
-      .releaseContentFiles([
-        story.url,
-        story.standardUrl,
-        story.thumbnailUrl,
-        story.overlayUrl,
-      ])
-      .catch((e) => this.logger.warn(`Files of story ${story.id} kept`, e));
   }
 
   // Record a story view. Idempotent — returns existing view if already viewed.

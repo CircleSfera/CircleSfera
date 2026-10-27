@@ -54,10 +54,7 @@ import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import {
-  PostMediaCleanupService,
-  type PostMediaItemLike,
-} from './services/post-media-cleanup.service.js';
+import type { PostMediaItemLike } from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
 
 // Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
@@ -76,8 +73,6 @@ export class PostsService {
     private readonly postPaywallService: PostPaywallService,
     @Inject(PostDistributionService)
     private readonly postDistributionService: PostDistributionService,
-    @Inject(PostMediaCleanupService)
-    private readonly postMediaCleanupService: PostMediaCleanupService,
     @Inject(FrameCoverService)
     private readonly frameCover: FrameCoverService,
     @Inject(StoredFilesService)
@@ -853,21 +848,26 @@ export class PostsService {
     await this.deleteWithFiles(post);
   }
 
-  // The post's comments go with it: their files are read first and settled
-  // with the post's own once the rows are gone.
+  // The post's comments go with it. Its files and theirs are kept 30 days,
+  // readable by their owner only, then erased, and are settled with the
+  // deletion: if that fails, the post stays, so its files are never left
+  // public.
   private async deleteWithFiles(post: {
     id: string;
-    profileId: string;
     media: PostMediaItemLike[];
   }) {
-    const commentAddresses = await commentFiles(this.prisma, {
-      postId: post.id,
+    await this.prisma.$transaction(async (tx) => {
+      const commentAddresses = await commentFiles(tx, { postId: post.id });
+      await tx.post.delete({ where: { id: post.id } });
+      await this.storedFiles.release(
+        '',
+        [
+          ...post.media.flatMap((m) => [m.url, m.standardUrl, m.thumbnailUrl]),
+          ...commentAddresses,
+        ],
+        tx,
+      );
     });
-    await this.prisma.post.delete({ where: { id: post.id } });
-    await this.postMediaCleanupService.cleanupMedia(post.profileId, [
-      ...post.media,
-      ...commentAddresses.map((url) => ({ url })),
-    ]);
   }
 
   // Returns a Prisma filter for global/discovery feeds.

@@ -143,29 +143,19 @@ export class EditsService {
     return [...urls];
   }
 
-  // Called once the project's row is gone: its files are kept 30 days,
-  // readable by their owner only, then erased (PD-040, TD-008).
-  private async deleteProjectMedia(edit: {
-    profileId: string;
-    mediaUrl: string | null;
-    state: unknown;
-  }) {
-    await this.uploadsService
-      .releaseContentFiles([
-        edit.mediaUrl,
-        ...this.collectStudioMediaUrls(edit.state),
-      ])
-      .catch((e) => this.logger.warn('Failed to delete studio media', e));
-  }
-
   async remove(profileId: string, id: string) {
     const edit = await this.findOne(profileId, id);
 
-    // The row goes first: a file is deleted only once no row uses it.
-    await this.prisma.editProject.delete({
-      where: { id: edit.id },
+    // Its files are kept 30 days, readable by their owner only, then erased
+    // (PD-040, TD-008). They are settled with the deletion: if that fails,
+    // the project stays, so its files are never left public.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.editProject.delete({ where: { id: edit.id } });
+      await this.uploadsService.releaseContentFiles(
+        [edit.mediaUrl, ...this.collectStudioMediaUrls(edit.state)],
+        tx,
+      );
     });
-    await this.deleteProjectMedia(edit);
 
     return { success: true };
   }

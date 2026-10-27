@@ -552,23 +552,23 @@ describe('CommentsService', () => {
       expect(mockPrismaService.comment.findMany.mock.calls[1][0].where).toEqual(
         { parentId: { in: ['1'] } },
       );
-      expect(mockStoredFiles.release).toHaveBeenCalledWith('', [
-        '/uploads/photo.jpg',
-        '/uploads/reply.webm',
-        '/uploads/reply.m4a',
-      ]);
+      // Settled in the transaction that deletes the rows.
+      expect(mockStoredFiles.release).toHaveBeenCalledWith(
+        '',
+        ['/uploads/photo.jpg', '/uploads/reply.webm', '/uploads/reply.m4a'],
+        mockPrismaService,
+      );
       expect(
         mockPrismaService.comment.delete.mock.invocationCallOrder[0],
       ).toBeLessThan(mockStoredFiles.release.mock.invocationCallOrder[0]);
     });
 
-    it('still deletes the comment when its files cannot be settled', async () => {
+    it('fails, and so keeps the comment, when its files cannot be settled', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({ id: '1' });
       mockPrismaService.comment.findMany.mockResolvedValueOnce([]);
       mockStoredFiles.release.mockRejectedValueOnce(new Error('db down'));
 
-      await expect(service.remove('1')).resolves.toBeUndefined();
-      expect(mockPrismaService.comment.delete).toHaveBeenCalled();
+      await expect(service.remove('1')).rejects.toThrow('db down');
     });
 
     it('should throw NotFoundException if comment does not exist', async () => {

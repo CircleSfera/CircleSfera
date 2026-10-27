@@ -292,6 +292,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
           findMany: vi.fn().mockResolvedValue([]),
           delete: vi.fn().mockResolvedValue({ id: 'comm-1' }),
         },
+        $transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(mockPrisma)),
       };
 
       mockEventEmitter = {
