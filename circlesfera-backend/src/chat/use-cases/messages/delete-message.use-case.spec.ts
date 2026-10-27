@@ -12,16 +12,22 @@ describe('DeleteMessageUseCase', () => {
       findUnique: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
+    $transaction: ReturnType<typeof vi.fn>;
   };
+  // The transaction that deletes the message, apart from the service's
+  // client, so that tests can tell which one each write went through.
+  let tx: { message: { update: ReturnType<typeof vi.fn> } };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
   let mockUploads: { releaseContentFiles: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    tx = { message: { update: vi.fn() } };
     mockPrisma = {
       message: {
         findUnique: vi.fn(),
         update: vi.fn(),
       },
+      $transaction: vi.fn((cb: (t: unknown) => unknown) => cb(tx)),
     };
     mockEventEmitter = {
       emit: vi.fn(),
@@ -84,12 +90,13 @@ describe('DeleteMessageUseCase', () => {
       mediaType: null,
       sender: { id: 'profile-1', username: 'user1' },
     };
-    mockPrisma.message.update.mockResolvedValue(updatedMessage);
+    tx.message.update.mockResolvedValue(updatedMessage);
 
     const result = await useCase.execute('msg-1');
 
     expect(result).toEqual({ success: true, message: updatedMessage });
-    expect(mockPrisma.message.update).toHaveBeenCalledWith({
+    expect(mockPrisma.message.update).not.toHaveBeenCalled();
+    expect(tx.message.update).toHaveBeenCalledWith({
       where: { id: 'msg-1' },
       data: {
         content: '',
@@ -106,18 +113,22 @@ describe('DeleteMessageUseCase', () => {
       },
       include: expect.any(Object),
     });
-    expect(mockUploads.releaseContentFiles).toHaveBeenCalledWith([
-      null,
-      '/uploads/v/master.m3u8',
-      '/uploads/v/thumb.jpg',
-      '/uploads/voice.webm',
-      '/uploads/v.mp4',
-      '/uploads/v/master.m3u8',
-      '/uploads/v/thumb.jpg',
-      '/uploads/voice.webm',
-    ]);
+    // In the same transaction as the message.
+    expect(mockUploads.releaseContentFiles).toHaveBeenCalledWith(
+      [
+        null,
+        '/uploads/v/master.m3u8',
+        '/uploads/v/thumb.jpg',
+        '/uploads/voice.webm',
+        '/uploads/v.mp4',
+        '/uploads/v/master.m3u8',
+        '/uploads/v/thumb.jpg',
+        '/uploads/voice.webm',
+      ],
+      tx,
+    );
     // The row is cleared before any file goes.
-    expect(mockPrisma.message.update.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(tx.message.update.mock.invocationCallOrder[0]).toBeLessThan(
       mockUploads.releaseContentFiles.mock.invocationCallOrder[0],
     );
     expect(mockEventEmitter.emit).toHaveBeenCalledWith('chat.message.deleted', {
@@ -126,18 +137,18 @@ describe('DeleteMessageUseCase', () => {
     });
   });
 
-  it('still deletes the message when its files cannot be deleted', async () => {
+  it('fails, and so keeps the message, when its files cannot be set aside', async () => {
     mockPrisma.message.findUnique.mockResolvedValue({
       id: 'msg-1',
       senderId: 'profile-1',
       url: '/uploads/a.jpg',
       conversation: { participants: [] },
     });
-    mockPrisma.message.update.mockResolvedValue({ id: 'msg-1' });
-    mockUploads.releaseContentFiles.mockRejectedValue(new Error('disk'));
+    tx.message.update.mockResolvedValue({ id: 'msg-1' });
+    mockUploads.releaseContentFiles.mockRejectedValue(new Error('db down'));
 
-    await expect(useCase.execute('msg-1')).resolves.toMatchObject({
-      success: true,
-    });
+    await expect(useCase.execute('msg-1')).rejects.toThrow('db down');
+    // Nobody is told of a deletion that did not happen.
+    expect(mockEventEmitter.emit).not.toHaveBeenCalled();
   });
 });
