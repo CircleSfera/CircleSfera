@@ -219,15 +219,39 @@ describe('ChatController', () => {
       .expect(200);
 
     expect(mockGetMessagesQuery.execute.mock.calls).toEqual([
-      ['conv-1', 50, TEST_USER.profileId, undefined],
+      ['conv-1', 50, TEST_USER.profileId, undefined, false],
       [
         'conv-1',
         50,
         TEST_USER.profileId,
         { createdAt: new Date('2026-10-18T11:00:00.000Z'), id: 'm2' },
+        false,
       ],
-      ['conv-1', 50, TEST_USER.profileId, undefined],
+      ['conv-1', 50, TEST_USER.profileId, undefined, false],
     ]);
+  });
+
+  it('reads notices from the app only for an app that asks for them', async () => {
+    mockGetMessagesQuery.execute.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/conv-1/messages?notices=true')
+      .set(BEARER)
+      .expect(200);
+    expect(mockGetMessagesQuery.execute).toHaveBeenLastCalledWith(
+      'conv-1',
+      50,
+      TEST_USER.profileId,
+      undefined,
+      true,
+    );
+
+    mockGetMessagesQuery.execute.mockClear();
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/conv-1/messages?notices=yes')
+      .set(BEARER)
+      .expect(400);
+    expect(mockGetMessagesQuery.execute).not.toHaveBeenCalled();
   });
 
   it('refuses a time that is not a date', async () => {
@@ -270,6 +294,7 @@ describe('ChatController', () => {
       50,
       TEST_USER.profileId,
       undefined,
+      false,
     );
   });
 

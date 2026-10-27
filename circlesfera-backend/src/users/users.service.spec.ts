@@ -549,7 +549,7 @@ describe('UsersService', () => {
         mockPrismaService.user.deleteMany.mock.invocationCallOrder[0],
       );
       expect(participant.updateMany).toHaveBeenCalledWith({
-        where: { id: 'part-oldest', deletedAt: null },
+        where: { id: 'part-oldest', deletedAt: null, isAdmin: false },
         data: { isAdmin: true },
       });
       // The group is told who its new admin is.

@@ -17,6 +17,7 @@ describe('MakeGroupAdminUseCase', () => {
   let mockSuccession: {
     grantAdmin: ReturnType<typeof vi.fn>;
     announce: ReturnType<typeof vi.fn>;
+    lock: ReturnType<typeof vi.fn>;
   };
   const updatedConv = {
     id: 'conv-1',
@@ -38,6 +39,7 @@ describe('MakeGroupAdminUseCase', () => {
     mockSuccession = {
       grantAdmin: vi.fn().mockResolvedValue({ id: 'notice-2' }),
       announce: vi.fn().mockResolvedValue(undefined),
+      lock: vi.fn().mockResolvedValue(undefined),
     };
     useCase = new MakeGroupAdminUseCase(
       mockPrisma as unknown as PrismaService,
@@ -69,6 +71,9 @@ describe('MakeGroupAdminUseCase', () => {
       'conv-1',
       'prof-2',
       mockPrisma,
+    );
+    expect(mockSuccession.lock.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSuccession.grantAdmin.mock.invocationCallOrder[0],
     );
     expect(mockEventEmitter.emit).toHaveBeenCalledWith(
       'chat.conversation.updated',

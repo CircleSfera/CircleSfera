@@ -11,7 +11,11 @@ describe('AcceptMessageRequestUseCase', () => {
     },
     $transaction: vi.fn(),
   };
-  const mockSuccession = { ensureAdmin: vi.fn(), announce: vi.fn() };
+  const mockSuccession = {
+    ensureAdmin: vi.fn(),
+    announce: vi.fn(),
+    lock: vi.fn(),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -96,6 +100,11 @@ describe('AcceptMessageRequestUseCase', () => {
 
     await useCase.execute('profile-1', 'conv-1');
 
+    // The group is held before the acceptance.
+    expect(mockSuccession.lock).toHaveBeenCalledWith('conv-1', mockPrisma);
+    expect(mockSuccession.lock.mock.invocationCallOrder[0]).toBeLessThan(
+      mockPrisma.participant.update.mock.invocationCallOrder[0],
+    );
     // The group is told who the new admin is, once the acceptance commits.
     expect(mockSuccession.announce).toHaveBeenCalledWith([{ id: 'notice-1' }]);
     expect(mockSuccession.ensureAdmin).toHaveBeenCalledWith(

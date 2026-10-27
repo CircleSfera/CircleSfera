@@ -34,6 +34,7 @@ export class AcceptMessageRequestUseCase {
       // A group whose admin left while every other member was still invited
       // gets one as soon as someone accepts (PD-042).
       const notice = await this.prisma.$transaction(async (tx) => {
+        await this.succession.lock(conversationId, tx);
         await tx.participant.update({
           where: { id: participant.id },
           data: {

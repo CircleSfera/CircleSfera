@@ -30,9 +30,10 @@ export class MakeGroupAdminUseCase {
       'Only group admins can make admins',
     );
 
-    const notice = await this.prisma.$transaction((tx) =>
-      this.succession.grantAdmin(conversationId, targetProfileId, tx),
-    );
+    const notice = await this.prisma.$transaction(async (tx) => {
+      await this.succession.lock(conversationId, tx);
+      return this.succession.grantAdmin(conversationId, targetProfileId, tx);
+    });
 
     const updated = await this.prisma.conversation.findUnique({
       where: { id: conversationId },

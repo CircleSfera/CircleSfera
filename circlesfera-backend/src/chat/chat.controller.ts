@@ -168,6 +168,7 @@ export class ChatController {
       MESSAGE_PAGE,
       req.user.profileId,
       before,
+      query.notices === 'true',
     );
   }
 

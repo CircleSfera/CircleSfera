@@ -147,12 +147,48 @@ describe('AppGateway connection and presence routing', () => {
     expect(client.join).toHaveBeenCalledWith('user:prof-1');
     expect(client.join).toHaveBeenCalledWith(['presence:prof-2']);
     expect(client.join).toHaveBeenCalledWith('presence:prof-1');
+    // An app that did not say it understands notices gets none.
+    expect(client.join).not.toHaveBeenCalledWith('chat-notices:prof-1');
     expect(mockPresenceService.setUserOnline).toHaveBeenCalledWith('user-1');
     expect(mockTo).toHaveBeenCalledWith('presence:prof-1');
     expect(mockEmit).toHaveBeenCalledWith('user_status', {
       profileId: 'prof-1',
       isOnline: true,
     });
+  });
+
+  it('puts an app that understands notices from the app in their room', async () => {
+    const gateway = gatewayWithServer(
+      { to: vi.fn().mockReturnValue({ emit: vi.fn() }) },
+      {
+        socketAuthService: {
+          authenticate: vi.fn().mockResolvedValue({
+            user: {
+              sub: 'user-1',
+              email: 'u1@example.com',
+              profileId: 'prof-1',
+            },
+            conversationIds: new Set(),
+          }),
+        },
+        socketPresenceService: {
+          getFollowPresenceRooms: vi.fn().mockResolvedValue([]),
+          setUserOnline: vi.fn().mockResolvedValue(undefined),
+          setUserOffline: vi.fn(),
+        },
+      },
+    );
+
+    const modern = mockSocket('prof-1');
+    (modern as any).handshake = { auth: { features: ['chat-notices'] } };
+    await gateway.handleConnection(modern);
+    expect(modern.join).toHaveBeenCalledWith('chat-notices:prof-1');
+
+    // A string, or any other feature, is not the list it expects.
+    const odd = mockSocket('prof-1');
+    (odd as any).handshake = { auth: { features: 'chat-notices' } };
+    await gateway.handleConnection(odd);
+    expect(odd.join).not.toHaveBeenCalledWith('chat-notices:prof-1');
   });
 
   it('propagates correlation id from handshake headers onto socket client data', async () => {
@@ -1405,6 +1441,38 @@ describe('AppGateway payload bounds and authorization', () => {
         conversationId: 'c-1',
         text: 'hello',
       });
+    });
+
+    it('sends a notice from the app only to the apps that understand it', () => {
+      const mockEmit = vi.fn();
+      const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+      const gateway = gatewayWithServer({ to: mockTo, sockets: new Map() });
+      const notice = {
+        id: 'n-1',
+        conversationId: 'c-1',
+        senderId: 'p-2',
+        content: '',
+        kind: 'ADMIN_GRANTED',
+      };
+
+      gateway.handleChatMessageSent({
+        participants: [{ profileId: 'p-1' }, { profileId: 'p-2' }],
+        payload: notice,
+      });
+
+      expect(mockTo.mock.calls).toEqual([
+        ['chat-notices:p-1'],
+        ['chat-notices:p-2'],
+      ]);
+      expect(mockEmit).toHaveBeenCalledWith('receiveMessage', notice);
+
+      // A message a member wrote still goes to every app.
+      mockTo.mockClear();
+      gateway.handleChatMessageSent({
+        participants: [{ profileId: 'p-1' }],
+        payload: { ...notice, id: 'm-1', kind: 'USER', content: 'hola' },
+      });
+      expect(mockTo.mock.calls).toEqual([['user:p-1']]);
     });
 
     it('redacts a locked message content/media over the socket for non-sender participants', () => {

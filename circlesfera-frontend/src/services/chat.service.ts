@@ -36,19 +36,18 @@ export const chatApi = {
     apiClient.get<{ count: number }>('/chat/conversations/unread-count'),
 
   // The latest messages, oldest first; with `before`, the ones sent before
-  // that message (its time and id).
+  // that message (its time and id). `notices` says this app shows notices
+  // from the app (someone became admin); the server keeps them from older
+  // apps, which would draw them as empty messages.
   getMessages: (
     conversationId: string,
     before?: { createdAt: string; id: string },
   ) =>
-    before
-      ? apiClient.get<Message[]>(
-          `/chat/conversations/${conversationId}/messages`,
-          { params: { before: before.createdAt, beforeId: before.id } },
-        )
-      : apiClient.get<Message[]>(
-          `/chat/conversations/${conversationId}/messages`,
-        ),
+    apiClient.get<Message[]>(`/chat/conversations/${conversationId}/messages`, {
+      params: before
+        ? { before: before.createdAt, beforeId: before.id, notices: 'true' }
+        : { notices: 'true' },
+    }),
 
   sendMessage: (data: {
     recipientId?: string;

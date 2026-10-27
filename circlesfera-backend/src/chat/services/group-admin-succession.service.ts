@@ -1,5 +1,5 @@
 import { type ChatMessageSentEvent, ErrorCode } from '@circlesfera/shared';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
 import { AppException } from '../../common/errors/app.exception.js';
@@ -46,21 +46,33 @@ export function mayBeGroupAdmin(
   };
 }
 
+// What making a member admin came to: the notice that says so; or nothing,
+// because another promotion made them admin at this very moment; or nothing,
+// because they left at this very moment.
+type Promotion = AdminNotice | 'already-admin' | 'gone';
+
 // Makes the member admin and writes the notice that says so, in the same
-// client (a transaction when called from one). Null when the member left at
-// this very moment. The notice's content is empty: encrypting an empty
-// string gives an empty string, and each reader writes the notice out in
-// their own language from its kind and its sender.
+// client (a transaction when called from one). Only a member who is not admin
+// yet is promoted, so two promotions at once write one notice. The notice's
+// content is empty: encrypting an empty string gives an empty string, and
+// each reader writes the notice out in their own language from its kind and
+// its sender.
 async function promote(
   client: Client,
   conversationId: string,
   participant: { id: string; profileId: string },
-): Promise<AdminNotice | null> {
+): Promise<Promotion> {
   const promoted = await client.participant.updateMany({
-    where: { id: participant.id, deletedAt: null },
+    where: { id: participant.id, deletedAt: null, isAdmin: false },
     data: { isAdmin: true },
   });
-  if (promoted.count === 0) return null;
+  if (promoted.count === 0) {
+    const still = await client.participant.findFirst({
+      where: { id: participant.id, deletedAt: null },
+      select: { isAdmin: true },
+    });
+    return still?.isAdmin ? 'already-admin' : 'gone';
+  }
   return client.message.create({
     data: {
       conversationId,
@@ -70,6 +82,19 @@ async function promote(
     },
     include: NOTICE_INCLUDE,
   });
+}
+
+/**
+ * Holds the group's row until the transaction ends, so that two members
+ * leaving, being removed or accepting at once take turns: the second one
+ * then sees who the first left as admin, and the group never ends up with
+ * none. Called first in the transaction, before anything is read.
+ */
+export async function lockGroup(
+  client: Pick<Prisma.TransactionClient, '$queryRaw'>,
+  conversationId: string,
+): Promise<void> {
+  await client.$queryRaw`SELECT id FROM "conversations" WHERE id = ${conversationId} FOR UPDATE`;
 }
 
 /**
@@ -118,8 +143,10 @@ export async function ensureGroupAdmin(
     });
     if (!next) return null;
 
-    const notice = await promote(client, conversationId, next);
-    if (notice) return notice;
+    const promotion = await promote(client, conversationId, next);
+    // Someone else made them admin at this very moment: the group has one.
+    if (promotion === 'already-admin') return null;
+    if (promotion !== 'gone') return promotion;
     passedOver.push(next.id);
   }
   return null;
@@ -143,10 +170,13 @@ export async function grantGroupAdmin(
   if (!target) throw notEligible();
   if (target.isAdmin) return null;
 
-  const notice = await promote(client, conversationId, target);
-  if (!notice) throw notEligible();
-  return notice;
+  const promotion = await promote(client, conversationId, target);
+  if (promotion === 'already-admin') return null;
+  if (promotion === 'gone') throw notEligible();
+  return promotion;
 }
+
+const announceLogger = new Logger('GroupAdminSuccession');
 
 function notEligible() {
   return AppException.BadRequest(
@@ -158,7 +188,9 @@ function notEligible() {
 /**
  * Tells the people in the group, over the same real-time path as any
  * message, that someone is now admin. Called after the transaction that
- * wrote the notice commits. A notice sends no push notification.
+ * wrote the notice commits, so it never fails the change that was made: a
+ * notice that cannot be sent is logged by its id and the next one is sent.
+ * A notice sends no push notification.
  */
 export async function announceAdminNotices(
   client: Pick<Prisma.TransactionClient, 'participant'>,
@@ -167,15 +199,19 @@ export async function announceAdminNotices(
 ): Promise<void> {
   for (const notice of notices) {
     if (!notice) continue;
-    const participants = await client.participant.findMany({
-      where: { conversationId: notice.conversationId },
-      select: { profileId: true },
-    });
-    const event: ChatMessageSentEvent['payload'] = {
-      participants,
-      payload: notice,
-    };
-    events.emit('chat.message.sent', event);
+    try {
+      const participants = await client.participant.findMany({
+        where: { conversationId: notice.conversationId },
+        select: { profileId: true },
+      });
+      const event: ChatMessageSentEvent['payload'] = {
+        participants,
+        payload: notice,
+      };
+      events.emit('chat.message.sent', event);
+    } catch {
+      announceLogger.warn(`Could not send the admin notice ${notice.id}`);
+    }
   }
 }
 
@@ -201,6 +237,13 @@ export class GroupAdminSuccessionService {
     now: Date = new Date(),
   ): Promise<AdminNotice | null> {
     return grantGroupAdmin(client, conversationId, profileId, now);
+  }
+
+  lock(
+    conversationId: string,
+    client: Pick<Prisma.TransactionClient, '$queryRaw'>,
+  ): Promise<void> {
+    return lockGroup(client, conversationId);
   }
 
   announce(notices: (AdminNotice | null | undefined)[]): Promise<void> {

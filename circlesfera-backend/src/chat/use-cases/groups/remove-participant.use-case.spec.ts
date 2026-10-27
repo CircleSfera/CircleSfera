@@ -20,6 +20,7 @@ describe('RemoveParticipantUseCase', () => {
   let mockSuccession: {
     ensureAdmin: ReturnType<typeof vi.fn>;
     announce: ReturnType<typeof vi.fn>;
+    lock: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -36,6 +37,7 @@ describe('RemoveParticipantUseCase', () => {
     mockSuccession = {
       ensureAdmin: vi.fn().mockResolvedValue(null),
       announce: vi.fn().mockResolvedValue(undefined),
+      lock: vi.fn().mockResolvedValue(undefined),
     };
     // The leave and the naming of the next admin run in one transaction.
     (mockPrisma as unknown as { $transaction: unknown }).$transaction = vi.fn(
@@ -154,6 +156,10 @@ describe('RemoveParticipantUseCase', () => {
     expect(mockSuccession.ensureAdmin).toHaveBeenCalledWith(
       'conv-1',
       mockPrisma,
+    );
+    // The group is held before anyone is removed.
+    expect(mockSuccession.lock.mock.invocationCallOrder[0]).toBeLessThan(
+      mockPrisma.participant.delete.mock.invocationCallOrder[0],
     );
     // The group is told who the new admin is.
     expect(mockSuccession.announce).toHaveBeenCalledWith([{ id: 'notice-2' }]);

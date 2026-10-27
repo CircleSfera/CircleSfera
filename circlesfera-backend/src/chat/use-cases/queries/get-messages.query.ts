@@ -20,12 +20,15 @@ export class GetMessagesQuery {
 
   // The latest messages of a conversation, oldest first as they are read.
   // With `before`, the ones sent before that message instead: the app reads
-  // further back as the person scrolls up.
+  // further back as the person scrolls up. Notices from the app (someone
+  // became admin) only for an app that says it understands them
+  // (withNotices): an older one would draw them as empty messages.
   async execute(
     conversationId: string,
     limit = MESSAGE_PAGE,
     profileId?: string,
     before?: { createdAt: Date; id: string },
+    withNotices = false,
   ): Promise<(Message & { status: MediaStatus })[]> {
     let isParticipant: Participant | null = null;
     if (profileId) {
@@ -37,6 +40,9 @@ export class GetMessagesQuery {
     }
 
     const whereClause: any = { conversationId };
+    if (!withNotices) {
+      whereClause.kind = 'USER';
+    }
     if (isParticipant?.clearedAt) {
       whereClause.createdAt = { gt: isParticipant.clearedAt };
     }

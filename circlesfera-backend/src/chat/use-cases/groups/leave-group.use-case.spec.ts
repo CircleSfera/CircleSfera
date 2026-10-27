@@ -21,6 +21,7 @@ describe('LeaveGroupUseCase', () => {
     ensureAdmin: ReturnType<typeof vi.fn>;
     grantAdmin: ReturnType<typeof vi.fn>;
     announce: ReturnType<typeof vi.fn>;
+    lock: ReturnType<typeof vi.fn>;
   };
   let transaction: ReturnType<typeof vi.fn>;
 
@@ -39,6 +40,7 @@ describe('LeaveGroupUseCase', () => {
       ensureAdmin: vi.fn().mockResolvedValue(null),
       grantAdmin: vi.fn().mockResolvedValue({ id: 'notice-2' }),
       announce: vi.fn().mockResolvedValue(undefined),
+      lock: vi.fn().mockResolvedValue(undefined),
     };
     // The leave and the naming of the next admin run in one transaction.
     transaction = vi.fn((fn: (tx: unknown) => unknown) => fn(mockPrisma));
@@ -125,6 +127,11 @@ describe('LeaveGroupUseCase', () => {
     expect(
       mockPrisma.participant.delete.mock.invocationCallOrder[0],
     ).toBeLessThan(mockSuccession.ensureAdmin.mock.invocationCallOrder[0]);
+    // The group is held first, so two admins leaving at once take turns.
+    expect(mockSuccession.lock).toHaveBeenCalledWith('conv-1', mockPrisma);
+    expect(mockSuccession.lock.mock.invocationCallOrder[0]).toBeLessThan(
+      mockPrisma.participant.delete.mock.invocationCallOrder[0],
+    );
     expect(mockSuccession.announce).toHaveBeenCalledWith([
       null,
       { id: 'notice-3' },

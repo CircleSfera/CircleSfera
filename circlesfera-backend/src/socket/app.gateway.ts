@@ -56,6 +56,21 @@ import { SocketPresenceService } from './services/socket-presence.service.js';
 
 export type { JwtPayload, SocketAuthUser };
 
+// What an app says it understands when it connects (handshake auth
+// `features`). An app that has not said "chat-notices" is an older one that
+// would draw a notice from the app as an empty message.
+export const CHAT_NOTICES_FEATURE = 'chat-notices';
+
+// The room of a Profile's sockets that understand notices from the app.
+export const noticesRoom = (profileId: string) => `chat-notices:${profileId}`;
+
+function declaresFeature(client: Socket, feature: string): boolean {
+  const features = (
+    client.handshake?.auth as Record<string, unknown> | undefined
+  )?.features;
+  return Array.isArray(features) && features.includes(feature);
+}
+
 export interface SocketWithAuth extends Socket {
   data: {
     user: SocketAuthUser;
@@ -143,6 +158,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       await CorrelationContext.run(correlationId, async () => {
         await client.join(`user:${profileId}`);
+        if (declaresFeature(client, CHAT_NOTICES_FEATURE)) {
+          await client.join(noticesRoom(profileId));
+        }
 
         const followRooms =
           await this.socketPresenceService.getFollowPresenceRooms(profileId);
@@ -912,6 +930,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @OnEvent('chat.message.sent')
   handleChatMessageSent(event: ChatMessageSentEvent['payload']) {
+    // A notice from the app (someone became admin) goes only to the apps
+    // that understand it; older ones still get the group's update.
+    const kind = event.payload.kind;
+    if (kind !== undefined && kind !== 'USER') {
+      event.participants?.forEach((p) => {
+        this.addConversationToSocket(p.profileId, event.payload.conversationId);
+        this.server
+          .to(noticesRoom(p.profileId))
+          .emit('receiveMessage', event.payload);
+      });
+      return;
+    }
     event.participants?.forEach((p) => {
       this.addConversationToSocket(p.profileId, event.payload.conversationId);
       // A message just sent can't have been unlocked yet by anyone but the

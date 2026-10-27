@@ -33,6 +33,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
 import { formatCents } from '../../utils/money';
@@ -1039,7 +1040,7 @@ export default function ChatWindow() {
       setConversation(res.data);
     } catch (err) {
       logger.error('Failed to make a member admin', err);
-      toast.error(t('chat.make_admin_error'));
+      toast.error(apiErrorMessage(err, t, 'chat.make_admin_error'));
     }
   };
 
@@ -1056,7 +1057,7 @@ export default function ChatWindow() {
       navigate('/direct/inbox');
     } catch (err) {
       logger.error('Failed to leave group', err);
-      toast.error(t('chat.leave_group_error'));
+      toast.error(apiErrorMessage(err, t, 'chat.leave_group_error'));
     } finally {
       setIsLeavingGroup(false);
     }

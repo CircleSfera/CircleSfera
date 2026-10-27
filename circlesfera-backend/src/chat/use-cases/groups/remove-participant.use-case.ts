@@ -41,6 +41,7 @@ export class RemoveParticipantUseCase {
 
     // An admin who removes themselves leaves the group with an admin.
     const notice = await this.prisma.$transaction(async (tx) => {
+      await this.succession.lock(conversationId, tx);
       await tx.participant.delete({ where: { id: targetParticipant.id } });
       return this.succession.ensureAdmin(conversationId, tx);
     });

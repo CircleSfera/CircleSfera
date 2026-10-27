@@ -230,13 +230,17 @@ export class SendMessageUseCase {
           });
         }
 
-        // A notice from the app cannot be replied to.
+        // A notice from the app cannot be replied to. A reply to a message
+        // that no longer exists is sent as a plain message.
+        let replyTarget = replyToId;
         if (replyToId) {
           const repliedTo = await tx.message.findUnique({
             where: { id: replyToId },
             select: { kind: true },
           });
-          if (repliedTo && isNotice(repliedTo)) {
+          if (!repliedTo) {
+            replyTarget = undefined;
+          } else if (isNotice(repliedTo)) {
             throw AppException.BadRequest(
               ErrorCode.MESSAGE_IS_NOTICE,
               'A notice cannot be replied to',
@@ -277,7 +281,7 @@ export class SendMessageUseCase {
             mediaId: media?.id,
             postId,
             storyId,
-            replyToId,
+            replyToId: replyTarget,
             voiceUrl,
             voiceDuration,
             voiceMediaId: voiceMedia?.id,

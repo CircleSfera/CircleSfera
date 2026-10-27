@@ -78,7 +78,11 @@ describe('realtimeService', () => {
 
       expect(io).toHaveBeenCalledWith(
         expect.stringMatching(/\/events$/),
-        expect.objectContaining({ path: '/socket.io', withCredentials: true }),
+        expect.objectContaining({
+          path: '/socket.io',
+          withCredentials: true,
+          auth: { features: ['chat-notices'] },
+        }),
       );
       expect(line.socket.connect).toHaveBeenCalledTimes(1);
       expect(useSocketStore.getState().isConnected).toBe(false);

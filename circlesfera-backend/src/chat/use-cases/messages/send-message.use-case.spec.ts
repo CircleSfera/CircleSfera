@@ -234,10 +234,15 @@ describe('SendMessageUseCase', () => {
       expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
 
-    it('leaves a reply to a message that is gone to the database, as before', async () => {
+    it('sends a reply to a message that is gone as a plain message', async () => {
       mockTx.message.findUnique.mockResolvedValue(null);
 
       await expect(send('gone-1')).resolves.toMatchObject({ id: 'msg-2' });
+      expect(mockTx.message.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ replyToId: undefined }),
+        }),
+      );
     });
   });
   it('sends message to existing conversation with push notification to recipient', async () => {

@@ -1725,6 +1725,32 @@ describe('ChatWindow', () => {
       );
     });
 
+    it('says why when the member chosen cannot be admin', async () => {
+      vi.mocked(chatApi.leaveGroup).mockRejectedValue({
+        isAxiosError: true,
+        response: {
+          status: 400,
+          data: { errorCode: 'GROUP_ADMIN_NOT_ELIGIBLE' },
+        },
+      });
+      const i18n = await renderLoadedChat();
+      const sheet = await openLeave(i18n);
+
+      fireEvent.click(within(sheet).getByRole('button', { name: /Ana Ruiz/ }));
+      fireEvent.click(
+        within(sheet).getByRole('button', {
+          name: i18n.t('chat.choose_admin.make_admin_and_leave'),
+        }),
+      );
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          i18n.t('errors.codes.GROUP_ADMIN_NOT_ELIGIBLE'),
+        ),
+      );
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
     it('stays in the group and says so when leaving fails', async () => {
       vi.mocked(chatApi.leaveGroup).mockRejectedValue(new Error('down'));
       const i18n = await renderLoadedChat();

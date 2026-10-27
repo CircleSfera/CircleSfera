@@ -659,7 +659,7 @@ const cases: Case[] = [
     'chat.getMessages',
     () => chatApi.getMessages('c1'),
     'get',
-    ['/chat/conversations/c1/messages'],
+    ['/chat/conversations/c1/messages', { params: { notices: 'true' } }],
   ],
   [
     'chat.getMessages before a message',
@@ -671,7 +671,13 @@ const cases: Case[] = [
     'get',
     [
       '/chat/conversations/c1/messages',
-      { params: { before: '2026-10-18T11:00:00.000Z', beforeId: 'm2' } },
+      {
+        params: {
+          before: '2026-10-18T11:00:00.000Z',
+          beforeId: 'm2',
+          notices: 'true',
+        },
+      },
     ],
   ],
   [

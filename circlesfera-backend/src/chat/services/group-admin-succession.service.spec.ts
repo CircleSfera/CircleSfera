@@ -6,6 +6,7 @@ import {
   ensureGroupAdmin,
   GroupAdminSuccessionService,
   grantGroupAdmin,
+  lockGroup,
   mayBeGroupAdmin,
 } from './group-admin-succession.service.js';
 
@@ -45,6 +46,7 @@ function client({
         Promise.resolve(notice(data.senderId)),
       ),
     },
+    $queryRaw: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -95,7 +97,8 @@ describe('ensureGroupAdmin', () => {
       select: { id: true, profileId: true },
     });
     expect(c.participant.updateMany).toHaveBeenCalledWith({
-      where: { id: 'part-2', deletedAt: null },
+      // Only a member who is not admin yet: two promotions, one notice.
+      where: { id: 'part-2', deletedAt: null, isAdmin: false },
       data: { isAdmin: true },
     });
     // The notice names the new admin as its subject and holds no text: each
@@ -141,6 +144,8 @@ describe('ensureGroupAdmin', () => {
     const c = client();
     c.participant.findFirst
       .mockResolvedValueOnce({ id: 'part-2', profileId: 'p-2' })
+      // Their row is gone: they left.
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 'part-3', profileId: 'p-3' });
     c.participant.updateMany
       .mockResolvedValueOnce({ count: 0 })
@@ -149,7 +154,11 @@ describe('ensureGroupAdmin', () => {
     await expect(ensureGroupAdmin(c as never, 'g-1', now)).resolves.toEqual(
       notice('p-3'),
     );
-    expect(c.participant.findFirst.mock.calls[1][0].where.id).toEqual({
+    expect(c.participant.findFirst.mock.calls[1][0]).toEqual({
+      where: { id: 'part-2', deletedAt: null },
+      select: { isAdmin: true },
+    });
+    expect(c.participant.findFirst.mock.calls[2][0].where.id).toEqual({
       notIn: ['part-2'],
     });
     // Only the member who did become admin is announced.
@@ -161,8 +170,35 @@ describe('ensureGroupAdmin', () => {
     c.participant.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(ensureGroupAdmin(c as never, 'g-1', now)).resolves.toBeNull();
-    expect(c.participant.findFirst).toHaveBeenCalledTimes(5);
+    // Five candidates, each looked up again once its promotion missed.
+    expect(c.participant.findFirst).toHaveBeenCalledTimes(10);
     expect(c.message.create).not.toHaveBeenCalled();
+  });
+
+  it('names nobody else when another promotion made the candidate admin at that moment', async () => {
+    const c = client();
+    c.participant.findFirst
+      .mockResolvedValueOnce({ id: 'part-2', profileId: 'p-2' })
+      .mockResolvedValueOnce({ isAdmin: true });
+    c.participant.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(ensureGroupAdmin(c as never, 'g-1', now)).resolves.toBeNull();
+    expect(c.participant.updateMany).toHaveBeenCalledTimes(1);
+    expect(c.message.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('lockGroup', () => {
+  it("holds the group's row for the rest of the transaction", async () => {
+    const c = client();
+
+    await lockGroup(c as never, 'g-1');
+
+    const [strings, id] = c.$queryRaw.mock.calls[0];
+    expect(strings.join('?')).toBe(
+      'SELECT id FROM "conversations" WHERE id = ? FOR UPDATE',
+    );
+    expect(id).toBe('g-1');
   });
 });
 
@@ -182,7 +218,7 @@ describe('grantGroupAdmin', () => {
       select: { id: true, profileId: true, isAdmin: true },
     });
     expect(c.participant.updateMany).toHaveBeenCalledWith({
-      where: { id: 'part-4', deletedAt: null },
+      where: { id: 'part-4', deletedAt: null, isAdmin: false },
       data: { isAdmin: true },
     });
   });
@@ -220,6 +256,21 @@ describe('grantGroupAdmin', () => {
     });
     expect(gone.message.create).not.toHaveBeenCalled();
   });
+
+  it('writes no second notice when another admin made the member admin at that moment', async () => {
+    const c = client({
+      next: { id: 'part-4', profileId: 'p-4', isAdmin: false },
+    });
+    c.participant.updateMany.mockResolvedValue({ count: 0 });
+    c.participant.findFirst
+      .mockResolvedValueOnce({ id: 'part-4', profileId: 'p-4', isAdmin: false })
+      .mockResolvedValueOnce({ isAdmin: true });
+
+    await expect(
+      grantGroupAdmin(c as never, 'g-1', 'p-4', now),
+    ).resolves.toBeNull();
+    expect(c.message.create).not.toHaveBeenCalled();
+  });
 });
 
 describe('announceAdminNotices', () => {
@@ -250,6 +301,29 @@ describe('announceAdminNotices', () => {
   });
 });
 
+describe('announceAdminNotices when sending fails', () => {
+  it('logs the notice and still sends the next one, without failing the change', async () => {
+    const c = client();
+    c.participant.findMany
+      .mockRejectedValueOnce(new Error('down'))
+      .mockResolvedValueOnce([{ profileId: 'p-3' }]);
+    const events = { emit: vi.fn() };
+
+    await expect(
+      announceAdminNotices(c as never, events as never, [
+        notice('p-2'),
+        notice('p-3', 'g-2'),
+      ]),
+    ).resolves.toBeUndefined();
+
+    expect(events.emit).toHaveBeenCalledTimes(1);
+    expect(events.emit).toHaveBeenCalledWith('chat.message.sent', {
+      participants: [{ profileId: 'p-3' }],
+      payload: notice('p-3', 'g-2'),
+    });
+  });
+});
+
 describe('GroupAdminSuccessionService', () => {
   it('runs each step on the client given, or on its own', async () => {
     const own = client();
@@ -273,6 +347,9 @@ describe('GroupAdminSuccessionService', () => {
     await expect(
       service.grantAdmin('g-1', 'p-4', tx as never, now),
     ).resolves.toEqual(notice('p-4'));
+
+    await service.lock('g-1', tx as never);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
 
     await service.announce([notice('p-4')]);
     expect(own.participant.findMany).toHaveBeenCalled();

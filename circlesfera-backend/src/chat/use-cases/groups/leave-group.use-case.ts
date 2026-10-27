@@ -53,6 +53,7 @@ export class LeaveGroupUseCase {
     }
 
     const notices = await this.prisma.$transaction(async (tx) => {
+      await this.succession.lock(conversationId, tx);
       const named = successorId
         ? await this.succession.grantAdmin(conversationId, successorId, tx)
         : null;
