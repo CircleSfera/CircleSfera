@@ -155,14 +155,14 @@ export class EndedConversationsErasureService {
     conversationId: string,
     now: Date = new Date(),
   ): Promise<boolean> {
-    const files = await this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const held = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT id FROM "conversations" WHERE id = ${conversationId} FOR UPDATE`;
-      if (held.length === 0) return null;
+      if (held.length === 0) return false;
       const erasable = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT c.id FROM "conversations" c
         WHERE c.id = ${conversationId} AND ${erasableConversation(now)}`;
-      if (erasable.length === 0) return null;
+      if (erasable.length === 0) return false;
       const conversation = await tx.conversation.findUnique({
         where: { id: conversationId },
         select: { avatarUrl: true },
@@ -203,20 +203,13 @@ export class EndedConversationsErasureService {
       // The messages, their reactions and the rows of who is in it go with
       // the conversation.
       await tx.conversation.delete({ where: { id: conversationId } });
-      return addresses;
+      // Its files are set aside in the same transaction, once its rows are
+      // gone, so that none of them still counts as using a file: kept 30
+      // days, readable by their owner only. A file another row still names
+      // stays as it is. If this fails, the conversation is not erased either,
+      // and both are tried again the next night.
+      await this.storedFiles.release('', addresses, tx);
+      return true;
     }, ERASE_TRANSACTION);
-    if (files === null) return false;
-    // Settled once the rows are gone, so that no row of the conversation
-    // still counts as using a file. A file another row still names stays as
-    // it is. If this fails, the conversation is erased all the same; its
-    // files, named by no row, show in the nightly report of orphan files.
-    try {
-      await this.storedFiles.release('', files);
-    } catch (error: unknown) {
-      this.logger.warn(
-        `The files of an erased conversation could not be set aside: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-    return true;
   }
 }
