@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import {
+  Archive,
+  ArchiveRestore,
   Bookmark,
   EyeOff,
   Flag,
@@ -22,6 +24,9 @@ interface PostMenuProps {
   onReport: () => void;
   onAddToCollection: () => void;
   onPromote?: () => void;
+  // The author's: archive it, or show an archived one on the profile again.
+  onArchive?: () => void;
+  isArchived?: boolean;
   onMute?: () => void;
   onHidePost?: () => void;
   onHideAuthor?: () => void;
@@ -109,6 +114,8 @@ export default function PostMenu({
   onReport,
   onAddToCollection,
   onPromote,
+  onArchive,
+  isArchived = false,
   onMute,
   onHidePost,
   onHideAuthor,
@@ -160,6 +167,17 @@ export default function PostMenu({
             label={t('post.menu.edit')}
             onClick={onEdit}
           />
+          {onArchive && (
+            <MenuItem
+              icon={isArchived ? ArchiveRestore : Archive}
+              label={
+                isArchived
+                  ? t('post.menu.show_on_profile')
+                  : t('post.menu.archive')
+              }
+              onClick={onArchive}
+            />
+          )}
           <MenuDivider />
           <MenuItem
             icon={Trash2}

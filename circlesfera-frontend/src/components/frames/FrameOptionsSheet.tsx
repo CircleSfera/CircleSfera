@@ -1,6 +1,14 @@
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
-import { Bookmark, Flag, Megaphone, Pencil, Trash2, X } from 'lucide-react';
+import {
+  Archive,
+  Bookmark,
+  Flag,
+  Megaphone,
+  Pencil,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
@@ -12,6 +20,8 @@ export interface FrameMenuActions {
   onReport: () => void;
   onSave: () => void;
   onPromote?: () => void;
+  // The author's: takes the frame off the profile, into their archive.
+  onArchive?: () => void;
 }
 
 interface FrameOptionsSheetProps extends FrameMenuActions {
@@ -71,6 +81,7 @@ function OptionsBody({
   onReport,
   onSave,
   onPromote,
+  onArchive,
   onClose,
 }: FrameMenuActions & { isOwner: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -97,6 +108,13 @@ function OptionsBody({
             label={t('post.menu.edit')}
             onClick={() => run(onEdit)}
           />
+          {onArchive && (
+            <OptionRow
+              icon={Archive}
+              label={t('post.menu.archive')}
+              onClick={() => run(onArchive)}
+            />
+          )}
           <OptionRow
             icon={Trash2}
             label={t('post.menu.delete')}
@@ -131,6 +149,7 @@ export default function FrameOptionsSheet({
   onReport,
   onSave,
   onPromote,
+  onArchive,
 }: FrameOptionsSheetProps) {
   const { t } = useTranslation();
   const dragControls = useDragControls();
@@ -158,6 +177,7 @@ export default function FrameOptionsSheet({
     onReport,
     onSave,
     onPromote,
+    onArchive,
     onClose,
   };
 

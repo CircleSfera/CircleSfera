@@ -2,7 +2,13 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { forwardRef, type VideoHTMLAttributes } from 'react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { bookmarksApi, followsApi, likesApi, postsApi } from '../services';
+import {
+  archiveApi,
+  bookmarksApi,
+  followsApi,
+  likesApi,
+  postsApi,
+} from '../services';
 import { creatorApi } from '../services/creator.service';
 import { monetizationApi } from '../services/monetization.service';
 import { useFrameStore } from '../stores/frameStore';
@@ -30,6 +36,7 @@ vi.mock('../stores/authStore', () => ({
 }));
 
 vi.mock('../services', () => ({
+  archiveApi: { archive: vi.fn() },
   bookmarksApi: { check: vi.fn() },
   followsApi: { toggle: vi.fn() },
   likesApi: { check: vi.fn(), toggle: vi.fn() },
@@ -757,6 +764,37 @@ describe('FrameItem', () => {
       act(() => actions()?.onReport());
 
       expect(screen.getByTestId('report')).toHaveTextContent('f1');
+    });
+
+    it('archives the frame, takes it off the lists and says so', async () => {
+      vi.mocked(archiveApi.archive).mockResolvedValue({} as never);
+      const { actions, queryClient } = withMenu(frame({ profileId: 'me' }));
+      const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+      act(() => actions()?.onArchive?.());
+
+      await waitFor(() =>
+        expect(archiveApi.archive).toHaveBeenCalledWith('f1'),
+      );
+      await waitFor(() =>
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: ['userFrames'] }),
+      );
+      expect(toast.success).toHaveBeenCalledWith(
+        'Archived. Only you see it, in your archive.',
+      );
+    });
+
+    it('says when the frame could not be archived', async () => {
+      vi.mocked(archiveApi.archive).mockRejectedValue(new Error('down'));
+      const { actions } = withMenu(frame({ profileId: 'me' }));
+
+      act(() => actions()?.onArchive?.());
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          'It could not be archived. Try again.',
+        ),
+      );
     });
 
     it('deletes only after the question is confirmed', async () => {

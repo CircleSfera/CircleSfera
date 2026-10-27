@@ -121,6 +121,10 @@
       "recently_deleted": {
         "label": "Eliminado recientemente",
         "desc": "Restaura lo que eliminaste"
+      },
+      "archive": {
+        "label": "Archivo",
+        "desc": "Lo que solo ves tú"
       }
     },
     "profile": {
@@ -716,6 +720,60 @@
       "deleted": "Eliminado definitivamente",
       "restore_error": "No se pudo restaurar. Inténtalo de nuevo.",
       "delete_error": "No se pudo eliminar. Inténtalo de nuevo."
+    },
+    "archive": {
+      "intro": "Solo tú ves tu archivo. Tus historias llegan aquí cuando terminan sus 24 horas, y las publicaciones y frames que archivas esperan aquí hasta que los vuelvas a mostrar en tu perfil.",
+      "tabs_label": "Qué muestra el archivo",
+      "tabs": {
+        "STORY": "Historias",
+        "POST": "Publicaciones",
+        "FRAME": "Frames"
+      },
+      "kind": {
+        "STORY": "historia",
+        "POST": "publicación",
+        "FRAME": "frame"
+      },
+      "save_stories": "Guardar historias en el archivo",
+      "save_stories_desc": "Guarda aquí cada historia cuando terminen sus 24 horas. Desactivado, las historias que terminen no se guardan, salvo las que estén en una destacada.",
+      "saved": "Ajuste guardado",
+      "save_error": "No se pudo guardar el ajuste. Inténtalo de nuevo.",
+      "empty": {
+        "STORY": {
+          "title": "Aún no hay historias",
+          "message": "Tus historias llegan aquí cuando terminan sus 24 horas."
+        },
+        "POST": {
+          "title": "No hay publicaciones archivadas",
+          "message": "Archiva una publicación desde su menú para quitarla de tu perfil sin eliminarla."
+        },
+        "FRAME": {
+          "title": "No hay frames archivados",
+          "message": "Archiva un frame desde su menú para quitarlo de tu perfil sin eliminarlo."
+        }
+      },
+      "error_title": "No se pudo cargar tu archivo",
+      "error_message": "Revisa tu conexión e inténtalo de nuevo.",
+      "open": "Abrir {{kind}} del archivo",
+      "likes_one": "{{count}} me gusta",
+      "likes_other": "{{count}} me gusta",
+      "comments_one": "{{count}} comentario",
+      "comments_other": "{{count}} comentarios",
+      "show_on_profile": "Mostrar en el perfil",
+      "showing": "Mostrando…",
+      "shown": "De nuevo en tu perfil",
+      "show_error": "No se pudo mostrar en tu perfil. Inténtalo de nuevo.",
+      "open_post": "Abrir",
+      "add_to_highlight": "Añadir a una destacada",
+      "delete": "Eliminar",
+      "confirm_title": "¿Eliminar?",
+      "confirm_message": "Irá a Eliminado recientemente, donde podrás restaurarlo durante 30 días.",
+      "confirm_delete": "Eliminar",
+      "cancel": "Cancelar",
+      "deleted": "Movido a Eliminado recientemente",
+      "delete_error": "No se pudo eliminar. Inténtalo de nuevo.",
+      "archived": "Archivado. Solo tú lo ves, en tu archivo.",
+      "archive_error": "No se pudo archivar. Inténtalo de nuevo."
     }
   },
   "auth": {
@@ -1259,7 +1317,9 @@
       "promote": "Impulsar publicación",
       "hide_author": "Ocultar autor",
       "mute": "Silenciar usuario",
-      "not_interested": "No me interesa"
+      "not_interested": "No me interesa",
+      "archive": "Archivar",
+      "show_on_profile": "Mostrar en el perfil"
     },
     "modals": {
       "delete_title": "¿Eliminar publicación?",

@@ -1,4 +1,5 @@
 import {
+  Archive,
   Bell,
   CreditCard,
   DollarSign,
@@ -35,6 +36,7 @@ export type SettingsSectionId =
   | 'appeals'
   | 'reports'
   | 'recently_deleted'
+  | 'archive'
   | 'account';
 
 export interface SettingsNavItem {
@@ -72,6 +74,7 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'appeals',
   'reports',
   'recently_deleted',
+  'archive',
   'account',
 ];
 
@@ -111,6 +114,11 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
     id: 'activity',
     labelKey: 'settings.groups.activity',
     items: [
+      {
+        id: 'archive',
+        labelKey: 'settings.tabs.archive.label',
+        icon: Archive,
+      },
       {
         id: 'recently_deleted',
         labelKey: 'settings.tabs.recently_deleted.label',

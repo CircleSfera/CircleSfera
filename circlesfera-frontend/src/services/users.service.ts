@@ -41,6 +41,8 @@ export const usersApi = {
     pushFollows?: boolean;
     pushMessages?: boolean;
     pushLive?: boolean;
+    // Whether stories are kept in the archive when their 24 hours end.
+    saveStoriesToArchive?: boolean;
     emailNotifications?: boolean;
     newsletter?: boolean;
     contentPreference?: 'GENERAL' | 'MATURE';

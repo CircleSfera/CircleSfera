@@ -8,6 +8,7 @@ export * from './admin-auth.service';
 export * from './ai.service';
 export * from './analytics.service';
 export * from './appeals.service';
+export * from './archive.service';
 export * from './audio.service';
 export * from './auth.service';
 export * from './bookmarks.service';

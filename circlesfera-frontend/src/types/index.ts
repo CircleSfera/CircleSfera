@@ -31,6 +31,8 @@ import type { StoryElement } from './story-element.types';
 export type User = IUser;
 export type Profile = IProfile & { isVerified?: boolean };
 export type Post = IPost & {
+  // Set when its author archived it: shown in their archive only.
+  archivedAt?: string | null;
   isPromoted?: boolean;
   promotionId?: string;
   // The countries a promoted post is aimed at; empty for everywhere.
