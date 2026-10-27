@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  ENDED_CONVERSATION,
   EndedConversationsErasureService,
+  erasableConversation,
+  reportsKeptSince,
 } from './ended-conversations-erasure.service.js';
 
 interface Files {
@@ -11,9 +12,13 @@ interface Files {
 }
 
 interface FakeMessage extends Files {
+  id?: string;
   voiceUrl?: string | null;
   media?: Files | null;
   voiceMedia?: Files | null;
+  isLocked?: boolean;
+  unlocked?: boolean;
+  reports?: Array<{ status: string; resolvedAt: Date | null }>;
 }
 
 interface FakeConversation {
@@ -25,30 +30,51 @@ interface FakeConversation {
   messages?: FakeMessage[];
 }
 
+const now = new Date('2026-11-30T02:00:00Z');
 const removed = new Date('2026-10-01T00:00:00Z');
+const keptSince = new Date('2026-05-30T02:00:00Z');
 
-// A database holding conversations, answering the queries the erasure makes
-// the way PostgreSQL would for these filters.
+// What the condition of erasableConversation says, for one conversation
+// held in memory. The SQL itself is checked against PostgreSQL, not here.
+function mayBeErased(c: FakeConversation, since: Date): boolean {
+  const messages = c.messages ?? [];
+  return (
+    c.rows.every((deletedAt) => deletedAt !== null) &&
+    !messages.some((m) => m.isLocked || m.unlocked) &&
+    !messages.some((m) =>
+      (m.reports ?? []).some(
+        (r) =>
+          r.status === 'PENDING' ||
+          r.status === 'REVIEWING' ||
+          r.resolvedAt === null ||
+          r.resolvedAt > since,
+      ),
+    )
+  );
+}
+
+// The values a query was given, the nested parts of it included.
+function valuesOf(values: unknown[]): unknown[] {
+  return values.flatMap((value) =>
+    value !== null &&
+    typeof value === 'object' &&
+    'strings' in value &&
+    'values' in value
+      ? (value.values as unknown[])
+      : [value],
+  );
+}
+
+// A database holding conversations, answering the queries the erasure makes.
 function fakeDatabase(conversations: FakeConversation[]) {
   const live = new Map(conversations.map((c) => [c.id, c]));
-  const hasEnded = (c: FakeConversation, where: typeof ENDED_CONVERSATION) => {
-    expect(where.participants).toEqual({ none: { deletedAt: null } });
-    return c.rows.every((deletedAt) => deletedAt !== null);
-  };
+  for (const c of conversations) {
+    (c.messages ?? []).forEach((m, i) => {
+      m.id ??= `${c.id}-m-${String(i).padStart(5, '0')}`;
+    });
+  }
   const client = {
     conversation: {
-      findMany: vi.fn(
-        async (args: {
-          where: typeof ENDED_CONVERSATION & { id?: { gt: string } };
-          take: number;
-        }) =>
-          [...live.values()]
-            .filter((c) => hasEnded(c, args.where))
-            .filter((c) => !args.where.id || c.id > args.where.id.gt)
-            .sort((a, b) => a.id.localeCompare(b.id))
-            .slice(0, args.take)
-            .map((c) => ({ id: c.id })),
-      ),
       findUnique: vi.fn(async (args: { where: { id: string } }) => {
         const c = live.get(args.where.id);
         return c ? { avatarUrl: c.avatarUrl ?? null } : null;
@@ -58,29 +84,47 @@ function fakeDatabase(conversations: FakeConversation[]) {
         return { id: args.where.id };
       }),
     },
-    participant: {
-      count: vi.fn(
-        async (args: {
-          where: { conversationId: string; deletedAt: null };
-        }) => {
-          expect(args.where.deletedAt).toBeNull();
-          return (
-            live
-              .get(args.where.conversationId)
-              ?.rows.filter((deletedAt) => deletedAt === null).length ?? 0
-          );
-        },
-      ),
-    },
     message: {
       findMany: vi.fn(
-        async (args: { where: { conversationId: string } }) =>
-          live.get(args.where.conversationId)?.messages ?? [],
+        async (args: {
+          where: { conversationId: string; id?: { gt: string } };
+          take: number;
+        }) =>
+          (live.get(args.where.conversationId)?.messages ?? [])
+            .filter(
+              (m) => !args.where.id || (m.id as string) > args.where.id.gt,
+            )
+            .sort((a, b) => (a.id as string).localeCompare(b.id as string))
+            .slice(0, args.take)
+            .map(
+              ({ isLocked: _l, unlocked: _u, reports: _r, ...files }) => files,
+            ),
       ),
     },
     $queryRaw: vi.fn(
-      async (_sql: TemplateStringsArray, conversationId: string) =>
-        live.has(conversationId) ? [{ id: conversationId }] : [],
+      async (strings: TemplateStringsArray, ...values: unknown[]) => {
+        const sql = strings.join('?');
+        const args = valuesOf(values);
+        if (sql.includes('FOR UPDATE')) {
+          const id = args[0] as string;
+          return live.has(id) ? [{ id }] : [];
+        }
+        const since = args.find((v): v is Date => v instanceof Date);
+        expect(since).toEqual(keptSince);
+        if (sql.includes('LIMIT')) {
+          const after = args.find((v): v is string => typeof v === 'string');
+          const take = args.find((v): v is number => typeof v === 'number');
+          return [...live.values()]
+            .filter((c) => after === undefined || c.id > after)
+            .filter((c) => mayBeErased(c, keptSince))
+            .sort((a, b) => a.id.localeCompare(b.id))
+            .slice(0, take)
+            .map((c) => ({ id: c.id }));
+        }
+        const id = args[0] as string;
+        const c = live.get(id);
+        return c && mayBeErased(c, keptSince) ? [{ id }] : [];
+      },
     ),
   };
   const prisma = {
@@ -109,6 +153,11 @@ describe('EndedConversationsErasureService', () => {
     return { service, ...db };
   }
 
+  it('keeps reports for as long as a decision can be appealed', () => {
+    expect(reportsKeptSince(now)).toEqual(keptSince);
+    expect(erasableConversation(now).values).toEqual([keptSince]);
+  });
+
   describe('which conversations have ended', () => {
     it.each<[string, Array<Date | null>, boolean]>([
       ['a group whose last member left', [], true],
@@ -131,9 +180,74 @@ describe('EndedConversationsErasureService', () => {
     ])('%s: erased %s', async (_name, rows, ended) => {
       const { service, live } = serviceOver([{ id: 'c-1', rows }]);
 
-      await expect(service.eraseEnded()).resolves.toBe(ended ? 1 : 0);
+      await expect(service.eraseEnded(now)).resolves.toBe(ended ? 1 : 0);
 
       expect(live.has('c-1')).toBe(!ended);
+    });
+  });
+
+  describe('what keeps a chat everybody left', () => {
+    const resolved = (status: string, resolvedAt: Date | null) => ({
+      status,
+      resolvedAt,
+    });
+
+    it.each<[string, FakeMessage, boolean]>([
+      ['a paid message', { isLocked: true }, false],
+      ['a message someone paid to unlock', { unlocked: true }, false],
+      [
+        'a message reported and not reviewed yet',
+        { reports: [resolved('PENDING', null)] },
+        false,
+      ],
+      [
+        'a message whose report is being reviewed',
+        { reports: [resolved('REVIEWING', null)] },
+        false,
+      ],
+      [
+        'a message whose report was resolved within the appeal window',
+        { reports: [resolved('RESOLVED', new Date('2026-07-01T00:00:00Z'))] },
+        false,
+      ],
+      [
+        'a message whose report was resolved with no date',
+        { reports: [resolved('RESOLVED', null)] },
+        false,
+      ],
+      [
+        'nothing, once the report was rejected before the appeal window',
+        { reports: [resolved('REJECTED', new Date('2026-04-01T00:00:00Z'))] },
+        true,
+      ],
+      ['nothing, for a message nobody paid for nor reported', {}, true],
+    ])('%s: erased %s', async (_name, message, erased) => {
+      const { service, live } = serviceOver([
+        { id: 'c-1', rows: [removed, removed], messages: [message] },
+      ]);
+
+      await expect(service.eraseEnded(now)).resolves.toBe(erased ? 1 : 0);
+
+      expect(live.has('c-1')).toBe(!erased);
+    });
+
+    it('reads it again once held, so a chat reported since the page was read is kept', async () => {
+      const message: FakeMessage = {};
+      const { service, prisma, live } = serviceOver([
+        { id: 'c-1', rows: [removed], messages: [message] },
+      ]);
+      const lock = prisma.$queryRaw.getMockImplementation();
+      prisma.$queryRaw.mockImplementation(async (strings, ...values) => {
+        if (strings.join('?').includes('FOR UPDATE')) {
+          message.reports = [{ status: 'PENDING', resolvedAt: null }];
+        }
+        return lock?.(strings, ...values) ?? [];
+      });
+
+      await expect(service.eraseEnded(now)).resolves.toBe(0);
+
+      expect(live.has('c-1')).toBe(true);
+      expect(prisma.conversation.delete).not.toHaveBeenCalled();
     });
   });
 
@@ -147,17 +261,38 @@ describe('EndedConversationsErasureService', () => {
     );
     const { service, prisma, live } = serviceOver(conversations);
 
-    await expect(service.eraseEnded()).resolves.toBe(103);
+    await expect(service.eraseEnded(now)).resolves.toBe(103);
 
     expect(live.size).toBe(102);
     expect([...live.values()].every((c) => c.rows.includes(null))).toBe(true);
-    const pages = prisma.conversation.findMany.mock.calls.map(
-      ([args]) => args.where.id?.gt ?? null,
-    );
+    const pages = prisma.$queryRaw.mock.calls
+      .filter(([strings]) => strings.join('?').includes('LIMIT'))
+      .map(
+        ([, ...values]) =>
+          valuesOf(values).find((v) => typeof v === 'string') ?? null,
+      );
     expect(pages).toEqual([null, 'c-198', 'c-204']);
-    expect(prisma.conversation.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: { id: 'asc' }, take: 100 }),
-    );
+  });
+
+  it('reads the files of a long chat a page of messages at a time', async () => {
+    const messages: FakeMessage[] = Array.from({ length: 2500 }, (_, i) => ({
+      url: `/uploads/${i}.jpg`,
+    }));
+    const { service, prisma } = serviceOver([
+      { id: 'c-1', rows: [], messages },
+    ]);
+
+    await expect(service.eraseEnded(now)).resolves.toBe(1);
+
+    const reads = prisma.message.findMany.mock.calls.map(([args]) => args);
+    expect(reads.map((args) => args.where.id?.gt ?? null)).toEqual([
+      null,
+      'c-1-m-00999',
+      'c-1-m-01999',
+    ]);
+    expect(reads.every((args) => args.take === 1000)).toBe(true);
+    const [, files] = storedFiles.release.mock.calls[0];
+    expect(files.filter(Boolean)).toHaveLength(2500);
   });
 
   it('collects every file of the messages and the group picture, then sets them aside', async () => {
@@ -195,11 +330,14 @@ describe('EndedConversationsErasureService', () => {
       },
     ]);
 
-    await expect(service.eraseEnded()).resolves.toBe(1);
+    await expect(service.eraseEnded(now)).resolves.toBe(1);
 
     expect(prisma.message.findMany).toHaveBeenCalledWith({
       where: { conversationId: 'c-1' },
+      orderBy: { id: 'asc' },
+      take: 1000,
       select: {
+        id: true,
         url: true,
         standardUrl: true,
         thumbnailUrl: true,
@@ -243,32 +381,33 @@ describe('EndedConversationsErasureService', () => {
     ]);
     // Someone writes to the chat between the page being read and the row
     // being held: both sides have it again.
-    prisma.$queryRaw.mockImplementationOnce(async () => {
-      const c = live.get('c-1');
-      if (c) c.rows = [null, null];
-      return [{ id: 'c-1' }];
+    const answer = prisma.$queryRaw.getMockImplementation();
+    prisma.$queryRaw.mockImplementation(async (strings, ...values) => {
+      if (strings.join('?').includes('FOR UPDATE')) {
+        const c = live.get('c-1');
+        if (c) c.rows = [null, null];
+      }
+      return answer?.(strings, ...values) ?? [];
     });
 
-    await expect(service.eraseEnded()).resolves.toBe(0);
+    await expect(service.eraseEnded(now)).resolves.toBe(0);
 
     expect(live.has('c-1')).toBe(true);
-    expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
-      prisma.participant.count.mock.invocationCallOrder[0],
-    );
     expect(prisma.conversation.delete).not.toHaveBeenCalled();
     expect(storedFiles.release).not.toHaveBeenCalled();
   });
 
   it('leaves a conversation another server erased first', async () => {
     const { service, prisma, live } = serviceOver([{ id: 'c-1', rows: [] }]);
-    prisma.$queryRaw.mockImplementationOnce(async () => {
-      live.delete('c-1');
-      return [];
+    const answer = prisma.$queryRaw.getMockImplementation();
+    prisma.$queryRaw.mockImplementation(async (strings, ...values) => {
+      if (strings.join('?').includes('FOR UPDATE')) live.delete('c-1');
+      return answer?.(strings, ...values) ?? [];
     });
 
-    await expect(service.eraseEnded()).resolves.toBe(0);
+    await expect(service.eraseEnded(now)).resolves.toBe(0);
 
-    expect(prisma.participant.count).not.toHaveBeenCalled();
+    expect(prisma.message.findMany).not.toHaveBeenCalled();
     expect(prisma.conversation.delete).not.toHaveBeenCalled();
     expect(storedFiles.release).not.toHaveBeenCalled();
   });
@@ -280,7 +419,7 @@ describe('EndedConversationsErasureService', () => {
     ]);
     prisma.conversation.delete.mockRejectedValueOnce(new Error('deadlock'));
 
-    await expect(service.eraseEnded()).resolves.toBe(1);
+    await expect(service.eraseEnded(now)).resolves.toBe(1);
 
     expect(live.has('c-1')).toBe(true);
     expect(live.has('c-2')).toBe(false);
@@ -294,7 +433,7 @@ describe('EndedConversationsErasureService', () => {
       'warn',
     );
 
-    await expect(service.eraseEnded()).resolves.toBe(0);
+    await expect(service.eraseEnded(now)).resolves.toBe(0);
 
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('lost'));
   });
@@ -303,7 +442,7 @@ describe('EndedConversationsErasureService', () => {
     const { service, live } = serviceOver([{ id: 'c-1', rows: [] }]);
     storedFiles.release.mockRejectedValueOnce(new Error('database away'));
 
-    await expect(service.eraseEnded()).resolves.toBe(1);
+    await expect(service.eraseEnded(now)).resolves.toBe(1);
 
     expect(live.has('c-1')).toBe(false);
   });
@@ -316,7 +455,7 @@ describe('EndedConversationsErasureService', () => {
       'warn',
     );
 
-    await expect(service.eraseEnded()).resolves.toBe(1);
+    await expect(service.eraseEnded(now)).resolves.toBe(1);
 
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('storage away'));
   });
@@ -328,14 +467,14 @@ describe('EndedConversationsErasureService', () => {
     'never throws out of the night run when reading a page fails with %s',
     async (_name, failure, said) => {
       const { service, prisma } = serviceOver([]);
-      prisma.conversation.findMany.mockRejectedValueOnce(failure);
+      prisma.$queryRaw.mockRejectedValueOnce(failure);
       const error = vi.spyOn(
         (service as unknown as { logger: { error: (m: string) => void } })
           .logger,
         'error',
       );
 
-      await expect(service.eraseEnded()).resolves.toBe(0);
+      await expect(service.eraseEnded(now)).resolves.toBe(0);
 
       expect(error).toHaveBeenCalledWith(expect.stringContaining(said));
     },
@@ -345,8 +484,22 @@ describe('EndedConversationsErasureService', () => {
     const { service, prisma } = serviceOver([{ id: 'c-1', rows: [] }]);
     prisma.conversation.findUnique.mockResolvedValueOnce(null);
 
-    await expect(service.eraseEnded()).resolves.toBe(1);
+    await expect(service.eraseEnded(now)).resolves.toBe(1);
 
     expect(storedFiles.release).toHaveBeenCalledWith('', [undefined]);
+  });
+
+  it('runs at the current time when none is given', async () => {
+    vi.useFakeTimers({ now });
+    try {
+      const { service, live } = serviceOver([{ id: 'c-1', rows: [] }]);
+
+      await expect(service.eraseEnded()).resolves.toBe(1);
+      await expect(service.erase('c-gone')).resolves.toBe(false);
+
+      expect(live.size).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
