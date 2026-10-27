@@ -1,3 +1,4 @@
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,6 +12,7 @@ import {
   EncodedFileType,
   EncodingOptions,
   RoomServiceClient,
+  ServerError,
   VideoCodec,
 } from 'livekit-server-sdk';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -20,6 +22,7 @@ import {
   RECORDING_MAX_MS,
   RECORDINGS_AT_ONCE,
   recordingFileName,
+  recordingsFolder,
 } from './live-recording.constants.js';
 
 // The lock that lets one server at a time count the running recordings and
@@ -35,6 +38,16 @@ const POLL_PAGE = 50;
 const errorText = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+// The recorder refuses to stop a job that is already ending or over; for a
+// stop, that is what was wanted.
+const alreadyStopped = (error: unknown): boolean =>
+  error instanceof ServerError &&
+  (error.code === 'failed_precondition' ||
+    error.code === 'not_found' ||
+    /EGRESS_(ENDING|COMPLETE|FAILED|ABORTED|LIMIT_REACHED)/.test(
+      error.message,
+    ));
+
 /**
  * Records broadcasts with the environment's own recorder (LiveKit egress):
  * picture and sound of the host and the co-host, upright, to one MP4 file in
@@ -47,6 +60,9 @@ export class LiveRecordingService {
   private readonly logger = new Logger(LiveRecordingService.name);
   private egressClient?: EgressClient;
   private roomClient?: RoomServiceClient;
+  // One check at a time on this server: a slow recorder must not make the
+  // minute's checks overlap.
+  private checking = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -99,6 +115,41 @@ export class LiveRecordingService {
       ...this.credentials(),
     );
     return this.roomClient;
+  }
+
+  // Stops one job; one already ending or over counts as stopped.
+  private async stopJob(egressId: string): Promise<void> {
+    try {
+      await this.egress().stopEgress(egressId);
+    } catch (error: unknown) {
+      if (!alreadyStopped(error)) throw error;
+    }
+  }
+
+  /**
+   * Stops every job the recorder runs for a broadcast's room and deletes the
+   * file one may have begun, for a start this server lost track of (refused,
+   * timed out, or never answered): such a job must not hold one of the
+   * places, nor leave a file. A file the recorder closes after this is left
+   * to the nightly clean-up. Never throws.
+   */
+  private async stopStrayJobs(streamId: string): Promise<void> {
+    try {
+      const jobs = await this.egress().listEgress({
+        roomName: streamId,
+        active: true,
+      });
+      for (const job of jobs) await this.stopJob(job.egressId);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Stray recordings of broadcast ${streamId} could not be stopped: ${errorText(error)}`,
+      );
+    }
+    await fs.promises
+      .rm(path.join(recordingsFolder(), recordingFileName(streamId)), {
+        force: true,
+      })
+      .catch(() => undefined);
   }
 
   /**
@@ -171,6 +222,8 @@ export class LiveRecordingService {
       this.logger.error(
         `The recording of broadcast ${streamId} could not start: ${errorText(error)}`,
       );
+      // The recorder may have started the job all the same.
+      await this.stopStrayJobs(streamId);
       await this.markFailed(streamId).catch(() => undefined);
     }
   }
@@ -188,7 +241,7 @@ export class LiveRecordingService {
         select: { egressId: true, recordingStatus: true },
       });
       if (stream?.recordingStatus !== 'RECORDING' || !stream.egressId) return;
-      await this.egress().stopEgress(stream.egressId);
+      await this.stopJob(stream.egressId);
     } catch (error: unknown) {
       this.logger.warn(
         `The recording of broadcast ${streamId} could not be stopped now: ${errorText(error)}`,
@@ -205,7 +258,8 @@ export class LiveRecordingService {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async check(now: Date = new Date()): Promise<number> {
-    if (!this.isEnabled()) return 0;
+    if (!this.isEnabled() || this.checking) return 0;
+    this.checking = true;
     let finished = 0;
     try {
       const running = await this.prisma.liveStream.findMany({
@@ -231,6 +285,8 @@ export class LiveRecordingService {
       }
     } catch (error: unknown) {
       this.logger.error(`Checking the recordings stopped: ${errorText(error)}`);
+    } finally {
+      this.checking = false;
     }
     return finished;
   }
@@ -249,7 +305,8 @@ export class LiveRecordingService {
     if (!stream.egressId) {
       // The server that started it stopped before the recorder answered.
       if (now.getTime() - startedAt > START_LOST_MS) {
-        await this.markFailed(stream.id, { egressId: null });
+        const given = await this.markFailed(stream.id, { egressId: null });
+        if (given.count > 0) await this.stopStrayJobs(stream.id);
       }
       return false;
     }
@@ -270,7 +327,7 @@ export class LiveRecordingService {
           stream.status === 'ENDED' ||
           now.getTime() - startedAt >= RECORDING_MAX_MS
         ) {
-          await this.egress().stopEgress(stream.egressId);
+          await this.stopJob(stream.egressId);
         }
         return false;
       case EgressStatus.EGRESS_COMPLETE:

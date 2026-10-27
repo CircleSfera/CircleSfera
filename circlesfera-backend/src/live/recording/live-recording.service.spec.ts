@@ -1,6 +1,9 @@
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import type { ConfigService } from '@nestjs/config';
-import { EgressStatus } from 'livekit-server-sdk';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { EgressStatus, ServerError } from 'livekit-server-sdk';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import { LiveRecordingService } from './live-recording.service.js';
 
@@ -52,9 +55,13 @@ describe('LiveRecordingService', () => {
     };
   };
   let service: LiveRecordingService;
+  let recordings: string;
+  const rawFile = (id = 's1') => path.join(recordings, `live-${id}.mp4`);
 
   beforeEach(() => {
     vi.clearAllMocks();
+    recordings = fs.mkdtempSync(path.join(os.tmpdir(), 'live-recording-'));
+    vi.stubEnv('LIVE_RECORDINGS_DIR', recordings);
     sdk.hosts.length = 0;
     settings = {
       LIVE_RECORDING_ENABLED: 'true',
@@ -82,6 +89,11 @@ describe('LiveRecordingService', () => {
       prisma as unknown as PrismaService,
       { get: (key: string) => settings[key] } as unknown as ConfigService,
     );
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    fs.rmSync(recordings, { recursive: true, force: true });
   });
 
   describe('start', () => {
@@ -172,6 +184,46 @@ describe('LiveRecordingService', () => {
       });
     });
 
+    it('stops a job the recorder started all the same, and deletes the file it began', async () => {
+      // The answer timed out, but the recorder had started the job.
+      sdk.startRoomCompositeEgress.mockRejectedValue(new Error('timed out'));
+      sdk.listEgress.mockResolvedValue([
+        { egressId: 'EG_A' },
+        { egressId: 'EG_B' },
+      ]);
+      sdk.stopEgress.mockRejectedValueOnce(
+        new ServerError('twirp', 'EGRESS_ENDING', 412, 'failed_precondition'),
+      );
+      fs.writeFileSync(rawFile(), 'raw');
+
+      await service.start('s1');
+
+      expect(sdk.listEgress).toHaveBeenCalledWith({
+        roomName: 's1',
+        active: true,
+      });
+      expect(sdk.stopEgress).toHaveBeenCalledWith('EG_A');
+      expect(sdk.stopEgress).toHaveBeenCalledWith('EG_B');
+      expect(fs.existsSync(rawFile())).toBe(false);
+      expect(prisma.liveStream.updateMany).toHaveBeenCalledWith({
+        where: { id: 's1', recordingStatus: 'RECORDING' },
+        data: { recordingStatus: 'FAILED' },
+      });
+    });
+
+    it('still marks the recording failed when stray jobs cannot be listed', async () => {
+      sdk.startRoomCompositeEgress.mockRejectedValue(new Error('timed out'));
+      sdk.listEgress.mockRejectedValue(new Error('unreachable'));
+      const rm = vi
+        .spyOn(fs.promises, 'rm')
+        .mockRejectedValueOnce(new Error('read-only'));
+      await service.start('s1');
+      rm.mockRestore();
+      expect(prisma.liveStream.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { recordingStatus: 'FAILED' } }),
+      );
+    });
+
     it('does not throw when even marking the failure fails', async () => {
       sdk.createRoom.mockRejectedValue(new Error('no live service'));
       prisma.liveStream.updateMany.mockRejectedValue(new Error('db down'));
@@ -203,6 +255,24 @@ describe('LiveRecordingService', () => {
       prisma.liveStream.findUnique.mockResolvedValue(row);
       await service.stop('s1');
       expect(sdk.stopEgress).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      new ServerError('twirp', 'cannot stop', 412, 'failed_precondition'),
+      new ServerError('twirp', 'egress not found', 404, 'not_found'),
+      new ServerError('twirp', 'egress with status EGRESS_COMPLETE', 500),
+    ])('takes a job already ending or over as stopped (%o)', async (answer) => {
+      prisma.liveStream.findUnique.mockResolvedValue({
+        egressId: 'EG_1',
+        recordingStatus: 'RECORDING',
+      });
+      sdk.stopEgress.mockRejectedValue(answer);
+      const warn = vi.spyOn(
+        (service as unknown as { logger: { warn: () => void } }).logger,
+        'warn',
+      );
+      await service.stop('s1');
+      expect(warn).not.toHaveBeenCalled();
     });
 
     it('does not throw when the recorder cannot be reached', async () => {
@@ -347,13 +417,46 @@ describe('LiveRecordingService', () => {
         }),
         running({ id: 's3', egressId: null, recordingStartedAt: null }),
       ]);
+      sdk.listEgress.mockResolvedValue([{ egressId: 'EG_LATE' }]);
+      fs.writeFileSync(rawFile(), 'raw');
+      fs.writeFileSync(rawFile('s2'), 'raw');
+      // s3 was given up by another server first.
+      prisma.liveStream.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+
       await service.check(NOW);
-      expect(sdk.listEgress).not.toHaveBeenCalled();
+
       expect(prisma.liveStream.updateMany).toHaveBeenCalledTimes(2);
       expect(prisma.liveStream.updateMany).toHaveBeenCalledWith({
         where: { id: 's1', recordingStatus: 'RECORDING', egressId: null },
         data: { recordingStatus: 'FAILED' },
       });
+      // Only the one given up here has its stray jobs stopped.
+      expect(sdk.listEgress).toHaveBeenCalledTimes(1);
+      expect(sdk.listEgress).toHaveBeenCalledWith({
+        roomName: 's1',
+        active: true,
+      });
+      expect(sdk.stopEgress).toHaveBeenCalledWith('EG_LATE');
+      expect(fs.existsSync(rawFile())).toBe(false);
+      expect(fs.existsSync(rawFile('s2'))).toBe(true);
+    });
+
+    it('never runs two checks at once on one server', async () => {
+      let release: (rows: unknown[]) => void = () => {};
+      prisma.liveStream.findMany.mockReturnValueOnce(
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+      );
+      const first = service.check(NOW);
+      expect(await service.check(NOW)).toBe(0);
+      expect(prisma.liveStream.findMany).toHaveBeenCalledTimes(1);
+      release([]);
+      await first;
+      await service.check(NOW);
+      expect(prisma.liveStream.findMany).toHaveBeenCalledTimes(2);
     });
 
     it('gives up a recording the recorder no longer knows, an hour after the broadcast', async () => {
