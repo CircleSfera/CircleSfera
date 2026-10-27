@@ -369,7 +369,41 @@ describe('ReviewReportUseCase.resolveWithPenalty — offending Profile', () => {
     );
   });
 
-  it.each(['POST', 'STORY', 'COMMENT', 'MESSAGE', 'USER'])(
+  it.each(['STRIKE', 'BAN'] as const)(
+    'refuses to %s from a report whose message is gone, and leaves it open',
+    async (penalty) => {
+      report('MESSAGE', 'admin-0');
+      t.prisma.message.findUnique.mockResolvedValue(null);
+
+      await expect(
+        t.useCase.resolveWithPenalty(adminId, reportId, penalty),
+      ).rejects.toThrow(
+        new ConflictException(
+          `The reported message no longer exists: ${penalty} cannot be applied to its sender from this report`,
+        ),
+      );
+
+      expect(t.strikes.applyViolation).not.toHaveBeenCalled();
+      expect(t.strikes.banProfile).not.toHaveBeenCalled();
+      expect(t.prisma.report.update).not.toHaveBeenCalled();
+      expect(t.audit.execute).not.toHaveBeenCalled();
+    },
+  );
+
+  it('closes a report whose message is gone without a sanction', async () => {
+    report('MESSAGE', 'admin-0');
+    t.prisma.message.findUnique.mockResolvedValue(null);
+
+    await t.useCase.resolveWithPenalty(adminId, reportId, 'IGNORE');
+
+    expect(t.prisma.report.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: ReportStatus.RESOLVED }),
+      }),
+    );
+  });
+
+  it.each(['POST', 'STORY', 'COMMENT', 'USER'])(
     'deleted %s content: no sanction, but the report is resolved',
     async (type) => {
       report(type, 'admin-0');

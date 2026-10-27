@@ -264,6 +264,13 @@ export class ReviewReportUseCase {
         where: { id: report.targetId },
         select: { senderId: true },
       });
+      // A reported message is kept while its report is open, so one that is
+      // gone cannot be judged here: the sanction is refused, not skipped.
+      if (!message && penaltyAction !== 'IGNORE') {
+        throw new ConflictException(
+          `The reported message no longer exists: ${penaltyAction} cannot be applied to its sender from this report`,
+        );
+      }
       if (message) {
         targetProfileId = message.senderId;
         const senderProfile = await this.prisma.profile.findUnique({
