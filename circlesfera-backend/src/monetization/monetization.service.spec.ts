@@ -1159,6 +1159,7 @@ describe('MonetizationService', () => {
       );
       expect(res.url).toBe('https://connect.stripe.com/onboard');
       expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
+      expect(mockPrismaService.monetization.upsert).not.toHaveBeenCalled();
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
         'acct_existing',
         'http://ret',
@@ -1166,7 +1167,7 @@ describe('MonetizationService', () => {
       );
     });
 
-    it('never opens a second account when the row lacks the one the person has', async () => {
+    it('never opens a second account when the row lacks the one the person has, and repairs the row', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         email: 'u1@test.com',
@@ -1182,6 +1183,15 @@ describe('MonetizationService', () => {
       await service.onboardConnectAccount('u-1', 'http://ret', 'http://ref');
 
       expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
+      // And the row gets the account it lacked.
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'u-1' },
+          update: expect.objectContaining({
+            stripeConnectAccountId: 'acct_existing',
+          }),
+        }),
+      );
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
         'acct_existing',
         'http://ret',

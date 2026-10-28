@@ -576,8 +576,8 @@ export class MonetizationService {
     try {
       // The person's own column too: a row missing for any reason must never
       // open a second account at the provider.
-      let accountId =
-        (await this.accountOf(userId)) ?? user.stripeConnectAccountId;
+      const held = await this.accountOf(userId);
+      let accountId = held ?? user.stripeConnectAccountId;
       if (!accountId) {
         const account = await this.stripeService.createExpressAccount(
           user.email,
@@ -587,9 +587,12 @@ export class MonetizationService {
           where: { id: userId },
           data: { stripeConnectAccountId: accountId },
         });
-        // The account is kept on the Profile's row too.
-        // A row opened before, from a Personal Profile, moves now to the
-        // Profile that earns.
+      }
+      if (!held) {
+        // The account is kept on the row too, every time the row lacks it:
+        // a write of the row that failed once is made again here. A row
+        // opened before, from a Personal Profile, moves now to the Profile
+        // that earns.
         const placed = await payoutAccountPlacement(this.prisma, userId);
         await this.prisma.monetization.upsert({
           where: { userId },
