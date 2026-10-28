@@ -223,6 +223,13 @@ describe('LiveRecordingService', () => {
       expect(sdk.startParticipantEgress).toHaveBeenCalledTimes(1);
     });
 
+    it('counts only broadcasts still on air: one that ended takes no place while its files settle', async () => {
+      await service.start('s1', 'host-1');
+      expect(tx.liveStream.count).toHaveBeenCalledWith({
+        where: { recordingStatus: 'RECORDING', status: 'LIVE' },
+      });
+    });
+
     it('leaves the broadcast as it is when no place can be taken', async () => {
       prisma.$transaction.mockRejectedValue(new Error('db down'));
       await expect(service.start('s1', 'host-1')).resolves.toBeUndefined();
