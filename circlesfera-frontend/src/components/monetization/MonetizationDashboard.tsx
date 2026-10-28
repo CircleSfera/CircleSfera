@@ -3,7 +3,6 @@ import type { TFunction } from 'i18next';
 import { ArrowDownLeft, ArrowUpRight, Coins } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
-import { useAuthStore } from '../../stores/authStore';
 import { formatDate } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import CreatorEmpty from '../creator/CreatorEmpty';
@@ -28,6 +27,9 @@ interface Transaction {
 interface MonetizationData {
   userId: string;
   lifetimeEarningsCents: number;
+  // Whether a payout account is connected. The account itself stays on the
+  // server.
+  hasStripeAccount?: boolean;
 }
 
 // What a transaction was, in the reader's language. The stored description
@@ -44,13 +46,11 @@ function transactionLabel(tx: Transaction, t: TFunction): string {
 // Ledger + Stripe balances for the merged Ingresos surface. No in-app wallet.
 export default function MonetizationDashboard() {
   const { t, i18n } = useTranslation();
-  const profile = useAuthStore((state) => state.profile);
-  const hasConnect = !!profile?.user?.stripeConnectAccountId;
-
   const { data: monetization } = useQuery<MonetizationData>({
     queryKey: ['monetization'],
     queryFn: monetizationApi.getMonetization,
   });
+  const hasConnect = !!monetization?.hasStripeAccount;
 
   const { data: summary } = useQuery({
     queryKey: ['monetization-summary'],
