@@ -37,6 +37,15 @@ describe('LiveGiftService', () => {
     monetization: {
       upsert: vi.fn(),
     },
+    profile: {
+      findMany: vi.fn().mockResolvedValue([
+        {
+          id: 'creator-prof-1',
+          accountType: 'CREATOR',
+          user: { stripeConnectAccountId: 'acct_creator' },
+        },
+      ]),
+    },
     $transaction: vi.fn((fn) => fn(mockPrismaService)),
   };
 
@@ -203,7 +212,13 @@ describe('LiveGiftService', () => {
         }),
       );
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { userId: 'creator-1' } }),
+        expect.objectContaining({
+          where: { userId: 'creator-1' },
+          create: expect.objectContaining({
+            profileId: 'creator-prof-1',
+            stripeConnectAccountId: 'acct_creator',
+          }),
+        }),
       );
       expect(mockServer.emit).toHaveBeenCalledWith(
         'live:gift',
