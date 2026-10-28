@@ -121,12 +121,28 @@ jobs:
           # them: the repository variable of the environment, else the
           # settings' LIVE_RECORDING_ENABLED (or the web app's own,
           # VITE_LIVE_RECORDING_ENABLED). On only when it reads "true".
+          # The backend records only through the environment's own live
+          # service, so the shared switch shows the tab only where that
+          # service runs; the web app's own value is taken as it is.
           case "$ENVIRONMENT" in
             staging) LIVE_RECORDING="${STAGING_LIVE_RECORDING:-}" ;;
             *) LIVE_RECORDING="${DEV_LIVE_RECORDING:-}" ;;
           esac
-          [ -n "$LIVE_RECORDING" ] || LIVE_RECORDING="$(value VITE_LIVE_RECORDING_ENABLED)"
+          SHARED_SWITCH=true
+          if [ -z "$LIVE_RECORDING" ]; then
+            LIVE_RECORDING="$(value VITE_LIVE_RECORDING_ENABLED)"
+            [ -z "$LIVE_RECORDING" ] || SHARED_SWITCH=false
+          fi
           [ -n "$LIVE_RECORDING" ] || LIVE_RECORDING="$(value LIVE_RECORDING_ENABLED)"
+          OWN_LIVE_SERVICE=false
+          if [ -n "$(value LIVEKIT_API_KEY)" ] && [ "$(value LIVEKIT_URL)" = "wss://${ENVIRONMENT}.circlesfera.com" ]; then
+            OWN_LIVE_SERVICE=true
+          fi
+          if [ "$LIVE_RECORDING" = "true" ] && [ "$SHARED_SWITCH" = "true" ] \
+            && [ "$OWN_LIVE_SERVICE" != "true" ]; then
+            echo "Recording is on, but the live service of $ENVIRONMENT is not its own: the Lives tab stays hidden."
+            LIVE_RECORDING=false
+          fi
           [ "$LIVE_RECORDING" = "true" ] || LIVE_RECORDING=false
           rm -f "$ENV_FILE"
 
