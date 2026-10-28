@@ -440,11 +440,14 @@ model Profile {
   // recorded in profile_strikes; nothing reads or writes this column any more.
   strikeCount     Int              @default(0)
 
-  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // The payout account this Profile holds, and what it paid out.
+  monetization     Monetization?
+  stripePayoutLogs StripePayoutLog[]
   // The people who work on this Profile besides its owner (Business only).
-  members    ProfileMember[]
+  members          ProfileMember[]
   // What was done on this Profile, and by which person (Business).
-  activities ProfileActivity[]
+  activities       ProfileActivity[]
 
   // The sign-in this Profile is entered with. Several Profiles of one person
   // may share one. Filled for every Profile by the database; optional in the
@@ -1636,8 +1639,15 @@ model PromotionView {
 }
 
 model Monetization {
-  id     String @id @default(uuid())
-  userId String @unique
+  id                     String  @id @default(uuid())
+  userId                 String  @unique
+  // The Profile that holds this payout account, and the account itself. Each
+  // earning Profile will hold its own; until the readers move here, the
+  // person's one account sits with their oldest Creator or Business Profile
+  // (their oldest Profile when none earns) and is written both here and on
+  // the person.
+  profileId              String? @unique
+  stripeConnectAccountId String? @unique
 
   // Statistical ledger (platform fee share credited locally; funds settle in Connect)
 
@@ -1651,7 +1661,8 @@ model Monetization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@map("monetization")
 }
@@ -1662,6 +1673,8 @@ model StripePayoutLog {
   // Nullable for financial retention: userId is set to NULL on user hard-deletion
   // (onDelete: SetNull). The row survives for fiscal audit compliance (7-year retention).
   userId         String? // Connected account owner
+  // The Profile whose payout account paid it out; kept empty if it is erased.
+  profileId      String?
   amountCents    Int
   currency       String   @default("EUR") // Aligns with platform-wide EUR default; always overwritten by Stripe's payout.currency
   status         String // 'paid', 'pending', 'failed', 'canceled'
@@ -1671,10 +1684,12 @@ model StripePayoutLog {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([userId])
+  @@index([profileId])
   @@map("stripe_payout_logs")
 }
 

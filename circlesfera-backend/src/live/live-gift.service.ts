@@ -12,6 +12,7 @@ import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { payoutAccountOf } from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import {
@@ -343,6 +344,7 @@ export class LiveGiftService {
           },
           create: {
             userId: creator.id,
+            ...(await payoutAccountOf(tx, creator.id)),
             lifetimeEarningsCents: Math.floor(
               params.amountCents * CREATOR_SHARE_DECIMAL,
             ),

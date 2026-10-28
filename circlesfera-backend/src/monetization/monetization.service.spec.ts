@@ -23,6 +23,13 @@ describe('MonetizationService', () => {
     profile: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([
+        {
+          id: 'creator-prof-1',
+          accountType: 'CREATOR',
+          user: { stripeConnectAccountId: 'acct_creator' },
+        },
+      ]),
     },
     transaction: {
       findMany: vi.fn(),
@@ -107,7 +114,11 @@ describe('MonetizationService', () => {
 
       const result = await service.getMonetization('user-2');
       expect(mockPrismaService.monetization.create).toHaveBeenCalledWith({
-        data: { userId: 'user-2' },
+        data: {
+          userId: 'user-2',
+          profileId: 'creator-prof-1',
+          stripeConnectAccountId: 'acct_creator',
+        },
       });
       expect(result).toHaveProperty('hasStripeAccount', false);
     });
@@ -1091,6 +1102,16 @@ describe('MonetizationService', () => {
         where: { id: 'u-1' },
         data: { stripeConnectAccountId: 'acct_new' },
       });
+      // And on the row of the Profile holding it.
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
+        where: { userId: 'u-1' },
+        update: { stripeConnectAccountId: 'acct_new' },
+        create: {
+          userId: 'u-1',
+          profileId: 'creator-prof-1',
+          stripeConnectAccountId: 'acct_new',
+        },
+      });
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
         'acct_new',
         'http://ret',
@@ -1196,9 +1217,13 @@ describe('MonetizationService', () => {
           transfersEnabled: true,
           chargesEnabled: true,
           verifiedCompany: false,
+          stripeConnectAccountId: 'acct_active',
         },
         create: {
           userId: 'u-1',
+          profileId: 'creator-prof-1',
+          // The person's own account, not one read through a Profile.
+          stripeConnectAccountId: 'acct_active',
           transfersEnabled: true,
           chargesEnabled: true,
           verifiedCompany: false,

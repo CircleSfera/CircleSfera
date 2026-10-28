@@ -51,7 +51,16 @@ describe('MonetizationWebhookService', () => {
             stripePayoutLog: { upsert: vi.fn() },
             promotion: { update: vi.fn(), updateMany: vi.fn() },
             user: { findFirst: vi.fn(), findUnique: vi.fn() },
-            profile: { findFirst: vi.fn() },
+            profile: {
+              findFirst: vi.fn(),
+              findMany: vi.fn().mockResolvedValue([
+                {
+                  id: 'creator-prof-1',
+                  accountType: 'CREATOR',
+                  user: { stripeConnectAccountId: 'acct_creator' },
+                },
+              ]),
+            },
             $transaction: vi.fn((callback) => callback(prisma)),
           },
         },
@@ -156,8 +165,12 @@ describe('MonetizationWebhookService', () => {
           update: {
             lifetimeEarningsCents: { increment: creatorShareCents },
           },
+          // A new row is kept with the Profile holding the person's
+          // payout account, and the account.
           create: {
             userId: 'creator1',
+            profileId: 'creator-prof-1',
+            stripeConnectAccountId: 'acct_creator',
             lifetimeEarningsCents: creatorShareCents,
           },
         }),
@@ -945,6 +958,12 @@ describe('MonetizationWebhookService', () => {
           update: expect.objectContaining({
             transfersEnabled: true,
             chargesEnabled: true,
+            stripeConnectAccountId: 'acct_1',
+          }),
+          create: expect.objectContaining({
+            profileId: 'creator-prof-1',
+            // The account the provider wrote about.
+            stripeConnectAccountId: 'acct_1',
           }),
         }),
       );
@@ -989,8 +1008,11 @@ describe('MonetizationWebhookService', () => {
   });
 
   describe('syncConnectPayoutLog', () => {
-    it('upserts StripePayoutLog on a paid payout', async () => {
-      prisma.user.findFirst = vi.fn().mockResolvedValue({ id: 'creator1' });
+    it('upserts StripePayoutLog on a paid payout, with the Profile holding the account', async () => {
+      prisma.user.findFirst = vi.fn().mockResolvedValue({
+        id: 'creator1',
+        monetization: { profileId: 'creator-prof-1' },
+      });
       prisma.stripePayoutLog.upsert = vi.fn().mockResolvedValue({});
 
       await service.syncConnectPayoutLog({
@@ -1011,11 +1033,13 @@ describe('MonetizationWebhookService', () => {
           where: { stripePayoutId: 'po_1' },
           create: expect.objectContaining({
             userId: 'creator1',
+            profileId: 'creator-prof-1',
             amountCents: 2500,
             currency: 'eur',
             status: 'paid',
           }),
           update: expect.objectContaining({
+            profileId: 'creator-prof-1',
             status: 'paid',
             amountCents: 2500,
           }),
@@ -1040,7 +1064,11 @@ describe('MonetizationWebhookService', () => {
       });
       expect(prisma.stripePayoutLog.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          create: expect.objectContaining({ status: 'pending' }),
+          // A person whose row holds no Profile yet: the payout keeps none.
+          create: expect.objectContaining({
+            status: 'pending',
+            profileId: null,
+          }),
           update: expect.objectContaining({ status: 'pending' }),
         }),
       );

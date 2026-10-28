@@ -18,6 +18,7 @@ import {
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { payoutAccountOf } from './payout-account.js';
 
 // Stripe Checkout Session metadata.type values fulfilled here rather than
 // by PaymentsService's platform-subscription branch. STRIPE_SUBSCRIPTION is
@@ -225,6 +226,7 @@ export class MonetizationWebhookService {
             },
             create: {
               userId: creatorId,
+              ...(await payoutAccountOf(tx, creatorId)),
               lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
             },
           });
@@ -295,6 +297,7 @@ export class MonetizationWebhookService {
             },
             create: {
               userId: creatorId,
+              ...(await payoutAccountOf(tx, creatorId)),
               lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
             },
           });
@@ -369,6 +372,7 @@ export class MonetizationWebhookService {
             },
             create: {
               userId: creatorId,
+              ...(await payoutAccountOf(tx, creatorId)),
               lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
             },
           });
@@ -430,6 +434,7 @@ export class MonetizationWebhookService {
             },
             create: {
               userId: creatorId,
+              ...(await payoutAccountOf(tx, creatorId)),
               lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
             },
           });
@@ -832,7 +837,7 @@ export class MonetizationWebhookService {
 
     const user = await this.prisma.user.findFirst({
       where: { stripeConnectAccountId: accountId },
-      select: { id: true },
+      select: { id: true, monetization: { select: { profileId: true } } },
     });
     if (!user) {
       this.logger.warn(
@@ -853,6 +858,8 @@ export class MonetizationWebhookService {
       create: {
         stripePayoutId: payout.id,
         userId: user.id,
+        // The Profile holding the account that paid it out.
+        profileId: user.monetization?.profileId ?? null,
         amountCents: payout.amount ?? 0,
         currency,
         status,
@@ -860,6 +867,7 @@ export class MonetizationWebhookService {
         failureReason,
       },
       update: {
+        profileId: user.monetization?.profileId ?? null,
         amountCents: payout.amount ?? 0,
         currency,
         status,
@@ -886,9 +894,16 @@ export class MonetizationWebhookService {
       const verifiedCompany = isVerifiedCompanyAccount(account);
       await this.prisma.monetization.upsert({
         where: { userId: user.id },
-        update: { transfersEnabled, chargesEnabled, verifiedCompany },
+        update: {
+          transfersEnabled,
+          chargesEnabled,
+          verifiedCompany,
+          stripeConnectAccountId: account.id,
+        },
         create: {
           userId: user.id,
+          ...(await payoutAccountOf(this.prisma, user.id)),
+          stripeConnectAccountId: account.id,
           transfersEnabled,
           chargesEnabled,
           verifiedCompany,

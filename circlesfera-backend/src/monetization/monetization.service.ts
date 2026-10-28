@@ -22,6 +22,7 @@ import {
 } from '../common/stripe/stripe.service.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { payoutAccountOf } from './payout-account.js';
 
 function appendCheckoutQuery(returnUrl: string, query: string): string {
   const sep = returnUrl.includes('?') ? '&' : '?';
@@ -74,7 +75,7 @@ export class MonetizationService {
     });
     if (!monetization) {
       monetization = await this.prisma.monetization.create({
-        data: { userId },
+        data: { userId, ...(await payoutAccountOf(this.prisma, userId)) },
       });
     }
 
@@ -559,6 +560,13 @@ export class MonetizationService {
           where: { id: userId },
           data: { stripeConnectAccountId: accountId },
         });
+        // The account is kept on the Profile's row too.
+        const held = await payoutAccountOf(this.prisma, userId);
+        await this.prisma.monetization.upsert({
+          where: { userId },
+          update: { stripeConnectAccountId: accountId },
+          create: { userId, ...held, stripeConnectAccountId: accountId },
+        });
       }
 
       const link = await this.stripeService.createAccountLink(
@@ -605,8 +613,20 @@ export class MonetizationService {
       const verifiedCompany = isVerifiedCompanyAccount(account);
       await this.prisma.monetization.upsert({
         where: { userId },
-        update: { transfersEnabled, chargesEnabled, verifiedCompany },
-        create: { userId, transfersEnabled, chargesEnabled, verifiedCompany },
+        update: {
+          transfersEnabled,
+          chargesEnabled,
+          verifiedCompany,
+          stripeConnectAccountId: user.stripeConnectAccountId,
+        },
+        create: {
+          userId,
+          ...(await payoutAccountOf(this.prisma, userId)),
+          stripeConnectAccountId: user.stripeConnectAccountId,
+          transfersEnabled,
+          chargesEnabled,
+          verifiedCompany,
+        },
       });
       return {
         connected: true,
