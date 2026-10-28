@@ -12,6 +12,11 @@ describe('profileTabFromParam', () => {
     expect(profileTabFromParam('tagged', false)).toBe('tagged');
   });
 
+  it('opens the posts for a link to the Lives tab this build does not show', () => {
+    expect(profileTabFromParam('lives', true)).toBe('posts');
+    expect(profileTabFromParam('lives', false)).toBe('posts');
+  });
+
   it('blocks saved tab for other users', () => {
     expect(profileTabFromParam('saved', false)).toBe('posts');
     expect(profileTabFromParam('saved', true)).toBe('saved');

@@ -14,6 +14,8 @@ import {
   recordingLength,
 } from '../../services/liveRecordings';
 import { CREATE_PRIMARY, CREATE_SECONDARY } from '../create-post/createStyles';
+import { ErrorState } from '../ErrorEmptyStates';
+import { LoadingSpinner } from '../LoadingStates';
 import LiveReplayPlayer from '../live/LiveReplayPlayer';
 import ConfirmModal from '../modals/ConfirmModal';
 
@@ -184,7 +186,11 @@ export default function ProfileLives({ profileId, isMe }: ProfileLivesProps) {
             {t('profile.lives.published_title')}
           </h2>
         )}
-        {lives.length === 0 && !published.isLoading ? (
+        {published.isLoading ? (
+          <LoadingSpinner />
+        ) : published.isError ? (
+          <ErrorState onRetry={() => void published.refetch()} />
+        ) : lives.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <Radio size={32} className="text-white/40" aria-hidden="true" />
             <p className="text-base font-semibold text-white">

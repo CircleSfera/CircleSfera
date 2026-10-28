@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Bookmark, Clapperboard, Grid, Radio, UserSquare2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { LIVES_TAB_SHOWN } from './profileTabUtils';
 
 export type TabType = 'posts' | 'frames' | 'lives' | 'saved' | 'tagged';
 
@@ -10,10 +11,6 @@ interface ProfileTabsProps {
   isMe: boolean;
   canView: boolean;
 }
-
-// The Lives tab shows only where broadcasts are recorded (set at build
-// time with VITE_LIVE_RECORDING_ENABLED); elsewhere it would always be empty.
-const LIVES_TAB_SHOWN = import.meta.env.VITE_LIVE_RECORDING_ENABLED === 'true';
 
 const TABS = [
   { id: 'posts', icon: Grid, onlyMine: false },

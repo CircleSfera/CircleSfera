@@ -72,6 +72,15 @@ describe('ProfileLives', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('offers to try again when the lives cannot be loaded, instead of saying there are none', async () => {
+    api.listPublished.mockRejectedValue(new Error('down'));
+    renderWithProviders(<ProfileLives profileId="p2" isMe={false} />);
+    expect(
+      await screen.findByRole('button', { name: /try again|retry/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No lives yet')).not.toBeInTheDocument();
+  });
+
   it('loads the next page when asked', async () => {
     api.listPublished
       .mockResolvedValueOnce({
