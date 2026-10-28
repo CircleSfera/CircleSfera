@@ -22,7 +22,7 @@ import {
 } from '../common/stripe/stripe.service.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { payoutAccountOf } from './payout-account.js';
+import { payoutAccountOf, payoutAccountPlacement } from './payout-account.js';
 
 function appendCheckoutQuery(returnUrl: string, query: string): string {
   const sep = returnUrl.includes('?') ? '&' : '?';
@@ -561,11 +561,13 @@ export class MonetizationService {
           data: { stripeConnectAccountId: accountId },
         });
         // The account is kept on the Profile's row too.
-        const held = await payoutAccountOf(this.prisma, userId);
+        // A row opened before, from a Personal Profile, moves now to the
+        // Profile that earns.
+        const placed = await payoutAccountPlacement(this.prisma, userId);
         await this.prisma.monetization.upsert({
           where: { userId },
-          update: { stripeConnectAccountId: accountId },
-          create: { userId, ...held, stripeConnectAccountId: accountId },
+          update: { ...placed, stripeConnectAccountId: accountId },
+          create: { userId, ...placed, stripeConnectAccountId: accountId },
         });
       }
 
@@ -611,9 +613,11 @@ export class MonetizationService {
       const { transfersEnabled, chargesEnabled } =
         deriveConnectAccountFlags(account);
       const verifiedCompany = isVerifiedCompanyAccount(account);
+      const placed = await payoutAccountPlacement(this.prisma, userId);
       await this.prisma.monetization.upsert({
         where: { userId },
         update: {
+          ...placed,
           transfersEnabled,
           chargesEnabled,
           verifiedCompany,
@@ -621,7 +625,7 @@ export class MonetizationService {
         },
         create: {
           userId,
-          ...(await payoutAccountOf(this.prisma, userId)),
+          ...placed,
           stripeConnectAccountId: user.stripeConnectAccountId,
           transfersEnabled,
           chargesEnabled,

@@ -47,7 +47,10 @@ describe('MonetizationWebhookService', () => {
               findUnique: vi.fn(),
               update: vi.fn(),
             },
-            monetization: { upsert: vi.fn() },
+            monetization: {
+              upsert: vi.fn(),
+              findUnique: vi.fn().mockResolvedValue(null),
+            },
             stripePayoutLog: { upsert: vi.fn() },
             promotion: { update: vi.fn(), updateMany: vi.fn() },
             user: { findFirst: vi.fn(), findUnique: vi.fn() },
@@ -162,7 +165,10 @@ describe('MonetizationWebhookService', () => {
       expect(prisma.monetization.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { userId: 'creator1' },
+          // A row without a connected account is placed again too.
           update: {
+            profileId: 'creator-prof-1',
+            stripeConnectAccountId: 'acct_creator',
             lifetimeEarningsCents: { increment: creatorShareCents },
           },
           // A new row is kept with the Profile holding the person's
