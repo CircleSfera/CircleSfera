@@ -112,6 +112,12 @@ jobs:
           SENTRY_DSN="$(value VITE_SENTRY_DSN)"
           TURNSTILE_SITE_KEY="$(value VITE_TURNSTILE_SITE_KEY)"
           MAPBOX_ACCESS_TOKEN="$(value VITE_MAPBOX_ACCESS_TOKEN)"
+          # The web app shows recorded broadcasts where the backend records
+          # them: one switch, LIVE_RECORDING_ENABLED, unless the settings name
+          # the web app's own. On only when it reads "true".
+          LIVE_RECORDING="$(value VITE_LIVE_RECORDING_ENABLED)"
+          [ -n "$LIVE_RECORDING" ] || LIVE_RECORDING="$(value LIVE_RECORDING_ENABLED)"
+          [ "$LIVE_RECORDING" = "true" ] || LIVE_RECORDING=false
           rm -f "$ENV_FILE"
 
           # The web app of an environment must call that environment, never
@@ -130,6 +136,7 @@ jobs:
             echo "sentry_dsn=$SENTRY_DSN"
             echo "turnstile_site_key=$TURNSTILE_SITE_KEY"
             echo "mapbox_access_token=$MAPBOX_ACCESS_TOKEN"
+            echo "live_recording=$LIVE_RECORDING"
           } >> "$GITHUB_OUTPUT"
 
       - name: Log in to the Container registry
@@ -186,6 +193,7 @@ jobs:
             VITE_SENTRY_DSN=${{ steps.vite_args.outputs.sentry_dsn }}
             VITE_TURNSTILE_SITE_KEY=${{ steps.vite_args.outputs.turnstile_site_key }}
             VITE_MAPBOX_ACCESS_TOKEN=${{ steps.vite_args.outputs.mapbox_access_token }}
+            VITE_LIVE_RECORDING_ENABLED=${{ steps.vite_args.outputs.live_recording }}
             VITE_SENTRY_RELEASE=${{ github.sha }}
           cache-from: type=gha,scope=frontend-${{ inputs.environment }}
           cache-to: type=gha,mode=max,scope=frontend-${{ inputs.environment }}
