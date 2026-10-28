@@ -20,7 +20,9 @@ test.describe('Authentication Flow', () => {
     await expect(page.locator('.bg-red-500\\/10')).toBeVisible();
   });
 
-  test('new user can register and reach onboarding', async ({ page }) => {
+  test('new user can register and enters the app until the email is verified', async ({
+    page,
+  }) => {
     await prepareGuest(page);
     const account = uniqueAccount('reg');
     await page.goto('/accounts/signup');
@@ -38,6 +40,11 @@ test.describe('Authentication Flow', () => {
     await page.locator('button[type="submit"]').click();
     const response = await registerResponse;
     expect(response.status(), await response.text()).toBe(201);
-    await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 });
+    // Every onboarding step saves, which waits for a verified email: the new
+    // account enters the app under the notice that asks it to verify.
+    await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
+    await expect(
+      page.getByRole('button', { name: /^(Resend|Reenviar)$/ }),
+    ).toBeVisible();
   });
 });

@@ -15,6 +15,7 @@ import VerificationBadge from '../components/VerificationBadge';
 import { followsApi, profileApi, uploadApi, usersApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { SuggestedUser } from '../types';
+import { isEmailNotVerified } from '../utils/apiErrorMessage';
 import { logger } from '../utils/logger';
 import { pickNativeImage } from '../utils/nativeFilePicker';
 import { OnboardingEmptyCircle } from './OnboardingEmptyCircle';
@@ -86,7 +87,14 @@ export default function Onboarding() {
         toast.error(t('onboarding.reload_error', 'Failed to reload profile'));
       }
     },
-    onError: () => {
+    onError: (error) => {
+      // Nothing is saved before the email is verified; the account enters
+      // anyway and the app asks it to verify.
+      if (isEmailNotVerified(error)) {
+        toast.error(t('errors.codes.EMAIL_NOT_VERIFIED'));
+        navigate('/');
+        return;
+      }
       toast.error(t('onboarding.error', 'Something went wrong.'));
     },
   });
@@ -100,14 +108,16 @@ export default function Onboarding() {
         return next;
       });
     },
-    onError: (_err, username) => {
+    onError: (error, username) => {
       setFollowedUsernames((prev) => {
         const next = new Set(prev);
         next.delete(username);
         return next;
       });
       toast.error(
-        t('onboarding.follow_error', "Couldn't follow this account."),
+        isEmailNotVerified(error)
+          ? t('errors.codes.EMAIL_NOT_VERIFIED')
+          : t('onboarding.follow_error', "Couldn't follow this account."),
       );
     },
     onSuccess: (_data, username) => {

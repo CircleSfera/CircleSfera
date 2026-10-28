@@ -33,6 +33,16 @@ export function apiErrorCode(error: unknown): string | undefined {
   return apiErrorBody(error)?.errorCode;
 }
 
+// An action refused because the email of the session is not verified yet.
+// The server sends it as the message of a 403, not as an error code.
+export function isEmailNotVerified(error: unknown): boolean {
+  if (apiErrorCode(error) === 'EMAIL_NOT_VERIFIED') return true;
+  return (
+    apiErrorStatus(error) === 403 &&
+    apiErrorBody(error)?.message === 'EMAIL_NOT_VERIFIED'
+  );
+}
+
 // Extra fields some errors carry (ban reason, appeal token...).
 export function apiErrorDetails(
   error: unknown,

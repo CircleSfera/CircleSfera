@@ -128,6 +128,28 @@ describe('Onboarding follow state', () => {
       );
     });
     expect(elenaFollow).not.toBeDisabled();
+    expect(toast.error).toHaveBeenCalledWith(
+      i18n!.t('onboarding.follow_error'),
+    );
+  });
+
+  it('says why a follow is refused while the email is not verified', async () => {
+    vi.mocked(followsApi.toggle).mockRejectedValueOnce(
+      Object.assign(new Error('refused'), {
+        status: 403,
+        data: { message: 'EMAIL_NOT_VERIFIED' },
+      }),
+    );
+    const { i18n } = renderOnboarding();
+
+    fireEvent.click(screen.getByTestId('onboarding-continue'));
+    fireEvent.click(await screen.findByTestId('onboarding-follow-ElenaTech'));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('errors.codes.EMAIL_NOT_VERIFIED'),
+      ),
+    );
   });
 });
 
@@ -263,6 +285,24 @@ describe('Onboarding finish', () => {
       expect(toast.error).toHaveBeenCalledWith(i18n!.t('onboarding.error')),
     );
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('lets the account in and asks it to verify when the email is not verified', async () => {
+    vi.mocked(profileApi.updateProfile).mockRejectedValue(
+      Object.assign(new Error('refused'), {
+        status: 403,
+        data: { message: 'EMAIL_NOT_VERIFIED' },
+      }),
+    );
+    const { i18n } = renderOnboarding();
+
+    await finishWith(i18n!, 'Hola');
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/'));
+    expect(toast.error).toHaveBeenCalledWith(
+      i18n!.t('errors.codes.EMAIL_NOT_VERIFIED'),
+    );
+    expect(toast.error).not.toHaveBeenCalledWith(i18n!.t('onboarding.error'));
   });
 
   it('says so when the saved profile cannot be reloaded', async () => {

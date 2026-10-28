@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import LayoutWrapper from '../layouts/LayoutWrapper';
-import { authApi } from '../services';
+import { authApi, profileApi } from '../services';
+import { useAuthStore } from '../stores/authStore';
 import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 export default function VerifyEmail() {
@@ -25,6 +26,16 @@ export default function VerifyEmail() {
     const verify = async () => {
       try {
         await authApi.verifyEmail(token);
+        // A signed-in account reloads its profile: with the email verified,
+        // the app offers the onboarding steps it held back until now.
+        if (useAuthStore.getState().isAuthenticated) {
+          try {
+            const { data } = await profileApi.getMyProfile();
+            useAuthStore.getState().setProfile(data);
+          } catch {
+            // The next session check loads it; the email is verified anyway.
+          }
+        }
         setStatus('success');
         setMessage(t('auth.verify.success'));
         setTimeout(() => navigate('/'), 3000);

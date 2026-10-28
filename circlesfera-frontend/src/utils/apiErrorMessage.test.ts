@@ -6,6 +6,7 @@ import {
   apiErrorCode,
   apiErrorDetails,
   apiErrorMessage,
+  isEmailNotVerified,
   isIdentityVerificationRequired,
 } from './apiErrorMessage';
 
@@ -144,6 +145,28 @@ describe('apiErrorMessage', () => {
     ).toBe(false);
     expect(isIdentityVerificationRequired({ status: 403 })).toBe(false);
     expect(isIdentityVerificationRequired(null)).toBe(false);
+  });
+
+  it('recognises a refusal for an email not verified yet', () => {
+    // The guard answers a 403 whose message is the code.
+    expect(
+      isEmailNotVerified(
+        clientError(403, {
+          message: 'EMAIL_NOT_VERIFIED',
+          errorCode: 'HTTP_EXCEPTION',
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isEmailNotVerified(clientError(403, { errorCode: 'EMAIL_NOT_VERIFIED' })),
+    ).toBe(true);
+    expect(
+      isEmailNotVerified(clientError(400, { message: 'EMAIL_NOT_VERIFIED' })),
+    ).toBe(false);
+    expect(isEmailNotVerified(clientError(403, { message: 'Forbidden' }))).toBe(
+      false,
+    );
+    expect(isEmailNotVerified(null)).toBe(false);
   });
 
   it('both languages translate every error code and generic message', () => {

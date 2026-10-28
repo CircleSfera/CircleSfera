@@ -49,14 +49,18 @@ export default function Register() {
     },
     onSuccess: async () => {
       setAuthenticated();
+      let emailConfirmed: boolean | undefined;
       try {
         const profileResponse = await profileApi.getMyProfile();
         setProfile(profileResponse.data);
+        emailConfirmed = profileResponse.data.emailConfirmed;
       } catch (error) {
         logger.error('Failed to fetch profile:', error);
       }
       toast.success(t('auth.register.success'), { duration: 5000 });
-      navigate('/onboarding');
+      // The onboarding steps save, which waits for a verified email: until
+      // then the new account enters and looks around.
+      navigate(emailConfirmed === false ? '/' : '/onboarding');
     },
     // A refused sign-up (email or username taken, closed registration,
     // failed security check) used to leave the form silent.
