@@ -1,0 +1,98 @@
+name: Ops — logs of an environment
+
+# Shows the recent log lines of one service of staging or development, to
+# find out why something failed there. Never production: its logs are not
+# read. The environments hold Test Accounts and test payments only. Lines
+# that look like a secret (a token, a key, a password, a cookie) are hidden.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment
+        required: true
+        type: choice
+        options:
+          - staging
+          - dev
+      service:
+        description: Service
+        required: true
+        type: choice
+        options:
+          - Backend
+          - Recorder
+          - LiveKit
+          - Proxy
+          - Frontend
+      since:
+        description: How far back, in minutes (1 to 180)
+        required: true
+        default: '30'
+        type: string
+      filter:
+        description: Only lines containing this text (letters, digits, spaces, . _ - : /), optional
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  logs:
+    name: Read the logs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check the request
+        env:
+          SINCE: ${{ inputs.since }}
+          FILTER: ${{ inputs.filter }}
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if ! [[ "$SINCE" =~ ^[0-9]{1,3}$ ]] || [ "$SINCE" -lt 1 ] || [ "$SINCE" -gt 180 ]; then
+            echo "How far back must be 1 to 180 minutes."
+            exit 1
+          fi
+          if ! [[ "$FILTER" =~ ^[A-Za-z0-9\ ._:/-]{0,80}$ ]]; then
+            echo "The filter may hold letters, digits, spaces and . _ - : / only."
+            exit 1
+          fi
+          # Fail closed: without the fingerprint, the SSH step would not
+          # verify that it is talking to the real VPS.
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+
+      - name: Read them on the server
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          ENV_NAME: ${{ inputs.environment }}
+          SERVICE: ${{ inputs.service }}
+          SINCE: ${{ inputs.since }}
+          FILTER: ${{ inputs.filter }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: ENV_NAME,SERVICE,SINCE,FILTER
+          script: |
+            set -euo pipefail
+            case "$ENV_NAME" in
+              staging|dev) ;;
+              *) echo "Only staging or dev."; exit 1 ;;
+            esac
+            case "$SERVICE" in
+              Backend|Recorder|LiveKit|Proxy|Frontend) ;;
+              *) echo "Unknown service."; exit 1 ;;
+            esac
+            docker logs --since "${SINCE}m" "CircleSfera-${ENV_NAME}-${SERVICE}" 2>&1 \
+              | { if [ -n "$FILTER" ]; then grep -F -- "$FILTER" || true; else cat; fi; } \
+              | sed -E \
+                  -e 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[jwt]/g' \
+                  -e 's/(Bearer|Basic) [A-Za-z0-9._~+\/=-]+/\1 [hidden]/Ig' \
+                  -e 's/((access_token|token|secret|password|api_key|apikey|key|cookie|authorization)["'"'"']?[=: ]+["'"'"']?)[^ ,"'"'"'&]+/\1[hidden]/Ig' \
+              | tail -n 400
