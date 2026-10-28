@@ -15,6 +15,7 @@ export interface Session {
   page: Page;
   get(path: string): Promise<APIResponse>;
   post(path: string, data?: unknown): Promise<APIResponse>;
+  delete(path: string): Promise<APIResponse>;
   upload(path: string, file: string, mimeType: string): Promise<APIResponse>;
 }
 
@@ -63,6 +64,10 @@ export async function signIn(
       page.request.post(`/api/v1${path}`, {
         headers: { 'x-csrf-token': await csrf() },
         data: data ?? {},
+      }),
+    delete: async (path) =>
+      page.request.delete(`/api/v1${path}`, {
+        headers: { 'x-csrf-token': await csrf() },
       }),
     upload: async (path, file, mimeType) => {
       const { readFile } = await import('node:fs/promises');
