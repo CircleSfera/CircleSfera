@@ -26,6 +26,7 @@ import {
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
+import { payoutRowForProfile } from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { followTeamPlan } from '../team/team-plan.js';
@@ -634,15 +635,13 @@ export class ProfilesService {
   // payment provider has verified as a company. The account is looked up only
   // for a Profile on that plan.
   private async isVerifiedCompany(profile: {
+    id: string;
     userId: string;
     verificationLevel: string | null;
   }): Promise<boolean> {
     if (profile.verificationLevel !== 'BUSINESS') return false;
-    const monetization = await this.prisma.monetization.findUnique({
-      where: { userId: profile.userId },
-      select: { verifiedCompany: true },
-    });
-    return !!monetization?.verifiedCompany;
+    const payout = await payoutRowForProfile(this.prisma, profile);
+    return !!payout?.verifiedCompany;
   }
 
   // Create an additional profile under the authenticated user identity:

@@ -80,10 +80,7 @@ describe('LiveGiftService', () => {
         id: 'host-profile-1',
         userId: 'creator-1',
         username: 'host_user',
-        user: {
-          email: 'host@example.com',
-          stripeConnectAccountId: 'acct_1',
-        },
+        user: { email: 'host@example.com' },
       },
     };
 
@@ -103,6 +100,10 @@ describe('LiveGiftService', () => {
     });
 
     it('charges the catalog price and the platform application fee', async () => {
+      // The host's Profile holds the account the gift is paid into.
+      mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+        stripeConnectAccountId: 'acct_1',
+      });
       mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'fan-1',

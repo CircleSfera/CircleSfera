@@ -77,8 +77,9 @@ export class CircleSferaAccountCard implements AccountCardProvider {
         isActive: true,
         createdAt: true,
         identityVerifiedAt: true,
-        stripeConnectAccountId: true,
-        monetization: { select: { transfersEnabled: true } },
+        monetization: {
+          select: { stripeConnectAccountId: true, transfersEnabled: true },
+        },
         profiles: {
           orderBy: { createdAt: 'asc' },
           select: {
@@ -119,7 +120,7 @@ export class CircleSferaAccountCard implements AccountCardProvider {
           }
         : null,
       payouts: {
-        connected: !!user.stripeConnectAccountId,
+        connected: !!user.monetization?.stripeConnectAccountId,
         enabled: !!user.monetization?.transfersEnabled,
       },
       profiles: user.profiles.map((profile) => ({

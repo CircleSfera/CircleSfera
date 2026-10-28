@@ -80,8 +80,10 @@ describe('CircleSfera as the host of the Help Desk', () => {
         isActive: true,
         createdAt: new Date('2026-01-01'),
         identityVerifiedAt: new Date('2026-02-01'),
-        stripeConnectAccountId: 'acct_1',
-        monetization: { transfersEnabled: true },
+        monetization: {
+          stripeConnectAccountId: 'acct_1',
+          transfersEnabled: true,
+        },
         profiles: [
           {
             id: 'p-1',

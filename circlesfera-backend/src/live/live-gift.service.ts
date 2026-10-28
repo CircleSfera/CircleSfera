@@ -12,7 +12,10 @@ import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
-import { payoutAccountPlacement } from '../monetization/payout-account.js';
+import {
+  payoutAccountPlacement,
+  payoutRowForProfile,
+} from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import {
@@ -68,12 +71,7 @@ export class LiveGiftService {
             id: true,
             userId: true,
             username: true,
-            user: {
-              select: {
-                email: true,
-                stripeConnectAccountId: true,
-              },
-            },
+            user: { select: { email: true } },
           },
         },
       },
@@ -96,11 +94,13 @@ export class LiveGiftService {
       );
     }
 
-    if (!stream.host.user?.stripeConnectAccountId) {
+    const payout = await payoutRowForProfile(this.prisma, stream.host);
+    if (!payout?.stripeConnectAccountId) {
       throw new BadRequestException(
         'Host cannot receive gifts yet (no Stripe Connect account)',
       );
     }
+    const destination = payout.stripeConnectAccountId;
 
     const sender = await this.prisma.user.findUnique({
       where: { id: senderId },
@@ -195,7 +195,7 @@ export class LiveGiftService {
             payment_intent_data: {
               application_fee_amount: platformFee,
               transfer_data: {
-                destination: stream.host.user!.stripeConnectAccountId!,
+                destination,
               },
             },
             metadata: {
