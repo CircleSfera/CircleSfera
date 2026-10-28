@@ -379,13 +379,16 @@ describe('StripeService notices of the provider', () => {
 describe('StripeService creator accounts and identity', () => {
   const { service } = serviceWith();
 
-  it('opens an Express account that asks only to receive transfers', async () => {
+  it('opens an Express account that asks only to receive transfers, paid out every Monday', async () => {
     await service.createExpressAccount('creator@example.com');
 
     expect(client.accounts.create).toHaveBeenCalledWith({
       type: 'express',
       email: 'creator@example.com',
       capabilities: { transfers: { requested: true } },
+      settings: {
+        payouts: { schedule: { interval: 'weekly', weekly_anchor: 'monday' } },
+      },
     });
   });
 
