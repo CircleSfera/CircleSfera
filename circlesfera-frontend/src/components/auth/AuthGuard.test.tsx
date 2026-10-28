@@ -41,9 +41,10 @@ function renderAt(path: string) {
   );
 }
 
-const profile = (isOnboarded: boolean) => ({
+const profile = (isOnboarded: boolean, emailConfirmed?: boolean) => ({
   id: 'p1',
   username: 'ana',
+  emailConfirmed,
   user: { settings: { isOnboarded } },
 });
 
@@ -123,6 +124,19 @@ describe('AuthGuard', () => {
     renderAt('/feed');
 
     expect(await screen.findByText('Onboarding page')).toBeInTheDocument();
+  });
+
+  it('lets an account whose email is not verified in, without onboarding', async () => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      isSessionChecked: true,
+      profile: profile(false, false) as never,
+    });
+
+    renderAt('/feed');
+
+    expect(await screen.findByText('Private feed')).toBeInTheDocument();
+    expect(screen.queryByText('Onboarding page')).not.toBeInTheDocument();
   });
 });
 

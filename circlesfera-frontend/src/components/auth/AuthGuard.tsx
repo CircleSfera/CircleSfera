@@ -36,10 +36,14 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const profile = useAuthStore.getState().profile;
   const isOnboarded = profile?.user?.settings?.isOnboarded;
 
-  // Prevent redirect loop if we're already trying to render Onboarding
+  // Every onboarding step saves something, which waits for a verified email:
+  // until then the account enters and looks around, under the notice that
+  // asks it to verify. Prevent redirect loop if we're already trying to
+  // render Onboarding.
   if (
     isAuthenticated &&
     isOnboarded === false &&
+    profile?.emailConfirmed !== false &&
     window.location.pathname !== '/onboarding'
   ) {
     return <Navigate to="/onboarding" replace />;

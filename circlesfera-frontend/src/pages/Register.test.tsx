@@ -98,6 +98,19 @@ describe('Register', () => {
     expect(toast.success).toHaveBeenCalled();
   });
 
+  it('goes home instead of onboarding while the email is not verified', async () => {
+    vi.mocked(authApi.register).mockResolvedValue({} as never);
+    vi.mocked(profileApi.getMyProfile).mockResolvedValue({
+      data: { id: 'p1', username: 'ana', emailConfirmed: false },
+    } as never);
+    const { i18n } = renderWithProviders(<Register />);
+
+    fillForm(i18n!, yearsAgo(20));
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/'));
+    expect(navigate).not.toHaveBeenCalledWith('/onboarding');
+  });
+
   it('tells the person about the newsletter and sends their no', async () => {
     vi.mocked(authApi.register).mockResolvedValue({} as never);
     vi.mocked(profileApi.getMyProfile).mockResolvedValue({
