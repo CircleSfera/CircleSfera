@@ -94,6 +94,11 @@ jobs:
         env:
           ENV_FILE_B64: ${{ inputs.environment == 'staging' && secrets.ENV_STAGING_B64 || secrets.ENV_DEV_B64 }}
           ENVIRONMENT: ${{ inputs.environment }}
+          # Whether the environment records its broadcasts: a repository
+          # variable, not part of the settings, so it can change without
+          # rewriting them. Unset leaves the settings' own value.
+          STAGING_LIVE_RECORDING: ${{ vars.STAGING_LIVE_RECORDING_ENABLED }}
+          DEV_LIVE_RECORDING: ${{ vars.DEV_LIVE_RECORDING_ENABLED }}
         run: |
           set -euo pipefail
           if [ -z "${ENV_FILE_B64:-}" ]; then
@@ -112,6 +117,33 @@ jobs:
           SENTRY_DSN="$(value VITE_SENTRY_DSN)"
           TURNSTILE_SITE_KEY="$(value VITE_TURNSTILE_SITE_KEY)"
           MAPBOX_ACCESS_TOKEN="$(value VITE_MAPBOX_ACCESS_TOKEN)"
+          # The web app shows recorded broadcasts where the backend records
+          # them: the repository variable of the environment, else the
+          # settings' LIVE_RECORDING_ENABLED (or the web app's own,
+          # VITE_LIVE_RECORDING_ENABLED). On only when it reads "true".
+          # The backend records only through the environment's own live
+          # service, so the shared switch shows the tab only where that
+          # service runs; the web app's own value is taken as it is.
+          case "$ENVIRONMENT" in
+            staging) LIVE_RECORDING="${STAGING_LIVE_RECORDING:-}" ;;
+            *) LIVE_RECORDING="${DEV_LIVE_RECORDING:-}" ;;
+          esac
+          SHARED_SWITCH=true
+          if [ -z "$LIVE_RECORDING" ]; then
+            LIVE_RECORDING="$(value VITE_LIVE_RECORDING_ENABLED)"
+            [ -z "$LIVE_RECORDING" ] || SHARED_SWITCH=false
+          fi
+          [ -n "$LIVE_RECORDING" ] || LIVE_RECORDING="$(value LIVE_RECORDING_ENABLED)"
+          OWN_LIVE_SERVICE=false
+          if [ -n "$(value LIVEKIT_API_KEY)" ] && [ "$(value LIVEKIT_URL)" = "wss://${ENVIRONMENT}.circlesfera.com" ]; then
+            OWN_LIVE_SERVICE=true
+          fi
+          if [ "$LIVE_RECORDING" = "true" ] && [ "$SHARED_SWITCH" = "true" ] \
+            && [ "$OWN_LIVE_SERVICE" != "true" ]; then
+            echo "Recording is on, but the live service of $ENVIRONMENT is not its own: the Lives tab stays hidden."
+            LIVE_RECORDING=false
+          fi
+          [ "$LIVE_RECORDING" = "true" ] || LIVE_RECORDING=false
           rm -f "$ENV_FILE"
 
           # The web app of an environment must call that environment, never
@@ -130,6 +162,7 @@ jobs:
             echo "sentry_dsn=$SENTRY_DSN"
             echo "turnstile_site_key=$TURNSTILE_SITE_KEY"
             echo "mapbox_access_token=$MAPBOX_ACCESS_TOKEN"
+            echo "live_recording=$LIVE_RECORDING"
           } >> "$GITHUB_OUTPUT"
 
       - name: Log in to the Container registry
@@ -186,6 +219,7 @@ jobs:
             VITE_SENTRY_DSN=${{ steps.vite_args.outputs.sentry_dsn }}
             VITE_TURNSTILE_SITE_KEY=${{ steps.vite_args.outputs.turnstile_site_key }}
             VITE_MAPBOX_ACCESS_TOKEN=${{ steps.vite_args.outputs.mapbox_access_token }}
+            VITE_LIVE_RECORDING_ENABLED=${{ steps.vite_args.outputs.live_recording }}
             VITE_SENTRY_RELEASE=${{ github.sha }}
           cache-from: type=gha,scope=frontend-${{ inputs.environment }}
           cache-to: type=gha,mode=max,scope=frontend-${{ inputs.environment }}
@@ -223,13 +257,14 @@ jobs:
           WIPE_DATA: ${{ inputs.wipe_data }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REGISTRY_USER: ${{ github.actor }}
+          LIVE_RECORDING: ${{ inputs.environment == 'staging' && vars.STAGING_LIVE_RECORDING_ENABLED || '' }}${{ inputs.environment == 'dev' && vars.DEV_LIVE_RECORDING_ENABLED || '' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_FILE_B64,ENV_NAME,IMAGE_TAG,COMMIT_SHA,WIPE_DATA,REGISTRY_TOKEN,REGISTRY_USER
+          envs: ENV_FILE_B64,ENV_NAME,IMAGE_TAG,COMMIT_SHA,WIPE_DATA,REGISTRY_TOKEN,REGISTRY_USER,LIVE_RECORDING
           script: |
             set -euo pipefail
 
@@ -313,6 +348,16 @@ jobs:
                 printf 'LIVE_UDP_PORT=%s\n' "$LIVE_UDP_PORT"
               } >> .env.new
               echo "The live service of ${ENV_NAME} is on (media ports ${LIVE_TCP_PORT}/tcp and ${LIVE_UDP_PORT}/udp)."
+            fi
+            # The repository variable of the environment, when set, says
+            # whether its broadcasts are recorded, over the settings' value.
+            if [ -n "${LIVE_RECORDING:-}" ]; then
+              [ "$LIVE_RECORDING" = "true" ] || LIVE_RECORDING=false
+              sed -i '/^LIVE_RECORDING_ENABLED=/d;/^VITE_LIVE_RECORDING_ENABLED=/d' .env.new
+              printf 'LIVE_RECORDING_ENABLED=%s\n' "$LIVE_RECORDING" >> .env.new
+            fi
+            if [ "$(setting LIVE_RECORDING_ENABLED)" = "true" ]; then
+              echo "Broadcasts of ${ENV_NAME} are recorded."
             fi
             PREVIOUS_TAG=""
             if [ -f .env ]; then
