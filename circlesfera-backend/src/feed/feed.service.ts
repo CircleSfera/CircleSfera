@@ -346,8 +346,9 @@ export class FeedService {
 
       // Step C: Hydrate Post objects with full relations
       const postIds = postsRaw.map((p) => p.id);
+      // A post deleted, archived or removed since it was ranked is left out.
       const hydratedPosts = await this.prisma.post.findMany({
-        where: { id: { in: postIds } },
+        where: { id: { in: postIds }, ...LISTED_POST },
         include: this.postHydrationInclude(profileId),
       });
 

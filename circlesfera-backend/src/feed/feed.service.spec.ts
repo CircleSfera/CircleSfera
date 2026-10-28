@@ -2,6 +2,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
+import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from './feed.service.js';
@@ -155,6 +156,22 @@ describe('FeedService', () => {
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('2');
       expect((result.data[0] as any).algScore).toBe(5.5);
+    });
+
+    it('leaves out a ranked post deleted, archived or removed before it is loaded', async () => {
+      mockPrismaService.like.findMany.mockResolvedValue([{ postId: '1' }]);
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([{ vector: '[0.1, 0.2]' }])
+        .mockResolvedValueOnce([{ id: '2', final_score: 5.5 }]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+
+      await service.getHybridFeed('user-1', { page: 1, limit: 10 });
+
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['2'] }, ...LISTED_POST },
+        }),
+      );
     });
 
     it('generates and returns an asOf snapshot when the client sends none', async () => {
