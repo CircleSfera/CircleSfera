@@ -202,7 +202,8 @@ export class LiveGiftService {
               liveGiftId: pendingGift.id,
               streamId,
               giftId,
-              creatorId: stream.hostId,
+              // The person paid: the host's Profile is the broadcast's host.
+              creatorId: stream.host.userId,
             },
             success_url: appendCheckoutQuery(
               returnUrl,
@@ -289,10 +290,21 @@ export class LiveGiftService {
         where: { id: params.senderId },
         select: { id: true },
       });
-      const creator = await tx.user.findUnique({
-        where: { id: params.creatorId },
-        select: { id: true },
+      // Who earned the gift: the person the gift was opened for (its
+      // receiver, the host's person, emptied if they were erased), and the
+      // host's Profile from the broadcast. Never the checkout's metadata,
+      // which named the Profile where a person was expected. A broadcast
+      // whose host Profile was erased since is gone with it.
+      const stream = await tx.liveStream.findUnique({
+        where: { id: params.streamId },
+        select: { hostId: true },
       });
+      const creator = existing.receiverId
+        ? await tx.user.findUnique({
+            where: { id: existing.receiverId },
+            select: { id: true },
+          })
+        : null;
 
       const transaction = await tx.transaction.create({
         data: {
@@ -301,7 +313,8 @@ export class LiveGiftService {
           currency: params.currency.toUpperCase(),
           senderId: sender?.id ?? null,
           receiverId: creator?.id ?? null,
-          liveStreamId: params.streamId,
+          receiverProfileId: stream?.hostId ?? null,
+          liveStreamId: stream ? params.streamId : null,
           stripePaymentIntentId: params.paymentIntentId,
           status: 'COMPLETED',
           description: `Live gift ${params.giftId} on stream ${params.streamId}`,
@@ -337,7 +350,7 @@ export class LiveGiftService {
         });
       }
 
-      return gift;
+      return { gift, receiverId: creator?.id ?? null };
     });
 
     this.gateway.server.to(`live:${params.streamId}`).emit('live:gift', {
@@ -347,8 +360,8 @@ export class LiveGiftService {
       senderId: params.senderId,
       senderUsername: existing.sender?.profiles[0]?.username,
       senderAvatar: existing.sender?.profiles[0]?.avatar,
-      receiverId: params.creatorId,
-      liveGiftId: result.id,
+      receiverId: result.receiverId,
+      liveGiftId: result.gift.id,
       sentAt: new Date().toISOString(),
     });
 

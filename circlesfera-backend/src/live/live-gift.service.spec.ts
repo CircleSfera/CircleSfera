@@ -161,6 +161,57 @@ describe('LiveGiftService', () => {
       paymentIntentId: 'pi_123',
     };
 
+    beforeEach(() => {
+      // The broadcast's host: the Profile host-profile-1 of the person
+      // creator-1.
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        hostId: 'host-profile-1',
+      });
+    });
+
+    it("records the host's person and Profile from the broadcast, not from the checkout", async () => {
+      // A checkout opened before the fix named the host's Profile as creatorId.
+      mockPrismaService.liveGift.findUnique.mockResolvedValue({
+        id: 'gift-1',
+        status: 'PENDING',
+        receiverId: 'creator-1',
+        sender: { profiles: [{ username: 'fan', avatar: null }] },
+      });
+      mockPrismaService.user.findUnique.mockImplementation(
+        ({ where }: { where: { id: string } }) =>
+          Promise.resolve(
+            ['fan-1', 'creator-1'].includes(where.id) ? { id: where.id } : null,
+          ),
+      );
+      mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
+
+      await service.completeGiftPayment({
+        ...params,
+        creatorId: 'host-profile-1',
+      });
+
+      expect(mockPrismaService.liveStream.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'stream-1' } }),
+      );
+      expect(mockPrismaService.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            receiverId: 'creator-1',
+            receiverProfileId: 'host-profile-1',
+          }),
+        }),
+      );
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'creator-1' } }),
+      );
+      expect(mockServer.emit).toHaveBeenCalledWith(
+        'live:gift',
+        expect.objectContaining({ receiverId: 'creator-1' }),
+      );
+      mockPrismaService.user.findUnique.mockReset();
+    });
+
     it('is a no-op when the LiveGift record is not found', async () => {
       mockPrismaService.liveGift.findUnique.mockResolvedValue(null);
 
@@ -186,6 +237,7 @@ describe('LiveGiftService', () => {
       mockPrismaService.liveGift.findUnique.mockResolvedValue({
         id: 'gift-1',
         status: 'PENDING',
+        receiverId: 'creator-1',
         sender: { profiles: [{ username: 'fan', avatar: null }] },
       });
       mockPrismaService.user.findUnique
@@ -226,6 +278,7 @@ describe('LiveGiftService', () => {
       mockPrismaService.liveGift.findUnique.mockResolvedValue({
         id: 'gift-1',
         status: 'PENDING',
+        receiverId: 'creator-1',
         sender: null,
       });
       mockPrismaService.user.findUnique
@@ -250,6 +303,7 @@ describe('LiveGiftService', () => {
       mockPrismaService.liveGift.findUnique.mockResolvedValue({
         id: 'gift-1',
         status: 'PENDING',
+        receiverId: 'creator-1',
         sender: null,
       });
       mockPrismaService.user.findUnique
@@ -272,15 +326,47 @@ describe('LiveGiftService', () => {
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalled();
     });
 
-    it('writes a null receiverId and skips crediting earnings when the creator no longer exists', async () => {
+    it('keeps the gift, without its broadcast, when the host Profile was erased since', async () => {
       mockPrismaService.liveGift.findUnique.mockResolvedValue({
         id: 'gift-1',
         status: 'PENDING',
+        receiverId: 'creator-1',
         sender: { profiles: [{ username: 'fan', avatar: null }] },
       });
+      // An erased Profile takes its broadcasts along; its person remains.
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(null);
       mockPrismaService.user.findUnique
         .mockResolvedValueOnce({ id: 'fan-1' })
-        .mockResolvedValueOnce(null); // creator: hard-deleted
+        .mockResolvedValueOnce({ id: 'creator-1' });
+      mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
+
+      await service.completeGiftPayment(params);
+
+      expect(mockPrismaService.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            receiverId: 'creator-1',
+            receiverProfileId: null,
+            liveStreamId: null,
+          }),
+        }),
+      );
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'creator-1' } }),
+      );
+    });
+
+    it('writes a null receiverId and skips crediting earnings when the host was erased', async () => {
+      mockPrismaService.liveGift.findUnique.mockResolvedValue({
+        id: 'gift-1',
+        status: 'PENDING',
+        // The gift loses its receiver when the person is erased.
+        receiverId: null,
+        sender: { profiles: [{ username: 'fan', avatar: null }] },
+      });
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({ id: 'fan-1' });
       mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
       mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
 
@@ -291,6 +377,8 @@ describe('LiveGiftService', () => {
           data: expect.objectContaining({
             senderId: 'fan-1',
             receiverId: null,
+            receiverProfileId: null,
+            liveStreamId: null,
           }),
         }),
       );
