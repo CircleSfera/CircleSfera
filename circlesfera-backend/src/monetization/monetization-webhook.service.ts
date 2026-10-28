@@ -843,11 +843,12 @@ export class MonetizationWebhookService {
       return;
     }
 
-    const user = await this.prisma.user.findFirst({
+    // The row holding the account names its person and its Profile.
+    const holder = await this.prisma.monetization.findUnique({
       where: { stripeConnectAccountId: accountId },
-      select: { id: true, monetization: { select: { profileId: true } } },
+      select: { userId: true, profileId: true },
     });
-    if (!user) {
+    if (!holder) {
       this.logger.warn(
         `No User linked to Connect account for payout ${payout.id}`,
       );
@@ -865,9 +866,9 @@ export class MonetizationWebhookService {
       where: { stripePayoutId: payout.id },
       create: {
         stripePayoutId: payout.id,
-        userId: user.id,
+        userId: holder.userId,
         // The Profile holding the account that paid it out.
-        profileId: user.monetization?.profileId ?? null,
+        profileId: holder.profileId,
         amountCents: payout.amount ?? 0,
         currency,
         status,
@@ -875,7 +876,7 @@ export class MonetizationWebhookService {
         failureReason,
       },
       update: {
-        profileId: user.monetization?.profileId ?? null,
+        profileId: holder.profileId,
         amountCents: payout.amount ?? 0,
         currency,
         status,
@@ -892,33 +893,18 @@ export class MonetizationWebhookService {
       capabilities?: { transfers?: string };
     } & ConnectAccountCompanyFields,
   ): Promise<void> {
-    const user = await this.prisma.user.findFirst({
+    const holder = await this.prisma.monetization.findUnique({
       where: { stripeConnectAccountId: account.id },
-      select: { id: true },
+      select: { userId: true },
     });
-    if (user) {
-      const { transfersEnabled, chargesEnabled } =
-        deriveConnectAccountFlags(account);
-      const verifiedCompany = isVerifiedCompanyAccount(account);
-      const placed = await payoutAccountPlacement(this.prisma, user.id);
-      await this.prisma.monetization.upsert({
-        where: { userId: user.id },
-        update: {
-          ...placed,
-          transfersEnabled,
-          chargesEnabled,
-          verifiedCompany,
-          stripeConnectAccountId: account.id,
-        },
-        create: {
-          userId: user.id,
-          ...placed,
-          stripeConnectAccountId: account.id,
-          transfersEnabled,
-          chargesEnabled,
-          verifiedCompany,
-        },
-      });
-    }
+    if (!holder) return;
+    const { transfersEnabled, chargesEnabled } =
+      deriveConnectAccountFlags(account);
+    const verifiedCompany = isVerifiedCompanyAccount(account);
+    const placed = await payoutAccountPlacement(this.prisma, holder.userId);
+    await this.prisma.monetization.update({
+      where: { stripeConnectAccountId: account.id },
+      data: { ...placed, transfersEnabled, chargesEnabled, verifiedCompany },
+    });
   }
 }

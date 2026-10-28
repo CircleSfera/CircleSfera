@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { payoutAccountOf, payoutAccountPlacement } from './payout-account.js';
+import {
+  payoutAccountOf,
+  payoutAccountPlacement,
+  payoutRowForProfile,
+} from './payout-account.js';
 
 const reader = (
   profiles: Array<{ id: string; accountType: string }>,
@@ -111,9 +115,9 @@ describe('payoutAccountPlacement', () => {
       'acct_1',
     );
 
+    // The account it holds is left as it is.
     await expect(payoutAccountPlacement(db, 'u1')).resolves.toEqual({
       profileId: 'creator',
-      stripeConnectAccountId: 'acct_1',
     });
   });
 
@@ -137,5 +141,41 @@ describe('payoutAccountPlacement', () => {
     await expect(payoutAccountPlacement(db, 'u1')).resolves.toEqual({
       profileId: 'personal',
     });
+  });
+});
+
+describe('payoutRowForProfile', () => {
+  const rows = (byProfile: object | null, byPerson: object | null) => {
+    const findUnique = vi.fn(async ({ where }: { where: object }) =>
+      'profileId' in where ? byProfile : byPerson,
+    );
+    return { db: { monetization: { findUnique } } as any, findUnique };
+  };
+  const profile = { id: 'creator', userId: 'u1' };
+
+  it('pays a Profile into the account its own row holds', async () => {
+    const own = { stripeConnectAccountId: 'acct_own' };
+    const { db, findUnique } = rows(own, { stripeConnectAccountId: 'acct_x' });
+
+    await expect(payoutRowForProfile(db, profile)).resolves.toBe(own);
+    expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { profileId: 'creator' } }),
+    );
+  });
+
+  it("pays a Profile holding no account into its person's", async () => {
+    const person = { stripeConnectAccountId: 'acct_person' };
+    const { db, findUnique } = rows({ stripeConnectAccountId: null }, person);
+
+    await expect(payoutRowForProfile(db, profile)).resolves.toBe(person);
+    expect(findUnique).toHaveBeenLastCalledWith(
+      expect.objectContaining({ where: { userId: 'u1' } }),
+    );
+  });
+
+  it('finds nothing for a person without a row', async () => {
+    const { db } = rows(null, null);
+    await expect(payoutRowForProfile(db, profile)).resolves.toBeNull();
   });
 });

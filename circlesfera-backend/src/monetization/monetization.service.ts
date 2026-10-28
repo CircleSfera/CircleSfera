@@ -22,7 +22,11 @@ import {
 } from '../common/stripe/stripe.service.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { payoutAccountOf, payoutAccountPlacement } from './payout-account.js';
+import {
+  payoutAccountOf,
+  payoutAccountPlacement,
+  payoutRowForProfile,
+} from './payout-account.js';
 
 function appendCheckoutQuery(returnUrl: string, query: string): string {
   const sep = returnUrl.includes('?') ? '&' : '?';
@@ -79,15 +83,23 @@ export class MonetizationService {
       });
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    // The account and the Profile holding it stay on the server, as before
+    // they were kept on this row.
+    const {
+      stripeConnectAccountId,
+      profileId: _holder,
+      ...earnings
+    } = monetization;
+    return { ...earnings, hasStripeAccount: !!stripeConnectAccountId };
+  }
+
+  /** The payout account of a person, from their row of earnings. */
+  private async accountOf(userId: string): Promise<string | null> {
+    const row = await this.prisma.monetization.findUnique({
+      where: { userId },
       select: { stripeConnectAccountId: true },
     });
-
-    return {
-      ...monetization,
-      hasStripeAccount: !!user?.stripeConnectAccountId,
-    };
+    return row?.stripeConnectAccountId ?? null;
   }
 
   async getTransactions(userId: string, page = 1, limit = 20) {
@@ -235,7 +247,11 @@ export class MonetizationService {
     }
 
     const creator = (post as any).profile.user;
-    if (!creator.stripeConnectAccountId) {
+    const payout = await payoutRowForProfile(this.prisma, {
+      id: post.profileId,
+      userId: creator.id,
+    });
+    if (!payout?.stripeConnectAccountId) {
       throw AppException.BadRequest(
         ErrorCode.CREATOR_STRIPE_NOT_SETUP,
         'Creator has not setup their Stripe account',
@@ -253,7 +269,7 @@ export class MonetizationService {
       productName: 'Post unlock',
       // Who pays sees the Profile, never the creator's email.
       description: `Unlock exclusive content from @${(post as any).profile.username}`,
-      creatorStripeAccountId: creator.stripeConnectAccountId,
+      creatorStripeAccountId: payout.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_POST_UNLOCK',
         ...withdrawalConsentMetadata(),
@@ -302,7 +318,11 @@ export class MonetizationService {
     }
 
     const creator = (story as any).profile.user;
-    if (!creator.stripeConnectAccountId) {
+    const payout = await payoutRowForProfile(this.prisma, {
+      id: story.profileId,
+      userId: creator.id,
+    });
+    if (!payout?.stripeConnectAccountId) {
       throw AppException.BadRequest(
         ErrorCode.CREATOR_STRIPE_NOT_SETUP,
         'Creator has not setup their Stripe account',
@@ -319,7 +339,7 @@ export class MonetizationService {
       priceCents: story.priceCents,
       productName: 'Story unlock',
       description: `Unlock exclusive story from @${(story as any).profile.username}`,
-      creatorStripeAccountId: creator.stripeConnectAccountId,
+      creatorStripeAccountId: payout.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_STORY_UNLOCK',
         ...withdrawalConsentMetadata(),
@@ -390,7 +410,13 @@ export class MonetizationService {
     // message.sender is a Profile; Stripe Connect fields (and the User.id
     // that Transaction.receiverId/Monetization.userId expect) live on User.
     const creator = message.sender.user;
-    if (!creator?.stripeConnectAccountId) {
+    const payout = creator
+      ? await payoutRowForProfile(this.prisma, {
+          id: message.senderId,
+          userId: creator.id,
+        })
+      : null;
+    if (!creator || !payout?.stripeConnectAccountId) {
       throw AppException.BadRequest(
         ErrorCode.CREATOR_STRIPE_NOT_SETUP,
         'Creator has not setup their Stripe account',
@@ -407,7 +433,7 @@ export class MonetizationService {
       priceCents: message.priceCents,
       productName: 'Locked Message Unlock',
       description: `Unlock exclusive message from @${message.sender.username}`,
-      creatorStripeAccountId: creator.stripeConnectAccountId,
+      creatorStripeAccountId: payout.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_MESSAGE_UNLOCK',
         ...withdrawalConsentMetadata(),
@@ -487,10 +513,8 @@ export class MonetizationService {
       );
     }
 
-    const receiver = await this.prisma.user.findUnique({
-      where: { id: receiverUserId },
-    });
-    if (!receiver?.stripeConnectAccountId) {
+    const payout = await payoutRowForProfile(this.prisma, tipped);
+    if (!payout?.stripeConnectAccountId) {
       throw AppException.BadRequest(
         ErrorCode.CREATOR_STRIPE_NOT_SETUP,
         'Creator cannot receive tips yet (no Stripe account)',
@@ -513,7 +537,7 @@ export class MonetizationService {
       productName: 'Creator Tip',
       // Who pays sees the Profile they tip, never the creator's email.
       description: named ? `Tip for @${named.username}` : 'Creator Tip',
-      creatorStripeAccountId: receiver.stripeConnectAccountId,
+      creatorStripeAccountId: payout.stripeConnectAccountId,
       metadata: {
         type: 'DIRECT_TIP',
         creatorId: receiverUserId,
@@ -550,7 +574,10 @@ export class MonetizationService {
     }
 
     try {
-      let accountId = user.stripeConnectAccountId;
+      // The person's own column too: a row missing for any reason must never
+      // open a second account at the provider.
+      const held = await this.accountOf(userId);
+      let accountId = held ?? user.stripeConnectAccountId;
       if (!accountId) {
         const account = await this.stripeService.createExpressAccount(
           user.email,
@@ -560,9 +587,12 @@ export class MonetizationService {
           where: { id: userId },
           data: { stripeConnectAccountId: accountId },
         });
-        // The account is kept on the Profile's row too.
-        // A row opened before, from a Personal Profile, moves now to the
-        // Profile that earns.
+      }
+      if (!held) {
+        // The account is kept on the row too, every time the row lacks it:
+        // a write of the row that failed once is made again here. A row
+        // opened before, from a Personal Profile, moves now to the Profile
+        // that earns.
         const placed = await payoutAccountPlacement(this.prisma, userId);
         await this.prisma.monetization.upsert({
           where: { userId },
@@ -593,7 +623,17 @@ export class MonetizationService {
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    if (!user.stripeConnectAccountId) {
+    // The account and the flags last saved for it, from the person's row.
+    const cached = await this.prisma.monetization.findUnique({
+      where: { userId },
+      select: {
+        stripeConnectAccountId: true,
+        transfersEnabled: true,
+        chargesEnabled: true,
+      },
+    });
+    const accountId = cached?.stripeConnectAccountId;
+    if (!accountId) {
       return {
         connected: false,
         transfersEnabled: false,
@@ -601,36 +641,16 @@ export class MonetizationService {
       };
     }
 
-    const cached = await this.prisma.monetization.findUnique({
-      where: { userId },
-      select: { transfersEnabled: true, chargesEnabled: true },
-    });
-
     try {
-      const account = await this.stripeService.getAccount(
-        user.stripeConnectAccountId,
-      );
+      const account = await this.stripeService.getAccount(accountId);
       const { transfersEnabled, chargesEnabled } =
         deriveConnectAccountFlags(account);
       const verifiedCompany = isVerifiedCompanyAccount(account);
       const placed = await payoutAccountPlacement(this.prisma, userId);
-      await this.prisma.monetization.upsert({
+      // The row exists: the account was read from it.
+      await this.prisma.monetization.update({
         where: { userId },
-        update: {
-          ...placed,
-          transfersEnabled,
-          chargesEnabled,
-          verifiedCompany,
-          stripeConnectAccountId: user.stripeConnectAccountId,
-        },
-        create: {
-          userId,
-          ...placed,
-          stripeConnectAccountId: user.stripeConnectAccountId,
-          transfersEnabled,
-          chargesEnabled,
-          verifiedCompany,
-        },
+        data: { ...placed, transfersEnabled, chargesEnabled, verifiedCompany },
       });
       return {
         connected: true,
@@ -642,8 +662,8 @@ export class MonetizationService {
       this.logger.error('Stripe Get Account Error:', error);
       return {
         connected: true,
-        transfersEnabled: cached?.transfersEnabled ?? false,
-        chargesEnabled: cached?.chargesEnabled ?? false,
+        transfersEnabled: cached.transfersEnabled,
+        chargesEnabled: cached.chargesEnabled,
         detailsSubmitted: false,
       };
     }
@@ -654,16 +674,15 @@ export class MonetizationService {
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    if (!user.stripeConnectAccountId) {
+    const accountId = await this.accountOf(userId);
+    if (!accountId) {
       throw AppException.BadRequest(
         ErrorCode.STRIPE_CONNECT_NOT_SETUP,
         'Stripe Connect account not set up yet',
       );
     }
 
-    const link = await this.stripeService.createLoginLink(
-      user.stripeConnectAccountId,
-    );
+    const link = await this.stripeService.createLoginLink(accountId);
     return { url: link.url };
   }
 
@@ -684,11 +703,12 @@ export class MonetizationService {
   }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { stripeConnectAccountId: true },
+      select: { id: true },
     });
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
-    if (!user.stripeConnectAccountId) {
+    const accountId = await this.accountOf(userId);
+    if (!accountId) {
       throw AppException.BadRequest(
         ErrorCode.STRIPE_CONNECT_NOT_SETUP,
         'Stripe Connect account not set up yet',
@@ -696,8 +716,8 @@ export class MonetizationService {
     }
 
     const [balance, payouts] = await Promise.all([
-      this.stripeService.getConnectBalance(user.stripeConnectAccountId),
-      this.stripeService.listConnectPayouts(user.stripeConnectAccountId, 10),
+      this.stripeService.getConnectBalance(accountId),
+      this.stripeService.listConnectPayouts(accountId, 10),
     ]);
 
     const mapAmount = (amounts: { amount: number; currency: string }[]) =>

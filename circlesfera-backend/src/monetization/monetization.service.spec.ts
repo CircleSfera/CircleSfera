@@ -8,12 +8,14 @@ import { MonetizationService } from './monetization.service.js';
 
 describe('MonetizationService', () => {
   let service: MonetizationService;
+  const accounts = new Map<string, string>();
 
   const mockPrismaService = {
     monetization: {
       findUnique: vi.fn(),
       create: vi.fn(),
       upsert: vi.fn(),
+      update: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -81,6 +83,21 @@ describe('MonetizationService', () => {
 
     service = module.get<MonetizationService>(MonetizationService);
     vi.clearAllMocks();
+    // The rows of earnings: which person holds which payout account.
+    accounts.clear();
+    mockPrismaService.monetization.findUnique.mockImplementation(
+      async ({ where }: { where: { userId?: string } }) => {
+        const account = where.userId && accounts.get(where.userId);
+        return account
+          ? {
+              stripeConnectAccountId: account,
+              transfersEnabled: false,
+              chargesEnabled: false,
+              verifiedCompany: false,
+            }
+          : null;
+      },
+    );
   });
 
   it('should be defined', () => {
@@ -91,15 +108,17 @@ describe('MonetizationService', () => {
     it('should return monetization and stripe status when record exists', async () => {
       mockPrismaService.monetization.findUnique.mockResolvedValue({
         userId: 'user-1',
-        lifetimeEarningsCents: 5000,
-      });
-      mockPrismaService.user.findUnique.mockResolvedValue({
+        profileId: 'creator-prof-1',
         stripeConnectAccountId: 'acct_123',
+        lifetimeEarningsCents: 5000,
       });
 
       const result = await service.getMonetization('user-1');
       expect(result).toHaveProperty('hasStripeAccount', true);
       expect(result.lifetimeEarningsCents).toBe(5000);
+      // The account and the Profile holding it stay on the server.
+      expect(result).not.toHaveProperty('stripeConnectAccountId');
+      expect(result).not.toHaveProperty('profileId');
     });
 
     it('should create monetization record if none exists', async () => {
@@ -231,6 +250,7 @@ describe('MonetizationService', () => {
     });
 
     it('should throw if buyer is not found', async () => {
+      accounts.set('creator-1', 'acct_creator');
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: 'post-1',
         isPremium: true,
@@ -256,6 +276,7 @@ describe('MonetizationService', () => {
     });
 
     it('creates Checkout with post price, 20% platform fee, and handles returnUrl with query params', async () => {
+      accounts.set('creator-1', 'acct_1');
       const priceCents = 1000;
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: 'post-1',
@@ -267,7 +288,8 @@ describe('MonetizationService', () => {
           user: {
             id: 'creator-1',
             email: 'creator@example.com',
-            stripeConnectAccountId: 'acct_1',
+            // What the person's column held before the rows: no longer read.
+            stripeConnectAccountId: 'acct_person_column',
           },
         },
       });
@@ -399,6 +421,7 @@ describe('MonetizationService', () => {
     });
 
     it('should throw if buyer is not found', async () => {
+      accounts.set('c-1', 'acct_1');
       mockPrismaService.story.findUnique.mockResolvedValue({
         id: 's-1',
         isPremium: true,
@@ -422,6 +445,7 @@ describe('MonetizationService', () => {
     });
 
     it('creates Checkout for story unlock with the 20% platform fee', async () => {
+      accounts.set('c-1', 'acct_1');
       mockPrismaService.story.findUnique.mockResolvedValue({
         id: 's-1',
         isPremium: true,
@@ -585,6 +609,7 @@ describe('MonetizationService', () => {
     });
 
     it('should throw if buyer is not found', async () => {
+      accounts.set('creator-user-1', 'acct_1');
       mockPrismaService.message.findUnique.mockResolvedValue({
         id: 'm-1',
         isLocked: true,
@@ -608,6 +633,7 @@ describe('MonetizationService', () => {
     });
 
     it('creates Checkout for locked message with 20% platform fee, using the creator User.id', async () => {
+      accounts.set('creator-user-1', 'acct_1');
       mockPrismaService.message.findUnique.mockResolvedValue({
         id: 'm-1',
         isLocked: true,
@@ -731,12 +757,8 @@ describe('MonetizationService', () => {
     });
 
     it('should throw if sender is not found', async () => {
-      mockPrismaService.user.findUnique
-        .mockResolvedValueOnce({
-          id: 'creator-1',
-          stripeConnectAccountId: 'acct_1',
-        })
-        .mockResolvedValueOnce(null);
+      accounts.set('creator-1', 'acct_1');
+      mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
 
       await expect(
         service.createTipSession(
@@ -749,16 +771,11 @@ describe('MonetizationService', () => {
     });
 
     it('creates Checkout with the requested amount and the platform fee', async () => {
-      mockPrismaService.user.findUnique
-        .mockResolvedValueOnce({
-          id: 'creator-1',
-          email: 'creator@example.com',
-          stripeConnectAccountId: 'acct_1',
-        })
-        .mockResolvedValueOnce({
-          id: 'fan-1',
-          email: 'fan@example.com',
-        });
+      accounts.set('creator-1', 'acct_1');
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
       mockStripeService.createCheckoutSession.mockResolvedValue({
         url: 'https://checkout.stripe.test/tip',
       });
@@ -805,16 +822,14 @@ describe('MonetizationService', () => {
     });
 
     it('pays the person behind the Profile tipped, and shows who pays the Profile, never an email', async () => {
+      accounts.set('creator-1', 'acct_1');
       mockPrismaService.profile.findUnique.mockResolvedValueOnce(
         tippable('creator-1', { id: 'hobby-profile', username: 'ana_hobby' }),
       );
-      mockPrismaService.user.findUnique
-        .mockResolvedValueOnce({
-          id: 'creator-1',
-          email: 'creator@example.com',
-          stripeConnectAccountId: 'acct_1',
-        })
-        .mockResolvedValueOnce({ id: 'fan-1', email: 'fan@example.com' });
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
       mockStripeService.createCheckoutSession.mockResolvedValue({
         url: 'https://checkout.stripe.test/tip',
       });
@@ -826,9 +841,11 @@ describe('MonetizationService', () => {
         'http://localhost/return',
       );
 
-      expect(mockPrismaService.user.findUnique).toHaveBeenNthCalledWith(1, {
-        where: { id: 'creator-1' },
-      });
+      // The account is the one of the person's row: the Profile tipped holds
+      // none of its own.
+      expect(mockPrismaService.monetization.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'creator-1' } }),
+      );
       const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
       expect(session.metadata.creatorId).toBe('creator-1');
       // The Profile tipped is kept with the tip.
@@ -882,15 +899,17 @@ describe('MonetizationService', () => {
     });
 
     it('tips a Profile whose suspension has ended', async () => {
+      accounts.set('creator-1', 'a');
       mockPrismaService.profile.findUnique.mockResolvedValueOnce(
         tippable('creator-1', {
           id: 'p-tipped',
           suspendedUntil: new Date(Date.now() - 1000),
         }),
       );
-      mockPrismaService.user.findUnique
-        .mockResolvedValueOnce({ id: 'creator-1', stripeConnectAccountId: 'a' })
-        .mockResolvedValueOnce({ id: 'fan-1', email: 'fan@example.com' });
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
       mockStripeService.createCheckoutSession.mockResolvedValue({ url: 'u' });
 
       await service.createTipSession('fan-1', 'p-tipped', tipCents, 'http://r');
@@ -920,6 +939,7 @@ describe('MonetizationService', () => {
     });
 
     it('takes a post only of the Profile tipped, or of the person named', async () => {
+      accounts.set('creator-1', 'a');
       mockPrismaService.profile.findUnique.mockResolvedValue(
         tippable('creator-1', { id: 'p-tipped' }),
       );
@@ -958,9 +978,10 @@ describe('MonetizationService', () => {
         profileId: 'p-other',
         profile: tippable('creator-1', { id: 'p-other' }),
       });
-      mockPrismaService.user.findUnique
-        .mockResolvedValueOnce({ id: 'creator-1', stripeConnectAccountId: 'a' })
-        .mockResolvedValueOnce({ id: 'fan-1', email: 'fan@example.com' });
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
       mockStripeService.createCheckoutSession.mockResolvedValue({ url: 'u' });
       await service.createTipSession(
         'fan-1',
@@ -1017,16 +1038,11 @@ describe('MonetizationService', () => {
     });
 
     it('creates Checkout with omitted postId defaulting to empty string in metadata', async () => {
-      mockPrismaService.user.findUnique
-        .mockResolvedValueOnce({
-          id: 'creator-1',
-          email: 'creator@example.com',
-          stripeConnectAccountId: 'acct_1',
-        })
-        .mockResolvedValueOnce({
-          id: 'fan-1',
-          email: 'fan@example.com',
-        });
+      accounts.set('creator-1', 'acct_1');
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
       mockStripeService.createCheckoutSession.mockResolvedValue({
         url: 'https://checkout.stripe.test/tip',
       });
@@ -1123,6 +1139,7 @@ describe('MonetizationService', () => {
     });
 
     it('should reuse existing accountId if already provisioned', async () => {
+      accounts.set('u-1', 'acct_existing');
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         email: 'u1@test.com',
@@ -1142,6 +1159,39 @@ describe('MonetizationService', () => {
       );
       expect(res.url).toBe('https://connect.stripe.com/onboard');
       expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
+      expect(mockPrismaService.monetization.upsert).not.toHaveBeenCalled();
+      expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
+        'acct_existing',
+        'http://ret',
+        'http://ref',
+      );
+    });
+
+    it('never opens a second account when the row lacks the one the person has, and repairs the row', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u-1',
+        email: 'u1@test.com',
+        stripeConnectAccountId: 'acct_existing',
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        accountType: 'CREATOR',
+      });
+      mockStripeService.createAccountLink.mockResolvedValue({
+        url: 'https://connect.stripe.com/onboard',
+      });
+
+      await service.onboardConnectAccount('u-1', 'http://ret', 'http://ref');
+
+      expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
+      // And the row gets the account it lacked.
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'u-1' },
+          update: expect.objectContaining({
+            stripeConnectAccountId: 'acct_existing',
+          }),
+        }),
+      );
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
         'acct_existing',
         'http://ret',
@@ -1150,6 +1200,7 @@ describe('MonetizationService', () => {
     });
 
     it('should catch errors from Stripe and wrap in BadRequest AppException', async () => {
+      accounts.set('u-1', 'acct_err');
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         email: 'u1@test.com',
@@ -1196,11 +1247,11 @@ describe('MonetizationService', () => {
     });
 
     it('should fetch Stripe account, upsert monetization and return active capabilities', async () => {
+      accounts.set('u-1', 'acct_active');
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         stripeConnectAccountId: 'acct_active',
       });
-      mockPrismaService.monetization.findUnique.mockResolvedValue(null);
       mockStripeService.getAccount.mockResolvedValue({
         capabilities: { transfers: 'active' },
         charges_enabled: true,
@@ -1214,20 +1265,10 @@ describe('MonetizationService', () => {
         chargesEnabled: true,
         detailsSubmitted: true,
       });
-      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
+      expect(mockPrismaService.monetization.update).toHaveBeenCalledWith({
         where: { userId: 'u-1' },
-        update: {
+        data: {
           profileId: 'creator-prof-1',
-          transfersEnabled: true,
-          chargesEnabled: true,
-          verifiedCompany: false,
-          stripeConnectAccountId: 'acct_active',
-        },
-        create: {
-          userId: 'u-1',
-          profileId: 'creator-prof-1',
-          // The person's own account, not one read through a Profile.
-          stripeConnectAccountId: 'acct_active',
           transfersEnabled: true,
           chargesEnabled: true,
           verifiedCompany: false,
@@ -1236,11 +1277,13 @@ describe('MonetizationService', () => {
     });
 
     it('should catch Stripe errors and fall back to cached monetization status', async () => {
+      accounts.set('u-1', 'acct_err');
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         stripeConnectAccountId: 'acct_err',
       });
       mockPrismaService.monetization.findUnique.mockResolvedValue({
+        stripeConnectAccountId: 'acct_err',
         transfersEnabled: true,
         chargesEnabled: false,
       });
@@ -1255,12 +1298,12 @@ describe('MonetizationService', () => {
       });
     });
 
-    it('should return default falsy cached values if cached record is null during Stripe error', async () => {
+    it('falls back to the flags last saved, off when none was ever saved, during a Stripe error', async () => {
+      accounts.set('u-1', 'acct_err');
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         stripeConnectAccountId: 'acct_err',
       });
-      mockPrismaService.monetization.findUnique.mockResolvedValue(null);
       mockStripeService.getAccount.mockRejectedValue(new Error('Stripe down'));
 
       const res = await service.getAccountStatus('u-1');
@@ -1292,6 +1335,7 @@ describe('MonetizationService', () => {
     });
 
     it('should create login link and return url', async () => {
+      accounts.set('u-1', 'acct_1');
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         stripeConnectAccountId: 'acct_1',
@@ -1325,6 +1369,7 @@ describe('MonetizationService', () => {
     });
 
     it('should return mapped balance and payouts including null arrival_date', async () => {
+      accounts.set('u-1', 'acct_1');
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         stripeConnectAccountId: 'acct_1',

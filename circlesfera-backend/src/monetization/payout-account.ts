@@ -58,9 +58,39 @@ export async function payoutAccountPlacement(
     db,
     userId,
   );
-  // Only what is known: an account already on the row is never emptied.
+  // Only what is known, and never over an account the row already holds.
   return {
     ...(profileId ? { profileId } : {}),
-    ...(stripeConnectAccountId ? { stripeConnectAccountId } : {}),
+    ...(stripeConnectAccountId && !row?.stripeConnectAccountId
+      ? { stripeConnectAccountId }
+      : {}),
   };
+}
+
+const PAYOUT_ROW = {
+  stripeConnectAccountId: true,
+  transfersEnabled: true,
+  verifiedCompany: true,
+} as const;
+
+/**
+ * The row of the payout account that money earned by a Profile goes to: the
+ * one the Profile holds, else its person's. While each person has one row
+ * they are the same; once each earning Profile opens its own account, the
+ * Profile's own is the one.
+ */
+export async function payoutRowForProfile(
+  db: Pick<Prisma.TransactionClient, 'monetization'>,
+  profile: { id: string; userId: string },
+) {
+  // One query at a time: inside a transaction there is one connection.
+  const own = await db.monetization.findUnique({
+    where: { profileId: profile.id },
+    select: PAYOUT_ROW,
+  });
+  if (own?.stripeConnectAccountId) return own;
+  return db.monetization.findUnique({
+    where: { userId: profile.userId },
+    select: PAYOUT_ROW,
+  });
 }

@@ -49,6 +49,7 @@ describe('MonetizationWebhookService', () => {
             },
             monetization: {
               upsert: vi.fn(),
+              update: vi.fn(),
               findUnique: vi.fn().mockResolvedValue(null),
             },
             stripePayoutLog: { upsert: vi.fn() },
@@ -982,8 +983,22 @@ describe('MonetizationWebhookService', () => {
   });
 
   describe('handleAccountUpdated', () => {
+    const holdsAccount = () =>
+      prisma.monetization.findUnique.mockImplementation(
+        async ({ where }: { where: { stripeConnectAccountId?: string } }) =>
+          where.stripeConnectAccountId
+            ? { userId: 'creator1' }
+            : { profileId: 'creator-prof-1', stripeConnectAccountId: 'acct_1' },
+      );
+
+    it('leaves an account no row holds alone', async () => {
+      await service.handleAccountUpdated({ id: 'acct_unknown' });
+      expect(prisma.monetization.update).not.toHaveBeenCalled();
+    });
+
     it('syncs Connect capability flags for the linked user', async () => {
-      prisma.user.findFirst = vi.fn().mockResolvedValue({ id: 'creator1' });
+      // The row holding the account, found by it.
+      holdsAccount();
 
       await service.handleAccountUpdated({
         id: 'acct_1',
@@ -991,25 +1006,25 @@ describe('MonetizationWebhookService', () => {
         capabilities: { transfers: 'active' },
       });
 
-      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
+      expect(prisma.monetization.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { userId: 'creator1' },
-          update: expect.objectContaining({
-            transfersEnabled: true,
-            chargesEnabled: true,
-            stripeConnectAccountId: 'acct_1',
-          }),
-          create: expect.objectContaining({
-            profileId: 'creator-prof-1',
-            // The account the provider wrote about.
-            stripeConnectAccountId: 'acct_1',
-          }),
+          where: { stripeConnectAccountId: 'acct_1' },
         }),
       );
+      // The row keeps its Profile and its account.
+      expect(prisma.monetization.update).toHaveBeenCalledWith({
+        where: { stripeConnectAccountId: 'acct_1' },
+        data: {
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: false,
+        },
+      });
     });
 
     it('records a company the provider has finished verifying', async () => {
-      prisma.user.findFirst = vi.fn().mockResolvedValue({ id: 'creator1' });
+      // The row holding the account, found by it.
+      holdsAccount();
 
       await service.handleAccountUpdated({
         id: 'acct_1',
@@ -1020,15 +1035,16 @@ describe('MonetizationWebhookService', () => {
         requirements: { currently_due: [], disabled_reason: null },
       });
 
-      expect(prisma.monetization.upsert).toHaveBeenLastCalledWith(
+      expect(prisma.monetization.update).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          update: expect.objectContaining({ verifiedCompany: true }),
+          data: expect.objectContaining({ verifiedCompany: true }),
         }),
       );
     });
 
     it('does not record the account of a person as a company', async () => {
-      prisma.user.findFirst = vi.fn().mockResolvedValue({ id: 'creator1' });
+      // The row holding the account, found by it.
+      holdsAccount();
 
       await service.handleAccountUpdated({
         id: 'acct_1',
@@ -1038,9 +1054,9 @@ describe('MonetizationWebhookService', () => {
         details_submitted: true,
       });
 
-      expect(prisma.monetization.upsert).toHaveBeenLastCalledWith(
+      expect(prisma.monetization.update).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          update: expect.objectContaining({ verifiedCompany: false }),
+          data: expect.objectContaining({ verifiedCompany: false }),
         }),
       );
     });
@@ -1048,9 +1064,9 @@ describe('MonetizationWebhookService', () => {
 
   describe('syncConnectPayoutLog', () => {
     it('upserts StripePayoutLog on a paid payout, with the Profile holding the account', async () => {
-      prisma.user.findFirst = vi.fn().mockResolvedValue({
-        id: 'creator1',
-        monetization: { profileId: 'creator-prof-1' },
+      prisma.monetization.findUnique.mockResolvedValue({
+        userId: 'creator1',
+        profileId: 'creator-prof-1',
       });
       prisma.stripePayoutLog.upsert = vi.fn().mockResolvedValue({});
 
@@ -1087,7 +1103,10 @@ describe('MonetizationWebhookService', () => {
     });
 
     it('maps in_transit payouts to pending and skips unknown Connect accounts', async () => {
-      prisma.user.findFirst = vi.fn().mockResolvedValueOnce({ id: 'creator1' });
+      prisma.monetization.findUnique.mockResolvedValueOnce({
+        userId: 'creator1',
+        profileId: null,
+      });
 
       await service.syncConnectPayoutLog({
         account: 'acct_1',
@@ -1112,7 +1131,7 @@ describe('MonetizationWebhookService', () => {
         }),
       );
 
-      prisma.user.findFirst = vi.fn().mockResolvedValueOnce(null);
+      prisma.monetization.findUnique.mockResolvedValueOnce(null);
       prisma.stripePayoutLog.upsert = vi.fn();
       await service.syncConnectPayoutLog({
         account: 'acct_unknown',

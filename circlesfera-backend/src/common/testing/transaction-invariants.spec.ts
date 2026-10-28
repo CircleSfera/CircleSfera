@@ -54,6 +54,10 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         platformFeeLedger: {
           create: vi.fn(),
         },
+        // The rows of earnings: no payout account unless a test gives one.
+        monetization: {
+          findUnique: vi.fn().mockResolvedValue(null),
+        },
       };
 
       mockStripeService = {
@@ -130,13 +134,13 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
 
     it('enforces 20% platform fee calculation and transfers 80% to creator', async () => {
       const tipAmountCents = 1000;
-      mockPrisma.user.findUnique
-        .mockResolvedValueOnce({
-          id: 'creator-1',
-          email: 'creator@sfera.com',
-          stripeConnectAccountId: 'acct_creator_123',
-        })
-        .mockResolvedValueOnce({ id: 'sender-1', email: 'sender@sfera.com' });
+      mockPrisma.monetization.findUnique.mockResolvedValue({
+        stripeConnectAccountId: 'acct_creator_123',
+      });
+      mockPrisma.user.findUnique.mockResolvedValueOnce({
+        id: 'sender-1',
+        email: 'sender@sfera.com',
+      });
 
       mockStripeService.createCheckoutSession.mockResolvedValue({
         id: 'cs_test_tip',
