@@ -12,6 +12,15 @@ export const MAX_PPV_PRICE_CENTS = 50000; // €500.00
 // amounts would lose money on every payment (owner decision: €2).
 export const MIN_TIP_CENTS = 200; // €2.00
 
+// When the provider pays a creator's balance out to their bank: on its own,
+// once a week, on Monday (owner decision). Each payout and each account paid
+// out in a month cost the platform a fee, so a daily schedule could cost more
+// than it earns from a small creator.
+export const CREATOR_PAYOUT_SCHEDULE = {
+  interval: 'weekly',
+  weekly_anchor: 'monday',
+} as const;
+
 // Cost charged against a promotion budget per sponsored view (1 cent).
 export const PROMOTION_COST_PER_VIEW_CENTS = 1;
 

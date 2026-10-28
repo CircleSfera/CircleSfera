@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+import { CREATOR_PAYOUT_SCHEDULE } from '../constants/monetization.constants.js';
 import { stripeWebhookSecrets } from './stripe-webhook-secrets.js';
 
 // A Stripe Payment Method Configuration id (pmc_...).
@@ -274,6 +275,7 @@ export class StripeService implements OnModuleInit {
       capabilities: {
         transfers: { requested: true },
       },
+      settings: { payouts: { schedule: CREATOR_PAYOUT_SCHEDULE } },
     });
   }
 
