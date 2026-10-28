@@ -1,7 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { monetizationApi } from '../../services/monetization.service';
-import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import MonetizationDashboard from './MonetizationDashboard';
 
@@ -14,18 +13,14 @@ vi.mock('../../services/monetization.service', () => ({
   },
 }));
 
-vi.mock('../../stores/authStore', () => ({
-  useAuthStore: vi.fn(),
-}));
-
-// The dashboard reads the profile through a selector, as the real store does.
+// Whether a payout account is connected comes with the person's earnings,
+// as the server answers it.
 function signInAs(stripeConnectAccountId: string | null) {
-  vi.mocked(useAuthStore).mockImplementation(((
-    selector: (state: unknown) => unknown,
-  ) =>
-    selector({
-      profile: { user: { stripeConnectAccountId } },
-    })) as never);
+  vi.mocked(monetizationApi.getMonetization).mockResolvedValue({
+    userId: 'user-1',
+    lifetimeEarningsCents: 0,
+    hasStripeAccount: !!stripeConnectAccountId,
+  });
 }
 
 describe('MonetizationDashboard', () => {
@@ -34,10 +29,6 @@ describe('MonetizationDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     signInAs(null);
-    vi.mocked(monetizationApi.getMonetization).mockResolvedValue({
-      userId: 'user-1',
-      lifetimeEarningsCents: 0,
-    });
     vi.mocked(monetizationApi.getFinancialSummary).mockResolvedValue({
       currentMonthIncome: 0,
       totalTips: 0,
@@ -231,6 +222,14 @@ describe('MonetizationDashboard', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Propina')).toBeInTheDocument();
     expect(screen.getByText('Suscripción')).toBeInTheDocument();
+  });
+
+  it('asks for the payouts only when a payout account is connected', async () => {
+    const { i18n } = renderDashboard();
+    expect(
+      await screen.findByText(i18n!.t('creator.income.no_transactions')),
+    ).toBeInTheDocument();
+    expect(monetizationApi.getPayouts).not.toHaveBeenCalled();
   });
 
   it('shows an empty state when there are no transactions', async () => {
