@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LiveRecording } from '../../services/liveRecordings';
@@ -79,6 +80,46 @@ describe('ProfileLives', () => {
       await screen.findByRole('button', { name: /try again|retry/i }),
     ).toBeInTheDocument();
     expect(screen.queryByText('No lives yet')).not.toBeInTheDocument();
+  });
+
+  it('announces that the lives are loading', async () => {
+    api.listPublished.mockReturnValue(new Promise(() => {}));
+    renderWithProviders(<ProfileLives profileId="p2" isMe={false} />);
+    expect(await screen.findByRole('status')).toHaveTextContent('Loading...');
+  });
+
+  it('says there is no connection when opened offline, instead of saying there are none', async () => {
+    onlineManager.setOnline(false);
+    try {
+      renderWithProviders(<ProfileLives profileId="p2" isMe={false} />);
+      expect(
+        await screen.findByText('No internet connection'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('No lives yet')).not.toBeInTheDocument();
+    } finally {
+      onlineManager.setOnline(true);
+    }
+  });
+
+  it('keeps the lives shown when the next page cannot be loaded', async () => {
+    api.listPublished
+      .mockResolvedValueOnce({ data: [recording()], nextCursor: 's1' })
+      .mockRejectedValueOnce(new Error('down'));
+    renderWithProviders(<ProfileLives profileId="p2" isMe={false} />);
+    await screen.findByRole('button', { name: 'Play Morning chat' });
+    fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    await waitFor(() => expect(api.listPublished).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Show more' }),
+      ).not.toBeDisabled(),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Play Morning chat' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /try again|retry/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('loads the next page when asked', async () => {

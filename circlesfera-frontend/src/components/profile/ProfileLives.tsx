@@ -187,9 +187,17 @@ export default function ProfileLives({ profileId, isMe }: ProfileLivesProps) {
           </h2>
         )}
         {published.isLoading ? (
-          <LoadingSpinner />
-        ) : published.isError ? (
-          <ErrorState onRetry={() => void published.refetch()} />
+          <div role="status" className="flex justify-center py-16">
+            <LoadingSpinner />
+            <span className="sr-only">{t('common.loading')}</span>
+          </div>
+        ) : lives.length === 0 && (published.isError || published.isPaused) ? (
+          // Recordings already shown stay when a later page or a refresh
+          // fails; with none shown yet, the tab says it could not load them.
+          <ErrorState
+            message={published.isPaused ? t('common.offline') : undefined}
+            onRetry={() => void published.refetch()}
+          />
         ) : lives.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <Radio size={32} className="text-white/40" aria-hidden="true" />
