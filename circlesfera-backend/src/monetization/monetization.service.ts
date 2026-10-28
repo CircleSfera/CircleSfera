@@ -622,6 +622,7 @@ export class MonetizationService {
         create: {
           userId,
           ...(await payoutAccountOf(this.prisma, userId)),
+          stripeConnectAccountId: user.stripeConnectAccountId,
           transfersEnabled,
           chargesEnabled,
           verifiedCompany,

@@ -867,6 +867,7 @@ export class MonetizationWebhookService {
         failureReason,
       },
       update: {
+        profileId: user.monetization?.profileId ?? null,
         amountCents: payout.amount ?? 0,
         currency,
         status,
@@ -902,6 +903,7 @@ export class MonetizationWebhookService {
         create: {
           userId: user.id,
           ...(await payoutAccountOf(this.prisma, user.id)),
+          stripeConnectAccountId: account.id,
           transfersEnabled,
           chargesEnabled,
           verifiedCompany,

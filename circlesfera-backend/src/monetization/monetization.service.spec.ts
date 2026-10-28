@@ -1222,7 +1222,8 @@ describe('MonetizationService', () => {
         create: {
           userId: 'u-1',
           profileId: 'creator-prof-1',
-          stripeConnectAccountId: 'acct_creator',
+          // The person's own account, not one read through a Profile.
+          stripeConnectAccountId: 'acct_active',
           transfersEnabled: true,
           chargesEnabled: true,
           verifiedCompany: false,

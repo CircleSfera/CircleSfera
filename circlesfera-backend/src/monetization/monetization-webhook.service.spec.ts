@@ -962,7 +962,8 @@ describe('MonetizationWebhookService', () => {
           }),
           create: expect.objectContaining({
             profileId: 'creator-prof-1',
-            stripeConnectAccountId: 'acct_creator',
+            // The account the provider wrote about.
+            stripeConnectAccountId: 'acct_1',
           }),
         }),
       );
@@ -1038,6 +1039,7 @@ describe('MonetizationWebhookService', () => {
             status: 'paid',
           }),
           update: expect.objectContaining({
+            profileId: 'creator-prof-1',
             status: 'paid',
             amountCents: 2500,
           }),
