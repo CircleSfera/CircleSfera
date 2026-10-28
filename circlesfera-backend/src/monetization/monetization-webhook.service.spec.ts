@@ -25,8 +25,22 @@ describe('MonetizationWebhookService', () => {
             postUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
             storyUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
             messageUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
+            // What was paid for, by the Profile creator-prof-1 of the
+            // person creator1.
             message: {
-              findUnique: vi.fn().mockResolvedValue({ id: 'msg1' }),
+              findUnique: vi
+                .fn()
+                .mockResolvedValue({ id: 'msg1', senderId: 'creator-prof-1' }),
+            },
+            post: {
+              findUnique: vi
+                .fn()
+                .mockResolvedValue({ profileId: 'creator-prof-1' }),
+            },
+            story: {
+              findUnique: vi
+                .fn()
+                .mockResolvedValue({ profileId: 'creator-prof-1' }),
             },
             transaction: {
               create: vi.fn(),
@@ -131,6 +145,7 @@ describe('MonetizationWebhookService', () => {
             type: 'DIRECT_POST_UNLOCK',
             senderId: 'buyer1',
             receiverId: 'creator1',
+            receiverProfileId: 'creator-prof-1',
             postId: 'post1',
           }),
         }),
@@ -265,6 +280,34 @@ describe('MonetizationWebhookService', () => {
       );
     });
 
+    it('keeps an unlock whose post was deleted since the payment, without its Profile', async () => {
+      prisma.post.findUnique = vi.fn().mockResolvedValue(null);
+      const session = {
+        id: 'cs_unlock_2',
+        client_reference_id: 'buyer1',
+        amount_total: 1000,
+        currency: 'eur',
+        payment_intent: 'pi_gone',
+        metadata: {
+          type: 'DIRECT_POST_UNLOCK',
+          postId: 'post-gone',
+          creatorId: 'creator1',
+        },
+      } as any;
+
+      await service.handleCheckoutSessionCompleted(session);
+
+      expect(prisma.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            receiverId: 'creator1',
+            receiverProfileId: null,
+            postId: 'post-gone',
+          }),
+        }),
+      );
+    });
+
     it('processes a DIRECT_STORY_UNLOCK checkout', async () => {
       const session = {
         id: 'cs_story_1',
@@ -290,6 +333,7 @@ describe('MonetizationWebhookService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             type: 'DIRECT_STORY_UNLOCK',
+            receiverProfileId: 'creator-prof-1',
             storyId: 'story1',
             stripePaymentIntentId: 'pi_story_1',
           }),
@@ -337,6 +381,7 @@ describe('MonetizationWebhookService', () => {
       expect(prisma.transaction.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           messageId: 'msg1',
+          receiverProfileId: 'creator-prof-1',
           status: 'COMPLETED',
         }),
       });
@@ -398,7 +443,7 @@ describe('MonetizationWebhookService', () => {
 
           expect(prisma.message.findUnique).toHaveBeenCalledWith({
             where: { id: 'msg_gone' },
-            select: { id: true, isDeleted: true },
+            select: { id: true, isDeleted: true, senderId: true },
           });
           expect(prisma.transaction.create).toHaveBeenCalledWith({
             data: {

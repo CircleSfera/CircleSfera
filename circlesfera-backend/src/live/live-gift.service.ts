@@ -202,7 +202,8 @@ export class LiveGiftService {
               liveGiftId: pendingGift.id,
               streamId,
               giftId,
-              creatorId: stream.hostId,
+              // The person paid: the host's Profile is the broadcast's host.
+              creatorId: stream.host.userId,
             },
             success_url: appendCheckoutQuery(
               returnUrl,
@@ -289,10 +290,19 @@ export class LiveGiftService {
         where: { id: params.senderId },
         select: { id: true },
       });
-      const creator = await tx.user.findUnique({
-        where: { id: params.creatorId },
-        select: { id: true },
+      // Who earned the gift comes from the broadcast, not from the checkout's
+      // metadata: that named the host's Profile, which is no person. A
+      // broadcast whose host was erased since is gone with it.
+      const stream = await tx.liveStream.findUnique({
+        where: { id: params.streamId },
+        select: { hostId: true, host: { select: { userId: true } } },
       });
+      const creator = stream
+        ? await tx.user.findUnique({
+            where: { id: stream.host.userId },
+            select: { id: true },
+          })
+        : null;
 
       const transaction = await tx.transaction.create({
         data: {
@@ -301,6 +311,7 @@ export class LiveGiftService {
           currency: params.currency.toUpperCase(),
           senderId: sender?.id ?? null,
           receiverId: creator?.id ?? null,
+          receiverProfileId: stream?.hostId ?? null,
           liveStreamId: params.streamId,
           stripePaymentIntentId: params.paymentIntentId,
           status: 'COMPLETED',
@@ -337,7 +348,7 @@ export class LiveGiftService {
         });
       }
 
-      return gift;
+      return { gift, receiverId: creator?.id ?? null };
     });
 
     this.gateway.server.to(`live:${params.streamId}`).emit('live:gift', {
@@ -347,8 +358,8 @@ export class LiveGiftService {
       senderId: params.senderId,
       senderUsername: existing.sender?.profiles[0]?.username,
       senderAvatar: existing.sender?.profiles[0]?.avatar,
-      receiverId: params.creatorId,
-      liveGiftId: result.id,
+      receiverId: result.receiverId,
+      liveGiftId: result.gift.id,
       sentAt: new Date().toISOString(),
     });
 

@@ -192,6 +192,12 @@ export class MonetizationWebhookService {
             },
           });
 
+          // The Profile that earned it: the post's author, while the post
+          // exists.
+          const post = await tx.post.findUnique({
+            where: { id: postId },
+            select: { profileId: true },
+          });
           await tx.transaction.create({
             data: {
               type: 'DIRECT_POST_UNLOCK',
@@ -199,6 +205,7 @@ export class MonetizationWebhookService {
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
+              receiverProfileId: post?.profileId ?? null,
               postId: postId,
               stripePaymentIntentId:
                 typeof session.payment_intent === 'string'
@@ -257,6 +264,10 @@ export class MonetizationWebhookService {
             },
           });
 
+          const story = await tx.story.findUnique({
+            where: { id: storyId },
+            select: { profileId: true },
+          });
           await tx.transaction.create({
             data: {
               type: 'DIRECT_STORY_UNLOCK',
@@ -264,6 +275,7 @@ export class MonetizationWebhookService {
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
+              receiverProfileId: story?.profileId ?? null,
               storyId,
               stripePaymentIntentId:
                 typeof session.payment_intent === 'string'
@@ -304,7 +316,7 @@ export class MonetizationWebhookService {
         // gets the money back.
         const message = await this.prisma.message.findUnique({
           where: { id: messageId },
-          select: { id: true, isDeleted: true },
+          select: { id: true, isDeleted: true, senderId: true },
         });
         if (!message || message.isDeleted) {
           await this.refundUnlockOfMissingMessage(session, {
@@ -336,6 +348,8 @@ export class MonetizationWebhookService {
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
+              // The Profile that sent the paid message.
+              receiverProfileId: message.senderId,
               messageId,
               stripePaymentIntentId:
                 typeof session.payment_intent === 'string'
