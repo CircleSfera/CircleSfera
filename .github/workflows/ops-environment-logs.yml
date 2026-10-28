@@ -30,7 +30,7 @@ on:
         default: '30'
         type: string
       filter:
-        description: Only lines containing this text (letters, digits, spaces, . _ - : /), optional
+        description: 'Only lines containing this text (letters, digits, spaces, . _ - : /), optional'
         required: false
         default: ''
         type: string
@@ -94,5 +94,7 @@ jobs:
               | sed -E \
                   -e 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[jwt]/g' \
                   -e 's/(Bearer|Basic) [A-Za-z0-9._~+\/=-]+/\1 [hidden]/Ig' \
-                  -e 's/((access_token|token|secret|password|api_key|apikey|key|cookie|authorization)["'"'"']?[=: ]+["'"'"']?)[^ ,"'"'"'&]+/\1[hidden]/Ig' \
+                  -e 's/((access_token|token|secret|password|api_key|apikey|key|cookie|authorization)["'"'"']?[=: ]+)"[^"]*"/\1"[hidden]"/Ig' \
+                  -e "s/((access_token|token|secret|password|api_key|apikey|key|cookie|authorization)[\"']?[=: ]+)'[^']*'/\1'[hidden]'/Ig" \
+                  -e 's/((access_token|token|secret|password|api_key|apikey|key|cookie|authorization)["'"'"']?[=: ]+)[^ ,"'"'"'&\[]+/\1[hidden]/Ig' \
               | tail -n 400
