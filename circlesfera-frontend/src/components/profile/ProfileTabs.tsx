@@ -11,6 +11,10 @@ interface ProfileTabsProps {
   canView: boolean;
 }
 
+// The Lives tab shows only where broadcasts are recorded (set at build
+// time with VITE_LIVE_RECORDING_ENABLED); elsewhere it would always be empty.
+const LIVES_TAB_SHOWN = import.meta.env.VITE_LIVE_RECORDING_ENABLED === 'true';
+
 const TABS = [
   { id: 'posts', icon: Grid, onlyMine: false },
   { id: 'frames', icon: Clapperboard, onlyMine: false },
@@ -31,7 +35,10 @@ export default function ProfileTabs({
 
   return (
     <div className="flex justify-center gap-1 mb-3 md:mb-6 p-1 bg-black/40 backdrop-blur-xl rounded-full border border-white/8 w-fit max-w-full mx-auto">
-      {TABS.filter((tab) => isMe || !tab.onlyMine).map(({ id, icon: Icon }) => {
+      {TABS.filter(
+        (tab) =>
+          (isMe || !tab.onlyMine) && (tab.id !== 'lives' || LIVES_TAB_SHOWN),
+      ).map(({ id, icon: Icon }) => {
         const isActive = activeTab === id;
         return (
           <button
