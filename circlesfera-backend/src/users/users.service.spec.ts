@@ -9,7 +9,7 @@ import {
   VerificationLevel,
   Visibility,
 } from '@prisma/client';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
@@ -181,6 +181,56 @@ describe('UsersService', () => {
         in: ['my-profile'],
       });
       expect(suggestionCall.take).toBe(limit);
+    });
+
+    it.each([
+      [false, 'a real account'],
+      [true, 'a Test Account'],
+    ])('suggests only accounts of the audience of %s (%s)', async (isTest) => {
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        isTestAccount: isTest,
+      });
+      mockPrismaService.profile.findMany
+        .mockResolvedValueOnce([{ id: 'my-profile' }])
+        .mockResolvedValueOnce([]);
+
+      await service.getSuggestions('1');
+
+      const where = (
+        vi.mocked(mockPrismaService.profile.findMany).mock.calls[1][0] as any
+      ).where;
+      expect(where.user).toMatchObject({ isTestAccount: isTest });
+    });
+
+    it('suggests no banned, suspended, closed or deactivated account', async () => {
+      const now = new Date('2026-10-28T12:00:00Z');
+      vi.useFakeTimers({ now });
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        isTestAccount: false,
+      });
+      mockPrismaService.profile.findMany
+        .mockResolvedValueOnce([{ id: 'my-profile' }])
+        .mockResolvedValueOnce([]);
+
+      await service.getSuggestions('1');
+
+      const where = (
+        vi.mocked(mockPrismaService.profile.findMany).mock.calls[1][0] as any
+      ).where;
+      expect(where.isAccountBanned).toBe(false);
+      expect(where.OR).toEqual([
+        { suspendedUntil: null },
+        { suspendedUntil: { lt: now } },
+      ]);
+      expect(where.user).toMatchObject({
+        isActive: true,
+        deactivatedAt: null,
+        deletedAt: null,
+        isRootBanned: false,
+      });
     });
   });
 
