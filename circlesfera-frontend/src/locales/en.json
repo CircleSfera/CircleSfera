@@ -1463,8 +1463,19 @@
     "tabs": {
       "posts": "Posts",
       "frames": "Frames",
+      "lives": "Lives",
       "saved": "Saved",
       "tagged": "Tagged"
+    },
+    "lives": {
+      "archive_title": "Your archive",
+      "archive_desc": "Only you can see these recordings. Publish them or they are deleted when their days run out.",
+      "published_title": "On your profile",
+      "days_left_one": "{{count}} day left",
+      "days_left_other": "{{count}} days left",
+      "empty": "No lives yet",
+      "empty_desc": "Lives you publish after they end appear here.",
+      "more": "Show more"
     },
     "stats": {
       "posts": "Posts",
@@ -4896,6 +4907,28 @@
     "viewers": "Viewers",
     "likes": "Likes",
     "close_summary": "Close",
+    "recording": {
+      "title": "Recording of the live",
+      "untitled": "Live",
+      "player_label": "Recording of the live",
+      "play": "Play {{title}}",
+      "preparing": "Your recording is being prepared. You can choose what to do with it here or later in the Lives tab of your profile.",
+      "preparing_short": "Preparing",
+      "ready_one": "Your recording is ready. If you do nothing, it stays only for you for {{count}} day and is then deleted.",
+      "ready_other": "Your recording is ready. If you do nothing, it stays only for you for {{count}} days and is then deleted.",
+      "publish": "Publish on my profile",
+      "publish_short": "Publish",
+      "delete_short": "Delete",
+      "delete": "Delete recording",
+      "delete_confirm_title": "Delete this recording?",
+      "delete_confirm_message": "It disappears from your profile and your archive. You can’t undo this.",
+      "published": "Published on your profile.",
+      "deleted": "Recording deleted.",
+      "publish_failed": "The recording couldn’t be published. Try again.",
+      "delete_failed": "The recording couldn’t be deleted. Try again.",
+      "not_recorded_limit": "This live wasn’t recorded: too many lives were being recorded at the same time.",
+      "not_recorded_failed": "This live couldn’t be recorded."
+    },
     "goal": {
       "add": "Add goal",
       "target_prompt": "Enter the target amount (e.g. 1000):",

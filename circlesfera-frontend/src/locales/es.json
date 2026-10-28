@@ -1463,8 +1463,19 @@
     "tabs": {
       "posts": "Publicaciones",
       "frames": "Frames",
+      "lives": "Directos",
       "saved": "Guardado",
       "tagged": "Etiquetado"
+    },
+    "lives": {
+      "archive_title": "Tu archivo",
+      "archive_desc": "Solo tú ves estas grabaciones. Publícalas o se eliminarán cuando se acaben sus días.",
+      "published_title": "En tu perfil",
+      "days_left_one": "Queda {{count}} día",
+      "days_left_other": "Quedan {{count}} días",
+      "empty": "Aún no hay directos",
+      "empty_desc": "Aquí aparecen los directos que publicas cuando terminan.",
+      "more": "Ver más"
     },
     "stats": {
       "posts": "Publicaciones",
@@ -4896,6 +4907,28 @@
     "viewers": "Espectadores",
     "likes": "Me gusta",
     "close_summary": "Cerrar",
+    "recording": {
+      "title": "Grabación del directo",
+      "untitled": "Directo",
+      "player_label": "Grabación del directo",
+      "play": "Reproducir {{title}}",
+      "preparing": "Estamos preparando tu grabación. Puedes decidir qué hacer con ella aquí o más tarde en la pestaña Directos de tu perfil.",
+      "preparing_short": "Preparando",
+      "ready_one": "Tu grabación está lista. Si no haces nada, se guarda solo para ti {{count}} día y después se elimina.",
+      "ready_other": "Tu grabación está lista. Si no haces nada, se guarda solo para ti {{count}} días y después se elimina.",
+      "publish": "Publicar en mi perfil",
+      "publish_short": "Publicar",
+      "delete_short": "Eliminar",
+      "delete": "Eliminar grabación",
+      "delete_confirm_title": "¿Eliminar esta grabación?",
+      "delete_confirm_message": "Desaparece de tu perfil y de tu archivo. No se puede deshacer.",
+      "published": "Publicada en tu perfil.",
+      "deleted": "Grabación eliminada.",
+      "publish_failed": "No se ha podido publicar la grabación. Inténtalo de nuevo.",
+      "delete_failed": "No se ha podido eliminar la grabación. Inténtalo de nuevo.",
+      "not_recorded_limit": "Este directo no se ha grabado: se estaban grabando demasiados directos a la vez.",
+      "not_recorded_failed": "No se ha podido grabar este directo."
+    },
     "goal": {
       "add": "Añadir objetivo",
       "target_prompt": "Ingresa el monto objetivo (ej. 1000):",

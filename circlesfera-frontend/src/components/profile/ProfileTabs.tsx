@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { Bookmark, Clapperboard, Grid, UserSquare2 } from 'lucide-react';
+import { Bookmark, Clapperboard, Grid, Radio, UserSquare2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { LIVES_TAB_SHOWN, type TabType } from './profileTabUtils';
 
-export type TabType = 'posts' | 'frames' | 'saved' | 'tagged';
+export type { TabType };
 
 interface ProfileTabsProps {
   activeTab: TabType;
@@ -14,6 +15,7 @@ interface ProfileTabsProps {
 const TABS = [
   { id: 'posts', icon: Grid, onlyMine: false },
   { id: 'frames', icon: Clapperboard, onlyMine: false },
+  { id: 'lives', icon: Radio, onlyMine: false },
   { id: 'saved', icon: Bookmark, onlyMine: true },
   { id: 'tagged', icon: UserSquare2, onlyMine: false },
 ] as const;
@@ -30,7 +32,10 @@ export default function ProfileTabs({
 
   return (
     <div className="flex justify-center gap-1 mb-3 md:mb-6 p-1 bg-black/40 backdrop-blur-xl rounded-full border border-white/8 w-fit max-w-full mx-auto">
-      {TABS.filter((tab) => isMe || !tab.onlyMine).map(({ id, icon: Icon }) => {
+      {TABS.filter(
+        (tab) =>
+          (isMe || !tab.onlyMine) && (tab.id !== 'lives' || LIVES_TAB_SHOWN),
+      ).map(({ id, icon: Icon }) => {
         const isActive = activeTab === id;
         return (
           <button
