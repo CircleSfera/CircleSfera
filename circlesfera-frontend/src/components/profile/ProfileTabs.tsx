@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { Bookmark, Clapperboard, Grid, Radio, UserSquare2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { LIVES_TAB_SHOWN } from './profileTabUtils';
+import { LIVES_TAB_SHOWN, type TabType } from './profileTabUtils';
 
-export type TabType = 'posts' | 'frames' | 'lives' | 'saved' | 'tagged';
+export type { TabType };
 
 interface ProfileTabsProps {
   activeTab: TabType;

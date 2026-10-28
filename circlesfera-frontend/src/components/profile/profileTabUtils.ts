@@ -1,4 +1,4 @@
-import type { TabType } from './ProfileTabs';
+export type TabType = 'posts' | 'frames' | 'lives' | 'saved' | 'tagged';
 
 // The Lives tab shows only where broadcasts are recorded (set at build time
 // with VITE_LIVE_RECORDING_ENABLED); elsewhere it would always be empty.
