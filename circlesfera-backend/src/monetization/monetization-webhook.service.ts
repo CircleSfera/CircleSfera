@@ -18,7 +18,7 @@ import {
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { payoutAccountOf } from './payout-account.js';
+import { payoutAccountPlacement } from './payout-account.js';
 
 // Stripe Checkout Session metadata.type values fulfilled here rather than
 // by PaymentsService's platform-subscription branch. STRIPE_SUBSCRIPTION is
@@ -217,16 +217,18 @@ export class MonetizationWebhookService {
             },
           });
 
+          const placed = await payoutAccountPlacement(tx, creatorId);
           await tx.monetization.upsert({
             where: { userId: creatorId },
             update: {
+              ...placed,
               lifetimeEarningsCents: {
                 increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
               },
             },
             create: {
               userId: creatorId,
-              ...(await payoutAccountOf(tx, creatorId)),
+              ...placed,
               lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
             },
           });
@@ -288,16 +290,18 @@ export class MonetizationWebhookService {
             },
           });
 
+          const placed = await payoutAccountPlacement(tx, creatorId);
           await tx.monetization.upsert({
             where: { userId: creatorId },
             update: {
+              ...placed,
               lifetimeEarningsCents: {
                 increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
               },
             },
             create: {
               userId: creatorId,
-              ...(await payoutAccountOf(tx, creatorId)),
+              ...placed,
               lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
             },
           });
@@ -363,16 +367,18 @@ export class MonetizationWebhookService {
             },
           });
 
+          const placed = await payoutAccountPlacement(tx, creatorId);
           await tx.monetization.upsert({
             where: { userId: creatorId },
             update: {
+              ...placed,
               lifetimeEarningsCents: {
                 increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
               },
             },
             create: {
               userId: creatorId,
-              ...(await payoutAccountOf(tx, creatorId)),
+              ...placed,
               lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
             },
           });
@@ -425,16 +431,18 @@ export class MonetizationWebhookService {
             },
           });
 
+          const placed = await payoutAccountPlacement(tx, creatorId);
           await tx.monetization.upsert({
             where: { userId: creatorId },
             update: {
+              ...placed,
               lifetimeEarningsCents: {
                 increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
               },
             },
             create: {
               userId: creatorId,
-              ...(await payoutAccountOf(tx, creatorId)),
+              ...placed,
               lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
             },
           });
@@ -892,9 +900,11 @@ export class MonetizationWebhookService {
       const { transfersEnabled, chargesEnabled } =
         deriveConnectAccountFlags(account);
       const verifiedCompany = isVerifiedCompanyAccount(account);
+      const placed = await payoutAccountPlacement(this.prisma, user.id);
       await this.prisma.monetization.upsert({
         where: { userId: user.id },
         update: {
+          ...placed,
           transfersEnabled,
           chargesEnabled,
           verifiedCompany,
@@ -902,7 +912,7 @@ export class MonetizationWebhookService {
         },
         create: {
           userId: user.id,
-          ...(await payoutAccountOf(this.prisma, user.id)),
+          ...placed,
           stripeConnectAccountId: account.id,
           transfersEnabled,
           chargesEnabled,

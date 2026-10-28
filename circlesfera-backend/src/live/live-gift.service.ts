@@ -12,7 +12,7 @@ import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
-import { payoutAccountOf } from '../monetization/payout-account.js';
+import { payoutAccountPlacement } from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import {
@@ -335,16 +335,18 @@ export class LiveGiftService {
       // Only credit earnings when the creator still exists; there is nowhere
       // to attribute them otherwise (Monetization.userId is a required FK).
       if (creator) {
+        const placed = await payoutAccountPlacement(tx, creator.id);
         await tx.monetization.upsert({
           where: { userId: creator.id },
           update: {
+            ...placed,
             lifetimeEarningsCents: {
               increment: Math.floor(params.amountCents * CREATOR_SHARE_DECIMAL),
             },
           },
           create: {
             userId: creator.id,
-            ...(await payoutAccountOf(tx, creator.id)),
+            ...placed,
             lifetimeEarningsCents: Math.floor(
               params.amountCents * CREATOR_SHARE_DECIMAL,
             ),
