@@ -162,6 +162,19 @@ services:
   #   networks:
   #     - circlesfera-network
   #
+  # # The recorder's folder, readied as in docker-compose.env.yml: a new
+  # # volume is writable by root alone, and the recorder is not root.
+  # recordings-folder:
+  #   <<: *default-logging
+  #   image: ${REGISTRY:-ghcr.io/circlesfera/circlesfera}/backend:${IMAGE_TAG:-latest}
+  #   user: "0:0"
+  #   entrypoint: ["sh", "-c", "chown node:root /out && chmod 2775 /out"]
+  #   volumes:
+  #     - recordings_data:/out
+  #   restart: "no"
+  #   networks:
+  #     - circlesfera-network
+  #
   # egress:
   #   <<: *default-logging
   #   image: livekit/egress:v1.15.0@sha256:ac244a40268ce1dd1510fbff6eb529609ec68aceff1602343f79be8ca08c355b
@@ -177,6 +190,8 @@ services:
   #   volumes:
   #     - recordings_data:/out
   #   depends_on:
+  #     recordings-folder:
+  #       condition: service_completed_successfully
   #     livekit:
   #       condition: service_started
   #   restart: unless-stopped
