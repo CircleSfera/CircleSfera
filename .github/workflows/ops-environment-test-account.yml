@@ -1,0 +1,96 @@
+name: Ops — test account in an environment
+
+# Creates a Test Account (circlesfera-backend/scripts/create-test-account.ts)
+# in staging or development, with its email already verified: those
+# environments send no email, so an account made from the sign-up form there
+# can never verify it, and can neither post nor go live. Never production.
+#
+# The password is the ENVIRONMENT_TEST_ACCOUNT_PASSWORD secret, set by the
+# person who will sign in with it; it is on no command line and in no log.
+# The script refuses an email or a username already in use.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to create the account in
+        required: true
+        type: choice
+        options:
+          - staging
+          - dev
+      email:
+        description: Email of the account (it receives nothing)
+        required: true
+        type: string
+      username:
+        description: Username of its Profile (letters, numbers, dots and underscores)
+        required: true
+        type: string
+
+# Waits for a deploy of the same environment, and the next deploy waits for it.
+concurrency:
+  group: deploy-environment-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test-account:
+    name: Create the test account
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check the request
+        env:
+          ENV_NAME: ${{ inputs.environment }}
+          ACCOUNT_EMAIL: ${{ inputs.email }}
+          ACCOUNT_USERNAME: ${{ inputs.username }}
+          ACCOUNT_PASSWORD: ${{ secrets.ENVIRONMENT_TEST_ACCOUNT_PASSWORD }}
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          case "$ENV_NAME" in
+            staging|dev) ;;
+            *) echo "Only staging or dev."; exit 1 ;;
+          esac
+          if ! [[ "$ACCOUNT_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            echo "The email is not valid."
+            exit 1
+          fi
+          if ! [[ "$ACCOUNT_USERNAME" =~ ^[A-Za-z0-9._]{3,30}$ ]]; then
+            echo "The username must be 3 to 30 letters, numbers, dots or underscores."
+            exit 1
+          fi
+          if [ "${#ACCOUNT_PASSWORD}" -lt 12 ]; then
+            echo "The ENVIRONMENT_TEST_ACCOUNT_PASSWORD secret is not set (12 characters at least)."
+            exit 1
+          fi
+          # Fail closed: without the fingerprint, the SSH step would not
+          # verify that it is talking to the real VPS.
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+
+      - name: Create it on the server
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          ENV_NAME: ${{ inputs.environment }}
+          ACCOUNT_EMAIL: ${{ inputs.email }}
+          ACCOUNT_USERNAME: ${{ inputs.username }}
+          TEST_ACCOUNT_PASSWORD: ${{ secrets.ENVIRONMENT_TEST_ACCOUNT_PASSWORD }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: ENV_NAME,ACCOUNT_EMAIL,ACCOUNT_USERNAME,TEST_ACCOUNT_PASSWORD
+          script: |
+            set -euo pipefail
+            case "$ENV_NAME" in
+              staging|dev) ;;
+              *) echo "Only staging or dev."; exit 1 ;;
+            esac
+            docker exec -e TEST_ACCOUNT_PASSWORD "CircleSfera-${ENV_NAME}-Backend" \
+              node scripts/create-test-account.ts "$ACCOUNT_EMAIL" "$ACCOUNT_USERNAME"
