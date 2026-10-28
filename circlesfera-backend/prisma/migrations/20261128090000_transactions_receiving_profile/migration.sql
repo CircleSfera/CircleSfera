@@ -32,17 +32,18 @@ WHERE t."receiverProfileId" IS NULL
 
 -- A live gift was recorded with no person as receiver and was never counted
 -- in the host's earnings: the payment named the host's Profile where a
--- person was expected. The person comes from the broadcast's host, and the
--- host's share of each completed gift is added to their earnings, as a gift
--- paid from now on is.
+-- person was expected. The person is the gift's own receiver, set when the
+-- gift was opened to the host's person and emptied only if they were erased.
+-- The host's share of each completed gift is added to their earnings, as for
+-- a gift paid from now on; a refunded one is not counted.
 WITH repaired AS (
   UPDATE "transactions" t
-  SET "receiverId" = p."userId"
-  FROM "live_streams" ls
-  JOIN "profiles" p ON p."id" = ls."hostId"
+  SET "receiverId" = g."receiverId"
+  FROM "live_gifts" g
   WHERE t."receiverId" IS NULL
     AND t."type" = 'DIRECT_LIVE_GIFT'
-    AND t."liveStreamId" = ls."id"
+    AND g."transactionId" = t."id"
+    AND g."receiverId" IS NOT NULL
   RETURNING t."receiverId", t."amount", t."status"
 )
 INSERT INTO "monetization" ("id", "userId", "lifetimeEarningsCents", "updatedAt")
@@ -53,4 +54,3 @@ GROUP BY "receiverId"
 ON CONFLICT ("userId") DO UPDATE
 SET "lifetimeEarningsCents" = "monetization"."lifetimeEarningsCents" + EXCLUDED."lifetimeEarningsCents",
     "updatedAt" = CURRENT_TIMESTAMP;
-

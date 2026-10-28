@@ -290,16 +290,18 @@ export class LiveGiftService {
         where: { id: params.senderId },
         select: { id: true },
       });
-      // Who earned the gift comes from the broadcast, not from the checkout's
-      // metadata: that named the host's Profile, which is no person. A
-      // broadcast whose host was erased since is gone with it.
+      // Who earned the gift: the person the gift was opened for (its
+      // receiver, the host's person, emptied if they were erased), and the
+      // host's Profile from the broadcast. Never the checkout's metadata,
+      // which named the Profile where a person was expected. A broadcast
+      // whose host Profile was erased since is gone with it.
       const stream = await tx.liveStream.findUnique({
         where: { id: params.streamId },
-        select: { hostId: true, host: { select: { userId: true } } },
+        select: { hostId: true },
       });
-      const creator = stream
+      const creator = existing.receiverId
         ? await tx.user.findUnique({
-            where: { id: stream.host.userId },
+            where: { id: existing.receiverId },
             select: { id: true },
           })
         : null;
@@ -312,7 +314,7 @@ export class LiveGiftService {
           senderId: sender?.id ?? null,
           receiverId: creator?.id ?? null,
           receiverProfileId: stream?.hostId ?? null,
-          liveStreamId: params.streamId,
+          liveStreamId: stream ? params.streamId : null,
           stripePaymentIntentId: params.paymentIntentId,
           status: 'COMPLETED',
           description: `Live gift ${params.giftId} on stream ${params.streamId}`,
