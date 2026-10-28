@@ -22,6 +22,7 @@ import {
 } from '../chat/services/group-admin-succession.service.js';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
+import { isTestViewer } from '../common/policies/test-account.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
@@ -77,11 +78,27 @@ export class UsersService {
       select: { id: true },
     });
     const profileIds = userProfiles.map((p) => p.id);
+    // A Test Account is suggested only Test Accounts, and a real account
+    // only real ones (PD-006).
+    const viewer = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isTestAccount: true },
+    });
 
     const suggestions = await this.prisma.profile.findMany({
       where: {
         userId: { not: userId }, // Exclude self
-        user: { isActive: true }, // Only active users
+        // Only people whose account is open, of the viewer's audience.
+        user: {
+          isActive: true,
+          deactivatedAt: null,
+          deletedAt: null,
+          isRootBanned: false,
+          isTestAccount: isTestViewer(viewer),
+        },
+        // A banned or suspended Profile is suggested to nobody.
+        isAccountBanned: false,
+        OR: [{ suspendedUntil: null }, { suspendedUntil: { lt: new Date() } }],
         // Exclude profiles already followed or with pending requests by any of the user's profiles
         followers: {
           none: { followerId: { in: profileIds } },
