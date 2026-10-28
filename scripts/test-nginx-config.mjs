@@ -16,6 +16,7 @@
  *    - WebSockets (/socket.io/): proxy_buffering off, extended keepalive timeout (>= 3600s).
  *    - GDPR downloads (/api/v1/users/gdpr/exports/:id/download): proxy_buffering off.
  * 4. The web app's page policy is not added to API answers.
+ * 5. Stored files (/uploads/) are checked per viewer and cached privately.
  *
  * Usage:
  *   node scripts/test-nginx-config.mjs
@@ -272,6 +273,28 @@ function verifyTrafficPolicies(content) {
     details: environmentsLikeProduction
       ? 'Staging and development hosts share the production servers'
       : 'Staging or development falls to the default server, without its headers',
+  });
+
+  // Check 12: a stored file passes a per-viewer check, so no shared cache may
+  // keep it and serve it to someone else: every /uploads/ location asks the
+  // check and marks its answer private.
+  const uploadBlocks = [
+    ...content.matchAll(/location \/uploads\/ \{([^}]*)\}/g),
+  ].map((m) => m[1]);
+  const uploadsPrivate =
+    uploadBlocks.length > 0 &&
+    uploadBlocks.every(
+      (block) =>
+        /auth_request \/internal\/media-auth;/.test(block) &&
+        /add_header Cache-Control "private\b/.test(block) &&
+        !/\bpublic\b/.test(block),
+    );
+  findings.push({
+    rule: 'Stored Files Cached Privately',
+    passed: uploadsPrivate,
+    details: uploadsPrivate
+      ? `All ${uploadBlocks.length} /uploads/ locations check access and send Cache-Control private`
+      : 'An /uploads/ location skips the access check or may be kept by a shared cache',
   });
 
   return findings;
