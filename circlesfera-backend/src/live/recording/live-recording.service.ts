@@ -269,8 +269,13 @@ export class LiveRecordingService {
       // same moment on two servers cannot both take the last place.
       const part = await this.prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(${RECORDING_PLACES_LOCK})`;
+        // Only broadcasts still on air take a place: one that ended is
+        // over for the recorder, even while the minute check has not
+        // settled its files yet. A broadcast started and ended at once (the
+        // deploy's check, a host who leaves) would otherwise keep the next
+        // one unrecorded until then.
         const running = await tx.liveStream.count({
-          where: { recordingStatus: 'RECORDING' },
+          where: { recordingStatus: 'RECORDING', status: 'LIVE' },
         });
         const free = running < this.recordingsAtOnce();
         await tx.liveStream.update({
