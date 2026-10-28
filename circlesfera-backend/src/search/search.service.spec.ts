@@ -2,6 +2,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
+import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import { SearchService } from './search.service.js';
@@ -654,6 +655,20 @@ describe('SearchService', () => {
       expect(res[0].id).toBe('post-hot');
       expect(res[1].id).toBe('post-warm');
       expect(mockCacheManager.set).toHaveBeenCalled();
+    });
+
+    it('leaves out a ranked post deleted, archived or removed before it is loaded', async () => {
+      mockCacheManager.get.mockResolvedValueOnce(null);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([{ id: 'post-hot' }]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+
+      await service.getTrending(10);
+
+      expect(mockPrismaService.post.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['post-hot'] }, ...LISTED_POST },
+        }),
+      );
     });
 
     it('queries the real comments table and only public, visible posts from public accounts', async () => {

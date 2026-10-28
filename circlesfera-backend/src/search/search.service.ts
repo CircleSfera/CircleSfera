@@ -538,8 +538,9 @@ export class SearchService {
     const postIds = trending.map((t) => t.id);
     if (postIds.length === 0) return [];
 
+    // A post deleted, archived or removed since it was ranked is left out.
     const posts = await this.prisma.post.findMany({
-      where: { id: { in: postIds } },
+      where: { id: { in: postIds }, ...LISTED_POST },
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },
         media: true,
