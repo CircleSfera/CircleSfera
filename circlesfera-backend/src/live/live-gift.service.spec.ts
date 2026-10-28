@@ -36,6 +36,7 @@ describe('LiveGiftService', () => {
     },
     monetization: {
       upsert: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     profile: {
       findMany: vi.fn().mockResolvedValue([

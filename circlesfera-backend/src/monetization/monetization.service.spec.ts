@@ -1105,7 +1105,10 @@ describe('MonetizationService', () => {
       // And on the row of the Profile holding it.
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
         where: { userId: 'u-1' },
-        update: { stripeConnectAccountId: 'acct_new' },
+        update: {
+          profileId: 'creator-prof-1',
+          stripeConnectAccountId: 'acct_new',
+        },
         create: {
           userId: 'u-1',
           profileId: 'creator-prof-1',
@@ -1214,6 +1217,7 @@ describe('MonetizationService', () => {
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
         where: { userId: 'u-1' },
         update: {
+          profileId: 'creator-prof-1',
           transfersEnabled: true,
           chargesEnabled: true,
           verifiedCompany: false,
