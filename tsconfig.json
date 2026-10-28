@@ -11,5 +11,5 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "include": ["e2e/**/*", "playwright.config.ts"]
+  "include": ["e2e/**/*", "e2e-staging/**/*", "playwright.config.ts"]
 }
