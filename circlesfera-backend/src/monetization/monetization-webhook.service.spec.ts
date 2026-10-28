@@ -127,6 +127,39 @@ describe('MonetizationWebhookService', () => {
       ).rejects.toThrow('PROMOTION checkout missing promotionId');
     });
 
+    it('leaves a connected account with the Profile holding it when a payment is credited', async () => {
+      // The account was connected from a Profile that has switched to
+      // Personal since: the earnings are credited, the row is not moved.
+      prisma.monetization.findUnique.mockResolvedValueOnce({
+        profileId: 'was-creator-prof',
+        stripeConnectAccountId: 'acct_creator',
+      });
+
+      await service.handleCheckoutSessionCompleted({
+        id: 'cs_unlock_held',
+        client_reference_id: 'buyer1',
+        amount_total: 1000,
+        currency: 'eur',
+        payment_intent: 'pi_held',
+        metadata: {
+          type: 'DIRECT_POST_UNLOCK',
+          postId: 'post1',
+          creatorId: 'creator1',
+        },
+      } as any);
+
+      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'creator1' },
+          update: {
+            lifetimeEarningsCents: {
+              increment: Math.floor(1000 * CREATOR_SHARE_DECIMAL),
+            },
+          },
+        }),
+      );
+    });
+
     it('processes a DIRECT_POST_UNLOCK checkout', async () => {
       const grossCents = 1000;
       const creatorShareCents = Math.floor(grossCents * CREATOR_SHARE_DECIMAL);
