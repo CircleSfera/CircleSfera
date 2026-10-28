@@ -128,7 +128,8 @@ services:
 
   # Production's own live service and recorder, as staging and dev run them
   # (docker-compose.env.yml). Off until the owner switches production away
-  # from the hosted live service: uncomment both, the backend's recordings
+  # from the hosted live service: uncomment the three (livekit,
+  # recordings-folder and egress), the backend's recordings
   # line above and the recordings_data volume below, set the settings named
   # in infra/host/environment.env.example, and open the media ports in the
   # firewall (7881/tcp and 7882/udp). Images as in docker-compose.env.yml.
