@@ -28,17 +28,9 @@ export const SIGN_IN_SECRET_OMIT = {
   verificationToken: true,
 } as const;
 
-// A column about to be dropped: no query names it, so that the version
-// before the drop keeps working once it is gone. A broadcast's recording
-// jobs are kept per part (live_recording_parts) now.
-export const LIVE_STREAM_RETIRED_OMIT = {
-  egressId: true,
-} as const;
-
 const clientOmit = {
   user: USER_SECRET_OMIT,
   signIn: SIGN_IN_SECRET_OMIT,
-  liveStream: LIVE_STREAM_RETIRED_OMIT,
 } as const;
 
 @Injectable()
