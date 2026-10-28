@@ -58,3 +58,7 @@ deploy_jobs.json
 deploy_runs.json
 .local/
 circlesfera-shared/src/prisma/
+
+# Reports of the staging checks (e2e-staging)
+e2e-staging/results/
+e2e-staging/report/
