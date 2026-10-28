@@ -31,7 +31,11 @@ vi.mock('pg', () => {
   };
 });
 
-import { PrismaService, USER_SECRET_OMIT } from './prisma.service.js';
+import {
+  LIVE_STREAM_RETIRED_OMIT,
+  PrismaService,
+  USER_SECRET_OMIT,
+} from './prisma.service.js';
 
 describe('PrismaService', () => {
   it('instantiates adapter and manages connect/disconnect lifecycle', async () => {
@@ -45,6 +49,14 @@ describe('PrismaService', () => {
 
     await service.onModuleDestroy();
     expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  it('names no column about to be dropped in any broadcast query', () => {
+    const service = new PrismaService('postgres://localhost/db') as unknown as {
+      options: { omit: { liveStream: unknown } };
+    };
+    expect(service.options.omit.liveStream).toEqual(LIVE_STREAM_RETIRED_OMIT);
+    expect(LIVE_STREAM_RETIRED_OMIT).toEqual({ egressId: true });
   });
 
   it('omits credential and one-time-token columns from every User read by default', () => {
