@@ -143,6 +143,17 @@ export default function LiveBroadcaster() {
     }
   };
 
+  // The video connection was lost, or never made: the live is ended on the
+  // server before leaving, so it is not left on air, and recorded, with
+  // nobody broadcasting. Ending the live closes the connection on purpose.
+  const leaveAfterLostConnection = () => {
+    if (endedRef.current) return;
+    endedRef.current = true;
+    api.post('/live/end').catch(() => {});
+    toast.error(t('live.connection_lost'));
+    navigate(-1);
+  };
+
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
     const title = titleInput.trim() || t('live.default_title');
@@ -512,12 +523,10 @@ export default function LiveBroadcaster() {
         serverUrl={serverUrl}
         data-lk-theme="default"
         className="contents"
-        onDisconnected={() => {
-          // Ending the live closes the connection on purpose.
-          if (endedRef.current) return;
-          toast.error(t('live.connection_lost'));
-          navigate(-1);
-        }}
+        onDisconnected={leaveAfterLostConnection}
+        // A connection that cannot be made at all is told here, and may
+        // never be told as a disconnection.
+        onError={leaveAfterLostConnection}
       >
         <LiveFrame
           onDoubleClick={handleDoubleTap}

@@ -560,16 +560,27 @@ describe('LiveBroadcaster on the live connection', () => {
       expect(live.handlers.size).toBe(0);
     });
 
-    it('warns and leaves when the video connection is lost while on air', async () => {
-      await goLive();
+    it.each([
+      ['lost while on air', 'onDisconnected'],
+      ['never made', 'onError'],
+    ])(
+      'ends the live on the server, warns and leaves when the video connection is %s',
+      async (_why, callback) => {
+        const { unmount } = await goLive();
 
-      act(() => (live.room.onDisconnected as () => void)());
+        act(() => (live.room[callback] as (error?: Error) => void)());
 
-      expect(toast.error).toHaveBeenCalledWith(
-        'The connection to the live was lost.',
-      );
-      expect(live.navigate).toHaveBeenCalledWith(-1);
-    });
+        expect(ended()).toHaveLength(1);
+        expect(toast.error).toHaveBeenCalledWith(
+          'The connection to the live was lost.',
+        );
+        expect(live.navigate).toHaveBeenCalledWith(-1);
+
+        // Leaving the screen afterwards does not end it a second time.
+        unmount();
+        expect(ended()).toHaveLength(1);
+      },
+    );
   });
 
   it('says so when the co-host could not be removed', async () => {
