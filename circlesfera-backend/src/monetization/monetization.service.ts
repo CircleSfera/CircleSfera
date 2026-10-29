@@ -657,15 +657,12 @@ export class MonetizationService {
     // failed once is made again here), with the Profile holding it: the one
     // connecting, unless another Profile holds it already. A row with no
     // account yet holds nothing, whichever Profile it was opened from.
-    // Until the release after the one that lets a row name no person, a
-    // Profile whose person's account another Profile holds keeps sharing it:
-    // the image before could not read a row of a Profile only.
     if (
       person?.stripeConnectAccountId &&
       person.profileId &&
       person.profileId !== profileId
     ) {
-      return first;
+      return this.openProfileAccount(user.email, profileId);
     }
     // Claimed in one write, so two Profiles connecting at once never both
     // take it: the row changes only while it holds nothing or this Profile.
@@ -690,9 +687,29 @@ export class MonetizationService {
         if ((error as { code?: string }).code !== 'P2002') throw error;
       }
     }
-    // Held by this Profile, or by another Profile that claimed it first and
-    // shares it until the next release.
-    return first;
+    const held = await this.prisma.monetization.findUnique({
+      where: { userId: user.id },
+      select: { profileId: true },
+    });
+    if (held?.profileId === profileId) return first;
+    return this.openProfileAccount(user.email, profileId);
+  }
+
+  /** A new account for one Profile only, kept on the Profile's own row. */
+  private async openProfileAccount(
+    email: string,
+    profileId: string,
+  ): Promise<string> {
+    const account = await this.stripeService.createExpressAccount(
+      email,
+      `connect-account-${profileId}`,
+    );
+    await this.prisma.monetization.upsert({
+      where: { profileId },
+      update: { stripeConnectAccountId: account.id },
+      create: { profileId, stripeConnectAccountId: account.id },
+    });
+    return account.id;
   }
 
   async getAccountStatus(userId: string, profileId: string) {
