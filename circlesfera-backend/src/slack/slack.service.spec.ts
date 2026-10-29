@@ -598,16 +598,49 @@ describe('SlackService', () => {
       const res = await service.handleModerationInteraction({
         actions: [{ action_id: 'moderate_ignore', value: 'invalid' }],
       });
-      expect(res).toEqual({ text: 'Invalid report ID' });
+      expect(res).toEqual({
+        text: 'ℹ️ Este aviso no corresponde a ninguna denuncia.',
+      });
     });
 
-    it('returns error when report is not found in database', async () => {
+    it('tells who pressed that the report of an alert no longer exists, as one of a test', async () => {
       mockPrismaService.report.findUnique.mockResolvedValue(null);
 
       const res = await service.handleModerationInteraction({
+        user: { id: 'U123' },
+        channel: { id: 'C1' },
         actions: [{ action_id: 'moderate_ignore', value: 'ignore_rep-404' }],
       });
-      expect(res).toEqual({ text: 'Report not found' });
+
+      expect(res.text).toContain('Esta denuncia ya no existe');
+      // Slack drops what the request answers: it is told to them apart.
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://slack.com/api/chat.postEphemeral',
+        { channel: 'C1', user: 'U123', text: res.text },
+        {
+          headers: { Authorization: 'Bearer xoxb-mock-token' },
+          timeout: 5_000,
+        },
+      );
+    });
+
+    it('still answers when telling who pressed fails, or nobody can be told', async () => {
+      mockPrismaService.report.findUnique.mockResolvedValue(null);
+      (axios.post as any).mockRejectedValueOnce(new Error('Slack down'));
+
+      await expect(
+        service.handleModerationInteraction({
+          user: { id: 'U123' },
+          channel: { id: 'C1' },
+          actions: [{ action_id: 'moderate_ignore', value: 'ignore_rep-404' }],
+        }),
+      ).resolves.toEqual(expect.objectContaining({ text: expect.any(String) }));
+
+      (axios.post as any).mockClear();
+      await service.handleModerationInteraction({
+        actions: [{ action_id: 'moderate_ignore', value: 'ignore_rep-404' }],
+      });
+      expect(axios.post).not.toHaveBeenCalled();
     });
 
     describe('report buttons act as the member of staff who pressed them', () => {
@@ -647,6 +680,8 @@ describe('SlackService', () => {
           expect.objectContaining({ channel: 'C1', ts: '1.2' }),
           expect.anything(),
         );
+        // The message shows it: nobody is told apart.
+        expect(axios.post).toHaveBeenCalledTimes(1);
       });
 
       it('an older ignore button dismisses the same way', async () => {
@@ -697,7 +732,13 @@ describe('SlackService', () => {
 
         expect(mockReviews.resolveWithPenalty).not.toHaveBeenCalled();
         expect(mockReviews.updateStatus).not.toHaveBeenCalled();
-        expect(axios.post).not.toHaveBeenCalled();
+        // The alert keeps its buttons; only who pressed is told.
+        expect(axios.post).toHaveBeenCalledTimes(1);
+        expect(axios.post).toHaveBeenCalledWith(
+          'https://slack.com/api/chat.postEphemeral',
+          expect.objectContaining({ user: 'U123', text: res.text }),
+          expect.anything(),
+        );
         expect(res.text).toContain('No se ha hecho nada');
         expect(res.text).toContain('https://admin.circlesfera.com/reports');
       });
@@ -724,7 +765,12 @@ describe('SlackService', () => {
         expect(mockPrismaService.post.update).not.toHaveBeenCalled();
         expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
         expect(mockReviews.resolveWithPenalty).not.toHaveBeenCalled();
-        expect(axios.post).not.toHaveBeenCalled();
+        expect(axios.post).toHaveBeenCalledTimes(1);
+        expect(axios.post).toHaveBeenCalledWith(
+          'https://slack.com/api/chat.postEphemeral',
+          expect.objectContaining({ text: res.text }),
+          expect.anything(),
+        );
         expect(res.text).toContain('panel de staff');
       });
     });
