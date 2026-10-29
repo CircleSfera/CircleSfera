@@ -903,9 +903,15 @@ export class MonetizationWebhookService {
       select: { userId: true },
     });
     if (!holder) return;
+    // Events can arrive out of order: an older snapshot must never turn off
+    // an account that is ready now, so the account is read as it is now. If
+    // the provider cannot answer, the event is retried.
+    const current = (await this.stripeService.getAccount(
+      account.id,
+    )) as unknown as typeof account;
     const { transfersEnabled, chargesEnabled } =
-      deriveConnectAccountFlags(account);
-    const verifiedCompany = isVerifiedCompanyAccount(account);
+      deriveConnectAccountFlags(current);
+    const verifiedCompany = isVerifiedCompanyAccount(current);
     // Only a person's row is placed again; a Profile's own row stays its.
     const placed = holder.userId
       ? await payoutAccountPlacement(this.prisma, holder.userId)
