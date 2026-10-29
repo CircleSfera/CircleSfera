@@ -176,7 +176,7 @@ export class UsersService {
   // GDPR: Gathers all user-related data for export.
   // Param userId: The user ID to export
   async exportUserData(userId: string) {
-    const [account, relations, held] = await Promise.all([
+    const [account, relations, held, earnings] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -333,6 +333,7 @@ export class UsersService {
         },
       }),
       this.heldAboutTheAccount(userId),
+      this.earningsOfTheAccount(userId),
     ]);
 
     if (!account || !relations) throw new Error('User not found');
@@ -393,6 +394,7 @@ export class UsersService {
       reportsFiled: undefined, // removed because reports are on profiles
       sentTransactions: relations.sentTransactions,
       receivedTransactions: relations.receivedTransactions,
+      earnings,
       ...held,
     };
 
@@ -403,6 +405,52 @@ export class UsersService {
   // strikes, spam review cases, searches, what they viewed and did, support
   // requests, plans, unlocks, experiments and the notes staff wrote about
   // them. Who on the staff wrote or decided is not included.
+  /**
+   * What the person earned and was paid out: each payout account of theirs
+   * and of their Profiles, with the Profile holding it, and every payout to
+   * their bank. The provider's own records of the account are read there.
+   */
+  private async earningsOfTheAccount(userId: string) {
+    const [accounts, payouts] = await Promise.all([
+      this.prisma.monetization.findMany({
+        where: { OR: [{ userId }, { profile: { userId } }] },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          stripeConnectAccountId: true,
+          lifetimeEarningsCents: true,
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: true,
+          createdAt: true,
+          profile: { select: { username: true } },
+        },
+      }),
+      this.prisma.stripePayoutLog.findMany({
+        where: { userId },
+        orderBy: { arrivalDate: 'asc' },
+        select: {
+          stripePayoutId: true,
+          amountCents: true,
+          currency: true,
+          status: true,
+          arrivalDate: true,
+          failureReason: true,
+          profile: { select: { username: true } },
+        },
+      }),
+    ]);
+    return {
+      payoutAccounts: accounts.map(({ profile, ...account }) => ({
+        ...account,
+        profile: profile?.username ?? null,
+      })),
+      payouts: payouts.map(({ profile, ...payout }) => ({
+        ...payout,
+        profile: profile?.username ?? null,
+      })),
+    };
+  }
+
   private async heldAboutTheAccount(userId: string) {
     const byProfile = { profile: { userId } };
     const [

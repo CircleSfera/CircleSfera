@@ -59,8 +59,15 @@ describe('UsersService', () => {
     decrypt: vi.fn((text: string) => text.replace(/^cipher_/, '')),
   };
 
+  // What the person earned and was paid out.
+  const earningModels = {
+    monetization: { findMany: vi.fn().mockResolvedValue([]) },
+    stripePayoutLog: { findMany: vi.fn().mockResolvedValue([]) },
+  };
+
   const mockPrismaService = {
     ...heldModels,
+    ...earningModels,
     $transaction: vi
       .fn()
       .mockImplementation((cb: any) => cb(mockPrismaService)),
@@ -286,6 +293,87 @@ describe('UsersService', () => {
       await expect(service.exportUserData('missing-user')).rejects.toThrow(
         'User not found',
       );
+    });
+
+    it('holds every payout account of the person and of their Profiles, and every payout to their bank', async () => {
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'u1', deviceSignals: [], signIns: [] })
+        .mockResolvedValueOnce({ profiles: [] });
+      earningModels.monetization.findMany.mockResolvedValueOnce([
+        {
+          stripeConnectAccountId: 'acct_1',
+          lifetimeEarningsCents: 1200,
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: false,
+          createdAt: new Date('2026-01-01'),
+          profile: { username: 'ana' },
+        },
+        {
+          stripeConnectAccountId: null,
+          lifetimeEarningsCents: 0,
+          transfersEnabled: false,
+          chargesEnabled: false,
+          verifiedCompany: false,
+          createdAt: new Date('2026-02-01'),
+          profile: null,
+        },
+      ]);
+      earningModels.stripePayoutLog.findMany.mockResolvedValueOnce([
+        {
+          stripePayoutId: 'po_1',
+          amountCents: 960,
+          currency: 'eur',
+          status: 'paid',
+          arrivalDate: new Date('2026-01-12'),
+          failureReason: null,
+          profile: { username: 'ana' },
+        },
+      ]);
+
+      const data = await service.exportUserData('u1');
+
+      expect(earningModels.monetization.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { OR: [{ userId: 'u1' }, { profile: { userId: 'u1' } }] },
+        }),
+      );
+      expect(earningModels.stripePayoutLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'u1' } }),
+      );
+      expect(data.earnings).toEqual({
+        payoutAccounts: [
+          {
+            stripeConnectAccountId: 'acct_1',
+            lifetimeEarningsCents: 1200,
+            transfersEnabled: true,
+            chargesEnabled: true,
+            verifiedCompany: false,
+            createdAt: new Date('2026-01-01'),
+            profile: 'ana',
+          },
+          {
+            stripeConnectAccountId: null,
+            lifetimeEarningsCents: 0,
+            transfersEnabled: false,
+            chargesEnabled: false,
+            verifiedCompany: false,
+            createdAt: new Date('2026-02-01'),
+            profile: null,
+          },
+        ],
+        payouts: [
+          {
+            stripePayoutId: 'po_1',
+            amountCents: 960,
+            currency: 'eur',
+            status: 'paid',
+            arrivalDate: new Date('2026-01-12'),
+            failureReason: null,
+            profile: 'ana',
+          },
+        ],
+      });
     });
 
     it('returns formatted GDPR safe data export', async () => {
