@@ -92,6 +92,75 @@ describe('MonetizationSettings', () => {
     );
   });
 
+  it("a Profile paid into another Profile's account is told so, and connects its own", async () => {
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: true,
+      ownAccount: false,
+      transfersEnabled: true,
+      detailsSubmitted: true,
+    });
+    vi.mocked(monetizationApi.connectAccount).mockResolvedValue({
+      url: 'https://connect.stripe.com/setup/own',
+    });
+    const { i18n } = renderWithProviders(<MonetizationSettings />);
+
+    expect(
+      await screen.findByText(i18n!.t('settings.monetization.status.shared')),
+    ).toBeInTheDocument();
+    // Told before going to Stripe that it may reuse the verified details.
+    expect(
+      screen.getByText(i18n!.t('settings.monetization.own_account_note')),
+    ).toBeInTheDocument();
+    // The other Profile's Stripe panel is not offered here.
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('settings.monetization.dashboard'),
+      }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('settings.monetization.connect_own'),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(location.href).toBe('https://connect.stripe.com/setup/own'),
+    );
+  });
+
+  it('an account whose onboarding is not done goes back to it, not to the panel', async () => {
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: true,
+      ownAccount: true,
+      transfersEnabled: false,
+      detailsSubmitted: false,
+    });
+    vi.mocked(monetizationApi.connectAccount).mockResolvedValue({
+      url: 'https://connect.stripe.com/setup/again',
+    });
+    const { i18n } = renderWithProviders(<MonetizationSettings />);
+
+    expect(
+      await screen.findByText(
+        i18n!.t('settings.monetization.status.incomplete'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('settings.monetization.dashboard'),
+      }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('settings.monetization.complete'),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(location.href).toBe('https://connect.stripe.com/setup/again'),
+    );
+  });
+
   it('a connected account without payouts is told onboarding is incomplete', async () => {
     vi.mocked(monetizationApi.getStatus).mockResolvedValue({
       connected: true,

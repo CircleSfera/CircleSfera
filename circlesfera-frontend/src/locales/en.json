@@ -445,14 +445,18 @@
       "status": {
         "active": "Your account can receive payouts.",
         "incomplete": "Add more details in Stripe to receive payouts.",
-        "unconnected": "Connect Stripe to receive tips."
+        "unconnected": "Connect Stripe to receive tips.",
+        "shared": "This profile is paid into the Stripe account of another of your profiles."
       },
       "dashboard": "Stripe Dashboard",
       "connect": "Connect Stripe",
       "earnings": "Earnings",
       "lifetime": "Lifetime earnings",
       "error_connect": "Could not connect to Stripe",
-      "error_dashboard": "Could not open the Stripe Dashboard"
+      "error_dashboard": "Could not open the Stripe Dashboard",
+      "connect_own": "Connect its own account",
+      "complete": "Finish in Stripe",
+      "own_account_note": "With its own account, this profile's earnings, payouts and disputes stay apart from your other profile's. Sign in to Stripe with the same login and it may offer to reuse the details already verified for your other account."
     },
     "back_to_profile": "← Back to profile",
     "notifications_tab": {
