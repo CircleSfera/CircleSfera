@@ -843,10 +843,15 @@ export class MonetizationWebhookService {
       return;
     }
 
-    // The row holding the account names its person and its Profile.
+    // The row holding the account names its Profile, and its person: the
+    // person's row names them, a Profile's own row through its Profile.
     const holder = await this.prisma.monetization.findUnique({
       where: { stripeConnectAccountId: accountId },
-      select: { userId: true, profileId: true },
+      select: {
+        userId: true,
+        profileId: true,
+        profile: { select: { userId: true } },
+      },
     });
     if (!holder) {
       this.logger.warn(
@@ -866,7 +871,7 @@ export class MonetizationWebhookService {
       where: { stripePayoutId: payout.id },
       create: {
         stripePayoutId: payout.id,
-        userId: holder.userId,
+        userId: holder.userId ?? holder.profile?.userId ?? null,
         // The Profile holding the account that paid it out.
         profileId: holder.profileId,
         amountCents: payout.amount ?? 0,
@@ -901,7 +906,10 @@ export class MonetizationWebhookService {
     const { transfersEnabled, chargesEnabled } =
       deriveConnectAccountFlags(account);
     const verifiedCompany = isVerifiedCompanyAccount(account);
-    const placed = await payoutAccountPlacement(this.prisma, holder.userId);
+    // Only a person's row is placed again; a Profile's own row stays its.
+    const placed = holder.userId
+      ? await payoutAccountPlacement(this.prisma, holder.userId)
+      : {};
     await this.prisma.monetization.update({
       where: { stripeConnectAccountId: account.id },
       data: { ...placed, transfersEnabled, chargesEnabled, verifiedCompany },

@@ -267,16 +267,23 @@ export class StripeService implements OnModuleInit {
 
   // Stripe Connect Methods
 
-  // Create an Express connected account for a creator.
-  async createExpressAccount(email: string): Promise<Stripe.Account> {
-    return this.stripe.accounts.create({
-      type: 'express',
-      email: email,
-      capabilities: {
-        transfers: { requested: true },
+  // Create an Express connected account for a creator. With a key, a
+  // repeated request answers the account the first one opened.
+  async createExpressAccount(
+    email: string,
+    idempotencyKey?: string,
+  ): Promise<Stripe.Account> {
+    return this.stripe.accounts.create(
+      {
+        type: 'express',
+        email: email,
+        capabilities: {
+          transfers: { requested: true },
+        },
+        settings: { payouts: { schedule: CREATOR_PAYOUT_SCHEDULE } },
       },
-      settings: { payouts: { schedule: CREATOR_PAYOUT_SCHEDULE } },
-    });
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
   }
 
   // Retrieve a Stripe Account by ID.

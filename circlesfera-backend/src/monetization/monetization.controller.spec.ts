@@ -98,11 +98,13 @@ describe('MonetizationController', () => {
       .set(BEARER)
       .expect(200);
 
-    expect(mockService.getMonetization).toHaveBeenCalledWith(TEST_USER.userId);
-    expect(mockService.getAccountStatus).toHaveBeenCalledWith(TEST_USER.userId);
-    expect(mockService.getDashboardLink).toHaveBeenCalledWith(TEST_USER.userId);
+    // The payout account is the active Profile's.
+    const session = [TEST_USER.userId, TEST_USER.profileId];
+    expect(mockService.getMonetization).toHaveBeenCalledWith(...session);
+    expect(mockService.getAccountStatus).toHaveBeenCalledWith(...session);
+    expect(mockService.getDashboardLink).toHaveBeenCalledWith(...session);
     expect(mockService.getConnectPayoutsSummary).toHaveBeenCalledWith(
-      TEST_USER.userId,
+      ...session,
     );
     expect(mockService.getIncomeStats).toHaveBeenCalledWith(TEST_USER.userId);
     expect(mockService.getFinancialSummary).toHaveBeenCalledWith(
@@ -126,7 +128,7 @@ describe('MonetizationController', () => {
     );
   });
 
-  it('starts Connect onboarding as the session userId', async () => {
+  it('starts Connect onboarding for the active Profile of the session', async () => {
     mockService.onboardConnectAccount.mockResolvedValue({
       url: 'https://example.com',
     });
@@ -143,6 +145,7 @@ describe('MonetizationController', () => {
     expect(res.body).toEqual({ url: 'https://example.com' });
     expect(mockService.onboardConnectAccount).toHaveBeenCalledWith(
       TEST_USER.userId,
+      TEST_USER.profileId,
       'https://example.com/return',
       'https://example.com/refresh',
     );

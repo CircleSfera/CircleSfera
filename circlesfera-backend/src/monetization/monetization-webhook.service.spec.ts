@@ -1042,6 +1042,27 @@ describe('MonetizationWebhookService', () => {
       );
     });
 
+    it("updates a Profile's own row without placing it with a person", async () => {
+      prisma.monetization.findUnique.mockResolvedValue({ userId: null });
+      prisma.profile.findMany.mockClear();
+
+      await service.handleAccountUpdated({
+        id: 'acct_second',
+        charges_enabled: true,
+        capabilities: { transfers: 'active' },
+      });
+
+      expect(prisma.profile.findMany).not.toHaveBeenCalled();
+      expect(prisma.monetization.update).toHaveBeenCalledWith({
+        where: { stripeConnectAccountId: 'acct_second' },
+        data: {
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: false,
+        },
+      });
+    });
+
     it('does not record the account of a person as a company', async () => {
       // The row holding the account, found by it.
       holdsAccount();
@@ -1097,6 +1118,37 @@ describe('MonetizationWebhookService', () => {
             profileId: 'creator-prof-1',
             status: 'paid',
             amountCents: 2500,
+          }),
+        }),
+      );
+    });
+
+    it("names the person of a payout from a Profile's own account through its Profile", async () => {
+      prisma.monetization.findUnique.mockResolvedValue({
+        userId: null,
+        profileId: 'creator-prof-2',
+        profile: { userId: 'creator1' },
+      });
+      prisma.stripePayoutLog.upsert = vi.fn().mockResolvedValue({});
+
+      await service.syncConnectPayoutLog({
+        account: 'acct_second',
+        data: {
+          object: {
+            id: 'po_3',
+            amount: 900,
+            currency: 'eur',
+            status: 'paid',
+            arrival_date: 1_714_521_600,
+          },
+        },
+      });
+
+      expect(prisma.stripePayoutLog.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            userId: 'creator1',
+            profileId: 'creator-prof-2',
           }),
         }),
       );

@@ -73,7 +73,12 @@ describe('payoutAccountPlacement', () => {
     account: string | null,
   ) => {
     const { db } = reader(profiles, account);
-    db.monetization = { findUnique: vi.fn().mockResolvedValue(row) };
+    // The person's row; no Profile holds a row of its own.
+    db.monetization = {
+      findUnique: vi.fn(async ({ where }: { where: object }) =>
+        'userId' in where ? row : null,
+      ),
+    };
     return db;
   };
 
@@ -126,6 +131,22 @@ describe('payoutAccountPlacement', () => {
       { profileId: null, stripeConnectAccountId: 'acct_1' },
       [],
       null,
+    );
+
+    await expect(payoutAccountPlacement(db, 'u1')).resolves.toEqual({});
+  });
+
+  it('never places the row onto a Profile holding a row of its own', async () => {
+    const db = placing(
+      { profileId: null, stripeConnectAccountId: 'acct_1' },
+      [{ id: 'creator', accountType: 'CREATOR' }],
+      'acct_1',
+    );
+    db.monetization.findUnique.mockImplementation(
+      async ({ where }: { where: object }) =>
+        'userId' in where
+          ? { profileId: null, stripeConnectAccountId: 'acct_1' }
+          : { id: 'creator-own-row' },
     );
 
     await expect(payoutAccountPlacement(db, 'u1')).resolves.toEqual({});

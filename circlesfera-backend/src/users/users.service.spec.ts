@@ -552,7 +552,12 @@ describe('UsersService', () => {
     };
     const conversation = { findUnique: vi.fn() };
     const message = { create: vi.fn() };
+    const monetization = { findMany: vi.fn(), deleteMany: vi.fn() };
     beforeEach(() => {
+      monetization.findMany.mockReset().mockResolvedValue([]);
+      monetization.deleteMany.mockReset();
+      (mockPrismaService as Record<string, unknown>).monetization =
+        monetization;
       message.create.mockImplementation(
         ({ data }: { data: { conversationId: string; senderId: string } }) =>
           Promise.resolve({ id: 'notice-1', ...data }),
@@ -683,6 +688,30 @@ describe('UsersService', () => {
       const res = await service.deleteScheduledUser('u_restored');
       expect(res).toBe(false);
       expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
+    });
+
+    it('removes the payout rows its Profiles opened for accounts of their own', async () => {
+      monetization.findMany.mockResolvedValue([{ id: 'row-2' }]);
+      mockPrismaService.user.deleteMany.mockResolvedValue({ count: 1 });
+
+      await service.deleteScheduledUser('u_sched');
+
+      expect(monetization.findMany).toHaveBeenCalledWith({
+        where: { userId: null, profile: { userId: 'u_sched' } },
+        select: { id: true },
+      });
+      expect(monetization.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['row-2'] } },
+      });
+    });
+
+    it('keeps them when the account was restored meanwhile', async () => {
+      monetization.findMany.mockResolvedValue([{ id: 'row-2' }]);
+      mockPrismaService.user.deleteMany.mockResolvedValue({ count: 0 });
+
+      await service.deleteScheduledUser('u_restored');
+
+      expect(monetization.deleteMany).not.toHaveBeenCalled();
     });
   });
 

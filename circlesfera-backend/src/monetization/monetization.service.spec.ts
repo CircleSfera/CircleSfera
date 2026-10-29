@@ -90,6 +90,9 @@ describe('MonetizationService', () => {
         const account = where.userId && accounts.get(where.userId);
         return account
           ? {
+              // The person's row, held by their Profile prof-1.
+              userId: where.userId,
+              profileId: 'prof-1',
               stripeConnectAccountId: account,
               transfersEnabled: false,
               chargesEnabled: false,
@@ -113,7 +116,7 @@ describe('MonetizationService', () => {
         lifetimeEarningsCents: 5000,
       });
 
-      const result = await service.getMonetization('user-1');
+      const result = await service.getMonetization('user-1', 'prof-1');
       expect(result).toHaveProperty('hasStripeAccount', true);
       expect(result.lifetimeEarningsCents).toBe(5000);
       // The account and the Profile holding it stay on the server.
@@ -131,7 +134,7 @@ describe('MonetizationService', () => {
         stripeConnectAccountId: null,
       });
 
-      const result = await service.getMonetization('user-2');
+      const result = await service.getMonetization('user-2', 'prof-1');
       expect(mockPrismaService.monetization.create).toHaveBeenCalledWith({
         data: {
           userId: 'user-2',
@@ -1064,70 +1067,94 @@ describe('MonetizationService', () => {
   });
 
   describe('onboardConnectAccount', () => {
-    it('should throw if user is not found', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue(null);
-      await expect(
-        service.onboardConnectAccount('u-none', 'http://ret', 'http://ref'),
-      ).rejects.toThrow('User not found');
+    type Row = {
+      userId: string | null;
+      profileId: string | null;
+      stripeConnectAccountId: string | null;
+    };
+    // The payout rows, found by their person or by their Profile.
+    const withRows = (...rows: Row[]) =>
+      mockPrismaService.monetization.findUnique.mockImplementation(
+        async ({ where }: { where: { userId?: string; profileId?: string } }) =>
+          rows.find((row) =>
+            where.userId
+              ? row.userId === where.userId
+              : row.profileId === where.profileId,
+          ) ?? null,
+      );
+    const person = (stripeConnectAccountId: string | null = null) => ({
+      id: 'u-1',
+      email: 'u1@test.com',
+      stripeConnectAccountId,
+    });
+    const acting = (accountType = 'CREATOR', id = 'prof-2') =>
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id,
+        accountType,
+      });
+    const onboard = () =>
+      service.onboardConnectAccount(
+        'u-1',
+        'prof-2',
+        'http://ret',
+        'http://ref',
+      );
+
+    beforeEach(() => {
+      mockStripeService.createAccountLink.mockResolvedValue({
+        url: 'https://connect.stripe.com/onboard',
+      });
     });
 
-    it('should throw if the account is PERSONAL, not Creator/Business', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        email: 'u1@test.com',
-        stripeConnectAccountId: null,
-      });
-      mockPrismaService.profile.findFirst.mockResolvedValue({
-        accountType: 'PERSONAL',
-      });
+    it('should throw if user is not found', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      await expect(onboard()).rejects.toThrow('User not found');
+    });
 
-      await expect(
-        service.onboardConnectAccount('u-1', 'http://ret', 'http://ref'),
-      ).rejects.toThrow(
+    it("refuses a Personal Profile, and a Profile that is not the person's", async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person());
+      acting('PERSONAL');
+      await expect(onboard()).rejects.toThrow(
         'Solo las cuentas Creator o Business pueden habilitar el cobro con Stripe.',
+      );
+
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      await expect(onboard()).rejects.toThrow(
+        'Solo las cuentas Creator o Business pueden habilitar el cobro con Stripe.',
+      );
+      expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'prof-2', userId: 'u-1' } }),
       );
       expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
     });
 
-    it('should create express account and account link when user has no connect account', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        email: 'u1@test.com',
-        stripeConnectAccountId: null,
-      });
-      mockPrismaService.profile.findFirst.mockResolvedValue({
-        accountType: 'CREATOR',
-      });
+    it("opens the person's first account for the Profile connecting it", async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person());
+      acting();
+      withRows();
       mockStripeService.createExpressAccount.mockResolvedValue({
         id: 'acct_new',
       });
-      mockStripeService.createAccountLink.mockResolvedValue({
-        url: 'https://connect.stripe.com/onboard',
-      });
 
-      const res = await service.onboardConnectAccount(
-        'u-1',
-        'http://ret',
-        'http://ref',
-      );
+      const res = await onboard();
+
       expect(res.url).toBe('https://connect.stripe.com/onboard');
+      // One account per person, however many times it is asked.
+      expect(mockStripeService.createExpressAccount).toHaveBeenCalledTimes(1);
       expect(mockStripeService.createExpressAccount).toHaveBeenCalledWith(
         'u1@test.com',
+        'connect-account-u-1',
       );
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'u-1' },
         data: { stripeConnectAccountId: 'acct_new' },
       });
-      // And on the row of the Profile holding it.
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
         where: { userId: 'u-1' },
-        update: {
-          profileId: 'creator-prof-1',
-          stripeConnectAccountId: 'acct_new',
-        },
+        update: { profileId: 'prof-2', stripeConnectAccountId: 'acct_new' },
         create: {
           userId: 'u-1',
-          profileId: 'creator-prof-1',
+          profileId: 'prof-2',
           stripeConnectAccountId: 'acct_new',
         },
       });
@@ -1138,26 +1165,43 @@ describe('MonetizationService', () => {
       );
     });
 
-    it('should reuse existing accountId if already provisioned', async () => {
-      accounts.set('u-1', 'acct_existing');
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        email: 'u1@test.com',
-        stripeConnectAccountId: 'acct_existing',
+    it('gives the first account to the Profile connecting it, not to the Personal one the row was opened from', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person());
+      acting();
+      withRows({
+        userId: 'u-1',
+        profileId: 'personal-1',
+        stripeConnectAccountId: null,
       });
-      mockPrismaService.profile.findFirst.mockResolvedValue({
-        accountType: 'CREATOR',
-      });
-      mockStripeService.createAccountLink.mockResolvedValue({
-        url: 'https://connect.stripe.com/onboard',
+      mockStripeService.createExpressAccount.mockResolvedValue({
+        id: 'acct_new',
       });
 
-      const res = await service.onboardConnectAccount(
-        'u-1',
-        'http://ret',
-        'http://ref',
+      await onboard();
+
+      expect(mockStripeService.createExpressAccount).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'u-1' },
+          update: { profileId: 'prof-2', stripeConnectAccountId: 'acct_new' },
+        }),
       );
-      expect(res.url).toBe('https://connect.stripe.com/onboard');
+    });
+
+    it('reuses the account the Profile holds', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(
+        person('acct_existing'),
+      );
+      acting();
+      withRows({
+        userId: 'u-1',
+        profileId: 'prof-2',
+        stripeConnectAccountId: 'acct_existing',
+      });
+
+      await onboard();
+
       expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
       expect(mockPrismaService.monetization.upsert).not.toHaveBeenCalled();
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
@@ -1168,28 +1212,22 @@ describe('MonetizationService', () => {
     });
 
     it('never opens a second account when the row lacks the one the person has, and repairs the row', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        email: 'u1@test.com',
-        stripeConnectAccountId: 'acct_existing',
-      });
-      mockPrismaService.profile.findFirst.mockResolvedValue({
-        accountType: 'CREATOR',
-      });
-      mockStripeService.createAccountLink.mockResolvedValue({
-        url: 'https://connect.stripe.com/onboard',
-      });
+      mockPrismaService.user.findUnique.mockResolvedValue(
+        person('acct_existing'),
+      );
+      acting();
+      withRows();
 
-      await service.onboardConnectAccount('u-1', 'http://ret', 'http://ref');
+      await onboard();
 
       expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
-      // And the row gets the account it lacked.
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { userId: 'u-1' },
-          update: expect.objectContaining({
+          update: {
+            profileId: 'prof-2',
             stripeConnectAccountId: 'acct_existing',
-          }),
+          },
         }),
       );
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
@@ -1199,37 +1237,91 @@ describe('MonetizationService', () => {
       );
     });
 
-    it('should catch errors from Stripe and wrap in BadRequest AppException', async () => {
-      accounts.set('u-1', 'acct_err');
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        email: 'u1@test.com',
-        stripeConnectAccountId: 'acct_err',
+    it("opens an account of its own for a Profile whose person's account another Profile holds", async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person('acct_first'));
+      acting();
+      withRows({
+        userId: 'u-1',
+        profileId: 'prof-1',
+        stripeConnectAccountId: 'acct_first',
       });
-      mockPrismaService.profile.findFirst.mockResolvedValue({
-        accountType: 'CREATOR',
+      mockStripeService.createExpressAccount.mockResolvedValue({
+        id: 'acct_second',
+      });
+
+      await onboard();
+
+      expect(mockStripeService.createExpressAccount).toHaveBeenCalledWith(
+        'u1@test.com',
+        'connect-account-prof-2',
+      );
+      // A row of the Profile only; the person's row and column stay as they are.
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
+        where: { profileId: 'prof-2' },
+        update: { stripeConnectAccountId: 'acct_second' },
+        create: { profileId: 'prof-2', stripeConnectAccountId: 'acct_second' },
+      });
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+      expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
+        'acct_second',
+        'http://ret',
+        'http://ref',
+      );
+    });
+
+    it('reuses the account of its own a second Profile opened before', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person('acct_first'));
+      acting();
+      withRows(
+        {
+          userId: 'u-1',
+          profileId: 'prof-1',
+          stripeConnectAccountId: 'acct_first',
+        },
+        {
+          userId: null,
+          profileId: 'prof-2',
+          stripeConnectAccountId: 'acct_second',
+        },
+      );
+
+      await onboard();
+
+      expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
+      expect(mockPrismaService.monetization.upsert).not.toHaveBeenCalled();
+      expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
+        'acct_second',
+        'http://ret',
+        'http://ref',
+      );
+    });
+
+    it('should catch errors from Stripe and wrap in BadRequest AppException', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person('acct_err'));
+      acting();
+      withRows({
+        userId: 'u-1',
+        profileId: 'prof-2',
+        stripeConnectAccountId: 'acct_err',
       });
       mockStripeService.createAccountLink.mockRejectedValue(
         new Error('Stripe API unreachable'),
       );
 
-      await expect(
-        service.onboardConnectAccount('u-1', 'http://ret', 'http://ref'),
-      ).rejects.toThrow('Stripe API unreachable');
+      await expect(onboard()).rejects.toThrow('Stripe API unreachable');
 
       mockStripeService.createAccountLink.mockRejectedValue('String error');
-      await expect(
-        service.onboardConnectAccount('u-1', 'http://ret', 'http://ref'),
-      ).rejects.toThrow('Failed to connect with Stripe');
+      await expect(onboard()).rejects.toThrow('Failed to connect with Stripe');
     });
   });
 
   describe('getAccountStatus', () => {
     it('should throw if user is not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
-      await expect(service.getAccountStatus('u-none')).rejects.toThrow(
-        'User not found',
-      );
+      await expect(
+        service.getAccountStatus('u-none', 'prof-1'),
+      ).rejects.toThrow('User not found');
     });
 
     it('should return disconnected status if user has no stripe account', async () => {
@@ -1238,9 +1330,10 @@ describe('MonetizationService', () => {
         stripeConnectAccountId: null,
       });
 
-      const res = await service.getAccountStatus('u-1');
+      const res = await service.getAccountStatus('u-1', 'prof-1');
       expect(res).toEqual({
         connected: false,
+        ownAccount: false,
         transfersEnabled: false,
         chargesEnabled: false,
       });
@@ -1258,17 +1351,18 @@ describe('MonetizationService', () => {
         details_submitted: true,
       });
 
-      const res = await service.getAccountStatus('u-1');
+      const res = await service.getAccountStatus('u-1', 'prof-1');
       expect(res).toEqual({
         connected: true,
+        ownAccount: true,
         transfersEnabled: true,
         chargesEnabled: true,
         detailsSubmitted: true,
       });
+      // The row holding the account; it has its Profile already.
       expect(mockPrismaService.monetization.update).toHaveBeenCalledWith({
-        where: { userId: 'u-1' },
+        where: { stripeConnectAccountId: 'acct_active' },
         data: {
-          profileId: 'creator-prof-1',
           transfersEnabled: true,
           chargesEnabled: true,
           verifiedCompany: false,
@@ -1289,9 +1383,10 @@ describe('MonetizationService', () => {
       });
       mockStripeService.getAccount.mockRejectedValue(new Error('Stripe down'));
 
-      const res = await service.getAccountStatus('u-1');
+      const res = await service.getAccountStatus('u-1', 'prof-1');
       expect(res).toEqual({
         connected: true,
+        ownAccount: false,
         transfersEnabled: true,
         chargesEnabled: false,
         detailsSubmitted: false,
@@ -1306,12 +1401,68 @@ describe('MonetizationService', () => {
       });
       mockStripeService.getAccount.mockRejectedValue(new Error('Stripe down'));
 
-      const res = await service.getAccountStatus('u-1');
+      const res = await service.getAccountStatus('u-1', 'prof-1');
       expect(res).toEqual({
         connected: true,
+        ownAccount: true,
         transfersEnabled: false,
         chargesEnabled: false,
         detailsSubmitted: false,
+      });
+    });
+
+    it("says a Profile paid into another Profile's account is not paid into its own", async () => {
+      accounts.set('u-1', 'acct_first');
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'u-1' });
+      mockStripeService.getAccount.mockResolvedValue({
+        capabilities: { transfers: 'active' },
+        charges_enabled: true,
+        details_submitted: true,
+      });
+
+      const res = await service.getAccountStatus('u-1', 'prof-2');
+
+      expect(res).toEqual(
+        expect.objectContaining({ connected: true, ownAccount: false }),
+      );
+      expect(mockStripeService.getAccount).toHaveBeenCalledWith('acct_first');
+    });
+
+    it("reads a Profile's own account, and never places its row with the person", async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'u-1' });
+      mockPrismaService.monetization.findUnique.mockImplementation(
+        async ({ where }: { where: { profileId?: string } }) =>
+          where.profileId === 'prof-2'
+            ? {
+                userId: null,
+                profileId: 'prof-2',
+                stripeConnectAccountId: 'acct_second',
+                transfersEnabled: false,
+                chargesEnabled: false,
+                verifiedCompany: false,
+              }
+            : null,
+      );
+      mockStripeService.getAccount.mockResolvedValue({
+        capabilities: { transfers: 'active' },
+        charges_enabled: true,
+        details_submitted: true,
+      });
+
+      const res = await service.getAccountStatus('u-1', 'prof-2');
+
+      expect(res).toEqual(
+        expect.objectContaining({ connected: true, ownAccount: true }),
+      );
+      expect(mockStripeService.getAccount).toHaveBeenCalledWith('acct_second');
+      expect(mockPrismaService.profile.findMany).not.toHaveBeenCalled();
+      expect(mockPrismaService.monetization.update).toHaveBeenCalledWith({
+        where: { stripeConnectAccountId: 'acct_second' },
+        data: {
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: false,
+        },
       });
     });
   });
@@ -1319,9 +1470,9 @@ describe('MonetizationService', () => {
   describe('getDashboardLink', () => {
     it('should throw if user is not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
-      await expect(service.getDashboardLink('u-none')).rejects.toThrow(
-        'User not found',
-      );
+      await expect(
+        service.getDashboardLink('u-none', 'prof-1'),
+      ).rejects.toThrow('User not found');
     });
 
     it('should throw if user has no stripeConnectAccountId', async () => {
@@ -1329,7 +1480,7 @@ describe('MonetizationService', () => {
         id: 'u-1',
         stripeConnectAccountId: null,
       });
-      await expect(service.getDashboardLink('u-1')).rejects.toThrow(
+      await expect(service.getDashboardLink('u-1', 'prof-1')).rejects.toThrow(
         'Stripe Connect account not set up yet',
       );
     });
@@ -1344,7 +1495,7 @@ describe('MonetizationService', () => {
         url: 'https://connect.stripe.com/dash',
       });
 
-      const res = await service.getDashboardLink('u-1');
+      const res = await service.getDashboardLink('u-1', 'prof-1');
       expect(res.url).toBe('https://connect.stripe.com/dash');
       expect(mockStripeService.createLoginLink).toHaveBeenCalledWith('acct_1');
     });
@@ -1353,9 +1504,9 @@ describe('MonetizationService', () => {
   describe('getConnectPayoutsSummary', () => {
     it('should throw if user is not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
-      await expect(service.getConnectPayoutsSummary('u-none')).rejects.toThrow(
-        'User not found',
-      );
+      await expect(
+        service.getConnectPayoutsSummary('u-none', 'prof-1'),
+      ).rejects.toThrow('User not found');
     });
 
     it('should throw if user has no stripe account', async () => {
@@ -1363,9 +1514,9 @@ describe('MonetizationService', () => {
         id: 'u-1',
         stripeConnectAccountId: null,
       });
-      await expect(service.getConnectPayoutsSummary('u-1')).rejects.toThrow(
-        'Stripe Connect account not set up yet',
-      );
+      await expect(
+        service.getConnectPayoutsSummary('u-1', 'prof-1'),
+      ).rejects.toThrow('Stripe Connect account not set up yet');
     });
 
     it('should return mapped balance and payouts including null arrival_date', async () => {
@@ -1403,7 +1554,7 @@ describe('MonetizationService', () => {
         ],
       });
 
-      const res = await service.getConnectPayoutsSummary('u-1');
+      const res = await service.getConnectPayoutsSummary('u-1', 'prof-1');
       expect(res.available).toEqual([{ amountCents: 5000, currency: 'EUR' }]);
       expect(res.pending).toEqual([{ amountCents: 2000, currency: 'EUR' }]);
       expect(res.payouts).toHaveLength(2);

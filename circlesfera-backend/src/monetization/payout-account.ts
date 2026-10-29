@@ -58,9 +58,17 @@ export async function payoutAccountPlacement(
     db,
     userId,
   );
+  // Never onto a Profile that holds a row of its own.
+  const taken =
+    profileId && profileId !== row?.profileId
+      ? await db.monetization.findUnique({
+          where: { profileId },
+          select: { id: true },
+        })
+      : null;
   // Only what is known, and never over an account the row already holds.
   return {
-    ...(profileId ? { profileId } : {}),
+    ...(profileId && !taken ? { profileId } : {}),
     ...(stripeConnectAccountId && !row?.stripeConnectAccountId
       ? { stripeConnectAccountId }
       : {}),
@@ -68,8 +76,11 @@ export async function payoutAccountPlacement(
 }
 
 const PAYOUT_ROW = {
+  userId: true,
+  profileId: true,
   stripeConnectAccountId: true,
   transfersEnabled: true,
+  chargesEnabled: true,
   verifiedCompany: true,
 } as const;
 

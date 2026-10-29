@@ -32,7 +32,10 @@ export class MonetizationController {
   @Get()
   @ApiResponse({ status: 200 })
   async getMonetization(@Req() req: AuthRequest) {
-    return this.monetizationService.getMonetization(req.user.userId);
+    return this.monetizationService.getMonetization(
+      req.user.userId,
+      req.user.profileId,
+    );
   }
 
   @Get('transactions')
@@ -51,7 +54,10 @@ export class MonetizationController {
   @Get('status')
   @ApiResponse({ status: 200, type: Object })
   async getStatus(@Req() req: AuthRequest) {
-    return this.monetizationService.getAccountStatus(req.user.userId);
+    return this.monetizationService.getAccountStatus(
+      req.user.userId,
+      req.user.profileId,
+    );
   }
 
   @Post('connect')
@@ -60,6 +66,7 @@ export class MonetizationController {
   async connectStripe(@Req() req: AuthRequest, @Body() body: ConnectStripeDto) {
     return this.monetizationService.onboardConnectAccount(
       req.user.userId,
+      req.user.profileId,
       body.returnUrl,
       body.refreshUrl,
     );
@@ -120,13 +127,19 @@ export class MonetizationController {
   @Get('dashboard')
   @ApiResponse({ status: 200 })
   async getDashboard(@Req() req: AuthRequest) {
-    return this.monetizationService.getDashboardLink(req.user.userId);
+    return this.monetizationService.getDashboardLink(
+      req.user.userId,
+      req.user.profileId,
+    );
   }
 
   @Get('payouts')
   @ApiResponse({ status: 200 })
   async getPayouts(@Req() req: AuthRequest) {
-    return this.monetizationService.getConnectPayoutsSummary(req.user.userId);
+    return this.monetizationService.getConnectPayoutsSummary(
+      req.user.userId,
+      req.user.profileId,
+    );
   }
 
   @Get('analytics/income')

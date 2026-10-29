@@ -382,14 +382,28 @@ describe('StripeService creator accounts and identity', () => {
   it('opens an Express account that asks only to receive transfers, paid out every Monday', async () => {
     await service.createExpressAccount('creator@example.com');
 
-    expect(client.accounts.create).toHaveBeenCalledWith({
-      type: 'express',
-      email: 'creator@example.com',
-      capabilities: { transfers: { requested: true } },
-      settings: {
-        payouts: { schedule: { interval: 'weekly', weekly_anchor: 'monday' } },
+    expect(client.accounts.create).toHaveBeenCalledWith(
+      {
+        type: 'express',
+        email: 'creator@example.com',
+        capabilities: { transfers: { requested: true } },
+        settings: {
+          payouts: {
+            schedule: { interval: 'weekly', weekly_anchor: 'monday' },
+          },
+        },
       },
-    });
+      undefined,
+    );
+  });
+
+  it('opens one account for a repeated request with the same key', async () => {
+    await service.createExpressAccount('creator@example.com', 'key-1');
+
+    expect(client.accounts.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ type: 'express' }),
+      { idempotencyKey: 'key-1' },
+    );
   });
 
   it('reads an account, and makes its onboarding and its panel links', async () => {
