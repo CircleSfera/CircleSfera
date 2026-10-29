@@ -6,6 +6,7 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { PaymentsController } from './payments.controller.js';
 import { PaymentsService } from './payments.service.js';
+import { ProviderDeliveryWatchService } from './provider-delivery-watch.service.js';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { PaymentsService } from './payments.service.js';
     MonetizationModule,
   ],
   controllers: [PaymentsController],
-  providers: [PaymentsService],
+  providers: [PaymentsService, ProviderDeliveryWatchService],
   exports: [PaymentsService],
 })
 export class PaymentsModule {}
