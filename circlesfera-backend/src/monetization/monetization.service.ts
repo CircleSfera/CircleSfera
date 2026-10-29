@@ -99,15 +99,31 @@ export class MonetizationService {
     };
   }
 
-  /** The payout account the active Profile is paid into. */
+  /**
+   * The payout row the active Profile's screens show: its own account, also
+   * while it is still being set up, else the one it is paid into.
+   */
+  private async shownPayoutRow(userId: string, profileId: string) {
+    const own = await this.prisma.monetization.findUnique({
+      where: { profileId },
+      select: {
+        userId: true,
+        profileId: true,
+        stripeConnectAccountId: true,
+        transfersEnabled: true,
+        chargesEnabled: true,
+      },
+    });
+    if (own?.stripeConnectAccountId) return own;
+    return payoutRowForProfile(this.prisma, { id: profileId, userId });
+  }
+
+  /** The payout account the active Profile's screens show. */
   private async accountOf(
     userId: string,
     profileId: string,
   ): Promise<string | null> {
-    const row = await payoutRowForProfile(this.prisma, {
-      id: profileId,
-      userId,
-    });
+    const row = await this.shownPayoutRow(userId, profileId);
     return row?.stripeConnectAccountId ?? null;
   }
 
@@ -641,24 +657,51 @@ export class MonetizationService {
     // failed once is made again here), with the Profile holding it: the one
     // connecting, unless another Profile holds it already. A row with no
     // account yet holds nothing, whichever Profile it was opened from.
-    const holder =
-      (person?.stripeConnectAccountId && person.profileId) || profileId;
-    if (!person?.stripeConnectAccountId || !person.profileId) {
-      await this.prisma.monetization.upsert({
-        where: { userId: user.id },
-        update: { profileId: holder, stripeConnectAccountId: first },
-        create: {
-          userId: user.id,
-          profileId: holder,
-          stripeConnectAccountId: first,
-        },
-      });
+    if (
+      person?.stripeConnectAccountId &&
+      person.profileId &&
+      person.profileId !== profileId
+    ) {
+      return this.openProfileAccount(user.email, profileId);
     }
-    if (holder === profileId) return first;
+    // Claimed in one write, so two Profiles connecting at once never both
+    // take it: the row changes only while it holds nothing or this Profile.
+    const claimed = await this.prisma.monetization.updateMany({
+      where: {
+        userId: user.id,
+        OR: [
+          { stripeConnectAccountId: null },
+          { profileId: null },
+          { profileId },
+        ],
+      },
+      data: { profileId, stripeConnectAccountId: first },
+    });
+    if (claimed.count === 0 && !person) {
+      try {
+        await this.prisma.monetization.create({
+          data: { userId: user.id, profileId, stripeConnectAccountId: first },
+        });
+      } catch (error) {
+        // Another request opened the row meanwhile: it is read below.
+        if ((error as { code?: string }).code !== 'P2002') throw error;
+      }
+    }
+    const held = await this.prisma.monetization.findUnique({
+      where: { userId: user.id },
+      select: { profileId: true },
+    });
+    if (held?.profileId === profileId) return first;
+    return this.openProfileAccount(user.email, profileId);
+  }
 
-    // Another Profile holds the person's first account.
+  /** A new account for one Profile only, kept on the Profile's own row. */
+  private async openProfileAccount(
+    email: string,
+    profileId: string,
+  ): Promise<string> {
     const account = await this.stripeService.createExpressAccount(
-      user.email,
+      email,
       `connect-account-${profileId}`,
     );
     await this.prisma.monetization.upsert({
@@ -676,10 +719,7 @@ export class MonetizationService {
 
     // The account the active Profile is paid into, and the flags last saved
     // for it; ownAccount says whether it is the Profile's own.
-    const cached = await payoutRowForProfile(this.prisma, {
-      id: profileId,
-      userId,
-    });
+    const cached = await this.shownPayoutRow(userId, profileId);
     const accountId = cached?.stripeConnectAccountId;
     if (!accountId) {
       return {

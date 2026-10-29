@@ -86,9 +86,9 @@ const PAYOUT_ROW = {
 
 /**
  * The row of the payout account that money earned by a Profile goes to: the
- * one the Profile holds, else its person's. While each person has one row
- * they are the same; once each earning Profile opens its own account, the
- * Profile's own is the one.
+ * one the Profile holds once the provider lets it receive transfers, else
+ * its person's. A Profile that starts opening an account of its own keeps
+ * being paid where it was until that account is ready.
  */
 export async function payoutRowForProfile(
   db: Pick<Prisma.TransactionClient, 'monetization'>,
@@ -99,7 +99,9 @@ export async function payoutRowForProfile(
     where: { profileId: profile.id },
     select: PAYOUT_ROW,
   });
-  if (own?.stripeConnectAccountId) return own;
+  if (own?.stripeConnectAccountId && (own.userId || own.transfersEnabled)) {
+    return own;
+  }
   return db.monetization.findUnique({
     where: { userId: profile.userId },
     select: PAYOUT_ROW,

@@ -16,6 +16,7 @@ describe('MonetizationService', () => {
       create: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -1072,16 +1073,64 @@ describe('MonetizationService', () => {
       profileId: string | null;
       stripeConnectAccountId: string | null;
     };
-    // The payout rows, found by their person or by their Profile.
-    const withRows = (...rows: Row[]) =>
+    let rows: Row[] = [];
+    // The payout rows, found by their person or by their Profile, and
+    // written as the database would.
+    const withRows = (...given: Row[]) => {
+      rows = given.map((row) => ({ ...row }));
+      const find = (where: { userId?: string; profileId?: string }) =>
+        rows.find((row) =>
+          where.userId
+            ? row.userId === where.userId
+            : row.profileId === where.profileId,
+        ) ?? null;
       mockPrismaService.monetization.findUnique.mockImplementation(
         async ({ where }: { where: { userId?: string; profileId?: string } }) =>
-          rows.find((row) =>
-            where.userId
-              ? row.userId === where.userId
-              : row.profileId === where.profileId,
-          ) ?? null,
+          find(where),
       );
+      mockPrismaService.monetization.updateMany.mockImplementation(
+        async ({
+          where,
+          data,
+        }: {
+          where: { userId: string; OR: Partial<Row>[] };
+          data: Partial<Row>;
+        }) => {
+          const row = rows.find(
+            (r) =>
+              r.userId === where.userId &&
+              where.OR.some((c) =>
+                Object.entries(c).every(([k, v]) => r[k as keyof Row] === v),
+              ),
+          );
+          if (!row) return { count: 0 };
+          Object.assign(row, data);
+          return { count: 1 };
+        },
+      );
+      // One row per person and per Profile, as the unique keys keep it.
+      mockPrismaService.monetization.create.mockImplementation(
+        async ({ data }: { data: Row }) => {
+          if (
+            rows.some(
+              (r) =>
+                (data.userId && r.userId === data.userId) ||
+                (data.profileId && r.profileId === data.profileId),
+            )
+          ) {
+            throw Object.assign(new Error('unique'), { code: 'P2002' });
+          }
+          rows.push({ ...data });
+          return data;
+        },
+      );
+      mockPrismaService.monetization.upsert.mockImplementation(
+        async ({ create }: { create: Row }) => {
+          rows.push({ ...create, userId: create.userId ?? null });
+          return create;
+        },
+      );
+    };
     const person = (stripeConnectAccountId: string | null = null) => ({
       id: 'u-1',
       email: 'u1@test.com',
@@ -1092,10 +1141,10 @@ describe('MonetizationService', () => {
         id,
         accountType,
       });
-    const onboard = () =>
+    const onboard = (profileId = 'prof-2') =>
       service.onboardConnectAccount(
         'u-1',
-        'prof-2',
+        profileId,
         'http://ret',
         'http://ref',
       );
@@ -1149,15 +1198,13 @@ describe('MonetizationService', () => {
         where: { id: 'u-1' },
         data: { stripeConnectAccountId: 'acct_new' },
       });
-      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
-        where: { userId: 'u-1' },
-        update: { profileId: 'prof-2', stripeConnectAccountId: 'acct_new' },
-        create: {
+      expect(rows).toEqual([
+        {
           userId: 'u-1',
           profileId: 'prof-2',
           stripeConnectAccountId: 'acct_new',
         },
-      });
+      ]);
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
         'acct_new',
         'http://ret',
@@ -1180,13 +1227,53 @@ describe('MonetizationService', () => {
       await onboard();
 
       expect(mockStripeService.createExpressAccount).toHaveBeenCalledTimes(1);
-      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledTimes(1);
-      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId: 'u-1' },
-          update: { profileId: 'prof-2', stripeConnectAccountId: 'acct_new' },
-        }),
-      );
+      expect(rows).toEqual([
+        {
+          userId: 'u-1',
+          profileId: 'prof-2',
+          stripeConnectAccountId: 'acct_new',
+        },
+      ]);
+    });
+
+    it('never lets two Profiles connecting at once take the same first account', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person());
+      withRows();
+      // B reads the person with no account, then waits at the provider while
+      // A connects from start to end; the provider answers B the same first
+      // account, as the key is the person's.
+      let release!: () => void;
+      const aDone = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      mockStripeService.createExpressAccount
+        .mockImplementationOnce(async () => {
+          await aDone;
+          return { id: 'acct_first' };
+        })
+        .mockResolvedValueOnce({ id: 'acct_first' })
+        .mockResolvedValueOnce({ id: 'acct_own' });
+      mockPrismaService.profile.findFirst
+        .mockResolvedValueOnce({ id: 'prof-b', accountType: 'CREATOR' })
+        .mockResolvedValueOnce({ id: 'prof-a', accountType: 'CREATOR' });
+
+      const b = onboard('prof-b');
+      await onboard('prof-a');
+      release();
+      await b;
+
+      expect(rows).toEqual([
+        {
+          userId: 'u-1',
+          profileId: 'prof-a',
+          stripeConnectAccountId: 'acct_first',
+        },
+        {
+          userId: null,
+          profileId: 'prof-b',
+          stripeConnectAccountId: 'acct_own',
+        },
+      ]);
     });
 
     it('reuses the account the Profile holds', async () => {
@@ -1203,7 +1290,7 @@ describe('MonetizationService', () => {
       await onboard();
 
       expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
-      expect(mockPrismaService.monetization.upsert).not.toHaveBeenCalled();
+      expect(mockPrismaService.monetization.updateMany).not.toHaveBeenCalled();
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
         'acct_existing',
         'http://ret',
@@ -1221,15 +1308,13 @@ describe('MonetizationService', () => {
       await onboard();
 
       expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
-      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId: 'u-1' },
-          update: {
-            profileId: 'prof-2',
-            stripeConnectAccountId: 'acct_existing',
-          },
-        }),
-      );
+      expect(rows).toEqual([
+        {
+          userId: 'u-1',
+          profileId: 'prof-2',
+          stripeConnectAccountId: 'acct_existing',
+        },
+      ]);
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
         'acct_existing',
         'http://ret',
@@ -1256,11 +1341,15 @@ describe('MonetizationService', () => {
         'connect-account-prof-2',
       );
       // A row of the Profile only; the person's row and column stay as they are.
-      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledTimes(1);
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
         where: { profileId: 'prof-2' },
         update: { stripeConnectAccountId: 'acct_second' },
         create: { profileId: 'prof-2', stripeConnectAccountId: 'acct_second' },
+      });
+      expect(rows[0]).toEqual({
+        userId: 'u-1',
+        profileId: 'prof-1',
+        stripeConnectAccountId: 'acct_first',
       });
       expect(mockPrismaService.user.update).not.toHaveBeenCalled();
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
@@ -1295,6 +1384,43 @@ describe('MonetizationService', () => {
         'http://ret',
         'http://ref',
       );
+    });
+
+    it('reads the row again when another request opened it at the same moment', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person('acct_first'));
+      acting();
+      withRows();
+      // The row did not exist when read, and exists when created.
+      mockPrismaService.monetization.create.mockImplementationOnce(async () => {
+        rows.push({
+          userId: 'u-1',
+          profileId: 'prof-1',
+          stripeConnectAccountId: 'acct_first',
+        });
+        throw Object.assign(new Error('unique'), { code: 'P2002' });
+      });
+      mockStripeService.createExpressAccount.mockResolvedValue({
+        id: 'acct_second',
+      });
+
+      await onboard();
+
+      expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
+        'acct_second',
+        'http://ret',
+        'http://ref',
+      );
+    });
+
+    it('lets any other failure of the row through', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person('acct_first'));
+      acting();
+      withRows();
+      mockPrismaService.monetization.create.mockRejectedValueOnce(
+        new Error('db down'),
+      );
+
+      await expect(onboard()).rejects.toThrow('db down');
     });
 
     it('should catch errors from Stripe and wrap in BadRequest AppException', async () => {
@@ -1426,6 +1552,41 @@ describe('MonetizationService', () => {
         expect.objectContaining({ connected: true, ownAccount: false }),
       );
       expect(mockStripeService.getAccount).toHaveBeenCalledWith('acct_first');
+    });
+
+    it('shows a Profile its own account while it is still being set up', async () => {
+      accounts.set('u-1', 'acct_first');
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'u-1' });
+      const byPerson =
+        mockPrismaService.monetization.findUnique.getMockImplementation()!;
+      mockPrismaService.monetization.findUnique.mockImplementation(
+        async (args: { where: { profileId?: string } }) =>
+          args.where.profileId === 'prof-2'
+            ? {
+                userId: null,
+                profileId: 'prof-2',
+                stripeConnectAccountId: 'acct_pending',
+                transfersEnabled: false,
+                chargesEnabled: false,
+              }
+            : byPerson(args),
+      );
+      mockStripeService.getAccount.mockResolvedValue({
+        capabilities: { transfers: 'inactive' },
+        charges_enabled: false,
+        details_submitted: false,
+      });
+
+      const res = await service.getAccountStatus('u-1', 'prof-2');
+
+      expect(mockStripeService.getAccount).toHaveBeenCalledWith('acct_pending');
+      expect(res).toEqual(
+        expect.objectContaining({
+          connected: true,
+          ownAccount: true,
+          transfersEnabled: false,
+        }),
+      );
     });
 
     it("reads a Profile's own account, and never places its row with the person", async () => {
