@@ -279,6 +279,26 @@ export class StripeService implements OnModuleInit {
     });
   }
 
+  // The events of the platform, or of one connected account, created in a
+  // window that the provider has not delivered to every destination yet.
+  async listUndeliveredEvents(
+    window: { from: Date; to: Date },
+    stripeAccount?: string,
+  ): Promise<{ id: string; type: string }[]> {
+    const events = await this.stripe.events.list(
+      {
+        delivery_success: false,
+        created: {
+          gte: Math.floor(window.from.getTime() / 1000),
+          lte: Math.floor(window.to.getTime() / 1000),
+        },
+        limit: 100,
+      },
+      stripeAccount ? { stripeAccount } : undefined,
+    );
+    return events.data.map(({ id, type }) => ({ id, type }));
+  }
+
   // Retrieve a Stripe Account by ID.
   async getAccount(accountId: string): Promise<Stripe.Account> {
     return this.stripe.accounts.retrieve(accountId);

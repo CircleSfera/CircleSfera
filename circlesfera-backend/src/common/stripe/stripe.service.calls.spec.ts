@@ -16,6 +16,7 @@ const client = {
   accounts: { create: vi.fn(), retrieve: vi.fn(), createLoginLink: vi.fn() },
   accountLinks: { create: vi.fn() },
   balance: { retrieve: vi.fn() },
+  events: { list: vi.fn() },
   payouts: { list: vi.fn() },
   identity: { verificationSessions: { create: vi.fn(), retrieve: vi.fn() } },
 };
@@ -373,6 +374,37 @@ describe('StripeService notices of the provider', () => {
       'STRIPE_WEBHOOK_SECRET is not configured',
     );
     expect(client.webhooks.constructEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('StripeService event deliveries', () => {
+  const { service } = serviceWith();
+
+  it('lists the events not delivered in a window, of the platform or of one account', async () => {
+    client.events.list.mockResolvedValue({
+      data: [{ id: 'evt_1', type: 'account.updated', extra: 'dropped' }],
+    });
+    const window = {
+      from: new Date('2026-10-28T12:00:00.000Z'),
+      to: new Date('2026-10-29T11:00:00.000Z'),
+    };
+
+    await expect(service.listUndeliveredEvents(window)).resolves.toEqual([
+      { id: 'evt_1', type: 'account.updated' },
+    ]);
+    expect(client.events.list).toHaveBeenLastCalledWith(
+      {
+        delivery_success: false,
+        created: { gte: 1793188800, lte: 1793271600 },
+        limit: 100,
+      },
+      undefined,
+    );
+
+    await service.listUndeliveredEvents(window, 'acct_1');
+    expect(client.events.list).toHaveBeenLastCalledWith(expect.anything(), {
+      stripeAccount: 'acct_1',
+    });
   });
 });
 
