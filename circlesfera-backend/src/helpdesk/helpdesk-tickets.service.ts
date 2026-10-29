@@ -621,11 +621,15 @@ export class HelpdeskTicketsService {
     return this.getTicket(id);
   }
 
-  // An answer written in the team's own channel instead of the Help Desk.
-  // Who of the team wrote it is not known there, so the message has no
-  // author and nothing goes to the staff log. Returns false when the ticket
-  // cannot be answered: missing, closed, already solved or with another team.
-  async answerFromTeamChannel(id: string, text: string): Promise<boolean> {
+  // An answer written in the team's own channel instead of the Help Desk, by
+  // the member of staff behind that channel account: the message and the
+  // staff log name them. Returns false when the ticket cannot be answered:
+  // missing, closed, already solved or with another team.
+  async answerFromTeamChannel(
+    id: string,
+    text: string,
+    agentRef: string,
+  ): Promise<boolean> {
     const body = text.trim();
     const ticket = body ? await this.store.findTicket(id) : null;
     if (
@@ -646,10 +650,15 @@ export class HelpdeskTicketsService {
     const updated = await this.change(
       ticket,
       { status: 'RESOLVED', ...(resolvedAt !== undefined && { resolvedAt }) },
-      { kind: 'AGENT', ref: null },
-      { authorKind: 'AGENT', authorRef: null, visibility: 'PUBLIC', body },
+      { kind: 'AGENT', ref: agentRef },
+      { authorKind: 'AGENT', authorRef: agentRef, visibility: 'PUBLIC', body },
     );
     await this.notifier.answer(this.noticeOf(updated), body);
+    await this.staffLog.record(
+      agentRef,
+      id,
+      `Answered ticket ${id} from Slack → RESOLVED`,
+    );
     return true;
   }
 

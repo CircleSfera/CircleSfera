@@ -59,7 +59,7 @@ describe('SlackService', () => {
     sendSupportReplyEmail: vi.fn(),
   };
 
-  const mockSlackStaff = { moderatorFor: vi.fn() };
+  const mockSlackStaff = { moderatorFor: vi.fn(), staffFor: vi.fn() };
   const mockReviews = {
     updateStatus: vi.fn(),
     resolveWithPenalty: vi.fn(),
@@ -92,6 +92,9 @@ describe('SlackService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // The Slack account is a member of staff with the permission asked.
+    mockSlackStaff.staffFor.mockResolvedValue('admin-1');
+    mockSlackStaff.moderatorFor.mockResolvedValue('admin-1');
     (axios.post as any).mockResolvedValue({ data: 'ok' });
     (axios.isAxiosError as any).mockReturnValue(false);
 
@@ -432,7 +435,7 @@ describe('SlackService', () => {
       mockPrismaService.post.count.mockResolvedValueOnce(45);
       mockPrismaService.report.count.mockResolvedValueOnce(3);
 
-      const res = await service.handleStatsCommand();
+      const res = await service.handleStatsCommand('U123');
 
       expect(res.response_type).toBe('in_channel');
       expect(res.blocks).toHaveLength(2);
@@ -444,7 +447,7 @@ describe('SlackService', () => {
         new Error('DB failure'),
       );
 
-      const res = await service.handleStatsCommand();
+      const res = await service.handleStatsCommand('U123');
 
       expect(res.text).toBe('❌ Error fetching stats from database.');
     });
@@ -452,14 +455,14 @@ describe('SlackService', () => {
 
   describe('handleUserCommand', () => {
     it('returns prompt if text is empty or whitespace', async () => {
-      const res = await service.handleUserCommand('   ');
+      const res = await service.handleUserCommand('   ', 'U123');
       expect(res.text).toContain('Por favor, proporciona un email');
     });
 
     it('returns not found if user does not exist', async () => {
       mockPrismaService.user.findFirst.mockResolvedValue(null);
 
-      const res = await service.handleUserCommand('nonexistent');
+      const res = await service.handleUserCommand('nonexistent', 'U123');
       expect(res.text).toContain(
         'No se ha encontrado ningún usuario con: `nonexistent`',
       );
@@ -482,7 +485,7 @@ describe('SlackService', () => {
         ],
       });
 
-      const res = await service.handleUserCommand('shading');
+      const res = await service.handleUserCommand('shading', 'U123');
 
       // Only to whoever asked, with no email, bio or post.
       expect(res.response_type).toBe('ephemeral');
@@ -511,7 +514,7 @@ describe('SlackService', () => {
         ],
       });
 
-      const res = await service.handleUserCommand('nobio');
+      const res = await service.handleUserCommand('nobio', 'U123');
 
       expect(res.response_type).toBe('ephemeral');
       expect(res.blocks[0].text.text).toContain('@nobio');
@@ -522,7 +525,7 @@ describe('SlackService', () => {
         new Error('DB failure'),
       );
 
-      const res = await service.handleUserCommand('erroruser');
+      const res = await service.handleUserCommand('erroruser', 'U123');
       expect(res.text).toBe(
         '❌ Error al buscar el usuario en la base de datos.',
       );
@@ -818,6 +821,28 @@ describe('SlackService', () => {
       );
     });
 
+    it("opens the reply form for a ticket's id, which names no report", async () => {
+      const res = await service.handleModerationInteraction({
+        user: { id: 'U123' },
+        trigger_id: 'trig-1',
+        actions: [
+          { action_id: 'support_reply', value: 'cmh1ticket0000000000000000' },
+        ],
+      });
+
+      expect(res).toBeUndefined();
+      expect(mockPrismaService.report.findUnique).not.toHaveBeenCalled();
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://slack.com/api/views.open',
+        expect.objectContaining({
+          view: expect.objectContaining({
+            callback_id: 'support_reply_modal_cmh1ticket0000000000000000',
+          }),
+        }),
+        expect.anything(),
+      );
+    });
+
     it('handles axios failure when opening slack modal in support_reply', async () => {
       (axios.post as any).mockRejectedValueOnce(new Error('Slack API down'));
       const payload = {
@@ -871,6 +896,7 @@ describe('SlackService', () => {
     });
 
     const replyPayload = (ticketId: string, value: string) => ({
+      user: { id: 'U123' },
       view: {
         callback_id: `support_reply_modal_${ticketId}`,
         state: {
@@ -889,9 +915,12 @@ describe('SlackService', () => {
         replyPayload('tick-77', 'Here is your invoice link.'),
       );
 
+      // As the member of staff behind the Slack account.
+      expect(mockSlackStaff.staffFor).toHaveBeenCalledWith('U123', 'support');
       expect(helpdeskData.answerFromTeamChannel).toHaveBeenCalledWith(
         'tick-77',
         'Here is your invoice link.',
+        'admin-1',
       );
       // The channel no longer writes the ticket or sends the email itself.
       expect(mockPrismaService.supportTicket.update).not.toHaveBeenCalled();
@@ -937,6 +966,77 @@ describe('SlackService', () => {
 
       const res = await service.handleViewSubmission(payload);
       expect(res).toEqual({ response_action: 'clear' });
+    });
+  });
+
+  describe('a Slack account that is no member of staff with the permission', () => {
+    beforeEach(() => {
+      mockSlackStaff.staffFor.mockResolvedValue(null);
+      mockSlackStaff.moderatorFor.mockResolvedValue(null);
+    });
+
+    it('reads no metrics and no person with a command', async () => {
+      const stats = await service.handleStatsCommand('U999');
+      const user = await service.handleUserCommand('alice', 'U999');
+
+      expect(mockSlackStaff.staffFor).toHaveBeenCalledWith(
+        'U999',
+        'users.read',
+      );
+      expect(stats.response_type).toBe('ephemeral');
+      expect(stats.text).toContain('No se ha hecho nada');
+      expect(user.text).toContain('No se ha hecho nada');
+      expect(mockPrismaService.user.count).not.toHaveBeenCalled();
+      expect(mockPrismaService.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('sends no reported content to the AI', async () => {
+      mockPrismaService.report.findUnique.mockResolvedValue({
+        id: 'rep-ai',
+        targetType: 'POST',
+        targetId: 'post-1',
+      });
+
+      const res = await service.handleModerationInteraction({
+        user: { id: 'U999' },
+        actions: [{ action_id: 'moderate_ai', value: 'ai_rep-ai' }],
+      });
+
+      expect(res.text).toContain('No se ha hecho nada');
+      expect(mockAIService.moderateContent).not.toHaveBeenCalled();
+    });
+
+    it('opens no reply form for a ticket', async () => {
+      const res = await service.handleModerationInteraction({
+        user: { id: 'U999' },
+        trigger_id: 'trig-1',
+        actions: [{ action_id: 'support_reply', value: 'tick-1' }],
+      });
+
+      expect(mockSlackStaff.staffFor).toHaveBeenCalledWith('U999', 'support');
+      expect(res.text).toContain('No se ha hecho nada');
+      expect(axios.post).not.toHaveBeenCalled();
+    });
+
+    it('sends no answer to the requester of a ticket', async () => {
+      const helpdeskData = { answerFromTeamChannel: vi.fn() };
+      Object.assign(service, { helpdeskData });
+
+      const res = await service.handleViewSubmission({
+        user: { id: 'U999' },
+        view: {
+          callback_id: 'support_reply_modal_tick-1',
+          state: {
+            values: { reply_input_block: { reply_text: { value: 'Hi' } } },
+          },
+        },
+      });
+
+      expect(helpdeskData.answerFromTeamChannel).not.toHaveBeenCalled();
+      expect(res).toEqual({
+        response_action: 'errors',
+        errors: { reply_input_block: expect.stringContaining('soporte') },
+      });
     });
   });
 });

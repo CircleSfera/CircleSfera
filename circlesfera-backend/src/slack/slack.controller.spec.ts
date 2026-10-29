@@ -46,11 +46,11 @@ describe('SlackController', () => {
 
     const stats = await request(app.getHttpServer())
       .post('/api/v1/slack/commands')
-      .send({ command: '/cs-stats' })
+      .send({ command: '/cs-stats', user_id: 'U123' })
       .expect(200);
     const user = await request(app.getHttpServer())
       .post('/api/v1/slack/commands')
-      .send({ command: '/cs-user', text: 'alice' })
+      .send({ command: '/cs-user', text: 'alice', user_id: 'U123' })
       .expect(200);
     const unknown = await request(app.getHttpServer())
       .post('/api/v1/slack/commands')
@@ -62,8 +62,8 @@ describe('SlackController', () => {
     expect(unknown.body).toEqual({
       text: 'Command not recognized: /other',
     });
-    expect(mockService.handleStatsCommand).toHaveBeenCalledWith();
-    expect(mockService.handleUserCommand).toHaveBeenCalledWith('alice');
+    expect(mockService.handleStatsCommand).toHaveBeenCalledWith('U123');
+    expect(mockService.handleUserCommand).toHaveBeenCalledWith('alice', 'U123');
   });
 
   it('ignores interactions without a payload', async () => {

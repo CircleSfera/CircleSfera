@@ -54,6 +54,28 @@ describe('SlackGuard', () => {
     );
   });
 
+  it('refuses a timestamp that is not a number of seconds, even correctly signed', () => {
+    const timestamp = 'soon';
+    const body = Buffer.from('payload=test');
+    const signature =
+      'v0=' +
+      crypto
+        .createHmac('sha256', 'secret123')
+        .update(`v0:${timestamp}:${body.toString()}`)
+        .digest('hex');
+
+    const context = createMockContext(
+      {
+        'x-slack-signature': signature,
+        'x-slack-request-timestamp': timestamp,
+      },
+      body,
+    );
+    expect(() => guard.canActivate(context)).toThrow(
+      new UnauthorizedException('Slack request timestamp expired'),
+    );
+  });
+
   it('throws UnauthorizedException if signing secret is not configured', () => {
     mockConfigService.get.mockReturnValue(null);
     const validTimestamp = Math.floor(Date.now() / 1000).toString();

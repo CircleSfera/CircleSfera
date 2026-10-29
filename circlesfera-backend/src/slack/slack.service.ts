@@ -418,7 +418,10 @@ export class SlackService {
   }
 
   // Phase 2: Slash Commands
-  async handleStatsCommand(): Promise<any> {
+  async handleStatsCommand(slackUserId: unknown): Promise<any> {
+    if (!(await this.slackStaff.staffFor(slackUserId, 'users.read'))) {
+      return this.notStaffAnswer();
+    }
     try {
       const totalUsers = await this.prisma.user.count({
         where: { isActive: true },
@@ -465,7 +468,10 @@ export class SlackService {
     }
   }
 
-  async handleUserCommand(text: string): Promise<any> {
+  async handleUserCommand(text: string, slackUserId: unknown): Promise<any> {
+    if (!(await this.slackStaff.staffFor(slackUserId, 'users.read'))) {
+      return this.notStaffAnswer();
+    }
     if (!text || text.trim() === '') {
       return {
         text: '⚠️ Por favor, proporciona un email o username (ej. `/cs-user shading`).',
@@ -581,6 +587,14 @@ export class SlackService {
     return `${base.replace(/\/$/, '')}/reports`;
   }
 
+  // Only to whoever asked: nothing was done or read for them.
+  private notStaffAnswer() {
+    return {
+      response_type: 'ephemeral',
+      text: '⚠️ No se ha hecho nada: tu cuenta de Slack no corresponde a ningún miembro del staff con permiso para esto.',
+    };
+  }
+
   private notAllowedText(): string {
     return `⚠️ No se ha hecho nada: tu cuenta de Slack no corresponde a ningún miembro del staff con permiso de denuncias. Decide en el panel: ${this.reportsPanelUrl()}`;
   }
@@ -615,6 +629,55 @@ export class SlackService {
       : `⚠️ Infracción aplicada por @${who}`;
   }
 
+  // The reply button of a support alert opens a form to answer the ticket,
+  // for a member of staff with the support permission.
+  private async openSupportReply(payload: any, ticketId: string): Promise<any> {
+    if (!(await this.slackStaff.staffFor(payload.user?.id, 'support'))) {
+      return this.notStaffAnswer();
+    }
+    const triggerId = payload.trigger_id;
+
+    if (!this.slackBotToken) {
+      this.logger.error('SLACK_BOT_TOKEN not configured. Cannot open modal.');
+      return { text: 'Bot token missing. Check server config.' };
+    }
+
+    try {
+      await axios.post(
+        'https://slack.com/api/views.open',
+        {
+          trigger_id: triggerId,
+          view: {
+            type: 'modal',
+            callback_id: `support_reply_modal_${ticketId}`,
+            title: { type: 'plain_text', text: 'Responder Ticket' },
+            submit: { type: 'plain_text', text: 'Enviar Respuesta' },
+            close: { type: 'plain_text', text: 'Cancelar' },
+            blocks: [
+              {
+                type: 'input',
+                block_id: 'reply_input_block',
+                element: {
+                  type: 'plain_text_input',
+                  action_id: 'reply_text',
+                  multiline: true,
+                },
+                label: { type: 'plain_text', text: 'Tu Respuesta' },
+              },
+            ],
+          },
+        },
+        {
+          headers: { Authorization: `Bearer ${this.slackBotToken}` },
+          timeout: 5_000,
+        },
+      );
+    } catch (error) {
+      this.logger.error('Failed to open slack modal', error);
+    }
+    return; // Empty response for modal opening
+  }
+
   // Phase 2: Interactive Moderation
   async handleModerationInteraction(payload: any): Promise<any> {
     const action = payload.actions?.[0];
@@ -624,6 +687,10 @@ export class SlackService {
 
     const actionId = action.action_id;
     const value = action.value; // E.g. ignore_123, delete_123, ban_123
+    // Its value is the ticket's id, not a report's.
+    if (actionId === 'support_reply') {
+      return this.openSupportReply(payload, value);
+    }
     const reportId = value.split('_').slice(1).join('_');
 
     if (!reportId) {
@@ -662,6 +729,9 @@ export class SlackService {
           return { text: this.notAllowedText() };
         }
       } else if (actionId === 'moderate_ai') {
+        if (!(await this.slackStaff.moderatorFor(payload.user?.id))) {
+          return { text: this.notAllowedText() };
+        }
         let contentToAnalyze = '';
         if (report.targetType === 'POST') {
           const post = await this.prisma.post.findUnique({
@@ -692,51 +762,6 @@ export class SlackService {
         }
 
         // No cerramos el reporte, solo mostramos el veredicto
-      } else if (actionId === 'support_reply') {
-        const ticketId = value;
-        const triggerId = payload.trigger_id;
-
-        if (!this.slackBotToken) {
-          this.logger.error(
-            'SLACK_BOT_TOKEN not configured. Cannot open modal.',
-          );
-          return { text: 'Bot token missing. Check server config.' };
-        }
-
-        try {
-          await axios.post(
-            'https://slack.com/api/views.open',
-            {
-              trigger_id: triggerId,
-              view: {
-                type: 'modal',
-                callback_id: `support_reply_modal_${ticketId}`,
-                title: { type: 'plain_text', text: 'Responder Ticket' },
-                submit: { type: 'plain_text', text: 'Enviar Respuesta' },
-                close: { type: 'plain_text', text: 'Cancelar' },
-                blocks: [
-                  {
-                    type: 'input',
-                    block_id: 'reply_input_block',
-                    element: {
-                      type: 'plain_text_input',
-                      action_id: 'reply_text',
-                      multiline: true,
-                    },
-                    label: { type: 'plain_text', text: 'Tu Respuesta' },
-                  },
-                ],
-              },
-            },
-            {
-              headers: { Authorization: `Bearer ${this.slackBotToken}` },
-              timeout: 5_000,
-            },
-          );
-        } catch (error) {
-          this.logger.error('Failed to open slack modal', error);
-        }
-        return; // Empty response for modal opening
       }
 
       // We should return an update to the original message to remove the buttons and add the resolution text
@@ -784,6 +809,20 @@ export class SlackService {
       const callbackId = payload.view?.callback_id;
       if (callbackId?.startsWith('support_reply_modal_')) {
         const ticketId = callbackId.replace('support_reply_modal_', '');
+        // The answer goes out as the member of staff who wrote it.
+        const agentRef = await this.slackStaff.staffFor(
+          payload.user?.id,
+          'support',
+        );
+        if (!agentRef) {
+          return {
+            response_action: 'errors',
+            errors: {
+              reply_input_block:
+                'Tu cuenta de Slack no corresponde a ningún miembro del staff con permiso de soporte.',
+            },
+          };
+        }
         const stateValues = payload.view.state.values;
         const replyText = stateValues.reply_input_block.reply_text.value;
 
@@ -793,6 +832,7 @@ export class SlackService {
         const answered = await this.helpdeskData?.answerFromTeamChannel(
           ticketId,
           replyText,
+          agentRef,
         );
         if (answered) {
           this.logger.log(`Support ticket ${ticketId} resolved via Slack`);
