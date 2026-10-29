@@ -306,6 +306,18 @@ export class StripeService implements OnModuleInit {
     return events.data.map(({ id, type }) => ({ id, type }));
   }
 
+  // Holds or resumes the payouts of a creator's account. Held, what it earns
+  // stays in its balance until the payouts are resumed, on Mondays again.
+  async setPayoutsHeld(accountId: string, held: boolean): Promise<void> {
+    await this.stripe.accounts.update(accountId, {
+      settings: {
+        payouts: {
+          schedule: held ? { interval: 'manual' } : CREATOR_PAYOUT_SCHEDULE,
+        },
+      },
+    });
+  }
+
   // Retrieve a Stripe Account by ID.
   async getAccount(accountId: string): Promise<Stripe.Account> {
     return this.stripe.accounts.retrieve(accountId);

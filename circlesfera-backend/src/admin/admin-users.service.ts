@@ -363,6 +363,7 @@ export class AdminUsersService {
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
     });
+    await this.usersService.holdPayouts(userId, true);
     const banEvent: UserSessionTerminateEvent['payload'] = {
       userId,
       profileId: result.profiles[0]?.id,
@@ -400,6 +401,7 @@ export class AdminUsersService {
         profiles: true,
       },
     });
+    await this.usersService.holdPayouts(userId, false);
     await this.logAction(adminId, AdminAction.UNBAN_USER, 'user', userId);
     await this.invalidateProfileCache(userId);
     return result;

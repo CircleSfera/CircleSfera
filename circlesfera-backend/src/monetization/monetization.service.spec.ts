@@ -84,6 +84,12 @@ describe('MonetizationService', () => {
 
     service = module.get<MonetizationService>(MonetizationService);
     vi.clearAllMocks();
+    // A Profile paid is in good standing unless a test says otherwise.
+    mockPrismaService.profile.findUnique.mockResolvedValue({
+      isAccountBanned: false,
+      suspendedUntil: null,
+      user: { isActive: true, isRootBanned: false, deletedAt: null },
+    });
     // The rows of earnings: which person holds which payout account.
     accounts.clear();
     mockPrismaService.monetization.findUnique.mockImplementation(
@@ -1761,6 +1767,71 @@ describe('MonetizationService', () => {
       expect(summary.currentMonthIncome).toBe(0);
       expect(summary.totalTips).toBe(0);
       expect(summary.breakdown.postUnlocks).toBe(0);
+    });
+  });
+  describe('a creator whose person is banned from the whole account', () => {
+    beforeEach(() => {
+      accounts.set('creator-1', 'acct_creator');
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        isAccountBanned: false,
+        suspendedUntil: null,
+        user: { isActive: false, isRootBanned: true, deletedAt: null },
+      });
+    });
+    const premium = {
+      isPremium: true,
+      priceCents: 500,
+      profileId: 'profile-creator',
+      profile: { username: 'ana', user: { id: 'creator-1' } },
+    };
+
+    it('sells none of their posts', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post-1',
+        ...premium,
+      });
+
+      await expect(
+        service.createPostUnlockSession(
+          'user-1',
+          'profile-buyer',
+          'post-1',
+          'http://return',
+        ),
+      ).rejects.toThrow('Creator not found');
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('sells none of their stories', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        id: 's-1',
+        ...premium,
+      });
+
+      await expect(
+        service.createStoryUnlockSession(
+          'user-1',
+          'profile-buyer',
+          's-1',
+          'http://return',
+        ),
+      ).rejects.toThrow('Creator not found');
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('sells none of their messages', async () => {
+      mockPrismaService.message.findUnique.mockResolvedValue({
+        id: 'm-1',
+        isLocked: true,
+        priceCents: 500,
+        senderId: 'profile-creator',
+        sender: { username: 'ana', user: { id: 'creator-1' } },
+      });
+
+      await expect(
+        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
+      ).rejects.toThrow('Creator not found');
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
   });
 });

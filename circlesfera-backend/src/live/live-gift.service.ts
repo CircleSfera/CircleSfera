@@ -14,7 +14,7 @@ import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.j
 import { StripeService } from '../common/stripe/stripe.service.js';
 import {
   payoutAccountPlacement,
-  payoutRowForProfile,
+  payoutDestinationFor,
 } from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
@@ -94,7 +94,8 @@ export class LiveGiftService {
       );
     }
 
-    const payout = await payoutRowForProfile(this.prisma, stream.host);
+    // A host who may not be paid gets no gift.
+    const payout = await payoutDestinationFor(this.prisma, stream.host);
     if (!payout?.stripeConnectAccountId) {
       throw new BadRequestException(
         'Host cannot receive gifts yet (no Stripe Connect account)',

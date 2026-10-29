@@ -142,6 +142,33 @@ export class UsersService {
     }));
   }
 
+  /**
+   * A person banned from the whole account is paid out nothing while the ban
+   * lasts: what every Profile of theirs earned stays in its provider balance,
+   * and the Monday payouts come back when the ban is lifted. A failure at the
+   * provider never undoes the ban; it is reported to be done again.
+   */
+  async holdPayouts(userId: string, held: boolean): Promise<void> {
+    const rows = await this.prisma.monetization.findMany({
+      where: {
+        OR: [{ userId }, { profile: { userId } }],
+        stripeConnectAccountId: { not: null },
+      },
+      select: { stripeConnectAccountId: true },
+    });
+    for (const { stripeConnectAccountId } of rows) {
+      if (!stripeConnectAccountId) continue;
+      try {
+        await this.stripeService.setPayoutsHeld(stripeConnectAccountId, held);
+      } catch (error) {
+        this.logger.error(
+          `Could not ${held ? 'hold' : 'resume'} the payouts of account ${stripeConnectAccountId} (person ${userId})`,
+          error,
+        );
+      }
+    }
+  }
+
   // Ban (deactivate) a user account. Admin only.
   // Param id: The user ID to ban
   async banUser(id: string) {
@@ -149,6 +176,7 @@ export class UsersService {
       where: { id },
       data: { isActive: false, isRootBanned: true },
     });
+    await this.holdPayouts(id, true);
     await this.prisma.refreshToken.deleteMany({
       where: { userId: id },
     });
@@ -167,10 +195,12 @@ export class UsersService {
       where: { userId: id },
       data: { suspendedUntil: null, isAccountBanned: false },
     });
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: { isActive: true, isRootBanned: false },
     });
+    await this.holdPayouts(id, false);
+    return updated;
   }
 
   // GDPR: Gathers all user-related data for export.

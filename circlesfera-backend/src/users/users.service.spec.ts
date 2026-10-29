@@ -61,7 +61,15 @@ describe('UsersService', () => {
 
   // What the person earned and was paid out.
   const earningModels = {
-    monetization: { findMany: vi.fn().mockResolvedValue([]) },
+    // The payout accounts of the person and of their Profiles.
+    monetization: {
+      findMany: vi
+        .fn()
+        .mockResolvedValue([
+          { stripeConnectAccountId: 'acct_person' },
+          { stripeConnectAccountId: 'acct_profile' },
+        ]),
+    },
     stripePayoutLog: { findMany: vi.fn().mockResolvedValue([]) },
     promotion: { findMany: vi.fn().mockResolvedValue([]) },
     paymentDispute: { findMany: vi.fn().mockResolvedValue([]) },
@@ -110,6 +118,7 @@ describe('UsersService', () => {
   const mockStripeService = {
     createIdentityVerificationSession: vi.fn(),
     getIdentityVerificationSession: vi.fn(),
+    setPayoutsHeld: vi.fn(),
   };
 
   const mockUsersQueue = {
@@ -285,6 +294,64 @@ describe('UsersService', () => {
         data: { isActive: true, isRootBanned: false },
       });
       expect(result.isActive).toBe(true);
+    });
+
+    it('holds the payouts of every account of the person while banned, and resumes them on unban', async () => {
+      mockPrismaService.user.update.mockResolvedValue({ id: '1' });
+
+      await service.banUser('1');
+
+      expect(mockPrismaService.monetization.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [{ userId: '1' }, { profile: { userId: '1' } }],
+          stripeConnectAccountId: { not: null },
+        },
+        select: { stripeConnectAccountId: true },
+      });
+      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
+        'acct_person',
+        true,
+      );
+      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
+        'acct_profile',
+        true,
+      );
+
+      mockStripeService.setPayoutsHeld.mockClear();
+      await service.unbanUser('1');
+
+      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
+        'acct_person',
+        false,
+      );
+      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
+        'acct_profile',
+        false,
+      );
+    });
+
+    it('keeps the ban, and holds the other accounts, when the provider fails for one', async () => {
+      mockPrismaService.user.update.mockResolvedValue({
+        id: '1',
+        isActive: false,
+      });
+      mockPrismaService.monetization.findMany.mockResolvedValueOnce([
+        { stripeConnectAccountId: 'acct_person' },
+        { stripeConnectAccountId: null },
+        { stripeConnectAccountId: 'acct_profile' },
+      ]);
+      mockStripeService.setPayoutsHeld.mockRejectedValueOnce(
+        new Error('Stripe down'),
+      );
+
+      await expect(service.banUser('1')).resolves.toEqual(
+        expect.objectContaining({ isActive: false }),
+      );
+      expect(mockStripeService.setPayoutsHeld).toHaveBeenLastCalledWith(
+        'acct_profile',
+        true,
+      );
+      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledTimes(2);
     });
   });
 
