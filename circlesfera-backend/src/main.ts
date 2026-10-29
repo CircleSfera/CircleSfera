@@ -64,7 +64,6 @@ Sentry.init({
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
@@ -72,6 +71,7 @@ import { Logger } from 'nestjs-pino';
 import qs from 'qs';
 import { AppModule } from './app.module.js';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter.js';
+import { useBodyParsers } from './common/config/body-parsers.config.js';
 import { doubleCsrfProtection } from './common/config/csrf.config.js';
 import {
   createCspDirectives,
@@ -227,31 +227,7 @@ async function bootstrap(): Promise<void> {
   // Exception filter is registered via APP_FILTER in AppModule (with SlackService DI).
   // Do not register a second instance here.
 
-  // Stripe Webhook needs raw body for signature verification (bounded to 1MB)
-  app.use(
-    '/api/v1/payments/webhook',
-    bodyParser.raw({ type: 'application/json', limit: '1mb' }),
-  );
-
-  // CSP violation reports use their own content types; bounded to 16KB.
-  app.use(
-    '/api/v1/security/csp-report',
-    bodyParser.json({
-      type: ['application/csp-report', 'application/reports+json'],
-      limit: '16kb',
-    }),
-  );
-
-  // Use sensible global body parser limits (DoS protection)
-  // Bounded to 2MB for JSON and URL-encoded payloads; file uploads go through multipart
-  app.use(bodyParser.json({ limit: '2mb' }));
-  app.use(
-    bodyParser.urlencoded({
-      limit: '2mb',
-      extended: true,
-      parameterLimit: 1000,
-    }),
-  );
+  useBodyParsers(app);
 
   // WebSocket Redis Adapter
   const redisIoAdapter = new RedisIoAdapter(app, configService);
