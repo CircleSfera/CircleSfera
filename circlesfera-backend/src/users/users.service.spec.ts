@@ -316,9 +316,18 @@ describe('UsersService', () => {
         'acct_profile',
         true,
       );
+      // The 85 days count from the ban.
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: { payoutsHeldAt: expect.any(Date) },
+      });
 
       mockStripeService.setPayoutsHeld.mockClear();
       await service.unbanUser('1');
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: { payoutsHeldAt: null },
+      });
 
       expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
         'acct_person',

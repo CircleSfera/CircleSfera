@@ -144,8 +144,9 @@ export class UsersService {
 
   /**
    * A person banned from the whole account is paid out nothing while the ban
-   * lasts: what every Profile of theirs earned stays in its provider balance,
-   * and the Monday payouts come back when the ban is lifted. A failure at the
+   * lasts, for up to 85 days (the provider holds payouts for 90 at most):
+   * what every Profile of theirs earned stays in its provider balance, and
+   * the Monday payouts come back when the ban is lifted. A failure at the
    * provider never undoes the ban: the team is told, and the daily schedule
    * check does it again.
    */
@@ -170,6 +171,11 @@ export class UsersService {
         person?.stripeConnectAccountId,
       ].filter((account): account is string => Boolean(account)),
     );
+    // The 85 days before the held payouts are released count from here.
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { payoutsHeldAt: held ? new Date() : null },
+    });
     const failed: string[] = [];
     for (const account of accounts) {
       try {
