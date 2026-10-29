@@ -72,7 +72,10 @@ import qs from 'qs';
 import { AppModule } from './app.module.js';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter.js';
 import { useBodyParsers } from './common/config/body-parsers.config.js';
-import { doubleCsrfProtection } from './common/config/csrf.config.js';
+import {
+  doubleCsrfProtection,
+  isCsrfExempt,
+} from './common/config/csrf.config.js';
 import {
   createCspDirectives,
   deriveWebSocketOrigins,
@@ -191,32 +194,7 @@ async function bootstrap(): Promise<void> {
     const normalizedPath =
       pathToCheck.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
 
-    const isExcluded =
-      normalizedPath.includes('/auth/login') ||
-      normalizedPath.includes('/auth/register') ||
-      normalizedPath.includes('/auth/refresh') ||
-      normalizedPath.includes('/auth/verify-email') ||
-      normalizedPath.includes('/auth/request-reset') ||
-      normalizedPath.includes('/auth/reset-password') ||
-      normalizedPath.includes('/auth/passkey/login-options') ||
-      normalizedPath.includes('/auth/passkey/login-verify') ||
-      normalizedPath.includes('/admin-auth/login') ||
-      normalizedPath.includes('/admin-auth/mfa/verify') ||
-      normalizedPath.includes('/admin-auth/refresh') ||
-      normalizedPath.includes('/csrf-token') ||
-      normalizedPath.includes('/payments/webhook') ||
-      // Browsers send CSP violation reports without cookies or a CSRF token.
-      // The endpoint only logs a sanitized summary and changes nothing.
-      normalizedPath === '/api/v1/security/csp-report' ||
-      // The mail provider posts received email without cookies. The route
-      // has no session and asks for its own secret token instead.
-      normalizedPath === '/api/v1/helpdesk/inbound/email' ||
-      // A mail client's one-click unsubscribe posts without cookies. The
-      // route has no session and asks for the signed token of its link.
-      normalizedPath === '/api/v1/newsletter/unsubscribe' ||
-      normalizedPath.includes('/socket.io');
-
-    if (isExcluded) {
+    if (isCsrfExempt(normalizedPath)) {
       next();
     } else {
       doubleCsrfProtection(req, res, next);

@@ -25,9 +25,13 @@ export class SlackGuard implements CanActivate {
       throw new UnauthorizedException('Missing Slack signature headers');
     }
 
-    // Verify timestamp isn't older than 5 minutes to prevent replay attacks
+    // Verify timestamp isn't older than 5 minutes to prevent replay attacks.
+    // One that is not a number of seconds would never compare as too old.
     const time = Math.floor(Date.now() / 1000);
-    if (Math.abs(time - parseInt(slackTimestamp, 10)) > 300) {
+    if (
+      !/^\d{1,12}$/.test(slackTimestamp) ||
+      Math.abs(time - Number(slackTimestamp)) > 300
+    ) {
       this.logger.warn('Slack request timestamp expired');
       throw new UnauthorizedException('Slack request timestamp expired');
     }
