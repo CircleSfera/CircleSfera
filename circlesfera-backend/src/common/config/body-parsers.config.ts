@@ -9,8 +9,9 @@ function keepRawBody(req: IncomingMessage, _res: unknown, buf: Buffer): void {
   (req as IncomingMessage & { rawBody?: Buffer }).rawBody = buf;
 }
 
-// The parsers registered here run before Nest's own, so Nest's `rawBody`
-// option never sees a body: each of them keeps the raw bytes itself.
+// With these parsers in place Nest registers none of its own (it skips a
+// parser already in the stack), so its `rawBody` option keeps nothing: each
+// parser here keeps the raw bytes itself.
 export function useBodyParsers(app: INestApplication): void {
   // Stripe events: the raw body, bounded to 1MB.
   app.use(
