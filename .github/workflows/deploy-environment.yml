@@ -433,6 +433,13 @@ jobs:
             public / 401
             public /login 401
 
+            # The platform plans of this environment name the products and
+            # prices of its own test account of the payment provider, never
+            # production's: set again on every deploy. A plan it cannot check
+            # is left as it was and said here, without stopping the deploy.
+            docker exec -e APPLY=1 "$BACKEND" node scripts/sync-plan-catalog.ts \
+              || echo "The plan catalog of ${ENV_NAME} could not be set in full: see above."
+
             # The signed-in smoke check, with the environment's own Test
             # Accounts: put in place again on every deploy, the smoke account
             # with a new random password, then checked through the
