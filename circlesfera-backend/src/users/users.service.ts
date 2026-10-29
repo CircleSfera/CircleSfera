@@ -328,6 +328,8 @@ export class UsersService {
               status: true,
               createdAt: true,
               senderId: true,
+              // Which of the person's Profiles earned it.
+              receiverProfile: { select: { username: true } },
             },
           },
         },
@@ -401,17 +403,14 @@ export class UsersService {
     return safeData as Record<string, unknown>;
   }
 
-  // The rest of what is kept about the person, for the export: warnings and
-  // strikes, spam review cases, searches, what they viewed and did, support
-  // requests, plans, unlocks, experiments and the notes staff wrote about
-  // them. Who on the staff wrote or decided is not included.
   /**
-   * What the person earned and was paid out: each payout account of theirs
-   * and of their Profiles, with the Profile holding it, and every payout to
-   * their bank. The provider's own records of the account are read there.
+   * What the person earned, was paid out and paid to promote: each payout
+   * account of theirs and of their Profiles, with the Profile holding it,
+   * every payout to their bank, their promotions and the disputes of what
+   * they paid. The provider's own records of the account are read there.
    */
   private async earningsOfTheAccount(userId: string) {
-    const [accounts, payouts] = await Promise.all([
+    const [accounts, payouts, promotions, disputes] = await Promise.all([
       this.prisma.monetization.findMany({
         where: { OR: [{ userId }, { profile: { userId } }] },
         orderBy: { createdAt: 'asc' },
@@ -438,6 +437,40 @@ export class UsersService {
           profile: { select: { username: true } },
         },
       }),
+      this.prisma.promotion.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          targetType: true,
+          targetId: true,
+          budgetCents: true,
+          dailyBudgetCents: true,
+          currency: true,
+          status: true,
+          countries: true,
+          startDate: true,
+          endDate: true,
+          reach: true,
+          clicks: true,
+          chargedAt: true,
+          refundedAt: true,
+          rejectionReason: true,
+          reviewedAt: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.paymentDispute.findMany({
+        where: { userId },
+        orderBy: { openedAt: 'asc' },
+        select: {
+          amountCents: true,
+          currency: true,
+          reason: true,
+          status: true,
+          openedAt: true,
+          closedAt: true,
+        },
+      }),
     ]);
     return {
       payoutAccounts: accounts.map(({ profile, ...account }) => ({
@@ -448,9 +481,15 @@ export class UsersService {
         ...payout,
         profile: profile?.username ?? null,
       })),
+      promotions,
+      disputes,
     };
   }
 
+  // The rest of what is kept about the person, for the export: warnings and
+  // strikes, spam review cases, searches, what they viewed and did, support
+  // requests, plans, unlocks, experiments and the notes staff wrote about
+  // them. Who on the staff wrote or decided is not included.
   private async heldAboutTheAccount(userId: string) {
     const byProfile = { profile: { userId } };
     const [

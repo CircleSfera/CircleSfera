@@ -63,6 +63,8 @@ describe('UsersService', () => {
   const earningModels = {
     monetization: { findMany: vi.fn().mockResolvedValue([]) },
     stripePayoutLog: { findMany: vi.fn().mockResolvedValue([]) },
+    promotion: { findMany: vi.fn().mockResolvedValue([]) },
+    paymentDispute: { findMany: vi.fn().mockResolvedValue([]) },
   };
 
   const mockPrismaService = {
@@ -331,16 +333,57 @@ describe('UsersService', () => {
         },
       ]);
 
+      earningModels.promotion.findMany.mockResolvedValueOnce([
+        { status: 'ACTIVE', budgetCents: 500 },
+      ]);
+      earningModels.paymentDispute.findMany.mockResolvedValueOnce([
+        { amountCents: 300, reason: 'fraudulent', status: 'won' },
+      ]);
+
       const data = await service.exportUserData('u1');
 
-      expect(earningModels.monetization.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { OR: [{ userId: 'u1' }, { profile: { userId: 'u1' } }] },
-        }),
-      );
-      expect(earningModels.stripePayoutLog.findMany).toHaveBeenCalledWith(
+      // Only the person's own rows, and only these fields.
+      expect(earningModels.monetization.findMany).toHaveBeenCalledWith({
+        where: { OR: [{ userId: 'u1' }, { profile: { userId: 'u1' } }] },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          stripeConnectAccountId: true,
+          lifetimeEarningsCents: true,
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: true,
+          createdAt: true,
+          profile: { select: { username: true } },
+        },
+      });
+      expect(earningModels.stripePayoutLog.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
+        orderBy: { arrivalDate: 'asc' },
+        select: {
+          stripePayoutId: true,
+          amountCents: true,
+          currency: true,
+          status: true,
+          arrivalDate: true,
+          failureReason: true,
+          profile: { select: { username: true } },
+        },
+      });
+      expect(earningModels.promotion.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { userId: 'u1' } }),
       );
+      expect(earningModels.paymentDispute.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
+        orderBy: { openedAt: 'asc' },
+        select: {
+          amountCents: true,
+          currency: true,
+          reason: true,
+          status: true,
+          openedAt: true,
+          closedAt: true,
+        },
+      });
       expect(data.earnings).toEqual({
         payoutAccounts: [
           {
@@ -373,7 +416,21 @@ describe('UsersService', () => {
             profile: 'ana',
           },
         ],
+        promotions: [{ status: 'ACTIVE', budgetCents: 500 }],
+        disputes: [{ amountCents: 300, reason: 'fraudulent', status: 'won' }],
       });
+      // Which Profile earned each payment received.
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            receivedTransactions: expect.objectContaining({
+              select: expect.objectContaining({
+                receiverProfile: { select: { username: true } },
+              }),
+            }),
+          }),
+        }),
+      );
     });
 
     it('returns formatted GDPR safe data export', async () => {

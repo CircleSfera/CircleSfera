@@ -237,7 +237,7 @@ export class DataExportProcessor extends WorkerHost {
         });
 
         archive.append(
-          'This archive contains all your personal data as per GDPR compliance.\n\n- user_data.json: Your profile, posts, comments, likes, and settings.',
+          'This archive contains all your personal data as per GDPR compliance.\n\n- user_data.json: your account and sign-ins, your Profiles with their posts, stories, comments, likes, messages and settings, your payments and earnings (payout accounts, payouts, promotions and disputes), and the rest that is kept about you.',
           { name: 'README.txt' },
         );
 
