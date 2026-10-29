@@ -445,14 +445,18 @@
       "status": {
         "active": "Tu cuenta puede recibir pagos.",
         "incomplete": "Completa los datos en Stripe para recibir pagos.",
-        "unconnected": "Conecta Stripe para recibir propinas."
+        "unconnected": "Conecta Stripe para recibir propinas.",
+        "shared": "Este perfil cobra en la cuenta de Stripe de otro de tus perfiles."
       },
       "dashboard": "Panel de Stripe",
       "connect": "Conectar Stripe",
       "earnings": "Ingresos",
       "lifetime": "Ingresos acumulados",
       "error_connect": "No se pudo conectar con Stripe",
-      "error_dashboard": "No se pudo abrir el panel de Stripe"
+      "error_dashboard": "No se pudo abrir el panel de Stripe",
+      "connect_own": "Conectar cuenta propia",
+      "complete": "Completar en Stripe",
+      "own_account_note": "Con una cuenta propia, los ingresos, los pagos y las reclamaciones de este perfil no se mezclan con los de tu otro perfil. Entra en Stripe con el mismo usuario y podrá ofrecerte reutilizar los datos ya verificados de tu otra cuenta."
     },
     "back_to_profile": "← Volver al perfil",
     "notifications_tab": {

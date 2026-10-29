@@ -61,13 +61,21 @@ export function MonetizationSettings() {
     );
   }
 
-  const isConnected = status?.connected;
+  // This Profile is paid into the account of another Profile of the person,
+  // and can connect one of its own.
+  const sharesAccount = status?.connected && status.ownAccount === false;
+  const isConnected = status?.connected && !sharesAccount;
   const isTransfersEnabled = status?.transfersEnabled;
-  const statusCopy = isTransfersEnabled
-    ? t('settings.monetization.status.active')
-    : isConnected
-      ? t('settings.monetization.status.incomplete')
-      : t('settings.monetization.status.unconnected');
+  // Stripe's panel opens once its onboarding is done; until then the account
+  // goes back to the onboarding.
+  const isOnboarded = status?.detailsSubmitted !== false;
+  const statusCopy = sharesAccount
+    ? t('settings.monetization.status.shared')
+    : isTransfersEnabled
+      ? t('settings.monetization.status.active')
+      : isConnected
+        ? t('settings.monetization.status.incomplete')
+        : t('settings.monetization.status.unconnected');
 
   return (
     <div className="max-w-xl space-y-5">
@@ -85,7 +93,7 @@ export function MonetizationSettings() {
               {statusCopy}
             </p>
           </div>
-          {isConnected ? (
+          {isConnected && isOnboarded ? (
             <Button
               type="button"
               variant="outline"
@@ -106,10 +114,19 @@ export function MonetizationSettings() {
               isLoading={connectMutation.isPending}
               className="shrink-0"
             >
-              {t('settings.monetization.connect')}
+              {sharesAccount
+                ? t('settings.monetization.connect_own')
+                : isConnected
+                  ? t('settings.monetization.complete')
+                  : t('settings.monetization.connect')}
             </Button>
           )}
         </div>
+        {sharesAccount ? (
+          <p className="text-xs text-white/50 leading-relaxed mt-3">
+            {t('settings.monetization.own_account_note')}
+          </p>
+        ) : null}
       </SettingsSection>
 
       {isTransfersEnabled ? (
