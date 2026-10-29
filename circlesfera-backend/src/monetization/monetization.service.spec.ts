@@ -1236,7 +1236,7 @@ describe('MonetizationService', () => {
       ]);
     });
 
-    it('never lets a Profile connecting at the same moment take the first account from the one that claimed it', async () => {
+    it('never lets two Profiles connecting at once take the same first account', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(person());
       withRows();
       // B reads the person with no account, then waits at the provider while
@@ -1251,7 +1251,8 @@ describe('MonetizationService', () => {
           await aDone;
           return { id: 'acct_first' };
         })
-        .mockResolvedValueOnce({ id: 'acct_first' });
+        .mockResolvedValueOnce({ id: 'acct_first' })
+        .mockResolvedValueOnce({ id: 'acct_own' });
       mockPrismaService.profile.findFirst
         .mockResolvedValueOnce({ id: 'prof-b', accountType: 'CREATOR' })
         .mockResolvedValueOnce({ id: 'prof-a', accountType: 'CREATOR' });
@@ -1261,12 +1262,16 @@ describe('MonetizationService', () => {
       release();
       await b;
 
-      // A keeps it; B shares it until Profiles open accounts of their own.
       expect(rows).toEqual([
         {
           userId: 'u-1',
           profileId: 'prof-a',
           stripeConnectAccountId: 'acct_first',
+        },
+        {
+          userId: null,
+          profileId: 'prof-b',
+          stripeConnectAccountId: 'acct_own',
         },
       ]);
     });
@@ -1317,7 +1322,7 @@ describe('MonetizationService', () => {
       );
     });
 
-    it("keeps a Profile on the person's account another Profile holds, until Profiles open their own", async () => {
+    it("opens an account of its own for a Profile whose person's account another Profile holds", async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(person('acct_first'));
       acting();
       withRows({
@@ -1325,20 +1330,30 @@ describe('MonetizationService', () => {
         profileId: 'prof-1',
         stripeConnectAccountId: 'acct_first',
       });
+      mockStripeService.createExpressAccount.mockResolvedValue({
+        id: 'acct_second',
+      });
 
       await onboard();
 
-      expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
-      expect(mockPrismaService.monetization.updateMany).not.toHaveBeenCalled();
-      expect(rows).toEqual([
-        {
-          userId: 'u-1',
-          profileId: 'prof-1',
-          stripeConnectAccountId: 'acct_first',
-        },
-      ]);
+      expect(mockStripeService.createExpressAccount).toHaveBeenCalledWith(
+        'u1@test.com',
+        'connect-account-prof-2',
+      );
+      // A row of the Profile only; the person's row and column stay as they are.
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
+        where: { profileId: 'prof-2' },
+        update: { stripeConnectAccountId: 'acct_second' },
+        create: { profileId: 'prof-2', stripeConnectAccountId: 'acct_second' },
+      });
+      expect(rows[0]).toEqual({
+        userId: 'u-1',
+        profileId: 'prof-1',
+        stripeConnectAccountId: 'acct_first',
+      });
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
-        'acct_first',
+        'acct_second',
         'http://ret',
         'http://ref',
       );
@@ -1371,7 +1386,7 @@ describe('MonetizationService', () => {
       );
     });
 
-    it('goes on when another request opened the row at the same moment', async () => {
+    it('reads the row again when another request opened it at the same moment', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(person('acct_first'));
       acting();
       withRows();
@@ -1384,11 +1399,14 @@ describe('MonetizationService', () => {
         });
         throw Object.assign(new Error('unique'), { code: 'P2002' });
       });
+      mockStripeService.createExpressAccount.mockResolvedValue({
+        id: 'acct_second',
+      });
 
       await onboard();
 
       expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
-        'acct_first',
+        'acct_second',
         'http://ret',
         'http://ref',
       );
