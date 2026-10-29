@@ -1,9 +1,11 @@
-name: Ops — set plan features
+name: Ops — sync plan catalog
 
-# Sets the stored description and feature list of the three platform plans in
-# production to what each plan really includes. It runs as a dry run and only
-# prints what would change, unless `apply` is ticked. Prices, Stripe
-# identifiers and subscriptions are never touched.
+# Sets the stored platform plans in production to the catalog
+# (circlesfera-backend/scripts/plan-catalog.ts): their names, prices, what
+# they include, and the product and price of each in the live account of the
+# payment provider; a plan missing in the database is added. It runs as a
+# dry run and only prints what would change, unless `apply` is ticked.
+# Subscriptions are never touched.
 on:
   workflow_dispatch:
     inputs:
@@ -25,8 +27,8 @@ permissions:
   contents: read
 
 jobs:
-  set-plan-features:
-    name: Set plan features
+  sync-plan-catalog:
+    name: Sync plan catalog
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production-ops
@@ -41,7 +43,7 @@ jobs:
             echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
             exit 1
           fi
-      - name: Set the plan features on the VPS
+      - name: Sync the plan catalog on the VPS
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           APPLY: ${{ inputs.apply && '1' || '0' }}
@@ -57,4 +59,4 @@ jobs:
             cd /srv/circlesfera
             docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
               -e APPLY \
-              backend node scripts/set-plan-features.ts
+              backend node scripts/sync-plan-catalog.ts
