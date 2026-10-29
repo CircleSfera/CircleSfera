@@ -679,7 +679,41 @@ export class SlackService {
   }
 
   // Phase 2: Interactive Moderation
+  // Slack is answered as soon as a button is pressed, so what the handler
+  // answers never reaches it: unless the message itself shows the outcome,
+  // who pressed is told, in a message only they see.
   async handleModerationInteraction(payload: any): Promise<any> {
+    const answer = await this.handleButton(payload);
+    if (answer?.text && !answer.shown) {
+      await this.tellWhoPressed(payload, answer.text);
+    }
+    return answer;
+  }
+
+  private async tellWhoPressed(payload: any, text: string): Promise<void> {
+    if (!this.slackBotToken || !payload.channel?.id || !payload.user?.id) {
+      return;
+    }
+    try {
+      // The Web API at a fixed address; channel and user go in the body.
+      await axios.post(
+        'https://slack.com/api/chat.postEphemeral',
+        {
+          channel: payload.channel.id as string,
+          user: payload.user.id as string,
+          text,
+        },
+        {
+          headers: { Authorization: `Bearer ${this.slackBotToken}` },
+          timeout: 5_000,
+        },
+      );
+    } catch (error) {
+      this.logger.warn('Could not tell who pressed a Slack button', error);
+    }
+  }
+
+  private async handleButton(payload: any): Promise<any> {
     const action = payload.actions?.[0];
     const userWhoClicked = payload.user?.username || 'Admin';
 
@@ -695,7 +729,7 @@ export class SlackService {
 
     if (!reportId) {
       this.logger.error('No reportId found in interaction payload');
-      return { text: 'Invalid report ID' };
+      return { text: 'ℹ️ Este aviso no corresponde a ninguna denuncia.' };
     }
 
     try {
@@ -703,7 +737,10 @@ export class SlackService {
         where: { id: reportId },
       });
       if (!report) {
-        return { text: 'Report not found' };
+        // An alert of a test, or of a report erased since.
+        return {
+          text: 'ℹ️ Esta denuncia ya no existe: no hay nada que decidir. Puede ser el aviso de una prueba.',
+        };
       }
 
       let resultText: string | null = '';
@@ -796,7 +833,8 @@ export class SlackService {
         );
       }
 
-      return { text: resultText };
+      // The message now shows the outcome.
+      return { text: resultText, shown: true };
     } catch (error) {
       this.logger.error('Error handling moderation interaction', error);
       return { text: '❌ Error executing moderation action' };
