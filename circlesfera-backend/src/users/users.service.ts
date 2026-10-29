@@ -176,7 +176,7 @@ export class UsersService {
   // GDPR: Gathers all user-related data for export.
   // Param userId: The user ID to export
   async exportUserData(userId: string) {
-    const [account, relations, held] = await Promise.all([
+    const [account, relations, held, earnings] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -328,11 +328,14 @@ export class UsersService {
               status: true,
               createdAt: true,
               senderId: true,
+              // Which of the person's Profiles earned it.
+              receiverProfile: { select: { username: true } },
             },
           },
         },
       }),
       this.heldAboutTheAccount(userId),
+      this.earningsOfTheAccount(userId),
     ]);
 
     if (!account || !relations) throw new Error('User not found');
@@ -393,10 +396,94 @@ export class UsersService {
       reportsFiled: undefined, // removed because reports are on profiles
       sentTransactions: relations.sentTransactions,
       receivedTransactions: relations.receivedTransactions,
+      earnings,
       ...held,
     };
 
     return safeData as Record<string, unknown>;
+  }
+
+  /**
+   * What the person earned, was paid out and paid to promote: each payout
+   * account of theirs and of their Profiles, with the Profile holding it,
+   * every payout to their bank, their promotions and the disputes of what
+   * they paid. The provider's own records of the account are read there.
+   */
+  private async earningsOfTheAccount(userId: string) {
+    const [accounts, payouts, promotions, disputes] = await Promise.all([
+      this.prisma.monetization.findMany({
+        where: { OR: [{ userId }, { profile: { userId } }] },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          stripeConnectAccountId: true,
+          lifetimeEarningsCents: true,
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: true,
+          createdAt: true,
+          profile: { select: { username: true } },
+        },
+      }),
+      this.prisma.stripePayoutLog.findMany({
+        where: { userId },
+        orderBy: { arrivalDate: 'asc' },
+        select: {
+          stripePayoutId: true,
+          amountCents: true,
+          currency: true,
+          status: true,
+          arrivalDate: true,
+          failureReason: true,
+          profile: { select: { username: true } },
+        },
+      }),
+      this.prisma.promotion.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          targetType: true,
+          targetId: true,
+          budgetCents: true,
+          dailyBudgetCents: true,
+          currency: true,
+          status: true,
+          countries: true,
+          startDate: true,
+          endDate: true,
+          reach: true,
+          clicks: true,
+          chargedAt: true,
+          refundedAt: true,
+          rejectionReason: true,
+          reviewedAt: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.paymentDispute.findMany({
+        where: { userId },
+        orderBy: { openedAt: 'asc' },
+        select: {
+          amountCents: true,
+          currency: true,
+          reason: true,
+          status: true,
+          openedAt: true,
+          closedAt: true,
+        },
+      }),
+    ]);
+    return {
+      payoutAccounts: accounts.map(({ profile, ...account }) => ({
+        ...account,
+        profile: profile?.username ?? null,
+      })),
+      payouts: payouts.map(({ profile, ...payout }) => ({
+        ...payout,
+        profile: profile?.username ?? null,
+      })),
+      promotions,
+      disputes,
+    };
   }
 
   // The rest of what is kept about the person, for the export: warnings and
