@@ -193,7 +193,7 @@ describe('Help Desk: service level and due times', () => {
       const viaChannel = await open();
       const viaChange = await open();
       atHour(2);
-      await tickets.answerFromTeamChannel(viaChannel, 'Fixed.');
+      await tickets.answerFromTeamChannel(viaChannel, 'Fixed.', 'agent-1');
       await tickets.updateTicket('agent-1', viaChange, { reply: 'Fixed.' });
 
       expect(row(viaChannel).firstRespondedAt).toEqual(at(2));

@@ -20,10 +20,10 @@ export class SlackController {
   @ApiResponse({ status: HttpStatus.OK, type: Object })
   async handleCommands(@Body() body: any) {
     if (body.command === '/cs-stats') {
-      return this.slackService.handleStatsCommand();
+      return this.slackService.handleStatsCommand(body.user_id);
     }
     if (body.command === '/cs-user') {
-      return this.slackService.handleUserCommand(body.text);
+      return this.slackService.handleUserCommand(body.text, body.user_id);
     }
     return { text: `Command not recognized: ${body.command}` };
   }

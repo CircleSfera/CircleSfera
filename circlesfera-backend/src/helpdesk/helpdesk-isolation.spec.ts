@@ -259,7 +259,7 @@ describe('Help Desk: isolation between two organizations', () => {
     }),
     answerFromTeamChannel: async () => ({
       leaked:
-        (await tickets.answerFromTeamChannel(a.open, 'hello')) ||
+        (await tickets.answerFromTeamChannel(a.open, 'hello', 'agent-b')) ||
         notifier.answer.mock.calls.length > 0,
     }),
 

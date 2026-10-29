@@ -1022,7 +1022,7 @@ describe('HelpdeskTicketsService', () => {
   });
 
   describe('an answer written in the team channel', () => {
-    it('becomes a message of the team, solves the ticket and tells the requester', async () => {
+    it('becomes a message of the member of staff who wrote it, solves the ticket and tells the requester', async () => {
       store.findTicket.mockResolvedValue(ticket);
       store.updateTicket.mockResolvedValue({
         ...ticket,
@@ -1030,9 +1030,9 @@ describe('HelpdeskTicketsService', () => {
         status: 'RESOLVED',
       });
 
-      expect(await service.answerFromTeamChannel('t-1', '  Fixed.  ')).toBe(
-        true,
-      );
+      expect(
+        await service.answerFromTeamChannel('t-1', '  Fixed.  ', 'admin-1'),
+      ).toBe(true);
 
       expect(store.updateTicket).toHaveBeenCalledWith(
         't-1',
@@ -1041,20 +1041,23 @@ describe('HelpdeskTicketsService', () => {
           resolvedAt: expect.any(Date),
           pausedAt: expect.any(Date),
         },
-        // The channel does not say who of the team wrote it.
         {
           authorKind: 'AGENT',
-          authorRef: null,
+          authorRef: 'admin-1',
           visibility: 'PUBLIC',
           body: 'Fixed.',
         },
-        [stateEvent('OPEN', 'RESOLVED', 'AGENT', null)],
+        [stateEvent('OPEN', 'RESOLVED', 'AGENT', 'admin-1')],
       );
       expect(notifier.answer).toHaveBeenCalledWith(
         expect.objectContaining({ id: 't-1', email: 'ana@example.com' }),
         'Fixed.',
       );
-      expect(staffLog.record).not.toHaveBeenCalled();
+      expect(staffLog.record).toHaveBeenCalledWith(
+        'admin-1',
+        't-1',
+        'Answered ticket t-1 from Slack → RESOLVED',
+      );
     });
 
     it.each([
@@ -1064,7 +1067,9 @@ describe('HelpdeskTicketsService', () => {
     ])('refuses when the ticket %s', async (_case, found) => {
       store.findTicket.mockResolvedValue(found);
 
-      expect(await service.answerFromTeamChannel('t-1', 'Fixed.')).toBe(false);
+      expect(
+        await service.answerFromTeamChannel('t-1', 'Fixed.', 'admin-1'),
+      ).toBe(false);
       expect(store.updateTicket).not.toHaveBeenCalled();
       expect(notifier.answer).not.toHaveBeenCalled();
     });
@@ -1077,12 +1082,16 @@ describe('HelpdeskTicketsService', () => {
       });
       handover.cases.mockResolvedValue(caseOf('PENDING'));
 
-      expect(await service.answerFromTeamChannel('t-1', 'Fixed.')).toBe(false);
+      expect(
+        await service.answerFromTeamChannel('t-1', 'Fixed.', 'admin-1'),
+      ).toBe(false);
       expect(store.updateTicket).not.toHaveBeenCalled();
     });
 
     it('refuses an answer that is only spaces without looking for the ticket', async () => {
-      expect(await service.answerFromTeamChannel('t-1', '   ')).toBe(false);
+      expect(await service.answerFromTeamChannel('t-1', '   ', 'admin-1')).toBe(
+        false,
+      );
       expect(store.findTicket).not.toHaveBeenCalled();
     });
   });

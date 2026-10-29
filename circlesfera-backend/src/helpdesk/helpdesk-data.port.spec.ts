@@ -44,11 +44,17 @@ describe('HelpdeskDataPort', () => {
     // Not looked up while the port is built: the two depend on each other.
     expect(moduleRef.get).not.toHaveBeenCalled();
 
-    expect(await port.answerFromTeamChannel('t-1', 'Fixed.')).toBe(true);
+    expect(await port.answerFromTeamChannel('t-1', 'Fixed.', 'admin-1')).toBe(
+      true,
+    );
 
     expect(moduleRef.get).toHaveBeenCalledWith(HelpdeskTicketsService, {
       strict: false,
     });
-    expect(tickets.answerFromTeamChannel).toHaveBeenCalledWith('t-1', 'Fixed.');
+    expect(tickets.answerFromTeamChannel).toHaveBeenCalledWith(
+      't-1',
+      'Fixed.',
+      'admin-1',
+    );
   });
 });

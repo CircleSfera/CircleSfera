@@ -68,9 +68,13 @@ export class HelpdeskDataPort {
       .receive(email);
   }
 
-  answerFromTeamChannel(ticketId: string, text: string): Promise<boolean> {
+  answerFromTeamChannel(
+    ticketId: string,
+    text: string,
+    agentRef: string,
+  ): Promise<boolean> {
     return this.moduleRef
       .get(HelpdeskTicketsService, { strict: false })
-      .answerFromTeamChannel(ticketId, text);
+      .answerFromTeamChannel(ticketId, text, agentRef);
   }
 }

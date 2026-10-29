@@ -1,12 +1,16 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { staffHoldsPermission } from '../auth/guards/admin.guard.js';
+import {
+  type StaffPermission,
+  staffHoldsPermission,
+} from '../auth/guards/admin.guard.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /**
  * The member of staff behind a Slack account: the active staff identity with
- * the email of that Slack account, when it holds the reports permission.
+ * the email of that Slack account, when it holds the permission an action
+ * needs.
  * Moderation from Slack acts as that identity, so it follows the same rules,
  * notices, audit log and appeals as the Admin Panel. Without a match nothing
  * is done.
@@ -41,7 +45,15 @@ export class SlackStaff {
   }
 
   /** The staff identity that may act on reports, or nothing. */
-  async moderatorFor(slackUserId: unknown): Promise<string | null> {
+  moderatorFor(slackUserId: unknown): Promise<string | null> {
+    return this.staffFor(slackUserId, 'reports');
+  }
+
+  /** The staff identity that holds the permission, or nothing. */
+  async staffFor(
+    slackUserId: unknown,
+    permission: StaffPermission,
+  ): Promise<string | null> {
     if (typeof slackUserId !== 'string') return null;
     const email = await this.emailOf(slackUserId);
     if (!email) return null;
@@ -69,7 +81,7 @@ export class SlackStaff {
     const permissions = admin.roles.flatMap((r) =>
       r.role.permissions.map((p) => p.permission.key),
     );
-    return staffHoldsPermission({ roles, permissions }, 'reports')
+    return staffHoldsPermission({ roles, permissions }, permission)
       ? admin.id
       : null;
   }

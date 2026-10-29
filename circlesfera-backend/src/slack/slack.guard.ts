@@ -47,14 +47,18 @@ export class SlackGuard implements CanActivate {
     // RawBody is kept by the body parsers (common/config/body-parsers.config.ts)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rawBody = (req as { rawBody?: Buffer }).rawBody;
-    if (!rawBody) return false;
+    if (!rawBody) {
+      this.logger.warn('Slack request without its raw body');
+      return false;
+    }
 
-    const sigBasestring = `v0:${slackTimestamp}:${rawBody.toString('utf8')}`;
+    // Signed over the bytes as they arrived, never a decoded copy of them.
     const mySignature =
       'v0=' +
       crypto
         .createHmac('sha256', signingSecret)
-        .update(sigBasestring, 'utf8')
+        .update(`v0:${slackTimestamp}:`, 'utf8')
+        .update(rawBody)
         .digest('hex');
 
     try {
