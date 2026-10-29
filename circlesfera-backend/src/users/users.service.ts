@@ -585,6 +585,12 @@ export class UsersService {
         },
         select: { conversationId: true },
       });
+      // The payout rows its Profiles opened for accounts of their own name
+      // no person, so the cascade of the person does not reach them.
+      const profileRows = await tx.monetization.findMany({
+        where: { userId: null, profile: { userId } },
+        select: { id: true },
+      });
       const result = await tx.user.deleteMany({
         where: {
           id: userId,
@@ -596,6 +602,12 @@ export class UsersService {
         },
       });
       if (result.count === 0) return false;
+      // Removed with the person, as the person's own row is.
+      if (profileRows.length > 0) {
+        await tx.monetization.deleteMany({
+          where: { id: { in: profileRows.map((row) => row.id) } },
+        });
+      }
       for (const { conversationId } of administered) {
         const notice = await ensureGroupAdmin(tx, conversationId);
         if (notice) notices.push(notice);

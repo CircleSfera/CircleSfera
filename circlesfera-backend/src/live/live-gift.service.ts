@@ -333,7 +333,7 @@ export class LiveGiftService {
       });
 
       // Only credit earnings when the creator still exists; there is nowhere
-      // to attribute them otherwise (Monetization.userId is a required FK).
+      // to attribute them otherwise (the person's row is keyed by userId).
       if (creator) {
         const placed = await payoutAccountPlacement(tx, creator.id);
         await tx.monetization.upsert({

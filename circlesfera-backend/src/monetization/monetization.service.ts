@@ -23,7 +23,6 @@ import {
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
-  payoutAccountOf,
   payoutAccountPlacement,
   payoutRowForProfile,
 } from './payout-account.js';
@@ -73,32 +72,58 @@ export class MonetizationService {
     private stripeService: StripeService,
   ) {}
 
-  async getMonetization(userId: string) {
+  async getMonetization(userId: string, profileId: string) {
     let monetization = await this.prisma.monetization.findUnique({
       where: { userId },
     });
     if (!monetization) {
       monetization = await this.prisma.monetization.create({
-        data: { userId, ...(await payoutAccountOf(this.prisma, userId)) },
+        data: {
+          userId,
+          ...(await payoutAccountPlacement(this.prisma, userId)),
+        },
       });
     }
 
-    // The account and the Profile holding it stay on the server, as before
-    // they were kept on this row.
+    // The person's earnings. The accounts and the Profiles holding them stay
+    // on the server; the app hears whether the active Profile is paid into
+    // an account.
     const {
-      stripeConnectAccountId,
+      stripeConnectAccountId: _account,
       profileId: _holder,
       ...earnings
     } = monetization;
-    return { ...earnings, hasStripeAccount: !!stripeConnectAccountId };
+    return {
+      ...earnings,
+      hasStripeAccount: !!(await this.accountOf(userId, profileId)),
+    };
   }
 
-  /** The payout account of a person, from their row of earnings. */
-  private async accountOf(userId: string): Promise<string | null> {
-    const row = await this.prisma.monetization.findUnique({
-      where: { userId },
-      select: { stripeConnectAccountId: true },
+  /**
+   * The payout row the active Profile's screens show: its own account, also
+   * while it is still being set up, else the one it is paid into.
+   */
+  private async shownPayoutRow(userId: string, profileId: string) {
+    const own = await this.prisma.monetization.findUnique({
+      where: { profileId },
+      select: {
+        userId: true,
+        profileId: true,
+        stripeConnectAccountId: true,
+        transfersEnabled: true,
+        chargesEnabled: true,
+      },
     });
+    if (own?.stripeConnectAccountId) return own;
+    return payoutRowForProfile(this.prisma, { id: profileId, userId });
+  }
+
+  /** The payout account the active Profile's screens show. */
+  private async accountOf(
+    userId: string,
+    profileId: string,
+  ): Promise<string | null> {
+    const row = await this.shownPayoutRow(userId, profileId);
     return row?.stripeConnectAccountId ?? null;
   }
 
@@ -554,6 +579,7 @@ export class MonetizationService {
 
   async onboardConnectAccount(
     userId: string,
+    profileId: string,
     returnUrl: string,
     refreshUrl: string,
   ) {
@@ -562,11 +588,12 @@ export class MonetizationService {
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
+    // The account is the active Profile's, which must earn.
     const profile = await this.prisma.profile.findFirst({
-      where: { userId },
-      select: { accountType: true },
+      where: { id: profileId, userId },
+      select: { id: true, accountType: true },
     });
-    if (!canMonetize(profile?.accountType)) {
+    if (!profile || !canMonetize(profile.accountType)) {
       throw AppException.Forbidden(
         ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
         'Solo las cuentas Creator o Business pueden habilitar el cobro con Stripe.',
@@ -574,33 +601,7 @@ export class MonetizationService {
     }
 
     try {
-      // The person's own column too: a row missing for any reason must never
-      // open a second account at the provider.
-      const held = await this.accountOf(userId);
-      let accountId = held ?? user.stripeConnectAccountId;
-      if (!accountId) {
-        const account = await this.stripeService.createExpressAccount(
-          user.email,
-        );
-        accountId = account.id;
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: { stripeConnectAccountId: accountId },
-        });
-      }
-      if (!held) {
-        // The account is kept on the row too, every time the row lacks it:
-        // a write of the row that failed once is made again here. A row
-        // opened before, from a Personal Profile, moves now to the Profile
-        // that earns.
-        const placed = await payoutAccountPlacement(this.prisma, userId);
-        await this.prisma.monetization.upsert({
-          where: { userId },
-          update: { ...placed, stripeConnectAccountId: accountId },
-          create: { userId, ...placed, stripeConnectAccountId: accountId },
-        });
-      }
-
+      const accountId = await this.payoutAccountToOnboard(user, profile.id);
       const link = await this.stripeService.createAccountLink(
         accountId,
         returnUrl,
@@ -618,42 +619,117 @@ export class MonetizationService {
     }
   }
 
-  async getAccountStatus(userId: string) {
+  /**
+   * The account a Profile connects: its own; else the person's first, when
+   * no other Profile holds it; else a new one for this Profile only, so two
+   * Profiles never share balances, payouts or disputes.
+   */
+  private async payoutAccountToOnboard(
+    user: { id: string; email: string; stripeConnectAccountId: string | null },
+    profileId: string,
+  ): Promise<string> {
+    const own = await this.prisma.monetization.findUnique({
+      where: { profileId },
+      select: { stripeConnectAccountId: true },
+    });
+    if (own?.stripeConnectAccountId) return own.stripeConnectAccountId;
+
+    // The person's own column too: a row missing for any reason must never
+    // open a second first account at the provider.
+    const person = await this.prisma.monetization.findUnique({
+      where: { userId: user.id },
+      select: { profileId: true, stripeConnectAccountId: true },
+    });
+    let first = person?.stripeConnectAccountId ?? user.stripeConnectAccountId;
+    if (!first) {
+      const account = await this.stripeService.createExpressAccount(
+        user.email,
+        `connect-account-${user.id}`,
+      );
+      first = account.id;
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { stripeConnectAccountId: first },
+      });
+    }
+
+    // The person's first account, kept on their row (a write of the row that
+    // failed once is made again here), with the Profile holding it: the one
+    // connecting, unless another Profile holds it already. A row with no
+    // account yet holds nothing, whichever Profile it was opened from.
+    // Until the release after the one that lets a row name no person, a
+    // Profile whose person's account another Profile holds keeps sharing it:
+    // the image before could not read a row of a Profile only.
+    if (
+      person?.stripeConnectAccountId &&
+      person.profileId &&
+      person.profileId !== profileId
+    ) {
+      return first;
+    }
+    // Claimed in one write, so two Profiles connecting at once never both
+    // take it: the row changes only while it holds nothing or this Profile.
+    const claimed = await this.prisma.monetization.updateMany({
+      where: {
+        userId: user.id,
+        OR: [
+          { stripeConnectAccountId: null },
+          { profileId: null },
+          { profileId },
+        ],
+      },
+      data: { profileId, stripeConnectAccountId: first },
+    });
+    if (claimed.count === 0 && !person) {
+      try {
+        await this.prisma.monetization.create({
+          data: { userId: user.id, profileId, stripeConnectAccountId: first },
+        });
+      } catch (error) {
+        // Another request opened the row meanwhile: it is read below.
+        if ((error as { code?: string }).code !== 'P2002') throw error;
+      }
+    }
+    // Held by this Profile, or by another Profile that claimed it first and
+    // shares it until the next release.
+    return first;
+  }
+
+  async getAccountStatus(userId: string, profileId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    // The account and the flags last saved for it, from the person's row.
-    const cached = await this.prisma.monetization.findUnique({
-      where: { userId },
-      select: {
-        stripeConnectAccountId: true,
-        transfersEnabled: true,
-        chargesEnabled: true,
-      },
-    });
+    // The account the active Profile is paid into, and the flags last saved
+    // for it; ownAccount says whether it is the Profile's own.
+    const cached = await this.shownPayoutRow(userId, profileId);
     const accountId = cached?.stripeConnectAccountId;
     if (!accountId) {
       return {
         connected: false,
+        ownAccount: false,
         transfersEnabled: false,
         chargesEnabled: false,
       };
     }
+    const ownAccount = cached.profileId === profileId;
 
     try {
       const account = await this.stripeService.getAccount(accountId);
       const { transfersEnabled, chargesEnabled } =
         deriveConnectAccountFlags(account);
       const verifiedCompany = isVerifiedCompanyAccount(account);
-      const placed = await payoutAccountPlacement(this.prisma, userId);
-      // The row exists: the account was read from it.
+      // Only a person's row is placed again; a Profile's own row stays its.
+      const placed = cached.userId
+        ? await payoutAccountPlacement(this.prisma, cached.userId)
+        : {};
       await this.prisma.monetization.update({
-        where: { userId },
+        where: { stripeConnectAccountId: accountId },
         data: { ...placed, transfersEnabled, chargesEnabled, verifiedCompany },
       });
       return {
         connected: true,
+        ownAccount,
         transfersEnabled,
         chargesEnabled,
         detailsSubmitted: account.details_submitted,
@@ -662,6 +738,7 @@ export class MonetizationService {
       this.logger.error('Stripe Get Account Error:', error);
       return {
         connected: true,
+        ownAccount,
         transfersEnabled: cached.transfersEnabled,
         chargesEnabled: cached.chargesEnabled,
         detailsSubmitted: false,
@@ -669,12 +746,12 @@ export class MonetizationService {
     }
   }
 
-  async getDashboardLink(userId: string) {
+  async getDashboardLink(userId: string, profileId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    const accountId = await this.accountOf(userId);
+    const accountId = await this.accountOf(userId, profileId);
     if (!accountId) {
       throw AppException.BadRequest(
         ErrorCode.STRIPE_CONNECT_NOT_SETUP,
@@ -687,7 +764,10 @@ export class MonetizationService {
   }
 
   // Read-only Stripe Connect balance + recent payouts (no internal payout ledger).
-  async getConnectPayoutsSummary(userId: string): Promise<{
+  async getConnectPayoutsSummary(
+    userId: string,
+    profileId: string,
+  ): Promise<{
     available: { amountCents: number; currency: string }[];
     pending: { amountCents: number; currency: string }[];
     payouts: {
@@ -707,7 +787,7 @@ export class MonetizationService {
     });
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
-    const accountId = await this.accountOf(userId);
+    const accountId = await this.accountOf(userId, profileId);
     if (!accountId) {
       throw AppException.BadRequest(
         ErrorCode.STRIPE_CONNECT_NOT_SETUP,

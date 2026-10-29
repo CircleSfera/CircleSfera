@@ -843,10 +843,15 @@ export class MonetizationWebhookService {
       return;
     }
 
-    // The row holding the account names its person and its Profile.
+    // The row holding the account names its Profile, and its person: the
+    // person's row names them, a Profile's own row through its Profile.
     const holder = await this.prisma.monetization.findUnique({
       where: { stripeConnectAccountId: accountId },
-      select: { userId: true, profileId: true },
+      select: {
+        userId: true,
+        profileId: true,
+        profile: { select: { userId: true } },
+      },
     });
     if (!holder) {
       this.logger.warn(
@@ -866,7 +871,7 @@ export class MonetizationWebhookService {
       where: { stripePayoutId: payout.id },
       create: {
         stripePayoutId: payout.id,
-        userId: holder.userId,
+        userId: holder.userId ?? holder.profile?.userId ?? null,
         // The Profile holding the account that paid it out.
         profileId: holder.profileId,
         amountCents: payout.amount ?? 0,
@@ -898,10 +903,19 @@ export class MonetizationWebhookService {
       select: { userId: true },
     });
     if (!holder) return;
+    // Events can arrive out of order: an older snapshot must never turn off
+    // an account that is ready now, so the account is read as it is now. If
+    // the provider cannot answer, the event is retried.
+    const current = (await this.stripeService.getAccount(
+      account.id,
+    )) as unknown as typeof account;
     const { transfersEnabled, chargesEnabled } =
-      deriveConnectAccountFlags(account);
-    const verifiedCompany = isVerifiedCompanyAccount(account);
-    const placed = await payoutAccountPlacement(this.prisma, holder.userId);
+      deriveConnectAccountFlags(current);
+    const verifiedCompany = isVerifiedCompanyAccount(current);
+    // Only a person's row is placed again; a Profile's own row stays its.
+    const placed = holder.userId
+      ? await payoutAccountPlacement(this.prisma, holder.userId)
+      : {};
     await this.prisma.monetization.update({
       where: { stripeConnectAccountId: account.id },
       data: { ...placed, transfersEnabled, chargesEnabled, verifiedCompany },

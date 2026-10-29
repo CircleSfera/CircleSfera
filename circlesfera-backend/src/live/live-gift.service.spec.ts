@@ -100,9 +100,12 @@ describe('LiveGiftService', () => {
     });
 
     it('charges the catalog price and the platform application fee', async () => {
-      // The host's Profile holds the account the gift is paid into.
+      // The host's Profile holds the account the gift is paid into, ready
+      // to receive transfers.
       mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+        userId: null,
         stripeConnectAccountId: 'acct_1',
+        transfersEnabled: true,
       });
       mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
       mockPrismaService.user.findUnique.mockResolvedValue({

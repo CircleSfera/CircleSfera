@@ -11,10 +11,16 @@ describe('MonetizationWebhookService', () => {
   let prisma: any;
   let eventEmitter: { emit: ReturnType<typeof vi.fn> };
   // The payment provider is replaced: nothing here reaches it.
-  let stripe: { refundDestinationCharge: ReturnType<typeof vi.fn> };
+  let stripe: {
+    refundDestinationCharge: ReturnType<typeof vi.fn>;
+    getAccount: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
-    stripe = { refundDestinationCharge: vi.fn().mockResolvedValue({}) };
+    stripe = {
+      refundDestinationCharge: vi.fn().mockResolvedValue({}),
+      getAccount: vi.fn(),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MonetizationWebhookService,
@@ -983,6 +989,14 @@ describe('MonetizationWebhookService', () => {
   });
 
   describe('handleAccountUpdated', () => {
+    // The provider answers the account as the event shows it, unless a test
+    // says otherwise.
+    const deliver = (
+      account: Parameters<typeof service.handleAccountUpdated>[0],
+    ) => {
+      stripe.getAccount = vi.fn().mockResolvedValue(account);
+      return service.handleAccountUpdated(account);
+    };
     const holdsAccount = () =>
       prisma.monetization.findUnique.mockImplementation(
         async ({ where }: { where: { stripeConnectAccountId?: string } }) =>
@@ -992,7 +1006,7 @@ describe('MonetizationWebhookService', () => {
       );
 
     it('leaves an account no row holds alone', async () => {
-      await service.handleAccountUpdated({ id: 'acct_unknown' });
+      await deliver({ id: 'acct_unknown' });
       expect(prisma.monetization.update).not.toHaveBeenCalled();
     });
 
@@ -1000,7 +1014,7 @@ describe('MonetizationWebhookService', () => {
       // The row holding the account, found by it.
       holdsAccount();
 
-      await service.handleAccountUpdated({
+      await deliver({
         id: 'acct_1',
         charges_enabled: true,
         capabilities: { transfers: 'active' },
@@ -1026,7 +1040,7 @@ describe('MonetizationWebhookService', () => {
       // The row holding the account, found by it.
       holdsAccount();
 
-      await service.handleAccountUpdated({
+      await deliver({
         id: 'acct_1',
         charges_enabled: true,
         capabilities: { transfers: 'active' },
@@ -1042,11 +1056,58 @@ describe('MonetizationWebhookService', () => {
       );
     });
 
+    it("updates a Profile's own row without placing it with a person", async () => {
+      prisma.monetization.findUnique.mockResolvedValue({ userId: null });
+      prisma.profile.findMany.mockClear();
+
+      await deliver({
+        id: 'acct_second',
+        charges_enabled: true,
+        capabilities: { transfers: 'active' },
+      });
+
+      expect(prisma.profile.findMany).not.toHaveBeenCalled();
+      expect(prisma.monetization.update).toHaveBeenCalledWith({
+        where: { stripeConnectAccountId: 'acct_second' },
+        data: {
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: false,
+        },
+      });
+    });
+
+    it('keeps an account ready when an older event of it arrives late', async () => {
+      holdsAccount();
+      // The event is an older snapshot; the account is ready now.
+      stripe.getAccount = vi.fn().mockResolvedValue({
+        id: 'acct_1',
+        charges_enabled: true,
+        capabilities: { transfers: 'active' },
+      });
+
+      await service.handleAccountUpdated({
+        id: 'acct_1',
+        charges_enabled: false,
+        capabilities: { transfers: 'inactive' },
+      });
+
+      expect(stripe.getAccount).toHaveBeenCalledWith('acct_1');
+      expect(prisma.monetization.update).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            transfersEnabled: true,
+            chargesEnabled: true,
+          }),
+        }),
+      );
+    });
+
     it('does not record the account of a person as a company', async () => {
       // The row holding the account, found by it.
       holdsAccount();
 
-      await service.handleAccountUpdated({
+      await deliver({
         id: 'acct_1',
         charges_enabled: true,
         capabilities: { transfers: 'active' },
@@ -1097,6 +1158,37 @@ describe('MonetizationWebhookService', () => {
             profileId: 'creator-prof-1',
             status: 'paid',
             amountCents: 2500,
+          }),
+        }),
+      );
+    });
+
+    it("names the person of a payout from a Profile's own account through its Profile", async () => {
+      prisma.monetization.findUnique.mockResolvedValue({
+        userId: null,
+        profileId: 'creator-prof-2',
+        profile: { userId: 'creator1' },
+      });
+      prisma.stripePayoutLog.upsert = vi.fn().mockResolvedValue({});
+
+      await service.syncConnectPayoutLog({
+        account: 'acct_second',
+        data: {
+          object: {
+            id: 'po_3',
+            amount: 900,
+            currency: 'eur',
+            status: 'paid',
+            arrival_date: 1_714_521_600,
+          },
+        },
+      });
+
+      expect(prisma.stripePayoutLog.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            userId: 'creator1',
+            profileId: 'creator-prof-2',
           }),
         }),
       );
