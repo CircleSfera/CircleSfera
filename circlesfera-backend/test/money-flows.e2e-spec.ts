@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from './../src/app.module.js';
+import { useBodyParsers } from '../src/common/config/body-parsers.config.js';
 import {
   MIN_PPV_PRICE_CENTS,
   MIN_TIP_CENTS,
@@ -44,6 +45,7 @@ describe('Money flows (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
     app.use(cookieParser());
+    useBodyParsers(app);
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -202,14 +204,15 @@ describe('Money flows (e2e)', () => {
       expect(res.body.message).toBe('Missing stripe-signature header');
     });
 
-    it('rejects a signed webhook when Nest has no rawBody (no Stripe construct)', async () => {
+    it('checks the signature of a webhook against its raw body, and refuses a wrong one', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/payments/webhook')
         .set('stripe-signature', 't=1,v1=not-a-real-signature')
         .send({ type: 'checkout.session.completed' })
-        .expect(400);
+        .expect(500);
 
-      expect(res.body.message).toBe('rawBody not found');
+      // The body reached the signature check: it was not lost on the way.
+      expect(res.body.message).not.toBe('rawBody not found');
     });
 
     it('rejects the admin ledger without an admin session', async () => {

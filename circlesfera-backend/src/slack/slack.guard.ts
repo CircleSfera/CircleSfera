@@ -40,7 +40,7 @@ export class SlackGuard implements CanActivate {
       throw new UnauthorizedException('Slack signing secret not configured');
     }
 
-    // RawBody is attached by NestFactory.create({ rawBody: true })
+    // RawBody is kept by the body parsers (common/config/body-parsers.config.ts)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rawBody = (req as { rawBody?: Buffer }).rawBody;
     if (!rawBody) return false;
