@@ -16,8 +16,16 @@ describe('isCsrfExempt', () => {
   it('keeps the routes exempted before', () => {
     for (const path of [
       '/api/v1/auth/login',
+      '/api/v1/auth/register',
       '/api/v1/auth/refresh',
+      '/api/v1/auth/verify-email',
+      '/api/v1/auth/request-reset',
+      '/api/v1/auth/reset-password',
+      '/api/v1/auth/passkey/login-options',
+      '/api/v1/auth/passkey/login-verify',
+      '/api/v1/admin-auth/login',
       '/api/v1/admin-auth/mfa/verify',
+      '/api/v1/admin-auth/refresh',
       '/api/v1/csrf-token',
       '/api/v1/payments/webhook',
       '/api/v1/security/csp-report',
