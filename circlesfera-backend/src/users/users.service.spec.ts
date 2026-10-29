@@ -330,6 +330,59 @@ describe('UsersService', () => {
       );
     });
 
+    it('holds an account kept only on the person, once, and ends the sessions first', async () => {
+      mockPrismaService.user.update.mockResolvedValue({ id: '1' });
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        stripeConnectAccountId: 'acct_person',
+      });
+      mockPrismaService.monetization.findMany.mockResolvedValueOnce([]);
+      const order: string[] = [];
+      mockPrismaService.refreshToken.deleteMany.mockImplementationOnce(
+        async () => {
+          order.push('sessions');
+          return { count: 1 };
+        },
+      );
+      mockStripeService.setPayoutsHeld.mockImplementation(async () => {
+        order.push('payouts');
+      });
+
+      await service.banUser('1');
+
+      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledTimes(1);
+      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
+        'acct_person',
+        true,
+      );
+      expect(order).toEqual(['sessions', 'payouts']);
+      mockStripeService.setPayoutsHeld.mockReset();
+    });
+
+    it('tells the team when the provider refuses to hold or resume them', async () => {
+      mockPrismaService.user.update.mockResolvedValue({ id: '1' });
+      mockStripeService.setPayoutsHeld.mockRejectedValue(new Error('down'));
+
+      await service.banUser('1');
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'system.incident',
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'could not be held after a ban; the daily check tries again',
+          ),
+          path: 'stripe://payout-schedule',
+        }),
+      );
+
+      await service.unbanUser('1');
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'system.incident',
+        expect.objectContaining({
+          message: expect.stringContaining('resumed after a ban was lifted'),
+        }),
+      );
+      mockStripeService.setPayoutsHeld.mockReset();
+    });
+
     it('keeps the ban, and holds the other accounts, when the provider fails for one', async () => {
       mockPrismaService.user.update.mockResolvedValue({
         id: '1',

@@ -17,6 +17,7 @@ import { UploadsModule } from '../uploads/uploads.module.js';
 import { AccountDeletionProcessor } from './account-deletion.processor.js';
 import { DataExportProcessor } from './data-export.processor.js';
 import { DataExportService } from './data-export.service.js';
+import { PayoutScheduleCheckService } from './payout-schedule-check.service.js';
 import { UsersController } from './users.controller.js';
 import { UsersProcessor } from './users.processor.js';
 import { UsersService } from './users.service.js';
@@ -39,6 +40,7 @@ import { UsersService } from './users.service.js';
     DataExportProcessor,
     AccountDeletionProcessor,
     UsersProcessor,
+    PayoutScheduleCheckService,
   ],
   exports: [UsersService],
 })
