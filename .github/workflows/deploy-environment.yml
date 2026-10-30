@@ -258,13 +258,19 @@ jobs:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REGISTRY_USER: ${{ github.actor }}
           LIVE_RECORDING: ${{ inputs.environment == 'staging' && vars.STAGING_LIVE_RECORDING_ENABLED || '' }}${{ inputs.environment == 'dev' && vars.DEV_LIVE_RECORDING_ENABLED || '' }}
+          # Staging's own keys of the payment provider's test mode and the
+          # signing secrets of its two webhook destinations there, kept apart
+          # from the settings so each can change alone. Empty for dev.
+          OWN_STRIPE_SECRET_KEY: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_SECRET_KEY || '' }}
+          OWN_STRIPE_WEBHOOK_SECRET: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_WEBHOOK_SECRET || '' }}
+          OWN_STRIPE_CONNECT_WEBHOOK_SECRET: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_CONNECT_WEBHOOK_SECRET || '' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_FILE_B64,ENV_NAME,IMAGE_TAG,COMMIT_SHA,WIPE_DATA,REGISTRY_TOKEN,REGISTRY_USER,LIVE_RECORDING
+          envs: ENV_FILE_B64,ENV_NAME,IMAGE_TAG,COMMIT_SHA,WIPE_DATA,REGISTRY_TOKEN,REGISTRY_USER,LIVE_RECORDING,OWN_STRIPE_SECRET_KEY,OWN_STRIPE_WEBHOOK_SECRET,OWN_STRIPE_CONNECT_WEBHOOK_SECRET
           script: |
             set -euo pipefail
 
@@ -294,6 +300,22 @@ jobs:
             umask 077
             echo "$ENV_FILE_B64" | base64 -d > .env.new
             setting() { grep -E "^$1=" .env.new | tail -n1 | cut -d= -f2- | tr -d '\r"'"'" || true; }
+
+            # The environment's own payment provider key, when set, takes the
+            # place of the settings' one, together with the signing secrets of
+            # the webhook destinations of that same account: a secret of one
+            # account is never paired with the key of another. They are
+            # checked below like the settings' own.
+            use_own() {
+              sed -i "/^$1=/d" .env.new
+              printf '\n%s=%s\n' "$1" "$2" >> .env.new
+              echo "${1} merged from the environment's own secret."
+            }
+            if [ -n "${OWN_STRIPE_SECRET_KEY:-}" ]; then
+              use_own STRIPE_SECRET_KEY "$OWN_STRIPE_SECRET_KEY"
+              use_own STRIPE_WEBHOOK_SECRET "${OWN_STRIPE_WEBHOOK_SECRET:-}"
+              use_own STRIPE_CONNECT_WEBHOOK_SECRET "${OWN_STRIPE_CONNECT_WEBHOOK_SECRET:-}"
+            fi
 
             # An environment that is not production never moves real money
             # and never writes to a real person. The deploy stops before any
