@@ -363,7 +363,6 @@ export class AdminUsersService {
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
     });
-    await this.usersService.holdPayouts(userId, true);
     const banEvent: UserSessionTerminateEvent['payload'] = {
       userId,
       profileId: result.profiles[0]?.id,
@@ -371,6 +370,9 @@ export class AdminUsersService {
     };
     this.eventEmitter.emit('user.session.terminate', banEvent);
     await this.logAction(adminId, AdminAction.BAN_USER, 'user', userId);
+    // After the sessions end and the ban is logged, so a slow or failed
+    // hold never leaves them out.
+    await this.usersService.holdPayouts(userId, true);
     await this.invalidateProfileCache(userId);
 
     if (result.email) {
@@ -401,8 +403,8 @@ export class AdminUsersService {
         profiles: true,
       },
     });
-    await this.usersService.holdPayouts(userId, false);
     await this.logAction(adminId, AdminAction.UNBAN_USER, 'user', userId);
+    await this.usersService.holdPayouts(userId, false);
     await this.invalidateProfileCache(userId);
     return result;
   }

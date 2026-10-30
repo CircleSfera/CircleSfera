@@ -339,6 +339,22 @@ describe('UsersService', () => {
       );
     });
 
+    it('keeps the date of the first ban when the person is banned again', async () => {
+      const firstBan = new Date('2026-09-01T00:00:00Z');
+      mockPrismaService.user.update.mockResolvedValue({ id: '1' });
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        stripeConnectAccountId: null,
+        payoutsHeldAt: firstBan,
+      });
+
+      await service.banUser('1');
+
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: { payoutsHeldAt: firstBan },
+      });
+    });
+
     it('holds an account kept only on the person, once, and ends the sessions first', async () => {
       mockPrismaService.user.update.mockResolvedValue({ id: '1' });
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
