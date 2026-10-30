@@ -112,16 +112,26 @@ export default function MonetizationTab() {
   }
 
   const distribution = analytics?.tierDistribution || {
+    VERIFIED: 0,
     PREMIUM: 0,
     ELITE: 0,
     BUSINESS: 0,
   };
+  const verifiedCount = distribution.VERIFIED ?? 0;
   const total =
-    distribution.PREMIUM + distribution.ELITE + distribution.BUSINESS || 1;
+    verifiedCount +
+      distribution.PREMIUM +
+      distribution.ELITE +
+      distribution.BUSINESS || 1;
 
   const tiers = [
     {
       label: t('admin.monetization.tier_verified'),
+      count: verifiedCount,
+      color: 'bg-sky-300',
+    },
+    {
+      label: t('admin.monetization.tier_premium'),
       count: distribution.PREMIUM,
       color: 'bg-blue-400',
     },

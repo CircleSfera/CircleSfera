@@ -303,6 +303,53 @@ describe('Pricing', () => {
     expect(paymentsApi.createSubscriptionCheckout).not.toHaveBeenCalled();
   });
 
+  describe('the Verified plan, below Premium', () => {
+    const FOUR = [plan('Verified', 'p-verified', 499), ...PLANS];
+
+    it('offers Verified with its own text and button', async () => {
+      vi.mocked(paymentsApi.getPlans).mockResolvedValue(FOUR);
+      const { i18n } = renderWithProviders(<Pricing />);
+      const t = i18n!.t.bind(i18n);
+
+      expect(
+        await screen.findByText(t('pricingPage.desc_verified')),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: t('pricingPage.button_verified') }),
+      ).toBeEnabled();
+      expect(
+        screen.getAllByRole('button', {
+          name: t('pricingPage.button_premium'),
+        }),
+      ).toHaveLength(1);
+    });
+
+    it('a Premium subscriber sees Premium as theirs, never Verified', async () => {
+      vi.mocked(paymentsApi.getPlans).mockResolvedValue(FOUR);
+      vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+        hasActiveSubscription: true,
+        subscription: { planName: 'Premium', status: 'ACTIVE' },
+      });
+      useAuthStore.setState({
+        profile: {
+          id: 'p1',
+          identityVerifiedAt: '2026-01-01',
+          verificationLevel: 'VERIFIED',
+          accountType: 'CREATOR',
+        } as never,
+      });
+      const { i18n } = renderWithProviders(<Pricing />);
+      const t = i18n!.t.bind(i18n);
+
+      expect(
+        await screen.findAllByText(t('pricingPage.current_plan')),
+      ).toHaveLength(1);
+      expect(
+        screen.getByRole('button', { name: t('pricingPage.button_verified') }),
+      ).toBeInTheDocument();
+    });
+  });
+
   it('reports a failed checkout', async () => {
     vi.mocked(paymentsApi.createSubscriptionCheckout).mockRejectedValue(
       Object.assign(new Error('x'), { status: 400, data: {} }),

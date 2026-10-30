@@ -183,6 +183,21 @@ async function main() {
     // 1. Crear Planes Base de Plataforma (Stripe IDs mantenidos intactos)
     console.log('📦 Creando Planes de Suscripción...');
     await prisma.platformPlan.upsert({
+      where: { stripeProductId: 'prod_VX4tFskGtJkvzh' },
+      update: {},
+      create: {
+        name: 'Verified',
+        description: 'Verified badge.',
+        priceCents: 499,
+        currency: 'EUR',
+        interval: 'month',
+        stripeProductId: 'prod_VX4tFskGtJkvzh',
+        stripePriceId: 'price_1UW0jeIEniBX3suAKCHQ5lrM',
+        features: ['verified_badge'],
+      },
+    });
+
+    await prisma.platformPlan.upsert({
       where: { stripeProductId: 'prod_UtQGHGBnYo5yGX' },
       update: {},
       create: {

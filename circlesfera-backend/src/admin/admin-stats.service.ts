@@ -263,6 +263,7 @@ export class AdminStatsService {
         id: string;
         name: string;
         priceCents: number;
+        features: string[];
       };
     }
 
@@ -284,18 +285,20 @@ export class AdminStatsService {
     // The same rule as the figure kept each day.
     const activeMRR = recurringIncomeCents(rawSubscriptions) / 100;
     const tierCounts: Record<string, number> = {
+      VERIFIED: 0,
       PREMIUM: 0,
       ELITE: 0,
       BUSINESS: 0,
     };
 
+    // A plan is told by what it includes, not by its name: the €9.99 plan
+    // was once named Verified, the name the €4.99 plan has now.
     rawSubscriptions.forEach((sub) => {
-      const planName = sub.plan?.name?.toUpperCase() || '';
-      // The €9.99 plan is named Premium (formerly Verified).
-      if (planName.includes('PREMIUM') || planName.includes('VERIFIED'))
-        tierCounts.PREMIUM++;
-      else if (planName.includes('ELITE')) tierCounts.ELITE++;
-      else if (planName.includes('BUSINESS')) tierCounts.BUSINESS++;
+      const features = sub.plan?.features ?? [];
+      if (features.includes('team_access')) tierCounts.BUSINESS++;
+      else if (features.includes('advanced_analytics')) tierCounts.ELITE++;
+      else if (features.includes('priority_support')) tierCounts.PREMIUM++;
+      else if (features.includes('verified_badge')) tierCounts.VERIFIED++;
     });
 
     const thirtyDaysAgo = new Date();
