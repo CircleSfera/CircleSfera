@@ -360,7 +360,8 @@ export default function CreatorMonetizationTab({
                       <span className="text-xs text-white/50">
                         {plan.interval === 'month'
                           ? t('creator.monetization.per_month')
-                          : t('creator.monetization.per_year')}
+                          : t('creator.monetization.per_year')}{' '}
+                        {t('creator.monetization.plus_vat')}
                       </span>
                     </div>
 

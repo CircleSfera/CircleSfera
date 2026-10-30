@@ -344,7 +344,7 @@ export default function Pricing() {
                       )}
                     </span>
                     <span className="text-sm text-white/60">
-                      /{intervalLabel}
+                      /{intervalLabel} {t('pricingPage.plus_vat')}
                     </span>
                     {showYearly && yearlySavingsPercent > 0 && (
                       <span className="rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-400">

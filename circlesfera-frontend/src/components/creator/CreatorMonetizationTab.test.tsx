@@ -423,6 +423,21 @@ describe('CreatorMonetizationTab', () => {
       );
     });
 
+    it('says next to each price that it is before VAT', async () => {
+      const { i18n } = renderPlans();
+      const buttons = await screen.findAllByRole('button', {
+        name: i18n!.t('creator.monetization.upgrade_now'),
+      });
+
+      expect(
+        screen.getAllByText(
+          new RegExp(
+            `${i18n!.t('creator.monetization.plus_vat').replace('+', '\\+')}$`,
+          ),
+        ),
+      ).toHaveLength(buttons.length);
+    });
+
     it('explains a failed checkout in the app language', async () => {
       vi.mocked(paymentsApi.createSubscriptionCheckout).mockRejectedValue(
         serverError('Plan is not available'),
@@ -581,7 +596,9 @@ describe('CreatorMonetizationTab', () => {
           ),
         ).toBeInTheDocument();
         expect(
-          screen.getByText(i18n!.t('creator.monetization.per_year')),
+          screen.getByText(
+            `${i18n!.t('creator.monetization.per_year')} ${i18n!.t('creator.monetization.plus_vat')}`,
+          ),
         ).toBeInTheDocument();
       },
     );

@@ -426,6 +426,24 @@ describe('Pricing', () => {
     expect(screen.getByText('€9.99')).toBeInTheDocument();
   });
 
+  it('says on every plan that its price is before VAT, monthly or yearly', async () => {
+    const { i18n } = renderWithProviders(<Pricing />);
+    await screen.findByText('Premium');
+    const plusVat = i18n!.t('pricingPage.plus_vat');
+    const cards = () => screen.getAllByRole('article');
+    const withVat = () =>
+      cards().filter((card) => card.textContent?.includes(plusVat));
+
+    expect(withVat()).toHaveLength(cards().length);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('pricingPage.billing_yearly'),
+      }),
+    );
+    expect(withVat()).toHaveLength(cards().length);
+  });
+
   it('hides the billing cycle choice when no plan has a yearly price', async () => {
     vi.mocked(paymentsApi.getPlans).mockResolvedValue([
       plan('Premium', 'p-premium', 999),
@@ -498,7 +516,9 @@ describe('Pricing', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('early access')).toBeInTheDocument();
     expect(screen.getByText('For teams')).toBeInTheDocument();
-    expect(screen.getByText('/quarter')).toBeInTheDocument();
+    expect(
+      screen.getByText(`/quarter ${i18n!.t('pricingPage.plus_vat')}`),
+    ).toBeInTheDocument();
   });
 
   it('describes a known plan and its features in the app language, not in the stored one', async () => {
