@@ -369,10 +369,13 @@ export class AdminUsersService {
       reason: 'Account banned by administration',
     };
     this.eventEmitter.emit('user.session.terminate', banEvent);
-    await this.logAction(adminId, AdminAction.BAN_USER, 'user', userId);
     // After the sessions end and the ban is logged, so a slow or failed
-    // hold never leaves them out.
-    await this.usersService.holdPayouts(userId, true);
+    // hold never leaves them out; and tried even when the log fails.
+    try {
+      await this.logAction(adminId, AdminAction.BAN_USER, 'user', userId);
+    } finally {
+      await this.usersService.holdPayouts(userId, true);
+    }
     await this.invalidateProfileCache(userId);
 
     if (result.email) {

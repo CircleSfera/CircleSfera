@@ -48,6 +48,14 @@ describe('AdminUsersService: payouts of a banned person', () => {
     expect(usersService.holdPayouts).toHaveBeenCalledWith('u1', false);
   });
 
+  it('still holds the payouts when the ban cannot be logged', async () => {
+    prisma.adminAuditLog.create.mockRejectedValueOnce(new Error('db down'));
+
+    await expect(service.banUser('admin-1', 'u1')).rejects.toThrow('db down');
+
+    expect(usersService.holdPayouts).toHaveBeenCalledWith('u1', true);
+  });
+
   it('ends the sessions and logs the ban even when the hold fails', async () => {
     usersService.holdPayouts.mockRejectedValueOnce(new Error('provider down'));
 
