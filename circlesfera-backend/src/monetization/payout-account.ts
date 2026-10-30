@@ -1,4 +1,6 @@
+import { ErrorCode } from '@circlesfera/shared';
 import type { Prisma } from '@prisma/client';
+import { AppException } from '../common/errors/app.exception.js';
 
 type PayoutAccountReader = Pick<Prisma.TransactionClient, 'profile'>;
 
@@ -106,4 +108,47 @@ export async function payoutRowForProfile(
     where: { userId: profile.userId },
     select: PAYOUT_ROW,
   });
+}
+
+// What is read of a Profile to know whether it may be paid.
+export const PAYABLE_PROFILE_SELECT = {
+  isAccountBanned: true,
+  suspendedUntil: true,
+  user: { select: { isActive: true, isRootBanned: true, deletedAt: true } },
+} as const;
+
+/**
+ * Whether a Profile may be paid: neither it nor its person is banned or
+ * suspended, and its person is still here.
+ */
+export function canBePaid(profile: {
+  isAccountBanned: boolean;
+  suspendedUntil: Date | null;
+  user: { isActive: boolean; isRootBanned: boolean; deletedAt: Date | null };
+}): boolean {
+  return (
+    !profile.isAccountBanned &&
+    !(profile.suspendedUntil && profile.suspendedUntil > new Date()) &&
+    profile.user.isActive &&
+    !profile.user.isRootBanned &&
+    !profile.user.deletedAt
+  );
+}
+
+/**
+ * The payout row a payment to a Profile is sent to. A Profile that may not
+ * be paid is not found, as everywhere else, and nothing is charged for it.
+ */
+export async function payoutDestinationFor(
+  db: Pick<Prisma.TransactionClient, 'monetization' | 'profile'>,
+  profile: { id: string; userId: string },
+) {
+  const seller = await db.profile.findUnique({
+    where: { id: profile.id },
+    select: PAYABLE_PROFILE_SELECT,
+  });
+  if (!seller || !canBePaid(seller)) {
+    throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'Creator not found');
+  }
+  return payoutRowForProfile(db, profile);
 }

@@ -142,6 +142,65 @@ export class UsersService {
     }));
   }
 
+  /**
+   * A person banned from the whole account is paid out nothing while the ban
+   * lasts, for up to 85 days (the provider holds payouts for 90 at most):
+   * what every Profile of theirs earned stays in its provider balance, and
+   * the Monday payouts come back when the ban is lifted. A failure at the
+   * provider never undoes the ban: the team is told, and the daily schedule
+   * check does it again.
+   */
+  async holdPayouts(userId: string, held: boolean): Promise<void> {
+    const [rows, person] = await Promise.all([
+      this.prisma.monetization.findMany({
+        where: {
+          OR: [{ userId }, { profile: { userId } }],
+          stripeConnectAccountId: { not: null },
+        },
+        select: { stripeConnectAccountId: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { stripeConnectAccountId: true, payoutsHeldAt: true },
+      }),
+    ]);
+    // The person's own column too: an account whose row was never written.
+    const accounts = new Set(
+      [
+        ...rows.map((row) => row.stripeConnectAccountId),
+        person?.stripeConnectAccountId,
+      ].filter((account): account is string => Boolean(account)),
+    );
+    // The 85 days before the held payouts are released count from the
+    // first ban: banning again does not push the release back.
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        payoutsHeldAt: held ? (person?.payoutsHeldAt ?? new Date()) : null,
+      },
+    });
+    const failed: string[] = [];
+    for (const account of accounts) {
+      try {
+        await this.stripeService.setPayoutsHeld(account, held);
+      } catch (error) {
+        failed.push(account);
+        this.logger.error(
+          `Could not ${held ? 'hold' : 'resume'} the payouts of account ${account} (person ${userId})`,
+          error,
+        );
+      }
+    }
+    if (failed.length > 0) {
+      this.eventEmitter.emit('system.incident', {
+        message: `The payouts of ${failed.length} account(s) of person ${userId} could not be ${held ? 'held after a ban' : 'resumed after a ban was lifted'}; the daily check tries again`,
+        path: 'stripe://payout-schedule',
+        statusCode: 502,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   // Ban (deactivate) a user account. Admin only.
   // Param id: The user ID to ban
   async banUser(id: string) {
@@ -157,6 +216,8 @@ export class UsersService {
       reason: 'Account banned by administration',
     };
     this.eventEmitter.emit('user.session.terminate', banEvent);
+    // After the sessions end: the provider may take a while.
+    await this.holdPayouts(id, true);
     return updated;
   }
 
@@ -167,10 +228,12 @@ export class UsersService {
       where: { userId: id },
       data: { suspendedUntil: null, isAccountBanned: false },
     });
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: { isActive: true, isRootBanned: false },
     });
+    await this.holdPayouts(id, false);
+    return updated;
   }
 
   // GDPR: Gathers all user-related data for export.

@@ -167,6 +167,12 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
     });
 
     it('enforces pay-per-view unlock: rejects creator without active Connect account', async () => {
+      // A creator in good standing, with no account.
+      mockPrisma.profile.findUnique.mockResolvedValueOnce({
+        isAccountBanned: false,
+        suspendedUntil: null,
+        user: { isActive: true, isRootBanned: false, deletedAt: null },
+      });
       mockPrisma.post.findUnique.mockResolvedValue({
         id: 'post-1',
         isPremium: true,

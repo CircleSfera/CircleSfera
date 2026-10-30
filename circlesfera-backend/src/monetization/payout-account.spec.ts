@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   payoutAccountOf,
   payoutAccountPlacement,
+  payoutDestinationFor,
   payoutRowForProfile,
 } from './payout-account.js';
 
@@ -228,5 +229,58 @@ describe('payoutRowForProfile', () => {
   it('finds nothing for a person without a row', async () => {
     const { db } = rows(null, null);
     await expect(payoutRowForProfile(db, profile)).resolves.toBeNull();
+  });
+});
+
+describe('payoutDestinationFor', () => {
+  const standing = (over: object = {}, user: object = {}) => ({
+    isAccountBanned: false,
+    suspendedUntil: null,
+    ...over,
+    user: { isActive: true, isRootBanned: false, deletedAt: null, ...user },
+  });
+  const db = (seller: object | null) =>
+    ({
+      profile: { findUnique: vi.fn().mockResolvedValue(seller) },
+      monetization: {
+        findUnique: vi
+          .fn()
+          .mockResolvedValue({ stripeConnectAccountId: 'acct_1' }),
+      },
+    }) as any;
+  const profile = { id: 'creator', userId: 'u1' };
+
+  it('sends a payment to a Profile in good standing to its account', async () => {
+    await expect(
+      payoutDestinationFor(db(standing()), profile),
+    ).resolves.toEqual({ stripeConnectAccountId: 'acct_1' });
+  });
+
+  it.each([
+    [
+      'its person is banned from the whole account',
+      standing({}, { isRootBanned: true }),
+    ],
+    ['its person is no longer active', standing({}, { isActive: false })],
+    ['its person is being deleted', standing({}, { deletedAt: new Date() })],
+    ['the Profile is banned', standing({ isAccountBanned: true })],
+    [
+      'the Profile is suspended for now',
+      standing({ suspendedUntil: new Date(Date.now() + 60_000) }),
+    ],
+    ['the Profile is gone', null],
+  ])('pays nothing when %s', async (_case, seller) => {
+    const tx = db(seller);
+    await expect(payoutDestinationFor(tx, profile)).rejects.toThrow(
+      'Creator not found',
+    );
+    expect(tx.monetization.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('pays a Profile whose suspension is over', async () => {
+    const seller = standing({ suspendedUntil: new Date(Date.now() - 60_000) });
+    await expect(
+      payoutDestinationFor(db(seller), profile),
+    ).resolves.toBeTruthy();
   });
 });

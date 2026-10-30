@@ -23,7 +23,10 @@ import {
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  canBePaid,
+  PAYABLE_PROFILE_SELECT,
   payoutAccountPlacement,
+  payoutDestinationFor,
   payoutRowForProfile,
 } from './payout-account.js';
 
@@ -44,24 +47,8 @@ const TIPPED_PROFILE_SELECT = {
   id: true,
   userId: true,
   username: true,
-  isAccountBanned: true,
-  suspendedUntil: true,
-  user: { select: { isActive: true, isRootBanned: true, deletedAt: true } },
+  ...PAYABLE_PROFILE_SELECT,
 } as const;
-
-function canReceiveTip(profile: {
-  isAccountBanned: boolean;
-  suspendedUntil: Date | null;
-  user: { isActive: boolean; isRootBanned: boolean; deletedAt: Date | null };
-}): boolean {
-  return (
-    !profile.isAccountBanned &&
-    !(profile.suspendedUntil && profile.suspendedUntil > new Date()) &&
-    profile.user.isActive &&
-    !profile.user.isRootBanned &&
-    !profile.user.deletedAt
-  );
-}
 
 @Injectable()
 export class MonetizationService {
@@ -272,7 +259,7 @@ export class MonetizationService {
     }
 
     const creator = (post as any).profile.user;
-    const payout = await payoutRowForProfile(this.prisma, {
+    const payout = await payoutDestinationFor(this.prisma, {
       id: post.profileId,
       userId: creator.id,
     });
@@ -343,7 +330,7 @@ export class MonetizationService {
     }
 
     const creator = (story as any).profile.user;
-    const payout = await payoutRowForProfile(this.prisma, {
+    const payout = await payoutDestinationFor(this.prisma, {
       id: story.profileId,
       userId: creator.id,
     });
@@ -436,7 +423,7 @@ export class MonetizationService {
     // that Transaction.receiverId/Monetization.userId expect) live on User.
     const creator = message.sender.user;
     const payout = creator
-      ? await payoutRowForProfile(this.prisma, {
+      ? await payoutDestinationFor(this.prisma, {
           id: message.senderId,
           userId: creator.id,
         })
@@ -528,7 +515,7 @@ export class MonetizationService {
     // across a block with who tips, is not found, as everywhere else.
     if (
       !tipped ||
-      !canReceiveTip(tipped) ||
+      !canBePaid(tipped) ||
       (senderProfileId &&
         (await isBlockedEitherWay(this.prisma, senderProfileId, tipped.id)))
     ) {

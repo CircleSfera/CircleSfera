@@ -25,6 +25,9 @@ model User {
   // Account status
   isActive            Boolean   @default(true)
   isRootBanned        Boolean   @default(false)
+  // Since when the payouts of a person banned from the whole account are
+  // held at the provider; they are released after 85 days (its limit is 90).
+  payoutsHeldAt       DateTime?
   rootBanReason       String?   @db.Text
   // Legacy account-level strike counter. Strikes are recorded per Profile in
   // profile_strikes; nothing reads or writes this column any more.

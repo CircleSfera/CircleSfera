@@ -13,7 +13,12 @@ const client = {
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
   subscriptions: { retrieve: vi.fn(), update: vi.fn(), cancel: vi.fn() },
-  accounts: { create: vi.fn(), retrieve: vi.fn(), createLoginLink: vi.fn() },
+  accounts: {
+    create: vi.fn(),
+    retrieve: vi.fn(),
+    update: vi.fn(),
+    createLoginLink: vi.fn(),
+  },
   accountLinks: { create: vi.fn() },
   balance: { retrieve: vi.fn() },
   events: { list: vi.fn() },
@@ -436,6 +441,20 @@ describe('StripeService creator accounts and identity', () => {
       expect.objectContaining({ type: 'express' }),
       { idempotencyKey: 'key-1' },
     );
+  });
+
+  it('holds the payouts of an account, and gives it its Monday payouts back', async () => {
+    await service.setPayoutsHeld('acct_1', true);
+    expect(client.accounts.update).toHaveBeenLastCalledWith('acct_1', {
+      settings: { payouts: { schedule: { interval: 'manual' } } },
+    });
+
+    await service.setPayoutsHeld('acct_1', false);
+    expect(client.accounts.update).toHaveBeenLastCalledWith('acct_1', {
+      settings: {
+        payouts: { schedule: { interval: 'weekly', weekly_anchor: 'monday' } },
+      },
+    });
   });
 
   it('reads an account, and makes its onboarding and its panel links', async () => {

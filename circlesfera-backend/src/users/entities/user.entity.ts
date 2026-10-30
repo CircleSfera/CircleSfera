@@ -18,6 +18,10 @@ export class UserEntity implements User {
   isRootBanned!: boolean;
   @ApiProperty({ required: true, type: () => String, nullable: true })
   rootBanReason!: string | null;
+  // Kept on the server: since when a banned person's payouts are held.
+  @ApiProperty({ required: true, type: () => Date, nullable: true })
+  @Exclude()
+  payoutsHeldAt!: Date | null;
 
   // Old copy of the credentials, retired: the app does not read it.
   @ApiProperty({ required: true, type: () => String, nullable: true })

@@ -8,6 +8,12 @@ import type { AppGateway } from '../socket/app.gateway.js';
 import { LIVE_GIFT_CATALOG } from './gift-catalog.js';
 import { LiveGiftService } from './live-gift.service.js';
 
+const PAYABLE = {
+  isAccountBanned: false,
+  suspendedUntil: null,
+  user: { isActive: true, isRootBanned: false, deletedAt: null },
+};
+
 describe('LiveGiftService', () => {
   let service: LiveGiftService;
 
@@ -39,6 +45,8 @@ describe('LiveGiftService', () => {
       findUnique: vi.fn().mockResolvedValue(null),
     },
     profile: {
+      // The host may be paid: neither they nor their person is banned.
+      findUnique: vi.fn(),
       findMany: vi.fn().mockResolvedValue([
         {
           id: 'creator-prof-1',
@@ -64,6 +72,7 @@ describe('LiveGiftService', () => {
       mockStripeService as unknown as StripeService,
     );
     vi.clearAllMocks();
+    mockPrismaService.profile.findUnique.mockResolvedValue(PAYABLE);
     mockServer.to.mockReturnThis();
   });
 
@@ -96,6 +105,20 @@ describe('LiveGiftService', () => {
       await expect(
         service.sendGift('stream-1', 'creator-1', 'crown', 'http://localhost'),
       ).rejects.toThrow(AppException);
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('takes no gift for a host whose person is banned from the whole account', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        ...PAYABLE,
+        user: { isActive: false, isRootBanned: true, deletedAt: null },
+      });
+
+      await expect(
+        service.sendGift('stream-1', 'fan-1', 'crown', 'http://localhost/live'),
+      ).rejects.toThrow('Creator not found');
+      expect(mockPrismaService.liveGift.create).not.toHaveBeenCalled();
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
