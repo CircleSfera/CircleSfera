@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   Award,
+  BadgeCheck,
   CheckCircle2,
   ExternalLink,
   Loader2,
@@ -189,8 +190,9 @@ export default function CreatorMonetizationTab({
 
   const getTierIcon = (name: string) => {
     const lower = name.toLowerCase();
-    // The €9.99 plan is named Premium (formerly Verified).
-    if (lower.includes('premium') || lower.includes('verified'))
+    if (lower === 'verified')
+      return <BadgeCheck className="text-brand-blue" size={20} />;
+    if (lower.includes('premium'))
       return <Star className="text-brand-blue" size={20} />;
     if (lower.includes('elite'))
       return <Award className="text-brand-primary-text" size={20} />;
@@ -199,14 +201,15 @@ export default function CreatorMonetizationTab({
     return <Zap className="text-brand-primary-text" size={20} />;
   };
 
+  // The plan of the subscription when there is one; otherwise the plan the
+  // level stands for. The Verified and Premium plans both give the VERIFIED
+  // level, the badge, so without a subscription it stands for Verified.
   const isTierActive = (planName: string) => {
-    const billingPlan = billingStatus?.subscription?.planName?.toLowerCase();
-    if (billingPlan && billingStatus?.hasActiveSubscription) {
-      return billingPlan.includes(planName.toLowerCase());
-    }
     const lower = planName.toLowerCase();
-    if (lower.includes('premium') || lower.includes('verified'))
-      return currentLevel === 'VERIFIED';
+    if (billingStatus?.hasActiveSubscription) {
+      return billingStatus.subscription?.planName?.toLowerCase() === lower;
+    }
+    if (lower === 'verified') return currentLevel === 'VERIFIED';
     if (lower.includes('elite')) return currentLevel === 'ELITE';
     if (lower.includes('business')) return currentLevel === 'BUSINESS';
     return false;

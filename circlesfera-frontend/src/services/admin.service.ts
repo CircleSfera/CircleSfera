@@ -1289,6 +1289,8 @@ export const adminApi = {
       activeMRR: number;
       totalSubscriptions: number;
       tierDistribution: {
+        // Missing from a server older than the Verified plan.
+        VERIFIED?: number;
         PREMIUM: number;
         ELITE: number;
         BUSINESS: number;

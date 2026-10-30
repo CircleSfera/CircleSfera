@@ -74,19 +74,23 @@ describe('AdminStatsService excludes Test Accounts', () => {
 });
 
 describe('AdminStatsService monetization tiers', () => {
-  it('counts the €9.99 plan as Premium under its current and former name', async () => {
+  it('tells each plan by what it includes, so the €9.99 plan once named Verified is Premium', async () => {
     const { service, prisma } = build();
-    const plan = (name: string, priceCents: number) => ({
-      plan: { name, priceCents },
+    const plan = (name: string, priceCents: number, features: string[]) => ({
+      plan: { name, priceCents, features },
     });
+    const badge = 'verified_badge';
+    const support = 'priority_support';
+    const elite = [badge, support, 'no_promoted_content', 'advanced_analytics'];
     (prisma as Record<string, unknown>).platformSubscription = {
       findMany: vi
         .fn()
         .mockResolvedValue([
-          plan('Premium', 999),
-          plan('Verified', 999),
-          plan('Elite Creator', 1999),
-          plan('Business', 4999),
+          plan('Verified', 499, [badge]),
+          plan('Premium', 999, [badge, support]),
+          plan('Verified', 999, [badge, support]),
+          plan('Elite Creator', 1999, elite),
+          plan('Business', 4999, [...elite, 'team_access']),
         ]),
       count: vi.fn().mockResolvedValue(0),
     };
@@ -94,6 +98,7 @@ describe('AdminStatsService monetization tiers', () => {
     const result = await service.getMonetizationAnalytics();
 
     expect(result.tierDistribution).toEqual({
+      VERIFIED: 1,
       PREMIUM: 2,
       ELITE: 1,
       BUSINESS: 1,

@@ -1,7 +1,7 @@
 import type { SupportTicketCreatedEvent } from '@circlesfera/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AdminAction } from '@prisma/client';
+import { AdminAction, SubscriptionStatus } from '@prisma/client';
 import {
   primaryProfileIdForUser,
   withPrimaryProfile,
@@ -253,15 +253,20 @@ export class CircleSferaRequesterNotifier implements RequesterNotifier {
   }
 }
 
-// A requester has preference when any of their Profiles is on a paid plan.
-// The level of a Profile is the one sign of its plan.
+// A requester has preference when any of their Profiles is on an active
+// plan that includes priority support. The Verified plan gives the badge
+// only, so its badge alone is no sign of preference.
 @Injectable()
 export class PlanServiceLevel implements ServiceLevelProvider {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async levelOf(requesterRef: string) {
-    const paid = await this.prisma.profile.count({
-      where: { userId: requesterRef, verificationLevel: { not: 'BASIC' } },
+    const paid = await this.prisma.platformSubscription.count({
+      where: {
+        status: SubscriptionStatus.ACTIVE,
+        plan: { features: { has: 'priority_support' } },
+        OR: [{ userId: requesterRef }, { profile: { userId: requesterRef } }],
+      },
     });
     return paid > 0 ? ('PRIORITY' as const) : ('STANDARD' as const);
   }

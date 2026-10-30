@@ -1181,8 +1181,9 @@ export class UsersService {
       const has = (keyword: string) =>
         planNames.some((name) => name.includes(keyword));
 
-      // Highest tier wins. The €9.99 plan is named Premium; 'verified' is its
-      // former name and still counts for plans created before the rename.
+      // Highest tier wins. The Verified and Premium plans both give the
+      // VERIFIED level, which is the badge; what else a plan includes is read
+      // from its features, never from this level.
       const targetVerificationLevel: VerificationLevel = has('business')
         ? VerificationLevel.BUSINESS
         : has('elite')

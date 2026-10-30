@@ -72,14 +72,13 @@ function PricingQuestions() {
   );
 }
 
-// Plan name → verification level it grants. "Verified" is the old name of
-// the €9.99 plan, now "Premium".
-const planVerificationMap: Record<string, string> = {
-  Premium: 'VERIFIED',
-  Verified: 'VERIFIED',
-  'Elite Creator': 'ELITE',
-  Elite: 'ELITE',
-  Business: 'BUSINESS',
+// The plan a Profile's level stands for, when no subscription says which:
+// a level given by staff. The Verified and Premium plans both give the
+// VERIFIED level, which is the badge, so it stands for Verified.
+const planOfLevel: Record<string, string> = {
+  VERIFIED: 'Verified',
+  ELITE: 'Elite Creator',
+  BUSINESS: 'Business',
 };
 
 const ASSURANCES = [
@@ -101,16 +100,16 @@ export default function Pricing() {
   );
 
   const planDescriptions: Record<string, string> = {
+    Verified: t('pricingPage.desc_verified'),
     Premium: t('pricingPage.desc_premium'),
-    Verified: t('pricingPage.desc_premium'),
     'Elite Creator': t('pricingPage.desc_elite'),
     Elite: t('pricingPage.desc_elite'),
     Business: t('pricingPage.desc_business'),
   };
 
   const planButtonText: Record<string, string> = {
+    Verified: t('pricingPage.button_verified'),
     Premium: t('pricingPage.button_premium'),
-    Verified: t('pricingPage.button_premium'),
     'Elite Creator': t('pricingPage.button_elite'),
     Elite: t('pricingPage.button_elite'),
     Business: t('pricingPage.button_business'),
@@ -148,19 +147,15 @@ export default function Pricing() {
     retry: false,
   });
 
+  // The plan of the subscription when there is one; otherwise the plan the
+  // Profile's level stands for.
   const isPlanActive = (plan: PlatformPlanDto) => {
-    const verificationLevel =
-      currentUser?.verificationLevel || currentUser?.verificationLevel;
-    const mappedLevel = planVerificationMap[plan.name];
-    const isActiveByBilling =
-      !!billingStatus?.hasActiveSubscription &&
-      billingStatus?.subscription?.planName
-        ?.toLowerCase()
-        .includes(plan.name.toLowerCase());
-    const isActiveByLevel = !!mappedLevel && verificationLevel === mappedLevel;
-    const isActive = isActiveByBilling || isActiveByLevel;
-
-    return isActive;
+    const name = plan.name.toLowerCase();
+    if (billingStatus?.hasActiveSubscription) {
+      return billingStatus.subscription?.planName?.toLowerCase() === name;
+    }
+    const level = currentUser?.verificationLevel;
+    return !!level && planOfLevel[level]?.toLowerCase() === name;
   };
 
   const isPlanActiveRef = useRef(isPlanActive);
@@ -219,9 +214,6 @@ export default function Pricing() {
     });
   };
 
-  const verificationLevel =
-    currentUser?.verificationLevel || currentUser?.verificationLevel;
-
   const hasYearlyPlans =
     plans?.some((p) => p.yearlyPriceCents != null && p.yearlyPriceCents > 0) ??
     false;
@@ -276,20 +268,12 @@ export default function Pricing() {
             message={t('pricingPage.subtitle')}
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
             {plans.map((plan, index) => {
               const isPopular =
                 plan.name.toLowerCase().includes('elite') ||
                 index === Math.floor(plans.length / 2);
-              const mappedLevel = planVerificationMap[plan.name];
-              const isActiveByBilling =
-                !!billingStatus?.hasActiveSubscription &&
-                billingStatus?.subscription?.planName
-                  ?.toLowerCase()
-                  .includes(plan.name.toLowerCase());
-              const isActive =
-                isActiveByBilling ||
-                (!!mappedLevel && verificationLevel === mappedLevel);
+              const isActive = isPlanActive(plan);
               const monthlyCents = plan.priceCents ?? 0;
               const yearlyCents = plan.yearlyPriceCents ?? 0;
               const showYearly = billingCycle === 'YEARLY' && yearlyCents > 0;

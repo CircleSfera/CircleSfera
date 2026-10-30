@@ -274,6 +274,7 @@ export default function OverviewTab() {
               hint={
                 tiers &&
                 t('backoffice.overview.subscriptions_by_plan', {
+                  verified: tiers.VERIFIED ?? 0,
                   premium: tiers.PREMIUM,
                   elite: tiers.ELITE,
                   business: tiers.BUSINESS,

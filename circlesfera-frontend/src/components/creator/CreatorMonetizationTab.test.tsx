@@ -491,7 +491,7 @@ describe('CreatorMonetizationTab', () => {
     it('marks the subscribed plan as active and opens the billing portal', async () => {
       vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
         hasActiveSubscription: true,
-        subscription: { planName: 'Verified Monthly' },
+        subscription: { planName: 'Verified' },
       });
       vi.mocked(paymentsApi.getBillingPortalUrl).mockResolvedValue({
         url: 'https://billing.stripe.com/portal',
@@ -501,13 +501,14 @@ describe('CreatorMonetizationTab', () => {
       expect(
         await screen.findByText(i18n!.t('creator.monetization.active')),
       ).toBeInTheDocument();
+      // The plan's card and the current-plan line both name it.
       expect(
-        screen.getByText(
+        screen.getAllByText(
           i18n!.t('creator.monetization.current_plan', {
-            plan: 'Verified Monthly',
+            plan: 'Verified',
           }),
         ),
-      ).toBeInTheDocument();
+      ).toHaveLength(2);
       expect(
         screen.queryByRole('button', {
           name: i18n!.t('creator.monetization.upgrade_now'),
@@ -546,8 +547,10 @@ describe('CreatorMonetizationTab', () => {
       );
     });
 
+    // The Verified and Premium plans both give the VERIFIED level, the badge:
+    // without a subscription saying which, it stands for Verified.
     it.each([
-      ['VERIFIED', 'Premium'],
+      ['VERIFIED', 'Verified'],
       ['ELITE', 'Elite Creator'],
       ['BUSINESS', 'Business'],
     ])(
@@ -555,6 +558,7 @@ describe('CreatorMonetizationTab', () => {
       async (level, planName) => {
         auth.verificationLevel = level;
         vi.mocked(paymentsApi.getPlans).mockResolvedValue([
+          plan('Verified', 'p0', 499),
           plan('Premium', 'p1', 999),
           plan('Elite Creator', 'p2', 1999),
           plan('Business', 'p3', 4999),
@@ -562,7 +566,7 @@ describe('CreatorMonetizationTab', () => {
         ] as never);
         const { i18n } = renderPlans();
 
-        await screen.findByText(planName);
+        await screen.findAllByText(planName);
         expect(
           screen.getAllByText(i18n!.t('creator.monetization.active')),
         ).toHaveLength(1);
@@ -570,7 +574,7 @@ describe('CreatorMonetizationTab', () => {
           screen.getAllByRole('button', {
             name: i18n!.t('creator.monetization.upgrade_now'),
           }),
-        ).toHaveLength(3);
+        ).toHaveLength(4);
         expect(
           screen.getByText(
             i18n!.t('creator.monetization.current_plan', { plan: level }),
