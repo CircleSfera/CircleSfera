@@ -13,6 +13,7 @@ describe('MonetizationService', () => {
   const mockPrismaService = {
     monetization: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
@@ -123,9 +124,34 @@ describe('MonetizationService', () => {
         lifetimeEarningsCents: 5000,
       });
 
+      // 10 € with 1.74 € of VAT inside, and 5 € with none: the Profile
+      // earns 80% of each price without VAT.
+      mockPrismaService.transaction.findMany.mockResolvedValue([
+        { amount: 1000, vatCents: 174 },
+        { amount: 500, vatCents: 0 },
+      ]);
+
       const result = await service.getMonetization('user-1', 'prof-1');
       expect(result).toHaveProperty('hasStripeAccount', true);
-      expect(result.lifetimeEarningsCents).toBe(5000);
+      // What prof-1 earned, not the person's counter (5000).
+      expect(result.lifetimeEarningsCents).toBe(661 + 400);
+      expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith({
+        where: {
+          receiverId: 'user-1',
+          receiverProfileId: 'prof-1',
+          status: 'COMPLETED',
+          type: {
+            in: [
+              'DIRECT_POST_UNLOCK',
+              'DIRECT_STORY_UNLOCK',
+              'DIRECT_MESSAGE_UNLOCK',
+              'DIRECT_TIP',
+              'DIRECT_LIVE_GIFT',
+            ],
+          },
+        },
+        select: { amount: true, vatCents: true },
+      });
       // The account and the Profile holding it stay on the server.
       expect(result).not.toHaveProperty('stripeConnectAccountId');
       expect(result).not.toHaveProperty('profileId');
@@ -140,6 +166,7 @@ describe('MonetizationService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         stripeConnectAccountId: null,
       });
+      mockPrismaService.transaction.findMany.mockResolvedValue([]);
 
       const result = await service.getMonetization('user-2', 'prof-1');
       expect(mockPrismaService.monetization.create).toHaveBeenCalledWith({
@@ -150,6 +177,7 @@ describe('MonetizationService', () => {
         },
       });
       expect(result).toHaveProperty('hasStripeAccount', false);
+      expect(result.lifetimeEarningsCents).toBe(0);
     });
   });
 
@@ -159,6 +187,9 @@ describe('MonetizationService', () => {
         {
           id: 'tx-1',
           amountCents: 1000,
+          senderId: 'u-1',
+          receiverId: 'u-2',
+          receiverProfileId: 'prof-of-u-2',
           sender: {
             id: 'u-1',
             profiles: [{ username: 'sender1', avatar: 'a.jpg' }],
@@ -177,8 +208,9 @@ describe('MonetizationService', () => {
       ]);
       mockPrismaService.transaction.count.mockResolvedValue(2);
 
-      const result = await service.getTransactions('user-1');
+      const result = await service.getTransactions('user-1', 'prof-1');
       expect(result.data).toHaveLength(2);
+      expect(result.data[0].incoming).toBe(false);
       expect(result.data[0].sender?.profile?.username).toBe('sender1');
       expect(result.data[1].sender).toBeNull();
       expect(result.meta).toEqual({
@@ -187,6 +219,47 @@ describe('MonetizationService', () => {
         limit: 20,
         totalPages: 1,
       });
+    });
+
+    it('lists what the active Profile received and what the person paid', async () => {
+      mockPrismaService.transaction.findMany.mockResolvedValue([
+        {
+          id: 'received',
+          senderId: 'u-9',
+          receiverId: 'user-1',
+          receiverProfileId: 'prof-1',
+          sender: null,
+          receiver: null,
+        },
+        {
+          id: 'paid',
+          senderId: 'user-1',
+          receiverId: 'u-9',
+          receiverProfileId: 'prof-9',
+          sender: null,
+          receiver: null,
+        },
+      ]);
+      mockPrismaService.transaction.count.mockResolvedValue(2);
+
+      const result = await service.getTransactions('user-1', 'prof-1', 2, 5);
+
+      const where = {
+        OR: [
+          { senderId: 'user-1' },
+          { receiverId: 'user-1', receiverProfileId: 'prof-1' },
+        ],
+      };
+      expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where, skip: 5, take: 5 }),
+      );
+      expect(mockPrismaService.transaction.count).toHaveBeenCalledWith({
+        where,
+      });
+      expect(result.data.map((tx) => [tx.id, tx.incoming])).toEqual([
+        ['received', true],
+        ['paid', false],
+      ]);
     });
   });
 
@@ -1755,10 +1828,19 @@ describe('MonetizationService', () => {
         { amount: 9999, vatCents: 0, createdAt: new Date('2000-01-01') },
       ]);
 
-      const res = await service.getIncomeStats('u-1');
+      const res = await service.getIncomeStats('u-1', 'p-1');
       expect(res).toHaveLength(6);
       const currentEntry = res.find((r) => r.month === currentMonthKey);
       expect(currentEntry?.income).toBe(1740);
+      // Only the active Profile's income.
+      expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            receiverId: 'u-1',
+            receiverProfileId: 'p-1',
+          }),
+        }),
+      );
     });
   });
 
@@ -1782,7 +1864,7 @@ describe('MonetizationService', () => {
         vi.useFakeTimers({ now: new Date(today) });
         mockPrismaService.transaction.findMany.mockResolvedValue([]);
 
-        const res = await service.getIncomeStats('u-1');
+        const res = await service.getIncomeStats('u-1', 'p-1');
 
         expect(res.map((r) => r.month)).toEqual(expected);
         expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
@@ -1807,11 +1889,160 @@ describe('MonetizationService', () => {
         { type: 'DIRECT_POST_UNLOCK', _sum: { amount: null } },
       ]);
 
-      const summary = await service.getFinancialSummary('user-1');
+      const summary = await service.getFinancialSummary('user-1', 'prof-1');
 
       expect(summary.currentMonthIncome).toBe(0);
       expect(summary.totalTips).toBe(0);
       expect(summary.breakdown.postUnlocks).toBe(0);
+    });
+
+    it('counts the active Profile only, without VAT', async () => {
+      mockPrismaService.transaction.aggregate
+        .mockResolvedValueOnce({ _sum: { amount: 1000, vatCents: 174 } })
+        .mockResolvedValueOnce({ _sum: { amount: 500, vatCents: 87 } });
+      mockPrismaService.transaction.groupBy.mockResolvedValue([
+        { type: 'DIRECT_TIP', _sum: { amount: 500, vatCents: 87 } },
+      ]);
+
+      const summary = await service.getFinancialSummary('user-1', 'prof-1');
+
+      expect(summary.currentMonthIncome).toBe(826);
+      expect(summary.totalTips).toBe(413);
+      expect(summary.breakdown.tips).toBe(413);
+      for (const call of [
+        ...mockPrismaService.transaction.aggregate.mock.calls,
+        ...mockPrismaService.transaction.groupBy.mock.calls,
+      ]) {
+        expect(call[0].where).toMatchObject({
+          receiverId: 'user-1',
+          receiverProfileId: 'prof-1',
+        });
+      }
+    });
+  });
+
+  describe('getPersonTotal', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('sums every Profile of the person, each with its own figures', async () => {
+      vi.useFakeTimers({ now: new Date('2026-10-31T12:00:00Z') });
+      mockPrismaService.profile.findMany.mockResolvedValue([
+        {
+          id: 'p-creator',
+          username: 'ana',
+          avatar: 'a.jpg',
+          accountType: 'CREATOR',
+        },
+        {
+          id: 'p-business',
+          username: 'ana_shop',
+          avatar: null,
+          accountType: 'BUSINESS',
+        },
+        {
+          id: 'p-personal',
+          username: 'ana_me',
+          avatar: null,
+          accountType: 'PERSONAL',
+        },
+      ]);
+      const thisMonth = new Date('2026-10-02T00:00:00Z');
+      const lastMonth = new Date('2026-09-30T23:59:59Z');
+      mockPrismaService.transaction.findMany.mockResolvedValue([
+        // 10 € with 1.74 € VAT inside: 661 earned.
+        {
+          amount: 1000,
+          vatCents: 174,
+          receiverProfileId: 'p-creator',
+          createdAt: thisMonth,
+        },
+        {
+          amount: 500,
+          vatCents: 0,
+          receiverProfileId: 'p-creator',
+          createdAt: lastMonth,
+        },
+        {
+          amount: 2000,
+          vatCents: 0,
+          receiverProfileId: 'p-business',
+          createdAt: thisMonth,
+        },
+        // From before income named its Profile, and to a Profile no longer
+        // the person's: in the total only.
+        {
+          amount: 300,
+          vatCents: 0,
+          receiverProfileId: null,
+          createdAt: lastMonth,
+        },
+        {
+          amount: 100,
+          vatCents: 0,
+          receiverProfileId: 'p-gone',
+          createdAt: thisMonth,
+        },
+      ]);
+      mockPrismaService.monetization.findMany.mockResolvedValue([
+        { profileId: 'p-business' },
+      ]);
+
+      const total = await service.getPersonTotal('user-1');
+
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'user-1' } }),
+      );
+      expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            receiverId: 'user-1',
+            status: 'COMPLETED',
+          }),
+        }),
+      );
+      expect(mockPrismaService.monetization.findMany).toHaveBeenCalledWith({
+        where: {
+          profile: { userId: 'user-1' },
+          stripeConnectAccountId: { not: null },
+        },
+        select: { profileId: true },
+      });
+      expect(total).toEqual({
+        totalEarningsCents: 661 + 400 + 1600 + 240 + 80,
+        currentMonthEarningsCents: 661 + 1600 + 80,
+        unassignedEarningsCents: 240 + 80,
+        profiles: [
+          {
+            profileId: 'p-creator',
+            username: 'ana',
+            avatar: 'a.jpg',
+            accountType: 'CREATOR',
+            ownPayoutAccount: false,
+            earningsCents: 661 + 400,
+            currentMonthEarningsCents: 661,
+          },
+          {
+            profileId: 'p-business',
+            username: 'ana_shop',
+            avatar: null,
+            accountType: 'BUSINESS',
+            ownPayoutAccount: true,
+            earningsCents: 1600,
+            currentMonthEarningsCents: 1600,
+          },
+          {
+            profileId: 'p-personal',
+            username: 'ana_me',
+            avatar: null,
+            accountType: 'PERSONAL',
+            ownPayoutAccount: false,
+            earningsCents: 0,
+            currentMonthEarningsCents: 0,
+          },
+        ],
+      });
     });
   });
   describe('a creator whose person is banned from the whole account', () => {

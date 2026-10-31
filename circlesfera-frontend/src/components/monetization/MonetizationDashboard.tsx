@@ -12,12 +12,14 @@ import {
   CreatorRow,
   CreatorSection,
 } from '../creator/CreatorPieces';
+import PersonMoneyTotalSection from './PersonMoneyTotalSection';
 
 interface Transaction {
   id: string;
   type: string;
   amountCents?: number;
   receiverId: string;
+  incoming?: boolean;
   createdAt: string;
   description?: string;
   amount?: number;
@@ -132,7 +134,8 @@ export default function MonetizationDashboard() {
         ) : (
           <div className="space-y-2">
             {transactions.map((tx) => {
-              const isIncoming = tx.receiverId === monetization?.userId;
+              const isIncoming =
+                tx.incoming ?? tx.receiverId === monetization?.userId;
               const isPurchase =
                 tx.type.includes('UNLOCK') || tx.type.includes('SUBSCRIPTION');
               const cents = tx.amount ?? tx.amountCents ?? 0;
@@ -167,6 +170,8 @@ export default function MonetizationDashboard() {
           </div>
         )}
       </CreatorSection>
+
+      <PersonMoneyTotalSection />
     </div>
   );
 }

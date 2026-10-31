@@ -10,6 +10,7 @@ vi.mock('../../services/monetization.service', () => ({
     getFinancialSummary: vi.fn(),
     getTransactions: vi.fn(),
     getPayouts: vi.fn(),
+    getPersonTotal: vi.fn(),
   },
 }));
 
@@ -40,6 +41,42 @@ describe('MonetizationDashboard', () => {
       available: [],
       pending: [],
     });
+    vi.mocked(monetizationApi.getPersonTotal).mockResolvedValue({
+      totalEarningsCents: 0,
+      currentMonthEarningsCents: 0,
+      unassignedEarningsCents: 0,
+      profiles: [],
+    });
+  });
+
+  it('tells money the active Profile received from what the person paid, as the server marks it', async () => {
+    vi.mocked(monetizationApi.getTransactions).mockResolvedValue({
+      data: [
+        {
+          id: 'tx-in',
+          type: 'DIRECT_TIP',
+          amount: 300,
+          // Received by the active Profile, though the person's id differs
+          // from the one the row of earnings names.
+          receiverId: 'user-2',
+          incoming: true,
+          createdAt: '2026-10-01T00:00:00Z',
+        },
+        {
+          id: 'tx-out',
+          type: 'DIRECT_TIP',
+          amount: 400,
+          receiverId: 'user-1',
+          incoming: false,
+          createdAt: '2026-10-01T00:00:00Z',
+        },
+      ],
+    });
+
+    renderDashboard();
+
+    expect(await screen.findByText('+€3.00')).toBeInTheDocument();
+    expect(screen.getByText('-€4.00')).toBeInTheDocument();
   });
 
   it('renders PPV breakdown when the summary includes it', async () => {

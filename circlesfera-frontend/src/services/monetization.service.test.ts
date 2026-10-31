@@ -80,6 +80,7 @@ describe('monetizationApi', () => {
     await monetizationApi.getTransactions(2, 50);
     await monetizationApi.getIncomeStats();
     await monetizationApi.getFinancialSummary();
+    await monetizationApi.getPersonTotal();
     const payouts = await monetizationApi.getPayouts();
 
     expect(vi.mocked(apiClient.get).mock.calls.map((c) => c[0])).toEqual([
@@ -88,6 +89,7 @@ describe('monetizationApi', () => {
       '/monetization/transactions',
       '/monetization/analytics/income',
       '/monetization/analytics/summary',
+      '/monetization/analytics/total',
       '/monetization/payouts',
     ]);
     expect(apiClient.get).toHaveBeenCalledWith('/monetization/transactions', {

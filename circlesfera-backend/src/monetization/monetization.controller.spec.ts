@@ -35,6 +35,7 @@ describe('MonetizationController', () => {
     getConnectPayoutsSummary: vi.fn(),
     getIncomeStats: vi.fn(),
     getFinancialSummary: vi.fn(),
+    getPersonTotal: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -106,13 +107,22 @@ describe('MonetizationController', () => {
     expect(mockService.getConnectPayoutsSummary).toHaveBeenCalledWith(
       ...session,
     );
-    expect(mockService.getIncomeStats).toHaveBeenCalledWith(TEST_USER.userId);
-    expect(mockService.getFinancialSummary).toHaveBeenCalledWith(
-      TEST_USER.userId,
-    );
+    expect(mockService.getIncomeStats).toHaveBeenCalledWith(...session);
+    expect(mockService.getFinancialSummary).toHaveBeenCalledWith(...session);
   });
 
-  it('lists transactions as the session userId with page and limit', async () => {
+  it("answers the person's total over all their Profiles from the session", async () => {
+    mockService.getPersonTotal.mockResolvedValue({ profiles: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/monetization/analytics/total')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.getPersonTotal).toHaveBeenCalledWith(TEST_USER.userId);
+  });
+
+  it('lists the transactions of the active Profile with page and limit', async () => {
     mockService.getTransactions.mockResolvedValue({ data: [] });
 
     await request(app.getHttpServer())
@@ -123,6 +133,7 @@ describe('MonetizationController', () => {
 
     expect(mockService.getTransactions).toHaveBeenCalledWith(
       TEST_USER.userId,
+      TEST_USER.profileId,
       2,
       20,
     );

@@ -2394,7 +2394,18 @@
         "STRIPE_SUBSCRIPTION": "Subscription",
         "PROMOTION_PAYMENT": "Promotion"
       },
-      "no_transactions": "No movements yet."
+      "no_transactions": "No movements yet.",
+      "all_profiles": {
+        "title": "All my Profiles",
+        "hint": "What you have earned with each of your Profiles: your share, after the VAT and the platform's 20%.",
+        "earned": "Earned in total",
+        "this_month": "Earned this month",
+        "month_line": "{{amount}} this month",
+        "own_account": "Its own payout account",
+        "shared_account": "Paid into a shared payout account",
+        "earlier": "Other income",
+        "earlier_hint": "From before income was kept per Profile, or from a Profile you no longer have"
+      }
     },
     "dashboard": {
       "untitled_post": "Untitled post",

@@ -46,6 +46,7 @@ export class MonetizationController {
   ) {
     return this.monetizationService.getTransactions(
       req.user.userId,
+      req.user.profileId,
       pagination.page,
       pagination.limit,
     );
@@ -145,12 +146,25 @@ export class MonetizationController {
   @Get('analytics/income')
   @ApiResponse({ status: 200 })
   async getIncomeAnalytics(@Req() req: AuthRequest) {
-    return this.monetizationService.getIncomeStats(req.user.userId);
+    return this.monetizationService.getIncomeStats(
+      req.user.userId,
+      req.user.profileId,
+    );
   }
 
   @Get('analytics/summary')
   @ApiResponse({ status: 200 })
   async getFinancialSummary(@Req() req: AuthRequest) {
-    return this.monetizationService.getFinancialSummary(req.user.userId);
+    return this.monetizationService.getFinancialSummary(
+      req.user.userId,
+      req.user.profileId,
+    );
+  }
+
+  // The person's total over all their Profiles.
+  @Get('analytics/total')
+  @ApiResponse({ status: 200 })
+  async getPersonTotal(@Req() req: AuthRequest) {
+    return this.monetizationService.getPersonTotal(req.user.userId);
   }
 }

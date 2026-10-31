@@ -1,6 +1,22 @@
 import type { WithdrawalConsentGiven } from '../components/payments/WithdrawalConsent';
 import { apiClient as api } from './api';
 
+export interface PersonMoneyTotal {
+  totalEarningsCents: number;
+  currentMonthEarningsCents: number;
+  // Earned before income named its Profile, or by a Profile since deleted.
+  unassignedEarningsCents: number;
+  profiles: {
+    profileId: string;
+    username: string;
+    avatar: string | null;
+    accountType: string;
+    ownPayoutAccount: boolean;
+    earningsCents: number;
+    currentMonthEarningsCents: number;
+  }[];
+}
+
 export const monetizationApi = {
   getStatus: async () => {
     const { data } = await api.get('/monetization/status');
@@ -64,6 +80,9 @@ export const monetizationApi = {
         amountCents?: number;
         amount?: number;
         receiverId: string;
+        // Whether the active Profile received it, rather than the person
+        // paid it.
+        incoming?: boolean;
         createdAt: string;
         description?: string;
       }>;
@@ -94,6 +113,13 @@ export const monetizationApi = {
         liveGifts: number;
       };
     }>('/monetization/analytics/summary');
+    return data;
+  },
+  // The person's total over all their Profiles.
+  getPersonTotal: async () => {
+    const { data } = await api.get<PersonMoneyTotal>(
+      '/monetization/analytics/total',
+    );
     return data;
   },
   getPayouts: async () => {
