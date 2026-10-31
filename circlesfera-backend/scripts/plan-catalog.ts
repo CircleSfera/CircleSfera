@@ -1,5 +1,5 @@
 // The platform plans CircleSfera sells, what each includes (PD-013, PD-047)
-// and its monthly price before VAT (BD-005, BD-021). A benefit is listed
+// and its monthly price, VAT included (BD-005, BD-021). A benefit is listed
 // here once it is built, never before; `verified_badge` is also the key the
 // profile reads to show the badge.
 export type CatalogPlan = {
@@ -117,14 +117,36 @@ export function findProviderProduct(
   return { product: candidates[0] };
 }
 
+/**
+ * The price a plan is sold at: its product's default price, else the one
+ * active monthly price in euros the product has. A product with no default
+ * and several such prices has none: which one is meant is not guessed.
+ */
+export function planPrice(
+  product: ProviderProduct,
+  activePrices: readonly ProviderPrice[],
+): ProviderPrice | string | null {
+  if (product.default_price) return product.default_price;
+  const monthly = activePrices.filter(
+    (price) =>
+      price.currency === 'eur' && price.recurring?.interval === 'month',
+  );
+  return monthly.length === 1 ? monthly[0] : null;
+}
+
 // What is wrong with the default price of a plan's product, if anything:
-// it must be the plan's monthly price in euros, before VAT.
+// it must be the plan's monthly price in euros, VAT included.
 export function priceProblems(
   price: ProviderPrice | string | null,
   plan: CatalogPlan,
+  // The account's tax default (Tax settings), which a price that leaves
+  // VAT to the account follows; unknown when it could not be read.
+  accountTaxBehavior: string | null = null,
 ): string[] {
   if (!price || typeof price === 'string') {
-    return [`${plan.name}: the product has no default price`];
+    return [
+      `${plan.name}: the product has no default price, nor a single monthly price in euros`,
+    ];
   }
   const problems: string[] = [];
   if (!price.active) problems.push('it is archived');
@@ -133,8 +155,16 @@ export function priceProblems(
   if (price.unit_amount !== plan.priceCents) {
     problems.push(`it is ${price.unit_amount} cents, not ${plan.priceCents}`);
   }
-  if (price.tax_behavior !== 'exclusive') {
-    problems.push(`its VAT is ${price.tax_behavior ?? 'unset'}, not exclusive`);
+  // VAT included: said on the price, or left to an account whose tax
+  // default includes it, always or, inferred by currency, in euros.
+  const accountIncludesVat =
+    accountTaxBehavior === 'inclusive' ||
+    (accountTaxBehavior === 'inferred_by_currency' && price.currency === 'eur');
+  const vatIncluded =
+    price.tax_behavior === 'inclusive' ||
+    (price.tax_behavior === 'unspecified' && accountIncludesVat);
+  if (!vatIncluded) {
+    problems.push(`its VAT is ${price.tax_behavior ?? 'unset'}, not inclusive`);
   }
   return problems.map(
     (problem) => `${plan.name}: the default price ${problem}`,

@@ -426,6 +426,16 @@ describe('Pricing', () => {
     expect(screen.getByText('€9.99')).toBeInTheDocument();
   });
 
+  it('says on every plan that its price includes VAT', async () => {
+    const { i18n } = renderWithProviders(<Pricing />);
+    await screen.findByText('Premium');
+
+    expect(screen.getAllByText('VAT included')).toHaveLength(
+      screen.getAllByRole('article').length,
+    );
+    expect(i18n!.t('vat.included')).toBe('VAT included');
+  });
+
   it('hides the billing cycle choice when no plan has a yearly price', async () => {
     vi.mocked(paymentsApi.getPlans).mockResolvedValue([
       plan('Premium', 'p-premium', 999),

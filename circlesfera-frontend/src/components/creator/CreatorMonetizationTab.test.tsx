@@ -423,6 +423,15 @@ describe('CreatorMonetizationTab', () => {
       );
     });
 
+    it('says under each price that it includes VAT', async () => {
+      const { i18n } = renderPlans();
+      const buttons = await screen.findAllByRole('button', {
+        name: i18n!.t('creator.monetization.upgrade_now'),
+      });
+
+      expect(screen.getAllByText('VAT included')).toHaveLength(buttons.length);
+    });
+
     it('explains a failed checkout in the app language', async () => {
       vi.mocked(paymentsApi.createSubscriptionCheckout).mockRejectedValue(
         serverError('Plan is not available'),

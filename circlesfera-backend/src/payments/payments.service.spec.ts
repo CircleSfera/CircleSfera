@@ -578,8 +578,35 @@ describe('PaymentsService', () => {
           }),
         }),
         expect.objectContaining({
-          idempotencyKey: 'checkout_sub_u_year:prof_1:plan_1:YEARLY',
+          idempotencyKey: 'checkout_sub_tax_u_year:prof_1:plan_1:YEARLY',
         }),
+      );
+    });
+
+    it('asks the provider to add the VAT due, from the billing address it asks for', async () => {
+      prisma.user.findUnique = vi.fn().mockResolvedValue({
+        id: 'u_vat',
+        email: 'vat@test.com',
+        stripeCustomerId: 'cust_vat',
+        platformSubscriptions: [],
+      });
+      prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        id: 'plan_1',
+        stripePriceId: 'price_monthly',
+      });
+      stripeService.createCheckoutSession.mockResolvedValue({
+        url: 'https://checkout.vat',
+      });
+
+      await service.createCheckout('u_vat', 'plan_1', 'MONTHLY', 'prof_1');
+
+      expect(stripeService.createCheckoutSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          automatic_tax: { enabled: true },
+          billing_address_collection: 'required',
+          customer_update: { address: 'auto', name: 'auto' },
+        }),
+        expect.anything(),
       );
     });
 

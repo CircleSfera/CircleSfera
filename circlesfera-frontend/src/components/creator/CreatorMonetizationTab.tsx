@@ -349,7 +349,7 @@ export default function CreatorMonetizationTab({
                       {displayName}
                     </h4>
 
-                    <div className="flex items-baseline gap-1 mb-4">
+                    <div className="flex items-baseline gap-1">
                       <span className="text-2xl font-semibold text-white tabular-nums tracking-tight">
                         {formatCents(
                           plan.priceCents ?? 0,
@@ -363,6 +363,9 @@ export default function CreatorMonetizationTab({
                           : t('creator.monetization.per_year')}
                       </span>
                     </div>
+                    <p className="mt-1 mb-4 text-xs text-white/50">
+                      {t('vat.included')}
+                    </p>
 
                     <ul className="space-y-2 pt-3 border-t border-white/6">
                       {plan.features.map((feature: string) => (

@@ -263,6 +263,13 @@ export class PaymentsService {
             customer: customerId,
             line_items: [{ price: stripePriceId, quantity: 1 }],
             mode: 'subscription',
+            // Plan prices include VAT: the provider works out the VAT inside
+            // the price for where the buyer is, from the billing address it
+            // asks for, and saves that address on the customer for the
+            // renewals.
+            automatic_tax: { enabled: true },
+            billing_address_collection: 'required',
+            customer_update: { address: 'auto', name: 'auto' },
             success_url: `${this.frontendUrl}/accounts/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
             cancel_url: `${this.frontendUrl}/accounts/billing?success=false`,
             metadata: {
@@ -274,7 +281,8 @@ export class PaymentsService {
             },
           },
           {
-            idempotencyKey: `checkout_sub_${intentKey}`,
+            // A new prefix: a key reused with other parameters is refused.
+            idempotencyKey: `checkout_sub_tax_${intentKey}`,
           },
         );
       } catch (err) {

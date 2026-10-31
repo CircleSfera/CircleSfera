@@ -354,6 +354,10 @@ export default function Pricing() {
                       </span>
                     )}
                   </p>
+                  {/* The price is what is paid: the VAT is inside it. */}
+                  <p className="mt-2 text-xs text-white/50">
+                    {t('vat.included')}
+                  </p>
 
                   <ul className="mt-6 grow space-y-3 border-t border-white/8 pt-6">
                     {(plan.features || []).map((feature) => (
