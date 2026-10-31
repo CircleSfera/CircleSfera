@@ -18,7 +18,7 @@ interface Transaction {
   id: string;
   type: string;
   amountCents?: number;
-  receiverId: string;
+  receiverId?: string;
   incoming?: boolean;
   createdAt: string;
   description?: string;

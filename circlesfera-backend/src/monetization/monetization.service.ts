@@ -21,7 +21,6 @@ import {
   isVerifiedCompanyAccount,
   StripeService,
 } from '../common/stripe/stripe.service.js';
-import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { creatorEarnings } from './paid-amounts.js';
 import {
@@ -168,42 +167,32 @@ export class MonetizationService {
         { receiverId: userId, receiverProfileId: profileId },
       ],
     };
+    // Only what the history shows: no person or Profile on either side and
+    // no provider ids, so a payment never tells who is behind a Profile.
     const transactions = await this.prisma.transaction.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
-      include: {
-        sender: {
-          select: {
-            id: true,
-            profiles: {
-              select: { username: true, avatar: true },
-              take: 1,
-            },
-          },
-        },
-        receiver: {
-          select: {
-            id: true,
-            profiles: {
-              select: { username: true, avatar: true },
-              take: 1,
-            },
-          },
-        },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        vatCents: true,
+        currency: true,
+        status: true,
+        createdAt: true,
+        receiverId: true,
+        receiverProfileId: true,
       },
     });
 
     const total = await this.prisma.transaction.count({ where });
 
     return {
-      data: transactions.map((tx) => ({
+      data: transactions.map(({ receiverId, receiverProfileId, ...tx }) => ({
         ...tx,
-        incoming:
-          tx.receiverId === userId && tx.receiverProfileId === profileId,
-        sender: tx.sender ? withPrimaryProfile(tx.sender) : null,
-        receiver: tx.receiver ? withPrimaryProfile(tx.receiver) : null,
+        incoming: receiverId === userId && receiverProfileId === profileId,
       })),
       meta: {
         total,

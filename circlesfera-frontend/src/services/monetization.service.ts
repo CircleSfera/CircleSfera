@@ -81,7 +81,8 @@ export const monetizationApi = {
         type: string;
         amountCents?: number;
         amount?: number;
-        receiverId: string;
+        // Sent by older servers only, with description.
+        receiverId?: string;
         // Whether the active Profile received it, rather than the person
         // paid it.
         incoming?: boolean;
