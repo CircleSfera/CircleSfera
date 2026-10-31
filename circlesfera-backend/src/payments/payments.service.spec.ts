@@ -1230,8 +1230,14 @@ describe('PaymentsService', () => {
 
       stripeService.getSubscription.mockResolvedValue({
         status: 'active',
-        current_period_start: Math.floor(Date.now() / 1000),
-        current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+        items: {
+          data: [
+            {
+              current_period_start: Math.floor(Date.now() / 1000),
+              current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+            },
+          ],
+        },
         cancel_at_period_end: false,
       });
 
@@ -1329,8 +1335,9 @@ describe('PaymentsService', () => {
       });
       stripeService.getSubscription.mockResolvedValue({
         status: 'active',
-        current_period_start: 1,
-        current_period_end: 2,
+        items: {
+          data: [{ current_period_start: 1, current_period_end: 2 }],
+        },
         cancel_at_period_end: false,
       });
       prisma.profile.findFirst = vi
@@ -1375,8 +1382,9 @@ describe('PaymentsService', () => {
 
       stripeService.getSubscription.mockResolvedValue({
         status: 'active',
-        current_period_start: 1000,
-        current_period_end: 2000,
+        items: {
+          data: [{ current_period_start: 1000, current_period_end: 2000 }],
+        },
         cancel_at_period_end: false,
       });
       prisma.platformSubscription.findMany = vi
@@ -1417,7 +1425,14 @@ describe('PaymentsService', () => {
           object: {
             id: 'sub_456',
             status: 'past_due',
-            current_period_end: Math.floor(Date.now() / 1000),
+            items: {
+              data: [
+                {
+                  current_period_start: 0,
+                  current_period_end: Math.floor(Date.now() / 1000),
+                },
+              ],
+            },
             cancel_at_period_end: false,
           },
         },
@@ -1446,7 +1461,14 @@ describe('PaymentsService', () => {
           object: {
             id: 'sub_789',
             status: 'canceled',
-            current_period_end: Math.floor(Date.now() / 1000),
+            items: {
+              data: [
+                {
+                  current_period_start: 0,
+                  current_period_end: Math.floor(Date.now() / 1000),
+                },
+              ],
+            },
             cancel_at_period_end: false,
           },
         },
@@ -1699,8 +1721,14 @@ describe('PaymentsService', () => {
         .mockResolvedValue({ id: 'p_sub', name: 'VIP Plan' });
       stripeService.getSubscription = vi.fn().mockResolvedValue({
         status: 'active',
-        current_period_start: 1_700_000_000,
-        current_period_end: 1_702_592_000,
+        items: {
+          data: [
+            {
+              current_period_start: 1_700_000_000,
+              current_period_end: 1_702_592_000,
+            },
+          ],
+        },
         cancel_at_period_end: false,
       });
 

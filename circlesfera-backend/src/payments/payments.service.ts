@@ -14,6 +14,10 @@ import {
   classifyStripeError,
   StripeService,
 } from '../common/stripe/stripe.service.js';
+import {
+  type SubscriptionWithItems,
+  subscriptionPeriod,
+} from '../common/stripe/subscription-period.js';
 import { EmailService } from '../email/email.service.js';
 import {
   isMonetizationCheckoutType,
@@ -848,10 +852,9 @@ export class PaymentsService {
             await this.stripeService.getSubscription(stripeSubscriptionId);
           const stripeSubscription = subscriptionRaw as unknown as {
             status: string;
-            current_period_start: number;
-            current_period_end: number;
             cancel_at_period_end: boolean;
-          };
+          } & SubscriptionWithItems;
+          const period = subscriptionPeriod(stripeSubscription);
 
           // The plan being recorded is the one that stays. Any older plan of
           // this Profile is cancelled first, so the Profile never holds two,
@@ -865,12 +868,8 @@ export class PaymentsService {
             where: { stripeSubscriptionId },
             update: {
               status: this.mapStripeStatus(stripeSubscription.status),
-              currentPeriodStart: new Date(
-                stripeSubscription.current_period_start * 1000,
-              ),
-              currentPeriodEnd: new Date(
-                stripeSubscription.current_period_end * 1000,
-              ),
+              currentPeriodStart: period.start,
+              currentPeriodEnd: period.end,
               cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
               profileId,
             },
@@ -880,12 +879,8 @@ export class PaymentsService {
               profileId,
               status: this.mapStripeStatus(stripeSubscription.status),
               stripeSubscriptionId: stripeSubscriptionId,
-              currentPeriodStart: new Date(
-                stripeSubscription.current_period_start * 1000,
-              ),
-              currentPeriodEnd: new Date(
-                stripeSubscription.current_period_end * 1000,
-              ),
+              currentPeriodStart: period.start,
+              currentPeriodEnd: period.end,
               cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
             },
           });
@@ -938,15 +933,14 @@ export class PaymentsService {
         const subscription = data.object as unknown as {
           id: string;
           status: string;
-          current_period_end: number;
           cancel_at_period_end: boolean;
-        };
+        } & SubscriptionWithItems;
 
         await this.prisma.platformSubscription.updateMany({
           where: { stripeSubscriptionId: subscription.id },
           data: {
             status: this.mapStripeStatus(subscription.status),
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            currentPeriodEnd: subscriptionPeriod(subscription).end,
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
           },
         });
