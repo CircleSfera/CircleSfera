@@ -145,7 +145,7 @@ export function buildHashtagElement(raw: string): StoryElement | null {
 
 /** A pill with free sizes, as a hashtag, a mention or a place. */
 const pillElement = (
-  type: 'mention' | 'location' | 'link' | 'music',
+  type: 'mention' | 'location' | 'link' | 'music' | 'post',
   content: object,
 ): StoryElement => ({
   id: crypto.randomUUID(),
@@ -168,6 +168,20 @@ export function buildMentionElement(profile: {
     profileId: profile.id,
     username: profile.username,
   });
+}
+
+/**
+ * A post or Frame shared to the story, as a card of the original that
+ * viewers open. It sits a little above the middle, at its own size.
+ */
+export function buildPostElement(card: {
+  id: string;
+  type: string;
+  image: string | null;
+  username: string;
+  avatar: string | null;
+}): StoryElement {
+  return { ...pillElement('post', card), scale: 1, y: -40 };
 }
 
 /** A question and one of its answers, shared by the author as a card. */

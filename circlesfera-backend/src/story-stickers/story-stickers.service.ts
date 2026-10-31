@@ -18,6 +18,7 @@ import {
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
+import { OPEN_POST } from '../common/policies/story-share.policy.js';
 import { validateTargetUrl } from '../common/utils/ssrf.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
@@ -47,6 +48,15 @@ export interface FeedSticker {
 }
 
 type StickerRow = FeedSticker & { settings: Prisma.JsonValue };
+
+/** The card of a post or Frame shared to a story, as a viewer sees it. */
+export interface SharedPostCard {
+  id: string;
+  type: string;
+  image: string | null;
+  username: string;
+  avatar: string | null;
+}
 
 export const FEED_STICKER_SELECT = {
   id: true,
@@ -100,6 +110,9 @@ export class StoryStickersService {
     if (stickers.filter((s) => s.kind === 'MUSIC').length > 1) {
       throw new BadRequestException('ONE_MUSIC_STICKER_PER_STORY');
     }
+    if (stickers.filter((s) => s.kind === 'POST').length > 1) {
+      throw new BadRequestException('ONE_POST_STICKER_PER_STORY');
+    }
     const links = stickers.filter((s) => s.kind === 'LINK').length;
     if (links > 1) throw new BadRequestException('ONE_LINK_STICKER_PER_STORY');
     if (links > 0) {
@@ -152,6 +165,13 @@ export class StoryStickersService {
           settings as { url: string; domain: string },
         );
       }
+      if (sticker.kind === 'POST') {
+        await this.assertPostShareable(
+          tx,
+          (settings as { postId: string }).postId,
+          authorProfileId,
+        );
+      }
       if (sticker.kind === 'MUSIC') {
         if (!storyAudioId) throw new BadRequestException('AUDIO_NOT_FOUND');
         settings = { audioId: storyAudioId };
@@ -197,6 +217,102 @@ export class StoryStickersService {
         throw new BadRequestException('LINK_HOST_NOT_ALLOWED');
       }
     }
+  }
+
+  /**
+   * A post or Frame may be shared to a story when anyone can see it, its
+   * author allows it, and neither Profile has blocked the other. The sharer
+   * may share their own on the same terms. Anything else answers as not
+   * found, so a private or blocked post is not revealed.
+   */
+  private async assertPostShareable(
+    tx: Tx,
+    postId: string,
+    sharerProfileId: string,
+  ): Promise<void> {
+    const post = await tx.post.findFirst({
+      where: {
+        id: postId,
+        ...OPEN_POST,
+        profile: {
+          ...OPEN_POST.profile,
+          ...(await visibleToViewerWhere(
+            tx as unknown as PrismaService,
+            sharerProfileId,
+          )),
+        },
+      },
+      select: { profile: { select: { allowStoryShares: true } } },
+    });
+    if (!post) throw new BadRequestException('SHARED_POST_NOT_FOUND');
+    if (!post.profile.allowStoryShares) {
+      throw new BadRequestException('POST_SHARING_TURNED_OFF');
+    }
+  }
+
+  /**
+   * The cards of the posts the given stickers share, as one viewer may see
+   * them now: a post that is no longer open to everyone, or whose author
+   * and the viewer have blocked each other, is not in it, and its card says
+   * it is not available.
+   */
+  async sharedPostCards(
+    stickers: { kind: StoryStickerKind; settings: Prisma.JsonValue }[],
+    viewerProfileId: string | undefined,
+  ): Promise<Map<string, SharedPostCard>> {
+    const ids = [
+      ...new Set(
+        stickers
+          .filter((s) => s.kind === 'POST')
+          .map((s) => (s.settings as { postId?: string })?.postId)
+          .filter((id): id is string => typeof id === 'string'),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+    const posts = await this.prisma.post.findMany({
+      where: {
+        id: { in: ids },
+        ...OPEN_POST,
+        profile: {
+          ...OPEN_POST.profile,
+          ...(await visibleToViewerWhere(this.prisma, viewerProfileId)),
+        },
+      },
+      select: {
+        id: true,
+        type: true,
+        profile: { select: { username: true, avatar: true } },
+        media: {
+          orderBy: { order: 'asc' },
+          take: 1,
+          select: {
+            url: true,
+            standardUrl: true,
+            thumbnailUrl: true,
+            type: true,
+          },
+        },
+      },
+    });
+    return new Map(
+      posts.map((post) => {
+        const first = post.media[0];
+        return [
+          post.id,
+          {
+            id: post.id,
+            type: post.type,
+            // A picture's own image; a video's cover.
+            image:
+              first?.type === 'video'
+                ? (first.thumbnailUrl ?? null)
+                : (first?.standardUrl ?? first?.url ?? null),
+            username: post.profile.username,
+            avatar: post.profile.avatar,
+          },
+        ];
+      }),
+    );
   }
 
   /** A link may be added when its domain is not blocked by staff, nor under one that is. */
@@ -282,6 +398,8 @@ export class StoryStickersService {
       linksOff?: boolean;
       /** The story's track, which its music sticker shows. */
       track?: { title: string; artist: string; cover: string | null } | null;
+      /** The posts shared, as the viewer may see them now. */
+      sharedPosts?: ReadonlyMap<string, SharedPostCard>;
     } = { usernames: new Map(), placeName: null },
   ): FeedSticker[] {
     const feed: FeedSticker[] = [];
@@ -295,6 +413,10 @@ export class StoryStickersService {
       if (s.kind === 'LOCATION') {
         if (!names.placeName) continue;
         settings.name = names.placeName;
+      }
+      if (s.kind === 'POST') {
+        // Kept when the post is gone, to say it is not available.
+        settings.post = names.sharedPosts?.get(String(settings.postId)) ?? null;
       }
       if (s.kind === 'MUSIC') {
         if (!names.track) continue;

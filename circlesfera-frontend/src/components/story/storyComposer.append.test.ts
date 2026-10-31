@@ -9,6 +9,7 @@ import {
   buildMentionElement,
   buildMusicElement,
   buildPollElement,
+  buildPostElement,
   buildQnaElement,
   buildQuizElement,
   buildSliderElement,
@@ -36,6 +37,7 @@ import {
   parseMentionPayload,
   parseMusicPayload,
   parsePollPayload,
+  parsePostPayload,
   parseQnaPayload,
   parseQuizPayload,
   parseSliderPayload,
@@ -381,5 +383,34 @@ describe('the music sticker', () => {
       }),
     ).toEqual([expect.objectContaining({ kind: 'MUSIC', settings: {} })]);
     expect(parseMusicPayload({ ...el, content: '{}' })).toBeNull();
+  });
+});
+
+describe('a post shared to a story', () => {
+  const card = {
+    id: 'post-1',
+    type: 'FRAME',
+    image: 'https://media.example/f.jpg',
+    username: 'ana',
+    avatar: null,
+  };
+
+  it('is a piece on the story, sent once as a card naming the post', () => {
+    const el = buildPostElement(card);
+    const canvas = { width: 400, height: 800 };
+
+    expect(parsePostPayload(el)).toEqual(card);
+    expect(isLiveElement(el)).toBe(true);
+    expect(isAnswerableElement(el)).toBe(false);
+    expect(canDuplicateElement(el)).toBe(false);
+    expect(stickersFromElements([el, { ...el, id: 'copy' }], canvas)).toEqual([
+      expect.objectContaining({ kind: 'POST', settings: { postId: 'post-1' } }),
+    ]);
+  });
+
+  it('reads nothing from a piece that names no post', () => {
+    const el = buildPostElement(card);
+    expect(parsePostPayload({ ...el, content: '{}' })).toBeNull();
+    expect(parsePostPayload({ ...el, type: 'mention' })).toBeNull();
   });
 });

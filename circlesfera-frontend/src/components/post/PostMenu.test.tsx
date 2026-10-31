@@ -56,4 +56,20 @@ describe('PostMenu', () => {
     ).not.toBeInTheDocument();
     expect(first.onArchive).not.toHaveBeenCalled();
   });
+
+  it('offers anyone to add the post to their story, when it can be shared', () => {
+    const onAddToStory = vi.fn();
+    show({ isOwner: false, onAddToStory });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add to your story' }));
+    expect(onAddToStory).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not offer it for a post that cannot be shared', () => {
+    show({ isOwner: true });
+
+    expect(
+      screen.queryByRole('button', { name: 'Add to your story' }),
+    ).not.toBeInTheDocument();
+  });
 });

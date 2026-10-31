@@ -203,7 +203,10 @@
       "export_desc": "Descarga una copia de tu información de CircleSfera en formato digital.",
       "export_requested": "Solicitud de exportación creada. Te avisaremos cuando esté lista.",
       "export_link_hint": "¿Necesitas una copia de tus datos?",
-      "export_link": "Exportar desde Cuenta"
+      "export_link": "Exportar desde Cuenta",
+      "story_shares": "Permitir compartir en historias",
+      "story_shares_desc": "Otras personas pueden añadir tus publicaciones y Frames públicos a sus historias, como una tarjeta que abre el original. Al desactivarlo, no se pueden compartir más.",
+      "story_shares_error": "No se ha podido guardar el cambio"
     },
     "requests": {
       "title": "Solicitudes de Seguimiento",
@@ -1326,7 +1329,8 @@
       "mute": "Silenciar usuario",
       "not_interested": "No me interesa",
       "archive": "Archivar",
-      "show_on_profile": "Mostrar en el perfil"
+      "show_on_profile": "Mostrar en el perfil",
+      "add_to_story": "Añadir a tu historia"
     },
     "modals": {
       "delete_title": "¿Eliminar publicación?",
@@ -1441,7 +1445,9 @@
     "music": {
       "sound_on": "Activar el sonido: {{title}}, {{artist}}",
       "sound_off": "Silenciar el sonido: {{title}}, {{artist}}"
-    }
+    },
+    "shared_post_unavailable": "Esta publicación no está disponible",
+    "shared_post_open": "Abrir la publicación de {{username}}"
   },
   "comments": {
     "send_error": "No se pudo publicar tu comentario. Inténtalo de nuevo.",
@@ -2041,7 +2047,11 @@
       "brush_pen": "Pluma",
       "brush_marker": "Rotulador",
       "brush_neon": "Neón",
-      "brush_eraser": "Goma"
+      "brush_eraser": "Goma",
+      "post_errors": {
+        "SHARED_POST_NOT_FOUND": "Esta publicación ya no se puede compartir en una historia",
+        "POST_SHARING_TURNED_OFF": "Su autor no permite compartir sus publicaciones en historias"
+      }
     },
     "tags": {
       "title": "Etiquetar Personas",

@@ -460,6 +460,10 @@ export class StoriesService {
     const blockedDomains = await this.stickers.blockedLinkDomains(
       stories.flatMap((s) => s.stickers ?? []),
     );
+    const sharedPosts = await this.stickers.sharedPostCards(
+      stories.flatMap((s) => s.stickers ?? []),
+      profileId,
+    );
     const now = new Date();
 
     // Remap to include isViewed boolean and clean up nested views
@@ -479,6 +483,7 @@ export class StoriesService {
               }
             : null,
           blockedDomains,
+          sharedPosts,
           // A sanction takes the author's links off at once.
           linksOff:
             Boolean(storyData.profile?.isAccountBanned) ||

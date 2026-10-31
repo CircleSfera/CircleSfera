@@ -917,6 +917,7 @@ export class UsersService {
       select: {
         privacyLevel: true,
         saveStoriesToArchive: true,
+        allowStoryShares: true,
         ...PROFILE_PUSH_SELECT,
       },
     });
@@ -930,6 +931,7 @@ export class UsersService {
       pushMessages: profile?.pushMessages ?? true,
       pushLive: profile?.pushLive ?? true,
       saveStoriesToArchive: profile?.saveStoriesToArchive ?? true,
+      allowStoryShares: profile?.allowStoryShares ?? true,
     };
   }
 
@@ -993,6 +995,12 @@ export class UsersService {
         await tx.profile.update({
           where: { id: profileId },
           data: { saveStoriesToArchive: true, storyArchiveOffAt: null },
+        });
+      }
+      if (dto.allowStoryShares !== undefined) {
+        await tx.profile.update({
+          where: { id: profileId },
+          data: { allowStoryShares: dto.allowStoryShares },
         });
       }
       if (dto.privacyLevel !== undefined) {

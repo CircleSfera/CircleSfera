@@ -3,6 +3,7 @@ import {
   Archive,
   ArchiveRestore,
   Bookmark,
+  CirclePlus,
   EyeOff,
   Flag,
   Megaphone,
@@ -30,6 +31,8 @@ interface PostMenuProps {
   onMute?: () => void;
   onHidePost?: () => void;
   onHideAuthor?: () => void;
+  // Share it to one's story as a card of the original.
+  onAddToStory?: () => void;
 }
 
 interface MenuItemProps {
@@ -119,6 +122,7 @@ export default function PostMenu({
   onMute,
   onHidePost,
   onHideAuthor,
+  onAddToStory,
 }: PostMenuProps) {
   const { t } = useTranslation();
   if (!showMenu) return null;
@@ -218,6 +222,13 @@ export default function PostMenu({
         </>
       )}
       <MenuDivider />
+      {onAddToStory && (
+        <MenuItem
+          icon={CirclePlus}
+          label={t('post.menu.add_to_story')}
+          onClick={onAddToStory}
+        />
+      )}
       <MenuItem
         icon={Bookmark}
         label={t('post.menu.save')}

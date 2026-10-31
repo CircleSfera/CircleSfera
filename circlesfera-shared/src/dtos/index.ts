@@ -107,7 +107,9 @@ export type StoryStickerKind =
   | 'HASHTAG'
   | 'COUNTDOWN'
   | 'LINK'
-  | 'MUSIC';
+  | 'MUSIC'
+  // A card of a post or Frame shared to the story.
+  | 'POST';
 
 /**
  * A sticker sent with a new story: what it holds, checked by the server for

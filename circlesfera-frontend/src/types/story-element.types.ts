@@ -17,7 +17,9 @@ export interface StoryElement {
     | 'answer'
     | 'countdown'
     | 'link'
-    | 'music';
+    | 'music'
+    // A card of a post or Frame shared to the story.
+    | 'post';
   content: string;
   x: number;
   y: number;

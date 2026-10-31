@@ -22,6 +22,12 @@ function prismaMock() {
       findUnique: vi.fn().mockResolvedValue({ id: 'mentioned' }),
       findMany: vi.fn().mockResolvedValue([]),
     },
+    post: {
+      findFirst: vi.fn().mockResolvedValue({
+        profile: { allowStoryShares: true },
+      }),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     story: {
       findUnique: vi.fn().mockResolvedValue({
         profileId: AUTHOR,
@@ -237,6 +243,194 @@ describe('StoryStickersService', () => {
           null,
         ),
       ).rejects.toThrow('TOO_MANY_STICKERS');
+    });
+  });
+
+  describe('a post or Frame shared to the story', () => {
+    const shared = sticker({ kind: 'POST', settings: { postId: 'post-1' } });
+    // What a post must be to be shared: open to everyone, by a public
+    // Profile the sharer may see.
+    const openTo = (viewer: string) =>
+      expect.objectContaining({
+        id: 'post-1',
+        deletedAt: null,
+        archivedAt: null,
+        moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+        visibility: 'PUBLIC',
+        isPremium: false,
+        profile: expect.objectContaining({
+          privacyLevel: 'PUBLIC',
+          blocking: { none: { blockedId: viewer } },
+          blockedBy: { none: { blockerId: viewer } },
+        }),
+      });
+
+    it('is saved naming the post, once it is open to everyone and its author allows it', async () => {
+      await service.createForStory(
+        prisma as never,
+        'story-1',
+        AUTHOR,
+        [shared],
+        null,
+      );
+
+      expect(prisma.post.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: openTo(AUTHOR) }),
+      );
+      expect(prisma.storySticker.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            kind: 'POST',
+            settings: { postId: 'post-1' },
+          }),
+        ],
+      });
+    });
+
+    it('is refused for a post that is not open to everyone, or blocked either way', async () => {
+      prisma.post.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [shared],
+          null,
+        ),
+      ).rejects.toThrow('SHARED_POST_NOT_FOUND');
+      expect(prisma.storySticker.createMany).not.toHaveBeenCalled();
+    });
+
+    it('is refused when its author turned sharing off', async () => {
+      prisma.post.findFirst.mockResolvedValueOnce({
+        profile: { allowStoryShares: false },
+      });
+
+      await expect(
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [shared],
+          null,
+        ),
+      ).rejects.toThrow('POST_SHARING_TURNED_OFF');
+    });
+
+    it('is one per story', async () => {
+      await expect(
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [shared, shared],
+          null,
+        ),
+      ).rejects.toThrow('ONE_POST_STICKER_PER_STORY');
+    });
+
+    it('shows each viewer a card of the post while it stays open to them, a video by its cover', async () => {
+      prisma.post.findMany.mockResolvedValueOnce([
+        {
+          id: 'post-1',
+          type: 'POST',
+          profile: { username: 'ana', avatar: 'a.jpg' },
+          media: [
+            {
+              url: 'p.jpg',
+              standardUrl: 'p-std.jpg',
+              thumbnailUrl: 'p-t.jpg',
+              type: 'image',
+            },
+          ],
+        },
+        {
+          id: 'frame-1',
+          type: 'FRAME',
+          profile: { username: 'ben', avatar: null },
+          media: [
+            {
+              url: 'f.mp4',
+              standardUrl: null,
+              thumbnailUrl: 'f-cover.jpg',
+              type: 'video',
+            },
+          ],
+        },
+      ]);
+      const cards = await service.sharedPostCards(
+        [
+          { kind: 'POST', settings: { postId: 'post-1' } },
+          { kind: 'POST', settings: { postId: 'frame-1' } },
+          { kind: 'POST', settings: { postId: 'post-1' } },
+          { kind: 'HASHTAG', settings: { tag: 'x' } },
+        ] as never,
+        VIEWER,
+      );
+
+      expect(prisma.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { in: ['post-1', 'frame-1'] },
+            visibility: 'PUBLIC',
+            profile: expect.objectContaining({
+              privacyLevel: 'PUBLIC',
+              blocking: { none: { blockedId: VIEWER } },
+            }),
+          }),
+        }),
+      );
+      expect(cards.get('post-1')).toEqual({
+        id: 'post-1',
+        type: 'POST',
+        image: 'p-std.jpg',
+        username: 'ana',
+        avatar: 'a.jpg',
+      });
+      expect(cards.get('frame-1')?.image).toBe('f-cover.jpg');
+    });
+
+    it('asks nothing when no sticker shares a post', async () => {
+      const cards = await service.sharedPostCards(
+        [{ kind: 'HASHTAG', settings: { tag: 'x' } }] as never,
+        VIEWER,
+      );
+
+      expect(cards.size).toBe(0);
+      expect(prisma.post.findMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps the card of a post that is gone, saying it is not available', () => {
+      const card = {
+        id: 'post-1',
+        type: 'POST',
+        image: 'p.jpg',
+        username: 'ana',
+        avatar: null,
+      };
+      const feed = service.forFeed(
+        [
+          {
+            id: 'st-1',
+            kind: 'POST',
+            settings: { postId: 'post-1' },
+            ...place,
+          },
+          { id: 'st-2', kind: 'POST', settings: { postId: 'gone' }, ...place },
+        ] as never,
+        false,
+        {
+          usernames: new Map(),
+          placeName: null,
+          sharedPosts: new Map([['post-1', card]]),
+        },
+      );
+
+      expect(feed.map((s) => s.settings)).toEqual([
+        { postId: 'post-1', post: card },
+        { postId: 'gone', post: null },
+      ]);
     });
   });
 

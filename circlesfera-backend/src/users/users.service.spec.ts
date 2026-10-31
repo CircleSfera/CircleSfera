@@ -1192,6 +1192,7 @@ describe('UsersService', () => {
         select: {
           privacyLevel: true,
           saveStoriesToArchive: true,
+          allowStoryShares: true,
           pushNotifications: true,
           pushLikes: true,
           pushComments: true,
@@ -1338,6 +1339,30 @@ describe('UsersService', () => {
       mockPrismaService.profile.findFirst.mockResolvedValueOnce(null);
       await expect(service.getSettings('u-1', 'p-1')).resolves.toMatchObject({
         saveStoriesToArchive: true,
+      });
+    });
+
+    it('answers whether others may share the Profile’s posts to their stories, on by default', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        privacyLevel: 'PUBLIC',
+        allowStoryShares: false,
+      });
+      await expect(service.getSettings('u-1', 'p-1')).resolves.toMatchObject({
+        allowStoryShares: false,
+      });
+
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce(null);
+      await expect(service.getSettings('u-1', 'p-1')).resolves.toMatchObject({
+        allowStoryShares: true,
+      });
+    });
+
+    it('turns sharing to stories off for the Profile the session acts as', async () => {
+      await service.updateSettings('u-1', 'p-1', { allowStoryShares: false });
+
+      expect(tx.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p-1' },
+        data: { allowStoryShares: false },
       });
     });
 

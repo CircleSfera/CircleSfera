@@ -75,6 +75,12 @@ const LINK_REFUSALS: ReadonlySet<string> = new Set([
   'ONE_LINK_STICKER_PER_STORY',
 ]);
 
+/** Why the server refused a post shared to a story, each with its message. */
+const POST_SHARE_REFUSALS: ReadonlySet<string> = new Set([
+  'SHARED_POST_NOT_FOUND',
+  'POST_SHARING_TURNED_OFF',
+]);
+
 // A media edit (filter, crop, trim, overlay) that could not be applied.
 class EditExportError extends Error {}
 
@@ -316,7 +322,9 @@ export function useCreatePostMutation(deps: MutationDeps) {
             ? 'createPost.upload.edit_export_error'
             : typeof refused === 'string' && LINK_REFUSALS.has(refused)
               ? `createPost.storyComposer.link_errors.${refused}`
-              : 'createPost.upload.publish_failed',
+              : typeof refused === 'string' && POST_SHARE_REFUSALS.has(refused)
+                ? `createPost.storyComposer.post_errors.${refused}`
+                : 'createPost.upload.publish_failed',
         ),
       );
     } finally {

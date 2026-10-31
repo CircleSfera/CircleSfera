@@ -29,7 +29,8 @@ export type StickerSettings =
   | { tag: string } // HASHTAG
   | { title: string; endsAt: string } // COUNTDOWN
   | { url: string; domain: string; label?: string } // LINK
-  | { audioId?: string }; // MUSIC: the story's track, set by the service
+  | { audioId?: string } // MUSIC: the story's track, set by the service
+  | { postId: string }; // POST: the post or Frame shared, checked by the service
 
 const fail = (message: string): never => {
   throw new BadRequestException(`STICKER_SETTINGS_INVALID: ${message}`);
@@ -132,6 +133,8 @@ export function parseStickerSettings(
     }
     case 'MUSIC':
       return {};
+    case 'POST':
+      return { postId: text(s.postId, 'postId', 64) };
     case 'LINK': {
       const link = normaliseLink(s.url);
       const label =

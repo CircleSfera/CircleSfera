@@ -43,6 +43,8 @@ export const usersApi = {
     pushLive?: boolean;
     // Whether stories are kept in the archive when their 24 hours end.
     saveStoriesToArchive?: boolean;
+    // Whether others may share the Profile's posts and Frames to their stories.
+    allowStoryShares?: boolean;
     emailNotifications?: boolean;
     newsletter?: boolean;
     contentPreference?: 'GENERAL' | 'MATURE';

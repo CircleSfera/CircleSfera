@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import toast from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
 import { api, archiveApi } from '../../services';
@@ -34,6 +35,7 @@ vi.mock('./PostMenu', () => ({
         'onMute',
         'onHidePost',
         'onHideAuthor',
+        'onAddToStory',
       ]
         .filter((name) => typeof props[name] === 'function')
         .map((name) => (
@@ -212,6 +214,8 @@ describe('PostOverlays', () => {
       'onMute',
       'onHidePost',
       'onHideAuthor',
+      // Free and on show: anyone may add it to their story.
+      'onAddToStory',
     ]);
   });
 
@@ -223,6 +227,7 @@ describe('PostOverlays', () => {
       'onReport',
       'onArchive',
       'onAddToCollection',
+      'onAddToStory',
     ]);
     plain.unmount();
 
@@ -479,6 +484,51 @@ describe('PostOverlays', () => {
 
       expect(toast.success).toHaveBeenCalledWith('promoted');
       expect(toast.error).toHaveBeenCalledWith('not promoted');
+    });
+  });
+
+  describe('adding the post to one’s story', () => {
+    it('opens the story editor with a card of the post', () => {
+      let state: unknown = null;
+      function Where() {
+        state = useLocation().state;
+        return null;
+      }
+      renderWithProviders(
+        <>
+          <Where />
+          <PostOverlays
+            post={post({
+              media: [
+                { url: 'p.jpg', standardUrl: 'p-std.jpg', type: 'image' },
+              ] as never,
+            })}
+            interactions={stub()}
+          />
+        </>,
+      );
+
+      press('onAddToStory');
+
+      const start = (
+        state as {
+          storyStart: { elements: { type: string; content: string }[] };
+        }
+      ).storyStart;
+      expect(start.elements).toHaveLength(1);
+      expect(start.elements[0].type).toBe('post');
+      expect(JSON.parse(start.elements[0].content)).toEqual({
+        id: 'post-1',
+        type: 'POST',
+        image: 'p-std.jpg',
+        username: 'ana',
+        avatar: null,
+      });
+    });
+
+    it('is not offered for paid content', () => {
+      show({}, post({ isPremium: true }));
+      expect(offered()).not.toContain('onAddToStory');
     });
   });
 });

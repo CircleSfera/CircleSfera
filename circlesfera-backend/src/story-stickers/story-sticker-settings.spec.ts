@@ -154,6 +154,20 @@ describe('what a music sticker holds', () => {
   });
 });
 
+describe('what a shared post holds', () => {
+  it('holds the post it names, and nothing else', () => {
+    expect(
+      parseStickerSettings('POST', { postId: ' post-1 ', image: 'x' }),
+    ).toEqual({ postId: 'post-1' });
+  });
+
+  it('refuses a card that names no post', () => {
+    expect(() => parseStickerSettings('POST', {})).toThrow(
+      'STICKER_SETTINGS_INVALID',
+    );
+  });
+});
+
 describe('what a viewer sees of a sticker', () => {
   const quiz = { question: 'Q', options: ['a', 'b'], correctIndex: 1 };
 

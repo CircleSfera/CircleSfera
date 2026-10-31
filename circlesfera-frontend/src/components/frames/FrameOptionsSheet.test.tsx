@@ -133,4 +133,13 @@ describe('FrameOptionsSheet', () => {
     show();
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('offers to add the frame to one’s story, and closes first', () => {
+    const { props } = show({ onAddToStory: vi.fn(() => order.push('story')) });
+
+    expect(options()).toEqual(['Report', 'Add to your story', 'Save']);
+    fireEvent.click(screen.getByText('Add to your story'));
+    expect(props.onAddToStory).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(['close', 'story']);
+  });
 });

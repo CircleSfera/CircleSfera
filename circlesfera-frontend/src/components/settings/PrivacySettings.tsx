@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { profileApi } from '../../services';
+import { profileApi, usersApi } from '../../services';
 import type { UpdateProfileDto } from '../../types';
 import { logger } from '../../utils/logger';
 import { keepSavedOwnProfile } from '../../utils/ownProfileCache';
@@ -70,6 +71,7 @@ export default function PrivacySettings() {
             />
           }
         />
+        <StorySharesRow />
       </SettingsSection>
 
       <p className="text-xs text-white/50 px-1">
@@ -82,5 +84,52 @@ export default function PrivacySettings() {
         </Link>
       </p>
     </div>
+  );
+}
+
+/**
+ * Whether others may share this Profile's posts and Frames to their
+ * stories, on by default. Off stops new shares only.
+ */
+function StorySharesRow() {
+  const { t } = useTranslation();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    usersApi
+      .getSettings()
+      .then((res) => {
+        if (live) setAllowed(res.data?.allowStoryShares !== false);
+      })
+      .catch(() => {
+        if (live) setAllowed(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const change = (next: boolean) => {
+    setAllowed(next);
+    usersApi.updateSettings({ allowStoryShares: next }).catch(() => {
+      setAllowed(!next);
+      toast.error(t('settings.privacy.story_shares_error'));
+    });
+  };
+
+  return (
+    <SettingsRow
+      label={t('settings.privacy.story_shares')}
+      description={t('settings.privacy.story_shares_desc')}
+      control={
+        <Switch
+          checked={allowed ?? true}
+          disabled={allowed === null}
+          onChange={(e) => change(e.target.checked)}
+          aria-label={t('settings.privacy.story_shares')}
+        />
+      }
+    />
   );
 }

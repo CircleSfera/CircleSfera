@@ -125,6 +125,7 @@ describe('StoriesService', () => {
             forFeed: vi.fn((stickers: unknown[] = []) => stickers),
             mentionNames: vi.fn(async () => new Map()),
             blockedLinkDomains: vi.fn(async () => new Set(['evil.example'])),
+            sharedPostCards: vi.fn(async () => new Map()),
           },
         },
       ],
@@ -717,11 +718,17 @@ describe('StoriesService', () => {
       await service.findAll('user-1');
 
       expect(stickers.mentionNames).toHaveBeenCalledWith([mention], 'user-1');
+      // The cards of shared posts are checked for this viewer too.
+      expect(stickers.sharedPostCards).toHaveBeenCalledWith(
+        [mention],
+        'user-1',
+      );
       expect(stickers.forFeed).toHaveBeenCalledWith([mention], false, {
         usernames,
         placeName: 'Madrid',
         track: null,
         blockedDomains: expect.any(Set),
+        sharedPosts: expect.any(Map),
         linksOff: false,
       });
       expect(stickers.forFeed).toHaveBeenCalledWith([], false, {
@@ -729,6 +736,7 @@ describe('StoriesService', () => {
         placeName: null,
         track: null,
         blockedDomains: expect.any(Set),
+        sharedPosts: expect.any(Map),
         linksOff: false,
       });
     });
