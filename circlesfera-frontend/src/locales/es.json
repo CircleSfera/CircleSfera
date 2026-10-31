@@ -1,6 +1,6 @@
 {
   "vat": {
-    "included": "IVA incluido ({{price}} + {{rate}} % IVA)"
+    "included": "IVA incluido"
   },
   "notFound": {
     "title": "Página no encontrada",

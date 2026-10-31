@@ -257,9 +257,10 @@ export class PaymentsService {
             customer: customerId,
             line_items: [{ price: stripePriceId, quantity: 1 }],
             mode: 'subscription',
-            // Plan prices are before VAT: the provider adds the VAT due where
-            // the buyer is, from the billing address it asks for, and saves
-            // that address on the customer for the renewals.
+            // Plan prices include VAT: the provider works out the VAT inside
+            // the price for where the buyer is, from the billing address it
+            // asks for, and saves that address on the customer for the
+            // renewals.
             automatic_tax: { enabled: true },
             billing_address_collection: 'required',
             customer_update: { address: 'auto', name: 'auto' },

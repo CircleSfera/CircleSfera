@@ -1,5 +1,5 @@
 // The platform plans CircleSfera sells, what each includes (PD-013, PD-047)
-// and its monthly price before VAT (BD-005, BD-021). A benefit is listed
+// and its monthly price, VAT included (BD-005, BD-021). A benefit is listed
 // here once it is built, never before; `verified_badge` is also the key the
 // profile reads to show the badge.
 export type CatalogPlan = {
@@ -118,7 +118,7 @@ export function findProviderProduct(
 }
 
 // What is wrong with the default price of a plan's product, if anything:
-// it must be the plan's monthly price in euros, before VAT.
+// it must be the plan's monthly price in euros, VAT included.
 export function priceProblems(
   price: ProviderPrice | string | null,
   plan: CatalogPlan,
@@ -133,8 +133,8 @@ export function priceProblems(
   if (price.unit_amount !== plan.priceCents) {
     problems.push(`it is ${price.unit_amount} cents, not ${plan.priceCents}`);
   }
-  if (price.tax_behavior !== 'exclusive') {
-    problems.push(`its VAT is ${price.tax_behavior ?? 'unset'}, not exclusive`);
+  if (price.tax_behavior !== 'inclusive') {
+    problems.push(`its VAT is ${price.tax_behavior ?? 'unset'}, not inclusive`);
   }
   return problems.map(
     (problem) => `${plan.name}: the default price ${problem}`,

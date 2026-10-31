@@ -392,9 +392,8 @@ describe('Pricing', () => {
     ]);
     renderWithProviders(<Pricing />, { lng: 'es' });
 
-    // The final price, VAT included: 9.99 and 49.99 plus 21%.
-    expect(await screen.findByText(/^12,09\s€$/)).toBeInTheDocument();
-    expect(screen.getByText(/^60,49\sUS\$$/)).toBeInTheDocument();
+    expect(await screen.findByText(/^9,99\s€$/)).toBeInTheDocument();
+    expect(screen.getByText(/^49,99\sUS\$$/)).toBeInTheDocument();
   });
 
   it('shows the yearly price with its saving and keeps a plan without yearly price from being bought yearly', async () => {
@@ -407,7 +406,7 @@ describe('Pricing', () => {
       }),
     );
 
-    expect(screen.getByText('€120.88')).toBeInTheDocument();
+    expect(screen.getByText('€99.90')).toBeInTheDocument();
     // 99.90 a year against 9.99 a month is 17 % less.
     expect(
       screen.getAllByText(i18n!.t('pricingPage.save_percent', { percent: 17 }))
@@ -424,32 +423,17 @@ describe('Pricing', () => {
         name: i18n!.t('pricingPage.billing_monthly'),
       }),
     );
-    expect(screen.getByText('€12.09')).toBeInTheDocument();
+    expect(screen.getByText('€9.99')).toBeInTheDocument();
   });
 
-  it('shows the final price with VAT, and the price before VAT under it, monthly or yearly', async () => {
-    vi.mocked(paymentsApi.getPlans).mockResolvedValue([
-      { ...plan('Premium', 'p-premium', 999), yearlyPriceCents: 9990 },
-    ]);
+  it('says on every plan that its price includes VAT', async () => {
     const { i18n } = renderWithProviders(<Pricing />);
     await screen.findByText('Premium');
 
-    // 9.99 plus 21% is 12.09.
-    expect(screen.getByText('€12.09')).toBeInTheDocument();
-    expect(
-      screen.getByText('VAT included (€9.99 + 21% VAT)'),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: i18n!.t('pricingPage.billing_yearly'),
-      }),
+    expect(screen.getAllByText('VAT included')).toHaveLength(
+      screen.getAllByRole('article').length,
     );
-    // 99.90 plus 21% is 120.88.
-    expect(screen.getByText('€120.88')).toBeInTheDocument();
-    expect(
-      screen.getByText('VAT included (€99.90 + 21% VAT)'),
-    ).toBeInTheDocument();
+    expect(i18n!.t('vat.included')).toBe('VAT included');
   });
 
   it('hides the billing cycle choice when no plan has a yearly price', async () => {

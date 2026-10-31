@@ -31,7 +31,7 @@ import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
 import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
-import { formatCents, VAT_RATE_PERCENT, withVat } from '../../utils/money';
+import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
 import { planAccountType, planFitsProfile } from '../../utils/plans';
 
@@ -338,7 +338,7 @@ export default function Pricing() {
                   <p className="mt-5 flex flex-wrap items-baseline gap-x-1.5 gap-y-2">
                     <span className="text-4xl font-black tracking-tight text-white">
                       {formatCents(
-                        withVat(displayCents),
+                        displayCents,
                         i18n.language,
                         plan.currency || 'EUR',
                       )}
@@ -354,17 +354,9 @@ export default function Pricing() {
                       </span>
                     )}
                   </p>
-                  {/* Consumers are shown the final price; the price before
-                      VAT is what the plan costs. */}
+                  {/* The price is what is paid: the VAT is inside it. */}
                   <p className="mt-2 text-xs text-white/50">
-                    {t('vat.included', {
-                      price: formatCents(
-                        displayCents,
-                        i18n.language,
-                        plan.currency || 'EUR',
-                      ),
-                      rate: VAT_RATE_PERCENT,
-                    })}
+                    {t('vat.included')}
                   </p>
 
                   <ul className="mt-6 grow space-y-3 border-t border-white/8 pt-6">

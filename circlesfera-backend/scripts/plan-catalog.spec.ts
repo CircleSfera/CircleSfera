@@ -16,7 +16,7 @@ const monthly = (amount: number, over: object = {}) => ({
   active: true,
   currency: 'eur',
   unit_amount: amount,
-  tax_behavior: 'exclusive',
+  tax_behavior: 'inclusive',
   recurring: { interval: 'month' },
   ...over,
 });
@@ -103,7 +103,7 @@ describe('findProviderProduct', () => {
 });
 
 describe('priceProblems', () => {
-  it('accepts the monthly price in euros, before VAT', () => {
+  it('accepts the monthly price in euros, VAT included', () => {
     expect(priceProblems(monthly(999), plan('Premium'))).toEqual([]);
   });
 
@@ -123,7 +123,7 @@ describe('priceProblems', () => {
       'Premium: the default price it is not monthly',
       'Premium: the default price it is in usd',
       'Premium: the default price it is 1000 cents, not 999',
-      'Premium: the default price its VAT is unspecified, not exclusive',
+      'Premium: the default price its VAT is unspecified, not inclusive',
     ]);
     expect(priceProblems(null, plan('Premium'))).toEqual([
       'Premium: the product has no default price',

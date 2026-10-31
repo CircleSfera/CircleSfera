@@ -1,6 +1,6 @@
 {
   "vat": {
-    "included": "VAT included ({{price}} + {{rate}}% VAT)"
+    "included": "VAT included"
   },
   "notFound": {
     "title": "Page not found",

@@ -22,7 +22,7 @@ import {
   isIdentityVerificationRequired,
 } from '../../utils/apiErrorMessage';
 import { promptIdentityVerification } from '../../utils/identityVerification';
-import { formatCents, VAT_RATE_PERCENT, withVat } from '../../utils/money';
+import { formatCents } from '../../utils/money';
 import {
   dropPendingTab,
   openPendingTab,
@@ -352,7 +352,7 @@ export default function CreatorMonetizationTab({
                     <div className="flex items-baseline gap-1">
                       <span className="text-2xl font-semibold text-white tabular-nums tracking-tight">
                         {formatCents(
-                          withVat(plan.priceCents ?? 0),
+                          plan.priceCents ?? 0,
                           i18n.language,
                           plan.currency || 'EUR',
                         )}
@@ -364,14 +364,7 @@ export default function CreatorMonetizationTab({
                       </span>
                     </div>
                     <p className="mt-1 mb-4 text-xs text-white/50">
-                      {t('vat.included', {
-                        price: formatCents(
-                          plan.priceCents ?? 0,
-                          i18n.language,
-                          plan.currency || 'EUR',
-                        ),
-                        rate: VAT_RATE_PERCENT,
-                      })}
+                      {t('vat.included')}
                     </p>
 
                     <ul className="space-y-2 pt-3 border-t border-white/6">
