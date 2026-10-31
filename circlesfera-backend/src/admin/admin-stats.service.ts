@@ -364,16 +364,27 @@ export class AdminStatsService {
     const where: any = {};
     if (status) where.status = status;
     if (search) {
-      where.user = {
-        OR: [
-          { email: { contains: search, mode: 'insensitive' } },
-          {
-            profiles: {
-              some: { username: { contains: search, mode: 'insensitive' } },
-            },
+      // The person paid, by email or any of their Profiles, or the Profile
+      // whose payout account paid it out.
+      where.OR = [
+        {
+          user: {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              {
+                profiles: {
+                  some: {
+                    username: { contains: search, mode: 'insensitive' },
+                  },
+                },
+              },
+            ],
           },
-        ],
-      };
+        },
+        {
+          profile: { username: { contains: search, mode: 'insensitive' } },
+        },
+      ];
     }
     const [data, total] = await Promise.all([
       this.prisma.stripePayoutLog.findMany({
@@ -383,6 +394,11 @@ export class AdminStatsService {
         orderBy: { createdAt: 'desc' },
         include: {
           user: { include: { profiles: true } },
+          // The Profile whose payout account paid it out: a person may have
+          // one for each earning Profile.
+          profile: {
+            select: { id: true, username: true, fullName: true, avatar: true },
+          },
         },
       }),
       this.prisma.stripePayoutLog.count({ where }),

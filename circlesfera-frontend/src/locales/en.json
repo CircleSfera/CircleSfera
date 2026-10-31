@@ -4301,6 +4301,7 @@
         "failed": "Failed",
         "canceled": "Cancelled"
       },
+      "account_erased": "Account erased",
       "arrives_on": "Arrival: {{date}}"
     },
     "roles": {

@@ -370,7 +370,7 @@ export interface AdminUserDetail {
 export interface AdminStripePayoutLog {
   id: string;
   stripePayoutId: string;
-  userId: string;
+  userId: string | null;
   amountCents: number;
   currency: string;
   status: string; // 'paid', 'pending', 'failed', 'canceled'
@@ -378,6 +378,7 @@ export interface AdminStripePayoutLog {
   failureReason: string | null;
   createdAt: string;
   updatedAt: string;
+  // The person paid; empty once their account is erased.
   user: {
     id: string;
     email: string;
@@ -386,7 +387,14 @@ export interface AdminStripePayoutLog {
       fullName: string | null;
       avatar: string | null;
     } | null;
-  };
+  } | null;
+  // The Profile whose payout account paid it out, when known.
+  profile: {
+    id: string;
+    username: string;
+    fullName: string | null;
+    avatar: string | null;
+  } | null;
 }
 
 export interface AdminAudio {

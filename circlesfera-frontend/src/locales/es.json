@@ -4301,6 +4301,7 @@
         "failed": "Fallido",
         "canceled": "Cancelado"
       },
+      "account_erased": "Cuenta eliminada",
       "arrives_on": "Llegada: {{date}}"
     },
     "roles": {

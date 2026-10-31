@@ -45,6 +45,8 @@ const TRANSACTION_HEADERS = [
   'status',
   'senderId',
   'receiverId',
+  // The Profile that earned it: a person may have several earning Profiles.
+  'receiverProfileId',
   'postId',
   'storyId',
   'promotionId',
@@ -128,6 +130,7 @@ export class WarehouseExportService {
             status: true,
             senderId: true,
             receiverId: true,
+            receiverProfileId: true,
             postId: true,
             storyId: true,
             promotionId: true,
