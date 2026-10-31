@@ -2374,7 +2374,7 @@
     "income": {
       "connect_success": "Cuenta de Stripe vinculada correctamente.",
       "breakdown": "Por tipo de ingreso",
-      "breakdown_hint": "Tu parte, después de que Stripe aplique el 20 % de la plataforma.",
+      "breakdown_hint": "Tu parte: el precio sin IVA, menos el 20 % de la plataforma.",
       "posts_ppv": "Publicaciones de pago",
       "stories_ppv": "Historias de pago",
       "messages_ppv": "Mensajes de pago",
@@ -2394,7 +2394,18 @@
         "STRIPE_SUBSCRIPTION": "Suscripción",
         "PROMOTION_PAYMENT": "Promoción"
       },
-      "no_transactions": "Aún no hay movimientos."
+      "no_transactions": "Aún no hay movimientos.",
+      "all_profiles": {
+        "title": "Todos mis perfiles",
+        "hint": "Lo que has ganado con cada uno de tus perfiles: tu parte, sin el IVA y tras el 20 % de la plataforma.",
+        "earned": "Ganado en total",
+        "this_month": "Ganado este mes",
+        "month_line": "{{amount}} este mes",
+        "own_account": "Cuenta de cobro propia",
+        "shared_account": "Cobra en una cuenta compartida",
+        "earlier": "Otros ingresos",
+        "earlier_hint": "De antes de guardarse por perfil, o de un perfil, publicación o historia borrados"
+      }
     },
     "dashboard": {
       "untitled_post": "Publicación sin título",

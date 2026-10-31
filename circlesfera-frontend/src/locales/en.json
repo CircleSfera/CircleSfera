@@ -2374,7 +2374,7 @@
     "income": {
       "connect_success": "Stripe account linked successfully.",
       "breakdown": "By kind of income",
-      "breakdown_hint": "Your share, after Stripe applies the platform's 20%.",
+      "breakdown_hint": "Your share: the price without VAT, less the platform's 20%.",
       "posts_ppv": "Paid posts",
       "stories_ppv": "Paid stories",
       "messages_ppv": "Paid messages",
@@ -2394,7 +2394,18 @@
         "STRIPE_SUBSCRIPTION": "Subscription",
         "PROMOTION_PAYMENT": "Promotion"
       },
-      "no_transactions": "No movements yet."
+      "no_transactions": "No movements yet.",
+      "all_profiles": {
+        "title": "All my Profiles",
+        "hint": "What you have earned with each of your Profiles: your share, after the VAT and the platform's 20%.",
+        "earned": "Earned in total",
+        "this_month": "Earned this month",
+        "month_line": "{{amount}} this month",
+        "own_account": "Its own payout account",
+        "shared_account": "Paid into a shared payout account",
+        "earlier": "Other income",
+        "earlier_hint": "Kept before income was per Profile, or from a deleted Profile, post or story"
+      }
     },
     "dashboard": {
       "untitled_post": "Untitled post",

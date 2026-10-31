@@ -1,5 +1,6 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import {
   canMonetize,
   MAX_PPV_PRICE_CENTS,
@@ -22,6 +23,7 @@ import {
 } from '../common/stripe/stripe.service.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { creatorEarnings } from './paid-amounts.js';
 import {
   canBePaid,
   PAYABLE_PROFILE_SELECT,
@@ -40,6 +42,27 @@ function appendCheckoutQuery(returnUrl: string, query: string): string {
 // 30 minutes after it creates the session, and the extra minute covers the
 // time the request takes and any difference between the two clocks.
 const MESSAGE_CHECKOUT_LIFETIME_SECONDS = 31 * 60;
+
+// The kinds of payment that are a creator's income.
+const INCOME_TYPES = [
+  'DIRECT_POST_UNLOCK',
+  'DIRECT_STORY_UNLOCK',
+  'DIRECT_MESSAGE_UNLOCK',
+  'DIRECT_TIP',
+  'DIRECT_LIVE_GIFT',
+] as const;
+
+// In SQL over the transactions as t: the completed payments of an income
+// kind the person received.
+const INCOME_ROWS_SQL = (userId: string) => Prisma.sql`
+  t."receiverId" = ${userId}
+  AND t.status = 'COMPLETED'
+  AND t.type::text IN (${Prisma.join([...INCOME_TYPES])})`;
+// And the creator's share of one payment, as creatorEarnings works it out:
+// the price without VAT less the platform's fee (PLATFORM_FEE_DECIMAL)
+// rounded down, per payment.
+export const SHARE_SQL = Prisma.sql`
+  ((t.amount - t."vatCents") - FLOOR((t.amount - t."vatCents") * 0.2))`;
 
 // What a tip reads of the Profile tipped, to pay its person and to know
 // whether it may receive one.
@@ -72,18 +95,34 @@ export class MonetizationService {
       });
     }
 
-    // The person's earnings. The accounts and the Profiles holding them stay
-    // on the server; the app hears whether the active Profile is paid into
-    // an account.
+    // The accounts and the Profiles holding them stay on the server; the app
+    // hears whether the active Profile is paid into an account, and what
+    // that Profile has earned (the row's own counter is the person's).
     const {
       stripeConnectAccountId: _account,
       profileId: _holder,
-      ...earnings
+      ...row
     } = monetization;
     return {
-      ...earnings,
+      ...row,
+      lifetimeEarningsCents: await this.profileEarnings(userId, profileId),
       hasStripeAccount: !!(await this.accountOf(userId, profileId)),
     };
+  }
+
+  /**
+   * What a Profile of the person has earned: their share of each completed
+   * payment the Profile received. A refunded payment no longer counts.
+   */
+  private async profileEarnings(
+    userId: string,
+    profileId: string,
+  ): Promise<number> {
+    const [row] = await this.prisma.$queryRaw<{ earned: bigint }[]>`
+      SELECT COALESCE(SUM(${SHARE_SQL}), 0)::bigint AS earned
+      FROM transactions t
+      WHERE ${INCOME_ROWS_SQL(userId)} AND t."receiverProfileId" = ${profileId}`;
+    return Number(row?.earned ?? 0);
   }
 
   /**
@@ -114,12 +153,23 @@ export class MonetizationService {
     return row?.stripeConnectAccountId ?? null;
   }
 
-  async getTransactions(userId: string, page = 1, limit = 20) {
+  // The history of the active Profile: what it received, and what the
+  // person paid (a payment is the person's and names no Profile).
+  async getTransactions(
+    userId: string,
+    profileId: string,
+    page = 1,
+    limit = 20,
+  ) {
     const skip = (page - 1) * limit;
+    const where = {
+      OR: [
+        { senderId: userId },
+        { receiverId: userId, receiverProfileId: profileId },
+      ],
+    };
     const transactions = await this.prisma.transaction.findMany({
-      where: {
-        OR: [{ senderId: userId }, { receiverId: userId }],
-      },
+      where,
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
@@ -145,15 +195,13 @@ export class MonetizationService {
       },
     });
 
-    const total = await this.prisma.transaction.count({
-      where: {
-        OR: [{ senderId: userId }, { receiverId: userId }],
-      },
-    });
+    const total = await this.prisma.transaction.count({ where });
 
     return {
       data: transactions.map((tx) => ({
         ...tx,
+        incoming:
+          tx.receiverId === userId && tx.receiverProfileId === profileId,
         sender: tx.sender ? withPrimaryProfile(tx.sender) : null,
         receiver: tx.receiver ? withPrimaryProfile(tx.receiver) : null,
       })),
@@ -826,7 +874,8 @@ export class MonetizationService {
     };
   }
 
-  async getIncomeStats(userId: string) {
+  // The income of the active Profile by month, for the last six months.
+  async getIncomeStats(userId: string, profileId: string) {
     // The first day of this month and of the five before it, in UTC as the
     // months are keyed. Counted from the first of the month: from the 31st,
     // a month back would land past a shorter month and name one twice.
@@ -838,16 +887,9 @@ export class MonetizationService {
     const transactions = await this.prisma.transaction.findMany({
       where: {
         receiverId: userId,
+        receiverProfileId: profileId,
         status: 'COMPLETED',
-        type: {
-          in: [
-            'DIRECT_POST_UNLOCK',
-            'DIRECT_STORY_UNLOCK',
-            'DIRECT_MESSAGE_UNLOCK',
-            'DIRECT_TIP',
-            'DIRECT_LIVE_GIFT',
-          ],
-        },
+        type: { in: [...INCOME_TYPES] },
         createdAt: {
           gte: sixMonthsAgo,
         },
@@ -867,8 +909,10 @@ export class MonetizationService {
     for (const tx of transactions) {
       const key = tx.createdAt.toISOString().slice(0, 7);
       if (months.has(key)) {
-        // A creator's income is what was paid without the VAT inside it.
-        months.set(key, months.get(key)! + tx.amount - tx.vatCents);
+        months.set(
+          key,
+          months.get(key)! + creatorEarnings(tx.amount, tx.vatCents),
+        );
       }
     }
 
@@ -878,86 +922,122 @@ export class MonetizationService {
     }));
   }
 
-  async getFinancialSummary(userId: string) {
-    const currentMonth = new Date();
-    currentMonth.setDate(1);
-    currentMonth.setHours(0, 0, 0, 0);
+  // This month's income, the tips and the income by kind of the active
+  // Profile: the creator's share of each payment, as everywhere on these
+  // screens.
+  async getFinancialSummary(userId: string, profileId: string) {
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
 
-    const [currentMonthTx, allTimeTipsTx, categoryBreakdown] =
-      await Promise.all([
-        this.prisma.transaction.aggregate({
-          where: {
-            receiverId: userId,
-            status: 'COMPLETED',
-            type: {
-              in: [
-                'DIRECT_POST_UNLOCK',
-                'DIRECT_STORY_UNLOCK',
-                'DIRECT_MESSAGE_UNLOCK',
-                'DIRECT_TIP',
-                'DIRECT_LIVE_GIFT',
-              ],
-            },
-            createdAt: {
-              gte: currentMonth,
-            },
-          },
-          _sum: {
-            amount: true,
-            vatCents: true,
-          },
-        }),
-        this.prisma.transaction.aggregate({
-          where: {
-            receiverId: userId,
-            status: 'COMPLETED',
-            type: 'DIRECT_TIP',
-          },
-          _sum: {
-            amount: true,
-            vatCents: true,
-          },
-        }),
-        this.prisma.transaction.groupBy({
-          by: ['type'],
-          where: {
-            receiverId: userId,
-            status: 'COMPLETED',
-          },
-          _sum: {
-            amount: true,
-            vatCents: true,
-          },
-        }),
-      ]);
-    // A creator's income is what was paid without the VAT inside it.
-    const income = (sum: { amount: number | null; vatCents: number | null }) =>
-      (sum.amount ?? 0) - (sum.vatCents ?? 0);
+    const byType = await this.prisma.$queryRaw<
+      { type: string; earned: bigint; earnedThisMonth: bigint }[]
+    >`
+      SELECT t.type::text AS type,
+        COALESCE(SUM(${SHARE_SQL}), 0)::bigint AS earned,
+        COALESCE(SUM(${SHARE_SQL}) FILTER (WHERE t."createdAt" >= ${monthStart}), 0)::bigint
+          AS "earnedThisMonth"
+      FROM transactions t
+      WHERE ${INCOME_ROWS_SQL(userId)} AND t."receiverProfileId" = ${profileId}
+      GROUP BY t.type`;
 
-    const breakdownMap: Record<string, number> = {
-      DIRECT_POST_UNLOCK: 0,
-      DIRECT_STORY_UNLOCK: 0,
-      DIRECT_MESSAGE_UNLOCK: 0,
-      DIRECT_TIP: 0,
-      DIRECT_LIVE_GIFT: 0,
-    };
-
-    for (const item of categoryBreakdown) {
-      if (item.type in breakdownMap) {
-        breakdownMap[item.type] = income(item._sum);
-      }
-    }
+    const earned = (type: (typeof INCOME_TYPES)[number]) =>
+      Number(byType.find((row) => row.type === type)?.earned ?? 0);
 
     return {
-      currentMonthIncome: income(currentMonthTx._sum),
-      totalTips: income(allTimeTipsTx._sum),
+      currentMonthIncome: byType.reduce(
+        (sum, row) => sum + Number(row.earnedThisMonth),
+        0,
+      ),
+      totalTips: earned('DIRECT_TIP'),
       breakdown: {
-        postUnlocks: breakdownMap.DIRECT_POST_UNLOCK,
-        storyUnlocks: breakdownMap.DIRECT_STORY_UNLOCK,
-        messageUnlocks: breakdownMap.DIRECT_MESSAGE_UNLOCK,
-        tips: breakdownMap.DIRECT_TIP,
-        liveGifts: breakdownMap.DIRECT_LIVE_GIFT,
+        postUnlocks: earned('DIRECT_POST_UNLOCK'),
+        storyUnlocks: earned('DIRECT_STORY_UNLOCK'),
+        messageUnlocks: earned('DIRECT_MESSAGE_UNLOCK'),
+        tips: earned('DIRECT_TIP'),
+        liveGifts: earned('DIRECT_LIVE_GIFT'),
       },
+    };
+  }
+
+  /**
+   * The person's total over all their Profiles: each Profile with what it
+   * has earned in all and this month, and whether it has a payout account
+   * of its own. Income that names none of the person's Profiles (recorded
+   * before income named its Profile, to a Profile since deleted, or for a
+   * post or story deleted before it was recorded) counts in the total only.
+   * Balances stay on each Profile's screen: an account can be shared by
+   * Profiles, so they are not summed here.
+   */
+  async getPersonTotal(userId: string) {
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+
+    const [profiles, byProfile, ownRows] = await Promise.all([
+      this.prisma.profile.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          username: true,
+          avatar: true,
+          accountType: true,
+        },
+      }),
+      this.prisma.$queryRaw<
+        {
+          receiverProfileId: string | null;
+          earned: bigint;
+          earnedThisMonth: bigint;
+        }[]
+      >`
+        SELECT t."receiverProfileId" AS "receiverProfileId",
+          COALESCE(SUM(${SHARE_SQL}), 0)::bigint AS earned,
+          COALESCE(SUM(${SHARE_SQL}) FILTER (WHERE t."createdAt" >= ${monthStart}), 0)::bigint
+            AS "earnedThisMonth"
+        FROM transactions t
+        WHERE ${INCOME_ROWS_SQL(userId)}
+        GROUP BY t."receiverProfileId"`,
+      this.prisma.monetization.findMany({
+        where: {
+          profile: { userId },
+          stripeConnectAccountId: { not: null },
+        },
+        select: { profileId: true },
+      }),
+    ]);
+
+    const withOwnAccount = new Set(ownRows.map((row) => row.profileId));
+    const ofProfile = new Map(
+      byProfile.map((row) => [row.receiverProfileId, row]),
+    );
+    const own = new Set(profiles.map((profile) => profile.id));
+    const sum = (rows: typeof byProfile, field: 'earned' | 'earnedThisMonth') =>
+      rows.reduce((total, row) => total + Number(row[field]), 0);
+    const other = byProfile.filter(
+      (row) => !row.receiverProfileId || !own.has(row.receiverProfileId),
+    );
+
+    return {
+      totalEarningsCents: sum(byProfile, 'earned'),
+      currentMonthEarningsCents: sum(byProfile, 'earnedThisMonth'),
+      unassignedEarningsCents: sum(other, 'earned'),
+      unassignedCurrentMonthEarningsCents: sum(other, 'earnedThisMonth'),
+      profiles: profiles.map((profile) => {
+        const row = ofProfile.get(profile.id);
+        return {
+          profileId: profile.id,
+          username: profile.username,
+          avatar: profile.avatar,
+          accountType: profile.accountType,
+          ownPayoutAccount: withOwnAccount.has(profile.id),
+          earningsCents: Number(row?.earned ?? 0),
+          currentMonthEarningsCents: Number(row?.earnedThisMonth ?? 0),
+        };
+      }),
     };
   }
 }

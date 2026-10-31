@@ -1,18 +1,31 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { Prisma } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
+import {
+  creatorShareCents,
+  PLATFORM_FEE_DECIMAL,
+} from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { MonetizationService } from './monetization.service.js';
+import { MonetizationService, SHARE_SQL } from './monetization.service.js';
+
+// The SQL text and the values of a raw query the service ran.
+function rawQuery(call: unknown[]) {
+  const [strings, ...values] = call as [TemplateStringsArray, ...unknown[]];
+  const query = Prisma.sql(strings, ...values);
+  return { sql: query.text.replace(/\s+/g, ' '), values: query.values };
+}
 
 describe('MonetizationService', () => {
   let service: MonetizationService;
   const accounts = new Map<string, string>();
 
   const mockPrismaService = {
+    $queryRaw: vi.fn(),
     monetization: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
@@ -123,9 +136,29 @@ describe('MonetizationService', () => {
         lifetimeEarningsCents: 5000,
       });
 
+      mockPrismaService.$queryRaw.mockResolvedValue([{ earned: 1061n }]);
+
       const result = await service.getMonetization('user-1', 'prof-1');
       expect(result).toHaveProperty('hasStripeAccount', true);
-      expect(result.lifetimeEarningsCents).toBe(5000);
+      // What prof-1 earned, not the person's counter (5000).
+      expect(result.lifetimeEarningsCents).toBe(1061);
+      const { sql, values } = rawQuery(
+        mockPrismaService.$queryRaw.mock.calls[0],
+      );
+      expect(sql).toContain('SUM( ((t.amount - t."vatCents")');
+      expect(sql).toContain('t."receiverId" = $1');
+      expect(sql).toContain("t.status = 'COMPLETED'");
+      expect(sql).toContain('t.type::text IN ($2,$3,$4,$5,$6)');
+      expect(sql).toContain('t."receiverProfileId" = $7');
+      expect(values).toEqual([
+        'user-1',
+        'DIRECT_POST_UNLOCK',
+        'DIRECT_STORY_UNLOCK',
+        'DIRECT_MESSAGE_UNLOCK',
+        'DIRECT_TIP',
+        'DIRECT_LIVE_GIFT',
+        'prof-1',
+      ]);
       // The account and the Profile holding it stay on the server.
       expect(result).not.toHaveProperty('stripeConnectAccountId');
       expect(result).not.toHaveProperty('profileId');
@@ -140,6 +173,7 @@ describe('MonetizationService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         stripeConnectAccountId: null,
       });
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
       const result = await service.getMonetization('user-2', 'prof-1');
       expect(mockPrismaService.monetization.create).toHaveBeenCalledWith({
@@ -150,6 +184,23 @@ describe('MonetizationService', () => {
         },
       });
       expect(result).toHaveProperty('hasStripeAccount', false);
+      expect(result.lifetimeEarningsCents).toBe(0);
+    });
+  });
+
+  describe("the creator's share in SQL", () => {
+    it('rounds the fee down per payment exactly as creatorShareCents', () => {
+      // FLOOR(p * 0.2) in exact decimal arithmetic is p divided by 5,
+      // rounded down; the app's share must match it for every price.
+      expect(PLATFORM_FEE_DECIMAL).toBe(0.2);
+      expect(SHARE_SQL.sql.replace(/\s+/g, ' ').trim()).toBe(
+        '((t.amount - t."vatCents") - FLOOR((t.amount - t."vatCents") * 0.2))',
+      );
+      for (let price = 0; price <= 100_000; price++) {
+        if (creatorShareCents(price) !== price - Math.floor(price / 5)) {
+          throw new Error(`share differs at ${price}`);
+        }
+      }
     });
   });
 
@@ -159,6 +210,9 @@ describe('MonetizationService', () => {
         {
           id: 'tx-1',
           amountCents: 1000,
+          senderId: 'u-1',
+          receiverId: 'u-2',
+          receiverProfileId: 'prof-of-u-2',
           sender: {
             id: 'u-1',
             profiles: [{ username: 'sender1', avatar: 'a.jpg' }],
@@ -177,8 +231,9 @@ describe('MonetizationService', () => {
       ]);
       mockPrismaService.transaction.count.mockResolvedValue(2);
 
-      const result = await service.getTransactions('user-1');
+      const result = await service.getTransactions('user-1', 'prof-1');
       expect(result.data).toHaveLength(2);
+      expect(result.data[0].incoming).toBe(false);
       expect(result.data[0].sender?.profile?.username).toBe('sender1');
       expect(result.data[1].sender).toBeNull();
       expect(result.meta).toEqual({
@@ -187,6 +242,47 @@ describe('MonetizationService', () => {
         limit: 20,
         totalPages: 1,
       });
+    });
+
+    it('lists what the active Profile received and what the person paid', async () => {
+      mockPrismaService.transaction.findMany.mockResolvedValue([
+        {
+          id: 'received',
+          senderId: 'u-9',
+          receiverId: 'user-1',
+          receiverProfileId: 'prof-1',
+          sender: null,
+          receiver: null,
+        },
+        {
+          id: 'paid',
+          senderId: 'user-1',
+          receiverId: 'u-9',
+          receiverProfileId: 'prof-9',
+          sender: null,
+          receiver: null,
+        },
+      ]);
+      mockPrismaService.transaction.count.mockResolvedValue(2);
+
+      const result = await service.getTransactions('user-1', 'prof-1', 2, 5);
+
+      const where = {
+        OR: [
+          { senderId: 'user-1' },
+          { receiverId: 'user-1', receiverProfileId: 'prof-1' },
+        ],
+      };
+      expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where, skip: 5, take: 5 }),
+      );
+      expect(mockPrismaService.transaction.count).toHaveBeenCalledWith({
+        where,
+      });
+      expect(result.data.map((tx) => [tx.id, tx.incoming])).toEqual([
+        ['received', true],
+        ['paid', false],
+      ]);
     });
   });
 
@@ -1748,17 +1844,27 @@ describe('MonetizationService', () => {
       const currentMonthKey = now.toISOString().slice(0, 7);
       mockPrismaService.transaction.findMany.mockResolvedValue([
         // 15 € paid with 2.60 € of VAT inside, and 5 € with none: the income
-        // is what was paid without the VAT.
+        // is the creator's share of what was paid without the VAT
+        // (992 + 400).
         { amount: 1500, vatCents: 260, createdAt: now },
         { amount: 500, vatCents: 0, createdAt: now },
         // Transaction from a month not in the 6-month window (should be ignored by map check)
         { amount: 9999, vatCents: 0, createdAt: new Date('2000-01-01') },
       ]);
 
-      const res = await service.getIncomeStats('u-1');
+      const res = await service.getIncomeStats('u-1', 'p-1');
       expect(res).toHaveLength(6);
       const currentEntry = res.find((r) => r.month === currentMonthKey);
-      expect(currentEntry?.income).toBe(1740);
+      expect(currentEntry?.income).toBe(1392);
+      // Only the active Profile's income.
+      expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            receiverId: 'u-1',
+            receiverProfileId: 'p-1',
+          }),
+        }),
+      );
     });
   });
 
@@ -1782,7 +1888,7 @@ describe('MonetizationService', () => {
         vi.useFakeTimers({ now: new Date(today) });
         mockPrismaService.transaction.findMany.mockResolvedValue([]);
 
-        const res = await service.getIncomeStats('u-1');
+        const res = await service.getIncomeStats('u-1', 'p-1');
 
         expect(res.map((r) => r.month)).toEqual(expected);
         expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
@@ -1797,23 +1903,168 @@ describe('MonetizationService', () => {
   });
 
   describe('getFinancialSummary', () => {
-    it('should handle missing sums and unknown transaction types gracefully', async () => {
-      mockPrismaService.transaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: null } })
-        .mockResolvedValueOnce({ _sum: { amount: null } });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-      mockPrismaService.transaction.groupBy.mockResolvedValue([
-        { type: 'UNKNOWN_TYPE' as any, _sum: { amount: 1000 } },
-        { type: 'DIRECT_POST_UNLOCK', _sum: { amount: null } },
+    it('answers zeros when the Profile has received nothing', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
+
+      const summary = await service.getFinancialSummary('user-1', 'prof-1');
+
+      expect(summary).toEqual({
+        currentMonthIncome: 0,
+        totalTips: 0,
+        breakdown: {
+          postUnlocks: 0,
+          storyUnlocks: 0,
+          messageUnlocks: 0,
+          tips: 0,
+          liveGifts: 0,
+        },
+      });
+    });
+
+    it("counts the active Profile's share by kind, and this month from the first in UTC", async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-01T00:30:00+01:00') });
+      mockPrismaService.$queryRaw.mockResolvedValue([
+        { type: 'DIRECT_TIP', earned: 661n, earnedThisMonth: 661n },
+        { type: 'DIRECT_POST_UNLOCK', earned: 331n, earnedThisMonth: 0n },
+        { type: 'DIRECT_LIVE_GIFT', earned: 1653n, earnedThisMonth: 1653n },
       ]);
 
-      const summary = await service.getFinancialSummary('user-1');
+      const summary = await service.getFinancialSummary('user-1', 'prof-1');
 
-      expect(summary.currentMonthIncome).toBe(0);
-      expect(summary.totalTips).toBe(0);
-      expect(summary.breakdown.postUnlocks).toBe(0);
+      expect(summary).toEqual({
+        currentMonthIncome: 661 + 1653,
+        totalTips: 661,
+        breakdown: {
+          postUnlocks: 331,
+          storyUnlocks: 0,
+          messageUnlocks: 0,
+          tips: 661,
+          liveGifts: 1653,
+        },
+      });
+      const { sql, values } = rawQuery(
+        mockPrismaService.$queryRaw.mock.calls[0],
+      );
+      expect(sql).toContain('FILTER (WHERE t."createdAt" >= $1)');
+      expect(sql).toContain('t."receiverProfileId" = $');
+      expect(sql).toContain('GROUP BY t.type');
+      // Half past midnight in Madrid on 1 November is still 31 October in
+      // UTC, so this month is October.
+      expect(values[0]).toEqual(new Date('2026-10-01T00:00:00Z'));
+      expect(values).toContain('user-1');
+      expect(values.at(-1)).toBe('prof-1');
     });
   });
+
+  describe('getPersonTotal', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('sums every Profile of the person, each with its own figures', async () => {
+      vi.useFakeTimers({ now: new Date('2026-10-31T12:00:00Z') });
+      mockPrismaService.profile.findMany.mockResolvedValue([
+        {
+          id: 'p-creator',
+          username: 'ana',
+          avatar: 'a.jpg',
+          accountType: 'CREATOR',
+        },
+        {
+          id: 'p-business',
+          username: 'ana_shop',
+          avatar: null,
+          accountType: 'BUSINESS',
+        },
+        {
+          id: 'p-personal',
+          username: 'ana_me',
+          avatar: null,
+          accountType: 'PERSONAL',
+        },
+      ]);
+      mockPrismaService.$queryRaw.mockResolvedValue([
+        {
+          receiverProfileId: 'p-creator',
+          earned: 1061n,
+          earnedThisMonth: 661n,
+        },
+        {
+          receiverProfileId: 'p-business',
+          earned: 1600n,
+          earnedThisMonth: 1600n,
+        },
+        // Income that names none of the person's Profiles: in the total
+        // only, this month's part too.
+        { receiverProfileId: null, earned: 240n, earnedThisMonth: 0n },
+        { receiverProfileId: 'p-gone', earned: 80n, earnedThisMonth: 80n },
+      ]);
+      mockPrismaService.monetization.findMany.mockResolvedValue([
+        { profileId: 'p-business' },
+      ]);
+
+      const total = await service.getPersonTotal('user-1');
+
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'user-1' } }),
+      );
+      const { sql, values } = rawQuery(
+        mockPrismaService.$queryRaw.mock.calls[0],
+      );
+      expect(sql).toContain('GROUP BY t."receiverProfileId"');
+      expect(sql).toContain('t."receiverId" = $2');
+      expect(sql).not.toContain('t."receiverProfileId" =');
+      expect(values[0]).toEqual(new Date('2026-10-01T00:00:00Z'));
+      expect(values[1]).toBe('user-1');
+      expect(mockPrismaService.monetization.findMany).toHaveBeenCalledWith({
+        where: {
+          profile: { userId: 'user-1' },
+          stripeConnectAccountId: { not: null },
+        },
+        select: { profileId: true },
+      });
+      expect(total).toEqual({
+        totalEarningsCents: 1061 + 1600 + 240 + 80,
+        currentMonthEarningsCents: 661 + 1600 + 80,
+        unassignedEarningsCents: 240 + 80,
+        unassignedCurrentMonthEarningsCents: 80,
+        profiles: [
+          {
+            profileId: 'p-creator',
+            username: 'ana',
+            avatar: 'a.jpg',
+            accountType: 'CREATOR',
+            ownPayoutAccount: false,
+            earningsCents: 1061,
+            currentMonthEarningsCents: 661,
+          },
+          {
+            profileId: 'p-business',
+            username: 'ana_shop',
+            avatar: null,
+            accountType: 'BUSINESS',
+            ownPayoutAccount: true,
+            earningsCents: 1600,
+            currentMonthEarningsCents: 1600,
+          },
+          {
+            profileId: 'p-personal',
+            username: 'ana_me',
+            avatar: null,
+            accountType: 'PERSONAL',
+            ownPayoutAccount: false,
+            earningsCents: 0,
+            currentMonthEarningsCents: 0,
+          },
+        ],
+      });
+    });
+  });
+
   describe('a creator whose person is banned from the whole account', () => {
     beforeEach(() => {
       accounts.set('creator-1', 'acct_creator');
