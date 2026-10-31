@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { formatCents, VAT_RATE_PERCENT, withVat } from '../../utils/money';
+import { formatCents } from '../../utils/money';
 import { Button } from '../ui';
 
 interface PaywallOverlayProps {
@@ -54,17 +54,13 @@ export default function PaywallOverlay({
           <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite]" />
           <span className="relative z-10 flex items-center gap-2">
             {t('monetization.unlock_for_money', {
-              price: formatCents(withVat(priceCents), i18n.language),
+              price: formatCents(priceCents, i18n.language),
             })}
           </span>
         </Button>
-        {/* The final price is on the button; the price the creator set,
-            before VAT, is under it. */}
+        {/* The price is what is paid: the VAT is inside it. */}
         <p className="mt-3 text-center text-xs text-zinc-400">
-          {t('vat.included', {
-            price: formatCents(priceCents, i18n.language),
-            rate: VAT_RATE_PERCENT,
-          })}
+          {t('vat.included')}
         </p>
       </motion.div>
     </motion.div>

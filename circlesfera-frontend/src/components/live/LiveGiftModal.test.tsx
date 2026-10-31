@@ -3,7 +3,6 @@ import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { liveApi } from '../../services/live';
 import { renderWithProviders } from '../../test/test-utils';
-import { withVat } from '../../utils/money';
 import LiveGiftModal, { VIRTUAL_GIFTS } from './LiveGiftModal';
 
 vi.mock('../../services/live', () => ({
@@ -20,9 +19,6 @@ vi.mock('react-hot-toast', () => {
   });
   return { toast: t, default: t };
 });
-
-// What is paid for a gift, VAT included, as the button writes it.
-const paid = (euros: number) => (withVat(euros * 100) / 100).toFixed(2);
 
 describe('LiveGiftModal', () => {
   const onClose = vi.fn();
@@ -65,28 +61,19 @@ describe('LiveGiftModal', () => {
     expect(
       screen.getByRole('button', {
         name: new RegExp(
-          `${i18n!.t('live.confirm_send_gift')}.*€${paid(star!.price)}`,
+          `${i18n!.t('live.confirm_send_gift')}.*€${star!.price}`,
         ),
       }),
     ).toBeInTheDocument();
   });
 
-  it('shows what is paid for the gift, VAT included, and its price under it', () => {
+  it('says the gift prices include VAT', () => {
     renderWithProviders(
       <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,
       { lng: 'es' },
     );
 
-    expect(
-      screen.getByRole('button', {
-        name: new RegExp(`\\(${paid(star!.price).replace('.', ',')}\\s€\\)$`),
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        new RegExp(`^IVA incluido \\(${star!.price}\\s€ \\+ 21 % IVA\\)$`),
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText('IVA incluido')).toBeInTheDocument();
   });
 
   it('uses Spanish catalog gift names', () => {
@@ -112,7 +99,7 @@ describe('LiveGiftModal', () => {
     expect(
       screen.getByRole('button', {
         name: new RegExp(
-          `${i18n!.t('live.confirm_send_gift')}.*€${paid(crown!.price)}`,
+          `${i18n!.t('live.confirm_send_gift')}.*€${crown!.price}`,
         ),
       }),
     ).toBeInTheDocument();
@@ -138,7 +125,7 @@ describe('LiveGiftModal', () => {
     fireEvent.click(
       screen.getByRole('button', {
         name: new RegExp(
-          `${i18n!.t('live.confirm_send_gift')}.*€${paid(gem!.price)}`,
+          `${i18n!.t('live.confirm_send_gift')}.*€${gem!.price}`,
         ),
       }),
     );
@@ -167,7 +154,7 @@ describe('LiveGiftModal', () => {
     fireEvent.click(
       screen.getByRole('button', {
         name: new RegExp(
-          `${i18n!.t('live.confirm_send_gift')}.*€${paid(star!.price)}`,
+          `${i18n!.t('live.confirm_send_gift')}.*€${star!.price}`,
         ),
       }),
     );

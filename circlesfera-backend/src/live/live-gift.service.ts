@@ -4,15 +4,12 @@ import {
 } from '@circlesfera/shared';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import {
-  creatorShareCents,
-  platformFeeCents,
-} from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import { creatorPaymentTax } from '../common/stripe/creator-payment-tax.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { creatorEarnings } from '../monetization/paid-amounts.js';
 import {
   payoutAccountPlacement,
   payoutDestinationFor,
@@ -115,7 +112,6 @@ export class LiveGiftService {
     if (!sender)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    const platformFee = platformFeeCents(amountCents);
     const giftName = resolveGiftName(giftId, 'en');
     if (!giftName) {
       throw new BadRequestException(
@@ -190,14 +186,13 @@ export class LiveGiftService {
                     description: `Gift for @${stream.host.username || 'creator'}`,
                   },
                   unit_amount: amountCents,
-                  tax_behavior: 'exclusive',
+                  tax_behavior: 'inclusive',
                 },
                 quantity: 1,
               },
             ],
             ...creatorPaymentTax({
               priceCents: amountCents,
-              platformFeeCents: platformFee,
               destination,
             }),
             metadata: {
@@ -345,13 +340,19 @@ export class LiveGiftService {
           update: {
             ...placed,
             lifetimeEarningsCents: {
-              increment: creatorShareCents(params.amountCents),
+              increment: creatorEarnings(
+                params.amountCents,
+                params.vatCents ?? 0,
+              ),
             },
           },
           create: {
             userId: creator.id,
             ...placed,
-            lifetimeEarningsCents: creatorShareCents(params.amountCents),
+            lifetimeEarningsCents: creatorEarnings(
+              params.amountCents,
+              params.vatCents ?? 0,
+            ),
           },
         });
       }

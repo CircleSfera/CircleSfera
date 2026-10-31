@@ -185,13 +185,12 @@ describe('MessageBubble', () => {
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: i18n!.t('chat.unlock_for', { price: '€2.41' }),
+        name: i18n!.t('chat.unlock_for', { price: '€1.99' }),
       }),
     );
     expect(onUnlock).toHaveBeenCalledWith('msg-1');
   });
 
-  // The button shows the final price, VAT included: 12.50 plus 21%.
   it('prices a locked message in the reader language', () => {
     const { i18n } = renderBubble(
       { content: 'x', isLocked: true, priceCents: 1250 },
@@ -201,9 +200,19 @@ describe('MessageBubble', () => {
 
     expect(
       screen.getByRole('button', {
-        name: i18n!.t('chat.unlock_for', { price: '15,13\u00a0€' }),
+        name: i18n!.t('chat.unlock_for', { price: '12,50\u00a0€' }),
       }),
     ).toBeInTheDocument();
+  });
+
+  it('says under the unlock button that the price includes VAT', () => {
+    renderBubble(
+      { content: 'x', isLocked: true, priceCents: 1250 },
+      { onUnlock: vi.fn() },
+      'es',
+    );
+
+    expect(screen.getByText('IVA incluido')).toBeInTheDocument();
   });
 
   it('labels edited and delivery state from the catalog for own messages', () => {

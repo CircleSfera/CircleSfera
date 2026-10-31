@@ -4,12 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
 import { reportPaymentError } from '../../utils/identityVerification';
-import {
-  formatCents,
-  formatWholeEuros,
-  VAT_RATE_PERCENT,
-  withVat,
-} from '../../utils/money';
+import { formatWholeEuros } from '../../utils/money';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
 
@@ -101,15 +96,10 @@ export default function TipModal({
           </button>
         ))}
       </div>
-      {/* The tip is the amount chosen; what is paid adds the VAT. */}
-      {selectedAmount && (
-        <p className="mb-4 text-center text-xs text-white/50">
-          {t('vat.included', {
-            price: formatWholeEuros(selectedAmount, i18n.language),
-            rate: VAT_RATE_PERCENT,
-          })}
-        </p>
-      )}
+      {/* The amount is what is paid: the VAT is inside it. */}
+      <p className="mb-4 text-center text-xs text-white/50">
+        {t('vat.included')}
+      </p>
 
       <Button
         onClick={handleTip}
@@ -119,8 +109,6 @@ export default function TipModal({
         variant="primary"
       >
         {t('wallet.send_tip')}
-        {selectedAmount &&
-          ` (${formatCents(withVat(selectedAmount * 100), i18n.language)})`}
       </Button>
     </Dialog>
   );

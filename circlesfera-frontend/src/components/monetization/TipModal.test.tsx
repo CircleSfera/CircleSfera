@@ -51,7 +51,7 @@ describe('TipModal', () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('shows what is paid for the chosen tip, VAT included, and the tip under it', () => {
+  it('says the amounts include VAT', () => {
     renderWithProviders(
       <TipModal
         isOpen
@@ -61,13 +61,7 @@ describe('TipModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText('€5'));
-
-    // 5 € plus 21% VAT.
-    expect(
-      screen.getByRole('button', { name: 'Send Tip (€6.05)' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('VAT included (€5 + 21% VAT)')).toBeInTheDocument();
+    expect(screen.getByText('VAT included')).toBeInTheDocument();
   });
 
   it('keeps send disabled until an amount is chosen', () => {
@@ -93,9 +87,7 @@ describe('TipModal', () => {
       expect(screen.getByText(`€${amount}`)).toBeInTheDocument();
     }
     expect(
-      screen.getByRole('button', {
-        name: new RegExp(`^${i18n!.t('wallet.send_tip')}`),
-      }),
+      screen.getByRole('button', { name: i18n!.t('wallet.send_tip') }),
     ).toBeDisabled();
     expect(api.post).not.toHaveBeenCalled();
   });
@@ -130,9 +122,7 @@ describe('TipModal', () => {
 
     fireEvent.click(screen.getByText(`€${five}`));
     fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(`^${i18n!.t('wallet.send_tip')}`),
-      }),
+      screen.getByRole('button', { name: i18n!.t('wallet.send_tip') }),
     );
 
     await waitFor(() => {
@@ -167,9 +157,7 @@ describe('TipModal', () => {
 
     fireEvent.click(screen.getByText(`€${one}`));
     fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(`^${i18n!.t('wallet.send_tip')}`),
-      }),
+      screen.getByRole('button', { name: i18n!.t('wallet.send_tip') }),
     );
 
     await waitFor(() => {
@@ -197,7 +185,7 @@ describe('TipModal', () => {
       />,
     );
     const send = screen.getByRole('button', {
-      name: new RegExp(`^${i18n!.t('wallet.send_tip')}`),
+      name: i18n!.t('wallet.send_tip'),
     });
 
     fireEvent.click(screen.getByText(`€${TIP_AMOUNTS[0]}`));
@@ -247,9 +235,7 @@ describe('TipModal', () => {
 
     fireEvent.click(screen.getByText(`€${TIP_AMOUNTS[0]}`));
     fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(`^${i18n!.t('wallet.send_tip')}`),
-      }),
+      screen.getByRole('button', { name: i18n!.t('wallet.send_tip') }),
     );
 
     // The notice with the button that opens the verification.
@@ -274,18 +260,14 @@ describe('TipModal', () => {
 
     fireEvent.click(screen.getByText(`€${ten}`));
     expect(
-      screen.getByRole('button', {
-        name: new RegExp(`^${view.i18n!.t('wallet.send_tip')}`),
-      }),
+      screen.getByRole('button', { name: view.i18n!.t('wallet.send_tip') }),
     ).toBeEnabled();
 
     view.rerender(<TipModal isOpen={false} {...props} />);
     view.rerender(<TipModal isOpen {...props} />);
 
     expect(
-      screen.getByRole('button', {
-        name: new RegExp(`^${view.i18n!.t('wallet.send_tip')}`),
-      }),
+      screen.getByRole('button', { name: view.i18n!.t('wallet.send_tip') }),
     ).toBeDisabled();
     expect(api.post).not.toHaveBeenCalled();
   });

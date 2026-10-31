@@ -1,6 +1,6 @@
 {
   "vat": {
-    "included": "IVA incluido ({{price}} + {{rate}} % IVA)"
+    "included": "IVA incluido"
   },
   "notFound": {
     "title": "Página no encontrada",
@@ -1670,6 +1670,7 @@
       "max_price_warning": "El precio máximo es €500,00",
       "creator_earning": "Tus ganancias (80%):",
       "platform_fee": "Comisión de la plataforma (20%):",
+      "vat_inside": "IVA incluido, si se compra desde la UE ({{rate}} %)",
       "schedule": "Programar publicación",
       "schedule_desc": "Déjalo vacío para publicar de inmediato.",
       "clear_schedule": "Borrar programación",

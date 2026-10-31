@@ -4,12 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { liveApi } from '../../services/live';
 import { reportPaymentError } from '../../utils/identityVerification';
-import {
-  formatCents,
-  formatWholeEuros,
-  VAT_RATE_PERCENT,
-  withVat,
-} from '../../utils/money';
+import { formatWholeEuros } from '../../utils/money';
 import { CREATE_PRIMARY } from '../create-post/createStyles';
 import { LiveSheet } from './LivePieces';
 
@@ -111,19 +106,13 @@ export default function LiveGiftModal({
           className={`button-alone ${CREATE_PRIMARY}`}
         >
           {t('live.confirm_send_gift')} (
-          {formatCents(withVat(selectedGift.price * 100), i18n.language)})
+          {formatWholeEuros(selectedGift.price, i18n.language)})
         </button>
       }
     >
       <p className="text-sm text-white/70">{t('live.send_gift_desc')}</p>
-      {/* Each gift shows its price; the button shows what is paid, VAT
-          included. */}
-      <p className="mb-3 mt-1 text-xs text-white/50">
-        {t('vat.included', {
-          price: formatWholeEuros(selectedGift.price, i18n.language),
-          rate: VAT_RATE_PERCENT,
-        })}
-      </p>
+      {/* The prices are what is paid: the VAT is inside them. */}
+      <p className="mb-3 mt-1 text-xs text-white/50">{t('vat.included')}</p>
       <div className="grid grid-cols-3 gap-2">
         {VIRTUAL_GIFTS.map((gift) => {
           const Icon = gift.icon;

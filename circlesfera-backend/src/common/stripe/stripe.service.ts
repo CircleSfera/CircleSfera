@@ -182,6 +182,47 @@ export class StripeService implements OnModuleInit {
     );
   }
 
+  // Takes back from what a payment sent a creator the part that was VAT.
+  // The creator's account first receives their share of all the buyer paid,
+  // as the VAT is only known once the buyer is; the VAT stays with
+  // CircleSfera. A payment's VAT is taken back once, however often this is
+  // asked: an earlier reversal for it is looked for first.
+  async takeVatBackFromCreator(params: {
+    paymentIntentId: string;
+    amountInCents: number;
+  }): Promise<void> {
+    if (params.amountInCents <= 0) {
+      return;
+    }
+    const paymentIntent = await this.stripe.paymentIntents.retrieve(
+      params.paymentIntentId,
+      { expand: ['latest_charge.transfer'] },
+    );
+    const charge = paymentIntent.latest_charge;
+    const transfer =
+      charge && typeof charge !== 'string' ? charge.transfer : null;
+    if (!transfer || typeof transfer === 'string') {
+      throw new Error(
+        `Payment ${params.paymentIntentId} has no transfer to take its VAT back from`,
+      );
+    }
+    if (
+      transfer.reversals?.data.some(
+        (reversal) => reversal.metadata?.reason === 'vat',
+      )
+    ) {
+      return;
+    }
+    await this.stripe.transfers.createReversal(
+      transfer.id,
+      {
+        amount: params.amountInCents,
+        metadata: { reason: 'vat', paymentIntentId: params.paymentIntentId },
+      },
+      { idempotencyKey: `vat-back-${params.paymentIntentId}` },
+    );
+  }
+
   async createCustomer(
     email: string,
     name?: string,

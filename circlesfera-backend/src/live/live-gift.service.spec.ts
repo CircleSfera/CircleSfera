@@ -258,7 +258,7 @@ describe('LiveGiftService', () => {
       mockPrismaService.user.findUnique.mockReset();
     });
 
-    it('records the VAT apart and earns the host what was sent to them', async () => {
+    it('records the VAT apart and earns the host their share of what was paid without it', async () => {
       mockPrismaService.liveGift.findUnique.mockResolvedValue({
         id: 'gift-1',
         status: 'PENDING',
@@ -272,21 +272,21 @@ describe('LiveGiftService', () => {
       mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
       mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
 
-      // 3.03 € plus 0.64 € VAT; 3.03 less the 0.60 fee is sent to the host.
+      // 10 € paid, 1.74 € of it VAT: the host earns 80% of the 8.26 € left.
       await service.completeGiftPayment({
         ...params,
-        amountCents: 303,
-        vatCents: 64,
+        amountCents: 1000,
+        vatCents: 174,
       });
 
       expect(mockPrismaService.transaction.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ amount: 303, vatCents: 64 }),
+          data: expect.objectContaining({ amount: 1000, vatCents: 174 }),
         }),
       );
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          create: expect.objectContaining({ lifetimeEarningsCents: 243 }),
+          create: expect.objectContaining({ lifetimeEarningsCents: 661 }),
         }),
       );
       mockPrismaService.user.findUnique.mockReset();

@@ -5,7 +5,6 @@ import {
   MAX_PPV_PRICE_CENTS,
   MIN_PPV_PRICE_CENTS,
   MIN_TIP_CENTS,
-  platformFeeCents,
 } from '../common/constants/monetization.constants.js';
 import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
@@ -190,7 +189,6 @@ export class MonetizationService {
     expiresAt?: number;
   }): Promise<{ url: string | null }> {
     await assertRealMoneyAllowed(this.prisma, params.buyerId);
-    const platformFee = platformFeeCents(params.priceCents);
 
     const session = await this.stripeService.createCheckoutSession(
       {
@@ -207,14 +205,13 @@ export class MonetizationService {
                 description: params.description,
               },
               unit_amount: params.priceCents,
-              tax_behavior: 'exclusive',
+              tax_behavior: 'inclusive',
             },
             quantity: 1,
           },
         ],
         ...creatorPaymentTax({
           priceCents: params.priceCents,
-          platformFeeCents: platformFee,
           destination: params.creatorStripeAccountId,
         }),
         metadata: params.metadata,

@@ -9,6 +9,8 @@ const client = {
     sessions: { create: vi.fn(), retrieve: vi.fn(), expire: vi.fn() },
   },
   refunds: { create: vi.fn() },
+  paymentIntents: { retrieve: vi.fn() },
+  transfers: { createReversal: vi.fn() },
   customers: { create: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
@@ -318,6 +320,77 @@ describe('StripeService refund of a payment to a creator', () => {
       },
       { idempotencyKey: 'key-9' },
     );
+  });
+});
+
+describe('StripeService taking the VAT back from a creator', () => {
+  const paidWith = (reversals: { metadata: Record<string, string> }[]) =>
+    client.paymentIntents.retrieve.mockResolvedValue({
+      latest_charge: {
+        transfer: { id: 'tr_1', reversals: { data: reversals } },
+      },
+    });
+
+  beforeEach(() => {
+    client.paymentIntents.retrieve.mockReset();
+    client.transfers.createReversal.mockReset();
+  });
+
+  it('takes the VAT back from the transfer of the payment, once per payment', async () => {
+    const { service } = serviceWith();
+    paidWith([]);
+
+    await service.takeVatBackFromCreator({
+      paymentIntentId: 'pi_1',
+      amountInCents: 139,
+    });
+
+    expect(client.paymentIntents.retrieve).toHaveBeenCalledWith('pi_1', {
+      expand: ['latest_charge.transfer'],
+    });
+    expect(client.transfers.createReversal).toHaveBeenCalledWith(
+      'tr_1',
+      { amount: 139, metadata: { reason: 'vat', paymentIntentId: 'pi_1' } },
+      { idempotencyKey: 'vat-back-pi_1' },
+    );
+  });
+
+  it('takes nothing more when the VAT of the payment was taken back already', async () => {
+    const { service } = serviceWith();
+    paidWith([{ metadata: { reason: 'vat' } }]);
+
+    await service.takeVatBackFromCreator({
+      paymentIntentId: 'pi_1',
+      amountInCents: 139,
+    });
+
+    expect(client.transfers.createReversal).not.toHaveBeenCalled();
+  });
+
+  it('asks nothing when there is nothing to take back', async () => {
+    const { service } = serviceWith();
+
+    await service.takeVatBackFromCreator({
+      paymentIntentId: 'pi_1',
+      amountInCents: 0,
+    });
+
+    expect(client.paymentIntents.retrieve).not.toHaveBeenCalled();
+  });
+
+  it('fails, so the notice is tried again, when the payment has no transfer yet', async () => {
+    const { service } = serviceWith();
+    client.paymentIntents.retrieve.mockResolvedValue({
+      latest_charge: { transfer: null },
+    });
+
+    await expect(
+      service.takeVatBackFromCreator({
+        paymentIntentId: 'pi_1',
+        amountInCents: 139,
+      }),
+    ).rejects.toThrow('Payment pi_1 has no transfer to take its VAT back from');
+    expect(client.transfers.createReversal).not.toHaveBeenCalled();
   });
 });
 
