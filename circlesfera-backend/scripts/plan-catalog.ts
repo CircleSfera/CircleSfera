@@ -139,6 +139,9 @@ export function planPrice(
 export function priceProblems(
   price: ProviderPrice | string | null,
   plan: CatalogPlan,
+  // The account's tax default (Tax settings), which a price that leaves
+  // VAT to the account follows; unknown when it could not be read.
+  accountTaxBehavior: string | null = null,
 ): string[] {
   if (!price || typeof price === 'string') {
     return [
@@ -152,11 +155,14 @@ export function priceProblems(
   if (price.unit_amount !== plan.priceCents) {
     problems.push(`it is ${price.unit_amount} cents, not ${plan.priceCents}`);
   }
-  // VAT included: said on the price, or left to the account, whose tax
-  // default (inferred by currency) includes VAT in a price in euros.
+  // VAT included: said on the price, or left to an account whose tax
+  // default includes it, always or, inferred by currency, in euros.
+  const accountIncludesVat =
+    accountTaxBehavior === 'inclusive' ||
+    (accountTaxBehavior === 'inferred_by_currency' && price.currency === 'eur');
   const vatIncluded =
     price.tax_behavior === 'inclusive' ||
-    (price.tax_behavior === 'unspecified' && price.currency === 'eur');
+    (price.tax_behavior === 'unspecified' && accountIncludesVat);
   if (!vatIncluded) {
     problems.push(`its VAT is ${price.tax_behavior ?? 'unset'}, not inclusive`);
   }

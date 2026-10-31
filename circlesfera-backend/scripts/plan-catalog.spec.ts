@@ -146,14 +146,33 @@ describe('priceProblems', () => {
     expect(priceProblems(monthly(999), plan('Premium'))).toEqual([]);
   });
 
-  it('accepts a price in euros that leaves VAT to the account, which includes it', () => {
-    expect(
-      priceProblems(
-        monthly(999, { tax_behavior: 'unspecified' }),
-        plan('Premium'),
-      ),
-    ).toEqual([]);
-  });
+  it.each(['inferred_by_currency', 'inclusive'])(
+    'accepts a price in euros that leaves VAT to an account whose default is %s',
+    (accountDefault) => {
+      expect(
+        priceProblems(
+          monthly(999, { tax_behavior: 'unspecified' }),
+          plan('Premium'),
+          accountDefault,
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  it.each([['exclusive'], [null]])(
+    'refuses a price that leaves VAT to an account whose default is %s',
+    (accountDefault) => {
+      expect(
+        priceProblems(
+          monthly(999, { tax_behavior: 'unspecified' }),
+          plan('Premium'),
+          accountDefault,
+        ),
+      ).toEqual([
+        'Premium: the default price its VAT is unspecified, not inclusive',
+      ]);
+    },
+  );
 
   it('refuses a price that adds VAT on top', () => {
     expect(

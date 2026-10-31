@@ -49,6 +49,13 @@ async function main() {
       products.push(product as unknown as ProviderProduct);
     }
     const stored: StoredPlan[] = await prisma.platformPlan.findMany();
+    // A price that leaves VAT to the account follows its tax default; when
+    // it cannot be read, such a price is refused rather than assumed.
+    const accountTaxBehavior = await stripe.tax.settings
+      .retrieve()
+      .then((settings) => settings.defaults.tax_behavior ?? null)
+      .catch(() => null);
+    console.log(`Account tax default: ${accountTaxBehavior ?? 'unknown'}`);
 
     for (const plan of PLAN_CATALOG) {
       const found = findProviderProduct(products, plan);
@@ -66,7 +73,7 @@ async function main() {
         activePrices.push(price as unknown as ProviderPrice);
       }
       const price = planPrice(product, activePrices);
-      const wrong = priceProblems(price, plan);
+      const wrong = priceProblems(price, plan, accountTaxBehavior);
       if (wrong.length > 0) {
         problems.push(...wrong);
         continue;
