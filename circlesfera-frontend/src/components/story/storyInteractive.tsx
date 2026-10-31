@@ -19,6 +19,7 @@ import {
   STICKER_WIDTH_PCT,
 } from '../../utils/storySticker';
 import { CountdownClock } from '../interactive/CountdownClock';
+import type { SharedPostCard } from '../interactive/SharedPostSticker';
 import {
   STICKER_BADGE,
   STICKER_CARD,
@@ -44,6 +45,8 @@ export type LocationPayload = { name: string };
 export type AnswerPayload = { prompt: string; answer: string };
 export type CountdownPayload = { title: string; endsAt: string };
 export type LinkPayload = { url: string; domain: string; label?: string };
+/** A post or Frame shared to the story, as its card shows it. */
+export type PostPayload = SharedPostCard;
 export type MusicPayload = {
   title: string;
   artist: string;
@@ -140,9 +143,32 @@ export function parseMusicPayload(el: StoryElement): MusicPayload | null {
   };
 }
 
-/** A story has one place, one link and one song: none is ever copied. */
+export function parsePostPayload(el: StoryElement): PostPayload | null {
+  if (el.type !== 'post') return null;
+  const d = parseJson(el.content);
+  if (!d || typeof d.id !== 'string' || typeof d.username !== 'string') {
+    return null;
+  }
+  return {
+    id: d.id,
+    type: typeof d.type === 'string' ? d.type : 'POST',
+    image: typeof d.image === 'string' ? d.image : null,
+    username: d.username,
+    avatar: typeof d.avatar === 'string' ? d.avatar : null,
+  };
+}
+
+/**
+ * A story has one place, one link, one song and one shared post: none is
+ * ever copied.
+ */
 export function canDuplicateElement(el: StoryElement): boolean {
-  return el.type !== 'location' && el.type !== 'link' && el.type !== 'music';
+  return (
+    el.type !== 'location' &&
+    el.type !== 'link' &&
+    el.type !== 'music' &&
+    el.type !== 'post'
+  );
 }
 
 /** An answer to a question, shared as a card painted into the story. */
@@ -161,6 +187,7 @@ const PILL_KINDS: ReadonlySet<string> = new Set([
   'location',
   'link',
   'music',
+  'post',
 ]);
 
 /**
@@ -366,6 +393,7 @@ export function stickersFromElements(
   const stickers: StoryStickerInput[] = [];
   let hasLocation = false;
   let hasMusic = false;
+  let hasPost = false;
   for (const el of elements) {
     const place = placementFromElement(
       el,
@@ -422,6 +450,16 @@ export function stickersFromElements(
         settings: { profileId: mention.profileId },
         ...place,
       });
+    const shared = parsePostPayload(el);
+    if (shared && !hasPost) {
+      // The server checks the post can be shared, and sends viewers its card.
+      hasPost = true;
+      stickers.push({
+        kind: 'POST',
+        settings: { postId: shared.id },
+        ...place,
+      });
+    }
     if (parseLocationPayload(el) && !hasLocation) {
       hasLocation = true;
       stickers.push({ kind: 'LOCATION', settings: {}, ...place });

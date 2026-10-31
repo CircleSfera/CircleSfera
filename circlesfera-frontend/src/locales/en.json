@@ -200,7 +200,10 @@
       "export_desc": "Download a copy of your personal data registered in CircleSfera.",
       "export_requested": "Export request created. We will notify you when it is ready.",
       "export_link_hint": "Need a copy of your data?",
-      "export_link": "Export from Account"
+      "export_link": "Export from Account",
+      "story_shares": "Allow sharing to stories",
+      "story_shares_desc": "Others can add your public posts and Frames to their stories, as a card that opens the original. Turning it off stops new shares.",
+      "story_shares_error": "The change could not be saved"
     },
     "requests": {
       "title": "Follow Requests",
@@ -1323,7 +1326,8 @@
       "mute": "Mute user",
       "not_interested": "Not interested",
       "archive": "Archive",
-      "show_on_profile": "Show on profile"
+      "show_on_profile": "Show on profile",
+      "add_to_story": "Add to your story"
     },
     "modals": {
       "delete_title": "Delete post?",
@@ -1438,7 +1442,9 @@
     "music": {
       "sound_on": "Play the sound: {{title}}, {{artist}}",
       "sound_off": "Mute the sound: {{title}}, {{artist}}"
-    }
+    },
+    "shared_post_unavailable": "This post is not available",
+    "shared_post_open": "Open the post of {{username}}"
   },
   "comments": {
     "send_error": "Your comment could not be posted. Try again.",
@@ -2037,7 +2043,11 @@
       "brush_pen": "Pen",
       "brush_marker": "Marker",
       "brush_neon": "Neon",
-      "brush_eraser": "Eraser"
+      "brush_eraser": "Eraser",
+      "post_errors": {
+        "SHARED_POST_NOT_FOUND": "This post can no longer be shared to a story",
+        "POST_SHARING_TURNED_OFF": "Its author does not allow sharing their posts to stories"
+      }
     },
     "tags": {
       "title": "Tag People",

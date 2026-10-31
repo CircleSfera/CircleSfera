@@ -318,6 +318,35 @@ describe('StoryViewer', () => {
       expect(screen.queryByTestId('qna')).not.toBeInTheDocument();
     });
 
+    it('shows a post shared to the story as a card that opens it, or says it is gone', async () => {
+      await show([
+        story('s1', {
+          stickers: [
+            sticker('st-p', 'POST', {
+              postId: 'f-1',
+              post: {
+                id: 'f-1',
+                type: 'FRAME',
+                image: 'https://media.example/f.jpg',
+                username: 'ana',
+                avatar: null,
+              },
+            }),
+            sticker('st-g', 'POST', { postId: 'gone', post: null }),
+          ],
+        } as Partial<Story>),
+      ]);
+
+      expect(screen.getByLabelText('Open the post of ana')).toHaveAttribute(
+        'href',
+        '/frames?post=f-1',
+      );
+      expect(
+        screen.getByText('This post is not available'),
+      ).toBeInTheDocument();
+      expect(screen.getAllByTestId('placed-sticker')).toHaveLength(2);
+    });
+
     it('opens a mention and a place, and leaves out one the server could not name', async () => {
       await show([
         story('s1', {

@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
+import { SharedPostCardView } from '../interactive/SharedPostSticker';
 import {
   AnswerCardPreview,
   CountdownStickerPreview,
@@ -22,6 +23,7 @@ import {
   parseMentionPayload,
   parseMusicPayload,
   parsePollPayload,
+  parsePostPayload,
   parseQnaPayload,
   parseQuizPayload,
   parseSliderPayload,
@@ -73,6 +75,7 @@ export default function DraggableStoryElement({
   const countdown = parseCountdownPayload(el);
   const link = parseLinkPayload(el);
   const music = parseMusicPayload(el);
+  const sharedPost = parsePostPayload(el);
   // Live on the story, not painted into its picture.
   const isLive = isLiveElement(el);
   // At the width of a sticker; a hashtag, a mention or a place takes its own.
@@ -109,7 +112,9 @@ export default function DraggableStoryElement({
         isSelected ? 'border-white/55' : 'border-transparent'
       }`}
     >
-      {poll ? (
+      {sharedPost ? (
+        <SharedPostCardView card={sharedPost} />
+      ) : poll ? (
         <PollStickerPreview
           question={poll.question}
           options={poll.options}

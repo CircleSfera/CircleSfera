@@ -3,14 +3,18 @@ import { AnimatePresence } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
 import { api, archiveApi } from '../../services';
 import type { Post } from '../../types';
+import { canOfferStoryShare, postStoryCard } from '../../utils/storyShare';
 import AddToCollectionModal from '../modals/AddToCollectionModal';
 import MuteDurationModal from '../modals/MuteDurationModal';
 import ReportModal from '../modals/ReportModal';
 import SharePostModal from '../modals/SharePostModal';
 import TipModal from '../monetization/TipModal';
+import { buildPostElement } from '../story/storyComposer.append';
+import { storyStartRoute } from '../story/storyStart';
 import PostMenu from './PostMenu';
 import PostModals from './PostModals';
 
@@ -59,6 +63,7 @@ export default function PostOverlays({
   } = interactions;
 
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Archiving takes the post off the profile and every list, for everyone,
   // the author included; showing it again puts it back in its place.
@@ -166,6 +171,17 @@ export default function PostOverlays({
             onMute={!isOwner ? handleMute : undefined}
             onHidePost={!isOwner ? hidePost : undefined}
             onHideAuthor={!isOwner ? hideAuthor : undefined}
+            onAddToStory={
+              canOfferStoryShare(post)
+                ? () => {
+                    setShowMenu(false);
+                    const route = storyStartRoute({
+                      elements: [buildPostElement(postStoryCard(post))],
+                    });
+                    navigate(route.to, route.options);
+                  }
+                : undefined
+            }
           />
         )}
       </AnimatePresence>

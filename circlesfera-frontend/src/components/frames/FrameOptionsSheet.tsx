@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
   Bookmark,
+  CirclePlus,
   Flag,
   Megaphone,
   Pencil,
@@ -22,6 +23,8 @@ export interface FrameMenuActions {
   onPromote?: () => void;
   // The author's: takes the frame off the profile, into their archive.
   onArchive?: () => void;
+  // Share it to one's story as a card of the original.
+  onAddToStory?: () => void;
 }
 
 interface FrameOptionsSheetProps extends FrameMenuActions {
@@ -82,6 +85,7 @@ function OptionsBody({
   onSave,
   onPromote,
   onArchive,
+  onAddToStory,
   onClose,
 }: FrameMenuActions & { isOwner: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -130,6 +134,13 @@ function OptionsBody({
           variant="danger"
         />
       )}
+      {onAddToStory && (
+        <OptionRow
+          icon={CirclePlus}
+          label={t('post.menu.add_to_story')}
+          onClick={() => run(onAddToStory)}
+        />
+      )}
       <OptionRow
         icon={Bookmark}
         label={t('post.menu.save')}
@@ -150,6 +161,7 @@ export default function FrameOptionsSheet({
   onSave,
   onPromote,
   onArchive,
+  onAddToStory,
 }: FrameOptionsSheetProps) {
   const { t } = useTranslation();
   const dragControls = useDragControls();
@@ -178,6 +190,7 @@ export default function FrameOptionsSheet({
     onSave,
     onPromote,
     onArchive,
+    onAddToStory,
     onClose,
   };
 

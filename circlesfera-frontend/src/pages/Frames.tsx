@@ -389,6 +389,7 @@ export default function Frames() {
                     onReport={menuActions.onReport}
                     onSave={menuActions.onSave}
                     onArchive={menuActions.onArchive}
+                    onAddToStory={menuActions.onAddToStory}
                     onPromote={
                       canPromoteFrame ? menuActions.onPromote : undefined
                     }

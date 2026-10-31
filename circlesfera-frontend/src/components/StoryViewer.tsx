@@ -44,6 +44,10 @@ import { PlacedSticker } from './interactive/PlacedSticker';
 import { PollWidget } from './interactive/PollWidget';
 import { QnaWidget } from './interactive/QnaWidget';
 import { QuizWidget } from './interactive/QuizWidget';
+import {
+  type SharedPostCard,
+  SharedPostSticker,
+} from './interactive/SharedPostSticker';
 import { SliderWidget } from './interactive/SliderWidget';
 import { RESULT_KINDS } from './interactive/StickerResultsCard';
 import PaywallOverlay from './monetization/PaywallOverlay';
@@ -635,6 +639,20 @@ export default function StoryViewer({
                         <LocationSticker
                           placeId={String(sticker.settings.placeId ?? '')}
                           name={String(sticker.settings.name)}
+                        />
+                      </PlacedSticker>
+                    ) : sticker.kind === 'POST' ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                        fitContent
+                      >
+                        <SharedPostSticker
+                          card={
+                            (sticker.settings.post as SharedPostCard | null) ??
+                            null
+                          }
                         />
                       </PlacedSticker>
                     ) : sticker.kind === 'QUESTION' && !isOwner ? (

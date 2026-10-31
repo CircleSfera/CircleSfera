@@ -12,6 +12,7 @@ import {
 } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useSyncedLibraryAudio } from '../hooks/useSyncedLibraryAudio';
 import {
   archiveApi,
@@ -28,6 +29,7 @@ import type { Post } from '../types';
 import { hasCreatorTools } from '../utils/creatorTools';
 import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
+import { canOfferStoryShare, postStoryCard } from '../utils/storyShare';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import FrameActionRail from './frames/FrameActionRail';
 import FrameCoverPicker from './frames/FrameCoverPicker';
@@ -41,6 +43,8 @@ import {
   type WithdrawalConsentGiven,
 } from './payments/WithdrawalConsent';
 import EditCaptionDialog from './post/EditCaptionDialog';
+import { buildPostElement } from './story/storyComposer.append';
+import { storyStartRoute } from './story/storyStart';
 
 const PromoteModal = lazy(() => import('./creator/PromoteModal'));
 
@@ -66,6 +70,7 @@ export default function FrameItem({
   onRegisterMenuActions,
 }: FrameItemProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const watchTimeRef = useRef(0);
   const lastUpdateRef = useRef(Date.now());
@@ -181,6 +186,19 @@ export default function FrameItem({
     onSaveOpenRef.current = onSaveOpen;
   }, [onSaveOpen]);
 
+  // Shares the frame on screen to one's story, as a card of the original;
+  // read when the menu item is tapped, so the menu is handed over once.
+  const canShareToStory = canOfferStoryShare(post);
+  const shareToStoryRef = useRef(() => {});
+  useEffect(() => {
+    shareToStoryRef.current = () => {
+      const route = storyStartRoute({
+        elements: [buildPostElement(postStoryCard(post))],
+      });
+      navigate(route.to, route.options);
+    };
+  }, [post, navigate]);
+
   useEffect(() => {
     if (!isActive || !onRegisterMenuActions) return;
 
@@ -195,10 +213,19 @@ export default function FrameItem({
       onSave: () => onSaveOpenRef.current?.(),
       onPromote: canPromote ? () => setShowPromoteModal(true) : undefined,
       onArchive: () => archiveFrame(),
+      onAddToStory: canShareToStory
+        ? () => shareToStoryRef.current()
+        : undefined,
     });
 
     return () => onRegisterMenuActions(null);
-  }, [isActive, onRegisterMenuActions, canPromote, archiveFrame]);
+  }, [
+    isActive,
+    onRegisterMenuActions,
+    canPromote,
+    archiveFrame,
+    canShareToStory,
+  ]);
 
   useEffect(() => {
     if (isActive && videoRef.current) {
