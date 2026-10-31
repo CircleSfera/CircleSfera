@@ -7,7 +7,6 @@ import {
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type Stripe from 'stripe';
-import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   type ConnectAccountCompanyFields,
@@ -18,6 +17,12 @@ import {
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  amountPaid,
+  creatorEarnings,
+  vatPaid,
+  vatToTakeBack,
+} from './paid-amounts.js';
 import { payoutAccountPlacement } from './payout-account.js';
 
 // Stripe Checkout Session metadata.type values fulfilled here rather than
@@ -175,13 +180,15 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_POST_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
       const { postId, creatorId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = amountPaid(session);
+      const vat = vatPaid(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
           : session.id;
 
       if (clientReferenceId && postId && creatorId) {
+        await this.takeVatBack(session, amount, vat);
         await this.prisma.$transaction(async (tx) => {
           await tx.postUnlock.upsert({
             where: { userId_postId: { userId: clientReferenceId, postId } },
@@ -203,6 +210,7 @@ export class MonetizationWebhookService {
             data: {
               type: 'DIRECT_POST_UNLOCK',
               amount: amount,
+              vatCents: vat,
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
@@ -223,13 +231,13 @@ export class MonetizationWebhookService {
             update: {
               ...placed,
               lifetimeEarningsCents: {
-                increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+                increment: creatorEarnings(amount, vat),
               },
             },
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+              lifetimeEarningsCents: creatorEarnings(amount, vat),
             },
           });
         });
@@ -248,13 +256,15 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_STORY_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
       const { storyId, creatorId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = amountPaid(session);
+      const vat = vatPaid(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
           : session.payment_intent?.id || session.id;
 
       if (clientReferenceId && storyId && creatorId) {
+        await this.takeVatBack(session, amount, vat);
         await this.prisma.$transaction(async (tx) => {
           await tx.storyUnlock.upsert({
             where: {
@@ -276,6 +286,7 @@ export class MonetizationWebhookService {
             data: {
               type: 'DIRECT_STORY_UNLOCK',
               amount,
+              vatCents: vat,
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
@@ -296,13 +307,13 @@ export class MonetizationWebhookService {
             update: {
               ...placed,
               lifetimeEarningsCents: {
-                increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+                increment: creatorEarnings(amount, vat),
               },
             },
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+              lifetimeEarningsCents: creatorEarnings(amount, vat),
             },
           });
         });
@@ -310,7 +321,8 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_MESSAGE_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
       const { messageId, creatorId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = amountPaid(session);
+      const vat = vatPaid(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
@@ -335,6 +347,8 @@ export class MonetizationWebhookService {
           return;
         }
 
+        await this.takeVatBack(session, amount, vat);
+
         await this.prisma.$transaction(async (tx) => {
           await tx.messageUnlock.upsert({
             where: {
@@ -352,6 +366,7 @@ export class MonetizationWebhookService {
             data: {
               type: 'DIRECT_MESSAGE_UNLOCK' as any,
               amount,
+              vatCents: vat,
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
@@ -373,13 +388,13 @@ export class MonetizationWebhookService {
             update: {
               ...placed,
               lifetimeEarningsCents: {
-                increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+                increment: creatorEarnings(amount, vat),
               },
             },
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+              lifetimeEarningsCents: creatorEarnings(amount, vat),
             },
           });
         });
@@ -397,13 +412,15 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_TIP') {
       const clientReferenceId = session.client_reference_id;
       const { creatorId, postId, profileId, senderProfileId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = amountPaid(session);
+      const vat = vatPaid(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
           : session.id;
 
       if (clientReferenceId && creatorId) {
+        await this.takeVatBack(session, amount, vat);
         // The Profile tipped, while it still exists: one deleted since the
         // payment leaves it empty and never loses the record of the payment.
         const tippedProfile = profileId
@@ -417,6 +434,7 @@ export class MonetizationWebhookService {
             data: {
               type: 'DIRECT_TIP',
               amount: amount,
+              vatCents: vat,
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
@@ -437,13 +455,13 @@ export class MonetizationWebhookService {
             update: {
               ...placed,
               lifetimeEarningsCents: {
-                increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+                increment: creatorEarnings(amount, vat),
               },
             },
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+              lifetimeEarningsCents: creatorEarnings(amount, vat),
             },
           });
         });
@@ -475,13 +493,15 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_LIVE_GIFT') {
       const clientReferenceId = session.client_reference_id;
       const { liveGiftId, streamId, giftId, creatorId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = amountPaid(session);
+      const vat = vatPaid(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
           : session.payment_intent?.id || session.id;
 
       if (clientReferenceId && liveGiftId && streamId && creatorId) {
+        await this.takeVatBack(session, amount, vat);
         if (this.eventEmitter) {
           const payload: PaymentLiveGiftCompletedEvent['payload'] = {
             liveGiftId,
@@ -490,6 +510,7 @@ export class MonetizationWebhookService {
             giftId,
             creatorId,
             amountCents: amount,
+            vatCents: vat,
             currency: session.currency || 'eur',
             paymentIntentId,
           };
@@ -522,6 +543,26 @@ export class MonetizationWebhookService {
   // of the event finds the payment already refunded and does nothing; a
   // retry after a failed refund asks the provider again with the same key,
   // so the buyer is never refunded twice.
+  // The creator's account was sent their share of all the buyer paid, as
+  // the VAT was not known yet; the part of it that was VAT is taken back
+  // before the payment is recorded, so a failure leaves the notice to be
+  // tried again rather than a payment recorded with the VAT still sent.
+  private async takeVatBack(
+    session: Stripe.Checkout.Session,
+    paid: number,
+    vat: number,
+  ): Promise<void> {
+    const paymentIntentId = stripeId(session.payment_intent);
+    const amountInCents = vatToTakeBack(paid, vat);
+    if (!paymentIntentId || amountInCents <= 0) {
+      return;
+    }
+    await this.stripeService.takeVatBackFromCreator({
+      paymentIntentId,
+      amountInCents,
+    });
+  }
+
   private async refundUnlockOfMissingMessage(
     session: Stripe.Checkout.Session,
     params: {
@@ -593,6 +634,7 @@ export class MonetizationWebhookService {
         data: {
           type: 'DIRECT_MESSAGE_UNLOCK',
           amount,
+          vatCents: vatPaid(session),
           currency,
           senderId: buyer?.id ?? null,
           receiverId: creator?.id ?? null,

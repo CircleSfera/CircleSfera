@@ -39,15 +39,16 @@ describe('GetRevenueAnalyticsQuery', () => {
     );
   });
 
-  it('sums completed transactions into the correct revenue bucket by type', async () => {
+  it('sums completed transactions without their VAT into the correct revenue bucket by type', async () => {
     mockPrismaService.transaction.findMany.mockResolvedValue([
-      { type: 'DIRECT_TIP', amount: 500 },
-      { type: 'DIRECT_POST_UNLOCK', amount: 300 },
-      { type: 'DIRECT_STORY_UNLOCK', amount: 200 },
-      { type: 'DIRECT_MESSAGE_UNLOCK', amount: 250 },
-      { type: 'DIRECT_LIVE_GIFT', amount: 100 },
-      { type: 'DIRECT_TIP', amount: 10 },
-      { type: 'DIRECT_TIP', amount: 20 },
+      // What was paid and the VAT inside it: income is the rest.
+      { type: 'DIRECT_TIP', amount: 605, vatCents: 105 },
+      { type: 'DIRECT_POST_UNLOCK', amount: 300, vatCents: 0 },
+      { type: 'DIRECT_STORY_UNLOCK', amount: 200, vatCents: 0 },
+      { type: 'DIRECT_MESSAGE_UNLOCK', amount: 250, vatCents: 0 },
+      { type: 'DIRECT_LIVE_GIFT', amount: 121, vatCents: 21 },
+      { type: 'DIRECT_TIP', amount: 10, vatCents: 0 },
+      { type: 'DIRECT_TIP', amount: 20, vatCents: 0 },
     ]);
     mockPrismaService.follow.count.mockResolvedValue(10);
 

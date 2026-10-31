@@ -110,7 +110,9 @@ export default function LiveGiftModal({
         </button>
       }
     >
-      <p className="mb-3 text-sm text-white/70">{t('live.send_gift_desc')}</p>
+      <p className="text-sm text-white/70">{t('live.send_gift_desc')}</p>
+      {/* The prices are what is paid: the VAT is inside them. */}
+      <p className="mb-3 mt-1 text-xs text-white/50">{t('vat.included')}</p>
       <div className="grid grid-cols-3 gap-2">
         {VIRTUAL_GIFTS.map((gift) => {
           const Icon = gift.icon;

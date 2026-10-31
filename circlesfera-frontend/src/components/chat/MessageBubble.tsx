@@ -234,6 +234,9 @@ export default memo(function MessageBubble({
                         price: formatCents(msg.priceCents || 0, i18n.language),
                       })}
                     </button>
+                    <p className="mt-1 text-xs text-white/60">
+                      {t('vat.included')}
+                    </p>
                   </div>
                 ) : (
                   <span

@@ -47,7 +47,7 @@ describe('MonetizationSubScreen', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows what the creator keeps and the platform fee, adding up to the price', () => {
+  it('shows what the creator keeps, the platform fee and the VAT inside, adding up to the price', () => {
     const { i18n } = renderWithProviders(<Harness />);
 
     fireEvent.change(
@@ -56,16 +56,23 @@ describe('MonetizationSubScreen', () => {
     );
 
     expect(screen.getByTestId('price')).toHaveTextContent('9.99');
-    // 999 cents: 799 for the creator and 200 for the platform.
-    expect(screen.getByText('€7.99')).toBeInTheDocument();
-    expect(screen.getByText('€2.00')).toBeInTheDocument();
+    // 999 cents paid in the EU: 173 of VAT inside, and the 826 left split,
+    // the fee rounded down: 165 for the platform, 661 for the creator.
+    expect(screen.getByText('€6.61')).toBeInTheDocument();
+    expect(screen.getByText('€1.65')).toBeInTheDocument();
+    expect(screen.getByText('€1.73')).toBeInTheDocument();
+    expect(
+      screen.getByText('VAT inside, when bought from the EU (21%)'),
+    ).toBeInTheDocument();
   });
 
   it('writes the amounts as currency in Spanish', () => {
     renderWithProviders(<Harness initialPrice={10} />, { lng: 'es' });
 
-    expect(screen.getByText(/^8,00\s€$/)).toBeInTheDocument();
-    expect(screen.getByText(/^2,00\s€$/)).toBeInTheDocument();
+    // 10 € paid: 1,74 € of VAT, 1,65 € fee, 6,61 € for the creator.
+    expect(screen.getByText(/^6,61\s€$/)).toBeInTheDocument();
+    expect(screen.getByText(/^1,65\s€$/)).toBeInTheDocument();
+    expect(screen.getByText(/^1,74\s€$/)).toBeInTheDocument();
   });
 
   it.each([

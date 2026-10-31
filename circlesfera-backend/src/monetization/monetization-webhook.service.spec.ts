@@ -13,12 +13,14 @@ describe('MonetizationWebhookService', () => {
   // The payment provider is replaced: nothing here reaches it.
   let stripe: {
     refundDestinationCharge: ReturnType<typeof vi.fn>;
+    takeVatBackFromCreator: ReturnType<typeof vi.fn>;
     getAccount: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
     stripe = {
       refundDestinationCharge: vi.fn().mockResolvedValue({}),
+      takeVatBackFromCreator: vi.fn().mockResolvedValue(undefined),
       getAccount: vi.fn(),
     };
     const module: TestingModule = await Test.createTestingModule({
@@ -224,6 +226,126 @@ describe('MonetizationWebhookService', () => {
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'payment.alert',
         expect.objectContaining({ eventType: 'Post Unlock' }),
+      );
+    });
+
+    // 10 € paid, 1.74 € of it VAT: the creator earns 80% of the 8.26 €
+    // left, 6.61 €. They were sent 80% of the 10 €, 8 €, so 1.39 € is taken
+    // back before the payment is recorded.
+    it.each([
+      ['DIRECT_POST_UNLOCK', { postId: 'post1' }],
+      ['DIRECT_STORY_UNLOCK', { storyId: 'story1' }],
+      ['DIRECT_MESSAGE_UNLOCK', { messageId: 'msg1' }],
+      ['DIRECT_TIP', { postId: 'post1' }],
+    ])(
+      'records a %s at what was paid, the VAT inside it apart, and earns the creator their share of the rest',
+      async (type, ids) => {
+        await service.handleCheckoutSessionCompleted({
+          id: `cs_vat_${type}`,
+          client_reference_id: 'buyer1',
+          amount_subtotal: 1000,
+          amount_total: 1000,
+          total_details: { amount_tax: 174 },
+          currency: 'eur',
+          payment_intent: `pi_vat_${type}`,
+          metadata: { type, creatorId: 'creator1', ...ids },
+        } as any);
+
+        expect(stripe.takeVatBackFromCreator).toHaveBeenCalledWith({
+          paymentIntentId: `pi_vat_${type}`,
+          amountInCents: 139,
+        });
+        expect(
+          stripe.takeVatBackFromCreator.mock.invocationCallOrder[0],
+        ).toBeLessThan(prisma.$transaction.mock.invocationCallOrder[0]);
+        expect(prisma.transaction.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              type,
+              amount: 1000,
+              vatCents: 174,
+            }),
+          }),
+        );
+        expect(prisma.monetization.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            update: expect.objectContaining({
+              lifetimeEarningsCents: { increment: 661 },
+            }),
+            create: expect.objectContaining({ lifetimeEarningsCents: 661 }),
+          }),
+        );
+      },
+    );
+
+    it('records nothing when the VAT cannot be taken back, so the notice is tried again', async () => {
+      stripe.takeVatBackFromCreator.mockRejectedValueOnce(new Error('down'));
+
+      await expect(
+        service.handleCheckoutSessionCompleted({
+          id: 'cs_vat_fail',
+          client_reference_id: 'buyer1',
+          amount_total: 1000,
+          total_details: { amount_tax: 174 },
+          currency: 'eur',
+          payment_intent: 'pi_vat_fail',
+          metadata: {
+            type: 'DIRECT_POST_UNLOCK',
+            postId: 'post1',
+            creatorId: 'creator1',
+          },
+        } as any),
+      ).rejects.toThrow('down');
+      expect(prisma.transaction.create).not.toHaveBeenCalled();
+    });
+
+    it('takes nothing back from a payment with no VAT inside, from a buyer outside the EU', async () => {
+      await service.handleCheckoutSessionCompleted({
+        id: 'cs_no_vat',
+        client_reference_id: 'buyer1',
+        amount_total: 1000,
+        total_details: { amount_tax: 0 },
+        currency: 'eur',
+        payment_intent: 'pi_no_vat',
+        metadata: {
+          type: 'DIRECT_POST_UNLOCK',
+          postId: 'post1',
+          creatorId: 'creator1',
+        },
+      } as any);
+
+      expect(stripe.takeVatBackFromCreator).not.toHaveBeenCalled();
+      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ lifetimeEarningsCents: 800 }),
+        }),
+      );
+    });
+
+    it('hands a live gift on at what was paid, with the VAT inside it apart', async () => {
+      await service.handleCheckoutSessionCompleted({
+        id: 'cs_vat_gift',
+        client_reference_id: 'buyer1',
+        amount_total: 1000,
+        total_details: { amount_tax: 174 },
+        currency: 'eur',
+        payment_intent: 'pi_vat_gift',
+        metadata: {
+          type: 'DIRECT_LIVE_GIFT',
+          liveGiftId: 'lg1',
+          streamId: 's1',
+          giftId: 'star',
+          creatorId: 'creator1',
+        },
+      } as any);
+
+      expect(stripe.takeVatBackFromCreator).toHaveBeenCalledWith({
+        paymentIntentId: 'pi_vat_gift',
+        amountInCents: 139,
+      });
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'payment.live_gift_completed',
+        expect.objectContaining({ amountCents: 1000, vatCents: 174 }),
       );
     });
 
@@ -451,7 +573,11 @@ describe('MonetizationWebhookService', () => {
       const session = {
         id: 'cs_msg_gone',
         client_reference_id: 'buyer1',
+        // 4 € paid, 0.69 € of it VAT: all of it goes back, and no VAT is
+        // taken back from the creator, who keeps nothing.
+        amount_subtotal: 400,
         amount_total: 400,
+        total_details: { amount_tax: 69 },
         currency: 'eur',
         payment_intent: 'pi_msg_gone',
         metadata: {
@@ -508,6 +634,7 @@ describe('MonetizationWebhookService', () => {
             data: {
               type: 'DIRECT_MESSAGE_UNLOCK',
               amount: 400,
+              vatCents: 69,
               currency: 'EUR',
               senderId: 'buyer1',
               receiverId: 'creator1',
@@ -522,6 +649,7 @@ describe('MonetizationWebhookService', () => {
           expect(stripe.refundDestinationCharge).toHaveBeenCalledWith(
             refundAsked,
           );
+          expect(stripe.takeVatBackFromCreator).not.toHaveBeenCalled();
           expect(prisma.transaction.update).toHaveBeenCalledWith({
             where: { id: 'tx_gone' },
             data: { status: 'REFUNDED' },

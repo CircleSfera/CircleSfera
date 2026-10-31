@@ -96,6 +96,10 @@ export default function TipModal({
           </button>
         ))}
       </div>
+      {/* The amount is what is paid: the VAT is inside it. */}
+      <p className="mb-4 text-center text-xs text-white/50">
+        {t('vat.included')}
+      </p>
 
       <Button
         onClick={handleTip}

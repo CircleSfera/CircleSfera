@@ -5,7 +5,6 @@ import {
   MAX_PPV_PRICE_CENTS,
   MIN_PPV_PRICE_CENTS,
   MIN_TIP_CENTS,
-  PLATFORM_FEE_DECIMAL,
 } from '../common/constants/monetization.constants.js';
 import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
@@ -15,6 +14,7 @@ import {
   NOT_REMOVED,
 } from '../common/policies/removed-content.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
+import { creatorPaymentTax } from '../common/stripe/creator-payment-tax.js';
 import {
   deriveConnectAccountFlags,
   isVerifiedCompanyAccount,
@@ -189,7 +189,6 @@ export class MonetizationService {
     expiresAt?: number;
   }): Promise<{ url: string | null }> {
     await assertRealMoneyAllowed(this.prisma, params.buyerId);
-    const platformFee = Math.floor(params.priceCents * PLATFORM_FEE_DECIMAL);
 
     const session = await this.stripeService.createCheckoutSession(
       {
@@ -206,16 +205,15 @@ export class MonetizationService {
                 description: params.description,
               },
               unit_amount: params.priceCents,
+              tax_behavior: 'inclusive',
             },
             quantity: 1,
           },
         ],
-        payment_intent_data: {
-          application_fee_amount: platformFee,
-          transfer_data: {
-            destination: params.creatorStripeAccountId,
-          },
-        },
+        ...creatorPaymentTax({
+          priceCents: params.priceCents,
+          destination: params.creatorStripeAccountId,
+        }),
         metadata: params.metadata,
         ...(params.expiresAt !== undefined && {
           expires_at: params.expiresAt,
@@ -856,6 +854,7 @@ export class MonetizationService {
       },
       select: {
         amount: true,
+        vatCents: true,
         createdAt: true,
       },
     });
@@ -868,7 +867,8 @@ export class MonetizationService {
     for (const tx of transactions) {
       const key = tx.createdAt.toISOString().slice(0, 7);
       if (months.has(key)) {
-        months.set(key, months.get(key)! + tx.amount);
+        // A creator's income is what was paid without the VAT inside it.
+        months.set(key, months.get(key)! + tx.amount - tx.vatCents);
       }
     }
 
@@ -904,6 +904,7 @@ export class MonetizationService {
           },
           _sum: {
             amount: true,
+            vatCents: true,
           },
         }),
         this.prisma.transaction.aggregate({
@@ -914,6 +915,7 @@ export class MonetizationService {
           },
           _sum: {
             amount: true,
+            vatCents: true,
           },
         }),
         this.prisma.transaction.groupBy({
@@ -924,9 +926,13 @@ export class MonetizationService {
           },
           _sum: {
             amount: true,
+            vatCents: true,
           },
         }),
       ]);
+    // A creator's income is what was paid without the VAT inside it.
+    const income = (sum: { amount: number | null; vatCents: number | null }) =>
+      (sum.amount ?? 0) - (sum.vatCents ?? 0);
 
     const breakdownMap: Record<string, number> = {
       DIRECT_POST_UNLOCK: 0,
@@ -938,13 +944,13 @@ export class MonetizationService {
 
     for (const item of categoryBreakdown) {
       if (item.type in breakdownMap) {
-        breakdownMap[item.type] = item._sum.amount || 0;
+        breakdownMap[item.type] = income(item._sum);
       }
     }
 
     return {
-      currentMonthIncome: currentMonthTx._sum.amount || 0,
-      totalTips: allTimeTipsTx._sum.amount || 0,
+      currentMonthIncome: income(currentMonthTx._sum),
+      totalTips: income(allTimeTipsTx._sum),
       breakdown: {
         postUnlocks: breakdownMap.DIRECT_POST_UNLOCK,
         storyUnlocks: breakdownMap.DIRECT_STORY_UNLOCK,

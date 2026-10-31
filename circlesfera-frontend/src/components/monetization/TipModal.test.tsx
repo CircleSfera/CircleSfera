@@ -51,6 +51,19 @@ describe('TipModal', () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
+  it('says the amounts include VAT', () => {
+    renderWithProviders(
+      <TipModal
+        isOpen
+        onClose={onClose}
+        receiverId="creator-1"
+        receiverName="alice"
+      />,
+    );
+
+    expect(screen.getByText('VAT included')).toBeInTheDocument();
+  });
+
   it('keeps send disabled until an amount is chosen', () => {
     const { i18n } = renderWithProviders(
       <TipModal

@@ -1,4 +1,7 @@
 {
+  "vat": {
+    "included": "VAT included"
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for does not exist or has been moved."
@@ -1667,6 +1670,7 @@
       "max_price_warning": "Maximum price is €500.00",
       "creator_earning": "Your earnings (80%):",
       "platform_fee": "Platform fee (20%):",
+      "vat_inside": "VAT inside, when bought from the EU ({{rate}}%)",
       "schedule": "Schedule publish",
       "schedule_desc": "Leave empty to publish immediately.",
       "clear_schedule": "Clear schedule",

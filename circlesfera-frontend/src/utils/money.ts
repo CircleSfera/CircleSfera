@@ -18,3 +18,15 @@ export function formatWholeEuros(euros: number, language: string): string {
     maximumFractionDigits: 0,
   });
 }
+
+// The VAT inside a price paid in the EU: Spain's 21%, which every buyer in
+// the EU pays while CircleSfera's sales to other EU countries stay under the
+// small-seller threshold. A buyer outside the EU pays the same price with
+// no VAT inside.
+export const VAT_RATE_PERCENT = 21;
+
+// The VAT inside a price, rounded to the cent, as the payment provider
+// works it out.
+export function vatInside(cents: number): number {
+  return Math.round((cents * VAT_RATE_PERCENT) / (100 + VAT_RATE_PERCENT));
+}

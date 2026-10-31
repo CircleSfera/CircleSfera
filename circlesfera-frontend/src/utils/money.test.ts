@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCents, formatWholeEuros } from './money';
+import { formatCents, formatWholeEuros, vatInside } from './money';
 
 describe('formatCents', () => {
   it('formats cents in euros by default, in the app language', () => {
@@ -16,5 +16,14 @@ describe('formatWholeEuros', () => {
   it('writes a whole amount with no decimals, in the app language', () => {
     expect(formatWholeEuros(2, 'en')).toBe('€2');
     expect(formatWholeEuros(50, 'es')).toMatch(/^50\s€$/);
+  });
+});
+
+describe('vatInside', () => {
+  it('finds the 21% VAT inside a price, rounded to the cent, as the provider does', () => {
+    expect(vatInside(499)).toBe(87);
+    expect(vatInside(1000)).toBe(174);
+    expect(vatInside(200)).toBe(35);
+    expect(vatInside(0)).toBe(0);
   });
 });

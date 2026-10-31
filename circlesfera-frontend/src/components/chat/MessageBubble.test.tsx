@@ -205,6 +205,16 @@ describe('MessageBubble', () => {
     ).toBeInTheDocument();
   });
 
+  it('says under the unlock button that the price includes VAT', () => {
+    renderBubble(
+      { content: 'x', isLocked: true, priceCents: 1250 },
+      { onUnlock: vi.fn() },
+      'es',
+    );
+
+    expect(screen.getByText('IVA incluido')).toBeInTheDocument();
+  });
+
   it('labels edited and delivery state from the catalog for own messages', () => {
     const { i18n } = renderBubble(
       { content: 'edited body', isEdited: true },

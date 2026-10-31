@@ -67,6 +67,15 @@ describe('LiveGiftModal', () => {
     ).toBeInTheDocument();
   });
 
+  it('says the gift prices include VAT', () => {
+    renderWithProviders(
+      <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,
+      { lng: 'es' },
+    );
+
+    expect(screen.getByText('IVA incluido')).toBeInTheDocument();
+  });
+
   it('uses Spanish catalog gift names', () => {
     const { i18n } = renderWithProviders(
       <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,

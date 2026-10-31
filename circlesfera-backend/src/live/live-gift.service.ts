@@ -4,14 +4,12 @@ import {
 } from '@circlesfera/shared';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import {
-  CREATOR_SHARE_DECIMAL,
-  PLATFORM_FEE_DECIMAL,
-} from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
+import { creatorPaymentTax } from '../common/stripe/creator-payment-tax.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { creatorEarnings } from '../monetization/paid-amounts.js';
 import {
   payoutAccountPlacement,
   payoutDestinationFor,
@@ -114,7 +112,6 @@ export class LiveGiftService {
     if (!sender)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    const platformFee = Math.floor(amountCents * PLATFORM_FEE_DECIMAL);
     const giftName = resolveGiftName(giftId, 'en');
     if (!giftName) {
       throw new BadRequestException(
@@ -189,16 +186,15 @@ export class LiveGiftService {
                     description: `Gift for @${stream.host.username || 'creator'}`,
                   },
                   unit_amount: amountCents,
+                  tax_behavior: 'inclusive',
                 },
                 quantity: 1,
               },
             ],
-            payment_intent_data: {
-              application_fee_amount: platformFee,
-              transfer_data: {
-                destination,
-              },
-            },
+            ...creatorPaymentTax({
+              priceCents: amountCents,
+              destination,
+            }),
             metadata: {
               type: 'DIRECT_LIVE_GIFT',
               liveGiftId: pendingGift.id,
@@ -259,6 +255,7 @@ export class LiveGiftService {
     giftId: string;
     creatorId: string;
     amountCents: number;
+    vatCents?: number;
     currency: string;
     paymentIntentId: string | null;
   }) {
@@ -312,6 +309,7 @@ export class LiveGiftService {
         data: {
           type: 'DIRECT_LIVE_GIFT',
           amount: params.amountCents,
+          vatCents: params.vatCents ?? 0,
           currency: params.currency.toUpperCase(),
           senderId: sender?.id ?? null,
           receiverId: creator?.id ?? null,
@@ -342,14 +340,18 @@ export class LiveGiftService {
           update: {
             ...placed,
             lifetimeEarningsCents: {
-              increment: Math.floor(params.amountCents * CREATOR_SHARE_DECIMAL),
+              increment: creatorEarnings(
+                params.amountCents,
+                params.vatCents ?? 0,
+              ),
             },
           },
           create: {
             userId: creator.id,
             ...placed,
-            lifetimeEarningsCents: Math.floor(
-              params.amountCents * CREATOR_SHARE_DECIMAL,
+            lifetimeEarningsCents: creatorEarnings(
+              params.amountCents,
+              params.vatCents ?? 0,
             ),
           },
         });

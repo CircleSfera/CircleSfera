@@ -121,8 +121,8 @@ export class PaymentsService {
     });
 
     const header = userId
-      ? 'ID,Date,Type,Direction,Amount,Currency,Status,Description\n'
-      : 'ID,Date,Type,Amount,Currency,Status,Sender,Receiver,Description\n';
+      ? 'ID,Date,Type,Direction,Amount,VAT,Currency,Status,Description\n'
+      : 'ID,Date,Type,Amount,VAT,Currency,Status,Sender,Receiver,Description\n';
     const rows = transactions
       .map((tx) => {
         const parties = tx as typeof tx & {
@@ -130,7 +130,13 @@ export class PaymentsService {
           receiver?: { email: string } | null;
         };
         const common = [tx.id, tx.createdAt.toISOString(), tx.type];
-        const money = [centsToEuros(tx.amount), tx.currency, tx.status];
+        // The amount is what was paid; the VAT is the part of it that is VAT.
+        const money = [
+          centsToEuros(tx.amount),
+          centsToEuros(tx.vatCents),
+          tx.currency,
+          tx.status,
+        ];
         const cells = userId
           ? [
               ...common,

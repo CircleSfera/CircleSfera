@@ -24,7 +24,7 @@ export class GetRevenueAnalyticsQuery {
           status: 'COMPLETED',
           createdAt: { gte: startDate },
         },
-        select: { type: true, amount: true },
+        select: { type: true, amount: true, vatCents: true },
       }),
       this.prisma.follow.count({
         where: { followingId: profileId, status: 'ACCEPTED' },
@@ -37,7 +37,8 @@ export class GetRevenueAnalyticsQuery {
     let giftsCents = 0;
 
     for (const tx of transactions) {
-      const cents = Math.max(tx.amount, 0);
+      // What was paid without the VAT inside it.
+      const cents = Math.max(tx.amount - tx.vatCents, 0);
       if (tx.type === 'DIRECT_TIP') tipsCents += cents;
       else if (
         tx.type === 'DIRECT_POST_UNLOCK' ||

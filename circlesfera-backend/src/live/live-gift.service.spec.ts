@@ -177,9 +177,12 @@ describe('LiveGiftService', () => {
               }),
             }),
           ],
-          payment_intent_data: expect.objectContaining({
-            application_fee_amount: platformFee,
-          }),
+          automatic_tax: { enabled: true, liability: { type: 'self' } },
+          payment_intent_data: {
+            transfer_data: expect.objectContaining({
+              amount: amountCents - platformFee,
+            }),
+          },
         }),
         expect.anything(),
       );
@@ -251,6 +254,40 @@ describe('LiveGiftService', () => {
       expect(mockServer.emit).toHaveBeenCalledWith(
         'live:gift',
         expect.objectContaining({ receiverId: 'creator-1' }),
+      );
+      mockPrismaService.user.findUnique.mockReset();
+    });
+
+    it('records the VAT apart and earns the host their share of what was paid without it', async () => {
+      mockPrismaService.liveGift.findUnique.mockResolvedValue({
+        id: 'gift-1',
+        status: 'PENDING',
+        receiverId: 'creator-1',
+        sender: { profiles: [{ username: 'fan', avatar: null }] },
+      });
+      mockPrismaService.user.findUnique.mockImplementation(
+        ({ where }: { where: { id: string } }) =>
+          Promise.resolve({ id: where.id }),
+      );
+      mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
+
+      // 10 € paid, 1.74 € of it VAT: the host earns 80% of the 8.26 € left.
+      await service.completeGiftPayment({
+        ...params,
+        amountCents: 1000,
+        vatCents: 174,
+      });
+
+      expect(mockPrismaService.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ amount: 1000, vatCents: 174 }),
+        }),
+      );
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ lifetimeEarningsCents: 661 }),
+        }),
       );
       mockPrismaService.user.findUnique.mockReset();
     });

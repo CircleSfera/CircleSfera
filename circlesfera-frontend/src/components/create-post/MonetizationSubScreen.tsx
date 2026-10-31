@@ -1,11 +1,11 @@
 import { Euro } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
-  CREATOR_SHARE,
   MAX_PPV_PRICE_EUR,
   MIN_PPV_PRICE_EUR,
+  PLATFORM_FEE,
 } from '../../constants/monetization';
-import { formatCents } from '../../utils/money';
+import { formatCents, VAT_RATE_PERCENT, vatInside } from '../../utils/money';
 import { Switch } from '../ui';
 import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
 import SubScreenHeader from './SubScreenHeader';
@@ -26,9 +26,14 @@ export default function MonetizationSubScreen({
   onClose,
 }: MonetizationSubScreenProps) {
   const { t, i18n } = useTranslation();
-  // Whole cents, so the two amounts always add up to the price.
+  // Whole cents, so the amounts always add up to the price. The price is
+  // what the buyer pays; the VAT inside it is taken out first, for a buyer
+  // in the EU, and the rest is split, the fee rounded down as the payment
+  // is.
   const priceCents = Math.round(price * 100);
-  const creatorCents = Math.round(priceCents * CREATOR_SHARE);
+  const vatCents = vatInside(priceCents);
+  const splitCents = priceCents - vatCents;
+  const creatorCents = splitCents - Math.floor(splitCents * PLATFORM_FEE);
 
   return (
     <div className={SUBSCREEN_SHELL}>
@@ -102,8 +107,16 @@ export default function MonetizationSubScreen({
                 <div className="flex justify-between text-white/40">
                   <span>{t('createPost.caption.platform_fee')}</span>
                   <span>
-                    {formatCents(priceCents - creatorCents, i18n.language)}
+                    {formatCents(splitCents - creatorCents, i18n.language)}
                   </span>
+                </div>
+                <div className="flex justify-between text-white/40">
+                  <span>
+                    {t('createPost.caption.vat_inside', {
+                      rate: VAT_RATE_PERCENT,
+                    })}
+                  </span>
+                  <span>{formatCents(vatCents, i18n.language)}</span>
                 </div>
               </div>
             )}

@@ -17,6 +17,7 @@ export default function PaywallOverlay({
   isLoading,
 }: PaywallOverlayProps) {
   const { t, i18n } = useTranslation();
+  const priceCents = Math.round(price * 100);
   return (
     <motion.div
       initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
@@ -53,10 +54,14 @@ export default function PaywallOverlay({
           <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite]" />
           <span className="relative z-10 flex items-center gap-2">
             {t('monetization.unlock_for_money', {
-              price: formatCents(Math.round(price * 100), i18n.language),
+              price: formatCents(priceCents, i18n.language),
             })}
           </span>
         </Button>
+        {/* The price is what is paid: the VAT is inside it. */}
+        <p className="mt-3 text-center text-xs text-zinc-400">
+          {t('vat.included')}
+        </p>
       </motion.div>
     </motion.div>
   );
