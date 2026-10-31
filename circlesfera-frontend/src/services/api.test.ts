@@ -107,9 +107,12 @@ describe('apiClient', () => {
     expect(sent[0].headers['x-csrf-token']).toBe('t-new');
   });
 
-  it('retries a refused write once with a new CSRF token', async () => {
+  it('retries a write whose CSRF token was refused once with a new token', async () => {
     csrf('t-2');
-    const sent = serve([{ status: 403 }, { status: 200, data: { ok: true } }]);
+    const sent = serve([
+      { status: 403, data: { message: 'Invalid CSRF Token' } },
+      { status: 200, data: { ok: true } },
+    ]);
 
     const res = await apiClient.post('/comments', {});
 
@@ -121,8 +124,11 @@ describe('apiClient', () => {
   it('gives up after the CSRF retry, or when no new token can be fetched', async () => {
     csrf('t-3');
     serve([
-      { status: 403 },
-      { status: 403, data: { errorCode: 'FORBIDDEN_ACCESS' } },
+      { status: 403, data: { message: 'Invalid CSRF Token' } },
+      {
+        status: 403,
+        data: { message: 'Invalid CSRF Token', errorCode: 'FORBIDDEN_ACCESS' },
+      },
     ]);
     await expect(apiClient.post('/x', {})).rejects.toMatchObject({
       status: 403,
@@ -131,9 +137,26 @@ describe('apiClient', () => {
 
     vi.spyOn(axios, 'get').mockRejectedValue(new Error('down'));
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const sent = serve([{ status: 403 }]);
+    const sent = serve([
+      { status: 403, data: { message: 'Invalid CSRF Token' } },
+    ]);
     await expect(apiClient.post('/login-required', {})).rejects.toMatchObject({
       status: 403,
+    });
+    expect(sent).toHaveLength(1);
+  });
+
+  it('never sends again a write refused for any other reason', async () => {
+    csrf('t-6');
+    const sent = serve([
+      { status: 403, data: { message: 'TEST_ACCOUNT_NO_REAL_MONEY' } },
+    ]);
+
+    await expect(
+      apiClient.post('/payments/checkout', {}),
+    ).rejects.toMatchObject({
+      status: 403,
+      data: { message: 'TEST_ACCOUNT_NO_REAL_MONEY' },
     });
     expect(sent).toHaveLength(1);
   });
