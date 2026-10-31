@@ -14,7 +14,7 @@
     "check:deps": "node ../scripts/check-module-boundaries.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.3",
+    "@biomejs/biome": "2.6.4",
     "@prisma/client": "7.10.1",
     "@swc/core": "1.16.20",
     "dependency-cruiser": "18.7.0",
