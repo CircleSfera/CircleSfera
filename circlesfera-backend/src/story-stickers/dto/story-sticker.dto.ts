@@ -32,6 +32,7 @@ export class CreateStoryStickerDto {
       'COUNTDOWN',
       'LINK',
       'MUSIC',
+      'POST',
     ],
   })
   @IsEnum(StoryStickerKind)

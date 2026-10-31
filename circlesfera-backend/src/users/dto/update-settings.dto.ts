@@ -84,6 +84,13 @@ export class UpdateSettingsDto {
   @IsOptional()
   saveStoriesToArchive?: boolean;
 
+  // Whether others may share this Profile's posts and Frames to their
+  // stories. Off stops new shares only.
+  @ApiProperty({ required: false, type: () => Boolean })
+  @IsBoolean()
+  @IsOptional()
+  allowStoryShares?: boolean;
+
   // The newsletter about CircleSfera, apart from the email notices.
   @ApiProperty({ required: false, type: () => Boolean })
   @IsBoolean()

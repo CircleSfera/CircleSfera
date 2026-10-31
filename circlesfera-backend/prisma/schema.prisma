@@ -420,6 +420,9 @@ model Profile {
   // Who may see this Profile's content: each Profile of a person chooses for
   // itself. PRIVATE asks for an accepted follow.
   privacyLevel         Visibility @default(PUBLIC)
+  // Whether others may share this Profile's posts and Frames to their
+  // stories, as a card of the original. Off stops new shares only.
+  allowStoryShares     Boolean    @default(true)
   // Push notifications of this Profile; the person's other Profiles keep
   // their own choice. Off pauses every push of the Profile.
   pushNotifications    Boolean    @default(true)
@@ -1213,6 +1216,8 @@ enum StoryStickerKind {
   COUNTDOWN
   LINK
   MUSIC
+  // A card of a post or Frame shared to the story; the original is not copied.
+  POST
 }
 
 /// A sticker on a story: a poll, a question, a quiz, a slider, a mention, a
