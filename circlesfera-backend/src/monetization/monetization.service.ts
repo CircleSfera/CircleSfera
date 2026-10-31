@@ -829,10 +829,13 @@ export class MonetizationService {
   }
 
   async getIncomeStats(userId: string) {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    sixMonthsAgo.setDate(1);
-    sixMonthsAgo.setHours(0, 0, 0, 0);
+    // The first day of this month and of the five before it, in UTC as the
+    // months are keyed. Counted from the first of the month: from the 31st,
+    // a month back would land past a shorter month and name one twice.
+    const now = new Date();
+    const monthStart = (back: number) =>
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - back, 1));
+    const sixMonthsAgo = monthStart(5);
 
     const transactions = await this.prisma.transaction.findMany({
       where: {
@@ -859,10 +862,7 @@ export class MonetizationService {
 
     const months = new Map<string, number>();
     for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const key = d.toISOString().slice(0, 7); // YYYY-MM
-      months.set(key, 0);
+      months.set(monthStart(i).toISOString().slice(0, 7), 0); // YYYY-MM
     }
 
     for (const tx of transactions) {

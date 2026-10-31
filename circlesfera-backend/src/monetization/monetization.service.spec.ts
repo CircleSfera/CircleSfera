@@ -1,6 +1,6 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -1749,6 +1749,40 @@ describe('MonetizationService', () => {
       const currentEntry = res.find((r) => r.month === currentMonthKey);
       expect(currentEntry?.income).toBe(2000);
     });
+  });
+
+  describe('getIncomeStats on the last day of a month', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it.each([
+      [
+        '2026-10-31T12:00:00Z',
+        ['2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10'],
+      ],
+      [
+        '2026-07-31T12:00:00Z',
+        ['2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07'],
+      ],
+    ])(
+      'names six different months, from the first of the oldest, on %s',
+      async (today, expected) => {
+        vi.useFakeTimers({ now: new Date(today) });
+        mockPrismaService.transaction.findMany.mockResolvedValue([]);
+
+        const res = await service.getIncomeStats('u-1');
+
+        expect(res.map((r) => r.month)).toEqual(expected);
+        expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              createdAt: { gte: new Date(`${expected[0]}-01T00:00:00Z`) },
+            }),
+          }),
+        );
+      },
+    );
   });
 
   describe('getFinancialSummary', () => {
