@@ -6,7 +6,7 @@
 # repository's own copy of these same digests instead
 # (scripts/use-own-base-images.sh): the public mirror also stops serving once
 # its allowance is used up.
-FROM public.ecr.aws/docker/library/node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS build
+FROM public.ecr.aws/docker/library/node:24-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85 AS build
 
 WORKDIR /app
 
@@ -49,7 +49,7 @@ ENV VITE_SENTRY_RELEASE=$VITE_SENTRY_RELEASE
 RUN npm run build
 
 # Production Stage
-FROM public.ecr.aws/docker/library/nginx:alpine@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417 AS production
+FROM public.ecr.aws/docker/library/nginx:alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606 AS production
 
 # Copy the built application from the build stage to Nginx html directory
 COPY --from=build /app/circlesfera-frontend/dist /usr/share/nginx/html
