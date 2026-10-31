@@ -329,9 +329,11 @@ describe('MonetizationService', () => {
           success_url:
             'http://localhost/return?foo=bar&success=true&session_id={CHECKOUT_SESSION_ID}',
           cancel_url: 'http://localhost/return?foo=bar&canceled=true',
+          // Before VAT: the provider adds it, CircleSfera keeps it, and the
+          // creator's account receives the price less the 20% fee.
+          automatic_tax: { enabled: true, liability: { type: 'self' } },
           payment_intent_data: {
-            application_fee_amount: 200,
-            transfer_data: { destination: 'acct_1' },
+            transfer_data: { destination: 'acct_1', amount: 800 },
           },
         }),
         { idempotencyKey: 'idemp-1' },
@@ -488,9 +490,11 @@ describe('MonetizationService', () => {
       expect(res.url).toBe('https://checkout.stripe.test/story');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
+          // Before VAT: the provider adds it, CircleSfera keeps it, and the
+          // creator's account receives the price less the 20% fee.
+          automatic_tax: { enabled: true, liability: { type: 'self' } },
           payment_intent_data: {
-            application_fee_amount: 120,
-            transfer_data: { destination: 'acct_1' },
+            transfer_data: { destination: 'acct_1', amount: 480 },
           },
           metadata: {
             type: 'DIRECT_STORY_UNLOCK',
@@ -683,9 +687,11 @@ describe('MonetizationService', () => {
       expect(session.expires_at).toBeLessThanOrEqual(after + 31 * 60);
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
+          // Before VAT: the provider adds it, CircleSfera keeps it, and the
+          // creator's account receives the price less the 20% fee.
+          automatic_tax: { enabled: true, liability: { type: 'self' } },
           payment_intent_data: {
-            application_fee_amount: 100,
-            transfer_data: { destination: 'acct_1' },
+            transfer_data: { destination: 'acct_1', amount: 400 },
           },
           metadata: {
             type: 'DIRECT_MESSAGE_UNLOCK',
@@ -815,9 +821,12 @@ describe('MonetizationService', () => {
               price_data: expect.objectContaining({ unit_amount: tipCents }),
             }),
           ],
-          payment_intent_data: expect.objectContaining({
-            application_fee_amount: Math.floor(tipCents * PLATFORM_FEE_DECIMAL),
-          }),
+          automatic_tax: { enabled: true, liability: { type: 'self' } },
+          payment_intent_data: {
+            transfer_data: expect.objectContaining({
+              amount: tipCents - Math.floor(tipCents * PLATFORM_FEE_DECIMAL),
+            }),
+          },
           metadata: {
             type: 'DIRECT_TIP',
             creatorId: 'creator-1',

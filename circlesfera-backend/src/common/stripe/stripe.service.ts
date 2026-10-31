@@ -161,8 +161,9 @@ export class StripeService implements OnModuleInit {
   }
 
   // Refund in full a payment made to a creator through a destination charge.
-  // What was sent to the creator's account and the platform fee both come
-  // back, so the creator keeps nothing of it.
+  // What was sent to the creator's account comes back, so the creator keeps
+  // nothing of it; the platform fee and the VAT never left CircleSfera's
+  // balance, which pays the rest of the refund.
   async refundDestinationCharge(params: {
     paymentIntentId: string;
     amountInCents: number;
@@ -175,7 +176,6 @@ export class StripeService implements OnModuleInit {
         amount: params.amountInCents,
         reason: 'requested_by_customer',
         reverse_transfer: true,
-        refund_application_fee: true,
         metadata: params.metadata,
       },
       { idempotencyKey: params.idempotencyKey },

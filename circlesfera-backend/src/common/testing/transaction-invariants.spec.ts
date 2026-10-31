@@ -157,10 +157,10 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       expect(res.url).toBe('https://checkout.stripe.com/tip');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          payment_intent_data: expect.objectContaining({
-            application_fee_amount: 200, // 20% of 1000 cents
-            transfer_data: { destination: 'acct_creator_123' },
-          }),
+          // 80% of 1000 cents; the 20% and any VAT stay with the platform.
+          payment_intent_data: {
+            transfer_data: { destination: 'acct_creator_123', amount: 800 },
+          },
         }),
         expect.anything(),
       );

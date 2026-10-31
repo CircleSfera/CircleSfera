@@ -227,6 +227,39 @@ describe('MonetizationWebhookService', () => {
       );
     });
 
+    it('records the price before VAT and pays the creator 80% of it, never of the VAT', async () => {
+      const session = {
+        id: 'cs_unlock_vat',
+        client_reference_id: 'buyer1',
+        // 10 € plus 21% VAT.
+        amount_subtotal: 1000,
+        amount_total: 1210,
+        currency: 'eur',
+        payment_intent: 'pi_vat',
+        metadata: {
+          type: 'DIRECT_POST_UNLOCK',
+          postId: 'post1',
+          creatorId: 'creator1',
+        },
+      } as any;
+
+      await service.handleCheckoutSessionCompleted(session);
+
+      expect(prisma.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ amount: 1000 }),
+        }),
+      );
+      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({
+            lifetimeEarningsCents: { increment: 800 },
+          }),
+          create: expect.objectContaining({ lifetimeEarningsCents: 800 }),
+        }),
+      );
+    });
+
     it('processes a DIRECT_TIP checkout and notifies the creator', async () => {
       const session = {
         id: 'cs_tip_1',
@@ -451,7 +484,10 @@ describe('MonetizationWebhookService', () => {
       const session = {
         id: 'cs_msg_gone',
         client_reference_id: 'buyer1',
-        amount_total: 400,
+        // 4 € plus 21% VAT: the price is what is recorded, and all the
+        // buyer paid is what goes back.
+        amount_subtotal: 400,
+        amount_total: 484,
         currency: 'eur',
         payment_intent: 'pi_msg_gone',
         metadata: {
@@ -462,7 +498,7 @@ describe('MonetizationWebhookService', () => {
       } as any;
       const refundAsked = {
         paymentIntentId: 'pi_msg_gone',
-        amountInCents: 400,
+        amountInCents: 484,
         idempotencyKey: 'message-unlock-refund-cs_msg_gone',
         metadata: {
           type: 'DIRECT_MESSAGE_UNLOCK',

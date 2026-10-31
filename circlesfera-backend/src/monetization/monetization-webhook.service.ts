@@ -19,6 +19,7 @@ import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { payoutAccountPlacement } from './payout-account.js';
+import { priceBeforeVat } from './price-before-vat.js';
 
 // Stripe Checkout Session metadata.type values fulfilled here rather than
 // by PaymentsService's platform-subscription branch. STRIPE_SUBSCRIPTION is
@@ -175,7 +176,7 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_POST_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
       const { postId, creatorId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = priceBeforeVat(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
@@ -248,7 +249,7 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_STORY_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
       const { storyId, creatorId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = priceBeforeVat(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
@@ -310,7 +311,7 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_MESSAGE_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
       const { messageId, creatorId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = priceBeforeVat(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
@@ -397,7 +398,7 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_TIP') {
       const clientReferenceId = session.client_reference_id;
       const { creatorId, postId, profileId, senderProfileId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = priceBeforeVat(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
@@ -475,7 +476,7 @@ export class MonetizationWebhookService {
     } else if (metadata?.type === 'DIRECT_LIVE_GIFT') {
       const clientReferenceId = session.client_reference_id;
       const { liveGiftId, streamId, giftId, creatorId } = metadata;
-      const amount = session.amount_total || 0;
+      const amount = priceBeforeVat(session);
       const paymentIntentId =
         typeof session.payment_intent === 'string'
           ? session.payment_intent
@@ -609,7 +610,8 @@ export class MonetizationWebhookService {
     try {
       await this.stripeService.refundDestinationCharge({
         paymentIntentId,
-        amountInCents: amount,
+        // All the buyer paid, VAT included.
+        amountInCents: session.amount_total ?? amount,
         idempotencyKey: `message-unlock-refund-${session.id}`,
         metadata: {
           type: 'DIRECT_MESSAGE_UNLOCK',

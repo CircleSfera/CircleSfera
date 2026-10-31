@@ -51,6 +51,23 @@ describe('TipModal', () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
+  it('says the amounts are before VAT', () => {
+    renderWithProviders(
+      <TipModal
+        isOpen
+        onClose={onClose}
+        receiverId="creator-1"
+        receiverName="alice"
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        'Prices before VAT. The VAT where you live is added at checkout.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('keeps send disabled until an amount is chosen', () => {
     const { i18n } = renderWithProviders(
       <TipModal

@@ -11,6 +11,7 @@ import {
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
+import { creatorPaymentTax } from '../common/stripe/creator-payment-tax.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import {
   payoutAccountPlacement,
@@ -189,16 +190,16 @@ export class LiveGiftService {
                     description: `Gift for @${stream.host.username || 'creator'}`,
                   },
                   unit_amount: amountCents,
+                  tax_behavior: 'exclusive',
                 },
                 quantity: 1,
               },
             ],
-            payment_intent_data: {
-              application_fee_amount: platformFee,
-              transfer_data: {
-                destination,
-              },
-            },
+            ...creatorPaymentTax({
+              priceCents: amountCents,
+              platformFeeCents: platformFee,
+              destination,
+            }),
             metadata: {
               type: 'DIRECT_LIVE_GIFT',
               liveGiftId: pendingGift.id,

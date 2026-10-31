@@ -57,6 +57,9 @@ export default function PaywallOverlay({
             })}
           </span>
         </Button>
+        <p className="mt-3 max-w-[240px] text-center text-xs text-zinc-400">
+          {t('monetization.price_before_vat')}
+        </p>
       </motion.div>
     </motion.div>
   );

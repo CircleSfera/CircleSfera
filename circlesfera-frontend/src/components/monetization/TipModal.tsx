@@ -76,7 +76,7 @@ export default function TipModal({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-3">
         {TIP_AMOUNTS.map((amount) => (
           <button
             key={amount}
@@ -96,6 +96,9 @@ export default function TipModal({
           </button>
         ))}
       </div>
+      <p className="mb-4 text-center text-xs text-white/50">
+        {t('monetization.prices_before_vat')}
+      </p>
 
       <Button
         onClick={handleTip}

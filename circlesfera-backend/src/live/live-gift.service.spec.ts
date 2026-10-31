@@ -177,9 +177,12 @@ describe('LiveGiftService', () => {
               }),
             }),
           ],
-          payment_intent_data: expect.objectContaining({
-            application_fee_amount: platformFee,
-          }),
+          automatic_tax: { enabled: true, liability: { type: 'self' } },
+          payment_intent_data: {
+            transfer_data: expect.objectContaining({
+              amount: amountCents - platformFee,
+            }),
+          },
         }),
         expect.anything(),
       );

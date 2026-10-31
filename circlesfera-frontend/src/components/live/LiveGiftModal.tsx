@@ -106,11 +106,15 @@ export default function LiveGiftModal({
           className={`button-alone ${CREATE_PRIMARY}`}
         >
           {t('live.confirm_send_gift')} (
-          {formatWholeEuros(selectedGift.price, i18n.language)})
+          {formatWholeEuros(selectedGift.price, i18n.language)}{' '}
+          {t('monetization.plus_vat')})
         </button>
       }
     >
-      <p className="mb-3 text-sm text-white/70">{t('live.send_gift_desc')}</p>
+      <p className="text-sm text-white/70">{t('live.send_gift_desc')}</p>
+      <p className="mb-3 mt-1 text-xs text-white/50">
+        {t('monetization.prices_before_vat')}
+      </p>
       <div className="grid grid-cols-3 gap-2">
         {VIRTUAL_GIFTS.map((gift) => {
           const Icon = gift.icon;

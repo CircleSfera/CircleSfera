@@ -191,8 +191,8 @@ describe('MessageBubble', () => {
     expect(onUnlock).toHaveBeenCalledWith('msg-1');
   });
 
-  it('prices a locked message in the reader language', () => {
-    const { i18n } = renderBubble(
+  it('prices a locked message in the reader language, before VAT', () => {
+    renderBubble(
       { content: 'x', isLocked: true, priceCents: 1250 },
       { onUnlock: vi.fn() },
       'es',
@@ -200,7 +200,7 @@ describe('MessageBubble', () => {
 
     expect(
       screen.getByRole('button', {
-        name: i18n!.t('chat.unlock_for', { price: '12,50\u00a0€' }),
+        name: 'Desbloquear por 12,50\u00a0€ + IVA',
       }),
     ).toBeInTheDocument();
   });

@@ -15,6 +15,7 @@ import {
   NOT_REMOVED,
 } from '../common/policies/removed-content.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
+import { creatorPaymentTax } from '../common/stripe/creator-payment-tax.js';
 import {
   deriveConnectAccountFlags,
   isVerifiedCompanyAccount,
@@ -206,16 +207,16 @@ export class MonetizationService {
                 description: params.description,
               },
               unit_amount: params.priceCents,
+              tax_behavior: 'exclusive',
             },
             quantity: 1,
           },
         ],
-        payment_intent_data: {
-          application_fee_amount: platformFee,
-          transfer_data: {
-            destination: params.creatorStripeAccountId,
-          },
-        },
+        ...creatorPaymentTax({
+          priceCents: params.priceCents,
+          platformFeeCents: platformFee,
+          destination: params.creatorStripeAccountId,
+        }),
         metadata: params.metadata,
         ...(params.expiresAt !== undefined && {
           expires_at: params.expiresAt,

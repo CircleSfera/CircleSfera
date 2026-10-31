@@ -18,6 +18,18 @@ describe('PaywallOverlay', () => {
     expect(onUnlock).toHaveBeenCalledTimes(1);
   });
 
+  it('says under the button that the price is before VAT', () => {
+    renderWithProviders(<PaywallOverlay price={12.5} onUnlock={vi.fn()} />, {
+      lng: 'es',
+    });
+
+    expect(
+      screen.getByText(
+        'Precio sin IVA. Al pagar se suma el IVA de donde vives.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('rounds a float price to whole cents', () => {
     renderWithProviders(
       <PaywallOverlay price={0.1 + 0.2} onUnlock={vi.fn()} />,

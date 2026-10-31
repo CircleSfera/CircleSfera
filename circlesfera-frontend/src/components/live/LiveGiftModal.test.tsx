@@ -67,6 +67,22 @@ describe('LiveGiftModal', () => {
     ).toBeInTheDocument();
   });
 
+  it('says the gift prices are before VAT, on the list and on the button', () => {
+    renderWithProviders(
+      <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,
+      { lng: 'es' },
+    );
+
+    expect(
+      screen.getByText(
+        'Precios sin IVA. Al pagar se suma el IVA de donde vives.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /\d\s€ \+ IVA\)$/ }),
+    ).toBeInTheDocument();
+  });
+
   it('uses Spanish catalog gift names', () => {
     const { i18n } = renderWithProviders(
       <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,

@@ -294,7 +294,7 @@ describe('StripeService refund of a checkout', () => {
 });
 
 describe('StripeService refund of a payment to a creator', () => {
-  it('refunds it in full, taking back the transfer and the fee, once per key', async () => {
+  it('refunds it in full, taking back what was sent to the creator, once per key', async () => {
     const { service } = serviceWith();
     client.refunds.create.mockResolvedValue({ id: 're_9' });
 
@@ -314,7 +314,6 @@ describe('StripeService refund of a payment to a creator', () => {
         amount: 499,
         reason: 'requested_by_customer',
         reverse_transfer: true,
-        refund_application_fee: true,
         metadata: { reason: 'gone' },
       },
       { idempotencyKey: 'key-9' },
