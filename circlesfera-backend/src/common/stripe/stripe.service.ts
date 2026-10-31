@@ -8,7 +8,7 @@ import { stripeWebhookSecrets } from './stripe-webhook-secrets.js';
 const PAYMENT_METHOD_CONFIGURATION = /^pmc_[A-Za-z0-9]+$/;
 
 // Keep in sync with the installed `stripe` package's LatestApiVersion.
-const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2026-09-30.endive';
+const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2026-10-28.endive';
 
 @Injectable()
 export class StripeService implements OnModuleInit {

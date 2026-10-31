@@ -23,7 +23,7 @@ if (!stripeKey) {
 }
 
 const stripe = new Stripe(stripeKey, {
-  apiVersion: '2026-09-30.endive' as any,
+  apiVersion: '2026-10-28.endive' as any,
 });
 
 const PLANS = [
