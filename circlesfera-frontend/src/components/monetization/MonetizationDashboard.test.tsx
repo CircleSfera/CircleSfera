@@ -45,6 +45,7 @@ describe('MonetizationDashboard', () => {
       totalEarningsCents: 0,
       currentMonthEarningsCents: 0,
       unassignedEarningsCents: 0,
+      unassignedCurrentMonthEarningsCents: 0,
       profiles: [],
     });
   });

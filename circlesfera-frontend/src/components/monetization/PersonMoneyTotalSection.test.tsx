@@ -15,6 +15,7 @@ const twoProfiles: PersonMoneyTotal = {
   totalEarningsCents: 3000,
   currentMonthEarningsCents: 1200,
   unassignedEarningsCents: 0,
+  unassignedCurrentMonthEarningsCents: 0,
   profiles: [
     {
       profileId: 'p-1',
@@ -72,7 +73,9 @@ describe('PersonMoneyTotalSection', () => {
     vi.mocked(monetizationApi.getPersonTotal).mockResolvedValue({
       ...twoProfiles,
       totalEarningsCents: 3450,
+      currentMonthEarningsCents: 1350,
       unassignedEarningsCents: 450,
+      unassignedCurrentMonthEarningsCents: 150,
     });
 
     const { i18n } = renderWithProviders(<PersonMoneyTotalSection />);
@@ -81,6 +84,8 @@ describe('PersonMoneyTotalSection', () => {
       await screen.findByText(i18n!.t('creator.income.all_profiles.earlier')),
     ).toBeInTheDocument();
     expect(screen.getByText('€4.50')).toBeInTheDocument();
+    // This month's part too, so the rows add up to the month's total.
+    expect(screen.getByText('€1.50 this month')).toBeInTheDocument();
   });
 
   it('shows earlier income even with a single Profile', async () => {

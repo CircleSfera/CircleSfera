@@ -4,8 +4,10 @@ import { apiClient as api } from './api';
 export interface PersonMoneyTotal {
   totalEarningsCents: number;
   currentMonthEarningsCents: number;
-  // Earned before income named its Profile, or by a Profile since deleted.
+  // Income that names none of the person's Profiles: from before income
+  // named its Profile, or from a Profile, post or story since deleted.
   unassignedEarningsCents: number;
+  unassignedCurrentMonthEarningsCents: number;
   profiles: {
     profileId: string;
     username: string;

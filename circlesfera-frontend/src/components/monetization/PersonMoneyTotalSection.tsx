@@ -76,7 +76,12 @@ export default function PersonMoneyTotalSection() {
           {total.unassignedEarningsCents > 0 ? (
             <CreatorRow
               title={t('creator.income.all_profiles.earlier')}
-              facts={[t('creator.income.all_profiles.earlier_hint')]}
+              facts={[
+                t('creator.income.all_profiles.month_line', {
+                  amount: money(total.unassignedCurrentMonthEarningsCents),
+                }),
+                t('creator.income.all_profiles.earlier_hint'),
+              ]}
               badge={
                 <span className="shrink-0 text-sm font-medium tabular-nums text-white">
                   {money(total.unassignedEarningsCents)}

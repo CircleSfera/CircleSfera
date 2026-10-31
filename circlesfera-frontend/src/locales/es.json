@@ -2374,7 +2374,7 @@
     "income": {
       "connect_success": "Cuenta de Stripe vinculada correctamente.",
       "breakdown": "Por tipo de ingreso",
-      "breakdown_hint": "Tu parte, después de que Stripe aplique el 20 % de la plataforma.",
+      "breakdown_hint": "Tu parte: el precio sin IVA, menos el 20 % de la plataforma.",
       "posts_ppv": "Publicaciones de pago",
       "stories_ppv": "Historias de pago",
       "messages_ppv": "Mensajes de pago",
@@ -2404,7 +2404,7 @@
         "own_account": "Cuenta de cobro propia",
         "shared_account": "Cobra en una cuenta compartida",
         "earlier": "Otros ingresos",
-        "earlier_hint": "De antes de que los ingresos se guardaran por perfil, o de un perfil que ya no tienes"
+        "earlier_hint": "De antes de guardarse por perfil, o de un perfil, publicación o historia borrados"
       }
     },
     "dashboard": {
