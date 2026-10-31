@@ -205,37 +205,57 @@ describe('MonetizationService', () => {
   });
 
   describe('getTransactions', () => {
-    it('should return paginated transactions with profiles and default pagination', async () => {
+    it('answers only what the history shows, and pages by default', async () => {
       mockPrismaService.transaction.findMany.mockResolvedValue([
         {
-          id: 'tx-1',
-          amountCents: 1000,
-          senderId: 'u-1',
+          id: 'paid',
+          type: 'TIP',
+          amount: 1000,
+          vatCents: 174,
+          currency: 'EUR',
+          status: 'COMPLETED',
+          createdAt: new Date(0),
           receiverId: 'u-2',
           receiverProfileId: 'prof-of-u-2',
-          sender: {
-            id: 'u-1',
-            profiles: [{ username: 'sender1', avatar: 'a.jpg' }],
-          },
-          receiver: {
-            id: 'u-2',
-            profiles: [{ username: 'rec1', avatar: 'b.jpg' }],
-          },
         },
         {
-          id: 'tx-2',
-          amountCents: 500,
-          sender: null,
-          receiver: null,
+          id: 'paid-to-gone',
+          type: 'TIP',
+          amount: 500,
+          vatCents: 0,
+          currency: 'EUR',
+          status: 'COMPLETED',
+          createdAt: new Date(0),
+          receiverId: null,
+          receiverProfileId: null,
         },
       ]);
       mockPrismaService.transaction.count.mockResolvedValue(2);
 
       const result = await service.getTransactions('user-1', 'prof-1');
-      expect(result.data).toHaveLength(2);
-      expect(result.data[0].incoming).toBe(false);
-      expect(result.data[0].sender?.profile?.username).toBe('sender1');
-      expect(result.data[1].sender).toBeNull();
+
+      const select = mockPrismaService.transaction.findMany.mock.calls[0][0]
+        .select as Record<string, unknown>;
+      for (const hidden of [
+        'senderId',
+        'sender',
+        'receiver',
+        'stripePaymentIntentId',
+        'description',
+        'receiverProfile',
+      ]) {
+        expect(select).not.toHaveProperty(hidden);
+      }
+      expect(result.data[0]).toEqual({
+        id: 'paid',
+        type: 'TIP',
+        amount: 1000,
+        vatCents: 174,
+        currency: 'EUR',
+        status: 'COMPLETED',
+        createdAt: new Date(0),
+        incoming: false,
+      });
       expect(result.meta).toEqual({
         total: 2,
         page: 1,
@@ -248,19 +268,13 @@ describe('MonetizationService', () => {
       mockPrismaService.transaction.findMany.mockResolvedValue([
         {
           id: 'received',
-          senderId: 'u-9',
           receiverId: 'user-1',
           receiverProfileId: 'prof-1',
-          sender: null,
-          receiver: null,
         },
         {
           id: 'paid',
-          senderId: 'user-1',
           receiverId: 'u-9',
           receiverProfileId: 'prof-9',
-          sender: null,
-          receiver: null,
         },
       ]);
       mockPrismaService.transaction.count.mockResolvedValue(2);
