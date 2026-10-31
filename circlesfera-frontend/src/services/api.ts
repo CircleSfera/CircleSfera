@@ -91,7 +91,13 @@ class ApiClient {
             originalRequest.url?.includes('/auth/register') ||
             originalRequest.url?.includes('/auth/refresh');
 
-        if (error.response?.status === 403 && !originalRequest._csrfRetry) {
+        // Only a refused CSRF token is sent again with a new one; any other
+        // refusal (a rule, a missing verification) would only be refused twice.
+        const csrfRefused =
+          error.response?.status === 403 &&
+          error.response?.data?.message === 'Invalid CSRF Token';
+
+        if (csrfRefused && !originalRequest._csrfRetry) {
           originalRequest._csrfRetry = true;
           this.csrfToken = null;
           const newToken = await getCSRFToken();
