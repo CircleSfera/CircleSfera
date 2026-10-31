@@ -1428,8 +1428,8 @@ describe('PaymentsService', () => {
             items: {
               data: [
                 {
-                  current_period_start: 0,
-                  current_period_end: Math.floor(Date.now() / 1000),
+                  current_period_start: 1_796_061_164,
+                  current_period_end: 1_798_653_164,
                 },
               ],
             },
@@ -1447,10 +1447,36 @@ describe('PaymentsService', () => {
 
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
         where: { stripeSubscriptionId: 'sub_456' },
-        data: expect.objectContaining({ status: SubscriptionStatus.PAST_DUE }),
+        data: {
+          status: SubscriptionStatus.PAST_DUE,
+          currentPeriodStart: new Date(1_796_061_164_000),
+          currentPeriodEnd: new Date(1_798_653_164_000),
+          cancelAtPeriodEnd: false,
+        },
       });
 
       expect(usersService.syncUserTier).toHaveBeenCalledWith('user1');
+    });
+
+    it('a subscription event with no billing period on its item is refused and writes nothing', async () => {
+      const event = {
+        id: 'evt_sub_no_item',
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_no_item',
+            status: 'active',
+            current_period_end: 2,
+            cancel_at_period_end: false,
+          },
+        },
+      };
+
+      await expect(service.processWebhookEvent(asEvent(event))).rejects.toThrow(
+        'Subscription sub_no_item has no billing period',
+      );
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
+      expect(usersService.syncUserTier).not.toHaveBeenCalled();
     });
 
     it('4. should handle customer.subscription.deleted', async () => {
@@ -1517,7 +1543,7 @@ describe('PaymentsService', () => {
         data: {
           object: {
             id: 'in_123',
-            subscription: 'sub_fail',
+            parent: { subscription_details: { subscription: 'sub_fail' } },
           },
         },
       };

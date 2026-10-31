@@ -935,12 +935,14 @@ export class PaymentsService {
           status: string;
           cancel_at_period_end: boolean;
         } & SubscriptionWithItems;
+        const period = subscriptionPeriod(subscription);
 
         await this.prisma.platformSubscription.updateMany({
           where: { stripeSubscriptionId: subscription.id },
           data: {
             status: this.mapStripeStatus(subscription.status),
-            currentPeriodEnd: subscriptionPeriod(subscription).end,
+            currentPeriodStart: period.start,
+            currentPeriodEnd: period.end,
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
           },
         });
@@ -975,13 +977,16 @@ export class PaymentsService {
       }
 
       case 'invoice.payment_failed': {
+        // The subscription of an invoice is named under its parent.
         const invoice = data.object as {
-          subscription?: string | { id: string } | null;
+          parent?: {
+            subscription_details?: {
+              subscription?: string | { id: string } | null;
+            } | null;
+          } | null;
         };
-        const subscriptionId =
-          typeof invoice.subscription === 'string'
-            ? invoice.subscription
-            : invoice.subscription?.id;
+        const named = invoice.parent?.subscription_details?.subscription;
+        const subscriptionId = typeof named === 'string' ? named : named?.id;
         if (subscriptionId) {
           await this.prisma.platformSubscription.updateMany({
             where: { stripeSubscriptionId: subscriptionId },
