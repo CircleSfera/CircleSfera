@@ -406,6 +406,7 @@ describe('PayoutsTab', () => {
   }
   const payout = (id: string, over: object = {}) => ({
     id,
+    stripePayoutId: `po_${id}`,
     status: 'paid',
     amountCents: 12550,
     currency: 'EUR',
@@ -415,6 +416,7 @@ describe('PayoutsTab', () => {
       email: `${id}@example.com`,
       profile: { fullName: `Person ${id}`, username: id, avatar: null },
     },
+    profile: null,
     ...over,
   });
   const page = (rows: object[], pageNumber = 1, totalPages = 1) => ({
@@ -483,7 +485,39 @@ describe('PayoutsTab', () => {
     show();
 
     expect(await screen.findByText('x@example.com')).toBeInTheDocument();
-    expect(screen.getByText('@user')).toBeInTheDocument();
+    expect(screen.getByText('po_x')).toBeInTheDocument();
+  });
+
+  it("names the Profile whose payout account paid out, not the person's main one", async () => {
+    vi.mocked(adminApi.getPayouts).mockResolvedValue(
+      page([
+        payout('ana', {
+          profile: {
+            id: 'p-shop',
+            fullName: 'Ana Shop',
+            username: 'ana_shop',
+            avatar: null,
+          },
+        }),
+      ]) as never,
+    );
+    show();
+
+    expect(await screen.findByText('Ana Shop')).toBeInTheDocument();
+    expect(screen.getByText('@ana_shop')).toBeInTheDocument();
+    expect(screen.queryByText('Person ana')).not.toBeInTheDocument();
+  });
+
+  it('keeps a payout whose account was erased', async () => {
+    vi.mocked(adminApi.getPayouts).mockResolvedValue(
+      page([payout('gone', { user: null, profile: null })]) as never,
+    );
+    const { i18n } = show();
+
+    expect(
+      await screen.findByText(i18n!.t('admin.payouts.account_erased')),
+    ).toBeInTheDocument();
+    expect(screen.getByText('po_gone')).toBeInTheDocument();
   });
 
   it('filters by state and by text, going back to the first page and keeping the search in the address', async () => {

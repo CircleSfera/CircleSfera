@@ -48,6 +48,9 @@ export class ClickHouseLoadService {
     const url = new URL(baseUrl);
     url.searchParams.set('database', database);
     url.searchParams.set('query', `INSERT INTO ${table} FORMAT CSVWithNames`);
+    // A column the export gained before the table did is left out rather
+    // than failing the whole load.
+    url.searchParams.set('input_format_skip_unknown_fields', '1');
 
     const headers: Record<string, string> = {
       'Content-Type': 'text/csv',

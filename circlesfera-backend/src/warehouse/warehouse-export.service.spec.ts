@@ -94,6 +94,8 @@ describe('WarehouseExportService', () => {
       {
         id: 'tx1',
         amount: 100,
+        receiverId: 'u-creator',
+        receiverProfileId: 'p-shop',
         createdAt: new Date('2026-08-01T10:00:00Z'),
       },
     ]);
@@ -125,6 +127,15 @@ describe('WarehouseExportService', () => {
       'utf8',
     );
     expect(flagsCsv).toContain('Feed test, ""quoted""\nwith newline');
+
+    // Each payment names the Profile that earned it, beside the person.
+    const [header, row] = (
+      await readFile(join(result.outputDir, 'transactions.csv'), 'utf8')
+    ).split('\n');
+    const columns = header.split(',').map((c) => c.replaceAll('"', ''));
+    const cells = row.split(',').map((c) => c.replaceAll('"', ''));
+    expect(cells[columns.indexOf('receiverId')]).toBe('u-creator');
+    expect(cells[columns.indexOf('receiverProfileId')]).toBe('p-shop');
   });
 
   it('handles default configuration values when ETL_DIR and ETL_SINCE_DAYS are omitted', async () => {
@@ -198,6 +209,10 @@ describe('ClickHouseLoadService', () => {
     });
 
     expect(loaded).toBe(true);
+    // A column the export gained before the table did is left out.
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      'input_format_skip_unknown_fields=1',
+    );
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('custom_db'),
       expect.objectContaining({

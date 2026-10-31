@@ -161,6 +161,8 @@ export default function PayoutsTab() {
           <div className="space-y-3">
             {data?.data.map((payout) => {
               const StatusIcon = STATUS_ICONS[payout.status] || Clock;
+              // The Profile paid out, else the person's main one.
+              const paid = payout.profile ?? payout.user?.profile ?? null;
               const statusColor =
                 STATUS_COLORS[payout.status] || STATUS_COLORS.canceled;
 
@@ -168,12 +170,16 @@ export default function PayoutsTab() {
                 <AdminListRow
                   className={ADMIN_PAGE_ROW}
                   key={payout.id}
-                  title={payout.user.profile?.fullName || payout.user.email}
-                  subtitle={`@${payout.user.profile?.username || 'user'}`}
+                  title={
+                    paid?.fullName ||
+                    payout.user?.email ||
+                    t('admin.payouts.account_erased')
+                  }
+                  subtitle={paid ? `@${paid.username}` : payout.stripePayoutId}
                   avatar={
                     <UserAvatar
-                      src={payout.user.profile?.avatar}
-                      alt={payout.user.profile?.fullName || ''}
+                      src={paid?.avatar}
+                      alt={paid?.fullName || ''}
                       size="md"
                     />
                   }

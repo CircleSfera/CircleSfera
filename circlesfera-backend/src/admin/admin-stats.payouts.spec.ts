@@ -36,3 +36,87 @@ describe('AdminStatsService: payout figures', () => {
     });
   });
 });
+
+// The staff list of payouts: each shows the Profile whose payout account
+// paid it out, as a person may have one for each earning Profile.
+describe('AdminStatsService: payout list', () => {
+  const build = (rows: object[]) => {
+    const prisma = {
+      stripePayoutLog: {
+        findMany: vi.fn().mockResolvedValue(rows),
+        count: vi.fn().mockResolvedValue(rows.length),
+      },
+    };
+    return {
+      prisma,
+      service: new AdminStatsService(prisma as never, {} as never),
+    };
+  };
+
+  it('names the Profile paid out beside the person, and finds a payout by either', async () => {
+    const { prisma, service } = build([
+      {
+        id: 'po1',
+        user: {
+          id: 'u1',
+          email: 'ana@example.com',
+          profiles: [{ id: 'p-main', username: 'ana', createdAt: new Date(0) }],
+        },
+        profile: {
+          id: 'p-shop',
+          username: 'ana_shop',
+          fullName: 'Ana Shop',
+          avatar: null,
+        },
+      },
+    ]);
+
+    const res = await service.getPayouts(2, 10, 'paid', 'shop');
+
+    const where = {
+      status: 'paid',
+      OR: [
+        {
+          user: {
+            OR: [
+              { email: { contains: 'shop', mode: 'insensitive' } },
+              {
+                profiles: {
+                  some: { username: { contains: 'shop', mode: 'insensitive' } },
+                },
+              },
+            ],
+          },
+        },
+        { profile: { username: { contains: 'shop', mode: 'insensitive' } } },
+      ],
+    };
+    expect(prisma.stripePayoutLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where,
+        skip: 10,
+        take: 10,
+        include: expect.objectContaining({
+          profile: {
+            select: { id: true, username: true, fullName: true, avatar: true },
+          },
+        }),
+      }),
+    );
+    expect(prisma.stripePayoutLog.count).toHaveBeenCalledWith({ where });
+    expect(res.data[0].profile).toEqual(
+      expect.objectContaining({ username: 'ana_shop' }),
+    );
+    expect(res.meta).toEqual({ total: 1, page: 2, limit: 10 });
+  });
+
+  it('keeps a payout whose person was erased', async () => {
+    const { service } = build([{ id: 'po2', user: null, profile: null }]);
+
+    const res = await service.getPayouts();
+
+    expect(res.data[0]).toEqual(
+      expect.objectContaining({ id: 'po2', user: null, profile: null }),
+    );
+  });
+});
