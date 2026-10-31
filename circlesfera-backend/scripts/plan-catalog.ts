@@ -117,6 +117,23 @@ export function findProviderProduct(
   return { product: candidates[0] };
 }
 
+/**
+ * The price a plan is sold at: its product's default price, else the one
+ * active monthly price in euros the product has. A product with no default
+ * and several such prices has none: which one is meant is not guessed.
+ */
+export function planPrice(
+  product: ProviderProduct,
+  activePrices: readonly ProviderPrice[],
+): ProviderPrice | string | null {
+  if (product.default_price) return product.default_price;
+  const monthly = activePrices.filter(
+    (price) =>
+      price.currency === 'eur' && price.recurring?.interval === 'month',
+  );
+  return monthly.length === 1 ? monthly[0] : null;
+}
+
 // What is wrong with the default price of a plan's product, if anything:
 // it must be the plan's monthly price in euros, VAT included.
 export function priceProblems(
@@ -124,7 +141,9 @@ export function priceProblems(
   plan: CatalogPlan,
 ): string[] {
   if (!price || typeof price === 'string') {
-    return [`${plan.name}: the product has no default price`];
+    return [
+      `${plan.name}: the product has no default price, nor a single monthly price in euros`,
+    ];
   }
   const problems: string[] = [];
   if (!price.active) problems.push('it is archived');

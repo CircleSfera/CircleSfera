@@ -3,7 +3,9 @@ import {
   findProviderProduct,
   findStoredPlan,
   PLAN_CATALOG,
+  type ProviderPrice,
   type ProviderProduct,
+  planPrice,
   planUpdate,
   priceProblems,
   type StoredPlan,
@@ -102,6 +104,43 @@ describe('findProviderProduct', () => {
   });
 });
 
+describe('planPrice', () => {
+  const product = (default_price: ProviderPrice | null) =>
+    ({
+      id: 'prod_1',
+      name: 'Premium',
+      active: true,
+      metadata: {},
+      default_price,
+    }) as ProviderProduct;
+
+  it("is the product's default price when it has one", () => {
+    const chosen = monthly(999);
+    expect(planPrice(product(chosen), [monthly(999, { id: 'other' })])).toBe(
+      chosen,
+    );
+  });
+
+  it('is the one monthly price in euros of a product with no default', () => {
+    const only = monthly(999, { id: 'only' });
+    expect(
+      planPrice(product(null), [
+        only,
+        monthly(9990, { id: 'yearly', recurring: { interval: 'year' } }),
+      ]),
+    ).toBe(only);
+  });
+
+  it('is none when a product with no default has several monthly prices', () => {
+    expect(
+      planPrice(product(null), [
+        monthly(999, { id: 'a' }),
+        monthly(1099, { id: 'b' }),
+      ]),
+    ).toBeNull();
+  });
+});
+
 describe('priceProblems', () => {
   it('accepts the monthly price in euros, VAT included', () => {
     expect(priceProblems(monthly(999), plan('Premium'))).toEqual([]);
@@ -146,7 +185,7 @@ describe('priceProblems', () => {
       'Premium: the default price its VAT is unspecified, not inclusive',
     ]);
     expect(priceProblems(null, plan('Premium'))).toEqual([
-      'Premium: the product has no default price',
+      'Premium: the product has no default price, nor a single monthly price in euros',
     ]);
     expect(priceProblems('price_m', plan('Premium'))).toHaveLength(1);
   });

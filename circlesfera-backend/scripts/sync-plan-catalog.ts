@@ -6,7 +6,9 @@ import {
   findProviderProduct,
   findStoredPlan,
   PLAN_CATALOG,
+  type ProviderPrice,
   type ProviderProduct,
+  planPrice,
   planUpdate,
   priceProblems,
   type StoredPlan,
@@ -55,20 +57,22 @@ async function main() {
         continue;
       }
       const product = found.product;
-      const wrong = priceProblems(product.default_price, plan);
-      if (wrong.length > 0) {
-        problems.push(...wrong);
-        continue;
-      }
-      const priceId = (product.default_price as { id: string }).id;
-      const activePriceIds: string[] = [];
+      const activePrices: ProviderPrice[] = [];
       for await (const price of stripe.prices.list({
         product: product.id,
         active: true,
         limit: 100,
       })) {
-        activePriceIds.push(price.id);
+        activePrices.push(price as unknown as ProviderPrice);
       }
+      const price = planPrice(product, activePrices);
+      const wrong = priceProblems(price, plan);
+      if (wrong.length > 0) {
+        problems.push(...wrong);
+        continue;
+      }
+      const priceId = (price as ProviderPrice).id;
+      const activePriceIds = activePrices.map((active) => active.id);
 
       const row = findStoredPlan(stored, plan, product.id);
       const update = planUpdate(row, plan, product.id, priceId, activePriceIds);
