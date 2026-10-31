@@ -1,9 +1,9 @@
 import { Euro } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
-  CREATOR_SHARE,
   MAX_PPV_PRICE_EUR,
   MIN_PPV_PRICE_EUR,
+  PLATFORM_FEE,
 } from '../../constants/monetization';
 import { formatCents } from '../../utils/money';
 import { Switch } from '../ui';
@@ -28,7 +28,8 @@ export default function MonetizationSubScreen({
   const { t, i18n } = useTranslation();
   // Whole cents, so the two amounts always add up to the price.
   const priceCents = Math.round(price * 100);
-  const creatorCents = Math.round(priceCents * CREATOR_SHARE);
+  // The fee is rounded down, as the payment is split.
+  const creatorCents = priceCents - Math.floor(priceCents * PLATFORM_FEE);
 
   return (
     <div className={SUBSCREEN_SHELL}>

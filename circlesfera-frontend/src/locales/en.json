@@ -1,4 +1,7 @@
 {
+  "vat": {
+    "included": "VAT included ({{price}} + {{rate}}% VAT)"
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for does not exist or has been moved."
@@ -2242,7 +2245,7 @@
     },
     "locked_title": "Exclusive message",
     "locked_subtitle": "Unlock to view this content",
-    "unlock_for": "Unlock for {{price}} + VAT",
+    "unlock_for": "Unlock for {{price}}",
     "voice_note": "🎤 Voice note",
     "decrypting": "Decrypting…",
     "edited": "edited",
@@ -2614,9 +2617,6 @@
     "send_gift": "Send Gift",
     "send_tip": "Send Tip",
     "unlock_for_money": "Unlock for {{price}}",
-    "plus_vat": "+ VAT",
-    "prices_before_vat": "Prices before VAT. The VAT where you live is added at checkout.",
-    "price_before_vat": "Price before VAT. The VAT where you live is added at checkout.",
     "failed_to_unlock": "Failed to unlock message",
     "connect_stripe_error": "Failed to connect Stripe.",
     "connect_with_stripe": "Connect with Stripe",

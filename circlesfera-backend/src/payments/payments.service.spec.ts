@@ -177,6 +177,8 @@ describe('PaymentsService', () => {
       senderId: 'user_1',
       receiverId: 'user_2',
       description: 'A "special" tip',
+      // 5 € plus 21% VAT.
+      vatCents: 105,
       ...over,
     });
 
@@ -187,6 +189,7 @@ describe('PaymentsService', () => {
           id: 'tx_2',
           type: 'DIRECT_UNLOCK',
           amount: 1999,
+          vatCents: 0,
           senderId: 'user_3',
           receiverId: 'user_1',
           description: null,
@@ -200,9 +203,9 @@ describe('PaymentsService', () => {
         orderBy: { createdAt: 'desc' },
       });
       expect(csv.split('\n')).toEqual([
-        'ID,Date,Type,Direction,Amount,Currency,Status,Description',
-        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","SENT","5.00","EUR","COMPLETED","A ""special"" tip"',
-        '"tx_2","2026-01-01T00:00:00.000Z","DIRECT_UNLOCK","RECEIVED","19.99","EUR","COMPLETED",""',
+        'ID,Date,Type,Direction,Amount,VAT,Currency,Status,Description',
+        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","SENT","5.00","1.05","EUR","COMPLETED","A ""special"" tip"',
+        '"tx_2","2026-01-01T00:00:00.000Z","DIRECT_UNLOCK","RECEIVED","19.99","0.00","EUR","COMPLETED",""',
       ]);
     });
 
@@ -230,6 +233,7 @@ describe('PaymentsService', () => {
           id: 'tx_2',
           type: 'PROMOTION_PAYMENT',
           amount: 1000,
+          vatCents: 0,
           sender: null,
           receiver: null,
           description: null,
@@ -247,9 +251,9 @@ describe('PaymentsService', () => {
         },
       });
       expect(csv.split('\n')).toEqual([
-        'ID,Date,Type,Amount,Currency,Status,Sender,Receiver,Description',
-        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","5.00","EUR","COMPLETED","sender@test.com","receiver@test.com","A ""special"" tip"',
-        '"tx_2","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","10.00","EUR","COMPLETED","SYSTEM","SYSTEM",""',
+        'ID,Date,Type,Amount,VAT,Currency,Status,Sender,Receiver,Description',
+        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","5.00","1.05","EUR","COMPLETED","sender@test.com","receiver@test.com","A ""special"" tip"',
+        '"tx_2","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","10.00","0.00","EUR","COMPLETED","SYSTEM","SYSTEM",""',
       ]);
     });
 

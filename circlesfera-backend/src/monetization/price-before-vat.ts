@@ -8,3 +8,10 @@ export function priceBeforeVat(
 ): number {
   return session.amount_subtotal ?? session.amount_total ?? 0;
 }
+
+// The VAT the buyer paid on top of the price, for their own records.
+export function vatPaid(
+  session: Pick<Stripe.Checkout.Session, 'total_details'>,
+): number {
+  return session.total_details?.amount_tax ?? 0;
+}

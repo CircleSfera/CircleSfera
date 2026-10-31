@@ -7,7 +7,7 @@ import {
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type Stripe from 'stripe';
-import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
+import { creatorShareCents } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   type ConnectAccountCompanyFields,
@@ -19,7 +19,7 @@ import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { payoutAccountPlacement } from './payout-account.js';
-import { priceBeforeVat } from './price-before-vat.js';
+import { priceBeforeVat, vatPaid } from './price-before-vat.js';
 
 // Stripe Checkout Session metadata.type values fulfilled here rather than
 // by PaymentsService's platform-subscription branch. STRIPE_SUBSCRIPTION is
@@ -204,6 +204,7 @@ export class MonetizationWebhookService {
             data: {
               type: 'DIRECT_POST_UNLOCK',
               amount: amount,
+              vatCents: vatPaid(session),
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
@@ -224,13 +225,13 @@ export class MonetizationWebhookService {
             update: {
               ...placed,
               lifetimeEarningsCents: {
-                increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+                increment: creatorShareCents(amount),
               },
             },
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+              lifetimeEarningsCents: creatorShareCents(amount),
             },
           });
         });
@@ -277,6 +278,7 @@ export class MonetizationWebhookService {
             data: {
               type: 'DIRECT_STORY_UNLOCK',
               amount,
+              vatCents: vatPaid(session),
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
@@ -297,13 +299,13 @@ export class MonetizationWebhookService {
             update: {
               ...placed,
               lifetimeEarningsCents: {
-                increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+                increment: creatorShareCents(amount),
               },
             },
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+              lifetimeEarningsCents: creatorShareCents(amount),
             },
           });
         });
@@ -353,6 +355,7 @@ export class MonetizationWebhookService {
             data: {
               type: 'DIRECT_MESSAGE_UNLOCK' as any,
               amount,
+              vatCents: vatPaid(session),
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
@@ -374,13 +377,13 @@ export class MonetizationWebhookService {
             update: {
               ...placed,
               lifetimeEarningsCents: {
-                increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+                increment: creatorShareCents(amount),
               },
             },
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+              lifetimeEarningsCents: creatorShareCents(amount),
             },
           });
         });
@@ -418,6 +421,7 @@ export class MonetizationWebhookService {
             data: {
               type: 'DIRECT_TIP',
               amount: amount,
+              vatCents: vatPaid(session),
               currency: (session.currency || 'eur').toUpperCase(),
               senderId: clientReferenceId,
               receiverId: creatorId,
@@ -438,13 +442,13 @@ export class MonetizationWebhookService {
             update: {
               ...placed,
               lifetimeEarningsCents: {
-                increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+                increment: creatorShareCents(amount),
               },
             },
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+              lifetimeEarningsCents: creatorShareCents(amount),
             },
           });
         });
@@ -491,6 +495,7 @@ export class MonetizationWebhookService {
             giftId,
             creatorId,
             amountCents: amount,
+            vatCents: vatPaid(session),
             currency: session.currency || 'eur',
             paymentIntentId,
           };
@@ -594,6 +599,7 @@ export class MonetizationWebhookService {
         data: {
           type: 'DIRECT_MESSAGE_UNLOCK',
           amount,
+          vatCents: vatPaid(session),
           currency,
           senderId: buyer?.id ?? null,
           receiverId: creator?.id ?? null,

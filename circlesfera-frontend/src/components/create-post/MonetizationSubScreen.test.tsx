@@ -56,9 +56,10 @@ describe('MonetizationSubScreen', () => {
     );
 
     expect(screen.getByTestId('price')).toHaveTextContent('9.99');
-    // 999 cents: 799 for the creator and 200 for the platform.
-    expect(screen.getByText('€7.99')).toBeInTheDocument();
-    expect(screen.getByText('€2.00')).toBeInTheDocument();
+    // 999 cents: the fee is rounded down to 199, as the payment is split,
+    // so the creator keeps 800, what is sent to them.
+    expect(screen.getByText('€8.00')).toBeInTheDocument();
+    expect(screen.getByText('€1.99')).toBeInTheDocument();
   });
 
   it('writes the amounts as currency in Spanish', () => {

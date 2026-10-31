@@ -1,4 +1,7 @@
 {
+  "vat": {
+    "included": "IVA incluido ({{price}} + {{rate}} % IVA)"
+  },
   "notFound": {
     "title": "Página no encontrada",
     "description": "La página que buscas no existe o se ha movido."
@@ -2242,7 +2245,7 @@
     },
     "locked_title": "Mensaje exclusivo",
     "locked_subtitle": "Desbloquea para ver el contenido",
-    "unlock_for": "Desbloquear por {{price}} + IVA",
+    "unlock_for": "Desbloquear por {{price}}",
     "voice_note": "🎤 Nota de voz",
     "decrypting": "Descifrando…",
     "edited": "editado",
@@ -2614,9 +2617,6 @@
     "vip_community": "Comunidad VIP",
     "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global.",
     "unlock_for_money": "Desbloquear por {{price}}",
-    "plus_vat": "+ IVA",
-    "prices_before_vat": "Precios sin IVA. Al pagar se suma el IVA de donde vives.",
-    "price_before_vat": "Precio sin IVA. Al pagar se suma el IVA de donde vives.",
     "failed_to_unlock": "No se pudo desbloquear el mensaje",
     "connect_stripe_error": "No se pudo conectar Stripe.",
     "connect_with_stripe": "Conectar con Stripe",

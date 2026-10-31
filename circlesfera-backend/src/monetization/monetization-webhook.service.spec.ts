@@ -227,36 +227,64 @@ describe('MonetizationWebhookService', () => {
       );
     });
 
-    it('records the price before VAT and pays the creator 80% of it, never of the VAT', async () => {
-      const session = {
-        id: 'cs_unlock_vat',
+    // 3.03 € plus 21% VAT (0.64 €): the price is recorded, the VAT apart,
+    // and the creator earns what is sent to them, 3.03 less the 0.60 fee.
+    it.each([
+      ['DIRECT_POST_UNLOCK', { postId: 'post1' }],
+      ['DIRECT_STORY_UNLOCK', { storyId: 'story1' }],
+      ['DIRECT_MESSAGE_UNLOCK', { messageId: 'msg1' }],
+      ['DIRECT_TIP', { postId: 'post1' }],
+    ])(
+      'records a %s at its price before VAT, the VAT apart, and earns the creator the amount sent to them',
+      async (type, ids) => {
+        await service.handleCheckoutSessionCompleted({
+          id: `cs_vat_${type}`,
+          client_reference_id: 'buyer1',
+          amount_subtotal: 303,
+          amount_total: 367,
+          total_details: { amount_tax: 64 },
+          currency: 'eur',
+          payment_intent: `pi_vat_${type}`,
+          metadata: { type, creatorId: 'creator1', ...ids },
+        } as any);
+
+        expect(prisma.transaction.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ type, amount: 303, vatCents: 64 }),
+          }),
+        );
+        expect(prisma.monetization.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            update: expect.objectContaining({
+              lifetimeEarningsCents: { increment: 243 },
+            }),
+            create: expect.objectContaining({ lifetimeEarningsCents: 243 }),
+          }),
+        );
+      },
+    );
+
+    it('hands a live gift on at its price before VAT, with the VAT apart', async () => {
+      await service.handleCheckoutSessionCompleted({
+        id: 'cs_vat_gift',
         client_reference_id: 'buyer1',
-        // 10 € plus 21% VAT.
-        amount_subtotal: 1000,
-        amount_total: 1210,
+        amount_subtotal: 500,
+        amount_total: 605,
+        total_details: { amount_tax: 105 },
         currency: 'eur',
-        payment_intent: 'pi_vat',
+        payment_intent: 'pi_vat_gift',
         metadata: {
-          type: 'DIRECT_POST_UNLOCK',
-          postId: 'post1',
+          type: 'DIRECT_LIVE_GIFT',
+          liveGiftId: 'lg1',
+          streamId: 's1',
+          giftId: 'star',
           creatorId: 'creator1',
         },
-      } as any;
+      } as any);
 
-      await service.handleCheckoutSessionCompleted(session);
-
-      expect(prisma.transaction.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ amount: 1000 }),
-        }),
-      );
-      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          update: expect.objectContaining({
-            lifetimeEarningsCents: { increment: 800 },
-          }),
-          create: expect.objectContaining({ lifetimeEarningsCents: 800 }),
-        }),
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'payment.live_gift_completed',
+        expect.objectContaining({ amountCents: 500, vatCents: 105 }),
       );
     });
 
@@ -488,6 +516,7 @@ describe('MonetizationWebhookService', () => {
         // buyer paid is what goes back.
         amount_subtotal: 400,
         amount_total: 484,
+        total_details: { amount_tax: 84 },
         currency: 'eur',
         payment_intent: 'pi_msg_gone',
         metadata: {
@@ -544,6 +573,7 @@ describe('MonetizationWebhookService', () => {
             data: {
               type: 'DIRECT_MESSAGE_UNLOCK',
               amount: 400,
+              vatCents: 84,
               currency: 'EUR',
               senderId: 'buyer1',
               receiverId: 'creator1',

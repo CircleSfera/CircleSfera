@@ -4,6 +4,17 @@ export const PLATFORM_FEE_DECIMAL = 0.2;
 export const PLATFORM_FEE_PERCENT = 20.0;
 export const CREATOR_SHARE_DECIMAL = 1.0 - PLATFORM_FEE_DECIMAL; // 0.8
 
+// The platform fee of a price, and what the creator receives of it: the
+// price less the fee, so the two always add up to the price and the
+// creator's earnings match the amount sent to their payout account.
+export function platformFeeCents(priceCents: number): number {
+  return Math.floor(priceCents * PLATFORM_FEE_DECIMAL);
+}
+
+export function creatorShareCents(priceCents: number): number {
+  return priceCents - platformFeeCents(priceCents);
+}
+
 // Pay-per-view range for posts, stories and messages (owner decision: €3–€500).
 export const MIN_PPV_PRICE_CENTS = 300; // €3.00
 export const MAX_PPV_PRICE_CENTS = 50000; // €500.00

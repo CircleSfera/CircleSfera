@@ -185,14 +185,15 @@ describe('MessageBubble', () => {
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: i18n!.t('chat.unlock_for', { price: '€1.99' }),
+        name: i18n!.t('chat.unlock_for', { price: '€2.41' }),
       }),
     );
     expect(onUnlock).toHaveBeenCalledWith('msg-1');
   });
 
-  it('prices a locked message in the reader language, before VAT', () => {
-    renderBubble(
+  // The button shows the final price, VAT included: 12.50 plus 21%.
+  it('prices a locked message in the reader language', () => {
+    const { i18n } = renderBubble(
       { content: 'x', isLocked: true, priceCents: 1250 },
       { onUnlock: vi.fn() },
       'es',
@@ -200,7 +201,7 @@ describe('MessageBubble', () => {
 
     expect(
       screen.getByRole('button', {
-        name: 'Desbloquear por 12,50\u00a0€ + IVA',
+        name: i18n!.t('chat.unlock_for', { price: '15,13\u00a0€' }),
       }),
     ).toBeInTheDocument();
   });

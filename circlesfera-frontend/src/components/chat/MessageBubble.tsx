@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
 import type { Message } from '../../types';
 import { getMessageDisplayText } from '../../utils/chatMessageDisplay';
-import { formatCents } from '../../utils/money';
+import { formatCents, VAT_RATE_PERCENT, withVat } from '../../utils/money';
 import { VoicePlayer } from '../audio/VoicePlayer';
 import UserAvatar from '../UserAvatar';
 import AudioPlayer from './AudioPlayer';
@@ -231,9 +231,18 @@ export default memo(function MessageBubble({
                       className="mt-2 button-alone py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
                     >
                       {t('chat.unlock_for', {
-                        price: formatCents(msg.priceCents || 0, i18n.language),
+                        price: formatCents(
+                          withVat(msg.priceCents || 0),
+                          i18n.language,
+                        ),
                       })}
                     </button>
+                    <p className="mt-1 text-xs text-white/60">
+                      {t('vat.included', {
+                        price: formatCents(msg.priceCents || 0, i18n.language),
+                        rate: VAT_RATE_PERCENT,
+                      })}
+                    </p>
                   </div>
                 ) : (
                   <span

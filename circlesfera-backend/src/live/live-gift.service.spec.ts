@@ -258,6 +258,40 @@ describe('LiveGiftService', () => {
       mockPrismaService.user.findUnique.mockReset();
     });
 
+    it('records the VAT apart and earns the host what was sent to them', async () => {
+      mockPrismaService.liveGift.findUnique.mockResolvedValue({
+        id: 'gift-1',
+        status: 'PENDING',
+        receiverId: 'creator-1',
+        sender: { profiles: [{ username: 'fan', avatar: null }] },
+      });
+      mockPrismaService.user.findUnique.mockImplementation(
+        ({ where }: { where: { id: string } }) =>
+          Promise.resolve({ id: where.id }),
+      );
+      mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
+
+      // 3.03 € plus 0.64 € VAT; 3.03 less the 0.60 fee is sent to the host.
+      await service.completeGiftPayment({
+        ...params,
+        amountCents: 303,
+        vatCents: 64,
+      });
+
+      expect(mockPrismaService.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ amount: 303, vatCents: 64 }),
+        }),
+      );
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ lifetimeEarningsCents: 243 }),
+        }),
+      );
+      mockPrismaService.user.findUnique.mockReset();
+    });
+
     it('is a no-op when the LiveGift record is not found', async () => {
       mockPrismaService.liveGift.findUnique.mockResolvedValue(null);
 

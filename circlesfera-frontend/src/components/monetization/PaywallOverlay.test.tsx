@@ -4,9 +4,10 @@ import { renderWithProviders } from '../../test/test-utils';
 import PaywallOverlay from './PaywallOverlay';
 
 describe('PaywallOverlay', () => {
+  // The button shows the final price: 12.50 plus 21% VAT is 15.13.
   it.each([
-    ['en', 'Unlock for €12.50'],
-    ['es', 'Desbloquear por 12,50 €'],
+    ['en', 'Unlock for €15.13'],
+    ['es', 'Desbloquear por 15,13 €'],
   ] as const)('shows the price as currency in %s', (lng, label) => {
     const onUnlock = vi.fn();
     renderWithProviders(<PaywallOverlay price={12.5} onUnlock={onUnlock} />, {
@@ -18,15 +19,11 @@ describe('PaywallOverlay', () => {
     expect(onUnlock).toHaveBeenCalledTimes(1);
   });
 
-  it('says under the button that the price is before VAT', () => {
-    renderWithProviders(<PaywallOverlay price={12.5} onUnlock={vi.fn()} />, {
-      lng: 'es',
-    });
+  it('says under the button the price before VAT and the rate', () => {
+    renderWithProviders(<PaywallOverlay price={12.5} onUnlock={vi.fn()} />);
 
     expect(
-      screen.getByText(
-        'Precio sin IVA. Al pagar se suma el IVA de donde vives.',
-      ),
+      screen.getByText('VAT included (€12.50 + 21% VAT)'),
     ).toBeInTheDocument();
   });
 
@@ -36,7 +33,7 @@ describe('PaywallOverlay', () => {
     );
 
     expect(
-      screen.getByRole('button', { name: 'Unlock for €0.30' }),
+      screen.getByRole('button', { name: 'Unlock for €0.36' }),
     ).toBeInTheDocument();
   });
 });

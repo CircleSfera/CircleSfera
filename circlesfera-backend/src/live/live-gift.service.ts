@@ -5,8 +5,8 @@ import {
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
-  CREATOR_SHARE_DECIMAL,
-  PLATFORM_FEE_DECIMAL,
+  creatorShareCents,
+  platformFeeCents,
 } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
@@ -115,7 +115,7 @@ export class LiveGiftService {
     if (!sender)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    const platformFee = Math.floor(amountCents * PLATFORM_FEE_DECIMAL);
+    const platformFee = platformFeeCents(amountCents);
     const giftName = resolveGiftName(giftId, 'en');
     if (!giftName) {
       throw new BadRequestException(
@@ -260,6 +260,7 @@ export class LiveGiftService {
     giftId: string;
     creatorId: string;
     amountCents: number;
+    vatCents?: number;
     currency: string;
     paymentIntentId: string | null;
   }) {
@@ -313,6 +314,7 @@ export class LiveGiftService {
         data: {
           type: 'DIRECT_LIVE_GIFT',
           amount: params.amountCents,
+          vatCents: params.vatCents ?? 0,
           currency: params.currency.toUpperCase(),
           senderId: sender?.id ?? null,
           receiverId: creator?.id ?? null,
@@ -343,15 +345,13 @@ export class LiveGiftService {
           update: {
             ...placed,
             lifetimeEarningsCents: {
-              increment: Math.floor(params.amountCents * CREATOR_SHARE_DECIMAL),
+              increment: creatorShareCents(params.amountCents),
             },
           },
           create: {
             userId: creator.id,
             ...placed,
-            lifetimeEarningsCents: Math.floor(
-              params.amountCents * CREATOR_SHARE_DECIMAL,
-            ),
+            lifetimeEarningsCents: creatorShareCents(params.amountCents),
           },
         });
       }
