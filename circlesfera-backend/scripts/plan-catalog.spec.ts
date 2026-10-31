@@ -107,6 +107,26 @@ describe('priceProblems', () => {
     expect(priceProblems(monthly(999), plan('Premium'))).toEqual([]);
   });
 
+  it('accepts a price in euros that leaves VAT to the account, which includes it', () => {
+    expect(
+      priceProblems(
+        monthly(999, { tax_behavior: 'unspecified' }),
+        plan('Premium'),
+      ),
+    ).toEqual([]);
+  });
+
+  it('refuses a price that adds VAT on top', () => {
+    expect(
+      priceProblems(
+        monthly(999, { tax_behavior: 'exclusive' }),
+        plan('Premium'),
+      ),
+    ).toEqual([
+      'Premium: the default price its VAT is exclusive, not inclusive',
+    ]);
+  });
+
   it('names everything wrong with the default price', () => {
     expect(
       priceProblems(

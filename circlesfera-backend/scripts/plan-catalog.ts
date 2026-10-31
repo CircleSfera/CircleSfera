@@ -133,7 +133,12 @@ export function priceProblems(
   if (price.unit_amount !== plan.priceCents) {
     problems.push(`it is ${price.unit_amount} cents, not ${plan.priceCents}`);
   }
-  if (price.tax_behavior !== 'inclusive') {
+  // VAT included: said on the price, or left to the account, whose tax
+  // default (inferred by currency) includes VAT in a price in euros.
+  const vatIncluded =
+    price.tax_behavior === 'inclusive' ||
+    (price.tax_behavior === 'unspecified' && price.currency === 'eur');
+  if (!vatIncluded) {
     problems.push(`its VAT is ${price.tax_behavior ?? 'unset'}, not inclusive`);
   }
   return problems.map(
