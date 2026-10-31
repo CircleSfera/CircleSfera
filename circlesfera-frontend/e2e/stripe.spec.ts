@@ -15,6 +15,22 @@ test.describe('Creator Stripe Connect', () => {
       });
     });
 
+    await page.route(
+      '**/api/v1/monetization/analytics/total',
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          json: {
+            totalEarningsCents: 0,
+            currentMonthEarningsCents: 0,
+            unassignedEarningsCents: 0,
+            unassignedCurrentMonthEarningsCents: 0,
+            profiles: [],
+          },
+        });
+      },
+    );
+
     await page.route('**/api/v1/creator/**', async (route) => {
       await route.fulfill({ status: 200, json: {} });
     });
