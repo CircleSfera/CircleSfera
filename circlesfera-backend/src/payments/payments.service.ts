@@ -130,7 +130,7 @@ export class PaymentsService {
           receiver?: { email: string } | null;
         };
         const common = [tx.id, tx.createdAt.toISOString(), tx.type];
-        // The amount is the price; the VAT the buyer paid on top of it is apart.
+        // The amount is what was paid; the VAT is the part of it that is VAT.
         const money = [
           centsToEuros(tx.amount),
           centsToEuros(tx.vatCents),

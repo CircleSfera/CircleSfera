@@ -854,6 +854,7 @@ export class MonetizationService {
       },
       select: {
         amount: true,
+        vatCents: true,
         createdAt: true,
       },
     });
@@ -866,7 +867,8 @@ export class MonetizationService {
     for (const tx of transactions) {
       const key = tx.createdAt.toISOString().slice(0, 7);
       if (months.has(key)) {
-        months.set(key, months.get(key)! + tx.amount);
+        // A creator's income is what was paid without the VAT inside it.
+        months.set(key, months.get(key)! + tx.amount - tx.vatCents);
       }
     }
 
@@ -902,6 +904,7 @@ export class MonetizationService {
           },
           _sum: {
             amount: true,
+            vatCents: true,
           },
         }),
         this.prisma.transaction.aggregate({
@@ -912,6 +915,7 @@ export class MonetizationService {
           },
           _sum: {
             amount: true,
+            vatCents: true,
           },
         }),
         this.prisma.transaction.groupBy({
@@ -922,9 +926,13 @@ export class MonetizationService {
           },
           _sum: {
             amount: true,
+            vatCents: true,
           },
         }),
       ]);
+    // A creator's income is what was paid without the VAT inside it.
+    const income = (sum: { amount: number | null; vatCents: number | null }) =>
+      (sum.amount ?? 0) - (sum.vatCents ?? 0);
 
     const breakdownMap: Record<string, number> = {
       DIRECT_POST_UNLOCK: 0,
@@ -936,13 +944,13 @@ export class MonetizationService {
 
     for (const item of categoryBreakdown) {
       if (item.type in breakdownMap) {
-        breakdownMap[item.type] = item._sum.amount || 0;
+        breakdownMap[item.type] = income(item._sum);
       }
     }
 
     return {
-      currentMonthIncome: currentMonthTx._sum.amount || 0,
-      totalTips: allTimeTipsTx._sum.amount || 0,
+      currentMonthIncome: income(currentMonthTx._sum),
+      totalTips: income(allTimeTipsTx._sum),
       breakdown: {
         postUnlocks: breakdownMap.DIRECT_POST_UNLOCK,
         storyUnlocks: breakdownMap.DIRECT_STORY_UNLOCK,

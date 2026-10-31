@@ -1747,16 +1747,18 @@ describe('MonetizationService', () => {
       const now = new Date();
       const currentMonthKey = now.toISOString().slice(0, 7);
       mockPrismaService.transaction.findMany.mockResolvedValue([
-        { amount: 1500, createdAt: now },
-        { amount: 500, createdAt: now },
+        // 15 € paid with 2.60 € of VAT inside, and 5 € with none: the income
+        // is what was paid without the VAT.
+        { amount: 1500, vatCents: 260, createdAt: now },
+        { amount: 500, vatCents: 0, createdAt: now },
         // Transaction from a month not in the 6-month window (should be ignored by map check)
-        { amount: 9999, createdAt: new Date('2000-01-01') },
+        { amount: 9999, vatCents: 0, createdAt: new Date('2000-01-01') },
       ]);
 
       const res = await service.getIncomeStats('u-1');
       expect(res).toHaveLength(6);
       const currentEntry = res.find((r) => r.month === currentMonthKey);
-      expect(currentEntry?.income).toBe(2000);
+      expect(currentEntry?.income).toBe(1740);
     });
   });
 

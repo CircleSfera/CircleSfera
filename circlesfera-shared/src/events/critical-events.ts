@@ -14,7 +14,7 @@ export interface PaymentLiveGiftCompletedEvent {
     giftId: string;
     creatorId: string;
     amountCents: number;
-    // The VAT the buyer paid on top of amountCents.
+    // The VAT inside amountCents.
     vatCents?: number;
     currency: string;
     paymentIntentId: string;

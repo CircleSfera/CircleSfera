@@ -1702,8 +1702,8 @@ model Transaction {
   id       String            @id @default(uuid())
   type     TransactionType
   amount   Int // Integer cents (legacy name; not amountCents — public money API contract)
-  // The VAT the buyer paid on top of amount, in cents: CircleSfera's to pay
-  // the tax agency, never part of the creator's earnings.
+  // The VAT inside amount, in cents: CircleSfera's to pay the tax agency,
+  // never part of the creator's earnings or income.
   vatCents Int               @default(0)
   currency String            @default("EUR")
   status   TransactionStatus @default(COMPLETED)

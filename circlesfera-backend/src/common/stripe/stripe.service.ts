@@ -160,22 +160,64 @@ export class StripeService implements OnModuleInit {
     );
   }
 
+  // The payment made to a creator through a destination charge, with its
+  // charge and the transfer to the creator's account.
+  private async creatorPayment(paymentIntentId: string) {
+    const paymentIntent = await this.stripe.paymentIntents.retrieve(
+      paymentIntentId,
+      { expand: ['latest_charge.transfer'] },
+    );
+    const charge =
+      paymentIntent.latest_charge &&
+      typeof paymentIntent.latest_charge !== 'string'
+        ? paymentIntent.latest_charge
+        : null;
+    const transfer =
+      charge?.transfer && typeof charge.transfer !== 'string'
+        ? charge.transfer
+        : null;
+    return { charge, transfer };
+  }
+
   // Refund in full a payment made to a creator through a destination charge.
-  // What was sent to the creator's account comes back, so the creator keeps
-  // nothing of it; the platform fee and the VAT never left CircleSfera's
-  // balance, which pays the rest of the refund.
+  // What is left of the transfer to the creator's account is taken back
+  // first, by name: the VAT part of it may have been taken back already, and
+  // nothing is left to the provider's own sharing of a refund. A charge
+  // refunded in part or disputed is left alone: the refund is refused and a
+  // person decides. The platform fee of a payment made before VAT was
+  // charged comes back too; the VAT and the fee of a later one never left
+  // CircleSfera's balance, which pays the rest of the refund.
   async refundDestinationCharge(params: {
     paymentIntentId: string;
     amountInCents: number;
     idempotencyKey: string;
     metadata?: Stripe.MetadataParam;
   }): Promise<Stripe.Refund> {
+    const { charge, transfer } = await this.creatorPayment(
+      params.paymentIntentId,
+    );
+    const untouched =
+      charge && !charge.disputed && charge.amount_refunded === 0;
+    const left = transfer ? transfer.amount - transfer.amount_reversed : 0;
+    if (untouched && transfer && left > 0) {
+      await this.stripe.transfers.createReversal(
+        transfer.id,
+        {
+          amount: left,
+          metadata: {
+            reason: 'refund',
+            paymentIntentId: params.paymentIntentId,
+          },
+        },
+        { idempotencyKey: `${params.idempotencyKey}-transfer` },
+      );
+    }
     return this.stripe.refunds.create(
       {
         payment_intent: params.paymentIntentId,
         amount: params.amountInCents,
         reason: 'requested_by_customer',
-        reverse_transfer: true,
+        ...(charge?.application_fee && { refund_application_fee: true }),
         metadata: params.metadata,
       },
       { idempotencyKey: params.idempotencyKey },
@@ -186,7 +228,8 @@ export class StripeService implements OnModuleInit {
   // The creator's account first receives their share of all the buyer paid,
   // as the VAT is only known once the buyer is; the VAT stays with
   // CircleSfera. A payment's VAT is taken back once, however often this is
-  // asked: an earlier reversal for it is looked for first.
+  // asked: an earlier reversal for it is looked for first. Nothing is taken
+  // from a transfer already given back, as when the payment was refunded.
   async takeVatBackFromCreator(params: {
     paymentIntentId: string;
     amountInCents: number;
@@ -194,14 +237,8 @@ export class StripeService implements OnModuleInit {
     if (params.amountInCents <= 0) {
       return;
     }
-    const paymentIntent = await this.stripe.paymentIntents.retrieve(
-      params.paymentIntentId,
-      { expand: ['latest_charge.transfer'] },
-    );
-    const charge = paymentIntent.latest_charge;
-    const transfer =
-      charge && typeof charge !== 'string' ? charge.transfer : null;
-    if (!transfer || typeof transfer === 'string') {
+    const { transfer } = await this.creatorPayment(params.paymentIntentId);
+    if (!transfer) {
       throw new Error(
         `Payment ${params.paymentIntentId} has no transfer to take its VAT back from`,
       );
@@ -213,10 +250,17 @@ export class StripeService implements OnModuleInit {
     ) {
       return;
     }
+    const amount = Math.min(
+      params.amountInCents,
+      transfer.amount - transfer.amount_reversed,
+    );
+    if (amount <= 0) {
+      return;
+    }
     await this.stripe.transfers.createReversal(
       transfer.id,
       {
-        amount: params.amountInCents,
+        amount,
         metadata: { reason: 'vat', paymentIntentId: params.paymentIntentId },
       },
       { idempotencyKey: `vat-back-${params.paymentIntentId}` },
