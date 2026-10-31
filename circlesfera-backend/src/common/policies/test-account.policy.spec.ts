@@ -1,10 +1,11 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   assertRealMoneyAllowed,
   assertSameAudience,
   filterToViewerAudience,
   isSameAudience,
+  isTestModeStripeKey,
   isTestViewer,
   sameAudienceProfileWhere,
   sameAudienceSql,
@@ -80,6 +81,9 @@ describe('filterToViewerAudience', () => {
 });
 
 describe('assertRealMoneyAllowed', () => {
+  beforeEach(() => vi.stubEnv('STRIPE_SECRET_KEY', ''));
+  afterEach(() => vi.unstubAllEnvs());
+
   it('rejects a Test Account before any payment request', async () => {
     const db = {
       user: {
@@ -100,5 +104,48 @@ describe('assertRealMoneyAllowed', () => {
     } as never;
 
     await expect(assertRealMoneyAllowed(db, 'u-real')).resolves.toBeUndefined();
+  });
+
+  it.each(['sk_live_abc', 'rk_live_abc', 'dummy', ''])(
+    'still rejects a Test Account with the key %j',
+    async (key) => {
+      vi.stubEnv('STRIPE_SECRET_KEY', key);
+      const db = {
+        user: {
+          findUnique: vi.fn().mockResolvedValue({ isTestAccount: true }),
+        },
+      } as never;
+
+      await expect(assertRealMoneyAllowed(db, 'u-test')).rejects.toThrow(
+        ForbiddenException,
+      );
+    },
+  );
+
+  it.each(['sk_test_abc', 'rk_test_abc'])(
+    'lets a Test Account pay with the test-mode key %j',
+    async (key) => {
+      vi.stubEnv('STRIPE_SECRET_KEY', key);
+      const findUnique = vi.fn().mockResolvedValue({ isTestAccount: true });
+
+      await expect(
+        assertRealMoneyAllowed({ user: { findUnique } } as never, 'u-test'),
+      ).resolves.toBeUndefined();
+      expect(findUnique).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe('isTestModeStripeKey', () => {
+  it.each([
+    ['sk_test_abc', true],
+    ['rk_test_abc', true],
+    ['sk_live_abc', false],
+    ['rk_live_abc', false],
+    ['xsk_test_abc', false],
+    ['', false],
+    [undefined, false],
+  ])('reads %j as test mode=%s', (key, expected) => {
+    expect(isTestModeStripeKey(key)).toBe(expected);
   });
 });

@@ -125,13 +125,24 @@ export async function assertSameAudience(
   }
 }
 
+// True for a payment provider key of its test mode, where no payment moves
+// real money. A live key, a missing key or anything else is not.
+export function isTestModeStripeKey(key: string | undefined): boolean {
+  return /^(?:sk|rk)_test_/.test(key ?? '');
+}
+
 // Test Accounts never move real money: they cannot pay, and since
 // they cannot onboard a payout account they cannot be paid either. Call with
 // the paying (or onboarding) account before any payment provider request.
+// Where the server uses the provider's test mode, as on staging, no money is
+// real and a Test Account may pay and be paid.
 export async function assertRealMoneyAllowed(
   db: Pick<Prisma.TransactionClient, 'user'>,
   userId: string,
 ): Promise<void> {
+  if (isTestModeStripeKey(process.env.STRIPE_SECRET_KEY)) {
+    return;
+  }
   const account = await db.user.findUnique({
     where: { id: userId },
     select: { isTestAccount: true },
