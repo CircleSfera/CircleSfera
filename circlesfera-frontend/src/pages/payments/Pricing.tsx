@@ -31,7 +31,7 @@ import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
 import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
-import { formatCents } from '../../utils/money';
+import { formatCents, VAT_RATE_PERCENT, withVat } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
 import { planAccountType, planFitsProfile } from '../../utils/plans';
 
@@ -338,13 +338,13 @@ export default function Pricing() {
                   <p className="mt-5 flex flex-wrap items-baseline gap-x-1.5 gap-y-2">
                     <span className="text-4xl font-black tracking-tight text-white">
                       {formatCents(
-                        displayCents,
+                        withVat(displayCents),
                         i18n.language,
                         plan.currency || 'EUR',
                       )}
                     </span>
                     <span className="text-sm text-white/60">
-                      /{intervalLabel} {t('pricingPage.plus_vat')}
+                      /{intervalLabel}
                     </span>
                     {showYearly && yearlySavingsPercent > 0 && (
                       <span className="rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-400">
@@ -353,6 +353,18 @@ export default function Pricing() {
                         })}
                       </span>
                     )}
+                  </p>
+                  {/* Consumers are shown the final price; the price before
+                      VAT is what the plan costs. */}
+                  <p className="mt-2 text-xs text-white/50">
+                    {t('vat.included', {
+                      price: formatCents(
+                        displayCents,
+                        i18n.language,
+                        plan.currency || 'EUR',
+                      ),
+                      rate: VAT_RATE_PERCENT,
+                    })}
                   </p>
 
                   <ul className="mt-6 grow space-y-3 border-t border-white/8 pt-6">

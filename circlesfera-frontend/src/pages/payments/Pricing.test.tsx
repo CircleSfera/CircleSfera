@@ -392,8 +392,9 @@ describe('Pricing', () => {
     ]);
     renderWithProviders(<Pricing />, { lng: 'es' });
 
-    expect(await screen.findByText(/^9,99\s€$/)).toBeInTheDocument();
-    expect(screen.getByText(/^49,99\sUS\$$/)).toBeInTheDocument();
+    // The final price, VAT included: 9.99 and 49.99 plus 21%.
+    expect(await screen.findByText(/^12,09\s€$/)).toBeInTheDocument();
+    expect(screen.getByText(/^60,49\sUS\$$/)).toBeInTheDocument();
   });
 
   it('shows the yearly price with its saving and keeps a plan without yearly price from being bought yearly', async () => {
@@ -406,7 +407,7 @@ describe('Pricing', () => {
       }),
     );
 
-    expect(screen.getByText('€99.90')).toBeInTheDocument();
+    expect(screen.getByText('€120.88')).toBeInTheDocument();
     // 99.90 a year against 9.99 a month is 17 % less.
     expect(
       screen.getAllByText(i18n!.t('pricingPage.save_percent', { percent: 17 }))
@@ -423,25 +424,32 @@ describe('Pricing', () => {
         name: i18n!.t('pricingPage.billing_monthly'),
       }),
     );
-    expect(screen.getByText('€9.99')).toBeInTheDocument();
+    expect(screen.getByText('€12.09')).toBeInTheDocument();
   });
 
-  it('says on every plan that its price is before VAT, monthly or yearly', async () => {
+  it('shows the final price with VAT, and the price before VAT under it, monthly or yearly', async () => {
+    vi.mocked(paymentsApi.getPlans).mockResolvedValue([
+      { ...plan('Premium', 'p-premium', 999), yearlyPriceCents: 9990 },
+    ]);
     const { i18n } = renderWithProviders(<Pricing />);
     await screen.findByText('Premium');
-    const plusVat = i18n!.t('pricingPage.plus_vat');
-    const cards = () => screen.getAllByRole('article');
-    const withVat = () =>
-      cards().filter((card) => card.textContent?.includes(plusVat));
 
-    expect(withVat()).toHaveLength(cards().length);
+    // 9.99 plus 21% is 12.09.
+    expect(screen.getByText('€12.09')).toBeInTheDocument();
+    expect(
+      screen.getByText('VAT included (€9.99 + 21% VAT)'),
+    ).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole('button', {
         name: i18n!.t('pricingPage.billing_yearly'),
       }),
     );
-    expect(withVat()).toHaveLength(cards().length);
+    // 99.90 plus 21% is 120.88.
+    expect(screen.getByText('€120.88')).toBeInTheDocument();
+    expect(
+      screen.getByText('VAT included (€99.90 + 21% VAT)'),
+    ).toBeInTheDocument();
   });
 
   it('hides the billing cycle choice when no plan has a yearly price', async () => {
@@ -516,9 +524,7 @@ describe('Pricing', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('early access')).toBeInTheDocument();
     expect(screen.getByText('For teams')).toBeInTheDocument();
-    expect(
-      screen.getByText(`/quarter ${i18n!.t('pricingPage.plus_vat')}`),
-    ).toBeInTheDocument();
+    expect(screen.getByText('/quarter')).toBeInTheDocument();
   });
 
   it('describes a known plan and its features in the app language, not in the stored one', async () => {

@@ -137,7 +137,8 @@ describe('CreatorMonetizationTab', () => {
         }),
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('€9.99')).toBeInTheDocument();
+    // The plan at its final price: 9.99 plus 21% VAT.
+    expect(screen.getByText('€12.09')).toBeInTheDocument();
     expect(screen.getByText('feature one')).toBeInTheDocument();
     expect(i18n!.t('creator.monetization.upgrade_now')).toBe(
       'Choose this plan',
@@ -152,7 +153,7 @@ describe('CreatorMonetizationTab', () => {
     });
 
     expect(await screen.findByText(/^12,50\s€$/)).toBeInTheDocument();
-    expect(await screen.findByText(/^9,99\s€$/)).toBeInTheDocument();
+    expect(await screen.findByText(/^12,09\s€$/)).toBeInTheDocument();
   });
 
   it('names the plan features in the app language', async () => {
@@ -423,18 +424,14 @@ describe('CreatorMonetizationTab', () => {
       );
     });
 
-    it('says next to each price that it is before VAT', async () => {
+    it('shows each plan at its final price with VAT, and the price before VAT under it', async () => {
       const { i18n } = renderPlans();
       const buttons = await screen.findAllByRole('button', {
         name: i18n!.t('creator.monetization.upgrade_now'),
       });
 
       expect(
-        screen.getAllByText(
-          new RegExp(
-            `${i18n!.t('creator.monetization.plus_vat').replace('+', '\\+')}$`,
-          ),
-        ),
+        screen.getAllByText(/^VAT included \(€[\d.]+ \+ 21% VAT\)$/),
       ).toHaveLength(buttons.length);
     });
 
@@ -596,9 +593,7 @@ describe('CreatorMonetizationTab', () => {
           ),
         ).toBeInTheDocument();
         expect(
-          screen.getByText(
-            `${i18n!.t('creator.monetization.per_year')} ${i18n!.t('creator.monetization.plus_vat')}`,
-          ),
+          screen.getByText(i18n!.t('creator.monetization.per_year')),
         ).toBeInTheDocument();
       },
     );

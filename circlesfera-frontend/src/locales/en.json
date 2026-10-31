@@ -1,4 +1,7 @@
 {
+  "vat": {
+    "included": "VAT included ({{price}} + {{rate}}% VAT)"
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for does not exist or has been moved."
@@ -2471,7 +2474,6 @@
       "active": "Active",
       "per_month": "/ month",
       "per_year": "/ year",
-      "plus_vat": "+ VAT",
       "upgrade_now": "Choose this plan",
       "lifetime": "Income received",
       "express_dashboard": "Open Stripe",
@@ -4640,7 +4642,6 @@
     "billing_yearly": "Yearly",
     "per_month": "month",
     "per_year": "year",
-    "plus_vat": "+ VAT",
     "save_percent": "Save {{percent}}%",
     "load_error_title": "Plans could not be loaded",
     "load_error_message": "Check your connection and try again.",
