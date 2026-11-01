@@ -10,7 +10,7 @@ updates:
       root-deps:
         patterns: ["*"]
         update-types: ["minor", "patch"]
-    # @types/node tracks the runtime: production runs Node 24 LTS.
+    # @types/node tracks the runtime: production runs Node 26 LTS.
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
@@ -42,7 +42,7 @@ updates:
     ignore:
       - dependency-name: "bullmq"
         update-types: ["version-update:semver-major"]
-      # @types/node tracks the runtime: production runs Node 24 LTS.
+      # @types/node tracks the runtime: production runs Node 26 LTS.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
 
@@ -62,7 +62,7 @@ updates:
           - "vitest"
           - "@vitest/*"
         update-types: ["minor", "patch"]
-    # @types/node tracks the runtime: production runs Node 24 LTS.
+    # @types/node tracks the runtime: production runs Node 26 LTS.
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
@@ -91,7 +91,7 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 2
-    # Stay on Node Active LTS (24.x). Node 26 is Current, not LTS yet.
+    # Stay on the Node Active LTS line (26.x); a new major moves on purpose.
     ignore:
       - dependency-name: "node"
         update-types: ["version-update:semver-major"]
