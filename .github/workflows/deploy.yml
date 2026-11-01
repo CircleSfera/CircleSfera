@@ -237,6 +237,7 @@ jobs:
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           STRIPE_PAYMENT_METHOD_CONFIGURATION: ${{ secrets.STRIPE_PAYMENT_METHOD_CONFIGURATION }}
           STRIPE_CONNECT_WEBHOOK_SECRET: ${{ secrets.STRIPE_CONNECT_WEBHOOK_SECRET }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
           # Read by the script as plain variables: a script with no ${{ }} in
           # it is not held to GitHub's 21,000-character limit on expressions.
@@ -249,7 +250,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,STRIPE_PAYMENT_METHOD_CONFIGURATION,STRIPE_CONNECT_WEBHOOK_SECRET,VITE_TURNSTILE_SITE_KEY,GHCR_USER,GHCR_TOKEN,DEPLOY_SHA
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,STRIPE_PAYMENT_METHOD_CONFIGURATION,STRIPE_CONNECT_WEBHOOK_SECRET,STRIPE_PUBLISHABLE_KEY,VITE_TURNSTILE_SITE_KEY,GHCR_USER,GHCR_TOKEN,DEPLOY_SHA
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -308,6 +309,15 @@ jobs:
               sed -i '/^STRIPE_CONNECT_WEBHOOK_SECRET=/d' .env.production
               printf 'STRIPE_CONNECT_WEBHOOK_SECRET=%s\n' "$STRIPE_CONNECT_WEBHOOK_SECRET" >> .env.production
               echo "✅ STRIPE_CONNECT_WEBHOOK_SECRET merged from GitHub secret."
+            fi
+
+            # Publishable key of the same account and mode as the secret key,
+            # which creators' tax details panels load with. Without it those
+            # panels say they are not available. The secret wins over the file.
+            if [ -n "${STRIPE_PUBLISHABLE_KEY:-}" ]; then
+              sed -i '/^STRIPE_PUBLISHABLE_KEY=/d' .env.production
+              printf 'STRIPE_PUBLISHABLE_KEY=%s\n' "$STRIPE_PUBLISHABLE_KEY" >> .env.production
+              echo "✅ STRIPE_PUBLISHABLE_KEY merged from GitHub secret."
             fi
 
             if ! grep -qE '^TURNSTILE_SECRET_KEY=.' .env.production; then

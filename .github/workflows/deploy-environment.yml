@@ -258,19 +258,22 @@ jobs:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REGISTRY_USER: ${{ github.actor }}
           LIVE_RECORDING: ${{ inputs.environment == 'staging' && vars.STAGING_LIVE_RECORDING_ENABLED || '' }}${{ inputs.environment == 'dev' && vars.DEV_LIVE_RECORDING_ENABLED || '' }}
-          # Staging's own keys of the payment provider's test mode and the
-          # signing secrets of its two webhook destinations there, kept apart
-          # from the settings so each can change alone. Empty for dev.
+          # Staging's own keys of the payment provider's test mode (secret and
+          # publishable) and the signing secrets of its two webhook
+          # destinations there, kept apart from the settings so each can
+          # change alone. Empty for dev, which takes all of them from its
+          # settings (ENV_DEV_B64).
           OWN_STRIPE_SECRET_KEY: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_SECRET_KEY || '' }}
           OWN_STRIPE_WEBHOOK_SECRET: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_WEBHOOK_SECRET || '' }}
           OWN_STRIPE_CONNECT_WEBHOOK_SECRET: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_CONNECT_WEBHOOK_SECRET || '' }}
+          OWN_STRIPE_PUBLISHABLE_KEY: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_PUBLISHABLE_KEY || '' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_FILE_B64,ENV_NAME,IMAGE_TAG,COMMIT_SHA,WIPE_DATA,REGISTRY_TOKEN,REGISTRY_USER,LIVE_RECORDING,OWN_STRIPE_SECRET_KEY,OWN_STRIPE_WEBHOOK_SECRET,OWN_STRIPE_CONNECT_WEBHOOK_SECRET
+          envs: ENV_FILE_B64,ENV_NAME,IMAGE_TAG,COMMIT_SHA,WIPE_DATA,REGISTRY_TOKEN,REGISTRY_USER,LIVE_RECORDING,OWN_STRIPE_SECRET_KEY,OWN_STRIPE_WEBHOOK_SECRET,OWN_STRIPE_CONNECT_WEBHOOK_SECRET,OWN_STRIPE_PUBLISHABLE_KEY
           script: |
             set -euo pipefail
 
@@ -303,9 +306,9 @@ jobs:
 
             # The environment's own payment provider key, when set, takes the
             # place of the settings' one, together with the signing secrets of
-            # the webhook destinations of that same account: a secret of one
-            # account is never paired with the key of another. They are
-            # checked below like the settings' own.
+            # the webhook destinations and the publishable key of that same
+            # account: a secret of one account is never paired with the key
+            # of another. They are checked below like the settings' own.
             use_own() {
               sed -i "/^$1=/d" .env.new
               printf '\n%s=%s\n' "$1" "$2" >> .env.new
@@ -315,6 +318,7 @@ jobs:
               use_own STRIPE_SECRET_KEY "$OWN_STRIPE_SECRET_KEY"
               use_own STRIPE_WEBHOOK_SECRET "${OWN_STRIPE_WEBHOOK_SECRET:-}"
               use_own STRIPE_CONNECT_WEBHOOK_SECRET "${OWN_STRIPE_CONNECT_WEBHOOK_SECRET:-}"
+              use_own STRIPE_PUBLISHABLE_KEY "${OWN_STRIPE_PUBLISHABLE_KEY:-}"
             fi
 
             # An environment that is not production never moves real money
