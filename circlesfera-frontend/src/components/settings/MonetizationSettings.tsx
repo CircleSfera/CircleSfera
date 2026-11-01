@@ -75,6 +75,7 @@ export function MonetizationSettings() {
   // charged on the creator's own account, which connecting again replaces.
   const needsUpdate =
     isConnected && isTransfersEnabled && status?.chargesEnabled === false;
+  const showsPanel = isConnected && isOnboarded && !needsUpdate;
   const statusCopy = sharesAccount
     ? t('settings.monetization.status.shared')
     : needsUpdate
@@ -94,8 +95,11 @@ export function MonetizationSettings() {
         <SettingsRow
           label={t('settings.monetization.stripeConnect')}
           description={statusCopy}
+          // A step to take in Stripe goes under its reason on a phone, the
+          // width of the card; the panel's button stays beside the status.
+          className={showsPanel ? '' : 'max-sm:flex-col max-sm:items-stretch'}
           control={
-            isConnected && isOnboarded && !needsUpdate ? (
+            showsPanel ? (
               <Button
                 type="button"
                 variant="outline"
@@ -111,6 +115,7 @@ export function MonetizationSettings() {
                 type="button"
                 variant="primary"
                 size="md"
+                className="max-sm:w-full"
                 onClick={() => connectMutation.mutate()}
                 isLoading={connectMutation.isPending}
               >
