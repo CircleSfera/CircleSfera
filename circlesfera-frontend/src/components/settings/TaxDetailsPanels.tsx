@@ -26,33 +26,55 @@ function token(name: string, fallback: string): string {
   return value || fallback;
 }
 
-// The panels drawn in the app's dark theme. The font and the background come
-// from the page around them.
+// A solid colour: white at the given opacity over a solid surface, as the
+// app's see-through buttons look on the card.
+export function overSurface(surface: string, white: number): string {
+  const channel = (i: number) => {
+    const value = Number.parseInt(surface.slice(1 + i * 2, 3 + i * 2), 16);
+    return Math.round(value + (255 - value) * white)
+      .toString(16)
+      .padStart(2, '0');
+  };
+  return `#${channel(0)}${channel(1)}${channel(2)}`;
+}
+
+// The panels drawn on the card around them, with the app's tokens: one
+// surface for the card, the highlighted rows and the fields, so no box shows
+// inside it; the app's subtle border, text, brand colours, radii and font.
 export function panelsAppearance() {
+  const surface = token('--surface-glass-solid', '#1f1322');
   const primary = token('--brand-primary', '#884cff');
-  const raised = token('--surface-raised', '#1c1c1c');
-  const high = token('--surface-high', '#262626');
+  const radius = token('--radius-md', '12px');
   return {
     overlays: 'dialog' as const,
     variables: {
+      fontFamily: '"Inter", system-ui, Avenir, Helvetica, Arial, sans-serif',
       colorPrimary: primary,
-      colorBackground: token('--surface-elevated', '#0a0a0a'),
-      colorText: '#fafafa',
-      colorSecondaryText: '#999999',
-      colorBorder: high,
+      colorBackground: surface,
+      offsetBackgroundColor: surface,
+      formBackgroundColor: surface,
+      colorBorder: token('--glass-border', 'rgba(255, 255, 255, 0.08)'),
+      colorText: '#ffffff',
+      colorSecondaryText: 'rgba(255, 255, 255, 0.6)',
+      formPlaceholderTextColor: overSurface(surface, 0.4),
       colorDanger: token('--brand-secondary', '#ff5757'),
       actionPrimaryColorText: token('--brand-primary-text', '#a97eff'),
+      actionSecondaryColorText: 'rgba(255, 255, 255, 0.7)',
       buttonPrimaryColorBackground: primary,
       buttonPrimaryColorBorder: primary,
       buttonPrimaryColorText: token('--on-brand-primary', '#ffffff'),
-      buttonSecondaryColorBackground: raised,
-      buttonSecondaryColorBorder: high,
-      buttonSecondaryColorText: '#fafafa',
-      offsetBackgroundColor: raised,
-      formBackgroundColor: raised,
+      // The app's secondary button: white at 10% with an 8% edge.
+      buttonSecondaryColorBackground: overSurface(surface, 0.1),
+      buttonSecondaryColorBorder: overSurface(surface, 0.08),
+      buttonSecondaryColorText: '#ffffff',
       formHighlightColorBorder: primary,
       formAccentColor: primary,
-      borderRadius: '12px',
+      overlayBackdropColor: 'rgba(0, 0, 0, 0.6)',
+      borderRadius: radius,
+      buttonBorderRadius: radius,
+      formBorderRadius: radius,
+      badgeBorderRadius: token('--radius-sm', '8px'),
+      overlayBorderRadius: token('--radius-lg', '16px'),
     },
   };
 }
@@ -114,7 +136,7 @@ export default function TaxDetailsPanels() {
 
   if (failed) {
     return (
-      <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-xs text-white/60 leading-relaxed" role="alert">
           {t('settings.monetization.tax.error')}
         </p>
@@ -132,7 +154,7 @@ export default function TaxDetailsPanels() {
   }
 
   return (
-    <div className="space-y-8">
+    <div>
       {!drawn ? (
         <div
           className="flex justify-center py-8"
@@ -150,7 +172,7 @@ export default function TaxDetailsPanels() {
               if (!drawn) setFailed(true);
             }}
           />
-          <div className="mt-6">
+          <div className="border-t border-white/5">
             <ConnectTaxRegistrations />
           </div>
         </ConnectComponentsProvider>

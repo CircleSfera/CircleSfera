@@ -149,21 +149,24 @@ export function MonetizationSettings() {
           card={false}
         >
           {/* The provider's panels do not run inside the phone apps. Where
-              they do, they are their own box: none is drawn around them. */}
+              they do, the card is solid, of the colour they are drawn on,
+              as their frames cannot be see-through like the other cards. */}
           {Capacitor.isNativePlatform() ? (
             <p className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-xs text-white/60 leading-relaxed">
               {t('settings.monetization.tax.on_web')}
             </p>
           ) : (
-            <Suspense
-              fallback={
-                <div className="flex justify-center py-8">
-                  <LoadingSpinner size="sm" />
-                </div>
-              }
-            >
-              <TaxDetailsPanels />
-            </Suspense>
+            <div className="rounded-xl border border-white/5 bg-surface-glass-solid overflow-hidden">
+              <Suspense
+                fallback={
+                  <div className="flex justify-center py-8">
+                    <LoadingSpinner size="sm" />
+                  </div>
+                }
+              >
+                <TaxDetailsPanels />
+              </Suspense>
+            </div>
           )}
         </SettingsSection>
       ) : null}

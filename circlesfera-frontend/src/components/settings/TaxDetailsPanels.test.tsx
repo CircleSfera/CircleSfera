@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { monetizationApi } from '../../services/monetization.service';
 import { renderWithProviders } from '../../test/test-utils';
 import TaxDetailsPanels, {
+  overSurface,
   panelsAppearance,
   panelsLocale,
 } from './TaxDetailsPanels';
@@ -203,9 +204,18 @@ describe('the look and the language of the panels', () => {
       expect(variables.colorPrimary).toBe('#123456');
       expect(variables.buttonPrimaryColorBackground).toBe('#123456');
       // A colour the page does not define keeps the theme's own value.
-      expect(variables.colorBackground).toBe('#0a0a0a');
+      expect(variables.colorBackground).toBe('#1f1322');
+      // The card, its highlighted rows and its fields are one surface.
+      expect(variables.offsetBackgroundColor).toBe(variables.colorBackground);
+      expect(variables.formBackgroundColor).toBe(variables.colorBackground);
     } finally {
       document.documentElement.style.removeProperty('--brand-primary');
     }
+  });
+
+  it('works out the solid colour of white over the card surface', () => {
+    expect(overSurface('#000000', 0)).toBe('#000000');
+    expect(overSurface('#000000', 1)).toBe('#ffffff');
+    expect(overSurface('#1f1322', 0.1)).toBe('#352b38');
   });
 });
