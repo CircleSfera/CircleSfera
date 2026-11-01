@@ -82,6 +82,7 @@ export default function StoryComposer(props: StoryComposerProps) {
         setShowVGuide={s.setShowVGuide}
         setShowHGuide={s.setShowHGuide}
         openTextEdit={s.openTextEdit}
+        onCanvasTap={() => s.handleSelectTab('text')}
         setTextInput={s.setTextInput}
         overlay={
           s.textTakeoverActive ? null : (
@@ -163,7 +164,6 @@ export default function StoryComposer(props: StoryComposerProps) {
         <StoryComposerTextChrome
           textTakeover={s.textTakeover}
           selectedElementId={s.selectedElementId}
-          textInput={s.textInput}
           textColor={s.textColor}
           textStyle={s.textStyle}
           textAlign={s.textAlign}

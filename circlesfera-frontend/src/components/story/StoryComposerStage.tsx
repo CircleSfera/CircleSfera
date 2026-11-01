@@ -1,5 +1,10 @@
 import { Image as ImageIcon } from 'lucide-react';
-import type { CSSProperties, ReactNode, RefObject } from 'react';
+import {
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+  useRef,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import { logger } from '../../utils/logger';
@@ -49,6 +54,8 @@ export interface StoryComposerStageProps {
   setShowVGuide: (v: boolean) => void;
   setShowHGuide: (v: boolean) => void;
   openTextEdit: (el: StoryElement) => void;
+  /** A tap on the story itself, with nothing selected and no tool open. */
+  onCanvasTap?: () => void;
   setTextInput: (v: string) => void;
   /** Controls laid over the canvas, outside the picture that is exported. */
   overlay?: ReactNode;
@@ -76,6 +83,15 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
     setShowVGuide: p.setShowVGuide,
     setShowHGuide: p.setShowHGuide,
   });
+  // Where a tap on the story itself began; pieces and gestures leave it empty.
+  const canvasTapRef = useRef<{ x: number; y: number } | null>(null);
+  const canTapCanvas =
+    Boolean(p.onCanvasTap) &&
+    !p.textTakeoverActive &&
+    !p.panelOpen &&
+    p.activeTab === 'none' &&
+    !p.selectedElementId &&
+    Boolean(p.backgroundUrl || p.bgStyle);
 
   return (
     <div
@@ -88,14 +104,34 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
       }}
     >
       <div className={`relative shrink-0 ${p.cardSizeClass}`}>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: a tap on the story is a shortcut; the "Text" tool is the way in from the keyboard */}
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: a tap on the story is a shortcut; the "Text" tool is the way in from the keyboard */}
         <div
           ref={p.containerRef}
+          data-testid="story-canvas"
+          onPointerDownCapture={() => {
+            canvasTapRef.current = null;
+          }}
           onPointerDown={(e) => {
             // A second finger anywhere on the canvas joins the held piece.
             if (gestures.onCanvasPointerDown(e)) return;
+            if (canTapCanvas && e.isPrimary !== false) {
+              canvasTapRef.current = { x: e.clientX, y: e.clientY };
+            }
             if (e.target === e.currentTarget && !p.textTakeoverActive) {
               p.setSelectedElementId(null);
             }
+          }}
+          // A tap on the story starts a text, with the keyboard open: the
+          // text opens within the tap, which a phone needs to show it.
+          onClick={(e) => {
+            const start = canvasTapRef.current;
+            canvasTapRef.current = null;
+            if (!start || !canTapCanvas) return;
+            if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) {
+              return;
+            }
+            p.onCanvasTap?.();
           }}
           // The fingers move, turn and draw the pieces of the story here: the
           // browser does not pan or zoom the page from this surface.

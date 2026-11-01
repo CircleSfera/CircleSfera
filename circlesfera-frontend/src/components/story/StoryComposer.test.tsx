@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -196,14 +202,146 @@ describe('StoryComposer', () => {
     ).toBeInTheDocument();
   });
 
-  it('adds no text when text mode is cancelled', () => {
+  it('ends the text with a tap outside it, the same as "Listo"', async () => {
     const { lastElements } = renderComposer();
 
     fireEvent.click(tool('Texto'));
-    typeStoryText('descartado');
-    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    typeStoryText('Hola fuera');
+    expect(
+      screen.queryByRole('button', { name: 'Cancelar' }),
+    ).not.toBeInTheDocument();
+    const canvas = screen.getByTestId('story-canvas');
+    fireEvent.pointerDown(canvas);
+    fireEvent.click(canvas);
+
+    await waitFor(() => expect(lastElements()).toHaveLength(1));
+    expect(lastElements()[0]).toMatchObject({ content: 'Hola fuera' });
+    // The tap that ended the text does not start another one.
+    expect(screen.queryByTestId('story-text-mode')).not.toBeInTheDocument();
+  });
+
+  it('ends the text with Escape, the same as "Listo"', async () => {
+    const { lastElements } = renderComposer();
+
+    fireEvent.click(tool('Texto'));
+    typeStoryText('Hola tecla');
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Escribe algo…' }), {
+      key: 'Escape',
+    });
+
+    await waitFor(() => expect(lastElements()).toHaveLength(1));
+    expect(lastElements()[0]).toMatchObject({ content: 'Hola tecla' });
+  });
+
+  it('adds nothing when an empty text is ended', () => {
+    const { lastElements } = renderComposer();
+
+    fireEvent.click(tool('Texto'));
+    fireEvent.click(screen.getByRole('button', { name: 'Listo' }));
 
     expect(lastElements()).toHaveLength(0);
+    expect(screen.queryByTestId('story-text-mode')).not.toBeInTheDocument();
+  });
+
+  it('keeps writing when a control of text mode is tapped', () => {
+    renderComposer();
+
+    fireEvent.click(tool('Texto'));
+    const editor = screen.getByRole('textbox', { name: 'Escribe algo…' });
+    expect(editor).toHaveFocus();
+    // The control does not take the focus, so the keyboard stays open.
+    for (const control of [
+      screen.getByRole('button', { name: 'Playfair' }),
+      screen.getByRole('button', { name: 'Colores' }),
+      screen.getByRole('button', { name: 'Alinear a la izquierda' }),
+    ]) {
+      expect(fireEvent.pointerDown(control)).toBe(false);
+      expect(fireEvent.mouseDown(control)).toBe(false);
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Playfair' }));
+    expect(screen.getByTestId('story-text-mode')).toBeInTheDocument();
+    expect(editor).toHaveFocus();
+  });
+
+  describe('focus within the tap, which a phone needs to open its keyboard', () => {
+    const actEnvironment = (on: boolean) => {
+      (
+        globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+      ).IS_REACT_ACT_ENVIRONMENT = on;
+    };
+    afterEach(() => actEnvironment(true));
+
+    /** A real tap: the browser's own event, nothing flushed after it. */
+    const tap = (target: Element) => {
+      target.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true, cancelable: true }),
+      );
+      target.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      );
+    };
+
+    it('focuses the text before the tap on "Texto" returns', async () => {
+      renderComposer();
+      actEnvironment(false);
+
+      tap(tool('Texto'));
+
+      // Checked in the same tick as the tap, before anything else runs.
+      const focused = document.activeElement;
+      expect(focused).toHaveAttribute('role', 'textbox');
+      expect(focused).toHaveAttribute('contenteditable', 'true');
+      await act(async () => {});
+    });
+
+    it('opens a text with a tap on the story, focused before the tap returns', async () => {
+      renderComposer();
+      actEnvironment(false);
+
+      tap(screen.getByTestId('story-canvas'));
+
+      expect(document.activeElement).toHaveAttribute('role', 'textbox');
+      await act(async () => {});
+      expect(screen.getByTestId('story-text-mode')).toBeInTheDocument();
+    });
+
+    it('focuses an existing text within the tap that opens it', async () => {
+      const text: StoryElement = {
+        id: 'hola',
+        type: 'text',
+        content: 'Hola',
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+      };
+      renderComposer({ elements: [text] });
+      actEnvironment(false);
+      const piece = screen.getByTestId('story-element');
+
+      piece.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true, cancelable: true }),
+      );
+      window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
+
+      const focused = document.activeElement;
+      expect(focused).toHaveAttribute('role', 'textbox');
+      expect(focused).toHaveTextContent('Hola');
+      await act(async () => {});
+    });
+  });
+
+  it('does not start a text from a tap on the story while a piece is selected', async () => {
+    const { lastElements } = renderComposer();
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: '🔥' }));
+    await waitFor(() => expect(lastElements()).toHaveLength(1));
+
+    const canvas = screen.getByTestId('story-canvas');
+    fireEvent.pointerDown(canvas);
+    fireEvent.click(canvas);
+
+    expect(screen.queryByTestId('story-text-mode')).not.toBeInTheDocument();
   });
 
   it('adds a poll from the sticker tray only once it has a question', async () => {
