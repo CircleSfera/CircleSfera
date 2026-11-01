@@ -25,7 +25,7 @@ interface StoryComposerChromeProps {
 }
 
 const roundButton =
-  'w-11 h-11 inline-flex items-center justify-center rounded-full text-white [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.65))] transition-colors hover:bg-white/10 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-35 disabled:cursor-not-allowed';
+  'w-11 h-11 inline-flex items-center justify-center rounded-full text-white *:[filter:drop-shadow(0_0_1px_rgba(0,0,0,0.6))_drop-shadow(0_1px_3px_rgba(0,0,0,0.5))_drop-shadow(0_0_10px_rgba(0,0,0,0.3))] transition-colors hover:bg-white/10 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-35 disabled:cursor-not-allowed';
 
 const chip =
   'max-w-full min-h-11 px-3.5 inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/15 text-sm font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-white/40';
