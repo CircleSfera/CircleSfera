@@ -425,6 +425,33 @@ export class StripeService implements OnModuleInit {
     return this.stripe.accounts.createLoginLink(accountId);
   }
 
+  // A session for the provider's panels embedded in the app, on a creator's
+  // own account: only its tax settings and its tax registrations. Answers
+  // the session's secret, which is never logged.
+  async createTaxDetailsSession(accountId: string): Promise<string> {
+    const session = await this.stripe.accountSessions.create({
+      account: accountId,
+      components: {
+        tax_settings: { enabled: true },
+        tax_registrations: { enabled: true },
+      },
+    });
+    return session.client_secret;
+  }
+
+  // The publishable key the embedded panels load with, when it is set and
+  // of the same mode (test or live) as the secret key; else none.
+  embeddedPanelsPublishableKey(): string | null {
+    const publishable =
+      this.configService.get<string>('STRIPE_PUBLISHABLE_KEY') ?? '';
+    const secret = this.configService.get<string>('STRIPE_SECRET_KEY') ?? '';
+    const publishableMode = /^pk_(test|live)_\w+$/.exec(publishable)?.[1];
+    const secretMode = /^(?:sk|rk)_(test|live)_/.exec(secret)?.[1];
+    return publishableMode && publishableMode === secretMode
+      ? publishable
+      : null;
+  }
+
   // Read-only Connect balance (available + pending) for a connected account.
   async getConnectBalance(accountId: string): Promise<Stripe.Balance> {
     return this.stripe.balance.retrieve({}, { stripeAccount: accountId });

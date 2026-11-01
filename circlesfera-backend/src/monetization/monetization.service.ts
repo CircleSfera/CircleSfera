@@ -1,5 +1,5 @@
 import { ErrorCode, type PaymentAlertEvent } from '@circlesfera/shared';
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import {
@@ -854,6 +854,41 @@ export class MonetizationService {
 
     const link = await this.stripeService.createLoginLink(accountId);
     return { url: link.url };
+  }
+
+  /**
+   * A session of the provider's panels where the creator keeps the tax
+   * details of their own payout account: where they are based and where
+   * they are registered for VAT. Only a Profile's own account: one paid
+   * into another Profile's account has nothing of its own to set.
+   */
+  async createTaxDetailsSession(
+    userId: string,
+    profileId: string,
+  ): Promise<{ clientSecret: string; publishableKey: string }> {
+    await assertRealMoneyAllowed(this.prisma, userId);
+    const row = await this.shownPayoutRow(userId, profileId);
+    if (!row?.stripeConnectAccountId || row.profileId !== profileId) {
+      throw AppException.BadRequest(
+        ErrorCode.STRIPE_CONNECT_NOT_SETUP,
+        'This Profile has no payout account of its own',
+      );
+    }
+    const publishableKey = this.stripeService.embeddedPanelsPublishableKey();
+    if (!publishableKey) {
+      this.logger.error(
+        'STRIPE_PUBLISHABLE_KEY is not set, or is not of the mode of the secret key',
+      );
+      throw new AppException(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'Tax details are not available right now',
+      );
+    }
+    const clientSecret = await this.stripeService.createTaxDetailsSession(
+      row.stripeConnectAccountId,
+    );
+    return { clientSecret, publishableKey };
   }
 
   // Read-only Stripe Connect balance + recent payouts (no internal payout ledger).

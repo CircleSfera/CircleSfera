@@ -23,6 +23,7 @@ const client = {
     createLoginLink: vi.fn(),
   },
   accountLinks: { create: vi.fn() },
+  accountSessions: { create: vi.fn() },
   balance: { retrieve: vi.fn() },
   events: { list: vi.fn() },
   payouts: { list: vi.fn() },
@@ -600,6 +601,59 @@ describe('StripeService creator accounts and identity', () => {
       type: 'account_onboarding',
     });
     expect(client.accounts.createLoginLink).toHaveBeenCalledWith('acct_1');
+  });
+
+  it('opens a session of the embedded panels with only the tax settings and registrations', async () => {
+    client.accountSessions.create.mockResolvedValue({
+      client_secret: 'accs_secret__abc',
+    });
+
+    await expect(service.createTaxDetailsSession('acct_1')).resolves.toBe(
+      'accs_secret__abc',
+    );
+    expect(client.accountSessions.create).toHaveBeenCalledWith({
+      account: 'acct_1',
+      components: {
+        tax_settings: { enabled: true },
+        tax_registrations: { enabled: true },
+      },
+    });
+  });
+
+  it('gives the panels the publishable key only when it is of the mode of the secret key', () => {
+    const key = (env: Record<string, string | undefined>) =>
+      serviceWith(env).service.embeddedPanelsPublishableKey();
+
+    expect(key({ STRIPE_PUBLISHABLE_KEY: 'pk_test_123' })).toBe('pk_test_123');
+    expect(
+      key({
+        STRIPE_SECRET_KEY: 'rk_live_x',
+        STRIPE_PUBLISHABLE_KEY: 'pk_live_9',
+      }),
+    ).toBe('pk_live_9');
+    // A live secret with a test publishable key, or the other way round.
+    expect(
+      key({
+        STRIPE_SECRET_KEY: 'sk_live_x',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_1',
+      }),
+    ).toBeNull();
+    expect(key({ STRIPE_PUBLISHABLE_KEY: 'pk_live_1' })).toBeNull();
+    // Not set, or not a publishable key at all.
+    expect(key({})).toBeNull();
+    expect(key({ STRIPE_PUBLISHABLE_KEY: 'sk_test_1' })).toBeNull();
+    expect(
+      key({
+        STRIPE_SECRET_KEY: 'not_a_key',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_1',
+      }),
+    ).toBeNull();
+    // Nothing set at all.
+    const { service: bare } = serviceWith();
+    (bare as unknown as { configService: unknown }).configService = {
+      get: () => undefined,
+    };
+    expect(bare.embeddedPanelsPublishableKey()).toBeNull();
   });
 
   it('reads the balance and the payouts of the creator account, never of the platform', async () => {

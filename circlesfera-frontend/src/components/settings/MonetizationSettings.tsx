@@ -1,5 +1,7 @@
+import { Capacitor } from '@capacitor/core';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
+import { lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
@@ -13,6 +15,9 @@ import {
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
+
+// The provider's script comes only with the panels, where they are shown.
+const TaxDetailsPanels = lazy(() => import('./TaxDetailsPanels'));
 
 export function MonetizationSettings() {
   const { t, i18n } = useTranslation();
@@ -136,6 +141,32 @@ export function MonetizationSettings() {
           </p>
         ) : null}
       </SettingsSection>
+
+      {isConnected ? (
+        <SettingsSection
+          title={t('settings.monetization.tax.title')}
+          description={t('settings.monetization.tax.desc')}
+          card={false}
+        >
+          {/* The provider's panels do not run inside the phone apps. Where
+              they do, they are their own box: none is drawn around them. */}
+          {Capacitor.isNativePlatform() ? (
+            <p className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-xs text-white/60 leading-relaxed">
+              {t('settings.monetization.tax.on_web')}
+            </p>
+          ) : (
+            <Suspense
+              fallback={
+                <div className="flex justify-center py-8">
+                  <LoadingSpinner size="sm" />
+                </div>
+              }
+            >
+              <TaxDetailsPanels />
+            </Suspense>
+          )}
+        </SettingsSection>
+      ) : null}
 
       {isTransfersEnabled ? (
         <SettingsSection

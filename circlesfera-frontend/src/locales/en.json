@@ -464,7 +464,15 @@
       "connect_own": "Connect its own account",
       "update": "Update in Stripe",
       "complete": "Finish in Stripe",
-      "own_account_note": "With its own account, this profile's earnings, payouts and disputes stay apart from your other profile's. Sign in to Stripe with the same login and it may offer to reuse the details already verified for your other account."
+      "own_account_note": "With its own account, this profile's earnings, payouts and disputes stay apart from your other profile's. Sign in to Stripe with the same login and it may offer to reuse the details already verified for your other account.",
+      "tax": {
+        "title": "Tax details",
+        "desc": "Without a tax registration, Stripe charges no VAT on your sales.",
+        "loading": "Loading tax details",
+        "error": "Tax details could not be loaded.",
+        "retry": "Try again",
+        "on_web": "Open circlesfera.com in your browser to edit your tax details."
+      }
     },
     "back_to_profile": "← Back to profile",
     "notifications_tab": {

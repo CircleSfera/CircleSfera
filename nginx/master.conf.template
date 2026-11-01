@@ -2,8 +2,11 @@
 
 # The web app's Content Security Policy, enforced: a browser refuses whatever
 # it does not list, and reports it to the backend. Origins: the app and its
-# API (self), realtime sockets, LiveKit, Sentry, Mapbox and Cloudflare
-# Turnstile; blob: and wasm for the video editor (ffmpeg) and map workers.
+# API (self), realtime sockets, LiveKit, Sentry, Mapbox, Cloudflare
+# Turnstile, and Stripe's embedded panels where creators keep their tax
+# details (their script and frames; their images are within https:, and
+# their empty style element within 'unsafe-inline'); blob: and wasm for the
+# video editor (ffmpeg) and map workers.
 # connect-src takes blob: and data: because the video editor reads its own
 # blob: copies of ffmpeg and of the clips, and a data: picture, with fetch.
 # The pages are served on circlesfera.com only (www moves there, below), so
@@ -16,7 +19,7 @@
 # carries two session cookies.
 map $uri $web_app_csp {
     ~^/api/ "";
-    default "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' blob: data: wss://circlesfera.com wss://staging.circlesfera.com wss://dev.circlesfera.com https://*.livekit.cloud wss://*.livekit.cloud https://*.ingest.de.sentry.io https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/v1/security/csp-report";
+    default "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' https://challenges.cloudflare.com https://connect-js.stripe.com https://js.stripe.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' blob: data: wss://circlesfera.com wss://staging.circlesfera.com wss://dev.circlesfera.com https://*.livekit.cloud wss://*.livekit.cloud https://*.ingest.de.sentry.io https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com https://connect-js.stripe.com https://js.stripe.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/v1/security/csp-report";
 }
 
 # 1. Unified Proxy (Landing & API)

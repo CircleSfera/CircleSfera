@@ -32,6 +32,7 @@ describe('MonetizationController', () => {
     createStoryUnlockSession: vi.fn(),
     createMessageUnlockSession: vi.fn(),
     getDashboardLink: vi.fn(),
+    createTaxDetailsSession: vi.fn(),
     getConnectPayoutsSummary: vi.fn(),
     getIncomeStats: vi.fn(),
     getFinancialSummary: vi.fn(),
@@ -160,6 +161,34 @@ describe('MonetizationController', () => {
       'https://example.com/return',
       'https://example.com/refresh',
     );
+  });
+
+  it('opens the tax details session of the active Profile of the session', async () => {
+    mockService.createTaxDetailsSession.mockResolvedValue({
+      clientSecret: 'accs_secret__x',
+      publishableKey: 'pk_test_1',
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/monetization/tax-session')
+      .set(BEARER)
+      .expect(201);
+
+    expect(res.body).toEqual({
+      clientSecret: 'accs_secret__x',
+      publishableKey: 'pk_test_1',
+    });
+    expect(mockService.createTaxDetailsSession).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
+  });
+
+  it('opens no tax details session without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/monetization/tax-session')
+      .expect(401);
+    expect(mockService.createTaxDetailsSession).not.toHaveBeenCalled();
   });
 
   it('rejects a tip with a non-whitelisted amount override', async () => {

@@ -35,6 +35,15 @@ export const monetizationApi = {
     const { data } = await api.get('/monetization/dashboard');
     return data;
   },
+  // What the tax details panels of the active Profile's own payout account
+  // load with.
+  createTaxDetailsSession: async (): Promise<{
+    clientSecret: string;
+    publishableKey: string;
+  }> => {
+    const { data } = await api.post('/monetization/tax-session');
+    return data;
+  },
   sendTip: async (
     receiverId: string,
     amountCents: number,

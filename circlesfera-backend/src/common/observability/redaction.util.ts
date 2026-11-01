@@ -86,6 +86,9 @@ const JWT_REGEX = /eyJ[A-Za-z0-9-_]{10,}\.[A-Za-z0-9-_]{10,}\.[A-Za-z0-9-_]+/g;
 const STRIPE_SECRET_KEY_REGEX = /(?:sk|rk)_(?:live|test)_[0-9a-zA-Z]{24,}/g;
 const STRIPE_WEBHOOK_SECRET_REGEX = /whsec_[0-9a-zA-Z]{32,}/g;
 const STRIPE_CLIENT_SECRET_REGEX = /pi_[0-9a-zA-Z]+_secret_[0-9a-zA-Z]+/g;
+// What lets a page act on a creator's account through the provider's
+// embedded panels.
+const STRIPE_ACCOUNT_SESSION_SECRET_REGEX = /accs_secret__[0-9a-zA-Z_]+/g;
 const BEARER_TOKEN_REGEX = /Bearer\s+[A-Za-z0-9-_.~+/]+=*/gi;
 const BASIC_AUTH_REGEX = /Basic\s+[A-Za-z0-9+/=]+/gi;
 const CONNECTION_STRING_PASSWORD_REGEX =
@@ -156,6 +159,10 @@ export function redactSensitiveText(text: string): string {
   // Redact Stripe payment intent client secrets
   sanitized = sanitized.replace(
     STRIPE_CLIENT_SECRET_REGEX,
+    '[REDACTED_STRIPE_CLIENT_SECRET]',
+  );
+  sanitized = sanitized.replace(
+    STRIPE_ACCOUNT_SESSION_SECRET_REGEX,
     '[REDACTED_STRIPE_CLIENT_SECRET]',
   );
 

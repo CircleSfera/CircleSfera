@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { ConnectStripeDto } from './dto/connect-stripe.dto.js';
 import { SendTipDto } from './dto/send-tip.dto.js';
+import { TaxDetailsSessionDto } from './dto/tax-details-session.dto.js';
 import { UnlockMessageDto } from './dto/unlock-message.dto.js';
 import { UnlockPostDto } from './dto/unlock-post.dto.js';
 import { UnlockStoryDto } from './dto/unlock-story.dto.js';
@@ -129,6 +130,20 @@ export class MonetizationController {
   @ApiResponse({ status: 200 })
   async getDashboard(@Req() req: AuthRequest) {
     return this.monetizationService.getDashboardLink(
+      req.user.userId,
+      req.user.profileId,
+    );
+  }
+
+  // The tax details of the active Profile's own payout account, kept in the
+  // provider's panels embedded in the app.
+  @Post('tax-session')
+  @UseGuards(IdentityVerifiedGuard)
+  @ApiResponse({ status: 201, type: TaxDetailsSessionDto })
+  async createTaxDetailsSession(
+    @Req() req: AuthRequest,
+  ): Promise<TaxDetailsSessionDto> {
+    return this.monetizationService.createTaxDetailsSession(
       req.user.userId,
       req.user.profileId,
     );

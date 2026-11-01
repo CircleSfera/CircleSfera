@@ -74,6 +74,12 @@ describe('monetizationApi', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/monetization/dashboard');
   });
 
+  it('opens the session of the tax details panels', async () => {
+    await monetizationApi.createTaxDetailsSession();
+
+    expect(apiClient.post).toHaveBeenCalledWith('/monetization/tax-session');
+  });
+
   it('reads status, earnings, transactions, analytics and payouts', async () => {
     await monetizationApi.getStatus();
     await monetizationApi.getMonetization();

@@ -15,6 +15,14 @@ vi.mock('../../services/monetization.service', () => ({
   },
 }));
 vi.mock('react-hot-toast', () => ({ toast: { error: vi.fn() } }));
+// The provider's panels stand in as a marker: they are tested on their own.
+vi.mock('./TaxDetailsPanels', () => ({
+  default: () => <div data-testid="tax-panels" />,
+}));
+const native = vi.hoisted(() => ({ value: false }));
+vi.mock('@capacitor/core', () => ({
+  Capacitor: { isNativePlatform: () => native.value },
+}));
 
 const originalLocation = window.location;
 const location = { href: 'https://circlesfera.com/settings/monetization' };
@@ -22,6 +30,7 @@ const location = { href: 'https://circlesfera.com/settings/monetization' };
 describe('MonetizationSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    native.value = false;
     location.href = 'https://circlesfera.com/settings/monetization';
     Object.defineProperty(window, 'location', {
       configurable: true,
@@ -143,6 +152,10 @@ describe('MonetizationSettings', () => {
     expect(
       screen.getByText(i18n!.t('settings.monetization.own_account_note')),
     ).toBeInTheDocument();
+    // Nor the tax details of the other Profile's account.
+    expect(
+      screen.queryByText(i18n!.t('settings.monetization.tax.title')),
+    ).not.toBeInTheDocument();
     // The other Profile's Stripe panel is not offered here.
     expect(
       screen.queryByRole('button', {
@@ -271,5 +284,53 @@ describe('MonetizationSettings', () => {
         i18n!.t('settings.monetization.error_dashboard'),
       ),
     );
+  });
+
+  it("the Profile's own account shows its tax details, and says why they matter", async () => {
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: true,
+      ownAccount: true,
+      transfersEnabled: true,
+      detailsSubmitted: true,
+    });
+    const { i18n } = renderWithProviders(<MonetizationSettings />);
+
+    expect(
+      await screen.findByText(i18n!.t('settings.monetization.tax.title')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('settings.monetization.tax.desc')),
+    ).toBeInTheDocument();
+    expect(await screen.findByTestId('tax-panels')).toBeInTheDocument();
+  });
+
+  it('a Profile with no account has no tax details to set', async () => {
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: false,
+    });
+    const { i18n } = renderWithProviders(<MonetizationSettings />);
+
+    await screen.findByText(
+      i18n!.t('settings.monetization.status.unconnected'),
+    );
+    expect(
+      screen.queryByText(i18n!.t('settings.monetization.tax.title')),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('tax-panels')).not.toBeInTheDocument();
+  });
+
+  it('the phone apps send the tax details to the web, where the panels run', async () => {
+    native.value = true;
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: true,
+      ownAccount: true,
+      transfersEnabled: true,
+    });
+    const { i18n } = renderWithProviders(<MonetizationSettings />);
+
+    expect(
+      await screen.findByText(i18n!.t('settings.monetization.tax.on_web')),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('tax-panels')).not.toBeInTheDocument();
   });
 });
