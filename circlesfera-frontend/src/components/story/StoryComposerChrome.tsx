@@ -1,6 +1,6 @@
 import { MapPin, Music, RotateCcw, RotateCw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import StoryToolRail from './StoryToolRail';
+import StoryToolRail, { STORY_CHROME_SHADOW } from './StoryToolRail';
 import type { StoryComposerTab } from './storyComposer.types';
 import type { StoryShareOptions } from './storyShare.types';
 
@@ -24,8 +24,10 @@ interface StoryComposerChromeProps {
   musicOnStory?: boolean;
 }
 
-const roundButton =
-  'w-11 h-11 inline-flex items-center justify-center rounded-full text-white [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.65))] transition-colors hover:bg-white/10 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-35 disabled:cursor-not-allowed';
+/** Every icon of the editor's chrome is 20 px, as in the story viewer. */
+const STORY_CHROME_ICON_PX = 20;
+
+const roundButton = `w-11 h-11 inline-flex items-center justify-center rounded-full text-white ${STORY_CHROME_SHADOW} transition-colors hover:bg-white/10 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-35 disabled:cursor-not-allowed`;
 
 const chip =
   'max-w-full min-h-11 px-3.5 inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/15 text-sm font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-white/40';
@@ -66,7 +68,7 @@ export default function StoryComposerChrome({
           className={roundButton}
           aria-label={t('createPost.storyComposer.close')}
         >
-          <X size={20} strokeWidth={2} aria-hidden />
+          <X size={STORY_CHROME_ICON_PX} strokeWidth={2} aria-hidden />
         </button>
       </div>
 
@@ -83,7 +85,7 @@ export default function StoryComposerChrome({
           className={roundButton}
           aria-label={t('createPost.storyComposer.undo')}
         >
-          <RotateCcw size={18} strokeWidth={2} aria-hidden />
+          <RotateCcw size={STORY_CHROME_ICON_PX} strokeWidth={2} aria-hidden />
         </button>
         <button
           type="button"
@@ -92,7 +94,7 @@ export default function StoryComposerChrome({
           className={roundButton}
           aria-label={t('createPost.storyComposer.redo')}
         >
-          <RotateCw size={18} strokeWidth={2} aria-hidden />
+          <RotateCw size={STORY_CHROME_ICON_PX} strokeWidth={2} aria-hidden />
         </button>
       </div>
 

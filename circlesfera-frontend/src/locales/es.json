@@ -1862,6 +1862,8 @@
       "poll_yes": "Sí",
       "poll_no": "No",
       "tools": "Herramientas de historia",
+      "show_tool_names": "Mostrar nombres de las herramientas",
+      "hide_tool_names": "Ocultar nombres de las herramientas",
       "edit_tools": "Herramientas de edición",
       "pick_background": "Elige un fondo para empezar",
       "open_backgrounds": "Fondos",
