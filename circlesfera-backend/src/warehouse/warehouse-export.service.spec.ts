@@ -96,7 +96,10 @@ describe('WarehouseExportService', () => {
         amount: 100,
         receiverId: 'u-creator',
         receiverProfileId: 'p-shop',
+        vatCents: 17,
+        refundedCents: 40,
         createdAt: new Date('2026-08-01T10:00:00Z'),
+        updatedAt: new Date('2026-08-03T10:00:00Z'),
       },
     ]);
 
@@ -136,6 +139,22 @@ describe('WarehouseExportService', () => {
     const cells = row.split(',').map((c) => c.replaceAll('"', ''));
     expect(cells[columns.indexOf('receiverId')]).toBe('u-creator');
     expect(cells[columns.indexOf('receiverProfileId')]).toBe('p-shop');
+    // What was VAT and what went back to the buyer, and when it last changed.
+    expect(cells[columns.indexOf('vatCents')]).toBe('17');
+    expect(cells[columns.indexOf('refundedCents')]).toBe('40');
+    expect(cells[columns.indexOf('updatedAt')]).toBe(
+      '2026-08-03T10:00:00.000Z',
+    );
+  });
+
+  it('takes again a payment that changed since the last run, not only a new one', async () => {
+    await service.runNightlyExport();
+
+    const { where } = prisma.transaction.findMany.mock.calls[0][0];
+    expect(where.OR).toEqual([
+      { createdAt: { gte: expect.any(Date) } },
+      { updatedAt: { gte: expect.any(Date) } },
+    ]);
   });
 
   it('handles default configuration values when ETL_DIR and ETL_SINCE_DAYS are omitted', async () => {
