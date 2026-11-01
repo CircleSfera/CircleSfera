@@ -95,6 +95,13 @@ describe('Logging & Telemetry Sensitive Data Redaction', () => {
       expect(result).toContain('[REDACTED_STRIPE_CLIENT_SECRET]');
     });
 
+    it('redacts the secret of a session of the embedded account panels', () => {
+      const secret = 'accs_secret__TestSecret1234567890abcdefXYZ';
+      const result = redactSensitiveText(`Session ${secret} created`);
+
+      expect(result).toBe('Session [REDACTED_STRIPE_CLIENT_SECRET] created');
+    });
+
     it('redacts Bearer and Basic authorization strings', () => {
       const bearer = 'Bearer ya29.a0AfH6SMBsomethingVerySecret12345';
       const basic = 'Basic dXNlcjpwYXNzd29yZA==';

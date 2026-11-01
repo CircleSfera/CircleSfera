@@ -19,6 +19,13 @@ export interface PersonMoneyTotal {
   }[];
 }
 
+// What the tax details of the active Profile's own payout account hold.
+export interface TaxDetailsStatus {
+  headOffice: { city: string | null; country: string | null } | null;
+  status: 'active' | 'pending';
+  registrationCountries: string[];
+}
+
 export const monetizationApi = {
   getStatus: async () => {
     const { data } = await api.get('/monetization/status');
@@ -33,6 +40,19 @@ export const monetizationApi = {
   },
   getDashboardLink: async () => {
     const { data } = await api.get('/monetization/dashboard');
+    return data;
+  },
+  // What the tax details panels of the active Profile's own payout account
+  // load with.
+  createTaxDetailsSession: async (): Promise<{
+    clientSecret: string;
+    publishableKey: string;
+  }> => {
+    const { data } = await api.post('/monetization/tax-session');
+    return data;
+  },
+  getTaxDetailsStatus: async (): Promise<TaxDetailsStatus> => {
+    const { data } = await api.get('/monetization/tax-status');
     return data;
   },
   sendTip: async (

@@ -11,7 +11,10 @@ const client = {
   refunds: { create: vi.fn() },
   paymentIntents: { retrieve: vi.fn() },
   applicationFees: { retrieve: vi.fn(), createRefund: vi.fn() },
-  tax: { settings: { retrieve: vi.fn() } },
+  tax: {
+    settings: { retrieve: vi.fn() },
+    registrations: { list: vi.fn() },
+  },
   customers: { create: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
@@ -23,6 +26,7 @@ const client = {
     createLoginLink: vi.fn(),
   },
   accountLinks: { create: vi.fn() },
+  accountSessions: { create: vi.fn() },
   balance: { retrieve: vi.fn() },
   events: { list: vi.fn() },
   payouts: { list: vi.fn() },
@@ -48,6 +52,15 @@ const serviceWith = (env: Record<string, string | undefined> = {}) => {
 beforeEach(() => {
   vi.clearAllMocks();
 });
+
+// A provider list that iterates over every page in turn.
+function listOf<T>(...pages: T[][]) {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const page of pages) yield* page;
+    },
+  };
+}
 
 describe('StripeService at startup', () => {
   const prod = {
@@ -600,6 +613,118 @@ describe('StripeService creator accounts and identity', () => {
       type: 'account_onboarding',
     });
     expect(client.accounts.createLoginLink).toHaveBeenCalledWith('acct_1');
+  });
+
+  it('opens a session of the embedded panels with only the tax settings and registrations', async () => {
+    client.accountSessions.create.mockResolvedValue({
+      client_secret: 'accs_secret__abc',
+    });
+
+    await expect(service.createTaxDetailsSession('acct_1')).resolves.toBe(
+      'accs_secret__abc',
+    );
+    expect(client.accountSessions.create).toHaveBeenCalledWith({
+      account: 'acct_1',
+      components: {
+        tax_settings: { enabled: true },
+        tax_registrations: { enabled: true },
+      },
+    });
+  });
+
+  it("reads the tax details of the creator's own account, never of the platform", async () => {
+    client.tax.settings.retrieve.mockResolvedValue({
+      status: 'active',
+      head_office: {
+        address: { city: 'Madrid', country: 'ES', line1: 'Calle Mayor 1' },
+      },
+    });
+    // Two pages, as the provider's list walks them.
+    client.tax.registrations.list.mockReturnValue(
+      listOf(
+        [{ country: 'ES' }, { country: 'FR' }],
+        [{ country: 'ES' }, { country: 'IT' }],
+      ),
+    );
+
+    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toEqual({
+      headOffice: { city: 'Madrid', country: 'ES' },
+      status: 'active',
+      registrationCountries: ['ES', 'FR', 'IT'],
+    });
+    expect(client.tax.settings.retrieve).toHaveBeenCalledWith(
+      {},
+      { stripeAccount: 'acct_1' },
+    );
+    expect(client.tax.registrations.list).toHaveBeenCalledWith(
+      { status: 'active', limit: 100 },
+      { stripeAccount: 'acct_1' },
+    );
+  });
+
+  it('reads an account with no head office yet, or one with no city', async () => {
+    client.tax.registrations.list.mockReturnValue(listOf([]));
+    client.tax.settings.retrieve.mockResolvedValueOnce({
+      status: 'pending',
+      head_office: null,
+    });
+    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toEqual({
+      headOffice: null,
+      status: 'pending',
+      registrationCountries: [],
+    });
+
+    client.tax.settings.retrieve.mockResolvedValueOnce({
+      status: 'active',
+      head_office: { address: { country: 'ES' } },
+    });
+    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toMatchObject({
+      headOffice: { city: null, country: 'ES' },
+    });
+
+    client.tax.settings.retrieve.mockResolvedValueOnce({
+      status: 'active',
+      head_office: { address: { city: 'Madrid' } },
+    });
+    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toMatchObject({
+      headOffice: { city: 'Madrid', country: null },
+    });
+  });
+
+  it('gives the panels the publishable key only when it is of the mode of the secret key', () => {
+    const key = (env: Record<string, string | undefined>) =>
+      serviceWith(env).service.embeddedPanelsPublishableKey();
+
+    expect(key({ STRIPE_PUBLISHABLE_KEY: 'pk_test_123' })).toBe('pk_test_123');
+    expect(
+      key({
+        STRIPE_SECRET_KEY: 'rk_live_x',
+        STRIPE_PUBLISHABLE_KEY: 'pk_live_9',
+      }),
+    ).toBe('pk_live_9');
+    // A live secret with a test publishable key, or the other way round.
+    expect(
+      key({
+        STRIPE_SECRET_KEY: 'sk_live_x',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_1',
+      }),
+    ).toBeNull();
+    expect(key({ STRIPE_PUBLISHABLE_KEY: 'pk_live_1' })).toBeNull();
+    // Not set, or not a publishable key at all.
+    expect(key({})).toBeNull();
+    expect(key({ STRIPE_PUBLISHABLE_KEY: 'sk_test_1' })).toBeNull();
+    expect(
+      key({
+        STRIPE_SECRET_KEY: 'not_a_key',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_1',
+      }),
+    ).toBeNull();
+    // Nothing set at all.
+    const { service: bare } = serviceWith();
+    (bare as unknown as { configService: unknown }).configService = {
+      get: () => undefined,
+    };
+    expect(bare.embeddedPanelsPublishableKey()).toBeNull();
   });
 
   it('reads the balance and the payouts of the creator account, never of the platform', async () => {

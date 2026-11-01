@@ -425,6 +425,61 @@ export class StripeService implements OnModuleInit {
     return this.stripe.accounts.createLoginLink(accountId);
   }
 
+  // A session for the provider's panels embedded in the app, on a creator's
+  // own account: only its tax settings and its tax registrations. Answers
+  // the session's secret, which is never logged.
+  async createTaxDetailsSession(accountId: string): Promise<string> {
+    const session = await this.stripe.accountSessions.create({
+      account: accountId,
+      components: {
+        tax_settings: { enabled: true },
+        tax_registrations: { enabled: true },
+      },
+    });
+    return session.client_secret;
+  }
+
+  // What a creator's own account holds of its tax details: where it is
+  // based (city and country only), whether Stripe can work out taxes with
+  // it, and the countries where it is registered for VAT now.
+  async getTaxDetailsStatus(accountId: string): Promise<{
+    headOffice: { city: string | null; country: string | null } | null;
+    status: 'active' | 'pending';
+    registrationCountries: string[];
+  }> {
+    const options = { stripeAccount: accountId };
+    const settings = await this.stripe.tax.settings.retrieve({}, options);
+    // Every page of the active registrations, not only the first.
+    const countries = new Set<string>();
+    for await (const entry of this.stripe.tax.registrations.list(
+      { status: 'active', limit: 100 },
+      options,
+    )) {
+      countries.add(entry.country);
+    }
+    const address = settings.head_office?.address;
+    return {
+      headOffice: address
+        ? { city: address.city ?? null, country: address.country ?? null }
+        : null,
+      status: settings.status === 'active' ? 'active' : 'pending',
+      registrationCountries: [...countries],
+    };
+  }
+
+  // The publishable key the embedded panels load with, when it is set and
+  // of the same mode (test or live) as the secret key; else none.
+  embeddedPanelsPublishableKey(): string | null {
+    const publishable =
+      this.configService.get<string>('STRIPE_PUBLISHABLE_KEY') ?? '';
+    const secret = this.configService.get<string>('STRIPE_SECRET_KEY') ?? '';
+    const publishableMode = /^pk_(test|live)_\w+$/.exec(publishable)?.[1];
+    const secretMode = /^(?:sk|rk)_(test|live)_/.exec(secret)?.[1];
+    return publishableMode && publishableMode === secretMode
+      ? publishable
+      : null;
+  }
+
   // Read-only Connect balance (available + pending) for a connected account.
   async getConnectBalance(accountId: string): Promise<Stripe.Balance> {
     return this.stripe.balance.retrieve({}, { stripeAccount: accountId });

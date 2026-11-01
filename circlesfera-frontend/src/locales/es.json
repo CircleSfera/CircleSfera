@@ -464,7 +464,24 @@
       "connect_own": "Conectar cuenta propia",
       "update": "Actualizar en Stripe",
       "complete": "Completar en Stripe",
-      "own_account_note": "Con una cuenta propia, los ingresos, los pagos y las reclamaciones de este perfil no se mezclan con los de tu otro perfil. Entra en Stripe con el mismo usuario y podrá ofrecerte reutilizar los datos ya verificados de tu otra cuenta."
+      "own_account_note": "Con una cuenta propia, los ingresos, los pagos y las reclamaciones de este perfil no se mezclan con los de tu otro perfil. Entra en Stripe con el mismo usuario y podrá ofrecerte reutilizar los datos ya verificados de tu otra cuenta.",
+      "tax": {
+        "title": "Datos fiscales",
+        "desc": "Sin un registro fiscal, Stripe no cobra IVA en tus ventas.",
+        "address": "Dirección fiscal",
+        "address_none": "Sin añadir",
+        "registrations": "Registros de IVA",
+        "registrations_none": "Ninguno: Stripe no cobra IVA",
+        "add": "Añadir",
+        "edit": "Editar",
+        "manage": "Gestionar",
+        "reading": "Cargando…",
+        "unreadable": "No se pudo leer",
+        "loading": "Cargando datos fiscales",
+        "error": "No se pudieron cargar los datos fiscales.",
+        "retry": "Reintentar",
+        "on_web": "Abre circlesfera.com en tu navegador para editar tus datos fiscales."
+      }
     },
     "back_to_profile": "← Volver al perfil",
     "notifications_tab": {

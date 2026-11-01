@@ -15,6 +15,10 @@ vi.mock('../../services/monetization.service', () => ({
   },
 }));
 vi.mock('react-hot-toast', () => ({ toast: { error: vi.fn() } }));
+// The tax details stand in as a marker: they are tested on their own.
+vi.mock('./TaxDetailsSettings', () => ({
+  default: () => <div data-testid="tax-details" />,
+}));
 
 const originalLocation = window.location;
 const location = { href: 'https://circlesfera.com/settings/monetization' };
@@ -86,6 +90,8 @@ describe('MonetizationSettings', () => {
     expect(
       await screen.findByText(i18n!.t('settings.monetization.status.update')),
     ).toBeInTheDocument();
+    // Its tax details wait for the account that replaces it.
+    expect(screen.queryByTestId('tax-details')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {
         name: i18n!.t('settings.monetization.dashboard'),
@@ -143,6 +149,8 @@ describe('MonetizationSettings', () => {
     expect(
       screen.getByText(i18n!.t('settings.monetization.own_account_note')),
     ).toBeInTheDocument();
+    // Nor the tax details of the other Profile's account.
+    expect(screen.queryByTestId('tax-details')).not.toBeInTheDocument();
     // The other Profile's Stripe panel is not offered here.
     expect(
       screen.queryByRole('button', {
@@ -271,5 +279,29 @@ describe('MonetizationSettings', () => {
         i18n!.t('settings.monetization.error_dashboard'),
       ),
     );
+  });
+
+  it("the Profile's own account shows its tax details", async () => {
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: true,
+      ownAccount: true,
+      transfersEnabled: true,
+      detailsSubmitted: true,
+    });
+    renderWithProviders(<MonetizationSettings />);
+
+    expect(await screen.findByTestId('tax-details')).toBeInTheDocument();
+  });
+
+  it('a Profile with no account has no tax details to set', async () => {
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: false,
+    });
+    const { i18n } = renderWithProviders(<MonetizationSettings />);
+
+    await screen.findByText(
+      i18n!.t('settings.monetization.status.unconnected'),
+    );
+    expect(screen.queryByTestId('tax-details')).not.toBeInTheDocument();
   });
 });

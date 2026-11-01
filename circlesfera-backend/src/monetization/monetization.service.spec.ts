@@ -88,6 +88,9 @@ describe('MonetizationService', () => {
     createLoginLink: vi.fn(),
     getConnectBalance: vi.fn(),
     listConnectPayouts: vi.fn(),
+    createTaxDetailsSession: vi.fn(),
+    embeddedPanelsPublishableKey: vi.fn(),
+    getTaxDetailsStatus: vi.fn(),
   };
 
   const mockEventEmitter = { emit: vi.fn() };
@@ -1928,6 +1931,150 @@ describe('MonetizationService', () => {
       const res = await service.getDashboardLink('u-1', 'prof-1');
       expect(res.url).toBe('https://connect.stripe.com/dash');
       expect(mockStripeService.createLoginLink).toHaveBeenCalledWith('acct_1');
+    });
+  });
+
+  describe('createTaxDetailsSession', () => {
+    // The Profile's own row, holding the account it set up.
+    const ownRow = (profileId: string | null, account: string | null) =>
+      mockPrismaService.monetization.findUnique.mockImplementation(
+        async ({ where }: { where: { profileId?: string } }) =>
+          where.profileId === 'prof-1'
+            ? {
+                userId: null,
+                profileId,
+                stripeConnectAccountId: account,
+                transfersEnabled: true,
+                chargesEnabled: true,
+              }
+            : null,
+      );
+
+    beforeEach(() => {
+      mockStripeService.embeddedPanelsPublishableKey.mockReturnValue(
+        'pk_test_1',
+      );
+      mockStripeService.createTaxDetailsSession.mockResolvedValue(
+        'accs_secret__abc',
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("opens the session on the Profile's own account, with the key the panels load with", async () => {
+      ownRow('prof-1', 'acct_own');
+
+      await expect(
+        service.createTaxDetailsSession('u-1', 'prof-1'),
+      ).resolves.toEqual({
+        clientSecret: 'accs_secret__abc',
+        publishableKey: 'pk_test_1',
+      });
+      expect(mockStripeService.createTaxDetailsSession).toHaveBeenCalledWith(
+        'acct_own',
+      );
+    });
+
+    it("opens it on the person's first account while this Profile holds it", async () => {
+      accounts.set('u-1', 'acct_first');
+
+      await service.createTaxDetailsSession('u-1', 'prof-1');
+
+      expect(mockStripeService.createTaxDetailsSession).toHaveBeenCalledWith(
+        'acct_first',
+      );
+    });
+
+    it("refuses a Profile paid into another Profile's account", async () => {
+      // The person's first account, held by prof-1, seen from prof-2.
+      accounts.set('u-1', 'acct_first');
+
+      await expect(
+        service.createTaxDetailsSession('u-1', 'prof-2'),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.STRIPE_CONNECT_NOT_SETUP,
+      });
+      expect(mockStripeService.createTaxDetailsSession).not.toHaveBeenCalled();
+    });
+
+    it('refuses a Profile with no payout account', async () => {
+      ownRow('prof-1', null);
+
+      await expect(
+        service.createTaxDetailsSession('u-1', 'prof-1'),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.STRIPE_CONNECT_NOT_SETUP,
+      });
+      expect(mockStripeService.createTaxDetailsSession).not.toHaveBeenCalled();
+    });
+
+    it('opens nothing while the publishable key is missing or of the other mode', async () => {
+      ownRow('prof-1', 'acct_own');
+      mockStripeService.embeddedPanelsPublishableKey.mockReturnValue(null);
+      const logged = vi
+        .spyOn(
+          (service as unknown as { logger: { error: () => void } }).logger,
+          'error',
+        )
+        .mockImplementation(() => {});
+
+      await expect(
+        service.createTaxDetailsSession('u-1', 'prof-1'),
+      ).rejects.toMatchObject({ status: 503 });
+      expect(mockStripeService.createTaxDetailsSession).not.toHaveBeenCalled();
+      expect(logged).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses a Test Account where money is real, before asking the provider', async () => {
+      vi.stubEnv('STRIPE_SECRET_KEY', 'sk_live_x');
+      ownRow('prof-1', 'acct_own');
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        isTestAccount: true,
+      });
+
+      await expect(
+        service.createTaxDetailsSession('u-1', 'prof-1'),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(mockStripeService.createTaxDetailsSession).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getTaxDetailsStatus', () => {
+    const status = {
+      headOffice: { city: 'Madrid', country: 'ES' },
+      status: 'active',
+      registrationCountries: ['ES'],
+    };
+
+    beforeEach(() => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        isTestAccount: false,
+      });
+    });
+
+    it("reads the tax details of the Profile's own account", async () => {
+      accounts.set('u-1', 'acct_first');
+      mockStripeService.getTaxDetailsStatus.mockResolvedValue(status);
+
+      await expect(
+        service.getTaxDetailsStatus('u-1', 'prof-1'),
+      ).resolves.toEqual(status);
+      expect(mockStripeService.getTaxDetailsStatus).toHaveBeenCalledWith(
+        'acct_first',
+      );
+    });
+
+    it("reads nothing of another Profile's account", async () => {
+      accounts.set('u-1', 'acct_first');
+
+      await expect(
+        service.getTaxDetailsStatus('u-1', 'prof-2'),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.STRIPE_CONNECT_NOT_SETUP,
+      });
+      expect(mockStripeService.getTaxDetailsStatus).not.toHaveBeenCalled();
     });
   });
 

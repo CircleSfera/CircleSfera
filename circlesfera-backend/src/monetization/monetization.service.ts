@@ -1,5 +1,5 @@
 import { ErrorCode, type PaymentAlertEvent } from '@circlesfera/shared';
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import {
@@ -854,6 +854,62 @@ export class MonetizationService {
 
     const link = await this.stripeService.createLoginLink(accountId);
     return { url: link.url };
+  }
+
+  /**
+   * A session of the provider's panels where the creator keeps the tax
+   * details of their own payout account: where they are based and where
+   * they are registered for VAT. Only a Profile's own account: one paid
+   * into another Profile's account has nothing of its own to set.
+   */
+  async createTaxDetailsSession(
+    userId: string,
+    profileId: string,
+  ): Promise<{ clientSecret: string; publishableKey: string }> {
+    const accountId = await this.ownPayoutAccount(userId, profileId);
+    const publishableKey = this.stripeService.embeddedPanelsPublishableKey();
+    if (!publishableKey) {
+      this.logger.error(
+        'STRIPE_PUBLISHABLE_KEY is not set, or is not of the mode of the secret key',
+      );
+      throw new AppException(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'Tax details are not available right now',
+      );
+    }
+    const clientSecret =
+      await this.stripeService.createTaxDetailsSession(accountId);
+    return { clientSecret, publishableKey };
+  }
+
+  /**
+   * What the tax details of the active Profile's own payout account hold,
+   * for the rows of the settings: where it is based (city and country), and
+   * the countries where it is registered for VAT.
+   */
+  async getTaxDetailsStatus(userId: string, profileId: string) {
+    const accountId = await this.ownPayoutAccount(userId, profileId);
+    return this.stripeService.getTaxDetailsStatus(accountId);
+  }
+
+  /**
+   * The active Profile's own payout account. None when it has none, or is
+   * paid into another Profile's; nor for a Test Account where money is real.
+   */
+  private async ownPayoutAccount(
+    userId: string,
+    profileId: string,
+  ): Promise<string> {
+    await assertRealMoneyAllowed(this.prisma, userId);
+    const row = await this.shownPayoutRow(userId, profileId);
+    if (!row?.stripeConnectAccountId || row.profileId !== profileId) {
+      throw AppException.BadRequest(
+        ErrorCode.STRIPE_CONNECT_NOT_SETUP,
+        'This Profile has no payout account of its own',
+      );
+    }
+    return row.stripeConnectAccountId;
   }
 
   // Read-only Stripe Connect balance + recent payouts (no internal payout ledger).
