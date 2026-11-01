@@ -1735,6 +1735,9 @@ model Transaction {
 
   description String?
   createdAt   DateTime @default(now())
+  // When the row last changed (a refund, a dispute, a status), so the nightly
+  // warehouse export takes a payment again after it changes.
+  updatedAt   DateTime @default(now()) @updatedAt
 
   sender          User?            @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
   receiver        User?            @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
@@ -1749,6 +1752,7 @@ model Transaction {
   @@index([receiverProfileId])
   @@index([type])
   @@index([liveStreamId])
+  @@index([updatedAt])
   @@map("transactions")
 }
 

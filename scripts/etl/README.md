@@ -34,7 +34,9 @@ On OVH Docker, set `ETL_HOST_DIR=/srv/circlesfera/backups/etl` and `ETL_DIR=/app
 Connect read-only to ClickHouse Cloud. P0 dashboards (ADR-0016):
 
 - Trust: daily median MTTR by queue (`reports`, `appeals`, `support_tickets`)
-- Monetization: daily sum `amount` by `type` from `transactions`
+- Monetization: daily sum `amount` by `type` from `transactions`. A payment is loaded again each time it
+  changes (a refund, a dispute), so take its latest row per `id` (`argMax(…, updatedAt)`);
+  what a payment kept is `amount - refundedCents`, and `vatCents` is the VAT inside `amount`.
 - Experiments: `feature_flags` snapshot + join with product metrics later
 
 ---

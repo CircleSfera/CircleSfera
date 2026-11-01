@@ -67,11 +67,11 @@ export_csv "support_tickets" "
 "
 
 export_csv "transactions" "
-  SELECT id, type, amount, currency, status,
-         \"senderId\", \"receiverId\", \"postId\", \"storyId\",
-         \"promotionId\", \"liveStreamId\", \"createdAt\"
+  SELECT id, type, amount, \"vatCents\", \"refundedCents\", currency, status,
+         \"senderId\", \"receiverId\", \"receiverProfileId\", \"postId\", \"storyId\",
+         \"promotionId\", \"liveStreamId\", \"createdAt\", \"updatedAt\"
   FROM transactions
-  WHERE \"createdAt\" >= ${SINCE}
+  WHERE \"createdAt\" >= ${SINCE} OR \"updatedAt\" >= ${SINCE}
 "
 
 export_csv "feature_flags" "

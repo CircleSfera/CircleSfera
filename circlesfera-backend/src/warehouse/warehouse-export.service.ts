@@ -41,6 +41,9 @@ const TRANSACTION_HEADERS = [
   'id',
   'type',
   'amount',
+  // The VAT inside amount, and what the buyer got back of it by refunds.
+  'vatCents',
+  'refundedCents',
   'currency',
   'status',
   'senderId',
@@ -52,6 +55,9 @@ const TRANSACTION_HEADERS = [
   'promotionId',
   'liveStreamId',
   'createdAt',
+  // A payment is exported again when it changes; the row with the latest
+  // updatedAt is the one that counts.
+  'updatedAt',
 ] as const;
 
 const FEATURE_FLAG_HEADERS = [
@@ -121,11 +127,15 @@ export class WarehouseExportService {
         }),
         this.helpdeskData.ticketFactsSince(since),
         this.prisma.transaction.findMany({
-          where: { createdAt: { gte: since } },
+          where: {
+            OR: [{ createdAt: { gte: since } }, { updatedAt: { gte: since } }],
+          },
           select: {
             id: true,
             type: true,
             amount: true,
+            vatCents: true,
+            refundedCents: true,
             currency: true,
             status: true,
             senderId: true,
@@ -136,6 +146,7 @@ export class WarehouseExportService {
             promotionId: true,
             liveStreamId: true,
             createdAt: true,
+            updatedAt: true,
           },
         }),
         this.prisma.featureFlag.findMany({
