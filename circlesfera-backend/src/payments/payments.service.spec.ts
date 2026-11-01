@@ -23,7 +23,8 @@ describe('PaymentsService', () => {
   let monetizationWebhookService: {
     handleCheckoutSessionCompleted: ReturnType<typeof vi.fn>;
     handleCheckoutSessionExpired: ReturnType<typeof vi.fn>;
-    handleChargeRefundedOrDisputed: ReturnType<typeof vi.fn>;
+    handleChargeRefunded: ReturnType<typeof vi.fn>;
+    applyDisputeToPayment: ReturnType<typeof vi.fn>;
     syncDispute: ReturnType<typeof vi.fn>;
     syncConnectPayoutLog: ReturnType<typeof vi.fn>;
     handleAccountUpdated: ReturnType<typeof vi.fn>;
@@ -128,9 +129,8 @@ describe('PaymentsService', () => {
               .fn()
               .mockResolvedValue(undefined),
             handleCheckoutSessionExpired: vi.fn().mockResolvedValue(undefined),
-            handleChargeRefundedOrDisputed: vi
-              .fn()
-              .mockResolvedValue(undefined),
+            handleChargeRefunded: vi.fn().mockResolvedValue(undefined),
+            applyDisputeToPayment: vi.fn().mockResolvedValue(undefined),
             syncDispute: vi.fn().mockResolvedValue(undefined),
             syncConnectPayoutLog: vi.fn().mockResolvedValue(undefined),
             handleAccountUpdated: vi.fn().mockResolvedValue(undefined),
@@ -179,6 +179,7 @@ describe('PaymentsService', () => {
       description: 'A "special" tip',
       // 5 € plus 21% VAT.
       vatCents: 105,
+      refundedCents: 0,
       ...over,
     });
 
@@ -190,6 +191,7 @@ describe('PaymentsService', () => {
           type: 'DIRECT_UNLOCK',
           amount: 1999,
           vatCents: 0,
+          refundedCents: 999,
           senderId: 'user_3',
           receiverId: 'user_1',
           description: null,
@@ -203,9 +205,9 @@ describe('PaymentsService', () => {
         orderBy: { createdAt: 'desc' },
       });
       expect(csv.split('\n')).toEqual([
-        'ID,Date,Type,Direction,Amount,VAT,Currency,Status,Description',
-        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","SENT","5.00","1.05","EUR","COMPLETED","A ""special"" tip"',
-        '"tx_2","2026-01-01T00:00:00.000Z","DIRECT_UNLOCK","RECEIVED","19.99","0.00","EUR","COMPLETED",""',
+        'ID,Date,Type,Direction,Amount,VAT,Refunded,Currency,Status,Description',
+        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","SENT","5.00","1.05","0.00","EUR","COMPLETED","A ""special"" tip"',
+        '"tx_2","2026-01-01T00:00:00.000Z","DIRECT_UNLOCK","RECEIVED","19.99","0.00","9.99","EUR","COMPLETED",""',
       ]);
     });
 
@@ -251,9 +253,9 @@ describe('PaymentsService', () => {
         },
       });
       expect(csv.split('\n')).toEqual([
-        'ID,Date,Type,Amount,VAT,Currency,Status,Sender,Receiver,Description',
-        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","5.00","1.05","EUR","COMPLETED","sender@test.com","receiver@test.com","A ""special"" tip"',
-        '"tx_2","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","10.00","0.00","EUR","COMPLETED","SYSTEM","SYSTEM",""',
+        'ID,Date,Type,Amount,VAT,Refunded,Currency,Status,Sender,Receiver,Description',
+        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","5.00","1.05","0.00","EUR","COMPLETED","sender@test.com","receiver@test.com","A ""special"" tip"',
+        '"tx_2","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","10.00","0.00","0.00","EUR","COMPLETED","SYSTEM","SYSTEM",""',
       ]);
     });
 
@@ -1815,8 +1817,12 @@ describe('PaymentsService', () => {
       ).toHaveBeenCalledWith(account);
     });
 
-    it('delegates charge.refunded and charge.dispute.created to monetizationWebhookService.handleChargeRefundedOrDisputed', async () => {
-      const charge = { payment_intent: 'pi_route' };
+    it('hands a refund to the refund rules, never to the dispute ones', async () => {
+      const charge = {
+        payment_intent: 'pi_route',
+        amount: 1000,
+        amount_refunded: 500,
+      };
 
       await service.processWebhookEvent(
         asEvent({
@@ -1825,20 +1831,17 @@ describe('PaymentsService', () => {
           data: { object: charge },
         }),
       );
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_dispute_route',
-          type: 'charge.dispute.created',
-          data: { object: charge },
-        }),
-      );
 
       expect(
-        monetizationWebhookService.handleChargeRefundedOrDisputed,
-      ).toHaveBeenCalledTimes(2);
+        monetizationWebhookService.handleChargeRefunded,
+      ).toHaveBeenCalledWith(charge);
+      expect(monetizationWebhookService.syncDispute).not.toHaveBeenCalled();
+      expect(
+        monetizationWebhookService.applyDisputeToPayment,
+      ).not.toHaveBeenCalled();
     });
 
-    it('mirrors a dispute when it is created, updated and closed, and a refund is not a dispute', async () => {
+    it('mirrors a dispute when it is created, updated and closed, then applies it to its payment', async () => {
       const dispute = { id: 'dp_1', payment_intent: 'pi_route', amount: 999 };
 
       for (const type of [
@@ -1850,24 +1853,25 @@ describe('PaymentsService', () => {
           asEvent({ id: `evt_${type}`, type, data: { object: dispute } }),
         );
       }
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_refund_only',
-          type: 'charge.refunded',
-          data: { object: { payment_intent: 'pi_route' } },
-        }),
-      );
 
       expect(monetizationWebhookService.syncDispute).toHaveBeenCalledTimes(3);
       expect(monetizationWebhookService.syncDispute).toHaveBeenCalledWith(
         dispute,
         expect.any(Function),
       );
-      // Access is revoked when the dispute opens and on the refund, not on
-      // every later update of the same dispute.
       expect(
-        monetizationWebhookService.handleChargeRefundedOrDisputed,
-      ).toHaveBeenCalledTimes(2);
+        monetizationWebhookService.applyDisputeToPayment,
+      ).toHaveBeenCalledTimes(3);
+      // The payment follows the dispute only once the dispute is mirrored.
+      expect(
+        monetizationWebhookService.syncDispute.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        monetizationWebhookService.applyDisputeToPayment.mock
+          .invocationCallOrder[0],
+      );
+      expect(
+        monetizationWebhookService.handleChargeRefunded,
+      ).not.toHaveBeenCalled();
     });
 
     it('offers the mirror who was charged, read from the provider, and nobody when it cannot be read', async () => {

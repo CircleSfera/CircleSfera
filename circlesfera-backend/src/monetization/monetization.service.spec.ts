@@ -145,7 +145,9 @@ describe('MonetizationService', () => {
       const { sql, values } = rawQuery(
         mockPrismaService.$queryRaw.mock.calls[0],
       );
-      expect(sql).toContain('SUM( ((t.amount - t."vatCents")');
+      expect(sql).toContain(
+        'SUM( COALESCE(( FLOOR(((t.amount - t."vatCents")::numeric * (t.amount - t."refundedCents"))',
+      );
       expect(sql).toContain('t."receiverId" = $1');
       expect(sql).toContain("t.status = 'COMPLETED'");
       expect(sql).toContain('t.type::text IN ($2,$3,$4,$5,$6)');
@@ -193,8 +195,12 @@ describe('MonetizationService', () => {
       // FLOOR(p * 0.2) in exact decimal arithmetic is p divided by 5,
       // rounded down; the app's share must match it for every price.
       expect(PLATFORM_FEE_DECIMAL).toBe(0.2);
+      // The price without VAT is first scaled by what was not refunded,
+      // rounded down, as keptWithoutVat does.
+      const kept =
+        'FLOOR(((t.amount - t."vatCents")::numeric * (t.amount - t."refundedCents")) / NULLIF(t.amount, 0))';
       expect(SHARE_SQL.sql.replace(/\s+/g, ' ').trim()).toBe(
-        '((t.amount - t."vatCents") - FLOOR((t.amount - t."vatCents") * 0.2))',
+        `COALESCE(( ${kept}) - FLOOR(( ${kept}) * 0.2), 0)`,
       );
       for (let price = 0; price <= 100_000; price++) {
         if (creatorShareCents(price) !== price - Math.floor(price / 5)) {
@@ -1879,6 +1885,20 @@ describe('MonetizationService', () => {
           }),
         }),
       );
+    });
+
+    it('counts of a payment refunded in part only what the buyer kept paid', async () => {
+      const now = new Date();
+      mockPrismaService.transaction.findMany.mockResolvedValue([
+        // Half of €10.00 refunded: the share of €4.13 without VAT.
+        { amount: 1000, vatCents: 174, refundedCents: 500, createdAt: now },
+      ]);
+
+      const res = await service.getIncomeStats('u-1', 'p-1');
+
+      expect(
+        res.find((r) => r.month === now.toISOString().slice(0, 7))?.income,
+      ).toBe(331);
     });
   });
 

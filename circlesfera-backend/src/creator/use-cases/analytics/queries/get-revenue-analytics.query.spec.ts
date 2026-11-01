@@ -67,6 +67,23 @@ describe('GetRevenueAnalyticsQuery', () => {
     });
   });
 
+  it('counts of a payment refunded in part only what the buyer kept paid', async () => {
+    mockPrismaService.transaction.findMany.mockResolvedValue([
+      // Half of €10.00 refunded keeps half of the €8.26 without VAT.
+      { type: 'DIRECT_TIP', amount: 1000, vatCents: 174, refundedCents: 500 },
+    ]);
+    mockPrismaService.follow.count.mockResolvedValue(0);
+
+    const result = await query.execute('user-42', 'profile-42', '7d');
+
+    expect(result.tipsTotal).toBe(4.13);
+    expect(mockPrismaService.transaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ refundedCents: true }),
+      }),
+    );
+  });
+
   it('counts the followers of the Profile, by Profile.id', async () => {
     mockPrismaService.transaction.findMany.mockResolvedValue([]);
     mockPrismaService.follow.count.mockResolvedValue(3);

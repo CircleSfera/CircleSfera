@@ -1704,14 +1704,17 @@ model StripePayoutLog {
 }
 
 model Transaction {
-  id       String            @id @default(uuid())
-  type     TransactionType
-  amount   Int // Integer cents (legacy name; not amountCents — public money API contract)
+  id            String            @id @default(uuid())
+  type          TransactionType
+  amount        Int // Integer cents (legacy name; not amountCents — public money API contract)
   // The VAT inside amount, in cents: CircleSfera's to pay the tax agency,
   // never part of the creator's earnings or income.
-  vatCents Int               @default(0)
-  currency String            @default("EUR")
-  status   TransactionStatus @default(COMPLETED)
+  vatCents      Int               @default(0)
+  // What the buyer got back of amount by refunds, in cents. A payment
+  // refunded in full is REFUNDED; one refunded in part keeps the rest.
+  refundedCents Int               @default(0)
+  currency      String            @default("EUR")
+  status        TransactionStatus @default(COMPLETED)
 
   // Participants
 
@@ -2944,6 +2947,8 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   REFUNDED
+  // A dispute is open: held, counted nowhere until it is settled.
+  DISPUTED
 }
 
 enum TransactionType {

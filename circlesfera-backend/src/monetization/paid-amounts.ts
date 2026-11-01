@@ -16,11 +16,27 @@ export function vatPaid(
   return session.total_details?.amount_tax ?? 0;
 }
 
+// What a payment keeps of its price without VAT once `refunded` of what was
+// paid went back to the buyer: the same part of it, rounded down.
+export function keptWithoutVat(
+  paid: number,
+  vat: number,
+  refunded = 0,
+): number {
+  if (paid <= 0 || refunded >= paid) return 0;
+  return Math.floor(((paid - vat) * (paid - refunded)) / paid);
+}
+
 // What the creator earns of a payment: their share of what was paid less
-// the VAT. The provider first sent them their share of all that was paid,
-// as the VAT was not known yet; `vatToTakeBack` is the difference.
-export function creatorEarnings(paid: number, vat: number): number {
-  return creatorShareCents(paid - vat);
+// the VAT, and less what was refunded. The provider first sent them their
+// share of all that was paid, as the VAT was not known yet; `vatToTakeBack`
+// is the difference.
+export function creatorEarnings(
+  paid: number,
+  vat: number,
+  refunded = 0,
+): number {
+  return creatorShareCents(keptWithoutVat(paid, vat, refunded));
 }
 
 export function vatToTakeBack(paid: number, vat: number): number {

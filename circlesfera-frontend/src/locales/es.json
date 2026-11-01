@@ -3029,7 +3029,8 @@
         "COMPLETED": "Completada",
         "PENDING": "Pendiente",
         "FAILED": "Fallida",
-        "REFUNDED": "Reembolsada"
+        "REFUNDED": "Reembolsada",
+        "DISPUTED": "En disputa"
       },
       "tx_type": {
         "STRIPE_SUBSCRIPTION": "Pago de un plan",

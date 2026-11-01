@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { keptWithoutVat } from '../../../../monetization/paid-amounts.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
 @Injectable()
@@ -24,7 +25,12 @@ export class GetRevenueAnalyticsQuery {
           status: 'COMPLETED',
           createdAt: { gte: startDate },
         },
-        select: { type: true, amount: true, vatCents: true },
+        select: {
+          type: true,
+          amount: true,
+          vatCents: true,
+          refundedCents: true,
+        },
       }),
       this.prisma.follow.count({
         where: { followingId: profileId, status: 'ACCEPTED' },
@@ -37,8 +43,11 @@ export class GetRevenueAnalyticsQuery {
     let giftsCents = 0;
 
     for (const tx of transactions) {
-      // What was paid without the VAT inside it.
-      const cents = Math.max(tx.amount - tx.vatCents, 0);
+      // What was paid without the VAT inside it, less what was refunded.
+      const cents = Math.max(
+        keptWithoutVat(tx.amount, tx.vatCents, tx.refundedCents),
+        0,
+      );
       if (tx.type === 'DIRECT_TIP') tipsCents += cents;
       else if (
         tx.type === 'DIRECT_POST_UNLOCK' ||
