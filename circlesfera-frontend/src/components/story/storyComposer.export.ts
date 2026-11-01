@@ -32,6 +32,7 @@ export async function exportStoryCanvas(options: {
     elementCount,
   });
 
+  const restore = decodePicturesWithTheExport(container);
   const blob = await toBlob(container, {
     quality: 0.95,
     backgroundColor:
@@ -50,7 +51,7 @@ export async function exportStoryCanvas(options: {
       if (!(node instanceof HTMLElement)) return true;
       return node.dataset.exportIgnore !== 'true';
     },
-  });
+  }).finally(restore);
 
   if (!blob) throw new Error('Failed to generate image blob');
 
@@ -63,6 +64,59 @@ export async function exportStoryCanvas(options: {
     width: container.clientWidth,
     height: container.clientHeight,
   });
+}
+
+/**
+ * Has every picture of the canvas decoded at once when the export paints it,
+ * and returns what puts the canvas back as it was.
+ *
+ * The export paints the canvas as an SVG image. Safari decodes a large picture
+ * inside it only after its first paint, and that paint is the export's only
+ * one: the photo, the drawing and a song's cover came out blank, so a photo
+ * story went out black with only its text. A picture marked `sync` is decoded
+ * before it is painted. A drawing canvas is copied into the SVG as a picture
+ * the export library marks `async`, so it is shown here as such a picture
+ * itself, laid exactly where the canvas is, while the canvas is left out.
+ */
+function decodePicturesWithTheExport(container: HTMLElement): () => void {
+  const undo: (() => void)[] = [];
+  const restore = () => {
+    for (const step of undo.splice(0)) step();
+  };
+  try {
+    for (const img of container.querySelectorAll('img')) {
+      const before = img.getAttribute('decoding');
+      img.setAttribute('decoding', 'sync');
+      undo.push(() =>
+        before === null
+          ? img.removeAttribute('decoding')
+          : img.setAttribute('decoding', before),
+      );
+    }
+    for (const canvas of container.querySelectorAll('canvas')) {
+      if (canvas.dataset.exportIgnore === 'true') continue;
+      // An empty canvas has no picture to show.
+      if (!canvas.width || !canvas.height) continue;
+      const copy = document.createElement('img');
+      copy.src = canvas.toDataURL();
+      copy.alt = '';
+      copy.setAttribute('decoding', 'sync');
+      copy.className = canvas.className;
+      copy.style.cssText = canvas.style.cssText;
+      copy.style.width = `${canvas.offsetWidth}px`;
+      copy.style.height = `${canvas.offsetHeight}px`;
+      canvas.before(copy);
+      canvas.dataset.exportIgnore = 'true';
+      undo.push(() => {
+        copy.remove();
+        delete canvas.dataset.exportIgnore;
+      });
+    }
+  } catch (err) {
+    restore();
+    throw err;
+  }
+  return restore;
 }
 
 export function reportStoryExportError(err: unknown): void {
