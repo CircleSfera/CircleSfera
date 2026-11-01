@@ -172,10 +172,22 @@ describe('StripeService.getChargeCustomerId', () => {
   it('names the customer of a charge, given as an id or as the customer itself', async () => {
     retrieve.mockResolvedValueOnce({ customer: 'cus_1' });
     await expect(service.getChargeCustomerId('ch_1')).resolves.toBe('cus_1');
-    expect(retrieve).toHaveBeenCalledWith('ch_1');
+    expect(retrieve).toHaveBeenCalledWith('ch_1', {}, undefined);
 
     retrieve.mockResolvedValueOnce({ customer: { id: 'cus_2' } });
     await expect(service.getChargeCustomerId('ch_2')).resolves.toBe('cus_2');
+  });
+
+  it("reads a charge made on a creator's account there", async () => {
+    retrieve.mockResolvedValueOnce({ customer: 'cus_4' });
+    await expect(
+      service.getChargeCustomerId('ch_4', 'acct_creator'),
+    ).resolves.toBe('cus_4');
+    expect(retrieve).toHaveBeenCalledWith(
+      'ch_4',
+      {},
+      { stripeAccount: 'acct_creator' },
+    );
   });
 
   it('names nobody for a charge with no customer', async () => {

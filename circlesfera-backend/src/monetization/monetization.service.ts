@@ -15,7 +15,10 @@ import {
   NOT_REMOVED,
 } from '../common/policies/removed-content.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
-import { creatorPaymentTax } from '../common/stripe/creator-payment-tax.js';
+import {
+  CREATOR_PAYMENT_METHODS,
+  creatorPaymentTax,
+} from '../common/stripe/creator-payment-tax.js';
 import {
   deriveConnectAccountFlags,
   isVerifiedCompanyAccount,
@@ -210,13 +213,13 @@ export class MonetizationService {
 
   // NEW DIRECT MONETIZATION METHODS
 
-  // Single builder for the "pay creator directly via destination charge"
+  // Single builder for the "pay creator directly on their own account"
   // Checkout Session shape shared by createPostUnlockSession,
   // createStoryUnlockSession, createMessageUnlockSession and
   // createTipSession — each method keeps its own entity-specific
   // pre-checks (price bounds, self-purchase, already-unlocked, etc.) and
   // only delegates the actual Stripe session construction here.
-  private async createDestinationChargeCheckout(params: {
+  private async createCreatorCheckout(params: {
     buyerId: string;
     buyerEmail: string;
     priceCents: number;
@@ -231,10 +234,13 @@ export class MonetizationService {
     expiresAt?: number;
   }): Promise<{ url: string | null }> {
     await assertRealMoneyAllowed(this.prisma, params.buyerId);
+    const taxActive = await this.stripeService.creatorTaxActive(
+      params.creatorStripeAccountId,
+    );
 
     const session = await this.stripeService.createCheckoutSession(
       {
-        ...this.stripeService.cardOnlyPaymentMethods(),
+        ...CREATOR_PAYMENT_METHODS,
         mode: 'payment',
         customer_email: params.buyerEmail,
         client_reference_id: params.buyerId,
@@ -252,10 +258,7 @@ export class MonetizationService {
             quantity: 1,
           },
         ],
-        ...creatorPaymentTax({
-          priceCents: params.priceCents,
-          destination: params.creatorStripeAccountId,
-        }),
+        ...creatorPaymentTax({ priceCents: params.priceCents, taxActive }),
         metadata: params.metadata,
         ...(params.expiresAt !== undefined && {
           expires_at: params.expiresAt,
@@ -266,7 +269,10 @@ export class MonetizationService {
         ),
         cancel_url: appendCheckoutQuery(params.returnUrl, 'canceled=true'),
       },
-      { idempotencyKey: params.idempotencyKey },
+      {
+        stripeAccount: params.creatorStripeAccountId,
+        idempotencyKey: params.idempotencyKey,
+      },
     );
 
     return { url: session.url };
@@ -314,7 +320,7 @@ export class MonetizationService {
     if (!buyer)
       throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    return this.createDestinationChargeCheckout({
+    return this.createCreatorCheckout({
       buyerId: userId,
       buyerEmail: buyer.email,
       priceCents: post.priceCents,
@@ -385,7 +391,7 @@ export class MonetizationService {
     if (!buyer)
       throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    return this.createDestinationChargeCheckout({
+    return this.createCreatorCheckout({
       buyerId: userId,
       buyerEmail: buyer.email,
       priceCents: story.priceCents,
@@ -479,7 +485,7 @@ export class MonetizationService {
     if (!buyer)
       throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    return this.createDestinationChargeCheckout({
+    return this.createCreatorCheckout({
       buyerId: userId,
       buyerEmail: buyer.email,
       priceCents: message.priceCents,
@@ -582,7 +588,7 @@ export class MonetizationService {
         'Sender not found',
       );
 
-    return this.createDestinationChargeCheckout({
+    return this.createCreatorCheckout({
       buyerId: senderId,
       buyerEmail: sender.email,
       priceCents: amountCents,

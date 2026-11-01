@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  creatorEarnings,
-  keptWithoutVat,
-  vatToTakeBack,
-} from './paid-amounts.js';
+import { creatorEarnings, keptWithoutVat } from './paid-amounts.js';
 
 describe('paid amounts', () => {
   it('keeps the price without VAT of a payment nothing was refunded of', () => {
@@ -22,9 +18,5 @@ describe('paid amounts', () => {
     expect(keptWithoutVat(1000, 174, 1200)).toBe(0);
     expect(keptWithoutVat(0, 0)).toBe(0);
     expect(creatorEarnings(1000, 174, 1000)).toBe(0);
-  });
-
-  it('takes back from the creator the part of their share that was VAT', () => {
-    expect(vatToTakeBack(1000, 174)).toBe(800 - 661);
   });
 });

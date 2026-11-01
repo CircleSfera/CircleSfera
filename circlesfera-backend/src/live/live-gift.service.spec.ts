@@ -60,9 +60,7 @@ describe('LiveGiftService', () => {
 
   const mockStripeService = {
     createCheckoutSession: vi.fn(),
-    cardOnlyPaymentMethods: vi.fn(() => ({
-      payment_method_configuration: 'pmc_cardonly',
-    })),
+    creatorTaxActive: vi.fn().mockResolvedValue(true),
   };
 
   beforeEach(() => {
@@ -177,14 +175,11 @@ describe('LiveGiftService', () => {
               }),
             }),
           ],
+          allowed_payment_method_types: ['card'],
           automatic_tax: { enabled: true, liability: { type: 'self' } },
-          payment_intent_data: {
-            transfer_data: expect.objectContaining({
-              amount: amountCents - platformFee,
-            }),
-          },
+          payment_intent_data: { application_fee_amount: platformFee },
         }),
-        expect.anything(),
+        expect.objectContaining({ stripeAccount: 'acct_1' }),
       );
     });
   });

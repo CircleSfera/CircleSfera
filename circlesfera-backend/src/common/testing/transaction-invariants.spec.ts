@@ -62,9 +62,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
 
       mockStripeService = {
         createCheckoutSession: vi.fn(),
-        cardOnlyPaymentMethods: vi.fn(() => ({
-          payment_method_configuration: 'pmc_cardonly',
-        })),
+        creatorTaxActive: vi.fn().mockResolvedValue(true),
         createAccountLink: vi.fn(),
         getAccountStatus: vi.fn(),
         createLoginLink: vi.fn(),
@@ -132,7 +130,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
-    it('enforces 20% platform fee calculation and transfers 80% to creator', async () => {
+    it("enforces the 20% platform fee and charges the payment on the creator's account", async () => {
       const tipAmountCents = 1000;
       mockPrisma.monetization.findUnique.mockResolvedValue({
         stripeConnectAccountId: 'acct_creator_123',
@@ -157,12 +155,11 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       expect(res.url).toBe('https://checkout.stripe.com/tip');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          // 80% of 1000 cents; the 20% and any VAT stay with the platform.
-          payment_intent_data: {
-            transfer_data: { destination: 'acct_creator_123', amount: 800 },
-          },
+          // CircleSfera's 20% of 1000 cents; the rest, VAT included, is the
+          // creator's, as the seller.
+          payment_intent_data: { application_fee_amount: 200 },
         }),
-        expect.anything(),
+        expect.objectContaining({ stripeAccount: 'acct_creator_123' }),
       );
     });
 

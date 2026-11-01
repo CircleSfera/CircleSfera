@@ -75,9 +75,8 @@ describe('MonetizationService', () => {
 
   const mockStripeService = {
     createCheckoutSession: vi.fn(),
-    cardOnlyPaymentMethods: vi.fn(() => ({
-      payment_method_configuration: 'pmc_cardonly',
-    })),
+    // The creator's tax settings are complete unless a test says otherwise.
+    creatorTaxActive: vi.fn().mockResolvedValue(true),
     createExpressAccount: vi.fn(),
     createAccountLink: vi.fn(),
     getAccount: vi.fn(),
@@ -445,15 +444,15 @@ describe('MonetizationService', () => {
           success_url:
             'http://localhost/return?foo=bar&success=true&session_id={CHECKOUT_SESSION_ID}',
           cancel_url: 'http://localhost/return?foo=bar&canceled=true',
-          // Before VAT: the provider adds it, CircleSfera keeps it, and the
-          // creator's account receives the price less the 20% fee.
+          // Charged on the creator's account, VAT included and worked out
+          // there; CircleSfera's fee is asked on the whole price and
+          // settled once the VAT is known.
           automatic_tax: { enabled: true, liability: { type: 'self' } },
-          payment_intent_data: {
-            transfer_data: { destination: 'acct_1', amount: 800 },
-          },
+          payment_intent_data: { application_fee_amount: 200 },
         }),
-        { idempotencyKey: 'idemp-1' },
+        { stripeAccount: 'acct_1', idempotencyKey: 'idemp-1' },
       );
+      expect(mockStripeService.creatorTaxActive).toHaveBeenCalledWith('acct_1');
       // Who pays sees the Profile, never the creator's email.
       const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
       expect(JSON.stringify(session)).toContain('@ana');
@@ -606,12 +605,11 @@ describe('MonetizationService', () => {
       expect(res.url).toBe('https://checkout.stripe.test/story');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          // Before VAT: the provider adds it, CircleSfera keeps it, and the
-          // creator's account receives the price less the 20% fee.
+          // Charged on the creator's account, VAT included and worked out
+          // there; CircleSfera's fee is asked on the whole price and
+          // settled once the VAT is known.
           automatic_tax: { enabled: true, liability: { type: 'self' } },
-          payment_intent_data: {
-            transfer_data: { destination: 'acct_1', amount: 480 },
-          },
+          payment_intent_data: { application_fee_amount: 120 },
           metadata: {
             type: 'DIRECT_STORY_UNLOCK',
             storyId: 's-1',
@@ -621,7 +619,7 @@ describe('MonetizationService', () => {
             withdrawal_consent_version: '2026-1',
           },
         }),
-        { idempotencyKey: undefined },
+        { stripeAccount: 'acct_1', idempotencyKey: undefined },
       );
     });
   });
@@ -803,12 +801,11 @@ describe('MonetizationService', () => {
       expect(session.expires_at).toBeLessThanOrEqual(after + 31 * 60);
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          // Before VAT: the provider adds it, CircleSfera keeps it, and the
-          // creator's account receives the price less the 20% fee.
+          // Charged on the creator's account, VAT included and worked out
+          // there; CircleSfera's fee is asked on the whole price and
+          // settled once the VAT is known.
           automatic_tax: { enabled: true, liability: { type: 'self' } },
-          payment_intent_data: {
-            transfer_data: { destination: 'acct_1', amount: 400 },
-          },
+          payment_intent_data: { application_fee_amount: 100 },
           metadata: {
             type: 'DIRECT_MESSAGE_UNLOCK',
             messageId: 'm-1',
@@ -818,7 +815,7 @@ describe('MonetizationService', () => {
             withdrawal_consent_version: '2026-1',
           },
         }),
-        { idempotencyKey: undefined },
+        { stripeAccount: 'acct_1', idempotencyKey: undefined },
       );
     });
   });
@@ -930,8 +927,8 @@ describe('MonetizationService', () => {
       expect(result.url).toBe('https://checkout.stripe.test/tip');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          // One-off payments use the card-only Payment Method Configuration.
-          payment_method_configuration: 'pmc_cardonly',
+          // Paid by card only, on the creator's account.
+          allowed_payment_method_types: ['card'],
           line_items: [
             expect.objectContaining({
               price_data: expect.objectContaining({ unit_amount: tipCents }),
@@ -939,9 +936,7 @@ describe('MonetizationService', () => {
           ],
           automatic_tax: { enabled: true, liability: { type: 'self' } },
           payment_intent_data: {
-            transfer_data: expect.objectContaining({
-              amount: tipCents - Math.floor(tipCents * PLATFORM_FEE_DECIMAL),
-            }),
+            application_fee_amount: Math.floor(tipCents * PLATFORM_FEE_DECIMAL),
           },
           metadata: {
             type: 'DIRECT_TIP',
@@ -952,7 +947,7 @@ describe('MonetizationService', () => {
             postId: 'post-123',
           },
         }),
-        { idempotencyKey: 'idemp-tip' },
+        { stripeAccount: expect.any(String), idempotencyKey: 'idemp-tip' },
       );
     });
 

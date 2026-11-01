@@ -7,7 +7,10 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
-import { creatorPaymentTax } from '../common/stripe/creator-payment-tax.js';
+import {
+  CREATOR_PAYMENT_METHODS,
+  creatorPaymentTax,
+} from '../common/stripe/creator-payment-tax.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { creatorEarnings } from '../monetization/paid-amounts.js';
 import {
@@ -171,9 +174,11 @@ export class LiveGiftService {
           });
         }
 
+        const taxActive =
+          await this.stripeService.creatorTaxActive(destination);
         const session = await this.stripeService.createCheckoutSession(
           {
-            ...this.stripeService.cardOnlyPaymentMethods(),
+            ...CREATOR_PAYMENT_METHODS,
             mode: 'payment',
             customer_email: sender.email,
             client_reference_id: senderId,
@@ -191,10 +196,7 @@ export class LiveGiftService {
                 quantity: 1,
               },
             ],
-            ...creatorPaymentTax({
-              priceCents: amountCents,
-              destination,
-            }),
+            ...creatorPaymentTax({ priceCents: amountCents, taxActive }),
             metadata: {
               type: 'DIRECT_LIVE_GIFT',
               liveGiftId: pendingGift.id,
@@ -209,7 +211,7 @@ export class LiveGiftService {
             ),
             cancel_url: appendCheckoutQuery(returnUrl, 'gift_canceled=true'),
           },
-          { idempotencyKey },
+          { stripeAccount: destination, idempotencyKey },
         );
 
         await this.prisma.liveGift.update({

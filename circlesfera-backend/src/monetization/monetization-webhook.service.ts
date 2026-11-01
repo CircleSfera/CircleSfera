@@ -8,6 +8,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type Stripe from 'stripe';
 import { AppException } from '../common/errors/app.exception.js';
+import { creatorPaymentFeeDue } from '../common/stripe/creator-payment-tax.js';
 import {
   type ConnectAccountCompanyFields,
   deriveConnectAccountFlags,
@@ -17,12 +18,7 @@ import {
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import {
-  amountPaid,
-  creatorEarnings,
-  vatPaid,
-  vatToTakeBack,
-} from './paid-amounts.js';
+import { amountPaid, creatorEarnings, vatPaid } from './paid-amounts.js';
 import { payoutAccountPlacement } from './payout-account.js';
 
 // Stripe Checkout Session metadata.type values fulfilled here rather than
@@ -130,8 +126,12 @@ export class MonetizationWebhookService {
     } satisfies NotificationCreateEvent['payload']);
   }
 
+  // `account` is the creator's account the checkout was made on, as the
+  // provider names it on the notice; a checkout of CircleSfera's own (a
+  // promotion) has none.
   async handleCheckoutSessionCompleted(
     session: Stripe.Checkout.Session,
+    account?: string,
   ): Promise<void> {
     const metadata = session.metadata;
 
@@ -195,7 +195,7 @@ export class MonetizationWebhookService {
           : session.id;
 
       if (clientReferenceId && postId && creatorId) {
-        await this.takeVatBack(session, amount, vat);
+        await this.settleFee(session, account, amount, vat);
         await this.prisma.$transaction(async (tx) => {
           await tx.postUnlock.upsert({
             where: { userId_postId: { userId: clientReferenceId, postId } },
@@ -271,7 +271,7 @@ export class MonetizationWebhookService {
           : session.payment_intent?.id || session.id;
 
       if (clientReferenceId && storyId && creatorId) {
-        await this.takeVatBack(session, amount, vat);
+        await this.settleFee(session, account, amount, vat);
         await this.prisma.$transaction(async (tx) => {
           await tx.storyUnlock.upsert({
             where: {
@@ -345,7 +345,7 @@ export class MonetizationWebhookService {
           select: { id: true, isDeleted: true, senderId: true },
         });
         if (!message || message.isDeleted) {
-          await this.refundUnlockOfMissingMessage(session, {
+          await this.refundUnlockOfMissingMessage(session, account, {
             buyerId: clientReferenceId,
             creatorId,
             messageId,
@@ -354,7 +354,7 @@ export class MonetizationWebhookService {
           return;
         }
 
-        await this.takeVatBack(session, amount, vat);
+        await this.settleFee(session, account, amount, vat);
 
         await this.prisma.$transaction(async (tx) => {
           await tx.messageUnlock.upsert({
@@ -427,7 +427,7 @@ export class MonetizationWebhookService {
           : session.id;
 
       if (clientReferenceId && creatorId) {
-        await this.takeVatBack(session, amount, vat);
+        await this.settleFee(session, account, amount, vat);
         // The Profile tipped, while it still exists: one deleted since the
         // payment leaves it empty and never loses the record of the payment.
         const tippedProfile = profileId
@@ -508,7 +508,7 @@ export class MonetizationWebhookService {
           : session.payment_intent?.id || session.id;
 
       if (clientReferenceId && liveGiftId && streamId && creatorId) {
-        await this.takeVatBack(session, amount, vat);
+        await this.settleFee(session, account, amount, vat);
         if (this.eventEmitter) {
           const payload: PaymentLiveGiftCompletedEvent['payload'] = {
             liveGiftId,
@@ -545,33 +545,37 @@ export class MonetizationWebhookService {
     }
   }
 
-  // Records the payment for a message that is deleted or gone and gives it
-  // back to the buyer in full. The creator earns nothing from it. A replay
-  // of the event finds the payment already refunded and does nothing; a
-  // retry after a failed refund asks the provider again with the same key,
-  // so the buyer is never refunded twice.
-  // The creator's account was sent their share of all the buyer paid, as
-  // the VAT was not known yet; the part of it that was VAT is taken back
-  // before the payment is recorded, so a failure leaves the notice to be
-  // tried again rather than a payment recorded with the VAT still sent.
-  private async takeVatBack(
+  // CircleSfera's fee was asked on the whole price when the checkout opened,
+  // before the VAT was known; the part of it taken on the VAT goes back to
+  // the creator before the payment is recorded, so a failure leaves the
+  // notice to be tried again rather than a payment recorded with too high a
+  // fee. A checkout that names no creator's account was opened before
+  // payments were made on the creator's account and has no fee to settle.
+  private async settleFee(
     session: Stripe.Checkout.Session,
+    account: string | undefined,
     paid: number,
     vat: number,
   ): Promise<void> {
     const paymentIntentId = stripeId(session.payment_intent);
-    const amountInCents = vatToTakeBack(paid, vat);
-    if (!paymentIntentId || amountInCents <= 0) {
+    if (!paymentIntentId || !account || vat <= 0) {
       return;
     }
-    await this.stripeService.takeVatBackFromCreator({
+    await this.stripeService.settleCreatorPaymentFee({
+      account,
       paymentIntentId,
-      amountInCents,
+      feeDueCents: creatorPaymentFeeDue(paid, vat),
     });
   }
 
+  // Records the payment for a message that is deleted or gone and gives it
+  // back to the buyer in full, with CircleSfera's fee. The creator earns
+  // nothing from it. A replay of the event finds the payment already
+  // refunded and does nothing; a retry after a failed refund asks the
+  // provider again with the same key, so the buyer is never refunded twice.
   private async refundUnlockOfMissingMessage(
     session: Stripe.Checkout.Session,
+    account: string | undefined,
     params: {
       buyerId: string;
       creatorId: string;
@@ -593,9 +597,9 @@ export class MonetizationWebhookService {
       this.eventEmitter?.emit('payment.alert', payload);
     };
 
-    if (!paymentIntentId) {
+    if (!paymentIntentId || !account) {
       this.logger.error(
-        `Checkout ${session.id} paid for message ${messageId}, which is deleted or gone, and names no payment to refund`,
+        `Checkout ${session.id} paid for message ${messageId}, which is deleted or gone, and names no payment or account to refund`,
       );
       alert(
         'Message Unlock Refund Needed',
@@ -656,9 +660,9 @@ export class MonetizationWebhookService {
     }
 
     try {
-      await this.stripeService.refundDestinationCharge({
+      await this.stripeService.refundCreatorPayment({
+        account,
         paymentIntentId,
-        amountInCents: amount,
         idempotencyKey: `message-unlock-refund-${session.id}`,
         metadata: {
           type: 'DIRECT_MESSAGE_UNLOCK',

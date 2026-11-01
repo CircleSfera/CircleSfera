@@ -12,15 +12,15 @@ describe('MonetizationWebhookService', () => {
   let eventEmitter: { emit: ReturnType<typeof vi.fn> };
   // The payment provider is replaced: nothing here reaches it.
   let stripe: {
-    refundDestinationCharge: ReturnType<typeof vi.fn>;
-    takeVatBackFromCreator: ReturnType<typeof vi.fn>;
+    refundCreatorPayment: ReturnType<typeof vi.fn>;
+    settleCreatorPaymentFee: ReturnType<typeof vi.fn>;
     getAccount: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
     stripe = {
-      refundDestinationCharge: vi.fn().mockResolvedValue({}),
-      takeVatBackFromCreator: vi.fn().mockResolvedValue(undefined),
+      refundCreatorPayment: vi.fn().mockResolvedValue({}),
+      settleCreatorPaymentFee: vi.fn().mockResolvedValue(undefined),
       getAccount: vi.fn(),
     };
     const module: TestingModule = await Test.createTestingModule({
@@ -229,9 +229,10 @@ describe('MonetizationWebhookService', () => {
       );
     });
 
-    // 10 € paid, 1.74 € of it VAT: the creator earns 80% of the 8.26 €
-    // left, 6.61 €. They were sent 80% of the 10 €, 8 €, so 1.39 € is taken
-    // back before the payment is recorded.
+    // 10 € paid on the creator's account, 1.74 € of it VAT: the creator
+    // earns 80% of the 8.26 € left, 6.61 €. CircleSfera asked 20% of the
+    // 10 €, 2 €, when the checkout opened; 20% of the 8.26 €, 1.65 €, is
+    // due, so the fee is settled before the payment is recorded.
     it.each([
       ['DIRECT_POST_UNLOCK', { postId: 'post1' }],
       ['DIRECT_STORY_UNLOCK', { storyId: 'story1' }],
@@ -240,23 +241,27 @@ describe('MonetizationWebhookService', () => {
     ])(
       'records a %s at what was paid, the VAT inside it apart, and earns the creator their share of the rest',
       async (type, ids) => {
-        await service.handleCheckoutSessionCompleted({
-          id: `cs_vat_${type}`,
-          client_reference_id: 'buyer1',
-          amount_subtotal: 1000,
-          amount_total: 1000,
-          total_details: { amount_tax: 174 },
-          currency: 'eur',
-          payment_intent: `pi_vat_${type}`,
-          metadata: { type, creatorId: 'creator1', ...ids },
-        } as any);
+        await service.handleCheckoutSessionCompleted(
+          {
+            id: `cs_vat_${type}`,
+            client_reference_id: 'buyer1',
+            amount_subtotal: 1000,
+            amount_total: 1000,
+            total_details: { amount_tax: 174 },
+            currency: 'eur',
+            payment_intent: `pi_vat_${type}`,
+            metadata: { type, creatorId: 'creator1', ...ids },
+          } as any,
+          'acct_creator',
+        );
 
-        expect(stripe.takeVatBackFromCreator).toHaveBeenCalledWith({
+        expect(stripe.settleCreatorPaymentFee).toHaveBeenCalledWith({
+          account: 'acct_creator',
           paymentIntentId: `pi_vat_${type}`,
-          amountInCents: 139,
+          feeDueCents: 165,
         });
         expect(
-          stripe.takeVatBackFromCreator.mock.invocationCallOrder[0],
+          stripe.settleCreatorPaymentFee.mock.invocationCallOrder[0],
         ).toBeLessThan(prisma.$transaction.mock.invocationCallOrder[0]);
         expect(prisma.transaction.create).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -278,43 +283,49 @@ describe('MonetizationWebhookService', () => {
       },
     );
 
-    it('records nothing when the VAT cannot be taken back, so the notice is tried again', async () => {
-      stripe.takeVatBackFromCreator.mockRejectedValueOnce(new Error('down'));
+    it('records nothing when the fee cannot be settled, so the notice is tried again', async () => {
+      stripe.settleCreatorPaymentFee.mockRejectedValueOnce(new Error('down'));
 
       await expect(
-        service.handleCheckoutSessionCompleted({
-          id: 'cs_vat_fail',
+        service.handleCheckoutSessionCompleted(
+          {
+            id: 'cs_vat_fail',
+            client_reference_id: 'buyer1',
+            amount_total: 1000,
+            total_details: { amount_tax: 174 },
+            currency: 'eur',
+            payment_intent: 'pi_vat_fail',
+            metadata: {
+              type: 'DIRECT_POST_UNLOCK',
+              postId: 'post1',
+              creatorId: 'creator1',
+            },
+          } as any,
+          'acct_creator',
+        ),
+      ).rejects.toThrow('down');
+      expect(prisma.transaction.create).not.toHaveBeenCalled();
+    });
+
+    it('settles no fee for a payment with no VAT inside, from a buyer outside the EU', async () => {
+      await service.handleCheckoutSessionCompleted(
+        {
+          id: 'cs_no_vat',
           client_reference_id: 'buyer1',
           amount_total: 1000,
-          total_details: { amount_tax: 174 },
+          total_details: { amount_tax: 0 },
           currency: 'eur',
-          payment_intent: 'pi_vat_fail',
+          payment_intent: 'pi_no_vat',
           metadata: {
             type: 'DIRECT_POST_UNLOCK',
             postId: 'post1',
             creatorId: 'creator1',
           },
-        } as any),
-      ).rejects.toThrow('down');
-      expect(prisma.transaction.create).not.toHaveBeenCalled();
-    });
+        } as any,
+        'acct_creator',
+      );
 
-    it('takes nothing back from a payment with no VAT inside, from a buyer outside the EU', async () => {
-      await service.handleCheckoutSessionCompleted({
-        id: 'cs_no_vat',
-        client_reference_id: 'buyer1',
-        amount_total: 1000,
-        total_details: { amount_tax: 0 },
-        currency: 'eur',
-        payment_intent: 'pi_no_vat',
-        metadata: {
-          type: 'DIRECT_POST_UNLOCK',
-          postId: 'post1',
-          creatorId: 'creator1',
-        },
-      } as any);
-
-      expect(stripe.takeVatBackFromCreator).not.toHaveBeenCalled();
+      expect(stripe.settleCreatorPaymentFee).not.toHaveBeenCalled();
       expect(prisma.monetization.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({ lifetimeEarningsCents: 800 }),
@@ -322,26 +333,49 @@ describe('MonetizationWebhookService', () => {
       );
     });
 
-    it('hands a live gift on at what was paid, with the VAT inside it apart', async () => {
+    it('settles no fee for a checkout opened before payments were made on the creator account', async () => {
       await service.handleCheckoutSessionCompleted({
-        id: 'cs_vat_gift',
+        id: 'cs_before',
         client_reference_id: 'buyer1',
         amount_total: 1000,
         total_details: { amount_tax: 174 },
         currency: 'eur',
-        payment_intent: 'pi_vat_gift',
+        payment_intent: 'pi_before',
         metadata: {
-          type: 'DIRECT_LIVE_GIFT',
-          liveGiftId: 'lg1',
-          streamId: 's1',
-          giftId: 'star',
+          type: 'DIRECT_POST_UNLOCK',
+          postId: 'post1',
           creatorId: 'creator1',
         },
       } as any);
 
-      expect(stripe.takeVatBackFromCreator).toHaveBeenCalledWith({
+      expect(stripe.settleCreatorPaymentFee).not.toHaveBeenCalled();
+      expect(prisma.transaction.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('hands a live gift on at what was paid, with the VAT inside it apart', async () => {
+      await service.handleCheckoutSessionCompleted(
+        {
+          id: 'cs_vat_gift',
+          client_reference_id: 'buyer1',
+          amount_total: 1000,
+          total_details: { amount_tax: 174 },
+          currency: 'eur',
+          payment_intent: 'pi_vat_gift',
+          metadata: {
+            type: 'DIRECT_LIVE_GIFT',
+            liveGiftId: 'lg1',
+            streamId: 's1',
+            giftId: 'star',
+            creatorId: 'creator1',
+          },
+        } as any,
+        'acct_creator',
+      );
+
+      expect(stripe.settleCreatorPaymentFee).toHaveBeenCalledWith({
+        account: 'acct_creator',
         paymentIntentId: 'pi_vat_gift',
-        amountInCents: 139,
+        feeDueCents: 165,
       });
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'payment.live_gift_completed',
@@ -566,15 +600,15 @@ describe('MonetizationWebhookService', () => {
           status: 'COMPLETED',
         }),
       });
-      expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+      expect(stripe.refundCreatorPayment).not.toHaveBeenCalled();
     });
 
     describe('a paid message that is deleted or gone', () => {
       const session = {
         id: 'cs_msg_gone',
         client_reference_id: 'buyer1',
-        // 4 € paid, 0.69 € of it VAT: all of it goes back, and no VAT is
-        // taken back from the creator, who keeps nothing.
+        // 4 € paid, 0.69 € of it VAT: all of it goes back, with
+        // CircleSfera's fee, and the creator keeps nothing.
         amount_subtotal: 400,
         amount_total: 400,
         total_details: { amount_tax: 69 },
@@ -587,8 +621,8 @@ describe('MonetizationWebhookService', () => {
         },
       } as any;
       const refundAsked = {
+        account: 'acct_creator',
         paymentIntentId: 'pi_msg_gone',
-        amountInCents: 400,
         idempotencyKey: 'message-unlock-refund-cs_msg_gone',
         metadata: {
           type: 'DIRECT_MESSAGE_UNLOCK',
@@ -623,7 +657,7 @@ describe('MonetizationWebhookService', () => {
           prisma.message.findUnique.mockResolvedValue(message);
 
           await expect(
-            service.handleCheckoutSessionCompleted(session),
+            service.handleCheckoutSessionCompleted(session, 'acct_creator'),
           ).resolves.toBeUndefined();
 
           expect(prisma.message.findUnique).toHaveBeenCalledWith({
@@ -645,11 +679,9 @@ describe('MonetizationWebhookService', () => {
             },
             select: { id: true, status: true },
           });
-          expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
-          expect(stripe.refundDestinationCharge).toHaveBeenCalledWith(
-            refundAsked,
-          );
-          expect(stripe.takeVatBackFromCreator).not.toHaveBeenCalled();
+          expect(stripe.refundCreatorPayment).toHaveBeenCalledTimes(1);
+          expect(stripe.refundCreatorPayment).toHaveBeenCalledWith(refundAsked);
+          expect(stripe.settleCreatorPaymentFee).not.toHaveBeenCalled();
           expect(prisma.transaction.update).toHaveBeenCalledWith({
             where: { id: 'tx_gone' },
             data: { status: 'REFUNDED' },
@@ -688,10 +720,10 @@ describe('MonetizationWebhookService', () => {
           return Promise.resolve(stored);
         });
 
-        await service.handleCheckoutSessionCompleted(session);
-        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session, 'acct_creator');
+        await service.handleCheckoutSessionCompleted(session, 'acct_creator');
 
-        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+        expect(stripe.refundCreatorPayment).toHaveBeenCalledTimes(1);
         expect(prisma.transaction.create).toHaveBeenCalledTimes(1);
         expect(prisma.transaction.update).toHaveBeenCalledTimes(1);
         expect(alerted('Message Unlock Refunded')).toHaveLength(1);
@@ -703,12 +735,10 @@ describe('MonetizationWebhookService', () => {
           status: 'PENDING',
         });
 
-        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session, 'acct_creator');
 
         expect(prisma.transaction.create).not.toHaveBeenCalled();
-        expect(stripe.refundDestinationCharge).toHaveBeenCalledWith(
-          refundAsked,
-        );
+        expect(stripe.refundCreatorPayment).toHaveBeenCalledWith(refundAsked);
         expect(prisma.transaction.update).toHaveBeenCalledWith({
           where: { id: 'tx_gone' },
           data: { status: 'REFUNDED' },
@@ -718,7 +748,7 @@ describe('MonetizationWebhookService', () => {
       it('keeps the payment without the people who were erased since', async () => {
         prisma.user.findUnique.mockResolvedValue(null);
 
-        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session, 'acct_creator');
 
         expect(prisma.transaction.create).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -728,15 +758,15 @@ describe('MonetizationWebhookService', () => {
             }),
           }),
         );
-        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+        expect(stripe.refundCreatorPayment).toHaveBeenCalledTimes(1);
       });
 
       it('fails, so the provider retries, and tells staff when the refund fails', async () => {
         const failure = new Error('provider unavailable');
-        stripe.refundDestinationCharge.mockRejectedValue(failure);
+        stripe.refundCreatorPayment.mockRejectedValue(failure);
 
         await expect(
-          service.handleCheckoutSessionCompleted(session),
+          service.handleCheckoutSessionCompleted(session, 'acct_creator'),
         ).rejects.toBe(failure);
 
         expect(prisma.transaction.update).not.toHaveBeenCalled();
@@ -745,14 +775,14 @@ describe('MonetizationWebhookService', () => {
       });
 
       it('counts the payment refunded when the provider says it already is', async () => {
-        stripe.refundDestinationCharge.mockRejectedValue(
+        stripe.refundCreatorPayment.mockRejectedValue(
           Object.assign(new Error('already refunded'), {
             code: 'charge_already_refunded',
           }),
         );
 
         await expect(
-          service.handleCheckoutSessionCompleted(session),
+          service.handleCheckoutSessionCompleted(session, 'acct_creator'),
         ).resolves.toBeUndefined();
 
         expect(prisma.transaction.update).toHaveBeenCalledWith({
@@ -773,10 +803,10 @@ describe('MonetizationWebhookService', () => {
           });
 
           await expect(
-            service.handleCheckoutSessionCompleted(session),
+            service.handleCheckoutSessionCompleted(session, 'acct_creator'),
           ).resolves.toBeUndefined();
 
-          expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+          expect(stripe.refundCreatorPayment).not.toHaveBeenCalled();
           expect(prisma.transaction.create).not.toHaveBeenCalled();
           expect(prisma.transaction.update).not.toHaveBeenCalled();
           expect(prisma.monetization.upsert).not.toHaveBeenCalled();
@@ -801,15 +831,15 @@ describe('MonetizationWebhookService', () => {
       ])(
         'answers the notice and asks staff to finish by hand when the provider refuses the full refund (%s)',
         async (code) => {
-          stripe.refundDestinationCharge.mockRejectedValue(
+          stripe.refundCreatorPayment.mockRejectedValue(
             Object.assign(new Error('refused'), { code }),
           );
 
           await expect(
-            service.handleCheckoutSessionCompleted(session),
+            service.handleCheckoutSessionCompleted(session, 'acct_creator'),
           ).resolves.toBeUndefined();
 
-          expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+          expect(stripe.refundCreatorPayment).toHaveBeenCalledTimes(1);
           // Kept pending, never counted as the creator's, with a note for staff.
           expect(prisma.transaction.update).toHaveBeenCalledTimes(1);
           expect(prisma.transaction.update).toHaveBeenCalledWith({
@@ -844,7 +874,7 @@ describe('MonetizationWebhookService', () => {
         });
         // The provider's refund notice arrives while the payment is still
         // pending, before this handler marks it.
-        stripe.refundDestinationCharge.mockImplementation(async () => {
+        stripe.refundCreatorPayment.mockImplementation(async () => {
           await service.handleChargeRefunded({
             payment_intent: 'pi_msg_gone',
             amount: 400,
@@ -853,8 +883,8 @@ describe('MonetizationWebhookService', () => {
           return { id: 're_1' };
         });
 
-        await service.handleCheckoutSessionCompleted(session);
-        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session, 'acct_creator');
+        await service.handleCheckoutSessionCompleted(session, 'acct_creator');
         await service.handleChargeRefunded({
           payment_intent: 'pi_msg_gone',
           amount: 400,
@@ -862,7 +892,7 @@ describe('MonetizationWebhookService', () => {
         });
 
         expect(stored).toEqual(expect.objectContaining({ status: 'REFUNDED' }));
-        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+        expect(stripe.refundCreatorPayment).toHaveBeenCalledTimes(1);
         expect(prisma.transaction.create).toHaveBeenCalledTimes(1);
         expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
         expect(prisma.storyUnlock.deleteMany).not.toHaveBeenCalled();
@@ -874,19 +904,27 @@ describe('MonetizationWebhookService', () => {
         const error = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
         await expect(
-          service.handleCheckoutSessionCompleted({
-            ...session,
-            payment_intent: null,
-            currency: null,
-          }),
+          service.handleCheckoutSessionCompleted(
+            { ...session, payment_intent: null, currency: null },
+            'acct_creator',
+          ),
         ).resolves.toBeUndefined();
 
-        expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+        expect(stripe.refundCreatorPayment).not.toHaveBeenCalled();
         expect(prisma.transaction.create).not.toHaveBeenCalled();
         expect(error).toHaveBeenCalledTimes(1);
         expect(alerted('Message Unlock Refund Needed')).toEqual([
           ['payment.alert', expect.objectContaining({ currency: 'EUR' })],
         ]);
+      });
+
+      it('asks staff to refund by hand when the checkout names no creator account', async () => {
+        vi.spyOn((service as any).logger, 'error').mockImplementation(() => {});
+
+        await service.handleCheckoutSessionCompleted(session);
+
+        expect(stripe.refundCreatorPayment).not.toHaveBeenCalled();
+        expect(alerted('Message Unlock Refund Needed')).toHaveLength(1);
       });
 
       it('follows the same rules for a deleted message: one refund per payment, earlier payments left to staff', async () => {
@@ -899,10 +937,10 @@ describe('MonetizationWebhookService', () => {
           .mockResolvedValueOnce({ id: 'tx_gone', status: 'REFUNDED' })
           .mockResolvedValueOnce({ id: 'tx_earlier', status: 'COMPLETED' });
 
-        await service.handleCheckoutSessionCompleted(session);
-        await service.handleCheckoutSessionCompleted(session);
+        await service.handleCheckoutSessionCompleted(session, 'acct_creator');
+        await service.handleCheckoutSessionCompleted(session, 'acct_creator');
 
-        expect(stripe.refundDestinationCharge).not.toHaveBeenCalled();
+        expect(stripe.refundCreatorPayment).not.toHaveBeenCalled();
         expect(prisma.transaction.create).not.toHaveBeenCalled();
         expect(prisma.messageUnlock.upsert).not.toHaveBeenCalled();
         expect(alerted('Message Unlock Refund Review')).toHaveLength(1);
@@ -916,10 +954,10 @@ describe('MonetizationWebhookService', () => {
         );
 
         await expect(
-          quiet.handleCheckoutSessionCompleted(session),
+          quiet.handleCheckoutSessionCompleted(session, 'acct_creator'),
         ).resolves.toBeUndefined();
 
-        expect(stripe.refundDestinationCharge).toHaveBeenCalledTimes(1);
+        expect(stripe.refundCreatorPayment).toHaveBeenCalledTimes(1);
       });
     });
 
