@@ -6,6 +6,32 @@ export function photoAdjustmentsFilter(adjustments: PhotoAdjustments): string {
 }
 
 /**
+ * The CSS filter a filter's classes stand for, for where the classes cannot
+ * be used: a canvas, or a picture that has a CSS filter of its own.
+ */
+export function photoFilterClassCss(filterClass: string): string {
+  const parts: string[] = [];
+  for (const cls of filterClass.split(' ')) {
+    if (!cls) continue;
+    if (cls === 'grayscale') parts.push('grayscale(100%)');
+    else if (cls.startsWith('brightness-'))
+      parts.push(`brightness(${cls.split('-')[1]}%)`);
+    else if (cls.startsWith('contrast-'))
+      parts.push(`contrast(${cls.split('-')[1]}%)`);
+    else if (cls.startsWith('saturate-'))
+      parts.push(`saturate(${cls.split('-')[1]}%)`);
+    else if (cls.startsWith('hue-rotate-'))
+      parts.push(`hue-rotate(${cls.split('rotate-')[1]}deg)`);
+    else if (cls.startsWith('sepia-[')) {
+      // `sepia-[.15]` is 15 %.
+      const match = cls.match(/sepia-\[\.?(\d+)\]/);
+      if (match) parts.push(`sepia(${match[1]}%)`);
+    }
+  }
+  return parts.join(' ');
+}
+
+/**
  * The look of a photo as one string, in the format the export reads: the
  * filter classes, the CSS filter, and the three adjustments drawn as layers.
  */

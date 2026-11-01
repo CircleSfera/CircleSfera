@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { StoryElement } from '../../types';
+import { STORY_PHOTO_IDENTITY } from './storyPhoto';
 import { useStoryElements } from './useStoryElements';
 
 const element = (
@@ -242,6 +243,56 @@ describe('useStoryElements', () => {
         scale: 1,
         rotation: 30,
       });
+    });
+  });
+
+  describe('undo steps for the photo', () => {
+    it('makes one step of a whole move of the photo, undone back to where it was', () => {
+      const { result } = renderHook(() => useStoryElements({}));
+
+      act(() => result.current.updatePhoto({ x: 0.1 }));
+      act(() => result.current.updatePhoto({ x: 0.2, scale: 2 }));
+      expect(result.current.canUndo).toBe(false);
+      act(() => result.current.commitElements());
+      expect(result.current.photo).toMatchObject({ x: 0.2, scale: 2 });
+
+      act(() => result.current.undo());
+      expect(result.current.photo).toEqual(STORY_PHOTO_IDENTITY);
+      expect(result.current.canUndo).toBe(false);
+      act(() => result.current.redo());
+      expect(result.current.photo).toMatchObject({ x: 0.2, scale: 2 });
+    });
+
+    it('makes a step of each filter change, apart from the pieces', () => {
+      const { result } = renderHook(() =>
+        useStoryElements({ initialElements: [element('a')] }),
+      );
+
+      act(() => result.current.changePhoto((p) => ({ ...p, filter: 1 })));
+      act(() => result.current.changePhoto((p) => ({ ...p, filter: 2 })));
+      act(() => result.current.removeElement('a'));
+
+      act(() => result.current.undo());
+      expect(ids(result.current.elements)).toEqual(['a']);
+      expect(result.current.photo.filter).toBe(2);
+      act(() => result.current.undo());
+      expect(result.current.photo.filter).toBe(1);
+      act(() => result.current.undo());
+      expect(result.current.photo.filter).toBe(0);
+    });
+
+    it('puts the photo back in every step when the background changes, and keeps the pieces', () => {
+      const { result } = renderHook(() => useStoryElements({}));
+      act(() => result.current.changePhoto((p) => ({ ...p, filter: 3 })));
+      act(() =>
+        result.current.changeElements((current) => [...current, element('b')]),
+      );
+
+      act(() => result.current.resetPhoto());
+      expect(result.current.photo).toEqual(STORY_PHOTO_IDENTITY);
+      act(() => result.current.undo());
+      expect(ids(result.current.elements)).toEqual([]);
+      expect(result.current.photo).toEqual(STORY_PHOTO_IDENTITY);
     });
   });
 });

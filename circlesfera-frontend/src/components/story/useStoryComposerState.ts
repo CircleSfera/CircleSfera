@@ -29,6 +29,7 @@ import type {
   StoryComposerTab,
 } from './storyComposer.types';
 import { canDuplicateElement, isLiveElement } from './storyInteractive';
+import { isIdentityPhoto } from './storyPhoto';
 import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryBackground } from './useStoryBackground';
 import { useStoryElements } from './useStoryElements';
@@ -96,6 +97,10 @@ export function useStoryComposerState(props: {
 
   const {
     elements,
+    photo,
+    updatePhoto,
+    changePhoto,
+    resetPhoto,
     changeElements,
     undo,
     redo,
@@ -109,6 +114,14 @@ export function useStoryComposerState(props: {
     duplicateElement,
     moveElementLayer,
   } = useStoryElements({ initialElements, onElementsChange });
+
+  // Another background starts as it comes: centred, unscaled, unfiltered.
+  const shownBackground = useRef(bg.backgroundUrl);
+  useEffect(() => {
+    if (shownBackground.current === bg.backgroundUrl) return;
+    shownBackground.current = bg.backgroundUrl;
+    resetPhoto();
+  }, [bg.backgroundUrl, resetPhoto]);
 
   const disarmChromeBriefly = () => {
     setChromePointerArmed(false);
@@ -337,6 +350,7 @@ export function useStoryComposerState(props: {
     const opened = openedWith.current;
     if (
       elements.length > 0 ||
+      !isIdentityPhoto(photo) ||
       storyCanvasRef.current?.hasStrokes() ||
       bg.bgStyle !== opened.style ||
       bg.background !== opened.background ||
@@ -368,6 +382,9 @@ export function useStoryComposerState(props: {
     bgDarken: bg.bgDarken,
     setBgDarken: bg.setBgDarken,
     elements,
+    photo,
+    updatePhoto,
+    changePhoto,
     activeTab,
     setActiveTab,
     panelTab,

@@ -73,6 +73,9 @@ export default function StoryComposer(props: StoryComposerProps) {
         textAlign={s.textAlign}
         textWidth={s.textWidth}
         takeoverPreviewCss={s.takeoverPreviewCss}
+        photo={s.photo}
+        updatePhoto={s.updatePhoto}
+        changePhoto={s.changePhoto}
         setSelectedElementId={s.setSelectedElementId}
         setActiveTab={s.setActiveTab}
         updateElement={s.updateElement}

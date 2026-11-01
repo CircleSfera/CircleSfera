@@ -13,6 +13,12 @@ import {
   transformFromFingers,
 } from './storyGesture';
 import { isAnswerableElement } from './storyInteractive';
+import {
+  clampPhoto,
+  classifyPhotoRelease,
+  PHOTO_SCALE,
+  type StoryPhotoEdit,
+} from './storyPhoto';
 
 interface GestureOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -28,10 +34,23 @@ interface GestureOptions {
   onDragActiveChange: (active: boolean) => void;
   setShowVGuide: (show: boolean) => void;
   setShowHGuide: (show: boolean) => void;
+  /** The photo behind the story, as it is placed now. */
+  photo: StoryPhotoEdit;
+  /**
+   * The fingers move the photo: it is a picture (not a video or a colour),
+   * nothing is selected and no tool is open.
+   */
+  photoEnabled: boolean;
+  onPhotoUpdate: (updates: Partial<StoryPhotoEdit>) => void;
+  /** A swipe asks for the next (`1`) or previous filter, the photo put back. */
+  onFilterStep: (direction: 1 | -1, photo: StoryPhotoEdit) => void;
 }
 
+/** What the fingers hold: a piece by its id, or the photo. */
+const PHOTO = null;
+
 interface Gesture {
-  id: string;
+  id: string | typeof PHOTO;
   limits: ScaleLimits;
   /** The piece and the fingers when the current set of fingers came down. */
   base: PieceTransform;
@@ -42,6 +61,15 @@ interface Gesture {
   /** Any finger moved past the tap slop. */
   moved: boolean;
   overBin: boolean;
+  /** The photo when the gesture began, which a swipe puts back. */
+  photoAtStart?: StoryPhotoEdit;
+  startedAt: number;
+  /** The first finger: where it came down and where it was last. */
+  firstId: number;
+  firstDown: Point;
+  firstLast: Point;
+  /** The most fingers down at once. */
+  maxFingers: number;
 }
 
 const limitsFor = (el: StoryElement) =>
@@ -54,6 +82,44 @@ const pieceOf = (el: StoryElement): PieceTransform => ({
   rotation: el.rotation,
 });
 
+const canvasSize = (node: HTMLElement | null) => ({
+  width: node?.clientWidth || 1,
+  height: node?.clientHeight || 1,
+});
+
+/** The photo in canvas pixels, as the fingers move it. */
+const photoInPixels = (
+  p: StoryPhotoEdit,
+  size: { width: number; height: number },
+): PieceTransform => ({
+  x: p.x * size.width,
+  y: p.y * size.height,
+  scale: p.scale,
+  rotation: p.rotation,
+});
+
+const newGesture = (
+  id: string | typeof PHOTO,
+  limits: ScaleLimits,
+  start: PieceTransform,
+  pointerId: number,
+  point: Point,
+): Gesture => ({
+  id,
+  limits,
+  base: start,
+  current: start,
+  fingersAtBase: new Map([[pointerId, point]]),
+  fingers: new Map([[pointerId, point]]),
+  moved: false,
+  overBin: false,
+  startedAt: performance.now(),
+  firstId: pointerId,
+  firstDown: point,
+  firstLast: point,
+  maxFingers: 1,
+});
+
 /** The first two fingers, in the order they came down. */
 const firstTwo = (fingers: Map<number, Point>) =>
   [...fingers.values()].slice(0, 2);
@@ -64,6 +130,11 @@ const firstTwo = (fingers: Map<number, Point>) =>
  * canvas, scales and turns it; dropping it on the bin removes it; a short
  * press without moving is a tap. Each gesture is one undo step. On desktop,
  * Ctrl with the wheel (a trackpad pinch) scales the selected piece.
+ *
+ * With nothing selected, the same fingers move, scale and turn the photo
+ * behind the story, and a quick sideways swipe changes its filter instead
+ * (see `classifyPhotoRelease`). A tap is left to the canvas, which opens a
+ * text with it.
  */
 export function useStoryGestures(o: GestureOptions) {
   const gestureRef = useRef<Gesture | null>(null);
@@ -75,13 +146,17 @@ export function useStoryGestures(o: GestureOptions) {
   // first finger, so no release can come before them.
   const detachRef = useRef<(() => void) | null>(null);
   // The scale a Ctrl-wheel burst has reached, ahead of the render.
-  const wheelScaleRef = useRef<{ id: string; scale: number } | null>(null);
+  const wheelScaleRef = useRef<{ id: string | null; scale: number } | null>(
+    null,
+  );
   useEffect(() => {
     const pending = wheelScaleRef.current;
     if (pending && (!o.enabled || pending.id !== o.selectedElementId)) {
       wheelScaleRef.current = null;
     }
   }, [o.enabled, o.selectedElementId]);
+  // Whether the last touch of the photo moved it, so it was not a tap.
+  const photoMovedRef = useRef(false);
 
   const toCanvas = useCallback((e: { clientX: number; clientY: number }) => {
     const rect =
@@ -114,6 +189,26 @@ export function useStoryGestures(o: GestureOptions) {
     setOverBin(false);
     opts.setShowVGuide(false);
     opts.setShowHGuide(false);
+    if (g.id === PHOTO) {
+      photoMovedRef.current = g.moved;
+      if (cancelled) {
+        if (g.moved) opts.onCommit();
+        return;
+      }
+      const release = classifyPhotoRelease({
+        moved: g.moved,
+        fingers: g.maxFingers,
+        dx: g.firstLast.x - g.firstDown.x,
+        dy: g.firstLast.y - g.firstDown.y,
+        ms: performance.now() - g.startedAt,
+      });
+      if (release.kind === 'swipe' && g.photoAtStart) {
+        opts.onFilterStep(release.direction, g.photoAtStart);
+      } else if (release.kind === 'drag') {
+        opts.onCommit();
+      }
+      return;
+    }
     opts.onDragActiveChange(false);
     const el = opts.elements.find((e) => e.id === g.id);
     if (cancelled) {
@@ -143,6 +238,7 @@ export function useStoryGestures(o: GestureOptions) {
       const opts = optionsRef.current;
       const point = toCanvas(e);
       g.fingers.set(e.pointerId, point);
+      if (e.pointerId === g.firstId) g.firstLast = point;
 
       const start = g.fingersAtBase.get(e.pointerId);
       if (
@@ -151,7 +247,7 @@ export function useStoryGestures(o: GestureOptions) {
         Math.hypot(point.x - start.x, point.y - start.y) > TAP_SLOP_PX
       ) {
         g.moved = true;
-        opts.onDragActiveChange(true);
+        if (g.id !== PHOTO) opts.onDragActiveChange(true);
       }
       if (!g.moved) return;
 
@@ -162,9 +258,27 @@ export function useStoryGestures(o: GestureOptions) {
         g.limits,
       );
       const { piece, vertical, horizontal } = snapPiece(raw);
-      g.current = piece;
       opts.setShowVGuide(vertical);
       opts.setShowHGuide(horizontal);
+      if (g.id === PHOTO) {
+        const size = canvasSize(opts.containerRef.current);
+        const photo = clampPhoto({
+          ...opts.photo,
+          x: piece.x / size.width,
+          y: piece.y / size.height,
+          scale: piece.scale,
+          rotation: piece.rotation,
+        });
+        g.current = photoInPixels(photo, size);
+        opts.onPhotoUpdate({
+          x: photo.x,
+          y: photo.y,
+          scale: photo.scale,
+          rotation: photo.rotation,
+        });
+        return;
+      }
+      g.current = piece;
       opts.onUpdate(g.id, piece);
 
       const container = opts.containerRef.current;
@@ -187,6 +301,7 @@ export function useStoryGestures(o: GestureOptions) {
     (e: PointerEvent) => {
       const g = gestureRef.current;
       if (!g?.fingers.has(e.pointerId)) return;
+      if (e.pointerId === g.firstId) g.firstLast = toCanvas(e);
       g.fingers.delete(e.pointerId);
       if (g.fingers.size === 0) {
         finish();
@@ -194,7 +309,7 @@ export function useStoryGestures(o: GestureOptions) {
       }
       rebase();
     },
-    [finish, rebase],
+    [finish, rebase, toCanvas],
   );
 
   const cancel = useCallback(
@@ -220,6 +335,16 @@ export function useStoryGestures(o: GestureOptions) {
 
   useEffect(() => () => detachRef.current?.(), []);
 
+  /** Another finger joins the gesture already held. */
+  const join = useCallback(
+    (g: Gesture, e: React.PointerEvent) => {
+      g.fingers.set(e.pointerId, toCanvas(e));
+      g.maxFingers = Math.max(g.maxFingers, g.fingers.size);
+      rebase();
+    },
+    [rebase, toCanvas],
+  );
+
   /** A finger comes down on a piece. */
   const onPiecePointerDown = useCallback(
     (el: StoryElement, e: React.PointerEvent) => {
@@ -228,43 +353,57 @@ export function useStoryGestures(o: GestureOptions) {
       if (!opts.enabled) return;
       const g = gestureRef.current;
       if (g) {
-        // Another finger joins the gesture of the piece already held.
-        g.fingers.set(e.pointerId, toCanvas(e));
-        rebase();
+        join(g, e);
         return;
       }
       // Not selected yet: selecting opens its panel, which would resize the
       // canvas under the fingers. A tap selects it when it ends.
-      const point = toCanvas(e);
-      gestureRef.current = {
-        id: el.id,
-        limits: limitsFor(el),
-        base: pieceOf(el),
-        current: pieceOf(el),
-        fingersAtBase: new Map([[e.pointerId, point]]),
-        fingers: new Map([[e.pointerId, point]]),
-        moved: false,
-        overBin: false,
-      };
+      gestureRef.current = newGesture(
+        el.id,
+        limitsFor(el),
+        pieceOf(el),
+        e.pointerId,
+        toCanvas(e),
+      );
       attach();
       setActiveId(el.id);
     },
-    [attach, rebase, toCanvas],
+    [attach, join, toCanvas],
   );
 
   /**
    * A finger comes down on the canvas itself: a second finger joins the
-   * gesture of the held piece. Returns whether it was taken.
+   * gesture of the held piece or photo, and returns true. A first finger
+   * takes hold of the photo, if it can be moved, and returns false: the
+   * canvas still reads a tap from it.
    */
   const onCanvasPointerDown = useCallback(
     (e: React.PointerEvent) => {
+      const opts = optionsRef.current;
+      if (!opts.enabled) return false;
       const g = gestureRef.current;
-      if (!g || !optionsRef.current.enabled) return false;
-      g.fingers.set(e.pointerId, toCanvas(e));
-      rebase();
-      return true;
+      if (g) {
+        join(g, e);
+        return true;
+      }
+      photoMovedRef.current = false;
+      if (!opts.photoEnabled) return false;
+      if (e.pointerType === 'mouse' && e.button !== 0) return false;
+      const size = canvasSize(opts.containerRef.current);
+      gestureRef.current = {
+        ...newGesture(
+          PHOTO,
+          PHOTO_SCALE,
+          photoInPixels(opts.photo, size),
+          e.pointerId,
+          toCanvas(e),
+        ),
+        photoAtStart: opts.photo,
+      };
+      attach();
+      return false;
     },
-    [rebase, toCanvas],
+    [attach, join, toCanvas],
   );
 
   // Ctrl with the wheel, which is how a trackpad pinch arrives, scales the
@@ -273,9 +412,32 @@ export function useStoryGestures(o: GestureOptions) {
     const node = o.containerRef.current;
     if (!node) return;
     let rest: ReturnType<typeof setTimeout> | undefined;
+    const commitAtRest = () => {
+      clearTimeout(rest);
+      rest = setTimeout(() => {
+        wheelScaleRef.current = null;
+        optionsRef.current.onCommit();
+      }, 250);
+    };
     const onWheel = (e: WheelEvent) => {
       const opts = optionsRef.current;
-      if (!e.ctrlKey || !opts.enabled || !opts.selectedElementId) return;
+      if (!e.ctrlKey || !opts.enabled) return;
+      if (!opts.selectedElementId) {
+        if (!opts.photoEnabled) return;
+        e.preventDefault();
+        const from =
+          wheelScaleRef.current?.id === PHOTO
+            ? wheelScaleRef.current.scale
+            : opts.photo.scale;
+        const photo = clampPhoto({
+          ...opts.photo,
+          scale: from * Math.exp(-e.deltaY * 0.01),
+        });
+        wheelScaleRef.current = { id: PHOTO, scale: photo.scale };
+        opts.onPhotoUpdate({ scale: photo.scale, x: photo.x, y: photo.y });
+        commitAtRest();
+        return;
+      }
       const el = opts.elements.find((x) => x.id === opts.selectedElementId);
       if (!el) return;
       e.preventDefault();
@@ -291,11 +453,7 @@ export function useStoryGestures(o: GestureOptions) {
       );
       wheelScaleRef.current = { id: el.id, scale };
       opts.onUpdate(el.id, { scale });
-      clearTimeout(rest);
-      rest = setTimeout(() => {
-        wheelScaleRef.current = null;
-        optionsRef.current.onCommit();
-      }, 250);
+      commitAtRest();
     };
     node.addEventListener('wheel', onWheel, { passive: false });
     return () => {
@@ -311,5 +469,7 @@ export function useStoryGestures(o: GestureOptions) {
     overBin,
     onPiecePointerDown,
     onCanvasPointerDown,
+    /** Whether the last touch of the photo moved it: it was no tap. */
+    photoMoved: () => photoMovedRef.current,
   };
 }

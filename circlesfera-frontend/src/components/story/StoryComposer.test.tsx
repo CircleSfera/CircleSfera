@@ -983,6 +983,77 @@ describe('StoryComposer', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('edits the photo from the keyboard: arrows move it, + scales it, ] changes its filter, each undone', () => {
+      const photo = new File(['x'], 'photo.png', { type: 'image/png' });
+      renderComposer({ initialMedia: photo, bgStyle: '' });
+      const canvas = screen.getByRole('application', {
+        name: /Foto de la historia/,
+      });
+      const picture = screen.getByTestId('story-photo');
+      canvas.focus();
+
+      fireEvent.keyDown(canvas, { key: 'ArrowRight', shiftKey: true });
+      fireEvent.keyDown(canvas, { key: '+' });
+      expect(picture.style.transform).toBe(
+        'translate(10%, 0%) rotate(0deg) scale(1.1)',
+      );
+      fireEvent.keyDown(canvas, { key: ']' });
+      expect(picture.style.filter).toBe(
+        'brightness(110%) contrast(125%) saturate(125%)',
+      );
+      expect(screen.getByTestId('story-filter-name')).toHaveTextContent(
+        'Clarendon',
+      );
+      expect(screen.getByRole('status')).toHaveTextContent('Filtro: Clarendon');
+
+      // The filter is a step, and the moves before it are one more.
+      fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }));
+      expect(picture.style.filter).toBe('');
+      expect(picture.style.transform).toContain('scale(1.1)');
+      fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }));
+      expect(picture.style.transform).toBe('');
+      expect(screen.getByRole('button', { name: 'Deshacer' })).toBeDisabled();
+    });
+
+    it('opens a text with a tap on the photo, but not when the touch moved the photo', () => {
+      const photo = new File(['x'], 'photo.png', { type: 'image/png' });
+      renderComposer({ initialMedia: photo, bgStyle: '' });
+      const canvas = screen.getByTestId('story-canvas');
+      const at = { clientX: 100, clientY: 100, pointerId: 1, isPrimary: true };
+
+      fireEvent.pointerDown(canvas, at);
+      fireEvent(
+        window,
+        Object.assign(new Event('pointermove'), {
+          ...at,
+          clientX: 108,
+        }),
+      );
+      fireEvent(
+        window,
+        Object.assign(new Event('pointerup'), { ...at, clientX: 108 }),
+      );
+      fireEvent.click(canvas, { ...at, clientX: 108 });
+      expect(screen.queryByTestId('story-text-mode')).not.toBeInTheDocument();
+      expect(screen.getByTestId('story-photo').style.transform).not.toBe('');
+
+      fireEvent.pointerDown(canvas, at);
+      fireEvent(window, Object.assign(new Event('pointerup'), at));
+      fireEvent.click(canvas, at);
+      expect(screen.getByTestId('story-text-mode')).toBeInTheDocument();
+    });
+
+    it('gives a video background no keys, no transform and no filter', () => {
+      const clip = new File(['v'], 'clip.mp4', { type: 'video/mp4' });
+      renderComposer({ initialMedia: clip, bgStyle: '' });
+      const canvas = screen.getByTestId('story-canvas');
+
+      expect(canvas).not.toHaveAttribute('tabindex');
+      expect(screen.queryByRole('application')).not.toBeInTheDocument();
+      fireEvent.keyDown(canvas, { key: ']' });
+      expect(document.querySelector('video')?.getAttribute('style')).toBeNull();
+    });
+
     it('takes a photo chosen from the device as the background', async () => {
       const onBackgroundChange = vi.fn();
       const { container } = renderComposer({ onBackgroundChange });
