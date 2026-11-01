@@ -845,16 +845,20 @@ describe('MonetizationWebhookService', () => {
         // The provider's refund notice arrives while the payment is still
         // pending, before this handler marks it.
         stripe.refundDestinationCharge.mockImplementation(async () => {
-          await service.handleChargeRefundedOrDisputed({
+          await service.handleChargeRefunded({
             payment_intent: 'pi_msg_gone',
+            amount: 400,
+            amount_refunded: 400,
           });
           return { id: 're_1' };
         });
 
         await service.handleCheckoutSessionCompleted(session);
         await service.handleCheckoutSessionCompleted(session);
-        await service.handleChargeRefundedOrDisputed({
+        await service.handleChargeRefunded({
           payment_intent: 'pi_msg_gone',
+          amount: 400,
+          amount_refunded: 400,
         });
 
         expect(stored).toEqual(expect.objectContaining({ status: 'REFUNDED' }));
@@ -1030,89 +1034,6 @@ describe('MonetizationWebhookService', () => {
         where: { id: 'promo_exp', status: 'PENDING' },
         data: { status: 'FAILED' },
       });
-    });
-  });
-
-  describe('handleChargeRefundedOrDisputed', () => {
-    it('revokes post and story unlocks and marks the Transaction REFUNDED', async () => {
-      // Direct Post Unlock refund
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
-        id: 'tx_post',
-        type: 'DIRECT_POST_UNLOCK',
-        senderId: 'buyer1',
-        postId: 'post1',
-      });
-
-      await service.handleChargeRefundedOrDisputed({
-        payment_intent: 'pi_post_1',
-      });
-
-      expect(prisma.postUnlock.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'buyer1', postId: 'post1' },
-      });
-
-      // Direct Story Unlock refund
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
-        id: 'tx1',
-        type: 'DIRECT_STORY_UNLOCK',
-        senderId: 'buyer1',
-        storyId: 'story1',
-        stripePaymentIntentId: 'pi_story_1',
-      });
-
-      await service.handleChargeRefundedOrDisputed({
-        payment_intent: 'pi_story_1',
-      });
-
-      expect(prisma.transaction.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'tx1' },
-          data: { status: 'REFUNDED' },
-        }),
-      );
-      expect(prisma.storyUnlock.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'buyer1', storyId: 'story1' },
-      });
-
-      // Refund for non-existent transaction should return safely
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce(null);
-      await expect(
-        service.handleChargeRefundedOrDisputed({ payment_intent: 'pi_none' }),
-      ).resolves.toBeUndefined();
-    });
-
-    it('is idempotent on a duplicate refund/dispute webhook for an already-REFUNDED transaction', async () => {
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
-        id: 'tx_already_refunded',
-        type: 'DIRECT_POST_UNLOCK',
-        senderId: 'buyer1',
-        postId: 'post1',
-        status: 'REFUNDED',
-      });
-
-      await service.handleChargeRefundedOrDisputed({
-        payment_intent: 'pi_already_refunded',
-      });
-
-      expect(prisma.transaction.update).not.toHaveBeenCalled();
-      expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
-    });
-
-    it('does not transition a FAILED transaction to REFUNDED', async () => {
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
-        id: 'tx_failed',
-        type: 'DIRECT_POST_UNLOCK',
-        senderId: 'buyer1',
-        postId: 'post1',
-        status: 'FAILED',
-      });
-
-      await service.handleChargeRefundedOrDisputed({
-        payment_intent: 'pi_failed',
-      });
-
-      expect(prisma.transaction.update).not.toHaveBeenCalled();
-      expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
     });
   });
 

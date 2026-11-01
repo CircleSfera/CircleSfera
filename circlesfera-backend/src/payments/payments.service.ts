@@ -23,6 +23,7 @@ import {
   isMonetizationCheckoutType,
   MonetizationWebhookService,
   type StripeDisputePayload,
+  type StripeRefundedCharge,
 } from '../monetization/monetization-webhook.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -125,8 +126,8 @@ export class PaymentsService {
     });
 
     const header = userId
-      ? 'ID,Date,Type,Direction,Amount,VAT,Currency,Status,Description\n'
-      : 'ID,Date,Type,Amount,VAT,Currency,Status,Sender,Receiver,Description\n';
+      ? 'ID,Date,Type,Direction,Amount,VAT,Refunded,Currency,Status,Description\n'
+      : 'ID,Date,Type,Amount,VAT,Refunded,Currency,Status,Sender,Receiver,Description\n';
     const rows = transactions
       .map((tx) => {
         const parties = tx as typeof tx & {
@@ -134,10 +135,12 @@ export class PaymentsService {
           receiver?: { email: string } | null;
         };
         const common = [tx.id, tx.createdAt.toISOString(), tx.type];
-        // The amount is what was paid; the VAT is the part of it that is VAT.
+        // The amount is what was paid; the VAT is the part of it that is VAT,
+        // and refunded what the buyer got back of it.
         const money = [
           centsToEuros(tx.amount),
           centsToEuros(tx.vatCents),
+          centsToEuros(tx.refundedCents),
           tx.currency,
           tx.status,
         ];
@@ -1003,22 +1006,19 @@ export class PaymentsService {
         break;
       }
 
-      case 'charge.refunded':
-      case 'charge.dispute.created': {
-        await this.monetizationWebhookService.handleChargeRefundedOrDisputed(
-          data.object as {
-            payment_intent?: string | { id: string } | null;
-          },
+      case 'charge.refunded': {
+        await this.monetizationWebhookService.handleChargeRefunded(
+          data.object as StripeRefundedCharge,
         );
-        if (type === 'charge.dispute.created') {
-          await this.syncDispute(data.object as StripeDisputePayload);
-        }
         break;
       }
 
+      case 'charge.dispute.created':
       case 'charge.dispute.updated':
       case 'charge.dispute.closed': {
-        await this.syncDispute(data.object as StripeDisputePayload);
+        const dispute = data.object as StripeDisputePayload;
+        await this.syncDispute(dispute);
+        await this.monetizationWebhookService.applyDisputeToPayment(dispute);
         break;
       }
 

@@ -265,7 +265,8 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       mockMonetizationWebhookService = {
         handleCheckoutSessionCompleted: vi.fn(),
         handleCheckoutSessionExpired: vi.fn(),
-        handleChargeRefundedOrDisputed: vi.fn(),
+        handleChargeRefunded: vi.fn(),
+        applyDisputeToPayment: vi.fn(),
         syncConnectPayoutLog: vi.fn(),
         handleAccountUpdated: vi.fn(),
       };

@@ -156,6 +156,7 @@ export default function MonetizationTab() {
     PENDING: 'pending',
     FAILED: 'banned',
     REFUNDED: 'dismissed',
+    DISPUTED: 'pending',
   };
   const txStatusBadge = (status: AdminTransaction['status']) => {
     const stored = (status || '').toUpperCase();
@@ -301,7 +302,7 @@ export default function MonetizationTab() {
             }}
             options={[
               { value: '', label: t('admin.monetization.status_all') },
-              ...['COMPLETED', 'PENDING', 'FAILED', 'REFUNDED'].map(
+              ...['COMPLETED', 'PENDING', 'FAILED', 'REFUNDED', 'DISPUTED'].map(
                 (value) => ({
                   value,
                   label: t(`admin.monetization.tx_status.${value}`),

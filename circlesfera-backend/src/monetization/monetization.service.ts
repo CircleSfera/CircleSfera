@@ -58,10 +58,14 @@ const INCOME_ROWS_SQL = (userId: string) => Prisma.sql`
   AND t.status = 'COMPLETED'
   AND t.type::text IN (${Prisma.join([...INCOME_TYPES])})`;
 // And the creator's share of one payment, as creatorEarnings works it out:
-// the price without VAT less the platform's fee (PLATFORM_FEE_DECIMAL)
-// rounded down, per payment.
+// the price without VAT, less the same part of it as was refunded, rounded
+// down; then less the platform's fee (PLATFORM_FEE_DECIMAL) rounded down,
+// per payment.
+const KEPT_SQL = Prisma.sql`
+  FLOOR(((t.amount - t."vatCents")::numeric * (t.amount - t."refundedCents"))
+    / NULLIF(t.amount, 0))`;
 export const SHARE_SQL = Prisma.sql`
-  ((t.amount - t."vatCents") - FLOOR((t.amount - t."vatCents") * 0.2))`;
+  COALESCE((${KEPT_SQL}) - FLOOR((${KEPT_SQL}) * 0.2), 0)`;
 
 // What a tip reads of the Profile tipped, to pay its person and to know
 // whether it may receive one.
@@ -179,6 +183,7 @@ export class MonetizationService {
         type: true,
         amount: true,
         vatCents: true,
+        refundedCents: true,
         currency: true,
         status: true,
         createdAt: true,
@@ -886,6 +891,7 @@ export class MonetizationService {
       select: {
         amount: true,
         vatCents: true,
+        refundedCents: true,
         createdAt: true,
       },
     });
@@ -900,7 +906,8 @@ export class MonetizationService {
       if (months.has(key)) {
         months.set(
           key,
-          months.get(key)! + creatorEarnings(tx.amount, tx.vatCents),
+          months.get(key)! +
+            creatorEarnings(tx.amount, tx.vatCents, tx.refundedCents),
         );
       }
     }

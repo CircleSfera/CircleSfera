@@ -475,7 +475,9 @@ export class AdminStatsService {
 
     if (
       status &&
-      ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'].includes(status)
+      ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'DISPUTED'].includes(
+        status,
+      )
     ) {
       where.status = status as any;
     }

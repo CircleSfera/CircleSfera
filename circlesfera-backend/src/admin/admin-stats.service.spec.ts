@@ -315,3 +315,22 @@ describe('AdminStatsService: the audit log as a file', () => {
     expect(lines[3]).toContain('"\'+1 -2 @x"');
   });
 });
+
+describe('AdminStatsService: the transactions by state', () => {
+  it('lists the payments held by an open dispute, and ignores a state that does not exist', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const count = vi.fn().mockResolvedValue(0);
+    const service = new AdminStatsService(
+      { transaction: { findMany, count } } as never,
+      { get: vi.fn(), set: vi.fn() } as never,
+    );
+
+    await service.getTransactions(1, 20, 'DISPUTED');
+    await service.getTransactions(1, 20, 'LOST');
+
+    expect(count).toHaveBeenNthCalledWith(1, {
+      where: { status: 'DISPUTED' },
+    });
+    expect(count).toHaveBeenNthCalledWith(2, { where: {} });
+  });
+});

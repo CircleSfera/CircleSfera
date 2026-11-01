@@ -683,7 +683,7 @@ export interface AdminTransaction {
   type: string;
   amount: number;
   currency: string;
-  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'DISPUTED';
   description: string | null;
   createdAt: string;
   sender?: {

@@ -53,6 +53,13 @@ export function isMonetizationCheckoutType(type: string | undefined): boolean {
  * independent application boundaries, shared Stripe infrastructure.
  */
 // The fields of a provider dispute this service reads.
+// What a refund notice of the payment provider says of the charge.
+export interface StripeRefundedCharge {
+  amount?: number;
+  amount_refunded?: number;
+  payment_intent?: string | { id: string } | null;
+}
+
 export interface StripeDisputePayload {
   id?: string;
   amount?: number;
@@ -728,16 +735,93 @@ export class MonetizationWebhookService {
     }
   }
 
-  async handleChargeRefundedOrDisputed(charge: {
-    payment_intent?: string | { id: string } | null;
-  }): Promise<void> {
-    const paymentIntentId =
-      typeof charge.payment_intent === 'string'
-        ? charge.payment_intent
-        : charge.payment_intent?.id;
-    if (paymentIntentId) {
-      await this.revokeAccessForPaymentIntent(paymentIntentId);
+  // A refund of a payment, in part or in full, made by the app or by staff
+  // in the provider's Dashboard. The payment keeps what the buyer did not
+  // get back; refunded in full, it is REFUNDED and the buyer loses what
+  // they bought. A notice that comes again changes nothing.
+  async handleChargeRefunded(charge: StripeRefundedCharge): Promise<void> {
+    const paymentIntentId = stripeId(charge.payment_intent);
+    const refunded = charge.amount_refunded ?? 0;
+    if (!paymentIntentId || refunded <= 0) {
+      return;
     }
+    const tx = await this.paymentOf(paymentIntentId);
+    if (!tx) {
+      return;
+    }
+    // A charge that never completed on our side has nothing to refund.
+    // Marking it REFUNDED would misrepresent money that was never captured.
+    if (tx.status === 'FAILED') {
+      this.logger.warn(
+        `Received a refund for Transaction ${tx.id} (paymentIntent ${paymentIntentId}) which is already FAILED. Skipping status transition.`,
+      );
+      return;
+    }
+
+    // The provider's figure is the total refunded so far, and its notices
+    // can arrive out of order: an older, lower total never lowers it.
+    const full = refunded >= (charge.amount ?? tx.amount);
+    const refundedCents = full ? tx.amount : refunded;
+    const becomesRefunded = full && tx.status !== 'REFUNDED';
+    const data = {
+      ...(becomesRefunded && { status: 'REFUNDED' as const }),
+      ...(refundedCents > (tx.refundedCents ?? 0) && { refundedCents }),
+    };
+    if (Object.keys(data).length > 0) {
+      await this.prisma.transaction.update({ where: { id: tx.id }, data });
+    }
+    if (becomesRefunded) {
+      await this.revokeUnlock(tx);
+    }
+  }
+
+  // What a dispute does to its payment, once the dispute is mirrored. Open,
+  // the payment is held: it counts nowhere and the buyer keeps what they
+  // bought. Won, it counts again. Lost, it is REFUNDED and the buyer loses
+  // what they bought. An inquiry, which the bank opens before any dispute,
+  // changes nothing. The mirrored row holds the latest state, so a notice
+  // arriving late never reopens a closed dispute.
+  async applyDisputeToPayment(dispute: StripeDisputePayload): Promise<void> {
+    const paymentIntentId = stripeId(dispute.payment_intent);
+    if (!dispute?.id || !paymentIntentId) {
+      return;
+    }
+    const mirrored = await this.prisma.paymentDispute.findUnique({
+      where: { stripeDisputeId: dispute.id },
+      select: { status: true },
+    });
+    const status = mirrored?.status ?? dispute.status ?? '';
+    if (status.startsWith('warning_')) {
+      return;
+    }
+    const tx = await this.paymentOf(paymentIntentId);
+    if (!tx) {
+      return;
+    }
+
+    if (status === 'won') {
+      await this.prisma.transaction.updateMany({
+        where: { id: tx.id, status: 'DISPUTED' },
+        data: { status: 'COMPLETED' },
+      });
+      return;
+    }
+
+    if (status === 'lost') {
+      if (tx.status !== 'REFUNDED' && tx.status !== 'FAILED') {
+        await this.prisma.transaction.update({
+          where: { id: tx.id },
+          data: { status: 'REFUNDED' },
+        });
+        await this.revokeUnlock(tx);
+      }
+      return;
+    }
+
+    await this.prisma.transaction.updateMany({
+      where: { id: tx.id, status: 'COMPLETED' },
+      data: { status: 'DISPUTED' },
+    });
   }
 
   // Mirrors a dispute as the payment provider reports it: created, updated
@@ -816,35 +900,35 @@ export class MonetizationWebhookService {
     return user?.id;
   }
 
-  // Revoke unlock entitlements after refund or dispute.
-  private async revokeAccessForPaymentIntent(paymentIntentId: string) {
-    const tx = await this.prisma.transaction.findUnique({
+  // The payment a provider payment intent made, with what a refund or a
+  // dispute needs of it.
+  private paymentOf(paymentIntentId: string) {
+    return this.prisma.transaction.findUnique({
       where: { stripePaymentIntentId: paymentIntentId },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        amount: true,
+        vatCents: true,
+        refundedCents: true,
+        senderId: true,
+        postId: true,
+        storyId: true,
+        messageId: true,
+      },
     });
-    if (!tx) {
-      return;
-    }
+  }
 
-    // Idempotent: a duplicate refund/dispute webhook for an already-revoked
-    // transaction is a no-op, not a re-run of the unlock deletion below.
-    if (tx.status === 'REFUNDED') {
-      return;
-    }
-
-    // A charge that never completed on our side has nothing to refund.
-    // Marking it REFUNDED would misrepresent money that was never captured.
-    if (tx.status === 'FAILED') {
-      this.logger.warn(
-        `Received refund/dispute webhook for Transaction ${tx.id} (paymentIntent ${paymentIntentId}) which is already FAILED. Skipping status transition.`,
-      );
-      return;
-    }
-
-    await this.prisma.transaction.update({
-      where: { id: tx.id },
-      data: { status: 'REFUNDED' },
-    });
-
+  // The buyer loses the post, story or message a payment they got back
+  // unlocked.
+  private async revokeUnlock(tx: {
+    type: string;
+    senderId: string | null;
+    postId: string | null;
+    storyId: string | null;
+    messageId: string | null;
+  }) {
     if (tx.type === 'DIRECT_POST_UNLOCK' && tx.senderId && tx.postId) {
       await this.prisma.postUnlock.deleteMany({
         where: { userId: tx.senderId, postId: tx.postId },
@@ -853,6 +937,11 @@ export class MonetizationWebhookService {
     if (tx.type === 'DIRECT_STORY_UNLOCK' && tx.senderId && tx.storyId) {
       await this.prisma.storyUnlock.deleteMany({
         where: { userId: tx.senderId, storyId: tx.storyId },
+      });
+    }
+    if (tx.type === 'DIRECT_MESSAGE_UNLOCK' && tx.senderId && tx.messageId) {
+      await this.prisma.messageUnlock.deleteMany({
+        where: { userId: tx.senderId, messageId: tx.messageId },
       });
     }
   }
