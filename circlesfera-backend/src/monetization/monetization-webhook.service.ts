@@ -758,19 +758,20 @@ export class MonetizationWebhookService {
       return;
     }
 
+    // The provider's figure is the total refunded so far, and its notices
+    // can arrive out of order: an older, lower total never lowers it.
     const full = refunded >= (charge.amount ?? tx.amount);
     const refundedCents = full ? tx.amount : refunded;
-    if (full && tx.status !== 'REFUNDED') {
-      await this.prisma.transaction.update({
-        where: { id: tx.id },
-        data: { status: 'REFUNDED', refundedCents },
-      });
+    const becomesRefunded = full && tx.status !== 'REFUNDED';
+    const data = {
+      ...(becomesRefunded && { status: 'REFUNDED' as const }),
+      ...(refundedCents > (tx.refundedCents ?? 0) && { refundedCents }),
+    };
+    if (Object.keys(data).length > 0) {
+      await this.prisma.transaction.update({ where: { id: tx.id }, data });
+    }
+    if (becomesRefunded) {
       await this.revokeUnlock(tx);
-    } else if (!full && tx.refundedCents !== refundedCents) {
-      await this.prisma.transaction.update({
-        where: { id: tx.id },
-        data: { refundedCents },
-      });
     }
   }
 
@@ -778,8 +779,8 @@ export class MonetizationWebhookService {
   // the payment is held: it counts nowhere and the buyer keeps what they
   // bought. Won, it counts again. Lost, it is REFUNDED and the buyer loses
   // what they bought. An inquiry, which the bank opens before any dispute,
-  // changes nothing. The mirrored row holds the
-  // latest state, so a notice arriving late never reopens a closed dispute.
+  // changes nothing. The mirrored row holds the latest state, so a notice
+  // arriving late never reopens a closed dispute.
   async applyDisputeToPayment(dispute: StripeDisputePayload): Promise<void> {
     const paymentIntentId = stripeId(dispute.payment_intent);
     if (!dispute?.id || !paymentIntentId) {
@@ -914,16 +915,19 @@ export class MonetizationWebhookService {
         senderId: true,
         postId: true,
         storyId: true,
+        messageId: true,
       },
     });
   }
 
-  // The buyer loses the post or story a payment the buyer got back unlocked.
+  // The buyer loses the post, story or message a payment they got back
+  // unlocked.
   private async revokeUnlock(tx: {
     type: string;
     senderId: string | null;
     postId: string | null;
     storyId: string | null;
+    messageId: string | null;
   }) {
     if (tx.type === 'DIRECT_POST_UNLOCK' && tx.senderId && tx.postId) {
       await this.prisma.postUnlock.deleteMany({
@@ -933,6 +937,11 @@ export class MonetizationWebhookService {
     if (tx.type === 'DIRECT_STORY_UNLOCK' && tx.senderId && tx.storyId) {
       await this.prisma.storyUnlock.deleteMany({
         where: { userId: tx.senderId, storyId: tx.storyId },
+      });
+    }
+    if (tx.type === 'DIRECT_MESSAGE_UNLOCK' && tx.senderId && tx.messageId) {
+      await this.prisma.messageUnlock.deleteMany({
+        where: { userId: tx.senderId, messageId: tx.messageId },
       });
     }
   }

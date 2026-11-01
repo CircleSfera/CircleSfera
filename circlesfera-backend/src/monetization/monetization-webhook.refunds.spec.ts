@@ -12,6 +12,7 @@ const PAYMENT = {
   senderId: 'buyer1',
   postId: 'post1',
   storyId: null,
+  messageId: null,
 };
 
 describe('MonetizationWebhookService: refunds and disputes', () => {
@@ -24,6 +25,7 @@ describe('MonetizationWebhookService: refunds and disputes', () => {
     paymentDispute: { findUnique: vi.fn() },
     postUnlock: { deleteMany: vi.fn() },
     storyUnlock: { deleteMany: vi.fn() },
+    messageUnlock: { deleteMany: vi.fn() },
   };
   // The payment provider is never asked: a refund or a dispute only
   // changes what the payment counts.
@@ -70,6 +72,50 @@ describe('MonetizationWebhookService: refunds and disputes', () => {
         where: { id: 'tx_1' },
         data: { refundedCents: 500 },
       });
+    });
+
+    it('never lowers what was refunded when an older notice arrives after a later one', async () => {
+      let stored = { ...PAYMENT };
+      prisma.transaction.findUnique.mockImplementation(() =>
+        Promise.resolve({ ...stored }),
+      );
+      prisma.transaction.update.mockImplementation(({ data }) => {
+        stored = { ...stored, ...data };
+        return Promise.resolve(stored);
+      });
+
+      await refund(500);
+      await refund(300);
+
+      expect(stored.refundedCents).toBe(500);
+      expect(prisma.transaction.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the full refund of a payment refunded in full when an older partial notice arrives', async () => {
+      prisma.transaction.findUnique.mockResolvedValue({
+        ...PAYMENT,
+        status: 'REFUNDED',
+        refundedCents: 1000,
+      });
+
+      await refund(300);
+
+      expect(prisma.transaction.update).not.toHaveBeenCalled();
+    });
+
+    it('records the refunded part of a payment whose lost dispute already refunded it, without removing access again', async () => {
+      prisma.transaction.findUnique.mockResolvedValue({
+        ...PAYMENT,
+        status: 'REFUNDED',
+      });
+
+      await refund(300);
+
+      expect(prisma.transaction.update).toHaveBeenCalledWith({
+        where: { id: 'tx_1' },
+        data: { refundedCents: 300 },
+      });
+      expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
     });
 
     it('writes nothing again for a partial refund it already knows', async () => {
@@ -119,6 +165,22 @@ describe('MonetizationWebhookService: refunds and disputes', () => {
 
       expect(prisma.storyUnlock.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'buyer1', storyId: 'story1' },
+      });
+      expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('removes a message bought and refunded in full', async () => {
+      prisma.transaction.findUnique.mockResolvedValue({
+        ...PAYMENT,
+        type: 'DIRECT_MESSAGE_UNLOCK',
+        postId: null,
+        messageId: 'msg1',
+      });
+
+      await refund(1000);
+
+      expect(prisma.messageUnlock.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'buyer1', messageId: 'msg1' },
       });
       expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
     });
@@ -244,6 +306,22 @@ describe('MonetizationWebhookService: refunds and disputes', () => {
       });
       expect(prisma.postUnlock.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'buyer1', postId: 'post1' },
+      });
+    });
+
+    it('removes a message bought when its dispute is lost', async () => {
+      prisma.transaction.findUnique.mockResolvedValue({
+        ...PAYMENT,
+        type: 'DIRECT_MESSAGE_UNLOCK',
+        status: 'DISPUTED',
+        postId: null,
+        messageId: 'msg1',
+      });
+
+      await dispute('lost');
+
+      expect(prisma.messageUnlock.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'buyer1', messageId: 'msg1' },
       });
     });
 
