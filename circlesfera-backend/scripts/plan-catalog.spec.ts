@@ -9,6 +9,7 @@ import {
   planUpdate,
   priceProblems,
   type StoredPlan,
+  staleProductDescription,
 } from './plan-catalog.ts';
 
 const plan = (name: string) =>
@@ -313,5 +314,21 @@ describe('planUpdate', () => {
       features: ['verified_badge', 'priority_support'],
       isActive: true,
     });
+  });
+});
+
+describe('staleProductDescription', () => {
+  it('clears any description the provider shows with a plan', () => {
+    expect(
+      staleProductDescription({
+        description: 'Verificación de negocio y Soporte 24/7 dedicado.',
+      }),
+    ).toBe(true);
+  });
+
+  it('leaves a product with no description alone', () => {
+    expect(staleProductDescription({ description: null })).toBe(false);
+    expect(staleProductDescription({ description: '' })).toBe(false);
+    expect(staleProductDescription({})).toBe(false);
   });
 });

@@ -68,6 +68,7 @@ export type ProviderPrice = {
 export type ProviderProduct = {
   id: string;
   name: string;
+  description?: string | null;
   active: boolean;
   metadata: Record<string, string>;
   default_price: ProviderPrice | string | null;
@@ -87,6 +88,16 @@ export type StoredPlan = {
   yearlyStripePriceId: string | null;
   isActive: boolean;
 };
+
+// The provider shows a product's description to the buyer at checkout and
+// on the invoice, in one language whatever the buyer's. What a plan includes
+// is shown in the app, in the buyer's language, before paying; the product
+// keeps none of its own, so it can never promise what the plan does not give.
+export function staleProductDescription(
+  product: Pick<ProviderProduct, 'description'>,
+): boolean {
+  return Boolean(product.description);
+}
 
 /**
  * The product of a plan in the provider's own catalog (live or test): the
