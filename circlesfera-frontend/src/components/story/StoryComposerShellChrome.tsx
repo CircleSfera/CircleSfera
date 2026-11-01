@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import { type RefObject, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import { EditorHeaderAction } from '../create-post/EditorHeader';
@@ -9,7 +9,8 @@ import StoryShareRow from './StoryShareRow';
 import type { StoryTemplate } from './storyComposer.constants';
 import {
   getStoryBottomBarClass,
-  getStoryShareRowPadClass,
+  getStoryShareRowClass,
+  type StoryShareRowPlace,
 } from './storyComposer.layout';
 import type {
   PanelTab,
@@ -17,11 +18,14 @@ import type {
   StoryComposerTab,
 } from './storyComposer.types';
 import type { StoryAudience, StoryShareOptions } from './storyShare.types';
+import { useStoryShareRowPlace } from './useStoryShareRowPlace';
 
 interface StoryComposerShellChromeProps {
   chromePointerArmed: boolean;
   /** While a piece is dragged the share row over the story steps aside. */
   hidden?: boolean;
+  /** Tells where the share row went, for what is laid over the story. */
+  onShareRowPlace?: (place: StoryShareRowPlace) => void;
   handlePost: (audience?: StoryAudience) => void;
   share?: StoryShareOptions;
   canPost: boolean;
@@ -76,21 +80,31 @@ interface StoryComposerShellChromeProps {
 /**
  * The bottom of the story editor: the open panel of a tool or of the selected
  * piece, if any, over the row that finishes the story, which is always there.
- * At rest on a phone the row floats over the bottom of the story; with a
+ * At rest on a phone the row stands in the band under the story when it fits
+ * there, and floats over the bottom of the story when it does not; with a
  * panel open, and on desktop, it stands under the canvas. Hidden in text mode.
  */
 export default function StoryComposerShellChrome(
   p: StoryComposerShellChromeProps,
 ) {
   const { t } = useTranslation();
+  const bandRef = useRef<HTMLDivElement>(null);
+  const place = useStoryShareRowPlace(bandRef, p.panelOpen);
+  const { onShareRowPlace } = p;
+  useEffect(() => {
+    onShareRowPlace?.(place);
+  }, [onShareRowPlace, place]);
+  // Only the row laid over the story steps aside while a piece is dragged.
+  const rowHidden = Boolean(p.hidden) && place === 'over';
 
   return (
     <div
-      className={`z-40 flex flex-col items-center transition-opacity duration-150 ${getStoryBottomBarClass(
+      ref={bandRef}
+      className={`z-40 flex flex-col items-center ${getStoryBottomBarClass(
         p.panelOpen,
-      )} ${p.hidden && !p.panelOpen ? 'opacity-0 pointer-events-none' : ''}`}
-      aria-hidden={(p.hidden && !p.panelOpen) || undefined}
+      )}`}
       data-testid="story-bottom-bar"
+      data-share-row={place}
     >
       {p.panelOpen ? (
         <div className="flex w-full flex-col rounded-t-2xl md:rounded-3xl border-t md:border border-white/10 bg-surface-elevated md:max-w-md">
@@ -159,9 +173,12 @@ export default function StoryComposerShellChrome(
         </div>
       ) : null}
       <div
-        className={`w-full flex items-center justify-end gap-3 px-4 md:justify-center ${getStoryShareRowPadClass(
-          p.panelOpen,
-        )} ${p.chromePointerArmed ? '' : 'pointer-events-none'}`}
+        className={`w-full flex items-center justify-end gap-3 px-4 md:justify-center transition-opacity duration-150 ${getStoryShareRowClass(
+          place,
+        )} ${p.chromePointerArmed ? '' : 'pointer-events-none'} ${
+          rowHidden ? 'opacity-0 pointer-events-none' : ''
+        }`}
+        aria-hidden={rowHidden || undefined}
       >
         {p.share ? (
           <StoryShareRow

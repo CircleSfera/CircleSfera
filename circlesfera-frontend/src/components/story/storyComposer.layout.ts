@@ -40,25 +40,44 @@ export function getStoryCardSizeClass(fill: boolean): string {
   return 'aspect-9/16 w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))] md:w-[min(337.5px,calc((100dvh-9rem)*9/16))]';
 }
 
+/** Height of the share row's buttons, in px. */
+export const STORY_SHARE_ROW_PX = 44;
+/** Room the share row keeps around it in the band under the story, in px. */
+export const STORY_SHARE_ROW_GAP_PX = 12;
+
 /**
- * Where the bottom of the editor goes. With a panel open it stacks under the
- * canvas. At rest on a phone it is laid over the bottom of the story, as wide
- * as the story: its bottom edge is the top safe area plus the story's height.
- * On desktop it stands under the canvas.
+ * Whether the share row fits in the band left under the story on a phone,
+ * once the bottom safe area is taken out: its height plus 12 px. If it does,
+ * it stands in that band; if not, it floats over the bottom of the story.
+ */
+export function storyShareRowFitsBand(bandPx: number): boolean {
+  return bandPx >= STORY_SHARE_ROW_PX + STORY_SHARE_ROW_GAP_PX;
+}
+
+/** Where the share row is: under a panel, in the band, or over the story. */
+export type StoryShareRowPlace = 'panel' | 'band' | 'over';
+
+/**
+ * The bottom of the editor. With a panel open it stacks under the canvas.
+ * At rest on a phone it is the band the story leaves at the bottom of the
+ * screen, above the bottom safe area; on desktop it stands under the canvas.
  */
 export function getStoryBottomBarClass(panelOpen: boolean): string {
   if (panelOpen) return 'relative shrink-0 w-full';
-  return 'absolute inset-x-0 mx-auto w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))] top-[calc(env(safe-area-inset-top,0px)+min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))*16/9)] -translate-y-full md:relative md:inset-x-auto md:top-auto md:mx-0 md:w-full md:translate-y-0';
+  return 'relative w-full flex-1 min-h-0 justify-center pb-[env(safe-area-inset-bottom,0px)] md:flex-none md:pb-0';
 }
 
 /**
- * The share row's own room. Over the story on a phone it sits on a dark
- * gradient, so it reads on any picture; under a panel it takes the panel's
- * surface; on desktop it stands on the brand's background.
+ * The share row's own place and room. Under a panel it takes the panel's
+ * surface. In the band it sits in its middle, with nothing over the story.
+ * Over the story it is laid on the story's bottom edge, as wide as the
+ * story, on a dark gradient so it reads on any picture. On desktop it stands
+ * under the canvas, on the brand's background.
  */
-export function getStoryShareRowPadClass(panelOpen: boolean): string {
-  if (panelOpen) {
+export function getStoryShareRowClass(place: StoryShareRowPlace): string {
+  if (place === 'panel') {
     return 'pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] bg-surface-elevated md:bg-transparent md:pb-6';
   }
-  return 'pt-10 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-linear-to-t from-black/70 via-black/35 to-transparent md:bg-none md:pt-2 md:pb-6';
+  if (place === 'band') return 'md:pt-2 md:pb-6';
+  return 'absolute inset-x-0 bottom-full mx-auto w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))] pt-10 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-linear-to-t from-black/70 via-black/35 to-transparent md:static md:mx-0 md:w-full md:bg-none md:pt-2 md:pb-6';
 }

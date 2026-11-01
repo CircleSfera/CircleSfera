@@ -3,9 +3,10 @@ import type { StoryElement } from '../../types';
 import {
   getStoryBottomBarClass,
   getStoryCardSizeClass,
-  getStoryShareRowPadClass,
+  getStoryShareRowClass,
   getStoryStageFitClass,
   getStoryStagePadClass,
+  storyShareRowFitsBand,
 } from './storyComposer.layout';
 import { getTextStyleCSS, neonTextShadow } from './storyTextStyles';
 
@@ -154,39 +155,44 @@ describe('story stage space', () => {
 });
 
 describe('story share row', () => {
-  const restWidth =
-    'min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))';
-
-  it('lays the row over the bottom of the story at rest on a phone, as wide as the story', () => {
-    const bar = getStoryBottomBarClass(false).split(' ');
-
-    expect(bar).toContain('absolute');
-    expect(bar).toContain(`w-[${restWidth}]`);
-    // Its bottom edge is where the story ends: top safe area + 16/9 of its width.
-    expect(bar).toContain(
-      `top-[calc(env(safe-area-inset-top,0px)+${restWidth}*16/9)]`,
-    );
-    expect(bar).toContain('-translate-y-full');
-    // The width is the one the canvas takes at rest.
-    expect(getStoryCardSizeClass(false).split(' ')).toContain(
-      `w-[${restWidth}]`,
-    );
+  it('stands the row in the band under the story only when the band holds it and 12 px more', () => {
+    // 44 px of buttons and 12 px of room.
+    expect(storyShareRowFitsBand(56)).toBe(true);
+    expect(storyShareRowFitsBand(150)).toBe(true);
+    expect(storyShareRowFitsBand(55)).toBe(false);
+    expect(storyShareRowFitsBand(44)).toBe(false);
+    expect(storyShareRowFitsBand(0)).toBe(false);
   });
 
-  it('stands the row under the canvas on desktop and under an open panel', () => {
-    const bar = getStoryBottomBarClass(false).split(' ');
-    expect(bar).toContain('md:relative');
-    expect(bar).toContain('md:translate-y-0');
+  it('lays the row over the bottom of the story when the band is too small, as wide as the story', () => {
+    const over = getStoryShareRowClass('over').split(' ');
+    const restWidth =
+      'w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))]';
+
+    expect(over).toContain('absolute');
+    // The band starts where the story ends: the row's bottom is that edge.
+    expect(over).toContain('bottom-full');
+    expect(over).toContain(restWidth);
+    expect(getStoryCardSizeClass(false).split(' ')).toContain(restWidth);
+    expect(over).toContain('bg-linear-to-t');
+    expect(over).toContain('md:static');
+    expect(over).toContain('md:bg-none');
+  });
+
+  it('puts nothing over the story when the row stands in the band or under a panel', () => {
+    for (const place of ['band', 'panel'] as const) {
+      const row = getStoryShareRowClass(place);
+      expect(row).not.toContain('absolute');
+      expect(row).not.toContain('bg-linear-to-t');
+    }
+  });
+
+  it('makes the bottom of the editor the band under the story at rest, above the safe area', () => {
+    const band = getStoryBottomBarClass(false).split(' ');
+    expect(band).toContain('flex-1');
+    expect(band).toContain('pb-[env(safe-area-inset-bottom,0px)]');
+    expect(band).toContain('md:flex-none');
 
     expect(getStoryBottomBarClass(true)).toBe('relative shrink-0 w-full');
-  });
-
-  it('gives the row over the story a dark gradient, and none on desktop or under a panel', () => {
-    const over = getStoryShareRowPadClass(false);
-    expect(over).toContain('bg-linear-to-t');
-    expect(over).toContain('from-black/70');
-    expect(over).toContain('md:bg-none');
-
-    expect(getStoryShareRowPadClass(true)).not.toContain('bg-linear-to-t');
   });
 });
