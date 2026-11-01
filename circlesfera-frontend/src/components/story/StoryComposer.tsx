@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
@@ -8,6 +9,7 @@ import StoryComposerShellChrome from './StoryComposerShellChrome';
 import StoryComposerStage from './StoryComposerStage';
 import StoryComposerTextChrome from './StoryComposerTextChrome';
 import type { StoryCanvasSize } from './storyComposer.export';
+import type { StoryShareRowPlace } from './storyComposer.layout';
 import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryComposerState } from './useStoryComposerState';
 
@@ -33,6 +35,8 @@ interface StoryComposerProps {
 export default function StoryComposer(props: StoryComposerProps) {
   const s = useStoryComposerState(props);
   const { t } = useTranslation();
+  const [shareRowPlace, setShareRowPlace] =
+    useState<StoryShareRowPlace>('over');
 
   return (
     <div
@@ -94,6 +98,7 @@ export default function StoryComposer(props: StoryComposerProps) {
               share={props.share}
               placeOnStory={s.elements.some((el) => el.type === 'location')}
               musicOnStory={s.elements.some((el) => el.type === 'music')}
+              shareRowOver={!s.panelOpen && shareRowPlace === 'over'}
             />
           )
         }
@@ -102,6 +107,8 @@ export default function StoryComposer(props: StoryComposerProps) {
       {!s.textTakeoverActive && (
         <StoryComposerShellChrome
           chromePointerArmed={s.chromePointerArmed}
+          hidden={s.draggingLayer}
+          onShareRowPlace={setShareRowPlace}
           handlePost={s.handlePost}
           share={props.share}
           canPost={s.canPost}

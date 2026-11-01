@@ -56,7 +56,9 @@ export interface StoryComposerStageProps {
 
 /**
  * The 9:16 story canvas, which is what is exported, inside a frame of the same
- * size that also carries the controls laid over it.
+ * size that also carries the controls laid over it. On a phone it is edge to
+ * edge, with square corners; on desktop it is a rounded frame over the
+ * brand's background.
  */
 export default function StoryComposerStage(p: StoryComposerStageProps) {
   const { t } = useTranslation();
@@ -98,7 +100,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
           // The fingers move, turn and draw the pieces of the story here: the
           // browser does not pan or zoom the page from this surface.
           // Its own layer: the pieces never rise over the controls above it.
-          className="absolute inset-0 isolate touch-none overflow-hidden bg-black rounded-2xl md:rounded-3xl md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)]"
+          className="absolute inset-0 isolate touch-none overflow-hidden bg-black md:rounded-3xl md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)]"
           style={{
             ...(p.bgStyle?.startsWith('linear-gradient') ||
             p.bgStyle?.startsWith('radial-gradient')
