@@ -1,5 +1,6 @@
-import { ErrorCode } from '@circlesfera/shared';
-import { Injectable, Logger } from '@nestjs/common';
+import { ErrorCode, type PaymentAlertEvent } from '@circlesfera/shared';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import {
   canMonetize,
@@ -15,15 +16,20 @@ import {
   NOT_REMOVED,
 } from '../common/policies/removed-content.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
-import { creatorPaymentTax } from '../common/stripe/creator-payment-tax.js';
+import {
+  CREATOR_PAYMENT_METHODS,
+  creatorPaymentTax,
+} from '../common/stripe/creator-payment-tax.js';
 import {
   deriveConnectAccountFlags,
+  isTransferOnlyAccount,
   isVerifiedCompanyAccount,
   StripeService,
 } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { creatorEarnings } from './paid-amounts.js';
 import {
+  accountTakingPayments,
   canBePaid,
   PAYABLE_PROFILE_SELECT,
   payoutAccountPlacement,
@@ -83,6 +89,7 @@ export class MonetizationService {
   constructor(
     private prisma: PrismaService,
     private stripeService: StripeService,
+    @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   async getMonetization(userId: string, profileId: string) {
@@ -210,13 +217,13 @@ export class MonetizationService {
 
   // NEW DIRECT MONETIZATION METHODS
 
-  // Single builder for the "pay creator directly via destination charge"
+  // Single builder for the "pay creator directly on their own account"
   // Checkout Session shape shared by createPostUnlockSession,
   // createStoryUnlockSession, createMessageUnlockSession and
   // createTipSession — each method keeps its own entity-specific
   // pre-checks (price bounds, self-purchase, already-unlocked, etc.) and
   // only delegates the actual Stripe session construction here.
-  private async createDestinationChargeCheckout(params: {
+  private async createCreatorCheckout(params: {
     buyerId: string;
     buyerEmail: string;
     priceCents: number;
@@ -231,10 +238,13 @@ export class MonetizationService {
     expiresAt?: number;
   }): Promise<{ url: string | null }> {
     await assertRealMoneyAllowed(this.prisma, params.buyerId);
+    const taxActive = await this.stripeService.creatorTaxActive(
+      params.creatorStripeAccountId,
+    );
 
     const session = await this.stripeService.createCheckoutSession(
       {
-        ...this.stripeService.cardOnlyPaymentMethods(),
+        ...CREATOR_PAYMENT_METHODS,
         mode: 'payment',
         customer_email: params.buyerEmail,
         client_reference_id: params.buyerId,
@@ -252,10 +262,7 @@ export class MonetizationService {
             quantity: 1,
           },
         ],
-        ...creatorPaymentTax({
-          priceCents: params.priceCents,
-          destination: params.creatorStripeAccountId,
-        }),
+        ...creatorPaymentTax({ priceCents: params.priceCents, taxActive }),
         metadata: params.metadata,
         ...(params.expiresAt !== undefined && {
           expires_at: params.expiresAt,
@@ -266,7 +273,10 @@ export class MonetizationService {
         ),
         cancel_url: appendCheckoutQuery(params.returnUrl, 'canceled=true'),
       },
-      { idempotencyKey: params.idempotencyKey },
+      {
+        stripeAccount: params.creatorStripeAccountId,
+        idempotencyKey: params.idempotencyKey,
+      },
     );
 
     return { url: session.url };
@@ -303,25 +313,20 @@ export class MonetizationService {
       id: post.profileId,
       userId: creator.id,
     });
-    if (!payout?.stripeConnectAccountId) {
-      throw AppException.BadRequest(
-        ErrorCode.CREATOR_STRIPE_NOT_SETUP,
-        'Creator has not setup their Stripe account',
-      );
-    }
+    const creatorAccount = accountTakingPayments(payout);
 
     const buyer = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!buyer)
       throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    return this.createDestinationChargeCheckout({
+    return this.createCreatorCheckout({
       buyerId: userId,
       buyerEmail: buyer.email,
       priceCents: post.priceCents,
       productName: 'Post unlock',
       // Who pays sees the Profile, never the creator's email.
       description: `Unlock exclusive content from @${(post as any).profile.username}`,
-      creatorStripeAccountId: payout.stripeConnectAccountId,
+      creatorStripeAccountId: creatorAccount,
       metadata: {
         type: 'DIRECT_POST_UNLOCK',
         ...withdrawalConsentMetadata(),
@@ -374,24 +379,19 @@ export class MonetizationService {
       id: story.profileId,
       userId: creator.id,
     });
-    if (!payout?.stripeConnectAccountId) {
-      throw AppException.BadRequest(
-        ErrorCode.CREATOR_STRIPE_NOT_SETUP,
-        'Creator has not setup their Stripe account',
-      );
-    }
+    const creatorAccount = accountTakingPayments(payout);
 
     const buyer = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!buyer)
       throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    return this.createDestinationChargeCheckout({
+    return this.createCreatorCheckout({
       buyerId: userId,
       buyerEmail: buyer.email,
       priceCents: story.priceCents,
       productName: 'Story unlock',
       description: `Unlock exclusive story from @${(story as any).profile.username}`,
-      creatorStripeAccountId: payout.stripeConnectAccountId,
+      creatorStripeAccountId: creatorAccount,
       metadata: {
         type: 'DIRECT_STORY_UNLOCK',
         ...withdrawalConsentMetadata(),
@@ -468,24 +468,19 @@ export class MonetizationService {
           userId: creator.id,
         })
       : null;
-    if (!creator || !payout?.stripeConnectAccountId) {
-      throw AppException.BadRequest(
-        ErrorCode.CREATOR_STRIPE_NOT_SETUP,
-        'Creator has not setup their Stripe account',
-      );
-    }
+    const creatorAccount = accountTakingPayments(payout);
 
     const buyer = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!buyer)
       throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    return this.createDestinationChargeCheckout({
+    return this.createCreatorCheckout({
       buyerId: userId,
       buyerEmail: buyer.email,
       priceCents: message.priceCents,
       productName: 'Locked Message Unlock',
       description: `Unlock exclusive message from @${message.sender.username}`,
-      creatorStripeAccountId: payout.stripeConnectAccountId,
+      creatorStripeAccountId: creatorAccount,
       metadata: {
         type: 'DIRECT_MESSAGE_UNLOCK',
         ...withdrawalConsentMetadata(),
@@ -566,12 +561,7 @@ export class MonetizationService {
     }
 
     const payout = await payoutRowForProfile(this.prisma, tipped);
-    if (!payout?.stripeConnectAccountId) {
-      throw AppException.BadRequest(
-        ErrorCode.CREATOR_STRIPE_NOT_SETUP,
-        'Creator cannot receive tips yet (no Stripe account)',
-      );
-    }
+    const creatorAccount = accountTakingPayments(payout);
 
     const sender = await this.prisma.user.findUnique({
       where: { id: senderId },
@@ -582,14 +572,14 @@ export class MonetizationService {
         'Sender not found',
       );
 
-    return this.createDestinationChargeCheckout({
+    return this.createCreatorCheckout({
       buyerId: senderId,
       buyerEmail: sender.email,
       priceCents: amountCents,
       productName: 'Creator Tip',
       // Who pays sees the Profile they tip, never the creator's email.
       description: named ? `Tip for @${named.username}` : 'Creator Tip',
-      creatorStripeAccountId: payout.stripeConnectAccountId,
+      creatorStripeAccountId: creatorAccount,
       metadata: {
         type: 'DIRECT_TIP',
         creatorId: receiverUserId,
@@ -628,7 +618,10 @@ export class MonetizationService {
     }
 
     try {
-      const accountId = await this.payoutAccountToOnboard(user, profile.id);
+      const accountId = await this.accountTakingCardPayments(
+        user.email,
+        await this.payoutAccountToOnboard(user, profile.id),
+      );
       const link = await this.stripeService.createAccountLink(
         accountId,
         returnUrl,
@@ -636,6 +629,7 @@ export class MonetizationService {
       );
       return { url: link.url };
     } catch (error: unknown) {
+      if (error instanceof AppException) throw error;
       this.logger.error('Stripe Connect Onboarding Error:', error);
       throw AppException.BadRequest(
         ErrorCode.STRIPE_ONBOARDING_FAILED,
@@ -720,6 +714,61 @@ export class MonetizationService {
     });
     if (held?.profileId === profileId) return first;
     return this.openProfileAccount(user.email, profileId);
+  }
+
+  /**
+   * The account to onboard, able to take card payments. One opened before
+   * creators sold on their own account can only receive transfers: while it
+   * holds no money it is replaced, wherever it is kept, by a new one, and is
+   * left as it is at the provider. One that holds money is left to staff.
+   */
+  private async accountTakingCardPayments(
+    email: string,
+    accountId: string,
+  ): Promise<string> {
+    const account = await this.stripeService.getAccount(accountId);
+    if (!isTransferOnlyAccount(account)) return accountId;
+
+    const balance = await this.stripeService.getConnectBalance(accountId);
+    const held = [...balance.available, ...balance.pending].some(
+      (funds) => funds.amount !== 0,
+    );
+    if (held) {
+      const alert: PaymentAlertEvent['payload'] = {
+        eventType: 'Payout Account Replacement Needed',
+        description: `Payout account ${accountId} takes no card payments and holds a balance: replace it by hand`,
+      };
+      this.eventEmitter?.emit('payment.alert', alert);
+      throw AppException.BadRequest(
+        ErrorCode.STRIPE_ONBOARDING_FAILED,
+        'Your payout account must be updated by our team before you can sell',
+      );
+    }
+
+    // Keyed on the old account, so a repeated request gets the same one.
+    const replacement = await this.stripeService.createExpressAccount(
+      email,
+      `connect-account-${accountId}-direct`,
+    );
+    await this.prisma.$transaction([
+      this.prisma.user.updateMany({
+        where: { stripeConnectAccountId: accountId },
+        data: { stripeConnectAccountId: replacement.id },
+      }),
+      this.prisma.monetization.updateMany({
+        where: { stripeConnectAccountId: accountId },
+        data: {
+          stripeConnectAccountId: replacement.id,
+          transfersEnabled: false,
+          chargesEnabled: false,
+          verifiedCompany: false,
+        },
+      }),
+    ]);
+    this.logger.log(
+      `Payout account ${accountId} replaced by ${replacement.id} to take card payments`,
+    );
+    return replacement.id;
   }
 
   /** A new account for one Profile only, kept on the Profile's own row. */

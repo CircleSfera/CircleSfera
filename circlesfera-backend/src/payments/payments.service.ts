@@ -777,13 +777,14 @@ export class PaymentsService {
   // Mirrors a dispute. Who was charged is read from the provider only when
   // the dispute cannot be tied to an account otherwise; a provider that does
   // not answer never loses the dispute.
-  private async syncDispute(dispute: StripeDisputePayload) {
+  // A dispute of a payment to a creator is on the creator's account.
+  private async syncDispute(dispute: StripeDisputePayload, account?: string) {
     const chargeId =
       typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id;
     await this.monetizationWebhookService.syncDispute(dispute, async () => {
       if (!chargeId) return undefined;
       try {
-        return await this.stripeService.getChargeCustomerId(chargeId);
+        return await this.stripeService.getChargeCustomerId(chargeId, account);
       } catch {
         this.logger.warn(
           `The customer of the charge of dispute ${dispute.id} could not be read`,
@@ -820,9 +821,17 @@ export class PaymentsService {
         // an independent application boundary from platform subscription
         // billing below. Both share this webhook's signature
         // verification and WebhookEvent idempotency bookkeeping.
+        // A payment to a creator is made on the creator's account, which
+        // the notice names.
         if (isMonetizationCheckoutType(metadata?.type)) {
           await this.monetizationWebhookService.handleCheckoutSessionCompleted(
             session,
+            event.account,
+          );
+        } else if (event.account) {
+          // Nothing else is sold on a creator's account.
+          this.logger.warn(
+            `Checkout ${session.id} on account ${event.account} is not a payment to a creator; ignored`,
           );
         } else {
           // Handle Subscriptions (Existing logic)
@@ -1017,7 +1026,7 @@ export class PaymentsService {
       case 'charge.dispute.updated':
       case 'charge.dispute.closed': {
         const dispute = data.object as StripeDisputePayload;
-        await this.syncDispute(dispute);
+        await this.syncDispute(dispute, event.account);
         await this.monetizationWebhookService.applyDisputeToPayment(dispute);
         break;
       }
@@ -1036,7 +1045,7 @@ export class PaymentsService {
           data.object as {
             id: string;
             charges_enabled?: boolean;
-            capabilities?: { transfers?: string };
+            capabilities?: { transfers?: string; card_payments?: string };
           } & ConnectAccountCompanyFields,
         );
         break;

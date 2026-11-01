@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   classifyStripeError,
   deriveConnectAccountFlags,
+  isTransferOnlyAccount,
   isVerifiedCompanyAccount,
   StripeService,
 } from './stripe.service.js';
@@ -97,11 +98,11 @@ describe('isVerifiedCompanyAccount', () => {
 describe('deriveConnectAccountFlags', () => {
   // Single source of truth shared by monetization.service.ts's on-demand
   // getAccountStatus poll and payments.service.ts's account.updated webhook.
-  it('enables both flags when transfers are active and charges are enabled', () => {
+  it('enables both flags when transfers and card payments are active and charges are enabled', () => {
     expect(
       deriveConnectAccountFlags({
         charges_enabled: true,
-        capabilities: { transfers: 'active' },
+        capabilities: { transfers: 'active', card_payments: 'active' },
       }),
     ).toEqual({ transfersEnabled: true, chargesEnabled: true });
   });
@@ -110,9 +111,25 @@ describe('deriveConnectAccountFlags', () => {
     expect(
       deriveConnectAccountFlags({
         charges_enabled: true,
-        capabilities: { transfers: 'pending' },
+        capabilities: { transfers: 'pending', card_payments: 'active' },
       }),
     ).toEqual({ transfersEnabled: false, chargesEnabled: true });
+  });
+
+  it('takes no payments on an account without active card payments, though charges are enabled', () => {
+    // An account opened before creators sold on their own account.
+    expect(
+      deriveConnectAccountFlags({
+        charges_enabled: true,
+        capabilities: { transfers: 'active' },
+      }),
+    ).toEqual({ transfersEnabled: true, chargesEnabled: false });
+    expect(
+      deriveConnectAccountFlags({
+        charges_enabled: true,
+        capabilities: { transfers: 'active', card_payments: 'pending' },
+      }),
+    ).toEqual({ transfersEnabled: true, chargesEnabled: false });
   });
 
   it('handles a missing capabilities object or charges_enabled field', () => {
@@ -123,6 +140,20 @@ describe('deriveConnectAccountFlags', () => {
     expect(
       deriveConnectAccountFlags({ capabilities: null, charges_enabled: null }),
     ).toEqual({ transfersEnabled: false, chargesEnabled: false });
+  });
+});
+
+describe('isTransferOnlyAccount', () => {
+  it('tells an account that never asked for card payments from one being verified for them', () => {
+    expect(isTransferOnlyAccount({ capabilities: {} })).toBe(true);
+    expect(isTransferOnlyAccount({})).toBe(true);
+    expect(isTransferOnlyAccount({ capabilities: null })).toBe(true);
+    expect(
+      isTransferOnlyAccount({ capabilities: { card_payments: 'inactive' } }),
+    ).toBe(false);
+    expect(
+      isTransferOnlyAccount({ capabilities: { card_payments: 'active' } }),
+    ).toBe(false);
   });
 });
 
@@ -172,10 +203,22 @@ describe('StripeService.getChargeCustomerId', () => {
   it('names the customer of a charge, given as an id or as the customer itself', async () => {
     retrieve.mockResolvedValueOnce({ customer: 'cus_1' });
     await expect(service.getChargeCustomerId('ch_1')).resolves.toBe('cus_1');
-    expect(retrieve).toHaveBeenCalledWith('ch_1');
+    expect(retrieve).toHaveBeenCalledWith('ch_1', {}, undefined);
 
     retrieve.mockResolvedValueOnce({ customer: { id: 'cus_2' } });
     await expect(service.getChargeCustomerId('ch_2')).resolves.toBe('cus_2');
+  });
+
+  it("reads a charge made on a creator's account there", async () => {
+    retrieve.mockResolvedValueOnce({ customer: 'cus_4' });
+    await expect(
+      service.getChargeCustomerId('ch_4', 'acct_creator'),
+    ).resolves.toBe('cus_4');
+    expect(retrieve).toHaveBeenCalledWith(
+      'ch_4',
+      {},
+      { stripeAccount: 'acct_creator' },
+    );
   });
 
   it('names nobody for a charge with no customer', async () => {

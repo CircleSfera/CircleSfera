@@ -217,6 +217,41 @@ describe('CreatorMonetizationTab', () => {
     ).toBeInTheDocument();
   });
 
+  it('asks an account paid out to but unable to sell to update in Stripe', async () => {
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: true,
+      ownAccount: true,
+      transfersEnabled: true,
+      chargesEnabled: false,
+    });
+    vi.mocked(monetizationApi.connectAccount).mockResolvedValue({
+      url: 'https://connect.stripe.com/setup/direct',
+    });
+    const { i18n } = renderWithProviders(
+      <CreatorMonetizationTab onToast={onToast} section="income" />,
+    );
+
+    expect(
+      await screen.findByText(
+        i18n!.t('creator.monetization.sales_need_update'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('creator.monetization.express_dashboard'),
+      }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('creator.monetization.update_stripe'),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(location.href).toBe('https://connect.stripe.com/setup/direct'),
+    );
+  });
+
   it('thanks for connecting Stripe on return and cleans the address', async () => {
     const { i18n } = renderWithProviders(
       <CreatorMonetizationTab onToast={onToast} section="income" />,

@@ -70,6 +70,38 @@ describe('MonetizationSettings', () => {
     );
   });
 
+  it('an account paid out to but unable to sell is updated in Stripe, not opened in its panel', async () => {
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: true,
+      ownAccount: true,
+      transfersEnabled: true,
+      chargesEnabled: false,
+      detailsSubmitted: true,
+    });
+    vi.mocked(monetizationApi.connectAccount).mockResolvedValue({
+      url: 'https://connect.stripe.com/setup/direct',
+    });
+    const { i18n } = renderWithProviders(<MonetizationSettings />);
+
+    expect(
+      await screen.findByText(i18n!.t('settings.monetization.status.update')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('settings.monetization.dashboard'),
+      }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('settings.monetization.update'),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(location.href).toBe('https://connect.stripe.com/setup/direct'),
+    );
+  });
+
   it('reports a failed connection', async () => {
     vi.mocked(monetizationApi.getStatus).mockResolvedValue({
       connected: false,

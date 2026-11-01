@@ -78,7 +78,7 @@ export const DATA_RETENTION_POLICY = {
   },
 
   /**
-   * Live-stream gift payment records (Stripe Checkout + Connect destination charge).
+   * Live-stream gift payment records (Stripe Checkout, charged on the creator's own account).
    * Changed to onDelete: SetNull (migration 20260925184359).
    */
   LiveGift: {

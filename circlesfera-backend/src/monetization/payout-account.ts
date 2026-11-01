@@ -152,3 +152,23 @@ export async function payoutDestinationFor(
   }
   return payoutRowForProfile(db, profile);
 }
+
+/**
+ * The creator's account a sale is charged on: one that takes card payments.
+ * A creator with no account, or one that does not take them yet, sells
+ * nothing, and the provider is not asked.
+ */
+export function accountTakingPayments(
+  payout: {
+    stripeConnectAccountId: string | null;
+    chargesEnabled: boolean;
+  } | null,
+): string {
+  if (!payout?.stripeConnectAccountId || !payout.chargesEnabled) {
+    throw AppException.BadRequest(
+      ErrorCode.CREATOR_STRIPE_NOT_SETUP,
+      'Creator cannot take payments yet',
+    );
+  }
+  return payout.stripeConnectAccountId;
+}

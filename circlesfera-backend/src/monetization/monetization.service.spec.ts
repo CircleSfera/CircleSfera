@@ -1,4 +1,5 @@
 import { ErrorCode } from '@circlesfera/shared';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,9 +21,12 @@ function rawQuery(call: unknown[]) {
 describe('MonetizationService', () => {
   let service: MonetizationService;
   const accounts = new Map<string, string>();
+  // Payout accounts that take no card payments yet.
+  const notCharging = new Set<string>();
 
   const mockPrismaService = {
     $queryRaw: vi.fn(),
+    $transaction: vi.fn(async (writes: unknown[]) => Promise.all(writes)),
     monetization: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -35,6 +39,7 @@ describe('MonetizationService', () => {
       findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     profile: {
       findFirst: vi.fn(),
@@ -75,9 +80,8 @@ describe('MonetizationService', () => {
 
   const mockStripeService = {
     createCheckoutSession: vi.fn(),
-    cardOnlyPaymentMethods: vi.fn(() => ({
-      payment_method_configuration: 'pmc_cardonly',
-    })),
+    // The creator's tax settings are complete unless a test says otherwise.
+    creatorTaxActive: vi.fn().mockResolvedValue(true),
     createExpressAccount: vi.fn(),
     createAccountLink: vi.fn(),
     getAccount: vi.fn(),
@@ -86,12 +90,15 @@ describe('MonetizationService', () => {
     listConnectPayouts: vi.fn(),
   };
 
+  const mockEventEmitter = { emit: vi.fn() };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MonetizationService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: StripeService, useValue: mockStripeService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
@@ -105,6 +112,7 @@ describe('MonetizationService', () => {
     });
     // The rows of earnings: which person holds which payout account.
     accounts.clear();
+    notCharging.clear();
     mockPrismaService.monetization.findUnique.mockImplementation(
       async ({ where }: { where: { userId?: string } }) => {
         const account = where.userId && accounts.get(where.userId);
@@ -115,7 +123,8 @@ describe('MonetizationService', () => {
               profileId: 'prof-1',
               stripeConnectAccountId: account,
               transfersEnabled: false,
-              chargesEnabled: false,
+              // Taking card payments, unless a test says otherwise.
+              chargesEnabled: !notCharging.has(account),
               verifiedCompany: false,
             }
           : null;
@@ -372,7 +381,7 @@ describe('MonetizationService', () => {
           'post-1',
           'http://localhost/return',
         ),
-      ).rejects.toThrow('Creator has not setup their Stripe account');
+      ).rejects.toThrow('Creator cannot take payments yet');
     });
 
     it('should throw if buyer is not found', async () => {
@@ -399,6 +408,32 @@ describe('MonetizationService', () => {
           'http://localhost/return',
         ),
       ).rejects.toThrow('Buyer not found');
+    });
+
+    it("sells nothing, and asks the provider nothing, while the creator's account takes no card payments", async () => {
+      accounts.set('creator-1', 'acct_old');
+      notCharging.add('acct_old');
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post-1',
+        isPremium: true,
+        priceCents: 1000,
+        profileId: 'creator-profile',
+        profile: { username: 'ana', user: { id: 'creator-1' } },
+      });
+
+      await expect(
+        service.createPostUnlockSession(
+          'fan-1',
+          'fan-profile',
+          'post-1',
+          'http://localhost/return',
+        ),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.CREATOR_STRIPE_NOT_SETUP,
+        message: 'Creator cannot take payments yet',
+      });
+      expect(mockStripeService.creatorTaxActive).not.toHaveBeenCalled();
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
     it('creates Checkout with post price, 20% platform fee, and handles returnUrl with query params', async () => {
@@ -445,15 +480,15 @@ describe('MonetizationService', () => {
           success_url:
             'http://localhost/return?foo=bar&success=true&session_id={CHECKOUT_SESSION_ID}',
           cancel_url: 'http://localhost/return?foo=bar&canceled=true',
-          // Before VAT: the provider adds it, CircleSfera keeps it, and the
-          // creator's account receives the price less the 20% fee.
+          // Charged on the creator's account, VAT included and worked out
+          // there; CircleSfera's fee is asked on the whole price and
+          // settled once the VAT is known.
           automatic_tax: { enabled: true, liability: { type: 'self' } },
-          payment_intent_data: {
-            transfer_data: { destination: 'acct_1', amount: 800 },
-          },
+          payment_intent_data: { application_fee_amount: 200 },
         }),
-        { idempotencyKey: 'idemp-1' },
+        { stripeAccount: 'acct_1', idempotencyKey: 'idemp-1' },
       );
+      expect(mockStripeService.creatorTaxActive).toHaveBeenCalledWith('acct_1');
       // Who pays sees the Profile, never the creator's email.
       const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
       expect(JSON.stringify(session)).toContain('@ana');
@@ -545,7 +580,7 @@ describe('MonetizationService', () => {
           's-1',
           'http://return',
         ),
-      ).rejects.toThrow('Creator has not setup their Stripe account');
+      ).rejects.toThrow('Creator cannot take payments yet');
     });
 
     it('should throw if buyer is not found', async () => {
@@ -606,12 +641,11 @@ describe('MonetizationService', () => {
       expect(res.url).toBe('https://checkout.stripe.test/story');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          // Before VAT: the provider adds it, CircleSfera keeps it, and the
-          // creator's account receives the price less the 20% fee.
+          // Charged on the creator's account, VAT included and worked out
+          // there; CircleSfera's fee is asked on the whole price and
+          // settled once the VAT is known.
           automatic_tax: { enabled: true, liability: { type: 'self' } },
-          payment_intent_data: {
-            transfer_data: { destination: 'acct_1', amount: 480 },
-          },
+          payment_intent_data: { application_fee_amount: 120 },
           metadata: {
             type: 'DIRECT_STORY_UNLOCK',
             storyId: 's-1',
@@ -621,7 +655,7 @@ describe('MonetizationService', () => {
             withdrawal_consent_version: '2026-1',
           },
         }),
-        { idempotencyKey: undefined },
+        { stripeAccount: 'acct_1', idempotencyKey: undefined },
       );
     });
   });
@@ -735,7 +769,7 @@ describe('MonetizationService', () => {
 
       await expect(
         service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow('Creator has not setup their Stripe account');
+      ).rejects.toThrow('Creator cannot take payments yet');
     });
 
     it('should throw if buyer is not found', async () => {
@@ -803,12 +837,11 @@ describe('MonetizationService', () => {
       expect(session.expires_at).toBeLessThanOrEqual(after + 31 * 60);
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          // Before VAT: the provider adds it, CircleSfera keeps it, and the
-          // creator's account receives the price less the 20% fee.
+          // Charged on the creator's account, VAT included and worked out
+          // there; CircleSfera's fee is asked on the whole price and
+          // settled once the VAT is known.
           automatic_tax: { enabled: true, liability: { type: 'self' } },
-          payment_intent_data: {
-            transfer_data: { destination: 'acct_1', amount: 400 },
-          },
+          payment_intent_data: { application_fee_amount: 100 },
           metadata: {
             type: 'DIRECT_MESSAGE_UNLOCK',
             messageId: 'm-1',
@@ -818,7 +851,7 @@ describe('MonetizationService', () => {
             withdrawal_consent_version: '2026-1',
           },
         }),
-        { idempotencyKey: undefined },
+        { stripeAccount: 'acct_1', idempotencyKey: undefined },
       );
     });
   });
@@ -885,7 +918,7 @@ describe('MonetizationService', () => {
           tipCents,
           'http://localhost/return',
         ),
-      ).rejects.toThrow('Creator cannot receive tips yet (no Stripe account)');
+      ).rejects.toThrow('Creator cannot take payments yet');
     });
 
     it('should throw if sender is not found', async () => {
@@ -930,8 +963,8 @@ describe('MonetizationService', () => {
       expect(result.url).toBe('https://checkout.stripe.test/tip');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          // One-off payments use the card-only Payment Method Configuration.
-          payment_method_configuration: 'pmc_cardonly',
+          // Paid by card only, on the creator's account.
+          allowed_payment_method_types: ['card'],
           line_items: [
             expect.objectContaining({
               price_data: expect.objectContaining({ unit_amount: tipCents }),
@@ -939,9 +972,7 @@ describe('MonetizationService', () => {
           ],
           automatic_tax: { enabled: true, liability: { type: 'self' } },
           payment_intent_data: {
-            transfer_data: expect.objectContaining({
-              amount: tipCents - Math.floor(tipCents * PLATFORM_FEE_DECIMAL),
-            }),
+            application_fee_amount: Math.floor(tipCents * PLATFORM_FEE_DECIMAL),
           },
           metadata: {
             type: 'DIRECT_TIP',
@@ -952,7 +983,7 @@ describe('MonetizationService', () => {
             postId: 'post-123',
           },
         }),
-        { idempotencyKey: 'idemp-tip' },
+        { stripeAccount: expect.any(String), idempotencyKey: 'idemp-tip' },
       );
     });
 
@@ -1284,6 +1315,112 @@ describe('MonetizationService', () => {
       mockStripeService.createAccountLink.mockResolvedValue({
         url: 'https://connect.stripe.com/onboard',
       });
+      // An account opened to take card payments, still being verified.
+      mockStripeService.getAccount.mockResolvedValue({
+        capabilities: { card_payments: 'inactive', transfers: 'inactive' },
+      });
+    });
+
+    describe('an account opened before creators sold on their own account', () => {
+      const transferOnly = {
+        capabilities: { transfers: 'active' },
+        charges_enabled: true,
+      };
+      const funds = (amount: number) => ({
+        available: [{ amount: 0, currency: 'eur' }],
+        pending: [{ amount, currency: 'eur' }],
+      });
+      beforeEach(() => {
+        mockPrismaService.user.findUnique.mockResolvedValue(person('acct_old'));
+        acting();
+        withRows({
+          userId: 'u-1',
+          profileId: 'prof-2',
+          stripeConnectAccountId: 'acct_old',
+        });
+        mockStripeService.getAccount.mockResolvedValue(transferOnly);
+        mockPrismaService.monetization.updateMany.mockResolvedValue({
+          count: 1,
+        });
+      });
+
+      it('is replaced, wherever it is kept, by one that takes card payments, while it holds nothing', async () => {
+        mockStripeService.getConnectBalance.mockResolvedValue(funds(0));
+        mockStripeService.createExpressAccount.mockResolvedValue({
+          id: 'acct_direct',
+        });
+
+        await expect(onboard()).resolves.toEqual({
+          url: 'https://connect.stripe.com/onboard',
+        });
+
+        expect(mockStripeService.getConnectBalance).toHaveBeenCalledWith(
+          'acct_old',
+        );
+        // Keyed on the old account: a repeated request opens no second one.
+        expect(mockStripeService.createExpressAccount).toHaveBeenCalledWith(
+          'u1@test.com',
+          'connect-account-acct_old-direct',
+        );
+        expect(mockPrismaService.user.updateMany).toHaveBeenCalledWith({
+          where: { stripeConnectAccountId: 'acct_old' },
+          data: { stripeConnectAccountId: 'acct_direct' },
+        });
+        expect(mockPrismaService.monetization.updateMany).toHaveBeenCalledWith({
+          where: { stripeConnectAccountId: 'acct_old' },
+          data: {
+            stripeConnectAccountId: 'acct_direct',
+            transfersEnabled: false,
+            chargesEnabled: false,
+            verifiedCompany: false,
+          },
+        });
+        expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
+          'acct_direct',
+          'http://ret',
+          'http://ref',
+        );
+      });
+
+      it('is left to staff, untouched, while it holds money', async () => {
+        mockStripeService.getConnectBalance.mockResolvedValue(funds(150));
+
+        await expect(onboard()).rejects.toMatchObject({
+          errorCode: ErrorCode.STRIPE_ONBOARDING_FAILED,
+          message:
+            'Your payout account must be updated by our team before you can sell',
+        });
+
+        expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
+        expect(mockPrismaService.user.updateMany).not.toHaveBeenCalled();
+        expect(mockStripeService.createAccountLink).not.toHaveBeenCalled();
+        expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+          'payment.alert',
+          expect.objectContaining({
+            eventType: 'Payout Account Replacement Needed',
+          }),
+        );
+      });
+    });
+
+    it('keeps an account that takes card payments, or is asking to', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person('acct_new'));
+      acting();
+      withRows({
+        userId: 'u-1',
+        profileId: 'prof-2',
+        stripeConnectAccountId: 'acct_new',
+      });
+
+      await onboard();
+
+      expect(mockStripeService.getAccount).toHaveBeenCalledWith('acct_new');
+      expect(mockStripeService.getConnectBalance).not.toHaveBeenCalled();
+      expect(mockStripeService.createAccountLink).toHaveBeenCalledWith(
+        'acct_new',
+        'http://ret',
+        'http://ref',
+      );
     });
 
     it('should throw if user is not found', async () => {
@@ -1603,7 +1740,7 @@ describe('MonetizationService', () => {
         stripeConnectAccountId: 'acct_active',
       });
       mockStripeService.getAccount.mockResolvedValue({
-        capabilities: { transfers: 'active' },
+        capabilities: { transfers: 'active', card_payments: 'active' },
         charges_enabled: true,
         details_submitted: true,
       });
@@ -1652,6 +1789,7 @@ describe('MonetizationService', () => {
 
     it('falls back to the flags last saved, off when none was ever saved, during a Stripe error', async () => {
       accounts.set('u-1', 'acct_err');
+      notCharging.add('acct_err');
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         stripeConnectAccountId: 'acct_err',
@@ -1672,7 +1810,7 @@ describe('MonetizationService', () => {
       accounts.set('u-1', 'acct_first');
       mockPrismaService.user.findUnique.mockResolvedValue({ id: 'u-1' });
       mockStripeService.getAccount.mockResolvedValue({
-        capabilities: { transfers: 'active' },
+        capabilities: { transfers: 'active', card_payments: 'active' },
         charges_enabled: true,
         details_submitted: true,
       });
@@ -1736,7 +1874,7 @@ describe('MonetizationService', () => {
             : null,
       );
       mockStripeService.getAccount.mockResolvedValue({
-        capabilities: { transfers: 'active' },
+        capabilities: { transfers: 'active', card_payments: 'active' },
         charges_enabled: true,
         details_submitted: true,
       });

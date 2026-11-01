@@ -69,13 +69,19 @@ export function MonetizationSettings() {
   // Stripe's panel opens once its onboarding is done; until then the account
   // goes back to the onboarding.
   const isOnboarded = status?.detailsSubmitted !== false;
+  // Paid out to but not able to sell: an account opened before sales were
+  // charged on the creator's own account, which connecting again replaces.
+  const needsUpdate =
+    isConnected && isTransfersEnabled && status?.chargesEnabled === false;
   const statusCopy = sharesAccount
     ? t('settings.monetization.status.shared')
-    : isTransfersEnabled
-      ? t('settings.monetization.status.active')
-      : isConnected
-        ? t('settings.monetization.status.incomplete')
-        : t('settings.monetization.status.unconnected');
+    : needsUpdate
+      ? t('settings.monetization.status.update')
+      : isTransfersEnabled
+        ? t('settings.monetization.status.active')
+        : isConnected
+          ? t('settings.monetization.status.incomplete')
+          : t('settings.monetization.status.unconnected');
 
   return (
     <div className="max-w-xl space-y-5">
@@ -93,7 +99,7 @@ export function MonetizationSettings() {
               {statusCopy}
             </p>
           </div>
-          {isConnected && isOnboarded ? (
+          {isConnected && isOnboarded && !needsUpdate ? (
             <Button
               type="button"
               variant="outline"
@@ -116,9 +122,11 @@ export function MonetizationSettings() {
             >
               {sharesAccount
                 ? t('settings.monetization.connect_own')
-                : isConnected
-                  ? t('settings.monetization.complete')
-                  : t('settings.monetization.connect')}
+                : needsUpdate
+                  ? t('settings.monetization.update')
+                  : isConnected
+                    ? t('settings.monetization.complete')
+                    : t('settings.monetization.connect')}
             </Button>
           )}
         </div>

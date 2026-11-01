@@ -10,7 +10,8 @@ const client = {
   },
   refunds: { create: vi.fn() },
   paymentIntents: { retrieve: vi.fn() },
-  transfers: { createReversal: vi.fn() },
+  applicationFees: { retrieve: vi.fn(), createRefund: vi.fn() },
+  tax: { settings: { retrieve: vi.fn() } },
   customers: { create: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
@@ -296,194 +297,147 @@ describe('StripeService refund of a checkout', () => {
 });
 
 describe('StripeService refund of a payment to a creator', () => {
-  const paidWith = (charge: Record<string, unknown>) =>
-    client.paymentIntents.retrieve.mockResolvedValue({ latest_charge: charge });
-  const refund = (service: StripeService) =>
-    service.refundDestinationCharge({
+  beforeEach(() => {
+    client.refunds.create.mockReset().mockResolvedValue({ id: 're_9' });
+  });
+
+  it("refunds on the creator's account with CircleSfera's fee, in full, once per key", async () => {
+    const { service } = serviceWith();
+
+    await service.refundCreatorPayment({
+      account: 'acct_creator',
       paymentIntentId: 'pi_9',
-      amountInCents: 1000,
       idempotencyKey: 'key-9',
       metadata: { reason: 'gone' },
     });
 
-  beforeEach(() => {
-    client.paymentIntents.retrieve.mockReset();
-    client.transfers.createReversal.mockReset();
-    client.refunds.create.mockReset().mockResolvedValue({ id: 're_9' });
-  });
-
-  it('takes back what is left with the creator, then refunds the buyer in full, once per key', async () => {
-    const { service } = serviceWith();
-    // 800 was sent; 139 of VAT was taken back already.
-    paidWith({
-      disputed: false,
-      amount_refunded: 0,
-      application_fee: null,
-      transfer: { id: 'tr_9', amount: 800, amount_reversed: 139 },
-    });
-
-    await expect(refund(service)).resolves.toEqual({ id: 're_9' });
-
-    expect(client.transfers.createReversal).toHaveBeenCalledWith(
-      'tr_9',
-      { amount: 661, metadata: { reason: 'refund', paymentIntentId: 'pi_9' } },
-      { idempotencyKey: 'key-9-transfer' },
-    );
     expect(client.refunds.create).toHaveBeenCalledWith(
       {
         payment_intent: 'pi_9',
-        amount: 1000,
         reason: 'requested_by_customer',
+        refund_application_fee: true,
         metadata: { reason: 'gone' },
       },
-      { idempotencyKey: 'key-9' },
+      { stripeAccount: 'acct_creator', idempotencyKey: 'key-9' },
     );
-    expect(
-      client.transfers.createReversal.mock.invocationCallOrder[0],
-    ).toBeLessThan(client.refunds.create.mock.invocationCallOrder[0]);
   });
 
-  it('takes nothing back when all of it was taken back already, and still refunds', async () => {
+  it('refunds only the amount asked when one is given', async () => {
     const { service } = serviceWith();
-    paidWith({
-      disputed: false,
-      amount_refunded: 0,
-      transfer: { id: 'tr_9', amount: 800, amount_reversed: 800 },
+
+    await service.refundCreatorPayment({
+      account: 'acct_creator',
+      paymentIntentId: 'pi_9',
+      amountInCents: 250,
+      idempotencyKey: 'key-9',
     });
-
-    await refund(service);
-
-    expect(client.transfers.createReversal).not.toHaveBeenCalled();
-    expect(client.refunds.create).toHaveBeenCalledTimes(1);
-  });
-
-  it.each([
-    ['disputed', { disputed: true, amount_refunded: 0 }],
-    ['refunded in part', { disputed: false, amount_refunded: 300 }],
-  ])(
-    'leaves the creator alone when the payment is %s, and lets the refund say so',
-    async (_case, state) => {
-      const { service } = serviceWith();
-      paidWith({
-        ...state,
-        transfer: { id: 'tr_9', amount: 800, amount_reversed: 0 },
-      });
-
-      await refund(service);
-
-      expect(client.transfers.createReversal).not.toHaveBeenCalled();
-      expect(client.refunds.create).toHaveBeenCalledTimes(1);
-    },
-  );
-
-  it('gives back the platform fee of a payment made before VAT was charged', async () => {
-    const { service } = serviceWith();
-    paidWith({
-      disputed: false,
-      amount_refunded: 0,
-      application_fee: 'fee_1',
-      transfer: { id: 'tr_9', amount: 800, amount_reversed: 0 },
-    });
-
-    await refund(service);
 
     expect(client.refunds.create).toHaveBeenCalledWith(
-      expect.objectContaining({ refund_application_fee: true }),
-      { idempotencyKey: 'key-9' },
+      expect.objectContaining({ amount: 250, refund_application_fee: true }),
+      { stripeAccount: 'acct_creator', idempotencyKey: 'key-9' },
     );
   });
 });
 
-describe('StripeService taking the VAT back from a creator', () => {
-  // 800 was sent to the creator; some of it may have come back since.
-  const paidWith = (
-    reversals: { metadata: Record<string, string> }[],
-    amountReversed = 0,
-  ) =>
-    client.paymentIntents.retrieve.mockResolvedValue({
-      latest_charge: {
-        transfer: {
-          id: 'tr_1',
-          amount: 800,
-          amount_reversed: amountReversed,
-          reversals: { data: reversals },
-        },
-      },
+describe("StripeService settling CircleSfera's fee on a payment to a creator", () => {
+  const settle = (service: StripeService, feeDueCents: number) =>
+    service.settleCreatorPaymentFee({
+      account: 'acct_creator',
+      paymentIntentId: 'pi_9',
+      feeDueCents,
     });
+  const feeOf = (fee: { amount: number; amount_refunded: number }) =>
+    client.applicationFees.retrieve.mockResolvedValue({ id: 'fee_9', ...fee });
 
   beforeEach(() => {
-    client.paymentIntents.retrieve.mockReset();
-    client.transfers.createReversal.mockReset();
+    client.paymentIntents.retrieve
+      .mockReset()
+      .mockResolvedValue({ latest_charge: { application_fee: 'fee_9' } });
+    client.applicationFees.retrieve.mockReset();
+    client.applicationFees.createRefund.mockReset();
   });
 
-  it('takes the VAT back from the transfer of the payment, once per payment', async () => {
+  it("reads the payment on the creator's account and gives back the fee taken on the VAT, once", async () => {
     const { service } = serviceWith();
-    paidWith([]);
+    // 1000 paid, 174 of VAT: the fee asked was 200, 165 is due.
+    feeOf({ amount: 200, amount_refunded: 0 });
 
-    await service.takeVatBackFromCreator({
-      paymentIntentId: 'pi_1',
-      amountInCents: 139,
-    });
+    await settle(service, 165);
 
-    expect(client.paymentIntents.retrieve).toHaveBeenCalledWith('pi_1', {
-      expand: ['latest_charge.transfer'],
-    });
-    expect(client.transfers.createReversal).toHaveBeenCalledWith(
-      'tr_1',
-      { amount: 139, metadata: { reason: 'vat', paymentIntentId: 'pi_1' } },
-      { idempotencyKey: 'vat-back-pi_1' },
+    expect(client.paymentIntents.retrieve).toHaveBeenCalledWith(
+      'pi_9',
+      { expand: ['latest_charge'] },
+      { stripeAccount: 'acct_creator' },
+    );
+    expect(client.applicationFees.createRefund).toHaveBeenCalledWith(
+      'fee_9',
+      { amount: 35, metadata: { reason: 'vat' } },
+      { idempotencyKey: 'fee-settle-pi_9' },
     );
   });
 
-  it('takes nothing more when the VAT of the payment was taken back already', async () => {
-    const { service } = serviceWith();
-    paidWith([{ metadata: { reason: 'vat' } }]);
-
-    await service.takeVatBackFromCreator({
-      paymentIntentId: 'pi_1',
-      amountInCents: 139,
-    });
-
-    expect(client.transfers.createReversal).not.toHaveBeenCalled();
-  });
-
-  it('takes nothing from a transfer already given back, as when the payment was refunded', async () => {
-    const { service } = serviceWith();
-    paidWith([{ metadata: { reason: 'refund' } }], 800);
-
-    await service.takeVatBackFromCreator({
-      paymentIntentId: 'pi_1',
-      amountInCents: 139,
-    });
-
-    expect(client.transfers.createReversal).not.toHaveBeenCalled();
-  });
-
-  it('asks nothing when there is nothing to take back', async () => {
-    const { service } = serviceWith();
-
-    await service.takeVatBackFromCreator({
-      paymentIntentId: 'pi_1',
-      amountInCents: 0,
-    });
-
-    expect(client.paymentIntents.retrieve).not.toHaveBeenCalled();
-  });
-
-  it('fails, so the notice is tried again, when the payment has no transfer yet', async () => {
+  it('reads the fee when the charge names it as an object', async () => {
     const { service } = serviceWith();
     client.paymentIntents.retrieve.mockResolvedValue({
-      latest_charge: { transfer: null },
+      latest_charge: { application_fee: { id: 'fee_9' } },
     });
+    feeOf({ amount: 200, amount_refunded: 0 });
 
-    await expect(
-      service.takeVatBackFromCreator({
-        paymentIntentId: 'pi_1',
-        amountInCents: 139,
-      }),
-    ).rejects.toThrow('Payment pi_1 has no transfer to take its VAT back from');
-    expect(client.transfers.createReversal).not.toHaveBeenCalled();
+    await settle(service, 165);
+
+    expect(client.applicationFees.retrieve).toHaveBeenCalledWith('fee_9');
   });
+
+  it.each([
+    [{ amount: 200, amount_refunded: 35 }, 'was given back already'],
+    [{ amount: 165, amount_refunded: 0 }, 'is what is due'],
+    [{ amount: 200, amount_refunded: 200 }, 'went back with a refund'],
+  ])('gives nothing back when the fee %j %s', async (fee) => {
+    const { service } = serviceWith();
+    feeOf(fee);
+
+    await settle(service, 165);
+
+    expect(client.applicationFees.createRefund).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ latest_charge: 'ch_9' }],
+    [{ latest_charge: null }],
+    [{ latest_charge: { application_fee: null } }],
+  ])(
+    'fails, so the notice is tried again, when the payment shows no fee yet (%j)',
+    async (intent) => {
+      const { service } = serviceWith();
+      client.paymentIntents.retrieve.mockResolvedValue(intent);
+
+      await expect(settle(service, 165)).rejects.toThrow(
+        'Payment pi_9 has no fee to settle on account acct_creator',
+      );
+      expect(client.applicationFees.createRefund).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("StripeService a creator's tax settings", () => {
+  it.each([
+    ['active', true],
+    ['pending', false],
+  ])(
+    "reads the settings on the creator's account: %s is %s",
+    async (status, active) => {
+      const { service } = serviceWith();
+      client.tax.settings.retrieve.mockResolvedValue({ status });
+
+      await expect(service.creatorTaxActive('acct_creator')).resolves.toBe(
+        active,
+      );
+      expect(client.tax.settings.retrieve).toHaveBeenCalledWith(
+        {},
+        { stripeAccount: 'acct_creator' },
+      );
+    },
+  );
 });
 
 describe('StripeService notices of the provider', () => {
@@ -580,21 +534,29 @@ describe('StripeService event deliveries', () => {
 describe('StripeService creator accounts and identity', () => {
   const { service } = serviceWith();
 
-  it('opens an Express account that asks only to receive transfers, paid out every Monday', async () => {
+  it('opens an account where the creator is the seller and the provider is liable, paid out every Monday', async () => {
     await service.createExpressAccount('creator@example.com');
 
     expect(client.accounts.create).toHaveBeenCalledWith(
       {
-        type: 'express',
         email: 'creator@example.com',
-        capabilities: { transfers: { requested: true } },
+        controller: {
+          losses: { payments: 'stripe' },
+          fees: { payer: 'account' },
+          stripe_dashboard: { type: 'express' },
+          requirement_collection: 'stripe',
+        },
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
         settings: {
           payouts: {
             schedule: { interval: 'weekly', weekly_anchor: 'monday' },
           },
         },
       },
-      undefined,
+      { apiVersion: '2026-10-28.preview' },
     );
   });
 
@@ -602,8 +564,8 @@ describe('StripeService creator accounts and identity', () => {
     await service.createExpressAccount('creator@example.com', 'key-1');
 
     expect(client.accounts.create).toHaveBeenLastCalledWith(
-      expect.objectContaining({ type: 'express' }),
-      { idempotencyKey: 'key-1' },
+      expect.objectContaining({ email: 'creator@example.com' }),
+      { apiVersion: '2026-10-28.preview', idempotencyKey: 'key-1' },
     );
   });
 

@@ -9,7 +9,7 @@ export function amountPaid(
 }
 
 // The VAT inside what the buyer paid, worked out by the provider for where
-// the buyer is: CircleSfera's to pay to the tax agency.
+// the buyer is: the creator's to declare, as the seller.
 export function vatPaid(
   session: Pick<Stripe.Checkout.Session, 'total_details'>,
 ): number {
@@ -28,17 +28,11 @@ export function keptWithoutVat(
 }
 
 // What the creator earns of a payment: their share of what was paid less
-// the VAT, and less what was refunded. The provider first sent them their
-// share of all that was paid, as the VAT was not known yet; `vatToTakeBack`
-// is the difference.
+// the VAT, and less what was refunded.
 export function creatorEarnings(
   paid: number,
   vat: number,
   refunded = 0,
 ): number {
   return creatorShareCents(keptWithoutVat(paid, vat, refunded));
-}
-
-export function vatToTakeBack(paid: number, vat: number): number {
-  return creatorShareCents(paid) - creatorEarnings(paid, vat);
 }

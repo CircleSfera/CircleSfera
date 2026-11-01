@@ -7,8 +7,17 @@ import { stripeWebhookSecrets } from './stripe-webhook-secrets.js';
 // A Stripe Payment Method Configuration id (pmc_...).
 const PAYMENT_METHOD_CONFIGURATION = /^pmc_[A-Za-z0-9]+$/;
 
-// Keep in sync with the installed `stripe` package's LatestApiVersion.
-const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2026-10-28.endive';
+// The provider's stable version, used for every request but one. The
+// installed library is the provider's preview release, whose own version is
+// the preview below; its documentation allows another version for the
+// client, typed as its own.
+const STRIPE_API_VERSION = '2026-10-28.endive';
+
+// The provider's preview version, sent only to create a payout account: it
+// lets an account with the Express Dashboard have the provider, not
+// CircleSfera, liable for its negative balance.
+const PAYOUT_ACCOUNT_API_VERSION: Stripe.LatestApiVersion =
+  '2026-10-28.preview';
 
 @Injectable()
 export class StripeService implements OnModuleInit {
@@ -18,7 +27,7 @@ export class StripeService implements OnModuleInit {
   constructor(@Inject(ConfigService) private configService: ConfigService) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
     this.stripe = new Stripe(secretKey, {
-      apiVersion: STRIPE_API_VERSION,
+      apiVersion: STRIPE_API_VERSION as Stripe.LatestApiVersion,
       timeout: 20_000,
       maxNetworkRetries: 2,
     });
@@ -66,11 +75,12 @@ export class StripeService implements OnModuleInit {
     }
   }
 
-  // Checkout parameters that limit a one-off payment (tips, unlocks, live
-  // gifts, promotions) to the payment methods of the card-only Payment Method
-  // Configuration set in the Stripe Dashboard (owner decision). Production
-  // refuses to start without it; elsewhere Checkout falls back to the
-  // methods enabled in the Dashboard.
+  // Checkout parameters that limit a one-off payment on CircleSfera's own
+  // account (a promotion) to the payment methods of the card-only Payment
+  // Method Configuration set in the Stripe Dashboard (owner decision).
+  // Production refuses to start without it; elsewhere Checkout falls back to
+  // the methods enabled in the Dashboard. A payment to a creator is made on
+  // the creator's account, where this configuration does not apply.
   cardOnlyPaymentMethods(): Pick<
     Stripe.Checkout.SessionCreateParams,
     'payment_method_configuration'
@@ -160,111 +170,80 @@ export class StripeService implements OnModuleInit {
     );
   }
 
-  // The payment made to a creator through a destination charge, with its
-  // charge and the transfer to the creator's account.
-  private async creatorPayment(paymentIntentId: string) {
+  // Refunds a payment made on a creator's own account, in full unless an
+  // amount is given. CircleSfera gives back its fee on what is refunded:
+  // the sale did not happen.
+  async refundCreatorPayment(params: {
+    account: string;
+    paymentIntentId: string;
+    amountInCents?: number;
+    idempotencyKey: string;
+    metadata?: Stripe.MetadataParam;
+  }): Promise<Stripe.Refund> {
+    return this.stripe.refunds.create(
+      {
+        payment_intent: params.paymentIntentId,
+        ...(params.amountInCents !== undefined && {
+          amount: params.amountInCents,
+        }),
+        reason: 'requested_by_customer',
+        refund_application_fee: true,
+        metadata: params.metadata,
+      },
+      { stripeAccount: params.account, idempotencyKey: params.idempotencyKey },
+    );
+  }
+
+  // Brings CircleSfera's fee on a payment made on a creator's account down
+  // to what is due. The fee is asked when the checkout opens, before the
+  // VAT is known; once it is, the part of the fee taken on the VAT goes back
+  // to the creator. A payment's fee is lowered once, however often this is
+  // asked.
+  async settleCreatorPaymentFee(params: {
+    account: string;
+    paymentIntentId: string;
+    feeDueCents: number;
+  }): Promise<void> {
     const paymentIntent = await this.stripe.paymentIntents.retrieve(
-      paymentIntentId,
-      { expand: ['latest_charge.transfer'] },
+      params.paymentIntentId,
+      { expand: ['latest_charge'] },
+      { stripeAccount: params.account },
     );
     const charge =
       paymentIntent.latest_charge &&
       typeof paymentIntent.latest_charge !== 'string'
         ? paymentIntent.latest_charge
         : null;
-    const transfer =
-      charge?.transfer && typeof charge.transfer !== 'string'
-        ? charge.transfer
-        : null;
-    return { charge, transfer };
-  }
-
-  // Refund in full a payment made to a creator through a destination charge.
-  // What is left of the transfer to the creator's account is taken back
-  // first, by name: the VAT part of it may have been taken back already, and
-  // nothing is left to the provider's own sharing of a refund. A charge
-  // refunded in part or disputed is left alone: the refund is refused and a
-  // person decides. The platform fee of a payment made before VAT was
-  // charged comes back too; the VAT and the fee of a later one never left
-  // CircleSfera's balance, which pays the rest of the refund.
-  async refundDestinationCharge(params: {
-    paymentIntentId: string;
-    amountInCents: number;
-    idempotencyKey: string;
-    metadata?: Stripe.MetadataParam;
-  }): Promise<Stripe.Refund> {
-    const { charge, transfer } = await this.creatorPayment(
-      params.paymentIntentId,
-    );
-    const untouched =
-      charge && !charge.disputed && charge.amount_refunded === 0;
-    const left = transfer ? transfer.amount - transfer.amount_reversed : 0;
-    if (untouched && transfer && left > 0) {
-      await this.stripe.transfers.createReversal(
-        transfer.id,
-        {
-          amount: left,
-          metadata: {
-            reason: 'refund',
-            paymentIntentId: params.paymentIntentId,
-          },
-        },
-        { idempotencyKey: `${params.idempotencyKey}-transfer` },
-      );
-    }
-    return this.stripe.refunds.create(
-      {
-        payment_intent: params.paymentIntentId,
-        amount: params.amountInCents,
-        reason: 'requested_by_customer',
-        ...(charge?.application_fee && { refund_application_fee: true }),
-        metadata: params.metadata,
-      },
-      { idempotencyKey: params.idempotencyKey },
-    );
-  }
-
-  // Takes back from what a payment sent a creator the part that was VAT.
-  // The creator's account first receives their share of all the buyer paid,
-  // as the VAT is only known once the buyer is; the VAT stays with
-  // CircleSfera. A payment's VAT is taken back once, however often this is
-  // asked: an earlier reversal for it is looked for first. Nothing is taken
-  // from a transfer already given back, as when the payment was refunded.
-  async takeVatBackFromCreator(params: {
-    paymentIntentId: string;
-    amountInCents: number;
-  }): Promise<void> {
-    if (params.amountInCents <= 0) {
-      return;
-    }
-    const { transfer } = await this.creatorPayment(params.paymentIntentId);
-    if (!transfer) {
+    const feeId =
+      typeof charge?.application_fee === 'string'
+        ? charge.application_fee
+        : charge?.application_fee?.id;
+    if (!feeId) {
       throw new Error(
-        `Payment ${params.paymentIntentId} has no transfer to take its VAT back from`,
+        `Payment ${params.paymentIntentId} has no fee to settle on account ${params.account}`,
       );
     }
-    if (
-      transfer.reversals?.data.some(
-        (reversal) => reversal.metadata?.reason === 'vat',
-      )
-    ) {
+    const fee = await this.stripe.applicationFees.retrieve(feeId);
+    const excess = fee.amount - fee.amount_refunded - params.feeDueCents;
+    if (excess <= 0) {
       return;
     }
-    const amount = Math.min(
-      params.amountInCents,
-      transfer.amount - transfer.amount_reversed,
+    await this.stripe.applicationFees.createRefund(
+      feeId,
+      { amount: excess, metadata: { reason: 'vat' } },
+      { idempotencyKey: `fee-settle-${params.paymentIntentId}` },
     );
-    if (amount <= 0) {
-      return;
-    }
-    await this.stripe.transfers.createReversal(
-      transfer.id,
-      {
-        amount,
-        metadata: { reason: 'vat', paymentIntentId: params.paymentIntentId },
-      },
-      { idempotencyKey: `vat-back-${params.paymentIntentId}` },
+  }
+
+  // Whether a creator's account can have the VAT of its sales calculated:
+  // its tax settings (head office and at least one registration) are
+  // complete. Until they are, its payments carry no VAT calculation.
+  async creatorTaxActive(account: string): Promise<boolean> {
+    const settings = await this.stripe.tax.settings.retrieve(
+      {},
+      { stripeAccount: account },
     );
+    return settings.status === 'active';
   }
 
   async createCustomer(
@@ -309,9 +288,17 @@ export class StripeService implements OnModuleInit {
     throw lastError;
   }
 
-  // The customer a charge was made to, when it has one.
-  async getChargeCustomerId(chargeId: string): Promise<string | undefined> {
-    const { customer } = await this.stripe.charges.retrieve(chargeId);
+  // The customer a charge was made to, when it has one; a charge made on a
+  // creator's account is read there.
+  async getChargeCustomerId(
+    chargeId: string,
+    account?: string,
+  ): Promise<string | undefined> {
+    const { customer } = await this.stripe.charges.retrieve(
+      chargeId,
+      {},
+      account ? { stripeAccount: account } : undefined,
+    );
     return (
       (typeof customer === 'string' ? customer : customer?.id) ?? undefined
     );
@@ -352,22 +339,33 @@ export class StripeService implements OnModuleInit {
 
   // Stripe Connect Methods
 
-  // Create an Express connected account for a creator. With a key, a
-  // repeated request answers the account the first one opened.
+  // Creates a creator's payout account: the creator is the seller of what
+  // they sell and pays the provider's fees, and the provider, not
+  // CircleSfera, is liable for its negative balance. With a key, a repeated
+  // request answers the account the first one opened.
   async createExpressAccount(
     email: string,
     idempotencyKey?: string,
   ): Promise<Stripe.Account> {
     return this.stripe.accounts.create(
       {
-        type: 'express',
-        email: email,
+        email,
+        controller: {
+          losses: { payments: 'stripe' },
+          fees: { payer: 'account' },
+          stripe_dashboard: { type: 'express' },
+          requirement_collection: 'stripe',
+        },
         capabilities: {
+          card_payments: { requested: true },
           transfers: { requested: true },
         },
         settings: { payouts: { schedule: CREATOR_PAYOUT_SCHEDULE } },
       },
-      idempotencyKey ? { idempotencyKey } : undefined,
+      {
+        apiVersion: PAYOUT_ACCOUNT_API_VERSION,
+        ...(idempotencyKey && { idempotencyKey }),
+      },
     );
   }
 
@@ -537,12 +535,29 @@ export interface ConnectAccountCapabilityFlags {
 // previously reimplemented identically in monetization.service.ts's
 // on-demand getAccountStatus poll and payments.service.ts's passive
 // account.updated webhook handler.
+// A sale is charged on the creator's own account, so it takes payments only
+// once card payments are active on it, not only charges.
 export function deriveConnectAccountFlags(account: {
   charges_enabled?: boolean | null;
-  capabilities?: { transfers?: string | null } | null;
+  capabilities?: {
+    transfers?: string | null;
+    card_payments?: string | null;
+  } | null;
 }): ConnectAccountCapabilityFlags {
   return {
     transfersEnabled: account.capabilities?.transfers === 'active',
-    chargesEnabled: account.charges_enabled === true,
+    chargesEnabled:
+      account.charges_enabled === true &&
+      account.capabilities?.card_payments === 'active',
   };
+}
+
+// An account opened before creators sold on their own account: it never
+// asked to take card payments and can only receive transfers. An account
+// opened since asks for them, so it has the capability while it is still
+// being verified.
+export function isTransferOnlyAccount(account: {
+  capabilities?: { card_payments?: string | null } | null;
+}): boolean {
+  return !account.capabilities?.card_payments;
 }

@@ -1895,7 +1895,10 @@ describe('PaymentsService', () => {
       // Nothing is read until the mirror asks.
       expect(stripeService.getChargeCustomerId).not.toHaveBeenCalled();
       await expect(asked(0)).resolves.toBe('cus_1');
-      expect(stripeService.getChargeCustomerId).toHaveBeenCalledWith('ch_a');
+      expect(stripeService.getChargeCustomerId).toHaveBeenCalledWith(
+        'ch_a',
+        undefined,
+      );
 
       stripeService.getChargeCustomerId.mockRejectedValueOnce(
         new Error('provider down'),
@@ -1904,11 +1907,33 @@ describe('PaymentsService', () => {
       await expect(asked(1)).resolves.toBeUndefined();
       expect(stripeService.getChargeCustomerId).toHaveBeenLastCalledWith(
         'ch_b',
+        undefined,
       );
 
       await send({ id: 'dp_c', amount: 1 });
       await expect(asked(2)).resolves.toBeUndefined();
       expect(stripeService.getChargeCustomerId).toHaveBeenCalledTimes(2);
+    });
+
+    it("reads who was charged on the creator's account for a dispute of a payment to a creator", async () => {
+      stripeService.getChargeCustomerId.mockResolvedValueOnce('cus_d');
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_dp_d',
+          type: 'charge.dispute.created',
+          account: 'acct_creator',
+          data: { object: { id: 'dp_d', amount: 1, charge: 'ch_d' } },
+        }),
+      );
+
+      const asked = monetizationWebhookService.syncDispute.mock.calls[0][1] as
+        | (() => Promise<string | undefined>)
+        | undefined;
+      await expect(asked?.()).resolves.toBe('cus_d');
+      expect(stripeService.getChargeCustomerId).toHaveBeenCalledWith(
+        'ch_d',
+        'acct_creator',
+      );
     });
 
     it('delegates checkout.session.expired for monetization types to monetizationWebhookService.handleCheckoutSessionExpired', async () => {
@@ -1944,7 +1969,20 @@ describe('PaymentsService', () => {
       );
       expect(
         monetizationWebhookService.handleCheckoutSessionCompleted,
-      ).toHaveBeenCalledWith(monetizationSession);
+      ).toHaveBeenCalledWith(monetizationSession, undefined);
+
+      // A payment to a creator arrives from the creator's account.
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_route_connected',
+          type: 'checkout.session.completed',
+          account: 'acct_creator',
+          data: { object: monetizationSession },
+        }),
+      );
+      expect(
+        monetizationWebhookService.handleCheckoutSessionCompleted,
+      ).toHaveBeenLastCalledWith(monetizationSession, 'acct_creator');
 
       monetizationWebhookService.handleCheckoutSessionCompleted.mockClear();
       await service.processWebhookEvent(
@@ -1963,6 +2001,30 @@ describe('PaymentsService', () => {
       expect(
         monetizationWebhookService.handleCheckoutSessionCompleted,
       ).not.toHaveBeenCalled();
+    });
+
+    it("ignores a checkout on a creator's account that is not a payment to them", async () => {
+      const warn = vi
+        .spyOn((service as any).logger, 'warn')
+        .mockImplementation(() => {});
+
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_route_foreign',
+          type: 'checkout.session.completed',
+          account: 'acct_creator',
+          data: {
+            object: { id: 'cs_foreign', metadata: { planId: 'p' } },
+          },
+        }),
+      );
+
+      expect(
+        monetizationWebhookService.handleCheckoutSessionCompleted,
+      ).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(
+        'Checkout cs_foreign on account acct_creator is not a payment to a creator; ignored',
+      );
     });
   });
 });
