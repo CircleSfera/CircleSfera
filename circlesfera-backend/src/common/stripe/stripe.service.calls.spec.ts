@@ -11,7 +11,10 @@ const client = {
   refunds: { create: vi.fn() },
   paymentIntents: { retrieve: vi.fn() },
   applicationFees: { retrieve: vi.fn(), createRefund: vi.fn() },
-  tax: { settings: { retrieve: vi.fn() } },
+  tax: {
+    settings: { retrieve: vi.fn() },
+    registrations: { list: vi.fn() },
+  },
   customers: { create: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
@@ -24,10 +27,6 @@ const client = {
   },
   accountLinks: { create: vi.fn() },
   accountSessions: { create: vi.fn() },
-  tax: {
-    settings: { retrieve: vi.fn() },
-    registrations: { list: vi.fn() },
-  },
   balance: { retrieve: vi.fn() },
   events: { list: vi.fn() },
   payouts: { list: vi.fn() },

@@ -458,7 +458,7 @@ export class StripeService implements OnModuleInit {
       headOffice: address
         ? { city: address.city ?? null, country: address.country ?? null }
         : null,
-      status: settings.status,
+      status: settings.status === 'active' ? 'active' : 'pending',
       registrationCountries: [
         ...new Set(registrations.data.map((entry) => entry.country)),
       ],
