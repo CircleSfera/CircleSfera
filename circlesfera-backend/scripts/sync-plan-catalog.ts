@@ -12,6 +12,7 @@ import {
   planUpdate,
   priceProblems,
   type StoredPlan,
+  staleProductDescription,
 } from './plan-catalog.ts';
 
 const { Pool } = pkg;
@@ -64,6 +65,13 @@ async function main() {
         continue;
       }
       const product = found.product;
+      if (staleProductDescription(product)) {
+        console.log(
+          `${apply ? '' : 'WOULD '}CLEAR the description of ${plan.name} in the provider`,
+        );
+        if (apply)
+          await stripe.products.update(product.id, { description: '' });
+      }
       const activePrices: ProviderPrice[] = [];
       for await (const price of stripe.prices.list({
         product: product.id,
