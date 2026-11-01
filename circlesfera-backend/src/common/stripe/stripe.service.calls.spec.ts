@@ -53,6 +53,15 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+// A provider list that iterates over every page in turn.
+function listOf<T>(...pages: T[][]) {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const page of pages) yield* page;
+    },
+  };
+}
+
 describe('StripeService at startup', () => {
   const prod = {
     NODE_ENV: 'production',
@@ -630,14 +639,18 @@ describe('StripeService creator accounts and identity', () => {
         address: { city: 'Madrid', country: 'ES', line1: 'Calle Mayor 1' },
       },
     });
-    client.tax.registrations.list.mockResolvedValue({
-      data: [{ country: 'ES' }, { country: 'FR' }, { country: 'ES' }],
-    });
+    // Two pages, as the provider's list walks them.
+    client.tax.registrations.list.mockReturnValue(
+      listOf(
+        [{ country: 'ES' }, { country: 'FR' }],
+        [{ country: 'ES' }, { country: 'IT' }],
+      ),
+    );
 
     await expect(service.getTaxDetailsStatus('acct_1')).resolves.toEqual({
       headOffice: { city: 'Madrid', country: 'ES' },
       status: 'active',
-      registrationCountries: ['ES', 'FR'],
+      registrationCountries: ['ES', 'FR', 'IT'],
     });
     expect(client.tax.settings.retrieve).toHaveBeenCalledWith(
       {},
@@ -650,7 +663,7 @@ describe('StripeService creator accounts and identity', () => {
   });
 
   it('reads an account with no head office yet, or one with no city', async () => {
-    client.tax.registrations.list.mockResolvedValue({ data: [] });
+    client.tax.registrations.list.mockReturnValue(listOf([]));
     client.tax.settings.retrieve.mockResolvedValueOnce({
       status: 'pending',
       head_office: null,

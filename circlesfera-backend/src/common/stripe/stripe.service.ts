@@ -449,19 +449,21 @@ export class StripeService implements OnModuleInit {
   }> {
     const options = { stripeAccount: accountId };
     const settings = await this.stripe.tax.settings.retrieve({}, options);
-    const registrations = await this.stripe.tax.registrations.list(
+    // Every page of the active registrations, not only the first.
+    const countries = new Set<string>();
+    for await (const entry of this.stripe.tax.registrations.list(
       { status: 'active', limit: 100 },
       options,
-    );
+    )) {
+      countries.add(entry.country);
+    }
     const address = settings.head_office?.address;
     return {
       headOffice: address
         ? { city: address.city ?? null, country: address.country ?? null }
         : null,
       status: settings.status === 'active' ? 'active' : 'pending',
-      registrationCountries: [
-        ...new Set(registrations.data.map((entry) => entry.country)),
-      ],
+      registrationCountries: [...countries],
     };
   }
 
