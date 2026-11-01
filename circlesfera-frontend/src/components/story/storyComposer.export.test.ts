@@ -135,6 +135,120 @@ describe('story export', () => {
     ).toBe(true);
   });
 
+  describe('pictures inside the canvas', () => {
+    /** A canvas with a photo, a song's cover and a drawing on it. */
+    function canvasWithPictures() {
+      const node = canvas();
+      node.innerHTML = `
+        <img data-testid="photo" src="blob:photo" />
+        <img data-testid="cover" src="https://cdn.example.com/c.jpg" decoding="async" />
+        <div class="canvas-container">
+          <canvas class="lower-canvas" width="780" height="1386"
+            style="position: absolute; left: 0px; top: 0px;"></canvas>
+          <canvas class="guide" data-export-ignore="true" width="10" height="10"></canvas>
+          <canvas class="unused" width="0" height="0"></canvas>
+        </div>`;
+      vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(
+        'data:image/png;base64,ZHJhd2luZw==',
+      );
+      return node;
+    }
+
+    function exportOf(node: HTMLElement) {
+      return exportStoryCanvas({
+        container: node,
+        backgroundUrl: 'blob:photo',
+        bgStyle: '',
+        elementCount: 1,
+        onPost: vi.fn(),
+      });
+    }
+
+    it('are all decoded before the export paints them, so Safari does not leave them blank', async () => {
+      const node = canvasWithPictures();
+      let painted: { decoding: string | null; src: string | null }[] = [];
+      vi.mocked(toBlob).mockImplementation(async (target, options) => {
+        painted = [...target.querySelectorAll('img, canvas')]
+          .filter((el) => options?.filter?.(el as HTMLElement) !== false)
+          .map((el) => ({
+            decoding: el.getAttribute('decoding'),
+            src: el.getAttribute('src'),
+          }));
+        return new Blob(['png']);
+      });
+
+      await exportOf(node);
+
+      // The drawing goes as a picture of itself, in place of its canvas; the
+      // canvas left out of the picture stays out, and so does an empty one.
+      expect(painted).toEqual([
+        { decoding: 'sync', src: 'blob:photo' },
+        { decoding: 'sync', src: 'https://cdn.example.com/c.jpg' },
+        { decoding: 'sync', src: 'data:image/png;base64,ZHJhd2luZw==' },
+        { decoding: null, src: null },
+      ]);
+    });
+
+    it('shows the drawing exactly where its canvas is', async () => {
+      const node = canvasWithPictures();
+      let shown: { className: string; style: string; next: string } | null =
+        null;
+      vi.mocked(toBlob).mockImplementation(async (target) => {
+        const copy = target.querySelector<HTMLElement>(
+          '.canvas-container > img',
+        );
+        shown = copy && {
+          className: copy.className,
+          style: copy.style.cssText,
+          next: copy.nextElementSibling?.className ?? '',
+        };
+        return new Blob(['png']);
+      });
+
+      await exportOf(node);
+
+      // Just before its canvas, with its class and its place.
+      expect(shown).toEqual({
+        className: 'lower-canvas',
+        style: expect.stringContaining(
+          'position: absolute; left: 0px; top: 0px;',
+        ),
+        next: 'lower-canvas',
+      });
+    });
+
+    it('puts the canvas back as it was, after the export and when it fails', async () => {
+      for (const result of [
+        Promise.resolve(new Blob(['png'])),
+        Promise.reject(new Error('export failed')),
+      ]) {
+        result.catch(() => undefined);
+        const node = canvasWithPictures();
+        const before = node.innerHTML;
+        vi.mocked(toBlob).mockReturnValue(result);
+
+        await exportOf(node).catch(() => undefined);
+
+        expect(node.innerHTML).toBe(before);
+      }
+    });
+
+    it('puts the canvas back as it was when a drawing cannot be read', async () => {
+      const node = canvasWithPictures();
+      const before = node.innerHTML;
+      vi.mocked(HTMLCanvasElement.prototype.toDataURL).mockImplementation(
+        () => {
+          throw new Error('SecurityError');
+        },
+      );
+
+      await expect(exportOf(node)).rejects.toThrow('SecurityError');
+
+      expect(node.innerHTML).toBe(before);
+      expect(toBlob).not.toHaveBeenCalled();
+    });
+  });
+
   it('fails, without calling the owner, when no image could be made', async () => {
     vi.mocked(toBlob).mockResolvedValue(null);
     const onPost = vi.fn();
