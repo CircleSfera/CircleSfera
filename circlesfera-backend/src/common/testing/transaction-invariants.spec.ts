@@ -134,6 +134,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       const tipAmountCents = 1000;
       mockPrisma.monetization.findUnique.mockResolvedValue({
         stripeConnectAccountId: 'acct_creator_123',
+        chargesEnabled: true,
       });
       mockPrisma.user.findUnique.mockResolvedValueOnce({
         id: 'sender-1',

@@ -14,6 +14,7 @@ import {
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { creatorEarnings } from '../monetization/paid-amounts.js';
 import {
+  accountTakingPayments,
   payoutAccountPlacement,
   payoutDestinationFor,
 } from '../monetization/payout-account.js';
@@ -96,13 +97,9 @@ export class LiveGiftService {
     }
 
     // A host who may not be paid gets no gift.
-    const payout = await payoutDestinationFor(this.prisma, stream.host);
-    if (!payout?.stripeConnectAccountId) {
-      throw new BadRequestException(
-        'Host cannot receive gifts yet (no Stripe Connect account)',
-      );
-    }
-    const destination = payout.stripeConnectAccountId;
+    const destination = accountTakingPayments(
+      await payoutDestinationFor(this.prisma, stream.host),
+    );
 
     const sender = await this.prisma.user.findUnique({
       where: { id: senderId },

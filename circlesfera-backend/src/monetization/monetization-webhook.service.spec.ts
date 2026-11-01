@@ -1104,7 +1104,7 @@ describe('MonetizationWebhookService', () => {
       await deliver({
         id: 'acct_1',
         charges_enabled: true,
-        capabilities: { transfers: 'active' },
+        capabilities: { transfers: 'active', card_payments: 'active' },
       });
 
       expect(prisma.monetization.findUnique).toHaveBeenCalledWith(
@@ -1123,6 +1123,25 @@ describe('MonetizationWebhookService', () => {
       });
     });
 
+    it('saves that an account opened only to receive transfers takes no payments', async () => {
+      holdsAccount();
+
+      await deliver({
+        id: 'acct_1',
+        charges_enabled: true,
+        capabilities: { transfers: 'active' },
+      });
+
+      expect(prisma.monetization.update).toHaveBeenCalledWith({
+        where: { stripeConnectAccountId: 'acct_1' },
+        data: {
+          transfersEnabled: true,
+          chargesEnabled: false,
+          verifiedCompany: false,
+        },
+      });
+    });
+
     it('records a company the provider has finished verifying', async () => {
       // The row holding the account, found by it.
       holdsAccount();
@@ -1130,7 +1149,7 @@ describe('MonetizationWebhookService', () => {
       await deliver({
         id: 'acct_1',
         charges_enabled: true,
-        capabilities: { transfers: 'active' },
+        capabilities: { transfers: 'active', card_payments: 'active' },
         business_type: 'company',
         details_submitted: true,
         requirements: { currently_due: [], disabled_reason: null },
@@ -1150,7 +1169,7 @@ describe('MonetizationWebhookService', () => {
       await deliver({
         id: 'acct_second',
         charges_enabled: true,
-        capabilities: { transfers: 'active' },
+        capabilities: { transfers: 'active', card_payments: 'active' },
       });
 
       expect(prisma.profile.findMany).not.toHaveBeenCalled();
@@ -1170,7 +1189,7 @@ describe('MonetizationWebhookService', () => {
       stripe.getAccount = vi.fn().mockResolvedValue({
         id: 'acct_1',
         charges_enabled: true,
-        capabilities: { transfers: 'active' },
+        capabilities: { transfers: 'active', card_payments: 'active' },
       });
 
       await service.handleAccountUpdated({
@@ -1197,7 +1216,7 @@ describe('MonetizationWebhookService', () => {
       await deliver({
         id: 'acct_1',
         charges_enabled: true,
-        capabilities: { transfers: 'active' },
+        capabilities: { transfers: 'active', card_payments: 'active' },
         business_type: 'individual',
         details_submitted: true,
       });

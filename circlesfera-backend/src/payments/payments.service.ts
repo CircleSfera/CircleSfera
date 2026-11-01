@@ -1045,7 +1045,7 @@ export class PaymentsService {
           data.object as {
             id: string;
             charges_enabled?: boolean;
-            capabilities?: { transfers?: string };
+            capabilities?: { transfers?: string; card_payments?: string };
           } & ConnectAccountCompanyFields,
         );
         break;

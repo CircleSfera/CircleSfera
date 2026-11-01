@@ -452,6 +452,7 @@
         "active": "Your account can receive payouts.",
         "incomplete": "Add more details in Stripe to receive payouts.",
         "unconnected": "Connect Stripe to receive tips.",
+        "update": "Update your Stripe account to sell: it takes a few steps.",
         "shared": "This profile is paid into the Stripe account of another of your profiles."
       },
       "dashboard": "Stripe Dashboard",
@@ -461,6 +462,7 @@
       "error_connect": "Could not connect to Stripe",
       "error_dashboard": "Could not open the Stripe Dashboard",
       "connect_own": "Connect its own account",
+      "update": "Update in Stripe",
       "complete": "Finish in Stripe",
       "own_account_note": "With its own account, this profile's earnings, payouts and disputes stay apart from your other profile's. Sign in to Stripe with the same login and it may offer to reuse the details already verified for your other account."
     },
@@ -2502,7 +2504,9 @@
       "stripe_connected": "Payout account",
       "stripe_connected_desc": "Stripe splits each charge (80% you / 20% CircleSfera) and pays out to your bank.",
       "transfers_enabled": "Payouts to your bank enabled",
-      "transfers_pending": "Payouts to your bank being set up"
+      "transfers_pending": "Payouts to your bank being set up",
+      "sales_need_update": "Update your Stripe account to sell",
+      "update_stripe": "Update in Stripe"
     },
     "advanced": {
       "plan_desc": "Your income by period and by kind, the hours people look at your posts, your best posts and the full export come with the Elite Creator and Business plans.",

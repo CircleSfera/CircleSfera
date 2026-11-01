@@ -535,12 +535,29 @@ export interface ConnectAccountCapabilityFlags {
 // previously reimplemented identically in monetization.service.ts's
 // on-demand getAccountStatus poll and payments.service.ts's passive
 // account.updated webhook handler.
+// A sale is charged on the creator's own account, so it takes payments only
+// once card payments are active on it, not only charges.
 export function deriveConnectAccountFlags(account: {
   charges_enabled?: boolean | null;
-  capabilities?: { transfers?: string | null } | null;
+  capabilities?: {
+    transfers?: string | null;
+    card_payments?: string | null;
+  } | null;
 }): ConnectAccountCapabilityFlags {
   return {
     transfersEnabled: account.capabilities?.transfers === 'active',
-    chargesEnabled: account.charges_enabled === true,
+    chargesEnabled:
+      account.charges_enabled === true &&
+      account.capabilities?.card_payments === 'active',
   };
+}
+
+// An account opened before creators sold on their own account: it never
+// asked to take card payments and can only receive transfers. An account
+// opened since asks for them, so it has the capability while it is still
+// being verified.
+export function isTransferOnlyAccount(account: {
+  capabilities?: { card_payments?: string | null } | null;
+}): boolean {
+  return !account.capabilities?.card_payments;
 }

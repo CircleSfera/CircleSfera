@@ -120,6 +120,21 @@ describe('LiveGiftService', () => {
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
+    it("takes no gift, and asks the provider nothing, while the host's account takes no card payments", async () => {
+      mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+        userId: null,
+        stripeConnectAccountId: 'acct_old',
+        transfersEnabled: true,
+        chargesEnabled: false,
+      });
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
+
+      await expect(
+        service.sendGift('stream-1', 'fan-1', 'crown', 'http://localhost/live'),
+      ).rejects.toThrow('Creator cannot take payments yet');
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
     it('charges the catalog price and the platform application fee', async () => {
       // The host's Profile holds the account the gift is paid into, ready
       // to receive transfers.
@@ -127,6 +142,7 @@ describe('LiveGiftService', () => {
         userId: null,
         stripeConnectAccountId: 'acct_1',
         transfersEnabled: true,
+        chargesEnabled: true,
       });
       mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
       mockPrismaService.user.findUnique.mockResolvedValue({

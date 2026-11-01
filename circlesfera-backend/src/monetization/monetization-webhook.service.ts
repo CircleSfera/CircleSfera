@@ -1030,7 +1030,7 @@ export class MonetizationWebhookService {
     account: {
       id: string;
       charges_enabled?: boolean;
-      capabilities?: { transfers?: string };
+      capabilities?: { transfers?: string; card_payments?: string };
     } & ConnectAccountCompanyFields,
   ): Promise<void> {
     const holder = await this.prisma.monetization.findUnique({

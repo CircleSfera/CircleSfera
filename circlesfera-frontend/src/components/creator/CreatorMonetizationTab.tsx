@@ -52,7 +52,9 @@ interface MonetizationSummary {
 interface MonetizationConnectStatus {
   connected?: boolean;
   transfersEnabled?: boolean;
+  chargesEnabled?: boolean;
   detailsSubmitted?: boolean;
+  ownAccount?: boolean;
 }
 
 interface BillingStatus {
@@ -96,6 +98,13 @@ export default function CreatorMonetizationTab({
     queryFn: monetizationApi.getStatus,
     enabled: hasStripeAccount,
   });
+  // Paid out to but not able to sell: an account opened before sales were
+  // charged on the creator's own account, which connecting again replaces.
+  const needsUpdate =
+    !!connectStatus?.connected &&
+    connectStatus.ownAccount !== false &&
+    !!connectStatus.transfersEnabled &&
+    connectStatus.chargesEnabled === false;
 
   const { data: billingStatus } = useQuery<BillingStatus>({
     queryKey: ['billingStatus'],
@@ -247,16 +256,27 @@ export default function CreatorMonetizationTab({
               title={t('creator.monetization.stripe_connected')}
               hint={t('creator.monetization.stripe_connected_desc')}
               action={
-                <Button
-                  variant="secondary"
-                  disabled={dashboardMutation.isPending}
-                  onClick={() => dashboardMutation.mutate(openPendingTab())}
-                  isLoading={dashboardMutation.isPending}
-                  className="min-h-11 px-4 shrink-0"
-                >
-                  {t('creator.monetization.express_dashboard')}
-                  <ExternalLink size={14} className="ml-1.5" aria-hidden />
-                </Button>
+                needsUpdate ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => connectMutation.mutate()}
+                    isLoading={connectMutation.isPending}
+                    className="min-h-11 px-4 shrink-0"
+                  >
+                    {t('creator.monetization.update_stripe')}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    disabled={dashboardMutation.isPending}
+                    onClick={() => dashboardMutation.mutate(openPendingTab())}
+                    isLoading={dashboardMutation.isPending}
+                    className="min-h-11 px-4 shrink-0"
+                  >
+                    {t('creator.monetization.express_dashboard')}
+                    <ExternalLink size={14} className="ml-1.5" aria-hidden />
+                  </Button>
+                )
               }
             >
               <CreatorFigures>
@@ -268,9 +288,11 @@ export default function CreatorMonetizationTab({
                   )}
                   hint={
                     connectStatus
-                      ? connectStatus.transfersEnabled
-                        ? t('creator.monetization.transfers_enabled')
-                        : t('creator.monetization.transfers_pending')
+                      ? needsUpdate
+                        ? t('creator.monetization.sales_need_update')
+                        : connectStatus.transfersEnabled
+                          ? t('creator.monetization.transfers_enabled')
+                          : t('creator.monetization.transfers_pending')
                       : undefined
                   }
                 />

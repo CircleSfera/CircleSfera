@@ -63,7 +63,13 @@ use the account to settle the fee, refund on that account and read who was charg
 - Stripe's risk team manages payment risk on creator accounts and may contact or act on them.
   Holding a banned creator's payouts (a manual payout schedule) is still accepted by Stripe on these
   accounts.
-- Payout accounts are created again with the new settings; no creator had been paid when this was
-  decided.
+- A payout account opened before this decision can only receive transfers (it never asked for card
+  payments). It takes no sales: a checkout for its creator is refused before Stripe is called. When
+  the creator connects Stripe again, the app opens a new account with the new settings, puts it
+  wherever the old one was kept, and leaves the old one untouched at Stripe. It only does so while
+  the old account holds no money; otherwise staff are alerted and nothing changes. One account
+  existed when this was decided, with nothing in it.
+- An account takes sales only once Stripe has activated card payments on it, not only charges; the
+  saved flag follows that rule.
 - Creators need their tax settings and registrations; CircleSfera has to give them a place to enter
   them.
