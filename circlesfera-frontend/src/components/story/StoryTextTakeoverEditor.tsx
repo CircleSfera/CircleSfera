@@ -1,6 +1,70 @@
-import type { CSSProperties, RefObject } from 'react';
+import {
+  type CSSProperties,
+  type RefObject,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
+import { useStoryKeyboardInset } from './useStoryKeyboardInset';
+
+/**
+ * Where the middle of the text goes, from the top of the canvas: the middle
+ * of the band that the bars and the keyboard leave free, kept on the canvas.
+ * Without that band, the middle of the canvas.
+ */
+export function textCentreTop(
+  canvas: Pick<DOMRect, 'top' | 'height'>,
+  band: Pick<DOMRect, 'top' | 'height'> | null,
+): number {
+  if (!band || band.height <= 0) return canvas.height / 2;
+  const centre = band.top + band.height / 2 - canvas.top;
+  return Math.min(canvas.height, Math.max(0, centre));
+}
+
+/** Keeps the text in the middle of the free band as the keyboard moves. */
+function useTextCentre(
+  wrapperRef: RefObject<HTMLDivElement | null>,
+): number | null {
+  const keyboardInset = useStoryKeyboardInset();
+  const [top, setTop] = useState<number | null>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the band moves with the keyboard, so it is measured again when the keyboard does
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    const canvas = wrapper?.offsetParent;
+    if (!wrapper || !canvas) return;
+    const composer = canvas.closest('[data-testid="story-composer"]');
+    const band = composer?.querySelector('[data-story-text-band]');
+    const measure = () =>
+      setTop(
+        textCentreTop(
+          canvas.getBoundingClientRect(),
+          band ? band.getBoundingClientRect() : null,
+        ),
+      );
+    measure();
+    // The band changes when the type options open under it, and the canvas
+    // while it settles into text mode.
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(measure);
+    observer?.observe(canvas);
+    if (band) observer?.observe(band);
+    // The canvas also slides down without changing size as text mode opens.
+    composer?.addEventListener('transitionend', measure);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      composer?.removeEventListener('transitionend', measure);
+      window.removeEventListener('resize', measure);
+    };
+  }, [wrapperRef, keyboardInset]);
+
+  return top;
+}
 
 interface StoryTextTakeoverEditorProps {
   editorRef: RefObject<HTMLDivElement | null>;
@@ -15,7 +79,10 @@ interface StoryTextTakeoverEditorProps {
   onUpdateElement: (id: string, updates: Partial<StoryElement>) => void;
 }
 
-/** On-canvas contentEditable — same visual shell as DraggableStoryElement. */
+/**
+ * The text being written, on the canvas with the same look it will have on
+ * the story, in the middle of what the bars and the keyboard leave free.
+ */
 export default function StoryTextTakeoverEditor({
   editorRef,
   textInput,
@@ -29,13 +96,19 @@ export default function StoryTextTakeoverEditor({
   onUpdateElement,
 }: StoryTextTakeoverEditorProps) {
   const { t } = useTranslation();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const centreTop = useTextCentre(wrapperRef);
 
   return (
     <div
-      className="absolute left-1/2 top-[32%] z-[120] -translate-x-1/2 -translate-y-1/2 pointer-events-auto max-w-[90%]"
+      ref={wrapperRef}
+      className="absolute left-1/2 top-1/2 z-[120] -translate-x-1/2 -translate-y-1/2 pointer-events-auto max-w-[90%] transition-[top] duration-200"
       data-export-ignore="true"
+      data-story-text-keep=""
+      data-testid="story-text-editor"
       style={{
         width: textWidth ? `${textWidth}px` : undefined,
+        top: centreTop ?? undefined,
       }}
     >
       <div className="relative">

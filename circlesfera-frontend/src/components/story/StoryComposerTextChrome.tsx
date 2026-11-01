@@ -10,7 +10,6 @@ import {
 interface StoryComposerTextChromeProps {
   textTakeover: 'create' | 'edit';
   selectedElementId: string | null;
-  textInput: string;
   textColor: string;
   textStyle: StoryElement['textStyle'];
   textAlign: 'left' | 'center' | 'right';
@@ -35,7 +34,6 @@ interface StoryComposerTextChromeProps {
 export default function StoryComposerTextChrome({
   textTakeover,
   selectedElementId,
-  textInput,
   textColor,
   textStyle,
   textAlign,
@@ -64,9 +62,7 @@ export default function StoryComposerTextChrome({
 
   return (
     <StoryTextTakeoverChrome
-      onCancel={() => exitTextTakeover(false)}
       onDone={() => exitTextTakeover(true)}
-      canDone={Boolean(textInput.trim()) || textTakeover === 'edit'}
       textColor={textColor}
       onColorChange={(c) => {
         setTextColor(c);

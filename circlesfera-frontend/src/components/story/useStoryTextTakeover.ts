@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { StoryElement } from '../../types';
 import type { StoryComposerTab } from './storyComposer.types';
 import { getTextStyleCSS } from './storyTextStyles';
@@ -53,20 +54,17 @@ export function useStoryTextTakeover(deps: {
   } | null>(null);
   const textEditorRef = useRef<HTMLDivElement>(null);
 
-  // Focus + seed content when entering text takeover (not on every keystroke).
+  /**
+   * Puts the text in the editor and the caret at its end, focused. A phone
+   * opens its keyboard only for a focus made within the tap itself.
+   */
   const seededTakeoverKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!textTakeover) {
-      seededTakeoverKeyRef.current = null;
-      return;
-    }
-    const key = `${textTakeover}:${selectedElementId ?? 'new'}`;
-    if (seededTakeoverKeyRef.current === key) return;
-    seededTakeoverKeyRef.current = key;
+  const focusEditor = (key: string, content: string) => {
     const el = textEditorRef.current;
-    if (!el) return;
-    el.textContent = textInput;
-    el.focus();
+    if (!el || seededTakeoverKeyRef.current === key) return;
+    seededTakeoverKeyRef.current = key;
+    el.textContent = content;
+    el.focus({ preventScroll: true });
     const sel = window.getSelection();
     if (!sel) return;
     const range = document.createRange();
@@ -74,7 +72,17 @@ export function useStoryTextTakeover(deps: {
     range.collapse(false);
     sel.removeAllRanges();
     sel.addRange(range);
-  }, [textTakeover, selectedElementId, textInput]);
+  };
+
+  // The editor is normally focused within the tap (below); this covers any
+  // way into text mode that does not go through it.
+  useEffect(() => {
+    if (!textTakeover) {
+      seededTakeoverKeyRef.current = null;
+      return;
+    }
+    focusEditor(`${textTakeover}:${selectedElementId ?? 'new'}`, textInput);
+  });
 
   const addText = () => {
     if (!textInput.trim()) return;
@@ -105,6 +113,13 @@ export function useStoryTextTakeover(deps: {
   };
 
   const openTextCreate = () => {
+    // The editor is on the screen when this returns, so it is focused within
+    // the tap that opened it.
+    flushSync(() => startTextCreate());
+    focusEditor('create:new', '');
+  };
+
+  const startTextCreate = () => {
     setSelectedElementId(null);
     setTextInput('');
     setTextColor('#FFFFFF');
@@ -121,6 +136,11 @@ export function useStoryTextTakeover(deps: {
   };
 
   const openTextEdit = (el: StoryElement) => {
+    flushSync(() => startTextEdit(el));
+    focusEditor(`edit:${el.id}`, el.content);
+  };
+
+  const startTextEdit = (el: StoryElement) => {
     setSelectedElementId(el.id);
     setTextInput(el.content);
     setTextColor(el.color || '#FFFFFF');
