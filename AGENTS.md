@@ -91,7 +91,9 @@ frontend as the web app (Notion → Governance → Decision Register, PD-009).
 ## Working rules
 
 - **Dependencies:** latest stable release, exact pin (never `^` or `~`); prereleases and `@types/node`
-  beyond the production Node line excluded. Lockfiles are written with the CI npm:
+  beyond the production Node line excluded. When a feature needs a specific version, a prerelease
+  included, it is installed, pinned exactly and listed with its reason and what moves it back to the
+  stable line (same Notion page as below). Lockfiles are written with the CI npm:
   `npx -y npm@11.19.0 install --package-lock-only --save-exact --ignore-scripts`. Whenever a lockfile
   changes, compare every direct dependency and override of the four workspaces with its latest
   stable release and move what is behind. What is held back and why: Notion → Engineering →
