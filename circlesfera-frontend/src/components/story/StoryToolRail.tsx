@@ -43,10 +43,11 @@ const STICKER_SETUPS: ReadonlySet<StoryComposerTab> = new Set([
 /**
  * A soft shadow under each icon and name over the story, so they read on a
  * white or busy picture as well as on a dark one. It is on the icon and the
- * name, not on the button, so the hover disc stays clean.
+ * name, not on the button, so the hover disc stays clean. Close, undo and
+ * redo use it too.
  */
-const SOFT_SHADOW =
-  '*:[filter:drop-shadow(0_0_1px_rgba(0,0,0,0.6))_drop-shadow(0_1px_3px_rgba(0,0,0,0.5))_drop-shadow(0_0_10px_rgba(0,0,0,0.3))]';
+export const STORY_CHROME_SHADOW =
+  '*:[filter:drop-shadow(0_0_1px_rgba(0,0,0,0.55))_drop-shadow(0_1px_2px_rgba(0,0,0,0.35))_drop-shadow(0_0_4px_rgba(0,0,0,0.2))]';
 
 /**
  * A tool over the story: a white icon with a soft shadow in a 44 px round
@@ -61,7 +62,7 @@ const toolButton = (active: boolean, named: boolean) =>
   } ${
     active
       ? 'bg-white text-black'
-      : `text-white ${SOFT_SHADOW} hover:bg-white/10`
+      : `text-white ${STORY_CHROME_SHADOW} hover:bg-white/10`
   }`;
 
 function ToolFace({

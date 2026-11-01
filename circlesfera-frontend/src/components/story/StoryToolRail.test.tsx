@@ -93,7 +93,7 @@ describe('StoryToolRail', () => {
     expect(idle.length).toBeGreaterThan(0);
     for (const button of idle) {
       expect(button.className).toContain(
-        '*:[filter:drop-shadow(0_0_1px_rgba(0,0,0,0.6))_drop-shadow(0_1px_3px_rgba(0,0,0,0.5))_drop-shadow(0_0_10px_rgba(0,0,0,0.3))]',
+        '*:[filter:drop-shadow(0_0_1px_rgba(0,0,0,0.55))_drop-shadow(0_1px_2px_rgba(0,0,0,0.35))_drop-shadow(0_0_4px_rgba(0,0,0,0.2))]',
       );
     }
   });
