@@ -7,6 +7,10 @@ import StoryDockContent from './panels/StoryDockContent';
 import StoryPanelSheet from './StoryPanelSheet';
 import StoryShareRow from './StoryShareRow';
 import type { StoryTemplate } from './storyComposer.constants';
+import {
+  getStoryBottomBarClass,
+  getStoryShareRowPadClass,
+} from './storyComposer.layout';
 import type {
   PanelTab,
   StoryBrush,
@@ -16,6 +20,8 @@ import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 
 interface StoryComposerShellChromeProps {
   chromePointerArmed: boolean;
+  /** While a piece is dragged the share row over the story steps aside. */
+  hidden?: boolean;
   handlePost: (audience?: StoryAudience) => void;
   share?: StoryShareOptions;
   canPost: boolean;
@@ -68,9 +74,10 @@ interface StoryComposerShellChromeProps {
 }
 
 /**
- * The bottom of the story editor, under the canvas: the open panel of a tool
- * or of the selected piece, if any, over the row that finishes the story,
- * which is always there. Hidden in text mode.
+ * The bottom of the story editor: the open panel of a tool or of the selected
+ * piece, if any, over the row that finishes the story, which is always there.
+ * At rest on a phone the row floats over the bottom of the story; with a
+ * panel open, and on desktop, it stands under the canvas. Hidden in text mode.
  */
 export default function StoryComposerShellChrome(
   p: StoryComposerShellChromeProps,
@@ -78,14 +85,12 @@ export default function StoryComposerShellChrome(
   const { t } = useTranslation();
 
   return (
-    // At rest it takes what the canvas leaves and holds the share row in its
-    // middle; with a panel open it is as tall as the panel.
     <div
-      className={`relative z-40 w-full flex flex-col items-center ${
-        p.panelOpen
-          ? 'shrink-0'
-          : 'flex-1 min-h-24 justify-center md:flex-none md:min-h-0'
-      }`}
+      className={`z-40 flex flex-col items-center transition-opacity duration-150 ${getStoryBottomBarClass(
+        p.panelOpen,
+      )} ${p.hidden && !p.panelOpen ? 'opacity-0 pointer-events-none' : ''}`}
+      aria-hidden={(p.hidden && !p.panelOpen) || undefined}
+      data-testid="story-bottom-bar"
     >
       {p.panelOpen ? (
         <div className="flex w-full flex-col rounded-t-2xl md:rounded-3xl border-t md:border border-white/10 bg-surface-elevated md:max-w-md">
@@ -154,9 +159,9 @@ export default function StoryComposerShellChrome(
         </div>
       ) : null}
       <div
-        className={`w-full flex items-center justify-end gap-3 px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] md:justify-center md:pb-6 ${
-          p.panelOpen ? 'bg-surface-elevated md:bg-transparent' : ''
-        } ${p.chromePointerArmed ? '' : 'pointer-events-none'}`}
+        className={`w-full flex items-center justify-end gap-3 px-4 md:justify-center ${getStoryShareRowPadClass(
+          p.panelOpen,
+        )} ${p.chromePointerArmed ? '' : 'pointer-events-none'}`}
       >
         {p.share ? (
           <StoryShareRow

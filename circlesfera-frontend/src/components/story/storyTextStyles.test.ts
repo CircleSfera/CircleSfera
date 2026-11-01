@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { StoryElement } from '../../types';
 import {
+  getStoryBottomBarClass,
   getStoryCardSizeClass,
+  getStoryShareRowPadClass,
   getStoryStageFitClass,
   getStoryStagePadClass,
 } from './storyComposer.layout';
@@ -122,13 +124,23 @@ describe('story stage space', () => {
     expect(text).toContain('pb-[calc(4.25rem');
   });
 
-  it('sizes the canvas 9:16: at rest from the screen, with a panel from the free height, at most 600 px tall on desktop', () => {
+  it('starts the story right under the safe area of a phone, with no room above it', () => {
+    const idle = getStoryStagePadClass({ textTakeoverActive: false });
+
+    expect(idle.split(' ')).toContain('pt-[env(safe-area-inset-top,0px)]');
+    expect(idle).not.toContain('0.5rem');
+  });
+
+  it('sizes the canvas 9:16: at rest the width of a phone, with a panel from the free height, at most 600 px tall on desktop', () => {
     const rest = getStoryCardSizeClass(false);
     const fill = getStoryCardSizeClass(true);
     for (const size of [rest, fill]) {
       expect(size).toContain('aspect-9/16');
     }
-    expect(rest).toContain('100dvh-6.5rem');
+    // No room is kept under the story for the share row: it floats over it.
+    expect(rest).toContain(
+      'w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))]',
+    );
     // 600 px tall on desktop: 337.5 px wide.
     expect(rest).toContain('md:w-[min(337.5px');
     expect(fill).toContain('min(100cqh,600px)');
@@ -138,5 +150,43 @@ describe('story stage space', () => {
   it('lets the stage take the free height only with a panel or text mode', () => {
     expect(getStoryStageFitClass(true)).toContain('flex-1');
     expect(getStoryStageFitClass(false)).toBe('shrink-0');
+  });
+});
+
+describe('story share row', () => {
+  const restWidth =
+    'min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))';
+
+  it('lays the row over the bottom of the story at rest on a phone, as wide as the story', () => {
+    const bar = getStoryBottomBarClass(false).split(' ');
+
+    expect(bar).toContain('absolute');
+    expect(bar).toContain(`w-[${restWidth}]`);
+    // Its bottom edge is where the story ends: top safe area + 16/9 of its width.
+    expect(bar).toContain(
+      `top-[calc(env(safe-area-inset-top,0px)+${restWidth}*16/9)]`,
+    );
+    expect(bar).toContain('-translate-y-full');
+    // The width is the one the canvas takes at rest.
+    expect(getStoryCardSizeClass(false).split(' ')).toContain(
+      `w-[${restWidth}]`,
+    );
+  });
+
+  it('stands the row under the canvas on desktop and under an open panel', () => {
+    const bar = getStoryBottomBarClass(false).split(' ');
+    expect(bar).toContain('md:relative');
+    expect(bar).toContain('md:translate-y-0');
+
+    expect(getStoryBottomBarClass(true)).toBe('relative shrink-0 w-full');
+  });
+
+  it('gives the row over the story a dark gradient, and none on desktop or under a panel', () => {
+    const over = getStoryShareRowPadClass(false);
+    expect(over).toContain('bg-linear-to-t');
+    expect(over).toContain('from-black/70');
+    expect(over).toContain('md:bg-none');
+
+    expect(getStoryShareRowPadClass(true)).not.toContain('bg-linear-to-t');
   });
 });

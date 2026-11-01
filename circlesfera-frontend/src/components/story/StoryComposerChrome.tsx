@@ -22,6 +22,8 @@ interface StoryComposerChromeProps {
   placeOnStory?: boolean;
   /** The song shows as its sticker, so its chip is not needed. */
   musicOnStory?: boolean;
+  /** The share row floats over the bottom of the story on a phone. */
+  shareRowOver?: boolean;
 }
 
 const roundButton =
@@ -48,6 +50,7 @@ export default function StoryComposerChrome({
   share,
   placeOnStory = false,
   musicOnStory = false,
+  shareRowOver = false,
 }: StoryComposerChromeProps) {
   const { t } = useTranslation();
 
@@ -108,7 +111,15 @@ export default function StoryComposerChrome({
       ((share.musicTitle && !musicOnStory) ||
         (share.placeName && !placeOnStory)) ? (
         // What was chosen for the story, at the bottom left; a tap changes it.
-        <div className="absolute bottom-3 left-3 right-16 flex flex-col items-start gap-2 pointer-events-auto">
+        // On a phone at rest it stands above the share row laid over the story.
+        <div
+          className={`absolute left-3 right-16 flex flex-col items-start gap-2 pointer-events-auto ${
+            shareRowOver
+              ? 'bottom-[calc(4rem+max(0.75rem,env(safe-area-inset-bottom,0px)))] md:bottom-3'
+              : 'bottom-3'
+          }`}
+          data-testid="story-chosen-chips"
+        >
           {share.musicTitle && !musicOnStory ? (
             <button
               type="button"

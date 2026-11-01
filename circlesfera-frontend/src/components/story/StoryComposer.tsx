@@ -94,6 +94,7 @@ export default function StoryComposer(props: StoryComposerProps) {
               share={props.share}
               placeOnStory={s.elements.some((el) => el.type === 'location')}
               musicOnStory={s.elements.some((el) => el.type === 'music')}
+              shareRowOver={!s.panelOpen}
             />
           )
         }
@@ -102,6 +103,7 @@ export default function StoryComposer(props: StoryComposerProps) {
       {!s.textTakeoverActive && (
         <StoryComposerShellChrome
           chromePointerArmed={s.chromePointerArmed}
+          hidden={s.draggingLayer}
           handlePost={s.handlePost}
           share={props.share}
           canPost={s.canPost}
