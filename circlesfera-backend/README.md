@@ -27,7 +27,7 @@ JWT session exposes `userId` (`sub`) and the session `profileId`. Details: Notio
 
 ## Getting started
 
-**Prerequisites:** Node 24, PostgreSQL, Redis, built `@circlesfera/shared`.
+**Prerequisites:** Node 26, PostgreSQL, Redis, built `@circlesfera/shared`.
 
 ```bash
 cd circlesfera-backend

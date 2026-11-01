@@ -46,7 +46,7 @@ Lazy-loaded routes for heavy surfaces (chat panes, creator studio, admin tabs). 
 
 ## Getting started
 
-**Prerequisites:** Node 24, running API (Docker compose recommended).
+**Prerequisites:** Node 26, running API (Docker compose recommended).
 
 ```bash
 cd circlesfera-frontend

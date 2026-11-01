@@ -18,5 +18,5 @@ reviews:
     - path: "**/*"
       instructions: >-
         Formatting and import order are checked by Biome in CI; do not comment on them.
-        The repository runs Node.js 24 (engines >=24 <25) and TypeScript 7; check a claim
+        The repository runs Node.js 26 (engines >=26 <27) and TypeScript 7; check a claim
         about runtime or library behaviour against those versions before raising it.

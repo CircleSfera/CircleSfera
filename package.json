@@ -46,13 +46,13 @@
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@playwright/test": "1.64.1",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.6",
     "husky": "9.1.7",
     "lighthouse": "13.6.0",
     "otplib": "13.6.0",
     "typescript": "7.0.2"
   },
   "engines": {
-    "node": ">=24.0.0 <25.0.0"
+    "node": ">=26.0.0 <27.0.0"
   }
 }

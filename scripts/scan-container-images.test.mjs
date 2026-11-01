@@ -89,13 +89,13 @@ test('a report with no results has no findings', () => {
 
 test('pinned images come from Dockerfiles and Compose files, once each, never from workflows', () => {
   const files = {
-    'circlesfera-backend/Dockerfile': `FROM node:24-alpine@sha256:${D} AS build\nFROM node:24-alpine@sha256:${D}`,
+    'circlesfera-backend/Dockerfile': `FROM node:26-alpine@sha256:${D} AS build\nFROM node:26-alpine@sha256:${D}`,
     'docker-compose.prod.yml': `    image: redis:7-alpine@sha256:${D}\n    image: \${REGISTRY}/backend:latest`,
     '.github/workflows/pr.yml': `image: ghcr.io/x/mirror/redis:7-alpine@sha256:${D}`,
-    'README.md': `node:24-alpine@sha256:${'b'.repeat(64)}`,
+    'README.md': `node:26-alpine@sha256:${'b'.repeat(64)}`,
   };
   const pins = pinnedImages(Object.keys(files), (f) => files[f]);
-  assert.deepEqual(pins, [`node:24-alpine@sha256:${D}`]);
+  assert.deepEqual(pins, [`node:26-alpine@sha256:${D}`]);
 });
 
 test('one digest named through two mirrors is scanned once', () => {
@@ -124,7 +124,7 @@ test('Docker Hub images are read from Google mirror first, by digest only', () =
 
 test('the public ECR mirror of Docker Hub falls back to Google mirror and Docker Hub', () => {
   assert.deepEqual(
-    sourcesFor(`public.ecr.aws/docker/library/node:24-alpine@sha256:${D}`),
+    sourcesFor(`public.ecr.aws/docker/library/node:26-alpine@sha256:${D}`),
     [
       `public.ecr.aws/docker/library/node@sha256:${D}`,
       `mirror.gcr.io/library/node@sha256:${D}`,
