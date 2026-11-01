@@ -33,6 +33,7 @@ describe('MonetizationController', () => {
     createMessageUnlockSession: vi.fn(),
     getDashboardLink: vi.fn(),
     createTaxDetailsSession: vi.fn(),
+    getTaxDetailsStatus: vi.fn(),
     getConnectPayoutsSummary: vi.fn(),
     getIncomeStats: vi.fn(),
     getFinancialSummary: vi.fn(),
@@ -179,6 +180,26 @@ describe('MonetizationController', () => {
       publishableKey: 'pk_test_1',
     });
     expect(mockService.createTaxDetailsSession).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
+  });
+
+  it('reads the tax details of the active Profile of the session', async () => {
+    const status = {
+      headOffice: { city: 'Madrid', country: 'ES' },
+      status: 'active',
+      registrationCountries: ['ES'],
+    };
+    mockService.getTaxDetailsStatus.mockResolvedValue(status);
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/monetization/tax-status')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual(status);
+    expect(mockService.getTaxDetailsStatus).toHaveBeenCalledWith(
       TEST_USER.userId,
       TEST_USER.profileId,
     );

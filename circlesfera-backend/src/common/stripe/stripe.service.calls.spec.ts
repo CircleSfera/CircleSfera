@@ -24,6 +24,10 @@ const client = {
   },
   accountLinks: { create: vi.fn() },
   accountSessions: { create: vi.fn() },
+  tax: {
+    settings: { retrieve: vi.fn() },
+    registrations: { list: vi.fn() },
+  },
   balance: { retrieve: vi.fn() },
   events: { list: vi.fn() },
   payouts: { list: vi.fn() },
@@ -617,6 +621,61 @@ describe('StripeService creator accounts and identity', () => {
         tax_settings: { enabled: true },
         tax_registrations: { enabled: true },
       },
+    });
+  });
+
+  it("reads the tax details of the creator's own account, never of the platform", async () => {
+    client.tax.settings.retrieve.mockResolvedValue({
+      status: 'active',
+      head_office: {
+        address: { city: 'Madrid', country: 'ES', line1: 'Calle Mayor 1' },
+      },
+    });
+    client.tax.registrations.list.mockResolvedValue({
+      data: [{ country: 'ES' }, { country: 'FR' }, { country: 'ES' }],
+    });
+
+    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toEqual({
+      headOffice: { city: 'Madrid', country: 'ES' },
+      status: 'active',
+      registrationCountries: ['ES', 'FR'],
+    });
+    expect(client.tax.settings.retrieve).toHaveBeenCalledWith(
+      {},
+      { stripeAccount: 'acct_1' },
+    );
+    expect(client.tax.registrations.list).toHaveBeenCalledWith(
+      { status: 'active', limit: 100 },
+      { stripeAccount: 'acct_1' },
+    );
+  });
+
+  it('reads an account with no head office yet, or one with no city', async () => {
+    client.tax.registrations.list.mockResolvedValue({ data: [] });
+    client.tax.settings.retrieve.mockResolvedValueOnce({
+      status: 'pending',
+      head_office: null,
+    });
+    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toEqual({
+      headOffice: null,
+      status: 'pending',
+      registrationCountries: [],
+    });
+
+    client.tax.settings.retrieve.mockResolvedValueOnce({
+      status: 'active',
+      head_office: { address: { country: 'ES' } },
+    });
+    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toMatchObject({
+      headOffice: { city: null, country: 'ES' },
+    });
+
+    client.tax.settings.retrieve.mockResolvedValueOnce({
+      status: 'active',
+      head_office: { address: { city: 'Madrid' } },
+    });
+    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toMatchObject({
+      headOffice: { city: 'Madrid', country: null },
     });
   });
 

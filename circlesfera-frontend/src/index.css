@@ -13,7 +13,6 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-surface-raised: var(--surface-raised);
   --color-surface-high: var(--surface-high);
-  --color-surface-glass-solid: var(--surface-glass-solid);
 
   --color-snap-guide: var(--snap-guide);
   --color-close-friends: var(--close-friends);
@@ -233,9 +232,6 @@
   --surface-elevated: #0a0a0a; /* Level 1 — main containers */
   --surface-raised: #1c1c1c; /* Level 2 — cards */
   --surface-high: #262626; /* Level 3 — floating surfaces */
-  /* A glass card (white at 2%) over the brand wash, as one solid colour: for
-     content that cannot be see-through, as the frames of another site. */
-  --surface-glass-solid: #1f1322;
 
   /* Brand palette — CircleSfera official */
   --brand-primary: #884cff; /* Vivid purple — canonical; never #833ab4 */

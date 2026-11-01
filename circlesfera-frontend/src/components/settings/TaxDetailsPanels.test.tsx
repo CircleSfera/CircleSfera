@@ -17,7 +17,10 @@ vi.mock('../../services/monetization.service', () => ({
 const provider = vi.hoisted(() => ({
   init: vi.fn(),
   update: vi.fn(),
-  events: {} as Record<string, { start?: () => void; error?: () => void }>,
+  events: {} as Record<
+    string,
+    { start?: () => void; error?: () => void; changed: (() => void)[] }
+  >,
 }));
 vi.mock('@stripe/connect-js/pure', () => ({
   loadConnectAndInitialize: (params: unknown) => {
@@ -28,10 +31,21 @@ vi.mock('@stripe/connect-js/pure', () => ({
 vi.mock('@stripe/react-connect-js', () => {
   const panel =
     (name: string) =>
-    (props: { onLoaderStart?: () => void; onLoadError?: () => void }) => {
+    (props: {
+      onLoaderStart?: () => void;
+      onLoadError?: () => void;
+      onTaxSettingsUpdated?: () => void;
+      onAfterTaxRegistrationAdded?: () => void;
+      onAfterTaxRegistrationExpired?: () => void;
+    }) => {
       provider.events[name] = {
         start: props.onLoaderStart,
         error: props.onLoadError,
+        changed: [
+          props.onTaxSettingsUpdated,
+          props.onAfterTaxRegistrationAdded,
+          props.onAfterTaxRegistrationExpired,
+        ].filter((fn): fn is () => void => !!fn),
       };
       return <div data-testid={name} />;
     };
@@ -62,7 +76,7 @@ describe('TaxDetailsPanels', () => {
   });
 
   it('loads the tax settings and registrations with the key and the session the server gives', async () => {
-    const { i18n } = renderWithProviders(<TaxDetailsPanels />);
+    const { i18n } = renderWithProviders(<TaxDetailsPanels panel="settings" />);
 
     expect(
       screen.getByRole('status', {
@@ -70,7 +84,8 @@ describe('TaxDetailsPanels', () => {
       }),
     ).toBeInTheDocument();
     expect(await screen.findByTestId('tax-settings')).toBeInTheDocument();
-    expect(screen.getByTestId('tax-registrations')).toBeInTheDocument();
+    // Only the panel asked for.
+    expect(screen.queryByTestId('tax-registrations')).not.toBeInTheDocument();
     expect(initParams().publishableKey).toBe('pk_test_1');
 
     // The panels drawn, the app's own loader goes.
@@ -78,8 +93,51 @@ describe('TaxDetailsPanels', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
+  it('says when the creator saves the address or adds or ends a registration', async () => {
+    const onChange = vi.fn();
+    const { unmount } = renderWithProviders(
+      <TaxDetailsPanels panel="settings" onChange={onChange} />,
+    );
+    await screen.findByTestId('tax-settings');
+    for (const fn of provider.events['tax-settings'].changed) fn();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    unmount();
+
+    renderWithProviders(
+      <TaxDetailsPanels panel="registrations" onChange={onChange} />,
+    );
+    await screen.findByTestId('tax-registrations');
+    expect(screen.queryByTestId('tax-settings')).not.toBeInTheDocument();
+    for (const fn of provider.events['tax-registrations'].changed) fn();
+    expect(onChange).toHaveBeenCalledTimes(3);
+  });
+
+  it('saves without anyone to tell, and fails a registrations panel before it draws', async () => {
+    const { i18n } = renderWithProviders(
+      <TaxDetailsPanels panel="registrations" />,
+    );
+    await screen.findByTestId('tax-registrations');
+    for (const fn of provider.events['tax-registrations'].changed) fn();
+    act(() => provider.events['tax-registrations'].error?.());
+    expect(
+      await screen.findByText(i18n!.t('settings.monetization.tax.error')),
+    ).toBeInTheDocument();
+  });
+
+  it('a registrations panel drawn leaves later failures to itself', async () => {
+    const { i18n } = renderWithProviders(
+      <TaxDetailsPanels panel="registrations" />,
+    );
+    await screen.findByTestId('tax-registrations');
+    act(() => provider.events['tax-registrations'].start?.());
+    act(() => provider.events['tax-registrations'].error?.());
+    expect(
+      screen.queryByText(i18n!.t('settings.monetization.tax.error')),
+    ).not.toBeInTheDocument();
+  });
+
   it('hands the provider the first session, then a new one each time it asks again', async () => {
-    renderWithProviders(<TaxDetailsPanels />);
+    renderWithProviders(<TaxDetailsPanels panel="settings" />);
     await screen.findByTestId('tax-settings');
     vi.mocked(monetizationApi.createTaxDetailsSession).mockResolvedValue({
       clientSecret: 'accs_secret__second',
@@ -96,7 +154,7 @@ describe('TaxDetailsPanels', () => {
   });
 
   it('speaks the language of the app, and follows it when it changes', async () => {
-    const { i18n } = renderWithProviders(<TaxDetailsPanels />);
+    const { i18n } = renderWithProviders(<TaxDetailsPanels panel="settings" />);
     await screen.findByTestId('tax-settings');
     expect(initParams().locale).toBe(panelsLocale(i18n!.language));
 
@@ -113,7 +171,7 @@ describe('TaxDetailsPanels', () => {
     vi.mocked(monetizationApi.createTaxDetailsSession).mockRejectedValueOnce(
       new Error('down'),
     );
-    const { i18n } = renderWithProviders(<TaxDetailsPanels />);
+    const { i18n } = renderWithProviders(<TaxDetailsPanels panel="settings" />);
 
     expect(
       await screen.findByText(i18n!.t('settings.monetization.tax.error')),
@@ -129,7 +187,7 @@ describe('TaxDetailsPanels', () => {
   });
 
   it('says so when the panels fail before drawing anything', async () => {
-    const { i18n } = renderWithProviders(<TaxDetailsPanels />);
+    const { i18n } = renderWithProviders(<TaxDetailsPanels panel="settings" />);
     await screen.findByTestId('tax-settings');
 
     act(() => provider.events['tax-settings'].error?.());
@@ -140,7 +198,7 @@ describe('TaxDetailsPanels', () => {
   });
 
   it('leaves a failure after drawing to the panels, which show it themselves', async () => {
-    const { i18n } = renderWithProviders(<TaxDetailsPanels />);
+    const { i18n } = renderWithProviders(<TaxDetailsPanels panel="settings" />);
     await screen.findByTestId('tax-settings');
     act(() => provider.events['tax-settings'].start?.());
 
@@ -162,7 +220,9 @@ describe('TaxDetailsPanels', () => {
         answer = resolve;
       }),
     );
-    const { unmount } = renderWithProviders(<TaxDetailsPanels />);
+    const { unmount } = renderWithProviders(
+      <TaxDetailsPanels panel="settings" />,
+    );
     unmount();
 
     await act(async () => {
@@ -178,7 +238,9 @@ describe('TaxDetailsPanels', () => {
         fail = reject;
       }),
     );
-    const { unmount } = renderWithProviders(<TaxDetailsPanels />);
+    const { unmount } = renderWithProviders(
+      <TaxDetailsPanels panel="settings" />,
+    );
     unmount();
 
     await act(async () => {
@@ -204,7 +266,7 @@ describe('the look and the language of the panels', () => {
       expect(variables.colorPrimary).toBe('#123456');
       expect(variables.buttonPrimaryColorBackground).toBe('#123456');
       // A colour the page does not define keeps the theme's own value.
-      expect(variables.colorBackground).toBe('#1f1322');
+      expect(variables.colorBackground).toBe('#0a0a0a');
       // The card, its highlighted rows and its fields are one surface.
       expect(variables.offsetBackgroundColor).toBe(variables.colorBackground);
       expect(variables.formBackgroundColor).toBe(variables.colorBackground);
@@ -217,5 +279,6 @@ describe('the look and the language of the panels', () => {
     expect(overSurface('#000000', 0)).toBe('#000000');
     expect(overSurface('#000000', 1)).toBe('#ffffff');
     expect(overSurface('#1f1322', 0.1)).toBe('#352b38');
+    expect(overSurface('#000000', 0.5, '#22c55e')).toBe('#11632f');
   });
 });

@@ -1,7 +1,5 @@
-import { Capacitor } from '@capacitor/core';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
-import { lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
@@ -14,10 +12,9 @@ import {
 } from '../../utils/pendingTab';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
+import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
-
-// The provider's script comes only with the panels, where they are shown.
-const TaxDetailsPanels = lazy(() => import('./TaxDetailsPanels'));
+import TaxDetailsSettings from './TaxDetailsSettings';
 
 export function MonetizationSettings() {
   const { t, i18n } = useTranslation();
@@ -93,100 +90,66 @@ export function MonetizationSettings() {
       <SettingsSection
         title={t('settings.monetization.title')}
         description={t('settings.monetization.desc')}
-        card={false}
       >
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-white">
-              {t('settings.monetization.stripeConnect')}
+        <SettingsRow
+          label={t('settings.monetization.stripeConnect')}
+          description={statusCopy}
+          control={
+            isConnected && isOnboarded && !needsUpdate ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => dashboardMutation.mutate(openPendingTab())}
+                isLoading={dashboardMutation.isPending}
+              >
+                {t('settings.monetization.dashboard')}
+                <ExternalLink size={14} aria-hidden />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                onClick={() => connectMutation.mutate()}
+                isLoading={connectMutation.isPending}
+              >
+                {sharesAccount
+                  ? t('settings.monetization.connect_own')
+                  : needsUpdate
+                    ? t('settings.monetization.update')
+                    : isConnected
+                      ? t('settings.monetization.complete')
+                      : t('settings.monetization.connect')}
+              </Button>
+            )
+          }
+        >
+          {sharesAccount ? (
+            <p className="text-xs text-white/50 leading-relaxed mt-2">
+              {t('settings.monetization.own_account_note')}
             </p>
-            <p className="text-xs text-white/50 mt-1 leading-relaxed">
-              {statusCopy}
-            </p>
-          </div>
-          {isConnected && isOnboarded && !needsUpdate ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="md"
-              onClick={() => dashboardMutation.mutate(openPendingTab())}
-              isLoading={dashboardMutation.isPending}
-              className="shrink-0"
-            >
-              {t('settings.monetization.dashboard')}
-              <ExternalLink size={14} aria-hidden />
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="primary"
-              size="md"
-              onClick={() => connectMutation.mutate()}
-              isLoading={connectMutation.isPending}
-              className="shrink-0"
-            >
-              {sharesAccount
-                ? t('settings.monetization.connect_own')
-                : needsUpdate
-                  ? t('settings.monetization.update')
-                  : isConnected
-                    ? t('settings.monetization.complete')
-                    : t('settings.monetization.connect')}
-            </Button>
-          )}
-        </div>
-        {sharesAccount ? (
-          <p className="text-xs text-white/50 leading-relaxed mt-3">
-            {t('settings.monetization.own_account_note')}
-          </p>
-        ) : null}
+          ) : null}
+        </SettingsRow>
       </SettingsSection>
 
-      {isConnected ? (
-        <SettingsSection
-          title={t('settings.monetization.tax.title')}
-          description={t('settings.monetization.tax.desc')}
-          card={false}
-        >
-          {/* The provider's panels do not run inside the phone apps. Where
-              they do, the card is solid, of the colour they are drawn on,
-              as their frames cannot be see-through like the other cards. */}
-          {Capacitor.isNativePlatform() ? (
-            <p className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-xs text-white/60 leading-relaxed">
-              {t('settings.monetization.tax.on_web')}
-            </p>
-          ) : (
-            <div className="rounded-xl border border-white/5 bg-surface-glass-solid overflow-hidden">
-              <Suspense
-                fallback={
-                  <div className="flex justify-center py-8">
-                    <LoadingSpinner size="sm" />
-                  </div>
-                }
-              >
-                <TaxDetailsPanels />
-              </Suspense>
-            </div>
-          )}
-        </SettingsSection>
-      ) : null}
+      {/* An account that cannot sell is replaced when it is updated, and
+          what was set on it would go with it: its tax details wait. */}
+      {isConnected && !needsUpdate ? <TaxDetailsSettings /> : null}
 
       {isTransfersEnabled ? (
-        <SettingsSection
-          title={t('settings.monetization.earnings')}
-          card={false}
-        >
-          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-            <p className="text-xs text-white/50">
-              {t('settings.monetization.lifetime')}
-            </p>
-            <p className="text-xl font-semibold text-white mt-1 tracking-tight">
-              {formatCents(
-                monetization?.lifetimeEarningsCents || 0,
-                i18n.language,
-              )}
-            </p>
-          </div>
+        <SettingsSection title={t('settings.monetization.earnings')}>
+          <SettingsRow
+            label={t('settings.monetization.lifetime')}
+            control={
+              <span className="text-base font-semibold text-white tabular-nums tracking-tight">
+                {formatCents(
+                  monetization?.lifetimeEarningsCents || 0,
+                  i18n.language,
+                )}
+              </span>
+            }
+          />
         </SettingsSection>
       ) : null}
     </div>

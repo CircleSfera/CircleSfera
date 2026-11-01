@@ -26,25 +26,34 @@ function token(name: string, fallback: string): string {
   return value || fallback;
 }
 
-// A solid colour: white at the given opacity over a solid surface, as the
-// app's see-through buttons look on the card.
-export function overSurface(surface: string, white: number): string {
+// A solid colour: another colour at the given opacity over a solid
+// surface, as the app's see-through fills look on it. Both are #rrggbb.
+export function overSurface(
+  surface: string,
+  amount: number,
+  colour = '#ffffff',
+): string {
   const channel = (i: number) => {
-    const value = Number.parseInt(surface.slice(1 + i * 2, 3 + i * 2), 16);
-    return Math.round(value + (255 - value) * white)
+    const from = Number.parseInt(surface.slice(1 + i * 2, 3 + i * 2), 16);
+    const to = Number.parseInt(colour.slice(1 + i * 2, 3 + i * 2), 16);
+    return Math.round(from + (to - from) * amount)
       .toString(16)
       .padStart(2, '0');
   };
   return `#${channel(0)}${channel(1)}${channel(2)}`;
 }
 
-// The panels drawn on the card around them, with the app's tokens: one
-// surface for the card, the highlighted rows and the fields, so no box shows
-// inside it; the app's subtle border, text, brand colours, radii and font.
+// The panel drawn on the solid surface of the dialog that holds it, with the
+// app's tokens: one surface for its body, its highlighted rows and its
+// fields, so no box shows inside it; the app's subtle border, text, brand
+// colours, radii and font.
 export function panelsAppearance() {
-  const surface = token('--surface-glass-solid', '#1f1322');
+  const surface = token('--surface-elevated', '#0a0a0a');
   const primary = token('--brand-primary', '#884cff');
   const radius = token('--radius-md', '12px');
+  const danger = token('--brand-secondary', '#ff5757');
+  const accent = token('--brand-accent', '#ff7657');
+  const success = token('--close-friends', '#22c55e');
   return {
     overlays: 'dialog' as const,
     variables: {
@@ -57,7 +66,7 @@ export function panelsAppearance() {
       colorText: '#ffffff',
       colorSecondaryText: 'rgba(255, 255, 255, 0.6)',
       formPlaceholderTextColor: overSurface(surface, 0.4),
-      colorDanger: token('--brand-secondary', '#ff5757'),
+      colorDanger: danger,
       actionPrimaryColorText: token('--brand-primary-text', '#a97eff'),
       actionSecondaryColorText: 'rgba(255, 255, 255, 0.7)',
       buttonPrimaryColorBackground: primary,
@@ -67,6 +76,22 @@ export function panelsAppearance() {
       buttonSecondaryColorBackground: overSurface(surface, 0.1),
       buttonSecondaryColorBorder: overSurface(surface, 0.08),
       buttonSecondaryColorText: '#ffffff',
+      // The app's buttons are 44 px tall.
+      buttonPaddingY: '12px',
+      buttonPaddingX: '16px',
+      // Badges tinted like the app's: the colour at 15% on the surface.
+      badgeSuccessColorBackground: overSurface(surface, 0.15, success),
+      badgeSuccessColorBorder: overSurface(surface, 0.3, success),
+      badgeSuccessColorText: success,
+      badgeWarningColorBackground: overSurface(surface, 0.15, accent),
+      badgeWarningColorBorder: overSurface(surface, 0.3, accent),
+      badgeWarningColorText: accent,
+      badgeDangerColorBackground: overSurface(surface, 0.15, danger),
+      badgeDangerColorBorder: overSurface(surface, 0.3, danger),
+      badgeDangerColorText: danger,
+      badgeNeutralColorBackground: overSurface(surface, 0.1),
+      badgeNeutralColorBorder: overSurface(surface, 0.12),
+      badgeNeutralColorText: 'rgba(255, 255, 255, 0.7)',
       formHighlightColorBorder: primary,
       formAccentColor: primary,
       overlayBackdropColor: 'rgba(0, 0, 0, 0.6)',
@@ -80,11 +105,19 @@ export function panelsAppearance() {
 }
 
 /**
- * The provider's panels where a creator keeps the tax details of their own
- * payout account: where they are based, and where they are registered for
- * VAT. Loaded only where it is shown: it brings in the provider's script.
+ * One of the provider's panels where a creator keeps the tax details of
+ * their own payout account: where they are based, or where they are
+ * registered for VAT. Shown in a dialog of the settings, and loaded only
+ * there: it brings in the provider's script. onChange runs when the creator
+ * saves something in it.
  */
-export default function TaxDetailsPanels() {
+export default function TaxDetailsPanels({
+  panel,
+  onChange,
+}: {
+  panel: 'settings' | 'registrations';
+  onChange?: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const [connect, setConnect] = useState<StripeConnectInstance | null>(null);
   const [failed, setFailed] = useState(false);
@@ -136,7 +169,7 @@ export default function TaxDetailsPanels() {
 
   if (failed) {
     return (
-      <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-xs text-white/60 leading-relaxed" role="alert">
           {t('settings.monetization.tax.error')}
         </p>
@@ -166,15 +199,24 @@ export default function TaxDetailsPanels() {
       ) : null}
       {connect ? (
         <ConnectComponentsProvider connectInstance={connect}>
-          <ConnectTaxSettings
-            onLoaderStart={() => setDrawn(true)}
-            onLoadError={() => {
-              if (!drawn) setFailed(true);
-            }}
-          />
-          <div className="border-t border-white/5">
-            <ConnectTaxRegistrations />
-          </div>
+          {panel === 'settings' ? (
+            <ConnectTaxSettings
+              onLoaderStart={() => setDrawn(true)}
+              onLoadError={() => {
+                if (!drawn) setFailed(true);
+              }}
+              onTaxSettingsUpdated={() => onChange?.()}
+            />
+          ) : (
+            <ConnectTaxRegistrations
+              onLoaderStart={() => setDrawn(true)}
+              onLoadError={() => {
+                if (!drawn) setFailed(true);
+              }}
+              onAfterTaxRegistrationAdded={() => onChange?.()}
+              onAfterTaxRegistrationExpired={() => onChange?.()}
+            />
+          )}
         </ConnectComponentsProvider>
       ) : null}
     </div>

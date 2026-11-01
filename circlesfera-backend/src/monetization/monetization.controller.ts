@@ -14,7 +14,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { ConnectStripeDto } from './dto/connect-stripe.dto.js';
 import { SendTipDto } from './dto/send-tip.dto.js';
-import { TaxDetailsSessionDto } from './dto/tax-details-session.dto.js';
+import {
+  TaxDetailsSessionDto,
+  TaxDetailsStatusDto,
+} from './dto/tax-details-session.dto.js';
 import { UnlockMessageDto } from './dto/unlock-message.dto.js';
 import { UnlockPostDto } from './dto/unlock-post.dto.js';
 import { UnlockStoryDto } from './dto/unlock-story.dto.js';
@@ -144,6 +147,19 @@ export class MonetizationController {
     @Req() req: AuthRequest,
   ): Promise<TaxDetailsSessionDto> {
     return this.monetizationService.createTaxDetailsSession(
+      req.user.userId,
+      req.user.profileId,
+    );
+  }
+
+  // What the tax details of that account hold, for the rows of the settings.
+  @Get('tax-status')
+  @UseGuards(IdentityVerifiedGuard)
+  @ApiResponse({ status: 200, type: TaxDetailsStatusDto })
+  async getTaxDetailsStatus(
+    @Req() req: AuthRequest,
+  ): Promise<TaxDetailsStatusDto> {
+    return this.monetizationService.getTaxDetailsStatus(
       req.user.userId,
       req.user.profileId,
     );

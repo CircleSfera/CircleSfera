@@ -90,6 +90,7 @@ describe('MonetizationService', () => {
     listConnectPayouts: vi.fn(),
     createTaxDetailsSession: vi.fn(),
     embeddedPanelsPublishableKey: vi.fn(),
+    getTaxDetailsStatus: vi.fn(),
   };
 
   const mockEventEmitter = { emit: vi.fn() };
@@ -2037,6 +2038,43 @@ describe('MonetizationService', () => {
         service.createTaxDetailsSession('u-1', 'prof-1'),
       ).rejects.toMatchObject({ status: 403 });
       expect(mockStripeService.createTaxDetailsSession).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getTaxDetailsStatus', () => {
+    const status = {
+      headOffice: { city: 'Madrid', country: 'ES' },
+      status: 'active',
+      registrationCountries: ['ES'],
+    };
+
+    beforeEach(() => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        isTestAccount: false,
+      });
+    });
+
+    it("reads the tax details of the Profile's own account", async () => {
+      accounts.set('u-1', 'acct_first');
+      mockStripeService.getTaxDetailsStatus.mockResolvedValue(status);
+
+      await expect(
+        service.getTaxDetailsStatus('u-1', 'prof-1'),
+      ).resolves.toEqual(status);
+      expect(mockStripeService.getTaxDetailsStatus).toHaveBeenCalledWith(
+        'acct_first',
+      );
+    });
+
+    it("reads nothing of another Profile's account", async () => {
+      accounts.set('u-1', 'acct_first');
+
+      await expect(
+        service.getTaxDetailsStatus('u-1', 'prof-2'),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.STRIPE_CONNECT_NOT_SETUP,
+      });
+      expect(mockStripeService.getTaxDetailsStatus).not.toHaveBeenCalled();
     });
   });
 

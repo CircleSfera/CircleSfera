@@ -439,6 +439,32 @@ export class StripeService implements OnModuleInit {
     return session.client_secret;
   }
 
+  // What a creator's own account holds of its tax details: where it is
+  // based (city and country only), whether Stripe can work out taxes with
+  // it, and the countries where it is registered for VAT now.
+  async getTaxDetailsStatus(accountId: string): Promise<{
+    headOffice: { city: string | null; country: string | null } | null;
+    status: 'active' | 'pending';
+    registrationCountries: string[];
+  }> {
+    const options = { stripeAccount: accountId };
+    const settings = await this.stripe.tax.settings.retrieve({}, options);
+    const registrations = await this.stripe.tax.registrations.list(
+      { status: 'active', limit: 100 },
+      options,
+    );
+    const address = settings.head_office?.address;
+    return {
+      headOffice: address
+        ? { city: address.city ?? null, country: address.country ?? null }
+        : null,
+      status: settings.status,
+      registrationCountries: [
+        ...new Set(registrations.data.map((entry) => entry.country)),
+      ],
+    };
+  }
+
   // The publishable key the embedded panels load with, when it is set and
   // of the same mode (test or live) as the secret key; else none.
   embeddedPanelsPublishableKey(): string | null {

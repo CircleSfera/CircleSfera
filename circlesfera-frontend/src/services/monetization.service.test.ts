@@ -80,6 +80,12 @@ describe('monetizationApi', () => {
     expect(apiClient.post).toHaveBeenCalledWith('/monetization/tax-session');
   });
 
+  it('reads what the tax details hold', async () => {
+    await monetizationApi.getTaxDetailsStatus();
+
+    expect(apiClient.get).toHaveBeenCalledWith('/monetization/tax-status');
+  });
+
   it('reads status, earnings, transactions, analytics and payouts', async () => {
     await monetizationApi.getStatus();
     await monetizationApi.getMonetization();
