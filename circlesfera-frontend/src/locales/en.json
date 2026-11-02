@@ -2521,7 +2521,7 @@
       "per_year": "/ year",
       "upgrade_now": "Choose this plan",
       "lifetime": "Income received",
-      "express_dashboard": "Open Stripe",
+      "express_dashboard": "Stripe Dashboard",
       "stripe_connected": "Payout account",
       "stripe_connected_desc": "Stripe splits each charge (80% you / 20% CircleSfera) and pays out to your bank.",
       "transfers_enabled": "Payouts to your bank enabled",
