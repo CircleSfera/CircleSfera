@@ -1,5 +1,8 @@
+import type { UserSessionTerminateEvent } from '@circlesfera/shared';
 import { ErrorCode } from '@circlesfera/shared';
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
+import type { Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   isBlockedEitherWay,
@@ -12,6 +15,47 @@ import { SystemSettingsService } from '../system-settings/system-settings.servic
 import { isStreamCoHost, isStreamHost } from './live-authorization.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
 import { LiveRecordingService } from './recording/live-recording.service.js';
+
+// A stream is shown only while its host may be seen: not banned, not
+// suspended, and with an account that is open.
+const HOST_SHOWN_SELECT = {
+  isAccountBanned: true,
+  suspendedUntil: true,
+  user: { select: { isActive: true, deactivatedAt: true } },
+} as const;
+
+function hostShown(host: {
+  isAccountBanned: boolean;
+  suspendedUntil: Date | null;
+  user: { isActive: boolean; deactivatedAt: Date | null } | null;
+}): boolean {
+  return (
+    !host.isAccountBanned &&
+    (!host.suspendedUntil || host.suspendedUntil < new Date()) &&
+    !!host.user?.isActive &&
+    !host.user.deactivatedAt
+  );
+}
+
+// A ban of the Profile or of the whole account, or a suspension still
+// running: a decision of staff.
+function sanctionedByStaff(host: {
+  isAccountBanned: boolean;
+  suspendedUntil: Date | null;
+  user: { isRootBanned: boolean } | null;
+}): boolean {
+  return (
+    host.isAccountBanned ||
+    !!host.user?.isRootBanned ||
+    (!!host.suspendedUntil && host.suspendedUntil > new Date())
+  );
+}
+
+const HOST_SHOWN_WHERE = (): Prisma.ProfileWhereInput => ({
+  isAccountBanned: false,
+  OR: [{ suspendedUntil: null }, { suspendedUntil: { lt: new Date() } }],
+  user: { isActive: true, deactivatedAt: null },
+});
 
 @Injectable()
 export class LiveService {
@@ -40,13 +84,19 @@ export class LiveService {
     };
   }
 
-  async startStream(hostProfileId: string, title?: string) {
+  // While staff have live streams switched off, nobody starts, joins or is
+  // invited to co-host one.
+  private async assertLiveEnabled() {
     const liveEnabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.LIVE_STREAMS_ENABLED,
     );
     if (!liveEnabled) {
       throw new ForbiddenException('LIVE_STREAMS_DISABLED');
     }
+  }
+
+  async startStream(hostProfileId: string, title?: string) {
+    await this.assertLiveEnabled();
 
     // Serialize concurrent startStream calls per-host so that at most
     // one stream transition runs at a time for the same host.
@@ -97,12 +147,15 @@ export class LiveService {
     userId: string,
     viewerProfileId?: string,
   ) {
+    await this.assertLiveEnabled();
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
+      include: { host: { select: HOST_SHOWN_SELECT } },
     });
 
     if (
       stream?.status !== 'LIVE' ||
+      !hostShown(stream.host) ||
       (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId))
     ) {
       throw AppException.NotFound(
@@ -136,6 +189,92 @@ export class LiveService {
     return { success: true, endedCount: activeStreams.length };
   }
 
+  // A Profile that may no longer be seen while on air (banned, suspended, or
+  // its account closed or being deleted): as host, its broadcast ends at
+  // once and its room is closed, so nobody still connected keeps watching; as
+  // co-host, it is taken off the broadcast, which goes on. The Profile's
+  // state is read, not the reason of the event, so a session ended for any
+  // other reason (a password change) leaves the broadcast alone. Only a staff
+  // sanction (a ban or a suspension) marks the broadcast as ended by staff,
+  // which keeps its replay from the host; an account closed or being deleted
+  // ends it as the host ending it would.
+  @OnEvent('user.session.terminate', { async: true })
+  async endBroadcastsOfSanctionedHost(
+    event: UserSessionTerminateEvent['payload'],
+  ) {
+    const gone: Prisma.ProfileWhereInput =
+      event.scope === 'profile' && event.profileId
+        ? { id: event.profileId, NOT: HOST_SHOWN_WHERE() }
+        : { userId: event.userId, NOT: HOST_SHOWN_WHERE() };
+    try {
+      const streams = await this.prisma.liveStream.findMany({
+        where: { status: 'LIVE', host: gone },
+        select: {
+          id: true,
+          host: {
+            select: {
+              isAccountBanned: true,
+              suspendedUntil: true,
+              user: { select: { isRootBanned: true } },
+            },
+          },
+        },
+      });
+      // Each broadcast on its own: one that fails leaves the others to end.
+      for (const stream of streams) {
+        try {
+          await this.prisma.liveStream.update({
+            where: { id: stream.id },
+            data: {
+              status: 'ENDED',
+              endedAt: new Date(),
+              endedByStaff: sanctionedByStaff(stream.host),
+            },
+          });
+          await this.recording.stop(stream.id);
+          await this.recording.closeRoom(stream.id);
+        } catch (error: unknown) {
+          this.logger.error(
+            `Could not end broadcast ${stream.id} of a sanctioned host: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+
+      const coHosted = await this.prisma.liveStream.findMany({
+        where: { status: 'LIVE', coHost: gone },
+        select: { id: true, coHostId: true },
+      });
+      for (const stream of coHosted) {
+        if (!stream.coHostId) continue;
+        try {
+          // Only while it is still the co-host: the host may have changed
+          // co-host meanwhile.
+          const { count } = await this.prisma.liveStream.updateMany({
+            where: { id: stream.id, coHostId: stream.coHostId },
+            data: { coHostId: null },
+          });
+          if (count === 0) continue;
+          await this.recording.stopCoHost(stream.id);
+          await this.recording.removeFromRoom(stream.id, stream.coHostId);
+          this.gateway.server
+            .to(`user:${stream.coHostId}`)
+            .emit('live:cohost_removed', { streamId: stream.id });
+          this.gateway.server
+            .to(`live:${stream.id}`)
+            .emit('live:cohost_left', { coHostId: stream.coHostId });
+        } catch (error: unknown) {
+          this.logger.error(
+            `Could not take a sanctioned co-host off broadcast ${stream.id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.error(
+        `Could not end the broadcasts of a sanctioned host: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
   // Bounded, not paginated: concurrent live streams are
   // self-limiting in practice, unlike a growing social history, so a safety
   // cap is proportionate here rather than full cursor pagination.
@@ -144,7 +283,10 @@ export class LiveService {
       // Hosts in a block relation with the viewer are hidden.
       where: {
         status: 'LIVE',
-        host: await visibleToViewerWhere(this.prisma, viewerProfileId),
+        host: {
+          ...(await visibleToViewerWhere(this.prisma, viewerProfileId)),
+          AND: [HOST_SHOWN_WHERE()],
+        },
       },
       include: {
         host: {
@@ -166,7 +308,12 @@ export class LiveService {
       where: { id: streamId },
       include: {
         host: {
-          select: { id: true, username: true, avatar: true },
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+            ...HOST_SHOWN_SELECT,
+          },
         },
         coHost: {
           select: { id: true, username: true, avatar: true },
@@ -176,6 +323,7 @@ export class LiveService {
 
     if (
       !stream ||
+      !hostShown(stream.host) ||
       (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId))
     )
       throw AppException.NotFound(
@@ -195,6 +343,7 @@ export class LiveService {
     hostProfileId: string,
     invitee: { profileId: string } | { userId: string },
   ) {
+    await this.assertLiveEnabled();
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
     });
@@ -281,6 +430,7 @@ export class LiveService {
   }
 
   async acceptCoHostInvite(streamId: string, profileId: string) {
+    await this.assertLiveEnabled();
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
     });

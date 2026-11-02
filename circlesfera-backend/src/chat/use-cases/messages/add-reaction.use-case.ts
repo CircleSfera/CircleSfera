@@ -55,8 +55,33 @@ export class AddReactionUseCase {
       },
     });
 
+    // Taking a reaction back is always allowed. Adding or changing one is a
+    // message to the others: as sending, it is refused across a block with
+    // any other participant, either way.
+    const removing = existing?.reaction === reaction;
+    if (!removing) {
+      const others = message.conversation.participants
+        .map((p) => p.profileId)
+        .filter((id) => id !== profileId);
+      const blocked = await this.prisma.block.findFirst({
+        where: {
+          OR: [
+            { blockerId: profileId, blockedId: { in: others } },
+            { blockedId: profileId, blockerId: { in: others } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (blocked) {
+        throw AppException.Forbidden(
+          ErrorCode.FORBIDDEN_ACCESS,
+          'Cannot react: Blocked by a participant or you blocked them',
+        );
+      }
+    }
+
     if (existing) {
-      if (existing.reaction === reaction) {
+      if (removing) {
         await this.prisma.messageReaction.delete({
           where: { id: existing.id },
         });

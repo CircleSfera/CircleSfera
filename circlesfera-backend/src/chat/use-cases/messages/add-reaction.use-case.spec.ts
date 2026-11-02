@@ -7,6 +7,7 @@ describe('AddReactionUseCase', () => {
   let useCase: AddReactionUseCase;
   let mockPrisma: {
     message: { findUnique: ReturnType<typeof vi.fn> };
+    block: { findFirst: ReturnType<typeof vi.fn> };
     messageReaction: {
       findUnique: ReturnType<typeof vi.fn>;
       delete: ReturnType<typeof vi.fn>;
@@ -18,6 +19,7 @@ describe('AddReactionUseCase', () => {
   beforeEach(() => {
     mockPrisma = {
       message: { findUnique: vi.fn() },
+      block: { findFirst: vi.fn().mockResolvedValue(null) },
       messageReaction: {
         findUnique: vi.fn(),
         delete: vi.fn(),
@@ -145,5 +147,69 @@ describe('AddReactionUseCase', () => {
       },
     });
     expect(result).toEqual(created);
+  });
+  describe('across a block', () => {
+    const inGroup = {
+      id: 'msg-1',
+      kind: 'USER',
+      conversation: {
+        participants: [
+          { profileId: 'prof-1' },
+          { profileId: 'prof-2' },
+          { profileId: 'prof-3' },
+        ],
+      },
+    };
+
+    it('refuses a new reaction when the reactor and another participant are blocked either way', async () => {
+      mockPrisma.message.findUnique.mockResolvedValue(inGroup);
+      mockPrisma.messageReaction.findUnique.mockResolvedValue(null);
+      mockPrisma.block.findFirst.mockResolvedValue({ id: 'b1' });
+
+      await expect(useCase.execute('msg-1', 'prof-1', '❤️')).rejects.toThrow(
+        'Cannot react',
+      );
+      expect(mockPrisma.block.findFirst).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { blockerId: 'prof-1', blockedId: { in: ['prof-2', 'prof-3'] } },
+            { blockedId: 'prof-1', blockerId: { in: ['prof-2', 'prof-3'] } },
+          ],
+        },
+        select: { id: true },
+      });
+      expect(mockPrisma.messageReaction.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses changing a reaction across a block', async () => {
+      mockPrisma.message.findUnique.mockResolvedValue(inGroup);
+      mockPrisma.messageReaction.findUnique.mockResolvedValue({
+        id: 'r1',
+        reaction: '👍',
+      });
+      mockPrisma.block.findFirst.mockResolvedValue({ id: 'b1' });
+
+      await expect(useCase.execute('msg-1', 'prof-1', '❤️')).rejects.toThrow(
+        'Cannot react',
+      );
+      expect(mockPrisma.messageReaction.update).not.toHaveBeenCalled();
+    });
+
+    it('still lets a reaction be taken back', async () => {
+      mockPrisma.message.findUnique.mockResolvedValue(inGroup);
+      mockPrisma.messageReaction.findUnique.mockResolvedValue({
+        id: 'r1',
+        reaction: '❤️',
+        createdAt: new Date(),
+      });
+      mockPrisma.block.findFirst.mockResolvedValue({ id: 'b1' });
+
+      await useCase.execute('msg-1', 'prof-1', '❤️');
+
+      expect(mockPrisma.block.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.messageReaction.delete).toHaveBeenCalledWith({
+        where: { id: 'r1' },
+      });
+    });
   });
 });

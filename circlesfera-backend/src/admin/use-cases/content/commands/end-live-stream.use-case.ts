@@ -31,6 +31,9 @@ export class EndLiveStreamUseCase {
       data: { status: 'ENDED', endedAt: new Date(), endedByStaff: true },
     });
     await this.recording.stop(streamId);
+    // Whoever is still in the room is taken out: ending it here alone
+    // would leave the broadcast running for those already watching.
+    await this.recording.closeRoom(streamId);
 
     await this.logAdminAction.execute(
       adminId,

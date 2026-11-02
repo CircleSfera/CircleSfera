@@ -14,6 +14,7 @@ describe('NotificationsProcessor', () => {
       deleteMany: vi.fn(),
     },
     profile: { findMany: vi.fn().mockResolvedValue([]) },
+    block: { findMany: vi.fn().mockResolvedValue([]) },
   };
 
   const mockPushService = {
@@ -108,6 +109,51 @@ describe('NotificationsProcessor', () => {
         }),
         'likes',
       );
+    });
+  });
+
+  describe('a digest across a block', () => {
+    it('leaves out likes from a Profile blocked either way, also blocked after the like', async () => {
+      mockPrismaService.notification.findMany.mockResolvedValueOnce([
+        { id: 'n1', recipientId: 'me', senderId: 'blocked', type: 'LIKE' },
+        { id: 'n2', recipientId: 'me', senderId: 'blocker', type: 'LIKE' },
+        { id: 'n3', recipientId: 'me', senderId: 'friend', type: 'LIKE' },
+        { id: 'n4', recipientId: 'me', senderId: null, type: 'LIKE' },
+      ]);
+      mockPrismaService.block.findMany.mockResolvedValueOnce([
+        { blockerId: 'me', blockedId: 'blocked' },
+        { blockerId: 'blocker', blockedId: 'me' },
+      ]);
+      mockPushService.sendNotification.mockResolvedValueOnce(undefined);
+
+      await processor.sendDigestPushNotifications();
+
+      expect(mockPrismaService.block.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [{ blockerId: { in: ['me'] } }, { blockedId: { in: ['me'] } }],
+        },
+        select: { blockerId: true, blockedId: true },
+      });
+      expect(mockPushService.sendNotification).toHaveBeenCalledWith(
+        'me',
+        expect.objectContaining({
+          body: 'Tienes 2 interacciones nuevas en tus publicaciones.',
+        }),
+        'likes',
+      );
+    });
+
+    it('sends nothing when every like comes from a blocked Profile', async () => {
+      mockPrismaService.notification.findMany.mockResolvedValueOnce([
+        { id: 'n1', recipientId: 'me', senderId: 'blocked', type: 'LIKE' },
+      ]);
+      mockPrismaService.block.findMany.mockResolvedValueOnce([
+        { blockerId: 'me', blockedId: 'blocked' },
+      ]);
+
+      await processor.sendDigestPushNotifications();
+
+      expect(mockPushService.sendNotification).not.toHaveBeenCalled();
     });
   });
 

@@ -10,7 +10,7 @@ describe('EndLiveStreamUseCase', () => {
     liveStream: { findUnique: vi.fn(), update: vi.fn() },
   };
   const log = { execute: vi.fn() };
-  const recording = { stop: vi.fn() };
+  const recording = { stop: vi.fn(), closeRoom: vi.fn() };
   const useCase = new EndLiveStreamUseCase(
     prisma as unknown as PrismaService,
     log as unknown as LogAdminActionUseCase,
@@ -50,6 +50,8 @@ describe('EndLiveStreamUseCase', () => {
       data: { status: 'ENDED', endedAt: expect.any(Date), endedByStaff: true },
     });
     expect(recording.stop).toHaveBeenCalledWith('live-1');
+    // Those still watching are taken out of the room.
+    expect(recording.closeRoom).toHaveBeenCalledWith('live-1');
     expect(log.execute).toHaveBeenCalledWith(
       'admin-1',
       'MANUAL_OVERRIDE',

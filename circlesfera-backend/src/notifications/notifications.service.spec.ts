@@ -6,6 +6,7 @@ import { PushService } from '../push/push.service.js';
 import {
   LINKS_TO_SHOWN_CONTENT,
   NotificationsService,
+  shownInInbox,
 } from './notifications.service.js';
 
 describe('NotificationsService', () => {
@@ -297,11 +298,28 @@ describe('NotificationsService', () => {
       const result = await service.getUnreadCount('user-1');
       expect(result).toEqual({ count: 3 });
       expect(mockPrismaService.notification.count).toHaveBeenCalledWith({
-        where: {
-          recipientId: 'user-1',
-          read: false,
-          ...LINKS_TO_SHOWN_CONTENT,
-        },
+        where: { ...shownInInbox('user-1'), read: false },
+      });
+    });
+
+    it('leaves out notifications from a Profile blocked either way, also older ones, but not moderation notices or system ones', () => {
+      expect(shownInInbox('me')).toEqual({
+        recipientId: 'me',
+        AND: [
+          LINKS_TO_SHOWN_CONTENT,
+          {
+            OR: [
+              { type: 'MODERATION' },
+              { senderId: null },
+              {
+                sender: {
+                  blockedBy: { none: { blockerId: 'me' } },
+                  blocking: { none: { blockedId: 'me' } },
+                },
+              },
+            ],
+          },
+        ],
       });
     });
 
