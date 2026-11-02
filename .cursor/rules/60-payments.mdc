@@ -14,9 +14,11 @@ Facts, verified:
 - **No `CreatorSubscription` Prisma model** (table removed). Do not invent VIP subscription fields or
   routes — verify controllers and schema first.
 - **Platform fee is 20%** on Connect charges via `PLATFORM_FEE_DECIMAL` /
-  `PLATFORM_FEE_PERCENT` in `src/common/constants/monetization.constants.ts`. Local ledger credits
-  `CREATOR_SHARE_DECIMAL` to `Monetization.lifetimeEarningsCents`. Stripe fee and local credit must
-  always agree. Changing the percentage requires confirmation and supersedes `docs/adr/0010-platform-fee-20-percent.md`.
+  `PLATFORM_FEE_PERCENT` in `src/common/constants/monetization.constants.ts`. A creator's
+  earnings are computed from the payments they received (`monetization/earnings-sql.ts`: the
+  `CREATOR_SHARE_DECIMAL` share of each payment without VAT, less refunds); the stored
+  `Monetization.lifetimeEarningsCents` is no longer written or read. Stripe fee and the computed
+  share must always agree. Changing the percentage requires confirmation and supersedes `docs/adr/0010-platform-fee-20-percent.md`.
 - **Gift prices are server-side** in `src/live/gift-catalog.ts`. Never trust a client amount.
 - **Currency** is EUR for tips, unlocks and gifts. Integer cents everywhere, never floats.
 - **Webhooks** are deduplicated via `WebhookEvent`, marked `PROCESSED` only after success, and return

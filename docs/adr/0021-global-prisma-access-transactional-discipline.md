@@ -34,8 +34,10 @@ Verified current state (this ADR's originating audit):
   is a clean example: a conditional `updateMany({ where: { viewerCount: { gt: 0 } } })` floors at zero without
   ever reading first.
 - There is no internal financial ledger to race on in the first place. Per ADR-0002, Stripe Connect Express is
-  the sole source of truth for payout balances; CircleSfera stores `lifetimeEarningsCents` as a running total
-  for display, never a balance it debits from. This sidesteps an entire class of read-then-write races other
+  the sole source of truth for payout balances; CircleSfera stored `lifetimeEarningsCents` as a running total
+  for display, never a balance it debits from. (Later note: that counter is no longer written; a
+  creator's earnings are computed from the payments received, `monetization/earnings-sql.ts`, PD-046
+  step 7b. The point stands: there is no balance to debit.) This sidesteps an entire class of read-then-write races other
   platforms have to solve with locking.
 - External-trigger idempotency (Stripe webhook redelivery) is handled upstream of all of the above, not by
   the transaction itself: `PaymentsService` maintains a `WebhookEvent` table keyed by Stripe's `event.id` with
