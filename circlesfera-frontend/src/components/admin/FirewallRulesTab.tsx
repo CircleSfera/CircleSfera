@@ -26,26 +26,14 @@ interface Props {
   views?: React.ReactNode;
 }
 
-const RULE_ACTIONS = ['FLAG', 'BLOCK', 'MUTE'] as const;
-
-// What a rule does, in words, with one colour each: red refuses, amber
-// waits for a person, blue changes who sees it.
-function ActionBadge({ action }: { action: string }) {
+// What a rule does: it sends what holds its word to the review queue, and
+// nothing else (owner decision). Older rules saved with another action do
+// the same.
+function ActionBadge() {
   const { t } = useTranslation();
-  const colors =
-    action === 'BLOCK'
-      ? 'bg-red-500/10 text-red-400 border-red-500/20'
-      : action === 'MUTE'
-        ? 'bg-brand-blue/10 text-brand-blue border-brand-blue/20'
-        : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-
   return (
-    <span
-      className={`px-2 py-1 text-xs font-semibold rounded-full border whitespace-nowrap ${colors}`}
-    >
-      {t(`admin.firewall.action_${action.toLowerCase()}`, {
-        defaultValue: action,
-      })}
+    <span className="px-2 py-1 text-xs font-semibold rounded-full border whitespace-nowrap bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+      {t('admin.firewall.action_flag')}
     </span>
   );
 }
@@ -58,7 +46,6 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newKeyword, setNewKeyword] = useState('');
-  const [newAction, setNewAction] = useState('FLAG');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -83,12 +70,10 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
   const clearSelection = () => {
     setSelectedId(null);
     setNewKeyword('');
-    setNewAction('FLAG');
   };
 
   const openCreate = () => {
     setNewKeyword('');
-    setNewAction('FLAG');
     setSelectedId('new');
   };
 
@@ -97,7 +82,7 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
       stepUp.run(() =>
         adminApi.createFirewallRule({
           keyword: newKeyword.trim(),
-          action: newAction,
+          action: 'FLAG',
         }),
       ),
     onSuccess: () => {
@@ -207,7 +192,7 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
                       )}`}
                       selected={selectedId === item.id}
                       onClick={() => setSelectedId(item.id)}
-                      badge={<ActionBadge action={item.action} />}
+                      badge={<ActionBadge />}
                     />
                   ))}
                 </div>
@@ -272,30 +257,9 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
                       className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label
-                      htmlFor="ruleAction"
-                      className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
-                    >
-                      {t('admin.firewall.label_action')}
-                    </label>
-                    <select
-                      id="ruleAction"
-                      value={newAction}
-                      onChange={(e) => setNewAction(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
-                    >
-                      <option value="FLAG" className="bg-surface-raised">
-                        {t('admin.firewall.option_flag')}
-                      </option>
-                      <option value="BLOCK" className="bg-surface-raised">
-                        {t('admin.firewall.option_block')}
-                      </option>
-                      <option value="MUTE" className="bg-surface-raised">
-                        {t('admin.firewall.option_mute')}
-                      </option>
-                    </select>
-                  </div>
+                  <p className="text-sm text-white/60">
+                    {t('admin.firewall.rule_flags_hint')}
+                  </p>
                   <div className="flex gap-3 pt-2">
                     <Button
                       type="button"
@@ -321,40 +285,7 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
               ) : selectedItem ? (
                 // Sections under a thin line: no box inside the pane.
                 <div>
-                  <section className="space-y-2.5 pb-4">
-                    <h4 className="text-sm font-semibold text-white">
-                      {t('admin.firewall.change_action')}
-                    </h4>
-                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-                      {RULE_ACTIONS.map((action) => {
-                        const chosen = selectedItem.action === action;
-                        return (
-                          <button
-                            key={action}
-                            type="button"
-                            aria-pressed={chosen}
-                            disabled={updateMutation.isPending}
-                            onClick={() => {
-                              if (!chosen)
-                                updateMutation.mutate({
-                                  id: selectedItem.id,
-                                  action,
-                                });
-                            }}
-                            className={`px-4 min-h-11 sm:min-h-9 py-2 sm:py-1.5 text-xs font-semibold rounded-full transition-all border inline-flex items-center justify-center disabled:opacity-60 ${
-                              chosen
-                                ? 'bg-brand-primary/20 text-white border-brand-primary/40'
-                                : 'bg-white/5 text-white/60 border-white/10 hover:text-white/80 hover:bg-white/10'
-                            }`}
-                          >
-                            {t(`admin.firewall.set_${action.toLowerCase()}`)}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-
-                  <section className="space-y-2.5 pt-4 border-t border-white/10">
+                  <section className="space-y-2.5">
                     <h4 className="text-sm font-semibold text-white">
                       {t('admin.firewall.state_title')}
                     </h4>

@@ -97,8 +97,9 @@ describe('FirewallRulesTab', () => {
     expect(within(rowOf('word-p1')).getByText('Sends to review')).toHaveClass(
       'text-yellow-400',
     );
-    expect(within(rowOf('word-m1')).getByText('Hides from others')).toHaveClass(
-      'text-brand-blue',
+    // Every rule sends to review, also one saved with another action.
+    expect(within(rowOf('word-m1')).getByText('Sends to review')).toHaveClass(
+      'text-yellow-400',
     );
     expect(
       within(rowOf('word-p1')).getByText(/^Added on /),
@@ -115,11 +116,13 @@ describe('FirewallRulesTab', () => {
       expect(api.getFirewallRules).toHaveBeenLastCalledWith(1, 20, 'casino'),
     );
     expect(
-      within(await waitFor(() => rowOf('word-found'))).getByText('Blocks'),
-    ).toHaveClass('text-red-400');
+      within(await waitFor(() => rowOf('word-found'))).getByText(
+        'Sends to review',
+      ),
+    ).toHaveClass('text-yellow-400');
   });
 
-  it('adds a rule with its keyword trimmed and the chosen action', async () => {
+  it('adds a rule with its keyword trimmed, sending to review', async () => {
     show();
     await screen.findByText('No static rules');
 
@@ -140,18 +143,19 @@ describe('FirewallRulesTab', () => {
       within(form).getByRole('textbox', { name: 'Keyword or phrase' }),
       { target: { value: '  spamcasino.com ' } },
     );
-    expect(within(form).getByRole('combobox', { name: 'Action' })).toHaveValue(
-      'FLAG',
-    );
-    fireEvent.change(within(form).getByRole('combobox', { name: 'Action' }), {
-      target: { value: 'BLOCK' },
-    });
+    // No action to choose: a rule only sends to review.
+    expect(
+      within(form).queryByRole('combobox', { name: 'Action' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(form).getByText(/sends content that holds this word/),
+    ).toBeInTheDocument();
     fireEvent.click(save);
 
     await waitFor(() =>
       expect(api.createFirewallRule).toHaveBeenCalledWith({
         keyword: 'spamcasino.com',
-        action: 'BLOCK',
+        action: 'FLAG',
       }),
     );
     await waitFor(() =>
@@ -206,8 +210,10 @@ describe('FirewallRulesTab', () => {
     ).toHaveValue('word');
   });
 
-  it('opens a rule and changes what it does, except to what it already does', async () => {
-    api.getFirewallRules.mockResolvedValue(list([rule('a')]) as never);
+  it('opens a rule with no other action to choose than sending to review', async () => {
+    api.getFirewallRules.mockResolvedValue(
+      list([rule('a', { action: 'BLOCK' })]) as never,
+    );
     show();
     await screen.findByText('word-a');
 
@@ -216,35 +222,10 @@ describe('FirewallRulesTab', () => {
     expect(
       within(open).getByRole('heading', { name: 'word-a' }),
     ).toBeInTheDocument();
-    const sends = within(open).getByRole('button', {
-      name: 'Send to the review queue',
-    });
-    expect(sends).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(sends);
+    expect(
+      within(open).queryByRole('button', { name: 'Refuse the publication' }),
+    ).not.toBeInTheDocument();
     expect(api.updateFirewallRule).not.toHaveBeenCalled();
-
-    fireEvent.click(
-      within(open).getByRole('button', { name: 'Refuse the publication' }),
-    );
-    await waitFor(() =>
-      expect(api.updateFirewallRule).toHaveBeenCalledWith('a', {
-        action: 'BLOCK',
-      }),
-    );
-    await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Rule updated', 'success'),
-    );
-
-    fireEvent.click(
-      within(open).getByRole('button', {
-        name: 'Publish, hidden from others',
-      }),
-    );
-    await waitFor(() =>
-      expect(api.updateFirewallRule).toHaveBeenLastCalledWith('a', {
-        action: 'MUTE',
-      }),
-    );
   });
 
   it('says a rule is off in its row and switches it on and off from its record', async () => {
@@ -280,34 +261,6 @@ describe('FirewallRulesTab', () => {
       }),
     );
   });
-
-  it.each([
-    ['BLOCK', 'Refuse the publication', 'Send to the review queue'],
-    ['MUTE', 'Publish, hidden from others', 'Send to the review queue'],
-  ])(
-    'marks the %s choice on a rule that already does that',
-    async (action, held, free) => {
-      api.updateFirewallRule.mockRejectedValue(new Error('no'));
-      api.getFirewallRules.mockResolvedValue(
-        list([rule('a', { action })]) as never,
-      );
-      show();
-      await screen.findByText('word-a');
-      fireEvent.click(rowOf('word-a'));
-
-      expect(
-        within(detail()).getByRole('button', { name: held }),
-      ).toHaveAttribute('aria-pressed', 'true');
-      fireEvent.click(within(detail()).getByRole('button', { name: free }));
-
-      await waitFor(() =>
-        expect(onToast).toHaveBeenCalledWith('Error updating rule', 'error'),
-      );
-      expect(api.updateFirewallRule).toHaveBeenCalledWith('a', {
-        action: 'FLAG',
-      });
-    },
-  );
 
   it('deletes the open rule only after confirming, then goes back to the list', async () => {
     api.getFirewallRules.mockResolvedValue(list([rule('a')]) as never);
@@ -386,7 +339,7 @@ describe('FirewallRulesTab', () => {
     const { unmount } = show('en');
     await screen.findByText('word-a');
     fireEvent.click(rowOf('word-a'));
-    for (const text of ['What it does', 'State', 'Switch off']) {
+    for (const text of ['State', 'Switch off']) {
       expect(within(detail()).getByText(text)).toBeInTheDocument();
     }
     expect(detail()).not.toHaveTextContent(/Qué hace|Estado|Desactivar/);
@@ -400,9 +353,7 @@ describe('FirewallRulesTab', () => {
       within(form).getByRole('textbox', { name: 'Palabra clave o frase' }),
     ).toBeInTheDocument();
     expect(
-      within(form).getByRole('option', {
-        name: 'Rechazar la publicación',
-      }),
+      within(form).getByText(/envía a revisión el contenido/),
     ).toBeInTheDocument();
   });
 });

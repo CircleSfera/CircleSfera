@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveSystemModeratorActor } from '../../admin/utils/resolve-admin-notification-sender.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService } from '../ai.service.js';
-import { AIProcessor } from './ai.processor.js';
+import { AIProcessor, ruleMatches } from './ai.processor.js';
 
 vi.mock('../../admin/utils/resolve-admin-notification-sender.js', () => ({
   resolveSystemModeratorActor: vi.fn(),
@@ -24,15 +24,19 @@ describe('AIProcessor', () => {
     post: {
       findUnique: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
+      updateMany: ReturnType<typeof vi.fn>;
     };
     story: {
       findUnique: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
+      updateMany: ReturnType<typeof vi.fn>;
     };
     comment: {
       findUnique: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
+      updateMany: ReturnType<typeof vi.fn>;
     };
+    moderationRule: { findMany: ReturnType<typeof vi.fn> };
     postMedia: { update: ReturnType<typeof vi.fn> };
     profile: { findUnique: ReturnType<typeof vi.fn> };
     user: { update: ReturnType<typeof vi.fn> };
@@ -53,9 +57,10 @@ describe('AIProcessor', () => {
     };
 
     prisma = {
-      post: { findUnique: vi.fn(), update: vi.fn() },
-      story: { findUnique: vi.fn(), update: vi.fn() },
-      comment: { findUnique: vi.fn(), update: vi.fn() },
+      post: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+      story: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+      comment: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+      moderationRule: { findMany: vi.fn().mockResolvedValue([]) },
       postMedia: { update: vi.fn() },
       profile: { findUnique: vi.fn() },
       user: { update: vi.fn() },
@@ -377,6 +382,112 @@ describe('AIProcessor', () => {
       aiService.generateEmbedding.mockRejectedValue('Non-error fail');
 
       await expect(processor.process(job)).rejects.toBe('Non-error fail');
+    });
+  });
+
+  describe('ruleMatches', () => {
+    it('matches whole words and phrases, in any case, with accents as written', () => {
+      expect(ruleMatches('Compra SPAM ya!', 'spam')).toBe(true);
+      expect(ruleMatches('spammer', 'spam')).toBe(false);
+      expect(ruleMatches('una estafa clara', 'estafa clara')).toBe(true);
+      expect(ruleMatches('la canción', 'canción')).toBe(true);
+      expect(ruleMatches('la cancion', 'canción')).toBe(false);
+      // Characters of a regular expression in a rule are taken literally.
+      expect(ruleMatches('gana $$$ hoy', '$$$')).toBe(true);
+      expect(ruleMatches('a.b', 'a+b')).toBe(false);
+    });
+  });
+
+  describe('moderation rules', () => {
+    const ruleJob = (targetType: string, text: string) =>
+      ({
+        name: 'moderate-content',
+        data: { targetId: 't-1', targetType, text, mediaUrls: ['m'] },
+      }) as Job;
+
+    beforeEach(() => {
+      aiService.generateEmbedding.mockResolvedValue([0.1]);
+      prisma.$queryRaw.mockResolvedValue([]);
+      aiService.moderateContent.mockResolvedValue({
+        flagged: false,
+        categories: {},
+        category_scores: {},
+      });
+      (resolveSystemModeratorActor as any).mockResolvedValue({
+        userId: 'admin-user-1',
+        profileId: 'admin-prof-1',
+      });
+    });
+
+    it.each([
+      ['POST', 'post'],
+      ['STORY', 'story'],
+      ['COMMENT', 'comment'],
+    ] as const)(
+      'flags a %s that matches an active rule for review, hiding nothing',
+      async (type, model) => {
+        prisma.moderationRule.findMany.mockResolvedValue([
+          { keyword: 'estafa' },
+          { keyword: 'otra' },
+        ]);
+        prisma[model].updateMany.mockResolvedValue({ count: 1 });
+        prisma[model].findUnique.mockResolvedValue({ profileId: 'author-1' });
+
+        await processor.process(ruleJob(type, 'Esto es una ESTAFA'));
+
+        expect(prisma.moderationRule.findMany).toHaveBeenCalledWith({
+          where: { isActive: true },
+          select: { keyword: true },
+        });
+        expect(prisma[model].updateMany).toHaveBeenCalledWith({
+          where: { id: 't-1', moderationStatus: ModerationStatus.VISIBLE },
+          data: {
+            moderationStatus: ModerationStatus.FLAGGED,
+            moderationNote: expect.stringContaining('"estafa"'),
+          },
+        });
+        expect(prisma.report.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            reporterId: 'admin-prof-1',
+            targetType: type,
+            targetId: 't-1',
+          }),
+        });
+        // The AI checks still run after the rules.
+        expect(aiService.moderateContent).toHaveBeenCalled();
+      },
+    );
+
+    it('leaves content already hidden or removed as it is, and files no report', async () => {
+      prisma.moderationRule.findMany.mockResolvedValue([{ keyword: 'estafa' }]);
+      prisma.post.updateMany.mockResolvedValue({ count: 0 });
+
+      await processor.process(ruleJob('POST', 'una estafa'));
+
+      expect(prisma.report.create).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when no rule matches, or the text is empty', async () => {
+      prisma.moderationRule.findMany.mockResolvedValue([{ keyword: 'estafa' }]);
+
+      await processor.process(ruleJob('POST', 'un texto normal'));
+      await processor.process(ruleJob('POST', '   '));
+
+      expect(prisma.post.updateMany).not.toHaveBeenCalled();
+      expect(prisma.report.create).not.toHaveBeenCalled();
+    });
+
+    it('flags even when the AI service then fails', async () => {
+      prisma.moderationRule.findMany.mockResolvedValue([{ keyword: 'estafa' }]);
+      prisma.post.updateMany.mockResolvedValue({ count: 1 });
+      prisma.post.findUnique.mockResolvedValue({ profileId: 'author-1' });
+      aiService.generateEmbedding.mockRejectedValue(new Error('ai down'));
+
+      await expect(
+        processor.process(ruleJob('POST', 'una estafa')),
+      ).rejects.toThrow();
+      expect(prisma.post.updateMany).toHaveBeenCalled();
+      expect(prisma.report.create).toHaveBeenCalled();
     });
   });
 

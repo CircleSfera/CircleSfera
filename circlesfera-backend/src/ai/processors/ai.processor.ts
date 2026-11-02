@@ -12,6 +12,16 @@ import {
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService, classifyOpenAIError } from '../ai.service.js';
 
+// Whether a text holds a rule's word or phrase as whole words, in any case
+// and with accents as written: "spam" matches "Spam!" but not "spammer".
+export function ruleMatches(text: string, keyword: string): boolean {
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(
+    `(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`,
+    'iu',
+  ).test(text);
+}
+
 @Processor(
   QUEUE_NAMES.AI_PROCESSING,
   getWorkerOptions(QUEUE_NAMES.AI_PROCESSING),
@@ -333,6 +343,65 @@ export class AIProcessor extends WorkerHost {
     });
   }
 
+  // Content whose text holds the word or phrase of an active rule goes to the
+  // review queue: it is marked as flagged and a report is filed for staff.
+  // Nothing is hidden by a rule (owner decision): a person decides. Content
+  // already hidden or removed is left as it is.
+  private async applyModerationRules(
+    targetType: 'POST' | 'STORY' | 'COMMENT',
+    targetId: string,
+    text: string | undefined,
+  ) {
+    if (!text?.trim()) return;
+    const rules = await this.prisma.moderationRule.findMany({
+      where: { isActive: true },
+      select: { keyword: true },
+    });
+    const matched = rules
+      .map((rule) => rule.keyword.trim())
+      .filter((keyword) => keyword && ruleMatches(text, keyword));
+    if (matched.length === 0) return;
+
+    const assessment = `[Moderation rule]: The text matches the rule${matched.length > 1 ? 's' : ''} ${matched.map((k) => `"${k}"`).join(', ')}.`;
+    const flag = {
+      where: { id: targetId, moderationStatus: ModerationStatus.VISIBLE },
+      data: {
+        moderationStatus: ModerationStatus.FLAGGED,
+        moderationNote: assessment,
+      },
+    };
+    const { count } =
+      targetType === 'POST'
+        ? await this.prisma.post.updateMany(flag)
+        : targetType === 'STORY'
+          ? await this.prisma.story.updateMany(flag)
+          : await this.prisma.comment.updateMany(flag);
+    if (count === 0) return;
+
+    const author =
+      targetType === 'POST'
+        ? await this.prisma.post.findUnique({
+            where: { id: targetId },
+            select: { profileId: true },
+          })
+        : targetType === 'STORY'
+          ? await this.prisma.story.findUnique({
+              where: { id: targetId },
+              select: { profileId: true },
+            })
+          : await this.prisma.comment.findUnique({
+              where: { id: targetId },
+              select: { profileId: true },
+            });
+    await this.fileAutomatedReportAndNotify({
+      targetType,
+      targetId,
+      authorProfileId: author?.profileId ?? null,
+      assessment,
+      status: ModerationStatus.FLAGGED,
+    });
+  }
+
   private async handleModerateContent(
     job: Job<
       {
@@ -380,6 +449,10 @@ export class AIProcessor extends WorkerHost {
         if (comment?.url) mediaUrls = [comment.url];
       }
     }
+
+    // The rules staff keep (words or phrases) are applied first and without
+    // the AI service, so they hold even when it is down.
+    await this.applyModerationRules(targetType, targetId, text);
 
     try {
       // Vector Firewall: Pre-check using existing ModerationSignatures
