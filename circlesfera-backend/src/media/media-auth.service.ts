@@ -3,7 +3,7 @@ import { FollowStatus, Visibility } from '@prisma/client';
 import { canWatchLiveReplay } from '../common/policies/live-replay-access.policy.js';
 import { isRemoved } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { EDIT_CLIP_PATH } from '../uploads/services/media-references.service.js';
+import { EDIT_CLIP_ADDRESSES } from '../uploads/services/media-references.service.js';
 import {
   StoredFilesService,
   VIDEO_EXTENSIONS,
@@ -67,11 +67,14 @@ interface MessageAccess {
  * Collection: owner-only -- there is no shared/public collection viewing
  * feature in the API today.
  *
- * Group photo (Conversation.avatarUrl): the conversation's members only, as
- * its messages are; a member who left or was removed no longer has it.
+ * Studio draft: its media is its author's only.
  *
- * Studio draft: its media and the clips its state keeps are its author's
- * only.
+ * Kept private only while no other use shows it: a group's photo
+ * (Conversation.avatarUrl) is its members' only, as its messages are (a
+ * member who left or was removed no longer has it), and a clip a studio
+ * draft keeps in its state is the draft's author's only. A file a content
+ * row above names is decided by that row instead, and one a Profile shows
+ * as its picture or cover, or a highlight as its cover, stays public.
  *
  * A post, story or comment removed by moderation is kept for its appeal and
  * shown to nobody, its author included: its files are for staff who
@@ -200,8 +203,6 @@ export class MediaAuthService {
       collection,
       editProject,
       liveStream,
-      conversation,
-      draftClip,
     ] = await Promise.all([
       this.prisma.postMedia.findMany({
         where: urlMatch,
@@ -257,23 +258,6 @@ export class MediaAuthService {
         where: matchOn('hlsUrl', 'replayUrl', 'thumbnailUrl'),
         select: { hostId: true, publishedAt: true, endedByStaff: true },
       }),
-      // A group's photo is its members'.
-      this.prisma.conversation.findMany({
-        where: matchOn('avatarUrl'),
-        select: { id: true },
-      }),
-      // A clip a studio draft keeps in its state is its author's, as the
-      // draft's media is. Only the clips the studio checked as the author's
-      // own files (EDIT_CLIP_PATH, state version 3) are read, by their exact
-      // address: a clip naming a file that is not the author's never makes
-      // that file private to them.
-      this.prisma.$queryRaw<Array<{ profileId: string }>>`
-        SELECT DISTINCT e."profileId"
-        FROM "edit_projects" e,
-          jsonb_path_query(e."state", ${EDIT_CLIP_PATH}::jsonpath) clip
-        WHERE e."state" -> 'version' = '3'::jsonb
-          AND jsonb_typeof(clip) = 'string'
-          AND clip #>> '{}' = ANY(${candidates})`,
     ]);
 
     // A file's own randomUUID()-based name should only ever genuinely match
@@ -317,9 +301,7 @@ export class MediaAuthService {
           comment.length +
           collection.length +
           editProject.length +
-          liveStream.length +
-          conversation.length +
-          draftClip.length ===
+          liveStream.length ===
         0
       ) {
         return true;
@@ -390,10 +372,6 @@ export class MediaAuthService {
       ...liveStream.map((item) =>
         canWatchLiveReplay(this.prisma, item, viewerProfileId),
       ),
-      ...conversation.map((item) => this.isMember(item.id, viewerProfileId)),
-      ...draftClip.map((item) =>
-        Promise.resolve(item.profileId === viewerProfileId),
-      ),
     ];
 
     if (accessChecks.length > 0) {
@@ -407,8 +385,67 @@ export class MediaAuthService {
       return allowed;
     }
 
-    // No content-owning table references this file → public asset (avatar, etc.)
-    return true;
+    // No content row names the file: a public asset (an avatar, a cover),
+    // unless its only uses are private ones.
+    return this.checkPrivateUses(needles, candidates, viewerProfileId);
+  }
+
+  /**
+   * A file no content row names is public, unless its uses are only a
+   * group's photo or a clip of a studio draft: then it is the group's
+   * members' or the draft's author's. A Profile's picture or cover, or a
+   * highlight's cover, is a public use and keeps it public.
+   */
+  private async checkPrivateUses(
+    needles: string[],
+    candidates: string[],
+    viewerProfileId: string | null,
+  ): Promise<boolean> {
+    const contains = (...columns: string[]) => ({
+      OR: columns.flatMap((column) =>
+        needles.map((needle) => ({ [column]: { contains: needle } })),
+      ),
+    });
+    const [groups, drafts] = await Promise.all([
+      this.prisma.conversation.findMany({
+        where: contains('avatarUrl'),
+        select: { id: true },
+      }),
+      // By the clip's exact address, through the index of clip addresses:
+      // only clips the studio checked as the author's own files are read.
+      this.prisma.$queryRaw<Array<{ profileId: string }>>`
+        SELECT DISTINCT e."profileId"
+        FROM "edit_projects" e
+        WHERE ${EDIT_CLIP_ADDRESSES} ?| ${candidates}::text[]`,
+    ]);
+    if (groups.length + drafts.length === 0) return true;
+
+    const [picture, highlight] = await Promise.all([
+      this.prisma.profile.findFirst({
+        where: contains(
+          'avatar',
+          'standardUrl',
+          'thumbnailUrl',
+          'cover',
+          'coverStandardUrl',
+          'coverThumbnailUrl',
+        ),
+        select: { id: true },
+      }),
+      this.prisma.highlight.findFirst({
+        where: contains('coverUrl'),
+        select: { id: true },
+      }),
+    ]);
+    if (picture || highlight) return true;
+
+    const results = await Promise.all([
+      ...groups.map((group) => this.isMember(group.id, viewerProfileId)),
+      ...drafts.map((draft) =>
+        Promise.resolve(draft.profileId === viewerProfileId),
+      ),
+    ]);
+    return results.every(Boolean);
   }
 
   private async checkPostAccess(

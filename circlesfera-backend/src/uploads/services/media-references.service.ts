@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 // Every column that can hold the address of a stored file, by Prisma model.
@@ -14,13 +14,25 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 // message or comment it was made for and is not removed with them, so it
 // would keep every file for good.
 // Where a studio project keeps the file of each clip: the clips that are not
-// text, in a state of version 3. The same clips EditsService checks for
+// text, in a state of version 3. Exactly the clips EditsService checks for
 // ownership (collectStudioMediaUrls): a clip that check never saw must not
-// count as a use, or anyone could keep another person's file for good. So a
-// file still on the device (blob: or data:, in any case, after any spaces) is
-// left out too: its address may end in another person's file name.
+// count as a use, or anyone could keep another person's file for good, or
+// make it private to themselves. So the path reads only the shapes that
+// check walks (an object state, an object studio, an array of track objects,
+// each with an array of clip objects, and a string address), in strict
+// mode, where an array is never unwrapped: a track or a clip nested in a
+// further array is skipped here as it is there. A file still on the device
+// (blob: or data:, in any case, after any spaces) is left out too: its
+// address may end in another person's file name.
 export const EDIT_CLIP_PATH =
-  'lax $.studio.tracks[*].clips[*] ? (!exists(@.type ? (@ == "text")) && !(@.fileUrl like_regex "^[[:space:]]*(blob|data):" flag "i")).fileUrl';
+  'strict $ ? (@.type() == "object" && exists(@.keyvalue() ? (@.key == "version" && @.value == 3))).keyvalue() ? (@.key == "studio").value ? (@.type() == "object").keyvalue() ? (@.key == "tracks").value ? (@.type() == "array")[*] ? (@.type() == "object").keyvalue() ? (@.key == "clips").value ? (@.type() == "array")[*] ? (@.type() == "object" && !exists(@.keyvalue() ? (@.key == "type" && @.value == "text"))).keyvalue() ? (@.key == "fileUrl").value ? (@.type() == "string" && !(@ like_regex "^[[:space:]]*(blob|data):" flag "i"))';
+
+/**
+ * The clip addresses of an edit project (alias `e`), as a JSON array. The
+ * same expression as the index edit_projects_clip_addresses_idx, written
+ * out (not bound) so the planner uses the index for `?|`.
+ */
+export const EDIT_CLIP_ADDRESSES = Prisma.sql`jsonb_path_query_array(e."state", ${Prisma.raw(`'${EDIT_CLIP_PATH}'`)}::jsonpath)`;
 
 export const MEDIA_COLUMNS = {
   postMedia: ['url', 'standardUrl', 'thumbnailUrl'],
@@ -144,18 +156,15 @@ export class MediaReferencesService {
   ): Promise<string[]> {
     const rows = only
       ? await client.$queryRaw<Array<{ key: string }>>`
-          SELECT DISTINCT clip #>> '{}' AS key
+          SELECT DISTINCT clip AS key
           FROM "edit_projects" e,
-            jsonb_path_query(e."state", ${EDIT_CLIP_PATH}::jsonpath) clip
-          WHERE e."state" -> 'version' = '3'::jsonb
-            AND jsonb_typeof(clip) = 'string'
-            AND clip #>> '{}' = ANY(${only})`
+            jsonb_array_elements_text(${EDIT_CLIP_ADDRESSES}) clip
+          WHERE ${EDIT_CLIP_ADDRESSES} ?| ${only}::text[]
+            AND clip = ANY(${only})`
       : await this.prisma.$queryRaw<Array<{ key: string }>>`
-          SELECT DISTINCT clip #>> '{}' AS key
+          SELECT DISTINCT clip AS key
           FROM "edit_projects" e,
-            jsonb_path_query(e."state", ${EDIT_CLIP_PATH}::jsonpath) clip
-          WHERE e."state" -> 'version' = '3'::jsonb
-            AND jsonb_typeof(clip) = 'string'`;
+            jsonb_array_elements_text(${EDIT_CLIP_ADDRESSES}) clip`;
     return rows.map((row) => row.key).filter((key) => !!key);
   }
 

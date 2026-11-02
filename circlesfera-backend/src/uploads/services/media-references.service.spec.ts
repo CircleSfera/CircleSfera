@@ -1,7 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Prisma } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import {
+  EDIT_CLIP_ADDRESSES,
+  EDIT_CLIP_PATH,
   MEDIA_COLUMNS,
   MediaReferencesService,
 } from './media-references.service.js';
@@ -223,5 +227,30 @@ describe('MediaReferencesService.inUse, for a video', () => {
     expect(where.OR).toContainEqual({
       coverUrl: { startsWith: '/uploads/v1/' },
     });
+  });
+});
+
+describe('EDIT_CLIP_PATH', () => {
+  // A query uses the index of clip addresses only with the very expression
+  // the index was built on.
+  it('is the path the index of clip addresses was built on', () => {
+    const migration = readFileSync(
+      join(
+        import.meta.dirname,
+        '../../../prisma/migrations/20261211090000_edit_project_clip_addresses_index/migration.sql',
+      ),
+      'utf8',
+    );
+    expect(migration).toContain(
+      `jsonb_path_query_array("state", '${EDIT_CLIP_PATH}'::jsonpath)`,
+    );
+    expect(EDIT_CLIP_ADDRESSES.sql).toBe(
+      `jsonb_path_query_array(e."state", '${EDIT_CLIP_PATH}'::jsonpath)`,
+    );
+  });
+
+  it('never unwraps a nested array and holds no quote that would end its literal', () => {
+    expect(EDIT_CLIP_PATH.startsWith('strict ')).toBe(true);
+    expect(EDIT_CLIP_PATH).not.toContain("'");
   });
 });

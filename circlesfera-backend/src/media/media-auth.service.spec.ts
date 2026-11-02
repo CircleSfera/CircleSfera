@@ -57,6 +57,10 @@ describe('MediaAuthService', () => {
     profile: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      findFirst: vi.fn(),
+    },
+    highlight: {
+      findFirst: vi.fn(),
     },
     user: {
       findMany: vi.fn(),
@@ -86,6 +90,8 @@ describe('MediaAuthService', () => {
     mockPrismaService.liveStream.findMany.mockResolvedValue([]);
     mockPrismaService.conversation.findMany.mockResolvedValue([]);
     mockPrismaService.$queryRaw.mockResolvedValue([]);
+    mockPrismaService.profile.findFirst.mockResolvedValue(null);
+    mockPrismaService.highlight.findFirst.mockResolvedValue(null);
     mockPrismaService.block.findFirst.mockResolvedValue(null);
     mockPrismaService.profile.findMany.mockResolvedValue([]);
     mockPrismaService.user.findMany.mockResolvedValue([]);
@@ -757,12 +763,12 @@ describe('MediaAuthService', () => {
       ).resolves.toBe(false);
     });
 
-    it('looks a draft clip up by its exact address, and a stream file by its video', async () => {
+    it('looks a draft clip up by its exact address through the index of clip addresses, and a stream file by its video', async () => {
       const looked = () =>
         mockPrismaService.$queryRaw.mock.calls.at(-1)?.slice(1) as unknown[];
 
       await service.isAccessAllowed('/uploads/clip.mp4', 'u-1', 'p-1');
-      expect(looked()).toContainEqual(['/uploads/clip.mp4']);
+      expect(JSON.stringify(looked())).toContain('"/uploads/clip.mp4"');
 
       const video = '3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d';
       await service.isAccessAllowed(
@@ -770,14 +776,60 @@ describe('MediaAuthService', () => {
         'u-1',
         'p-1',
       );
-      expect(looked()).toContainEqual(
-        expect.arrayContaining([`/uploads/${video}.mp4`]),
-      );
-      // The query reads only the clips the studio checked as the author's.
+      expect(JSON.stringify(looked())).toContain(`/uploads/${video}.mp4`);
       const call = mockPrismaService.$queryRaw.mock.calls.at(-1) as unknown[];
       const sql = (call[0] as string[]).join('?');
-      expect(sql).toContain(`"state" -> 'version' = '3'::jsonb`);
-      expect(sql).toContain('= ANY(');
+      expect(sql).toContain('?|');
+      expect(JSON.stringify(call)).toContain('jsonb_path_query_array');
+    });
+
+    it('keeps a file public when a Profile shows it as its picture or a highlight as its cover, even if a group or a draft also uses it', async () => {
+      mockPrismaService.conversation.findMany.mockResolvedValue([
+        { id: 'group-1' },
+      ]);
+      mockPrismaService.$queryRaw.mockResolvedValue([
+        { profileId: 'author-1' },
+      ]);
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({ id: 'p' });
+
+      await expect(
+        service.isAccessAllowed('/uploads/me.jpg', null, null),
+      ).resolves.toBe(true);
+      expect(
+        mockPrismaService.profile.findFirst.mock.calls[0][0].where.OR,
+      ).toContainEqual({ cover: { contains: 'me.jpg' } });
+
+      mockPrismaService.highlight.findFirst.mockResolvedValueOnce({ id: 'h' });
+      await expect(
+        service.isAccessAllowed('/uploads/me.jpg', null, null),
+      ).resolves.toBe(true);
+      expect(mockPrismaService.participant.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('leaves a file a content row names to that row: a group or a draft using it does not make it private', async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-1',
+          post: {
+            profileId: 'author-1',
+            visibility: 'PUBLIC',
+            isPremium: false,
+            moderationStatus: 'APPROVED',
+            deletedAt: null,
+            archivedAt: null,
+            profile: { privacyLevel: 'PUBLIC' },
+          },
+        },
+      ]);
+      mockPrismaService.$queryRaw.mockResolvedValue([
+        { profileId: 'author-1' },
+      ]);
+
+      await expect(
+        service.isAccessAllowed('/uploads/posted.mp4', null, null),
+      ).resolves.toBe(true);
+      expect(mockPrismaService.$queryRaw).not.toHaveBeenCalled();
+      expect(mockPrismaService.conversation.findMany).not.toHaveBeenCalled();
     });
 
     it('denies anonymous access to a DM attachment', async () => {

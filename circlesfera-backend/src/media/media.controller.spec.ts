@@ -263,6 +263,22 @@ describe('MediaController (HTTP integration)', () => {
       expect(mockPrismaService.closeFriend.findUnique).toHaveBeenCalledTimes(1);
     });
 
+    it('serves no teaser to a close friend of a private account who does not follow it, and serves it once they do', async () => {
+      mockPrismaService.closeFriend.findUnique.mockResolvedValue({ id: 'cf' });
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        ...paidCard,
+        visibility: 'PRIVATE',
+        profile: { privacyLevel: 'PRIVATE' },
+      });
+
+      await teaser().set('Authorization', 'Bearer test').expect(404);
+
+      mockPrismaService.follow.findUnique.mockResolvedValue({
+        status: 'ACCEPTED',
+      });
+      await teaser().set('Authorization', 'Bearer test').expect(200);
+    });
+
     it.each([
       [
         'blocked either way',

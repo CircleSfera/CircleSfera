@@ -214,9 +214,9 @@ export class MediaController {
   }
   /**
    * Whether the viewer may see the card of a paid post, as its teaser
-   * needs. A post for close friends is shown to the author's close friends,
-   * who see its card in their feed; everything else the card is subject to
-   * (removal, archive, blocks, a private account) still applies.
+   * needs. A post for close friends has the author's close friends as its
+   * audience, so they get its teaser; everything else the card is subject
+   * to (removal, archive, blocks, a private account) still applies.
    */
   private async canSeeTeaserCard(
     post: { id: string; visibility: Visibility; profileId: string },
