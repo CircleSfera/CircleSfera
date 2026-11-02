@@ -1739,6 +1739,27 @@ describe('ChatWindow', () => {
       ).toBeInTheDocument();
     });
 
+    it('names a member in a block with the reader as unavailable in a notice', async () => {
+      vi.mocked(chatApi.getMessages).mockResolvedValue({
+        data: [
+          ...HISTORY,
+          {
+            ...notice('n1', 'gone-1'),
+            sender: { id: 'gone-1', username: null, unavailable: true },
+          },
+        ],
+      } as never);
+      const i18n = await renderLoadedChat();
+
+      expect(
+        await screen.findByText(
+          i18n.t('chat.notice.admin_granted', {
+            name: i18n.t('chat.unavailable_user'),
+          }),
+        ),
+      ).toBeInTheDocument();
+    });
+
     it('a notice arriving is shown once, is not marked read, and the member it names is admin from then on', async () => {
       const i18n = await renderLoadedChat();
       await waitFor(() => expect(chatApi.markAsRead).toHaveBeenCalledTimes(1));

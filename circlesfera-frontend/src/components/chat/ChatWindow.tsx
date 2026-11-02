@@ -1088,11 +1088,15 @@ export default function ChatWindow() {
     const member = conversation?.participants.find(
       (p: Participant) => p.profileId === msg.senderId,
     );
+    // Someone in a block with the viewer is named unavailable, as
+    // everywhere in the conversation.
     const name =
-      member?.profile?.fullName ||
-      member?.profile?.username ||
-      msg.sender?.username ||
-      t('chat.notice.someone');
+      isUnavailable(member?.profile) || isUnavailable(msg.sender)
+        ? t('chat.unavailable_user')
+        : member?.profile?.fullName ||
+          member?.profile?.username ||
+          msg.sender?.username ||
+          t('chat.notice.someone');
     return t('chat.notice.admin_granted', { name });
   };
 

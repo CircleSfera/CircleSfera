@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   blockedWithViewer,
   blocksAmong,
+  idOnlyProfile,
+  maskConversationFor,
   maskedForViewer,
+  maskMessage,
   maskParticipants,
   unavailableProfile,
 } from './blocked-participants.js';
@@ -147,5 +150,66 @@ describe('maskParticipants and maskedForViewer', () => {
     expect(
       (await maskedForViewer(db as never, 'me', none2)).participants,
     ).toBeUndefined();
+  });
+});
+
+describe('maskMessage', () => {
+  const message = () => ({
+    id: 'm',
+    senderId: 'b',
+    sender: { id: 'b', username: 'bob' },
+    replyTo: { senderId: 'c', sender: { id: 'c', username: 'cat' } },
+  });
+
+  it('masks the sender and the quoted sender in a block with the member', () => {
+    const masked = maskMessage(message(), new Set(['b', 'c']));
+    expect(masked.sender).toEqual({
+      id: 'b',
+      username: null,
+      unavailable: true,
+    });
+    expect(masked.replyTo?.sender).toEqual({
+      id: 'c',
+      username: null,
+      unavailable: true,
+    });
+    // A quote naming its sender only by the sender's own id is masked too.
+    const byId = maskMessage(
+      { replyTo: { sender: { id: 'c', username: 'cat' } } },
+      new Set(['c']),
+    );
+    expect(byId.replyTo?.sender).toMatchObject({ unavailable: true });
+  });
+
+  it('leaves the message as it is with no block, and keeps ids only when blocks are unknown', () => {
+    const same = message();
+    expect(maskMessage(same, new Set())).toBe(same);
+    const unknown = maskMessage(message(), null);
+    expect(unknown.sender).toEqual({ id: 'b' });
+    expect(unknown.replyTo?.sender).toEqual({ id: 'c' });
+    const plain: { id: string; sender?: null } = { id: 'x' };
+    expect(maskMessage(plain, null)).toEqual({ id: 'x' });
+    expect(maskMessage({ replyTo: null }, null)).toEqual({ replyTo: null });
+  });
+});
+
+describe('maskConversationFor and idOnlyProfile', () => {
+  it('masks as the member sees, or keeps ids only when blocks are unknown', () => {
+    const conv = {
+      participants: [
+        { profileId: 'b', profile: { id: 'b', username: 'bob' } },
+        { profileId: 'x', profile: null },
+      ],
+    };
+    expect(
+      maskConversationFor(conv, new Set(['b'])).participants?.[0].profile,
+    ).toMatchObject({ unavailable: true });
+    expect(maskConversationFor(conv, null).participants).toEqual([
+      { profileId: 'b', profile: { id: 'b' } },
+      { profileId: 'x', profile: null },
+    ]);
+    const none: { participants?: [] } = {};
+    expect(maskConversationFor(none, null)).toBe(none);
+    expect(idOnlyProfile({ username: 'z' })).toEqual({});
   });
 });

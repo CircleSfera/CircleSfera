@@ -23,9 +23,16 @@ import {
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import {
-  maskParticipants,
-  unavailableProfile,
+  maskConversationFor,
+  maskMessage,
 } from '../chat/blocked-participants.js';
+
+type MessageLikePayload = {
+  senderId?: string;
+  sender?: object | null;
+  replyTo?: { senderId?: string; sender?: object | null } | null;
+};
+
 import {
   isOriginAllowed,
   parseAllowedOrigins,
@@ -1026,119 +1033,194 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // --- EDA Domain Event Listeners ---
 
-  @OnEvent('chat.message.sent')
+  // The chat events of one conversation leave in the order they happened,
+  // also when masking one of them has to read the blocks first.
+  private readonly chatOrder = new Map<string, Promise<void>>();
+
+  private inOrder(
+    conversationId: string | undefined,
+    task: () => Promise<void> | void,
+  ): Promise<void> {
+    const run = async () => {
+      try {
+        await task();
+      } catch (err) {
+        this.logger.error(
+          `Chat event for ${conversationId ?? 'a conversation'} failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    };
+    if (!conversationId) return run();
+    const next = (this.chatOrder.get(conversationId) ?? Promise.resolve()).then(
+      run,
+    );
+    this.chatOrder.set(conversationId, next);
+    void next.then(() => {
+      if (this.chatOrder.get(conversationId) === next) {
+        this.chatOrder.delete(conversationId);
+      }
+    });
+    return next;
+  }
+
+  // The blocks among the members, as each sees them; null when they cannot
+  // be read, and then people are sent as their ids only.
+  private async memberBlocks(
+    participants: { profileId: string }[] | undefined,
+  ): Promise<Map<string, Set<string>> | null> {
+    try {
+      return await this.chatRealtimeService.blocksAmong(
+        participants?.map((p) => p.profileId) ?? [],
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Could not read the blocks of a conversation; sending ids only: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
+  }
+
+  private static blockedOf(
+    blocks: Map<string, Set<string>> | null,
+    profileId: string,
+  ): Set<string> | null {
+    return blocks === null ? null : (blocks.get(profileId) ?? new Set());
+  }
+
+  @OnEvent('chat.message.sent', { async: true })
   handleChatMessageSent(event: ChatMessageSentEvent['payload']) {
-    // A notice from the app (someone became admin) goes only to the apps
-    // that understand it; older ones still get the group's update.
-    const kind = event.payload.kind;
-    if (kind !== undefined && kind !== 'USER') {
+    return this.inOrder(event.payload?.conversationId, async () => {
+      // Each member gets the sender, and the sender a reply quotes, as they
+      // see them: unavailable across a block, either way.
+      const blocks = await this.memberBlocks(event.participants);
+      const asSeenBy = (profileId: string) =>
+        maskMessage(event.payload, AppGateway.blockedOf(blocks, profileId));
+      // A notice from the app (someone became admin) goes only to the apps
+      // that understand it; older ones still get the group's update.
+      const kind = event.payload.kind;
+      if (kind !== undefined && kind !== 'USER') {
+        event.participants?.forEach((p) => {
+          this.addConversationToSocket(
+            p.profileId,
+            event.payload.conversationId,
+          );
+          this.server
+            .to(noticesRoom(p.profileId))
+            .emit('receiveMessage', asSeenBy(p.profileId));
+        });
+        return;
+      }
       event.participants?.forEach((p) => {
         this.addConversationToSocket(p.profileId, event.payload.conversationId);
-        this.server
-          .to(noticesRoom(p.profileId))
-          .emit('receiveMessage', event.payload);
+        const seen = asSeenBy(p.profileId);
+        // A message just sent can't have been unlocked yet by anyone but the
+        // sender — mirror GetMessagesQuery's redaction so the realtime channel
+        // can't leak locked-message content/media past the paywall.
+        const payload =
+          event.payload.isLocked && p.profileId !== event.payload.senderId
+            ? {
+                ...seen,
+                content: 'This message is locked. Pay to unlock.',
+                url: null,
+                standardUrl: null,
+                thumbnailUrl: null,
+                mediaType: null,
+                voiceUrl: null,
+              }
+            : seen;
+        this.server.to(`user:${p.profileId}`).emit('receiveMessage', payload);
       });
-      return;
-    }
-    event.participants?.forEach((p) => {
-      this.addConversationToSocket(p.profileId, event.payload.conversationId);
-      // A message just sent can't have been unlocked yet by anyone but the
-      // sender — mirror GetMessagesQuery's redaction so the realtime channel
-      // can't leak locked-message content/media past the paywall.
-      const payload =
-        event.payload.isLocked && p.profileId !== event.payload.senderId
-          ? {
-              ...event.payload,
-              content: 'This message is locked. Pay to unlock.',
-              url: null,
-              standardUrl: null,
-              thumbnailUrl: null,
-              mediaType: null,
-              voiceUrl: null,
-            }
-          : event.payload;
-      this.server.to(`user:${p.profileId}`).emit('receiveMessage', payload);
     });
   }
 
-  @OnEvent('chat.message.deleted')
+  @OnEvent('chat.message.deleted', { async: true })
   handleChatMessageDeleted(event: ChatMessageDeletedEvent['payload']) {
-    event.participants?.forEach((p) => {
-      this.server
-        .to(`user:${p.profileId}`)
-        .emit('message_deleted', event.payload);
+    const conversationId = (event.payload as { conversationId?: string })
+      ?.conversationId;
+    return this.inOrder(conversationId, () => {
+      event.participants?.forEach((p) => {
+        this.server
+          .to(`user:${p.profileId}`)
+          .emit('message_deleted', event.payload);
+      });
     });
   }
 
   @OnEvent('chat.message.edited', { async: true })
-  async handleChatMessageEdited(event: ChatMessageEditedEvent['payload']) {
-    // Each member gets the sender as they see them: unavailable across a
-    // block, either way.
-    const blocks = await this.chatRealtimeService.blocksAmong(
-      event.participants?.map((p) => p.profileId) ?? [],
-    );
-    const senderId = (event.payload as { senderId?: string })?.senderId;
-    event.participants?.forEach((p) => {
-      const sender = (event.payload as { sender?: object | null })?.sender;
-      const payload =
-        senderId && sender && blocks.get(p.profileId)?.has(senderId)
-          ? { ...event.payload, sender: unavailableProfile(sender) }
-          : event.payload;
-      this.server.to(`user:${p.profileId}`).emit('message_edited', payload);
+  handleChatMessageEdited(event: ChatMessageEditedEvent['payload']) {
+    const conversationId = (event.payload as { conversationId?: string })
+      ?.conversationId;
+    return this.inOrder(conversationId, async () => {
+      // Each member gets the sender as they see them: unavailable across a
+      // block, either way.
+      const blocks = await this.memberBlocks(event.participants);
+      event.participants?.forEach((p) => {
+        this.server
+          .to(`user:${p.profileId}`)
+          .emit(
+            'message_edited',
+            maskMessage(
+              event.payload as MessageLikePayload,
+              AppGateway.blockedOf(blocks, p.profileId),
+            ),
+          );
+      });
     });
   }
 
   @OnEvent('chat.conversation.updated', { async: true })
-  async handleChatConversationUpdated(
+  handleChatConversationUpdated(
     event: ChatConversationUpdatedEvent['payload'],
   ) {
-    // Each member gets the members as they see them: unavailable across a
-    // block, either way.
-    const blocks = await this.chatRealtimeService.blocksAmong(
-      event.participants?.map((p) => p.profileId) ?? [],
-    );
-    event.participants?.forEach((p) => {
-      this.server.to(`user:${p.profileId}`).emit(
-        'conversation_updated',
-        maskParticipants(
-          event.payload as {
-            participants?: { profileId: string; profile?: object | null }[];
-          },
-          blocks.get(p.profileId),
-        ),
+    return this.inOrder(event.payload?.id, async () => {
+      // Each member gets the members as they see them: unavailable across a
+      // block, either way.
+      const blocks = await this.memberBlocks(event.participants);
+      event.participants?.forEach((p) => {
+        this.server.to(`user:${p.profileId}`).emit(
+          'conversation_updated',
+          maskConversationFor(
+            event.payload as {
+              participants?: { profileId: string; profile?: object | null }[];
+            },
+            AppGateway.blockedOf(blocks, p.profileId),
+          ),
+        );
+      });
+      // Those told who are no longer in the group (removed from it) have it
+      // taken from their sockets.
+      const members = event.payload?.participants;
+      if (!Array.isArray(members)) return;
+      const stillIn = new Set(
+        members
+          .filter(
+            (m): m is { profileId: string } =>
+              typeof m?.profileId === 'string' && !m.deletedAt,
+          )
+          .map((m) => m.profileId),
       );
-    });
-    // Those told who are no longer in the group (removed from it) have it
-    // taken from their sockets.
-    const members = event.payload?.participants;
-    if (!Array.isArray(members)) return;
-    const stillIn = new Set(
-      members
-        .filter(
-          (m): m is { profileId: string } =>
-            typeof m?.profileId === 'string' && !m.deletedAt,
-        )
-        .map((m) => m.profileId),
-    );
-    event.participants?.forEach((p) => {
-      if (!stillIn.has(p.profileId)) {
-        this.removeConversationFromSocket(p.profileId, event.payload.id);
-      }
+      event.participants?.forEach((p) => {
+        if (!stillIn.has(p.profileId)) {
+          this.removeConversationFromSocket(p.profileId, event.payload.id);
+        }
+      });
     });
   }
 
-  @OnEvent('chat.conversation.deleted')
+  @OnEvent('chat.conversation.deleted', { async: true })
   handleChatConversationDeleted(
     event: ChatConversationDeletedEvent['payload'],
   ) {
-    event.participants?.forEach((p) => {
-      this.removeConversationFromSocket(
-        p.profileId,
-        event.payload.conversationId,
-      );
-      this.server
-        .to(`user:${p.profileId}`)
-        .emit('conversationDeleted', event.payload);
+    return this.inOrder(event.payload?.conversationId, () => {
+      event.participants?.forEach((p) => {
+        this.removeConversationFromSocket(
+          p.profileId,
+          event.payload.conversationId,
+        );
+        this.server
+          .to(`user:${p.profileId}`)
+          .emit('conversationDeleted', event.payload);
+      });
     });
   }
 

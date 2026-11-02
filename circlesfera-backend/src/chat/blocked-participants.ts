@@ -96,3 +96,65 @@ export async function maskedForViewer<
   );
   return maskParticipants(conversation, blocked);
 }
+
+// A person reduced to their id: what is sent when the blocks could not be
+// read, so nobody is shown to someone who may be in a block with them.
+export function idOnlyProfile<T extends object>(profile: T): T {
+  const id = (profile as { id?: unknown }).id;
+  return (id === undefined ? {} : { id }) as T;
+}
+
+// A person as one member sees them: unavailable across a block, or only an
+// id when the blocks are unknown (null).
+function personFor<T extends object>(
+  profile: T,
+  ownerId: string | undefined,
+  blocked: Set<string> | null,
+): T {
+  if (blocked === null) return idOnlyProfile(profile);
+  return ownerId && blocked.has(ownerId)
+    ? unavailableProfile(profile)
+    : profile;
+}
+
+type MessageLike = {
+  senderId?: string;
+  sender?: object | null;
+  replyTo?: { senderId?: string; sender?: object | null } | null;
+};
+
+// A message as one member sees it: its sender and the sender it quotes.
+export function maskMessage<T extends MessageLike>(
+  message: T,
+  blocked: Set<string> | null,
+): T {
+  if (blocked !== null && blocked.size === 0) return message;
+  const masked = { ...message };
+  if (message.sender) {
+    masked.sender = personFor(message.sender, message.senderId, blocked);
+  }
+  const reply = message.replyTo;
+  if (reply?.sender) {
+    const quotedId =
+      reply.senderId ?? (reply.sender as { id?: string }).id ?? undefined;
+    masked.replyTo = {
+      ...reply,
+      sender: personFor(reply.sender, quotedId, blocked),
+    };
+  }
+  return masked;
+}
+
+// A conversation as one member sees it, also when the blocks are unknown.
+export function maskConversationFor<
+  T extends { participants?: { profileId: string; profile?: object | null }[] },
+>(conversation: T, blocked: Set<string> | null): T {
+  if (blocked !== null) return maskParticipants(conversation, blocked);
+  if (!conversation.participants) return conversation;
+  return {
+    ...conversation,
+    participants: conversation.participants.map((p) =>
+      p.profile ? { ...p, profile: idOnlyProfile(p.profile) } : p,
+    ),
+  };
+}
