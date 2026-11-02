@@ -65,17 +65,57 @@ export class NotificationsProcessor extends WorkerHost {
       },
       select: {
         recipientId: true,
+        senderId: true,
         type: true,
         id: true,
       },
     });
 
-    if (recentUnreadNotifications.length === 0) {
+    // As the inbox does, nothing from a Profile blocked either way counts,
+    // also when the block came after the notification.
+    const blocks = recentUnreadNotifications.length
+      ? await this.prisma.block.findMany({
+          where: {
+            OR: [
+              {
+                blockerId: {
+                  in: [
+                    ...new Set(
+                      recentUnreadNotifications.map((n) => n.recipientId),
+                    ),
+                  ],
+                },
+              },
+              {
+                blockedId: {
+                  in: [
+                    ...new Set(
+                      recentUnreadNotifications.map((n) => n.recipientId),
+                    ),
+                  ],
+                },
+              },
+            ],
+          },
+          select: { blockerId: true, blockedId: true },
+        })
+      : [];
+    const blockedPairs = new Set(
+      blocks.flatMap((b) => [
+        `${b.blockerId}:${b.blockedId}`,
+        `${b.blockedId}:${b.blockerId}`,
+      ]),
+    );
+    const shown = recentUnreadNotifications.filter(
+      (n) => !n.senderId || !blockedPairs.has(`${n.recipientId}:${n.senderId}`),
+    );
+
+    if (shown.length === 0) {
       return;
     }
 
     // Group by recipientId
-    const notificationsByUser = recentUnreadNotifications.reduce(
+    const notificationsByUser = shown.reduce(
       (acc, notif) => {
         if (!acc[notif.recipientId]) {
           acc[notif.recipientId] = [];
@@ -83,7 +123,7 @@ export class NotificationsProcessor extends WorkerHost {
         acc[notif.recipientId].push(notif);
         return acc;
       },
-      {} as Record<string, typeof recentUnreadNotifications>,
+      {} as Record<string, typeof shown>,
     );
 
     // Send a single digest push per user, in the account's language.

@@ -411,6 +411,22 @@ export class LiveRecordingService {
    * host and viewers, is taken out at once. A room already gone counts as
    * closed; any other failure is logged and the caller goes on.
    */
+  /**
+   * Takes one participant out of a broadcast's room at the live service,
+   * the broadcast going on for the others. One already gone counts as taken
+   * out; any other failure is logged and the caller goes on.
+   */
+  async removeFromRoom(streamId: string, identity: string): Promise<void> {
+    try {
+      await this.rooms().removeParticipant(streamId, identity);
+    } catch (error: unknown) {
+      if (alreadyStopped(error)) return;
+      this.logger.warn(
+        `Could not take ${identity} out of the room of stream ${streamId}: ${errorText(error)}`,
+      );
+    }
+  }
+
   async closeRoom(streamId: string): Promise<void> {
     try {
       await this.rooms().deleteRoom(streamId);

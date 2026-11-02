@@ -37,6 +37,17 @@ function hostShown(host: {
   );
 }
 
+// A ban, or a suspension still running: a decision of staff.
+function sanctionedByStaff(host: {
+  isAccountBanned: boolean;
+  suspendedUntil: Date | null;
+}): boolean {
+  return (
+    host.isAccountBanned ||
+    (!!host.suspendedUntil && host.suspendedUntil > new Date())
+  );
+}
+
 const HOST_SHOWN_WHERE = (): Prisma.ProfileWhereInput => ({
   isAccountBanned: false,
   OR: [{ suspendedUntil: null }, { suspendedUntil: { lt: new Date() } }],
@@ -175,33 +186,62 @@ export class LiveService {
     return { success: true, endedCount: activeStreams.length };
   }
 
-  // A host who is banned or suspended, or whose account is closed, while
-  // broadcasting: the broadcast ends at once, its room is closed so nobody
-  // still connected keeps watching, and it is marked as ended by staff. The
-  // host's state is read, not the reason of the event, so a session ended
-  // for any other reason (a password change) leaves the broadcast alone.
+  // A Profile that may no longer be seen while on air (banned, suspended, or
+  // its account closed or being deleted): as host, its broadcast ends at
+  // once and its room is closed, so nobody still connected keeps watching; as
+  // co-host, it is taken off the broadcast, which goes on. The Profile's
+  // state is read, not the reason of the event, so a session ended for any
+  // other reason (a password change) leaves the broadcast alone. Only a staff
+  // sanction (a ban or a suspension) marks the broadcast as ended by staff,
+  // which keeps its replay from the host; an account closed or being deleted
+  // ends it as the host ending it would.
   @OnEvent('user.session.terminate', { async: true })
   async endBroadcastsOfSanctionedHost(
     event: UserSessionTerminateEvent['payload'],
   ) {
+    const gone: Prisma.ProfileWhereInput =
+      event.scope === 'profile' && event.profileId
+        ? { id: event.profileId, NOT: HOST_SHOWN_WHERE() }
+        : { userId: event.userId, NOT: HOST_SHOWN_WHERE() };
     try {
       const streams = await this.prisma.liveStream.findMany({
-        where: {
-          status: 'LIVE',
-          host:
-            event.scope === 'profile' && event.profileId
-              ? { id: event.profileId, NOT: HOST_SHOWN_WHERE() }
-              : { userId: event.userId, NOT: HOST_SHOWN_WHERE() },
+        where: { status: 'LIVE', host: gone },
+        select: {
+          id: true,
+          host: { select: { isAccountBanned: true, suspendedUntil: true } },
         },
-        select: { id: true },
       });
       for (const stream of streams) {
         await this.prisma.liveStream.update({
           where: { id: stream.id },
-          data: { status: 'ENDED', endedAt: new Date(), endedByStaff: true },
+          data: {
+            status: 'ENDED',
+            endedAt: new Date(),
+            endedByStaff: sanctionedByStaff(stream.host),
+          },
         });
         await this.recording.stop(stream.id);
         await this.recording.closeRoom(stream.id);
+      }
+
+      const coHosted = await this.prisma.liveStream.findMany({
+        where: { status: 'LIVE', coHost: gone },
+        select: { id: true, coHostId: true },
+      });
+      for (const stream of coHosted) {
+        if (!stream.coHostId) continue;
+        await this.prisma.liveStream.update({
+          where: { id: stream.id },
+          data: { coHostId: null },
+        });
+        await this.recording.stopCoHost(stream.id);
+        await this.recording.removeFromRoom(stream.id, stream.coHostId);
+        this.gateway.server
+          .to(`user:${stream.coHostId}`)
+          .emit('live:cohost_removed', { streamId: stream.id });
+        this.gateway.server
+          .to(`live:${stream.id}`)
+          .emit('live:cohost_left', { coHostId: stream.coHostId });
       }
     } catch (error: unknown) {
       this.logger.error(

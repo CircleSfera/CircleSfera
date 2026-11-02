@@ -11,6 +11,7 @@ import { LiveRecordingService } from './live-recording.service.js';
 const sdk = vi.hoisted(() => ({
   createRoom: vi.fn(),
   deleteRoom: vi.fn(),
+  removeParticipant: vi.fn(),
   startParticipantEgress: vi.fn(),
   stopEgress: vi.fn(),
   listEgress: vi.fn(),
@@ -33,6 +34,7 @@ vi.mock('livekit-server-sdk', async (importOriginal) => {
       Object.assign(this, {
         createRoom: sdk.createRoom,
         deleteRoom: sdk.deleteRoom,
+        removeParticipant: sdk.removeParticipant,
       });
     }),
   };
@@ -473,6 +475,34 @@ describe('LiveRecordingService', () => {
       sdk.deleteRoom.mockRejectedValueOnce(new Error('connection refused'));
 
       await expect(service.closeRoom('s1')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('removeFromRoom', () => {
+    it('takes one participant out of the room', async () => {
+      sdk.removeParticipant.mockResolvedValueOnce(undefined);
+
+      await service.removeFromRoom('s1', 'cohost-1');
+
+      expect(sdk.removeParticipant).toHaveBeenCalledWith('s1', 'cohost-1');
+    });
+
+    it('one already gone counts as taken out', async () => {
+      sdk.removeParticipant.mockRejectedValueOnce(
+        new ServerError('twirp', 'participant not found', 404, 'not_found'),
+      );
+
+      await expect(
+        service.removeFromRoom('s1', 'cohost-1'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('any other failure is left to the log, not to the caller', async () => {
+      sdk.removeParticipant.mockRejectedValueOnce(new Error('refused'));
+
+      await expect(
+        service.removeFromRoom('s1', 'cohost-1'),
+      ).resolves.toBeUndefined();
     });
   });
 
