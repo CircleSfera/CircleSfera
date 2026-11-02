@@ -40,7 +40,7 @@ User (identity, unchanged key)        SignIn (credentials)             Profile
   id                              ┌──  id                          ┌──  id
   identityVerifiedAt, dateOfBirth │    userId  ───────────► User   │    userId   ───► User
   stripeCustomerId                │    email (unique)              │    signInId ───► SignIn
-  stripeConnectAccountId          │    password                    │    username (unique)
+  (payout accounts: monetization) │    password                    │    username (unique)
   isRootBanned, deletion fields   │    emailVerified               │    ...
   profiles, signIns ◄─────────────┘    verificationToken           │
                                        resetToken, resetTokenExpires
