@@ -196,6 +196,29 @@ export default function LiveViewer() {
       setPendingInvite(data);
     });
 
+    // Taken off air by the host or by staff: back to watching, with a token
+    // asked for now. A token is good only for a few minutes, so the one this
+    // screen had before going on air cannot be used again.
+    socket.on('live:cohost_removed', () => {
+      api
+        .get(`/live/join/${streamId}`)
+        .then((res: any) => {
+          setToken(res.data.token);
+          setCoHostToken(null);
+          setCoHostStreamId(null);
+        })
+        .catch((error: unknown) => {
+          setCoHostToken(null);
+          setCoHostStreamId(null);
+          if (isStreamGone(error)) {
+            setHasEnded(true);
+            return;
+          }
+          toast.error(t('live.connection_lost'));
+          navigate(-1);
+        });
+    });
+
     // Phase 2 listeners
     socket.on('live:goal_set', (data: LiveGoalData) => {
       setLiveGoal(data);
@@ -223,6 +246,7 @@ export default function LiveViewer() {
       socket.off('live:heart_received');
       socket.off('live:reaction_received');
       socket.off('live:cohost_invite');
+      socket.off('live:cohost_removed');
       socket.off('live:goal_set');
       socket.off('live:question_asked');
       socket.off('live:question_highlighted');

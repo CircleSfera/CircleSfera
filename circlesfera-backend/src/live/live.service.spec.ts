@@ -775,6 +775,11 @@ describe('LiveService', () => {
         streamId: 'stream-1',
       });
       expect(mockRecording.stopCoHost).toHaveBeenCalledWith('stream-1');
+      // The live service takes them out of the room as well.
+      expect(mockRecording.removeFromRoom).toHaveBeenCalledWith(
+        'stream-1',
+        coHostProfileId,
+      );
       expect(result).toEqual({ success: true });
     });
 

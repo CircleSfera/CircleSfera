@@ -493,6 +493,9 @@ export class LiveService {
 
     if (removedCoHostId) {
       await this.recording.stopCoHost(streamId);
+      // Taken out of the room by the live service too, so their camera
+      // stops for everyone even if their app does not react.
+      await this.recording.removeFromRoom(streamId, removedCoHostId);
       this.gateway.server
         .to(`user:${removedCoHostId}`)
         .emit('live:cohost_removed', { streamId });

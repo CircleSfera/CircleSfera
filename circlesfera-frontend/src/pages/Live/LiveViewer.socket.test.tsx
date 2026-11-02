@@ -171,7 +171,7 @@ async function watch(path = '/live/stream-1') {
   );
   await screen.findByTestId('livekit-room');
   // The listeners are attached in the same step as the two requests.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(12));
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(13));
   return view;
 }
 
@@ -203,7 +203,7 @@ describe('LiveViewer on the live connection', () => {
       audio: false,
     });
     const listened = [...live.handlers.keys()];
-    expect(listened).toHaveLength(12);
+    expect(listened).toHaveLength(13);
 
     unmount();
 
@@ -464,6 +464,44 @@ describe('LiveViewer on the live connection', () => {
       streamId: 'stream-2',
       message: 'hi',
     });
+  });
+
+  it('back to watching when taken off air, with a token asked for again', async () => {
+    await watch();
+    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
+    expect(live.room).toMatchObject({ token: 'cohost-token', video: true });
+
+    vi.mocked(apiClient.get).mockClear();
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { token: 'fresh-viewer-token' },
+    });
+    fire('live:cohost_removed', { streamId: 'stream-2' });
+
+    await waitFor(() =>
+      expect(live.room).toMatchObject({
+        token: 'fresh-viewer-token',
+        video: false,
+        audio: false,
+      }),
+    );
+    // Not the token it had before going on air.
+    expect(apiClient.get).toHaveBeenCalledWith('/live/join/stream-1');
+  });
+
+  it('says the live ended when taken off air from a live that is over', async () => {
+    await watch();
+    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
+
+    vi.mocked(apiClient.get).mockRejectedValue({
+      response: { status: 404, data: { errorCode: 'STREAM_NOT_FOUND' } },
+    });
+    fire('live:cohost_removed', { streamId: 'stream-2' });
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('livekit-room')).not.toBeInTheDocument(),
+    );
   });
 
   it('leaves from the close button', async () => {
