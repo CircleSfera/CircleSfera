@@ -9,6 +9,7 @@ describe('ChatRealtimeService', () => {
   let prisma: {
     participant: { findMany: ReturnType<typeof vi.fn> };
     conversation: { findUnique: ReturnType<typeof vi.fn> };
+    block: { findMany: ReturnType<typeof vi.fn> };
   };
   let addReactionUseCase: { execute: ReturnType<typeof vi.fn> };
 
@@ -16,6 +17,7 @@ describe('ChatRealtimeService', () => {
     prisma = {
       participant: { findMany: vi.fn().mockResolvedValue([]) },
       conversation: { findUnique: vi.fn() },
+      block: { findMany: vi.fn().mockResolvedValue([]) },
     };
     addReactionUseCase = { execute: vi.fn() };
 
@@ -28,6 +30,16 @@ describe('ChatRealtimeService', () => {
     }).compile();
 
     service = module.get<ChatRealtimeService>(ChatRealtimeService);
+  });
+
+  it('reads the blocks among the members of a conversation', async () => {
+    prisma.block.findMany.mockResolvedValue([
+      { blockerId: 'a', blockedId: 'b' },
+    ]);
+
+    const pairs = await service.blocksAmong(['a', 'b']);
+
+    expect([...(pairs.get('b') ?? [])]).toEqual(['a']);
   });
 
   describe('membersOf', () => {

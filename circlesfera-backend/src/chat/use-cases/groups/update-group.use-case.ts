@@ -7,6 +7,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { StoredFilesService } from '../../../uploads/services/stored-files.service.js';
+import { maskedForViewer } from '../../blocked-participants.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 
 @Injectable()
@@ -81,6 +82,7 @@ export class UpdateGroupUseCase {
     };
     this.eventEmitter.emit('chat.conversation.updated', event);
 
-    return updated;
+    // The caller sees anyone in a block with them as unavailable.
+    return updated ? maskedForViewer(this.prisma, profileId, updated) : updated;
   }
 }

@@ -17,9 +17,12 @@ interface ChatDetailsModalProps {
     avatar?: string | null;
     thumbnailUrl?: string | null;
     standardUrl?: string | null;
+    // In a block with the viewer: no picture of theirs and no way to their
+    // Profile.
+    unavailable?: boolean;
   };
   isEncrypted: boolean;
-  onViewProfile: () => void;
+  onViewProfile?: () => void;
   onDeleteForMe: () => void;
 }
 
@@ -67,7 +70,7 @@ export default function ChatDetailsModal({
               src={person.avatar || undefined}
               thumbnailUrl={person.thumbnailUrl || undefined}
               standardUrl={person.standardUrl || undefined}
-              alt={person.username || person.name}
+              alt={person.unavailable ? '' : person.username || person.name}
               size="profile"
             />
           </div>
@@ -88,14 +91,16 @@ export default function ChatDetailsModal({
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={onViewProfile}
-          className={`relative mt-6 button-alone ${CREATE_PRIMARY}`}
-        >
-          <UserRound size={18} aria-hidden="true" />
-          {t('chat.details.view_profile')}
-        </button>
+        {onViewProfile && (
+          <button
+            type="button"
+            onClick={onViewProfile}
+            className={`relative mt-6 button-alone ${CREATE_PRIMARY}`}
+          >
+            <UserRound size={18} aria-hidden="true" />
+            {t('chat.details.view_profile')}
+          </button>
+        )}
       </div>
 
       {/* What can be done with the conversation. */}

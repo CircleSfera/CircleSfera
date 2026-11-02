@@ -23,6 +23,10 @@ import {
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import {
+  maskParticipants,
+  unavailableProfile,
+} from '../chat/blocked-participants.js';
+import {
   isOriginAllowed,
   parseAllowedOrigins,
 } from '../common/config/origin.config.js';
@@ -1066,23 +1070,43 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  @OnEvent('chat.message.edited')
-  handleChatMessageEdited(event: ChatMessageEditedEvent['payload']) {
+  @OnEvent('chat.message.edited', { async: true })
+  async handleChatMessageEdited(event: ChatMessageEditedEvent['payload']) {
+    // Each member gets the sender as they see them: unavailable across a
+    // block, either way.
+    const blocks = await this.chatRealtimeService.blocksAmong(
+      event.participants?.map((p) => p.profileId) ?? [],
+    );
+    const senderId = (event.payload as { senderId?: string })?.senderId;
     event.participants?.forEach((p) => {
-      this.server
-        .to(`user:${p.profileId}`)
-        .emit('message_edited', event.payload);
+      const sender = (event.payload as { sender?: object | null })?.sender;
+      const payload =
+        senderId && sender && blocks.get(p.profileId)?.has(senderId)
+          ? { ...event.payload, sender: unavailableProfile(sender) }
+          : event.payload;
+      this.server.to(`user:${p.profileId}`).emit('message_edited', payload);
     });
   }
 
-  @OnEvent('chat.conversation.updated')
-  handleChatConversationUpdated(
+  @OnEvent('chat.conversation.updated', { async: true })
+  async handleChatConversationUpdated(
     event: ChatConversationUpdatedEvent['payload'],
   ) {
+    // Each member gets the members as they see them: unavailable across a
+    // block, either way.
+    const blocks = await this.chatRealtimeService.blocksAmong(
+      event.participants?.map((p) => p.profileId) ?? [],
+    );
     event.participants?.forEach((p) => {
-      this.server
-        .to(`user:${p.profileId}`)
-        .emit('conversation_updated', event.payload);
+      this.server.to(`user:${p.profileId}`).emit(
+        'conversation_updated',
+        maskParticipants(
+          event.payload as {
+            participants?: { profileId: string; profile?: object | null }[];
+          },
+          blocks.get(p.profileId),
+        ),
+      );
     });
     // Those told who are no longer in the group (removed from it) have it
     // taken from their sockets.

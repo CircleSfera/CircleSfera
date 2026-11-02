@@ -58,6 +58,8 @@ function gatewayWithServer(
       membersOf: vi.fn(
         async (_conversationId: string, ids: string[]) => new Set(ids),
       ),
+      // No blocks among them unless a test says so.
+      blocksAmong: vi.fn(async () => new Map()),
     },
     (overrides.webrtcSignalingService as any) ?? {
       authorizeSignal: vi.fn(),
@@ -1191,7 +1193,7 @@ describe('AppGateway payload bounds and authorization', () => {
       expect(noList.data.conversationIds).toBeUndefined();
     });
 
-    it('has it taken from its sockets when removed from the group', () => {
+    it('has it taken from its sockets when removed from the group', async () => {
       const removed = mockSocket('p-removed');
       const stays = mockSocket('p-stays');
       const declined = mockSocket('p-declined');
@@ -1207,7 +1209,7 @@ describe('AppGateway payload bounds and authorization', () => {
         to: vi.fn().mockReturnValue({ emit: vi.fn() }),
       });
 
-      gateway.handleChatConversationUpdated({
+      await gateway.handleChatConversationUpdated({
         participants: [
           { profileId: 'p-stays' },
           { profileId: 'p-declined' },
@@ -1228,7 +1230,7 @@ describe('AppGateway payload bounds and authorization', () => {
       expect(stays.data.conversationIds?.has('c-1')).toBe(true);
     });
 
-    it('keeps every socket as it is when the update names no members', () => {
+    it('keeps every socket as it is when the update names no members', async () => {
       const socket = mockSocket('p-1');
       socket.data.conversationIds = new Set(['c-1']);
       const gateway = gatewayWithServer({
@@ -1236,7 +1238,7 @@ describe('AppGateway payload bounds and authorization', () => {
         to: vi.fn().mockReturnValue({ emit: vi.fn() }),
       });
 
-      gateway.handleChatConversationUpdated({
+      await gateway.handleChatConversationUpdated({
         participants: [{ profileId: 'p-1' }],
         payload: { id: 'c-1', name: 'Renamed' },
       });
@@ -1789,12 +1791,78 @@ describe('AppGateway payload bounds and authorization', () => {
       });
     });
 
-    it('dispatches chat.message.edited to participants', () => {
+    it('masks, for each member, those in a block with them', async () => {
+      const emits: { room: string; event: string; payload: any }[] = [];
+      const mockTo = vi.fn((room: string) => ({
+        emit: (event: string, payload: unknown) =>
+          emits.push({ room, event, payload }),
+      }));
+      const blocks = new Map([
+        ['me', new Set(['bob'])],
+        ['bob', new Set(['me'])],
+      ]);
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        {
+          chatRealtimeService: {
+            membersOf: vi.fn(),
+            blocksAmong: vi.fn(async () => blocks),
+          } as never,
+        },
+      );
+      const participants = [
+        { profileId: 'me' },
+        { profileId: 'bob' },
+        { profileId: 'dan' },
+      ];
+
+      await gateway.handleChatConversationUpdated({
+        participants,
+        payload: {
+          id: 'c1',
+          participants: [
+            { profileId: 'me', profile: { id: 'me', username: 'me' } },
+            { profileId: 'bob', profile: { id: 'bob', username: 'bob' } },
+            { profileId: 'dan', profile: { id: 'dan', username: 'dan' } },
+          ],
+        },
+      } as never);
+      await gateway.handleChatMessageEdited({
+        participants,
+        payload: {
+          id: 'm1',
+          senderId: 'bob',
+          sender: { id: 'bob', username: 'bob' },
+        },
+      } as never);
+
+      const sent = (room: string, event: string) =>
+        emits.find((e) => e.room === room && e.event === event)?.payload;
+      expect(
+        sent('user:me', 'conversation_updated').participants[1].profile,
+      ).toEqual({ id: 'bob', username: null, unavailable: true });
+      expect(
+        sent('user:dan', 'conversation_updated').participants[1].profile
+          .username,
+      ).toBe('bob');
+      expect(
+        sent('user:bob', 'conversation_updated').participants[0].profile
+          .unavailable,
+      ).toBe(true);
+      expect(sent('user:me', 'message_edited').sender).toEqual({
+        id: 'bob',
+        username: null,
+        unavailable: true,
+      });
+      expect(sent('user:dan', 'message_edited').sender.username).toBe('bob');
+    });
+
+    it('dispatches chat.message.edited to participants', async () => {
       const mockEmit = vi.fn();
       const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
       const gateway = gatewayWithServer({ to: mockTo });
 
-      gateway.handleChatMessageEdited({
+      await gateway.handleChatMessageEdited({
         participants: [{ profileId: 'p-1' }],
         payload: { id: 'm-1', content: 'edited' },
       });
@@ -1806,12 +1874,12 @@ describe('AppGateway payload bounds and authorization', () => {
       });
     });
 
-    it('dispatches chat.conversation.updated to participants', () => {
+    it('dispatches chat.conversation.updated to participants', async () => {
       const mockEmit = vi.fn();
       const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
       const gateway = gatewayWithServer({ to: mockTo });
 
-      gateway.handleChatConversationUpdated({
+      await gateway.handleChatConversationUpdated({
         participants: [{ profileId: 'p-1' }],
         payload: { id: 'c-1', title: 'New Title' },
       });

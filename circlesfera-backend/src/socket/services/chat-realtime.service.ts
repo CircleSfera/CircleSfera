@@ -1,4 +1,5 @@
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { blocksAmong } from '../../chat/blocked-participants.js';
 import { AddReactionUseCase } from '../../chat/use-cases/messages/add-reaction.use-case.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -27,6 +28,11 @@ export class ChatRealtimeService {
    * member who left, was removed or deleted the chat a moment ago is not one.
    * A pending invitation counts as in.
    */
+  // Every block among the members of a conversation, as each sees it.
+  blocksAmong(profileIds: Iterable<string | null | undefined>) {
+    return blocksAmong(this.prisma, profileIds);
+  }
+
   async membersOf(
     conversationId: string,
     profileIds: string[],

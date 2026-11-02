@@ -999,7 +999,8 @@ export default function ChatWindow() {
       });
     }
 
-    if (chatInfo.otherProfileId) {
+    // Someone unavailable shows no presence.
+    if (chatInfo.otherProfileId && !chatInfo.unavailable) {
       const socketStatus = userStatuses[chatInfo.otherProfileId];
       if (socketStatus) {
         if (socketStatus.isOnline)
@@ -1818,12 +1819,17 @@ export default function ChatWindow() {
             avatar: chatInfo.avatar,
             thumbnailUrl: chatInfo.thumbnailUrl,
             standardUrl: chatInfo.standardUrl,
+            unavailable: chatInfo.unavailable,
           }}
           isEncrypted={Boolean(chatInfo.otherProfileId)}
-          onViewProfile={() => {
-            setShowChatDetails(false);
-            if (chatInfo.username) navigate(`/${chatInfo.username}`);
-          }}
+          onViewProfile={
+            chatInfo.unavailable
+              ? undefined
+              : () => {
+                  setShowChatDetails(false);
+                  if (chatInfo.username) navigate(`/${chatInfo.username}`);
+                }
+          }
           onDeleteForMe={() => {
             setShowChatDetails(false);
             setPendingDelete('me');

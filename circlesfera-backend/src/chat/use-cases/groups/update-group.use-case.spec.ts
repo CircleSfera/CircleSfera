@@ -13,6 +13,7 @@ describe('UpdateGroupUseCase', () => {
       update: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
     };
+    block: { findMany: ReturnType<typeof vi.fn> };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
   let storedFiles: {
@@ -29,6 +30,7 @@ describe('UpdateGroupUseCase', () => {
           .fn()
           .mockResolvedValue({ avatarUrl: '/uploads/old.jpg' }),
       },
+      block: { findMany: vi.fn().mockResolvedValue([]) },
     };
     storedFiles = {
       assertOwnedBy: vi.fn().mockResolvedValue(undefined),
@@ -164,5 +166,35 @@ describe('UpdateGroupUseCase', () => {
       data: { avatarUrl: 'https://cdn/only-avatar.jpg' },
       include: expect.any(Object),
     });
+  });
+
+  it('answers the admin with anyone in a block with them shown as unavailable', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({ isAdmin: true });
+    const updated = {
+      id: 'conv-1',
+      name: 'Trip',
+      participants: [
+        { profileId: 'prof-1', profile: { id: 'prof-1', username: 'me' } },
+        { profileId: 'prof-2', profile: { id: 'prof-2', username: 'bob' } },
+      ],
+    };
+    mockPrisma.conversation.update.mockResolvedValue(updated);
+    mockPrisma.block.findMany.mockResolvedValue([
+      { blockerId: 'prof-2', blockedId: 'prof-1' },
+    ]);
+
+    const result: any = await useCase.execute('prof-1', 'conv-1', 'Trip');
+
+    expect(result.participants[1].profile).toEqual({
+      id: 'prof-2',
+      username: null,
+      unavailable: true,
+    });
+    expect(result.participants[0].profile.username).toBe('me');
+    // Every member is told; the socket masks it for each of them.
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      'chat.conversation.updated',
+      expect.objectContaining({ payload: updated }),
+    );
   });
 });
