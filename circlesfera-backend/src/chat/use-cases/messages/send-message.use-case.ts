@@ -419,7 +419,7 @@ export class SendMessageUseCase {
       });
     } catch (err) {
       this.logger.error(
-        'Failed to fan out chat message over sockets after persist',
+        'Failed to fan out chat message (sockets or pushes) after persist',
         err,
       );
     }
