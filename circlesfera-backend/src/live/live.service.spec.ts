@@ -43,6 +43,7 @@ describe('LiveService', () => {
     stop: vi.fn(async () => undefined),
     startCoHost: vi.fn(async () => undefined),
     stopCoHost: vi.fn(async () => undefined),
+    closeRoom: vi.fn(async () => undefined),
   };
 
   const mockConfigService = {
@@ -318,6 +319,61 @@ describe('LiveService', () => {
       await expect(
         service.getStream('stream-1', 'viewer-1'),
       ).rejects.toMatchObject({ errorCode: 'STREAM_NOT_FOUND' });
+    });
+  });
+
+  describe('when a host is sanctioned', () => {
+    it("ends the broadcasts of the account's hosts that may no longer be seen, closes their rooms", async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([
+        { id: 'stream-1' },
+      ]);
+
+      await service.endBroadcastsOfSanctionedHost({
+        userId: 'user-1',
+        reason: 'Account banned by administration',
+      });
+
+      const [args] =
+        mockPrismaService.liveStream.findMany.mock.calls.at(-1) ?? [];
+      expect(args.where.status).toBe('LIVE');
+      expect(args.where.host.userId).toBe('user-1');
+      expect(args.where.host.NOT).toMatchObject({ isAccountBanned: false });
+      expect(mockPrismaService.liveStream.update).toHaveBeenCalledWith({
+        where: { id: 'stream-1' },
+        data: {
+          status: 'ENDED',
+          endedAt: expect.any(Date),
+          endedByStaff: true,
+        },
+      });
+      expect(mockRecording.stop).toHaveBeenCalledWith('stream-1');
+      expect(mockRecording.closeRoom).toHaveBeenCalledWith('stream-1');
+    });
+
+    it("for a sanction of one Profile, looks only at that Profile's broadcasts", async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([]);
+
+      await service.endBroadcastsOfSanctionedHost({
+        userId: 'user-1',
+        profileId: 'host-1',
+        scope: 'profile',
+      });
+
+      const [args] =
+        mockPrismaService.liveStream.findMany.mock.calls.at(-1) ?? [];
+      expect(args.where.host.id).toBe('host-1');
+      expect(args.where.host.userId).toBeUndefined();
+      expect(mockRecording.closeRoom).not.toHaveBeenCalled();
+    });
+
+    it('a failure is logged and does not reach the one who ended the sessions', async () => {
+      mockPrismaService.liveStream.findMany.mockRejectedValueOnce(
+        new Error('db down'),
+      );
+
+      await expect(
+        service.endBroadcastsOfSanctionedHost({ userId: 'user-1' }),
+      ).resolves.toBeUndefined();
     });
   });
 

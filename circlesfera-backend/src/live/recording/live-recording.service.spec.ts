@@ -10,6 +10,7 @@ import { LiveRecordingService } from './live-recording.service.js';
 
 const sdk = vi.hoisted(() => ({
   createRoom: vi.fn(),
+  deleteRoom: vi.fn(),
   startParticipantEgress: vi.fn(),
   stopEgress: vi.fn(),
   listEgress: vi.fn(),
@@ -29,7 +30,10 @@ vi.mock('livekit-server-sdk', async (importOriginal) => {
       });
     }),
     RoomServiceClient: vi.fn(function (this: object) {
-      Object.assign(this, { createRoom: sdk.createRoom });
+      Object.assign(this, {
+        createRoom: sdk.createRoom,
+        deleteRoom: sdk.deleteRoom,
+      });
     }),
   };
 });
@@ -444,6 +448,31 @@ describe('LiveRecordingService', () => {
       sdk.startParticipantEgress.mockRejectedValue(new Error('busy'));
       prisma.liveRecordingPart.updateMany.mockRejectedValue(new Error('down'));
       await expect(service.startCoHost('s1', 'co-1')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('closeRoom', () => {
+    it('closes the room of the broadcast, also where recording is off', async () => {
+      settings.LIVE_RECORDING_ENABLED = 'false';
+      sdk.deleteRoom.mockResolvedValueOnce(undefined);
+
+      await service.closeRoom('s1');
+
+      expect(sdk.deleteRoom).toHaveBeenCalledWith('s1');
+    });
+
+    it('a room already gone counts as closed', async () => {
+      sdk.deleteRoom.mockRejectedValueOnce(
+        new ServerError('not_found', 'room not found', 404),
+      );
+
+      await expect(service.closeRoom('s1')).resolves.toBeUndefined();
+    });
+
+    it('any other failure is left to the log, not to the caller', async () => {
+      sdk.deleteRoom.mockRejectedValueOnce(new Error('connection refused'));
+
+      await expect(service.closeRoom('s1')).resolves.toBeUndefined();
     });
   });
 

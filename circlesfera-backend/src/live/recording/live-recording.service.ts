@@ -406,6 +406,22 @@ export class LiveRecordingService {
     await this.stopParts(streamId);
   }
 
+  /**
+   * Closes a broadcast's room at the live service, so whoever is still in it,
+   * host and viewers, is taken out at once. A room already gone counts as
+   * closed; any other failure is logged and the caller goes on.
+   */
+  async closeRoom(streamId: string): Promise<void> {
+    try {
+      await this.rooms().deleteRoom(streamId);
+    } catch (error: unknown) {
+      if (alreadyStopped(error)) return;
+      this.logger.warn(
+        `Could not close the room of stream ${streamId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
   private async stopParts(
     streamId: string,
     role?: LiveRecordingRole,

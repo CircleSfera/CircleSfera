@@ -1,5 +1,7 @@
+import type { UserSessionTerminateEvent } from '@circlesfera/shared';
 import { ErrorCode } from '@circlesfera/shared';
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import {
@@ -171,6 +173,41 @@ export class LiveService {
     }
 
     return { success: true, endedCount: activeStreams.length };
+  }
+
+  // A host who is banned or suspended, or whose account is closed, while
+  // broadcasting: the broadcast ends at once, its room is closed so nobody
+  // still connected keeps watching, and it is marked as ended by staff. The
+  // host's state is read, not the reason of the event, so a session ended
+  // for any other reason (a password change) leaves the broadcast alone.
+  @OnEvent('user.session.terminate', { async: true })
+  async endBroadcastsOfSanctionedHost(
+    event: UserSessionTerminateEvent['payload'],
+  ) {
+    try {
+      const streams = await this.prisma.liveStream.findMany({
+        where: {
+          status: 'LIVE',
+          host:
+            event.scope === 'profile' && event.profileId
+              ? { id: event.profileId, NOT: HOST_SHOWN_WHERE() }
+              : { userId: event.userId, NOT: HOST_SHOWN_WHERE() },
+        },
+        select: { id: true },
+      });
+      for (const stream of streams) {
+        await this.prisma.liveStream.update({
+          where: { id: stream.id },
+          data: { status: 'ENDED', endedAt: new Date(), endedByStaff: true },
+        });
+        await this.recording.stop(stream.id);
+        await this.recording.closeRoom(stream.id);
+      }
+    } catch (error: unknown) {
+      this.logger.error(
+        `Could not end the broadcasts of a sanctioned host: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   // Bounded, not paginated: concurrent live streams are
