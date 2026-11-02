@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import logoSrc from '../../assets/logo.png';
+import { sellsInApp } from '../../utils/sellsInApp';
 import { MarketingCTA } from './MarketingCTA';
 
 // Guest footer — brand + sitemap. Four columns on desktop, stacked on mobile.
@@ -12,7 +13,10 @@ export function GuestFooter() {
       title: t('landing.footer.platform'),
       links: [
         { to: '/explore', label: t('common.footer.explore') },
-        { to: '/pricing', label: t('common.footer.pricing') },
+        // Plans are bought on the web only: not offered in the apps.
+        ...(sellsInApp()
+          ? [{ to: '/pricing', label: t('common.footer.pricing') }]
+          : []),
         { to: '/support', label: t('common.footer.support') },
       ],
     },

@@ -1,6 +1,7 @@
 import { Film, Image as ImageIcon, Megaphone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { CreatorPost } from '../../services/creator.service';
+import { sellsInApp } from '../../utils/sellsInApp';
 import { Button } from '../ui';
 import { CreatorRow } from './CreatorPieces';
 import { postFacts } from './creatorWords';
@@ -36,17 +37,22 @@ export default function CreatorPostRow({ post, onOpen, onPromote }: Props) {
       facts={postFacts(post, t, i18n.language)}
       onOpen={() => onOpen(post)}
       openLabel={t('creator.post.statistics_of', { title })}
+      // Promotions are bought on the web only: not in the apps.
       action={
-        <Button
-          variant="ghost"
-          size="compact"
-          className="min-h-11 min-w-11 gap-1.5 shrink-0"
-          aria-label={t('creator.post.promote_this', { title })}
-          onClick={() => onPromote(post)}
-        >
-          <Megaphone size={16} aria-hidden />
-          <span className="hidden sm:inline">{t('creator.post.promote')}</span>
-        </Button>
+        sellsInApp() ? (
+          <Button
+            variant="ghost"
+            size="compact"
+            className="min-h-11 min-w-11 gap-1.5 shrink-0"
+            aria-label={t('creator.post.promote_this', { title })}
+            onClick={() => onPromote(post)}
+          >
+            <Megaphone size={16} aria-hidden />
+            <span className="hidden sm:inline">
+              {t('creator.post.promote')}
+            </span>
+          </Button>
+        ) : undefined
       }
     />
   );

@@ -13,6 +13,7 @@ import { exportToCSV } from '../../utils/exportUtils';
 import { formatNumber } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import { hasElitePlan } from '../../utils/plans';
+import { sellsInApp } from '../../utils/sellsInApp';
 import { Button, Card } from '../ui';
 import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
 import CreatorEmpty from './CreatorEmpty';
@@ -195,12 +196,15 @@ export default function CreatorAnalyticsTab() {
             <p className="flex-1 text-sm text-white/60 leading-relaxed">
               {t('creator.advanced.plan_desc')}
             </p>
-            <Link
-              to="/pricing"
-              className="inline-flex items-center justify-center min-h-11 px-6 rounded-xl border border-brand-primary/30 text-sm font-bold text-white btn-gradient-brand shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
-            >
-              {t('creator.advanced.plan_cta')}
-            </Link>
+            {/* Plans are bought on the web only: not offered in the apps. */}
+            {sellsInApp() && (
+              <Link
+                to="/pricing"
+                className="inline-flex items-center justify-center min-h-11 px-6 rounded-xl border border-brand-primary/30 text-sm font-bold text-white btn-gradient-brand shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
+              >
+                {t('creator.advanced.plan_cta')}
+              </Link>
+            )}
           </Card>
         </CreatorSection>
       )}

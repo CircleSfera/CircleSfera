@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom';
 import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
 import type { ProfileWithUser } from '../../types';
 import { hasCreatorTools } from '../../utils/creatorTools';
+import { sellsInApp } from '../../utils/sellsInApp';
 import FollowButton from '../FollowButton';
 import MuteDurationModal from '../modals/MuteDurationModal';
 import ProfileSwitcher from '../profiles/ProfileSwitcher';
@@ -417,15 +418,18 @@ export default function ProfileHeader({
                 <>
                   <FollowButton username={profile.data.username} />
 
-                  <button
-                    type="button"
-                    onClick={() => setShowTipModal(true)}
-                    className="h-11 w-11 flex items-center justify-center bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
-                    title={t('profile.actions.send_tip')}
-                    aria-label={t('profile.actions.send_tip')}
-                  >
-                    <Gift size={18} aria-hidden="true" />
-                  </button>
+                  {/* Tips are bought on the web only: not in the apps. */}
+                  {sellsInApp() && (
+                    <button
+                      type="button"
+                      onClick={() => setShowTipModal(true)}
+                      className="h-11 w-11 flex items-center justify-center bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
+                      title={t('profile.actions.send_tip')}
+                      aria-label={t('profile.actions.send_tip')}
+                    >
+                      <Gift size={18} aria-hidden="true" />
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -633,15 +637,17 @@ export default function ProfileHeader({
                     ? t('profile.actions.opening')
                     : t('profile.actions.message')}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowTipModal(true)}
-                  className="h-11 w-11 shrink-0 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/20 transition-all flex items-center justify-center"
-                  title={t('profile.actions.send_tip')}
-                  aria-label={t('profile.actions.send_tip')}
-                >
-                  <Gift size={18} aria-hidden="true" />
-                </button>
+                {sellsInApp() && (
+                  <button
+                    type="button"
+                    onClick={() => setShowTipModal(true)}
+                    className="h-11 w-11 shrink-0 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/20 transition-all flex items-center justify-center"
+                    title={t('profile.actions.send_tip')}
+                    aria-label={t('profile.actions.send_tip')}
+                  >
+                    <Gift size={18} aria-hidden="true" />
+                  </button>
+                )}
                 <ProfileOtherUserMenu
                   username={profile.data.username}
                   isOpen={showMenu}

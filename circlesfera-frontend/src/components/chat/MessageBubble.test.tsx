@@ -4,6 +4,9 @@ import { renderWithProviders } from '../../test/test-utils';
 import type { Message } from '../../types';
 import MessageBubble from './MessageBubble';
 
+const sells = vi.hoisted(() => ({ value: true }));
+vi.mock('../../utils/sellsInApp', () => ({ sellsInApp: () => sells.value }));
+
 vi.mock('../../stores/storyStore', () => ({
   useStoryStore: vi.fn(
     (selector: (state: { openStories: () => void }) => unknown) =>
@@ -189,6 +192,26 @@ describe('MessageBubble', () => {
       }),
     );
     expect(onUnlock).toHaveBeenCalledWith('msg-1');
+  });
+
+  it('in the apps keeps a paid message locked, with nothing to buy', () => {
+    sells.value = false;
+    const onUnlock = vi.fn();
+    const { i18n } = renderBubble(
+      { content: 'x', isLocked: true, priceCents: 199 },
+      { onUnlock },
+    );
+
+    expect(screen.getByText(i18n!.t('chat.locked_title'))).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('chat.unlock_for', { price: '€1.99' }),
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('monetization.not_in_app')),
+    ).toBeInTheDocument();
+    sells.value = true;
   });
 
   it('prices a locked message in the reader language', () => {

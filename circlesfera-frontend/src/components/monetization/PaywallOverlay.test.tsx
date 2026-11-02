@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import PaywallOverlay from './PaywallOverlay';
 
+const sells = vi.hoisted(() => ({ value: true }));
+vi.mock('../../utils/sellsInApp', () => ({ sellsInApp: () => sells.value }));
+
 describe('PaywallOverlay', () => {
   it.each([
     ['en', 'Unlock for €12.50'],
@@ -32,5 +35,27 @@ describe('PaywallOverlay', () => {
     expect(
       screen.getByRole('button', { name: 'Unlock for €0.30' }),
     ).toBeInTheDocument();
+  });
+
+  it('in the apps offers no purchase: no price, no button, only that it is not available there', () => {
+    sells.value = false;
+    const onUnlock = vi.fn();
+    const { i18n } = renderWithProviders(
+      <PaywallOverlay price={12.5} onUnlock={onUnlock} />,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText(/12[.,]50/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('monetization.not_in_app')),
+    ).toBeInTheDocument();
+    // Nothing asks to unlock it either.
+    expect(
+      screen.getByText(i18n!.t('monetization.premium_description_app')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n!.t('monetization.premium_description')),
+    ).not.toBeInTheDocument();
+    sells.value = true;
   });
 });

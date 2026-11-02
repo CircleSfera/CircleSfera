@@ -6,6 +6,7 @@ import { useStoryStore } from '../../stores/storyStore';
 import type { Message } from '../../types';
 import { getMessageDisplayText } from '../../utils/chatMessageDisplay';
 import { formatCents } from '../../utils/money';
+import { sellsInApp } from '../../utils/sellsInApp';
 import { VoicePlayer } from '../audio/VoicePlayer';
 import UserAvatar from '../UserAvatar';
 import AudioPlayer from './AudioPlayer';
@@ -225,18 +226,29 @@ export default memo(function MessageBubble({
                         {t('chat.locked_subtitle')}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => onUnlock && msg.id && onUnlock(msg.id)}
-                      className="mt-2 button-alone py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
-                    >
-                      {t('chat.unlock_for', {
-                        price: formatCents(msg.priceCents || 0, i18n.language),
-                      })}
-                    </button>
-                    <p className="mt-1 text-xs text-white/60">
-                      {t('vat.included')}
-                    </p>
+                    {!sellsInApp() ? (
+                      <p className="mt-2 text-sm text-white/70">
+                        {t('monetization.not_in_app')}
+                      </p>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onUnlock && msg.id && onUnlock(msg.id)}
+                          className="mt-2 button-alone py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
+                        >
+                          {t('chat.unlock_for', {
+                            price: formatCents(
+                              msg.priceCents || 0,
+                              i18n.language,
+                            ),
+                          })}
+                        </button>
+                        <p className="mt-1 text-xs text-white/60">
+                          {t('vat.included')}
+                        </p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <span

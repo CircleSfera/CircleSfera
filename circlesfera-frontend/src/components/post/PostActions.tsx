@@ -2,6 +2,7 @@ import { Gift } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { Post } from '../../types';
+import { sellsInApp } from '../../utils/sellsInApp';
 import InteractionRail from '../content/InteractionRail';
 
 interface PostActionsProps {
@@ -45,15 +46,18 @@ export default function PostActions({
       hideComment={hideCommentLink}
       size={size}
       shareIcon="send"
+      // Tips are bought on the web only: not in the apps.
       extraActions={
-        <button
-          type="button"
-          onClick={onTip}
-          className={`${tipHit} inline-flex items-center justify-center text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]`}
-          aria-label={t('post.actions.tip')}
-        >
-          <Gift className={tipIcon} />
-        </button>
+        sellsInApp() ? (
+          <button
+            type="button"
+            onClick={onTip}
+            className={`${tipHit} inline-flex items-center justify-center text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]`}
+            aria-label={t('post.actions.tip')}
+          >
+            <Gift className={tipIcon} />
+          </button>
+        ) : undefined
       }
     />
   );

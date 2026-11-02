@@ -27,6 +27,7 @@ import { pickNativeImage } from '../../utils/nativeFilePicker';
 import { keepSavedOwnProfile } from '../../utils/ownProfileCache';
 import { hasElitePlan } from '../../utils/plans';
 import { PROFILE_COLOR_KEYS, PROFILE_COLORS } from '../../utils/profileColors';
+import { sellsInApp } from '../../utils/sellsInApp';
 import UserAvatar from '../UserAvatar';
 import { Button, Input, Textarea } from '../ui';
 import SettingsRow from './SettingsRow';
@@ -518,7 +519,8 @@ export default function ProfileSettings() {
               );
             })}
           </div>
-          {!canChooseColour && (
+          {/* Plans are bought on the web only: not offered in the apps. */}
+          {!canChooseColour && sellsInApp() && (
             <Link
               to="/pricing"
               className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand-primary-text hover:underline"

@@ -35,6 +35,7 @@ import { useSocketStore } from '../../stores/socketStore';
 import { apiErrorCode } from '../../utils/apiErrorMessage';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 import { hasElitePlan } from '../../utils/plans';
+import { sellsInApp } from '../../utils/sellsInApp';
 
 const REACTION_EMOJIS = ['🔥', '❤️', '👏', '🚀', '⭐'];
 // The reactions of the Elite Creator and Business plans. Everyone sees them
@@ -578,12 +579,15 @@ export default function LiveViewer() {
                   >
                     <HelpCircle className="h-5 w-5" aria-hidden />
                   </LiveControl>
-                  <LiveControl
-                    label={t('live.send_gift_btn')}
-                    onClick={() => setGiftModalOpen(true)}
-                  >
-                    <Gift className="h-5 w-5" aria-hidden />
-                  </LiveControl>
+                  {/* Gifts are bought on the web only: not in the apps. */}
+                  {sellsInApp() && (
+                    <LiveControl
+                      label={t('live.send_gift_btn')}
+                      onClick={() => setGiftModalOpen(true)}
+                    >
+                      <Gift className="h-5 w-5" aria-hidden />
+                    </LiveControl>
+                  )}
                 </>
               )}
             </form>

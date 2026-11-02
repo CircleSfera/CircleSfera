@@ -4,6 +4,9 @@ import { creatorApi } from '../../services/creator.service';
 import { renderWithProviders } from '../../test/test-utils';
 import CreatorPromotionsTab from './CreatorPromotionsTab';
 
+const sells = vi.hoisted(() => ({ value: true }));
+vi.mock('../../utils/sellsInApp', () => ({ sellsInApp: () => sells.value }));
+
 vi.mock('../../services/creator.service', () => ({
   creatorApi: {
     getPromotions: vi.fn(),
@@ -47,5 +50,22 @@ describe('CreatorPromotionsTab', () => {
       await screen.findByText(i18n!.t('creator.promotions.no_active')),
     ).toBeInTheDocument();
     expect(screen.queryByText('No active campaigns')).not.toBeInTheDocument();
+  });
+
+  it('in the apps offers no way to start a campaign', async () => {
+    sells.value = false;
+    const { i18n } = renderWithProviders(
+      <CreatorPromotionsTab onToast={vi.fn()} />,
+    );
+
+    expect(
+      await screen.findByText(i18n!.t('creator.promotions.no_active')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('creator.promotions.create_first'),
+      }),
+    ).not.toBeInTheDocument();
+    sells.value = true;
   });
 });

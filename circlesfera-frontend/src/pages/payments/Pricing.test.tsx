@@ -17,6 +17,9 @@ import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import Pricing from './Pricing';
 
+const sells = vi.hoisted(() => ({ value: true }));
+vi.mock('../../utils/sellsInApp', () => ({ sellsInApp: () => sells.value }));
+
 vi.mock('../../components/payments/WithdrawalConsent', async () =>
   (await import('../../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
 );
@@ -117,6 +120,22 @@ describe('Pricing', () => {
         name: i18n!.t('pricingPage.button_premium'),
       }),
     ).toBeInTheDocument();
+  });
+
+  it('in the apps shows the plans with nothing to buy', async () => {
+    sells.value = false;
+    const { i18n } = renderWithProviders(<Pricing />);
+
+    expect(await screen.findByText('Premium')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('pricingPage.button_premium'),
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText(i18n!.t('monetization.not_in_app')).length,
+    ).toBeGreaterThan(0);
+    sells.value = true;
   });
 
   it('answers the questions asked before paying with their articles of the help centre, in its own order', async () => {

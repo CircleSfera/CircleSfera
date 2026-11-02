@@ -4,6 +4,9 @@ import { renderWithProviders } from '../../test/test-utils';
 import type { ProfileWithUser } from '../../types';
 import ProfileHeader from './ProfileHeader';
 
+const sells = vi.hoisted(() => ({ value: true }));
+vi.mock('../../utils/sellsInApp', () => ({ sellsInApp: () => sells.value }));
+
 vi.mock('../../hooks/useCloseFriendsList', () => ({
   useCloseFriendsList: () => ({
     closeFriendsCount: 0,
@@ -183,5 +186,22 @@ describe('ProfileHeader', () => {
       'aria-pressed',
       'true',
     );
+  });
+
+  it('offers a tip on another profile on the web, and not in the apps', () => {
+    const other = { ...headerProps, isMe: false };
+    const { i18n, unmount } = renderWithProviders(<ProfileHeader {...other} />);
+    const tipName = i18n!.t('profile.actions.send_tip');
+    expect(
+      screen.getAllByRole('button', { name: tipName }).length,
+    ).toBeGreaterThan(0);
+    unmount();
+
+    sells.value = false;
+    renderWithProviders(<ProfileHeader {...other} />);
+    expect(
+      screen.queryByRole('button', { name: tipName }),
+    ).not.toBeInTheDocument();
+    sells.value = true;
   });
 });

@@ -20,6 +20,7 @@ import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
 import { formatDate, formatNumber } from '../../utils/format';
 import { formatCents } from '../../utils/money';
+import { sellsInApp } from '../../utils/sellsInApp';
 import { Button, Dialog } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
 import { CreatorBadge, CreatorPager, CreatorRow } from './CreatorPieces';
@@ -245,7 +246,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
         {active ? (
           <div className="flex flex-col gap-2">
-            {running && (
+            {running && sellsInApp() && (
               <Button
                 variant="secondary"
                 className="min-h-11 button-alone button-alone-wide"
@@ -315,14 +316,16 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             )}
           </div>
         ) : (
-          <Button
-            variant="secondary"
-            className="min-h-11 button-alone button-alone-wide"
-            onClick={() => handleRepeat(promo)}
-          >
-            <RefreshCw size={14} className="mr-2" aria-hidden />
-            {t('creator.promotions.repeat')}
-          </Button>
+          sellsInApp() && (
+            <Button
+              variant="secondary"
+              className="min-h-11 button-alone button-alone-wide"
+              onClick={() => handleRepeat(promo)}
+            >
+              <RefreshCw size={14} className="mr-2" aria-hidden />
+              {t('creator.promotions.repeat')}
+            </Button>
+          )
         )}
       </div>
     );
@@ -330,7 +333,8 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4 pb-8">
-      {promos.length > 0 && (
+      {/* Promotions are bought on the web only: not in the apps. */}
+      {promos.length > 0 && sellsInApp() && (
         <div className="flex justify-end">
           <Button
             variant="primary"
@@ -357,10 +361,14 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           icon={Megaphone}
           title={t('creator.promotions.no_active')}
           message={t('creator.promotions.boost_desc')}
-          action={{
-            label: t('creator.promotions.create_first'),
-            onClick: () => setShowNewPromo(true),
-          }}
+          action={
+            sellsInApp()
+              ? {
+                  label: t('creator.promotions.create_first'),
+                  onClick: () => setShowNewPromo(true),
+                }
+              : undefined
+          }
         />
       ) : (
         <div className="space-y-2">

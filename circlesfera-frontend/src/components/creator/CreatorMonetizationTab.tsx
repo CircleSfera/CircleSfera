@@ -29,6 +29,7 @@ import {
   sendPendingTab,
 } from '../../utils/pendingTab';
 import { planFeatureLabel } from '../../utils/planFeatures';
+import { sellsInApp } from '../../utils/sellsInApp';
 import MonetizationDashboard from '../monetization/MonetizationDashboard';
 import {
   useWithdrawalConsent,
@@ -320,27 +321,30 @@ export default function CreatorMonetizationTab({
               </h2>
             </div>
 
-            <Button
-              variant="primary"
-              disabled={portalMutation.isPending}
-              isLoading={portalMutation.isPending}
-              onClick={() => {
-                if (
-                  !billingStatus?.hasActiveSubscription &&
-                  currentLevel === 'BASIC'
-                ) {
-                  onToast(
-                    t('creator.monetization.select_plan_start'),
-                    'success',
-                  );
-                } else {
-                  portalMutation.mutate();
-                }
-              }}
-              className="min-h-11 px-5 shrink-0"
-            >
-              {t('creator.monetization.manage_subscription')}
-            </Button>
+            {/* Billing is handled on the web only: not in the apps. */}
+            {sellsInApp() && (
+              <Button
+                variant="primary"
+                disabled={portalMutation.isPending}
+                isLoading={portalMutation.isPending}
+                onClick={() => {
+                  if (
+                    !billingStatus?.hasActiveSubscription &&
+                    currentLevel === 'BASIC'
+                  ) {
+                    onToast(
+                      t('creator.monetization.select_plan_start'),
+                      'success',
+                    );
+                  } else {
+                    portalMutation.mutate();
+                  }
+                }}
+                className="min-h-11 px-5 shrink-0"
+              >
+                {t('creator.monetization.manage_subscription')}
+              </Button>
+            )}
           </Card>
 
           {/* Pricing Tiers Grid */}
@@ -405,7 +409,13 @@ export default function CreatorMonetizationTab({
                     </ul>
                   </div>
 
-                  {!active && (
+                  {/* Plans are bought on the web only: not in the apps. */}
+                  {!active && !sellsInApp() && (
+                    <p className="text-sm text-white/60">
+                      {t('monetization.not_in_app')}
+                    </p>
+                  )}
+                  {!active && sellsInApp() && (
                     <Button
                       variant="secondary"
                       disabled={checkoutMutation.isPending}
