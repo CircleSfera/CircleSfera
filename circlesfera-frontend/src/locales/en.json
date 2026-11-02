@@ -594,7 +594,7 @@
         "share": "With the same email and password",
         "share_desc": "You sign in once and switch profiles whenever you want.",
         "own": "With its own email and password",
-        "own_desc": "To sign in to this profile separately.",
+        "own_desc": "Recommended. This profile gets its own sign-in, recovery and notices.",
         "own_failed": "The profile was created sharing the sign-in. You can give it its own from this screen."
       },
       "errors": {

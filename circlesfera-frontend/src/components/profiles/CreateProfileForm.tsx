@@ -15,7 +15,7 @@ const USERNAME_PATTERN = /^[a-zA-Z0-9._]{3,30}$/;
 const FULL_NAME_MAX = 50;
 const ACCOUNT_TYPES: ProfileAccountType[] = ['PERSONAL', 'CREATOR', 'BUSINESS'];
 // How the new Profile signs in: with the sign-in of the session, or its own.
-const SIGN_IN_CHOICES = ['share', 'own'] as const;
+const SIGN_IN_CHOICES = ['own', 'share'] as const;
 type SignInChoice = (typeof SIGN_IN_CHOICES)[number];
 const PASSWORD_MIN = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -68,7 +68,7 @@ export default function CreateProfileForm({
   const [fullName, setFullName] = useState('');
   const [accountType, setAccountType] =
     useState<ProfileAccountType>('PERSONAL');
-  const [signInChoice, setSignInChoice] = useState<SignInChoice>('share');
+  const [signInChoice, setSignInChoice] = useState<SignInChoice>('own');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
