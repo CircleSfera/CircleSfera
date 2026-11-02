@@ -1378,7 +1378,25 @@
       }
     },
     "checkout_canceled": "El pago se canceló.",
-    "checkout_success": "Pago correcto. El contenido se desbloqueará en breve."
+    "checkout_success": "Pago correcto. El contenido se desbloqueará en breve.",
+    "why_seeing": {
+      "open": "¿Por qué veo esto?",
+      "title": "¿Por qué veo esto?",
+      "intro": "Esto es lo que hace que veas esta publicación:",
+      "own": "Es tu publicación.",
+      "following": "Sigues a @{{username}}.",
+      "close_friend": "@{{username}} te tiene en su lista de mejores amigos y la ha compartido con esa lista.",
+      "engaged_with_author": "Has interactuado hace poco con publicaciones de @{{username}}.",
+      "liked_similar_tags": "Tiene {{tags}}, como publicaciones que te gustaron o guardaste.",
+      "similar_content": "Se parece a publicaciones que te han gustado hace poco.",
+      "popular": "Está teniendo muchas interacciones.",
+      "new": "Es una publicación reciente.",
+      "none": "No hay un motivo concreto para ti: aparece entre las publicaciones recientes y populares.",
+      "how": "Las recomendaciones se basan en a quién sigues, con qué interactúas en CircleSfera y lo que es popular. No usamos lo que haces fuera de CircleSfera.",
+      "control": "Puedes ocultar esta publicación o a su autor desde este mismo menú.",
+      "load_failed": "No se pudo cargar. Inténtalo de nuevo.",
+      "retry": "Reintentar"
+    }
   },
   "story": {
     "delete_error": "Error al eliminar la historia",

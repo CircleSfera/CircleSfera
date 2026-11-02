@@ -6,6 +6,7 @@ import {
   CirclePlus,
   EyeOff,
   Flag,
+  Info,
   Megaphone,
   Pencil,
   Trash2,
@@ -33,6 +34,8 @@ interface PostMenuProps {
   onHideAuthor?: () => void;
   // Share it to one's story as a card of the original.
   onAddToStory?: () => void;
+  // Why the post is shown to the viewer.
+  onWhy?: () => void;
 }
 
 interface MenuItemProps {
@@ -123,6 +126,7 @@ export default function PostMenu({
   onHidePost,
   onHideAuthor,
   onAddToStory,
+  onWhy,
 }: PostMenuProps) {
   const { t } = useTranslation();
   if (!showMenu) return null;
@@ -211,6 +215,13 @@ export default function PostMenu({
               icon={VolumeX}
               label={t('post.menu.mute')}
               onClick={onMute}
+            />
+          )}
+          {onWhy && (
+            <MenuItem
+              icon={Info}
+              label={t('post.why_seeing.open')}
+              onClick={onWhy}
             />
           )}
           <MenuItem

@@ -5,6 +5,7 @@ import {
   Bookmark,
   CirclePlus,
   Flag,
+  Info,
   Megaphone,
   Pencil,
   Trash2,
@@ -25,6 +26,8 @@ export interface FrameMenuActions {
   onArchive?: () => void;
   // Share it to one's story as a card of the original.
   onAddToStory?: () => void;
+  // Why the Frame is shown to the viewer.
+  onWhy?: () => void;
 }
 
 interface FrameOptionsSheetProps extends FrameMenuActions {
@@ -86,6 +89,7 @@ function OptionsBody({
   onPromote,
   onArchive,
   onAddToStory,
+  onWhy,
   onClose,
 }: FrameMenuActions & { isOwner: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -127,12 +131,21 @@ function OptionsBody({
           />
         </>
       ) : (
-        <OptionRow
-          icon={Flag}
-          label={t('post.menu.report')}
-          onClick={() => run(onReport)}
-          variant="danger"
-        />
+        <>
+          {onWhy && (
+            <OptionRow
+              icon={Info}
+              label={t('post.why_seeing.open')}
+              onClick={() => run(onWhy)}
+            />
+          )}
+          <OptionRow
+            icon={Flag}
+            label={t('post.menu.report')}
+            onClick={() => run(onReport)}
+            variant="danger"
+          />
+        </>
       )}
       {onAddToStory && (
         <OptionRow
@@ -162,6 +175,7 @@ export default function FrameOptionsSheet({
   onPromote,
   onArchive,
   onAddToStory,
+  onWhy,
 }: FrameOptionsSheetProps) {
   const { t } = useTranslation();
   const dragControls = useDragControls();
@@ -191,6 +205,7 @@ export default function FrameOptionsSheet({
     onPromote,
     onArchive,
     onAddToStory,
+    onWhy,
     onClose,
   };
 

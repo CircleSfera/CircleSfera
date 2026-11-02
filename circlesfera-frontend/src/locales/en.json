@@ -1378,7 +1378,25 @@
       }
     },
     "checkout_canceled": "Checkout was canceled.",
-    "checkout_success": "Payment successful. Content will unlock shortly."
+    "checkout_success": "Payment successful. Content will unlock shortly.",
+    "why_seeing": {
+      "open": "Why am I seeing this?",
+      "title": "Why am I seeing this?",
+      "intro": "This is what makes you see this post:",
+      "own": "It is your post.",
+      "following": "You follow @{{username}}.",
+      "close_friend": "@{{username}} has you on their close friends list and shared it with that list.",
+      "engaged_with_author": "You recently interacted with posts by @{{username}}.",
+      "liked_similar_tags": "It has {{tags}}, like posts you liked or saved.",
+      "similar_content": "It is like posts you liked recently.",
+      "popular": "It is getting a lot of interactions.",
+      "new": "It is a recent post.",
+      "none": "There is no specific reason for you: it is among recent and popular posts.",
+      "how": "Recommendations are based on who you follow, what you interact with on CircleSfera and what is popular. We do not use what you do outside CircleSfera.",
+      "control": "You can hide this post or its author from this same menu.",
+      "load_failed": "It could not be loaded. Please try again.",
+      "retry": "Try again"
+    }
   },
   "story": {
     "delete_error": "Failed to delete story",

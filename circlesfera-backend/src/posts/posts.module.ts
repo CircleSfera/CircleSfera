@@ -8,6 +8,7 @@ import {
 } from '../common/constants/queue-policy.constants.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
+import { PostWhyService } from './post-why.service.js';
 import { PostsController } from './posts.controller.js';
 import { PostsService } from './posts.service.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
@@ -29,6 +30,7 @@ import { PostPaywallService } from './services/post-paywall.service.js';
   controllers: [PostsController],
   providers: [
     PostsService,
+    PostWhyService,
     PostPaywallService,
     PostDistributionService,
     FrameCoverService,
