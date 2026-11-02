@@ -403,6 +403,19 @@ export class EmailService {
     );
   }
 
+  async sendPlanResumedEmail(
+    email: string,
+    planName: string,
+    username: string,
+    renewsAt: Date,
+  ) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.planResumed(ctx, planName, username, renewsAt),
+    );
+  }
+
   // Enqueue an email for delivery. Returns as soon as the job is
   // queued -- callers never block on Brevo's actual response time, and a
   // transient Brevo failure gets BullMQ's retry/backoff instead of being

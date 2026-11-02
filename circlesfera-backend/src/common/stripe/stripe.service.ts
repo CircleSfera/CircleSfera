@@ -337,6 +337,16 @@ export class StripeService implements OnModuleInit {
     return this.stripe.subscriptions.cancel(subscriptionId);
   }
 
+  // Takes back a cancellation at the end of the period: the subscription
+  // renews on its date again, and nothing is charged now.
+  async resumeSubscription(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: false,
+    });
+  }
+
   // Stripe Connect Methods
 
   // Creates a creator's payout account: the creator is the seller of what

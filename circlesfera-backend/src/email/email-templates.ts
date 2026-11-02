@@ -497,4 +497,33 @@ export const EmailTemplates = {
       }),
     };
   },
+
+  // A resumed plan: it renews on its date again.
+  planResumed: (
+    ctx: EmailContext,
+    planName: string,
+    username: string,
+    renewsAt: Date,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const date = renewsAt.toLocaleDateString(
+      ctx.locale === 'es' ? 'es-ES' : 'en-GB',
+      { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
+    );
+    return {
+      subject: fill(copy.planResumed.subject, { plan: planName }),
+      html: layout(ctx, copy, {
+        title: copy.planResumed.title,
+        content: fill(copy.planResumed.body, {
+          plan: escapeHtml(planName),
+          username: escapeHtml(username),
+          date: escapeHtml(date),
+        }),
+        button: {
+          text: copy.planResumed.button,
+          url: `${ctx.frontendUrl}/accounts/billing`,
+        },
+      }),
+    };
+  },
 };

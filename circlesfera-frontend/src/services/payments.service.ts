@@ -35,6 +35,13 @@ export const paymentsApi = {
     return response.data;
   },
 
+  // Takes back the cancellation of the plan of the profile in use while it
+  // lasts; answers the billing status after it.
+  resumePlan: async () => {
+    const response = await api.post('/payments/plan/resume');
+    return response.data;
+  },
+
   // Get billing status for the current user
   getBillingStatus: async () => {
     const response = await api.get('/payments/status');

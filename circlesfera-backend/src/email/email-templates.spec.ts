@@ -148,6 +148,22 @@ describe('EmailTemplates', () => {
     ).toContain('1 de noviembre de 2026');
   });
 
+  it('a resumed plan says when it renews, in each language, and links to the plan', () => {
+    const renewsAt = new Date('2026-11-01T00:00:00.000Z');
+    const mail = EmailTemplates.planResumed(en, '<b>Pro</b>', 'ana', renewsAt);
+
+    expect(mail.subject).toBe('Your <b>Pro</b> plan continues');
+    expect(mail.html).toContain('renews on <strong>1 November 2026</strong>');
+    expect(mail.html).toContain('&lt;b&gt;Pro&lt;/b&gt;');
+    expect(mail.html).toContain('@ana');
+    expect(mail.html).toContain(
+      'href="https://circlesfera.com/accounts/billing"',
+    );
+    expect(
+      EmailTemplates.planResumed(es, 'Pro', 'ana', renewsAt).html,
+    ).toContain('1 de noviembre de 2026');
+  });
+
   it('links the receipt and the removed post to live app pages', () => {
     expect(
       EmailTemplates.subscriptionReceipt(en, 'Premium', '€9.99').html,

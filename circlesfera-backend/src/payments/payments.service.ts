@@ -477,6 +477,70 @@ export class PaymentsService {
     return this.getBillingStatus(userId, profileId);
   }
 
+  // Takes back the cancellation of the plan of the Profile in use while it
+  // is still in force: it renews on its date again and nothing is charged
+  // now. Only the person who pays it can. Resuming a plan that is not
+  // cancelled changes nothing; a plan whose period has ended, or whose
+  // renewal failed, is not resumed (a new checkout is the way back).
+  async resumePlan(userId: string, profileId: string) {
+    const subscription = await this.prisma.platformSubscription.findFirst({
+      where: {
+        userId,
+        profileId: profileId || '__no_profile__',
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+      },
+      include: {
+        plan: { select: { name: true } },
+        profile: { select: { username: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (!subscription) {
+      throw AppException.NotFound(
+        ErrorCode.SUBSCRIPTION_NOT_FOUND,
+        'This profile has no plan to resume',
+      );
+    }
+
+    if (subscription.cancelAtPeriodEnd) {
+      if (subscription.currentPeriodEnd.getTime() <= Date.now()) {
+        throw AppException.NotFound(
+          ErrorCode.SUBSCRIPTION_NOT_FOUND,
+          'This plan has ended and cannot be resumed',
+        );
+      }
+      await this.stripeService.resumeSubscription(
+        subscription.stripeSubscriptionId,
+      );
+      await this.prisma.platformSubscription.update({
+        where: { id: subscription.id },
+        data: { cancelAtPeriodEnd: false },
+      });
+
+      // Telling the payer is best effort: the plan already continues.
+      try {
+        const payer = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true },
+        });
+        if (payer?.email) {
+          await this.emailService.sendPlanResumedEmail(
+            payer.email,
+            subscription.plan.name,
+            subscription.profile?.username ?? '',
+            subscription.currentPeriodEnd,
+          );
+        }
+      } catch (err) {
+        this.logger.error('Failed to send the plan resumed email', err);
+      }
+    }
+
+    return this.getBillingStatus(userId, profileId);
+  }
+
   private async plansOfOtherProfiles(userId: string, profileId: string) {
     const others = await this.prisma.platformSubscription.findMany({
       where: {

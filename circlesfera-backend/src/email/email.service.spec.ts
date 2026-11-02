@@ -487,6 +487,22 @@ describe('EmailService', () => {
       );
     });
 
+    it('enqueues the email of a resumed plan', async () => {
+      await service.sendPlanResumedEmail(
+        'subscriber@example.com',
+        'Pro Creator',
+        'ana',
+        new Date('2026-11-01T00:00:00.000Z'),
+      );
+      expect(mockEmailQueue.add).toHaveBeenCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({
+          to: 'subscriber@example.com',
+          subject: 'Tu plan Pro Creator continúa',
+        }),
+      );
+    });
+
     it('should enqueue a subscription receipt email', async () => {
       await service.sendSubscriptionReceipt(
         'subscriber@example.com',

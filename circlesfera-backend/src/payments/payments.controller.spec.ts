@@ -36,6 +36,7 @@ describe('PaymentsController', () => {
     getPortalUrl: vi.fn(),
     getBillingStatus: vi.fn(),
     cancelPlan: vi.fn(),
+    resumePlan: vi.fn(),
     getLedgerCsv: vi.fn(),
     constructEvent: vi.fn(),
     processWebhookEvent: vi.fn(),
@@ -170,6 +171,28 @@ describe('PaymentsController', () => {
       TEST_USER.userId,
       TEST_USER.profileId,
     );
+  });
+
+  it('resumes the plan of the session Profile, for the person who pays it', async () => {
+    mockService.resumePlan.mockResolvedValue({ hasActiveSubscription: true });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/resume')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual({ hasActiveSubscription: true });
+    expect(mockService.resumePlan).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
+  });
+
+  it('refuses to resume a plan without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/resume')
+      .expect(401);
+    expect(mockService.resumePlan).not.toHaveBeenCalled();
   });
 
   it('rejects the admin ledger with a user session', async () => {
