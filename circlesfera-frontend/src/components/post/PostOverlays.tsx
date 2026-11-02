@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ import { buildPostElement } from '../story/storyComposer.append';
 import { storyStartRoute } from '../story/storyStart';
 import PostMenu from './PostMenu';
 import PostModals from './PostModals';
+import WhySeeingDialog from './WhySeeingDialog';
 
 const PromoteModal = lazy(() => import('../creator/PromoteModal'));
 
@@ -64,6 +65,7 @@ export default function PostOverlays({
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [whyOpen, setWhyOpen] = useState(false);
 
   // Archiving takes the post off the profile and every list, for everyone,
   // the author included; showing it again puts it back in its place.
@@ -168,6 +170,14 @@ export default function PostOverlays({
               setShowMenu(false);
               setShowAddToCollectionModal(true);
             }}
+            onWhy={
+              !isOwner
+                ? () => {
+                    setShowMenu(false);
+                    setWhyOpen(true);
+                  }
+                : undefined
+            }
             onMute={!isOwner ? handleMute : undefined}
             onHidePost={!isOwner ? hidePost : undefined}
             onHideAuthor={!isOwner ? hideAuthor : undefined}
@@ -198,6 +208,14 @@ export default function PostOverlays({
         onEdit={handleEdit}
         isEditing={updateMutation.isPending}
       />
+
+      {whyOpen && (
+        <WhySeeingDialog
+          postId={post.id}
+          isOpen={whyOpen}
+          onClose={() => setWhyOpen(false)}
+        />
+      )}
 
       <ReportModal
         isOpen={showReportModal}

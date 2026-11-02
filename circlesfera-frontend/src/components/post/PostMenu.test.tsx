@@ -72,4 +72,15 @@ describe('PostMenu', () => {
       screen.queryByRole('button', { name: 'Add to your story' }),
     ).not.toBeInTheDocument();
   });
+
+  it('offers someone else to see why the post is shown, and not its author', () => {
+    const props = show({ isOwner: false, onWhy: vi.fn() });
+    fireEvent.click(screen.getByText('Why am I seeing this?'));
+    expect(props.onWhy).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no reason to the author of the post', () => {
+    show({ isOwner: true, onWhy: vi.fn() });
+    expect(screen.queryByText('Why am I seeing this?')).not.toBeInTheDocument();
+  });
 });

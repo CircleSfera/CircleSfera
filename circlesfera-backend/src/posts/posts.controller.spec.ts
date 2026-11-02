@@ -21,6 +21,7 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
+import { PostWhyService } from './post-why.service.js';
 import { PostsController } from './posts.controller.js';
 import { PostsService } from './posts.service.js';
 
@@ -39,11 +40,15 @@ describe('PostsController', () => {
     remove: vi.fn(),
     adminRemove: vi.fn(),
   };
+  const mockWhy = { why: vi.fn() };
 
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [PostsController],
-      providers: [{ provide: PostsService, useValue: mockService }],
+      providers: [
+        { provide: PostsService, useValue: mockService },
+        { provide: PostWhyService, useValue: mockWhy },
+      ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: EmailVerifiedGuard, mode: 'allow' },
@@ -111,6 +116,22 @@ describe('PostsController', () => {
       'trending',
       TEST_USER.profileId,
     );
+  });
+
+  it('says why a post is shown, to the session Profile or to a visitor', async () => {
+    mockWhy.why.mockResolvedValue({ reasons: [{ code: 'new' }] });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/posts/post-1/why')
+      .set(BEARER)
+      .expect(200);
+    expect(res.body).toEqual({ reasons: [{ code: 'new' }] });
+    expect(mockWhy.why).toHaveBeenCalledWith('post-1', TEST_USER.profileId);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/post-1/why')
+      .expect(200);
+    expect(mockWhy.why).toHaveBeenLastCalledWith('post-1', undefined);
   });
 
   it('lists posts without a profile when anonymous', async () => {

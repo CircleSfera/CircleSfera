@@ -1,6 +1,20 @@
 import type { CreatePostDto, PaginatedResponse, Post } from '../types';
 import { apiClient } from './api';
 
+export type PostWhyReason =
+  | { code: 'own' }
+  | { code: 'following'; username: string }
+  | { code: 'engaged_with_author'; username: string }
+  | { code: 'liked_similar_tags'; tags: string[] }
+  | { code: 'similar_content' }
+  | { code: 'popular' }
+  | { code: 'new' }
+  | { code: 'promoted'; username: string; countries: string[] };
+
+export interface PostWhy {
+  reasons: PostWhyReason[];
+}
+
 export const postsApi = {
   create: (data: CreatePostDto) => apiClient.post<Post>('posts', data),
 
@@ -25,6 +39,9 @@ export const postsApi = {
     }),
 
   getById: (id: string) => apiClient.get<Post>(`posts/${id}`),
+
+  // Why the post is shown to the viewer: the reasons the server finds true.
+  getWhy: (id: string) => apiClient.get<PostWhy>(`posts/${id}/why`),
 
   // The caption and, for a frame, the moment of its video used as the cover.
   // The media itself cannot be changed.

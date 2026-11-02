@@ -390,6 +390,7 @@ export default function Frames() {
                     onSave={menuActions.onSave}
                     onArchive={menuActions.onArchive}
                     onAddToStory={menuActions.onAddToStory}
+                    onWhy={menuActions.onWhy}
                     onPromote={
                       canPromoteFrame ? menuActions.onPromote : undefined
                     }

@@ -49,6 +49,17 @@ describe('FrameOptionsSheet', () => {
     expect(options()).toEqual(['Report', 'Save']);
   });
 
+  it('offers a viewer to see why the Frame is shown, closing first, and never to its owner', () => {
+    const viewer = show({ onWhy: vi.fn(() => order.push('why')) });
+    expect(options()).toEqual(['Why am I seeing this?', 'Report', 'Save']);
+    fireEvent.click(screen.getByText('Why am I seeing this?'));
+    expect(order).toEqual(['close', 'why']);
+    viewer.unmount();
+
+    show({ isOwner: true, onWhy: vi.fn() });
+    expect(options()).not.toContain('Why am I seeing this?');
+  });
+
   it('offers the owner to edit, delete and save, and to promote when that is possible', () => {
     const plain = show({ isOwner: true });
     expect(options()).toEqual(['Edit', 'Delete', 'Save']);

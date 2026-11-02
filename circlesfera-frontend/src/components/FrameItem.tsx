@@ -44,6 +44,7 @@ import {
   type WithdrawalConsentGiven,
 } from './payments/WithdrawalConsent';
 import EditCaptionDialog from './post/EditCaptionDialog';
+import WhySeeingDialog from './post/WhySeeingDialog';
 import { buildPostElement } from './story/storyComposer.append';
 import { storyStartRoute } from './story/storyStart';
 
@@ -90,6 +91,7 @@ export default function FrameItem({
   );
   const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showWhy, setShowWhy] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -212,6 +214,7 @@ export default function FrameItem({
       },
       onDelete: () => setShowDeleteModal(true),
       onReport: () => setShowReportModal(true),
+      onWhy: () => setShowWhy(true),
       onSave: () => onSaveOpenRef.current?.(),
       onPromote: canPromote ? () => setShowPromoteModal(true) : undefined,
       onArchive: () => archiveFrame(),
@@ -584,6 +587,13 @@ export default function FrameItem({
         </div>
       </div>
 
+      {showWhy && (
+        <WhySeeingDialog
+          postId={post.id}
+          isOpen={showWhy}
+          onClose={() => setShowWhy(false)}
+        />
+      )}
       <ReportModal
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}

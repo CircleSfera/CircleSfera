@@ -39,6 +39,7 @@ import { CreatePostDto } from './dto/create-post.dto.js';
 import { FindPostsQueryDto } from './dto/find-posts-query.dto.js';
 import { GetPostsDto } from './dto/get-posts.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
+import { PostWhyService } from './post-why.service.js';
 import { PostsService } from './posts.service.js';
 
 // REST controller for post CRUD, feed generation, discovery, and admin operations.
@@ -47,6 +48,7 @@ import { PostsService } from './posts.service.js';
 export class PostsController {
   constructor(
     @Inject(PostsService) private readonly postsService: PostsService,
+    @Inject(PostWhyService) private readonly postWhyService: PostWhyService,
   ) {}
 
   // Create a new post (requires authentication).
@@ -138,6 +140,18 @@ export class PostsController {
   }
 
   // Get a single post by ID. Supports guest access.
+  // Why this post is shown to the viewer: the reasons true for them.
+  @Get(':id/why')
+  @MemberAllowed('browse')
+  @UseGuards(JwtOptionalGuard)
+  @ApiResponse({ status: 200, type: Object })
+  async why(
+    @CurrentUser() user: CurrentUserData | null,
+    @Param('id') id: string,
+  ) {
+    return this.postWhyService.why(id, user?.profileId);
+  }
+
   @Get(':id')
   @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
