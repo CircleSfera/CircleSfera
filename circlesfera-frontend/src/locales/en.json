@@ -1385,7 +1385,6 @@
       "intro": "This is what makes you see this post:",
       "own": "It is your post.",
       "following": "You follow @{{username}}.",
-      "close_friend": "@{{username}} has you on their close friends list and shared it with that list.",
       "engaged_with_author": "You recently interacted with posts by @{{username}}.",
       "liked_similar_tags": "It has {{tags}}, like posts you liked or saved.",
       "similar_content": "It is like posts you liked recently.",
@@ -1395,7 +1394,8 @@
       "how": "Recommendations are based on who you follow, what you interact with on CircleSfera and what is popular. We do not use what you do outside CircleSfera.",
       "control": "You can hide this post or its author from this same menu.",
       "load_failed": "It could not be loaded. Please try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "how_link": "How your feed works"
     }
   },
   "story": {

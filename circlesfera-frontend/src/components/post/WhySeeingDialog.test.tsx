@@ -40,6 +40,10 @@ describe('WhySeeingDialog', () => {
       screen.getByText(i18n!.t('post.why_seeing.how')),
     ).toBeInTheDocument();
     expect(postsApi.getWhy).toHaveBeenCalledWith('post-1');
+    // The general explanation leads to the help centre's article.
+    expect(
+      screen.getByRole('link', { name: 'How your feed works' }),
+    ).toHaveAttribute('href', '/help/how-your-feed-works');
   });
 
   it('explains a promotion with who paid and where it is aimed', async () => {

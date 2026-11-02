@@ -4,7 +4,6 @@ import { apiClient } from './api';
 export type PostWhyReason =
   | { code: 'own' }
   | { code: 'following'; username: string }
-  | { code: 'close_friend'; username: string }
   | { code: 'engaged_with_author'; username: string }
   | { code: 'liked_similar_tags'; tags: string[] }
   | { code: 'similar_content' }

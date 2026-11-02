@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, Visibility } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
@@ -24,11 +24,13 @@ export const POPULAR_SCORE = 20;
 export const SIMILAR_SCORE = 0.65;
 // The viewer's likes the taste is read from, as the feed does.
 const RECENT_LIKES = 20;
+// How many of the viewer's recent likes and saves the shared tags are read
+// from, each.
+const RECENT_ACTIVITY = 200;
 
 export type WhyReason =
   | { code: 'own' }
   | { code: 'following'; username: string }
-  | { code: 'close_friend'; username: string }
   | { code: 'engaged_with_author'; username: string }
   | { code: 'liked_similar_tags'; tags: string[] }
   | { code: 'similar_content' }
@@ -68,7 +70,6 @@ export class PostWhyService {
       select: {
         id: true,
         profileId: true,
-        visibility: true,
         createdAt: true,
         performanceScore: true,
         profile: { select: { username: true } },
@@ -107,7 +108,6 @@ export class PostWhyService {
     post: {
       id: string;
       profileId: string;
-      visibility: Visibility;
       hashtags: { hashtag: { id: string; tag: string } }[];
     },
     author: string,
@@ -115,33 +115,17 @@ export class PostWhyService {
     const reasons: WhyReason[] = [];
     const since = new Date(Date.now() - ACTIVITY_DAYS * 86_400_000);
 
-    const [follow, closeFriend] = await Promise.all([
-      this.prisma.follow.findUnique({
-        where: {
-          followerId_followingId: {
-            followerId: viewer,
-            followingId: post.profileId,
-          },
+    const follow = await this.prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: viewer,
+          followingId: post.profileId,
         },
-        select: { status: true },
-      }),
-      // Said only for a post for close friends: the viewer sees it because
-      // the author has them on that list, which they then already know.
-      post.visibility === Visibility.PRIVATE
-        ? this.prisma.closeFriend.findUnique({
-            where: {
-              profileId_friendId: {
-                profileId: post.profileId,
-                friendId: viewer,
-              },
-            },
-            select: { id: true },
-          })
-        : Promise.resolve(null),
-    ]);
+      },
+      select: { status: true },
+    });
 
     const follows = follow?.status === 'ACCEPTED';
-    if (closeFriend) reasons.push({ code: 'close_friend', username: author });
     if (follows) {
       reasons.push({ code: 'following', username: author });
     } else {
@@ -167,31 +151,36 @@ export class PostWhyService {
     }
 
     // Tags of this post that are also on posts the viewer liked or saved.
+    // It starts from the viewer's own recent likes and saves (few, and read
+    // by the viewer's index), never from every post of a popular tag.
     const tagIds = post.hashtags.map((h) => h.hashtag.id);
     if (tagIds.length > 0) {
-      const shared = await this.prisma.postHashtag.findMany({
-        where: {
-          hashtagId: { in: tagIds },
-          postId: { not: post.id },
-          post: {
-            OR: [
-              {
-                likes: {
-                  some: { profileId: viewer, createdAt: { gte: since } },
-                },
-              },
-              {
-                bookmarks: {
-                  some: { profileId: viewer, createdAt: { gte: since } },
-                },
-              },
-            ],
-          },
-        },
-        distinct: ['hashtagId'],
-        select: { hashtag: { select: { tag: true } } },
-        take: 3,
-      });
+      const recent = { profileId: viewer, createdAt: { gte: since } };
+      const [liked, saved] = await Promise.all([
+        this.prisma.like.findMany({
+          where: { ...recent, postId: { not: post.id } },
+          orderBy: { createdAt: 'desc' },
+          take: RECENT_ACTIVITY,
+          select: { postId: true },
+        }),
+        this.prisma.bookmark.findMany({
+          where: { ...recent, postId: { not: post.id } },
+          orderBy: { createdAt: 'desc' },
+          take: RECENT_ACTIVITY,
+          select: { postId: true },
+        }),
+      ]);
+      const postIds = [
+        ...new Set([...liked, ...saved].map((row) => row.postId)),
+      ];
+      const shared = postIds.length
+        ? await this.prisma.postHashtag.findMany({
+            where: { postId: { in: postIds }, hashtagId: { in: tagIds } },
+            distinct: ['hashtagId'],
+            select: { hashtag: { select: { tag: true } } },
+            take: 3,
+          })
+        : [];
       if (shared.length > 0) {
         reasons.push({
           code: 'liked_similar_tags',

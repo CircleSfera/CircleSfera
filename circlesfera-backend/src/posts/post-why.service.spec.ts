@@ -13,8 +13,8 @@ describe('PostWhyService', () => {
   const prisma = {
     post: { findUnique: vi.fn() },
     follow: { findUnique: vi.fn() },
-    closeFriend: { findUnique: vi.fn() },
     like: { count: vi.fn(), findMany: vi.fn() },
+    bookmark: { findMany: vi.fn() },
     comment: { count: vi.fn() },
     postHashtag: { findMany: vi.fn() },
     promotion: { findFirst: vi.fn() },
@@ -38,7 +38,7 @@ describe('PostWhyService', () => {
     vi.mocked(assertCanAccessPost).mockResolvedValue({} as never);
     prisma.post.findUnique.mockResolvedValue(post());
     prisma.follow.findUnique.mockResolvedValue(null);
-    prisma.closeFriend.findUnique.mockResolvedValue(null);
+    prisma.bookmark.findMany.mockResolvedValue([]);
     prisma.like.count.mockResolvedValue(0);
     prisma.like.findMany.mockResolvedValue([]);
     prisma.comment.count.mockResolvedValue(0);
@@ -98,26 +98,6 @@ describe('PostWhyService', () => {
     expect(await codes('viewer')).not.toContain('following');
   });
 
-  it('says close friend only for a post for close friends', async () => {
-    prisma.post.findUnique.mockResolvedValue(post({ visibility: 'PRIVATE' }));
-    prisma.closeFriend.findUnique.mockResolvedValue({ id: 'cf' });
-
-    const { reasons } = await service.why('post-1', 'viewer');
-
-    expect(reasons).toContainEqual({ code: 'close_friend', username: 'ana' });
-    expect(prisma.closeFriend.findUnique).toHaveBeenCalledWith({
-      where: {
-        profileId_friendId: { profileId: 'author', friendId: 'viewer' },
-      },
-      select: { id: true },
-    });
-
-    vi.clearAllMocks();
-    prisma.post.findUnique.mockResolvedValue(post());
-    await service.why('post-1', 'viewer');
-    expect(prisma.closeFriend.findUnique).not.toHaveBeenCalled();
-  });
-
   it('says the viewer engaged with an author they do not follow', async () => {
     prisma.comment.count.mockResolvedValue(2);
 
@@ -135,10 +115,17 @@ describe('PostWhyService', () => {
     });
   });
 
-  it('names up to three tags shared with posts the viewer liked or saved', async () => {
+  it('names up to three tags shared with posts the viewer liked or saved, starting from their own recent activity', async () => {
     prisma.post.findUnique.mockResolvedValue(
       post({ hashtags: [{ hashtag: { id: 'h1', tag: 'cats' } }] }),
     );
+    prisma.like.findMany.mockImplementation(async (args: { take: number }) =>
+      args.take === 200 ? [{ postId: 'liked-1' }] : [],
+    );
+    prisma.bookmark.findMany.mockResolvedValue([
+      { postId: 'saved-1' },
+      { postId: 'liked-1' },
+    ]);
     prisma.postHashtag.findMany.mockResolvedValue([
       { hashtag: { tag: 'cats' } },
     ]);
@@ -149,15 +136,36 @@ describe('PostWhyService', () => {
       code: 'liked_similar_tags',
       tags: ['cats'],
     });
-    expect(prisma.postHashtag.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          hashtagId: { in: ['h1'] },
-          postId: { not: 'post-1' },
-        }),
-        take: 3,
-      }),
+    // The viewer's own recent likes and saves, bounded, never this post.
+    expect(prisma.bookmark.findMany).toHaveBeenCalledWith({
+      where: {
+        profileId: 'viewer',
+        createdAt: { gte: expect.any(Date) },
+        postId: { not: 'post-1' },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      select: { postId: true },
+    });
+    // Then only their tags, on those posts.
+    expect(prisma.postHashtag.findMany).toHaveBeenCalledWith({
+      where: {
+        postId: { in: ['liked-1', 'saved-1'] },
+        hashtagId: { in: ['h1'] },
+      },
+      distinct: ['hashtagId'],
+      select: { hashtag: { select: { tag: true } } },
+      take: 3,
+    });
+  });
+
+  it('reads no tags when the viewer liked and saved nothing lately', async () => {
+    prisma.post.findUnique.mockResolvedValue(
+      post({ hashtags: [{ hashtag: { id: 'h1', tag: 'cats' } }] }),
     );
+
+    expect(await codes('viewer')).not.toContain('liked_similar_tags');
+    expect(prisma.postHashtag.findMany).not.toHaveBeenCalled();
   });
 
   it("says the post matches what the viewer liked, at the feed's threshold", async () => {

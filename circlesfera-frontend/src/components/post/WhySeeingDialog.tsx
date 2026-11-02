@@ -7,12 +7,12 @@ import {
   Megaphone,
   MessageCircle,
   Sparkles,
-  Star,
   TrendingUp,
   User,
   UserCheck,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { type PostWhyReason, postsApi } from '../../services/posts.service';
 import { countryName } from '../../utils/countries';
 import { Button } from '../ui';
@@ -27,7 +27,6 @@ interface Props {
 const ICONS: Record<PostWhyReason['code'], LucideIcon> = {
   own: User,
   following: UserCheck,
-  close_friend: Star,
   engaged_with_author: MessageCircle,
   liked_similar_tags: Hash,
   similar_content: Heart,
@@ -58,7 +57,6 @@ export default function WhySeeingDialog({ postId, isOpen, onClose }: Props) {
   const sentence = (reason: PostWhyReason): string => {
     switch (reason.code) {
       case 'following':
-      case 'close_friend':
       case 'engaged_with_author':
         return t(`post.why_seeing.${reason.code}`, {
           username: reason.username,
@@ -138,6 +136,13 @@ export default function WhySeeingDialog({ postId, isOpen, onClose }: Props) {
               <p>{t('post.why_seeing.none')}</p>
             )}
             <p className="text-white/60">{t('post.why_seeing.how')}</p>
+            <Link
+              to="/help/how-your-feed-works"
+              onClick={onClose}
+              className="inline-flex min-h-11 items-center font-semibold text-brand-primary-text underline underline-offset-2"
+            >
+              {t('post.why_seeing.how_link')}
+            </Link>
             <p className="text-white/60">{t('post.why_seeing.control')}</p>
           </>
         )}
