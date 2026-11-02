@@ -336,6 +336,7 @@ const cases: Case[] = [
   [
     'getCompanies',
     () => adminApi.getCompanies({ search: 'acme', page: 2 }),
+    'get',
     ['admin/companies', q({ search: 'acme', page: 2 })],
   ],
   [
