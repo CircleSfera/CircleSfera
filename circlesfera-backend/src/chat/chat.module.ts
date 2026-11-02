@@ -19,6 +19,7 @@ import { ChatProcessor } from './processors/chat.processor.js';
 import { ChatAuthorizationService } from './services/chat-authorization.service.js';
 import { EndedConversationsErasureService } from './services/ended-conversations-erasure.service.js';
 import { GroupAdminSuccessionService } from './services/group-admin-succession.service.js';
+import { OldDeletedMessagesService } from './services/old-deleted-messages.service.js';
 // Group Commands
 import { CreateGroupUseCase } from './use-cases/groups/create-group.use-case.js';
 import { DeleteConversationUseCase } from './use-cases/groups/delete-conversation.use-case.js';
@@ -88,6 +89,7 @@ const useCases = [
     ChatAuthorizationService,
     GroupAdminSuccessionService,
     EndedConversationsErasureService,
+    OldDeletedMessagesService,
   ],
   controllers: [ChatController],
   exports: [AddReactionUseCase], // Exported for AppGateway
