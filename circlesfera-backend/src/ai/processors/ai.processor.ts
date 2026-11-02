@@ -12,6 +12,22 @@ import {
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService, classifyOpenAIError } from '../ai.service.js';
 
+// How a report filed by a moderation rule starts.
+const RULE_REPORT_PREFIX = '[Moderation rule]:';
+
+// Whether a text holds a rule's word or phrase as whole words, in any case
+// and with accents as written: "spam" matches "Spam!" but not "spammer".
+// Any run of spaces or line breaks in the text counts as one space.
+export function ruleMatches(text: string, keyword: string): boolean {
+  const escaped = keyword
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\s+/g, '\\s+');
+  return new RegExp(
+    `(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`,
+    'iu',
+  ).test(text);
+}
+
 @Processor(
   QUEUE_NAMES.AI_PROCESSING,
   getWorkerOptions(QUEUE_NAMES.AI_PROCESSING),
@@ -333,6 +349,63 @@ export class AIProcessor extends WorkerHost {
     });
   }
 
+  // Content whose text holds the word or phrase of an active rule goes to the
+  // review queue: a report is filed for staff to look at it. Nothing about
+  // the content changes (owner decision: a rule hides nothing, not even from
+  // Explore or search; a person decides). One open rule report per piece of
+  // content: running again (an edit, a retry) files no second one. A failure
+  // here is logged and never stops the other checks.
+  private async applyModerationRules(
+    targetType: 'POST' | 'STORY' | 'COMMENT',
+    targetId: string,
+    text: string | undefined,
+  ) {
+    if (!text?.trim()) return;
+    try {
+      const rules = await this.prisma.moderationRule.findMany({
+        where: { isActive: true },
+        select: { keyword: true },
+      });
+      const normalised = text.normalize('NFC');
+      const matched = rules
+        .map((rule) => rule.keyword.trim().normalize('NFC'))
+        .filter((keyword) => keyword && ruleMatches(normalised, keyword));
+      if (matched.length === 0) return;
+
+      const open = await this.prisma.report.findFirst({
+        where: {
+          targetType,
+          targetId,
+          status: 'PENDING',
+          details: { startsWith: RULE_REPORT_PREFIX },
+        },
+        select: { id: true },
+      });
+      if (open) return;
+
+      const actor = await resolveSystemModeratorActor(this.prisma);
+      if (!actor) {
+        this.logger.error(
+          `Cannot file a rule report for ${targetId}: no ACTIVE operator with a profile.`,
+        );
+        return;
+      }
+      await this.prisma.report.create({
+        data: {
+          reporterId: actor.profileId,
+          targetType,
+          targetId,
+          reason: 'OTHER',
+          details: `${RULE_REPORT_PREFIX} The text matches the rule${matched.length > 1 ? 's' : ''} ${matched.map((k) => `"${k}"`).join(', ')}.`,
+        },
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        `Could not apply the moderation rules to ${targetType} ${targetId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
   private async handleModerateContent(
     job: Job<
       {
@@ -380,6 +453,10 @@ export class AIProcessor extends WorkerHost {
         if (comment?.url) mediaUrls = [comment.url];
       }
     }
+
+    // The rules staff keep (words or phrases) are applied first and without
+    // the AI service, so they hold even when it is down.
+    await this.applyModerationRules(targetType, targetId, text);
 
     try {
       // Vector Firewall: Pre-check using existing ModerationSignatures

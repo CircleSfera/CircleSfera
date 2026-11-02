@@ -3990,7 +3990,8 @@
       "category_sexual": "Sexual",
       "category_violence": "Violence",
       "category_scam": "Scam",
-      "new_signature": "New signature"
+      "new_signature": "New signature",
+      "rule_flags_hint": "The rule sends content that holds this word or phrase to review. Nothing is hidden on its own: a person decides."
     },
     "whitelist": {
       "title": "Waitlist",

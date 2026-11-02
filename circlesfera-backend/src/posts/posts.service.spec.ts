@@ -101,6 +101,7 @@ describe('PostsService', () => {
 
   const mockPostDistributionService = {
     dispatchPostPublished: vi.fn().mockResolvedValue(undefined),
+    moderateEditedCaption: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockFrameCover = { choose: vi.fn() };
@@ -1412,6 +1413,23 @@ describe('PostsService', () => {
         },
         include: expect.any(Object),
       });
+      // A changed caption is checked again, as a new post is.
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).toHaveBeenCalledWith('post-1', 'new caption');
+    });
+
+    it('does not check the post again when its caption is not changed', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        media: [],
+      });
+
+      await service.update('post-1', { visibility: Visibility.PUBLIC });
+
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).not.toHaveBeenCalled();
     });
 
     it('chooses the cover of a frame before changing its caption', async () => {

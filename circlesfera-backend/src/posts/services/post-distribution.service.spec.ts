@@ -199,4 +199,14 @@ describe('PostDistributionService', () => {
       expect(mockFeedFanoutQueue.add).not.toHaveBeenCalled();
     });
   });
+
+  it('checks an edited caption again with the moderation job', async () => {
+    await service.moderateEditedCaption('post-9', 'a new caption');
+
+    expect(mockAiQueue.add).toHaveBeenCalledWith('moderate-content', {
+      targetId: 'post-9',
+      text: 'a new caption',
+      targetType: 'POST',
+    });
+  });
 });

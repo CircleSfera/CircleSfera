@@ -3990,7 +3990,8 @@
       "category_sexual": "Sexual",
       "category_violence": "Violencia",
       "category_scam": "Estafa",
-      "new_signature": "Nueva firma"
+      "new_signature": "Nueva firma",
+      "rule_flags_hint": "La regla envía a revisión el contenido que contiene esta palabra o frase. Nada se oculta solo: lo decide una persona."
     },
     "whitelist": {
       "title": "Lista de espera",
