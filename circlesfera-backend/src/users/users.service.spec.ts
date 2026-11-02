@@ -343,7 +343,6 @@ describe('UsersService', () => {
       const firstBan = new Date('2026-09-01T00:00:00Z');
       mockPrismaService.user.update.mockResolvedValue({ id: '1' });
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        stripeConnectAccountId: null,
         payoutsHeldAt: firstBan,
       });
 
@@ -355,12 +354,16 @@ describe('UsersService', () => {
       });
     });
 
-    it('holds an account kept only on the person, once, and ends the sessions first', async () => {
+    it('holds no account kept only on the person, and ends the sessions before holding', async () => {
       mockPrismaService.user.update.mockResolvedValue({ id: '1' });
+      // The person's own column is no longer read: only the rows hold accounts.
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        stripeConnectAccountId: 'acct_person',
+        stripeConnectAccountId: 'acct_column_only',
+        payoutsHeldAt: null,
       });
-      mockPrismaService.monetization.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.monetization.findMany.mockResolvedValueOnce([
+        { stripeConnectAccountId: 'acct_person' },
+      ]);
       const order: string[] = [];
       mockPrismaService.refreshToken.deleteMany.mockImplementationOnce(
         async () => {
@@ -374,6 +377,10 @@ describe('UsersService', () => {
 
       await service.banUser('1');
 
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { id: '1' },
+        select: { payoutsHeldAt: true },
+      });
       expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledTimes(1);
       expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
         'acct_person',

@@ -69,7 +69,6 @@ describe('MonetizationWebhookService', () => {
                 {
                   id: 'creator-prof-1',
                   accountType: 'CREATOR',
-                  user: { stripeConnectAccountId: 'acct_creator' },
                 },
               ]),
             },
@@ -210,15 +209,13 @@ describe('MonetizationWebhookService', () => {
           // A row without a connected account is placed again too.
           update: {
             profileId: 'creator-prof-1',
-            stripeConnectAccountId: 'acct_creator',
             lifetimeEarningsCents: { increment: creatorShareCents },
           },
-          // A new row is kept with the Profile holding the person's
-          // payout account, and the account.
+          // A new row is kept with the person's earning Profile; its account
+          // is only ever written by connecting.
           create: {
             userId: 'creator1',
             profileId: 'creator-prof-1',
-            stripeConnectAccountId: 'acct_creator',
             lifetimeEarningsCents: creatorShareCents,
           },
         }),

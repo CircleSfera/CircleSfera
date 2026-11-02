@@ -6,7 +6,7 @@
 
 ## Context
 
-Creator monetization (tips, story/post unlocks, creator subscriptions) settles through Stripe Connect Express, using `stripeConnectAccountId` on `User` (`destination` charges — see `CreatorSubscriptionsService`, `MonetizationService`). An earlier iteration of the schema had a `PAYOUT` value in `TransactionType`, implying an internal payout ledger; it was removed (see `00-status.md`, migration `20260723020000_appeals_profile_embeddings_drop_payouts`).
+Creator monetization (tips, story/post unlocks, creator subscriptions) settles through Stripe Connect Express, using the creator's payout account kept on the payout row (`monetization.stripeConnectAccountId`) of the Profile, or of the person (PD-046; the copy once kept on `User` is no longer read or written). Payments to creators were `destination` charges when this record was written; they are direct charges on that account since ADR-0029. An earlier iteration of the schema had a `PAYOUT` value in `TransactionType`, implying an internal payout ledger; it was removed (see `00-status.md`, migration `20260723020000_appeals_profile_embeddings_drop_payouts`).
 
 Today, `MonetizationService`:
 - `getConnectStatus` returns cached/live `transfersEnabled` / `chargesEnabled` flags for the creator's Connect account.

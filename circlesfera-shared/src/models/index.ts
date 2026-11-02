@@ -6,7 +6,6 @@ export interface User {
   lastSeenAt?: Date | string | null;
   providerAccountId?: string | null;
   isMonetizationEnabled?: boolean;
-  stripeConnectAccountId?: string | null;
 }
 
 export interface Profile {

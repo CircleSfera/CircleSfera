@@ -6,21 +6,13 @@ import {
   payoutRowForProfile,
 } from './payout-account.js';
 
-const reader = (
-  profiles: Array<{ id: string; accountType: string }>,
-  account: string | null = 'acct_1',
-) => {
-  const findMany = vi.fn().mockResolvedValue(
-    profiles.map((profile) => ({
-      ...profile,
-      user: { stripeConnectAccountId: account },
-    })),
-  );
+const reader = (profiles: Array<{ id: string; accountType: string }>) => {
+  const findMany = vi.fn().mockResolvedValue(profiles);
   return { db: { profile: { findMany } } as any, findMany };
 };
 
 describe('payoutAccountOf', () => {
-  it("keeps the person's account with their oldest earning Profile, before an older personal one", async () => {
+  it("places the person's row with their oldest earning Profile, before an older personal one", async () => {
     const { db, findMany } = reader([
       { id: 'personal-oldest', accountType: 'PERSONAL' },
       { id: 'creator', accountType: 'CREATOR' },
@@ -29,37 +21,31 @@ describe('payoutAccountOf', () => {
 
     await expect(payoutAccountOf(db, 'u1')).resolves.toEqual({
       profileId: 'creator',
-      stripeConnectAccountId: 'acct_1',
     });
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { userId: 'u1' },
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      }),
-    );
+    // Only the Profiles are read: the account is never taken from the person.
+    expect(findMany).toHaveBeenCalledWith({
+      where: { userId: 'u1' },
+      select: { id: true, accountType: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
   });
 
   it('keeps it with their oldest Profile when none earns', async () => {
-    const { db } = reader(
-      [
-        { id: 'first', accountType: 'PERSONAL' },
-        { id: 'second', accountType: 'PERSONAL' },
-      ],
-      null,
-    );
+    const { db } = reader([
+      { id: 'first', accountType: 'PERSONAL' },
+      { id: 'second', accountType: 'PERSONAL' },
+    ]);
 
     await expect(payoutAccountOf(db, 'u1')).resolves.toEqual({
       profileId: 'first',
-      stripeConnectAccountId: null,
     });
   });
 
-  it('names no Profile and no account for a person without Profiles', async () => {
+  it('names no Profile for a person without Profiles', async () => {
     const { db } = reader([]);
 
     await expect(payoutAccountOf(db, 'u1')).resolves.toEqual({
       profileId: null,
-      stripeConnectAccountId: null,
     });
   });
 });
@@ -71,9 +57,8 @@ describe('payoutAccountPlacement', () => {
       stripeConnectAccountId: string | null;
     } | null,
     profiles: Array<{ id: string; accountType: string }>,
-    account: string | null,
   ) => {
-    const { db } = reader(profiles, account);
+    const { db } = reader(profiles);
     // The person's row; no Profile holds a row of its own.
     db.monetization = {
       findUnique: vi.fn(async ({ where }: { where: object }) =>
@@ -83,21 +68,19 @@ describe('payoutAccountPlacement', () => {
     return db;
   };
 
-  it('moves a row opened from a Personal Profile to the Creator Profile made since, when the account is connected', async () => {
+  it('moves a row opened from a Personal Profile to the Creator Profile made since, and never sets its account', async () => {
     // The person opened their earnings from their Personal Profile, then
-    // made a Creator Profile and connected an account.
+    // made a Creator Profile. Connecting writes the account, not this.
     const db = placing(
       { profileId: 'personal', stripeConnectAccountId: null },
       [
         { id: 'personal', accountType: 'PERSONAL' },
         { id: 'creator', accountType: 'CREATOR' },
       ],
-      'acct_new',
     );
 
     await expect(payoutAccountPlacement(db, 'u1')).resolves.toEqual({
       profileId: 'creator',
-      stripeConnectAccountId: 'acct_new',
     });
   });
 
@@ -108,18 +91,15 @@ describe('payoutAccountPlacement', () => {
         { id: 'was-creator', accountType: 'PERSONAL' },
         { id: 'creator', accountType: 'CREATOR' },
       ],
-      'acct_1',
     );
 
     await expect(payoutAccountPlacement(db, 'u1')).resolves.toEqual({});
   });
 
   it('gives a Profile again to a row with an account that lost its Profile', async () => {
-    const db = placing(
-      { profileId: null, stripeConnectAccountId: 'acct_1' },
-      [{ id: 'creator', accountType: 'CREATOR' }],
-      'acct_1',
-    );
+    const db = placing({ profileId: null, stripeConnectAccountId: 'acct_1' }, [
+      { id: 'creator', accountType: 'CREATOR' },
+    ]);
 
     // The account it holds is left as it is.
     await expect(payoutAccountPlacement(db, 'u1')).resolves.toEqual({
@@ -131,18 +111,15 @@ describe('payoutAccountPlacement', () => {
     const db = placing(
       { profileId: null, stripeConnectAccountId: 'acct_1' },
       [],
-      null,
     );
 
     await expect(payoutAccountPlacement(db, 'u1')).resolves.toEqual({});
   });
 
   it('never places the row onto a Profile holding a row of its own', async () => {
-    const db = placing(
-      { profileId: null, stripeConnectAccountId: 'acct_1' },
-      [{ id: 'creator', accountType: 'CREATOR' }],
-      'acct_1',
-    );
+    const db = placing({ profileId: null, stripeConnectAccountId: 'acct_1' }, [
+      { id: 'creator', accountType: 'CREATOR' },
+    ]);
     db.monetization.findUnique.mockImplementation(
       async ({ where }: { where: object }) =>
         'userId' in where
@@ -154,11 +131,7 @@ describe('payoutAccountPlacement', () => {
   });
 
   it('places a person without a row with their Profiles as they are', async () => {
-    const db = placing(
-      null,
-      [{ id: 'personal', accountType: 'PERSONAL' }],
-      null,
-    );
+    const db = placing(null, [{ id: 'personal', accountType: 'PERSONAL' }]);
 
     await expect(payoutAccountPlacement(db, 'u1')).resolves.toEqual({
       profileId: 'personal',

@@ -646,7 +646,7 @@ export class MonetizationService {
    * Profiles never share balances, payouts or disputes.
    */
   private async payoutAccountToOnboard(
-    user: { id: string; email: string; stripeConnectAccountId: string | null },
+    user: { id: string; email: string },
     profileId: string,
   ): Promise<string> {
     const own = await this.prisma.monetization.findUnique({
@@ -655,29 +655,25 @@ export class MonetizationService {
     });
     if (own?.stripeConnectAccountId) return own.stripeConnectAccountId;
 
-    // The person's own column too: a row missing for any reason must never
-    // open a second first account at the provider.
     const person = await this.prisma.monetization.findUnique({
       where: { userId: user.id },
       select: { profileId: true, stripeConnectAccountId: true },
     });
-    let first = person?.stripeConnectAccountId ?? user.stripeConnectAccountId;
-    if (!first) {
-      const account = await this.stripeService.createExpressAccount(
-        user.email,
-        `connect-account-${user.id}`,
-      );
-      first = account.id;
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { stripeConnectAccountId: first },
-      });
-    }
+    // Keyed on the person, so a request repeated after the row failed to be
+    // written gets the same account back from the provider.
+    const first =
+      person?.stripeConnectAccountId ??
+      (
+        await this.stripeService.createExpressAccount(
+          user.email,
+          `connect-account-${user.id}`,
+        )
+      ).id;
 
-    // The person's first account, kept on their row (a write of the row that
-    // failed once is made again here), with the Profile holding it: the one
-    // connecting, unless another Profile holds it already. A row with no
-    // account yet holds nothing, whichever Profile it was opened from.
+    // The person's first account, kept on their row, with the Profile
+    // holding it: the one connecting, unless another Profile holds it
+    // already. A row with no account yet holds nothing, whichever Profile it
+    // was opened from.
     if (
       person?.stripeConnectAccountId &&
       person.profileId &&
@@ -719,7 +715,7 @@ export class MonetizationService {
   /**
    * The account to onboard, able to take card payments. One opened before
    * creators sold on their own account can only receive transfers: while it
-   * holds no money it is replaced, wherever it is kept, by a new one, and is
+   * holds no money it is replaced on the row holding it by a new one, and is
    * left as it is at the provider. One that holds money is left to staff.
    */
   private async accountTakingCardPayments(
@@ -750,21 +746,15 @@ export class MonetizationService {
       email,
       `connect-account-${accountId}-direct`,
     );
-    await this.prisma.$transaction([
-      this.prisma.user.updateMany({
-        where: { stripeConnectAccountId: accountId },
-        data: { stripeConnectAccountId: replacement.id },
-      }),
-      this.prisma.monetization.updateMany({
-        where: { stripeConnectAccountId: accountId },
-        data: {
-          stripeConnectAccountId: replacement.id,
-          transfersEnabled: false,
-          chargesEnabled: false,
-          verifiedCompany: false,
-        },
-      }),
-    ]);
+    await this.prisma.monetization.updateMany({
+      where: { stripeConnectAccountId: accountId },
+      data: {
+        stripeConnectAccountId: replacement.id,
+        transfersEnabled: false,
+        chargesEnabled: false,
+        verifiedCompany: false,
+      },
+    });
     this.logger.log(
       `Payout account ${accountId} replaced by ${replacement.id} to take card payments`,
     );
