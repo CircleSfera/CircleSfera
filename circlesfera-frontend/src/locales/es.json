@@ -2519,7 +2519,7 @@
       "per_year": "/ año",
       "upgrade_now": "Elegir este plan",
       "lifetime": "Ingresos recibidos",
-      "express_dashboard": "Abrir Stripe",
+      "express_dashboard": "Panel de Stripe",
       "stripe_connected": "Cuenta de cobro",
       "stripe_connected_desc": "Stripe reparte cada cobro (80 % para ti, 20 % para CircleSfera) y paga a tu banco.",
       "transfers_enabled": "Pagos a tu banco activados",
