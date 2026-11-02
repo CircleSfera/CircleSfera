@@ -567,6 +567,13 @@ export class PaymentsService {
         named.id,
       )) as unknown as StripeSubscriptionState;
     } catch (err) {
+      // Only a subscription the provider does not hold here (one of a
+      // connected account's) falls back to the notice's copy. Any other
+      // failure (network, rate limit) is thrown, so the notice is tried
+      // again later rather than writing a state that may be stale.
+      if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') {
+        throw err;
+      }
       this.logger.warn(
         `Could not read subscription ${named.id} again; using the notice's copy`,
         err,
@@ -607,10 +614,12 @@ export class PaymentsService {
     if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') {
       throw err;
     }
+    // The row is brought in line when the provider can be read; the answer
+    // is the same either way.
     const current = await this.currentSubscription({
       id: stripeSubscriptionId,
-    } as StripeSubscriptionState);
-    if (current.status) await this.applyStripeSubscription(current);
+    } as StripeSubscriptionState).catch(() => null);
+    if (current?.status) await this.applyStripeSubscription(current);
     throw AppException.NotFound(
       ErrorCode.SUBSCRIPTION_NOT_FOUND,
       'This plan has ended',

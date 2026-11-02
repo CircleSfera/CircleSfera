@@ -1739,7 +1739,7 @@ describe('PaymentsService', () => {
       });
     });
 
-    it("when the provider cannot be read again, the notice's own copy is written", async () => {
+    it("when the provider does not hold the subscription here, the notice's own copy is written", async () => {
       const event = {
         id: 'evt_sub_fallback',
         type: 'customer.subscription.updated',
@@ -1759,7 +1759,11 @@ describe('PaymentsService', () => {
           },
         },
       };
-      stripeService.getSubscription.mockRejectedValue(new Error('down'));
+      stripeService.getSubscription.mockRejectedValue(
+        Object.assign(new Error('No such subscription'), {
+          type: 'StripeInvalidRequestError',
+        }),
+      );
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
 
       await service.processWebhookEvent(asEvent(event));
@@ -1768,6 +1772,43 @@ describe('PaymentsService', () => {
         where: { stripeSubscriptionId: 'sub_fb' },
         data: expect.objectContaining({ cancelAtPeriodEnd: true }),
       });
+    });
+
+    it('when the provider cannot be reached, nothing is written and the notice is tried again', async () => {
+      const event = {
+        id: 'evt_sub_transient',
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_tr',
+            status: 'active',
+            cancel_at_period_end: true,
+            items: {
+              data: [
+                {
+                  current_period_start: 1_796_061_164,
+                  current_period_end: 1_798_653_164,
+                },
+              ],
+            },
+          },
+        },
+      };
+      stripeService.getSubscription.mockRejectedValue(
+        Object.assign(new Error('socket hang up'), {
+          type: 'StripeConnectionError',
+        }),
+      );
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
+
+      await expect(service.processWebhookEvent(asEvent(event))).rejects.toThrow(
+        'socket hang up',
+      );
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { stripeSubscriptionId: 'sub_tr' },
+        }),
+      );
     });
 
     it('a subscription event with no billing period on its item is refused and writes nothing', async () => {
