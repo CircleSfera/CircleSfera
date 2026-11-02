@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,7 +38,7 @@ describe('ReportsService', () => {
     profile: { findUnique: vi.fn(), findFirst: vi.fn() },
     user: { findFirst: vi.fn(), findUnique: vi.fn() },
     story: { findUnique: vi.fn() },
-    message: { findUnique: vi.fn() },
+    message: { findUnique: vi.fn(), findFirst: vi.fn() },
     notification: { findFirst: vi.fn() },
     participant: { findUnique: vi.fn() },
     transaction: { findUnique: vi.fn() },
@@ -140,7 +140,31 @@ describe('ReportsService', () => {
         expect(mockPrismaService.report.create).not.toHaveBeenCalled();
       });
 
-      it('a message is reported only by someone in its conversation', async () => {
+      it('a private post or comment answers as missing, not as private', async () => {
+        for (const refusal of [
+          'This account is private',
+          'This post is private',
+          'This post is for followers only',
+        ]) {
+          access.post.mockRejectedValueOnce(new ForbiddenException(refusal));
+          await expect(report('POST')).rejects.toMatchObject({
+            errorCode: 'POST_NOT_FOUND',
+          });
+
+          mockPrismaService.comment.findUnique.mockResolvedValueOnce({
+            profileId: 'a',
+            postId: 'p1',
+            moderationStatus: 'VISIBLE',
+          });
+          access.post.mockRejectedValueOnce(new ForbiddenException(refusal));
+          await expect(report('COMMENT')).rejects.toMatchObject({
+            errorCode: 'COMMENT_NOT_FOUND',
+          });
+        }
+        expect(mockPrismaService.report.create).not.toHaveBeenCalled();
+      });
+
+      it('someone who left the conversation but wrote in it can still report its messages', async () => {
         mockPrismaService.message.findUnique.mockResolvedValue({
           id: 'm1',
           kind: 'USER',
@@ -148,6 +172,27 @@ describe('ReportsService', () => {
           senderId: 'a',
         });
         mockPrismaService.participant.findUnique.mockResolvedValueOnce(null);
+        mockPrismaService.message.findFirst.mockResolvedValueOnce({
+          id: 'mine',
+        });
+
+        await expect(report('MESSAGE')).resolves.toMatchObject({ id: 'rep' });
+        expect(mockPrismaService.message.findFirst).toHaveBeenCalledWith({
+          where: { conversationId: 'c1', senderId: 'reporter-1' },
+          select: { id: true },
+        });
+      });
+
+      it('a message is reported only by someone in its conversation', async () => {
+        mockPrismaService.message.findUnique.mockResolvedValue({
+          id: 'm1',
+          kind: 'USER',
+          conversationId: 'c1',
+          senderId: 'a',
+        });
+        // Not a member, and never wrote in it.
+        mockPrismaService.participant.findUnique.mockResolvedValueOnce(null);
+        mockPrismaService.message.findFirst.mockResolvedValueOnce(null);
 
         await expect(report('MESSAGE')).rejects.toMatchObject({
           errorCode: 'MESSAGE_NOT_FOUND',

@@ -3,7 +3,12 @@ import {
   type ModerationReportFiledEvent,
   type NotificationCreateEvent,
 } from '@circlesfera/shared';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   NotificationType,
@@ -124,10 +129,12 @@ export class ReportsService {
         const message = await this.prisma.message.findUnique({
           where: { id: dto.targetId },
         });
-        // Only someone in the conversation has seen a message.
+        // Only someone who was in the conversation has seen a message: a
+        // member now, or one who wrote in it (leaving a group, or being
+        // taken out of it, removes the membership but not the messages).
         const inConversation =
           message &&
-          (await this.prisma.participant.findUnique({
+          ((await this.prisma.participant.findUnique({
             where: {
               conversationId_profileId: {
                 conversationId: message.conversationId,
@@ -135,7 +142,14 @@ export class ReportsService {
               },
             },
             select: { id: true },
-          }));
+          })) ||
+            (await this.prisma.message.findFirst({
+              where: {
+                conversationId: message.conversationId,
+                senderId: reporterId,
+              },
+              select: { id: true },
+            })));
         if (!message || !inConversation)
           throw AppException.NotFound(
             ErrorCode.MESSAGE_NOT_FOUND,
@@ -225,12 +239,17 @@ export class ReportsService {
     };
   }
 
-  // Runs an access check; what it refuses counts as not found.
+  // Runs an access check; whatever it refuses (not found, or private)
+  // counts as not found, so a report never tells what exists.
   private async visible<T>(check: () => Promise<T>): Promise<T | null> {
     try {
       return await check();
     } catch (error) {
-      if (error instanceof NotFoundException) return null;
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      )
+        return null;
       throw error;
     }
   }
