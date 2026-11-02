@@ -82,6 +82,18 @@ export class PostDistributionService {
   }
 
   /**
+   * A post whose caption was edited is checked again, as a new one is: the
+   * moderation rules and the automatic checks read the new caption.
+   */
+  async moderateEditedCaption(postId: string, caption: string): Promise<void> {
+    await this.aiQueue.add('moderate-content', {
+      targetId: postId,
+      text: caption,
+      targetType: 'POST',
+    });
+  }
+
+  /**
    * Dispatches background workflows after a post is published:
    * 1. AI embedding generation
    * 2. Background content moderation

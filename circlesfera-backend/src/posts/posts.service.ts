@@ -820,6 +820,13 @@ export class PostsService {
         media: { include: { media: true } },
       },
     });
+    // A changed caption is checked again, as a new post is.
+    if (dto.caption !== undefined) {
+      await this.postDistributionService.moderateEditedCaption(
+        id,
+        dto.caption ?? '',
+      );
+    }
     return { ...post, media: post.media.map(resolveMediaFields) };
   }
 

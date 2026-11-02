@@ -12,10 +12,16 @@ import {
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService, classifyOpenAIError } from '../ai.service.js';
 
+// How a report filed by a moderation rule starts.
+const RULE_REPORT_PREFIX = '[Moderation rule]:';
+
 // Whether a text holds a rule's word or phrase as whole words, in any case
 // and with accents as written: "spam" matches "Spam!" but not "spammer".
+// Any run of spaces or line breaks in the text counts as one space.
 export function ruleMatches(text: string, keyword: string): boolean {
-  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escaped = keyword
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\s+/g, '\\s+');
   return new RegExp(
     `(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`,
     'iu',
@@ -344,62 +350,60 @@ export class AIProcessor extends WorkerHost {
   }
 
   // Content whose text holds the word or phrase of an active rule goes to the
-  // review queue: it is marked as flagged and a report is filed for staff.
-  // Nothing is hidden by a rule (owner decision): a person decides. Content
-  // already hidden or removed is left as it is.
+  // review queue: a report is filed for staff to look at it. Nothing about
+  // the content changes (owner decision: a rule hides nothing, not even from
+  // Explore or search; a person decides). One open rule report per piece of
+  // content: running again (an edit, a retry) files no second one. A failure
+  // here is logged and never stops the other checks.
   private async applyModerationRules(
     targetType: 'POST' | 'STORY' | 'COMMENT',
     targetId: string,
     text: string | undefined,
   ) {
     if (!text?.trim()) return;
-    const rules = await this.prisma.moderationRule.findMany({
-      where: { isActive: true },
-      select: { keyword: true },
-    });
-    const matched = rules
-      .map((rule) => rule.keyword.trim())
-      .filter((keyword) => keyword && ruleMatches(text, keyword));
-    if (matched.length === 0) return;
+    try {
+      const rules = await this.prisma.moderationRule.findMany({
+        where: { isActive: true },
+        select: { keyword: true },
+      });
+      const normalised = text.normalize('NFC');
+      const matched = rules
+        .map((rule) => rule.keyword.trim().normalize('NFC'))
+        .filter((keyword) => keyword && ruleMatches(normalised, keyword));
+      if (matched.length === 0) return;
 
-    const assessment = `[Moderation rule]: The text matches the rule${matched.length > 1 ? 's' : ''} ${matched.map((k) => `"${k}"`).join(', ')}.`;
-    const flag = {
-      where: { id: targetId, moderationStatus: ModerationStatus.VISIBLE },
-      data: {
-        moderationStatus: ModerationStatus.FLAGGED,
-        moderationNote: assessment,
-      },
-    };
-    const { count } =
-      targetType === 'POST'
-        ? await this.prisma.post.updateMany(flag)
-        : targetType === 'STORY'
-          ? await this.prisma.story.updateMany(flag)
-          : await this.prisma.comment.updateMany(flag);
-    if (count === 0) return;
+      const open = await this.prisma.report.findFirst({
+        where: {
+          targetType,
+          targetId,
+          status: 'PENDING',
+          details: { startsWith: RULE_REPORT_PREFIX },
+        },
+        select: { id: true },
+      });
+      if (open) return;
 
-    const author =
-      targetType === 'POST'
-        ? await this.prisma.post.findUnique({
-            where: { id: targetId },
-            select: { profileId: true },
-          })
-        : targetType === 'STORY'
-          ? await this.prisma.story.findUnique({
-              where: { id: targetId },
-              select: { profileId: true },
-            })
-          : await this.prisma.comment.findUnique({
-              where: { id: targetId },
-              select: { profileId: true },
-            });
-    await this.fileAutomatedReportAndNotify({
-      targetType,
-      targetId,
-      authorProfileId: author?.profileId ?? null,
-      assessment,
-      status: ModerationStatus.FLAGGED,
-    });
+      const actor = await resolveSystemModeratorActor(this.prisma);
+      if (!actor) {
+        this.logger.error(
+          `Cannot file a rule report for ${targetId}: no ACTIVE operator with a profile.`,
+        );
+        return;
+      }
+      await this.prisma.report.create({
+        data: {
+          reporterId: actor.profileId,
+          targetType,
+          targetId,
+          reason: 'OTHER',
+          details: `${RULE_REPORT_PREFIX} The text matches the rule${matched.length > 1 ? 's' : ''} ${matched.map((k) => `"${k}"`).join(', ')}.`,
+        },
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        `Could not apply the moderation rules to ${targetType} ${targetId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   private async handleModerateContent(
