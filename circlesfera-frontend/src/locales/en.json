@@ -1884,6 +1884,8 @@
       "show_tool_names": "Show tool names",
       "hide_tool_names": "Hide tool names",
       "edit_tools": "Editing tools",
+      "photo_label": "Story photo. Drag to move it, pinch to scale and turn it, swipe sideways to change its filter. With the keyboard: the arrows move it, + and - scale it, [ and ] change the filter.",
+      "photo_filter": "Filter: {{name}}",
       "pick_background": "Pick a background to start",
       "open_backgrounds": "Backgrounds",
       "hint_start": "Add text, stickers, or pick a template",

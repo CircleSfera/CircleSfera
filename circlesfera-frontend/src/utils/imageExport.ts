@@ -1,4 +1,5 @@
 import type { CropData } from '../components/PhotoEditor';
+import { photoFilterClassCss } from '../components/photo-editor/photoEditor.look';
 
 export async function exportEditedImage(
   file: File,
@@ -32,31 +33,8 @@ export async function exportEditedImage(
     }
 
     // 2. Map tailwind classes to CSS filter
-    const classFilters: string[] = [];
-    if (tailwindClasses) {
-      const classes = tailwindClasses.split(' ');
-      for (const cls of classes) {
-        if (!cls) continue;
-        if (cls === 'grayscale') classFilters.push('grayscale(100%)');
-        else if (cls.startsWith('brightness-'))
-          classFilters.push(`brightness(${cls.split('-')[1]}%)`);
-        else if (cls.startsWith('contrast-'))
-          classFilters.push(`contrast(${cls.split('-')[1]}%)`);
-        else if (cls.startsWith('saturate-'))
-          classFilters.push(`saturate(${cls.split('-')[1]}%)`);
-        else if (cls.startsWith('hue-rotate-'))
-          classFilters.push(`hue-rotate(${cls.split('rotate-')[1]}deg)`);
-        else if (cls.startsWith('sepia-[')) {
-          // Extracts.15 -> 15
-          const match = cls.match(/sepia-\[\.?(\d+)\]/);
-          if (match) {
-            classFilters.push(`sepia(${match[1]}%)`);
-          }
-        }
-      }
-    }
-
-    const finalFilter = `${classFilters.join(' ')} ${inlineStyle}`.trim();
+    const finalFilter =
+      `${photoFilterClassCss(tailwindClasses)} ${inlineStyle}`.trim();
 
     // 3. Render onto canvas
     const img = new Image();

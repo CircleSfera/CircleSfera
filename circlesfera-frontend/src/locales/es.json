@@ -1884,6 +1884,8 @@
       "show_tool_names": "Mostrar nombres de las herramientas",
       "hide_tool_names": "Ocultar nombres de las herramientas",
       "edit_tools": "Herramientas de edición",
+      "photo_label": "Foto de la historia. Arrástrala para moverla, pellízcala para escalarla y girarla, desliza de lado para cambiar el filtro. Con el teclado: las flechas la mueven, + y - la escalan, [ y ] cambian el filtro.",
+      "photo_filter": "Filtro: {{name}}",
       "pick_background": "Elige un fondo para empezar",
       "open_backgrounds": "Fondos",
       "hint_start": "Añade texto, stickers o una plantilla",

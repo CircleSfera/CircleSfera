@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import type { StoryElement } from '../../types';
+import { STORY_PHOTO_IDENTITY, type StoryPhotoEdit } from './storyPhoto';
+
+/** What one undo step holds: the pieces and the photo's place and filter. */
+interface Snapshot {
+  elements: StoryElement[];
+  photo: StoryPhotoEdit;
+}
 
 /**
- * The elements of a story and their undo history, as one piece of state.
+ * The elements of a story, the edit of its photo and their undo history, as
+ * one piece of state.
  *
  * They change together in one step, so the history can never disagree with
  * what is on screen whatever order the browser delivers events in.
  */
-interface ElementsState {
-  elements: StoryElement[];
+interface ElementsState extends Snapshot {
   /** Every undo step, oldest first; `index` is the one on screen. */
-  stack: StoryElement[][];
+  stack: Snapshot[];
   index: number;
 }
 
@@ -21,40 +28,72 @@ type ElementsAction =
       /** Whether the result is an undo step by itself. */
       record: boolean;
     }
+  | {
+      type: 'photo';
+      change: (photo: StoryPhotoEdit) => StoryPhotoEdit;
+      record: boolean;
+    }
+  | { type: 'resetPhoto' }
   | { type: 'commit' }
   | { type: 'undo' }
   | { type: 'redo' };
 
-const sameElements = (a: StoryElement[], b: StoryElement[]) =>
-  a === b || JSON.stringify(a) === JSON.stringify(b);
+const sameSnapshot = (a: Snapshot, b: Snapshot) =>
+  (a.elements === b.elements ||
+    JSON.stringify(a.elements) === JSON.stringify(b.elements)) &&
+  (a.photo === b.photo || JSON.stringify(a.photo) === JSON.stringify(b.photo));
 
-/** Adds the elements as a new step, unless they are what the last step has. */
-function withStep(state: ElementsState, elements: StoryElement[]) {
-  if (sameElements(state.stack[state.index], elements)) {
-    return { ...state, elements };
+/** Adds what is on screen as a new step, unless the last step has it. */
+function withStep(state: ElementsState, now: Snapshot): ElementsState {
+  if (sameSnapshot(state.stack[state.index], now)) {
+    return { ...state, ...now };
   }
   const kept = state.stack.slice(0, state.index + 1);
-  return { elements, stack: [...kept, elements], index: kept.length };
+  const step = { elements: now.elements, photo: now.photo };
+  return { ...step, stack: [...kept, step], index: kept.length };
 }
+
+const snapshotOf = (state: ElementsState): Snapshot => ({
+  elements: state.elements,
+  photo: state.photo,
+});
 
 function reduce(state: ElementsState, action: ElementsAction): ElementsState {
   switch (action.type) {
     case 'change': {
       const elements = action.change(state.elements);
       if (elements === state.elements) return state;
-      return action.record ? withStep(state, elements) : { ...state, elements };
+      return action.record
+        ? withStep(state, { elements, photo: state.photo })
+        : { ...state, elements };
+    }
+    case 'photo': {
+      const photo = action.change(state.photo);
+      if (photo === state.photo) return state;
+      return action.record
+        ? withStep(state, { elements: state.elements, photo })
+        : { ...state, photo };
+    }
+    case 'resetPhoto': {
+      // Another background: no step keeps the place of the one before.
+      const photo = STORY_PHOTO_IDENTITY;
+      return {
+        ...state,
+        photo,
+        stack: state.stack.map((step) => ({ ...step, photo })),
+      };
     }
     case 'commit':
-      return withStep(state, state.elements);
+      return withStep(state, snapshotOf(state));
     case 'undo': {
       if (state.index === 0) return state;
       const index = state.index - 1;
-      return { ...state, index, elements: state.stack[index] };
+      return { ...state, index, ...state.stack[index] };
     }
     case 'redo': {
       if (state.index >= state.stack.length - 1) return state;
       const index = state.index + 1;
-      return { ...state, index, elements: state.stack[index] };
+      return { ...state, index, ...state.stack[index] };
     }
   }
 }
@@ -65,12 +104,11 @@ export function useStoryElements(options: {
 }) {
   const { initialElements = [], onElementsChange } = options;
 
-  const [state, dispatch] = useReducer(reduce, initialElements, (elements) => ({
-    elements,
-    stack: [elements],
-    index: 0,
-  }));
-  const { elements } = state;
+  const [state, dispatch] = useReducer(reduce, initialElements, (elements) => {
+    const first = { elements, photo: STORY_PHOTO_IDENTITY };
+    return { ...first, stack: [first], index: 0 };
+  });
+  const { elements, photo } = state;
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null,
   );
@@ -102,8 +140,29 @@ export function useStoryElements(options: {
         current.map((el) => (el.id === id ? { ...el, ...updates } : el)),
     });
 
+  /** Moves, scales or turns the photo as a gesture goes; not a step yet. */
+  const updatePhoto = useCallback(
+    (updates: Partial<StoryPhotoEdit>) =>
+      dispatch({
+        type: 'photo',
+        record: false,
+        change: (current) => ({ ...current, ...updates }),
+      }),
+    [],
+  );
+
+  /** Changes the photo as one undo step by itself (a filter, say). */
+  const changePhoto = useCallback(
+    (change: (photo: StoryPhotoEdit) => StoryPhotoEdit) =>
+      dispatch({ type: 'photo', record: true, change }),
+    [],
+  );
+
+  /** Puts the photo back as it came, in every step: the background changed. */
+  const resetPhoto = useCallback(() => dispatch({ type: 'resetPhoto' }), []);
+
   /**
-   * Makes the elements as they are now one undo step. Called when a gesture
+   * Makes the elements and the photo as they are now one undo step. Called when a gesture
    * ends (a slider is released, a drag is dropped, a button is pressed).
    * Calling it when nothing changed since the last step does nothing.
    */
@@ -144,6 +203,10 @@ export function useStoryElements(options: {
 
   return {
     elements,
+    photo,
+    updatePhoto,
+    changePhoto,
+    resetPhoto,
     changeElements,
     undo,
     redo,
