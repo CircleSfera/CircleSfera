@@ -14,6 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiExcludeEndpoint, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ScheduledPostStatus, Visibility } from '@prisma/client';
 import { Request, Response } from 'express';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AppException } from '../common/errors/app.exception.js';
@@ -93,32 +94,28 @@ export class MediaController {
   ) {
     const media = await this.prisma.postMedia.findUnique({
       where: { id: mediaId },
-      include: { post: { select: { id: true, isPremium: true } } },
+      include: {
+        post: {
+          select: {
+            id: true,
+            isPremium: true,
+            scheduledStatus: true,
+            visibility: true,
+            profileId: true,
+          },
+        },
+      },
     });
 
     // A teaser is the free start of a paid post's video, for whoever may see
     // the post's card: never of a post that is not paid, nor of one the
-    // viewer may not see (private, followers-only, blocked, removed). Both
-    // answer as missing, so neither is revealed.
+    // viewer may not see (private, followers-only, blocked, removed), nor of
+    // a scheduled post before it is published, to anyone. All answer as
+    // missing, so none is revealed.
     const canSeeCard =
       !!media?.post?.isPremium &&
-      (await assertCanAccessPost(
-        this.prisma,
-        media.post.id,
-        req.user?.profileId ?? null,
-      ).then(
-        () => true,
-        (error: unknown) => {
-          // A refusal answers as missing; any other failure is a failure.
-          if (
-            error instanceof NotFoundException ||
-            error instanceof ForbiddenException
-          ) {
-            return false;
-          }
-          throw error;
-        },
-      ));
+      media.post.scheduledStatus === ScheduledPostStatus.PUBLISHED &&
+      (await this.canSeeTeaserCard(media.post, req.user?.profileId ?? null));
     if (!media?.standardUrl || !canSeeCard) {
       this.logger.warn(
         `Teaser requested for missing media: ${mediaId} by ${req.ip}`,
@@ -214,5 +211,62 @@ export class MediaController {
 
     res.setHeader('Content-Type', artifact.contentType);
     return res.send(artifact.content);
+  }
+  /**
+   * Whether the viewer may see the card of a paid post, as its teaser
+   * needs. A post for close friends has the author's close friends as its
+   * audience, so they get its teaser; everything else the card is subject
+   * to (removal, archive, blocks, a private account) still applies.
+   */
+  private async canSeeTeaserCard(
+    post: { id: string; visibility: Visibility; profileId: string },
+    viewerProfileId: string | null,
+  ): Promise<boolean> {
+    let target: Parameters<typeof assertCanAccessPost>[1] = post.id;
+    if (
+      post.visibility === Visibility.PRIVATE &&
+      viewerProfileId &&
+      viewerProfileId !== post.profileId &&
+      (await this.prisma.closeFriend.findUnique({
+        where: {
+          profileId_friendId: {
+            profileId: post.profileId,
+            friendId: viewerProfileId,
+          },
+        },
+        select: { id: true },
+      }))
+    ) {
+      const full = await this.prisma.post.findUnique({
+        where: { id: post.id },
+        select: {
+          id: true,
+          profileId: true,
+          visibility: true,
+          moderationStatus: true,
+          deletedAt: true,
+          archivedAt: true,
+          turnOffComments: true,
+          profile: { select: { privacyLevel: true } },
+        },
+      });
+      if (!full) return false;
+      // Their audience includes this viewer: the card is theirs as a
+      // public one would be, with every other rule still checked.
+      target = { ...full, visibility: Visibility.PUBLIC };
+    }
+    return assertCanAccessPost(this.prisma, target, viewerProfileId).then(
+      () => true,
+      (error: unknown) => {
+        // A refusal answers as missing; any other failure is a failure.
+        if (
+          error instanceof NotFoundException ||
+          error instanceof ForbiddenException
+        ) {
+          return false;
+        }
+        throw error;
+      },
+    );
   }
 }

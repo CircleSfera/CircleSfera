@@ -3,6 +3,7 @@ import { FollowStatus, Visibility } from '@prisma/client';
 import { canWatchLiveReplay } from '../common/policies/live-replay-access.policy.js';
 import { isRemoved } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { EDIT_CLIP_ADDRESSES } from '../uploads/services/media-references.service.js';
 import {
   StoredFilesService,
   VIDEO_EXTENSIONS,
@@ -65,6 +66,15 @@ interface MessageAccess {
  *
  * Collection: owner-only -- there is no shared/public collection viewing
  * feature in the API today.
+ *
+ * Studio draft: its media is its author's only.
+ *
+ * Kept private only while no other use shows it: a group's photo
+ * (Conversation.avatarUrl) is its members' only, as its messages are (a
+ * member who left or was removed no longer has it), and a clip a studio
+ * draft keeps in its state is the draft's author's only. A file a content
+ * row above names is decided by that row instead, and one a Profile shows
+ * as its picture or cover, or a highlight as its cover, stays public.
  *
  * A post, story or comment removed by moderation is kept for its appeal and
  * shown to nobody, its author included: its files are for staff who
@@ -375,8 +385,70 @@ export class MediaAuthService {
       return allowed;
     }
 
-    // No content-owning table references this file → public asset (avatar, etc.)
-    return true;
+    // No content row names the file: a public asset (an avatar, a cover),
+    // unless its only uses are private ones.
+    return this.checkPrivateUses(needles, candidates, viewerProfileId);
+  }
+
+  /**
+   * A file no content row names is public, unless its uses are only a
+   * group's photo or a clip of a studio draft: then it is the group's
+   * members' or the draft's author's. A Profile's picture or cover, or a
+   * highlight's cover, is a public use and keeps it public.
+   */
+  private async checkPrivateUses(
+    needles: string[],
+    candidates: string[],
+    viewerProfileId: string | null,
+  ): Promise<boolean> {
+    const contains = (...columns: string[]) => ({
+      OR: columns.flatMap((column) =>
+        needles.map((needle) => ({ [column]: { contains: needle } })),
+      ),
+    });
+    const [groups, drafts] = await Promise.all([
+      // By exact address, in this storage's own form: the only form whose
+      // owner a group's photo was checked against. Another host's address
+      // never names a file here.
+      this.prisma.conversation.findMany({
+        where: { avatarUrl: { in: candidates } },
+        select: { id: true },
+      }),
+      // By the clip's exact address, through the index of clip addresses:
+      // only clips the studio checked as the author's own files are read.
+      this.prisma.$queryRaw<Array<{ profileId: string }>>`
+        SELECT DISTINCT e."profileId"
+        FROM "edit_projects" e
+        WHERE ${EDIT_CLIP_ADDRESSES} ?| ${candidates}::text[]`,
+    ]);
+    if (groups.length + drafts.length === 0) return true;
+
+    const [picture, highlight] = await Promise.all([
+      this.prisma.profile.findFirst({
+        where: contains(
+          'avatar',
+          'standardUrl',
+          'thumbnailUrl',
+          'cover',
+          'coverStandardUrl',
+          'coverThumbnailUrl',
+        ),
+        select: { id: true },
+      }),
+      this.prisma.highlight.findFirst({
+        where: contains('coverUrl'),
+        select: { id: true },
+      }),
+    ]);
+    if (picture || highlight) return true;
+
+    const results = await Promise.all([
+      ...groups.map((group) => this.isMember(group.id, viewerProfileId)),
+      ...drafts.map((draft) =>
+        Promise.resolve(draft.profileId === viewerProfileId),
+      ),
+    ]);
+    return results.every(Boolean);
   }
 
   private async checkPostAccess(
@@ -506,24 +578,28 @@ export class MediaAuthService {
     return true;
   }
 
-  private async checkMessageAccess(
-    message: MessageAccess,
-    viewerUserId: string | null,
+  // A member of the conversation who has not deleted it for themselves:
+  // leaving or being removed deletes the membership.
+  private async isMember(
+    conversationId: string,
     viewerProfileId: string | null,
   ): Promise<boolean> {
     if (!viewerProfileId) {
       return false;
     }
-
     const participant = await this.prisma.participant.findFirst({
-      where: {
-        conversationId: message.conversationId,
-        profileId: viewerProfileId,
-        deletedAt: null,
-      },
+      where: { conversationId, profileId: viewerProfileId, deletedAt: null },
       select: { id: true },
     });
-    if (!participant) {
+    return !!participant;
+  }
+
+  private async checkMessageAccess(
+    message: MessageAccess,
+    viewerUserId: string | null,
+    viewerProfileId: string | null,
+  ): Promise<boolean> {
+    if (!(await this.isMember(message.conversationId, viewerProfileId))) {
       return false;
     }
 
