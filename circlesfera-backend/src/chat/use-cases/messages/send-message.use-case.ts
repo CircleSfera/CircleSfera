@@ -2,6 +2,7 @@ import { type ChatMessageSentEvent, ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Message, Prisma } from '@prisma/client';
+import { DEFAULT_LOCALE } from '../../../common/constants/locale.constants.js';
 import {
   canMonetize,
   MAX_PPV_PRICE_CENTS,
@@ -17,6 +18,7 @@ import {
   buildVoiceMediaCreateInput,
   resolveMediaFields,
 } from '../../../common/utils/media-lifecycle.util.js';
+import { renderChatPush } from '../../../notifications/notice-copy.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { PushService } from '../../../push/push.service.js';
 import { ActionLimitsService } from '../../../trust/action-limits.service.js';
@@ -382,29 +384,42 @@ export class SendMessageUseCase {
       };
       this.eventEmitter.emit('chat.message.sent', event);
 
-      conversation.participants.forEach((p: any) => {
-        if (p.profileId !== senderId && p.hasAccepted !== false) {
-          this.pushService
-            .sendNotification(
-              p.profileId,
-              {
-                title: `Nuevo mensaje cifrado`,
-                body: `Has recibido un mensaje de @${message.sender.username || 'Alguien'}`,
-                data: { url: `/chat/${conversation.id}`, type: 'chat' },
-              },
-              'messages',
-            )
-            .catch((err) =>
-              this.logger.error(
-                'Failed sending push notification for chat message',
-                err,
+      // Each recipient reads the push in the language of their account.
+      const recipients = conversation.participants.filter(
+        (p: any) => p.profileId !== senderId && p.hasAccepted !== false,
+      );
+      const locales = new Map(
+        (recipients.length
+          ? await this.prisma.profile.findMany({
+              where: { id: { in: recipients.map((p: any) => p.profileId) } },
+              select: { id: true, user: { select: { locale: true } } },
+            })
+          : []
+        ).map((p) => [p.id, p.user?.locale ?? DEFAULT_LOCALE]),
+      );
+      recipients.forEach((p: any) => {
+        this.pushService
+          .sendNotification(
+            p.profileId,
+            {
+              ...renderChatPush(
+                locales.get(p.profileId) ?? DEFAULT_LOCALE,
+                message.sender.username,
               ),
-            );
-        }
+              data: { url: `/chat/${conversation.id}`, type: 'chat' },
+            },
+            'messages',
+          )
+          .catch((err) =>
+            this.logger.error(
+              'Failed sending push notification for chat message',
+              err,
+            ),
+          );
       });
     } catch (err) {
       this.logger.error(
-        'Failed to fan out chat message over sockets after persist',
+        'Failed to fan out chat message (sockets or pushes) after persist',
         err,
       );
     }
