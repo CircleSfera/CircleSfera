@@ -439,4 +439,35 @@ describe('GetMessagesQuery', () => {
     expect(second.reactions[1].profile).toEqual({ username: 'dan' });
     expect(mockPrisma.block.findMany).toHaveBeenCalledTimes(1);
   });
+
+  it('shows the author of a shared post in a block with the viewer as unavailable', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({});
+    mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.message.findMany.mockResolvedValue([
+      {
+        id: 'm1',
+        content: 'enc_a',
+        senderId: 'dan',
+        sender: { id: 'dan', username: 'dan', avatar: null },
+        post: {
+          profileId: 'bob',
+          moderationStatus: 'VISIBLE',
+          deletedAt: null,
+          profile: { id: 'bob', username: 'bob' },
+        },
+      },
+    ]);
+    mockPrisma.block.findMany.mockResolvedValue([
+      { blockerId: 'me', blockedId: 'bob' },
+    ]);
+
+    const [m] = (await query.execute('conv-1', 50, 'me')) as any[];
+
+    expect(m.post.profile).toEqual({
+      id: 'bob',
+      username: null,
+      unavailable: true,
+    });
+    expect(m.sender.username).toBe('dan');
+  });
 });

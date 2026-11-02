@@ -79,6 +79,7 @@ describe('DeleteMessageUseCase', () => {
         thumbnailUrl: '/uploads/v/thumb.jpg',
       },
       voiceMedia: { url: '/uploads/voice.webm' },
+      conversationId: 'conv-1',
       conversation: { participants },
     });
 
@@ -133,7 +134,8 @@ describe('DeleteMessageUseCase', () => {
     );
     expect(mockEventEmitter.emit).toHaveBeenCalledWith('chat.message.deleted', {
       participants,
-      payload: { messageId: 'msg-1' },
+      // The conversation keeps the realtime events of the chat in order.
+      payload: { messageId: 'msg-1', conversationId: 'conv-1' },
     });
   });
 

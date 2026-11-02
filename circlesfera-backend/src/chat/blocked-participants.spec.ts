@@ -213,3 +213,28 @@ describe('maskConversationFor and idOnlyProfile', () => {
     expect(idOnlyProfile({ username: 'z' })).toEqual({});
   });
 });
+
+describe('maskMessage for the reader themselves', () => {
+  it('never masks the reader, also when blocks are unknown', () => {
+    const own = maskMessage(
+      {
+        senderId: 'me',
+        sender: { id: 'me', username: 'me' },
+        reactions: [{ profileId: 'me', profile: { username: 'me' } }],
+        post: { profile: { id: 'me', username: 'me' } },
+      },
+      null,
+      'me',
+    );
+    expect(own.sender).toEqual({ id: 'me', username: 'me' });
+    expect(own.reactions?.[0].profile).toEqual({ username: 'me' });
+    expect(own.post?.profile).toEqual({ id: 'me', username: 'me' });
+    const noProfile = maskMessage(
+      { reactions: [{ profileId: 'b' }], story: { profileId: 'b' } },
+      null,
+      'me',
+    );
+    expect(noProfile.reactions).toEqual([{ profileId: 'b' }]);
+    expect(noProfile.story).toEqual({ profileId: 'b' });
+  });
+});

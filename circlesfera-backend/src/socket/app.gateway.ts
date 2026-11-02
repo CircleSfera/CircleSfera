@@ -1094,7 +1094,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // see them: unavailable across a block, either way.
       const blocks = await this.memberBlocks(event.participants);
       const asSeenBy = (profileId: string) =>
-        maskMessage(event.payload, AppGateway.blockedOf(blocks, profileId));
+        maskMessage(
+          event.payload,
+          AppGateway.blockedOf(blocks, profileId),
+          profileId,
+        );
       // A notice from the app (someone became admin) goes only to the apps
       // that understand it; older ones still get the group's update.
       const kind = event.payload.kind;
@@ -1135,9 +1139,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @OnEvent('chat.message.deleted', { async: true })
   handleChatMessageDeleted(event: ChatMessageDeletedEvent['payload']) {
-    const conversationId = (event.payload as { conversationId?: string })
-      ?.conversationId;
-    return this.inOrder(conversationId, () => {
+    return this.inOrder(event.payload?.conversationId, () => {
       event.participants?.forEach((p) => {
         this.server
           .to(`user:${p.profileId}`)
@@ -1162,6 +1164,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
             maskMessage(
               event.payload as MessageLikePayload,
               AppGateway.blockedOf(blocks, p.profileId),
+              p.profileId,
             ),
           );
       });

@@ -1960,6 +1960,104 @@ describe('AppGateway payload bounds and authorization', () => {
         ]);
       });
 
+      it('a delete waits for a send of the same conversation still reading the blocks', async () => {
+        const { emits, to } = capture();
+        let release: (value: Map<string, Set<string>>) => void = () => {};
+        const slow = new Promise<Map<string, Set<string>>>((resolve) => {
+          release = resolve;
+        });
+        const gateway = gatewayWithServer(
+          { to },
+          {
+            chatRealtimeService: {
+              membersOf: vi.fn(),
+              blocksAmong: vi.fn(() => slow),
+            } as never,
+          },
+        );
+        (gateway as any).addConversationToSocket = vi.fn();
+
+        const sentNow = gateway.handleChatMessageSent({
+          participants: [{ profileId: 'a' }],
+          payload: { id: 'm1', conversationId: 'g1', senderId: 'b' },
+        } as never);
+        const deleted = gateway.handleChatMessageDeleted({
+          participants: [{ profileId: 'a' }],
+          payload: { messageId: 'm1', conversationId: 'g1' },
+        });
+        release(new Map());
+        await Promise.all([sentNow, deleted]);
+
+        expect(emits.map((e) => e.event)).toEqual([
+          'receiveMessage',
+          'message_deleted',
+        ]);
+      });
+
+      it('masks the author of a shared post or story and those who reacted, and keeps only ids of them when blocks fail', async () => {
+        const payload = {
+          id: 'm1',
+          conversationId: 'g1',
+          senderId: 'c',
+          sender: { id: 'c', username: 'cat' },
+          post: { profileId: 'b', profile: { id: 'b', username: 'bob' } },
+          story: { profileId: 'b', profile: { id: 'b', username: 'bob' } },
+          reactions: [{ profileId: 'b', profile: { username: 'bob' } }],
+        };
+        const run = async (blocksAmong: () => Promise<unknown>) => {
+          const { to, sent } = capture();
+          const gateway = gatewayWithServer(
+            { to },
+            {
+              chatRealtimeService: {
+                membersOf: vi.fn(),
+                blocksAmong: vi.fn(blocksAmong),
+              } as never,
+            },
+          );
+          (gateway as any).addConversationToSocket = vi.fn();
+          await gateway.handleChatMessageSent({
+            participants: [{ profileId: 'a' }, { profileId: 'c' }],
+            payload,
+          } as never);
+          return sent;
+        };
+
+        const masked = await run(
+          async () =>
+            new Map([
+              ['a', new Set(['b'])],
+              ['b', new Set(['a'])],
+            ]),
+        );
+        const toA = masked('user:a', 'receiveMessage');
+        expect(toA.post.profile).toEqual({
+          id: 'b',
+          username: null,
+          unavailable: true,
+        });
+        expect(toA.story.profile.unavailable).toBe(true);
+        expect(toA.reactions[0].profile).toEqual({
+          username: null,
+          unavailable: true,
+        });
+        expect(masked('user:c', 'receiveMessage').post.profile.username).toBe(
+          'bob',
+        );
+
+        const failed = await run(async () => {
+          throw new Error('db down');
+        });
+        const fallbackToA = failed('user:a', 'receiveMessage');
+        expect(fallbackToA.post.profile).toEqual({ id: 'b' });
+        expect(fallbackToA.reactions[0].profile).toEqual({});
+        // The sender's own copy keeps their name.
+        expect(failed('user:c', 'receiveMessage').sender).toEqual({
+          id: 'c',
+          username: 'cat',
+        });
+      });
+
       it('a failed event does not stop the next one of the conversation', async () => {
         const { emits, to } = capture();
         const gateway = gatewayWithServer(

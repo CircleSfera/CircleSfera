@@ -96,7 +96,8 @@ export interface ChatMessageSentEvent {
 
 export interface ChatMessageDeletedEvent {
   type: 'chat.message.deleted';
-  payload: ChatFanoutEnvelope<{ messageId: string }>;
+  // The conversation lets the realtime channel keep its events in order.
+  payload: ChatFanoutEnvelope<{ messageId: string; conversationId?: string }>;
 }
 
 export interface ChatMessageEditedEvent {

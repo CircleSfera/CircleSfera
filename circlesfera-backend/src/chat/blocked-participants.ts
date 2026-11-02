@@ -105,33 +105,51 @@ export function idOnlyProfile<T extends object>(profile: T): T {
 }
 
 // A person as one member sees them: unavailable across a block, or only an
-// id when the blocks are unknown (null).
+// id when the blocks are unknown (null). The member themselves is always
+// shown as they are.
 function personFor<T extends object>(
   profile: T,
   ownerId: string | undefined,
   blocked: Set<string> | null,
+  viewerId?: string,
 ): T {
+  if (ownerId && ownerId === viewerId) return profile;
   if (blocked === null) return idOnlyProfile(profile);
   return ownerId && blocked.has(ownerId)
     ? unavailableProfile(profile)
     : profile;
 }
 
+type Owned = { profileId?: string; profile?: object | null };
+
 type MessageLike = {
   senderId?: string;
   sender?: object | null;
   replyTo?: { senderId?: string; sender?: object | null } | null;
+  post?: Owned | null;
+  story?: Owned | null;
+  reactions?: Owned[] | null;
 };
 
-// A message as one member sees it: its sender and the sender it quotes.
+const ownerOf = (item: Owned): string | undefined =>
+  item.profileId ?? (item.profile as { id?: string } | null)?.id ?? undefined;
+
+// A message as one member sees it: its sender, the sender it quotes, the
+// author of a post or story it shares and those who reacted to it.
 export function maskMessage<T extends MessageLike>(
   message: T,
   blocked: Set<string> | null,
+  viewerId?: string,
 ): T {
   if (blocked !== null && blocked.size === 0) return message;
   const masked = { ...message };
   if (message.sender) {
-    masked.sender = personFor(message.sender, message.senderId, blocked);
+    masked.sender = personFor(
+      message.sender,
+      message.senderId,
+      blocked,
+      viewerId,
+    );
   }
   const reply = message.replyTo;
   if (reply?.sender) {
@@ -139,8 +157,24 @@ export function maskMessage<T extends MessageLike>(
       reply.senderId ?? (reply.sender as { id?: string }).id ?? undefined;
     masked.replyTo = {
       ...reply,
-      sender: personFor(reply.sender, quotedId, blocked),
+      sender: personFor(reply.sender, quotedId, blocked, viewerId),
     };
+  }
+  for (const key of ['post', 'story'] as const) {
+    const item = message[key];
+    if (item?.profile) {
+      masked[key] = {
+        ...item,
+        profile: personFor(item.profile, ownerOf(item), blocked, viewerId),
+      } as T[typeof key];
+    }
+  }
+  if (message.reactions) {
+    masked.reactions = message.reactions.map((r) =>
+      r.profile
+        ? { ...r, profile: personFor(r.profile, ownerOf(r), blocked, viewerId) }
+        : r,
+    );
   }
   return masked;
 }
