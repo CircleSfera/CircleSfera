@@ -298,14 +298,24 @@ describe('ProfilesSettings', () => {
       return i18n;
     };
 
-    it('shares the sign-in unless the person chooses otherwise', async () => {
-      const { i18n } = await openForm();
+    it('offers its own email and password first, and sharing as the other choice', async () => {
+      const { user, i18n } = await openForm();
+      const own = screen.getByRole('radio', {
+        name: new RegExp(i18n.t('settings.signIns.create.own')),
+      });
+      const share = screen.getByRole('radio', {
+        name: new RegExp(i18n.t('settings.signIns.create.share')),
+      });
 
+      expect(own).toBeChecked();
       expect(
-        screen.getByRole('radio', {
-          name: new RegExp(i18n.t('settings.signIns.create.share')),
-        }),
-      ).toBeChecked();
+        own.compareDocumentPosition(share) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        screen.getByLabelText(i18n.t('settings.signIns.own_form.email')),
+      ).toBeVisible();
+
+      await user.click(share);
       expect(
         screen.queryByLabelText(i18n.t('settings.signIns.own_form.email')),
       ).not.toBeInTheDocument();
@@ -358,6 +368,11 @@ describe('ProfilesSettings', () => {
         ),
       ).toBeVisible();
       await user.click(
+        screen.getByRole('radio', {
+          name: new RegExp(i18n.t('settings.signIns.create.share')),
+        }),
+      );
+      await user.click(
         screen.getByRole('button', {
           name: i18n.t('settings.profiles.form.submit'),
         }),
@@ -389,6 +404,11 @@ describe('ProfilesSettings', () => {
       await screen.findByText(
         i18n.t('settings.profiles.form.username_available', {
           username: 'ana.new',
+        }),
+      );
+      await user.click(
+        screen.getByRole('radio', {
+          name: new RegExp(i18n.t('settings.signIns.create.share')),
         }),
       );
       await user.click(
@@ -424,6 +444,11 @@ describe('ProfilesSettings', () => {
       await screen.findByText(
         i18n.t('settings.profiles.form.username_available', {
           username: 'ana.new',
+        }),
+      );
+      await user.click(
+        screen.getByRole('radio', {
+          name: new RegExp(i18n.t('settings.signIns.create.share')),
         }),
       );
       await user.click(

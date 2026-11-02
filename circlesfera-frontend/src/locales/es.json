@@ -594,7 +594,7 @@
         "share": "Con el mismo correo y contraseña",
         "share_desc": "Entras una vez y cambias de perfil cuando quieras.",
         "own": "Con su propio correo y contraseña",
-        "own_desc": "Para entrar a este perfil por separado.",
+        "own_desc": "Recomendado. Este perfil tendrá su propio inicio de sesión, recuperación y avisos.",
         "own_failed": "El perfil se ha creado compartiendo el inicio de sesión. Puedes darle el suyo desde esta pantalla."
       },
       "errors": {
