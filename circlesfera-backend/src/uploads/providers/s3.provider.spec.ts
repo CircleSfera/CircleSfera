@@ -110,7 +110,7 @@ describe('S3Provider', () => {
     it('should extract key from standard amazonaws.com URL', async () => {
       const sendSpy = vi
         .spyOn((provider as any).s3Client, 'send')
-        .mockResolvedValueOnce({} as any);
+        .mockResolvedValue({} as any);
 
       await provider.delete(
         'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
@@ -142,7 +142,7 @@ describe('S3Provider', () => {
     it('should delete object from S3 successfully', async () => {
       const sendSpy = vi
         .spyOn((provider as any).s3Client, 'send')
-        .mockResolvedValueOnce({} as any);
+        .mockResolvedValue({} as any);
 
       await provider.delete(
         'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
@@ -161,9 +161,9 @@ describe('S3Provider', () => {
     it('should treat NoSuchKey as idempotent success', async () => {
       const noSuchKeyErr = new Error('NoSuchKey');
       noSuchKeyErr.name = 'NoSuchKey';
-      vi.spyOn((provider as any).s3Client, 'send').mockRejectedValueOnce(
-        noSuchKeyErr,
-      );
+      vi.spyOn((provider as any).s3Client, 'send')
+        .mockResolvedValueOnce({} as any)
+        .mockRejectedValueOnce(noSuchKeyErr);
 
       await expect(
         provider.delete(
@@ -174,15 +174,98 @@ describe('S3Provider', () => {
 
     it('should re-throw unexpected S3 network/5xx errors to enable retries', async () => {
       const serverErr = new Error('Internal S3 Error');
-      vi.spyOn((provider as any).s3Client, 'send').mockRejectedValueOnce(
-        serverErr,
-      );
+      vi.spyOn((provider as any).s3Client, 'send')
+        .mockResolvedValueOnce({} as any)
+        .mockRejectedValueOnce(serverErr);
 
       await expect(
         provider.delete(
           'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.png',
         ),
       ).rejects.toThrow('Internal S3 Error');
+    });
+
+    it("deletes a video's stream folder with it, page by page, before the video", async () => {
+      const sendSpy = vi
+        .spyOn((provider as any).s3Client, 'send')
+        .mockImplementation(async (command: any) => {
+          const name = command.constructor.name;
+          if (name === 'ListObjectsV2Command') {
+            return command.input.ContinuationToken
+              ? { Contents: [{ Key: 'p/720p_001.ts' }], IsTruncated: false }
+              : {
+                  Contents: [{ Key: 'p/master.m3u8' }, { Key: 'p/thumb.jpg' }],
+                  IsTruncated: true,
+                  NextContinuationToken: 'next',
+                };
+          }
+          return {};
+        });
+
+      await provider.delete(
+        'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+      );
+
+      const calls = sendSpy.mock.calls.map(([c]: any[]) => [
+        c.constructor.name,
+        c.input,
+      ]);
+      expect(calls).toEqual([
+        [
+          'ListObjectsV2Command',
+          {
+            Bucket: 'test-bucket',
+            Prefix: 'circlesfera/hls/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d/',
+            ContinuationToken: undefined,
+          },
+        ],
+        [
+          'DeleteObjectsCommand',
+          {
+            Bucket: 'test-bucket',
+            Delete: {
+              Objects: [{ Key: 'p/master.m3u8' }, { Key: 'p/thumb.jpg' }],
+              Quiet: true,
+            },
+          },
+        ],
+        [
+          'ListObjectsV2Command',
+          expect.objectContaining({ ContinuationToken: 'next' }),
+        ],
+        [
+          'DeleteObjectsCommand',
+          expect.objectContaining({
+            Delete: { Objects: [{ Key: 'p/720p_001.ts' }], Quiet: true },
+          }),
+        ],
+        [
+          'DeleteObjectCommand',
+          {
+            Bucket: 'test-bucket',
+            Key: 'circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+          },
+        ],
+      ]);
+    });
+
+    it('keeps the video when part of its stream folder could not be deleted, so a retry deletes both', async () => {
+      const sendSpy = vi
+        .spyOn((provider as any).s3Client, 'send')
+        .mockImplementation(async (command: any) =>
+          command.constructor.name === 'ListObjectsV2Command'
+            ? { Contents: [{ Key: 'p/master.m3u8' }, {}] }
+            : { Errors: [{ Key: 'p/master.m3u8' }] },
+        );
+
+      await expect(
+        provider.delete(
+          'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+        ),
+      ).rejects.toThrow('S3 could not delete 1 objects');
+      expect(
+        sendSpy.mock.calls.map(([c]: any[]) => c.constructor.name),
+      ).not.toContain('DeleteObjectCommand');
     });
 
     it('should return early without calling S3 if key cannot be extracted', async () => {
