@@ -15,6 +15,30 @@ import { REMOVAL_TARGET_TYPES } from './removal-notice.js';
 
 type NotificationType = $Enums.NotificationType;
 
+// The notifications a Profile sees: those that lead to something shown, and
+// none from a Profile it blocked or that blocked it, also when they were
+// made before the block. Moderation notices stay, as when they are made.
+export function shownInInbox(profileId: string): Prisma.NotificationWhereInput {
+  return {
+    recipientId: profileId,
+    AND: [
+      LINKS_TO_SHOWN_CONTENT,
+      {
+        OR: [
+          { type: $Enums.NotificationType.MODERATION },
+          { senderId: null },
+          {
+            sender: {
+              blockedBy: { none: { blockerId: profileId } },
+              blocking: { none: { blockedId: profileId } },
+            },
+          },
+        ],
+      },
+    ],
+  };
+}
+
 // A notification about a post or story that moderation removed, or that its
 // author deleted, leads to nothing anybody may see, and is left out. The ones
 // telling the author of a moderation decision stay: they are what the author
@@ -54,7 +78,7 @@ export class NotificationsService {
 
     const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where: { recipientId: profileId, ...LINKS_TO_SHOWN_CONTENT },
+        where: shownInInbox(profileId),
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -63,7 +87,7 @@ export class NotificationsService {
         },
       }),
       this.prisma.notification.count({
-        where: { recipientId: profileId, ...LINKS_TO_SHOWN_CONTENT },
+        where: shownInInbox(profileId),
       }),
     ]);
 
@@ -164,11 +188,7 @@ export class NotificationsService {
   // Returns `{ count: number }`
   async getUnreadCount(profileId: string) {
     const count = await this.prisma.notification.count({
-      where: {
-        recipientId: profileId,
-        read: false,
-        ...LINKS_TO_SHOWN_CONTENT,
-      },
+      where: { ...shownInInbox(profileId), read: false },
     });
 
     return { count };

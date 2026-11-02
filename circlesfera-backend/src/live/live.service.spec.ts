@@ -120,6 +120,11 @@ describe('LiveService', () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({
         id: 'stream-1',
         status: 'LIVE',
+        host: {
+          isAccountBanned: false,
+          suspendedUntil: null,
+          user: { isActive: true, deactivatedAt: null },
+        },
       });
 
       const result = await service.getViewerToken('stream-1', 'user-2');
@@ -132,12 +137,73 @@ describe('LiveService', () => {
         id: 'stream-1',
         status: 'LIVE',
         hostId: 'host-1',
+        host: {
+          isAccountBanned: false,
+          suspendedUntil: null,
+          user: { isActive: true, deactivatedAt: null },
+        },
       });
       mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
 
       await expect(
         service.getViewerToken('stream-1', 'user-2', 'viewer-1'),
       ).rejects.toThrow(AppException);
+    });
+
+    it.each([
+      ['banned', { isAccountBanned: true }],
+      ['suspended', { suspendedUntil: new Date(Date.now() + 3600_000) }],
+      [
+        'with a closed account',
+        { user: { isActive: false, deactivatedAt: null } },
+      ],
+      [
+        'with a deactivated account',
+        { user: { isActive: true, deactivatedAt: new Date() } },
+      ],
+    ])('refuses a token to the stream of a host %s', async (_, over) => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        status: 'LIVE',
+        hostId: 'host-1',
+        host: {
+          isAccountBanned: false,
+          suspendedUntil: null,
+          user: { isActive: true, deactivatedAt: null },
+          ...over,
+        },
+      });
+
+      await expect(
+        service.getViewerToken('stream-1', 'user-2', 'viewer-1'),
+      ).rejects.toMatchObject({ errorCode: 'STREAM_NOT_FOUND' });
+    });
+
+    it('gives a token again once a suspension has ended', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        status: 'LIVE',
+        hostId: 'host-1',
+        host: {
+          isAccountBanned: false,
+          suspendedUntil: new Date(Date.now() - 1000),
+          user: { isActive: true, deactivatedAt: null },
+        },
+      });
+
+      await expect(
+        service.getViewerToken('stream-1', 'user-2', 'viewer-1'),
+      ).resolves.toHaveProperty('token');
+    });
+
+    it('refuses every token while live streams are switched off', async () => {
+      const settings = (service as any).systemSettings;
+      settings.isEnabled.mockResolvedValueOnce(false);
+
+      await expect(
+        service.getViewerToken('stream-1', 'user-2', 'viewer-1'),
+      ).rejects.toThrow('LIVE_STREAMS_DISABLED');
+      expect(mockPrismaService.liveStream.findUnique).not.toHaveBeenCalled();
     });
   });
 
@@ -182,6 +248,93 @@ describe('LiveService', () => {
           },
         },
       ]);
+    });
+  });
+
+  describe('which streams are shown', () => {
+    const shownHost = {
+      id: 'host-1',
+      username: 'alice',
+      avatar: null,
+      isAccountBanned: false,
+      suspendedUntil: null,
+      user: { isActive: true, deactivatedAt: null },
+    };
+
+    it('lists only streams of hosts that are not banned, suspended or closed', async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([]);
+
+      await service.getActiveStreams();
+
+      const [args] =
+        mockPrismaService.liveStream.findMany.mock.calls.at(-1) ?? [];
+      const where = args.where;
+      expect(where.status).toBe('LIVE');
+      expect(where.host.AND[0]).toEqual({
+        isAccountBanned: false,
+        OR: [
+          { suspendedUntil: null },
+          { suspendedUntil: { lt: expect.any(Date) } },
+        ],
+        user: { isActive: true, deactivatedAt: null },
+      });
+    });
+
+    it("shows a stream of a host that may be seen, without the host's account state", async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        hostId: 'host-1',
+        status: 'LIVE',
+        host: shownHost,
+        coHost: null,
+      });
+
+      const stream = await service.getStream('stream-1', 'viewer-1');
+
+      expect(stream.host).toEqual({
+        id: 'host-1',
+        profile: { username: 'alice', avatar: null },
+      });
+      expect(stream.coHost).toBeNull();
+    });
+
+    it('a stream of a banned host is not found', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        hostId: 'host-1',
+        status: 'LIVE',
+        host: { ...shownHost, isAccountBanned: true },
+        coHost: null,
+      });
+
+      await expect(
+        service.getStream('stream-1', 'viewer-1'),
+      ).rejects.toMatchObject({ errorCode: 'STREAM_NOT_FOUND' });
+    });
+
+    it('a stream that does not exist is not found', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.getStream('stream-1', 'viewer-1'),
+      ).rejects.toMatchObject({ errorCode: 'STREAM_NOT_FOUND' });
+    });
+  });
+
+  describe('while live streams are switched off', () => {
+    it('nobody is invited to co-host, and no invitation is accepted', async () => {
+      const settings = (service as any).systemSettings;
+      settings.isEnabled.mockResolvedValue(false);
+
+      await expect(
+        service.inviteCoHost('stream-1', 'host-1', { profileId: 'p2' }),
+      ).rejects.toThrow('LIVE_STREAMS_DISABLED');
+      await expect(
+        service.acceptCoHostInvite('stream-1', 'p2'),
+      ).rejects.toThrow('LIVE_STREAMS_DISABLED');
+      expect(mockPrismaService.liveStream.findUnique).not.toHaveBeenCalled();
+
+      settings.isEnabled.mockResolvedValue(true);
     });
   });
 

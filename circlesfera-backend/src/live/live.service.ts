@@ -1,5 +1,6 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   isBlockedEitherWay,
@@ -12,6 +13,33 @@ import { SystemSettingsService } from '../system-settings/system-settings.servic
 import { isStreamCoHost, isStreamHost } from './live-authorization.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
 import { LiveRecordingService } from './recording/live-recording.service.js';
+
+// A stream is shown only while its host may be seen: not banned, not
+// suspended, and with an account that is open.
+const HOST_SHOWN_SELECT = {
+  isAccountBanned: true,
+  suspendedUntil: true,
+  user: { select: { isActive: true, deactivatedAt: true } },
+} as const;
+
+function hostShown(host: {
+  isAccountBanned: boolean;
+  suspendedUntil: Date | null;
+  user: { isActive: boolean; deactivatedAt: Date | null } | null;
+}): boolean {
+  return (
+    !host.isAccountBanned &&
+    (!host.suspendedUntil || host.suspendedUntil < new Date()) &&
+    !!host.user?.isActive &&
+    !host.user.deactivatedAt
+  );
+}
+
+const HOST_SHOWN_WHERE = (): Prisma.ProfileWhereInput => ({
+  isAccountBanned: false,
+  OR: [{ suspendedUntil: null }, { suspendedUntil: { lt: new Date() } }],
+  user: { isActive: true, deactivatedAt: null },
+});
 
 @Injectable()
 export class LiveService {
@@ -40,13 +68,19 @@ export class LiveService {
     };
   }
 
-  async startStream(hostProfileId: string, title?: string) {
+  // While staff have live streams switched off, nobody starts, joins or is
+  // invited to co-host one.
+  private async assertLiveEnabled() {
     const liveEnabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.LIVE_STREAMS_ENABLED,
     );
     if (!liveEnabled) {
       throw new ForbiddenException('LIVE_STREAMS_DISABLED');
     }
+  }
+
+  async startStream(hostProfileId: string, title?: string) {
+    await this.assertLiveEnabled();
 
     // Serialize concurrent startStream calls per-host so that at most
     // one stream transition runs at a time for the same host.
@@ -97,12 +131,15 @@ export class LiveService {
     userId: string,
     viewerProfileId?: string,
   ) {
+    await this.assertLiveEnabled();
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
+      include: { host: { select: HOST_SHOWN_SELECT } },
     });
 
     if (
       stream?.status !== 'LIVE' ||
+      !hostShown(stream.host) ||
       (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId))
     ) {
       throw AppException.NotFound(
@@ -144,7 +181,10 @@ export class LiveService {
       // Hosts in a block relation with the viewer are hidden.
       where: {
         status: 'LIVE',
-        host: await visibleToViewerWhere(this.prisma, viewerProfileId),
+        host: {
+          ...(await visibleToViewerWhere(this.prisma, viewerProfileId)),
+          AND: [HOST_SHOWN_WHERE()],
+        },
       },
       include: {
         host: {
@@ -166,7 +206,12 @@ export class LiveService {
       where: { id: streamId },
       include: {
         host: {
-          select: { id: true, username: true, avatar: true },
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+            ...HOST_SHOWN_SELECT,
+          },
         },
         coHost: {
           select: { id: true, username: true, avatar: true },
@@ -176,6 +221,7 @@ export class LiveService {
 
     if (
       !stream ||
+      !hostShown(stream.host) ||
       (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId))
     )
       throw AppException.NotFound(
@@ -195,6 +241,7 @@ export class LiveService {
     hostProfileId: string,
     invitee: { profileId: string } | { userId: string },
   ) {
+    await this.assertLiveEnabled();
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
     });
@@ -281,6 +328,7 @@ export class LiveService {
   }
 
   async acceptCoHostInvite(streamId: string, profileId: string) {
+    await this.assertLiveEnabled();
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
     });
