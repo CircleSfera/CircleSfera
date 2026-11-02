@@ -21,6 +21,7 @@ import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import { SHOWN_COMMENT_STATUSES } from '../common/policies/removed-content.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -110,10 +111,13 @@ export class ReportsService {
           where: { id: dto.targetId },
           select: { profileId: true, postId: true, moderationStatus: true },
         });
-        // A comment is seen with its post; one removed is shown to nobody.
+        // A comment is seen with its post, and only in a state its post's
+        // list shows: one hidden or removed is shown to nobody.
         const seen =
           comment &&
-          comment.moderationStatus !== 'REMOVED' &&
+          (SHOWN_COMMENT_STATUSES.in as string[]).includes(
+            comment.moderationStatus,
+          ) &&
           (await this.visible(() =>
             assertCanAccessPost(this.prisma, comment.postId, reporterId),
           ));

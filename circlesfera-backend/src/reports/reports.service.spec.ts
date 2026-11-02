@@ -129,14 +129,17 @@ describe('ReportsService', () => {
           'reporter-1',
         );
 
-        mockPrismaService.comment.findUnique.mockResolvedValue({
-          profileId: 'a',
-          postId: 'p1',
-          moderationStatus: 'REMOVED',
-        });
-        await expect(report('COMMENT')).rejects.toMatchObject({
-          errorCode: 'COMMENT_NOT_FOUND',
-        });
+        // Hidden or removed, a comment is shown to nobody.
+        for (const moderationStatus of ['HIDDEN', 'REMOVED']) {
+          mockPrismaService.comment.findUnique.mockResolvedValue({
+            profileId: 'a',
+            postId: 'p1',
+            moderationStatus,
+          });
+          await expect(report('COMMENT')).rejects.toMatchObject({
+            errorCode: 'COMMENT_NOT_FOUND',
+          });
+        }
         expect(mockPrismaService.report.create).not.toHaveBeenCalled();
       });
 
@@ -380,6 +383,7 @@ describe('ReportsService', () => {
         });
         mockPrismaService.comment.findUnique.mockResolvedValue({
           profileId: 'a-comment',
+          moderationStatus: 'VISIBLE',
         });
         mockPrismaService.message.findUnique.mockResolvedValue({
           senderId: 'a-message',
@@ -530,7 +534,10 @@ describe('ReportsService', () => {
         } as any),
       ).rejects.toThrow(AppException);
 
-      mockPrismaService.comment.findUnique.mockResolvedValue({ id: 'c-ok' });
+      mockPrismaService.comment.findUnique.mockResolvedValue({
+        id: 'c-ok',
+        moderationStatus: 'VISIBLE',
+      });
       mockPrismaService.report.create.mockResolvedValue({ id: 'rep-c' });
       const res = await service.create('reporter-1', {
         targetType: ReportTargetType.COMMENT,
