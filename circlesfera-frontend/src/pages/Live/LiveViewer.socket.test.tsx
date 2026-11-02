@@ -32,18 +32,27 @@ const live = vi.hoisted(() => {
     },
     hasSocket: true,
     room: {} as Record<string, unknown>,
+    // Rooms made, one per token the screen connects with.
+    roomsMade: [] as string[],
     navigate: vi.fn(),
   };
 });
 
 vi.mock('@livekit/components-styles', () => ({}));
-vi.mock('@livekit/components-react', () => ({
-  LiveKitRoom: (props: { children?: React.ReactNode }) => {
-    live.room = props as Record<string, unknown>;
-    return <div data-testid="livekit-room">{props.children}</div>;
-  },
-  RoomAudioRenderer: () => null,
-}));
+vi.mock('@livekit/components-react', async () => {
+  const { useEffect } = await import('react');
+  return {
+    LiveKitRoom: (props: { children?: React.ReactNode; token?: string }) => {
+      live.room = props as Record<string, unknown>;
+      // A room is made once per mount, with the token it mounted with.
+      useEffect(() => {
+        live.roomsMade.push(String(props.token));
+      }, []);
+      return <div data-testid="livekit-room">{props.children}</div>;
+    },
+    RoomAudioRenderer: () => null,
+  };
+});
 vi.mock('framer-motion', async () =>
   (await import('../../test/still-motion')).stillMotion(),
 );
@@ -182,6 +191,7 @@ describe('LiveViewer on the live connection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     live.handlers.clear();
+    live.roomsMade = [];
     live.hasSocket = true;
     useAuthStore.setState({
       profile: { username: 'me', avatar: 'me.jpg' } as never,
@@ -487,6 +497,84 @@ describe('LiveViewer on the live connection', () => {
     );
     // Not the token it had before going on air.
     expect(apiClient.get).toHaveBeenCalledWith('/live/join/stream-1');
+  });
+
+  it('goes on air in a new room with the co-host token, not the viewer room', async () => {
+    await watch();
+    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
+
+    await waitFor(() =>
+      expect(live.roomsMade).toEqual(['lk-token', 'cohost-token']),
+    );
+  });
+
+  it('taken off air, told first: the disconnection that follows is not a lost connection', async () => {
+    await watch();
+    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
+    const onAir = live.room;
+
+    let answer: (value: unknown) => void = () => undefined;
+    vi.mocked(apiClient.get).mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      }) as never,
+    );
+    fire('live:cohost_removed', { streamId: 'stream-2' });
+    act(() => (onAir.onDisconnected as () => void)());
+    await act(async () => answer({ data: { token: 'fresh-viewer-token' } }));
+
+    await waitFor(() =>
+      expect(live.room).toMatchObject({ token: 'fresh-viewer-token' }),
+    );
+    expect(live.navigate).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('taken off air, disconnected before being told: the server says so and it goes back to watching', async () => {
+    useAuthStore.setState({
+      profile: { id: 'me-id', username: 'me', avatar: 'me.jpg' } as never,
+    });
+    await watch();
+    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
+
+    vi.mocked(apiClient.get).mockImplementation(
+      (url: string) =>
+        Promise.resolve(
+          String(url).includes('/live/join/')
+            ? { data: { token: 'fresh-viewer-token' } }
+            : { data: { status: 'LIVE', coHostId: null } },
+        ) as never,
+    );
+    act(() => (live.room.onDisconnected as () => void)());
+
+    await waitFor(() =>
+      expect(live.room).toMatchObject({
+        token: 'fresh-viewer-token',
+        video: false,
+      }),
+    );
+    expect(apiClient.get).toHaveBeenCalledWith('/live/stream-2');
+    expect(live.navigate).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('still on air as co-host when disconnected: a lost connection', async () => {
+    useAuthStore.setState({
+      profile: { id: 'me-id', username: 'me', avatar: 'me.jpg' } as never,
+    });
+    await watch();
+    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
+
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { status: 'LIVE', coHostId: 'me-id' },
+    });
+    act(() => (live.room.onDisconnected as () => void)());
+
+    await waitFor(() => expect(live.navigate).toHaveBeenCalledWith(-1));
   });
 
   it('says the live ended when taken off air from a live that is over', async () => {
