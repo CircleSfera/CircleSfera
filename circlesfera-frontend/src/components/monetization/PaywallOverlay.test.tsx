@@ -49,6 +49,13 @@ describe('PaywallOverlay', () => {
     expect(
       screen.getByText(i18n!.t('monetization.not_in_app')),
     ).toBeInTheDocument();
+    // Nothing asks to unlock it either.
+    expect(
+      screen.getByText(i18n!.t('monetization.premium_description_app')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n!.t('monetization.premium_description')),
+    ).not.toBeInTheDocument();
     sells.value = true;
   });
 });

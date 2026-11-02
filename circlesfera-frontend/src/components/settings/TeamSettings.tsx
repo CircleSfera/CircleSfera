@@ -11,6 +11,7 @@ import {
 } from '../../services/team.service';
 import { useAuthStore } from '../../stores/authStore';
 import { apiErrorMessage, apiErrorStatus } from '../../utils/apiErrorMessage';
+import { sellsInApp } from '../../utils/sellsInApp';
 import UserAvatar from '../UserAvatar';
 import { Button, Input, Select } from '../ui';
 import SettingsSection from './SettingsSection';
@@ -211,12 +212,15 @@ export default function TeamSettings() {
                 <ul className="space-y-2">{data.members.map(renderMember)}</ul>
               </>
             )}
-            <Link
-              to="/pricing"
-              className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-primary-text"
-            >
-              {t('settings.team.see_plans')}
-            </Link>
+            {/* Plans are bought on the web only: not offered in the apps. */}
+            {sellsInApp() && (
+              <Link
+                to="/pricing"
+                className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-primary-text"
+              >
+                {t('settings.team.see_plans')}
+              </Link>
+            )}
           </div>
         ) : data ? (
           <div className="space-y-4">

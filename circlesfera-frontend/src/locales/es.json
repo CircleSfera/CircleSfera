@@ -2643,6 +2643,7 @@
     "no_transactions": "No hay transacciones recientes",
     "not_in_app": "No disponible en la app.",
     "exclusive_content": "Contenido Exclusivo",
+    "premium_description_app": "Este contenido es de pago.",
     "premium_description": "Este post es de pago. Desbloquéalo para verlo.",
     "unlocking": "Desbloqueando...",
     "error_send_tip": "Error al enviar propina",

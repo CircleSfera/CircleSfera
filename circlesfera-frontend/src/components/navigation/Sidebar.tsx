@@ -23,6 +23,7 @@ import { chatApi, notificationsApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import { useNotificationsStore } from '../../stores/notificationsStore';
 import { useUIStore } from '../../stores/uiStore';
+import { sellsInApp } from '../../utils/sellsInApp';
 
 // Collapsed (md): 68px (--nav-sidebar-collapsed)
 // Expanded (xl): 260px (--nav-sidebar-width)
@@ -278,28 +279,31 @@ export default function Sidebar({ compact = false }: { compact?: boolean }) {
 
       {/* Bottom: Premium + Settings + Logout */}
       <div className="px-2 pb-4 space-y-0.5 shrink-0">
-        <Link
-          to="/pricing"
-          aria-label={t('nav.premium')}
-          className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-amber-400/90 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(252,176,69,0.04) 100%)',
-            border: '1px solid rgba(251,191,36,0.12)',
-            minHeight: 44,
-          }}
-        >
-          <div className="absolute inset-0 bg-linear-to-r from-amber-400/0 via-amber-400/8 to-amber-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-          <Sparkles
-            size={20}
-            className="drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] shrink-0"
-          />
-          <span
-            className={`hidden ${wide('xl:block')} text-sm font-bold tracking-wide`}
+        {/* Plans are bought on the web only: not offered in the apps. */}
+        {sellsInApp() && (
+          <Link
+            to="/pricing"
+            aria-label={t('nav.premium')}
+            className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-amber-400/90 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(252,176,69,0.04) 100%)',
+              border: '1px solid rgba(251,191,36,0.12)',
+              minHeight: 44,
+            }}
           >
-            {t('nav.premium')}
-          </span>
-        </Link>
+            <div className="absolute inset-0 bg-linear-to-r from-amber-400/0 via-amber-400/8 to-amber-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+            <Sparkles
+              size={20}
+              className="drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] shrink-0"
+            />
+            <span
+              className={`hidden ${wide('xl:block')} text-sm font-bold tracking-wide`}
+            >
+              {t('nav.premium')}
+            </span>
+          </Link>
+        )}
 
         <Link
           to="/accounts"

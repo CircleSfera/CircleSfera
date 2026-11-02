@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
+import { sellsInApp } from '../../utils/sellsInApp';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
@@ -108,18 +109,22 @@ export default function BillingSettings() {
               </p>
             )}
           </div>
-          <Button
-            onClick={
-              hasActiveSubscription ? handleBillingPortal : handleUpgrade
-            }
-            isLoading={isProcessingPortal}
-            variant="white"
-            className="min-h-11 px-6 text-sm font-semibold shrink-0"
-          >
-            {hasActiveSubscription
-              ? t('settings.billing.manage')
-              : t('settings.billing.view_plans')}
-          </Button>
+          {/* Plans and their billing are handled on the web only: neither
+              is offered in the apps, where the plan is only shown. */}
+          {sellsInApp() && (
+            <Button
+              onClick={
+                hasActiveSubscription ? handleBillingPortal : handleUpgrade
+              }
+              isLoading={isProcessingPortal}
+              variant="white"
+              className="min-h-11 px-6 text-sm font-semibold shrink-0"
+            >
+              {hasActiveSubscription
+                ? t('settings.billing.manage')
+                : t('settings.billing.view_plans')}
+            </Button>
+          )}
         </div>
 
         {subscription &&
@@ -191,7 +196,7 @@ export default function BillingSettings() {
               </li>
             ))}
           </ul>
-          {!hasActiveSubscription && (
+          {!hasActiveSubscription && sellsInApp() && (
             <div className="px-4 pb-4">
               <Button
                 onClick={handleBillingPortal}

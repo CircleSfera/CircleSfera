@@ -321,27 +321,30 @@ export default function CreatorMonetizationTab({
               </h2>
             </div>
 
-            <Button
-              variant="primary"
-              disabled={portalMutation.isPending}
-              isLoading={portalMutation.isPending}
-              onClick={() => {
-                if (
-                  !billingStatus?.hasActiveSubscription &&
-                  currentLevel === 'BASIC'
-                ) {
-                  onToast(
-                    t('creator.monetization.select_plan_start'),
-                    'success',
-                  );
-                } else {
-                  portalMutation.mutate();
-                }
-              }}
-              className="min-h-11 px-5 shrink-0"
-            >
-              {t('creator.monetization.manage_subscription')}
-            </Button>
+            {/* Billing is handled on the web only: not in the apps. */}
+            {sellsInApp() && (
+              <Button
+                variant="primary"
+                disabled={portalMutation.isPending}
+                isLoading={portalMutation.isPending}
+                onClick={() => {
+                  if (
+                    !billingStatus?.hasActiveSubscription &&
+                    currentLevel === 'BASIC'
+                  ) {
+                    onToast(
+                      t('creator.monetization.select_plan_start'),
+                      'success',
+                    );
+                  } else {
+                    portalMutation.mutate();
+                  }
+                }}
+                className="min-h-11 px-5 shrink-0"
+              >
+                {t('creator.monetization.manage_subscription')}
+              </Button>
+            )}
           </Card>
 
           {/* Pricing Tiers Grid */}

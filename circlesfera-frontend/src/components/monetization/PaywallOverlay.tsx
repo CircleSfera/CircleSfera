@@ -43,7 +43,11 @@ export default function PaywallOverlay({
           {t('monetization.exclusive_content')}
         </h3>
         <p className="text-zinc-400 text-[13px] text-center mb-8 max-w-[240px] leading-relaxed">
-          {t('monetization.premium_description')}
+          {t(
+            sellsInApp()
+              ? 'monetization.premium_description'
+              : 'monetization.premium_description_app',
+          )}
         </p>
 
         {!sellsInApp() ? (
