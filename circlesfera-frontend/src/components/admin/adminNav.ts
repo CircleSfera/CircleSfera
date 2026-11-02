@@ -67,6 +67,7 @@ export type AdminTab =
   | 'plans'
   | 'subscriptions'
   | 'disputes'
+  | 'companies'
   | 'roles'
   | 'trust'
   | 'live'
@@ -124,6 +125,7 @@ export const ADMIN_TAB_PERMISSIONS: Record<
   plans: 'plans',
   subscriptions: 'payments',
   disputes: 'payments',
+  companies: 'payments',
 };
 
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
@@ -314,6 +316,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         labelKey: 'admin.nav.disputes',
         icon: ShieldAlert,
       },
+      {
+        id: 'companies',
+        labelKey: 'admin.nav.companies',
+        icon: BadgeCheck,
+      },
     ],
   },
 ];
@@ -330,6 +337,7 @@ const BACKOFFICE_TABS: readonly AdminTab[] = [
   'plans',
   'subscriptions',
   'disputes',
+  'companies',
   'promotions',
   'payouts',
   'monetization',
