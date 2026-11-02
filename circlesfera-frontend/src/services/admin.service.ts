@@ -440,7 +440,6 @@ export interface UserExperiment {
   } | null;
 }
 
-// What support sees about who wrote a ticket. It is read-only.
 // A Business Profile and the three things the "Verified company" label
 // needs.
 export interface AdminCompany {
@@ -454,6 +453,7 @@ export interface AdminCompany {
   labelShown: boolean;
 }
 
+// What support sees about who wrote a ticket. It is read-only.
 export interface AdminDispute {
   id: string;
   stripeDisputeId: string;

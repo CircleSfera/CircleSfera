@@ -30,7 +30,7 @@ describe('AdminCompaniesService', () => {
       findMany: vi.fn(),
       count: vi.fn(),
     },
-    monetization: { findUnique: vi.fn() },
+    monetization: { findMany: vi.fn() },
   };
   const service = new AdminCompaniesService(prisma as never);
   const profile = (over: Record<string, unknown> = {}) => ({
@@ -55,6 +55,7 @@ describe('AdminCompaniesService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.profile.count.mockResolvedValue(1);
+    prisma.monetization.findMany.mockResolvedValue([]);
   });
 
   it('lists Business Profiles only, newest first, searching handle or name', async () => {
@@ -81,7 +82,9 @@ describe('AdminCompaniesService', () => {
 
   it('shows the label only with the Business plan and a company the provider verified', async () => {
     prisma.profile.findMany.mockResolvedValue([profile()]);
-    prisma.monetization.findUnique.mockResolvedValue(row());
+    prisma.monetization.findMany
+      .mockResolvedValueOnce([row()])
+      .mockResolvedValueOnce([row()]);
 
     const { data, meta } = await service.getCompanies();
 
@@ -102,18 +105,19 @@ describe('AdminCompaniesService', () => {
 
   it('says which condition is missing', async () => {
     prisma.profile.findMany.mockResolvedValue([
-      profile({ id: 'a', verificationLevel: 'BASIC' }),
-      profile({ id: 'b' }),
-      profile({ id: 'c' }),
+      profile({ id: 'a', userId: 'ua', verificationLevel: 'BASIC' }),
+      profile({ id: 'b', userId: 'ub' }),
+      profile({ id: 'c', userId: 'uc' }),
     ]);
-    prisma.monetization.findUnique
-      // a: on no plan, verified company
-      .mockResolvedValueOnce(row())
-      // b: no account of its own, and none of its person
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      // c: an account the provider has not verified as a company
-      .mockResolvedValueOnce(row({ verifiedCompany: false }));
+    prisma.monetization.findMany
+      // The Profiles' own rows: none.
+      .mockResolvedValueOnce([])
+      // The persons' rows: a verified company for a, nothing for b, an
+      // account not verified as a company for c.
+      .mockResolvedValueOnce([
+        row({ userId: 'ua', profileId: null }),
+        row({ userId: 'uc', profileId: null, verifiedCompany: false }),
+      ]);
 
     const { data } = await service.getCompanies();
 
@@ -132,20 +136,37 @@ describe('AdminCompaniesService', () => {
     ]);
   });
 
-  it("reads the account a Profile is paid into: its person's when it has none ready", async () => {
-    prisma.profile.findMany.mockResolvedValue([profile()]);
-    prisma.monetization.findUnique
-      .mockResolvedValueOnce(
-        row({ userId: null, transfersEnabled: false, verifiedCompany: false }),
-      )
-      .mockResolvedValueOnce(row());
+  it('reads the account a Profile is paid into, for the whole page in two queries', async () => {
+    prisma.profile.findMany.mockResolvedValue([
+      profile({ id: 'p1', userId: 'u1' }),
+      profile({ id: 'p2', userId: 'u1' }),
+    ]);
+    prisma.monetization.findMany
+      .mockResolvedValueOnce([
+        // p1's own account is not ready yet: it is paid into its person's.
+        row({ profileId: 'p1', userId: null, transfersEnabled: false }),
+        // p2 holds a ready account of its own, not verified as a company.
+        row({
+          profileId: 'p2',
+          userId: null,
+          transfersEnabled: true,
+          verifiedCompany: false,
+        }),
+      ])
+      .mockResolvedValueOnce([row({ userId: 'u1', profileId: null })]);
 
     const { data } = await service.getCompanies();
 
-    expect(prisma.monetization.findUnique).toHaveBeenLastCalledWith(
-      expect.objectContaining({ where: { userId: 'u1' } }),
+    expect(prisma.monetization.findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.monetization.findMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ where: { profileId: { in: ['p1', 'p2'] } } }),
     );
-    expect(data[0].labelShown).toBe(true);
+    expect(prisma.monetization.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ where: { userId: { in: ['u1'] } } }),
+    );
+    expect(data.map((d) => d.labelShown)).toEqual([true, false]);
   });
 });
 
