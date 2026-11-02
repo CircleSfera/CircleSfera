@@ -53,6 +53,13 @@ function csvText(value: string | null | undefined): string {
   return /^[=+\-@\t\r\n]/.test(text) ? `'${text}` : text;
 }
 
+// A subscription as the provider describes it, in a notice or read again.
+type StripeSubscriptionState = {
+  id: string;
+  status: string;
+  cancel_at_period_end: boolean;
+} & SubscriptionWithItems;
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -446,10 +453,11 @@ export class PaymentsService {
     }
 
     if (!subscription.cancelAtPeriodEnd) {
-      await this.stripeService.cancelSubscription(
-        subscription.stripeSubscriptionId,
-        true,
-      );
+      await this.stripeService
+        .cancelSubscription(subscription.stripeSubscriptionId, true)
+        .catch((err: unknown) =>
+          this.refusedByProvider(subscription.stripeSubscriptionId, err),
+        );
       await this.prisma.platformSubscription.update({
         where: { id: subscription.id },
         data: { cancelAtPeriodEnd: true },
@@ -511,34 +519,102 @@ export class PaymentsService {
           'This plan has ended and cannot be resumed',
         );
       }
-      await this.stripeService.resumeSubscription(
-        subscription.stripeSubscriptionId,
-      );
-      await this.prisma.platformSubscription.update({
-        where: { id: subscription.id },
+      await this.stripeService
+        .resumeSubscription(subscription.stripeSubscriptionId)
+        .catch((err: unknown) =>
+          this.refusedByProvider(subscription.stripeSubscriptionId, err),
+        );
+      // Changed only while still cancelled, so two requests at once tell
+      // the payer once.
+      const { count } = await this.prisma.platformSubscription.updateMany({
+        where: { id: subscription.id, cancelAtPeriodEnd: true },
         data: { cancelAtPeriodEnd: false },
       });
 
       // Telling the payer is best effort: the plan already continues.
-      try {
-        const payer = await this.prisma.user.findUnique({
-          where: { id: userId },
-          select: { email: true },
-        });
-        if (payer?.email) {
-          await this.emailService.sendPlanResumedEmail(
-            payer.email,
-            subscription.plan.name,
-            subscription.profile?.username ?? '',
-            subscription.currentPeriodEnd,
-          );
+      if (count > 0) {
+        try {
+          const payer = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true },
+          });
+          if (payer?.email) {
+            await this.emailService.sendPlanResumedEmail(
+              payer.email,
+              subscription.plan.name,
+              subscription.profile?.username ?? '',
+              subscription.currentPeriodEnd,
+            );
+          }
+        } catch (err) {
+          this.logger.error('Failed to send the plan resumed email', err);
         }
-      } catch (err) {
-        this.logger.error('Failed to send the plan resumed email', err);
       }
     }
 
     return this.getBillingStatus(userId, profileId);
+  }
+
+  // A notice may arrive late or twice: one about a cancellation can come
+  // after the plan was resumed. The subscription is read again from the
+  // provider, so the row always takes its state as it is now; the notice's
+  // own copy is used only when the provider cannot answer.
+  private async currentSubscription(
+    named: StripeSubscriptionState,
+  ): Promise<StripeSubscriptionState> {
+    try {
+      return (await this.stripeService.getSubscription(
+        named.id,
+      )) as unknown as StripeSubscriptionState;
+    } catch (err) {
+      this.logger.warn(
+        `Could not read subscription ${named.id} again; using the notice's copy`,
+        err,
+      );
+      return named;
+    }
+  }
+
+  // Writes a subscription's state, as the provider holds it, on its row,
+  // and the plan's benefits of the person with it.
+  private async applyStripeSubscription(subscription: StripeSubscriptionState) {
+    const period = subscriptionPeriod(subscription);
+    await this.prisma.platformSubscription.updateMany({
+      where: { stripeSubscriptionId: subscription.id },
+      data: {
+        status: this.mapStripeStatus(subscription.status),
+        currentPeriodStart: period.start,
+        currentPeriodEnd: period.end,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      },
+    });
+    const platformSub = await this.prisma.platformSubscription.findFirst({
+      where: { stripeSubscriptionId: subscription.id },
+      select: { userId: true },
+    });
+    if (platformSub?.userId) {
+      await this.usersService.syncUserTier(platformSub.userId);
+    }
+  }
+
+  // The provider refused to change a subscription the row says is running:
+  // it has ended there. The row takes its state from the provider and the
+  // person is told the plan is not there to change any more.
+  private async refusedByProvider(
+    stripeSubscriptionId: string,
+    err: unknown,
+  ): Promise<never> {
+    if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') {
+      throw err;
+    }
+    const current = await this.currentSubscription({
+      id: stripeSubscriptionId,
+    } as StripeSubscriptionState);
+    if (current.status) await this.applyStripeSubscription(current);
+    throw AppException.NotFound(
+      ErrorCode.SUBSCRIPTION_NOT_FOUND,
+      'This plan has ended',
+    );
   }
 
   private async plansOfOtherProfiles(userId: string, profileId: string) {
@@ -1005,35 +1081,10 @@ export class PaymentsService {
 
       case 'customer.subscription.deleted':
       case 'customer.subscription.updated': {
-        // Cast via unknown to a specific shape to satisfy the linter
-        const subscription = data.object as unknown as {
-          id: string;
-          status: string;
-          cancel_at_period_end: boolean;
-        } & SubscriptionWithItems;
-        const period = subscriptionPeriod(subscription);
-
-        await this.prisma.platformSubscription.updateMany({
-          where: { stripeSubscriptionId: subscription.id },
-          data: {
-            status: this.mapStripeStatus(subscription.status),
-            currentPeriodStart: period.start,
-            currentPeriodEnd: period.end,
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
-          },
-        });
-
-        // VIP Subscriptions are removed
-
-        // Sync user tier if this was a platform subscription
-        const platformSub = await this.prisma.platformSubscription.findFirst({
-          where: { stripeSubscriptionId: subscription.id },
-          select: { userId: true },
-        });
-        if (platformSub?.userId) {
-          await this.usersService.syncUserTier(platformSub.userId);
-        }
-
+        const named = data.object as unknown as StripeSubscriptionState;
+        await this.applyStripeSubscription(
+          await this.currentSubscription(named),
+        );
         break;
       }
 

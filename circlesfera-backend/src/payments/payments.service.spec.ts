@@ -865,6 +865,28 @@ describe('PaymentsService', () => {
       );
       expect(prisma.platformSubscription.update).not.toHaveBeenCalled();
     });
+
+    it('a plan the provider already ended is answered as gone, and other failures pass through', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      vi.mocked(stripeService.cancelSubscription).mockRejectedValueOnce(
+        Object.assign(new Error('gone'), { type: 'StripeInvalidRequestError' }),
+      );
+      stripeService.getSubscription.mockRejectedValueOnce(new Error('down'));
+
+      await expect(service.cancelPlan('u_1', 'prof_1')).rejects.toMatchObject({
+        errorCode: 'SUBSCRIPTION_NOT_FOUND',
+      });
+      expect(prisma.platformSubscription.update).not.toHaveBeenCalled();
+
+      vi.mocked(stripeService.cancelSubscription).mockRejectedValueOnce(
+        Object.assign(new Error('rate limited'), {
+          type: 'StripeRateLimitError',
+        }),
+      );
+      await expect(service.cancelPlan('u_1', 'prof_1')).rejects.toThrow(
+        'rate limited',
+      );
+    });
   });
 
   describe('resumePlan', () => {
@@ -880,6 +902,12 @@ describe('PaymentsService', () => {
       plan: { id: 'plan_pro', name: 'Pro', priceCents: 2000, currency: 'EUR' },
       profile: { username: 'ana' },
       ...over,
+    });
+
+    beforeEach(() => {
+      prisma.platformSubscription.updateMany = vi
+        .fn()
+        .mockResolvedValue({ count: 1 });
     });
 
     it('takes back the cancellation, unmarks it, and emails the payer', async () => {
@@ -907,8 +935,9 @@ describe('PaymentsService', () => {
       expect(stripeService.resumeSubscription).toHaveBeenCalledWith(
         'stripe_sub_1',
       );
-      expect(prisma.platformSubscription.update).toHaveBeenCalledWith({
-        where: { id: 'sub_1' },
+      // Changed only while still cancelled.
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+        where: { id: 'sub_1', cancelAtPeriodEnd: true },
         data: { cancelAtPeriodEnd: false },
       });
       expect(emailService.sendPlanResumedEmail).toHaveBeenCalledWith(
@@ -928,7 +957,7 @@ describe('PaymentsService', () => {
       const res = await service.resumePlan('u_1', 'prof_1');
 
       expect(stripeService.resumeSubscription).not.toHaveBeenCalled();
-      expect(prisma.platformSubscription.update).not.toHaveBeenCalled();
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
       expect(emailService.sendPlanResumedEmail).not.toHaveBeenCalled();
       expect(res).toBeDefined();
     });
@@ -968,7 +997,7 @@ describe('PaymentsService', () => {
       await expect(service.resumePlan('u_1', 'prof_1')).rejects.toThrow(
         'stripe down',
       );
-      expect(prisma.platformSubscription.update).not.toHaveBeenCalled();
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
     });
 
     it('a failed lookup of the payer, or a payer with no email, does not undo the resumption', async () => {
@@ -985,7 +1014,7 @@ describe('PaymentsService', () => {
         .mockResolvedValue(plan({ profile: null }));
       await expect(service.resumePlan('u_1', 'prof_1')).resolves.toBeDefined();
 
-      expect(prisma.platformSubscription.update).toHaveBeenCalledTimes(2);
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledTimes(2);
       expect(emailService.sendPlanResumedEmail).not.toHaveBeenCalled();
     });
 
@@ -1006,6 +1035,71 @@ describe('PaymentsService', () => {
         '',
         future,
       );
+    });
+
+    it('two requests at once email the payer once', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      prisma.platformSubscription.updateMany = vi
+        .fn()
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+      prisma.user.findUnique = vi
+        .fn()
+        .mockResolvedValue({ email: 'ana@example.com' });
+      emailService.sendPlanResumedEmail = vi.fn().mockResolvedValue(undefined);
+
+      await Promise.all([
+        service.resumePlan('u_1', 'prof_1'),
+        service.resumePlan('u_1', 'prof_1'),
+      ]);
+
+      expect(emailService.sendPlanResumedEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('a plan the provider already ended is synced and answered as gone', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      emailService.sendPlanResumedEmail = vi.fn();
+      const refused = Object.assign(new Error('No such subscription'), {
+        type: 'StripeInvalidRequestError',
+      });
+      vi.mocked(stripeService.resumeSubscription).mockRejectedValueOnce(
+        refused,
+      );
+      stripeService.getSubscription.mockResolvedValueOnce({
+        id: 'stripe_sub_1',
+        status: 'canceled',
+        cancel_at_period_end: false,
+        items: {
+          data: [
+            {
+              current_period_start: 1_796_061_164,
+              current_period_end: 1_798_653_164,
+            },
+          ],
+        },
+      });
+
+      await expect(service.resumePlan('u_1', 'prof_1')).rejects.toMatchObject({
+        errorCode: 'SUBSCRIPTION_NOT_FOUND',
+      });
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+        where: { stripeSubscriptionId: 'stripe_sub_1' },
+        data: expect.objectContaining({ status: SubscriptionStatus.CANCELLED }),
+      });
+      expect(emailService.sendPlanResumedEmail).not.toHaveBeenCalled();
+    });
+
+    it('a provider refusal it cannot read again still answers the plan as gone', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      vi.mocked(stripeService.resumeSubscription).mockRejectedValueOnce(
+        Object.assign(new Error('gone'), { type: 'StripeInvalidRequestError' }),
+      );
+      stripeService.getSubscription.mockRejectedValueOnce(new Error('down'));
+
+      await expect(service.resumePlan('u_1', 'prof_1')).rejects.toMatchObject({
+        errorCode: 'SUBSCRIPTION_NOT_FOUND',
+      });
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
     });
   });
 
@@ -1588,6 +1682,7 @@ describe('PaymentsService', () => {
         stripeSubscriptionId: 'sub_456',
       });
 
+      stripeService.getSubscription.mockResolvedValue(event.data.object);
       await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
@@ -1601,6 +1696,78 @@ describe('PaymentsService', () => {
       });
 
       expect(usersService.syncUserTier).toHaveBeenCalledWith('user1');
+    });
+
+    it("a late notice of a cancellation does not undo a resumption: the provider's current state is written", async () => {
+      const period = {
+        items: {
+          data: [
+            {
+              current_period_start: 1_796_061_164,
+              current_period_end: 1_798_653_164,
+            },
+          ],
+        },
+      };
+      const event = {
+        id: 'evt_sub_late',
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_late',
+            status: 'active',
+            cancel_at_period_end: true,
+            ...period,
+          },
+        },
+      };
+      // Since the notice was sent, the plan was resumed.
+      stripeService.getSubscription.mockResolvedValue({
+        id: 'sub_late',
+        status: 'active',
+        cancel_at_period_end: false,
+        ...period,
+      });
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
+
+      await service.processWebhookEvent(asEvent(event));
+
+      expect(stripeService.getSubscription).toHaveBeenCalledWith('sub_late');
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+        where: { stripeSubscriptionId: 'sub_late' },
+        data: expect.objectContaining({ cancelAtPeriodEnd: false }),
+      });
+    });
+
+    it("when the provider cannot be read again, the notice's own copy is written", async () => {
+      const event = {
+        id: 'evt_sub_fallback',
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_fb',
+            status: 'active',
+            cancel_at_period_end: true,
+            items: {
+              data: [
+                {
+                  current_period_start: 1_796_061_164,
+                  current_period_end: 1_798_653_164,
+                },
+              ],
+            },
+          },
+        },
+      };
+      stripeService.getSubscription.mockRejectedValue(new Error('down'));
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
+
+      await service.processWebhookEvent(asEvent(event));
+
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+        where: { stripeSubscriptionId: 'sub_fb' },
+        data: expect.objectContaining({ cancelAtPeriodEnd: true }),
+      });
     });
 
     it('a subscription event with no billing period on its item is refused and writes nothing', async () => {
@@ -1617,6 +1784,7 @@ describe('PaymentsService', () => {
         },
       };
 
+      stripeService.getSubscription.mockResolvedValue(event.data.object);
       await expect(service.processWebhookEvent(asEvent(event))).rejects.toThrow(
         'Subscription sub_no_item has no billing period',
       );
@@ -1650,6 +1818,7 @@ describe('PaymentsService', () => {
         stripeSubscriptionId: 'sub_789',
       });
 
+      stripeService.getSubscription.mockResolvedValue(event.data.object);
       await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
