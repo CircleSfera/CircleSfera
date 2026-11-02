@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   ListObjectsV2Command,
   S3Client,
@@ -116,6 +117,13 @@ export class S3Provider implements StorageProvider {
       // An address it owns is its base followed by the key.
       const key = url.slice(`${this.base}/`.length);
 
+      // A video's stream and cover live in a folder named after it, as on
+      // local storage. They go first: if that fails, the file is still there
+      // and the next attempt deletes both.
+      await this.deleteFolder(
+        `circlesfera/hls/${path.basename(key, path.extname(key))}/`,
+      );
+
       this.logger.debug(`Deleting file from S3: ${key}`);
       await this.s3Client.send(
         new DeleteObjectCommand({
@@ -133,6 +141,37 @@ export class S3Provider implements StorageProvider {
       this.logger.error(`S3 Delete Error for ${url}:`, error);
       throw error;
     }
+  }
+
+  /** Deletes every object under a prefix, a page of at most 1000 at a time. */
+  private async deleteFolder(prefix: string): Promise<void> {
+    let token: string | undefined;
+    do {
+      const page = await this.s3Client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: token,
+        }),
+      );
+      const keys = (page.Contents ?? [])
+        .map((item) => item.Key)
+        .filter((key): key is string => !!key);
+      if (keys.length > 0) {
+        const result = await this.s3Client.send(
+          new DeleteObjectsCommand({
+            Bucket: this.bucket,
+            Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+          }),
+        );
+        if (result.Errors?.length) {
+          throw new Error(
+            `S3 could not delete ${result.Errors.length} objects under ${prefix}`,
+          );
+        }
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
   }
 
   async listFiles(): Promise<StorageFileMeta[]> {
