@@ -6,6 +6,7 @@ import { chatApi } from '../../services';
 import type { Conversation, Participant, Post } from '../../types';
 import { sanitizeUrl } from '../../utils/apiUtils';
 import { logger } from '../../utils/logger';
+import { isUnavailable } from '../chat/unavailable';
 import FrameBottomSheet from '../frames/FrameBottomSheet';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
@@ -99,11 +100,14 @@ function SharePostBody({ post, compact }: { post: Post; compact?: boolean }) {
 
   const conversations = conversationsData?.data || [];
   const filteredConversations = conversations.filter((c) => {
+    // Nothing can be sent where someone is in a block with the viewer.
+    if (c.participants.some((p: Participant) => isUnavailable(p.profile)))
+      return false;
     if (c.isGroup) return c.name?.toLowerCase().includes(search.toLowerCase());
     const otherParticipant = c.participants.find(
       (p: Participant) => p.profileId !== post.profileId,
     );
-    return otherParticipant?.profile.username
+    return (otherParticipant?.profile?.username ?? '')
       .toLowerCase()
       .includes(search.toLowerCase());
   });

@@ -259,4 +259,24 @@ describe('MessageBubble', () => {
 
     expect(screen.getByTitle(i18n!.t('chat.delivered'))).toBeInTheDocument();
   });
+
+  it('names someone in a block with the viewer as unavailable, in a reply too', () => {
+    const { i18n } = renderBubble({
+      sender: { id: 'b', username: null, avatar: null, unavailable: true },
+      replyTo: {
+        id: 'r1',
+        content: 'x',
+        sender: { id: 'b', username: null, unavailable: true },
+      },
+    });
+
+    expect(
+      screen.getByText(
+        i18n!.t('chat.replying_to_user', {
+          username: i18n!.t('chat.unavailable_user'),
+        }),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/bob/)).not.toBeInTheDocument();
+  });
 });

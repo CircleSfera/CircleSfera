@@ -16,7 +16,9 @@ describe('GetConversationsQuery', () => {
   let mockPrisma: {
     conversation: {
       findMany: ReturnType<typeof vi.fn>;
+      findFirst?: ReturnType<typeof vi.fn>;
     };
+    block: { findMany: ReturnType<typeof vi.fn> };
   };
   let mockCryptoService: {
     decrypt: ReturnType<typeof vi.fn>;
@@ -27,6 +29,7 @@ describe('GetConversationsQuery', () => {
       conversation: {
         findMany: vi.fn(),
       },
+      block: { findMany: vi.fn().mockResolvedValue([]) },
     };
     mockCryptoService = {
       decrypt: vi.fn((c: string) => `decrypted_${c}`),
@@ -284,6 +287,78 @@ describe('GetConversationsQuery', () => {
 
       expect(mockPrisma.conversation.findMany.mock.calls[0][0].take).toBe(
         CONVERSATION_PAGE_MAX + 1,
+      );
+    });
+  });
+
+  describe('across a block', () => {
+    const person = (id: string) => ({
+      profileId: id,
+      profile: { id, username: id, avatar: `/${id}.jpg`, fullName: id },
+    });
+
+    it('shows a participant blocked either way as unavailable, the others as they are, with one query for the page', async () => {
+      mockPrisma.conversation.findMany.mockResolvedValue([
+        { id: 'dm', participants: [person('me'), person('bob')], messages: [] },
+        {
+          id: 'group',
+          participants: [person('me'), person('cat'), person('dan')],
+          messages: [],
+        },
+      ]);
+      mockPrisma.block.findMany.mockResolvedValue([
+        { blockerId: 'me', blockedId: 'bob' },
+        { blockerId: 'cat', blockedId: 'me' },
+      ]);
+
+      const result = await query.execute('me');
+
+      expect(mockPrisma.block.findMany).toHaveBeenCalledTimes(1);
+      const [dm, group] = result as any[];
+      expect(dm.participants[1].profile).toEqual({
+        id: 'bob',
+        username: null,
+        avatar: null,
+        fullName: null,
+        unavailable: true,
+      });
+      expect(dm.participants[0].profile.username).toBe('me');
+      expect(group.participants[1].profile.unavailable).toBe(true);
+      expect(group.participants[2].profile).toEqual(person('dan').profile);
+    });
+
+    it('does the same for a page of the list and for one conversation', async () => {
+      mockPrisma.conversation.findMany.mockResolvedValue([
+        {
+          id: 'dm',
+          updatedAt: new Date(),
+          participants: [person('me'), person('bob')],
+          messages: [],
+        },
+      ]);
+      mockPrisma.block.findMany.mockResolvedValue([
+        { blockerId: 'bob', blockedId: 'me' },
+      ]);
+      const page = await query.executePage('me', 'inbox');
+      expect((page.items[0] as any).participants[1].profile.unavailable).toBe(
+        true,
+      );
+
+      (mockPrisma.conversation as any).findFirst = vi.fn().mockResolvedValue({
+        id: 'dm',
+        participants: [person('me'), person('bob')],
+        messages: [],
+      });
+      const one = (await query.executeOne('dm', 'me')) as any;
+      expect(one.participants[1].profile.username).toBeNull();
+    });
+
+    it('one conversation the viewer is not in is not found', async () => {
+      (mockPrisma.conversation as any).findFirst = vi
+        .fn()
+        .mockResolvedValue(null);
+      await expect(query.executeOne('dm', 'me')).rejects.toThrow(
+        'Conversation not found',
       );
     });
   });

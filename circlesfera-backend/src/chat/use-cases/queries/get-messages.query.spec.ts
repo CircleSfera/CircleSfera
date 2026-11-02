@@ -11,6 +11,7 @@ describe('GetMessagesQuery', () => {
     participant: { findFirst: ReturnType<typeof vi.fn> };
     profile: { findUnique: ReturnType<typeof vi.fn> };
     message: { findMany: ReturnType<typeof vi.fn> };
+    block: { findMany: ReturnType<typeof vi.fn> };
   };
   let mockCryptoService: { decrypt: ReturnType<typeof vi.fn> };
 
@@ -19,6 +20,7 @@ describe('GetMessagesQuery', () => {
       participant: { findFirst: vi.fn() },
       profile: { findUnique: vi.fn() },
       message: { findMany: vi.fn() },
+      block: { findMany: vi.fn().mockResolvedValue([]) },
     };
     mockCryptoService = {
       decrypt: vi.fn((c: string) => `decrypted_${c}`),
@@ -388,5 +390,53 @@ describe('GetMessagesQuery', () => {
         }),
       );
     });
+  });
+
+  it('shows someone blocked either way as unavailable in what they wrote, quoted or reacted with', async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({});
+    mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.message.findMany.mockResolvedValue([
+      {
+        id: 'm2',
+        content: 'enc_b',
+        senderId: 'me',
+        sender: { id: 'me', username: 'me', avatar: null },
+        replyTo: { senderId: 'bob', sender: { id: 'bob', username: 'bob' } },
+        reactions: [
+          { profileId: 'bob', profile: { username: 'bob' } },
+          { profileId: 'dan', profile: { username: 'dan' } },
+        ],
+      },
+      {
+        id: 'm1',
+        content: 'enc_a',
+        senderId: 'bob',
+        sender: { id: 'bob', username: 'bob', avatar: '/b.jpg' },
+      },
+    ]);
+    mockPrisma.block.findMany.mockResolvedValue([
+      { blockerId: 'bob', blockedId: 'me' },
+    ]);
+
+    const [first, second] = (await query.execute('conv-1', 50, 'me')) as any[];
+
+    expect(first.sender).toEqual({
+      id: 'bob',
+      username: null,
+      avatar: null,
+      unavailable: true,
+    });
+    expect(second.sender.username).toBe('me');
+    expect(second.replyTo.sender).toEqual({
+      id: 'bob',
+      username: null,
+      unavailable: true,
+    });
+    expect(second.reactions[0].profile).toEqual({
+      username: null,
+      unavailable: true,
+    });
+    expect(second.reactions[1].profile).toEqual({ username: 'dan' });
+    expect(mockPrisma.block.findMany).toHaveBeenCalledTimes(1);
   });
 });

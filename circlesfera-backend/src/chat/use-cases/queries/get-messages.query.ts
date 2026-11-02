@@ -4,6 +4,10 @@ import { isUnlisted } from '../../../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../../../common/selects/public-profile.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import {
+  blockedWithViewer,
+  unavailableProfile,
+} from '../../blocked-participants.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 
 // How many messages a conversation shows at first, and how many more each
@@ -110,7 +114,31 @@ export class GetMessagesQuery {
     });
 
     const messages = latest.reverse();
+    // Someone in a block with the viewer, either way, shows as unavailable
+    // in what they wrote, quoted or reacted with.
+    const blocked = await blockedWithViewer(
+      this.prisma,
+      profileId,
+      (messages as any[]).flatMap((m: any) => [
+        m.senderId,
+        m.replyTo?.senderId,
+        ...(m.reactions ?? []).map((r: any) => r.profileId),
+      ]),
+    );
     return (messages as any[]).map((m: any) => {
+      if (blocked.size > 0) {
+        if (m.sender && blocked.has(m.senderId)) {
+          m.sender = unavailableProfile(m.sender);
+        }
+        if (m.replyTo?.sender && blocked.has(m.replyTo.senderId)) {
+          m.replyTo.sender = unavailableProfile(m.replyTo.sender);
+        }
+        for (const r of m.reactions ?? []) {
+          if (r.profile && blocked.has(r.profileId)) {
+            r.profile = unavailableProfile(r.profile);
+          }
+        }
+      }
       if (m.content) {
         m.content = this.cryptoService.decrypt(m.content);
       }
