@@ -324,9 +324,14 @@ describe('LiveService', () => {
   });
 
   describe('when a host is sanctioned', () => {
-    const live = (host: Record<string, unknown>) => ({
-      id: 'stream-1',
-      host: { isAccountBanned: false, suspendedUntil: null, ...host },
+    const live = (host: Record<string, unknown>, id = 'stream-1') => ({
+      id,
+      host: {
+        isAccountBanned: false,
+        suspendedUntil: null,
+        user: { isRootBanned: false },
+        ...host,
+      },
     });
 
     it("a banned host's broadcast ends as ended by staff and its room is closed", async () => {
@@ -394,6 +399,7 @@ describe('LiveService', () => {
 
     it('a sanctioned co-host is taken off a broadcast that goes on', async () => {
       const emit = mockServer.emit;
+      mockPrismaService.liveStream.updateMany.mockResolvedValue({ count: 1 });
       mockPrismaService.liveStream.findMany
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
@@ -409,9 +415,9 @@ describe('LiveService', () => {
 
       const [args] = mockPrismaService.liveStream.findMany.mock.calls[1] ?? [];
       expect(args.where.coHost.id).toBe('cohost-1');
-      expect(mockPrismaService.liveStream.update).toHaveBeenCalledTimes(1);
-      expect(mockPrismaService.liveStream.update).toHaveBeenCalledWith({
-        where: { id: 'stream-2' },
+      expect(mockPrismaService.liveStream.updateMany).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.liveStream.updateMany).toHaveBeenCalledWith({
+        where: { id: 'stream-2', coHostId: 'cohost-1' },
         data: { coHostId: null },
       });
       expect(mockRecording.stopCoHost).toHaveBeenCalledWith('stream-2');
@@ -426,6 +432,70 @@ describe('LiveService', () => {
       expect(emit).toHaveBeenCalledWith('live:cohost_left', {
         coHostId: 'cohost-1',
       });
+    });
+
+    it('a ban of the whole account ends the broadcast as ended by staff', async () => {
+      mockPrismaService.liveStream.findMany
+        .mockResolvedValueOnce([live({ user: { isRootBanned: true } })])
+        .mockResolvedValueOnce([]);
+
+      await service.endBroadcastsOfSanctionedHost({
+        userId: 'user-1',
+        reason: 'Account banned by administration',
+      });
+
+      const [args] = mockPrismaService.liveStream.findMany.mock.calls[0] ?? [];
+      expect(args.select.host.select.user).toEqual({
+        select: { isRootBanned: true },
+      });
+      expect(mockPrismaService.liveStream.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ endedByStaff: true }),
+        }),
+      );
+    });
+
+    it('leaves a co-host the host replaced meanwhile in place', async () => {
+      mockPrismaService.liveStream.updateMany.mockResolvedValue({ count: 0 });
+      mockPrismaService.liveStream.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 'stream-2', coHostId: 'cohost-1' }]);
+
+      await service.endBroadcastsOfSanctionedHost({
+        userId: 'user-1',
+        profileId: 'cohost-1',
+        scope: 'profile',
+      });
+
+      expect(mockRecording.stopCoHost).not.toHaveBeenCalled();
+      expect(mockRecording.removeFromRoom).not.toHaveBeenCalled();
+    });
+
+    it('one broadcast that fails to end leaves the others to end, and co-hosts are still taken off', async () => {
+      mockPrismaService.liveStream.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.liveStream.findMany
+        .mockResolvedValueOnce([
+          live({ isAccountBanned: true }, 'stream-a'),
+          live({ isAccountBanned: true }, 'stream-b'),
+        ])
+        .mockResolvedValueOnce([
+          { id: 'stream-c', coHostId: 'cohost-1' },
+          { id: 'stream-d', coHostId: 'cohost-1' },
+        ]);
+      mockPrismaService.liveStream.update.mockRejectedValueOnce(
+        new Error('db busy'),
+      );
+      mockRecording.stopCoHost.mockRejectedValueOnce(new Error('recorder'));
+
+      await service.endBroadcastsOfSanctionedHost({ userId: 'user-1' });
+
+      expect(mockRecording.closeRoom).toHaveBeenCalledTimes(1);
+      expect(mockRecording.closeRoom).toHaveBeenCalledWith('stream-b');
+      expect(mockRecording.removeFromRoom).toHaveBeenCalledTimes(1);
+      expect(mockRecording.removeFromRoom).toHaveBeenCalledWith(
+        'stream-d',
+        'cohost-1',
+      );
     });
 
     it("for a sanction of one Profile, looks only at that Profile's broadcasts", async () => {

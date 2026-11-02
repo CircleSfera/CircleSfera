@@ -407,11 +407,6 @@ export class LiveRecordingService {
   }
 
   /**
-   * Closes a broadcast's room at the live service, so whoever is still in it,
-   * host and viewers, is taken out at once. A room already gone counts as
-   * closed; any other failure is logged and the caller goes on.
-   */
-  /**
    * Takes one participant out of a broadcast's room at the live service,
    * the broadcast going on for the others. One already gone counts as taken
    * out; any other failure is logged and the caller goes on.
@@ -427,6 +422,11 @@ export class LiveRecordingService {
     }
   }
 
+  /**
+   * Closes a broadcast's room at the live service, so whoever is still in it,
+   * host and viewers, is taken out at once. A room already gone counts as
+   * closed; any other failure is logged and the caller goes on.
+   */
   async closeRoom(streamId: string): Promise<void> {
     try {
       await this.rooms().deleteRoom(streamId);

@@ -37,13 +37,16 @@ function hostShown(host: {
   );
 }
 
-// A ban, or a suspension still running: a decision of staff.
+// A ban of the Profile or of the whole account, or a suspension still
+// running: a decision of staff.
 function sanctionedByStaff(host: {
   isAccountBanned: boolean;
   suspendedUntil: Date | null;
+  user: { isRootBanned: boolean } | null;
 }): boolean {
   return (
     host.isAccountBanned ||
+    !!host.user?.isRootBanned ||
     (!!host.suspendedUntil && host.suspendedUntil > new Date())
   );
 }
@@ -208,20 +211,33 @@ export class LiveService {
         where: { status: 'LIVE', host: gone },
         select: {
           id: true,
-          host: { select: { isAccountBanned: true, suspendedUntil: true } },
+          host: {
+            select: {
+              isAccountBanned: true,
+              suspendedUntil: true,
+              user: { select: { isRootBanned: true } },
+            },
+          },
         },
       });
+      // Each broadcast on its own: one that fails leaves the others to end.
       for (const stream of streams) {
-        await this.prisma.liveStream.update({
-          where: { id: stream.id },
-          data: {
-            status: 'ENDED',
-            endedAt: new Date(),
-            endedByStaff: sanctionedByStaff(stream.host),
-          },
-        });
-        await this.recording.stop(stream.id);
-        await this.recording.closeRoom(stream.id);
+        try {
+          await this.prisma.liveStream.update({
+            where: { id: stream.id },
+            data: {
+              status: 'ENDED',
+              endedAt: new Date(),
+              endedByStaff: sanctionedByStaff(stream.host),
+            },
+          });
+          await this.recording.stop(stream.id);
+          await this.recording.closeRoom(stream.id);
+        } catch (error: unknown) {
+          this.logger.error(
+            `Could not end broadcast ${stream.id} of a sanctioned host: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
       }
 
       const coHosted = await this.prisma.liveStream.findMany({
@@ -230,18 +246,27 @@ export class LiveService {
       });
       for (const stream of coHosted) {
         if (!stream.coHostId) continue;
-        await this.prisma.liveStream.update({
-          where: { id: stream.id },
-          data: { coHostId: null },
-        });
-        await this.recording.stopCoHost(stream.id);
-        await this.recording.removeFromRoom(stream.id, stream.coHostId);
-        this.gateway.server
-          .to(`user:${stream.coHostId}`)
-          .emit('live:cohost_removed', { streamId: stream.id });
-        this.gateway.server
-          .to(`live:${stream.id}`)
-          .emit('live:cohost_left', { coHostId: stream.coHostId });
+        try {
+          // Only while it is still the co-host: the host may have changed
+          // co-host meanwhile.
+          const { count } = await this.prisma.liveStream.updateMany({
+            where: { id: stream.id, coHostId: stream.coHostId },
+            data: { coHostId: null },
+          });
+          if (count === 0) continue;
+          await this.recording.stopCoHost(stream.id);
+          await this.recording.removeFromRoom(stream.id, stream.coHostId);
+          this.gateway.server
+            .to(`user:${stream.coHostId}`)
+            .emit('live:cohost_removed', { streamId: stream.id });
+          this.gateway.server
+            .to(`live:${stream.id}`)
+            .emit('live:cohost_left', { coHostId: stream.coHostId });
+        } catch (error: unknown) {
+          this.logger.error(
+            `Could not take a sanctioned co-host off broadcast ${stream.id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
       }
     } catch (error: unknown) {
       this.logger.error(
