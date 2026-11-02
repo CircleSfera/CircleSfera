@@ -46,6 +46,16 @@ export default function BrandAmbientBackground({
             'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(5, 4, 10, 0.45) 100%)',
         }}
       />
+      {/* As the page's own wash, it fades to the base at the top and the
+          bottom, so where it touches Safari's bars no strip of colour shows. */}
+      <div
+        data-testid="brand-background-edges"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(to bottom, var(--surface-base) 0, transparent 120px, transparent calc(100% - 120px), var(--surface-base) 100%)',
+        }}
+      />
     </div>
   );
 }
