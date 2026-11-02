@@ -1648,9 +1648,10 @@ model PromotionView {
 
 model Monetization {
   id                     String  @id @default(uuid())
-  // The person's row, with their first account and their lifetime earnings.
-  // A row opened by a Profile for an account of its own names no person: it
-  // is the Profile's (userId goes once every row is a Profile's).
+  // The person's row: their shared payout account, the one every Profile
+  // without an account of its own is paid into. userId marks that row and
+  // stays. A row opened by a Profile for an account of its own names no
+  // person: it is the Profile's.
   userId                 String? @unique
   // The Profile that holds this payout account, and the account itself. The
   // person's first account sits with the Profile that connected it, or with
@@ -1659,8 +1660,9 @@ model Monetization {
   profileId              String? @unique
   stripeConnectAccountId String? @unique
 
-  // Statistical ledger (platform fee share credited locally; funds settle in Connect)
-
+  // No longer written: what a Profile earned is read from its payments
+  // (transactions), as every creator screen and the data export read it.
+  // Kept so that rows written before stay as they were.
   lifetimeEarningsCents Int     @default(0)
   // Cached from Stripe account.updated webhook
   transfersEnabled      Boolean @default(false)

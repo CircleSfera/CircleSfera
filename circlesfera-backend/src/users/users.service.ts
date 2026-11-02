@@ -26,6 +26,7 @@ import { isTestViewer } from '../common/policies/test-account.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
+import { earningsByProfile } from '../monetization/earnings-sql.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { followTeamPlan } from '../team/team-plan.js';
@@ -465,75 +466,95 @@ export class UsersService {
   }
 
   /**
-   * What the person earned, was paid out and paid to promote: each payout
-   * account of theirs and of their Profiles, with the Profile holding it,
-   * every payout to their bank, their promotions and the disputes of what
-   * they paid. The provider's own records of the account are read there.
+   * What the person earned, was paid out and paid to promote: what each of
+   * their Profiles earned, read from the payments as the creator screens
+   * read it, each payout account of theirs and of their Profiles, with the
+   * Profile holding it, every payout to their bank, their promotions and the
+   * disputes of what they paid. The provider's own records of the account
+   * are read there.
    */
   private async earningsOfTheAccount(userId: string) {
-    const [accounts, payouts, promotions, disputes] = await Promise.all([
-      this.prisma.monetization.findMany({
-        where: { OR: [{ userId }, { profile: { userId } }] },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          stripeConnectAccountId: true,
-          lifetimeEarningsCents: true,
-          transfersEnabled: true,
-          chargesEnabled: true,
-          verifiedCompany: true,
-          createdAt: true,
-          profile: { select: { username: true } },
-        },
-      }),
-      this.prisma.stripePayoutLog.findMany({
-        where: { userId },
-        orderBy: { arrivalDate: 'asc' },
-        select: {
-          stripePayoutId: true,
-          amountCents: true,
-          currency: true,
-          status: true,
-          arrivalDate: true,
-          failureReason: true,
-          profile: { select: { username: true } },
-        },
-      }),
-      this.prisma.promotion.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          targetType: true,
-          targetId: true,
-          budgetCents: true,
-          dailyBudgetCents: true,
-          currency: true,
-          status: true,
-          countries: true,
-          startDate: true,
-          endDate: true,
-          reach: true,
-          clicks: true,
-          chargedAt: true,
-          refundedAt: true,
-          rejectionReason: true,
-          reviewedAt: true,
-          createdAt: true,
-        },
-      }),
-      this.prisma.paymentDispute.findMany({
-        where: { userId },
-        orderBy: { openedAt: 'asc' },
-        select: {
-          amountCents: true,
-          currency: true,
-          reason: true,
-          status: true,
-          openedAt: true,
-          closedAt: true,
-        },
-      }),
-    ]);
+    const [earned, profiles, accounts, payouts, promotions, disputes] =
+      await Promise.all([
+        earningsByProfile(this.prisma, userId),
+        this.prisma.profile.findMany({
+          where: { userId },
+          select: { id: true, username: true },
+        }),
+        this.prisma.monetization.findMany({
+          where: { OR: [{ userId }, { profile: { userId } }] },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            stripeConnectAccountId: true,
+            transfersEnabled: true,
+            chargesEnabled: true,
+            verifiedCompany: true,
+            createdAt: true,
+            profile: { select: { username: true } },
+          },
+        }),
+        this.prisma.stripePayoutLog.findMany({
+          where: { userId },
+          orderBy: { arrivalDate: 'asc' },
+          select: {
+            stripePayoutId: true,
+            amountCents: true,
+            currency: true,
+            status: true,
+            arrivalDate: true,
+            failureReason: true,
+            profile: { select: { username: true } },
+          },
+        }),
+        this.prisma.promotion.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            targetType: true,
+            targetId: true,
+            budgetCents: true,
+            dailyBudgetCents: true,
+            currency: true,
+            status: true,
+            countries: true,
+            startDate: true,
+            endDate: true,
+            reach: true,
+            clicks: true,
+            chargedAt: true,
+            refundedAt: true,
+            rejectionReason: true,
+            reviewedAt: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.paymentDispute.findMany({
+          where: { userId },
+          orderBy: { openedAt: 'asc' },
+          select: {
+            amountCents: true,
+            currency: true,
+            reason: true,
+            status: true,
+            openedAt: true,
+            closedAt: true,
+          },
+        }),
+      ]);
+    const username = new Map(profiles.map((p) => [p.id, p.username]));
     return {
+      // A payment that names none of the person's Profiles (recorded before
+      // income named its Profile, or to a Profile since erased) is listed
+      // with no Profile, and counts in the total.
+      earned: {
+        totalCents: earned.reduce((sum, row) => sum + Number(row.earned), 0),
+        byProfile: earned.map((row) => ({
+          profile:
+            (row.receiverProfileId && username.get(row.receiverProfileId)) ??
+            null,
+          earnedCents: Number(row.earned),
+        })),
+      },
       payoutAccounts: accounts.map(({ profile, ...account }) => ({
         ...account,
         profile: profile?.username ?? null,

@@ -260,7 +260,6 @@ describe('LiveGiftService', () => {
           create: {
             userId: 'creator-1',
             profileId: 'creator-prof-1',
-            lifetimeEarningsCents: 400,
           },
         }),
       );
@@ -297,11 +296,12 @@ describe('LiveGiftService', () => {
           data: expect.objectContaining({ amount: 1000, vatCents: 174 }),
         }),
       );
-      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          create: expect.objectContaining({ lifetimeEarningsCents: 661 }),
-        }),
-      );
+      // The host's share is read from this payment; the payout row keeps no
+      // counter of it.
+      const [{ update, create }] =
+        mockPrismaService.monetization.upsert.mock.calls[0];
+      expect(update).not.toHaveProperty('lifetimeEarningsCents');
+      expect(create).not.toHaveProperty('lifetimeEarningsCents');
       mockPrismaService.user.findUnique.mockReset();
     });
 

@@ -70,6 +70,8 @@ describe('UsersService', () => {
           { stripeConnectAccountId: 'acct_profile' },
         ]),
     },
+    // What each Profile earned, read from the payments.
+    $queryRaw: vi.fn().mockResolvedValue([]),
     stripePayoutLog: { findMany: vi.fn().mockResolvedValue([]) },
     promotion: { findMany: vi.fn().mockResolvedValue([]) },
     paymentDispute: { findMany: vi.fn().mockResolvedValue([]) },
@@ -95,7 +97,7 @@ describe('UsersService', () => {
     profile: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn(),
       update: vi.fn(),
     },
@@ -453,10 +455,19 @@ describe('UsersService', () => {
       mockPrismaService.user.findUnique
         .mockResolvedValueOnce({ id: 'u1', deviceSignals: [], signIns: [] })
         .mockResolvedValueOnce({ profiles: [] });
+      // 6.61 € earned by @ana, 4 € by a Profile since erased and 1 € before
+      // income named its Profile.
+      earningModels.$queryRaw.mockResolvedValueOnce([
+        { receiverProfileId: 'p-ana', earned: 661n },
+        { receiverProfileId: 'p-erased', earned: 400n },
+        { receiverProfileId: null, earned: 100n },
+      ]);
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { id: 'p-ana', username: 'ana' },
+      ]);
       earningModels.monetization.findMany.mockResolvedValueOnce([
         {
           stripeConnectAccountId: 'acct_1',
-          lifetimeEarningsCents: 1200,
           transfersEnabled: true,
           chargesEnabled: true,
           verifiedCompany: false,
@@ -465,7 +476,6 @@ describe('UsersService', () => {
         },
         {
           stripeConnectAccountId: null,
-          lifetimeEarningsCents: 0,
           transfersEnabled: false,
           chargesEnabled: false,
           verifiedCompany: false,
@@ -500,7 +510,6 @@ describe('UsersService', () => {
         orderBy: { createdAt: 'asc' },
         select: {
           stripeConnectAccountId: true,
-          lifetimeEarningsCents: true,
           transfersEnabled: true,
           chargesEnabled: true,
           verifiedCompany: true,
@@ -536,11 +545,24 @@ describe('UsersService', () => {
           closedAt: true,
         },
       });
+      expect(earningModels.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
+        select: { id: true, username: true },
+      });
       expect(data.earnings).toEqual({
+        // As the creator screens count it, from the payments.
+        earned: {
+          totalCents: 1161,
+          byProfile: [
+            { profile: 'ana', earnedCents: 661 },
+            { profile: null, earnedCents: 400 },
+            { profile: null, earnedCents: 100 },
+          ],
+        },
         payoutAccounts: [
           {
             stripeConnectAccountId: 'acct_1',
-            lifetimeEarningsCents: 1200,
             transfersEnabled: true,
             chargesEnabled: true,
             verifiedCompany: false,
@@ -549,7 +571,6 @@ describe('UsersService', () => {
           },
           {
             stripeConnectAccountId: null,
-            lifetimeEarningsCents: 0,
             transfersEnabled: false,
             chargesEnabled: false,
             verifiedCompany: false,

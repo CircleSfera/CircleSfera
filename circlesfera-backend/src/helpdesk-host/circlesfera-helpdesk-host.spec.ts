@@ -118,6 +118,72 @@ describe('CircleSfera as the host of the Help Desk', () => {
       expect(JSON.stringify(card)).not.toContain('acct_1');
     });
 
+    it('counts the payout account a Profile holds of its own, not only the shared one', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u-1',
+        isActive: true,
+        createdAt: new Date('2026-01-01'),
+        identityVerifiedAt: null,
+        monetization: null,
+        profiles: [
+          {
+            id: 'p-1',
+            username: 'ana',
+            accountType: 'PERSONAL',
+            verificationLevel: 'BASIC',
+            isAccountBanned: false,
+            suspendedUntil: null,
+            monetization: null,
+          },
+          {
+            id: 'p-2',
+            username: 'ana.studio',
+            accountType: 'BUSINESS',
+            verificationLevel: 'BASIC',
+            isAccountBanned: false,
+            suspendedUntil: null,
+            monetization: {
+              stripeConnectAccountId: 'acct_own',
+              transfersEnabled: true,
+            },
+          },
+        ],
+        platformSubscriptions: [],
+      });
+
+      const card = await cards.accountCard('u-1');
+
+      expect(card?.payouts).toEqual({ connected: true, enabled: true });
+      expect(JSON.stringify(card)).not.toContain('acct_own');
+    });
+
+    it('shows no payout account when neither the person nor a Profile holds one', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u-1',
+        isActive: true,
+        createdAt: new Date('2026-01-01'),
+        identityVerifiedAt: null,
+        monetization: { stripeConnectAccountId: null, transfersEnabled: false },
+        profiles: [
+          {
+            id: 'p-1',
+            username: 'ana',
+            accountType: 'PERSONAL',
+            verificationLevel: 'BASIC',
+            isAccountBanned: false,
+            suspendedUntil: null,
+            monetization: null,
+          },
+        ],
+        platformSubscriptions: [],
+      });
+
+      expect((await cards.accountCard('u-1'))?.payouts).toEqual({
+        connected: false,
+        enabled: false,
+      });
+    });
+
     it('is empty when the account no longer exists', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 

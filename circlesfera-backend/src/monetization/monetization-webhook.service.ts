@@ -18,7 +18,7 @@ import {
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { amountPaid, creatorEarnings, vatPaid } from './paid-amounts.js';
+import { amountPaid, vatPaid } from './paid-amounts.js';
 import { payoutAccountPlacement } from './payout-account.js';
 
 // Stripe Checkout Session metadata.type values fulfilled here rather than
@@ -235,16 +235,10 @@ export class MonetizationWebhookService {
           const placed = await payoutAccountPlacement(tx, creatorId);
           await tx.monetization.upsert({
             where: { userId: creatorId },
-            update: {
-              ...placed,
-              lifetimeEarningsCents: {
-                increment: creatorEarnings(amount, vat),
-              },
-            },
+            update: placed,
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: creatorEarnings(amount, vat),
             },
           });
         });
@@ -311,16 +305,10 @@ export class MonetizationWebhookService {
           const placed = await payoutAccountPlacement(tx, creatorId);
           await tx.monetization.upsert({
             where: { userId: creatorId },
-            update: {
-              ...placed,
-              lifetimeEarningsCents: {
-                increment: creatorEarnings(amount, vat),
-              },
-            },
+            update: placed,
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: creatorEarnings(amount, vat),
             },
           });
         });
@@ -392,16 +380,10 @@ export class MonetizationWebhookService {
           const placed = await payoutAccountPlacement(tx, creatorId);
           await tx.monetization.upsert({
             where: { userId: creatorId },
-            update: {
-              ...placed,
-              lifetimeEarningsCents: {
-                increment: creatorEarnings(amount, vat),
-              },
-            },
+            update: placed,
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: creatorEarnings(amount, vat),
             },
           });
         });
@@ -459,16 +441,10 @@ export class MonetizationWebhookService {
           const placed = await payoutAccountPlacement(tx, creatorId);
           await tx.monetization.upsert({
             where: { userId: creatorId },
-            update: {
-              ...placed,
-              lifetimeEarningsCents: {
-                increment: creatorEarnings(amount, vat),
-              },
-            },
+            update: placed,
             create: {
               userId: creatorId,
               ...placed,
-              lifetimeEarningsCents: creatorEarnings(amount, vat),
             },
           });
         });

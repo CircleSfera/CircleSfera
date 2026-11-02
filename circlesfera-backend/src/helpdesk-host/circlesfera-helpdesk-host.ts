@@ -89,6 +89,9 @@ export class CircleSferaAccountCard implements AccountCardProvider {
             verificationLevel: true,
             isAccountBanned: true,
             suspendedUntil: true,
+            monetization: {
+              select: { stripeConnectAccountId: true, transfersEnabled: true },
+            },
           },
         },
         platformSubscriptions: {
@@ -107,6 +110,12 @@ export class CircleSferaAccountCard implements AccountCardProvider {
 
     const [subscription] = user.platformSubscriptions;
     const now = new Date();
+    // The person's shared payout row and the rows of Profiles paid into an
+    // account of their own.
+    const payoutRows = [
+      user.monetization,
+      ...user.profiles.map((profile) => profile.monetization),
+    ];
     return {
       userId: user.id,
       isActive: user.isActive,
@@ -120,8 +129,8 @@ export class CircleSferaAccountCard implements AccountCardProvider {
           }
         : null,
       payouts: {
-        connected: !!user.monetization?.stripeConnectAccountId,
-        enabled: !!user.monetization?.transfersEnabled,
+        connected: payoutRows.some((row) => !!row?.stripeConnectAccountId),
+        enabled: payoutRows.some((row) => !!row?.transfersEnabled),
       },
       profiles: user.profiles.map((profile) => ({
         id: profile.id,

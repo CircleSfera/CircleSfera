@@ -1,7 +1,6 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MonetizationWebhookService } from './monetization-webhook.service.js';
@@ -159,18 +158,14 @@ describe('MonetizationWebhookService', () => {
       expect(prisma.monetization.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { userId: 'creator1' },
-          update: {
-            lifetimeEarningsCents: {
-              increment: Math.floor(1000 * CREATOR_SHARE_DECIMAL),
-            },
-          },
+          // Placed already: nothing about the row changes.
+          update: {},
         }),
       );
     });
 
     it('processes a DIRECT_POST_UNLOCK checkout', async () => {
       const grossCents = 1000;
-      const creatorShareCents = Math.floor(grossCents * CREATOR_SHARE_DECIMAL);
       const session = {
         id: 'cs_unlock_1',
         client_reference_id: 'buyer1',
@@ -207,16 +202,13 @@ describe('MonetizationWebhookService', () => {
         expect.objectContaining({
           where: { userId: 'creator1' },
           // A row without a connected account is placed again too.
-          update: {
-            profileId: 'creator-prof-1',
-            lifetimeEarningsCents: { increment: creatorShareCents },
-          },
+          update: { profileId: 'creator-prof-1' },
           // A new row is kept with the person's earning Profile; its account
-          // is only ever written by connecting.
+          // is only ever written by connecting. What the creator earned is
+          // read from the payments, never kept on the row.
           create: {
             userId: 'creator1',
             profileId: 'creator-prof-1',
-            lifetimeEarningsCents: creatorShareCents,
           },
         }),
       );
@@ -269,14 +261,11 @@ describe('MonetizationWebhookService', () => {
             }),
           }),
         );
-        expect(prisma.monetization.upsert).toHaveBeenCalledWith(
-          expect.objectContaining({
-            update: expect.objectContaining({
-              lifetimeEarningsCents: { increment: 661 },
-            }),
-            create: expect.objectContaining({ lifetimeEarningsCents: 661 }),
-          }),
-        );
+        // The creator's share (6.61 €) is read from this payment; the payout
+        // row keeps no counter of it.
+        const [{ update, create }] = prisma.monetization.upsert.mock.calls[0];
+        expect(update).not.toHaveProperty('lifetimeEarningsCents');
+        expect(create).not.toHaveProperty('lifetimeEarningsCents');
       },
     );
 
@@ -323,9 +312,9 @@ describe('MonetizationWebhookService', () => {
       );
 
       expect(stripe.settleCreatorPaymentFee).not.toHaveBeenCalled();
-      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
+      expect(prisma.transaction.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          create: expect.objectContaining({ lifetimeEarningsCents: 800 }),
+          data: expect.objectContaining({ amount: 1000, vatCents: 0 }),
         }),
       );
     });
