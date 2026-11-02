@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { type AdminSubscription, adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { formatDay } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import { UserAvatar } from '../index';
@@ -69,10 +70,13 @@ export default function SubscriptionsTab() {
         .then((res) => res.data),
   });
 
-  // The plan filter needs the catalogue, which has its own permission.
+  // The plan filter needs the catalogue, which has its own permission: staff
+  // without it get no filter and no refused request.
+  const canReadPlans = useAdminAuthStore((s) => s.hasPermission('plans'));
   const { data: catalogue } = useQuery({
     queryKey: ['admin', 'plans'],
     queryFn: () => adminApi.getPlans().then((res) => res.data),
+    enabled: canReadPlans,
     retry: false,
   });
 

@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { renderWithProviders } from '../../test/test-utils';
 import SubscriptionsTab from './SubscriptionsTab';
 
@@ -30,6 +31,7 @@ const list = (data: unknown[]) => ({
 describe('SubscriptionsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAdminAuthStore.setState({ hasPermission: () => true } as never);
     vi.mocked(adminApi.getPlans).mockResolvedValue({
       data: {
         plans: [{ id: 'plan-1', name: 'Premium' }],
@@ -102,5 +104,27 @@ describe('SubscriptionsTab', () => {
         expect.objectContaining({ status: 'PAST_DUE', page: 1 }),
       ),
     );
+  });
+
+  it('filters by plan when the staff member can read the plans', async () => {
+    vi.mocked(adminApi.getSubscriptions).mockResolvedValue(list([]) as never);
+    renderWithProviders(<SubscriptionsTab />);
+
+    expect(
+      await screen.findByRole('option', { name: 'Premium' }),
+    ).toBeInTheDocument();
+    expect(adminApi.getPlans).toHaveBeenCalled();
+  });
+
+  it('does not ask for the plans without their permission', async () => {
+    useAdminAuthStore.setState({
+      hasPermission: (key: string) => key !== 'plans',
+    } as never);
+    vi.mocked(adminApi.getSubscriptions).mockResolvedValue(list([]) as never);
+    renderWithProviders(<SubscriptionsTab />);
+    await screen.findByText('No subscriptions');
+
+    expect(adminApi.getPlans).not.toHaveBeenCalled();
+    expect(screen.queryByRole('option', { name: 'Premium' })).toBeNull();
   });
 });
