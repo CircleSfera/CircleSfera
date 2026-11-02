@@ -334,6 +334,11 @@ const cases: Case[] = [
     ['admin/disputes', q({ state: 'open', page: 1 })],
   ],
   [
+    'getCompanies',
+    () => adminApi.getCompanies({ search: 'acme', page: 2 }),
+    ['admin/companies', q({ search: 'acme', page: 2 })],
+  ],
+  [
     'getSubscriptions',
     () => adminApi.getSubscriptions({ status: 'active' }),
     'get',
