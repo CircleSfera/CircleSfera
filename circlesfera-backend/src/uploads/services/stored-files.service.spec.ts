@@ -147,6 +147,50 @@ describe('StoredFilesService.assertOwnedBy', () => {
   });
 });
 
+describe('StoredFilesService.namesStoredFileIndirectly', () => {
+  // As the local storage: only its own relative address of a file.
+  const localStorage = {
+    ownsUrl: (url: string) => /^\/uploads\/[0-9a-f-]{36}\.[a-z0-9]+$/.test(url),
+  };
+  const file = '3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg';
+  const files = (storage: object | undefined = localStorage) =>
+    new StoredFilesService(
+      {} as unknown as PrismaService,
+      { inUse: async () => new Set<string>() } as never,
+      storage as never,
+    );
+
+  it("takes another host's address with the path of a stored file for one", () => {
+    for (const address of [
+      `https://x.test/uploads/${file}`,
+      `https://circlesfera.com/uploads/${file}?v=1`,
+      `https://x.test/uploads/${file.replace('.jpg', '%2Ejpg')}`,
+      `//x.test/uploads/${file}`,
+    ]) {
+      expect(files().namesStoredFileIndirectly(address)).toBe(true);
+    }
+  });
+
+  it("leaves alone the storage's own address and any other page", () => {
+    for (const address of [
+      `/uploads/${file}`,
+      'https://x.test/photo.jpg',
+      'https://x.test/wp-content/uploads/2026/photo.jpg',
+    ]) {
+      expect(files().namesStoredFileIndirectly(address)).toBe(false);
+    }
+  });
+
+  it('takes an address it cannot read for one, and asks nothing of a storage that cannot tell its own', () => {
+    expect(
+      files().namesStoredFileIndirectly('https://x.test/uploads/%E0%A4%A'),
+    ).toBe(true);
+    expect(
+      files({}).namesStoredFileIndirectly(`https://x.test/uploads/${file}`),
+    ).toBe(false);
+  });
+});
+
 describe('StoredFilesService.release, in a transaction', () => {
   it('reads and marks through the transaction that deletes the content', async () => {
     const prisma = { storedFile: { findMany: vi.fn(), updateMany: vi.fn() } };

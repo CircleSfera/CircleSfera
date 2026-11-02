@@ -735,8 +735,8 @@ describe('MediaAuthService', () => {
         service.isAccessAllowed('/uploads/group.jpg', null, null),
       ).resolves.toBe(false);
       expect(
-        mockPrismaService.conversation.findMany.mock.calls[0][0].where.OR,
-      ).toContainEqual({ avatarUrl: { contains: 'group.jpg' } });
+        mockPrismaService.conversation.findMany.mock.calls[0][0].where,
+      ).toEqual({ avatarUrl: { in: ['/uploads/group.jpg'] } });
       expect(mockPrismaService.participant.findFirst).toHaveBeenCalledWith({
         where: {
           conversationId: 'group-1',
@@ -745,6 +745,37 @@ describe('MediaAuthService', () => {
         },
         select: { id: true },
       });
+    });
+
+    it("never takes another host's group photo naming a file of this server for a use of it", async () => {
+      // A group whose photo is another host's address with the path of
+      // someone else's file: matched by exact address, it is no use of it.
+      const groups = [
+        {
+          id: 'evil-group',
+          avatarUrl:
+            'https://x.test/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
+        },
+      ];
+      mockPrismaService.conversation.findMany.mockImplementation(
+        async ({ where }) =>
+          groups.filter((group) =>
+            'in' in where.avatarUrl
+              ? where.avatarUrl.in.includes(group.avatarUrl)
+              : where.OR?.some((or: { avatarUrl: { contains: string } }) =>
+                  group.avatarUrl.includes(or.avatarUrl.contains),
+                ),
+          ),
+      );
+
+      await expect(
+        service.isAccessAllowed(
+          '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg',
+          'u-1',
+          'victim-1',
+        ),
+      ).resolves.toBe(true);
+      expect(mockPrismaService.participant.findFirst).not.toHaveBeenCalled();
     });
 
     it("gives a clip a studio draft keeps in its state to the draft's author only", async () => {

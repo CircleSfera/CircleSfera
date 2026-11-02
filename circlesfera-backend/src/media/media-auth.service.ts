@@ -407,8 +407,11 @@ export class MediaAuthService {
       ),
     });
     const [groups, drafts] = await Promise.all([
+      // By exact address, in this storage's own form: the only form whose
+      // owner a group's photo was checked against. Another host's address
+      // never names a file here.
       this.prisma.conversation.findMany({
-        where: contains('avatarUrl'),
+        where: { avatarUrl: { in: candidates } },
         select: { id: true },
       }),
       // By the clip's exact address, through the index of clip addresses:

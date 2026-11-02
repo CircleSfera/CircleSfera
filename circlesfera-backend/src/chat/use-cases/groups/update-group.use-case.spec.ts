@@ -15,7 +15,10 @@ describe('UpdateGroupUseCase', () => {
     };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
-  let storedFiles: { assertOwnedBy: ReturnType<typeof vi.fn> };
+  let storedFiles: {
+    assertOwnedBy: ReturnType<typeof vi.fn>;
+    namesStoredFileIndirectly: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     mockPrisma = {
@@ -27,7 +30,10 @@ describe('UpdateGroupUseCase', () => {
           .mockResolvedValue({ avatarUrl: '/uploads/old.jpg' }),
       },
     };
-    storedFiles = { assertOwnedBy: vi.fn().mockResolvedValue(undefined) };
+    storedFiles = {
+      assertOwnedBy: vi.fn().mockResolvedValue(undefined),
+      namesStoredFileIndirectly: vi.fn().mockReturnValue(false),
+    };
     mockEventEmitter = { emit: vi.fn() };
     useCase = new UpdateGroupUseCase(
       mockPrisma as unknown as PrismaService,
@@ -107,6 +113,20 @@ describe('UpdateGroupUseCase', () => {
     expect(storedFiles.assertOwnedBy).toHaveBeenCalledWith('prof-1', [
       '/uploads/theirs.jpg',
     ]);
+    expect(mockPrisma.conversation.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses a photo given by another host's address with the path of a stored file, before any check or change", async () => {
+    mockPrisma.participant.findFirst.mockResolvedValue({ isAdmin: true });
+    storedFiles.namesStoredFileIndirectly.mockReturnValue(true);
+    const crafted =
+      'https://x.test/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.jpg';
+
+    await expect(
+      useCase.execute('prof-1', 'conv-1', undefined, crafted),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(storedFiles.namesStoredFileIndirectly).toHaveBeenCalledWith(crafted);
+    expect(storedFiles.assertOwnedBy).not.toHaveBeenCalled();
     expect(mockPrisma.conversation.update).not.toHaveBeenCalled();
   });
 

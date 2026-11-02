@@ -154,6 +154,23 @@ export class StoredFilesService {
   }
 
   /**
+   * Whether an address names a file of this server's storage in a form other
+   * than the storage's own, as a page of another host with the path of one
+   * of its files: such an address escapes the ownership check, which looks
+   * only at this storage's own addresses. An address that cannot be read is
+   * taken as one.
+   */
+  namesStoredFileIndirectly(address: string): boolean {
+    if (!this.storage?.ownsUrl || this.storage.ownsUrl(address)) return false;
+    try {
+      const { pathname } = new URL(address, 'http://address.invalid');
+      return this.storage.ownsUrl(decodeURIComponent(pathname));
+    } catch {
+      return true;
+    }
+  }
+
+  /**
    * Refuses a file of this server's storage that does not belong to one of
    * the given Profiles: a person may attach only their Profile's own files.
    * Addresses of other storages are not this server's to check. A storage

@@ -1,6 +1,10 @@
-import type { ChatConversationUpdatedEvent } from '@circlesfera/shared';
+import {
+  type ChatConversationUpdatedEvent,
+  ErrorCode,
+} from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { StoredFilesService } from '../../../uploads/services/stored-files.service.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
@@ -35,6 +39,15 @@ export class UpdateGroupUseCase {
         select: { avatarUrl: true },
       });
       if (avatarUrl !== current?.avatarUrl) {
+        // A file of this server is given only by its own address, the one
+        // the ownership check reads: another host's address with the path of
+        // one of its files would escape the check.
+        if (this.storedFiles.namesStoredFileIndirectly(avatarUrl)) {
+          throw AppException.BadRequest(
+            ErrorCode.INVALID_INPUT,
+            'A photo of this server is given by its own address',
+          );
+        }
         await this.storedFiles.assertOwnedBy(profileId, [avatarUrl]);
       }
     }

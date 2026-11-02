@@ -29,8 +29,9 @@ export const EDIT_CLIP_PATH =
 
 /**
  * The clip addresses of an edit project (alias `e`), as a JSON array. The
- * same expression as the index edit_projects_clip_addresses_idx, written
- * out (not bound) so the planner uses the index for `?|`.
+ * same expression as the index edit_projects_clip_addresses_idx (migration
+ * 20261211090000, built concurrently, so it is that file's only statement),
+ * written out (not bound) so the planner uses the index for `?|`.
  */
 export const EDIT_CLIP_ADDRESSES = Prisma.sql`jsonb_path_query_array(e."state", ${Prisma.raw(`'${EDIT_CLIP_PATH}'`)}::jsonpath)`;
 
