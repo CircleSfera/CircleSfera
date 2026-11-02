@@ -41,6 +41,7 @@ describe('the two staff sites', () => {
       'plans',
       'subscriptions',
       'disputes',
+      'companies',
       'promotions',
       'payouts',
       'monetization',

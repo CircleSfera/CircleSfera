@@ -441,6 +441,19 @@ export interface UserExperiment {
 }
 
 // What support sees about who wrote a ticket. It is read-only.
+// A Business Profile and the three things the "Verified company" label
+// needs.
+export interface AdminCompany {
+  id: string;
+  username: string;
+  fullName: string | null;
+  avatar: string | null;
+  onBusinessPlan: boolean;
+  payoutConnected: boolean;
+  companyVerified: boolean;
+  labelShown: boolean;
+}
+
 export interface AdminDispute {
   id: string;
   stripeDisputeId: string;
@@ -1527,6 +1540,13 @@ export const adminApi = {
     apiClient.get<
       PaginatedResponse<AdminDispute> & { meta: { openCount: number } }
     >('admin/disputes', { params }),
+
+  // Business Profiles and why each has the "Verified company" label. Read
+  // only.
+  getCompanies: (params: { page?: number; limit?: number; search?: string }) =>
+    apiClient.get<PaginatedResponse<AdminCompany>>('admin/companies', {
+      params,
+    }),
 
   // Platform plan subscriptions. Read only.
   getSubscriptions: (params: {

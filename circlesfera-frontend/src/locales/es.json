@@ -2720,7 +2720,8 @@
       "settings": "Configuración",
       "spam_review": "Revisión de spam",
       "link_domains": "Dominios bloqueados",
-      "illegal_notices": "Avisos de contenido ilegal"
+      "illegal_notices": "Avisos de contenido ilegal",
+      "companies": "Empresas verificadas"
     },
     "table": {
       "empty_title": "No hay datos disponibles",
@@ -4542,6 +4543,22 @@
       "retry": "Reintentar",
       "empty_title": "No hay avisos aquí",
       "empty_description": "Aquí aparecen los avisos enviados desde el formulario público."
+    },
+    "companies": {
+      "title": "Empresas verificadas",
+      "subtitle": "Perfiles de empresa y por qué muestran o no la etiqueta «Empresa verificada»: necesita el plan Business y una cuenta de cobro que Stripe haya verificado como empresa.",
+      "search_placeholder": "Buscar por usuario o nombre",
+      "load_failed": "No se pudo cargar la lista.",
+      "empty_title": "No hay perfiles de empresa",
+      "empty_description": "Aquí aparecen los perfiles de tipo Empresa.",
+      "label_shown": "Con etiqueta",
+      "label_not_shown": "Sin etiqueta",
+      "plan_yes": "Plan Business",
+      "plan_no": "Sin plan Business",
+      "payout_yes": "Cuenta de cobro",
+      "payout_no": "Sin cuenta de cobro",
+      "verified_yes": "Empresa verificada por Stripe",
+      "verified_no": "Stripe no la ha verificado como empresa"
     }
   },
   "collections": {

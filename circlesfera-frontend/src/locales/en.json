@@ -2720,7 +2720,8 @@
       "settings": "Settings",
       "spam_review": "Spam review",
       "link_domains": "Blocked link domains",
-      "illegal_notices": "Illegal content notices"
+      "illegal_notices": "Illegal content notices",
+      "companies": "Verified companies"
     },
     "table": {
       "empty_title": "No data available",
@@ -4542,6 +4543,22 @@
       "retry": "Try again",
       "empty_title": "No notices here",
       "empty_description": "Notices sent from the public form appear here."
+    },
+    "companies": {
+      "title": "Verified companies",
+      "subtitle": "Business Profiles and why they show the \"Verified company\" label or not: it needs the Business plan and a payout account Stripe has verified as a company.",
+      "search_placeholder": "Search by username or name",
+      "load_failed": "The list could not be loaded.",
+      "empty_title": "No Business Profiles",
+      "empty_description": "Profiles of the Business type show here.",
+      "label_shown": "Label shown",
+      "label_not_shown": "No label",
+      "plan_yes": "Business plan",
+      "plan_no": "No Business plan",
+      "payout_yes": "Payout account",
+      "payout_no": "No payout account",
+      "verified_yes": "Company verified by Stripe",
+      "verified_no": "Not verified as a company by Stripe"
     }
   },
   "collections": {

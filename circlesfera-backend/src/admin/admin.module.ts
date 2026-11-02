@@ -17,6 +17,8 @@ import { ProfileStrikesModule } from '../strikes/profile-strikes.module.js';
 import { TrustModule } from '../trust/trust.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AdminService } from './admin.service.js';
+import { AdminCompaniesController } from './admin-companies.controller.js';
+import { AdminCompaniesService } from './admin-companies.service.js';
 import { AdminContentController } from './admin-content.controller.js';
 import { AdminDisputesController } from './admin-disputes.controller.js';
 import { AdminDisputesService } from './admin-disputes.service.js';
@@ -85,6 +87,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminMediaController,
     AdminOpsController,
     AdminPlansController,
+    AdminCompaniesController,
     AdminDisputesController,
     AdminSubscriptionsController,
     AdminOperatorsController,
@@ -99,6 +102,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminLinkDomainsService,
     AdminOpsService,
     AdminPlansService,
+    AdminCompaniesService,
     AdminDisputesService,
     AdminSubscriptionsService,
     AdminOperatorsService,
