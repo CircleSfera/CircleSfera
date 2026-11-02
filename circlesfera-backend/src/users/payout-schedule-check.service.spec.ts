@@ -10,17 +10,10 @@ const person = (
 ) => ({ id, isRootBanned, payoutsHeldAt });
 
 describe('PayoutScheduleCheckService', () => {
-  const setup = (
-    rows: object[],
-    intervals: Record<string, string | Error>,
-    owners: object[] = [],
-  ) => {
+  const setup = (rows: object[], intervals: Record<string, string | Error>) => {
     const prisma = {
       monetization: { findMany: vi.fn().mockResolvedValue(rows) },
-      user: {
-        findMany: vi.fn().mockResolvedValue(owners),
-        update: vi.fn(),
-      },
+      user: { findMany: vi.fn(), update: vi.fn() },
     };
     const stripe = {
       getAccount: vi.fn(async (account: string) => {
@@ -59,26 +52,27 @@ describe('PayoutScheduleCheckService', () => {
         acct_banned: 'weekly',
         acct_lifted: 'manual',
         acct_fine: 'weekly',
-        acct_column: 'weekly',
       },
-      [
-        {
-          ...person('u4', true, daysAgo(1)),
-          stripeConnectAccountId: 'acct_column',
-        },
-      ],
     );
 
     await expect(service.checkSchedules(now)).resolves.toEqual({
-      corrected: ['acct_column', 'acct_banned', 'acct_lifted'],
+      corrected: ['acct_banned', 'acct_lifted'],
       failed: [],
     });
     expect(stripe.setPayoutsHeld).toHaveBeenCalledWith('acct_banned', true);
     expect(stripe.setPayoutsHeld).toHaveBeenCalledWith('acct_lifted', false);
-    expect(stripe.setPayoutsHeld).toHaveBeenCalledWith('acct_column', true);
-    expect(stripe.setPayoutsHeld).toHaveBeenCalledTimes(3);
+    expect(stripe.setPayoutsHeld).toHaveBeenCalledTimes(2);
     expect(stripe.getAccount).not.toHaveBeenCalledWith('acct_orphan');
     expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('reads the accounts from the rows of earnings only, never from the person', async () => {
+    const { service, prisma } = setup([], {});
+
+    await service.checkSchedules(now);
+
+    expect(prisma.monetization.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
   });
 
   it('starts the count today for a person banned before payouts were held, once for all their accounts', async () => {

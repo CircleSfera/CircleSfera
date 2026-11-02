@@ -101,7 +101,6 @@ export interface ProfileWithUser extends IProfile {
     providerAccountId?: string | null;
     isMonetizationEnabled?: boolean;
     isTwoFactorEnabled?: boolean;
-    stripeConnectAccountId?: string | null;
     // Own profile only: language of the account's emails and notices.
     locale?: 'en' | 'es';
     settings?: {

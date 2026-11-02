@@ -44,20 +44,14 @@ export class PayoutScheduleCheckService {
     corrected: string[];
     failed: string[];
   }> {
-    const [rows, owners] = await Promise.all([
-      this.prisma.monetization.findMany({
-        where: { stripeConnectAccountId: { not: null } },
-        select: {
-          stripeConnectAccountId: true,
-          user: { select: PERSON_SELECT },
-          profile: { select: { user: { select: PERSON_SELECT } } },
-        },
-      }),
-      this.prisma.user.findMany({
-        where: { stripeConnectAccountId: { not: null } },
-        select: { ...PERSON_SELECT, stripeConnectAccountId: true },
-      }),
-    ]);
+    const rows = await this.prisma.monetization.findMany({
+      where: { stripeConnectAccountId: { not: null } },
+      select: {
+        stripeConnectAccountId: true,
+        user: { select: PERSON_SELECT },
+        profile: { select: { user: { select: PERSON_SELECT } } },
+      },
+    });
     // Each account, and its person, once however many accounts they have.
     const accounts = new Map<string, string>();
     const people = new Map<string, Person>();
@@ -69,9 +63,6 @@ export class PayoutScheduleCheckService {
       accounts.set(account, person.id);
       if (!people.has(person.id)) people.set(person.id, person);
     };
-    for (const { stripeConnectAccountId, ...person } of owners) {
-      keep(stripeConnectAccountId, person);
-    }
     for (const row of rows) {
       keep(row.stripeConnectAccountId, row.user ?? row.profile?.user);
     }

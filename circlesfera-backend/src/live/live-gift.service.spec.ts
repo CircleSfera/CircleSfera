@@ -51,7 +51,6 @@ describe('LiveGiftService', () => {
         {
           id: 'creator-prof-1',
           accountType: 'CREATOR',
-          user: { stripeConnectAccountId: 'acct_creator' },
         },
       ]),
     },
@@ -256,10 +255,13 @@ describe('LiveGiftService', () => {
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { userId: 'creator-1' },
-          create: expect.objectContaining({
+          // The row is placed with the host's Profile; its account is only
+          // ever written by connecting.
+          create: {
+            userId: 'creator-1',
             profileId: 'creator-prof-1',
-            stripeConnectAccountId: 'acct_creator',
-          }),
+            lifetimeEarningsCents: 400,
+          },
         }),
       );
       expect(mockServer.emit).toHaveBeenCalledWith(

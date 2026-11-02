@@ -161,15 +161,13 @@ export class UsersService {
       }),
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { stripeConnectAccountId: true, payoutsHeldAt: true },
+        select: { payoutsHeldAt: true },
       }),
     ]);
-    // The person's own column too: an account whose row was never written.
     const accounts = new Set(
-      [
-        ...rows.map((row) => row.stripeConnectAccountId),
-        person?.stripeConnectAccountId,
-      ].filter((account): account is string => Boolean(account)),
+      rows
+        .map((row) => row.stripeConnectAccountId)
+        .filter((account): account is string => Boolean(account)),
     );
     // The 85 days before the held payouts are released count from the
     // first ban: banning again does not push the release back.
