@@ -15,6 +15,7 @@ describe('RemoveParticipantUseCase', () => {
     conversation: {
       findUnique: ReturnType<typeof vi.fn>;
     };
+    block: { findMany: ReturnType<typeof vi.fn> };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
   let mockSuccession: {
@@ -32,6 +33,7 @@ describe('RemoveParticipantUseCase', () => {
       conversation: {
         findUnique: vi.fn(),
       },
+      block: { findMany: vi.fn().mockResolvedValue([]) },
     };
     mockEventEmitter = { emit: vi.fn() };
     mockSuccession = {

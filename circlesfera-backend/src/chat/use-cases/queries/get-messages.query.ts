@@ -4,6 +4,7 @@ import { isUnlisted } from '../../../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../../../common/selects/public-profile.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { blockedWithViewer, maskMessage } from '../../blocked-participants.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 
 // How many messages a conversation shows at first, and how many more each
@@ -110,7 +111,21 @@ export class GetMessagesQuery {
     });
 
     const messages = latest.reverse();
-    return (messages as any[]).map((m: any) => {
+    // Someone in a block with the viewer, either way, shows as unavailable
+    // in what they wrote, quoted, shared or reacted with.
+    const blocked = await blockedWithViewer(
+      this.prisma,
+      profileId,
+      (messages as any[]).flatMap((m: any) => [
+        m.senderId,
+        m.replyTo?.senderId,
+        m.post?.profileId,
+        m.story?.profileId,
+        ...(m.reactions ?? []).map((r: any) => r.profileId),
+      ]),
+    );
+    return (messages as any[]).map((input: any) => {
+      const m = maskMessage(input, blocked, profileId);
       if (m.content) {
         m.content = this.cryptoService.decrypt(m.content);
       }

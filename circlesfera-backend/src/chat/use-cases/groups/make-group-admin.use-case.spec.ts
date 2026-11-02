@@ -11,6 +11,7 @@ describe('MakeGroupAdminUseCase', () => {
   let mockPrisma: {
     participant: { findFirst: ReturnType<typeof vi.fn> };
     conversation: { findUnique: ReturnType<typeof vi.fn> };
+    block: { findMany: ReturnType<typeof vi.fn> };
     $transaction: ReturnType<typeof vi.fn>;
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
@@ -30,6 +31,7 @@ describe('MakeGroupAdminUseCase', () => {
         findFirst: vi.fn().mockResolvedValue({ id: 'part-1', isAdmin: true }),
       },
       conversation: { findUnique: vi.fn().mockResolvedValue(updatedConv) },
+      block: { findMany: vi.fn().mockResolvedValue([]) },
       $transaction: vi.fn(),
     };
     mockPrisma.$transaction.mockImplementation((fn: (tx: unknown) => unknown) =>

@@ -2,6 +2,7 @@ import type { ChatConversationUpdatedEvent } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { maskedForViewer } from '../../blocked-participants.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 import { GroupAdminSuccessionService } from '../../services/group-admin-succession.service.js';
 
@@ -62,6 +63,7 @@ export class MakeGroupAdminUseCase {
     }
     await this.succession.announce([notice]);
 
-    return updated;
+    // The caller sees anyone in a block with them as unavailable.
+    return updated ? maskedForViewer(this.prisma, profileId, updated) : updated;
   }
 }

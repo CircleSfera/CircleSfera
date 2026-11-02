@@ -37,6 +37,27 @@ export class EditMessageUseCase {
       );
     }
 
+    // As sending: nothing is changed in a conversation with someone in a
+    // block with the sender, either way.
+    const others = message.conversation.participants
+      .map((p) => p.profileId)
+      .filter((id) => id !== message.senderId);
+    const blocked = await this.prisma.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: message.senderId, blockedId: { in: others } },
+          { blockedId: message.senderId, blockerId: { in: others } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (blocked) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Cannot edit: Blocked by a participant or you blocked them',
+      );
+    }
+
     const updated = await this.prisma.message.update({
       where: { id: messageId },
       data: {

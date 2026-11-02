@@ -12,6 +12,7 @@ describe('EditMessageUseCase', () => {
       findUnique: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
+    block: { findFirst: ReturnType<typeof vi.fn> };
   };
   let mockCryptoService: {
     encrypt: ReturnType<typeof vi.fn>;
@@ -26,6 +27,7 @@ describe('EditMessageUseCase', () => {
         findUnique: vi.fn(),
         update: vi.fn(),
       },
+      block: { findFirst: vi.fn().mockResolvedValue(null) },
     };
     mockCryptoService = {
       encrypt: vi.fn((val: string) => `enc_${val}`),
@@ -112,5 +114,32 @@ describe('EditMessageUseCase', () => {
         isEdited: true,
       }),
     });
+  });
+
+  it('refuses an edit across a block with anyone of the conversation, either way', async () => {
+    mockPrisma.message.findUnique.mockResolvedValue({
+      id: 'msg-1',
+      senderId: 'prof-1',
+      isDeleted: false,
+      conversation: {
+        participants: [{ profileId: 'prof-1' }, { profileId: 'prof-2' }],
+      },
+    });
+    mockPrisma.block.findFirst.mockResolvedValue({ id: 'b1' });
+
+    await expect(useCase.execute('msg-1', 'new text')).rejects.toThrow(
+      'Cannot edit',
+    );
+    expect(mockPrisma.block.findFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { blockerId: 'prof-1', blockedId: { in: ['prof-2'] } },
+          { blockedId: 'prof-1', blockerId: { in: ['prof-2'] } },
+        ],
+      },
+      select: { id: true },
+    });
+    expect(mockPrisma.message.update).not.toHaveBeenCalled();
+    expect(mockEventEmitter.emit).not.toHaveBeenCalled();
   });
 });

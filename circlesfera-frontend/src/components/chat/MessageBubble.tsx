@@ -11,6 +11,7 @@ import { VoicePlayer } from '../audio/VoicePlayer';
 import UserAvatar from '../UserAvatar';
 import AudioPlayer from './AudioPlayer';
 import SharedPost from './SharedPost';
+import { isUnavailable } from './unavailable';
 
 interface MessageBubbleProps {
   msg: Message;
@@ -84,7 +85,11 @@ export default memo(function MessageBubble({
               src={msg.sender?.avatar || undefined}
               thumbnailUrl={msg.sender?.thumbnailUrl}
               standardUrl={msg.sender?.standardUrl}
-              alt={msg.sender?.username || t('chat.user')}
+              alt={
+                isUnavailable(msg.sender)
+                  ? ''
+                  : msg.sender?.username || t('chat.user')
+              }
               className="w-8 h-8 rounded-full shadow-sm"
             />
           ) : (
@@ -103,7 +108,9 @@ export default memo(function MessageBubble({
           >
             <div className="font-semibold text-purple-400 text-xs mb-0.5">
               {t('chat.replying_to_user', {
-                username: msg.replyTo?.sender?.username || t('chat.user'),
+                username: isUnavailable(msg.replyTo?.sender)
+                  ? t('chat.unavailable_user')
+                  : msg.replyTo?.sender?.username || t('chat.user'),
               })}
             </div>
             <div className="truncate opacity-90 italic">

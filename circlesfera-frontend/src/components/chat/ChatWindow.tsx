@@ -52,6 +52,7 @@ import {
   mergeServerMessagesWithOptimistic,
   upsertSentMessage,
 } from './mergeChatMessages';
+import { isUnavailable, personName } from './unavailable';
 
 // Frequent emojis for the message box; phones already have their own keyboard.
 // The longest message the server accepts.
@@ -618,11 +619,13 @@ export default function ChatWindow() {
     const otherParticipant =
       others.length > 0 ? others[0] : conversation.participants[0];
     const otherProfile = otherParticipant?.profile;
+    const unavailable = isUnavailable(otherProfile);
 
     return {
-      name: otherProfile?.fullName || otherProfile?.username || t('chat.user'),
-      username: otherProfile?.username || '',
-      avatar: otherProfile?.avatar,
+      name: personName(otherProfile, t),
+      username: unavailable ? '' : otherProfile?.username || '',
+      avatar: unavailable ? null : otherProfile?.avatar,
+      unavailable,
       thumbnailUrl: otherProfile?.thumbnailUrl,
       standardUrl: otherProfile?.standardUrl,
       isGroup: false,
@@ -688,6 +691,11 @@ export default function ChatWindow() {
     (p: Participant) => p.profileId === profile?.id,
   );
   const isPendingRequest = myParticipant?.hasAccepted === false;
+  // A block either way with anyone of the conversation: the server refuses
+  // to send, so the composer is not offered.
+  const cannotWrite = !!conversation?.participants.some(
+    (p: Participant) => p.profileId !== profile?.id && isUnavailable(p.profile),
+  );
   isPendingRequestRef.current = isPendingRequest;
 
   const handleAcceptRequest = async () => {
@@ -991,7 +999,8 @@ export default function ChatWindow() {
       });
     }
 
-    if (chatInfo.otherProfileId) {
+    // Someone unavailable shows no presence.
+    if (chatInfo.otherProfileId && !chatInfo.unavailable) {
       const socketStatus = userStatuses[chatInfo.otherProfileId];
       if (socketStatus) {
         if (socketStatus.isOnline)
@@ -1079,11 +1088,15 @@ export default function ChatWindow() {
     const member = conversation?.participants.find(
       (p: Participant) => p.profileId === msg.senderId,
     );
+    // Someone in a block with the viewer is named unavailable, as
+    // everywhere in the conversation.
     const name =
-      member?.profile?.fullName ||
-      member?.profile?.username ||
-      msg.sender?.username ||
-      t('chat.notice.someone');
+      isUnavailable(member?.profile) || isUnavailable(msg.sender)
+        ? t('chat.unavailable_user')
+        : member?.profile?.fullName ||
+          member?.profile?.username ||
+          msg.sender?.username ||
+          t('chat.notice.someone');
     return t('chat.notice.admin_granted', { name });
   };
 
@@ -1154,9 +1167,13 @@ export default function ChatWindow() {
                     standardUrl={chatInfo.standardUrl || undefined}
                     // By username, like everywhere else: the same person shows
                     // the same initials on every screen.
-                    alt={chatInfo.username || chatInfo.name}
+                    alt={
+                      chatInfo.unavailable
+                        ? ''
+                        : chatInfo.username || chatInfo.name
+                    }
                     isOnline={
-                      chatInfo.otherProfileId
+                      chatInfo.otherProfileId && !chatInfo.unavailable
                         ? userStatuses[chatInfo.otherProfileId]?.isOnline
                         : false
                     }
@@ -1204,58 +1221,60 @@ export default function ChatWindow() {
         {/* Header Actions */}
         <div className="flex items-center gap-1 md:gap-2 text-white/70 relative shrink-0">
           {/* Call Actions */}
-          {!chatInfo.isGroup && chatInfo.otherProfileId && (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  const targetUser = {
-                    id: chatInfo.otherProfileId!,
-                    profile: {
-                      username: chatInfo.username,
-                      fullName: chatInfo.name,
-                      avatar: chatInfo.avatar,
-                    },
-                  };
-                  useCallStore
-                    .getState()
-                    .initiateCall(
-                      chatInfo.otherProfileId!,
-                      'audio',
-                      targetUser,
-                    );
-                }}
-                className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:scale-90"
-                aria-label={t('chat.audio_call')}
-              >
-                <Phone size={20} strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const targetUser = {
-                    id: chatInfo.otherProfileId!,
-                    profile: {
-                      username: chatInfo.username,
-                      fullName: chatInfo.name,
-                      avatar: chatInfo.avatar,
-                    },
-                  };
-                  useCallStore
-                    .getState()
-                    .initiateCall(
-                      chatInfo.otherProfileId!,
-                      'video',
-                      targetUser,
-                    );
-                }}
-                className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:scale-90"
-                aria-label={t('chat.video_call')}
-              >
-                <Video size={24} strokeWidth={2} />
-              </button>
-            </>
-          )}
+          {!chatInfo.isGroup &&
+            chatInfo.otherProfileId &&
+            !chatInfo.unavailable && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetUser = {
+                      id: chatInfo.otherProfileId!,
+                      profile: {
+                        username: chatInfo.username,
+                        fullName: chatInfo.name,
+                        avatar: chatInfo.avatar,
+                      },
+                    };
+                    useCallStore
+                      .getState()
+                      .initiateCall(
+                        chatInfo.otherProfileId!,
+                        'audio',
+                        targetUser,
+                      );
+                  }}
+                  className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:scale-90"
+                  aria-label={t('chat.audio_call')}
+                >
+                  <Phone size={20} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetUser = {
+                      id: chatInfo.otherProfileId!,
+                      profile: {
+                        username: chatInfo.username,
+                        fullName: chatInfo.name,
+                        avatar: chatInfo.avatar,
+                      },
+                    };
+                    useCallStore
+                      .getState()
+                      .initiateCall(
+                        chatInfo.otherProfileId!,
+                        'video',
+                        targetUser,
+                      );
+                  }}
+                  className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:scale-90"
+                  aria-label={t('chat.video_call')}
+                >
+                  <Video size={24} strokeWidth={2} />
+                </button>
+              </>
+            )}
           <div className="relative ml-1">
             {showMenu && (
               <button
@@ -1532,6 +1551,15 @@ export default function ChatWindow() {
               onSendVoice={handleVoiceSend}
               onCancel={() => setIsRecording(false)}
             />
+          ) : cannotWrite ? (
+            // Someone of the conversation is in a block with the viewer:
+            // it stays readable, nobody can write in it.
+            <p
+              role="status"
+              className="p-4 glass-panel border border-white/10 rounded-2xl text-center text-sm text-white/70"
+            >
+              {t('chat.cannot_write_blocked')}
+            </p>
           ) : isPendingRequest ? (
             <div className="flex flex-col items-center gap-3 p-4 glass-panel border border-white/10 rounded-2xl shadow-2xl shadow-black/50">
               <div className="text-center">
@@ -1795,12 +1823,17 @@ export default function ChatWindow() {
             avatar: chatInfo.avatar,
             thumbnailUrl: chatInfo.thumbnailUrl,
             standardUrl: chatInfo.standardUrl,
+            unavailable: chatInfo.unavailable,
           }}
           isEncrypted={Boolean(chatInfo.otherProfileId)}
-          onViewProfile={() => {
-            setShowChatDetails(false);
-            if (chatInfo.username) navigate(`/${chatInfo.username}`);
-          }}
+          onViewProfile={
+            chatInfo.unavailable
+              ? undefined
+              : () => {
+                  setShowChatDetails(false);
+                  if (chatInfo.username) navigate(`/${chatInfo.username}`);
+                }
+          }
           onDeleteForMe={() => {
             setShowChatDetails(false);
             setPendingDelete('me');

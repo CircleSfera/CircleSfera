@@ -9,6 +9,10 @@ import {
 import { isUnlisted } from '../../../common/policies/removed-content.policy.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import {
+  blockedWithViewer,
+  unavailableProfile,
+} from '../../blocked-participants.js';
 
 // Hard cap on the conversation list — this endpoint returns a plain array
 // (not createPaginatedResult) to keep the existing API contract, so bounding
@@ -90,7 +94,8 @@ export class GetConversationsQuery {
       },
     });
 
-    return conversations.map((conv) => this.withReadablePreview(conv));
+    const shown = await this.withUnavailable(profileId, conversations);
+    return shown.map((conv) => this.withReadablePreview(conv));
   }
 
   // One page of the list, most recently active first. The cursor names the
@@ -129,8 +134,9 @@ export class GetConversationsQuery {
 
     const items = rows.slice(0, take);
     const last = items.at(-1);
+    const shown = await this.withUnavailable(profileId, items);
     return {
-      items: items.map((conv) => this.withReadablePreview(conv)),
+      items: shown.map((conv) => this.withReadablePreview(conv)),
       nextCursor:
         rows.length > take && last
           ? encodeKeysetCursor({ createdAt: last.updatedAt, id: last.id })
@@ -159,7 +165,34 @@ export class GetConversationsQuery {
       );
     }
 
-    return this.withReadablePreview(conv);
+    const [shown] = await this.withUnavailable(profileId, [conv]);
+    return this.withReadablePreview(shown);
+  }
+
+  // A participant in a block with the viewer, either way, stays in the
+  // conversation but shows as unavailable: no name, handle or picture. In a
+  // group only those members do.
+  private async withUnavailable<
+    T extends {
+      participants: { profileId: string; profile: object | null }[];
+    },
+  >(viewerProfileId: string, conversations: T[]): Promise<T[]> {
+    const blocked = await blockedWithViewer(
+      this.prisma,
+      viewerProfileId,
+      conversations.flatMap((conv) =>
+        (conv.participants ?? []).map((p) => p.profileId),
+      ),
+    );
+    if (blocked.size === 0) return conversations;
+    return conversations.map((conv) => ({
+      ...conv,
+      participants: (conv.participants ?? []).map((p) =>
+        blocked.has(p.profileId) && p.profile
+          ? { ...p, profile: unavailableProfile(p.profile) }
+          : p,
+      ),
+    }));
   }
 
   // The latest message is stored encrypted; the list shows it in clear. A

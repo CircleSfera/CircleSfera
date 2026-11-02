@@ -117,6 +117,26 @@ describe('ConversationList', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows someone in a block with the viewer as an unavailable user, with no handle or picture', async () => {
+    const blocked = conv('c3', 'bob', 'old message');
+    blocked.participants[1].profile = {
+      id: 'p-c3',
+      username: null,
+      unavailable: true,
+    } as never;
+    vi.mocked(chatApi.getConversationPage).mockResolvedValue({
+      data: { items: [blocked], nextCursor: null },
+    } as never);
+    const { i18n } = renderWithProviders(<ConversationList />, { lng: 'en' });
+
+    expect(
+      await screen.findByText(i18n!.t('chat.unavailable_user')),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('bob')).not.toBeInTheDocument();
+    // The conversation still opens and reads as it did.
+    expect(screen.getByText('old message')).toBeInTheDocument();
+  });
+
   it('filters conversations by name', async () => {
     const { i18n } = renderWithProviders(<ConversationList />);
     await screen.findByText('ana');

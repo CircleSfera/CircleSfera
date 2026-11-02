@@ -5,6 +5,7 @@ import type { Participant } from '../../types';
 import { CREATE_PRIMARY, CREATE_SECONDARY } from '../create-post/createStyles';
 import UserAvatar from '../UserAvatar';
 import { Dialog } from '../ui/Dialog';
+import { personName } from './unavailable';
 
 interface ChooseAdminSheetProps {
   isOpen: boolean;
@@ -53,7 +54,7 @@ export default function ChooseAdminSheet({
         aria-label={t('chat.choose_admin.members')}
       >
         {candidates.map((p) => {
-          const name = p.profile?.fullName || p.profile?.username || '';
+          const name = personName(p.profile, t, '');
           const selected = chosen === p.profileId;
           return (
             <li key={p.id}>
@@ -76,9 +77,11 @@ export default function ChooseAdminSheet({
                   <span className="block text-sm font-semibold text-white truncate">
                     {name}
                   </span>
-                  <span className="block text-xs text-white/50 truncate">
-                    @{p.profile?.username}
-                  </span>
+                  {p.profile?.username && (
+                    <span className="block text-xs text-white/50 truncate">
+                      @{p.profile.username}
+                    </span>
+                  )}
                 </span>
                 {selected && (
                   <Check

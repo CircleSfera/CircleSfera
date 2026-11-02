@@ -88,7 +88,7 @@ export class DeleteMessageUseCase {
 
     const event: ChatMessageDeletedEvent['payload'] = {
       participants: message.conversation.participants,
-      payload: { messageId },
+      payload: { messageId, conversationId: message.conversationId },
     };
     this.eventEmitter.emit('chat.message.deleted', event);
 

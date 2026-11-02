@@ -20,6 +20,7 @@ import UserAvatar from '../UserAvatar';
 import { updateConversationCache } from './conversationCache';
 import { isNotice } from './groupAdmins';
 import NewChatModal from './NewChatModal';
+import { isUnavailable, personName } from './unavailable';
 
 // The list is read a page at a time as it scrolls, so every conversation can
 // be reached. Requests share their pages with the requests folder.
@@ -335,9 +336,11 @@ export default function ConversationList() {
                 (p: Participant) => p.profileId === me?.id,
               );
               const otherProfile = otherParticipant?.profile;
-              const status = otherParticipant
-                ? userStatuses[otherParticipant.profileId]
-                : undefined;
+              const otherUnavailable = isUnavailable(otherProfile);
+              const status =
+                otherParticipant && !otherUnavailable
+                  ? userStatuses[otherParticipant.profileId]
+                  : undefined;
               const isOnline = status?.isOnline ?? false;
               const lastMsg = conv.messages?.[0];
               const isActive = activeId === conv.id;
@@ -374,7 +377,12 @@ export default function ConversationList() {
                           src={otherProfile?.avatar || undefined}
                           thumbnailUrl={otherProfile?.thumbnailUrl}
                           standardUrl={otherProfile?.standardUrl}
-                          alt={otherProfile?.username || 'User'}
+                          // Someone unavailable gets the neutral picture.
+                          alt={
+                            otherUnavailable
+                              ? ''
+                              : otherProfile?.username || 'User'
+                          }
                           size="md"
                           isOnline={isOnline}
                         />
@@ -385,9 +393,7 @@ export default function ConversationList() {
                           <span
                             className={`truncate text-sm ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium text-white/90'}`}
                           >
-                            {conv.name ||
-                              otherProfile?.fullName ||
-                              otherProfile?.username}
+                            {conv.name || personName(otherProfile, t)}
                           </span>
                           {lastMsg && (
                             <span

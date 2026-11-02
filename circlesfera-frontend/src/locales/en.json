@@ -2333,7 +2333,9 @@
       "someone": "Someone"
     },
     "make_admin_error": "Couldn't make them an admin. Try again.",
-    "leave_group_error": "Couldn't leave the group. Try again."
+    "leave_group_error": "Couldn't leave the group. Try again.",
+    "unavailable_user": "Unavailable user",
+    "cannot_write_blocked": "You can’t send messages in this conversation."
   },
   "creator": {
     "title": "Creator Studio",

@@ -412,6 +412,87 @@ describe('ChatWindow', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/ana');
     });
 
+    it('with someone in a block, reads as before but names them unavailable, with no calls and no composer', async () => {
+      vi.mocked(chatApi.getConversation).mockResolvedValue({
+        data: directConversation({
+          participants: [
+            { id: 'cp1', profileId: 'me', profile: ME, hasAccepted: true },
+            {
+              id: 'cp2',
+              profileId: 'p2',
+              profile: {
+                id: 'p2',
+                username: null,
+                avatar: null,
+                fullName: null,
+                unavailable: true,
+              },
+              hasAccepted: true,
+            },
+          ],
+        }),
+      } as never);
+      const i18n = await renderLoadedChat();
+
+      expect(
+        await screen.findAllByText(i18n.t('chat.unavailable_user')),
+      ).not.toHaveLength(0);
+      expect(screen.queryByText('Ana Ruiz')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: i18n.t('chat.audio_call') }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByPlaceholderText(i18n.t('chat.type_message')),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(
+        i18n.t('chat.cannot_write_blocked'),
+      );
+      // The history stays.
+      expect(screen.getByText('hola')).toBeInTheDocument();
+    });
+
+    it('with someone in a block, shows no presence and no way to their profile', async () => {
+      socketState.userStatuses = { p2: { isOnline: true } } as never;
+      vi.mocked(chatApi.getConversation).mockResolvedValue({
+        data: directConversation({
+          participants: [
+            { id: 'cp1', profileId: 'me', profile: ME, hasAccepted: true },
+            {
+              id: 'cp2',
+              profileId: 'p2',
+              profile: {
+                id: 'p2',
+                username: null,
+                avatar: null,
+                fullName: null,
+                unavailable: true,
+              },
+              hasAccepted: true,
+            },
+          ],
+        }),
+      } as never);
+      const i18n = await renderLoadedChat();
+      const header = await screen.findAllByText(
+        i18n.t('chat.unavailable_user'),
+      );
+
+      expect(
+        screen.queryByText(i18n.t('chat.active_now')),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(header[0]);
+      const details = await screen.findByRole('dialog', {
+        name: i18n.t('chat.details.title'),
+      });
+      expect(
+        within(details).queryByRole('button', {
+          name: i18n.t('chat.details.view_profile'),
+        }),
+      ).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
     it('marks my messages as read up to what the other person has read', async () => {
       vi.mocked(chatApi.getConversation).mockResolvedValue({
         data: directConversation({
@@ -1653,6 +1734,27 @@ describe('ChatWindow', () => {
         screen.getByText(
           i18n.t('chat.notice.admin_granted', {
             name: i18n.t('chat.notice.someone'),
+          }),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('names a member in a block with the reader as unavailable in a notice', async () => {
+      vi.mocked(chatApi.getMessages).mockResolvedValue({
+        data: [
+          ...HISTORY,
+          {
+            ...notice('n1', 'gone-1'),
+            sender: { id: 'gone-1', username: null, unavailable: true },
+          },
+        ],
+      } as never);
+      const i18n = await renderLoadedChat();
+
+      expect(
+        await screen.findByText(
+          i18n.t('chat.notice.admin_granted', {
+            name: i18n.t('chat.unavailable_user'),
           }),
         ),
       ).toBeInTheDocument();

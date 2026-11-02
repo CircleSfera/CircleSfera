@@ -6,6 +6,7 @@ import type { Conversation } from '../../types';
 import UserAvatar from '../UserAvatar';
 import { Dialog } from '../ui/Dialog';
 import { adminCandidates, needsSuccessor } from './groupAdmins';
+import { personName } from './unavailable';
 
 interface GroupDetailsModalProps {
   isOpen: boolean;
@@ -167,12 +168,12 @@ export default function GroupDetailsModal({
                   <div className="flex items-center gap-3 min-w-0">
                     <UserAvatar
                       src={p.profile?.avatar ?? ''}
-                      alt={p.profile?.username ?? 'User'}
+                      alt={personName(p.profile, t, 'User')}
                       className="w-10 h-10 shrink-0"
                     />
                     <div className="min-w-0">
                       <div className="font-medium text-white flex items-center gap-2 truncate">
-                        {p.profile?.fullName || p.profile?.username}
+                        {personName(p.profile, t, '')}
                         {p.isAdmin && (
                           <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-brand-primary-text bg-brand-primary/10 px-1.5 py-0.5 rounded shrink-0">
                             <Shield size={10} aria-hidden />
@@ -180,9 +181,11 @@ export default function GroupDetailsModal({
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-white/50 truncate">
-                        @{p.profile?.username}
-                      </div>
+                      {p.profile?.username && (
+                        <div className="text-xs text-white/50 truncate">
+                          @{p.profile.username}
+                        </div>
+                      )}
                     </div>
                   </div>
 
