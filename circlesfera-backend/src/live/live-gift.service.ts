@@ -12,7 +12,6 @@ import {
   creatorPaymentTax,
 } from '../common/stripe/creator-payment-tax.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
-import { creatorEarnings } from '../monetization/paid-amounts.js';
 import {
   accountTakingPayments,
   payoutAccountPlacement,
@@ -330,28 +329,17 @@ export class LiveGiftService {
         },
       });
 
-      // Only credit earnings when the creator still exists; there is nowhere
-      // to attribute them otherwise (the person's row is keyed by userId).
+      // The person's payout row is opened, or placed again, only while the
+      // creator still exists (it is keyed by the person). What they earned is
+      // read from the payments, not kept on the row.
       if (creator) {
         const placed = await payoutAccountPlacement(tx, creator.id);
         await tx.monetization.upsert({
           where: { userId: creator.id },
-          update: {
-            ...placed,
-            lifetimeEarningsCents: {
-              increment: creatorEarnings(
-                params.amountCents,
-                params.vatCents ?? 0,
-              ),
-            },
-          },
+          update: placed,
           create: {
             userId: creator.id,
             ...placed,
-            lifetimeEarningsCents: creatorEarnings(
-              params.amountCents,
-              params.vatCents ?? 0,
-            ),
           },
         });
       }

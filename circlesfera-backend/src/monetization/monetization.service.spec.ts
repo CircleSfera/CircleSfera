@@ -9,7 +9,8 @@ import {
 } from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { MonetizationService, SHARE_SQL } from './monetization.service.js';
+import { SHARE_SQL } from './earnings-sql.js';
+import { MonetizationService } from './monetization.service.js';
 
 // The SQL text and the values of a raw query the service ran.
 function rawQuery(call: unknown[]) {

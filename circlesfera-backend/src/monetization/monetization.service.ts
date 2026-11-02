@@ -1,7 +1,6 @@
 import { ErrorCode, type PaymentAlertEvent } from '@circlesfera/shared';
 import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Prisma } from '@prisma/client';
 import {
   canMonetize,
   MAX_PPV_PRICE_CENTS,
@@ -27,6 +26,7 @@ import {
   StripeService,
 } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { INCOME_ROWS_SQL, INCOME_TYPES, SHARE_SQL } from './earnings-sql.js';
 import { creatorEarnings } from './paid-amounts.js';
 import {
   accountTakingPayments,
@@ -47,31 +47,6 @@ function appendCheckoutQuery(returnUrl: string, query: string): string {
 // 30 minutes after it creates the session, and the extra minute covers the
 // time the request takes and any difference between the two clocks.
 const MESSAGE_CHECKOUT_LIFETIME_SECONDS = 31 * 60;
-
-// The kinds of payment that are a creator's income.
-const INCOME_TYPES = [
-  'DIRECT_POST_UNLOCK',
-  'DIRECT_STORY_UNLOCK',
-  'DIRECT_MESSAGE_UNLOCK',
-  'DIRECT_TIP',
-  'DIRECT_LIVE_GIFT',
-] as const;
-
-// In SQL over the transactions as t: the completed payments of an income
-// kind the person received.
-const INCOME_ROWS_SQL = (userId: string) => Prisma.sql`
-  t."receiverId" = ${userId}
-  AND t.status = 'COMPLETED'
-  AND t.type::text IN (${Prisma.join([...INCOME_TYPES])})`;
-// And the creator's share of one payment, as creatorEarnings works it out:
-// the price without VAT, less the same part of it as was refunded, rounded
-// down; then less the platform's fee (PLATFORM_FEE_DECIMAL) rounded down,
-// per payment.
-const KEPT_SQL = Prisma.sql`
-  FLOOR(((t.amount - t."vatCents")::numeric * (t.amount - t."refundedCents"))
-    / NULLIF(t.amount, 0))`;
-export const SHARE_SQL = Prisma.sql`
-  COALESCE((${KEPT_SQL}) - FLOOR((${KEPT_SQL}) * 0.2), 0)`;
 
 // What a tip reads of the Profile tipped, to pay its person and to know
 // whether it may receive one.
