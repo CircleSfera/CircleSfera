@@ -3,7 +3,7 @@ import {
   type ModerationReportFiledEvent,
   type NotificationCreateEvent,
 } from '@circlesfera/shared';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   NotificationType,
@@ -15,6 +15,8 @@ import { isNotice } from '../chat/message-kind.js';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -72,10 +74,12 @@ export class ReportsService {
           )?.id ?? null;
         break;
       }
+      // Content is reported only by someone who can see it; anything else
+      // answers as if it did not exist.
       case ReportTargetType.POST: {
-        const post = await this.prisma.post.findUnique({
-          where: { id: dto.targetId },
-        });
+        const post = await this.visible(() =>
+          assertCanAccessPost(this.prisma, dto.targetId, reporterId),
+        );
         if (!post)
           throw AppException.NotFound(
             ErrorCode.POST_NOT_FOUND,
@@ -85,9 +89,9 @@ export class ReportsService {
         break;
       }
       case ReportTargetType.STORY: {
-        const story = await this.prisma.story.findUnique({
-          where: { id: dto.targetId },
-        });
+        const story = await this.visible(() =>
+          assertCanAccessStory(this.prisma, dto.targetId, reporterId),
+        );
         if (!story)
           throw AppException.NotFound(
             ErrorCode.STORY_NOT_FOUND,
@@ -99,8 +103,16 @@ export class ReportsService {
       case ReportTargetType.COMMENT: {
         const comment = await this.prisma.comment.findUnique({
           where: { id: dto.targetId },
+          select: { profileId: true, postId: true, moderationStatus: true },
         });
-        if (!comment)
+        // A comment is seen with its post; one removed is shown to nobody.
+        const seen =
+          comment &&
+          comment.moderationStatus !== 'REMOVED' &&
+          (await this.visible(() =>
+            assertCanAccessPost(this.prisma, comment.postId, reporterId),
+          ));
+        if (!comment || !seen)
           throw AppException.NotFound(
             ErrorCode.COMMENT_NOT_FOUND,
             'Target comment not found',
@@ -112,7 +124,19 @@ export class ReportsService {
         const message = await this.prisma.message.findUnique({
           where: { id: dto.targetId },
         });
-        if (!message)
+        // Only someone in the conversation has seen a message.
+        const inConversation =
+          message &&
+          (await this.prisma.participant.findUnique({
+            where: {
+              conversationId_profileId: {
+                conversationId: message.conversationId,
+                profileId: reporterId,
+              },
+            },
+            select: { id: true },
+          }));
+        if (!message || !inConversation)
           throw AppException.NotFound(
             ErrorCode.MESSAGE_NOT_FOUND,
             'Target message not found',
@@ -127,6 +151,33 @@ export class ReportsService {
         authorProfileId = message.senderId;
         break;
       }
+      case ReportTargetType.PAYMENT: {
+        // A payment is reported by the person who paid or was paid.
+        const [payment, reporter] = await Promise.all([
+          this.prisma.transaction.findUnique({
+            where: { id: dto.targetId },
+            select: { senderId: true, receiverId: true },
+          }),
+          this.prisma.profile.findUnique({
+            where: { id: reporterId },
+            select: { userId: true },
+          }),
+        ]);
+        const party =
+          !!payment &&
+          !!reporter &&
+          (payment.senderId === reporter.userId ||
+            payment.receiverId === reporter.userId);
+        if (!party)
+          throw AppException.NotFound(
+            ErrorCode.NOT_FOUND,
+            'Target payment not found',
+          );
+        break;
+      }
+      // A report about the service itself names nothing to check.
+      case ReportTargetType.SYSTEM:
+        break;
     }
 
     const finalDetails = dto.details;
@@ -172,6 +223,16 @@ export class ReportsService {
       status: report.status,
       createdAt: report.createdAt,
     };
+  }
+
+  // Runs an access check; what it refuses counts as not found.
+  private async visible<T>(check: () => Promise<T>): Promise<T | null> {
+    try {
+      return await check();
+    } catch (error) {
+      if (error instanceof NotFoundException) return null;
+      throw error;
+    }
   }
 
   // Someone is worried the author may hurt themselves: the author is told

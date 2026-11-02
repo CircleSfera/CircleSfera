@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 
+import { NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +8,19 @@ import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ReportTargetType } from './dto/create-report.dto.js';
 import { ReportsService } from './reports.service.js';
+
+// What a reporter can see is decided by the shared access policies; here they
+// read the same rows the tests set, and refuse what is missing.
+const access = vi.hoisted(() => ({
+  post: vi.fn(),
+  story: vi.fn(),
+}));
+vi.mock('../common/policies/post-access.policy.js', () => ({
+  assertCanAccessPost: access.post,
+}));
+vi.mock('../common/policies/story-access.policy.js', () => ({
+  assertCanAccessStory: access.story,
+}));
 
 describe('ReportsService', () => {
   let service: ReportsService;
@@ -26,6 +40,8 @@ describe('ReportsService', () => {
     story: { findUnique: vi.fn() },
     message: { findUnique: vi.fn() },
     notification: { findFirst: vi.fn() },
+    participant: { findUnique: vi.fn() },
+    transaction: { findUnique: vi.fn() },
   };
 
   const mockEventEmitter = {
@@ -43,6 +59,18 @@ describe('ReportsService', () => {
 
     service = module.get<ReportsService>(ReportsService);
     vi.clearAllMocks();
+    access.post.mockImplementation(async (_db: unknown, id: string) => {
+      const post = await mockPrismaService.post.findUnique({ where: { id } });
+      if (!post) throw new NotFoundException('Post not found');
+      return post;
+    });
+    access.story.mockImplementation(async (_db: unknown, id: string) => {
+      const story = await mockPrismaService.story.findUnique({ where: { id } });
+      if (!story) throw new NotFoundException('Story not found');
+      return story;
+    });
+    // The reporter is in the conversation unless a test says otherwise.
+    mockPrismaService.participant.findUnique.mockResolvedValue({ id: 'part' });
   });
 
   it('should be defined', () => {
@@ -50,6 +78,138 @@ describe('ReportsService', () => {
   });
 
   describe('create', () => {
+    describe('only about what the reporter can see or took part in', () => {
+      const report = (targetType: string, targetId = 't1') =>
+        service.create('reporter-1', {
+          targetType,
+          targetId,
+          reason: 'SPAM',
+        } as any);
+
+      beforeEach(() => {
+        mockPrismaService.report.create.mockResolvedValue({ id: 'rep' });
+      });
+
+      it('a post or a story the reporter cannot see answers as missing, and nothing is filed', async () => {
+        access.post.mockRejectedValueOnce(new NotFoundException());
+        await expect(report('POST')).rejects.toMatchObject({
+          errorCode: 'POST_NOT_FOUND',
+        });
+        expect(access.post).toHaveBeenCalledWith(
+          mockPrismaService,
+          't1',
+          'reporter-1',
+        );
+
+        access.story.mockRejectedValueOnce(new NotFoundException());
+        await expect(report('STORY')).rejects.toMatchObject({
+          errorCode: 'STORY_NOT_FOUND',
+        });
+        expect(access.story).toHaveBeenCalledWith(
+          mockPrismaService,
+          't1',
+          'reporter-1',
+        );
+        expect(mockPrismaService.report.create).not.toHaveBeenCalled();
+      });
+
+      it('a comment is reported only with its post in sight, and not once removed', async () => {
+        mockPrismaService.comment.findUnique.mockResolvedValue({
+          profileId: 'a',
+          postId: 'p1',
+          moderationStatus: 'VISIBLE',
+        });
+        access.post.mockRejectedValueOnce(new NotFoundException());
+        await expect(report('COMMENT')).rejects.toMatchObject({
+          errorCode: 'COMMENT_NOT_FOUND',
+        });
+        expect(access.post).toHaveBeenCalledWith(
+          mockPrismaService,
+          'p1',
+          'reporter-1',
+        );
+
+        mockPrismaService.comment.findUnique.mockResolvedValue({
+          profileId: 'a',
+          postId: 'p1',
+          moderationStatus: 'REMOVED',
+        });
+        await expect(report('COMMENT')).rejects.toMatchObject({
+          errorCode: 'COMMENT_NOT_FOUND',
+        });
+        expect(mockPrismaService.report.create).not.toHaveBeenCalled();
+      });
+
+      it('a message is reported only by someone in its conversation', async () => {
+        mockPrismaService.message.findUnique.mockResolvedValue({
+          id: 'm1',
+          kind: 'USER',
+          conversationId: 'c1',
+          senderId: 'a',
+        });
+        mockPrismaService.participant.findUnique.mockResolvedValueOnce(null);
+
+        await expect(report('MESSAGE')).rejects.toMatchObject({
+          errorCode: 'MESSAGE_NOT_FOUND',
+        });
+        expect(mockPrismaService.participant.findUnique).toHaveBeenCalledWith({
+          where: {
+            conversationId_profileId: {
+              conversationId: 'c1',
+              profileId: 'reporter-1',
+            },
+          },
+          select: { id: true },
+        });
+        expect(mockPrismaService.report.create).not.toHaveBeenCalled();
+      });
+
+      it('a payment is reported only by the person who paid or was paid', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue({
+          userId: 'u-me',
+        });
+        mockPrismaService.transaction.findUnique.mockResolvedValue({
+          senderId: 'u-other',
+          receiverId: 'u-third',
+        });
+        await expect(report('PAYMENT')).rejects.toMatchObject({
+          errorCode: 'NOT_FOUND',
+        });
+
+        mockPrismaService.transaction.findUnique.mockResolvedValue(null);
+        await expect(report('PAYMENT')).rejects.toMatchObject({
+          errorCode: 'NOT_FOUND',
+        });
+        expect(mockPrismaService.report.create).not.toHaveBeenCalled();
+
+        mockPrismaService.transaction.findUnique.mockResolvedValue({
+          senderId: 'u-me',
+          receiverId: 'u-third',
+        });
+        await expect(report('PAYMENT')).resolves.toMatchObject({ id: 'rep' });
+
+        mockPrismaService.transaction.findUnique.mockResolvedValue({
+          senderId: null,
+          receiverId: 'u-me',
+        });
+        await expect(report('PAYMENT')).resolves.toMatchObject({ id: 'rep' });
+
+        mockPrismaService.profile.findUnique.mockResolvedValue(null);
+        await expect(report('PAYMENT')).rejects.toMatchObject({
+          errorCode: 'NOT_FOUND',
+        });
+      });
+
+      it('a report about the service itself names nothing to check', async () => {
+        await expect(report('SYSTEM')).resolves.toMatchObject({ id: 'rep' });
+      });
+
+      it('a failure of the check other than not seeing is not hidden', async () => {
+        access.post.mockRejectedValueOnce(new Error('db down'));
+        await expect(report('POST')).rejects.toThrow('db down');
+      });
+    });
+
     it('should handle USER target type existence check', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       await expect(
