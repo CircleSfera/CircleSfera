@@ -132,7 +132,11 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
   useEffect(() => {
     const last = lastFilterRef.current;
     lastFilterRef.current = { url: p.backgroundUrl, filter: p.photo.filter };
-    if (last.url !== p.backgroundUrl || last.filter === p.photo.filter) return;
+    if (last.url !== p.backgroundUrl) {
+      setShownFilter(null);
+      return;
+    }
+    if (last.filter === p.photo.filter) return;
     setShownFilter(filterName(p.photo.filter));
     const timer = setTimeout(() => setShownFilter(null), FILTER_NAME_MS);
     return () => clearTimeout(timer);

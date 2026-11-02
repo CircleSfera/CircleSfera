@@ -116,12 +116,13 @@ export function useStoryComposerState(props: {
   } = useStoryElements({ initialElements, onElementsChange });
 
   // Another background starts as it comes: centred, unscaled, unfiltered.
-  const shownBackground = useRef(bg.backgroundUrl);
-  useEffect(() => {
-    if (shownBackground.current === bg.backgroundUrl) return;
-    shownBackground.current = bg.backgroundUrl;
+  // It resets in the same render that sees the new background, so the stage
+  // never sees the old filter on the new photo.
+  const [shownBackground, setShownBackground] = useState(bg.backgroundUrl);
+  if (shownBackground !== bg.backgroundUrl) {
+    setShownBackground(bg.backgroundUrl);
     resetPhoto();
-  }, [bg.backgroundUrl, resetPhoto]);
+  }
 
   const disarmChromeBriefly = () => {
     setChromePointerArmed(false);

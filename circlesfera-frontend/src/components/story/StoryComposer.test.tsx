@@ -1015,6 +1015,37 @@ describe('StoryComposer', () => {
       expect(screen.getByRole('button', { name: 'Deshacer' })).toBeDisabled();
     });
 
+    it('starts another photo unfiltered, with no filter name shown', () => {
+      let made = 0;
+      vi.spyOn(URL, 'createObjectURL').mockImplementation(
+        () => `blob:photo-${++made}`,
+      );
+      const photo = new File(['x'], 'photo.png', { type: 'image/png' });
+      const { container } = renderComposer({
+        initialMedia: photo,
+        bgStyle: '',
+      });
+      const canvas = screen.getByRole('application', {
+        name: /Foto de la historia/,
+      });
+      canvas.focus();
+      fireEvent.keyDown(canvas, { key: ']' });
+      expect(screen.getByTestId('story-filter-name')).toBeInTheDocument();
+
+      fireEvent.change(
+        container.ownerDocument.querySelector('input[type="file"]') as Element,
+        {
+          target: {
+            files: [new File(['y'], 'other.png', { type: 'image/png' })],
+          },
+        },
+      );
+
+      expect(screen.getByTestId('story-photo').style.filter).toBe('');
+      expect(screen.queryByTestId('story-filter-name')).not.toBeInTheDocument();
+      expect(screen.queryByText('Normal')).not.toBeInTheDocument();
+    });
+
     it('opens a text with a tap on the photo, but not when the touch moved the photo', () => {
       const photo = new File(['x'], 'photo.png', { type: 'image/png' });
       renderComposer({ initialMedia: photo, bgStyle: '' });
