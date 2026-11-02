@@ -1,0 +1,58 @@
+name: Ops — server resources report
+
+# Reports how much memory, disk and CPU the production server has and uses,
+# and what each container takes, so the owner can decide with numbers
+# whether a new service (an analytics store, ADR-0016) fits on it.
+# Read-only: it changes nothing. Actions logs are public, so it prints only
+# sizes, counts and container names, never an address, a path of user files
+# or a setting.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Report the server's resources
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Memory, disk, CPU and containers
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            echo "== CPU cores: $(nproc)"
+            echo "== Load (1, 5, 15 min): $(cut -d' ' -f1-3 /proc/loadavg)"
+            echo "== Memory (MiB)"
+            free -m
+            echo "== Disk of the root and Docker filesystems"
+            df -h --output=size,used,avail,pcent / /var/lib/docker 2>/dev/null || df -h --output=size,used,avail,pcent /
+            echo "== Docker disk use"
+            docker system df
+            echo "== Containers: memory and CPU now"
+            docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}'
