@@ -218,6 +218,12 @@ const cases: Case[] = [
     ['/payments/plan/cancel'],
   ],
   [
+    'payments.resumePlan',
+    () => paymentsApi.resumePlan(),
+    'post',
+    ['/payments/plan/resume'],
+  ],
+  [
     'payments.ledger',
     () => paymentsApi.getLedger(),
     'get',
