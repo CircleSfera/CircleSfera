@@ -29,6 +29,7 @@ import {
   sendPendingTab,
 } from '../../utils/pendingTab';
 import { planFeatureLabel } from '../../utils/planFeatures';
+import { sellsInApp } from '../../utils/sellsInApp';
 import MonetizationDashboard from '../monetization/MonetizationDashboard';
 import {
   useWithdrawalConsent,
@@ -405,7 +406,13 @@ export default function CreatorMonetizationTab({
                     </ul>
                   </div>
 
-                  {!active && (
+                  {/* Plans are bought on the web only: not in the apps. */}
+                  {!active && !sellsInApp() && (
+                    <p className="text-sm text-white/60">
+                      {t('monetization.not_in_app')}
+                    </p>
+                  )}
+                  {!active && sellsInApp() && (
                     <Button
                       variant="secondary"
                       disabled={checkoutMutation.isPending}

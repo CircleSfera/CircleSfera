@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatCents } from '../../utils/money';
+import { sellsInApp } from '../../utils/sellsInApp';
 import { Button } from '../ui';
 
 interface PaywallOverlayProps {
@@ -45,23 +46,32 @@ export default function PaywallOverlay({
           {t('monetization.premium_description')}
         </p>
 
-        <Button
-          onClick={onUnlock}
-          isLoading={isLoading}
-          variant="primary"
-          className="relative group bg-white text-black hover:bg-zinc-200 px-8 py-3.5 rounded-full font-black text-[13px] uppercase tracking-wider shadow-[0_0_40px_rgba(255,255,255,0.15)] overflow-hidden active:scale-95 border-transparent"
-        >
-          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite]" />
-          <span className="relative z-10 flex items-center gap-2">
-            {t('monetization.unlock_for_money', {
-              price: formatCents(priceCents, i18n.language),
-            })}
-          </span>
-        </Button>
-        {/* The price is what is paid: the VAT is inside it. */}
-        <p className="mt-3 text-center text-xs text-zinc-400">
-          {t('vat.included')}
-        </p>
+        {!sellsInApp() ? (
+          // In the apps nothing is sold: the content stays locked.
+          <p className="text-sm text-white/70 text-center">
+            {t('monetization.not_in_app')}
+          </p>
+        ) : (
+          <>
+            <Button
+              onClick={onUnlock}
+              isLoading={isLoading}
+              variant="primary"
+              className="relative group bg-white text-black hover:bg-zinc-200 px-8 py-3.5 rounded-full font-black text-[13px] uppercase tracking-wider shadow-[0_0_40px_rgba(255,255,255,0.15)] overflow-hidden active:scale-95 border-transparent"
+            >
+              <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite]" />
+              <span className="relative z-10 flex items-center gap-2">
+                {t('monetization.unlock_for_money', {
+                  price: formatCents(priceCents, i18n.language),
+                })}
+              </span>
+            </Button>
+            {/* The price is what is paid: the VAT is inside it. */}
+            <p className="mt-3 text-center text-xs text-zinc-400">
+              {t('vat.included')}
+            </p>
+          </>
+        )}
       </motion.div>
     </motion.div>
   );

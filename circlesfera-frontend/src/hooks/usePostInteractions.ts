@@ -4,13 +4,15 @@ import { bookmarksApi, creatorApi, postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Post } from '../types';
 import { hasCreatorTools } from '../utils/creatorTools';
+import { sellsInApp } from '../utils/sellsInApp';
 import { telemetry } from '../utils/telemetry';
 
 export function usePostInteractions(post: Post) {
   const queryClient = useQueryClient();
   const profile = useAuthStore((state) => state.profile);
   // Promoting follows the kind of account, not a paid plan.
-  const canPromote = hasCreatorTools(profile?.accountType);
+  // Promotions are bought on the web only: never offered in the apps.
+  const canPromote = hasCreatorTools(profile?.accountType) && sellsInApp();
   const isOwner = profile?.id === post.profileId;
 
   const [showMenu, setShowMenu] = useState(false);

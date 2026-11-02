@@ -34,6 +34,7 @@ import { logger } from '../../utils/logger';
 import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
 import { planAccountType, planFitsProfile } from '../../utils/plans';
+import { sellsInApp } from '../../utils/sellsInApp';
 
 // The articles of the help centre that answer what is asked before paying.
 const PRICING_ARTICLES = [
@@ -372,28 +373,37 @@ export default function Pricing() {
                     ))}
                   </ul>
 
-                  <MarketingCTA
-                    variant={isPopular ? 'primary' : 'secondary'}
-                    size="lg"
-                    className="mt-6 w-full"
-                    disabled={
-                      loadingPlanId !== null ||
-                      notForThisProfile ||
-                      (billingCycle === 'YEARLY' && yearlyCents <= 0)
-                    }
-                    onClick={() => handleTierClick(plan)}
-                    aria-describedby={
-                      notForThisProfile ? `plan-${plan.id}-profile` : undefined
-                    }
-                  >
-                    {loadingPlanId === plan.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : isActive ? (
-                      t('pricingPage.manage_subscription')
-                    ) : (
-                      buttonText
-                    )}
-                  </MarketingCTA>
+                  {/* Plans are bought on the web only: not in the apps. */}
+                  {!sellsInApp() ? (
+                    <p className="mt-6 text-center text-sm text-white/60">
+                      {t('monetization.not_in_app')}
+                    </p>
+                  ) : (
+                    <MarketingCTA
+                      variant={isPopular ? 'primary' : 'secondary'}
+                      size="lg"
+                      className="mt-6 w-full"
+                      disabled={
+                        loadingPlanId !== null ||
+                        notForThisProfile ||
+                        (billingCycle === 'YEARLY' && yearlyCents <= 0)
+                      }
+                      onClick={() => handleTierClick(plan)}
+                      aria-describedby={
+                        notForThisProfile
+                          ? `plan-${plan.id}-profile`
+                          : undefined
+                      }
+                    >
+                      {loadingPlanId === plan.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : isActive ? (
+                        t('pricingPage.manage_subscription')
+                      ) : (
+                        buttonText
+                      )}
+                    </MarketingCTA>
+                  )}
                   {notForThisProfile && (
                     <p
                       id={`plan-${plan.id}-profile`}

@@ -2641,6 +2641,7 @@
     "request_withdrawal": "Solicitar Retiro",
     "transaction_history": "Historial de Transacciones",
     "no_transactions": "No hay transacciones recientes",
+    "not_in_app": "No disponible en la app.",
     "exclusive_content": "Contenido Exclusivo",
     "premium_description": "Este post es de pago. Desbloquéalo para verlo.",
     "unlocking": "Desbloqueando...",

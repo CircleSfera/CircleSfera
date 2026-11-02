@@ -29,6 +29,7 @@ import type { Post } from '../types';
 import { hasCreatorTools } from '../utils/creatorTools';
 import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
+import { sellsInApp } from '../utils/sellsInApp';
 import { canOfferStoryShare, postStoryCard } from '../utils/storyShare';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import FrameActionRail from './frames/FrameActionRail';
@@ -79,7 +80,8 @@ export default function FrameItem({
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
   const profile = useAuthStore((state) => state.profile);
   // Promoting follows the kind of account, not a paid plan.
-  const canPromote = hasCreatorTools(profile?.accountType);
+  // Promotions are bought on the web only: never offered in the apps.
+  const canPromote = hasCreatorTools(profile?.accountType) && sellsInApp();
   const { isMuted, toggleMute, setMuted } = useFrameStore();
   const queryClient = useQueryClient();
 

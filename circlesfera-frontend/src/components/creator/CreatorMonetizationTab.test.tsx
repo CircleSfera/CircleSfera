@@ -6,6 +6,9 @@ import { paymentsApi } from '../../services/payments.service';
 import { renderWithProviders } from '../../test/test-utils';
 import CreatorMonetizationTab from './CreatorMonetizationTab';
 
+const sells = vi.hoisted(() => ({ value: true }));
+vi.mock('../../utils/sellsInApp', () => ({ sellsInApp: () => sells.value }));
+
 vi.mock('../payments/WithdrawalConsent', async () =>
   (await import('../../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
 );
@@ -144,6 +147,24 @@ describe('CreatorMonetizationTab', () => {
     );
     expect(screen.queryByText('Ganancias de por vida')).not.toBeInTheDocument();
     expect(screen.queryByText('Mejorar Ahora')).not.toBeInTheDocument();
+  });
+
+  it('in the apps offers no plan to buy', async () => {
+    sells.value = false;
+    const { i18n } = renderWithProviders(
+      <CreatorMonetizationTab onToast={onToast} />,
+    );
+
+    expect(await screen.findByText('€9.99')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('creator.monetization.upgrade_now'),
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText(i18n!.t('monetization.not_in_app')).length,
+    ).toBeGreaterThan(0);
+    sells.value = true;
   });
 
   it('writes earnings and plan prices as currency in Spanish', async () => {
