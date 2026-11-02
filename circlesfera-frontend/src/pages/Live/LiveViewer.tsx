@@ -91,6 +91,14 @@ export default function LiveViewer() {
   const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isLeavingRef = useRef(false);
+  // Taken off air as co-host: the screen is going back to watching, and the
+  // disconnection that comes with it is not a lost connection.
+  const takenOffAirRef = useRef(false);
+  // Back to watching the broadcast of this screen, with a viewer token asked
+  // for now: a token is good only for a few minutes, so the one held before
+  // going on air cannot be used again. Kept in a ref so the listeners always
+  // call the latest one.
+  const backToWatchingRef = useRef<() => void>(() => undefined);
 
   const [streamDetails, setStreamDetails] = useState<any>(null);
 
@@ -196,6 +204,11 @@ export default function LiveViewer() {
       setPendingInvite(data);
     });
 
+    // Taken off air by the host or by staff: back to watching, with a token
+    // asked for now. A token is good only for a few minutes, so the one this
+    // screen had before going on air cannot be used again.
+    socket.on('live:cohost_removed', () => backToWatchingRef.current());
+
     // Phase 2 listeners
     socket.on('live:goal_set', (data: LiveGoalData) => {
       setLiveGoal(data);
@@ -223,6 +236,7 @@ export default function LiveViewer() {
       socket.off('live:heart_received');
       socket.off('live:reaction_received');
       socket.off('live:cohost_invite');
+      socket.off('live:cohost_removed');
       socket.off('live:goal_set');
       socket.off('live:question_asked');
       socket.off('live:question_highlighted');
@@ -233,6 +247,30 @@ export default function LiveViewer() {
   // If co-host accepted: switch LiveKitRoom to publisher mode
   const activeToken = coHostToken || token;
   const activeStreamId = coHostStreamId || streamId;
+
+  backToWatchingRef.current = () => {
+    takenOffAirRef.current = true;
+    api
+      .get(`/live/join/${streamId}`)
+      .then((res: any) => {
+        setToken(res.data.token);
+        setCoHostToken(null);
+        setCoHostStreamId(null);
+      })
+      .catch((error: unknown) => {
+        setCoHostToken(null);
+        setCoHostStreamId(null);
+        if (isStreamGone(error)) {
+          setHasEnded(true);
+          return;
+        }
+        toast.error(t('live.connection_lost'));
+        navigate(-1);
+      })
+      .finally(() => {
+        takenOffAirRef.current = false;
+      });
+  };
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -346,7 +384,11 @@ export default function LiveViewer() {
       {/* The room holds the whole screen and draws no box of its own. A
           double tap anywhere sends a heart: it is not a button, it holds
           every control of the screen, and the reactions have their own. */}
+      {/* A new room for each token: a room already connected ignores a new
+          token, so going on air or back to watching would keep the old
+          rights. */}
       <LiveKitRoom
+        key={activeToken}
         video={!!coHostToken}
         audio={!!coHostToken}
         token={activeToken}
@@ -357,13 +399,21 @@ export default function LiveViewer() {
           // Leaving on purpose also disconnects; the person is already on
           // their way back.
           if (isLeavingRef.current) return;
-          // The video stops both when the host ends the broadcast and when
-          // the connection drops: the server says which.
+          // Taken off air: the screen is already going back to watching.
+          if (takenOffAirRef.current) return;
+          // The video stops when the host ends the broadcast, when the
+          // connection drops, and for a co-host taken off air before the
+          // app heard of it: the server says which.
+          const wasCoHost = !!coHostToken;
           api
-            .get(`/live/${streamId}`)
+            .get(`/live/${activeStreamId}`)
             .then((res: any) => {
               if (res.data?.status === 'ENDED') {
                 setHasEnded(true);
+                return;
+              }
+              if (wasCoHost && res.data?.coHostId !== profile?.id) {
+                backToWatchingRef.current();
                 return;
               }
               toast.error(t('live.connection_lost'));

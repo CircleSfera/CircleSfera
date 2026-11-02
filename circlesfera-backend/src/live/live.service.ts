@@ -254,11 +254,13 @@ export class LiveService {
             data: { coHostId: null },
           });
           if (count === 0) continue;
-          await this.recording.stopCoHost(stream.id);
-          await this.recording.removeFromRoom(stream.id, stream.coHostId);
+          // The app is told first, so it goes back to watching instead of
+          // taking the disconnection that follows for a lost connection.
           this.gateway.server
             .to(`user:${stream.coHostId}`)
             .emit('live:cohost_removed', { streamId: stream.id });
+          await this.recording.stopCoHost(stream.id);
+          await this.recording.removeFromRoom(stream.id, stream.coHostId);
           this.gateway.server
             .to(`live:${stream.id}`)
             .emit('live:cohost_left', { coHostId: stream.coHostId });
@@ -492,10 +494,15 @@ export class LiveService {
     });
 
     if (removedCoHostId) {
-      await this.recording.stopCoHost(streamId);
+      // The app is told first, so it goes back to watching instead of
+      // taking the disconnection that follows for a lost connection.
       this.gateway.server
         .to(`user:${removedCoHostId}`)
         .emit('live:cohost_removed', { streamId });
+      await this.recording.stopCoHost(streamId);
+      // Taken out of the room by the live service too, so their camera
+      // stops for everyone even if their app does not react.
+      await this.recording.removeFromRoom(streamId, removedCoHostId);
       this.gateway.server
         .to(`live:${streamId}`)
         .emit('live:cohost_left', { coHostId: removedCoHostId });

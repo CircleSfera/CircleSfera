@@ -429,6 +429,13 @@ describe('LiveService', () => {
       expect(emit).toHaveBeenCalledWith('live:cohost_removed', {
         streamId: 'stream-2',
       });
+      // Told before being taken out of the room.
+      const told = emit.mock.calls.findIndex(
+        ([name]: unknown[]) => name === 'live:cohost_removed',
+      );
+      expect(emit.mock.invocationCallOrder[told]).toBeLessThan(
+        mockRecording.removeFromRoom.mock.invocationCallOrder[0],
+      );
       expect(emit).toHaveBeenCalledWith('live:cohost_left', {
         coHostId: 'cohost-1',
       });
@@ -775,6 +782,18 @@ describe('LiveService', () => {
         streamId: 'stream-1',
       });
       expect(mockRecording.stopCoHost).toHaveBeenCalledWith('stream-1');
+      // The live service takes them out of the room as well, after the app
+      // was told, so it does not take that for a lost connection.
+      expect(mockRecording.removeFromRoom).toHaveBeenCalledWith(
+        'stream-1',
+        coHostProfileId,
+      );
+      const told = mockServer.emit.mock.calls.findIndex(
+        ([name]: unknown[]) => name === 'live:cohost_removed',
+      );
+      expect(mockServer.emit.mock.invocationCallOrder[told]).toBeLessThan(
+        mockRecording.removeFromRoom.mock.invocationCallOrder[0],
+      );
       expect(result).toEqual({ success: true });
     });
 
