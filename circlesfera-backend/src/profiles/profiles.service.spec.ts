@@ -788,7 +788,7 @@ describe('ProfilesService', () => {
       await service.searchProfiles('alice');
 
       const { where } = mockPrismaService.profile.findMany.mock.calls[0][0];
-      expect(where.user).toEqual({ deactivatedAt: null });
+      expect(where.user).toEqual({ deactivatedAt: null, isActive: true });
       expect(where).not.toHaveProperty('blocking');
       expect(where).not.toHaveProperty('blockedBy');
     });
@@ -799,14 +799,27 @@ describe('ProfilesService', () => {
       await service.searchProfiles('alice', 'viewer-1');
 
       const { where } = mockPrismaService.profile.findMany.mock.calls[0][0];
-      expect(where.user).toEqual({ deactivatedAt: null });
-      expect(where.AND).toEqual([
-        {
-          user: { isTestAccount: false },
-          blocking: { none: { blockedId: 'viewer-1' } },
-          blockedBy: { none: { blockerId: 'viewer-1' } },
-        },
-      ]);
+      expect(where.user).toEqual({ deactivatedAt: null, isActive: true });
+      expect(where.AND[0]).toEqual({
+        user: { isTestAccount: false },
+        blocking: { none: { blockedId: 'viewer-1' } },
+        blockedBy: { none: { blockerId: 'viewer-1' } },
+      });
+    });
+
+    it('never returns banned or suspended Profiles, as the people search', async () => {
+      mockPrismaService.profile.findMany = vi.fn().mockResolvedValue([]);
+
+      await service.searchProfiles('alice');
+
+      const { where } = mockPrismaService.profile.findMany.mock.calls[0][0];
+      expect(where.isAccountBanned).toBe(false);
+      expect(where.AND[1]).toEqual({
+        OR: [
+          { suspendedUntil: null },
+          { suspendedUntil: { lt: expect.any(Date) } },
+        ],
+      });
     });
   });
 

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { type Notice, renderDigest, renderNotice } from './notice-copy.js';
+import {
+  type Notice,
+  renderChatPush,
+  renderDigest,
+  renderNotice,
+} from './notice-copy.js';
 
 const day = new Date('2026-11-03T12:00:00Z');
 
@@ -344,5 +349,23 @@ describe('a countdown that ended', () => {
     expect(es).toContain('112');
     // It never names who reported, and it is not a sanction.
     expect(`${en} ${es}`).not.toMatch(/report|denunci|appeal|apela/i);
+  });
+});
+
+describe('renderChatPush', () => {
+  it('names the sender in the language of the recipient, and never the message', () => {
+    expect(renderChatPush('es', 'alice')).toEqual({
+      title: 'Nuevo mensaje',
+      body: '@alice te ha enviado un mensaje',
+    });
+    expect(renderChatPush('en', 'alice')).toEqual({
+      title: 'New message',
+      body: '@alice sent you a message',
+    });
+  });
+
+  it('says only that there is a message when the sender has no handle', () => {
+    expect(renderChatPush('es', null).body).toBe('Tienes un mensaje nuevo');
+    expect(renderChatPush('en', undefined).body).toBe('You have a new message');
   });
 });

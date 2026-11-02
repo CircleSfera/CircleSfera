@@ -64,6 +64,7 @@ describe('SendMessageUseCase', () => {
       $transaction: vi.fn(async (cb: any) => cb(mockTx)),
       profile: {
         findUnique: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([]),
       },
     };
 
@@ -436,12 +437,57 @@ describe('SendMessageUseCase', () => {
         tempId: 'temp-123',
       }),
     });
+    // With no language known for the recipient, the default one.
     expect(mockPushService.sendNotification).toHaveBeenCalledWith(
       'recipient-1',
       expect.objectContaining({
-        title: 'Nuevo mensaje cifrado',
+        title: 'Nuevo mensaje',
         data: { url: '/chat/conv-1', type: 'chat' },
       }),
+      'messages',
+    );
+  });
+
+  it("writes the push in each recipient's language, naming the sender, never the message", async () => {
+    mockTx.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      participants: [
+        { profileId: 'sender-1', profile: { id: 'sender-1' } },
+        { profileId: 'recipient-1', profile: { id: 'recipient-1' } },
+      ],
+    });
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-1',
+      content: 'encrypted_secret words',
+      senderId: 'sender-1',
+      conversationId: 'conv-1',
+      sender: { id: 'sender-1', username: 'alice' },
+    });
+    mockPrisma.profile.findMany.mockResolvedValue([
+      { id: 'recipient-1', user: { locale: 'en' } },
+    ]);
+
+    await useCase.execute(
+      'sender-1',
+      undefined,
+      'secret words',
+      undefined,
+      undefined,
+      'conv-1',
+      'temp-1',
+    );
+
+    expect(mockPrisma.profile.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ['recipient-1'] } },
+      select: { id: true, user: { select: { locale: true } } },
+    });
+    expect(mockPushService.sendNotification).toHaveBeenCalledWith(
+      'recipient-1',
+      {
+        title: 'New message',
+        body: '@alice sent you a message',
+        data: { url: '/chat/conv-1', type: 'chat' },
+      },
       'messages',
     );
   });
@@ -594,7 +640,7 @@ describe('SendMessageUseCase', () => {
     expect(mockPushService.sendNotification).toHaveBeenCalledWith(
       'recipient-2',
       expect.objectContaining({
-        title: 'Nuevo mensaje cifrado',
+        title: 'Nuevo mensaje',
       }),
       'messages',
     );

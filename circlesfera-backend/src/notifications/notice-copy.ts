@@ -558,3 +558,25 @@ export function renderDigest(
         : `Tienes ${count} interacciones nuevas en tus publicaciones.`,
   };
 }
+
+// Push for a new chat message, in the recipient's language. It names the
+// sender, never what the message says.
+export function renderChatPush(
+  locale: Locale,
+  senderUsername: string | null | undefined,
+): { title: string; body: string } {
+  if (locale === 'en') {
+    return {
+      title: 'New message',
+      body: senderUsername
+        ? `@${senderUsername} sent you a message`
+        : 'You have a new message',
+    };
+  }
+  return {
+    title: 'Nuevo mensaje',
+    body: senderUsername
+      ? `@${senderUsername} te ha enviado un mensaje`
+      : 'Tienes un mensaje nuevo',
+  };
+}

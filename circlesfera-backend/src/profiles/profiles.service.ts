@@ -246,7 +246,8 @@ export class ProfilesService {
   }
 
   // Search profiles by username or full name (case-insensitive).
-  // Deactivated accounts are never findable, and Profiles in a block
+  // Deactivated or closed accounts and banned or suspended Profiles are
+  // never findable, and Profiles in a block
   // relation with the viewer are hidden in both directions.
   // Param query: Search term
   // Param viewerProfileId: The searching Profile, when authenticated
@@ -260,8 +261,19 @@ export class ProfilesService {
           { username: { contains: query, mode: 'insensitive' } },
           { fullName: { contains: query, mode: 'insensitive' } },
         ],
-        user: { deactivatedAt: null },
-        AND: [await visibleToViewerWhere(this.prisma, viewerProfileId)],
+        // Banned or suspended Profiles and closed accounts are not findable,
+        // as in the people search.
+        user: { deactivatedAt: null, isActive: true },
+        isAccountBanned: false,
+        AND: [
+          await visibleToViewerWhere(this.prisma, viewerProfileId),
+          {
+            OR: [
+              { suspendedUntil: null },
+              { suspendedUntil: { lt: new Date() } },
+            ],
+          },
+        ],
       },
       take: 10,
       select: {
