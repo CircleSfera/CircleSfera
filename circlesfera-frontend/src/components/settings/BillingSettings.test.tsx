@@ -11,6 +11,7 @@ vi.mock('../../services/payments.service', () => ({
     getBillingStatus: vi.fn(),
     getBillingPortalUrl: vi.fn(),
     cancelPlan: vi.fn(),
+    resumePlan: vi.fn(),
   },
 }));
 vi.mock('react-hot-toast', () => ({
@@ -274,6 +275,80 @@ describe('BillingSettings', () => {
         exact: false,
       }),
     ).toBeInTheDocument();
+  });
+
+  describe('resuming a cancelled plan', () => {
+    const inDays = (days: number) =>
+      new Date(Date.now() + days * 24 * 3600 * 1000).toISOString();
+    const cancelled = (over: Record<string, unknown> = {}) => ({
+      hasActiveSubscription: true,
+      subscription: {
+        planName: 'Premium',
+        status: 'ACTIVE',
+        currentPeriodEnd: inDays(10),
+        cancelAtPeriodEnd: true,
+        ...over,
+      },
+    });
+
+    it('resumes it in one step, and then says when it renews', async () => {
+      const status = cancelled();
+      vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue(status);
+      vi.mocked(paymentsApi.resumePlan).mockResolvedValue({
+        ...status,
+        subscription: { ...status.subscription, cancelAtPeriodEnd: false },
+      });
+      const { i18n } = renderWithProviders(<BillingSettings />);
+      const t = (k: string) => i18n!.t(`settings.billing.${k}`);
+
+      fireEvent.click(await screen.findByRole('button', { name: t('resume') }));
+
+      await waitFor(() =>
+        expect(paymentsApi.resumePlan).toHaveBeenCalledTimes(1),
+      );
+      expect(
+        await screen.findByText(t('renews_on'), { exact: false }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: t('resume') }),
+      ).not.toBeInTheDocument();
+      // Once resumed, it can be cancelled again.
+      expect(screen.getByRole('button', { name: t('cancel') })).toBeVisible();
+      expect(toast.success).toHaveBeenCalledWith(t('resume_done'));
+    });
+
+    it('is not offered for a plan that is not cancelled, has ended, or whose renewal failed', async () => {
+      for (const over of [
+        { cancelAtPeriodEnd: false },
+        { currentPeriodEnd: inDays(-1) },
+        { status: 'PAST_DUE' },
+      ]) {
+        vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue(
+          cancelled(over),
+        );
+        const { i18n, unmount } = renderWithProviders(<BillingSettings />);
+        await screen.findByText('Premium');
+        expect(
+          screen.queryByRole('button', {
+            name: i18n!.t('settings.billing.resume'),
+          }),
+        ).not.toBeInTheDocument();
+        unmount();
+      }
+    });
+
+    it('says so when the plan cannot be resumed', async () => {
+      vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue(cancelled());
+      vi.mocked(paymentsApi.resumePlan).mockRejectedValue(new Error('no'));
+      const { i18n } = renderWithProviders(<BillingSettings />);
+      const t = (k: string) => i18n!.t(`settings.billing.${k}`);
+
+      fireEvent.click(await screen.findByRole('button', { name: t('resume') }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(t('resume_error')),
+      );
+    });
   });
 
   it('reports a portal failure and stays on the page', async () => {

@@ -13,6 +13,9 @@ import SettingsSection from './SettingsSection';
 
 // A plan can be cancelled while it runs, also with a payment overdue.
 const CANCELLABLE = ['ACTIVE', 'TRIALING', 'PAST_DUE'];
+// A cancelled plan can be resumed while it is in force, not after a failed
+// renewal.
+const RESUMABLE = ['ACTIVE', 'TRIALING'];
 
 export default function BillingSettings() {
   const { t, i18n } = useTranslation();
@@ -40,6 +43,17 @@ export default function BillingSettings() {
     },
     onError: () => {
       toast.error(t('settings.billing.cancel_error'));
+    },
+  });
+
+  const resumePlan = useMutation({
+    mutationFn: () => paymentsApi.resumePlan(),
+    onSuccess: (status) => {
+      queryClient.setQueryData(['billingStatus'], status);
+      toast.success(t('settings.billing.resume_done'));
+    },
+    onError: () => {
+      toast.error(t('settings.billing.resume_error'));
     },
   });
 
@@ -172,6 +186,32 @@ export default function BillingSettings() {
                   {t('settings.billing.cancel')}
                 </Button>
               )}
+            </div>
+          )}
+
+        {subscription &&
+          RESUMABLE.includes(subscription.status) &&
+          subscription.cancelAtPeriodEnd &&
+          new Date(subscription.currentPeriodEnd).getTime() > Date.now() && (
+            <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-3">
+              <p className="text-sm text-white/70">
+                {t('settings.billing.resume_hint', {
+                  date: new Date(
+                    subscription.currentPeriodEnd,
+                  ).toLocaleDateString(i18n.language, {
+                    dateStyle: 'long',
+                    timeZone: 'UTC',
+                  }),
+                })}
+              </p>
+              <Button
+                variant="white"
+                onClick={() => resumePlan.mutate()}
+                isLoading={resumePlan.isPending}
+                className="min-h-11 button-alone text-sm font-semibold"
+              >
+                {t('settings.billing.resume')}
+              </Button>
             </div>
           )}
       </SettingsSection>

@@ -323,7 +323,11 @@
       "cancel_confirm_button": "Sí, cancelar el plan",
       "cancel_keep": "Mantener mi plan",
       "cancel_done": "Plan cancelado. Sigue activo hasta el final del periodo que pagaste.",
-      "cancel_error": "No se ha podido cancelar el plan. Inténtalo de nuevo."
+      "cancel_error": "No se ha podido cancelar el plan. Inténtalo de nuevo.",
+      "resume": "Reanudar plan",
+      "resume_hint": "Tu plan está cancelado y termina el {{date}}. Si lo reanudas, se renovará ese día como antes y hoy no se cobra nada.",
+      "resume_done": "Plan reanudado. Se renovará en su fecha.",
+      "resume_error": "No se pudo reanudar el plan. Inténtalo de nuevo."
     },
     "security": {
       "title": "Seguridad",

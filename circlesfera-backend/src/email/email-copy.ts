@@ -88,6 +88,12 @@ export interface EmailCopy {
     body: string;
     button: string;
   };
+  planResumed: {
+    subject: string;
+    title: string;
+    body: string;
+    button: string;
+  };
   greeting: string;
   fallbackName: string;
 }
@@ -211,6 +217,12 @@ const en: EmailCopy = {
     subject: 'Your {plan} plan is cancelled',
     title: 'Plan cancelled',
     body: 'You cancelled the <strong>{plan}</strong> plan of @{username}.<br><br>You keep every feature of the plan until <strong>{date}</strong>, the end of the period you already paid. The plan will not renew.<br><br>If you did not cancel it, write to support@circlesfera.com.',
+    button: 'See my plan',
+  },
+  planResumed: {
+    subject: 'Your {plan} plan continues',
+    title: 'Plan resumed',
+    body: 'You resumed the <strong>{plan}</strong> plan of @{username}. It is no longer cancelled: it renews on <strong>{date}</strong> as before, and nothing was charged today.<br><br>If you did not resume it, write to support@circlesfera.com.',
     button: 'See my plan',
   },
   greeting: 'Hello',
@@ -341,6 +353,12 @@ const es: EmailCopy = {
     subject: 'Has cancelado tu plan {plan}',
     title: 'Plan cancelado',
     body: 'Has cancelado el plan <strong>{plan}</strong> de @{username}.<br><br>Mantienes todas las funciones del plan hasta el <strong>{date}</strong>, el final del periodo que ya pagaste. El plan no se renovará.<br><br>Si no lo has cancelado tú, escribe a support@circlesfera.com.',
+    button: 'Ver mi plan',
+  },
+  planResumed: {
+    subject: 'Tu plan {plan} continúa',
+    title: 'Plan reanudado',
+    body: 'Has reanudado el plan <strong>{plan}</strong> de @{username}. Ya no está cancelado: se renueva el <strong>{date}</strong> como antes, y hoy no se ha cobrado nada.<br><br>Si no lo has reanudado tú, escribe a support@circlesfera.com.',
     button: 'Ver mi plan',
   },
   greeting: 'Hola',

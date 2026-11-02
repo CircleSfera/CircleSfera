@@ -323,7 +323,11 @@
       "cancel_confirm_button": "Yes, cancel the plan",
       "cancel_keep": "Keep my plan",
       "cancel_done": "Plan cancelled. It stays until the end of the period you paid.",
-      "cancel_error": "The plan could not be cancelled. Try again."
+      "cancel_error": "The plan could not be cancelled. Try again.",
+      "resume": "Resume plan",
+      "resume_hint": "Your plan is cancelled and ends on {{date}}. If you resume it, it renews that day as before and nothing is charged today.",
+      "resume_done": "Plan resumed. It renews on its date.",
+      "resume_error": "The plan could not be resumed. Please try again."
     },
     "security": {
       "title": "Security",

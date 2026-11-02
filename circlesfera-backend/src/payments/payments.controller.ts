@@ -79,6 +79,16 @@ export class PaymentsController {
     return this.paymentsService.cancelPlan(req.user.userId, req.user.profileId);
   }
 
+  // Takes back the cancellation of the plan of the Profile in use while the
+  // period paid lasts.
+  @Post('plan/resume')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: HttpStatus.OK })
+  async resumePlan(@Req() req: RequestWithUser) {
+    return this.paymentsService.resumePlan(req.user.userId, req.user.profileId);
+  }
+
   @Get('status')
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200 })

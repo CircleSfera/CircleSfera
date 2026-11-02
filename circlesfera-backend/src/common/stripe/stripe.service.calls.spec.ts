@@ -193,6 +193,13 @@ describe('StripeService checkout, customers and subscriptions', () => {
     });
     expect(client.subscriptions.cancel).not.toHaveBeenCalled();
   });
+
+  it('resumes a subscription cancelled at the end of its period', async () => {
+    await service.resumeSubscription('sub_1');
+    expect(client.subscriptions.update).toHaveBeenCalledWith('sub_1', {
+      cancel_at_period_end: false,
+    });
+  });
 });
 
 describe('StripeService refund of a checkout', () => {
