@@ -46,6 +46,11 @@ describe('MediaAuthService', () => {
     liveStream: {
       findMany: vi.fn(),
     },
+    conversation: {
+      findMany: vi.fn(),
+    },
+    // The clips studio drafts keep in their state.
+    $queryRaw: vi.fn(),
     block: {
       findFirst: vi.fn(),
     },
@@ -79,6 +84,8 @@ describe('MediaAuthService', () => {
     mockPrismaService.editProject.findMany.mockResolvedValue([]);
     mockPrismaService.collection.findMany.mockResolvedValue([]);
     mockPrismaService.liveStream.findMany.mockResolvedValue([]);
+    mockPrismaService.conversation.findMany.mockResolvedValue([]);
+    mockPrismaService.$queryRaw.mockResolvedValue([]);
     mockPrismaService.block.findFirst.mockResolvedValue(null);
     mockPrismaService.profile.findMany.mockResolvedValue([]);
     mockPrismaService.user.findMany.mockResolvedValue([]);
@@ -700,6 +707,77 @@ describe('MediaAuthService', () => {
       expect(
         mockPrismaService.story.findMany.mock.calls[0][0].where.OR,
       ).toContainEqual({ overlayUrl: { contains: 'draft.mp4' } });
+    });
+
+    it("gives a group's photo to its members only: not to someone who left or was removed, nor to a visitor", async () => {
+      mockPrismaService.conversation.findMany.mockResolvedValue([
+        { id: 'group-1' },
+      ]);
+      mockPrismaService.participant.findFirst.mockImplementation(
+        async ({ where }) =>
+          where.profileId === 'member-1' ? { id: 'part-1' } : null,
+      );
+
+      await expect(
+        service.isAccessAllowed('/uploads/group.jpg', 'u-1', 'member-1'),
+      ).resolves.toBe(true);
+      // Leaving or being removed deletes the membership.
+      await expect(
+        service.isAccessAllowed('/uploads/group.jpg', 'u-2', 'former-2'),
+      ).resolves.toBe(false);
+      await expect(
+        service.isAccessAllowed('/uploads/group.jpg', null, null),
+      ).resolves.toBe(false);
+      expect(
+        mockPrismaService.conversation.findMany.mock.calls[0][0].where.OR,
+      ).toContainEqual({ avatarUrl: { contains: 'group.jpg' } });
+      expect(mockPrismaService.participant.findFirst).toHaveBeenCalledWith({
+        where: {
+          conversationId: 'group-1',
+          profileId: 'member-1',
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+    });
+
+    it("gives a clip a studio draft keeps in its state to the draft's author only", async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([
+        { profileId: 'author-1' },
+      ]);
+
+      await expect(
+        service.isAccessAllowed('/uploads/clip.mp4', 'u-1', 'author-1'),
+      ).resolves.toBe(true);
+      await expect(
+        service.isAccessAllowed('/uploads/clip.mp4', 'u-2', 'other-2'),
+      ).resolves.toBe(false);
+      await expect(
+        service.isAccessAllowed('/uploads/clip.mp4', null, null),
+      ).resolves.toBe(false);
+    });
+
+    it('looks a draft clip up by its exact address, and a stream file by its video', async () => {
+      const looked = () =>
+        mockPrismaService.$queryRaw.mock.calls.at(-1)?.slice(1) as unknown[];
+
+      await service.isAccessAllowed('/uploads/clip.mp4', 'u-1', 'p-1');
+      expect(looked()).toContainEqual(['/uploads/clip.mp4']);
+
+      const video = '3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d';
+      await service.isAccessAllowed(
+        `/uploads/${video}/master.m3u8`,
+        'u-1',
+        'p-1',
+      );
+      expect(looked()).toContainEqual(
+        expect.arrayContaining([`/uploads/${video}.mp4`]),
+      );
+      // The query reads only the clips the studio checked as the author's.
+      const call = mockPrismaService.$queryRaw.mock.calls.at(-1) as unknown[];
+      const sql = (call[0] as string[]).join('?');
+      expect(sql).toContain(`"state" -> 'version' = '3'::jsonb`);
+      expect(sql).toContain('= ANY(');
     });
 
     it('denies anonymous access to a DM attachment', async () => {

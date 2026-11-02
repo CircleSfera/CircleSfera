@@ -81,10 +81,19 @@ const mockPrismaService = {
   // Test accounts are kept apart from real ones; none here.
   user: { findMany: vi.fn().mockResolvedValue([]) },
   follow: { findUnique: vi.fn().mockResolvedValue(null) },
+  closeFriend: { findUnique: vi.fn().mockResolvedValue(null) },
 };
 
 // A paid post everyone may see the card of.
-const PAID = { id: 'post-1', isPremium: true };
+const PAID = {
+  id: 'post-1',
+  isPremium: true,
+  scheduledStatus: 'PUBLISHED',
+  visibility: 'PUBLIC',
+  profileId: 'author-1',
+};
+// The same post, for the author's close friends.
+const PAID_CLOSE_FRIENDS = { ...PAID, visibility: 'PRIVATE' };
 const paidCard = {
   id: 'post-1',
   profileId: 'author-1',
@@ -127,6 +136,7 @@ describe('MediaController (HTTP integration)', () => {
     mockPrismaService.block.findFirst.mockResolvedValue(null);
     mockPrismaService.user.findMany.mockResolvedValue([]);
     mockPrismaService.follow.findUnique.mockResolvedValue(null);
+    mockPrismaService.closeFriend.findUnique.mockResolvedValue(null);
     // Restore default mock implementation after clearAllMocks
     mockStorageProvider.getMediaArtifact.mockImplementation(
       async (params: { baseFolder: string; relativePath: string }) => {
@@ -196,6 +206,89 @@ describe('MediaController (HTTP integration)', () => {
     await request(app.getHttpServer())
       .get('/api/v1/media/teaser/media-1/master.m3u8')
       .expect(404);
+  });
+
+  it.each(['SCHEDULED', 'CANCELLED'])(
+    'serves no teaser of a %s post, not even to its author',
+    async (scheduledStatus) => {
+      mockPrismaService.postMedia.findUnique.mockResolvedValue({
+        standardUrl,
+        post: { ...PAID, scheduledStatus, profileId: 'profile-1' },
+      });
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        ...paidCard,
+        profileId: 'profile-1',
+      });
+      fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
+
+      await request(app.getHttpServer())
+        .get('/api/v1/media/teaser/media-1/master.m3u8')
+        .set('Authorization', 'Bearer test')
+        .expect(404);
+    },
+  );
+
+  describe('a paid post for close friends', () => {
+    beforeEach(() => {
+      mockPrismaService.postMedia.findUnique.mockResolvedValue({
+        standardUrl,
+        post: PAID_CLOSE_FRIENDS,
+      });
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        ...paidCard,
+        visibility: 'PRIVATE',
+      });
+      fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
+    });
+    const teaser = () =>
+      request(app.getHttpServer()).get(
+        '/api/v1/media/teaser/media-1/master.m3u8',
+      );
+
+    it('serves its teaser to a close friend of the author', async () => {
+      mockPrismaService.closeFriend.findUnique.mockResolvedValue({ id: 'cf' });
+
+      await teaser().set('Authorization', 'Bearer test').expect(200);
+      expect(mockPrismaService.closeFriend.findUnique).toHaveBeenCalledWith({
+        where: {
+          profileId_friendId: { profileId: 'author-1', friendId: 'profile-1' },
+        },
+        select: { id: true },
+      });
+    });
+
+    it('serves no teaser to someone who is not a close friend, nor to a visitor', async () => {
+      await teaser().set('Authorization', 'Bearer test').expect(404);
+      await teaser().expect(404);
+      expect(mockPrismaService.closeFriend.findUnique).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      [
+        'blocked either way',
+        () => mockPrismaService.block.findFirst.mockResolvedValue({ id: 'b' }),
+      ],
+      [
+        'archived',
+        () =>
+          mockPrismaService.post.findUnique.mockResolvedValue({
+            ...paidCard,
+            visibility: 'PRIVATE',
+            archivedAt: new Date(),
+          }),
+      ],
+      ['gone', () => mockPrismaService.post.findUnique.mockResolvedValue(null)],
+    ])(
+      'serves no teaser to a close friend when the post is %s',
+      async (_why, arrange) => {
+        mockPrismaService.closeFriend.findUnique.mockResolvedValue({
+          id: 'cf',
+        });
+        arrange();
+
+        await teaser().set('Authorization', 'Bearer test').expect(404);
+      },
+    );
   });
 
   it('answers a failure to read the post as a failure, not as missing media', async () => {

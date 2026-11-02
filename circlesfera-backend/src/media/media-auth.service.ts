@@ -3,6 +3,7 @@ import { FollowStatus, Visibility } from '@prisma/client';
 import { canWatchLiveReplay } from '../common/policies/live-replay-access.policy.js';
 import { isRemoved } from '../common/policies/removed-content.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { EDIT_CLIP_PATH } from '../uploads/services/media-references.service.js';
 import {
   StoredFilesService,
   VIDEO_EXTENSIONS,
@@ -65,6 +66,12 @@ interface MessageAccess {
  *
  * Collection: owner-only -- there is no shared/public collection viewing
  * feature in the API today.
+ *
+ * Group photo (Conversation.avatarUrl): the conversation's members only, as
+ * its messages are; a member who left or was removed no longer has it.
+ *
+ * Studio draft: its media and the clips its state keeps are its author's
+ * only.
  *
  * A post, story or comment removed by moderation is kept for its appeal and
  * shown to nobody, its author included: its files are for staff who
@@ -193,6 +200,8 @@ export class MediaAuthService {
       collection,
       editProject,
       liveStream,
+      conversation,
+      draftClip,
     ] = await Promise.all([
       this.prisma.postMedia.findMany({
         where: urlMatch,
@@ -248,6 +257,23 @@ export class MediaAuthService {
         where: matchOn('hlsUrl', 'replayUrl', 'thumbnailUrl'),
         select: { hostId: true, publishedAt: true, endedByStaff: true },
       }),
+      // A group's photo is its members'.
+      this.prisma.conversation.findMany({
+        where: matchOn('avatarUrl'),
+        select: { id: true },
+      }),
+      // A clip a studio draft keeps in its state is its author's, as the
+      // draft's media is. Only the clips the studio checked as the author's
+      // own files (EDIT_CLIP_PATH, state version 3) are read, by their exact
+      // address: a clip naming a file that is not the author's never makes
+      // that file private to them.
+      this.prisma.$queryRaw<Array<{ profileId: string }>>`
+        SELECT DISTINCT e."profileId"
+        FROM "edit_projects" e,
+          jsonb_path_query(e."state", ${EDIT_CLIP_PATH}::jsonpath) clip
+        WHERE e."state" -> 'version' = '3'::jsonb
+          AND jsonb_typeof(clip) = 'string'
+          AND clip #>> '{}' = ANY(${candidates})`,
     ]);
 
     // A file's own randomUUID()-based name should only ever genuinely match
@@ -291,7 +317,9 @@ export class MediaAuthService {
           comment.length +
           collection.length +
           editProject.length +
-          liveStream.length ===
+          liveStream.length +
+          conversation.length +
+          draftClip.length ===
         0
       ) {
         return true;
@@ -361,6 +389,10 @@ export class MediaAuthService {
       ),
       ...liveStream.map((item) =>
         canWatchLiveReplay(this.prisma, item, viewerProfileId),
+      ),
+      ...conversation.map((item) => this.isMember(item.id, viewerProfileId)),
+      ...draftClip.map((item) =>
+        Promise.resolve(item.profileId === viewerProfileId),
       ),
     ];
 
@@ -506,24 +538,28 @@ export class MediaAuthService {
     return true;
   }
 
-  private async checkMessageAccess(
-    message: MessageAccess,
-    viewerUserId: string | null,
+  // A member of the conversation who has not deleted it for themselves:
+  // leaving or being removed deletes the membership.
+  private async isMember(
+    conversationId: string,
     viewerProfileId: string | null,
   ): Promise<boolean> {
     if (!viewerProfileId) {
       return false;
     }
-
     const participant = await this.prisma.participant.findFirst({
-      where: {
-        conversationId: message.conversationId,
-        profileId: viewerProfileId,
-        deletedAt: null,
-      },
+      where: { conversationId, profileId: viewerProfileId, deletedAt: null },
       select: { id: true },
     });
-    if (!participant) {
+    return !!participant;
+  }
+
+  private async checkMessageAccess(
+    message: MessageAccess,
+    viewerUserId: string | null,
+    viewerProfileId: string | null,
+  ): Promise<boolean> {
+    if (!(await this.isMember(message.conversationId, viewerProfileId))) {
       return false;
     }
 
