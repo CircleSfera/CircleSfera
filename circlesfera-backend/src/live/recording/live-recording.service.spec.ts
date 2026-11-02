@@ -463,7 +463,7 @@ describe('LiveRecordingService', () => {
 
     it('a room already gone counts as closed', async () => {
       sdk.deleteRoom.mockRejectedValueOnce(
-        new ServerError('not_found', 'room not found', 404),
+        new ServerError('twirp', 'room not found', 404, 'not_found'),
       );
 
       await expect(service.closeRoom('s1')).resolves.toBeUndefined();
