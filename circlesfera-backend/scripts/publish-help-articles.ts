@@ -69,6 +69,67 @@ El equipo queda en pausa, no se elimina: los miembros no pueden entrar en el per
       },
     ],
   },
+  {
+    slug: 'how-your-feed-works',
+    topic: 'CONTENT',
+    texts: [
+      {
+        locale: 'en',
+        title: 'Why you see a post: how your feed and recommendations work',
+        body: `CircleSfera shows you posts and Frames for reasons you can see. On any post or Frame, open its menu and choose "Why am I seeing this?": it lists the reasons that hold for you, worked out at that moment.
+
+## The reasons
+- You follow the author. A follow request that is still pending does not count.
+- You are in the author's close friends, for posts shared only with close friends.
+- You have liked or commented on the author's posts in the last 90 days, even without following them.
+- It has hashtags that appear in posts you liked or saved.
+- It is similar to posts you liked, as the "For you" feed measures it.
+- It is popular: many people have been interacting with it recently.
+- It is recent: published in the last 48 hours.
+- It is a promotion that reaches your country. You also see who paid for it.
+
+## What it never tells you
+It never says who else liked a post, and it never shows anything about other accounts or about private profiles you cannot see.
+
+## Home and Following
+Following shows the posts of the people you follow, newest first. Home ("For you") mixes them with recommendations, ranked by how close you are to the author, how similar the post is to what you like, how popular it is and how recent it is. Every recommendation can be explained with "Why am I seeing this?".
+
+## Changing what you see
+From the same menu you can say you are not interested, hide the author or mute them. Muting, unfollowing or blocking also changes what you see. In Settings → Feed Preferences you choose whether sensitive content is shown in For you and Explore, and the words you never want to see.
+
+## Promotions
+A promoted post is marked as promoted. It reaches the countries its author chose, never with personal data such as your interests or your activity elsewhere.`,
+      },
+      {
+        locale: 'es',
+        title:
+          'Por qué ves una publicación: cómo funcionan tu feed y las recomendaciones',
+        body: `CircleSfera te muestra publicaciones y Frames por motivos que puedes ver. En cualquier publicación o Frame, abre su menú y elige «¿Por qué veo esto?»: verás los motivos que se cumplen para ti, calculados en ese momento.
+
+## Los motivos
+- Sigues al autor. Una solicitud de seguimiento pendiente no cuenta.
+- Estás en los mejores amigos del autor, en publicaciones compartidas solo con ellos.
+- Has dado me gusta o comentado publicaciones del autor en los últimos 90 días, aunque no le sigas.
+- Tiene hashtags que aparecen en publicaciones que te gustaron o guardaste.
+- Se parece a publicaciones que te gustaron, como lo mide el feed «Para ti».
+- Es popular: mucha gente ha interactuado con ella hace poco.
+- Es reciente: se publicó en las últimas 48 horas.
+- Es una promoción que llega a tu país. También ves quién la pagó.
+
+## Lo que nunca te dice
+Nunca dice quién más le dio me gusta a una publicación, ni muestra nada de otras cuentas ni de perfiles privados que no puedes ver.
+
+## Inicio y Siguiendo
+Siguiendo muestra las publicaciones de las personas que sigues, las más nuevas primero. Inicio («Para ti») las mezcla con recomendaciones, ordenadas por lo cercano que eres al autor, lo que se parece la publicación a lo que te gusta, lo popular y lo reciente que es. Cada recomendación se puede explicar con «¿Por qué veo esto?».
+
+## Cambiar lo que ves
+Desde el mismo menú puedes marcar «No me interesa», ocultar al autor o silenciarlo. Silenciar, dejar de seguir o bloquear también cambia lo que ves. En Ajustes → Preferencias de Feed eliges si se muestra contenido sensible en Para ti y Explorar, y las palabras que no quieres ver.
+
+## Promociones
+Una publicación promocionada aparece marcada como promocionada. Llega a los países que eligió su autor, nunca con datos personales como tus intereses o tu actividad fuera de CircleSfera.`,
+      },
+    ],
+  },
 ] as const;
 
 // Creates or updates each article above, in every language it has, and
