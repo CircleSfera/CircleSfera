@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileAccessService } from './profile-access.service.js';
 import { PROFILE_ACTIONS, type ProfileAction } from './profile-actions.js';
 
-// The table of PD-014, row by row.
+// The role table, row by row: what the owner, an administrator and an
+// editor may each do on a Profile.
 const EXPECTED: Record<
   ProfileAction,
   { owner: boolean; administrator: boolean; editor: boolean }

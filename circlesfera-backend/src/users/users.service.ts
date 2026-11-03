@@ -80,7 +80,7 @@ export class UsersService {
     });
     const profileIds = userProfiles.map((p) => p.id);
     // A Test Account is suggested only Test Accounts, and a real account
-    // only real ones (PD-006).
+    // only real ones.
     const viewer = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { isTestAccount: true },
@@ -739,13 +739,13 @@ export class UsersService {
     const notices: AdminNotice[] = [];
     const erased = await this.prisma.$transaction(async (tx) => {
       // Every file its Profiles uploaded, read before the cascade leaves
-      // their records without an owner (TD-008). Files of other people that
+      // their records without an owner. Files of other people that
       // its rows name are not among them.
       const files = await tx.storedFile.findMany({
         where: { profile: { userId } },
         select: { key: true },
       });
-      // The groups its Profiles administer: each keeps an admin (PD-042).
+      // The groups its Profiles administer: each keeps an admin.
       const administered = await tx.participant.findMany({
         where: {
           isAdmin: true,

@@ -149,8 +149,8 @@ export class EditsService {
   async remove(profileId: string, id: string) {
     const edit = await this.findOne(profileId, id);
 
-    // Its files are kept 30 days, readable by their owner only, then erased
-    // (PD-040, TD-008). They are settled with the deletion: if that fails,
+    // Its files are kept 30 days, readable by their owner only, then erased.
+    // They are settled with the deletion: if that fails,
     // the project stays, so its files are never left public.
     await this.prisma.$transaction(async (tx) => {
       await tx.editProject.delete({ where: { id: edit.id } });

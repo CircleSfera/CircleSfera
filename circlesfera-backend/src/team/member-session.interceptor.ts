@@ -17,7 +17,7 @@ import {
 import { roleAllows } from './profile-actions.js';
 
 // A session acting as a Profile the person works on as a team member is
-// refused everywhere except the routes marked for it (ADR-0028). It runs
+// refused everywhere except the routes marked for it. It runs
 // after the guards, once the session is known; a route nobody marked stays
 // closed to members.
 @Injectable()

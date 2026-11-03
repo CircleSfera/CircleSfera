@@ -15,7 +15,7 @@ export interface CurrentUserData {
   // from the token, so it cannot be forged or go stale.
   isTestAccount: boolean;
   // Set when the session acts as a Profile the person works on as a team
-  // member, with their role (ADR-0028).
+  // member, with their role.
   memberRole?: 'ADMINISTRATOR' | 'EDITOR';
 }
 

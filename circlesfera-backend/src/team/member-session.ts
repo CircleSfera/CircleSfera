@@ -10,7 +10,7 @@ import type { PrismaService } from '../prisma/prisma.service.js';
 type SessionProfile = SessionProfileCandidate & { id: string };
 
 // The Profile a session acts as, and, when it is a Profile the person works
-// on as a team member, their role (ADR-0028). A session bound to a Profile of
+// on as a team member, their role. A session bound to a Profile of
 // someone else counts only while the person is an active member of it;
 // otherwise it falls back to the person's own Profiles, as before.
 export async function resolveSessionProfile(

@@ -14,7 +14,7 @@ const { Pool } = pkg;
 // including any future `include: { user: true }`, can no longer leak them.
 // Runtime only: the generated TS types still list these fields, so a new
 // reader must opt in explicitly or it gets `undefined`.
-// The account holds no credentials (ADR-0025); only its passkey challenge
+// The account holds no credentials; only its passkey challenge
 // is left out.
 export const USER_SECRET_OMIT = {
   currentChallenge: true,

@@ -1,6 +1,6 @@
 import type { ProfileMemberRole } from '@prisma/client';
 
-// What a person can do on a Profile (ADR-0028). The owner can do all of
+// What a person can do on a Profile. The owner can do all of
 // them; a member, what the role allows. A closed list: a new action is
 // added here, with the roles that may take it.
 export const PROFILE_ACTIONS = [

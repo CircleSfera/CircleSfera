@@ -20,7 +20,7 @@ const STREAM_FOLDER_FILE =
 export const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v'];
 
 // How long the files of deleted content are kept, readable by their owner
-// only, before the nightly erasure deletes them (PD-040).
+// only, before the nightly erasure deletes them.
 export const DELETED_CONTENT_KEPT_DAYS = 30;
 
 // A deletion settles its files in its own transaction, which reads every

@@ -16,7 +16,7 @@ export class DeleteConversationUseCase {
     @Inject(LeaveGroupUseCase) private leaveGroup: LeaveGroupUseCase,
   ) {}
 
-  // Deleting a chat removes it from your inbox only (PD-042): the others keep
+  // Deleting a chat removes it from your inbox only: the others keep
   // it and every message. In a group it is leaving it, and the group keeps an
   // admin. A conversation is never deleted here: its messages stay out of
   // reach of anyone who is no longer in it. In a group, an admin may name

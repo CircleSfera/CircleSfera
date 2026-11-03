@@ -584,7 +584,7 @@ export class ProfilesService {
     };
   }
 
-  // The Profile of a session acting as a team member (ADR-0028): what anyone
+  // The Profile of a session acting as a team member: what anyone
   // may see of it, and the person's role. Nothing of the owner's account,
   // settings or sign-in.
   async getMemberProfile(profileId: string, memberRole: string) {

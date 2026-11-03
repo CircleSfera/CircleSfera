@@ -674,7 +674,7 @@ export class VideoProcessor extends WorkerHost {
       // Should this fail, the five-minute recovery asks for the stream again.
       await this.uploads.enqueueTranscode(stored.url);
       // The story no longer names them: the originals go if they are the
-      // story's own and nothing else uses them (TD-008).
+      // story's own and nothing else uses them.
       await this.uploads
         .deleteContentFiles(story.profileId, [story.overlayUrl, story.url])
         .catch(() => {});
