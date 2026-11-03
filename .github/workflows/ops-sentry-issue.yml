@@ -1,0 +1,39 @@
+name: Ops — one error tracker issue
+
+# Shows one issue of the error tracker by its short id, or marks it resolved
+# once its cause is known to be over. Logs are public: the script prints the
+# short id, status, count and dates only, never the error's message.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: inspect (read only) or resolve
+        type: choice
+        options: [inspect, resolve]
+        default: inspect
+      issue:
+        description: Short id, such as CIRCLESFERA-BACKEND-1B
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  issue:
+    name: Issue (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26'
+      - name: Run
+        env:
+          SENTRY_WRITE_TOKEN: ${{ secrets.SENTRY_WRITE_TOKEN }}
+          MODE: ${{ inputs.mode }}
+          ISSUE: ${{ inputs.issue }}
+        run: node scripts/sentry-issue.mjs "$MODE" "$ISSUE"
