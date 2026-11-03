@@ -101,8 +101,8 @@ interface StoryToolRailProps {
   frame?: EditorFrame;
 }
 
-/** The tools a post's photo takes: what is painted on it. */
-const POST_TOOLS: ReadonlySet<string> = new Set(['text', 'stickers', 'draw']);
+/** The tools a post's photo takes: text and drawing. Stickers are Stories'. */
+const POST_TOOLS: ReadonlySet<string> = new Set(['text', 'draw']);
 
 /**
  * The tools of the story editor, as a column at the right of the canvas:
