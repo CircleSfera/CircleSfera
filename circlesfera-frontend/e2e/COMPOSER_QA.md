@@ -1,4 +1,4 @@
-# Composer QA (ADR-0018)
+# Composer QA (ADR-0030)
 
 Product coverage for the Post/Frame stepped composer. The UI under test is always the real React
 composer (`ContentComposerPage` / `ComposerChrome`). This file is the composer slice of the repo

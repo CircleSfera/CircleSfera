@@ -1,6 +1,6 @@
 # ADR-0018: Content Composer IA (dual-path + Mobile First)
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0030](./0030-one-create-screen-one-canvas.md)
 - **Date:** 2026-09-05
 - **Deciders:** CircleSfera engineering
 - **Scope:** frontend | product | content create UX
