@@ -603,19 +603,22 @@ model Post {
 }
 
 model PostMedia {
-  id           String   @id @default(uuid())
-  postId       String
-  url          String
-  standardUrl  String? // New: Optimized variant
-  thumbnailUrl String? // New: Optimized variant
-  type         String   @default("image") // "image" | "video"
-  order        Int      @default(0) // For carousel ordering
-  filter       String? // Store filter ID (e.g. "sepia", "clarendon")
-  altText      String? // Accessibility text
+  id            String   @id @default(uuid())
+  postId        String
+  url           String
+  standardUrl   String? // New: Optimized variant
+  thumbnailUrl  String? // New: Optimized variant
+  type          String   @default("image") // "image" | "video"
+  order         Int      @default(0) // For carousel ordering
+  filter        String? // Store filter ID (e.g. "sepia", "clarendon")
+  altText       String? // Accessibility text
   // The moment of its video the author of a frame chose as the cover, in
   // milliseconds. Empty when the cover is the one made by the server alone.
-  coverTimeMs  Int?
-  createdAt    DateTime @default(now())
+  coverTimeMs   Int?
+  // The image the author of a frame uploaded and chose as its cover. Empty
+  // when the cover is a moment of the video or the one made by the server.
+  coverImageUrl String?
+  createdAt     DateTime @default(now())
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 

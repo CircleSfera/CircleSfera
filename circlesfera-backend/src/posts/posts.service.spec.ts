@@ -118,7 +118,11 @@ describe('PostsService', () => {
     moderateEditedCaption: vi.fn().mockResolvedValue(undefined),
   };
 
-  const mockFrameCover = { choose: vi.fn() };
+  const mockFrameCover = {
+    choose: vi.fn(),
+    chooseImage: vi.fn(),
+    assertImage: vi.fn(),
+  };
   const mockEventEmitter = { emit: vi.fn() };
 
   const mockAnalyticsService = {
@@ -201,6 +205,38 @@ describe('PostsService', () => {
       ).rejects.toThrow('Only a frame has a cover to choose');
       expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
       expect(mockFrameCover.choose).not.toHaveBeenCalled();
+    });
+
+    it('refuses a cover image for a post that is not a frame, before creating it', async () => {
+      await expect(
+        service.create('user-1', {
+          caption: 'test',
+          coverImageUrl: '/uploads/cover.webp',
+        }),
+      ).rejects.toThrow('Only a frame has a cover to choose');
+      expect(mockFrameCover.assertImage).not.toHaveBeenCalled();
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
+      expect(mockFrameCover.chooseImage).not.toHaveBeenCalled();
+    });
+
+    it('refuses a frame whose cover image cannot be used, before creating it', async () => {
+      mockFrameCover.assertImage.mockRejectedValueOnce(
+        new Error('FRAME_COVER_IMAGE_INVALID'),
+      );
+
+      await expect(
+        service.create('user-1', {
+          type: 'FRAME',
+          media: [{ url: 'https://vid.mp4', type: 'video' }],
+          coverImageUrl: 'https://elsewhere.example/cover.jpg',
+        }),
+      ).rejects.toThrow('FRAME_COVER_IMAGE_INVALID');
+      expect(mockFrameCover.assertImage).toHaveBeenCalledWith(
+        'user-1',
+        'https://elsewhere.example/cover.jpg',
+      );
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
+      expect(mockFrameCover.chooseImage).not.toHaveBeenCalled();
     });
 
     it('validates premium price bounds when isPremium is true', async () => {
@@ -386,6 +422,44 @@ describe('PostsService', () => {
       );
       // The cover chosen while creating is asked for once the frame exists.
       expect(mockFrameCover.choose).toHaveBeenCalledWith('frame-1', 2500);
+      expect(mockFrameCover.chooseImage).not.toHaveBeenCalled();
+    });
+
+    it('makes the image chosen while creating the cover once the frame exists', async () => {
+      const mockTx = {
+        post: { create: vi.fn().mockResolvedValue({ id: 'frame-1' }) },
+        postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
+      };
+      mockPrismaService.$transaction.mockImplementation(async (cb) =>
+        cb(mockTx),
+      );
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
+        id: 'frame-1',
+        media: [{ url: 'https://vid.mp4', type: 'video' }],
+      });
+
+      await service.create('user-1', {
+        type: 'FRAME',
+        media: [{ url: 'https://vid.mp4', type: 'video' }],
+        coverImageUrl: '/uploads/cover.webp',
+      });
+
+      expect(mockFrameCover.assertImage).toHaveBeenCalledWith(
+        'user-1',
+        '/uploads/cover.webp',
+      );
+      expect(mockFrameCover.chooseImage).toHaveBeenCalledWith(
+        'frame-1',
+        '/uploads/cover.webp',
+      );
+      expect(mockFrameCover.choose).not.toHaveBeenCalled();
     });
 
     it('keeps the shape chosen for a post, none when not chosen, and none for a Frame', async () => {
@@ -1571,6 +1645,43 @@ describe('PostsService', () => {
 
       expect(mockFrameCover.choose).toHaveBeenCalledWith('frame-1', 3000);
       expect(order).toEqual(['cover', 'caption']);
+    });
+
+    it('chooses an image as the cover of a frame before changing its caption', async () => {
+      const order: string[] = [];
+      mockFrameCover.chooseImage.mockImplementationOnce(async () => {
+        order.push('cover');
+      });
+      mockPrismaService.post.update.mockImplementation(async () => {
+        order.push('caption');
+        return { id: 'frame-1', media: [] };
+      });
+
+      await service.update('frame-1', {
+        caption: 'New',
+        coverImageUrl: '/uploads/cover.webp',
+      });
+
+      expect(mockFrameCover.chooseImage).toHaveBeenCalledWith(
+        'frame-1',
+        '/uploads/cover.webp',
+      );
+      expect(mockFrameCover.choose).not.toHaveBeenCalled();
+      expect(order).toEqual(['cover', 'caption']);
+    });
+
+    it('leaves the caption alone when the cover image is refused', async () => {
+      mockFrameCover.chooseImage.mockRejectedValueOnce(
+        new Error('FRAME_COVER_IMAGE_INVALID'),
+      );
+
+      await expect(
+        service.update('frame-1', {
+          caption: 'New',
+          coverImageUrl: '/uploads/cover.mp4',
+        }),
+      ).rejects.toThrow('FRAME_COVER_IMAGE_INVALID');
+      expect(mockPrismaService.post.update).not.toHaveBeenCalled();
     });
 
     it('takes a cover at the very start of the video', async () => {
