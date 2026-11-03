@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { ErrorCode } from '@circlesfera/shared';
-import type { INestApplication } from '@nestjs/common';
+import type { INestApplication, Type } from '@nestjs/common';
 import request from 'supertest';
 import {
   afterAll,
@@ -20,12 +21,26 @@ import {
   TEST_USER,
 } from '../common/testing/http-controller.js';
 import { LiveController } from './live.controller.js';
-import { LiveModule } from './live.module.js';
 import { LiveService } from './live.service.js';
 import { LiveGiftService } from './live-gift.service.js';
 import { LiveScheduleController } from './live-schedule.controller.js';
 import { LiveScheduleService } from './live-schedule.service.js';
 import { LiveStartNoticeService } from './live-start-notice.service.js';
+
+// The live module's controllers, in the order it registers them, read from
+// its source: importing the module would load every module it depends on.
+const MODULE_CONTROLLERS =
+  /controllers:\s*\[([^\]]*)\]/
+    .exec(
+      readFileSync(new URL('./live.module.ts', import.meta.url), 'utf8'),
+    )?.[1]
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean) ?? [];
+const CONTROLLERS: Record<string, Type> = {
+  LiveScheduleController,
+  LiveController,
+};
 
 const ID = '0b6c1a52-5f0e-4f1a-9d43-3f2b5d1c7a10';
 const HOST = '5d8e2f8c-3a1b-4c55-9b0e-7f1d2c3b4a59';
@@ -204,7 +219,7 @@ describe('the routes of scheduled lives beside those of a live', () => {
   beforeAll(async () => {
     app = await createControllerApp({
       // In the order the live module registers them.
-      controllers: Reflect.getMetadata('controllers', LiveModule),
+      controllers: MODULE_CONTROLLERS.map((name) => CONTROLLERS[name]),
       providers: [
         { provide: LiveScheduleService, useValue: schedule },
         { provide: LiveService, useValue: live },
@@ -224,9 +239,9 @@ describe('the routes of scheduled lives beside those of a live', () => {
   });
 
   it('registers the routes of scheduled lives before those of a live', () => {
-    expect(Reflect.getMetadata('controllers', LiveModule)).toEqual([
-      LiveScheduleController,
-      LiveController,
+    expect(MODULE_CONTROLLERS).toEqual([
+      'LiveScheduleController',
+      'LiveController',
     ]);
   });
 
