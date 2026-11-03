@@ -171,7 +171,10 @@ export function useCreatePostMutation(deps: MutationDeps) {
       deps.setIsProcessingEdit(true);
 
       const processedFilesPromises = deps.mediaFiles.map(async (m) => {
-        if (!m.filter && !m.cropData && !m.overlayDataUrl && !m.videoData) {
+        if (
+          m.assembledFrame ||
+          (!m.filter && !m.cropData && !m.overlayDataUrl && !m.videoData)
+        ) {
           return m;
         }
 

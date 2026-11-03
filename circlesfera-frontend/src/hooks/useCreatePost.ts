@@ -104,6 +104,29 @@ export function useCreatePost() {
     setShowFrameTrim: state.setShowFrameTrim,
   });
 
+  // A Frame the server put together from its clips goes straight to its
+  // caption, whole: it already lasts what a Frame may.
+  const takeAssembledFrame = (frame: {
+    file: File;
+    url: string;
+    durationSec: number;
+  }) => {
+    media.setMediaFiles([
+      {
+        file: frame.file,
+        url: URL.createObjectURL(frame.file),
+        type: 'video',
+        remoteUrl: frame.url,
+        assembledFrame: true,
+        videoData: { startTime: 0, endTime: frame.durationSec, muted: false },
+      },
+    ]);
+    state.setFrameSourceDurationSec(frame.durationSec);
+    // A cover chosen for another video is not this one's.
+    state.setCoverTimeMs(null);
+    state.setStep('caption');
+  };
+
   const reset = () => {
     if (state.step === 'edit') {
       if (state.mode === 'STORY' && state.isComposed) {
@@ -153,6 +176,7 @@ export function useCreatePost() {
     reset,
     discardStory,
     confirmDiscard,
+    takeAssembledFrame,
     isPending:
       mutation.isPending || media.isUploading || media.isProcessingEdit,
   };

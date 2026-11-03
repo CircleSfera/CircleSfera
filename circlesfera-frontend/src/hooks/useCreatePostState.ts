@@ -57,6 +57,11 @@ export interface MediaFile {
   editorState?: PhotoEditorSavedState;
   /** What was painted on the photo of a post, to open it again the same way. */
   canvasEdit?: PostCanvasEdit;
+  /**
+   * A Frame the server put together from its clips, already stored at
+   * `remoteUrl`: published as it is, never made again or sent again.
+   */
+  assembledFrame?: boolean;
 }
 
 /** A photo of a post edited on the canvas: what it started from and added. */

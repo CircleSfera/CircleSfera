@@ -36,6 +36,8 @@ interface StoryComposerProps {
   onBackgroundChange?: (file: File) => void;
   /** The shape of what is edited: a story, or a post in its shape. */
   frame?: EditorFrame;
+  /** Only text and drawing: what goes over a Frame's video. */
+  paintOnly?: boolean;
   /** Where the photo was left, when the editor opens again on it. */
   initialPhoto?: StoryPhotoEdit;
   /** Each change of the photo's place, scale, angle or filter. */
@@ -102,6 +104,7 @@ export default function StoryComposer(props: StoryComposerProps) {
           s.textTakeoverActive ? null : (
             <StoryComposerChrome
               frame={props.frame}
+              paintOnly={props.paintOnly}
               onClose={s.onClose}
               onUndo={s.undo}
               onRedo={s.redo}

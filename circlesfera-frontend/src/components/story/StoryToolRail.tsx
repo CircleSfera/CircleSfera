@@ -99,7 +99,12 @@ interface StoryToolRailProps {
   share?: StoryShareOptions;
   /** The shape of what is edited: a post has no background or templates. */
   frame?: EditorFrame;
+  /** Only what is painted, text and drawing: a Frame, whose video is its own. */
+  paintOnly?: boolean;
 }
+
+/** What is painted over a video that is not the story's own: text and drawing. */
+const PAINT_TOOLS: ReadonlySet<string> = new Set(['text', 'draw']);
 
 /** The tools a post's photo takes: text and drawing. Stickers are Stories'. */
 const POST_TOOLS: ReadonlySet<string> = new Set(['text', 'draw']);
@@ -117,6 +122,7 @@ export default function StoryToolRail({
   onSelectTab,
   share,
   frame = 'STORY',
+  paintOnly = false,
 }: StoryToolRailProps) {
   const { t } = useTranslation();
   const [named, setNamed] = useState(false);
@@ -128,8 +134,10 @@ export default function StoryToolRail({
       aria-orientation="vertical"
       aria-label={t('createPost.storyComposer.tools')}
     >
-      {PRIMARY.filter(
-        ({ tab }) => frame === 'STORY' || POST_TOOLS.has(tab),
+      {PRIMARY.filter(({ tab }) =>
+        paintOnly
+          ? PAINT_TOOLS.has(tab)
+          : frame === 'STORY' || POST_TOOLS.has(tab),
       ).map(({ tab, icon: Icon, labelKey }) => {
         const isActive =
           activeTab === tab ||

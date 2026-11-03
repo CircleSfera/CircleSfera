@@ -1475,7 +1475,10 @@
       "live_hint": "Prepara el título y empieza el directo en la siguiente pantalla.",
       "refused": "La cámara no está permitida. Puedes permitirla en los ajustes del navegador o del dispositivo.",
       "none": "Aquí no hay una cámara que usar.",
-      "starting": "Abriendo la cámara…"
+      "starting": "Abriendo la cámara…",
+      "clip_undo": "Borrar el último clip",
+      "clips_next": "Seguir con los clips",
+      "clips_min": "Un Frame dura al menos {{min}} segundos: graba un poco más."
     },
     "add_to_your_story": "Añadir a tu historia",
     "start_picture_error": "No se pudo abrir la imagen de la historia.",
@@ -5308,7 +5311,27 @@
     "delete_title": "¿Eliminar frame?",
     "delete_message": "Irá a Eliminado recientemente, donde podrás restaurarlo durante 30 días.",
     "delete_confirm": "Eliminar",
-    "delete_pending": "Eliminando..."
+    "delete_pending": "Eliminando...",
+    "clips": {
+      "total": "{{length}} de {{max}}",
+      "item": "Clip {{n}} de {{total}}",
+      "remove": "Quitar el clip",
+      "paint": "Texto y dibujo",
+      "paint_edit": "Editar texto y dibujo",
+      "trim_start": "Inicio del clip",
+      "trim_end": "Final del clip",
+      "order": "Ordenar clips",
+      "order_button": "Ordenar",
+      "move": "Mover {{clip}}",
+      "previous": "Clip anterior",
+      "next": "Clip siguiente"
+    },
+    "assembly": {
+      "uploading": "Subiendo los clips ({{done}} de {{total}})…",
+      "assembling": "Montando tu Frame…",
+      "hint": "Puede tardar un par de minutos. No cierres esta pantalla.",
+      "failed": "No se pudo montar el Frame. Inténtalo de nuevo."
+    }
   },
   "landing": {
     "seo": {
