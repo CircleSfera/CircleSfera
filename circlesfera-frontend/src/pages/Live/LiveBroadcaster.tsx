@@ -8,6 +8,7 @@ import {
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import {
+  CalendarClock,
   Heart,
   HelpCircle,
   Pin,
@@ -54,13 +55,18 @@ import LiveQnAPanel, {
   type LiveQuestion,
 } from '../../components/live/LiveQnAPanel';
 import LiveRecordingChoice from '../../components/live/LiveRecordingChoice';
+import LiveScheduleSheet from '../../components/live/LiveScheduleSheet';
+import LiveUpcomingLives from '../../components/live/LiveUpcomingLives';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 import { LIVEKIT_URL } from '../../constants/livekit';
 import { useLiveGuests } from '../../hooks/useLiveGuests';
 import { apiClient as api } from '../../services/api';
+import type { ScheduledLive } from '../../services/live';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
+import { formatLiveStart } from '../../utils/liveSchedule';
 import { formatCents } from '../../utils/money';
 
 /** A neutral picture with the person's initials, for someone without one. */
@@ -91,13 +97,17 @@ export default function LiveBroadcaster() {
   // The host sees themself before going live; the broadcast takes the
   // camera from the preview when it starts.
   const preview = useCameraPreview();
+  // The upcoming live being started, while the server answers.
+  const [startingId, setStartingId] = useState<string | null>(null);
   const [endedAfter, setEndedAfter] = useState('00:00');
   // What the summary says, counted on this screen while on air.
   const [peakViewers, setPeakViewers] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
   const [giftsCents, setGiftsCents] = useState(0);
   // One sheet at a time: opening one closes the other.
-  const [sheet, setSheet] = useState<'guests' | 'questions' | null>(null);
+  const [sheet, setSheet] = useState<
+    'guests' | 'questions' | 'schedule' | 'upcoming' | null
+  >(null);
   const guestFormOpen = sheet === 'guests';
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
@@ -164,21 +174,52 @@ export default function LiveBroadcaster() {
     navigate(-1);
   };
 
-  const handleStart = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const title = titleInput.trim() || t('live.default_title');
+  // The title as it is used: the one written, or the default one.
+  const liveTitle = titleInput.trim() || t('live.default_title');
+
+  // Goes live with what the setup says, or from an upcoming live, which
+  // brings its own title and audience.
+  const goLive = async (
+    body:
+      | { title: string; audience: LiveAudience }
+      | { scheduledLiveId: string },
+  ) => {
     setIsStarting(true);
     try {
-      const res: any = await api.post('/live/start', { title, audience });
+      const res: any = await api.post('/live/start', body);
       setToken(res.data.token);
       setStreamId(res.data.stream.id);
       preview.stop();
+      setSheet(null);
       setHasStarted(true);
       setStartedAt(Date.now());
-    } catch {
-      toast.error(t('live.start_failed'));
+    } catch (error) {
+      toast.error(apiErrorMessage(error, t, 'live.start_failed'));
       setIsStarting(false);
+      setStartingId(null);
     }
+  };
+
+  const handleStart = (e: React.FormEvent) => {
+    e.preventDefault();
+    void goLive({ title: liveTitle, audience });
+  };
+
+  const handleStartScheduled = (live: ScheduledLive) => {
+    setStartingId(live.id);
+    void goLive({ scheduledLiveId: live.id });
+  };
+
+  // Scheduling closes the setup and says when the live will be.
+  const handleScheduled = (live: ScheduledLive) => {
+    setSheet(null);
+    toast.success(
+      t('live.schedule.scheduled_toast', {
+        when: formatLiveStart(live.startsAt, i18n.language),
+      }),
+    );
+    preview.stop();
+    navigate(-1);
   };
 
   useEffect(() => {
@@ -489,6 +530,15 @@ export default function LiveBroadcaster() {
                 {t('live.guests.invite')}
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={() => setSheet('schedule')}
+              aria-expanded={sheet === 'schedule'}
+              className="live-glass flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-white hover:bg-white/15"
+            >
+              <CalendarClock size={18} aria-hidden />
+              {t('live.schedule.tool')}
+            </button>
           </div>
           <input
             type="text"
@@ -531,6 +581,22 @@ export default function LiveBroadcaster() {
           </button>
         </form>
         {guestSheet}
+        <LiveScheduleSheet
+          isOpen={sheet === 'schedule'}
+          onClose={() => setSheet(null)}
+          title={liveTitle}
+          audience={audience}
+          onScheduled={handleScheduled}
+        />
+        {/* The host's upcoming lives, each of which can go live from here. */}
+        <LiveUpcomingLives
+          profileId={profile?.id}
+          isOpen={sheet === 'upcoming'}
+          onOpen={() => setSheet('upcoming')}
+          onClose={() => setSheet(null)}
+          onStart={handleStartScheduled}
+          startingId={startingId}
+        />
       </LiveFrame>
     );
   }

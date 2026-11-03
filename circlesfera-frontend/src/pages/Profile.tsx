@@ -18,6 +18,7 @@ import PostGrid from '../components/profile/PostGrid';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileLives from '../components/profile/ProfileLives';
 import ProfileTabs, { type TabType } from '../components/profile/ProfileTabs';
+import ProfileUpcomingLives from '../components/profile/ProfileUpcomingLives';
 import { profileTabFromParam } from '../components/profile/profileTabUtils';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import {
@@ -78,6 +79,8 @@ export default function Profile() {
     (state) => state.isCreatorModeActive,
   );
   const setCreatorMode = useAuthStore((state) => state.setCreatorMode);
+  // Upcoming lives are asked for as the session's Profile: never by a guest.
+  const isSignedIn = useAuthStore((state) => state.isAuthenticated);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile', username],
@@ -585,6 +588,11 @@ export default function Profile() {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Upcoming lives: each a card, for whoever may see them */}
+        {canView && !isBlocked && isSignedIn && (
+          <ProfileUpcomingLives profileId={profile.data.id} isMe={isMe} />
         )}
 
         {/* Modals & Tabs Navigation Area (Clean Border) */}
