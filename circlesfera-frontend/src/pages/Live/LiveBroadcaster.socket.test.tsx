@@ -13,7 +13,6 @@ import {
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../services/api';
-import { liveApi } from '../../services/live';
 import { renderWithProviders } from '../../test/test-utils';
 import LiveBroadcaster from './LiveBroadcaster';
 
@@ -160,7 +159,11 @@ vi.mock('../../stores/socketStore', () => ({
   },
 }));
 vi.mock('../../services/live', () => ({
-  liveApi: { inviteCoHost: vi.fn(), removeCoHost: vi.fn() },
+  liveApi: {
+    inviteGuest: vi.fn(),
+    removeGuest: vi.fn(),
+    getStream: vi.fn().mockResolvedValue({ guests: [] }),
+  },
 }));
 vi.mock('../../services/profile.service', () => ({
   profileApi: {
@@ -199,7 +202,7 @@ async function goLive(title = '') {
   await screen.findByRole('button', { name: 'End livestream' });
   // The screen is drawn a moment before it starts listening to the room.
   // Eleven events of the live, and the new connection that joins it again.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(12));
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(13));
   return view;
 }
 
@@ -630,30 +633,6 @@ describe('LiveBroadcaster on the live connection', () => {
         expect(ended()).toHaveLength(1);
       },
     );
-  });
-
-  it('says so when the co-host could not be removed', async () => {
-    vi.mocked(liveApi.inviteCoHost).mockResolvedValue({} as never);
-    vi.mocked(liveApi.removeCoHost).mockRejectedValue(new Error('down'));
-    await goLive();
-    fireEvent.click(screen.getByRole('button', { name: 'Invite a co-host' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Username' }), {
-      target: { value: '@dan' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
-    const remove = await screen.findByRole('button', {
-      name: 'Remove co-host',
-    });
-
-    fireEvent.click(remove);
-
-    await act(async () => {});
-    expect(toast.error).toHaveBeenCalledWith(
-      'Could not remove the co-host. Try again.',
-    );
-    expect(
-      screen.getByRole('button', { name: 'Remove co-host' }),
-    ).toBeInTheDocument();
   });
 
   it('goes on air with no connection for the chat', async () => {

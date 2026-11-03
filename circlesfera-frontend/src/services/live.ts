@@ -1,4 +1,13 @@
+import type { LiveGuestStatus } from '@circlesfera/shared';
 import { apiClient as api } from './api';
+
+/** A guest of a live, invited or on air. */
+export interface LiveGuest {
+  profileId: string;
+  username: string;
+  avatar?: string | null;
+  status: LiveGuestStatus;
+}
 
 export const liveApi = {
   getActiveStreams: async () => {
@@ -11,21 +20,35 @@ export const liveApi = {
     return response.data;
   },
 
-  // The Profile invited, by its id.
-  inviteCoHost: async (streamId: string, coHostProfileId: string) => {
-    const response = await api.post(`/live/${streamId}/cohost/invite`, {
-      coHostProfileId,
+  // A guest of the live, invited by the host by its Profile id.
+  inviteGuest: async (streamId: string, profileId: string) => {
+    const response = await api.post(`/live/${streamId}/guests`, {
+      profileId,
     });
     return response.data;
   },
 
-  acceptCoHostInvite: async (streamId: string) => {
-    const response = await api.post(`/live/${streamId}/cohost/accept`);
+  // The Profile invited goes on air: answers the token that may publish.
+  acceptGuestInvite: async (
+    streamId: string,
+  ): Promise<{ token: string; streamId: string }> => {
+    const response = await api.post(`/live/${streamId}/guests/accept`);
     return response.data;
   },
 
-  removeCoHost: async (streamId: string) => {
-    const response = await api.delete(`/live/${streamId}/cohost`);
+  declineGuestInvite: async (streamId: string) => {
+    const response = await api.post(`/live/${streamId}/guests/decline`);
+    return response.data;
+  },
+
+  leaveAsGuest: async (streamId: string) => {
+    const response = await api.post(`/live/${streamId}/guests/leave`);
+    return response.data;
+  },
+
+  // The host takes one guest off, invited or on air.
+  removeGuest: async (streamId: string, profileId: string) => {
+    const response = await api.delete(`/live/${streamId}/guests/${profileId}`);
     return response.data;
   },
 

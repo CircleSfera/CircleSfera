@@ -4973,7 +4973,6 @@
     "ended_or_not_found": "Transmisión finalizada o no encontrada.",
     "chat_placeholder": "Escribe un comentario...",
     "send_reaction": "Enviar {{emoji}}",
-    "cohost_label": "Coanfitrión:",
     "cohost_remove": "Quitar al coanfitrión",
     "cohost_input_placeholder": "usuario",
     "setup_title": "Antes de emitir en directo",
@@ -5016,7 +5015,6 @@
     "cohost_invite_send": "Enviar invitación",
     "cohost_not_found": "No se encontró ninguna cuenta llamada @{{username}}.",
     "cohost_invite_failed": "No se pudo invitar al coanfitrión. Inténtalo de nuevo.",
-    "cohost_remove_failed": "No se pudo quitar al coanfitrión. Inténtalo de nuevo.",
     "badge": "En directo",
     "now": "Directo",
     "pinned": "Fijado",
@@ -5082,8 +5080,6 @@
     "camera_on": "Encender la cámara",
     "mic_off": "Silenciar el micrófono",
     "mic_on": "Activar el micrófono",
-    "cohost_sheet_title": "Invitar a un coanfitrión",
-    "cohost_sheet_hint": "Recibe una invitación y aparece en el vídeo junto a ti cuando la acepta.",
     "cohost_input_label": "Nombre de usuario",
     "preview_refused": "No se ha podido abrir la cámara. Permite la cámara y el micrófono para este sitio y te verás antes de salir en directo.",
     "setup_hint": "Esta imagen solo la ves tú hasta que empieces.",
@@ -5102,7 +5098,30 @@
       "hint_EVERYONE": "Te ven quienes pueden ver tu perfil, y avisamos a tus seguidores.",
       "hint_CLOSE_FRIENDS": "Solo tus mejores amigos lo ven y reciben el aviso.",
       "hint_PRACTICE": "Nadie más lo ve ni recibe aviso, y no se graba: prueba luz, sonido y conexión."
-    }
+    },
+    "guests": {
+      "list": "Invitados",
+      "invite": "Invitar",
+      "sheet_title": "Invitar a tu directo",
+      "sheet_hint": "Escribe el nombre de usuario. Hasta {{max}} invitados a la vez.",
+      "remove": "Quitar a @{{username}}",
+      "remove_failed": "No se pudo quitar al invitado.",
+      "fallback": "Invitado",
+      "leave": "Salir del directo",
+      "accept_failed": "No puedes unirte ahora: el directo ya tiene todos sus invitados o la invitación se retiró.",
+      "status": {
+        "QUEUED": "Se invitará al empezar",
+        "INVITED": "Invitado",
+        "ON_AIR": "En directo"
+      },
+      "error": {
+        "not_found": "No encontramos a @{{username}}.",
+        "full": "El directo ya tiene todos sus invitados.",
+        "already": "@{{username}} ya está invitado.",
+        "failed": "No se pudo invitar a @{{username}}."
+      }
+    },
+    "unavailable": "Este directo ya no está disponible para ti."
   },
   "shortcuts": {
     "next_post": "Siguiente publicación",

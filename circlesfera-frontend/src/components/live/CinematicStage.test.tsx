@@ -50,18 +50,57 @@ describe('CinematicStage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('labels dual-host slots from the catalog when identity is missing', () => {
-    useTracksMock.mockReturnValue([track(), track(undefined, 'sid-2')]);
+  it('fills the stage with the host alone, with no name over it', () => {
+    useTracksMock.mockReturnValue([track('host-profile', 'sid-1')]);
+    renderWithProviders(<CinematicStage names={{ 'host-profile': 'ana' }} />);
+
+    expect(screen.getAllByTestId('video-track')).toHaveLength(1);
+    expect(screen.queryByText('ana')).not.toBeInTheDocument();
+  });
+
+  it('names each person on the stage from the names given, by Profile id', () => {
+    useTracksMock.mockReturnValue([
+      track('host-profile', 'sid-1'),
+      track('guest-profile', 'sid-2'),
+    ]);
+    renderWithProviders(
+      <CinematicStage
+        names={{ 'host-profile': 'ana', 'guest-profile': 'luis' }}
+      />,
+    );
+
+    expect(screen.getByText('ana')).toBeInTheDocument();
+    expect(screen.getByText('luis')).toBeInTheDocument();
+    // Never the id the video room knows them by.
+    expect(screen.queryByText('guest-profile')).not.toBeInTheDocument();
+  });
+
+  it('says guest for someone it has no name for', () => {
+    useTracksMock.mockReturnValue([track('a', 'sid-1'), track('b', 'sid-2')]);
     const { i18n } = renderWithProviders(<CinematicStage />);
 
-    expect(i18n!.t('live.host_n', { n: 1 })).toBe('Host 1');
-    expect(i18n!.t('live.cohost_fallback')).toBe('Co-host');
-    expect(
-      screen.getByText(i18n!.t('live.host_n', { n: 1 })),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(i18n!.t('live.cohost_fallback')),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Co-Host')).not.toBeInTheDocument();
+    expect(screen.getAllByText(i18n!.t('live.guests.fallback'))).toHaveLength(
+      2,
+    );
+  });
+
+  it('stacks two people, upright, on every screen', () => {
+    useTracksMock.mockReturnValue([track('a', 'sid-1'), track('b', 'sid-2')]);
+    renderWithProviders(<CinematicStage />);
+
+    const stage = screen.getByTestId('live-stage');
+    expect(stage.className).toContain('grid-cols-1');
+    expect(stage.className).toContain('grid-rows-2');
+  });
+
+  it('puts the host and up to three guests in a grid of two by two', () => {
+    useTracksMock.mockReturnValue(
+      ['a', 'b', 'c', 'd', 'e'].map((id, i) => track(id, `sid-${i}`)),
+    );
+    renderWithProviders(<CinematicStage />);
+
+    expect(screen.getByTestId('live-stage').className).toContain('grid-cols-2');
+    // Never more than the host and the guests a live may have.
+    expect(screen.getAllByTestId('video-track')).toHaveLength(4);
   });
 });

@@ -1,7 +1,7 @@
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Gift, Heart, HelpCircle, Send, X } from 'lucide-react';
+import { Gift, Heart, HelpCircle, LogOut, Send, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -31,6 +31,7 @@ import LiveQnAPanel, {
 } from '../../components/live/LiveQnAPanel';
 import { LIVEKIT_URL } from '../../constants/livekit';
 import { apiClient as api } from '../../services/api';
+import { type LiveGuest, liveApi } from '../../services/live';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { apiErrorCode } from '../../utils/apiErrorMessage';
@@ -102,6 +103,8 @@ export default function LiveViewer() {
   const backToWatchingRef = useRef<() => void>(() => undefined);
 
   const [streamDetails, setStreamDetails] = useState<any>(null);
+  // The guests invited or on air, kept up to date by the live's room.
+  const [guests, setGuests] = useState<LiveGuest[]>([]);
 
   useEffect(() => {
     if (searchParams.get('gift_success') === 'true') {
@@ -124,6 +127,7 @@ export default function LiveViewer() {
       .get(`/live/${streamId}`)
       .then((res: any) => {
         setStreamDetails(res.data);
+        setGuests(res.data?.guests ?? []);
       })
       .catch(() => {});
 
@@ -205,14 +209,27 @@ export default function LiveViewer() {
       triggerFloatingReaction(data?.reaction || '🔥');
     });
 
-    socket.on('live:cohost_invite', (data: any) => {
+    socket.on('live:guest_invite', (data: any) => {
       setPendingInvite(data);
+    });
+
+    socket.on('live:guests_changed', (data: { guests?: LiveGuest[] }) => {
+      setGuests(data?.guests ?? []);
+    });
+
+    // Someone this person has a block with went on air as a guest: the live
+    // is not theirs to watch while that lasts.
+    socket.on('live:unavailable', (data: { streamId?: string }) => {
+      if (data?.streamId !== streamId) return;
+      isLeavingRef.current = true;
+      toast(t('live.unavailable'));
+      navigate(-1);
     });
 
     // Taken off air by the host or by staff: back to watching, with a token
     // asked for now. A token is good only for a few minutes, so the one this
     // screen had before going on air cannot be used again.
-    socket.on('live:cohost_removed', () => backToWatchingRef.current());
+    socket.on('live:guest_removed', () => backToWatchingRef.current());
 
     // Phase 2 listeners
     socket.on('live:goal_set', (data: LiveGoalData) => {
@@ -241,8 +258,10 @@ export default function LiveViewer() {
       socket.off('live:gift');
       socket.off('live:heart_received');
       socket.off('live:reaction_received');
-      socket.off('live:cohost_invite');
-      socket.off('live:cohost_removed');
+      socket.off('live:guest_invite');
+      socket.off('live:guests_changed');
+      socket.off('live:unavailable');
+      socket.off('live:guest_removed');
       socket.off('live:goal_set');
       socket.off('live:question_asked');
       socket.off('live:question_highlighted');
@@ -253,6 +272,23 @@ export default function LiveViewer() {
   // If co-host accepted: switch LiveKitRoom to publisher mode
   const activeToken = coHostToken || token;
   const activeStreamId = coHostStreamId || streamId;
+
+  // Who is who on the stage: the video room knows each by Profile id.
+  const stageNames: Record<string, string> = Object.fromEntries([
+    ...(streamDetails?.hostId && streamDetails?.host?.profile?.username
+      ? [[streamDetails.hostId, streamDetails.host.profile.username]]
+      : []),
+    ...guests.map((guest) => [guest.profileId, guest.username]),
+  ]);
+
+  // A guest on air leaves the live and goes back to watching it.
+  const leaveAir = () => {
+    if (!streamId) return;
+    liveApi
+      .leaveAsGuest(streamId)
+      .catch(() => {})
+      .finally(() => backToWatchingRef.current());
+  };
 
   backToWatchingRef.current = () => {
     takenOffAirRef.current = true;
@@ -416,7 +452,11 @@ export default function LiveViewer() {
                 setHasEnded(true);
                 return;
               }
-              if (wasCoHost && res.data?.coHostId !== profile?.id) {
+              const stillOnAir = (res.data?.guests ?? []).some(
+                (guest: LiveGuest) =>
+                  guest.profileId === profile?.id && guest.status === 'ON_AIR',
+              );
+              if (wasCoHost && !stillOnAir) {
                 backToWatchingRef.current();
                 return;
               }
@@ -437,7 +477,7 @@ export default function LiveViewer() {
           onDoubleClick={handleDoubleTap}
           video={
             <>
-              <CinematicStage />
+              <CinematicStage names={stageNames} />
               <RoomAudioRenderer />
             </>
           }
@@ -469,15 +509,22 @@ export default function LiveViewer() {
               </div>
               <LiveGoalBar goal={liveGoal} isHost={false} />
             </div>
-            <LiveControl
-              label={t('common.close')}
-              onClick={() => {
-                isLeavingRef.current = true;
-                navigate(-1);
-              }}
-            >
-              <X className="h-5 w-5" aria-hidden />
-            </LiveControl>
+            <div className="flex shrink-0 flex-col gap-2.5">
+              <LiveControl
+                label={t('common.close')}
+                onClick={() => {
+                  isLeavingRef.current = true;
+                  navigate(-1);
+                }}
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </LiveControl>
+              {coHostToken ? (
+                <LiveControl label={t('live.guests.leave')} onClick={leaveAir}>
+                  <LogOut className="h-5 w-5" aria-hidden />
+                </LiveControl>
+              ) : null}
+            </div>
           </div>
 
           {/* The invitation to join as co-host */}

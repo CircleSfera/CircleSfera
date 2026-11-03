@@ -1,6 +1,7 @@
 import {
   DEFAULT_LIVE_AUDIENCE,
   LIVE_AUDIENCES,
+  LIVE_GUESTS_MAX,
   LIVE_TITLE_MAX_LENGTH,
   type LiveAudience,
 } from '@circlesfera/shared';
@@ -13,7 +14,6 @@ import {
   Send,
   SwitchCamera,
   Trash2,
-  UserMinus,
   UserPlus,
   X,
 } from 'lucide-react';
@@ -34,6 +34,7 @@ import LiveGoalBar, {
   type LiveGoalData,
 } from '../../components/live/LiveGoalBar';
 import LiveGoalDialog from '../../components/live/LiveGoalDialog';
+import LiveGuestChips from '../../components/live/LiveGuestChips';
 import {
   LiveCameraMicSwitches,
   LiveCameraTurn,
@@ -55,9 +56,8 @@ import LiveQnAPanel, {
 import LiveRecordingChoice from '../../components/live/LiveRecordingChoice';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 import { LIVEKIT_URL } from '../../constants/livekit';
+import { useLiveGuests } from '../../hooks/useLiveGuests';
 import { apiClient as api } from '../../services/api';
-import { liveApi } from '../../services/live';
-import { profileApi } from '../../services/profile.service';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
@@ -70,13 +70,14 @@ export default function LiveBroadcaster() {
   const { t, i18n } = useTranslation();
   const [token, setToken] = useState('');
   const [streamId, setStreamId] = useState<string | null>(null);
+  // Up to three guests: chosen in the setup, invited and taken off on air.
+  const liveGuests = useLiveGuests(streamId);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [hearts, setHearts] = useState<
     { id: string; x: number; emoji: string }[]
   >([]);
-  const [coHostUsernameInput, setCoHostUsernameInput] = useState('');
-  const [coHostUsername, setCoHostUsername] = useState<string | null>(null);
+  const [guestUsernameInput, setGuestUsernameInput] = useState('');
   const [isInviting, setIsInviting] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   // Who the live is for, chosen before going live.
@@ -96,8 +97,8 @@ export default function LiveBroadcaster() {
   const [commentsCount, setCommentsCount] = useState(0);
   const [giftsCents, setGiftsCents] = useState(0);
   // One sheet at a time: opening one closes the other.
-  const [sheet, setSheet] = useState<'cohost' | 'questions' | null>(null);
-  const coHostFormOpen = sheet === 'cohost';
+  const [sheet, setSheet] = useState<'guests' | 'questions' | null>(null);
+  const guestFormOpen = sheet === 'guests';
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   // Read when the video connection closes, which also happens on purpose
@@ -295,43 +296,66 @@ export default function LiveBroadcaster() {
     setMessageInput('');
   };
 
-  const handleInviteCoHost = async (e: React.FormEvent) => {
+  const handleInviteGuest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!streamId || !coHostUsernameInput.trim()) return;
-    const username = coHostUsernameInput.trim().replace(/^@/, '');
+    const username = guestUsernameInput.trim().replace(/^@/, '');
+    if (!username) return;
     setIsInviting(true);
-    try {
-      let coHostProfileId: string | undefined;
-      try {
-        const profileRes = await profileApi.getProfile(username);
-        coHostProfileId = profileRes.data?.id;
-      } catch {
-        coHostProfileId = undefined;
-      }
-      if (!coHostProfileId) {
-        toast.error(t('live.cohost_not_found', { username }));
-        return;
-      }
-      await liveApi.inviteCoHost(streamId, coHostProfileId);
-      setCoHostUsername(username);
-      setCoHostUsernameInput('');
-      setSheet(null);
-    } catch {
-      toast.error(t('live.cohost_invite_failed'));
-    } finally {
-      setIsInviting(false);
+    const error = await liveGuests.invite(username);
+    setIsInviting(false);
+    if (error) {
+      toast.error(t(`live.guests.error.${error}`, { username }));
+      return;
+    }
+    setGuestUsernameInput('');
+    setSheet(null);
+  };
+
+  const handleRemoveGuest = async (profileId: string) => {
+    if (!(await liveGuests.remove(profileId))) {
+      toast.error(t('live.guests.remove_failed'));
     }
   };
 
-  const handleRemoveCoHost = async () => {
-    if (!streamId) return;
-    try {
-      await liveApi.removeCoHost(streamId);
-      setCoHostUsername(null);
-    } catch {
-      toast.error(t('live.cohost_remove_failed'));
-    }
-  };
+  // Who is who on the stage: the video room knows each by Profile id.
+  const stageNames: Record<string, string> = Object.fromEntries([
+    ...(profile ? [[profile.id, profile.username]] : []),
+    ...liveGuests.guests.map((guest) => [guest.profileId, guest.username]),
+  ]);
+
+  // Inviting a guest: the same sheet before the live and on air.
+  const guestSheet = (
+    <LiveSheet
+      isOpen={guestFormOpen && !liveGuests.full}
+      onClose={() => setSheet(null)}
+      title={t('live.guests.sheet_title')}
+      icon={<UserPlus size={20} className="shrink-0" aria-hidden />}
+    >
+      <p className="mb-3 text-sm text-white/70">
+        {t('live.guests.sheet_hint', { max: LIVE_GUESTS_MAX })}
+      </p>
+      <form onSubmit={handleInviteGuest} className="flex items-center gap-2">
+        <input
+          type="text"
+          aria-label={t('live.cohost_input_label')}
+          placeholder={t('live.cohost_input_placeholder')}
+          value={guestUsernameInput}
+          onChange={(e) => setGuestUsernameInput(e.target.value)}
+          autoCapitalize="none"
+          autoCorrect="off"
+          className="min-h-12 min-w-0 flex-1 rounded-full border border-white/15 bg-white/10 px-4 text-base text-white placeholder-white/50 outline-none focus:border-white/40"
+        />
+        <LiveControl
+          type="submit"
+          tone="brand"
+          label={t('live.cohost_invite_send')}
+          disabled={isInviting || !guestUsernameInput.trim()}
+        >
+          <Send size={18} aria-hidden />
+        </LiveControl>
+      </form>
+    </LiveSheet>
+  );
 
   const handleDoubleTap = (e: React.MouseEvent) => {
     if (!streamId) return;
@@ -449,6 +473,23 @@ export default function LiveBroadcaster() {
           onSubmit={handleStart}
           className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col gap-3 px-(--live-side) pb-(--live-bottom)"
         >
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <LiveGuestChips
+              guests={liveGuests.queued}
+              onRemove={(id) => void handleRemoveGuest(id)}
+            />
+            {!liveGuests.full ? (
+              <button
+                type="button"
+                onClick={() => setSheet('guests')}
+                aria-expanded={guestFormOpen}
+                className="live-glass flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-white hover:bg-white/15"
+              >
+                <UserPlus size={18} aria-hidden />
+                {t('live.guests.invite')}
+              </button>
+            ) : null}
+          </div>
           <input
             type="text"
             aria-label={t('live.title_label')}
@@ -489,6 +530,7 @@ export default function LiveBroadcaster() {
             {isStarting ? t('live.starting') : t('live.start_button')}
           </button>
         </form>
+        {guestSheet}
       </LiveFrame>
     );
   }
@@ -564,7 +606,7 @@ export default function LiveBroadcaster() {
           onDoubleClick={handleDoubleTap}
           video={
             <>
-              <CinematicStage isBroadcaster={true} />
+              <CinematicStage isBroadcaster={true} names={stageNames} />
               <RoomAudioRenderer />
             </>
           }
@@ -583,21 +625,10 @@ export default function LiveBroadcaster() {
                 />
                 <LiveStatus startedAt={startedAt} viewers={viewerCount} />
               </div>
-              {coHostUsername && (
-                <div className="live-glass flex min-w-0 items-center gap-1.5 rounded-full pl-3 text-xs text-white">
-                  <span className="truncate">
-                    {t('live.cohost_label')} <strong>@{coHostUsername}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleRemoveCoHost}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center text-white/80 hover:text-white"
-                    aria-label={t('live.cohost_remove')}
-                  >
-                    <UserMinus size={18} aria-hidden />
-                  </button>
-                </div>
-              )}
+              <LiveGuestChips
+                guests={liveGuests.guests}
+                onRemove={(id) => void handleRemoveGuest(id)}
+              />
               <LiveGoalBar
                 goal={liveGoal}
                 isHost={true}
@@ -743,11 +774,11 @@ export default function LiveBroadcaster() {
                       </span>
                     )}
                   </LiveControl>
-                  {!coHostUsername && (
+                  {!liveGuests.full && (
                     <LiveControl
-                      label={t('live.cohost_invite_button')}
-                      aria-expanded={coHostFormOpen}
-                      onClick={() => setSheet('cohost')}
+                      label={t('live.guests.invite')}
+                      aria-expanded={guestFormOpen}
+                      onClick={() => setSheet('guests')}
                     >
                       <UserPlus className="h-5 w-5" aria-hidden />
                     </LiveControl>
@@ -759,39 +790,7 @@ export default function LiveBroadcaster() {
           </div>
 
           {/* One sheet at a time. */}
-          <LiveSheet
-            isOpen={coHostFormOpen && !coHostUsername}
-            onClose={() => setSheet(null)}
-            title={t('live.cohost_sheet_title')}
-            icon={<UserPlus size={20} className="shrink-0" aria-hidden />}
-          >
-            <p className="mb-3 text-sm text-white/70">
-              {t('live.cohost_sheet_hint')}
-            </p>
-            <form
-              onSubmit={handleInviteCoHost}
-              className="flex items-center gap-2"
-            >
-              <input
-                type="text"
-                aria-label={t('live.cohost_input_label')}
-                placeholder={t('live.cohost_input_placeholder')}
-                value={coHostUsernameInput}
-                onChange={(e) => setCoHostUsernameInput(e.target.value)}
-                autoCapitalize="none"
-                autoCorrect="off"
-                className="min-h-12 min-w-0 flex-1 rounded-full border border-white/15 bg-white/10 px-4 text-base text-white placeholder-white/50 outline-none focus:border-white/40"
-              />
-              <LiveControl
-                type="submit"
-                tone="brand"
-                label={t('live.cohost_invite_send')}
-                disabled={isInviting || !coHostUsernameInput.trim()}
-              >
-                <Send size={18} aria-hidden />
-              </LiveControl>
-            </form>
-          </LiveSheet>
+          {guestSheet}
           {/* What the host does with a comment: the same sheet as the rest. */}
           <LiveSheet
             isOpen={!!selectedMessage}

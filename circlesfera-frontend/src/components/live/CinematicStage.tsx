@@ -1,14 +1,26 @@
+import { LIVE_GUESTS_MAX } from '@circlesfera/shared';
 import { useTracks, VideoTrack } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import { useTranslation } from 'react-i18next';
 
+/** The host and every guest on air, each in their own tile. */
+const STAGE_MAX = 1 + LIVE_GUESTS_MAX;
+
+/**
+ * The video of a live, upright 9:16 on every screen: the host alone fills
+ * it; with one guest the two are stacked; with two or three guests it is a
+ * grid of two by two. Each tile shows the person's name, read from `names`
+ * by the Profile id the video room knows them by.
+ */
 export default function CinematicStage({
   isBroadcaster = false,
+  names = {},
 }: {
   isBroadcaster?: boolean;
+  names?: Record<string, string>;
 }) {
   const { t } = useTranslation();
-  const tracks = useTracks([Track.Source.Camera]);
+  const tracks = useTracks([Track.Source.Camera]).slice(0, STAGE_MAX);
 
   if (tracks.length === 0) {
     return (
@@ -18,75 +30,47 @@ export default function CinematicStage({
     );
   }
 
-  // Dynamic multi-host layout (1 to 4 streams)
-  const trackCount = tracks.length;
+  if (tracks.length === 1) {
+    return (
+      <div className="absolute inset-0 w-full h-full bg-surface-base overflow-hidden">
+        <VideoTrack
+          trackRef={tracks[0]}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-linear-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
+      </div>
+    );
+  }
+
+  const nameOf = (identity: string, name?: string) =>
+    names[identity] || name || t('live.guests.fallback');
 
   return (
-    <div className="absolute inset-0 w-full h-full bg-surface-base overflow-hidden">
-      {/* 1 Stream: Full Bleed with subtle vignette overlay */}
-      {trackCount === 1 && (
-        <div className="absolute inset-0 w-full h-full">
+    <div
+      data-testid="live-stage"
+      className={`absolute inset-0 grid h-full w-full gap-2 overflow-hidden bg-surface-base p-2 ${
+        tracks.length === 2
+          ? 'grid-cols-1 grid-rows-2'
+          : 'grid-cols-2 grid-rows-2'
+      }`}
+    >
+      {tracks.map((trackRef) => (
+        <div
+          key={trackRef.participant.identity}
+          className="relative h-full w-full overflow-hidden rounded-2xl border border-white/15 bg-surface-elevated shadow-2xl"
+        >
           <VideoTrack
-            trackRef={tracks[0]}
+            trackRef={trackRef}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-linear-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
-        </div>
-      )}
-
-      {/* 2 Streams: Split Screen (50 / 50) */}
-      {trackCount === 2 && (
-        <div className="absolute inset-0 w-full h-full flex flex-col md:flex-row gap-2 p-2 bg-surface-base">
-          <div className="flex-1 relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
-            <VideoTrack
-              trackRef={tracks[0]}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/15 text-xs font-bold text-white shadow-lg flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>
-                {tracks[0].participant.identity || t('live.host_n', { n: 1 })}
-              </span>
-            </div>
-          </div>
-          <div className="flex-1 relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
-            <VideoTrack
-              trackRef={tracks[1]}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/15 text-xs font-bold text-white shadow-lg flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>
-                {tracks[1].participant.identity || t('live.cohost_fallback')}
-              </span>
-            </div>
+          <div className="absolute bottom-3 left-3 flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-full border border-white/20 bg-black/70 px-3 py-1 text-xs font-bold text-white shadow-md backdrop-blur-md">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-brand-primary" />
+            <span className="truncate">
+              {nameOf(trackRef.participant.identity, trackRef.participant.name)}
+            </span>
           </div>
         </div>
-      )}
-
-      {/* 3 or 4 Streams: 2x2 Grid Layout */}
-      {trackCount >= 3 && (
-        <div className="absolute inset-0 w-full h-full grid grid-cols-2 grid-rows-2 gap-2 bg-surface-base p-2">
-          {tracks.slice(0, 4).map((trackRef, idx) => (
-            <div
-              key={trackRef.participant.sid || idx}
-              className="relative w-full h-full overflow-hidden rounded-2xl border border-white/15 shadow-2xl bg-surface-elevated"
-            >
-              <VideoTrack
-                trackRef={trackRef}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-full border border-white/20 text-xs font-bold text-white shadow-md flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
-                <span>
-                  {trackRef.participant.identity ||
-                    t('live.host_n', { n: idx + 1 })}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      ))}
     </div>
   );
 }
