@@ -83,7 +83,7 @@ export class LiveRoomWebhookService {
       },
     });
     // A live that ended, or none: the room is closed with it.
-    if (!stream || stream.status !== 'LIVE') return;
+    if (stream?.status !== 'LIVE') return;
     if (profileId === stream.hostId) return;
 
     if (stream.guests.some((guest) => guest.profileId === profileId)) return;
