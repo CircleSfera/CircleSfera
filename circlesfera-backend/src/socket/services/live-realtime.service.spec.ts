@@ -44,6 +44,7 @@ describe('LiveRealtimeService', () => {
       };
       Object.assign(prisma, {
         block: { findFirst: vi.fn().mockResolvedValue(null) },
+        liveGuest: { findMany: vi.fn().mockResolvedValue([]) },
       });
       Object.assign(prisma.user, { findMany: vi.fn().mockResolvedValue([]) });
       prisma.liveStream.findUnique.mockResolvedValueOnce(live);

@@ -32,7 +32,7 @@ describe('LiveGiftService', () => {
     },
     closeFriend: { findUnique: vi.fn().mockResolvedValue(null) },
     // The sender is no guest of the live.
-    liveGuest: { findFirst: vi.fn().mockResolvedValue(null) },
+    liveGuest: { findMany: vi.fn().mockResolvedValue([]) },
     block: { findFirst: vi.fn().mockResolvedValue(null) },
     user: { findMany: vi.fn().mockResolvedValue([]), findUnique: vi.fn() },
     liveGift: {

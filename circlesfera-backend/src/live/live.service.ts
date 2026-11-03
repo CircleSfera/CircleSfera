@@ -5,6 +5,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import type { LiveAudience, LiveGuestStatus, Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import {
+  getBlockedProfileIds,
   isBlockedEitherWay,
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
@@ -379,7 +380,12 @@ export class LiveService {
           AND: [HOST_SHOWN_WHERE()],
         },
         // Who each live is for: a practice is never listed.
-        AND: [listedForViewer(viewerProfileId)],
+        AND: [
+          listedForViewer(
+            viewerProfileId,
+            await getBlockedProfileIds(this.prisma, viewerProfileId),
+          ),
+        ],
       },
       include: {
         host: {
@@ -640,6 +646,7 @@ export class LiveService {
     void this.recording.startCoHost(streamId, profileId);
 
     if (wentOnAir) {
+      await this.hideFromBlocked(streamId, stream.hostId, profileId);
       const profile = await this.prisma.profile.findUnique({
         where: { id: profileId },
         select: { username: true },
@@ -654,6 +661,48 @@ export class LiveService {
     }
 
     return { token, streamId };
+  }
+
+  /**
+   * A guest just went on air: the live is hidden from every Profile in a
+   * block with them, whoever blocked whom, while they are on air. Each one
+   * is told the live is unavailable, so an app watching it closes it, and is
+   * taken out of the video room by the identity of their watching token
+   * (their person's id). The host and the live's other guests are left
+   * alone, and the host is not told. Never throws: going on air does not
+   * wait on it.
+   */
+  private async hideFromBlocked(
+    streamId: string,
+    hostId: string,
+    guestProfileId: string,
+  ) {
+    try {
+      const blocked = await getBlockedProfileIds(this.prisma, guestProfileId);
+      if (blocked.length === 0) return;
+      const [viewers, guests] = await Promise.all([
+        this.prisma.profile.findMany({
+          where: { id: { in: blocked } },
+          select: { id: true, userId: true },
+        }),
+        this.prisma.liveGuest.findMany({
+          where: { streamId, status: { in: [...GUEST_PLACE_STATUSES] } },
+          select: { profileId: true },
+        }),
+      ]);
+      const inLive = new Set([hostId, ...guests.map((g) => g.profileId)]);
+      for (const viewer of viewers) {
+        if (inLive.has(viewer.id)) continue;
+        this.gateway.server
+          .to(`user:${viewer.id}`)
+          .emit('live:unavailable', { streamId });
+        await this.recording.removeFromRoom(streamId, viewer.userId);
+      }
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not hide stream ${streamId} from those in a block with a guest: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   /** The invited Profile says no; the host may invite them again. */
