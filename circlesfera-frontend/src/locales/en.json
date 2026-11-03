@@ -1733,7 +1733,10 @@
       "turn_off_comments_desc": "Nobody can comment on this post. This can't be changed after it's published.",
       "mark_sensitive": "Mark as sensitive content",
       "mark_sensitive_desc": "Graphic violence, strong language, or artistic context. Explicit sexual content is not allowed on CircleSfera and is removed, not filtered.",
-      "price_eur": "Price (EUR)"
+      "price_eur": "Price (EUR)",
+      "suggestions": "Suggestions",
+      "tag_posts_one": "{{count}} post",
+      "tag_posts_other": "{{count}} posts"
     },
     "edit": {
       "edit_media": "Edit Media",
@@ -5712,6 +5715,9 @@
       "ONLY_HOST_CAN_REMOVE": "Only the host can remove people.",
       "CANNOT_INVITE_SELF": "You can't invite yourself.",
       "NOT_A_COHOST": "You're not a co-host of this live stream.",
+      "LIVE_GUESTS_FULL": "This live already has as many guests as it can.",
+      "LIVE_GUEST_ALREADY_INVITED": "They're already invited to this live.",
+      "NOT_A_LIVE_GUEST": "You're not a guest of this live.",
       "CANNOT_GIFT_SELF": "You can't send a gift to yourself.",
       "GIFT_NOT_FOUND": "That gift isn't available.",
       "CANNOT_RECONNECT_GUEST": "You can't rejoin as a guest.",

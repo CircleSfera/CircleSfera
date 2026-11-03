@@ -16,6 +16,7 @@ import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
 import { formatDay, formatNumber } from '../../utils/format';
 import { formatCents } from '../../utils/money';
+import MediaThumb, { postThumbShape } from '../common/MediaThumb';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
@@ -230,23 +231,19 @@ export default function PromotionsTab({ onToast }: Props) {
                       />
                     }
                     avatar={
-                      <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0">
-                        {promo.target?.media?.[0]?.url || promo.target?.url ? (
-                          <img
-                            src={
-                              promo.target?.media?.[0]?.thumbnailUrl ||
-                              promo.target?.media?.[0]?.url ||
-                              promo.target?.url
-                            }
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white/50">
-                            <Ghost size={16} />
-                          </div>
-                        )}
-                      </div>
+                      <MediaThumb
+                        src={
+                          promo.target?.media?.[0]?.thumbnailUrl ||
+                          promo.target?.media?.[0]?.url ||
+                          promo.target?.url
+                        }
+                        shape={
+                          promo.targetType === 'STORY'
+                            ? 'STORY'
+                            : postThumbShape(promo.target?.type)
+                        }
+                        fallback={<Ghost size={16} />}
+                      />
                     }
                   />
                 ))

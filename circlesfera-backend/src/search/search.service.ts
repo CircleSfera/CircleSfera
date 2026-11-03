@@ -1,7 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import type { Hashtag, Post } from '@prisma/client';
+import type { Hashtag, Post, Prisma } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
 import {
@@ -21,6 +21,10 @@ import {
   isTestViewerProfile,
 } from '../common/policies/test-account.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
+import {
+  type PaywallPost,
+  PostPaywallService,
+} from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   USER_HARD_DELETED_EVENT,
@@ -36,6 +40,25 @@ export interface SearchResponse {
 
 // Service for user search, hashtag search, AI-powered semantic search, and search history.
 // Uses cache-manager for embedding caching and AIService for vector similarity.
+
+/** The shortest query searched; anything shorter finds nothing. */
+const SEARCH_MIN_QUERY_LENGTH = 2;
+/** The shortest query searched by meaning: shorter says too little. */
+const SEMANTIC_MIN_QUERY_LENGTH = 3;
+/** How many hashtags one search answers. */
+const HASHTAG_RESULTS = 5;
+/** Tags are suggested from the first letter after #, as on Instagram. */
+const HASHTAG_MIN_QUERY_LENGTH = 1;
+/** How many people are suggested for a mention. */
+const MENTION_SUGGESTIONS = 8;
+/** What a mention suggestion shows of a Profile. */
+const MENTION_SUGGESTION_SELECT = {
+  id: true,
+  username: true,
+  fullName: true,
+  avatar: true,
+  verificationLevel: true,
+} as const;
 @Injectable()
 export class SearchService {
   private readonly logger = new Logger(SearchService.name);
@@ -44,13 +67,17 @@ export class SearchService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @Inject(AIService) private readonly aiService: AIService,
+    @Inject(PostPaywallService)
+    private readonly postPaywall: PostPaywallService,
   ) {}
 
   // AI-powered semantic search for posts.
   // Uses vector similarity to find content that matches the concept of the query,
   // Even if exact keywords aren't present.
   // Posts as this viewer asked to see sensitive content: mature ones only if
-  // allowed (their own always), each marked when it shows blurred.
+  // allowed (their own always), each marked when it shows blurred. A paid
+  // post the viewer has not unlocked is closed. The lists are cached for
+  // everyone, so both apply to each viewer after the cache.
   private async forViewer<
     T extends { contentRating?: string | null; profileId?: string },
   >(
@@ -58,7 +85,7 @@ export class SearchService {
     viewerId?: string,
   ): Promise<Array<T & { shouldBlurSensitive: boolean }>> {
     const content = await loadViewerContent(this.prisma, viewerId);
-    return posts
+    const shown = posts
       .filter(
         (p) =>
           content.allowMature ||
@@ -69,6 +96,10 @@ export class SearchService {
         ...p,
         shouldBlurSensitive: shouldBlur(p, content, viewerId),
       }));
+    return (await this.postPaywall.applyPaywall(
+      shown as unknown as PaywallPost[],
+      viewerId,
+    )) as unknown as Array<T & { shouldBlurSensitive: boolean }>;
   }
 
   async semanticSearchPosts(
@@ -76,7 +107,8 @@ export class SearchService {
     limit = 10,
     profileId?: string,
   ): Promise<any[]> {
-    if (!query || query.length < 3) return [];
+    if (typeof query !== 'string' || query.length < SEMANTIC_MIN_QUERY_LENGTH)
+      return [];
 
     const cacheKey = `search:semantic:v2:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
@@ -174,7 +206,8 @@ export class SearchService {
     limit = 10,
     profileId?: string,
   ): Promise<any[]> {
-    if (!query || query.length < 3) return [];
+    if (typeof query !== 'string' || query.length < SEMANTIC_MIN_QUERY_LENGTH)
+      return [];
 
     const cacheKey = `search:semantic_profiles:v2:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
@@ -255,7 +288,7 @@ export class SearchService {
     profileId?: string,
     verifiedOnly = false,
   ): Promise<SearchResponse> {
-    if (!query || query.length < 2) {
+    if (typeof query !== 'string' || query.length < SEARCH_MIN_QUERY_LENGTH) {
       return {
         users: [],
         hashtags: [],
@@ -291,30 +324,7 @@ export class SearchService {
     const [users, hashtags, semanticPosts, semanticProfiles] =
       await Promise.all([
         this.searchUsers(sanitizedQuery, profileId, verifiedOnly),
-        this.prisma.hashtag.findMany({
-          where: {
-            tag: {
-              contains: sanitizedQuery,
-              mode: 'insensitive',
-            },
-            // One hidden by staff is not offered.
-            isHidden: false,
-            // Only tags used by Profiles the viewer can see (blocks), on
-            // posts moderation has not removed.
-            posts: {
-              some: {
-                post: {
-                  ...LISTED_POST,
-                  profile: await visibleToViewerWhere(this.prisma, profileId),
-                },
-              },
-            },
-          },
-          take: 5,
-          orderBy: {
-            postCount: 'desc',
-          },
-        }),
+        this.searchHashtags(sanitizedQuery, profileId),
         this.semanticSearchPosts(sanitizedQuery, 3, profileId),
         query.length >= 3
           ? this.semanticSearchProfiles(sanitizedQuery, 5, profileId)
@@ -385,12 +395,106 @@ export class SearchService {
   // Param viewerId: Optional ID of the user performing the search
 
   // Param verifiedOnly: only Profiles with a plan badge
+  // The people suggested while a mention is written, as on Instagram: with
+  // nothing typed yet, the people the viewer follows; then those whose
+  // username or name starts with what is typed, the ones followed first.
+  // Only Profiles that can be found: open accounts, not banned or
+  // suspended, no block either way, never the viewer.
+  async suggestMentions(query: string, viewerId: string) {
+    // A query sent twice (?q=a&q=b) arrives as a list: nothing typed.
+    const typed = (typeof query === 'string' ? query : '').trim().toLowerCase();
+    const findable: Prisma.ProfileWhereInput = {
+      id: { not: viewerId },
+      user: { deactivatedAt: null, isActive: true },
+      isAccountBanned: false,
+      AND: [
+        await visibleToViewerWhere(this.prisma, viewerId),
+        {
+          OR: [
+            { suspendedUntil: null },
+            { suspendedUntil: { lt: new Date() } },
+          ],
+        },
+        ...(typed
+          ? [
+              {
+                OR: [
+                  {
+                    username: {
+                      startsWith: typed,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                  {
+                    fullName: {
+                      startsWith: typed,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ],
+    };
+    const followed = await this.prisma.profile.findMany({
+      where: {
+        ...findable,
+        followers: { some: { followerId: viewerId, status: 'ACCEPTED' } },
+      },
+      orderBy: { username: 'asc' },
+      take: MENTION_SUGGESTIONS,
+      select: MENTION_SUGGESTION_SELECT,
+    });
+    if (!typed || followed.length >= MENTION_SUGGESTIONS) return followed;
+    const others = await this.prisma.profile.findMany({
+      where: {
+        ...findable,
+        NOT: { id: { in: followed.map((p) => p.id) } },
+      },
+      orderBy: { followers: { _count: 'desc' } },
+      take: MENTION_SUGGESTIONS - followed.length,
+      select: MENTION_SUGGESTION_SELECT,
+    });
+    return [...followed, ...others];
+  }
+
+  // The hashtags whose text holds the query, most used first: none hidden
+  // by staff, and only those used on posts the viewer can see. What the
+  // combined search shows, and what a caption suggests while it is written.
+  async searchHashtags(query: string, profileId?: string) {
+    if (typeof query !== 'string' || query.length < HASHTAG_MIN_QUERY_LENGTH)
+      return [];
+    return this.prisma.hashtag.findMany({
+      where: {
+        tag: {
+          contains: query.toLowerCase(),
+          mode: 'insensitive',
+        },
+        isHidden: false,
+        posts: {
+          some: {
+            post: {
+              ...LISTED_POST,
+              profile: await visibleToViewerWhere(this.prisma, profileId),
+            },
+          },
+        },
+      },
+      take: HASHTAG_RESULTS,
+      orderBy: {
+        postCount: 'desc',
+      },
+    });
+  }
+
   async searchUsers(
     query: string,
     viewerId?: string,
     verifiedOnly = false,
   ): Promise<any[]> {
-    if (!query || query.length < 2) return [];
+    if (typeof query !== 'string' || query.length < SEARCH_MIN_QUERY_LENGTH)
+      return [];
 
     const sanitizedQuery = query.toLowerCase();
 
@@ -559,7 +663,8 @@ export class SearchService {
   // Search posts with Authority Weighting and Velocity ranking.
   // Param query: Keyword to search in captions
   async searchPosts(query: string, viewerId?: string): Promise<Post[]> {
-    if (!query || query.length < 2) return [];
+    if (typeof query !== 'string' || query.length < SEARCH_MIN_QUERY_LENGTH)
+      return [];
 
     const sanitizedQuery = query.toLowerCase();
 

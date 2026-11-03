@@ -19,6 +19,10 @@ import {
   resolveMediaFields,
 } from '../../../common/utils/media-lifecycle.util.js';
 import { renderChatPush } from '../../../notifications/notice-copy.js';
+import {
+  type PaywallPost,
+  PostPaywallService,
+} from '../../../posts/services/post-paywall.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { PushService } from '../../../push/push.service.js';
 import { ActionLimitsService } from '../../../trust/action-limits.service.js';
@@ -38,6 +42,8 @@ export class SendMessageUseCase {
     private readonly actionLimits: ActionLimitsService,
     @Inject(StoredFilesService)
     private readonly storedFiles: StoredFilesService,
+    @Inject(PostPaywallService)
+    private readonly postPaywall: PostPaywallService,
   ) {}
 
   private async assertShareable(
@@ -424,6 +430,16 @@ export class SendMessageUseCase {
       );
     }
 
+    // The sender gets the message back as they see it: a paid post they
+    // share without having unlocked it stays closed to them. Each member
+    // gets it the same way over the socket.
+    if (payload.post?.isPremium) {
+      const [post] = await this.postPaywall.applyPaywall(
+        [payload.post as PaywallPost],
+        senderId,
+      );
+      return { ...payload, post } as typeof payload;
+    }
     return payload;
   }
 }

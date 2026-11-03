@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../../common/errors/app.exception.js';
 import type { CryptoService } from '../../../common/services/crypto.service.js';
+import {
+  AUTHOR_ID,
+  BUYER_ID,
+  expectClosed,
+  expectWhole,
+  inlinePaidMedia,
+  paidPost,
+  realPaywall,
+  STRANGER_ID,
+} from '../../../common/testing/paid-posts.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 import { GetMessagesQuery, MESSAGE_PAGE } from './get-messages.query.js';
@@ -29,6 +39,7 @@ describe('GetMessagesQuery', () => {
       mockPrisma as unknown as PrismaService,
       mockCryptoService as unknown as CryptoService,
       new ChatAuthorizationService(mockPrisma as unknown as PrismaService),
+      realPaywall(),
     );
   });
 
@@ -469,5 +480,44 @@ describe('GetMessagesQuery', () => {
       unavailable: true,
     });
     expect(m.sender.username).toBe('dan');
+  });
+
+  describe('a paid post shared in a message', () => {
+    const readBy = async (reader: string) => {
+      mockPrisma.participant.findFirst.mockResolvedValue({});
+      mockPrisma.profile.findUnique.mockResolvedValue({
+        userId: `user-of-${reader}`,
+      });
+      mockPrisma.message.findMany.mockResolvedValue([
+        {
+          id: 'm-text',
+          content: 'enc_hi',
+          senderId: 'dan',
+        },
+        {
+          id: 'm-shared',
+          content: null,
+          senderId: 'dan',
+          postId: 'paid-post',
+          post: paidPost([inlinePaidMedia()], {
+            moderationStatus: 'VISIBLE',
+            deletedAt: null,
+            archivedAt: null,
+          }),
+        },
+      ]);
+      const messages = (await query.execute('conv-1', 50, reader)) as any[];
+      expect(messages.find((m) => m.id === 'm-text').post).toBeUndefined();
+      return messages.find((m) => m.id === 'm-shared').post;
+    };
+
+    it('is closed to a reader who has not unlocked it', async () => {
+      expectClosed(await readBy(STRANGER_ID));
+    });
+
+    it('is whole for its author and for a reader who unlocked it', async () => {
+      expectWhole(await readBy(AUTHOR_ID));
+      expectWhole(await readBy(BUYER_ID));
+    });
   });
 });

@@ -21,6 +21,10 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { MediaReferencesService } from '../uploads/services/media-references.service.js';
+import {
+  breakdownLines,
+  breakdownUnusedFiles,
+} from './orphan-files-breakdown.js';
 import { listStoredFilesOnDisk } from './stored-files-on-disk.js';
 
 // The sweep keeps a file this recent: it may be an upload in progress.
@@ -54,7 +58,7 @@ async function main(): Promise<void> {
     const cutoff = Date.now() - GRACE_HOURS * 60 * 60 * 1000;
     const onDisk = new Set(files.map((file) => file.url));
     let used = 0;
-    let unusedOld = 0;
+    const unusedOldFiles: typeof files = [];
     let unusedOldBytes = 0;
     let unusedRecent = 0;
     let totalBytes = 0;
@@ -65,7 +69,7 @@ async function main(): Promise<void> {
       } else if (file.lastModified.getTime() > cutoff) {
         unusedRecent++;
       } else {
-        unusedOld++;
+        unusedOldFiles.push(file);
         unusedOldBytes += file.sizeBytes;
       }
     }
@@ -79,8 +83,16 @@ async function main(): Promise<void> {
     );
     console.log(`  used by a row: ${used}`);
     console.log(
-      `  used by no row, older than ${GRACE_HOURS} h (the sweep would delete these): ${unusedOld} (${megabytes(unusedOldBytes)})`,
+      `  used by no row, older than ${GRACE_HOURS} h (the sweep would delete these): ${unusedOldFiles.length} (${megabytes(unusedOldBytes)})`,
     );
+    const owners = new Set(
+      records.filter((record) => record.profileId).map((record) => record.key),
+    );
+    for (const line of breakdownLines(
+      breakdownUnusedFiles(unusedOldFiles, owners, Date.now()),
+    )) {
+      console.log(line);
+    }
     console.log(`  used by no row, more recent: ${unusedRecent}`);
     console.log(`Record of owners: ${records.length} rows`);
     console.log(`  with an owner: ${owned}`);

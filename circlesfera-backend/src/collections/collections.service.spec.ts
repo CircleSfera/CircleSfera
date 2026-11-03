@@ -1,6 +1,9 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../common/errors/app.exception.js';
+import { LISTED_POST } from '../common/policies/removed-content.policy.js';
+import { realPaywall, STRANGER_ID } from '../common/testing/paid-posts.js';
+import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CollectionsService } from './collections.service.js';
 
@@ -22,6 +25,7 @@ describe('CollectionsService', () => {
       providers: [
         CollectionsService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: PostPaywallService, useValue: realPaywall() },
       ],
     }).compile();
 
@@ -195,6 +199,46 @@ describe('CollectionsService', () => {
       expect(collections[0].coverUrl).toBe('https://cdn.example.com/arch.jpg');
       expect(collections[1].coverUrl).toBe('https://cdn.example.com/cover.jpg');
       expect(collections[2].coverUrl).toBeNull();
+    });
+  });
+
+  describe('the cover of a collection', () => {
+    const coverWhere = async (owner: string) => {
+      mockPrismaService.collection.findMany.mockResolvedValueOnce([]);
+      await service.findAll(owner);
+      return mockPrismaService.collection.findMany.mock.calls.at(-1)?.[0]
+        .include.bookmarks.where;
+    };
+
+    it('is picked among the shown saved posts the owner may see whole', async () => {
+      // A paid post is the cover only when it is the owner's own or their
+      // account unlocked it.
+      expect(await coverWhere(STRANGER_ID)).toEqual({
+        post: {
+          AND: [
+            LISTED_POST,
+            {
+              OR: [
+                { isPremium: false },
+                { profileId: STRANGER_ID },
+                {
+                  postUnlocks: { some: { userId: `user-of-${STRANGER_ID}` } },
+                },
+              ],
+            },
+          ],
+        },
+      });
+    });
+
+    it('still counts every shown saved post, paid or not', async () => {
+      mockPrismaService.collection.findMany.mockResolvedValueOnce([]);
+      await service.findAll(STRANGER_ID);
+      const include =
+        mockPrismaService.collection.findMany.mock.calls.at(-1)?.[0].include;
+      expect(include._count).toEqual({
+        select: { bookmarks: { where: { post: LISTED_POST } } },
+      });
     });
   });
 

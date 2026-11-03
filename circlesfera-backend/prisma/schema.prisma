@@ -467,6 +467,7 @@ model Profile {
   stories                 Story[]
   liveStreams             LiveStream[]           @relation("LiveStreamHost")
   coHostedStreams         LiveStream[]           @relation("LiveStreamCoHost")
+  liveGuestPlaces         LiveGuest[]
   comments                Comment[]
   likes                   Like[]
   commentLikes            CommentLike[]
@@ -1095,6 +1096,8 @@ enum LiveAudience {
 model LiveStream {
   id           String       @id @default(uuid())
   hostId       String
+  // No longer written: a live's guests are rows of LiveGuest. Kept until the
+  // column is dropped in a later release, as every column that holds data.
   coHostId     String?
   title        String?
   /// Who it is for: everyone, the host's close friends, or a practice.
@@ -1129,6 +1132,7 @@ model LiveStream {
   gifts          LiveGift[]
   transactions   Transaction[]
   recordingParts LiveRecordingPart[]
+  guests         LiveGuest[]
 
   @@index([status])
   @@index([hostId])
@@ -1138,13 +1142,44 @@ model LiveStream {
   @@map("live_streams")
 }
 
+/// Where a guest of a live is.
+enum LiveGuestStatus {
+  INVITED
+  ON_AIR
+  DECLINED
+  LEFT
+  REMOVED
+}
+
+// A Profile the host of a live invited to be on air with them: one row per
+// Profile and live, kept as it is answered, left or removed. A guest invited
+// or on air has a place among the few a live allows.
+model LiveGuest {
+  id        String          @id @default(uuid())
+  streamId  String
+  profileId String
+  status    LiveGuestStatus @default(INVITED)
+  invitedAt DateTime        @default(now())
+  joinedAt  DateTime?
+  endedAt   DateTime?
+
+  stream  LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  profile Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([streamId, profileId])
+  @@index([profileId])
+  @@map("live_guests")
+}
+
 // One file the recorder writes for a broadcast: the host's camera and
-// microphone, or a co-host's, each recorded apart while they are on air. A
-// co-host who joins again has a new part. The replay is composed from them.
+// microphone, or a guest's, each recorded apart while they are on air. A
+// guest who joins again has a new part. The replay is composed from them.
 model LiveRecordingPart {
   id         String                  @id @default(uuid())
   streamId   String
   role       LiveRecordingRole
+  // The guest a part records; empty for the host's.
+  profileId  String?
   // The recorder's job; empty until the recorder answers.
   egressId   String?                 @unique
   // The file's name in the recorder's folder.
@@ -1159,6 +1194,7 @@ model LiveRecordingPart {
 
   @@index([streamId])
   @@index([status])
+  @@index([profileId])
   @@map("live_recording_parts")
 }
 

@@ -10,6 +10,7 @@ import {
 } from '../common/constants/queue-policy.constants.js';
 import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
 import { CryptoService } from '../common/services/crypto.service.js';
+import { PostsModule } from '../posts/posts.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PushModule } from '../push/push.module.js';
 import { TrustModule } from '../trust/trust.module.js';
@@ -67,6 +68,7 @@ const useCases = [
   imports: [
     UploadsModule,
     PrismaModule,
+    PostsModule,
     PushModule,
     TrustModule,
     ConfigModule,

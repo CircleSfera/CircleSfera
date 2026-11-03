@@ -39,6 +39,7 @@ import {
 } from '../common/config/origin.config.js';
 import { isEliteLiveReaction } from '../common/constants/live-reactions.constants.js';
 import { CorrelationContext } from '../common/correlation/correlation.context.js';
+import type { PaywallPost } from '../posts/services/post-paywall.service.js';
 import { WebrtcSignalingService } from '../webrtc/webrtc-signaling.service.js';
 import type {
   CallAcceptDeclineDto,
@@ -784,11 +785,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // Shared policy for stream host/co-host-only live actions — the one
+  // Shared policy for live actions of the host or a guest on air — the one
   // authoritative gate-and-log implementation for pin/unpin comment,
   // highlight/clear question and set goal. Returns the caller's
   // profileId when authorized, or null (after logging) when not.
-  private async requireStreamHostOrCoHost(
+  private async requireStreamHostOrOnAirGuest(
     client: SocketWithAuth,
     streamId: string,
     eventName: string,
@@ -796,10 +797,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return null;
 
-    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
-      streamId,
-      callerProfileId,
-    );
+    const isAuthorized =
+      await this.liveRealtimeService.isStreamHostOrOnAirGuest(
+        streamId,
+        callerProfileId,
+      );
     if (!isAuthorized) {
       this.logger.warn(
         `Unauthorized ${eventName} attempt by profile ${callerProfileId} on stream ${streamId}`,
@@ -827,7 +829,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // pin in it either.
     if (!inLiveRoom(client, payload.streamId)) return;
 
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:pin_comment',
@@ -856,7 +858,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     if (!payload?.streamId || typeof payload.streamId !== 'string') return;
 
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:unpin_comment',
@@ -987,7 +989,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
       return;
     }
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:highlight_question',
@@ -1016,7 +1018,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     if (!payload?.streamId || typeof payload.streamId !== 'string') return;
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:clear_question',
@@ -1043,7 +1045,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:set_goal',
@@ -1142,9 +1144,28 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
         return;
       }
-      event.participants?.forEach((p) => {
+      // A paid post the message shares reaches each member as they may see
+      // it: closed to one who has not unlocked it. Read for every member at
+      // once, before any is sent.
+      const members = event.participants ?? [];
+      const seenByEach = await Promise.all(
+        members.map(async (p) => {
+          const masked = asSeenBy(p.profileId);
+          const shared = masked.post as PaywallPost | null | undefined;
+          return shared?.isPremium
+            ? {
+                ...masked,
+                post: await this.chatRealtimeService.sharedPostAsSeenBy(
+                  shared,
+                  p.profileId,
+                ),
+              }
+            : masked;
+        }),
+      );
+      for (const [index, p] of members.entries()) {
         this.addConversationToSocket(p.profileId, event.payload.conversationId);
-        const seen = asSeenBy(p.profileId);
+        const seen = seenByEach[index];
         // A message just sent can't have been unlocked yet by anyone but the
         // sender — mirror GetMessagesQuery's redaction so the realtime channel
         // can't leak locked-message content/media past the paywall.
@@ -1161,7 +1182,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
               }
             : seen;
         this.server.to(`user:${p.profileId}`).emit('receiveMessage', payload);
-      });
+      }
     });
   }
 

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import {
   keysetBeforeDesc,
 } from '../common/pagination/keyset.util.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
+import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // The settings read each list a page at a time, so every entry can be
@@ -24,6 +26,9 @@ const HIDDEN_POST_SELECT = {
   createdAt: true,
   post: {
     select: {
+      id: true,
+      profileId: true,
+      isPremium: true,
       caption: true,
       media: {
         take: 1,
@@ -54,9 +59,11 @@ const HIDDEN_AUTHOR_INCLUDE = {
   },
 } satisfies Prisma.FeedHiddenAuthorInclude;
 
-const toHiddenPost = (
-  h: Prisma.FeedHiddenPostGetPayload<{ select: typeof HIDDEN_POST_SELECT }>,
-) => ({
+type HiddenPostRow = Prisma.FeedHiddenPostGetPayload<{
+  select: typeof HIDDEN_POST_SELECT;
+}>;
+
+const toHiddenPost = (h: HiddenPostRow) => ({
   postId: h.postId,
   createdAt: h.createdAt,
   caption: h.post?.caption ?? null,
@@ -92,7 +99,31 @@ export type PreferenceList =
 
 @Injectable()
 export class FeedPreferencesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(PostPaywallService)
+    private readonly postPaywall: PostPaywallService,
+  ) {}
+
+  // A paid post the viewer hid without having unlocked it shows no picture
+  // in the list: it is closed to them, as everywhere else.
+  private async withClosedPaidPosts<T extends HiddenPostRow>(
+    rows: T[],
+    profileId: string,
+  ): Promise<T[]> {
+    const seen = await this.postPaywall.applyPaywall(
+      rows.flatMap((row) => (row.post ? [row.post] : [])),
+      profileId,
+    );
+    const closed = new Set(
+      seen.filter((post) => post.isLocked).map((post) => post.id),
+    );
+    return rows.map((row) =>
+      row.post && closed.has(row.post.id)
+        ? { ...row, post: { ...row.post, media: [] } }
+        : row,
+    );
+  }
 
   async hidePost(profileId: string, postId: string) {
     const post = await this.prisma.post.findUnique({
@@ -189,7 +220,9 @@ export class FeedPreferencesService {
     ]);
 
     return {
-      hiddenPosts: hiddenPosts.map(toHiddenPost),
+      hiddenPosts: (await this.withClosedPaidPosts(hiddenPosts, profileId)).map(
+        toHiddenPost,
+      ),
       hiddenAuthors: hiddenAuthors.map(toHiddenAuthor),
       mutedKeywords: mutedKeywords.map(toMutedKeyword),
     };
@@ -218,7 +251,11 @@ export class FeedPreferencesService {
         orderBy: [...orderBy],
         take,
       });
-      return this.page(rows, take, toHiddenPost);
+      return this.page(
+        await this.withClosedPaidPosts(rows, profileId),
+        take,
+        toHiddenPost,
+      );
     }
     if (list === 'hidden-authors') {
       const rows = await this.prisma.feedHiddenAuthor.findMany({

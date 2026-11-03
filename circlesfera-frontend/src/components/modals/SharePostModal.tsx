@@ -7,6 +7,7 @@ import type { Conversation, Participant, Post } from '../../types';
 import { sanitizeUrl } from '../../utils/apiUtils';
 import { logger } from '../../utils/logger';
 import { isUnavailable } from '../chat/unavailable';
+import MediaThumb, { postThumbShape } from '../common/MediaThumb';
 import FrameBottomSheet from '../frames/FrameBottomSheet';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
@@ -54,23 +55,11 @@ function SharePostPreview({ post }: { post: Post }) {
 
   return (
     <div className="flex items-center gap-3 px-4 py-2 border-b border-white/10 bg-white/5 shrink-0">
-      <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/40 border border-white/10 shrink-0">
-        {preview.kind === 'video' && preview.url ? (
-          <video
-            src={preview.url}
-            muted
-            playsInline
-            preload="metadata"
-            className="w-full h-full object-cover"
-          />
-        ) : preview.url ? (
-          <img
-            src={preview.url}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        ) : null}
-      </div>
+      <MediaThumb
+        src={preview.url}
+        video={preview.kind === 'video'}
+        shape={postThumbShape(post.type)}
+      />
       <p className="text-xs text-white/70 line-clamp-2 min-w-0 flex-1">
         {post.caption || post.profile?.username}
       </p>

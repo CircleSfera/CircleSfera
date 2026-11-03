@@ -1,6 +1,10 @@
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { blocksAmong } from '../../chat/blocked-participants.js';
 import { AddReactionUseCase } from '../../chat/use-cases/messages/add-reaction.use-case.js';
+import {
+  type PaywallPost,
+  PostPaywallService,
+} from '../../posts/services/post-paywall.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface AddReactionResult {
@@ -20,7 +24,28 @@ export class ChatRealtimeService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(forwardRef(() => AddReactionUseCase))
     private readonly addReactionUseCase: AddReactionUseCase,
+    @Inject(PostPaywallService)
+    private readonly postPaywall: PostPaywallService,
   ) {}
+
+  // A post a message shares, as one member sees it: a paid post they have
+  // not unlocked is closed, as it is everywhere else. When their unlocks
+  // cannot be read, it is closed: the message still reaches them.
+  async sharedPostAsSeenBy<T extends PaywallPost>(
+    post: T,
+    profileId: string,
+  ): Promise<T & { isLocked?: boolean }> {
+    try {
+      const [seen] = await this.postPaywall.applyPaywall([post], profileId);
+      return seen;
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Shared post sent closed, unlocks unread: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      const [closed] = await this.postPaywall.applyPaywall([post]);
+      return closed;
+    }
+  }
 
   /**
    * The Profiles of the list that are in the conversation now: a row of

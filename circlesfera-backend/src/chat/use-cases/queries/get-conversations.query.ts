@@ -8,6 +8,10 @@ import {
 } from '../../../common/pagination/keyset.util.js';
 import { isUnlisted } from '../../../common/policies/removed-content.policy.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
+import {
+  type PaywallPost,
+  PostPaywallService,
+} from '../../../posts/services/post-paywall.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import {
   blockedWithViewer,
@@ -73,6 +77,7 @@ export class GetConversationsQuery {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(CryptoService) private cryptoService: CryptoService,
+    @Inject(PostPaywallService) private postPaywall: PostPaywallService,
   ) {}
 
   async execute(profileId: string, folder: 'inbox' | 'requests' = 'inbox') {
@@ -95,7 +100,10 @@ export class GetConversationsQuery {
     });
 
     const shown = await this.withUnavailable(profileId, conversations);
-    return shown.map((conv) => this.withReadablePreview(conv));
+    return this.withSharedPostsAsSeenBy(
+      profileId,
+      shown.map((conv) => this.withReadablePreview(conv)),
+    );
   }
 
   // One page of the list, most recently active first. The cursor names the
@@ -136,7 +144,10 @@ export class GetConversationsQuery {
     const last = items.at(-1);
     const shown = await this.withUnavailable(profileId, items);
     return {
-      items: shown.map((conv) => this.withReadablePreview(conv)),
+      items: await this.withSharedPostsAsSeenBy(
+        profileId,
+        shown.map((conv) => this.withReadablePreview(conv)),
+      ),
       nextCursor:
         rows.length > take && last
           ? encodeKeysetCursor({ createdAt: last.updatedAt, id: last.id })
@@ -166,7 +177,29 @@ export class GetConversationsQuery {
     }
 
     const [shown] = await this.withUnavailable(profileId, [conv]);
-    return this.withReadablePreview(shown);
+    const [readable] = await this.withSharedPostsAsSeenBy(profileId, [
+      this.withReadablePreview(shown),
+    ]);
+    return readable;
+  }
+
+  // A paid post the latest message shares shows closed to a viewer who has
+  // not unlocked it, as it does everywhere else.
+  private async withSharedPostsAsSeenBy<
+    T extends { messages: { post?: unknown }[] },
+  >(viewerProfileId: string, conversations: T[]): Promise<T[]> {
+    const sharing = conversations
+      .map((conv) => conv.messages?.[0])
+      .filter((m): m is { post: PaywallPost } => Boolean(m?.post));
+    if (sharing.length === 0) return conversations;
+    const posts = await this.postPaywall.applyPaywall(
+      sharing.map((m) => m.post),
+      viewerProfileId,
+    );
+    sharing.forEach((m, i) => {
+      m.post = posts[i];
+    });
+    return conversations;
   }
 
   // A participant in a block with the viewer, either way, stays in the

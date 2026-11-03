@@ -14,12 +14,15 @@ vi.mock('../common/policies/block.policy.js', () => ({
 const host = 'host';
 const guest = 'guest';
 const stream = (audience: 'EVERYONE' | 'CLOSE_FRIENDS' | 'PRACTICE') => ({
+  id: 'live-1',
   hostId: host,
-  coHostId: guest,
   audience,
 });
 
-/** A close friends list that holds only `friend`. */
+/**
+ * A close friends list that holds only `friend`, and `guest` invited to or on
+ * air in live-1 (a guest with a place).
+ */
 const prisma = (friend = 'friend') => {
   const findUnique = vi.fn(
     async ({
@@ -28,10 +31,26 @@ const prisma = (friend = 'friend') => {
       where: { profileId_friendId: { friendId: string } };
     }) => (where.profileId_friendId.friendId === friend ? { id: 'cf' } : null),
   );
-  // Only the close friends list is read here.
-  return { closeFriend: { findUnique } } as unknown as Parameters<
-    typeof canWatchStream
-  >[0] & { closeFriend: { findUnique: typeof findUnique } };
+  const findFirst = vi.fn(
+    async ({
+      where,
+    }: {
+      where: { streamId: string; profileId: string; status: { in: string[] } };
+    }) =>
+      where.streamId === 'live-1' &&
+      where.profileId === guest &&
+      where.status.in.includes('INVITED') &&
+      where.status.in.includes('ON_AIR')
+        ? { id: 'g' }
+        : null,
+  );
+  return {
+    closeFriend: { findUnique },
+    liveGuest: { findFirst },
+  } as unknown as Parameters<typeof canWatchStream>[0] & {
+    closeFriend: { findUnique: typeof findUnique };
+    liveGuest: { findFirst: typeof findFirst };
+  };
 };
 
 describe('who a live is for', () => {
@@ -68,7 +87,19 @@ describe('who a live is for', () => {
     expect(db.closeFriend.findUnique).not.toHaveBeenCalled();
   });
 
-  it('the host and the guest always see their own live', async () => {
+  it('a live for everyone asks nobody whether the viewer is a guest', async () => {
+    const db = prisma();
+    expect(await canWatchStream(db, stream('EVERYONE'), 'someone')).toBe(true);
+    expect(db.liveGuest.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('a guest who declined, left or was removed sees a practice no more', async () => {
+    const db = prisma();
+    db.liveGuest.findFirst.mockResolvedValueOnce(null);
+    expect(await canWatchStream(db, stream('PRACTICE'), guest)).toBe(false);
+  });
+
+  it('the host and a guest invited or on air always see their own live', async () => {
     for (const audience of ['EVERYONE', 'CLOSE_FRIENDS', 'PRACTICE'] as const) {
       for (const viewer of [host, guest]) {
         expect(await canWatchStream(prisma(), stream(audience), viewer)).toBe(
@@ -88,7 +119,11 @@ describe('who a live is for', () => {
           host: { closeFriends: { some: { friendId: 'v' } } },
         },
         { hostId: 'v' },
-        { coHostId: 'v' },
+        {
+          guests: {
+            some: { profileId: 'v', status: { in: ['INVITED', 'ON_AIR'] } },
+          },
+        },
       ],
     });
   });
@@ -105,9 +140,9 @@ describe('the room of a live', () => {
     liveStream: { findUnique: vi.fn().mockResolvedValue(found) },
   });
   const live = (over: Record<string, unknown> = {}) => ({
+    id: 'live-1',
     status: 'LIVE',
     hostId: host,
-    coHostId: null,
     audience: 'EVERYONE',
     host: shownHost,
     ...over,
@@ -140,5 +175,15 @@ describe('the room of a live', () => {
         'v',
       ),
     ).toBe(false);
+  });
+
+  it('lets a guest invited or on air into the room of a practice', async () => {
+    expect(
+      await canEnterStreamRoom(
+        db(live({ audience: 'PRACTICE' })) as never,
+        'live-1',
+        guest,
+      ),
+    ).toBe(true);
   });
 });

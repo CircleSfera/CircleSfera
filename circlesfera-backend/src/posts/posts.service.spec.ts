@@ -11,6 +11,16 @@ import { ContentRating, Visibility } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
+import {
+  AUTHOR_ID,
+  BUYER_ID,
+  expectClosed,
+  expectWhole,
+  linkedPaidMedia,
+  paidPost,
+  realPaywall,
+  STRANGER_ID,
+} from '../common/testing/paid-posts.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
@@ -19,7 +29,10 @@ import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import { PostPaywallService } from './services/post-paywall.service.js';
+import {
+  type PaywallPost,
+  PostPaywallService,
+} from './services/post-paywall.service.js';
 
 // Every file in these tests is the sending Profile's own unless a test says so.
 const mockStoredFiles = {
@@ -97,7 +110,7 @@ describe('PostsService', () => {
   };
 
   const mockPostPaywallService = {
-    applyPaywall: vi.fn(async (posts) => posts),
+    applyPaywall: vi.fn(async (posts: unknown[], _viewerId?: string) => posts),
   };
 
   const mockPostDistributionService = {
@@ -896,6 +909,40 @@ describe('PostsService', () => {
       );
     });
 
+    it('runs the paywall on the post once its media addresses are resolved, and answers what it gives', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'p-paid',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        isPremium: true,
+        profile: { id: 'author-1', privacyLevel: Visibility.PUBLIC, user: {} },
+        likes: [],
+        // As a post is created: the row points at its Media, whose own
+        // addresses are the ones shown.
+        media: [
+          {
+            url: '/uploads/old.jpg',
+            media: { url: '/uploads/a.jpg', standardUrl: '/uploads/a.webp' },
+          },
+        ],
+      });
+      const closed = { id: 'p-paid', isLocked: true };
+      mockPostPaywallService.applyPaywall.mockResolvedValueOnce([closed]);
+
+      const shown = await service.findOne('p-paid', 'viewer-1');
+
+      const [[[given], viewer]] =
+        mockPostPaywallService.applyPaywall.mock.calls.slice(-1) as [
+          [[{ media: unknown[] }], string],
+        ];
+      expect(viewer).toBe('viewer-1');
+      expect(given.media[0]).toMatchObject({
+        url: '/uploads/a.jpg',
+        standardUrl: '/uploads/a.webp',
+      });
+      expect(shown).toBe(closed);
+    });
+
     it('allows author to view post even if profile is private', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
         id: 'p-1',
@@ -1429,6 +1476,44 @@ describe('PostsService', () => {
         }),
       );
     });
+  });
+
+  describe('a paid post in the hashtag and tagged lists', () => {
+    const lists = {
+      hashtag: (viewer?: string) =>
+        service.getByTag('summer', { page: 1, limit: 10 }, viewer),
+      tagged: (viewer?: string) =>
+        service.getTaggedPosts('alice', { page: 1, limit: 10 }, viewer),
+    };
+
+    const listFor = async (list: keyof typeof lists, viewer?: string) => {
+      const paywall = realPaywall();
+      mockPostPaywallService.applyPaywall.mockImplementationOnce(
+        (posts: unknown[], viewerId?: string) =>
+          paywall.applyPaywall(posts as PaywallPost[], viewerId),
+      );
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        id: 'tagged-profile',
+      });
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        paidPost([linkedPaidMedia()], { likes: [] }),
+      ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(1);
+      const result = await lists[list](viewer);
+      return result.data[0];
+    };
+
+    for (const list of Object.keys(lists) as Array<keyof typeof lists>) {
+      it(`${list}: is closed to a viewer who has not unlocked it, and to a guest`, async () => {
+        expectClosed(await listFor(list, STRANGER_ID));
+        expectClosed(await listFor(list));
+      });
+
+      it(`${list}: is whole for its author and for someone who unlocked it`, async () => {
+        expectWhole(await listFor(list, AUTHOR_ID));
+        expectWhole(await listFor(list, BUYER_ID));
+      });
+    }
   });
 
   describe('update', () => {

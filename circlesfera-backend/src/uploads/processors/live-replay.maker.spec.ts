@@ -9,6 +9,7 @@ import type { StoredFilesService } from '../services/stored-files.service.js';
 import {
   composeArgs,
   LiveReplayMaker,
+  placeInColumns,
   replayArgs,
 } from './live-replay.maker.js';
 
@@ -32,7 +33,12 @@ vi.mock('../../common/media/ffmpeg-runner.js', async (importOriginal) => {
 const STREAM = '11111111-2222-4333-8444-555555555555';
 const FILE = `live-${STREAM}-host.mp4`;
 const CO1 = `live-${STREAM}-cohost-1.mp4`;
-const CO2 = `live-${STREAM}-cohost-2.mp4`;
+const ANA = 'aaaaaaaa-2222-4333-8444-555555555555';
+const BEA = 'bbbbbbbb-2222-4333-8444-555555555555';
+const CAI = 'cccccccc-2222-4333-8444-555555555555';
+const DAN = 'dddddddd-2222-4333-8444-555555555555';
+const guestFile = (profileId: string, n: number) =>
+  `live-${STREAM}-guest-${profileId}-${n}.mp4`;
 const AT = new Date('2026-10-27T12:00:00Z');
 const later = (ms: number) => new Date(AT.getTime() + ms);
 
@@ -60,10 +66,17 @@ describe('LiveReplayMaker', () => {
     recordingParts: [{ role: 'HOST', file: FILE, startedAt: AT }],
     ...over,
   });
-  const coHostPart = (file: string, startedAt: Date) => ({
+  const coHostPart = (
+    file: string,
+    startedAt: Date,
+    profileId: string | null = null,
+    durationMs: number | null = null,
+  ) => ({
     role: 'COHOST',
     file,
     startedAt,
+    durationMs,
+    profileId,
   });
   const folders = () =>
     fs.readdirSync(path.join(root, 'uploads')).filter((name) => name);
@@ -206,9 +219,9 @@ describe('LiveReplayMaker', () => {
     await expect(maker.make(STREAM)).resolves.toBeUndefined();
   });
 
-  describe('with co-hosts', () => {
-    const SPLIT =
-      'scale=720:640:force_original_aspect_ratio=increase,crop=720:640,setsar=1,fps=30';
+  describe('with guests', () => {
+    const tile = (width: number) =>
+      `scale=${width}:640:force_original_aspect_ratio=increase,crop=${width}:640,setsar=1,fps=30`;
     const encoding = (out: string) => [
       '-c:v',
       'libx264',
@@ -248,14 +261,16 @@ describe('LiveReplayMaker', () => {
       path.join(out, '720p_%03d.ts'),
       path.join(out, 'master.m3u8'),
     ];
+    const graphOf = (args: string[]) =>
+      args[args.indexOf('-filter_complex') + 1];
 
-    it('stacks the host over each co-host at the moment they began, and mixes every sound', () => {
+    it('stacks the host over one column of guest parts, each at the moment it began, and mixes every sound', () => {
       expect(
         composeArgs(
           { file: 'host.mp4', audio: true },
           [
-            { file: 'co1.mp4', audio: true, offsetMs: 5000 },
-            { file: 'co2.mp4', audio: false, offsetMs: 61_250 },
+            { file: 'co1.mp4', audio: true, offsetMs: 5000, column: 0 },
+            { file: 'co2.mp4', audio: false, offsetMs: 61_250, column: 0 },
           ],
           'out',
           path.join('out', 'master.m3u8'),
@@ -272,14 +287,14 @@ describe('LiveReplayMaker', () => {
         '2',
         '-filter_complex',
         [
-          `[0:v]setpts=PTS-STARTPTS,${SPLIT}[top]`,
-          'color=c=black:s=720x640:r=30[bg0]',
-          `[1:v]setpts=PTS-STARTPTS+5.000/TB,${SPLIT}[co1]`,
-          '[bg0][co1]overlay=eof_action=pass:repeatlast=0[bg1]',
+          `[0:v]setpts=PTS-STARTPTS,${tile(720)}[top]`,
+          'color=c=black:s=720x640:r=30[col0_0]',
+          `[1:v]setpts=PTS-STARTPTS+5.000/TB,${tile(720)}[g1]`,
+          '[col0_0][g1]overlay=eof_action=pass:repeatlast=0[col0_1]',
           '[1:a]aresample=48000,asetpts=PTS-STARTPTS,adelay=5000:all=1[a1]',
-          `[2:v]setpts=PTS-STARTPTS+61.250/TB,${SPLIT}[co2]`,
-          '[bg1][co2]overlay=eof_action=pass:repeatlast=0[bg2]',
-          '[top][bg2]vstack=inputs=2:shortest=1,format=yuv420p[v]',
+          `[2:v]setpts=PTS-STARTPTS+61.250/TB,${tile(720)}[g2]`,
+          '[col0_1][g2]overlay=eof_action=pass:repeatlast=0[col0_2]',
+          '[top][col0_2]vstack=inputs=2:shortest=1,format=yuv420p[v]',
           '[0:a]aresample=48000,asetpts=PTS-STARTPTS[a0]',
           '[a0][a1]amix=inputs=2:duration=first:normalize=0[a]',
         ].join(';'),
@@ -292,13 +307,70 @@ describe('LiveReplayMaker', () => {
       ]);
     });
 
+    it('puts three guests side by side below the host, each in a column a third wide', () => {
+      const graph = graphOf(
+        composeArgs(
+          { file: 'host.mp4', audio: true },
+          [
+            { file: 'a1.mp4', audio: true, offsetMs: 0, column: 0 },
+            { file: 'b1.mp4', audio: true, offsetMs: 1000, column: 1 },
+            { file: 'c1.mp4', audio: true, offsetMs: 2000, column: 2 },
+            { file: 'a2.mp4', audio: true, offsetMs: 9000, column: 0 },
+          ],
+          'out',
+          'out/master.m3u8',
+        ),
+      );
+      expect(graph.split(';')).toEqual([
+        `[0:v]setpts=PTS-STARTPTS,${tile(720)}[top]`,
+        'color=c=black:s=240x640:r=30[col0_0]',
+        'color=c=black:s=240x640:r=30[col1_0]',
+        'color=c=black:s=240x640:r=30[col2_0]',
+        `[1:v]setpts=PTS-STARTPTS+0.000/TB,${tile(240)}[g1]`,
+        '[col0_0][g1]overlay=eof_action=pass:repeatlast=0[col0_1]',
+        '[1:a]aresample=48000,asetpts=PTS-STARTPTS,adelay=0:all=1[a1]',
+        `[2:v]setpts=PTS-STARTPTS+1.000/TB,${tile(240)}[g2]`,
+        '[col1_0][g2]overlay=eof_action=pass:repeatlast=0[col1_1]',
+        '[2:a]aresample=48000,asetpts=PTS-STARTPTS,adelay=1000:all=1[a2]',
+        `[3:v]setpts=PTS-STARTPTS+2.000/TB,${tile(240)}[g3]`,
+        '[col2_0][g3]overlay=eof_action=pass:repeatlast=0[col2_1]',
+        '[3:a]aresample=48000,asetpts=PTS-STARTPTS,adelay=2000:all=1[a3]',
+        `[4:v]setpts=PTS-STARTPTS+9.000/TB,${tile(240)}[g4]`,
+        '[col0_1][g4]overlay=eof_action=pass:repeatlast=0[col0_2]',
+        '[4:a]aresample=48000,asetpts=PTS-STARTPTS,adelay=9000:all=1[a4]',
+        '[col0_2][col1_1][col2_1]hstack=inputs=3[bottom]',
+        '[top][bottom]vstack=inputs=2:shortest=1,format=yuv420p[v]',
+        '[0:a]aresample=48000,asetpts=PTS-STARTPTS[a0]',
+        '[a0][a1][a2][a3][a4]amix=inputs=5:duration=first:normalize=0[a]',
+      ]);
+    });
+
+    it('shares the width between two columns when two guests were on at once', () => {
+      const graph = graphOf(
+        composeArgs(
+          { file: 'host.mp4', audio: false },
+          [
+            { file: 'a1.mp4', audio: false, offsetMs: 0, column: 0 },
+            { file: 'b1.mp4', audio: false, offsetMs: 0, column: 1 },
+          ],
+          'out',
+          'out/master.m3u8',
+        ),
+      );
+      expect(graph).toContain('color=c=black:s=360x640:r=30[col1_0]');
+      expect(graph).toContain(tile(360));
+      expect(graph).toContain('[col0_1][col1_1]hstack=inputs=2[bottom]');
+    });
+
     it('puts silence in place of a host with no sound', () => {
-      const graph = composeArgs(
-        { file: 'host.mp4', audio: false },
-        [{ file: 'co1.mp4', audio: true, offsetMs: 0 }],
-        'out',
-        'out/master.m3u8',
-      )[8];
+      const graph = graphOf(
+        composeArgs(
+          { file: 'host.mp4', audio: false },
+          [{ file: 'co1.mp4', audio: true, offsetMs: 0, column: 0 }],
+          'out',
+          'out/master.m3u8',
+        ),
+      );
       expect(graph).toContain('anullsrc=r=48000:cl=stereo[a0]');
       expect(graph).toContain(
         '[a0][a1]amix=inputs=2:duration=first:normalize=0[a]',
@@ -308,28 +380,108 @@ describe('LiveReplayMaker', () => {
     it('maps no sound when nobody had any', () => {
       const args = composeArgs(
         { file: 'host.mp4', audio: false },
-        [{ file: 'co1.mp4', audio: false, offsetMs: 0 }],
+        [{ file: 'co1.mp4', audio: false, offsetMs: 0, column: 0 }],
         'out',
         'out/master.m3u8',
       );
-      expect(args[8]).not.toContain('amix');
+      expect(graphOf(args)).not.toContain('amix');
       expect(args).not.toContain('[a]');
     });
 
-    it("composes the co-hosts' parts that are in the recorder's folder, and deletes every file", async () => {
-      fs.writeFileSync(path.join(recordings, CO1), 'raw');
-      fs.writeFileSync(path.join(recordings, CO2), 'raw');
+    describe('placeInColumns', () => {
+      const part = (
+        offsetMs: number,
+        durationMs: number | null,
+        profileId: string | null,
+      ) => ({ offsetMs, durationMs, profileId });
+
+      it('gives guests on at once a column each, up to three', () => {
+        expect(
+          placeInColumns([
+            part(0, 10_000, ANA),
+            part(1000, 10_000, BEA),
+            part(2000, 10_000, CAI),
+          ]),
+        ).toEqual([0, 1, 2]);
+      });
+
+      it('keeps a guest who comes back in the column they had, when it is free', () => {
+        expect(
+          placeInColumns([
+            part(0, 5000, ANA),
+            part(1000, 2000, BEA),
+            // Both columns are free again; each takes their own back.
+            part(8000, 1000, BEA),
+            part(8000, 1000, ANA),
+          ]),
+        ).toEqual([0, 1, 1, 0]);
+      });
+
+      it('gives a guest whose column is taken the first one free', () => {
+        expect(
+          placeInColumns([
+            part(0, 1000, ANA),
+            part(2000, 10_000, BEA),
+            // Ana's column 0 is taken by Cai meanwhile; Bea's is column 1.
+            part(1500, 10_000, CAI),
+            part(5000, 1000, ANA),
+          ]),
+        ).toEqual([0, 1, 0, 2]);
+      });
+
+      it('lets a fourth guest have the column of one who left', () => {
+        expect(
+          placeInColumns([
+            part(0, 1000, ANA),
+            part(0, 10_000, BEA),
+            part(0, 10_000, CAI),
+            part(2000, 1000, DAN),
+          ]),
+        ).toEqual([0, 1, 2, 0]);
+      });
+
+      it('leaves out a part that overlaps more guests than there are columns', () => {
+        expect(
+          placeInColumns([
+            part(0, 10_000, ANA),
+            part(0, 10_000, BEA),
+            part(0, 10_000, CAI),
+            part(500, 1000, DAN),
+          ]),
+        ).toEqual([0, 1, 2, null]);
+      });
+
+      it('takes a part of unknown length to last to the end, and parts of nobody named as one guest', () => {
+        expect(
+          placeInColumns([part(0, null, null), part(9_000_000, 1000, null)], 2),
+        ).toEqual([0, 1]);
+      });
+    });
+
+    it("composes the guests' parts in the recorder's folder in their columns, and deletes every file", async () => {
+      for (const file of [
+        guestFile(ANA, 1),
+        guestFile(BEA, 1),
+        guestFile(ANA, 2),
+        CO1,
+      ]) {
+        fs.writeFileSync(path.join(recordings, file), 'raw');
+      }
       prisma.liveStream.findUnique.mockResolvedValue(
         waiting({
           recordingParts: [
             // Begun a moment before the host's: placed at the start.
-            coHostPart(CO1, later(-300)),
+            coHostPart(guestFile(ANA, 1), later(-300), ANA, 10_000),
             { role: 'HOST', file: FILE, startedAt: AT },
-            coHostPart(CO2, later(42_500)),
+            coHostPart(guestFile(BEA, 1), later(5000), BEA, 60_000),
+            // Ana again while Bea is still on: back in her own column.
+            coHostPart(guestFile(ANA, 2), later(20_000), ANA, null),
+            // A part of the old co-host, named before guests were.
+            coHostPart(CO1, later(70_000), null, null),
             // Not missing from the folder only: never a name of another.
             coHostPart(`live-${STREAM}-cohost-x.mp4`, later(1)),
-            coHostPart('live-other-cohost-1.mp4', later(1)),
-            coHostPart(`live-${STREAM}-cohost-3.mp4`, later(1)),
+            coHostPart(`live-other-guest-${ANA}-1.mp4`, later(1), ANA),
+            coHostPart(guestFile(CAI, 1), later(1), CAI),
           ],
         }),
       );
@@ -342,7 +494,10 @@ describe('LiveReplayMaker', () => {
           ],
         })
         .mockResolvedValueOnce({ streams: [{ codec_type: 'audio' }] })
-        .mockResolvedValueOnce({});
+        .mockResolvedValueOnce({})
+        // Its length read from the file, as the recorder did not say.
+        .mockResolvedValueOnce({ format: { duration: '4.5' } })
+        .mockResolvedValueOnce({ format: {} });
 
       await maker.make(STREAM);
 
@@ -353,14 +508,29 @@ describe('LiveReplayMaker', () => {
           { file: path.join(recordings, FILE), audio: true },
           [
             {
-              file: path.join(recordings, CO1),
+              file: path.join(recordings, guestFile(ANA, 1)),
               audio: true,
               offsetMs: 0,
+              column: 0,
             },
             {
-              file: path.join(recordings, CO2),
+              file: path.join(recordings, guestFile(BEA, 1)),
               audio: false,
-              offsetMs: 42_500,
+              offsetMs: 5000,
+              column: 1,
+            },
+            {
+              file: path.join(recordings, guestFile(ANA, 2)),
+              audio: false,
+              offsetMs: 20_000,
+              column: 0,
+            },
+            {
+              file: path.join(recordings, CO1),
+              audio: false,
+              offsetMs: 70_000,
+              // Ana's second part was over by then (4.5 s, read from it).
+              column: 0,
             },
           ],
           out,
@@ -368,6 +538,32 @@ describe('LiveReplayMaker', () => {
         ),
       );
       expect(fs.readdirSync(recordings)).toEqual([]);
+    });
+
+    it('leaves out of the replay a part that finds no column, and keeps its file', async () => {
+      const guests = [ANA, BEA, CAI, DAN];
+      const files = guests.map((guest) => guestFile(guest, 1));
+      for (const file of files) {
+        fs.writeFileSync(path.join(recordings, file), 'raw');
+      }
+      prisma.liveStream.findUnique.mockResolvedValue(
+        waiting({
+          recordingParts: [
+            { role: 'HOST', file: FILE, startedAt: AT },
+            ...guests.map((guest, n) =>
+              coHostPart(files[n], later(n), guest, 60_000),
+            ),
+          ],
+        }),
+      );
+
+      await maker.make(STREAM);
+
+      const args = vi.mocked(runFfmpeg).mock.calls[1][0];
+      expect(args).toContain(path.join(recordings, files[2]));
+      expect(args).not.toContain(path.join(recordings, files[3]));
+      // The others are deleted; the one left out is kept.
+      expect(fs.readdirSync(recordings)).toEqual([files[3]]);
     });
 
     it("makes a host's replay when the host's part is not known", async () => {

@@ -6,6 +6,7 @@ import { EgressStatus, ServerError } from 'livekit-server-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import type { UploadsService } from '../../uploads/uploads.service.js';
+import { COHOST_PARTS_MAX } from './live-recording.constants.js';
 import { LiveRecordingService } from './live-recording.service.js';
 
 const sdk = vi.hoisted(() => ({
@@ -44,7 +45,7 @@ const NOW = new Date('2026-10-27T12:00:00Z');
 const minutesAgo = (minutes: number) =>
   new Date(NOW.getTime() - minutes * 60_000);
 const HOST_FILE = 'live-s1-host.mp4';
-const CO_FILE = 'live-s1-cohost-1.mp4';
+const CO_FILE = 'live-s1-guest-co-1-1.mp4';
 
 type Mock = ReturnType<typeof vi.fn>;
 
@@ -335,9 +336,14 @@ describe('LiveRecordingService', () => {
       },
     );
 
-    it("records the co-host's own camera and microphone as the next part", async () => {
+    it("records the guest's own camera and microphone as their next part, named for them", async () => {
       prisma.liveStream.findUnique.mockResolvedValue(
-        live([{ egressId: 'EG_C1', status: 'DONE' }]),
+        live([
+          { egressId: 'EG_C1', status: 'DONE', profileId: 'co-1' },
+          // Another guest's parts count for neither the number nor the name.
+          { egressId: 'EG_X1', status: 'DONE', profileId: 'co-2' },
+          { egressId: 'EG_X2', status: 'DONE', profileId: 'co-2' },
+        ]),
       );
       sdk.startParticipantEgress.mockResolvedValue({ egressId: 'EG_C2' });
 
@@ -350,19 +356,24 @@ describe('LiveRecordingService', () => {
           recordingStatus: true,
           recordingParts: {
             where: { role: 'COHOST' },
-            select: { egressId: true, status: true },
+            select: { egressId: true, status: true, profileId: true },
           },
         },
       });
       expect(prisma.liveRecordingPart.create).toHaveBeenCalledWith({
-        data: { streamId: 's1', role: 'COHOST', file: 'live-s1-cohost-2.mp4' },
+        data: {
+          streamId: 's1',
+          role: 'COHOST',
+          profileId: 'co-1',
+          file: 'live-s1-guest-co-1-2.mp4',
+        },
         select: { id: true, file: true },
       });
       const [room, identity, output] = sdk.startParticipantEgress.mock.calls[0];
       expect([room, identity, output.file.filepath]).toEqual([
         's1',
         'co-1',
-        '/out/live-s1-cohost-2.mp4',
+        '/out/live-s1-guest-co-1-2.mp4',
       ]);
       expect(prisma.liveRecordingPart.updateMany).toHaveBeenCalledWith({
         where: { id: 'P_CO', status: 'RECORDING', egressId: null },
@@ -376,10 +387,10 @@ describe('LiveRecordingService', () => {
       ['recording', 'EG_C1', [{ status: EgressStatus.EGRESS_ACTIVE }]],
       ['starting', 'EG_C1', [{ status: EgressStatus.EGRESS_STARTING }]],
     ])(
-      'does not record twice a co-host whose part is %s',
+      'does not record twice a guest whose part is %s',
       async (_label, egressId, jobs) => {
         prisma.liveStream.findUnique.mockResolvedValue(
-          live([{ egressId, status: 'RECORDING' }]),
+          live([{ egressId, status: 'RECORDING', profileId: 'co-1' }]),
         );
         sdk.listEgress.mockResolvedValue(jobs);
         await service.startCoHost('s1', 'co-1');
@@ -391,25 +402,49 @@ describe('LiveRecordingService', () => {
       ['over', [{ status: EgressStatus.EGRESS_COMPLETE }]],
       ['unknown to the recorder', []],
     ])(
-      'records a co-host joining again when the last part is %s, before the check sees it',
+      'records a guest joining again when their last part is %s, before the check sees it',
       async (_label, jobs) => {
         prisma.liveStream.findUnique.mockResolvedValue(
-          live([{ egressId: 'EG_C1', status: 'RECORDING' }]),
+          live([{ egressId: 'EG_C1', status: 'RECORDING', profileId: 'co-1' }]),
         );
         sdk.listEgress.mockResolvedValue(jobs);
         await service.startCoHost('s1', 'co-1');
         expect(sdk.listEgress).toHaveBeenCalledWith({ egressId: 'EG_C1' });
         expect(prisma.liveRecordingPart.create).toHaveBeenCalledWith(
           expect.objectContaining({
-            data: expect.objectContaining({ file: 'live-s1-cohost-2.mp4' }),
+            data: expect.objectContaining({
+              file: 'live-s1-guest-co-1-2.mp4',
+            }),
           }),
         );
       },
     );
 
-    it('keeps no more than twenty co-host parts', async () => {
+    it('records a guest while another guest is being recorded', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(
-        live(Array.from({ length: 20 }, () => ({ status: 'DONE' }))),
+        live([{ egressId: 'EG_X1', status: 'RECORDING', profileId: 'co-2' }]),
+      );
+      sdk.startParticipantEgress.mockResolvedValue({ egressId: 'EG_C1' });
+      await service.startCoHost('s1', 'co-1');
+      expect(sdk.listEgress).not.toHaveBeenCalled();
+      expect(prisma.liveRecordingPart.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            profileId: 'co-1',
+            file: 'live-s1-guest-co-1-1.mp4',
+          }),
+        }),
+      );
+    });
+
+    it('keeps no more guest parts than the most a broadcast keeps, all guests together', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(
+        live(
+          Array.from({ length: COHOST_PARTS_MAX }, (_, n) => ({
+            status: 'DONE',
+            profileId: `co-${n % 3}`,
+          })),
+        ),
       );
       await service.startCoHost('s1', 'co-1');
       expect(prisma.liveRecordingPart.create).not.toHaveBeenCalled();
@@ -510,7 +545,7 @@ describe('LiveRecordingService', () => {
     it('do nothing where recording is off', async () => {
       settings.LIVE_RECORDING_ENABLED = 'false';
       await service.stop('s1');
-      await service.stopCoHost('s1');
+      await service.stopCoHost('s1', 'co-1');
       expect(prisma.liveRecordingPart.findMany).not.toHaveBeenCalled();
     });
 
@@ -524,15 +559,16 @@ describe('LiveRecordingService', () => {
       expect(sdk.stopEgress.mock.calls).toEqual([['EG_1'], ['EG_C1']]);
     });
 
-    it("stops only the co-host's job when the co-host leaves", async () => {
+    it("stops only that guest's job when one guest leaves", async () => {
       held = [{ egressId: 'EG_C1' }];
-      await service.stopCoHost('s1');
+      await service.stopCoHost('s1', 'co-1');
       expect(prisma.liveRecordingPart.findMany).toHaveBeenCalledWith({
         where: {
           streamId: 's1',
           status: 'RECORDING',
           egressId: { not: null },
           role: 'COHOST',
+          profileId: 'co-1',
         },
         select: { egressId: true },
       });

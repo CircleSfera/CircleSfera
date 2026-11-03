@@ -98,11 +98,9 @@ test.describe('Going live', () => {
     await expectScreenInOrder(page);
   });
 
-  test('inviting a co-host', async ({ page }) => {
+  test('inviting a guest', async ({ page }) => {
     await startBroadcast(page);
-    await page
-      .getByRole('button', { name: 'Invitar a un coanfitrión' })
-      .click();
+    await page.getByRole('button', { name: 'Invitar', exact: true }).click();
     await expectScreenInOrder(page);
   });
 

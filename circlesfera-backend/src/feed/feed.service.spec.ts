@@ -3,7 +3,19 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
+import {
+  AUTHOR_ID,
+  BUYER_ID,
+  expectClosed,
+  expectWhole,
+  linkedPaidMedia,
+  PAID_POST_ID,
+  paidPost,
+  realPaywall,
+  STRANGER_ID,
+} from '../common/testing/paid-posts.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
+import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from './feed.service.js';
 import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
@@ -34,6 +46,7 @@ describe('FeedService', () => {
     },
     postUnlock: {
       findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     promotion: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -85,6 +98,7 @@ describe('FeedService', () => {
         { provide: FeedInboxService, useValue: mockFeedInboxService },
         { provide: FeedPreferencesService, useValue: mockFeedPreferences },
         { provide: ExperimentsService, useValue: mockExperiments },
+        { provide: PostPaywallService, useValue: realPaywall() },
       ],
     }).compile();
 
@@ -677,7 +691,11 @@ describe('FeedService', () => {
     // A feed of five posts, seen by a Profile on the given plan level.
     // Answers are queued only for the queries that level makes, so nothing
     // is left over for the next test.
-    async function feedSeenBy(verificationLevel: string, promoted: boolean) {
+    async function feedSeenBy(
+      verificationLevel: string,
+      promoted: boolean,
+      promotedPost: Record<string, unknown> = {},
+    ) {
       mockCache.get.mockResolvedValue(null);
       mockPrismaService.like.findMany.mockResolvedValueOnce([]);
       mockPrismaService.$queryRaw.mockResolvedValueOnce(
@@ -700,7 +718,13 @@ describe('FeedService', () => {
       mockPrismaService.promotion.findMany.mockClear();
       if (promoted) {
         mockPrismaService.post.findMany.mockResolvedValueOnce([
-          { id: 'promoted-p1', caption: 'Buy now', likes: [], media: [] },
+          {
+            id: 'promoted-p1',
+            caption: 'Buy now',
+            likes: [],
+            media: [],
+            ...promotedPost,
+          },
         ]);
         mockPrismaService.promotion.findMany.mockResolvedValueOnce([
           { id: 'promo-1', targetId: 'promoted-p1', countries: null },
@@ -877,6 +901,60 @@ describe('FeedService', () => {
           }),
         }),
       );
+    });
+
+    describe('a promoted paid post', () => {
+      const promotedFor = async (viewer: string) => {
+        mockCache.get.mockResolvedValue(null);
+        mockPrismaService.like.findMany.mockResolvedValueOnce([]);
+        mockPrismaService.$queryRaw.mockResolvedValueOnce(
+          Array.from({ length: 5 }, (_, i) => ({ id: `post-${i + 1}` })),
+        );
+        mockPrismaService.post.findMany
+          .mockResolvedValueOnce(
+            Array.from({ length: 5 }, (_, i) => ({
+              id: `post-${i + 1}`,
+              type: 'POST',
+              likes: [],
+              media: [],
+              contentRating: 'GENERAL',
+            })),
+          )
+          .mockResolvedValueOnce([
+            paidPost([linkedPaidMedia()], { likes: [] }),
+          ]);
+        mockPrismaService.post.count.mockResolvedValueOnce(5);
+        mockPrismaService.profile.findUnique
+          .mockResolvedValueOnce({ userId: 'viewer-user' })
+          .mockResolvedValueOnce({ userId: 'viewer-user' })
+          .mockResolvedValueOnce({
+            userId: 'viewer-user',
+            user: { signupCountry: 'ES', settings: { country: null } },
+          });
+        mockPrismaService.promotion.findMany.mockResolvedValueOnce([
+          { id: 'promo-paid', targetId: PAID_POST_ID, countries: null },
+        ]);
+
+        const res = (await service.getHybridFeed(viewer, {
+          page: 1,
+          limit: 10,
+        })) as any;
+        const promoted = res.data.find((p: any) => p.isPromoted);
+        expect(promoted.promotionId).toBe('promo-paid');
+        return promoted;
+      };
+
+      it('is closed to a viewer who has not unlocked it', async () => {
+        expectClosed(await promotedFor(STRANGER_ID));
+      });
+
+      it('is whole for its author', async () => {
+        expectWhole(await promotedFor(AUTHOR_ID));
+      });
+
+      it('is whole for someone who unlocked it', async () => {
+        expectWhole(await promotedFor(BUYER_ID));
+      });
     });
 
     it('returns default content settings when viewer profile does not exist', async () => {

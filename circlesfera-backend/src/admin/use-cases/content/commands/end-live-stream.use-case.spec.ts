@@ -8,6 +8,7 @@ import type { LogAdminActionUseCase } from './log-admin-action.use-case.js';
 describe('EndLiveStreamUseCase', () => {
   const prisma = {
     liveStream: { findUnique: vi.fn(), update: vi.fn() },
+    liveGuest: { updateMany: vi.fn() },
   };
   const log = { execute: vi.fn() };
   const recording = { stop: vi.fn(), closeRoom: vi.fn() };
@@ -35,7 +36,7 @@ describe('EndLiveStreamUseCase', () => {
     expect(prisma.liveStream.update).not.toHaveBeenCalled();
   });
 
-  it('ends it as ended by staff, invents no replay address and stops its recording', async () => {
+  it('ends it as ended by staff, ends its guests, invents no replay address and stops its recording', async () => {
     prisma.liveStream.findUnique.mockResolvedValue({
       id: 'live-1',
       status: 'LIVE',
@@ -48,6 +49,11 @@ describe('EndLiveStreamUseCase', () => {
     expect(prisma.liveStream.update).toHaveBeenCalledWith({
       where: { id: 'live-1' },
       data: { status: 'ENDED', endedAt: expect.any(Date), endedByStaff: true },
+    });
+    // Its guests invited or on air are out of it.
+    expect(prisma.liveGuest.updateMany).toHaveBeenCalledWith({
+      where: { streamId: 'live-1', status: { in: ['INVITED', 'ON_AIR'] } },
+      data: { status: 'LEFT', endedAt: expect.any(Date) },
     });
     expect(recording.stop).toHaveBeenCalledWith('live-1');
     // Those still watching are taken out of the room.
