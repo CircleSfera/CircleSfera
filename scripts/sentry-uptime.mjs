@@ -19,6 +19,23 @@ const TARGETS = [
   { name: 'API health', url: 'https://circlesfera.com/api/v1/health' },
 ];
 const ALERT_NAME = 'CircleSfera is down';
+// The projects whose checks are read, by id: the list for the whole
+// organization is refused to this token.
+const PROJECT_IDS = ['4511288202887248', '4511288199938128'];
+
+async function allDetectors() {
+  const found = [];
+  for (const id of PROJECT_IDS) {
+    const page = await call(
+      'GET',
+      `/organizations/${ORG}/detectors/?project=${id}&per_page=100`,
+    );
+    console.log(`Detectors of project ${id}: ${page.status}`);
+    if (Array.isArray(page.data)) found.push(...page.data);
+    else console.log(page.data);
+  }
+  return found;
+}
 
 if (!TOKEN) {
   console.error('SENTRY_WRITE_TOKEN is not set');
@@ -57,15 +74,9 @@ async function inspect() {
   const access = await call('GET', `/organizations/${ORG}/`);
   console.log('Token access:', access.data?.access);
 
-  const detectors = await call(
-    'GET',
-    `/organizations/${ORG}/detectors/?project=all&per_page=100`,
-  );
-  console.log(`Detectors (${detectors.status}):`);
-  for (const d of Array.isArray(detectors.data) ? detectors.data : []) {
+  for (const d of await allDetectors()) {
     console.log(JSON.stringify(strip(d), null, 2));
   }
-  if (!Array.isArray(detectors.data)) console.log(detectors.data);
 
   const workflows = await call(
     'GET',
@@ -85,14 +96,9 @@ async function inspect() {
 }
 
 async function apply() {
-  const detectors = await call(
-    'GET',
-    `/organizations/${ORG}/detectors/?project=all&per_page=100`,
+  const uptime = (await allDetectors()).filter((d) =>
+    /uptime/i.test(d.type ?? ''),
   );
-  if (!Array.isArray(detectors.data)) {
-    throw new Error(`Could not read the detectors (${detectors.status})`);
-  }
-  const uptime = detectors.data.filter((d) => /uptime/i.test(d.type ?? ''));
   const urlOf = (d) =>
     d.dataSources?.[0]?.queryObj?.url ??
     d.dataSources?.[0]?.url ??
