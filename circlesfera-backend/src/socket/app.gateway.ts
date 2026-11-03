@@ -109,10 +109,16 @@ export const CHAT_EVENTS_PER_SECOND = 5;
 
 /**
  * Whether this connection is in the room of a live: let in by `live:join`,
- * which asks whether the Profile may watch it.
+ * which asks whether the Profile may watch it, and not taken out of it since
+ * by the server (a live hidden from them while a guest in a block with them
+ * is on air). The room itself is read, as the server takes connections out
+ * of it on every instance.
  */
 function inLiveRoom(client: SocketWithAuth, streamId: string): boolean {
-  return client.data?.liveStreamIds?.has(streamId) ?? false;
+  return (
+    (client.data?.liveStreamIds?.has(streamId) ?? false) &&
+    client.rooms.has(`live:${streamId}`)
+  );
 }
 
 @WebSocketGateway({
@@ -693,8 +699,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // Joining again from the same connection counts once.
-    if (client.data.liveStreamIds?.has(payload.streamId)) return;
+    // Joining again from the same connection counts once: one taken out of
+    // the room by the server is let back in, still counted.
+    if (client.data.liveStreamIds?.has(payload.streamId)) {
+      await client.join(`live:${payload.streamId}`);
+      return;
+    }
     await client.join(`live:${payload.streamId}`);
     if (!client.data.liveStreamIds) {
       client.data.liveStreamIds = new Set();
@@ -730,7 +740,10 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     )
       return;
     const profileId = client.data?.user?.profileId;
-    if (!profileId || !inLiveRoom(client, payload.streamId)) return;
+    // Counted by joining, so also for one the server took out of the room.
+    if (!profileId || !client.data.liveStreamIds?.has(payload.streamId)) {
+      return;
+    }
 
     await client.leave(`live:${payload.streamId}`);
     client.data.liveStreamIds?.delete(payload.streamId);
@@ -783,6 +796,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         timestamp: new Date().toISOString(),
       });
     }
+  }
+
+  /**
+   * Takes every connection of a Profile out of a live's room, on every
+   * server: they no longer receive its comments and events, nor may send
+   * to it, until they are let in again.
+   */
+  leaveLiveRoom(profileId: string, streamId: string): void {
+    this.server.in(`user:${profileId}`).socketsLeave(`live:${streamId}`);
   }
 
   // Shared policy for live actions of the host or a guest on air — the one
