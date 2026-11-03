@@ -5112,7 +5112,8 @@
         "already": "@{{username}} is already invited.",
         "failed": "@{{username}} couldn't be invited."
       }
-    }
+    },
+    "unavailable": "This live is no longer available to you."
   },
   "shortcuts": {
     "next_post": "Next post",

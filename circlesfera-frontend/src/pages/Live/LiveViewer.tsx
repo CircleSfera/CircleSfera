@@ -217,6 +217,15 @@ export default function LiveViewer() {
       setGuests(data?.guests ?? []);
     });
 
+    // Someone this person has a block with went on air as a guest: the live
+    // is not theirs to watch while that lasts.
+    socket.on('live:unavailable', (data: { streamId?: string }) => {
+      if (data?.streamId !== streamId) return;
+      isLeavingRef.current = true;
+      toast(t('live.unavailable'));
+      navigate(-1);
+    });
+
     // Taken off air by the host or by staff: back to watching, with a token
     // asked for now. A token is good only for a few minutes, so the one this
     // screen had before going on air cannot be used again.
@@ -251,6 +260,7 @@ export default function LiveViewer() {
       socket.off('live:reaction_received');
       socket.off('live:guest_invite');
       socket.off('live:guests_changed');
+      socket.off('live:unavailable');
       socket.off('live:guest_removed');
       socket.off('live:goal_set');
       socket.off('live:question_asked');

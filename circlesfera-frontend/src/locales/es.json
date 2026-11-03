@@ -5112,7 +5112,8 @@
         "already": "@{{username}} ya está invitado.",
         "failed": "No se pudo invitar a @{{username}}."
       }
-    }
+    },
+    "unavailable": "Este directo ya no está disponible para ti."
   },
   "shortcuts": {
     "next_post": "Siguiente publicación",

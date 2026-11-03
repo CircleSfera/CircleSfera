@@ -149,7 +149,7 @@ vi.mock('../../stores/socketStore', () => ({
   },
 }));
 vi.mock('react-hot-toast', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
 }));
 vi.mock('react-router-dom', async (original) => ({
   ...(await original<typeof import('react-router-dom')>()),
@@ -181,7 +181,7 @@ async function watch(path = '/live/stream-1') {
   await screen.findByTestId('livekit-room');
   // The listeners are attached in the same step as the two requests.
   // Thirteen events of the live, and the new connection that joins it again.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(15));
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(16));
   return view;
 }
 
@@ -214,7 +214,7 @@ describe('LiveViewer on the live connection', () => {
       audio: false,
     });
     const listened = [...live.handlers.keys()];
-    expect(listened).toHaveLength(15);
+    expect(listened).toHaveLength(16);
     expect(listened).toContain('connect');
 
     unmount();
@@ -615,6 +615,19 @@ describe('LiveViewer on the live connection', () => {
       }),
     );
     expect(apiClient.post).toHaveBeenCalledWith('/live/stream-1/guests/leave');
+  });
+
+  it('leaves, with a notice, a live that is no longer theirs to watch', async () => {
+    await watch();
+
+    fire('live:unavailable', { streamId: 'another-live' });
+    expect(live.navigate).not.toHaveBeenCalled();
+
+    fire('live:unavailable', { streamId: 'stream-1' });
+    expect(toast).toHaveBeenCalledWith(
+      'This live is no longer available to you.',
+    );
+    expect(live.navigate).toHaveBeenCalledWith(-1);
   });
 
   it('offers no way to leave the air to someone only watching', async () => {
