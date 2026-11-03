@@ -393,7 +393,9 @@ export default function EditStep({
       ) : null}
 
       {!onEditMedia ? (
-        <div className="px-4 pb-1 shrink-0">
+        // A line across, as in the full editor, keeps the tools apart from
+        // the filters above them on every size.
+        <div className="mt-2 border-t border-white/8 px-4 pt-2 pb-1 shrink-0">
           <div
             role="toolbar"
             aria-label={t('createPost.edit.edit_media')}
