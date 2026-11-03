@@ -618,6 +618,9 @@ model PostMedia {
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
+  /// The interactive stickers placed on this photo.
+  stickers StorySticker[]
+
   // Not read by application code yet, see Media model.
   mediaId String?
   media   Media?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
@@ -1226,7 +1229,10 @@ enum StoryStickerKind {
 /// place or a hashtag, answered or opened where the creator placed it.
 model StorySticker {
   id          String           @id @default(uuid())
-  storyId     String
+  /// The story it is on, or the photo of a post it is on: always one of the
+  /// two, never both (a check in the database holds it).
+  storyId     String?
+  postMediaId String?
   kind        StoryStickerKind
   /// What the kind needs (question and options, prompt, emoji, profile,
   /// place, tag), validated by the server for each kind.
@@ -1243,10 +1249,12 @@ model StorySticker {
   announcedAt DateTime?
   createdAt   DateTime         @default(now())
 
-  story     Story                  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  story     Story?                 @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  postMedia PostMedia?             @relation(fields: [postMediaId], references: [id], onDelete: Cascade)
   responses StoryStickerResponse[]
 
   @@index([storyId])
+  @@index([postMediaId])
   @@index([endsAt, announcedAt])
   @@map("story_stickers")
 }

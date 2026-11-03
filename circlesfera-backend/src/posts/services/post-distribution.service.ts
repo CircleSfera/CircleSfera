@@ -4,6 +4,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums, Visibility } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { assertCanAccessPost } from '../../common/policies/post-access.policy.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { captionMentions } from '../caption-mentions.js';
 
@@ -24,6 +25,8 @@ export interface DistributablePost {
 export interface DistributionOptions {
   caption?: string | null;
   uniqueMentions?: string[];
+  // The profiles the stickers on its photos mention.
+  stickerMentions?: string[];
   // Automatic moderation did not answer before the post was saved: its
   // check in the background keeps trying for longer, until the service is
   // back.
@@ -64,6 +67,10 @@ export class PostDistributionService {
             url: true,
             thumbnailUrl: true,
             media: { select: { url: true, thumbnailUrl: true } },
+            stickers: {
+              where: { kind: 'MENTION' },
+              select: { settings: true },
+            },
           },
         },
       },
@@ -77,7 +84,23 @@ export class PostDistributionService {
           thumbnailUrl: m.media?.thumbnailUrl ?? m.thumbnailUrl,
         })),
       },
-      { caption: post.caption, uniqueMentions: captionMentions(post.caption) },
+      {
+        caption: post.caption,
+        uniqueMentions: captionMentions(post.caption),
+        stickerMentions: [
+          ...new Set(
+            post.media
+              .flatMap((m) => m.stickers)
+              .map(
+                (s) => (s.settings as { profileId?: string } | null)?.profileId,
+              )
+              .filter(
+                (id): id is string =>
+                  typeof id === 'string' && id !== post.profileId,
+              ),
+          ),
+        ],
+      },
     );
   }
 
@@ -148,6 +171,7 @@ export class PostDistributionService {
 
     // Mention notifications
     const mentions = options.uniqueMentions ?? [];
+    const told = new Set<string>();
     if (mentions.length > 0) {
       const mentionedProfiles = await this.prisma.profile.findMany({
         where: {
@@ -158,15 +182,39 @@ export class PostDistributionService {
       });
 
       await Promise.all(
-        mentionedProfiles.map((profile) =>
-          this.eventEmitter.emit('notification.create', {
+        mentionedProfiles.map((profile) => {
+          told.add(profile.id);
+          return this.eventEmitter.emit('notification.create', {
             recipientId: profile.id,
             senderId: post.profileId,
             type: NotificationType.MENTION,
             notice: { key: 'mentioned_in_post' },
-          } satisfies NotificationCreateEvent['payload']),
-        ),
+          } satisfies NotificationCreateEvent['payload']);
+        }),
       );
+    }
+
+    // A profile a sticker mentions is told once, and only when it can see
+    // the post, linking it.
+    for (const recipientId of options.stickerMentions ?? []) {
+      if (told.has(recipientId) || recipientId === post.profileId) continue;
+      const canSee = await assertCanAccessPost(
+        this.prisma,
+        post.id,
+        recipientId,
+      ).then(
+        () => true,
+        () => false,
+      );
+      if (!canSee) continue;
+      told.add(recipientId);
+      this.eventEmitter.emit('notification.create', {
+        recipientId,
+        senderId: post.profileId,
+        type: NotificationType.MENTION,
+        notice: { key: 'mentioned_in_post' },
+        postId: post.id,
+      } satisfies NotificationCreateEvent['payload']);
     }
   }
 }

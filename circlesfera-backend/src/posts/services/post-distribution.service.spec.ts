@@ -158,8 +158,14 @@ describe('PostDistributionService', () => {
               url: 'https://cdn/v.mp4',
               thumbnailUrl: 'https://cdn/v.jpg',
             },
+            stickers: [],
           },
-          { url: 'https://cdn/2.jpg', thumbnailUrl: null, media: null },
+          {
+            url: 'https://cdn/2.jpg',
+            thumbnailUrl: null,
+            media: null,
+            stickers: [],
+          },
         ],
       });
       mockPrisma.profile.findMany.mockResolvedValue([{ id: 'ana-id' }]);
@@ -207,6 +213,104 @@ describe('PostDistributionService', () => {
       targetId: 'post-9',
       text: 'a new caption',
       targetType: 'POST',
+    });
+  });
+
+  describe('the profiles the stickers on its photos mention', () => {
+    const post = {
+      id: 'post-5',
+      profileId: 'author-1',
+      visibility: Visibility.FOLLOWERS,
+      media: [],
+    };
+    // A post for followers: who follows sees it, who does not is not told.
+    const extra = {
+      block: { findFirst: vi.fn().mockResolvedValue(null) },
+      user: { findMany: vi.fn().mockResolvedValue([]) },
+      follow: {
+        findUnique: vi.fn(async ({ where }) =>
+          where.followerId_followingId.followerId === 'ana'
+            ? { status: 'ACCEPTED' }
+            : null,
+        ),
+      },
+    };
+
+    beforeEach(() => {
+      Object.assign(mockPrisma, extra);
+      mockPrisma.post.findUnique.mockResolvedValue({
+        id: 'post-5',
+        profileId: 'author-1',
+        visibility: Visibility.FOLLOWERS,
+        moderationStatus: 'VISIBLE',
+        deletedAt: null,
+        archivedAt: null,
+        turnOffComments: false,
+        profile: { privacyLevel: Visibility.PUBLIC },
+      });
+    });
+
+    it('are told once each, linking the post, only when they can see it', async () => {
+      mockPrisma.profile.findMany.mockResolvedValue([{ id: 'luis' }]);
+
+      await service.dispatchPostPublished(post, {
+        caption: 'con @luis',
+        uniqueMentions: ['luis'],
+        stickerMentions: ['ana', 'luis', 'stranger', 'author-1'],
+      });
+
+      const told = mockEventEmitter.emit.mock.calls.map(([, p]) => p);
+      expect(told).toEqual([
+        {
+          recipientId: 'luis',
+          senderId: 'author-1',
+          type: 'MENTION',
+          notice: { key: 'mentioned_in_post' },
+        },
+        {
+          recipientId: 'ana',
+          senderId: 'author-1',
+          type: 'MENTION',
+          notice: { key: 'mentioned_in_post' },
+          postId: 'post-5',
+        },
+      ]);
+    });
+
+    it('are read from the saved post when a scheduled post goes out', async () => {
+      mockPrisma.post.findUnique.mockResolvedValueOnce({
+        ...post,
+        caption: null,
+        media: [
+          {
+            url: 'https://cdn/1.jpg',
+            thumbnailUrl: null,
+            media: null,
+            stickers: [
+              { settings: { profileId: 'ana' } },
+              { settings: { profileId: 'author-1' } },
+            ],
+          },
+          {
+            url: 'https://cdn/2.jpg',
+            thumbnailUrl: null,
+            media: null,
+            stickers: [{ settings: { profileId: 'ana' } }, { settings: null }],
+          },
+        ],
+      });
+
+      await service.dispatchScheduledPostPublished('post-5');
+
+      expect(
+        mockPrisma.post.findUnique.mock.calls[0][0].select.media.select
+          .stickers,
+      ).toEqual({ where: { kind: 'MENTION' }, select: { settings: true } });
+      expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
+        expect.objectContaining({ recipientId: 'ana', postId: 'post-5' }),
+      );
     });
   });
 });

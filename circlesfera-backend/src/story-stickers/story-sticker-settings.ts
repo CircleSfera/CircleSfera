@@ -176,3 +176,17 @@ export const ONE_ANSWER_PER_PERSON: ReadonlySet<StoryStickerKind> = new Set([
   'SLIDER',
   'COUNTDOWN',
 ]);
+
+/**
+ * The most stickers one post holds, all its photos together: as many as a
+ * story.
+ */
+export const POST_STICKER_MAX = STICKER_LIMITS.perStory;
+
+/**
+ * Kinds a photo of a post takes: every kind of a story but sharing a post,
+ * which belongs to stories only.
+ */
+export const POST_STICKER_KINDS: ReadonlySet<StoryStickerKind> = new Set(
+  Object.values(StoryStickerKind).filter((kind) => kind !== 'POST'),
+);

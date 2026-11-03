@@ -545,9 +545,10 @@ export class InteractiveService {
   }
 
   /** A story's sticker of a kind by its id, the way the old routes reach it. */
-  private storySticker(id: string, kind: 'POLL' | 'QUESTION') {
-    return this.prisma.storySticker.findFirst({
+  private async storySticker(id: string, kind: 'POLL' | 'QUESTION') {
+    const sticker = await this.prisma.storySticker.findFirst({
       // A story moderation removed is shown to nobody, its stickers neither.
+      // A sticker on a post's photo is not reached through these routes.
       where: { id, kind, story: NOT_REMOVED },
       select: {
         id: true,
@@ -556,5 +557,6 @@ export class InteractiveService {
         story: { select: { profileId: true } },
       },
     });
+    return sticker?.story ? { ...sticker, story: sticker.story } : null;
   }
 }

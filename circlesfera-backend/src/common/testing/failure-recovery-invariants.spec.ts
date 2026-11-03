@@ -503,6 +503,7 @@ describe('Failure Injection & Recovery Invariants', () => {
         mockFeedInbox,
         mockFeedPreferences as never,
         mockExperiments as never,
+        { forPostViewers: async (posts: unknown[]) => posts } as never,
       );
     });
 

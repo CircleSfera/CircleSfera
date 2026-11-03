@@ -52,6 +52,10 @@ import {
 } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  POST_MEDIA_STICKERS,
+  StoryStickersService,
+} from '../story-stickers/story-stickers.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import {
@@ -86,6 +90,8 @@ export class PostsService {
     @Inject(StoredFilesService)
     private readonly storedFiles: StoredFilesService,
     @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+    @Inject(StoryStickersService)
+    private readonly stickers: StoryStickersService,
   ) {}
 
   // Create a new post with media, caption, hashtags, and mentions.
@@ -105,6 +111,11 @@ export class PostsService {
     // Only a frame has a cover to choose; said before anything is created.
     if (dto.coverTimeMs !== undefined && dto.type !== 'FRAME') {
       throw new BadRequestException('Only a frame has a cover to choose');
+    }
+    // Stickers go on the photos of a post; a Frame takes none.
+    const stickers = (dto.media ?? []).flatMap((m) => m.stickers ?? []);
+    if (stickers.length > 0 && dto.type === 'FRAME') {
+      throw new BadRequestException('STICKERS_ONLY_ON_POSTS');
     }
 
     // Only the sending Profile's own stored files can be attached.
@@ -218,6 +229,12 @@ export class PostsService {
         ? new Date(dto.scheduledAt)
         : undefined;
 
+    // Links are asked of DNS before the transaction opens, never inside it.
+    if (stickers.length > 0) {
+      await this.stickers.assertLinkHostsPublic(stickers);
+    }
+    let stickerMentions: string[] = [];
+
     const createdPost = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         // The place and its names are saved with the post or not at all.
@@ -267,6 +284,7 @@ export class PostsService {
             item,
             index,
             mediaId: randomUUID(),
+            postMediaId: randomUUID(),
           }));
           await tx.media.createMany({
             data: items.map(({ item, mediaId }) => ({
@@ -275,7 +293,8 @@ export class PostsService {
             })),
           });
           await tx.postMedia.createMany({
-            data: items.map(({ item, index, mediaId }) => ({
+            data: items.map(({ item, index, mediaId, postMediaId }) => ({
+              id: postMediaId,
               postId: post.id,
               mediaId,
               url: item.url,
@@ -287,6 +306,19 @@ export class PostsService {
               order: index,
             })),
           });
+          // Its stickers are saved with it or not at all.
+          if (stickers.length > 0) {
+            stickerMentions = await this.stickers.createForPost(
+              tx,
+              profileId,
+              items.map(({ item, postMediaId }) => ({
+                postMediaId,
+                stickers: item.stickers ?? [],
+              })),
+              placeAttachment.placeId,
+              dto.audioId ?? null,
+            );
+          }
         }
 
         // Hashtags in four statements whatever their number: create the
@@ -325,7 +357,7 @@ export class PostsService {
     const createdPostWithRelations = await this.prisma.post.findUniqueOrThrow({
       where: { id: createdPost.id },
       include: {
-        media: { include: { media: true } },
+        media: { include: { media: true, stickers: POST_MEDIA_STICKERS } },
         hashtags: { include: { hashtag: true } },
         tags: true,
         audio: true,
@@ -339,9 +371,13 @@ export class PostsService {
         },
       },
     });
+    const [withStickers] = await this.stickers.forPostViewers(
+      [createdPostWithRelations],
+      profileId,
+    );
     const post = {
-      ...createdPostWithRelations,
-      media: createdPostWithRelations.media.map(resolveMediaFields),
+      ...withStickers,
+      media: withStickers.media.map(resolveMediaFields),
     };
 
     // Defer fan-out/notifications until the maintenance worker publishes
@@ -352,6 +388,7 @@ export class PostsService {
     await this.postDistributionService.dispatchPostPublished(post, {
       caption: dto.caption,
       uniqueMentions,
+      ...(stickerMentions.length > 0 ? { stickerMentions } : {}),
       moderationUnchecked: moderation === null,
     });
 
@@ -586,7 +623,7 @@ export class PostsService {
         likes: currentProfileId
           ? { where: { profileId: currentProfileId }, take: 1 }
           : false,
-        media: { include: { media: true } },
+        media: { include: { media: true, stickers: POST_MEDIA_STICKERS } },
         audio: true,
         place: true,
         poll: { select: { id: true } },
@@ -609,10 +646,15 @@ export class PostsService {
       });
 
     const content = await loadViewerContent(this.prisma, currentProfileId);
-    return this.injectIsLiked(post, currentProfileId, content) as Record<
-      string,
-      unknown
-    >;
+    const [withStickers] = await this.stickers.forPostViewers(
+      [post],
+      currentProfileId,
+    );
+    return this.injectIsLiked(
+      withStickers,
+      currentProfileId,
+      content,
+    ) as Record<string, unknown>;
   }
 
   // Retrieve posts by a specific user's username with optional type filter.

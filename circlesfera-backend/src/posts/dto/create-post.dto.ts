@@ -20,6 +20,8 @@ import {
 } from 'class-validator';
 import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
 import { POST_MAX_MEDIA_ITEMS } from '../../common/constants/post-media.constants.js';
+import { CreateStoryStickerDto } from '../../story-stickers/dto/story-sticker.dto.js';
+import { POST_STICKER_MAX } from '../../story-stickers/story-sticker-settings.js';
 
 /** The longest caption of a post or frame; the composer shows the same limit. */
 export const POST_CAPTION_MAX_LENGTH = 2200;
@@ -69,6 +71,22 @@ class MediaItemDto {
   @IsString()
   @IsOptional()
   altText?: string;
+
+  /**
+   * The stickers placed on this photo of a post (a Frame takes none). The
+   * post's photos hold at most as many together as one does here.
+   */
+  @ApiProperty({
+    required: false,
+    type: () => [CreateStoryStickerDto],
+    maxItems: POST_STICKER_MAX,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(POST_STICKER_MAX)
+  @ValidateNested({ each: true })
+  @Type(() => CreateStoryStickerDto)
+  stickers?: CreateStoryStickerDto[];
 }
 
 class PlaceTranslationDto {

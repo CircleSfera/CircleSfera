@@ -1,6 +1,7 @@
 import type { NotificationCreateEvent } from '@circlesfera/shared';
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -17,6 +18,8 @@ import {
   isBlockedEitherWay,
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { OPEN_POST } from '../common/policies/story-share.policy.js';
 import { validateTargetUrl } from '../common/utils/ssrf.util.js';
@@ -28,6 +31,8 @@ import type {
 import { domainSuffixes, isUnderBlocked, LINK_LIMITS } from './link-safety.js';
 import {
   ANSWERABLE,
+  POST_STICKER_KINDS,
+  POST_STICKER_MAX,
   parseStickerSettings,
   publicSettings,
   STICKER_LIMITS,
@@ -47,7 +52,16 @@ export interface FeedSticker {
   rotation: number | null;
 }
 
-type StickerRow = FeedSticker & { settings: Prisma.JsonValue };
+type StickerRow = Omit<FeedSticker, 'settings'> & {
+  settings: Prisma.JsonValue;
+};
+
+/** A post as it is read with its photos' stickers. */
+export interface PostWithStickers {
+  id: string;
+  profileId: string;
+  media?: { stickers?: StickerRow[] }[];
+}
 
 /** The card of a post or Frame shared to a story, as a viewer sees it. */
 export interface SharedPostCard {
@@ -66,6 +80,12 @@ export const FEED_STICKER_SELECT = {
   y: true,
   scale: true,
   rotation: true,
+} as const;
+
+/** The stickers of a post's photo, read as the story feed reads a story's. */
+export const POST_MEDIA_STICKERS = {
+  select: FEED_STICKER_SELECT,
+  orderBy: { createdAt: 'asc' },
 } as const;
 
 type Tx = Prisma.TransactionClient;
@@ -100,39 +120,112 @@ export class StoryStickersService {
     storyPlaceId: string | null,
     storyAudioId: string | null = null,
   ): Promise<string[]> {
+    return this.createStickers(
+      tx,
+      authorProfileId,
+      stickers.map((sticker) => ({ sticker, owner: { storyId } })),
+      {
+        name: 'STORY',
+        max: STICKER_LIMITS.perStory,
+        placeId: storyPlaceId,
+        audioId: storyAudioId,
+      },
+    );
+  }
+
+  /**
+   * Creates the stickers of a new post's photos inside its transaction, with
+   * the checks a story's get. The post's photos hold so many stickers
+   * together, never one that shares a post; a location is the post's place
+   * and a music sticker its song, once per post. Returns the profiles
+   * mentioned, once each, for their notifications.
+   */
+  async createForPost(
+    tx: Tx,
+    authorProfileId: string,
+    media: { postMediaId: string; stickers: CreateStoryStickerDto[] }[],
+    postPlaceId: string | null,
+    postAudioId: string | null,
+  ): Promise<string[]> {
+    const items = media.flatMap(({ postMediaId, stickers }) =>
+      stickers.map((sticker) => ({ sticker, owner: { postMediaId } })),
+    );
+    if (items.some(({ sticker }) => !POST_STICKER_KINDS.has(sticker.kind))) {
+      throw new BadRequestException('STICKER_KIND_NOT_ON_POSTS');
+    }
+    return this.createStickers(tx, authorProfileId, items, {
+      name: 'POST',
+      max: POST_STICKER_MAX,
+      placeId: postPlaceId,
+      audioId: postAudioId,
+    });
+  }
+
+  /**
+   * Creates new stickers on a story or on the photos of a post, after
+   * checking what each holds: a mention names a profile that exists and is
+   * not blocked either way; a location is the owner's place and a music
+   * sticker its song, once per owner.
+   */
+  private async createStickers(
+    tx: Tx,
+    authorProfileId: string,
+    items: {
+      sticker: CreateStoryStickerDto;
+      owner: { storyId: string } | { postMediaId: string };
+    }[],
+    scope: {
+      name: 'STORY' | 'POST';
+      max: number;
+      placeId: string | null;
+      audioId: string | null;
+    },
+  ): Promise<string[]> {
+    const stickers = items.map((i) => i.sticker);
     if (stickers.length === 0) return [];
-    if (stickers.length > STICKER_LIMITS.perStory) {
+    if (stickers.length > scope.max) {
       throw new BadRequestException('TOO_MANY_STICKERS');
     }
     if (stickers.filter((s) => s.kind === 'LOCATION').length > 1) {
-      throw new BadRequestException('ONE_LOCATION_STICKER_PER_STORY');
+      throw new BadRequestException(`ONE_LOCATION_STICKER_PER_${scope.name}`);
     }
     if (stickers.filter((s) => s.kind === 'MUSIC').length > 1) {
-      throw new BadRequestException('ONE_MUSIC_STICKER_PER_STORY');
+      throw new BadRequestException(`ONE_MUSIC_STICKER_PER_${scope.name}`);
     }
     if (stickers.filter((s) => s.kind === 'POST').length > 1) {
       throw new BadRequestException('ONE_POST_STICKER_PER_STORY');
     }
     const links = stickers.filter((s) => s.kind === 'LINK').length;
-    if (links > 1) throw new BadRequestException('ONE_LINK_STICKER_PER_STORY');
+    if (links > 1) {
+      throw new BadRequestException(`ONE_LINK_STICKER_PER_${scope.name}`);
+    }
     if (links > 0) {
-      // One story at a time per author counts and adds its link, so two at
-      // once never both fit under the day's limit.
+      // One story or post at a time per author counts and adds its link, so
+      // two at once never both fit under the day's limit, which counts the
+      // links of their stories and posts together.
       await tx.$queryRaw`SELECT id FROM profiles WHERE id = ${authorProfileId} FOR UPDATE`;
-      const today = await tx.storySticker.count({
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const onStories = await tx.storySticker.count({
         where: {
           kind: 'LINK',
-          createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          createdAt: { gt: since },
           story: { profileId: authorProfileId },
         },
       });
-      if (today >= LINK_LIMITS.perDay) {
+      const onPosts = await tx.storySticker.count({
+        where: {
+          kind: 'LINK',
+          createdAt: { gt: since },
+          postMedia: { post: { profileId: authorProfileId } },
+        },
+      });
+      if (onStories + onPosts >= LINK_LIMITS.perDay) {
         throw new BadRequestException('LINKS_PER_DAY_REACHED');
       }
     }
     const mentioned = new Set<string>();
     const rows: Prisma.StoryStickerCreateManyInput[] = [];
-    for (const sticker of stickers) {
+    for (const { sticker, owner } of items) {
       let settings = parseStickerSettings(sticker.kind, sticker.settings);
       if (
         ANSWERABLE.has(sticker.kind) &&
@@ -173,15 +266,15 @@ export class StoryStickersService {
         );
       }
       if (sticker.kind === 'MUSIC') {
-        if (!storyAudioId) throw new BadRequestException('AUDIO_NOT_FOUND');
-        settings = { audioId: storyAudioId };
+        if (!scope.audioId) throw new BadRequestException('AUDIO_NOT_FOUND');
+        settings = { audioId: scope.audioId };
       }
       if (sticker.kind === 'LOCATION') {
-        if (!storyPlaceId) throw new BadRequestException('PLACE_NOT_FOUND');
-        settings = { placeId: storyPlaceId };
+        if (!scope.placeId) throw new BadRequestException('PLACE_NOT_FOUND');
+        settings = { placeId: scope.placeId };
       }
       rows.push({
-        storyId,
+        ...owner,
         kind: sticker.kind,
         settings: settings as Prisma.InputJsonValue,
         ...(sticker.kind === 'COUNTDOWN'
@@ -448,6 +541,75 @@ export class StoryStickersService {
   }
 
   /**
+   * The posts given, each photo with its stickers as one viewer may see
+   * them, the way the story feed sends a story's: a quiz's answer for the
+   * author only, a mention's username written here and left out when the
+   * profile is gone or blocked either way, a location with the post's place
+   * and a music sticker with its song, and no link to a domain staff blocked
+   * nor from an author who is banned or suspended.
+   */
+  async forPostViewers<P extends PostWithStickers>(
+    posts: P[],
+    viewerProfileId?: string | null,
+  ): Promise<P[]> {
+    const all = posts.flatMap((p) =>
+      (p.media ?? []).flatMap((m) => m.stickers ?? []),
+    );
+    if (all.length === 0) return posts;
+    const ids = posts
+      .filter((p) => (p.media ?? []).some((m) => m.stickers?.length))
+      .map((p) => p.id);
+    const [usernames, blockedDomains, owners] = await Promise.all([
+      this.mentionNames(all, viewerProfileId ?? undefined),
+      this.blockedLinkDomains(all),
+      this.prisma.post.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          place: { select: { name: true } },
+          audio: { select: { title: true, artist: true, thumbnailUrl: true } },
+          // The sanction is read to take the links off, and not returned.
+          profile: { select: { isAccountBanned: true, suspendedUntil: true } },
+        },
+      }),
+    ]);
+    const byId = new Map(owners.map((o) => [o.id, o]));
+    const now = new Date();
+    return posts.map((post) => {
+      const owner = byId.get(post.id);
+      if (!owner) return post;
+      const names = {
+        usernames,
+        placeName: owner.place?.name ?? null,
+        track: owner.audio
+          ? {
+              title: owner.audio.title,
+              artist: owner.audio.artist,
+              cover: owner.audio.thumbnailUrl ?? null,
+            }
+          : null,
+        blockedDomains,
+        // A sanction takes the author's links off at once.
+        linksOff:
+          owner.profile.isAccountBanned ||
+          (owner.profile.suspendedUntil != null &&
+            owner.profile.suspendedUntil > now),
+      };
+      return {
+        ...post,
+        media: post.media?.map((m) => ({
+          ...m,
+          stickers: this.forFeed(
+            m.stickers ?? [],
+            post.profileId === viewerProfileId,
+            names,
+          ),
+        })),
+      } as P;
+    });
+  }
+
+  /**
    * The people who answered a vote or a slider, most recent first, as the
    * author of the story may see them: someone blocked either way, or of the
    * other audience, is left out of the list (not of the count).
@@ -481,15 +643,11 @@ export class StoryStickersService {
     body: RespondStoryStickerDto,
   ) {
     const sticker = await this.findSticker(stickerId);
-    const story = await assertCanAccessStory(
-      this.prisma,
-      sticker.storyId,
-      viewerProfileId,
-    );
-    if (story.profileId === viewerProfileId) {
+    const owner = await this.assertCanAccessOwner(sticker, viewerProfileId);
+    if (owner.profileId === viewerProfileId) {
       throw new BadRequestException('CANNOT_ANSWER_OWN_STICKER');
     }
-    if (story.expiresAt.getTime() <= Date.now()) {
+    if (owner.expiresAt && owner.expiresAt.getTime() <= Date.now()) {
       throw new BadRequestException('STORY_EXPIRED');
     }
     if (!ANSWERABLE.has(sticker.kind)) {
@@ -572,12 +730,8 @@ export class StoryStickersService {
    */
   async results(viewerProfileId: string, stickerId: string) {
     const sticker = await this.findSticker(stickerId);
-    const story = await assertCanAccessStory(
-      this.prisma,
-      sticker.storyId,
-      viewerProfileId,
-    );
-    const isAuthor = story.profileId === viewerProfileId;
+    const owner = await this.assertCanAccessOwner(sticker, viewerProfileId);
+    const isAuthor = owner.profileId === viewerProfileId;
     const settings = sticker.settings as Record<string, unknown>;
 
     if (sticker.kind === 'QUESTION') {
@@ -702,63 +856,180 @@ export class StoryStickersService {
     });
     let told = 0;
     for (const sticker of ended) {
-      const claimed = await this.prisma.storySticker.updateMany({
-        where: { id: sticker.id, announcedAt: null },
-        data: { announcedAt: now },
-      });
-      if (claimed.count === 0) continue;
-      let asked: { profileId: string }[];
-      try {
-        asked = await this.prisma.storyStickerResponse.findMany({
-          where: { stickerId: sticker.id, voteKey: sticker.id },
-          select: { profileId: true },
-        });
-      } catch (err) {
-        // Let it go, so a later run tells it, and go on with the others.
-        this.logger.warn(
-          `Countdown ${sticker.id} not told: ${(err as Error).message}`,
-        );
-        await this.prisma.storySticker
-          .updateMany({
-            where: { id: sticker.id, announcedAt: now },
-            data: { announcedAt: null },
-          })
-          .catch(() => undefined);
-        continue;
-      }
-      const author = sticker.story.profileId;
-      const title = String(
-        (sticker.settings as { title?: string } | null)?.title ?? '',
-      );
+      // A sticker on a post is never read here: the query asks for a story.
+      const story = sticker.story as NonNullable<typeof sticker.story>;
       // The story is linked while it lasts.
-      const target =
-        sticker.story.expiresAt > now
-          ? { targetType: 'story', targetId: sticker.story.id }
-          : {};
-      for (const recipientId of new Set([
-        ...asked.map((a) => a.profileId),
-        author,
-      ])) {
-        this.eventEmitter.emit('notification.create', {
-          recipientId,
-          senderId: author,
-          type: NotificationType.SYSTEM,
-          notice: { key: 'countdown_ended', title },
-          ...target,
-        } satisfies NotificationCreateEvent['payload']);
-        told++;
+      told += await this.announceCountdown(
+        sticker,
+        story.profileId,
+        story.expiresAt > now
+          ? { targetType: 'story', targetId: story.id }
+          : {},
+        now,
+      );
+    }
+    // The countdowns on posts' photos. A post its author deleted or archived,
+    // removed by moderation, or not out yet tells nobody while it stays so.
+    const endedHere = {
+      kind: 'COUNTDOWN' as const,
+      endsAt: { lte: now },
+      announcedAt: null,
+    };
+    const posts = await this.prisma.post.findMany({
+      where: {
+        ...LISTED_POST,
+        scheduledStatus: 'PUBLISHED',
+        media: { some: { stickers: { some: endedHere } } },
+      },
+      select: {
+        id: true,
+        profileId: true,
+        media: {
+          select: {
+            stickers: {
+              where: endedHere,
+              select: { id: true, settings: true },
+            },
+          },
+        },
+      },
+      take: 50,
+    });
+    for (const post of posts) {
+      for (const sticker of post.media.flatMap((m) => m.stickers)) {
+        told += await this.announceCountdown(
+          sticker,
+          post.profileId,
+          { postId: post.id },
+          now,
+        );
       }
     }
     if (told > 0) this.logger.log(`Countdown notices sent: ${told}`);
     return told;
   }
 
+  /**
+   * Tells one ended countdown, once, to the people who asked and the author,
+   * linking what it is on. Answers how many were told.
+   */
+  private async announceCountdown(
+    sticker: { id: string; settings: Prisma.JsonValue },
+    author: string,
+    target: { targetType?: string; targetId?: string; postId?: string },
+    now: Date,
+  ): Promise<number> {
+    const claimed = await this.prisma.storySticker.updateMany({
+      where: { id: sticker.id, announcedAt: null },
+      data: { announcedAt: now },
+    });
+    if (claimed.count === 0) return 0;
+    let asked: { profileId: string }[];
+    try {
+      asked = await this.prisma.storyStickerResponse.findMany({
+        where: { stickerId: sticker.id, voteKey: sticker.id },
+        select: { profileId: true },
+      });
+    } catch (err) {
+      // Let it go, so a later run tells it, and go on with the others.
+      this.logger.warn(
+        `Countdown ${sticker.id} not told: ${(err as Error).message}`,
+      );
+      await this.prisma.storySticker
+        .updateMany({
+          where: { id: sticker.id, announcedAt: now },
+          data: { announcedAt: null },
+        })
+        .catch(() => undefined);
+      return 0;
+    }
+    const title = String(
+      (sticker.settings as { title?: string } | null)?.title ?? '',
+    );
+    let told = 0;
+    for (const recipientId of new Set([
+      ...asked.map((a) => a.profileId),
+      author,
+    ])) {
+      this.eventEmitter.emit('notification.create', {
+        recipientId,
+        senderId: author,
+        type: NotificationType.SYSTEM,
+        notice: { key: 'countdown_ended', title },
+        ...target,
+      } satisfies NotificationCreateEvent['payload']);
+      told++;
+    }
+    return told;
+  }
+
   private async findSticker(stickerId: string) {
     const sticker = await this.prisma.storySticker.findUnique({
       where: { id: stickerId },
-      select: { id: true, storyId: true, kind: true, settings: true },
+      select: {
+        id: true,
+        storyId: true,
+        kind: true,
+        settings: true,
+        postMedia: { select: { postId: true } },
+      },
     });
     if (!sticker) throw new NotFoundException('Sticker not found');
     return sticker;
+  }
+
+  /**
+   * Whoever may see a sticker's story, or the post whose photo it is on, may
+   * answer it and read what it gathered. Answers who wrote it and, for a
+   * story, when it ends.
+   */
+  private async assertCanAccessOwner(
+    sticker: { storyId: string | null; postMedia?: { postId: string } | null },
+    viewerProfileId: string,
+  ): Promise<{ profileId: string; expiresAt: Date | null }> {
+    if (sticker.storyId) {
+      return assertCanAccessStory(
+        this.prisma,
+        sticker.storyId,
+        viewerProfileId,
+      );
+    }
+    if (!sticker.postMedia) throw new NotFoundException('Sticker not found');
+    const post = await this.prisma.post.findUnique({
+      where: { id: sticker.postMedia.postId },
+      select: {
+        id: true,
+        profileId: true,
+        visibility: true,
+        moderationStatus: true,
+        deletedAt: true,
+        archivedAt: true,
+        turnOffComments: true,
+        scheduledStatus: true,
+        profile: { select: { privacyLevel: true } },
+      },
+    });
+    // A post not out yet is its author's only. Every other denial answers as
+    // a missing sticker does, so neither the post nor the restriction is
+    // revealed.
+    if (
+      !post ||
+      (post.profileId !== viewerProfileId &&
+        post.scheduledStatus !== 'PUBLISHED')
+    ) {
+      throw new NotFoundException('Sticker not found');
+    }
+    try {
+      await assertCanAccessPost(this.prisma, post, viewerProfileId);
+    } catch (err) {
+      if (
+        err instanceof NotFoundException ||
+        err instanceof ForbiddenException
+      ) {
+        throw new NotFoundException('Sticker not found');
+      }
+      throw err;
+    }
+    return { profileId: post.profileId, expiresAt: null };
   }
 }

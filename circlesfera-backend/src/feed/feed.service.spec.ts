@@ -5,6 +5,7 @@ import { AIService } from '../ai/ai.service.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
 import { FeedService } from './feed.service.js';
 import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
 import { FeedInboxService } from './feed-inbox.service.js';
@@ -75,6 +76,11 @@ describe('FeedService', () => {
     isFeatureEnabled: vi.fn().mockResolvedValue(false),
   };
 
+  // The stickers of the posts' photos pass as they are, unless a test says.
+  const mockStickers = {
+    forPostViewers: vi.fn(async (posts: unknown[]) => posts),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -85,6 +91,7 @@ describe('FeedService', () => {
         { provide: FeedInboxService, useValue: mockFeedInboxService },
         { provide: FeedPreferencesService, useValue: mockFeedPreferences },
         { provide: ExperimentsService, useValue: mockExperiments },
+        { provide: StoryStickersService, useValue: mockStickers },
       ],
     }).compile();
 
@@ -523,6 +530,51 @@ describe('FeedService', () => {
 
       expect(res.data[0].isLocked).toBe(true);
       expect(res.data[0].media[0].url).toBe('');
+    });
+
+    it("sends each photo's stickers as the viewer may see them, and none on a locked one", async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce(['p-1', 'prem-1']);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        {
+          id: 'p-1',
+          profileId: 'creator-x',
+          media: [{ url: 'a.jpg', stickers: [{ id: 'raw' }] }],
+          likes: [],
+        },
+        {
+          id: 'prem-1',
+          profileId: 'creator-x',
+          isPremium: true,
+          media: [{ url: 'b.jpg', stickers: [{ id: 'raw' }] }],
+          likes: [],
+        },
+      ]);
+      mockStickers.forPostViewers.mockImplementationOnce(async (posts) =>
+        (posts as Array<{ media: object[] }>).map((p) => ({
+          ...p,
+          media: p.media.map((m) => ({ ...m, stickers: [{ id: 'seen' }] })),
+        })),
+      );
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'u1',
+      });
+      mockPrismaService.postUnlock.findMany.mockResolvedValueOnce([]);
+
+      const res = await service.getFollowingFeed('viewer-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(
+        mockPrismaService.post.findMany.mock.calls[0][0].include.media.include
+          .stickers,
+      ).toEqual(expect.objectContaining({ orderBy: { createdAt: 'asc' } }));
+      expect(mockStickers.forPostViewers).toHaveBeenCalledWith(
+        expect.any(Array),
+        'viewer-1',
+      );
+      expect(res.data[0].media[0].stickers).toEqual([{ id: 'seen' }]);
+      expect(res.data[1].media[0].stickers).toEqual([]);
     });
   });
 

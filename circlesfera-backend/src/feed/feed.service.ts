@@ -34,6 +34,11 @@ import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.j
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  POST_MEDIA_STICKERS,
+  type PostWithStickers,
+  StoryStickersService,
+} from '../story-stickers/story-stickers.service.js';
 import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
 import { FeedInboxService } from './feed-inbox.service.js';
 import { FeedPreferencesService } from './feed-preferences.service.js';
@@ -52,17 +57,27 @@ export class FeedService {
     private readonly feedPreferences: FeedPreferencesService,
     @Inject(ExperimentsService)
     private readonly experiments: ExperimentsService,
+    @Inject(StoryStickersService)
+    private readonly stickers: StoryStickersService,
   ) {}
 
   private postHydrationInclude(profileId?: string | null) {
     return {
       profile: { select: PUBLIC_PROFILE_SELECT },
-      media: { include: { media: true } },
+      media: { include: { media: true, stickers: POST_MEDIA_STICKERS } },
       poll: { select: { id: true } },
       qnaBox: { select: { id: true } },
       _count: { select: { likes: true, comments: SHOWN_COMMENTS_COUNT } },
       likes: profileId ? { where: { profileId }, take: 1 } : false,
     };
+  }
+
+  // The stickers of the posts' photos, as the viewer may see them.
+  private async withStickers<P extends PostWithStickers>(
+    posts: Promise<P[]>,
+    profileId?: string | null,
+  ): Promise<P[]> {
+    return this.stickers.forPostViewers(await posts, profileId);
   }
 
   // What the viewer asked to see of sensitive content, read the same way
@@ -347,10 +362,13 @@ export class FeedService {
       // Step C: Hydrate Post objects with full relations
       const postIds = postsRaw.map((p) => p.id);
       // A post deleted, archived or removed since it was ranked is left out.
-      const hydratedPosts = await this.prisma.post.findMany({
-        where: { id: { in: postIds }, ...LISTED_POST },
-        include: this.postHydrationInclude(profileId),
-      });
+      const hydratedPosts = await this.withStickers(
+        this.prisma.post.findMany({
+          where: { id: { in: postIds }, ...LISTED_POST },
+          include: this.postHydrationInclude(profileId),
+        }),
+        profileId,
+      );
 
       // Sort back to algorithm order
       const sortedPosts = postIds
@@ -407,6 +425,8 @@ export class FeedService {
                 ...m,
                 url: '',
                 standardUrl: '',
+                // A locked photo is not answered either.
+                stickers: [],
               })),
             };
           }
@@ -467,19 +487,22 @@ export class FeedService {
         `Fetching ${inboxPostIds.length} posts from Redis inbox for user ${profileId}`,
       );
 
-      const rawPosts = await this.prisma.post.findMany({
-        where: {
-          id: { in: inboxPostIds },
-          profile: await viewerAudienceWhere(this.prisma, profileId),
-          moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
-          deletedAt: null,
-          archivedAt: null,
-          scheduledStatus: 'PUBLISHED',
-          // Mature posts only for who allows them; their own always.
-          AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
-        },
-        include: this.postHydrationInclude(profileId),
-      });
+      const rawPosts = await this.withStickers(
+        this.prisma.post.findMany({
+          where: {
+            id: { in: inboxPostIds },
+            profile: await viewerAudienceWhere(this.prisma, profileId),
+            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            deletedAt: null,
+            archivedAt: null,
+            scheduledStatus: 'PUBLISHED',
+            // Mature posts only for who allows them; their own always.
+            AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
+          },
+          include: this.postHydrationInclude(profileId),
+        }),
+        profileId,
+      );
 
       // Maintain Redis order (chronological by push time)
       posts = inboxPostIds
@@ -556,28 +579,31 @@ export class FeedService {
           : {};
 
       const [fallbackPosts, fallbackTotal] = await Promise.all([
-        this.prisma.post.findMany({
-          where: {
-            profileId: { in: followingIds },
-            profile: await viewerAudienceWhere(this.prisma, profileId),
-            type: 'POST',
-            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
-            deletedAt: null,
-            archivedAt: null,
-            scheduledStatus: 'PUBLISHED',
-            ...preferenceFilter,
-            AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
-            OR: [
-              { visibility: Visibility.PUBLIC },
-              { visibility: Visibility.FOLLOWERS },
-              { profileId },
-            ],
-          },
-          skip,
-          take: limit,
-          orderBy: { createdAt: 'desc' },
-          include: this.postHydrationInclude(profileId),
-        }),
+        this.withStickers(
+          this.prisma.post.findMany({
+            where: {
+              profileId: { in: followingIds },
+              profile: await viewerAudienceWhere(this.prisma, profileId),
+              type: 'POST',
+              moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+              deletedAt: null,
+              archivedAt: null,
+              scheduledStatus: 'PUBLISHED',
+              ...preferenceFilter,
+              AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
+              OR: [
+                { visibility: Visibility.PUBLIC },
+                { visibility: Visibility.FOLLOWERS },
+                { profileId },
+              ],
+            },
+            skip,
+            take: limit,
+            orderBy: { createdAt: 'desc' },
+            include: this.postHydrationInclude(profileId),
+          }),
+          profileId,
+        ),
         this.prisma.post.count({
           where: {
             profileId: { in: followingIds },
@@ -653,6 +679,8 @@ export class FeedService {
               ...m,
               url: '',
               standardUrl: '',
+              // A locked photo is not answered either.
+              stickers: [],
             })),
           };
         }
@@ -733,13 +761,16 @@ export class FeedService {
     };
 
     const [posts, total] = await Promise.all([
-      this.prisma.post.findMany({
-        where,
-        orderBy: [{ performanceScore: 'desc' }, { createdAt: 'desc' }],
-        skip,
-        take: limit,
-        include: this.postHydrationInclude(currentProfileId),
-      }),
+      this.withStickers(
+        this.prisma.post.findMany({
+          where,
+          orderBy: [{ performanceScore: 'desc' }, { createdAt: 'desc' }],
+          skip,
+          take: limit,
+          include: this.postHydrationInclude(currentProfileId),
+        }),
+        currentProfileId,
+      ),
       this.prisma.post.count({ where }),
     ]);
 
@@ -791,6 +822,8 @@ export class FeedService {
               ...m,
               url: '',
               standardUrl: '',
+              // A locked photo is not answered either.
+              stickers: [],
             })),
           };
         }
@@ -889,30 +922,33 @@ export class FeedService {
     if (activePromotions.length === 0) return posts;
 
     const promotedPostIds = activePromotions.map((p) => p.targetId);
-    const promotedPostsRaw = await this.prisma.post.findMany({
-      where: {
-        id: { in: promotedPostIds },
-        // A promoted post that moderation removed, or its author deleted or
-        // archived, is shown to nobody.
-        ...LISTED_POST,
-        visibility: 'PUBLIC',
-        author: {
-          isAccountBanned: false,
-          user: {
-            isActive: true,
-            isTestAccount: await isTestViewerProfile(this.prisma, profileId),
+    const promotedPostsRaw = await this.withStickers(
+      this.prisma.post.findMany({
+        where: {
+          id: { in: promotedPostIds },
+          // A promoted post that moderation removed, or its author deleted or
+          // archived, is shown to nobody.
+          ...LISTED_POST,
+          visibility: 'PUBLIC',
+          author: {
+            isAccountBanned: false,
+            user: {
+              isActive: true,
+              isTestAccount: await isTestViewerProfile(this.prisma, profileId),
+            },
+            ...(profileId
+              ? {
+                  blockedBy: { none: { blockerId: profileId } },
+                  blocking: { none: { blockedId: profileId } },
+                  mutedBy: { none: { muterId: profileId } },
+                }
+              : {}),
           },
-          ...(profileId
-            ? {
-                blockedBy: { none: { blockerId: profileId } },
-                blocking: { none: { blockedId: profileId } },
-                mutedBy: { none: { muterId: profileId } },
-              }
-            : {}),
         },
-      },
-      include: this.postHydrationInclude(profileId),
-    });
+        include: this.postHydrationInclude(profileId),
+      }),
+      profileId,
+    );
 
     const promotedPostsDict = new Map();
     for (const p of promotedPostsRaw) {

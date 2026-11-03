@@ -3,6 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { type ValidationError, validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 import { CreateStoryDto } from '../../stories/dto/create-story.dto.js';
+import { POST_STICKER_MAX } from '../../story-stickers/story-sticker-settings.js';
 import { CreatePostDto } from './create-post.dto.js';
 import { UpdatePostDto } from './update-post.dto.js';
 
@@ -185,6 +186,58 @@ describe('the number of photos and videos of a post', () => {
   it('is at most twenty', async () => {
     expect(await rules(20)).toEqual([]);
     expect(await rules(21)).toEqual(['arrayMaxSize']);
+  });
+});
+
+describe('the stickers on a photo of a post', () => {
+  const poll = {
+    kind: 'POLL',
+    settings: { question: '¿Playa?', options: ['Sí', 'No'] },
+    x: 0,
+    y: 0,
+    scale: 1,
+    rotation: 0,
+  };
+  // Every failed rule under the first photo, as "path: rule".
+  const rules = async (stickers: unknown) => {
+    const errors = await validate(
+      plainToInstance(CreatePostDto, {
+        media: [{ url: '/uploads/a.jpg', type: 'image', stickers }],
+      }) as object,
+      { whitelist: true, forbidNonWhitelisted: true },
+    );
+    const collect = (list: ValidationError[], path: string): string[] =>
+      list.flatMap((error) => {
+        const here = path ? `${path}.${error.property}` : error.property;
+        return [
+          ...Object.keys(error.constraints ?? {}).map(
+            (rule) => `${here}: ${rule}`,
+          ),
+          ...collect(error.children ?? [], here),
+        ];
+      });
+    return collect(errors, '');
+  };
+
+  it('are left out, or each a sticker as a story takes it', async () => {
+    expect(await rules(undefined)).toEqual([]);
+    expect(await rules([poll])).toEqual([]);
+  });
+
+  it('are as many as a post holds, and no more', async () => {
+    expect(await rules(Array(POST_STICKER_MAX).fill(poll))).toEqual([]);
+    expect(await rules(Array(POST_STICKER_MAX + 1).fill(poll))).toEqual([
+      'media.0.stickers: arrayMaxSize',
+    ]);
+  });
+
+  it('refuse an unknown kind and a place off the photo', async () => {
+    expect(
+      await rules([
+        { ...poll, kind: 'SPARKLE' },
+        { ...poll, x: 0.9 },
+      ]),
+    ).toEqual(['media.0.stickers.0.kind: isEnum', 'media.0.stickers.1.x: max']);
   });
 });
 

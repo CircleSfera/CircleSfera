@@ -13,6 +13,7 @@ import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
@@ -106,6 +107,12 @@ describe('PostsService', () => {
   };
 
   const mockFrameCover = { choose: vi.fn() };
+  // The stickers of a post's photos pass as they are, unless a test says.
+  const mockStickers = {
+    assertLinkHostsPublic: vi.fn().mockResolvedValue(undefined),
+    createForPost: vi.fn().mockResolvedValue([]),
+    forPostViewers: vi.fn(async (posts: unknown[]) => posts),
+  };
   const mockEventEmitter = { emit: vi.fn() };
 
   const mockAnalyticsService = {
@@ -140,6 +147,7 @@ describe('PostsService', () => {
         },
         { provide: FrameCoverService, useValue: mockFrameCover },
         { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: StoryStickersService, useValue: mockStickers },
       ],
     }).compile();
 
@@ -885,6 +893,177 @@ describe('PostsService', () => {
 
       const result = await service.getFramesFeed({ page: 1, limit: 10 });
       expect(result.data).toHaveLength(0);
+    });
+  });
+
+  describe('a post with stickers on its photos', () => {
+    const poll = {
+      kind: 'POLL' as const,
+      settings: { question: '¿Playa?', options: ['Sí', 'No'] },
+      x: 0,
+      y: 0,
+      scale: 1,
+      rotation: 0,
+    };
+    const link = {
+      ...poll,
+      kind: 'LINK' as const,
+      settings: { url: 'https://shop.example.com' },
+    };
+    let mockTx: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+
+    beforeEach(() => {
+      mockTx = {
+        post: { create: vi.fn().mockResolvedValue({ id: 'post-1' }) },
+        postMedia: { createMany: vi.fn() },
+        media: { createMany: vi.fn() },
+        place: { findUnique: vi.fn().mockResolvedValue({ id: 'place-1' }) },
+      };
+      mockPrismaService.$transaction.mockImplementation(
+        async (callback: (tx: unknown) => Promise<unknown>) => callback(mockTx),
+      );
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValue({
+        id: 'post-1',
+        profileId: 'user-1',
+        media: [],
+      });
+      mockPrismaService.audio.findUnique.mockResolvedValue({
+        id: 'song-1',
+        duration: 30,
+      });
+    });
+
+    it('saves them with the post, each on its photo, after asking DNS about the links', async () => {
+      mockStickers.createForPost.mockResolvedValueOnce(['ana']);
+
+      await service.create('user-1', {
+        placeId: 'place-1',
+        audioId: 'song-1',
+        media: [
+          { url: '/uploads/a.jpg', type: 'image', stickers: [poll, link] },
+          { url: '/uploads/b.jpg', type: 'image' },
+        ],
+      } as CreatePostDto);
+
+      expect(mockStickers.assertLinkHostsPublic).toHaveBeenCalledWith([
+        poll,
+        link,
+      ]);
+      expect(
+        mockStickers.assertLinkHostsPublic.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        mockPrismaService.$transaction.mock.invocationCallOrder[0],
+      );
+      const rows = mockTx.postMedia.createMany.mock.calls[0][0].data;
+      expect(mockStickers.createForPost).toHaveBeenCalledWith(
+        mockTx,
+        'user-1',
+        [
+          { postMediaId: rows[0].id, stickers: [poll, link] },
+          { postMediaId: rows[1].id, stickers: [] },
+        ],
+        'place-1',
+        'song-1',
+      );
+      expect(rows[0].id).toEqual(expect.any(String));
+      expect(rows[0].id).not.toBe(rows[1].id);
+      // The profiles they mention are told once the post is out.
+      expect(
+        mockPostDistributionService.dispatchPostPublished,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'post-1' }),
+        expect.objectContaining({ stickerMentions: ['ana'] }),
+      );
+      // The author gets the post back with them as viewers see them.
+      expect(mockStickers.forPostViewers).toHaveBeenCalledWith(
+        [expect.objectContaining({ id: 'post-1' })],
+        'user-1',
+      );
+      expect(
+        mockPrismaService.post.findUniqueOrThrow.mock.calls[0][0].include.media
+          .include.stickers,
+      ).toEqual(expect.objectContaining({ orderBy: { createdAt: 'asc' } }));
+    });
+
+    it('tells nobody yet when the post is scheduled', async () => {
+      mockStickers.createForPost.mockResolvedValueOnce(['ana']);
+
+      await service.create('user-1', {
+        scheduledAt: new Date(Date.now() + 3_600_000),
+        media: [{ url: '/uploads/a.jpg', type: 'image', stickers: [poll] }],
+      } as CreatePostDto);
+
+      expect(mockStickers.createForPost).toHaveBeenCalled();
+      expect(
+        mockPostDistributionService.dispatchPostPublished,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('saves nothing when a sticker is refused', async () => {
+      mockStickers.createForPost.mockRejectedValueOnce(
+        new BadRequestException('TOO_MANY_STICKERS'),
+      );
+
+      await expect(
+        service.create('user-1', {
+          media: [{ url: '/uploads/a.jpg', type: 'image', stickers: [poll] }],
+        } as CreatePostDto),
+      ).rejects.toThrow('TOO_MANY_STICKERS');
+      expect(mockPrismaService.post.findUniqueOrThrow).not.toHaveBeenCalled();
+    });
+
+    it('refuses stickers on a Frame before anything is created', async () => {
+      await expect(
+        service.create('user-1', {
+          type: 'FRAME',
+          media: [{ url: '/uploads/a.mp4', type: 'video', stickers: [poll] }],
+        } as CreatePostDto),
+      ).rejects.toThrow('STICKERS_ONLY_ON_POSTS');
+      expect(mockStoredFiles.assertOwnedBy).not.toHaveBeenCalled();
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('asks nothing of the stickers for a post with none', async () => {
+      await service.create('user-1', {
+        media: [{ url: '/uploads/a.jpg', type: 'image' }],
+      } as CreatePostDto);
+
+      expect(mockStickers.assertLinkHostsPublic).not.toHaveBeenCalled();
+      expect(mockStickers.createForPost).not.toHaveBeenCalled();
+      expect(
+        mockPostDistributionService.dispatchPostPublished.mock.calls[0][1],
+      ).not.toHaveProperty('stickerMentions');
+    });
+
+    it('shows them on the post detail as the viewer may see them', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'p-1',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        profile: { privacyLevel: Visibility.PUBLIC },
+        likes: [],
+        media: [{ id: 'pm-1', url: '/a.jpg', stickers: [{ id: 's-1' }] }],
+      });
+      mockStickers.forPostViewers.mockImplementationOnce(async (posts) =>
+        (posts as Array<Record<string, unknown>>).map((p) => ({
+          ...p,
+          media: [{ id: 'pm-1', url: '/a.jpg', stickers: [] }],
+        })),
+      );
+
+      const post = await service.findOne('p-1', 'viewer-1');
+
+      expect(
+        mockPrismaService.post.findUnique.mock.calls[0][0].include.media.include
+          .stickers,
+      ).toBeDefined();
+      expect(mockStickers.forPostViewers).toHaveBeenCalledWith(
+        [expect.objectContaining({ id: 'p-1' })],
+        'viewer-1',
+      );
+      expect(
+        (post.media as Array<{ stickers: unknown[] }>)[0].stickers,
+      ).toEqual([]);
     });
   });
 
