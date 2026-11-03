@@ -1,17 +1,24 @@
+import { randomUUID } from 'node:crypto';
 import * as path from 'node:path';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '@prisma/client';
 import type { Queue } from 'bullmq';
+import {
+  assertMediaDurationInRange,
+  FRAME_CLIPS_MAX,
+} from '../common/constants/media-duration.constants.js';
 import { queueJobId } from '../common/utils/queue-job-id.util.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import {
@@ -33,6 +40,32 @@ export interface TranscodeJobData {
   originalname?: string;
   userId?: string;
 }
+
+/** One recorded clip of a Frame and the part of it that is kept, in ms. */
+export interface FrameClip {
+  url: string;
+  startMs: number;
+  endMs: number;
+}
+
+/** What the server puts a Frame together from. */
+export interface FrameAssemblyJobData {
+  profileId: string;
+  // Counted in the person's share of the video queue.
+  userId?: string;
+  clips: FrameClip[];
+  layerUrl?: string;
+  muted?: boolean;
+}
+
+/** Where a Frame being put together is: its video once it is ready. */
+export interface FrameAssemblyStatus {
+  status: 'PENDING' | 'READY' | 'FAILED';
+  url?: string;
+}
+
+/** The name of the job that puts a Frame together. */
+export const FRAME_ASSEMBLY_JOB = 'frame-assembly';
 
 // Service for file upload and deletion. Delegates to a pluggable StorageProvider.
 /** Retries and how long a video job is kept, done or failed. */
@@ -260,6 +293,91 @@ export class UploadsService {
       { storyId },
       { jobId: queueJobId('story-overlay', storyId), ...VIDEO_JOB_RETRIES },
     );
+  }
+
+  /**
+   * Asks for a Frame to be put together from its clips, in their order, with
+   * the painted layer over them. Every file must be of this storage and the
+   * Profile's own, each clip's part must start before it ends, and the parts
+   * together must last as long as a Frame may. Answers the id to ask after.
+   */
+  async startFrameAssembly(
+    by: { profileId: string; userId?: string },
+    request: { clips: FrameClip[]; layerUrl?: string; muted?: boolean },
+  ): Promise<{ id: string }> {
+    const { clips, layerUrl, muted } = request;
+    if (clips.length === 0 || clips.length > FRAME_CLIPS_MAX) {
+      throw new BadRequestException('FRAME_CLIPS_OUT_OF_RANGE');
+    }
+    for (const clip of clips) {
+      if (
+        !Number.isInteger(clip.startMs) ||
+        !Number.isInteger(clip.endMs) ||
+        clip.startMs < 0 ||
+        clip.endMs <= clip.startMs
+      ) {
+        throw new BadRequestException('FRAME_CLIP_RANGE_INVALID');
+      }
+    }
+    const files = [
+      ...clips.map((clip) => clip.url),
+      ...(layerUrl ? [layerUrl] : []),
+    ];
+    if (!files.every((url) => this.ownsUrl(url))) {
+      throw new BadRequestException('FRAME_MEDIA_NOT_OURS');
+    }
+    const lengthMs = clips.reduce(
+      (sum, clip) => sum + clip.endMs - clip.startMs,
+      0,
+    );
+    const window = assertMediaDurationInRange('FRAME', lengthMs / 1000);
+    if (!window.ok) {
+      throw new BadRequestException(window.code);
+    }
+    // Only the Profile's own stored files can be put together.
+    await this.storedFiles.assertOwnedBy(by.profileId, files);
+    await this.assertVideoAdmission(by.userId);
+
+    const id = randomUUID();
+    const data: FrameAssemblyJobData = {
+      profileId: by.profileId,
+      userId: by.userId,
+      clips: clips.map(({ url, startMs, endMs }) => ({ url, startMs, endMs })),
+      layerUrl,
+      muted,
+    };
+    await this.videoQueue.add(FRAME_ASSEMBLY_JOB, data, {
+      jobId: queueJobId(FRAME_ASSEMBLY_JOB, id),
+      ...VIDEO_JOB_RETRIES,
+    });
+    return { id };
+  }
+
+  /**
+   * Where a Frame the Profile asked for is. A job that is not there, or that
+   * another Profile asked for, is answered as not found alike.
+   */
+  async frameAssemblyStatus(
+    profileId: string,
+    id: string,
+  ): Promise<FrameAssemblyStatus> {
+    const job = await this.videoQueue.getJob(
+      queueJobId(FRAME_ASSEMBLY_JOB, id),
+    );
+    if (
+      !job ||
+      job.name !== FRAME_ASSEMBLY_JOB ||
+      (job.data as FrameAssemblyJobData | undefined)?.profileId !== profileId
+    ) {
+      throw new NotFoundException('FRAME_ASSEMBLY_NOT_FOUND');
+    }
+    const state = await job.getState();
+    if (state === 'failed') return { status: 'FAILED' };
+    if (state !== 'completed') return { status: 'PENDING' };
+    const url = (job.returnvalue as { url?: unknown } | undefined)?.url;
+    return typeof url === 'string'
+      ? { status: 'READY', url }
+      : { status: 'FAILED' };
   }
 
   /** Makes the replay of a recorded broadcast, once per broadcast. */

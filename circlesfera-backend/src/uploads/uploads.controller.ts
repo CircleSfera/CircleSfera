@@ -1,10 +1,16 @@
 import { MAX_UPLOAD_BYTES } from '@circlesfera/shared';
 import {
+  Body,
   Controller,
   FileTypeValidator,
+  Get,
+  HttpCode,
+  HttpStatus,
   Logger,
   MaxFileSizeValidator,
+  Param,
   ParseFilePipe,
+  ParseUUIDPipe,
   Post,
   UploadedFile as UploadedFileDecorator,
   UseGuards,
@@ -20,8 +26,9 @@ import {
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { MemberAllowed } from '../team/member-allowed.decorator.js';
+import { AssembleFrameDto } from './dto/assemble-frame.dto.js';
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
-import { UploadsService } from './uploads.service.js';
+import { type FrameAssemblyStatus, UploadsService } from './uploads.service.js';
 
 // REST controller for file uploads. Accepts images and videos up to MAX_UPLOAD_MB.
 @Controller('uploads')
@@ -76,5 +83,38 @@ export class UploadsController {
       user?.userId,
       user?.profileId,
     );
+  }
+
+  // Puts a Frame together from its recorded clips, trimmed and in order, with
+  // its painted layer over them. Answers the id to ask after; the video is
+  // made in the background.
+  @Post('frames')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  // Publishing needs its media.
+  @MemberAllowed('content.manage')
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
+  @ApiResponse({ status: 202 })
+  assembleFrame(
+    @Body() dto: AssembleFrameDto,
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<{ id: string }> {
+    return this.uploadsService.startFrameAssembly(
+      { profileId: user.profileId, userId: user.userId },
+      dto,
+    );
+  }
+
+  // Where a Frame being put together is: pending, ready with its video, or
+  // failed. Only the Profile that asked for it can see it.
+  @Get('frames/:id')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @MemberAllowed('content.manage')
+  @ApiResponse({ status: 200 })
+  frameAssemblyStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<FrameAssemblyStatus> {
+    return this.uploadsService.frameAssemblyStatus(user.profileId, id);
   }
 }

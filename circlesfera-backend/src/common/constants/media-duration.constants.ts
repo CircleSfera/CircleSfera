@@ -1,12 +1,17 @@
 import {
+  FRAME_CLIPS_MAX,
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
   POST_MAX_DURATION_SEC,
   STORY_MAX_DURATION_SEC,
 } from '@circlesfera/shared';
 
-/** Media duration windows (seconds), from the values the app shares. */
+/**
+ * Media duration windows (seconds), and the most clips of a Frame, from the
+ * values the app shares.
+ */
 export {
+  FRAME_CLIPS_MAX,
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
   POST_MAX_DURATION_SEC,

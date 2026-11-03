@@ -81,6 +81,7 @@ const mockStoredFiles = {
   release: vi.fn().mockResolvedValue([]),
   erasableWith: vi.fn().mockResolvedValue([]),
   ownersOf: vi.fn().mockResolvedValue(new Map()),
+  assertOwnedBy: vi.fn().mockResolvedValue(undefined),
 };
 
 describe('UploadsService', () => {
@@ -233,6 +234,215 @@ describe('UploadsService', () => {
         service.ownsUrl('/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.png'),
       ).toBe(false);
     });
+  });
+
+  describe('a Frame put together from its clips', () => {
+    const CLIP_A = '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4';
+    const CLIP_B = '/uploads/4a3c9d2f-0b5e-4d8c-9f32-6e7a8b9c0d1e.webm';
+    const LAYER = '/uploads/5b4d0e3a-1c6f-4e9d-8a43-7f8b9c0d1e2f.avif';
+    const BY = { profileId: 'profile-1', userId: 'user-1' };
+
+    it('is queued once its clips are checked, with a fresh id the person asks after', async () => {
+      const answer = await service.startFrameAssembly(BY, {
+        clips: [
+          { url: CLIP_A, startMs: 1000, endMs: 11_000 },
+          { url: CLIP_B, startMs: 0, endMs: 8000 },
+        ],
+        layerUrl: LAYER,
+        muted: true,
+      });
+
+      expect(answer.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      // Every clip and the layer must be the Profile's own.
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('profile-1', [
+        CLIP_A,
+        CLIP_B,
+        LAYER,
+      ]);
+      expect(mockVideoQueue.add).toHaveBeenCalledWith(
+        'frame-assembly',
+        {
+          profileId: 'profile-1',
+          userId: 'user-1',
+          clips: [
+            { url: CLIP_A, startMs: 1000, endMs: 11_000 },
+            { url: CLIP_B, startMs: 0, endMs: 8000 },
+          ],
+          layerUrl: LAYER,
+          muted: true,
+        },
+        {
+          jobId: `frame-assembly-${answer.id}`,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: { count: 100, age: 24 * 3600 },
+          removeOnFail: { count: 100, age: 7 * 24 * 3600 },
+        },
+      );
+
+      const again = await service.startFrameAssembly(BY, {
+        clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+      });
+      expect(again.id).not.toBe(answer.id);
+    });
+
+    it.each([
+      ['no clip', [], 'FRAME_CLIPS_OUT_OF_RANGE'],
+      [
+        'more clips than a Frame may hold',
+        Array.from({ length: 21 }, () => ({
+          url: CLIP_A,
+          startMs: 0,
+          endMs: 1000,
+        })),
+        'FRAME_CLIPS_OUT_OF_RANGE',
+      ],
+      [
+        'a part that ends before it starts',
+        [{ url: CLIP_A, startMs: 5000, endMs: 5000 }],
+        'FRAME_CLIP_RANGE_INVALID',
+      ],
+      [
+        'a part that starts before the clip',
+        [{ url: CLIP_A, startMs: -1, endMs: 20_000 }],
+        'FRAME_CLIP_RANGE_INVALID',
+      ],
+      [
+        'a moment that is not a whole ms',
+        [{ url: CLIP_A, startMs: 0.5, endMs: 20_000 }],
+        'FRAME_CLIP_RANGE_INVALID',
+      ],
+      [
+        'a Frame shorter than a Frame may be',
+        [{ url: CLIP_A, startMs: 0, endMs: 14_999 }],
+        'FRAME_DURATION_OUT_OF_RANGE',
+      ],
+      [
+        'a Frame longer than a Frame may be',
+        [
+          { url: CLIP_A, startMs: 0, endMs: 100_000 },
+          { url: CLIP_B, startMs: 0, endMs: 80_001 },
+        ],
+        'FRAME_DURATION_OUT_OF_RANGE',
+      ],
+      [
+        'a clip of another storage',
+        [{ url: 'https://evil.example/a.mp4', startMs: 0, endMs: 20_000 }],
+        'FRAME_MEDIA_NOT_OURS',
+      ],
+    ])(
+      'is refused with %s, and nothing is queued',
+      async (_case, clips, code) => {
+        await expect(
+          service.startFrameAssembly(BY, { clips }),
+        ).rejects.toMatchObject({ status: 400, message: code });
+        expect(mockVideoQueue.add).not.toHaveBeenCalled();
+      },
+    );
+
+    it('takes the longest Frame and up to the most clips a Frame may hold', async () => {
+      await service.startFrameAssembly(BY, {
+        clips: Array.from({ length: 20 }, () => ({
+          url: CLIP_A,
+          startMs: 0,
+          endMs: 9000,
+        })),
+      });
+      expect(mockVideoQueue.add).toHaveBeenCalledTimes(1);
+    });
+
+    it('is refused when the layer is of another storage, or a file is not the Profile’s own', async () => {
+      await expect(
+        service.startFrameAssembly(BY, {
+          clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+          layerUrl: 'https://evil.example/layer.png',
+        }),
+      ).rejects.toMatchObject({ message: 'FRAME_MEDIA_NOT_OURS' });
+
+      mockStoredFiles.assertOwnedBy.mockRejectedValueOnce(
+        new Error('FILE_NOT_OWNED'),
+      );
+      await expect(
+        service.startFrameAssembly(BY, {
+          clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+        }),
+      ).rejects.toThrow('FILE_NOT_OWNED');
+      expect(mockVideoQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('waits its turn like any video: refused when the person already has their share queued', async () => {
+      mockVideoQueue.getJobs.mockResolvedValueOnce([
+        { data: { userId: 'user-1' } },
+        { data: { userId: 'user-1' } },
+      ]);
+
+      await expect(
+        service.startFrameAssembly(BY, {
+          clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+        }),
+      ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
+      expect(mockVideoQueue.add).not.toHaveBeenCalled();
+    });
+
+    const jobOf = (state: string, overrides: Record<string, unknown> = {}) => ({
+      name: 'frame-assembly',
+      data: { profileId: 'profile-1' },
+      returnvalue: { url: '/uploads/frame.mp4' },
+      getState: vi.fn().mockResolvedValue(state),
+      ...overrides,
+    });
+
+    it.each([
+      ['waiting', { status: 'PENDING' }],
+      ['active', { status: 'PENDING' }],
+      // A failed try that is tried again waits as delayed.
+      ['delayed', { status: 'PENDING' }],
+      ['failed', { status: 'FAILED' }],
+      ['completed', { status: 'READY', url: '/uploads/frame.mp4' }],
+    ])('answers a %s job as %o', async (state, answer) => {
+      mockVideoQueue.getJob.mockResolvedValueOnce(jobOf(state));
+
+      await expect(
+        service.frameAssemblyStatus('profile-1', 'job-id'),
+      ).resolves.toEqual(answer);
+      expect(mockVideoQueue.getJob).toHaveBeenCalledWith(
+        'frame-assembly-job-id',
+      );
+    });
+
+    it('answers a finished job with no video as failed', async () => {
+      mockVideoQueue.getJob.mockResolvedValueOnce(
+        jobOf('completed', { returnvalue: null }),
+      );
+
+      await expect(
+        service.frameAssemblyStatus('profile-1', 'job-id'),
+      ).resolves.toEqual({ status: 'FAILED' });
+    });
+
+    it.each([
+      ['no job', undefined],
+      [
+        'another Profile’s job',
+        jobOf('completed', { data: { profileId: 'p-2' } }),
+      ],
+      ['a job of another kind', jobOf('completed', { name: 'transcode' })],
+      ['a job with no data', jobOf('completed', { data: undefined })],
+    ])(
+      'answers %s as not found, and tells nothing of it',
+      async (_case, job) => {
+        mockVideoQueue.getJob.mockResolvedValueOnce(job);
+
+        await expect(
+          service.frameAssemblyStatus('profile-1', 'job-id'),
+        ).rejects.toMatchObject({
+          status: 404,
+          message: 'FRAME_ASSEMBLY_NOT_FOUND',
+        });
+      },
+    );
   });
 
   describe('LocalStorageProvider', () => {
