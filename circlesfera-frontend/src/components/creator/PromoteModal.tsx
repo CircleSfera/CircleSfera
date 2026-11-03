@@ -6,6 +6,7 @@ import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse, Post } from '../../types';
 import { formatWholeEuros } from '../../utils/money';
+import MediaThumb, { postThumbShape } from '../common/MediaThumb';
 import { WithdrawalConsentBox } from '../payments/WithdrawalConsent';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
@@ -24,15 +25,13 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
-function Thumbnail({ url }: { url?: string }) {
+function Thumbnail({ url, type }: { url?: string; type?: string | null }) {
   return (
-    <span className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-surface-raised border border-white/10 text-white/40 flex items-center justify-center">
-      {url ? (
-        <img src={url} alt="" className="w-full h-full object-cover" />
-      ) : (
-        <ImageIcon size={18} aria-hidden />
-      )}
-    </span>
+    <MediaThumb
+      src={url}
+      shape={postThumbShape(type)}
+      fallback={<ImageIcon size={18} aria-hidden />}
+    />
   );
 }
 
@@ -100,7 +99,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
       {chosen ? (
         <div className="space-y-5">
           <div className="flex items-center gap-3">
-            <Thumbnail url={chosen.media?.[0]?.url} />
+            <Thumbnail url={chosen.media?.[0]?.url} type={chosen.type} />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">
                 {titleOf(chosen)}
@@ -221,7 +220,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
                 onClick={() => setChosen(item)}
                 className="w-full flex items-center gap-3 p-2 rounded-xl text-left hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
               >
-                <Thumbnail url={item.media?.[0]?.url} />
+                <Thumbnail url={item.media?.[0]?.url} type={item.type} />
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm font-medium text-white truncate">
                     {titleOf(item)}

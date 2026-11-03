@@ -8,6 +8,7 @@ import { getMessageDisplayText } from '../../utils/chatMessageDisplay';
 import { formatCents } from '../../utils/money';
 import { sellsInApp } from '../../utils/sellsInApp';
 import { VoicePlayer } from '../audio/VoicePlayer';
+import MediaThumb from '../common/MediaThumb';
 import UserAvatar from '../UserAvatar';
 import AudioPlayer from './AudioPlayer';
 import SharedPost from './SharedPost';
@@ -138,33 +139,21 @@ export default memo(function MessageBubble({
                 onClick={() => msg.story && openStories([msg.story], 0)}
                 className={`mb-3 -mx-2 -mt-1 p-2 rounded-t-[18px] bg-black/20 backdrop-blur-md cursor-pointer group/story hover:bg-black/30 transition-all border-b border-white/5 flex gap-3 items-center w-[calc(100%+1rem)] text-left appearance-none`}
               >
-                <div className="w-12 h-20 bg-zinc-800 rounded-lg overflow-hidden shrink-0 border border-white/10 group-hover/story:scale-105 transition-transform duration-300 relative shadow-2xl">
-                  {msg.story?.url ? (
-                    msg.story.mediaType === 'video' ? (
-                      <video
-                        src={msg.story.standardUrl || msg.story.url}
-                        className="w-full h-full object-cover"
-                        muted
-                      />
-                    ) : (
-                      <img
-                        src={
-                          msg.story.thumbnailUrl ||
-                          msg.story.standardUrl ||
-                          msg.story.url
-                        }
-                        alt={t('common.alt.story')}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    )
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center opacity-40">
-                      <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
-                </div>
+                <MediaThumb
+                  src={
+                    msg.story?.mediaType === 'video'
+                      ? msg.story.standardUrl || msg.story.url
+                      : msg.story?.thumbnailUrl ||
+                        msg.story?.standardUrl ||
+                        msg.story?.url
+                  }
+                  video={msg.story?.mediaType === 'video'}
+                  alt={t('common.alt.story')}
+                  shape="STORY"
+                  fallback={
+                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                  }
+                />
                 <div className="flex flex-col gap-1 py-1">
                   {!isMe && (
                     <span className="text-xs font-bold text-white/40 uppercase tracking-wide bg-white/5 px-2 py-0.5 rounded-full w-fit">

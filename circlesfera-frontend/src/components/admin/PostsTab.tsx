@@ -16,6 +16,7 @@ import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
 import { formatDay, formatNumber } from '../../utils/format';
+import MediaThumb, { postThumbShape } from '../common/MediaThumb';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -265,15 +266,13 @@ export default function PostsTab({ onToast }: Props) {
                       avatar={
                         <div className="flex items-start gap-2">
                           {bulk.box(post.id)}
-                          <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
-                            {post.media?.[0]?.url && (
-                              <img
-                                src={post.media[0].url}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                          </div>
+                          <MediaThumb
+                            src={
+                              post.media?.[0]?.thumbnailUrl ||
+                              post.media?.[0]?.url
+                            }
+                            shape={postThumbShape(post.type)}
+                          />
                         </div>
                       }
                       badge={

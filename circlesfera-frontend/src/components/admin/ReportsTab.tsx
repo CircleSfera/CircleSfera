@@ -21,6 +21,10 @@ import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
 import { formatDateTime, formatDay, formatWaiting } from '../../utils/format';
+import MediaThumb, {
+  postThumbShape,
+  type ThumbShape,
+} from '../common/MediaThumb';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -57,6 +61,15 @@ function originalAddress(report: AdminReport): string | null {
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
+}
+
+// A reported story or Frame is upright; a person or a comment square.
+function reportThumbShape(report: AdminReport): ThumbShape {
+  if (report.targetType === 'STORY') return 'STORY';
+  if (report.targetType === 'POST') {
+    return postThumbShape(report.targetContent?.type);
+  }
+  return 'SQUARE';
 }
 
 export default function ReportsTab({ onToast }: Props) {
@@ -474,19 +487,11 @@ export default function ReportsTab({ onToast }: Props) {
                                 t('admin.shared.unknown'),
                             })}
                           />
-                          <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden shrink-0">
-                            {report.targetContent?.thumbnail ? (
-                              <img
-                                src={report.targetContent.thumbnail}
-                                className="w-full h-full object-cover"
-                                alt=""
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-white/50">
-                                <Ghost size={16} />
-                              </div>
-                            )}
-                          </div>
+                          <MediaThumb
+                            src={report.targetContent?.thumbnail}
+                            shape={reportThumbShape(report)}
+                            fallback={<Ghost size={16} />}
+                          />
                         </div>
                       }
                     />

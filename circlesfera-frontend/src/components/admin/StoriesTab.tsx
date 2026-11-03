@@ -6,6 +6,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminStory } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import MediaThumb from '../common/MediaThumb';
 import ConfirmModal from '../modals/ConfirmModal';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
@@ -246,21 +247,11 @@ export default function StoriesTab({ onToast }: Props) {
                   </span>
                 }
                 avatar={
-                  <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
-                    {story.mediaType === 'video' ? (
-                      <video
-                        src={story.url}
-                        className="w-full h-full object-cover"
-                        muted
-                      />
-                    ) : (
-                      <img
-                        src={story.url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
+                  <MediaThumb
+                    src={story.url}
+                    video={story.mediaType === 'video'}
+                    shape="STORY"
+                  />
                 }
                 badge={
                   <div className="flex flex-col items-end gap-1">
@@ -316,21 +307,11 @@ export default function StoriesTab({ onToast }: Props) {
                 className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
               >
                 <td className="px-2 py-1">
-                  <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden">
-                    {story.mediaType === 'video' ? (
-                      <video
-                        src={story.url}
-                        className="w-full h-full object-cover"
-                        muted
-                      />
-                    ) : (
-                      <img
-                        src={story.url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
+                  <MediaThumb
+                    src={story.url}
+                    video={story.mediaType === 'video'}
+                    shape="STORY"
+                  />
                 </td>
                 <td className="px-2 py-1">
                   <span className="text-white font-medium text-sm truncate block max-w-24">

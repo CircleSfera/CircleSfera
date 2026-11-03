@@ -115,6 +115,7 @@ export default function CreatorStoriesTab() {
             return (
               <CreatorRow
                 key={story.id}
+                mediaShape="STORY"
                 media={
                   broken.has(story.id) ? (
                     <ImageOff size={20} aria-hidden />

@@ -8,6 +8,7 @@ import type { AdminModerationItem } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { formatDateTime } from '../../utils/format';
+import MediaThumb, { postThumbShape } from '../common/MediaThumb';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
@@ -343,22 +344,14 @@ export default function ModerationTab({ onToast }: Props) {
                             onClick={(e) => e.stopPropagation()}
                             aria-label={t('admin.moderation.select_item')}
                           />
-                          <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0">
-                            {item.media?.[0]?.url ? (
-                              <img
-                                src={
-                                  item.media[0].thumbnailUrl ||
-                                  item.media[0].url
-                                }
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-white/50">
-                                <Ghost size={16} />
-                              </div>
-                            )}
-                          </div>
+                          <MediaThumb
+                            src={
+                              item.media?.[0]?.thumbnailUrl ||
+                              item.media?.[0]?.url
+                            }
+                            shape={postThumbShape(item.type)}
+                            fallback={<Ghost size={16} />}
+                          />
                         </div>
                       }
                     />

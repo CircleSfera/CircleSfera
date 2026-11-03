@@ -6,6 +6,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminAudio } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import { formatDay } from '../../utils/format';
+import MediaThumb from '../common/MediaThumb';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -243,17 +244,12 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                       </>
                     }
                     avatar={
-                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
-                        {track.thumbnailUrl ? (
-                          <img
-                            src={track.thumbnailUrl}
-                            alt={track.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Music size={16} className="text-white/50" />
-                        )}
-                      </div>
+                      <MediaThumb
+                        src={track.thumbnailUrl}
+                        alt={track.title}
+                        shape="SQUARE"
+                        fallback={<Music size={16} />}
+                      />
                     }
                     primaryAction={
                       <ActionButton
