@@ -368,6 +368,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
           trackWrite: vi.fn().mockResolvedValue(undefined),
           recordText: vi.fn().mockResolvedValue(undefined),
         } as never,
+        { hideOnBlock: vi.fn(async () => undefined) } as never,
       );
     });
 

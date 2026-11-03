@@ -89,9 +89,16 @@ function mockSocket(
   profileId: string,
   liveRooms: string[] = [],
 ): SocketWithAuth {
+  // The rooms of the connection, kept as the server keeps them.
+  const rooms = new Set<string>(liveRooms.map((id) => `live:${id}`));
   return {
-    join: vi.fn().mockResolvedValue(undefined),
-    leave: vi.fn().mockResolvedValue(undefined),
+    rooms,
+    join: vi.fn(async (room: string) => {
+      rooms.add(room);
+    }),
+    leave: vi.fn(async (room: string) => {
+      rooms.delete(room);
+    }),
     disconnect: vi.fn(),
     emit: vi.fn(),
     data: {
@@ -1539,6 +1546,77 @@ describe('AppGateway payload bounds and authorization', () => {
       await gateway.handleLiveJoin({ streamId: 's-1' }, emptySocket);
       await gateway.handleLiveLeave({ streamId: '' }, socket);
       await gateway.handleLiveLeave({ streamId: 's-1' }, emptySocket);
+    });
+
+    it('takes every connection of a Profile out of a live room, on every server', () => {
+      const socketsLeave = vi.fn();
+      const mockIn = vi.fn().mockReturnValue({ socketsLeave });
+      const gateway = gatewayWithServer({ in: mockIn });
+
+      gateway.leaveLiveRoom('prof-hidden', 's-1');
+
+      expect(mockIn).toHaveBeenCalledWith('user:prof-hidden');
+      expect(socketsLeave).toHaveBeenCalledWith('live:s-1');
+    });
+
+    it('refuses what a connection taken out of the room sends, and leaves the others as they are', async () => {
+      const mockEmit = vi.fn();
+      const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+      const mockLiveRealtime = {
+        incrementViewerCount: vi.fn().mockResolvedValue(2),
+        decrementViewerCount: vi.fn().mockResolvedValue(1),
+        isStreamHostOrOnAirGuest: vi.fn(),
+        canEnterRoom: vi.fn().mockResolvedValue(true),
+        getUserProfile: vi.fn().mockResolvedValue({
+          id: 'prof-other',
+          username: 'other',
+          avatar: null,
+        }),
+      };
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { liveRealtimeService: mockLiveRealtime },
+      );
+      const hidden = mockSocket('prof-hidden', ['s-1']);
+      const other = mockSocket('prof-other', ['s-1']);
+      // What the server does to the hidden Profile's connections.
+      hidden.rooms.delete('live:s-1');
+
+      await gateway.handleLiveChat({ streamId: 's-1', message: 'hi' }, hidden);
+      expect(mockEmit).not.toHaveBeenCalled();
+
+      await gateway.handleLiveChat({ streamId: 's-1', message: 'hi' }, other);
+      expect(mockEmit).toHaveBeenCalledWith(
+        'live:chat_message',
+        expect.objectContaining({ message: 'hi' }),
+      );
+
+      // Let back in once the live is for them again, counted once.
+      await gateway.handleLiveJoin({ streamId: 's-1' }, hidden);
+      expect(hidden.rooms.has('live:s-1')).toBe(true);
+      expect(mockLiveRealtime.incrementViewerCount).not.toHaveBeenCalled();
+    });
+
+    it('still counts down a connection taken out of the room when it leaves', async () => {
+      const mockEmit = vi.fn();
+      const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+      const mockLiveRealtime = {
+        incrementViewerCount: vi.fn(),
+        decrementViewerCount: vi.fn().mockResolvedValue(0),
+        isStreamHostOrOnAirGuest: vi.fn(),
+        getUserProfile: vi.fn(),
+      };
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { liveRealtimeService: mockLiveRealtime },
+      );
+      const hidden = mockSocket('prof-hidden', ['s-1']);
+      hidden.rooms.delete('live:s-1');
+
+      await gateway.handleLiveLeave({ streamId: 's-1' }, hidden);
+
+      expect(mockLiveRealtime.decrementViewerCount).toHaveBeenCalledWith('s-1');
+      expect(hidden.data.liveStreamIds?.has('s-1')).toBe(false);
     });
 
     it('reconciles viewer counts for live streams still joined on disconnect', async () => {

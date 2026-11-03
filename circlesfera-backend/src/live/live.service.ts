@@ -666,7 +666,9 @@ export class LiveService {
     void this.recording.startCoHost(streamId, profileId);
 
     if (wentOnAir) {
-      await this.hideFromBlocked(streamId, stream.hostId, profileId);
+      // Not waited for: the guest is on air whether or not everyone in a
+      // block with them has been taken out yet.
+      void this.hideFromBlocked(streamId, stream.hostId, profileId);
       const profile = await this.prisma.profile.findUnique({
         where: { id: profileId },
         select: { username: true },
@@ -685,19 +687,17 @@ export class LiveService {
 
   /**
    * A guest just went on air: the live is hidden from every Profile in a
-   * block with them, whoever blocked whom, while they are on air. Each one
-   * is told the live is unavailable, so an app watching it closes it, and is
-   * taken out of the video room by the identity of their watching token
-   * (the Profile's id, so another Profile of the same person stays). The
-   * host and the live's other guests are left
-   * alone, and the host is not told. Never throws: going on air does not
-   * wait on it.
+   * block with them, whoever blocked whom, while they are on air. The host
+   * and the live's guests are left alone, and the host is not told. Run in
+   * the background: going on air does not wait on it. Each Profile is
+   * handled on its own, so one that fails leaves the others hidden. Never
+   * throws.
    */
   private async hideFromBlocked(
     streamId: string,
     hostId: string,
     guestProfileId: string,
-  ) {
+  ): Promise<void> {
     try {
       const blocked = await getBlockedProfileIds(this.prisma, guestProfileId);
       if (blocked.length === 0) return;
@@ -706,18 +706,75 @@ export class LiveService {
         select: { profileId: true },
       });
       const inLive = new Set([hostId, ...guests.map((g) => g.profileId)]);
-      for (const viewer of blocked) {
-        if (inLive.has(viewer)) continue;
-        this.gateway.server
-          .to(`user:${viewer}`)
-          .emit('live:unavailable', { streamId });
-        await this.recording.removeFromRoom(streamId, viewer);
-      }
+      await Promise.allSettled(
+        blocked
+          .filter((viewer) => !inLive.has(viewer))
+          .map((viewer) => this.hideLiveFrom(streamId, viewer)),
+      );
     } catch (error: unknown) {
       this.logger.warn(
         `Could not hide stream ${streamId} from those in a block with a guest: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  /**
+   * A block was just made between two Profiles: where one of them is a guest
+   * on air in a live that goes on, the live is hidden from the other, as it
+   * is from those in a block with a guest who goes on air. Never from its
+   * host or its guests. Called without being waited for by the one who
+   * blocks; never throws.
+   */
+  async hideOnBlock(profileA: string, profileB: string): Promise<void> {
+    try {
+      const onAir = await this.prisma.liveGuest.findMany({
+        where: {
+          status: 'ON_AIR',
+          profileId: { in: [profileA, profileB] },
+          stream: { status: 'LIVE' },
+        },
+        select: {
+          streamId: true,
+          profileId: true,
+          stream: {
+            select: {
+              hostId: true,
+              guests: {
+                where: { status: { in: [...GUEST_PLACE_STATUSES] } },
+                select: { profileId: true },
+              },
+            },
+          },
+        },
+      });
+      await Promise.allSettled(
+        onAir.flatMap((row) => {
+          const other = row.profileId === profileA ? profileB : profileA;
+          const inLive =
+            row.stream.hostId === other ||
+            row.stream.guests.some((guest) => guest.profileId === other);
+          return inLive ? [] : [this.hideLiveFrom(row.streamId, other)];
+        }),
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not hide the lives of a new block: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Hides a live from one Profile: they are told it is unavailable, so an
+   * app watching it closes it; their connections leave its room for
+   * comments; and they are taken out of the video room by their watching
+   * identity, the Profile's id, so another Profile of the same person stays.
+   */
+  private async hideLiveFrom(streamId: string, profileId: string) {
+    this.gateway.server
+      .to(`user:${profileId}`)
+      .emit('live:unavailable', { streamId });
+    this.gateway.leaveLiveRoom(profileId, streamId);
+    await this.recording.removeFromRoom(streamId, profileId);
   }
 
   /** The invited Profile says no; the host may invite them again. */

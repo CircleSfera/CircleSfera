@@ -14,6 +14,7 @@ import {
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
+import { LiveService } from '../live/live.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { ActionLimitsService } from '../trust/action-limits.service.js';
@@ -50,6 +51,7 @@ export class FollowsService {
     @Inject(TurnstileService) private readonly turnstile: TurnstileService,
     @Inject(ActionLimitsService)
     private readonly actionLimits: ActionLimitsService,
+    @Inject(LiveService) private readonly live: LiveService,
   ) {}
 
   // Toggle follow/unfollow for a user. Handles private accounts by creating pending requests.
@@ -322,6 +324,9 @@ export class FollowsService {
         },
       }),
     ]);
+    // A live where one of the two is a guest on air is hidden from the
+    // other at once. Not waited for, and never fails the block.
+    void this.live.hideOnBlock(blockerId, blockedId);
     return { success: true };
   }
 

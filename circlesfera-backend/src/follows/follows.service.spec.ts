@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
+import { LiveService } from '../live/live.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
@@ -54,6 +55,8 @@ describe('FollowsService', () => {
     emit: vi.fn(),
   };
 
+  const mockLive = { hideOnBlock: vi.fn(async () => undefined) };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -69,6 +72,7 @@ describe('FollowsService', () => {
         },
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: LiveService, useValue: mockLive },
         {
           provide: SystemSettingsService,
           useValue: {
@@ -368,6 +372,26 @@ describe('FollowsService', () => {
           ],
         },
       });
+      // A live where one of the two is a guest on air is hidden from the
+      // other, once the block is written.
+      expect(mockLive.hideOnBlock).toHaveBeenCalledWith(
+        'blocker-id',
+        'blocked-id',
+      );
+      expect(mockLive.hideOnBlock.mock.invocationCallOrder[0]).toBeGreaterThan(
+        mockPrismaService.$transaction.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('does not wait on hiding the lives of the block', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'blocked-id',
+      });
+      mockLive.hideOnBlock.mockReturnValueOnce(new Promise(() => undefined));
+
+      await expect(service.blockUser('blocker-id', 'blocked')).resolves.toEqual(
+        { success: true },
+      );
     });
 
     it('treats a repeated block as a no-op instead of an error', async () => {
