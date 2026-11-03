@@ -714,6 +714,29 @@ describe('UsersService', () => {
         },
       ];
       const res = await service.exportUserData('u_exp');
+      // The lives each Profile scheduled and those it asked to be reminded
+      // of are asked for with the Profile.
+      const profilesArgs =
+        mockPrismaService.user.findUnique.mock.calls[1][0].select.profiles
+          .include;
+      expect(profilesArgs.scheduledLives.select).toEqual({
+        title: true,
+        audience: true,
+        startsAt: true,
+        status: true,
+        createdAt: true,
+      });
+      expect(profilesArgs.scheduledLiveReminders.select).toEqual({
+        createdAt: true,
+        soonNotifiedAt: true,
+        scheduledLive: {
+          select: {
+            title: true,
+            startsAt: true,
+            host: { select: { username: true } },
+          },
+        },
+      });
       // What the person did on Business Profiles, as a member or owner.
       expect(res.teamActivity).toEqual([
         {

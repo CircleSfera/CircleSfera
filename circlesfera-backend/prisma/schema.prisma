@@ -465,39 +465,41 @@ model Profile {
 
   posts                   Post[]
   stories                 Story[]
-  liveStreams             LiveStream[]           @relation("LiveStreamHost")
-  coHostedStreams         LiveStream[]           @relation("LiveStreamCoHost")
+  liveStreams             LiveStream[]            @relation("LiveStreamHost")
+  coHostedStreams         LiveStream[]            @relation("LiveStreamCoHost")
   liveGuestPlaces         LiveGuest[]
+  scheduledLives          ScheduledLive[]
+  scheduledLiveReminders  ScheduledLiveReminder[]
   comments                Comment[]
   likes                   Like[]
   commentLikes            CommentLike[]
-  followers               Follow[]               @relation("UserFollowing")
-  following               Follow[]               @relation("UserFollowers")
-  notifications           Notification[]         @relation("NotificationRecipient")
-  sentNotifications       Notification[]         @relation("NotificationSender")
+  followers               Follow[]                @relation("UserFollowing")
+  following               Follow[]                @relation("UserFollowers")
+  notifications           Notification[]          @relation("NotificationRecipient")
+  sentNotifications       Notification[]          @relation("NotificationSender")
   participants            Participant[]
   messages                Message[]
   messageReactions        MessageReaction[] // New: User reactions to messages
-  blockedBy               Block[]                @relation("BlockedBy")
-  blocking                Block[]                @relation("Blocking")
-  mutedBy                 Mute[]                 @relation("MutedBy")
-  muting                  Mute[]                 @relation("Muting")
+  blockedBy               Block[]                 @relation("BlockedBy")
+  blocking                Block[]                 @relation("Blocking")
+  mutedBy                 Mute[]                  @relation("MutedBy")
+  muting                  Mute[]                  @relation("Muting")
   bookmarks               Bookmark[]
   collections             Collection[]
   highlights              Highlight[]
-  closeFriends            CloseFriend[]          @relation("CloseFriendOwner")
-  closeFriendOf           CloseFriend[]          @relation("CloseFriendTarget")
+  closeFriends            CloseFriend[]           @relation("CloseFriendOwner")
+  closeFriendOf           CloseFriend[]           @relation("CloseFriendTarget")
   storyViews              StoryView[]
   storyReactions          StoryReaction[]
   taggedPosts             PostTag[]
-  reports                 Report[]               @relation("ReportReporter")
+  reports                 Report[]                @relation("ReportReporter")
   strikes                 ProfileStrike[]
   riskCases               RiskCase[]
   searchHistory           SearchHistory[]
   postViews               PostView[]
   feedHiddenPosts         FeedHiddenPost[]
-  feedHiddenAuthors       FeedHiddenAuthor[]     @relation("FeedHidingAuthor")
-  feedHiddenByAuthors     FeedHiddenAuthor[]     @relation("FeedHiddenAsAuthor")
+  feedHiddenAuthors       FeedHiddenAuthor[]      @relation("FeedHidingAuthor")
+  feedHiddenByAuthors     FeedHiddenAuthor[]      @relation("FeedHiddenAsAuthor")
   feedMutedKeywords       FeedMutedKeyword[]
   editProjects            EditProject[]
   pollVotes               PollVote[]
@@ -506,7 +508,7 @@ model Profile {
   metrics                 ProfileMetric[]
   embedding               ProfileEmbedding?
   platformSubscriptions   PlatformSubscription[]
-  receivedTipTransactions Transaction[]          @relation("ReceivedTipTransactions")
+  receivedTipTransactions Transaction[]           @relation("ReceivedTipTransactions")
 
   storedFiles StoredFile[]
 
@@ -1136,6 +1138,8 @@ model LiveStream {
   transactions   Transaction[]
   recordingParts LiveRecordingPart[]
   guests         LiveGuest[]
+  // The scheduled live this live was started from, if any.
+  scheduledFrom  ScheduledLive[]
 
   @@index([status])
   @@index([hostId])
@@ -1172,6 +1176,63 @@ model LiveGuest {
   @@unique([streamId, profileId])
   @@index([profileId])
   @@map("live_guests")
+}
+
+/// Where a scheduled live is.
+enum ScheduledLiveStatus {
+  SCHEDULED
+  STARTED
+  CANCELLED
+  MISSED
+}
+
+// A live its host means to start later: shown on the host's Profile to
+// whoever could watch it, until it is started, cancelled or missed. Its
+// audience is everyone or close friends, never a practice.
+model ScheduledLive {
+  id                String              @id @default(uuid())
+  hostId            String
+  title             String
+  audience          LiveAudience        @default(EVERYONE)
+  startsAt          DateTime
+  status            ScheduledLiveStatus @default(SCHEDULED)
+  // The live it became, once its host went live from it.
+  liveStreamId      String?
+  // When its reminders were told it started; empty until then. Claimed
+  // before telling, so they are told once.
+  startedNotifiedAt DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Erased with its host.
+  host       Profile                 @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  liveStream LiveStream?             @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
+  reminders  ScheduledLiveReminder[]
+
+  // A host's upcoming lives, and those the reminder and missed checks find.
+  @@index([hostId, status, startsAt])
+  @@index([status, startsAt])
+  @@index([liveStreamId])
+  @@map("scheduled_lives")
+}
+
+// A Profile that asked to be told when a scheduled live starts: one row per
+// Profile and scheduled live, erased with either.
+model ScheduledLiveReminder {
+  id              String    @id @default(uuid())
+  scheduledLiveId String
+  profileId       String
+  createdAt       DateTime  @default(now())
+  // When the Profile was told the live starts soon; empty until then.
+  soonNotifiedAt  DateTime?
+
+  scheduledLive ScheduledLive @relation(fields: [scheduledLiveId], references: [id], onDelete: Cascade)
+  profile       Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledLiveId, profileId])
+  @@index([profileId])
+  @@index([scheduledLiveId, soonNotifiedAt])
+  @@map("scheduled_live_reminders")
 }
 
 // One file the recorder writes for a broadcast: the host's camera and
@@ -2891,6 +2952,8 @@ enum NotificationType {
   REPLY_MESSAGE
   // A Profile the recipient follows started a live broadcast.
   LIVE_STARTED
+  // A scheduled live the recipient asked to be reminded of starts soon.
+  LIVE_STARTING_SOON
 }
 
 enum PostType {

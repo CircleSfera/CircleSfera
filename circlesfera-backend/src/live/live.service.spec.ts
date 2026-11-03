@@ -182,6 +182,10 @@ describe('LiveService', () => {
         },
       ),
     },
+    scheduledLive: {
+      findFirst: vi.fn<AnyFn>(async () => null),
+      updateMany: vi.fn<AnyFn>(async () => ({ count: 1 })),
+    },
     $queryRaw: vi.fn<AnyFn>(async () => []),
     profile: {
       findFirst: vi.fn(),
@@ -268,6 +272,83 @@ describe('LiveService', () => {
       expect(result.stream).toEqual(mockStream);
       expect(typeof result.token).toBe('string');
       expect(mockRecording.start).toHaveBeenCalledWith('stream-1', 'user-1');
+    });
+  });
+
+  describe('going live from a scheduled live', () => {
+    beforeEach(() => {
+      mockPrismaService.liveStream.updateMany.mockResolvedValue({ count: 0 });
+      mockPrismaService.liveStream.create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) => ({
+          id: 'stream-9',
+          ...data,
+        }),
+      );
+    });
+
+    it("takes the scheduled live's title and audience, and marks it started with the new live", async () => {
+      mockPrismaService.scheduledLive.findFirst.mockResolvedValueOnce({
+        title: 'Ensayo',
+        audience: 'CLOSE_FRIENDS',
+      });
+
+      const result = await service.startStream(
+        'host-1',
+        'other title',
+        'EVERYONE',
+        'sl-1',
+      );
+
+      expect(mockPrismaService.scheduledLive.findFirst).toHaveBeenCalledWith({
+        where: { id: 'sl-1', hostId: 'host-1', status: 'SCHEDULED' },
+        select: { title: true, audience: true },
+      });
+      expect(mockPrismaService.liveStream.create).toHaveBeenCalledWith({
+        data: {
+          hostId: 'host-1',
+          title: 'Ensayo',
+          audience: 'CLOSE_FRIENDS',
+          status: 'LIVE',
+        },
+      });
+      expect(mockPrismaService.scheduledLive.updateMany).toHaveBeenCalledWith({
+        where: { id: 'sl-1', status: 'SCHEDULED' },
+        data: { status: 'STARTED', liveStreamId: 'stream-9' },
+      });
+      expect(result.stream).toMatchObject({ id: 'stream-9', title: 'Ensayo' });
+    });
+
+    it("answers not found for another host's scheduled live, or one no longer upcoming, and starts nothing", async () => {
+      mockPrismaService.scheduledLive.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.startStream('host-1', undefined, undefined, 'sl-1'),
+      ).rejects.toMatchObject({ errorCode: 'SCHEDULED_LIVE_NOT_FOUND' });
+      expect(mockPrismaService.liveStream.create).not.toHaveBeenCalled();
+      expect(mockRecording.start).not.toHaveBeenCalled();
+    });
+
+    it('starts no live when the scheduled live was started or cancelled at the same time', async () => {
+      mockPrismaService.scheduledLive.findFirst.mockResolvedValueOnce({
+        title: 'Ensayo',
+        audience: 'EVERYONE',
+      });
+      mockPrismaService.scheduledLive.updateMany.mockResolvedValueOnce({
+        count: 0,
+      });
+
+      await expect(
+        service.startStream('host-1', undefined, undefined, 'sl-1'),
+      ).rejects.toMatchObject({ errorCode: 'SCHEDULED_LIVE_NOT_FOUND' });
+      // Thrown within the transaction: the live made is undone with it.
+      expect(mockRecording.start).not.toHaveBeenCalled();
+    });
+
+    it('a live not started from a schedule touches none', async () => {
+      await service.startStream('host-1', 'x');
+
+      expect(mockPrismaService.scheduledLive.findFirst).not.toHaveBeenCalled();
+      expect(mockPrismaService.scheduledLive.updateMany).not.toHaveBeenCalled();
     });
   });
 

@@ -31,6 +31,7 @@ const GROUP_OF_TYPE: Record<string, PushGroup> = {
   MESSAGE: 'messages',
   REPLY_MESSAGE: 'messages',
   LIVE_STARTED: 'live',
+  LIVE_STARTING_SOON: 'live',
 };
 
 /** The group of a kind of notification, or null when it cannot be switched off. */

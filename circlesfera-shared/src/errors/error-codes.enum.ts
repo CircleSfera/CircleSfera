@@ -109,6 +109,18 @@ export enum ErrorCode {
   LIVE_STREAMS_DISABLED = 'LIVE_STREAMS_DISABLED',
   // The broadcast is still on, or its recording is not ready (or gone).
   RECORDING_NOT_READY = 'RECORDING_NOT_READY',
+  // A scheduled live starts too soon or too far ahead; details carry the
+  // earliest (minutes from now) and the furthest (days ahead).
+  LIVE_SCHEDULE_TIME_INVALID = 'LIVE_SCHEDULE_TIME_INVALID',
+  // A scheduled live is for everyone or for close friends, never a practice.
+  LIVE_SCHEDULE_AUDIENCE_INVALID = 'LIVE_SCHEDULE_AUDIENCE_INVALID',
+  // The host already has as many upcoming lives as they may; details carry
+  // the limit.
+  LIVE_SCHEDULED_LIMIT = 'LIVE_SCHEDULED_LIMIT',
+  // No upcoming scheduled live with this id that the Profile may see.
+  SCHEDULED_LIVE_NOT_FOUND = 'SCHEDULED_LIVE_NOT_FOUND',
+  // The host asks to be reminded of their own scheduled live.
+  LIVE_REMINDER_OWN_LIVE = 'LIVE_REMINDER_OWN_LIVE',
 
   // Sign-in
   // The account already has as many passkeys as it may register; details

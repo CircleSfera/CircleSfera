@@ -366,6 +366,32 @@ export class UsersService {
                 },
               },
               reports: true,
+              // The lives the Profile scheduled, and those it asked to be
+              // reminded of.
+              scheduledLives: {
+                orderBy: { startsAt: 'asc' },
+                select: {
+                  title: true,
+                  audience: true,
+                  startsAt: true,
+                  status: true,
+                  createdAt: true,
+                },
+              },
+              scheduledLiveReminders: {
+                orderBy: { createdAt: 'asc' },
+                select: {
+                  createdAt: true,
+                  soonNotifiedAt: true,
+                  scheduledLive: {
+                    select: {
+                      title: true,
+                      startsAt: true,
+                      host: { select: { username: true } },
+                    },
+                  },
+                },
+              },
             },
           },
           settings: true,

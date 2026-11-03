@@ -97,6 +97,12 @@ const refused = (refusal: GuestRefusal): AppException => {
   }
 };
 
+const scheduledLiveNotFound = () =>
+  AppException.NotFound(
+    ErrorCode.SCHEDULED_LIVE_NOT_FOUND,
+    'Scheduled live not found',
+  );
+
 const streamNotFound = () =>
   AppException.NotFound(ErrorCode.STREAM_NOT_FOUND, 'Stream not found');
 
@@ -178,10 +184,16 @@ export class LiveService {
     });
   }
 
+  /**
+   * Starts a live of the host's. From a scheduled live of their own, still
+   * upcoming, the live takes its title and audience, and the scheduled live
+   * is started and points to it; any other id is answered "not found".
+   */
   async startStream(
     hostProfileId: string,
     title?: string,
     audience: LiveAudience = DEFAULT_LIVE_AUDIENCE,
+    scheduledLiveId?: string,
   ) {
     await this.assertLiveEnabled();
 
@@ -196,6 +208,19 @@ export class LiveService {
       try {
         // Atomic: terminate previous streams and create the new one in a single transaction.
         const stream = await this.prisma.$transaction(async (tx) => {
+          if (scheduledLiveId) {
+            const scheduled = await tx.scheduledLive.findFirst({
+              where: {
+                id: scheduledLiveId,
+                hostId: hostProfileId,
+                status: 'SCHEDULED',
+              },
+              select: { title: true, audience: true },
+            });
+            if (!scheduled) throw scheduledLiveNotFound();
+            title = scheduled.title;
+            audience = scheduled.audience;
+          }
           const previous = await tx.liveStream.findMany({
             where: { hostId: hostProfileId, status: 'LIVE' },
             select: { id: true },
@@ -209,7 +234,7 @@ export class LiveService {
             previous.map((stream) => stream.id),
           );
 
-          return tx.liveStream.create({
+          const created = await tx.liveStream.create({
             data: {
               hostId: hostProfileId,
               title,
@@ -217,6 +242,16 @@ export class LiveService {
               status: 'LIVE',
             },
           });
+          if (scheduledLiveId) {
+            // Only from where it was read: one started or cancelled at the
+            // same time leaves no live behind.
+            const started = await tx.scheduledLive.updateMany({
+              where: { id: scheduledLiveId, status: 'SCHEDULED' },
+              data: { status: 'STARTED', liveStreamId: created.id },
+            });
+            if (started.count !== 1) throw scheduledLiveNotFound();
+          }
+          return created;
         });
 
         const token = await this.liveKitTokenService.createToken(

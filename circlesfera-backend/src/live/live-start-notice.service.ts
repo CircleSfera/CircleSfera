@@ -22,13 +22,16 @@ export class LiveStartNoticeService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  // Returns how many followers were told.
+  // Returns how many followers were told. Those already told that this live
+  // started (by a reminder of it) are not told again.
   async tellFollowers(
     streamId: string,
     hostProfileId: string,
     audience: LiveAudience = 'EVERYONE',
+    alreadyTold: readonly string[] = [],
   ) {
     if (this.told.includes(streamId)) return 0;
+    const skipped = new Set(alreadyTold);
     this.told.push(streamId);
     if (this.told.length > REMEMBERED) this.told.shift();
 
@@ -78,6 +81,7 @@ export class LiveStartNoticeService {
         // create() refuses across a block and decides the push by the
         // follower's own switch; it answers null instead of throwing.
         for (const follower of followers) {
+          if (skipped.has(follower.followerId)) continue;
           const notice = await this.notifications.create({
             recipientId: follower.followerId,
             senderId: hostProfileId,

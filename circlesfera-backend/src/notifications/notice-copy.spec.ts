@@ -49,6 +49,8 @@ const EVERY_NOTICE: Notice[] = [
   { key: 'tip_received', amountCents: 1250, currency: 'eur' },
   { key: 'support_answered', subject: 'I was charged twice' },
   { key: 'live_started' },
+  { key: 'live_starting_soon', title: 'Ensayo abierto' },
+  { key: 'scheduled_live_started', title: 'Ensayo abierto' },
 ];
 
 describe('renderNotice', () => {
@@ -62,6 +64,21 @@ describe('renderNotice', () => {
       expect(es).not.toBe(en);
     },
   );
+
+  it('names the scheduled live a reminder is for, in each language', () => {
+    const soon = { key: 'live_starting_soon', title: 'Ensayo' } as const;
+    expect(renderNotice('en', soon)).toBe('is going live soon: "Ensayo"');
+    expect(renderNotice('es', soon)).toBe(
+      'va a empezar un directo en breve: «Ensayo»',
+    );
+    const started = { key: 'scheduled_live_started', title: 'Ensayo' } as const;
+    expect(renderNotice('en', started)).toBe(
+      'started the live you asked to be reminded of: "Ensayo"',
+    );
+    expect(renderNotice('es', started)).toBe(
+      'ha empezado el directo del que pediste que te avisáramos: «Ensayo»',
+    );
+  });
 
   it('formats money and dates for each language', () => {
     const tip = {
