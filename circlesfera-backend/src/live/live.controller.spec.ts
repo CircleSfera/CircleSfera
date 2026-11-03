@@ -33,9 +33,12 @@ describe('LiveController', () => {
     getActiveStreams: vi.fn(),
     getStream: vi.fn(),
     getViewerToken: vi.fn(),
-    inviteCoHost: vi.fn(),
-    acceptCoHostInvite: vi.fn(),
-    removeCoHost: vi.fn(),
+    inviteGuest: vi.fn(),
+    acceptGuestInvite: vi.fn(),
+    declineGuestInvite: vi.fn(),
+    leaveAsGuest: vi.fn(),
+    removeGuest: vi.fn(),
+    removeAllGuests: vi.fn(),
   };
 
   const mockLiveGiftService = {
@@ -243,46 +246,192 @@ describe('LiveController', () => {
     );
   });
 
-  it('invites as co-host the Profile named, or the first of a person from an older app, and refuses neither', async () => {
-    mockLiveService.inviteCoHost.mockResolvedValue({ success: true });
+  describe('guests', () => {
     const profileId = '11111111-1111-4111-8111-111111111111';
     const userId = '22222222-2222-4222-8222-222222222222';
+    const guests = [
+      { profileId, username: 'ana', avatar: null, status: 'INVITED' },
+    ];
 
-    await request(app.getHttpServer())
-      .post('/api/v1/live/stream-1/cohost/invite')
-      .set(BEARER)
-      .send({ coHostProfileId: profileId })
-      .expect(201);
-    await request(app.getHttpServer())
-      .post('/api/v1/live/stream-1/cohost/invite')
-      .set(BEARER)
-      .send({ coHostUserId: userId })
-      .expect(201);
-    await request(app.getHttpServer())
-      .post('/api/v1/live/stream-1/cohost/invite')
-      .set(BEARER)
-      .send({})
-      .expect(400);
-    await request(app.getHttpServer())
-      .post('/api/v1/live/stream-1/cohost/invite')
-      .set(BEARER)
-      .send({ coHostProfileId: 'not-an-id' })
-      .expect(400);
-    // Both given: each must be an id.
-    await request(app.getHttpServer())
-      .post('/api/v1/live/stream-1/cohost/invite')
-      .set(BEARER)
-      .send({ coHostProfileId: 'not-an-id', coHostUserId: userId })
-      .expect(400);
-    await request(app.getHttpServer())
-      .post('/api/v1/live/stream-1/cohost/invite')
-      .set(BEARER)
-      .send({ coHostProfileId: profileId, coHostUserId: 'not-an-id' })
-      .expect(400);
+    it('invites as a guest the Profile named, or the first of a person, and refuses neither or a non-id', async () => {
+      mockLiveService.inviteGuest.mockResolvedValue({
+        success: true,
+        profileId,
+        guests,
+      });
 
-    expect(mockLiveService.inviteCoHost.mock.calls).toEqual([
-      ['stream-1', TEST_USER.profileId, { profileId }],
-      ['stream-1', TEST_USER.profileId, { userId }],
-    ]);
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/guests')
+        .set(BEARER)
+        .send({ profileId })
+        .expect(201);
+      expect(res.body).toEqual({ success: true, profileId, guests });
+      await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/guests')
+        .set(BEARER)
+        .send({ userId })
+        .expect(201);
+      for (const body of [
+        {},
+        { profileId: 'not-an-id' },
+        { profileId: 'not-an-id', userId },
+        { profileId, userId: 'not-an-id' },
+      ]) {
+        await request(app.getHttpServer())
+          .post('/api/v1/live/stream-1/guests')
+          .set(BEARER)
+          .send(body)
+          .expect(400);
+      }
+
+      expect(mockLiveService.inviteGuest.mock.calls).toEqual([
+        ['stream-1', TEST_USER.profileId, { profileId }],
+        ['stream-1', TEST_USER.profileId, { userId }],
+      ]);
+    });
+
+    it('accepts, declines and leaves as the session Profile', async () => {
+      mockLiveService.acceptGuestInvite.mockResolvedValue({
+        token: 'jwt-guest',
+        streamId: 'stream-1',
+      });
+      mockLiveService.declineGuestInvite.mockResolvedValue({ success: true });
+      mockLiveService.leaveAsGuest.mockResolvedValue({ success: true });
+
+      const accepted = await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/guests/accept')
+        .set(BEARER)
+        .expect(201);
+      expect(accepted.body).toEqual({
+        token: 'jwt-guest',
+        streamId: 'stream-1',
+      });
+      await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/guests/decline')
+        .set(BEARER)
+        .expect(201);
+      await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/guests/leave')
+        .set(BEARER)
+        .expect(201);
+
+      expect(mockLiveService.acceptGuestInvite).toHaveBeenCalledWith(
+        'stream-1',
+        TEST_USER.profileId,
+      );
+      expect(mockLiveService.declineGuestInvite).toHaveBeenCalledWith(
+        'stream-1',
+        TEST_USER.profileId,
+      );
+      expect(mockLiveService.leaveAsGuest).toHaveBeenCalledWith(
+        'stream-1',
+        TEST_USER.profileId,
+      );
+    });
+
+    it('removes one guest by Profile id, as the host in session, and refuses a non-id', async () => {
+      mockLiveService.removeGuest.mockResolvedValue({ success: true });
+
+      await request(app.getHttpServer())
+        .delete(`/api/v1/live/stream-1/guests/${profileId}`)
+        .set(BEARER)
+        .expect(200);
+      await request(app.getHttpServer())
+        .delete('/api/v1/live/stream-1/guests/not-an-id')
+        .set(BEARER)
+        .expect(400);
+
+      expect(mockLiveService.removeGuest.mock.calls).toEqual([
+        ['stream-1', TEST_USER.profileId, profileId],
+      ]);
+    });
+
+    it('rejects the guest routes without a session', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/guests')
+        .send({ profileId })
+        .expect(401);
+      await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/guests/accept')
+        .expect(401);
+      await request(app.getHttpServer())
+        .delete(`/api/v1/live/stream-1/guests/${profileId}`)
+        .expect(401);
+      expect(mockLiveService.inviteGuest).not.toHaveBeenCalled();
+      expect(mockLiveService.acceptGuestInvite).not.toHaveBeenCalled();
+      expect(mockLiveService.removeGuest).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the co-host routes installed apps still call', () => {
+    it('invite a guest, answered as the invite of a co-host was, and refuse neither or a non-id', async () => {
+      mockLiveService.inviteGuest.mockResolvedValue({
+        success: true,
+        profileId: 'ana',
+        guests: [],
+      });
+      const profileId = '11111111-1111-4111-8111-111111111111';
+      const userId = '22222222-2222-4222-8222-222222222222';
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/cohost/invite')
+        .set(BEARER)
+        .send({ coHostProfileId: profileId })
+        .expect(201);
+      expect(res.body).toEqual({ success: true, coHostId: 'ana' });
+      await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/cohost/invite')
+        .set(BEARER)
+        .send({ coHostUserId: userId })
+        .expect(201);
+      for (const body of [
+        {},
+        { coHostProfileId: 'not-an-id' },
+        // Both given: each must be an id.
+        { coHostProfileId: 'not-an-id', coHostUserId: userId },
+        { coHostProfileId: profileId, coHostUserId: 'not-an-id' },
+      ]) {
+        await request(app.getHttpServer())
+          .post('/api/v1/live/stream-1/cohost/invite')
+          .set(BEARER)
+          .send(body)
+          .expect(400);
+      }
+
+      expect(mockLiveService.inviteGuest.mock.calls).toEqual([
+        ['stream-1', TEST_USER.profileId, { profileId }],
+        ['stream-1', TEST_USER.profileId, { userId }],
+      ]);
+    });
+
+    it('accept as a guest, and removing the co-host removes every guest', async () => {
+      mockLiveService.acceptGuestInvite.mockResolvedValue({
+        token: 'jwt-guest',
+        streamId: 'stream-1',
+      });
+      mockLiveService.removeAllGuests.mockResolvedValue({ success: true });
+
+      const accepted = await request(app.getHttpServer())
+        .post('/api/v1/live/stream-1/cohost/accept')
+        .set(BEARER)
+        .expect(201);
+      expect(accepted.body).toEqual({
+        token: 'jwt-guest',
+        streamId: 'stream-1',
+      });
+      await request(app.getHttpServer())
+        .delete('/api/v1/live/stream-1/cohost')
+        .set(BEARER)
+        .expect(200);
+
+      expect(mockLiveService.acceptGuestInvite).toHaveBeenCalledWith(
+        'stream-1',
+        TEST_USER.profileId,
+      );
+      expect(mockLiveService.removeAllGuests).toHaveBeenCalledWith(
+        'stream-1',
+        TEST_USER.profileId,
+      );
+    });
   });
 });

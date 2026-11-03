@@ -1,10 +1,8 @@
 import type { LiveAudience, Prisma } from '@prisma/client';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
-import {
-  isStreamHostOrCoHost,
-  type StreamHostRoles,
-} from './live-authorization.js';
+import { isStreamHost } from './live-authorization.js';
+import { GUEST_PLACE_STATUSES } from './live-guest.policy.js';
 
 // A stream is shown only while its host may be seen: not banned, not
 // suspended, and with an account that is open.
@@ -33,22 +31,44 @@ export function hostShown(host: {
  *
  * - Everyone: whoever can see the host (blocks are checked by the caller).
  * - Close friends: the people on the host's close friends list.
- * - Practice: only the host and their guest; nobody else ever sees it.
+ * - Practice: only the host and their guests; nobody else ever sees it.
  *
- * The host and the guest always see their own live.
+ * The host and a guest with a place (invited or on air) always see their
+ * own live.
  */
-export type StreamAudienceFields = StreamHostRoles & { audience: LiveAudience };
+export interface StreamAudienceFields {
+  id: string;
+  hostId: string;
+  audience: LiveAudience;
+}
+
+/** Whether the Profile is a guest invited to the live, or on air in it. */
+export async function hasGuestPlace(
+  prisma: Pick<PrismaService, 'liveGuest'>,
+  streamId: string,
+  profileId: string,
+): Promise<boolean> {
+  const guest = await prisma.liveGuest.findFirst({
+    where: {
+      streamId,
+      profileId,
+      status: { in: [...GUEST_PLACE_STATUSES] },
+    },
+    select: { id: true },
+  });
+  return guest !== null;
+}
 
 export async function canWatchStream(
-  prisma: Pick<PrismaService, 'closeFriend'>,
+  prisma: Pick<PrismaService, 'closeFriend' | 'liveGuest'>,
   stream: StreamAudienceFields,
   viewerProfileId: string | undefined,
 ): Promise<boolean> {
-  if (viewerProfileId && isStreamHostOrCoHost(stream, viewerProfileId)) {
-    return true;
-  }
+  if (viewerProfileId && isStreamHost(stream, viewerProfileId)) return true;
   if (stream.audience === 'EVERYONE') return true;
-  if (stream.audience === 'PRACTICE' || !viewerProfileId) return false;
+  if (!viewerProfileId) return false;
+  if (await hasGuestPlace(prisma, stream.id, viewerProfileId)) return true;
+  if (stream.audience === 'PRACTICE') return false;
   const friend = await prisma.closeFriend.findUnique({
     where: {
       profileId_friendId: {
@@ -64,7 +84,7 @@ export async function canWatchStream(
 /**
  * The lives a viewer may find in the list: those for everyone, those for
  * close friends whose host has the viewer on their list, and their own as
- * host or guest. Nobody else ever finds a practice.
+ * host or as a guest invited or on air. Nobody else ever finds a practice.
  */
 export function listedForViewer(
   viewerProfileId: string | undefined,
@@ -78,7 +98,14 @@ export function listedForViewer(
         host: { closeFriends: { some: { friendId: viewerProfileId } } },
       },
       { hostId: viewerProfileId },
-      { coHostId: viewerProfileId },
+      {
+        guests: {
+          some: {
+            profileId: viewerProfileId,
+            status: { in: [...GUEST_PLACE_STATUSES] },
+          },
+        },
+      },
     ],
   };
 }
@@ -96,9 +123,9 @@ export async function canEnterStreamRoom(
   const stream = await prisma.liveStream.findUnique({
     where: { id: streamId },
     select: {
+      id: true,
       status: true,
       hostId: true,
-      coHostId: true,
       audience: true,
       host: { select: HOST_SHOWN_SELECT },
     },

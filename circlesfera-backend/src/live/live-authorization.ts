@@ -1,29 +1,24 @@
-// Single source of truth for "is this profile the host/co-host of this
-// stream" — used by both the REST live-stream flows (LiveService) and the
-// Socket.IO realtime flows (LiveRealtimeService, app.gateway.ts) so the two
-// never drift into independently-maintained copies of the same rule.
-export interface StreamHostRoles {
-  hostId: string;
-  coHostId: string | null;
-}
+import type { LiveGuestStatus } from '@prisma/client';
 
+// Single source of truth for "is this profile the host, or a guest on air,
+// of this stream" — used by both the REST live-stream flows (LiveService)
+// and the Socket.IO realtime flows (LiveRealtimeService, app.gateway.ts) so
+// the two never drift into independently-maintained copies of the same rule.
 export function isStreamHost(
-  stream: Pick<StreamHostRoles, 'hostId'>,
+  stream: { hostId: string },
   profileId: string,
 ): boolean {
   return stream.hostId === profileId;
 }
 
-export function isStreamCoHost(
-  stream: Pick<StreamHostRoles, 'coHostId'>,
+/**
+ * The host, or a guest on air with them: who may pin a comment, highlight a
+ * question or set the goal. A guest only invited may not yet.
+ */
+export function isStreamHostOrOnAirGuest(
+  stream: { hostId: string },
   profileId: string,
+  guestStatus: LiveGuestStatus | null | undefined,
 ): boolean {
-  return stream.coHostId === profileId;
-}
-
-export function isStreamHostOrCoHost(
-  stream: StreamHostRoles,
-  profileId: string,
-): boolean {
-  return isStreamHost(stream, profileId) || isStreamCoHost(stream, profileId);
+  return isStreamHost(stream, profileId) || guestStatus === 'ON_AIR';
 }

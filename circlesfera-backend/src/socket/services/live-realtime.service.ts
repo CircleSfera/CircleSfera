@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { canEnterStreamRoom } from '../../live/live-audience.js';
-import { isStreamHostOrCoHost } from '../../live/live-authorization.js';
+import { isStreamHostOrOnAirGuest } from '../../live/live-authorization.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface ChatUserProfile {
@@ -84,19 +84,27 @@ export class LiveRealtimeService {
   }
 
   /**
-   * Checks whether the given profile is the host or co-host of a stream.
+   * Whether the given profile is the host of a stream, or a guest on air
+   * in it.
    */
-  async isStreamHostOrCoHost(
+  async isStreamHostOrOnAirGuest(
     streamId: string,
     profileId: string,
   ): Promise<boolean> {
     if (!streamId || !profileId) return false;
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
-      select: { hostId: true, coHostId: true },
+      select: {
+        hostId: true,
+        guests: { where: { profileId }, select: { status: true } },
+      },
     });
     if (!stream) return false;
-    return isStreamHostOrCoHost(stream, profileId);
+    return isStreamHostOrOnAirGuest(
+      stream,
+      profileId,
+      stream.guests[0]?.status,
+    );
   }
 
   /**

@@ -237,6 +237,7 @@ export default defineConfig({
         },
         'src/media/media-auth.service.ts': { statements: 100, lines: 100 },
         'src/live/recording/**': { statements: 100, lines: 100 },
+        'src/live/live-guest.policy.ts': { statements: 100, lines: 100 },
         'src/common/policies/live-replay-access.policy.ts': {
           statements: 100,
           lines: 100,

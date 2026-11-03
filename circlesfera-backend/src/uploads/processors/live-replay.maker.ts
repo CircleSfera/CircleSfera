@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { LIVE_GUESTS_MAX } from '@circlesfera/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { UnrecoverableError } from 'bullmq';
 import {
@@ -13,6 +14,7 @@ import {
 } from '../../common/media/ffmpeg-runner.js';
 import {
   hostFileName,
+  isGuestFileName,
   recordingsFolder,
 } from '../../live/recording/live-recording.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -92,51 +94,121 @@ export interface ReplayPart {
   audio: boolean;
 }
 
-/** A co-host's recording, and how long after the host's it began. */
-export interface CoHostReplayPart extends ReplayPart {
+/**
+ * A guest's recording: how long after the host's it began, and the column
+ * of the lower half it is shown in, counted from 0.
+ */
+export interface GuestReplayPart extends ReplayPart {
   offsetMs: number;
+  column: number;
 }
 
-// One half of the upright screen: the picture filled to 720 x 640, its
-// edges cut, at 30 frames a second.
-const HALF =
-  'scale=720:640:force_original_aspect_ratio=increase,crop=720:640,setsar=1,fps=30';
+/** A guest's recording before it is given a column. */
+export interface GuestPartTiming {
+  offsetMs: number;
+  // Unknown: it is taken to last to the end of the replay.
+  durationMs: number | null;
+  // The guest recorded; empty for a part recorded before guests were named.
+  profileId: string | null;
+}
 
 /**
- * The replay of a broadcast with a co-host, split as it was seen: the host
- * on top, the co-host below, each co-host part placed at the moment it
- * began; black below while no co-host is on. The sound of everyone is
- * mixed at its own level, and the replay lasts as long as the host's
- * recording. Encoded as a host's replay, with the filters on two threads.
+ * Gives each guest part a column of the lower half, at most `columnsMax`:
+ * a guest keeps the column they had when it is free again, and otherwise
+ * takes the first column free when they begin. As no more guests are on air
+ * at once than there are columns, every part finds one; a part that does
+ * not (its times overlapping beyond them) is left out, as null.
+ */
+export function placeInColumns(
+  parts: GuestPartTiming[],
+  columnsMax: number = LIVE_GUESTS_MAX,
+): (number | null)[] {
+  const freeFrom: number[] = [];
+  const lastColumn = new Map<string, number>();
+  const placed: (number | null)[] = parts.map(() => null);
+  const order = parts
+    .map((part, index) => ({ part, index }))
+    .sort((a, b) => a.part.offsetMs - b.part.offsetMs || a.index - b.index);
+  for (const { part, index } of order) {
+    const free = (column: number): boolean =>
+      (freeFrom[column] ?? Number.NEGATIVE_INFINITY) <= part.offsetMs;
+    const guest = part.profileId ?? '';
+    const kept = lastColumn.get(guest);
+    let column: number | null = kept !== undefined && free(kept) ? kept : null;
+    for (let c = 0; column === null && c < columnsMax; c++) {
+      if (free(c)) column = c;
+    }
+    if (column === null) continue;
+    freeFrom[column] =
+      part.durationMs === null
+        ? Number.POSITIVE_INFINITY
+        : part.offsetMs + part.durationMs;
+    lastColumn.set(guest, column);
+    placed[index] = column;
+  }
+  return placed;
+}
+
+const FULL_WIDTH = 720;
+const HALF_HEIGHT = 640;
+
+// One tile of the upright screen: the picture filled to the width given and
+// half the height, its edges cut, at 30 frames a second.
+const tile = (width: number): string =>
+  `scale=${width}:${HALF_HEIGHT}:force_original_aspect_ratio=increase,crop=${width}:${HALF_HEIGHT},setsar=1,fps=30`;
+
+/**
+ * The replay of a broadcast with guests, split as it was seen: the host on
+ * the upper half, the guests side by side on the lower half, each in their
+ * own column, each part placed at the moment it began; black in a column
+ * while nobody is on in it. The columns used share the width. The sound of
+ * everyone is mixed at its own level, and the replay lasts as long as the
+ * host's recording. Encoded as a host's replay, with the filters on two
+ * threads.
  */
 export function composeArgs(
   host: ReplayPart,
-  coHosts: CoHostReplayPart[],
+  guests: GuestReplayPart[],
   outputDir: string,
   playlist: string,
 ): string[] {
-  const graph = [
-    `[0:v]setpts=PTS-STARTPTS,${HALF}[top]`,
-    'color=c=black:s=720x640:r=30[bg0]',
-  ];
+  const columns = Math.max(1, ...guests.map((guest) => guest.column + 1));
+  // Even, as the encoder needs.
+  const width = Math.floor(FULL_WIDTH / columns / 2) * 2;
+  const graph = [`[0:v]setpts=PTS-STARTPTS,${tile(FULL_WIDTH)}[top]`];
+  const layers: number[] = [];
+  for (let c = 0; c < columns; c++) {
+    graph.push(`color=c=black:s=${width}x${HALF_HEIGHT}:r=30[col${c}_0]`);
+    layers.push(0);
+  }
   const sounds: string[] = [];
-  coHosts.forEach((coHost, index) => {
+  guests.forEach((guest, index) => {
     const n = index + 1;
-    const seconds = (coHost.offsetMs / 1000).toFixed(3);
+    const seconds = (guest.offsetMs / 1000).toFixed(3);
+    const below = layers[guest.column];
+    layers[guest.column] = below + 1;
     graph.push(
-      `[${n}:v]setpts=PTS-STARTPTS+${seconds}/TB,${HALF}[co${n}]`,
-      `[bg${index}][co${n}]overlay=eof_action=pass:repeatlast=0[bg${n}]`,
+      `[${n}:v]setpts=PTS-STARTPTS+${seconds}/TB,${tile(width)}[g${n}]`,
+      `[col${guest.column}_${below}][g${n}]overlay=eof_action=pass:repeatlast=0[col${guest.column}_${below + 1}]`,
     );
-    if (coHost.audio) {
+    if (guest.audio) {
       graph.push(
-        `[${n}:a]aresample=48000,asetpts=PTS-STARTPTS,adelay=${coHost.offsetMs}:all=1[a${n}]`,
+        `[${n}:a]aresample=48000,asetpts=PTS-STARTPTS,adelay=${guest.offsetMs}:all=1[a${n}]`,
       );
       sounds.push(`[a${n}]`);
     }
   });
-  graph.push(
-    `[top][bg${coHosts.length}]vstack=inputs=2:shortest=1,format=yuv420p[v]`,
-  );
+  const bottoms = layers.map((layer, c) => `[col${c}_${layer}]`);
+  if (columns === 1) {
+    graph.push(
+      `[top]${bottoms[0]}vstack=inputs=2:shortest=1,format=yuv420p[v]`,
+    );
+  } else {
+    graph.push(
+      `${bottoms.join('')}hstack=inputs=${columns}[bottom]`,
+      '[top][bottom]vstack=inputs=2:shortest=1,format=yuv420p[v]',
+    );
+  }
   const audio = host.audio || sounds.length > 0;
   if (audio) {
     // The host's sound first, or silence in its place: the mix lasts as
@@ -151,7 +223,7 @@ export function composeArgs(
   return [
     '-i',
     host.file,
-    ...coHosts.flatMap((coHost) => ['-i', coHost.file]),
+    ...guests.flatMap((guest) => ['-i', guest.file]),
     '-y',
     '-filter_complex_threads',
     '2',
@@ -168,10 +240,24 @@ export function composeArgs(
 const hasAudio = (data: FfprobeData): boolean =>
   (data.streams ?? []).some((stream) => stream.codec_type === 'audio');
 
+// How long a file lasts, as read from it; null when it does not say.
+const probedMs = (data: FfprobeData): number | null => {
+  const seconds = Number(data.format?.duration);
+  return Number.isFinite(seconds) ? Math.round(seconds * 1000) : null;
+};
+
+/** A guest's recording found in the recorder's folder. */
+interface FoundGuestPart {
+  file: string;
+  offsetMs: number;
+  durationMs: number | null;
+  profileId: string | null;
+}
+
 /**
  * Makes the replay of a recorded broadcast: its picture and its stream in a
  * folder of the uploads, as any video's, recorded as the host's own; with
- * the co-hosts' recordings composed below the host's. The recorder's files
+ * the guests' recordings composed below the host's. The recorder's files
  * are deleted once the replay is saved; a replay that cannot be made keeps
  * them, for another try, until the nightly clean-up.
  */
@@ -198,7 +284,13 @@ export class LiveReplayMaker {
         recordingDurationMs: true,
         recordingParts: {
           where: { status: 'DONE' },
-          select: { role: true, file: true, startedAt: true },
+          select: {
+            role: true,
+            file: true,
+            startedAt: true,
+            durationMs: true,
+            profileId: true,
+          },
           orderBy: { startedAt: 'asc' },
         },
       },
@@ -219,7 +311,7 @@ export class LiveReplayMaker {
         `The recording of broadcast ${stream.id} is not in the recorder's folder`,
       );
     }
-    const coHosts = this.coHostParts(stream);
+    const guests = this.guestParts(stream);
 
     // A folder named as a video's stream folder, so that media access and
     // the deletion of the replay treat it as one.
@@ -227,6 +319,9 @@ export class LiveReplayMaker {
     const outputDir = path.join(process.cwd(), 'uploads', baseName);
     await fs.promises.mkdir(outputDir, { recursive: true });
     let keepOutput = false;
+    // The guest files left out of the replay: kept, not deleted with the
+    // others.
+    const leftOut = new Set<string>();
     try {
       // Up to twice the recording's length: the replay is encoded again.
       const limitMs = Math.max(
@@ -249,21 +344,16 @@ export class LiveReplayMaker {
             { signal },
           );
           const playlist = path.join(outputDir, 'master.m3u8');
-          if (coHosts.length === 0) {
+          if (guests.length === 0) {
             await runFfmpeg(replayArgs(input, outputDir, playlist), {
               signal,
             });
             return;
           }
-          const parts: CoHostReplayPart[] = [];
-          for (const coHost of coHosts) {
-            const data = await ffprobe(coHost.file, { signal });
-            parts.push({ ...coHost, audio: hasAudio(data) });
-          }
           await runFfmpeg(
             composeArgs(
               { file: input, audio: hasAudio(host) },
-              parts,
+              await this.placeGuests(guests, signal, leftOut),
               outputDir,
               playlist,
             ),
@@ -312,7 +402,10 @@ export class LiveReplayMaker {
       }
     }
 
-    for (const file of [input, ...coHosts.map((coHost) => coHost.file)]) {
+    const used = guests
+      .map((guest) => guest.file)
+      .filter((file) => !leftOut.has(file));
+    for (const file of [input, ...used]) {
       await fs.promises
         .rm(file, { force: true })
         .catch((error: unknown) =>
@@ -325,45 +418,95 @@ export class LiveReplayMaker {
   }
 
   /**
-   * The co-hosts' recordings of a broadcast, in the recorder's folder, each
-   * with how long after the host's it began. Only files named as the
+   * Reads each guest's recording for its sound and, when the recorder did
+   * not say, its length, and gives it its column. A part that finds no
+   * column is left out of the replay, and its file added to `leftOut`: it is
+   * not deleted with the others, and the nightly clean-up takes it later.
+   */
+  private async placeGuests(
+    guests: FoundGuestPart[],
+    signal: AbortSignal,
+    leftOut: Set<string>,
+  ): Promise<GuestReplayPart[]> {
+    const probed: { audio: boolean; durationMs: number | null }[] = [];
+    for (const guest of guests) {
+      const data = await ffprobe(guest.file, { signal });
+      probed.push({
+        audio: hasAudio(data),
+        durationMs: guest.durationMs ?? probedMs(data),
+      });
+    }
+    const columns = placeInColumns(
+      guests.map((guest, index) => ({
+        offsetMs: guest.offsetMs,
+        durationMs: probed[index].durationMs,
+        profileId: guest.profileId,
+      })),
+    );
+    const parts: GuestReplayPart[] = [];
+    guests.forEach((guest, index) => {
+      const column = columns[index];
+      if (column === null) {
+        this.logger.warn(
+          `The guest recording ${path.basename(guest.file)} overlaps more guests than the replay shows: left out, its file kept`,
+        );
+        leftOut.add(guest.file);
+        return;
+      }
+      parts.push({
+        file: guest.file,
+        offsetMs: guest.offsetMs,
+        audio: probed[index].audio,
+        column,
+      });
+    });
+    return parts;
+  }
+
+  /**
+   * The guests' recordings of a broadcast, in the recorder's folder, each
+   * with how long after the host's it began, how long it lasts if the
+   * recorder said, and the guest it records. Only files named as the
    * recorder was asked to write them; one missing is left out.
    */
-  private coHostParts(stream: {
+  private guestParts(stream: {
     id: string;
     recordingFile: string | null;
-    recordingParts: { role: string; file: string; startedAt: Date }[];
-  }): { file: string; offsetMs: number }[] {
+    recordingParts: {
+      role: string;
+      file: string;
+      startedAt: Date;
+      durationMs: number | null;
+      profileId: string | null;
+    }[];
+  }): FoundGuestPart[] {
     const host = stream.recordingParts.find(
       (part) => part.role === 'HOST' && part.file === stream.recordingFile,
     );
     if (!host) return [];
-    const prefix = `live-${stream.id}-cohost-`;
-    const coHosts: { file: string; offsetMs: number }[] = [];
+    const guests: FoundGuestPart[] = [];
     for (const part of stream.recordingParts) {
-      if (
-        part.role !== 'COHOST' ||
-        !part.file.startsWith(prefix) ||
-        !/^\d+\.mp4$/.test(part.file.slice(prefix.length))
-      ) {
+      if (part.role !== 'COHOST' || !isGuestFileName(stream.id, part.file)) {
         continue;
       }
       const file = path.join(recordingsFolder(), part.file);
       if (!fs.existsSync(file)) {
         this.logger.warn(
-          `The co-host recording ${part.file} is not in the recorder's folder: left out`,
+          `The guest recording ${part.file} is not in the recorder's folder: left out`,
         );
         continue;
       }
-      coHosts.push({
+      guests.push({
         file,
         offsetMs: Math.max(
           0,
           part.startedAt.getTime() - host.startedAt.getTime(),
         ),
+        durationMs: part.durationMs,
+        profileId: part.profileId,
       });
     }
-    return coHosts;
+    return guests;
   }
 
   /** A replay that could not be made after every try. */

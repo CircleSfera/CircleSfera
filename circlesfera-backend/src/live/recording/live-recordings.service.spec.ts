@@ -462,17 +462,26 @@ describe('LiveRecordingsService', () => {
       expect(tx.liveStream.update).not.toHaveBeenCalled();
     });
 
-    it("deletes the recorder's files left more than 48 hours, and fails a replay waiting for one", async () => {
+    it("deletes the recorder's files left more than 48 hours, a guest's too, and fails a replay waiting for one", async () => {
       const old = 'live-11111111-2222-4333-8444-555555555555-host.mp4';
       const oldCoHost =
         'live-11111111-2222-4333-8444-555555555555-cohost-2.mp4';
+      const oldGuest =
+        'live-11111111-2222-4333-8444-555555555555-guest-77777777-2222-4333-8444-555555555555-1.mp4';
       const fresh = 'live-11111111-2222-4333-8444-666666666666-host.mp4';
       const other = 'live-11111111-2222-4333-8444-555555555555.mp4';
-      for (const name of [old, oldCoHost, fresh, other, 'notes.txt']) {
+      for (const name of [
+        old,
+        oldCoHost,
+        oldGuest,
+        fresh,
+        other,
+        'notes.txt',
+      ]) {
         fs.writeFileSync(path.join(recordings, name), 'raw');
       }
       const longAgo = daysAgo(3);
-      for (const name of [old, oldCoHost, other, 'notes.txt']) {
+      for (const name of [old, oldCoHost, oldGuest, other, 'notes.txt']) {
         fs.utimesSync(path.join(recordings, name), longAgo, longAgo);
       }
 

@@ -5,6 +5,7 @@ import {
   Get,
   Headers,
   Param,
+  ParseUUIDPipe,
   Post,
   Req,
   UseGuards,
@@ -19,6 +20,7 @@ import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { InviteCoHostDto } from './dto/invite-cohost.dto.js';
+import { InviteGuestDto } from './dto/invite-guest.dto.js';
 import { SendGiftDto } from './dto/send-gift.dto.js';
 import { StartStreamDto } from './dto/start-stream.dto.js';
 import { LiveService } from './live.service.js';
@@ -93,38 +95,97 @@ export class LiveController {
     );
   }
 
+  @Post(':streamId/guests')
+  @ApiResponse({ status: 201 })
+  inviteGuest(
+    @CurrentUser() user: CurrentUserData,
+    @Param('streamId') streamId: string,
+    @Body() dto: InviteGuestDto,
+  ) {
+    return this.liveService.inviteGuest(
+      streamId,
+      user.profileId,
+      dto.profileId
+        ? { profileId: dto.profileId }
+        : { userId: dto.userId as string },
+    );
+  }
+
+  @Post(':streamId/guests/accept')
+  @ApiResponse({ status: 201 })
+  acceptGuestInvite(
+    @CurrentUser() user: CurrentUserData,
+    @Param('streamId') streamId: string,
+  ) {
+    return this.liveService.acceptGuestInvite(streamId, user.profileId);
+  }
+
+  @Post(':streamId/guests/decline')
+  @ApiResponse({ status: 201 })
+  declineGuestInvite(
+    @CurrentUser() user: CurrentUserData,
+    @Param('streamId') streamId: string,
+  ) {
+    return this.liveService.declineGuestInvite(streamId, user.profileId);
+  }
+
+  @Post(':streamId/guests/leave')
+  @ApiResponse({ status: 201 })
+  leaveAsGuest(
+    @CurrentUser() user: CurrentUserData,
+    @Param('streamId') streamId: string,
+  ) {
+    return this.liveService.leaveAsGuest(streamId, user.profileId);
+  }
+
+  @Delete(':streamId/guests/:profileId')
+  @ApiResponse({ status: 200 })
+  removeGuest(
+    @CurrentUser() user: CurrentUserData,
+    @Param('streamId') streamId: string,
+    @Param('profileId', ParseUUIDPipe) profileId: string,
+  ) {
+    return this.liveService.removeGuest(streamId, user.profileId, profileId);
+  }
+
+  // Kept for the apps still installed that invite one co-host: the invite
+  // of a guest, answered as the invite of a co-host was.
   @Post(':streamId/cohost/invite')
   @ApiResponse({ status: 201 })
-  inviteCoHost(
+  async inviteCoHost(
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
     @Body() dto: InviteCoHostDto,
   ) {
-    return this.liveService.inviteCoHost(
+    const invited = await this.liveService.inviteGuest(
       streamId,
       user.profileId,
       dto.coHostProfileId
         ? { profileId: dto.coHostProfileId }
         : { userId: dto.coHostUserId as string },
     );
+    return { success: true, coHostId: invited.profileId };
   }
 
+  // Kept for the apps still installed that accept to be a co-host.
   @Post(':streamId/cohost/accept')
   @ApiResponse({ status: 201 })
   acceptCoHostInvite(
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
   ) {
-    return this.liveService.acceptCoHostInvite(streamId, user.profileId);
+    return this.liveService.acceptGuestInvite(streamId, user.profileId);
   }
 
+  // Kept for the apps still installed that remove the one co-host: every
+  // guest invited or on air is removed.
   @Delete(':streamId/cohost')
   @ApiResponse({ status: 200 })
   removeCoHost(
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
   ) {
-    return this.liveService.removeCoHost(streamId, user.profileId);
+    return this.liveService.removeAllGuests(streamId, user.profileId);
   }
 
   @Post(':streamId/gift')

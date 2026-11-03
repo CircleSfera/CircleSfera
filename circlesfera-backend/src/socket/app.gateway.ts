@@ -785,11 +785,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // Shared policy for stream host/co-host-only live actions — the one
+  // Shared policy for live actions of the host or a guest on air — the one
   // authoritative gate-and-log implementation for pin/unpin comment,
   // highlight/clear question and set goal. Returns the caller's
   // profileId when authorized, or null (after logging) when not.
-  private async requireStreamHostOrCoHost(
+  private async requireStreamHostOrOnAirGuest(
     client: SocketWithAuth,
     streamId: string,
     eventName: string,
@@ -797,10 +797,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return null;
 
-    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
-      streamId,
-      callerProfileId,
-    );
+    const isAuthorized =
+      await this.liveRealtimeService.isStreamHostOrOnAirGuest(
+        streamId,
+        callerProfileId,
+      );
     if (!isAuthorized) {
       this.logger.warn(
         `Unauthorized ${eventName} attempt by profile ${callerProfileId} on stream ${streamId}`,
@@ -828,7 +829,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // pin in it either.
     if (!inLiveRoom(client, payload.streamId)) return;
 
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:pin_comment',
@@ -857,7 +858,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     if (!payload?.streamId || typeof payload.streamId !== 'string') return;
 
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:unpin_comment',
@@ -988,7 +989,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
       return;
     }
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:highlight_question',
@@ -1017,7 +1018,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     if (!payload?.streamId || typeof payload.streamId !== 'string') return;
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:clear_question',
@@ -1044,7 +1045,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const callerProfileId = await this.requireStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
       client,
       payload.streamId,
       'live:set_goal',

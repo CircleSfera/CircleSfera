@@ -31,6 +31,8 @@ describe('LiveGiftService', () => {
       findUnique: vi.fn(),
     },
     closeFriend: { findUnique: vi.fn().mockResolvedValue(null) },
+    // The sender is no guest of the live.
+    liveGuest: { findFirst: vi.fn().mockResolvedValue(null) },
     block: { findFirst: vi.fn().mockResolvedValue(null) },
     user: { findMany: vi.fn().mockResolvedValue([]), findUnique: vi.fn() },
     liveGift: {
@@ -109,7 +111,6 @@ describe('LiveGiftService', () => {
       for (const audience of ['PRACTICE', 'CLOSE_FRIENDS']) {
         mockPrismaService.liveStream.findUnique.mockResolvedValue({
           ...liveHost,
-          coHostId: null,
           audience,
         });
         await expect(
