@@ -71,14 +71,17 @@ export async function openComposer(
 ): Promise<void> {
   await page.goto(`/create?mode=${mode}`);
   // On a phone creating starts on the camera; the gallery is a tap away.
+  // Where there is no camera at all the screen goes to the gallery itself,
+  // which can happen while the tap is on its way: either way ends there.
   const capture = page.getByTestId('story-capture');
   const composer = composerShell(page);
   await expect(capture.or(composer)).toBeVisible();
-  if (await capture.isVisible()) {
+  if (!(await composer.isVisible())) {
     await capture
       .getByRole('button', { name: es.story.capture.gallery })
       .first()
-      .click();
+      .click({ timeout: 5_000 })
+      .catch(() => undefined);
   }
   const expected = mode === 'frame' ? 'FRAME' : 'POST';
   await expect(composerShell(page)).toHaveAttribute(
