@@ -143,21 +143,25 @@ describe('EditorOverlayManager', () => {
       });
     });
 
-    it('starts on the first ninety seconds, or on the whole video when it is shorter', () => {
+    it('starts on the longest Frame from the start, or on the whole video when it is shorter', () => {
       const long = show({
         showFrameTrim: true,
-        frameSourceDurationSec: 200,
+        frameSourceDurationSec: FRAME_MAX_DURATION_SEC * 2,
         mediaFiles: [media('video')],
       });
-      expect(seen.trim.initialWindow).toEqual({ startTime: 0, endTime: 90 });
+      expect(seen.trim.initialWindow).toEqual({
+        startTime: 0,
+        endTime: FRAME_MAX_DURATION_SEC,
+      });
       long.unmount();
 
+      const short = FRAME_MIN_DURATION_SEC + 1;
       show({
         showFrameTrim: true,
-        frameSourceDurationSec: 40,
+        frameSourceDurationSec: short,
         mediaFiles: [media('video')],
       });
-      expect(seen.trim.initialWindow).toEqual({ startTime: 0, endTime: 40 });
+      expect(seen.trim.initialWindow).toEqual({ startTime: 0, endTime: short });
     });
 
     it('does not open for a photo', () => {
