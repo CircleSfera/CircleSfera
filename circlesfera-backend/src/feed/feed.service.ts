@@ -14,7 +14,6 @@ import {
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
 import { getBlockedProfileIds } from '../common/policies/block.policy.js';
-import { isPremiumPostLocked } from '../common/policies/premium-post.policy.js';
 import {
   LISTED_POST,
   SHOWN_COMMENTS_COUNT,
@@ -34,6 +33,7 @@ import {
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
+import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
 import { FeedInboxService } from './feed-inbox.service.js';
@@ -53,6 +53,8 @@ export class FeedService {
     private readonly feedPreferences: FeedPreferencesService,
     @Inject(ExperimentsService)
     private readonly experiments: ExperimentsService,
+    @Inject(PostPaywallService)
+    private readonly postPaywall: PostPaywallService,
   ) {}
 
   private postHydrationInclude(profileId?: string | null) {
@@ -915,26 +917,23 @@ export class FeedService {
       include: this.postHydrationInclude(profileId),
     });
 
-    const promotedPostsDict = new Map();
-    for (const p of promotedPostsRaw) {
-      const { likes, media, ...rest } = p;
-      const isLiked =
-        profileId && Array.isArray(likes) ? likes.length > 0 : false;
-      // A promoted paid post the viewer has not unlocked shows closed, as
-      // it does anywhere else in the feed.
-      const locked = await isPremiumPostLocked(this.prisma, p, profileId);
-      promotedPostsDict.set(p.id, {
-        ...rest,
-        media: media.map((m: Parameters<typeof resolveMediaFields>[0]) =>
-          locked
-            ? { ...resolveMediaFields(m), url: '', standardUrl: '' }
-            : resolveMediaFields(m),
-        ),
-        ...(locked ? { isLocked: true } : {}),
-        isLiked,
-        isPromoted: true,
-      });
-    }
+    // A promoted paid post the viewer has not unlocked is closed, as it is
+    // in the rest of the feed.
+    const promotedPosts = await this.postPaywall.applyPaywall(
+      promotedPostsRaw.map((p) => {
+        const { likes, media, ...rest } = p;
+        const isLiked =
+          profileId && Array.isArray(likes) ? likes.length > 0 : false;
+        return {
+          ...rest,
+          media: media.map(resolveMediaFields),
+          isLiked,
+          isPromoted: true,
+        };
+      }),
+      profileId ?? undefined,
+    );
+    const promotedPostsDict = new Map(promotedPosts.map((p) => [p.id, p]));
 
     const finalPosts = [];
     let promoIndex = 0;

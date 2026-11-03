@@ -39,6 +39,7 @@ import {
 } from '../common/config/origin.config.js';
 import { isEliteLiveReaction } from '../common/constants/live-reactions.constants.js';
 import { CorrelationContext } from '../common/correlation/correlation.context.js';
+import type { PaywallPost } from '../posts/services/post-paywall.service.js';
 import { WebrtcSignalingService } from '../webrtc/webrtc-signaling.service.js';
 import type {
   CallAcceptDeclineDto,
@@ -1142,9 +1143,28 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
         return;
       }
-      event.participants?.forEach((p) => {
+      // A paid post the message shares reaches each member as they may see
+      // it: closed to one who has not unlocked it. Read for every member at
+      // once, before any is sent.
+      const members = event.participants ?? [];
+      const seenByEach = await Promise.all(
+        members.map(async (p) => {
+          const masked = asSeenBy(p.profileId);
+          const shared = masked.post as PaywallPost | null | undefined;
+          return shared?.isPremium
+            ? {
+                ...masked,
+                post: await this.chatRealtimeService.sharedPostAsSeenBy(
+                  shared,
+                  p.profileId,
+                ),
+              }
+            : masked;
+        }),
+      );
+      for (const [index, p] of members.entries()) {
         this.addConversationToSocket(p.profileId, event.payload.conversationId);
-        const seen = asSeenBy(p.profileId);
+        const seen = seenByEach[index];
         // A message just sent can't have been unlocked yet by anyone but the
         // sender — mirror GetMessagesQuery's redaction so the realtime channel
         // can't leak locked-message content/media past the paywall.
@@ -1161,7 +1181,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
               }
             : seen;
         this.server.to(`user:${p.profileId}`).emit('receiveMessage', payload);
-      });
+      }
     });
   }
 

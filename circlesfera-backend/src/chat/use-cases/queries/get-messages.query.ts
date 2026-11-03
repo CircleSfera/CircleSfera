@@ -3,6 +3,7 @@ import type { MediaStatus, Message, Participant } from '@prisma/client';
 import { isUnlisted } from '../../../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../../../common/selects/public-profile.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
+import { PostPaywallService } from '../../../posts/services/post-paywall.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { blockedWithViewer, maskMessage } from '../../blocked-participants.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
@@ -18,6 +19,8 @@ export class GetMessagesQuery {
     @Inject(CryptoService) private cryptoService: CryptoService,
     @Inject(ChatAuthorizationService)
     private chatAuth: ChatAuthorizationService,
+    @Inject(PostPaywallService)
+    private postPaywall: PostPaywallService,
   ) {}
 
   // The latest messages of a conversation, oldest first as they are read.
@@ -124,7 +127,7 @@ export class GetMessagesQuery {
         ...(m.reactions ?? []).map((r: any) => r.profileId),
       ]),
     );
-    return (messages as any[]).map((input: any) => {
+    const shown = (messages as any[]).map((input: any) => {
       const m = maskMessage(input, blocked, profileId);
       if (m.content) {
         m.content = this.cryptoService.decrypt(m.content);
@@ -182,6 +185,20 @@ export class GetMessagesQuery {
         }
       }
       return m;
-    }) as any;
+    });
+
+    // A shared paid post the reader has not unlocked shows closed, as it
+    // does everywhere else.
+    const sharing = shown.filter((m: any) => m.post);
+    if (sharing.length > 0) {
+      const posts = await this.postPaywall.applyPaywall(
+        sharing.map((m: any) => m.post),
+        profileId,
+      );
+      sharing.forEach((m: any, i: number) => {
+        m.post = posts[i];
+      });
+    }
+    return shown as any;
   }
 }

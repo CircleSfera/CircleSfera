@@ -11,12 +11,29 @@ import {
   SHOWN_COMMENTS_COUNT,
 } from '../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
+import {
+  type PaywallPost,
+  PostPaywallService,
+} from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // Service for bookmarking posts. Supports toggle, collection assignment, and paginated retrieval.
 @Injectable()
 export class BookmarksService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(PostPaywallService)
+    private readonly postPaywall: PostPaywallService,
+  ) {}
+
+  // The saved posts as the one who saved them sees them: a paid post they
+  // have not unlocked is closed.
+  private asSavedBy(bookmarks: Array<{ post: unknown }>, profileId: string) {
+    return this.postPaywall.applyPaywall(
+      bookmarks.map((b) => b.post as PaywallPost),
+      profileId,
+    );
+  }
 
   // Shared ownership check for assigning a bookmark to a collection — the one
   // authoritative implementation for every write/read path that accepts a
@@ -226,7 +243,7 @@ export class BookmarksService {
     }
 
     return {
-      data: bookmarks.map((b) => (b as any).post),
+      data: await this.asSavedBy(bookmarks, profileId),
       meta: {
         total,
         page,
@@ -283,7 +300,7 @@ export class BookmarksService {
     ]);
 
     return {
-      data: bookmarks.map((b) => (b as any).post),
+      data: await this.asSavedBy(bookmarks, profileId),
       total,
       page,
       limit,

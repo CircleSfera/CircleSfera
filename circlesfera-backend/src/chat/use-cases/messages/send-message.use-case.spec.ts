@@ -8,6 +8,18 @@ import { AppException } from '../../../common/errors/app.exception.js';
 import { assertCanAccessPost } from '../../../common/policies/post-access.policy.js';
 import { assertCanAccessStory } from '../../../common/policies/story-access.policy.js';
 import type { CryptoService } from '../../../common/services/crypto.service.js';
+import {
+  AUTHOR_ID,
+  BUYER_ID,
+  expectClosed,
+  expectWhole,
+  FULL_URL,
+  inlinePaidMedia,
+  PAID_POST_ID,
+  paidPost,
+  realPaywall,
+  STRANGER_ID,
+} from '../../../common/testing/paid-posts.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import type { PushService } from '../../../push/push.service.js';
 import { SendMessageUseCase } from './send-message.use-case.js';
@@ -91,6 +103,7 @@ describe('SendMessageUseCase', () => {
         recordText: vi.fn().mockResolvedValue(undefined),
       } as never,
       storedFiles as never,
+      realPaywall(),
     );
   });
 
@@ -964,6 +977,63 @@ describe('SendMessageUseCase', () => {
       expect(String(error.message)).toContain('Someone in this conversation');
       expect(String(error.message)).not.toContain('friend-1');
       expect(mockTx.message.create).not.toHaveBeenCalled();
+    });
+
+    const sentBy = (sender: string) =>
+      mockTx.conversation.findUnique.mockResolvedValue({
+        id: 'conv-1',
+        participants: [
+          { profileId: sender, profile: { id: sender } },
+          { profileId: 'friend-1', profile: { id: 'friend-1' } },
+        ],
+      });
+
+    it('gives a paid post back closed to a sender who has not unlocked it', async () => {
+      sentBy(STRANGER_ID);
+      mockTx.message.create.mockResolvedValue({
+        id: 'm1',
+        sender: { id: STRANGER_ID, username: 's' },
+        post: paidPost([inlinePaidMedia()]),
+      });
+      const sent = await useCase.execute(
+        STRANGER_ID,
+        undefined,
+        'Look',
+        undefined,
+        undefined,
+        'conv-1',
+        undefined,
+        PAID_POST_ID,
+      );
+
+      expectClosed((sent as any).post);
+      // Every member gets the post from the socket, as each may see it.
+      const event = mockEventEmitter.emit.mock.calls.find(
+        ([name]) => name === 'chat.message.sent',
+      )?.[1];
+      expect(JSON.stringify(event.payload.post)).toContain(FULL_URL);
+    });
+
+    it('gives a paid post back whole to its author and to a sender who unlocked it', async () => {
+      for (const sender of [AUTHOR_ID, BUYER_ID]) {
+        sentBy(sender);
+        mockTx.message.create.mockResolvedValueOnce({
+          id: 'm1',
+          sender: { id: sender, username: 's' },
+          post: paidPost([inlinePaidMedia()]),
+        });
+        const sent = await useCase.execute(
+          sender,
+          undefined,
+          'Look',
+          undefined,
+          undefined,
+          'conv-1',
+          undefined,
+          PAID_POST_ID,
+        );
+        expectWhole((sent as any).post);
+      }
     });
 
     it('checks nothing for a message that shares nothing', async () => {

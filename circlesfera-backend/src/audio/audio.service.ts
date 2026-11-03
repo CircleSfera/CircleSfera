@@ -1,12 +1,17 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { SHOWN_COMMENTS_COUNT } from '../common/policies/removed-content.policy.js';
+import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateAudioDto } from './dto/create-audio.dto.js';
 
 // Service for audio track CRUD, search, and trending retrieval.
 @Injectable()
 export class AudioService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(PostPaywallService)
+    private readonly postPaywall: PostPaywallService,
+  ) {}
 
   // Create a new audio track record.
   // Param dto: Audio metadata (title, artist, url, duration)
@@ -102,10 +107,11 @@ export class AudioService {
     return this.prisma.audio.delete({ where: { id } });
   }
 
-  // Get all posts (Posts and Frames) using a specific audio track.
+  // Get all posts (Posts and Frames) using a specific audio track, as the
+  // viewer sees them: a paid post they have not unlocked is closed.
   // Param id: The audio track's ID
-  async getAudioPosts(id: string) {
-    return await this.prisma.post.findMany({
+  async getAudioPosts(id: string, viewerProfileId?: string) {
+    const posts = await this.prisma.post.findMany({
       where: {
         audioId: id,
         visibility: 'PUBLIC',
@@ -127,5 +133,6 @@ export class AudioService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    return this.postPaywall.applyPaywall(posts, viewerProfileId);
   }
 }

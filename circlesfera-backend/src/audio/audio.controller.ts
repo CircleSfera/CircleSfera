@@ -9,6 +9,10 @@ import {
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import {
+  CurrentUser,
+  type CurrentUserData,
+} from '../auth/decorators/current-user.decorator.js';
+import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
@@ -67,7 +71,7 @@ export class AudioController {
   @Get(':id/posts')
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200, type: [Object] })
-  getPosts(@Param('id') id: string) {
-    return this.audioService.getAudioPosts(id);
+  getPosts(@Param('id') id: string, @CurrentUser() user: CurrentUserData) {
+    return this.audioService.getAudioPosts(id, user.profileId);
   }
 }
