@@ -188,7 +188,7 @@ jobs:
       - name: Check the composer and its captures, and the main screens
         run: |
           cd circlesfera-frontend
-          npx playwright test e2e/composer-smoke.spec.ts e2e/composer-visual.spec.ts e2e/photo-editor-reopen.spec.ts e2e/frames-render-loop.spec.ts e2e/feed.spec.ts e2e/login.spec.ts e2e/profile.spec.ts e2e/search.spec.ts e2e/smoke.spec.ts e2e/stripe.spec.ts --project=chromium
+          npx playwright test e2e/composer-smoke.spec.ts e2e/composer-carousel.spec.ts e2e/composer-visual.spec.ts e2e/photo-editor-reopen.spec.ts e2e/frames-render-loop.spec.ts e2e/feed.spec.ts e2e/login.spec.ts e2e/profile.spec.ts e2e/search.spec.ts e2e/smoke.spec.ts e2e/stripe.spec.ts --project=chromium
 
       - name: Dump server logs on failure
         if: failure()
