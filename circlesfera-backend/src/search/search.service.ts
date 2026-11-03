@@ -39,6 +39,8 @@ export interface SearchResponse {
 
 /** The shortest query searched; anything shorter finds nothing. */
 const SEARCH_MIN_QUERY_LENGTH = 2;
+/** The shortest query searched by meaning: shorter says too little. */
+const SEMANTIC_MIN_QUERY_LENGTH = 3;
 /** How many hashtags one search answers. */
 const HASHTAG_RESULTS = 5;
 /** Tags are suggested from the first letter after #, as on Instagram. */
@@ -93,7 +95,8 @@ export class SearchService {
     limit = 10,
     profileId?: string,
   ): Promise<any[]> {
-    if (!query || query.length < 3) return [];
+    if (typeof query !== 'string' || query.length < SEMANTIC_MIN_QUERY_LENGTH)
+      return [];
 
     const cacheKey = `search:semantic:v2:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
@@ -191,7 +194,8 @@ export class SearchService {
     limit = 10,
     profileId?: string,
   ): Promise<any[]> {
-    if (!query || query.length < 3) return [];
+    if (typeof query !== 'string' || query.length < SEMANTIC_MIN_QUERY_LENGTH)
+      return [];
 
     const cacheKey = `search:semantic_profiles:v2:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
@@ -272,7 +276,7 @@ export class SearchService {
     profileId?: string,
     verifiedOnly = false,
   ): Promise<SearchResponse> {
-    if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) {
+    if (typeof query !== 'string' || query.length < SEARCH_MIN_QUERY_LENGTH) {
       return {
         users: [],
         hashtags: [],
@@ -385,7 +389,8 @@ export class SearchService {
   // Only Profiles that can be found: open accounts, not banned or
   // suspended, no block either way, never the viewer.
   async suggestMentions(query: string, viewerId: string) {
-    const typed = (query ?? '').trim().toLowerCase();
+    // A query sent twice (?q=a&q=b) arrives as a list: nothing typed.
+    const typed = (typeof query === 'string' ? query : '').trim().toLowerCase();
     const findable: Prisma.ProfileWhereInput = {
       id: { not: viewerId },
       user: { deactivatedAt: null, isActive: true },
@@ -446,7 +451,8 @@ export class SearchService {
   // by staff, and only those used on posts the viewer can see. What the
   // combined search shows, and what a caption suggests while it is written.
   async searchHashtags(query: string, profileId?: string) {
-    if (!query || query.length < HASHTAG_MIN_QUERY_LENGTH) return [];
+    if (typeof query !== 'string' || query.length < HASHTAG_MIN_QUERY_LENGTH)
+      return [];
     return this.prisma.hashtag.findMany({
       where: {
         tag: {
@@ -475,7 +481,8 @@ export class SearchService {
     viewerId?: string,
     verifiedOnly = false,
   ): Promise<any[]> {
-    if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) return [];
+    if (typeof query !== 'string' || query.length < SEARCH_MIN_QUERY_LENGTH)
+      return [];
 
     const sanitizedQuery = query.toLowerCase();
 
@@ -644,7 +651,8 @@ export class SearchService {
   // Search posts with Authority Weighting and Velocity ranking.
   // Param query: Keyword to search in captions
   async searchPosts(query: string, viewerId?: string): Promise<Post[]> {
-    if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) return [];
+    if (typeof query !== 'string' || query.length < SEARCH_MIN_QUERY_LENGTH)
+      return [];
 
     const sanitizedQuery = query.toLowerCase();
 

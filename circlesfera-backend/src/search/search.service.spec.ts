@@ -801,6 +801,33 @@ describe('SearchService', () => {
     });
   });
 
+  describe('a query sent twice, which arrives as a list', () => {
+    const twice = ['ana', 'andres'] as unknown as string;
+
+    it('is searched for nothing', async () => {
+      expect(await service.search(twice, 'viewer-1')).toEqual(
+        await service.search('', 'viewer-1'),
+      );
+      expect(await service.searchUsers(twice)).toEqual([]);
+      expect(await service.searchPosts(twice)).toEqual([]);
+      expect(await service.searchHashtags(twice)).toEqual([]);
+      expect(await service.semanticSearchPosts(twice)).toEqual([]);
+      expect(await service.semanticSearchProfiles(twice)).toEqual([]);
+    });
+
+    it('suggests for a mention as if nothing were typed', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
+
+      await service.suggestMentions(twice, 'viewer-1');
+
+      const [args] = mockPrismaService.profile.findMany.mock.calls.at(-1) ?? [];
+      expect(args.where.followers).toEqual({
+        some: { followerId: 'viewer-1', status: 'ACCEPTED' },
+      });
+      expect(JSON.stringify(args.where)).not.toContain('andres');
+    });
+  });
+
   describe('suggestMentions', () => {
     const ana = { id: 'p-ana', username: 'ana' };
     const andres = { id: 'p-andres', username: 'andres' };
