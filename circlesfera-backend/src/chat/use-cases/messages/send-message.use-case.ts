@@ -101,7 +101,7 @@ export class SendMessageUseCase {
       if (!canMonetize(senderProfile?.accountType)) {
         throw AppException.Forbidden(
           ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
-          'Solo las cuentas Creator o Business pueden enviar mensajes de pago.',
+          'Only Creator or Business accounts can send paid messages.',
         );
       }
       if (
@@ -110,8 +110,9 @@ export class SendMessageUseCase {
         priceCents > MAX_PPV_PRICE_CENTS
       ) {
         throw AppException.BadRequest(
-          ErrorCode.BAD_REQUEST,
-          `El precio del mensaje debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
+          ErrorCode.PREMIUM_PRICE_OUT_OF_RANGE,
+          'The price of a paid message is out of range.',
+          { minCents: MIN_PPV_PRICE_CENTS, maxCents: MAX_PPV_PRICE_CENTS },
         );
       }
     }

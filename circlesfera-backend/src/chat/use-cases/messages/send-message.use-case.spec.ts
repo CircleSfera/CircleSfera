@@ -808,7 +808,11 @@ describe('SendMessageUseCase', () => {
           true,
           MIN_PPV_PRICE_CENTS - 1,
         ),
-      ).rejects.toThrow(AppException);
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
+        }),
+      });
     });
 
     it('rejects a locked message priced one cent above the €500.00 ceiling', async () => {
@@ -834,7 +838,11 @@ describe('SendMessageUseCase', () => {
           true,
           MAX_PPV_PRICE_CENTS + 1,
         ),
-      ).rejects.toThrow(AppException);
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
+        }),
+      });
     });
 
     it('creates a locked message with isLocked/priceCents for an eligible CREATOR account', async () => {

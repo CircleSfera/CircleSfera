@@ -411,7 +411,7 @@ export class MonetizationService {
     ) {
       throw AppException.BadRequest(
         ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
-        `El precio del mensaje debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
+        'The price of a paid message is out of range.',
       );
     }
     // message.senderId is a Profile.id; userId here is a User.id (per the
@@ -588,7 +588,7 @@ export class MonetizationService {
     if (!profile || !canMonetize(profile.accountType)) {
       throw AppException.Forbidden(
         ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
-        'Solo las cuentas Creator o Business pueden habilitar el cobro con Stripe.',
+        'Only Creator or Business accounts can enable payments with Stripe.',
       );
     }
 
