@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { POST_SHAPES } from '@circlesfera/shared';
 import {
   BadRequestException,
   ForbiddenException,
@@ -372,6 +373,45 @@ describe('PostsService', () => {
       );
       // The cover chosen while creating is asked for once the frame exists.
       expect(mockFrameCover.choose).toHaveBeenCalledWith('frame-1', 2500);
+    });
+
+    it('keeps the shape chosen for a post, none when not chosen, and none for a Frame', async () => {
+      const created = vi.fn().mockResolvedValue({ id: 'p' });
+      const mockTx = {
+        post: { create: created },
+        postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
+      };
+      mockPrismaService.$transaction.mockImplementation(async (cb) =>
+        cb(mockTx),
+      );
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValue({
+        id: 'p',
+        media: [],
+      });
+      const shapeWritten = () => created.mock.calls.at(-1)?.[0].data.shape;
+
+      for (const shape of POST_SHAPES) {
+        await service.create('user-1', { caption: 'x', shape });
+        expect(shapeWritten()).toBe(shape);
+      }
+
+      await service.create('user-1', { caption: 'x' });
+      expect(shapeWritten()).toBeNull();
+
+      const [, other] = POST_SHAPES;
+      await service.create('user-1', {
+        type: 'FRAME',
+        media: [{ url: 'https://vid.mp4', type: 'video' }],
+        shape: other,
+      });
+      expect(shapeWritten()).toBeNull();
     });
 
     it('validates duration for POST video media items', async () => {

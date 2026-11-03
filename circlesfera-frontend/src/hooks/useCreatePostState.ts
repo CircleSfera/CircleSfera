@@ -1,5 +1,9 @@
 // Facade state hook for useCreatePost
-import type { PlaceInput } from '@circlesfera/shared';
+import {
+  DEFAULT_POST_SHAPE,
+  type PlaceInput,
+  type PostShape,
+} from '@circlesfera/shared';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { CropData, VideoData } from '../components/PhotoEditor';
@@ -84,6 +88,8 @@ export function useCreatePostState() {
   // The moment of a new frame chosen as its cover; none means the automatic one.
   const [coverTimeMs, setCoverTimeMs] = useState<number | null>(null);
   const [isSensitive, setIsSensitive] = useState(false);
+  // The shape every item of a post shows in, chosen in the editor.
+  const [postShape, setPostShape] = useState<PostShape>(DEFAULT_POST_SHAPE);
   const [selectedAudio, setSelectedAudio] = useState<AudioTrack | null>(null);
   const [audioStartMs, setAudioStartMs] = useState(0);
   const [isCloseFriendsOnly, setIsCloseFriendsOnly] = useState(
@@ -120,6 +126,8 @@ export function useCreatePostState() {
   return {
     mode,
     setMode,
+    postShape,
+    setPostShape,
     step,
     setStep,
     subScreen,

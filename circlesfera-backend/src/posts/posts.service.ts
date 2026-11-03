@@ -232,6 +232,8 @@ export class PostsService {
             profileId,
             caption: dto.caption,
             type: postType,
+            // A Frame is always upright: only a post keeps a shape.
+            shape: postType === 'POST' ? (dto.shape ?? null) : null,
             location: placeAttachment.location,
             placeId: placeAttachment.placeId,
             hideLikes: dto.hideLikes,

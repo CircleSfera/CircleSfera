@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDwellTime } from '../hooks/useDwellTime';
 import { usePostInteractions } from '../hooks/usePostInteractions';
 import type { Post } from '../types';
+import { postAspectClass } from '../utils/postShape';
 import { PollWidget } from './interactive/PollWidget';
 import PostActions from './post/PostActions';
 import PostContent from './post/PostContent';
@@ -179,7 +180,7 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
 
         <PostMedia
           post={post}
-          aspectRatio="aspect-4/5"
+          aspectRatio={postAspectClass(post)}
           objectFit="cover"
           priority={priority}
         />

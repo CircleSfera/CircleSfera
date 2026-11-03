@@ -1,3 +1,4 @@
+import type { PostShape } from '@circlesfera/shared';
 import {
   BarChart2,
   ChevronRight,
@@ -26,6 +27,7 @@ import type {
 } from '../../hooks/useCreatePost';
 import { useAuthStore } from '../../stores/authStore';
 import type { Audio as AudioTrack } from '../../types';
+import { postAspectClass } from '../../utils/postShape';
 import UserAvatar from '../UserAvatar';
 import InteractiveMediaPreview from './InteractiveMediaPreview';
 
@@ -43,6 +45,8 @@ interface CaptionStepProps {
   interactiveDraft?: InteractiveDraft;
   // A frame whose author already chose its cover.
   hasChosenCover?: boolean;
+  /** The shape of a post, for its preview. */
+  postShape?: PostShape;
 }
 
 const MAX_CAPTION_LENGTH = 2200;
@@ -69,6 +73,7 @@ export default function CaptionStep({
   isPremium,
   interactiveDraft,
   hasChosenCover = false,
+  postShape,
 }: CaptionStepProps) {
   const { t } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
@@ -250,12 +255,15 @@ export default function CaptionStep({
       <div className="hidden md:flex w-[38%] min-w-37 max-w-50 bg-surface-base items-center justify-center border-r border-white/8 p-3 relative shrink-0">
         <div
           className={`relative w-full ${
-            mode === 'POST' ? 'max-w-37 aspect-4/5' : 'max-w-30 aspect-9/16'
+            mode === 'POST'
+              ? `max-w-37 ${postAspectClass({ shape: postShape })}`
+              : 'max-w-30 aspect-9/16'
           } bg-black rounded-xl border border-white/10 overflow-hidden shadow-xl z-10`}
         >
           <InteractiveMediaPreview
             mediaFiles={mediaFiles}
             mode={mode}
+            postShape={postShape}
             className="w-full! h-full! max-h-none! rounded-xl border-0 shadow-none"
           />
         </div>
@@ -264,7 +272,11 @@ export default function CaptionStep({
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar">
         <div className="flex items-start gap-2.5 px-4 py-2.5 border-b border-white/8 shrink-0">
           <div className="md:hidden shrink-0">
-            <InteractiveMediaPreview mediaFiles={mediaFiles} mode={mode} />
+            <InteractiveMediaPreview
+              mediaFiles={mediaFiles}
+              mode={mode}
+              postShape={postShape}
+            />
           </div>
 
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { usePostInteractions } from '../../hooks/usePostInteractions';
 import type { Comment, Post } from '../../types';
+import { postAspectClass, shapeOf } from '../../utils/postShape';
 import CommentList from '../CommentList';
 import { PollWidget } from '../interactive/PollWidget';
 import PostActions from './PostActions';
@@ -100,13 +101,17 @@ export default memo(function PostDetailView({
           />
         </div>
 
-        {/* Media — Post shell is vertical 4:5 (width:height); cover fills the frame */}
-        <div className="[grid-area:media] bg-black flex justify-center items-center md:border-r md:border-white/8 relative aspect-4/5 md:aspect-auto md:min-h-112.5 overflow-hidden group">
+        {/* Media, in the shape of the post; cover fills the frame */}
+        <div
+          className={`[grid-area:media] bg-black flex justify-center items-center md:border-r md:border-white/8 relative ${postAspectClass(post)} md:aspect-auto md:min-h-112.5 overflow-hidden group`}
+        >
           <PostMedia
             post={post}
-            aspectRatio="aspect-4/5"
+            aspectRatio={postAspectClass(post)}
             className="w-full h-full relative z-10 bg-transparent"
-            objectFit="cover"
+            // On a computer the column is taller than the shape: a square or a
+            // landscape post shows whole in it, a portrait one fills it.
+            objectFit={shapeOf(post) === 'PORTRAIT' ? 'cover' : 'contain'}
             priority={priority}
           />
         </div>

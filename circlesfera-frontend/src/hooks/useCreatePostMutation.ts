@@ -1,4 +1,4 @@
-import type { PlaceInput } from '@circlesfera/shared';
+import type { PlaceInput, PostShape } from '@circlesfera/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,8 @@ import type { UploadResult } from './useMediaUpload';
 
 interface MutationDeps {
   mode: CreateMode;
+  /** The shape of a post; a Frame has none. */
+  postShape: PostShape;
   caption: string;
   hideLikes: boolean;
   turnOffComments: boolean;
@@ -262,6 +264,7 @@ export function useCreatePostMutation(deps: MutationDeps) {
           turnOffComments: deps.turnOffComments,
           media: uploadedMedia,
           type: deps.mode,
+          ...(deps.mode === 'POST' && { shape: deps.postShape }),
           // The cover of a frame, when its author chose one.
           ...(deps.mode === 'FRAME' &&
             deps.coverTimeMs !== null && { coverTimeMs: deps.coverTimeMs }),
