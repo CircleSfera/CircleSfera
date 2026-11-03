@@ -18,6 +18,7 @@ CREATE TABLE "scheduled_lives" (
     "startsAt" TIMESTAMP(3) NOT NULL,
     "status" "ScheduledLiveStatus" NOT NULL DEFAULT 'SCHEDULED',
     "liveStreamId" TEXT,
+    "startedNotifiedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

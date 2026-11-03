@@ -10,7 +10,7 @@ import {
   type LiveAudience,
   type LiveScheduleAudience,
 } from '@circlesfera/shared';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationType, type ScheduledLiveStatus } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
@@ -18,6 +18,8 @@ import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { HOST_SHOWN_SELECT, hostShown } from './live-audience.js';
 
 const MINUTE_MS = 60_000;
@@ -98,6 +100,8 @@ export class LiveScheduleService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(NotificationsService)
     private readonly notifications: NotificationsService,
+    @Inject(SystemSettingsService)
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   private view(
@@ -134,6 +138,12 @@ export class LiveScheduleService {
     input: { title: string; audience?: LiveAudience; startsAt: string },
     now: Date = new Date(),
   ): Promise<ScheduledLiveView> {
+    // While staff have live streams switched off, nobody schedules one, as
+    // nobody starts one.
+    const liveEnabled = await this.systemSettings.isEnabled(
+      SYSTEM_SETTING_KEYS.LIVE_STREAMS_ENABLED,
+    );
+    if (!liveEnabled) throw new ForbiddenException('LIVE_STREAMS_DISABLED');
     const audience = input.audience ?? DEFAULT_LIVE_AUDIENCE;
     if (!isScheduleAudience(audience)) {
       throw AppException.BadRequest(
@@ -193,7 +203,9 @@ export class LiveScheduleService {
 
   /**
    * A Profile's upcoming lives that the viewer may see, soonest first, with
-   * whether the viewer asked to be reminded; to the host, with how many did.
+   * whether the viewer asked to be reminded; to the host, with how many did
+   * among those who may still see it: not in a block with the host either
+   * way and, for a live for close friends, still on the host's list.
    */
   async listUpcoming(
     profileId: string,
@@ -229,7 +241,26 @@ export class LiveScheduleService {
           where: { profileId: viewerProfileId },
           select: { id: true },
         },
-        _count: { select: { reminders: true } },
+        _count: {
+          select: {
+            reminders: {
+              where: {
+                profile: {
+                  blocking: { none: { blockedId: profileId } },
+                  blockedBy: { none: { blockerId: profileId } },
+                },
+                OR: [
+                  { scheduledLive: { audience: 'EVERYONE' } },
+                  {
+                    profile: {
+                      closeFriendOf: { some: { profileId: profileId } },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
       },
       orderBy: { startsAt: 'asc' },
       take: LIVE_SCHEDULED_MAX,
@@ -302,9 +333,11 @@ export class LiveScheduleService {
     return { reminded: true };
   }
 
-  /** The viewer takes back their reminder. */
+  /**
+   * The viewer takes back their reminder, whether or not they may still see
+   * the live: answered the same in every case, it tells nothing about it.
+   */
   async unremind(scheduledLiveId: string, viewerProfileId: string) {
-    await this.findSeenByOther(scheduledLiveId, viewerProfileId);
     await this.prisma.scheduledLiveReminder.deleteMany({
       where: { scheduledLiveId, profileId: viewerProfileId },
     });
@@ -312,9 +345,10 @@ export class LiveScheduleService {
   }
 
   /**
-   * Tells each Profile the notice of a live, if it is still for them: a
-   * live for close friends only to those still on the host's list. Blocks
-   * are refused by the notifications themselves. Returns those told.
+   * Tells each Profile the notice of a live, if it is still for them: an
+   * account that is active and not closed, and for a live for close friends
+   * only those still on the host's list. Blocks are refused by the
+   * notifications themselves. Returns those told.
    */
   private async tell(
     live: NoticeLive,
@@ -326,15 +360,19 @@ export class LiveScheduleService {
       targetId: string;
     },
   ): Promise<string[]> {
-    let recipients = profileIds;
-    if (live.audience !== 'EVERYONE' && recipients.length > 0) {
-      const friends = await this.prisma.closeFriend.findMany({
-        where: { profileId: live.hostId, friendId: { in: recipients } },
-        select: { friendId: true },
-      });
-      const kept = new Set(friends.map((friend) => friend.friendId));
-      recipients = recipients.filter((id) => kept.has(id));
-    }
+    if (profileIds.length === 0) return [];
+    const kept = await this.prisma.profile.findMany({
+      where: {
+        id: { in: profileIds },
+        user: { isActive: true, deactivatedAt: null },
+        ...(live.audience === 'EVERYONE'
+          ? {}
+          : { closeFriendOf: { some: { profileId: live.hostId } } }),
+      },
+      select: { id: true },
+    });
+    const keptIds = new Set(kept.map((profile) => profile.id));
+    const recipients = profileIds.filter((id) => keptIds.has(id));
     const told: string[] = [];
     for (const recipientId of recipients) {
       const notice = await this.notifications.create({
@@ -349,23 +387,30 @@ export class LiveScheduleService {
 
   /**
    * Tells each Profile with a reminder that the scheduled live it was for
-   * has started, once the host went live from it. Never throws: the host is
-   * on air whether or not everyone was told. Returns those told.
+   * has started, once the host went live from it, once: the telling is
+   * claimed first, only where it was not yet, so a start asked twice at
+   * once tells nobody twice. Never throws: the host is on air whether or not
+   * everyone was told. Returns those told.
    */
   async tellStarted(
     scheduledLiveId: string,
     streamId: string,
   ): Promise<string[]> {
     try {
-      const live = await this.prisma.scheduledLive.findFirst({
+      const claimed = await this.prisma.scheduledLive.updateMany({
         where: {
           id: scheduledLiveId,
           liveStreamId: streamId,
           status: 'STARTED',
+          startedNotifiedAt: null,
         },
+        data: { startedNotifiedAt: new Date() },
+      });
+      if (claimed.count !== 1) return [];
+      const live = await this.prisma.scheduledLive.findUniqueOrThrow({
+        where: { id: scheduledLiveId },
         select: { id: true, hostId: true, title: true, audience: true },
       });
-      if (!live) return [];
       const told: string[] = [];
       let after: string | undefined;
       for (;;) {

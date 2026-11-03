@@ -1187,16 +1187,19 @@ enum ScheduledLiveStatus {
 // whoever could watch it, until it is started, cancelled or missed. Its
 // audience is everyone or close friends, never a practice.
 model ScheduledLive {
-  id           String              @id @default(uuid())
-  hostId       String
-  title        String
-  audience     LiveAudience        @default(EVERYONE)
-  startsAt     DateTime
-  status       ScheduledLiveStatus @default(SCHEDULED)
+  id                String              @id @default(uuid())
+  hostId            String
+  title             String
+  audience          LiveAudience        @default(EVERYONE)
+  startsAt          DateTime
+  status            ScheduledLiveStatus @default(SCHEDULED)
   // The live it became, once its host went live from it.
-  liveStreamId String?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  liveStreamId      String?
+  // When its reminders were told it started; empty until then. Claimed
+  // before telling, so they are told once.
+  startedNotifiedAt DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
   // Erased with its host.
   host       Profile                 @relation(fields: [hostId], references: [id], onDelete: Cascade)

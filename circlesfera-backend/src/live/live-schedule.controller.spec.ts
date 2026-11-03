@@ -19,6 +19,7 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
+import { LiveController } from './live.controller.js';
 import { LiveModule } from './live.module.js';
 import { LiveService } from './live.service.js';
 import { LiveGiftService } from './live-gift.service.js';
@@ -220,6 +221,13 @@ describe('the routes of scheduled lives beside those of a live', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  it('registers the routes of scheduled lives before those of a live', () => {
+    expect(Reflect.getMetadata('controllers', LiveModule)).toEqual([
+      LiveScheduleController,
+      LiveController,
+    ]);
   });
 
   it('answers /live/scheduled with the scheduled lives, never as the id of a live', async () => {

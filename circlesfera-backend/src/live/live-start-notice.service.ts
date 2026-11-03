@@ -31,6 +31,7 @@ export class LiveStartNoticeService {
     alreadyTold: readonly string[] = [],
   ) {
     if (this.told.includes(streamId)) return 0;
+    const skipped = new Set(alreadyTold);
     this.told.push(streamId);
     if (this.told.length > REMEMBERED) this.told.shift();
 
@@ -80,7 +81,7 @@ export class LiveStartNoticeService {
         // create() refuses across a block and decides the push by the
         // follower's own switch; it answers null instead of throwing.
         for (const follower of followers) {
-          if (alreadyTold.includes(follower.followerId)) continue;
+          if (skipped.has(follower.followerId)) continue;
           const notice = await this.notifications.create({
             recipientId: follower.followerId,
             senderId: hostProfileId,

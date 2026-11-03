@@ -11,6 +11,7 @@ import { AppException } from '../common/errors/app.exception.js';
 import { LiveScheduleService } from './live-schedule.service.js';
 
 type AnyFn = (...args: any[]) => any;
+type AnyArgs = Record<string, any>;
 
 const MINUTE = 60_000;
 const NOW = new Date('2026-11-03T12:00:00.000Z');
@@ -49,6 +50,9 @@ const codeOf = async (promise: Promise<unknown>) => {
 describe('LiveScheduleService', () => {
   // The blocks between Profiles, as [blocker, blocked].
   let blocks: [string, string][];
+  // The Profiles whose account is switched off or closed.
+  let inactive: string[];
+  let liveEnabled: boolean;
   // The close friends lists, as [owner, friend].
   let friends: [string, string][];
   let prisma: Record<string, any>;
@@ -58,13 +62,30 @@ describe('LiveScheduleService', () => {
   beforeEach(() => {
     blocks = [];
     friends = [];
+    inactive = [];
+    liveEnabled = true;
     prisma = {
       $queryRaw: vi.fn(async () => []),
       // Every Profile in one audience: no Test Account apart.
       user: { findMany: vi.fn(async () => []) },
       profile: {
         findUnique: vi.fn(async () => shown),
-        findMany: vi.fn(async () => []),
+        // The Profiles asked for that are active and, when asked, on a
+        // close friends list.
+        findMany: vi.fn<AnyFn>(async ({ where }) =>
+          (where.id.in as string[])
+            .filter((id) => !inactive.includes(id))
+            .filter(
+              (id) =>
+                !where.closeFriendOf ||
+                friends.some(
+                  ([owner, friend]) =>
+                    owner === where.closeFriendOf.some.profileId &&
+                    friend === id,
+                ),
+            )
+            .map((id) => ({ id })),
+        ),
       },
       block: {
         findFirst: vi.fn<AnyFn>(async ({ where }) =>
@@ -88,14 +109,6 @@ describe('LiveScheduleService', () => {
             ? { id: 'cf' }
             : null,
         ),
-        findMany: vi.fn<AnyFn>(async ({ where }) =>
-          friends
-            .filter(
-              ([owner, friend]) =>
-                owner === where.profileId && where.friendId.in.includes(friend),
-            )
-            .map(([, friendId]) => ({ friendId })),
-        ),
       },
       scheduledLive: {
         count: vi.fn(async () => 0),
@@ -103,7 +116,12 @@ describe('LiveScheduleService', () => {
         updateMany: vi.fn(async () => ({ count: 1 })),
         findMany: vi.fn<AnyFn>(async () => []),
         findUnique: vi.fn<AnyFn>(async () => null),
-        findFirst: vi.fn<AnyFn>(async () => null),
+        findUniqueOrThrow: vi.fn<AnyFn>(async () => ({
+          id: 'sl-1',
+          hostId: 'host-1',
+          title: 'Ensayo',
+          audience: 'EVERYONE',
+        })),
       },
       scheduledLiveReminder: {
         upsert: vi.fn(async () => ({ id: 'r' })),
@@ -114,7 +132,13 @@ describe('LiveScheduleService', () => {
     };
     prisma.$transaction = vi.fn((fn: AnyFn) => fn(prisma));
     notifications = { create: vi.fn(async () => ({ id: 'n' })) };
-    service = new LiveScheduleService(prisma as never, notifications as never);
+    service = new LiveScheduleService(
+      prisma as never,
+      notifications as never,
+      {
+        isEnabled: vi.fn(async () => liveEnabled),
+      } as never,
+    );
   });
 
   describe('scheduling', () => {
@@ -163,6 +187,15 @@ describe('LiveScheduleService', () => {
       expect(prisma.scheduledLive.create.mock.calls[1][0].data.audience).toBe(
         'CLOSE_FRIENDS',
       );
+    });
+
+    it('schedules nothing while live streams are switched off', async () => {
+      liveEnabled = false;
+
+      await expect(service.schedule('host-1', input, NOW)).rejects.toThrow(
+        'LIVE_STREAMS_DISABLED',
+      );
+      expect(prisma.scheduledLive.create).not.toHaveBeenCalled();
     });
 
     it('never schedules a practice', async () => {
@@ -316,6 +349,26 @@ describe('LiveScheduleService', () => {
       ]);
     });
 
+    it('counts for the host only the reminders of those who may still see the live', async () => {
+      await service.listUpcoming('host-1', 'host-1');
+
+      const counted =
+        prisma.scheduledLive.findMany.mock.calls[0][0].select._count.select
+          .reminders;
+      expect(counted).toEqual({
+        where: {
+          profile: {
+            blocking: { none: { blockedId: 'host-1' } },
+            blockedBy: { none: { blockerId: 'host-1' } },
+          },
+          OR: [
+            { scheduledLive: { audience: 'EVERYONE' } },
+            { profile: { closeFriendOf: { some: { profileId: 'host-1' } } } },
+          ],
+        },
+      });
+    });
+
     it('shows a viewer those for everyone, with whether they asked to be reminded, and never the count', async () => {
       prisma.scheduledLive.findMany.mockResolvedValue([
         listed({ reminders: [{ id: 'r' }] }),
@@ -389,9 +442,7 @@ describe('LiveScheduleService', () => {
       });
     });
 
-    it('takes a reminder back', async () => {
-      prisma.scheduledLive.findUnique.mockResolvedValue(upcoming());
-
+    it('takes a reminder back, without asking whether the live may still be seen', async () => {
       await expect(service.unremind('sl-1', 'viewer')).resolves.toEqual({
         reminded: false,
       });
@@ -414,17 +465,11 @@ describe('LiveScheduleService', () => {
     it('never reminds the host of their own live', async () => {
       prisma.scheduledLive.findUnique.mockResolvedValue(upcoming());
 
-      for (const ask of [
-        () => service.remind('sl-1', 'host-1'),
-        () => service.unremind('sl-1', 'host-1'),
-      ]) {
-        expect(await codeOf(ask())).toMatchObject({
-          code: ErrorCode.LIVE_REMINDER_OWN_LIVE,
-          status: 403,
-        });
-      }
+      expect(await codeOf(service.remind('sl-1', 'host-1'))).toMatchObject({
+        code: ErrorCode.LIVE_REMINDER_OWN_LIVE,
+        status: 403,
+      });
       expect(prisma.scheduledLiveReminder.upsert).not.toHaveBeenCalled();
-      expect(prisma.scheduledLiveReminder.deleteMany).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -453,22 +498,27 @@ describe('LiveScheduleService', () => {
           return upcoming();
         },
       ],
-    ])('answers %s as not found, the same for each', async (_name, found) => {
-      prisma.scheduledLive.findUnique.mockResolvedValue(found());
+    ])(
+      'answers a reminder of %s as not found, the same for each, and lets one be taken back',
+      async (_name, found) => {
+        prisma.scheduledLive.findUnique.mockResolvedValue(found());
 
-      for (const ask of [
-        () => service.remind('sl-1', 'viewer'),
-        () => service.unremind('sl-1', 'viewer'),
-      ]) {
-        expect(await codeOf(ask())).toEqual({
+        expect(await codeOf(service.remind('sl-1', 'viewer'))).toEqual({
           code: ErrorCode.SCHEDULED_LIVE_NOT_FOUND,
           status: 404,
           details: undefined,
         });
-      }
-      expect(prisma.scheduledLiveReminder.upsert).not.toHaveBeenCalled();
-      expect(prisma.scheduledLiveReminder.deleteMany).not.toHaveBeenCalled();
-    });
+        expect(prisma.scheduledLiveReminder.upsert).not.toHaveBeenCalled();
+        // Taking one back is answered the same whatever the live: it tells
+        // nothing about it.
+        await expect(service.unremind('sl-1', 'viewer')).resolves.toEqual({
+          reminded: false,
+        });
+        expect(prisma.scheduledLiveReminder.deleteMany).toHaveBeenCalledWith({
+          where: { scheduledLiveId: 'sl-1', profileId: 'viewer' },
+        });
+      },
+    );
   });
 
   describe('when the host goes live from it', () => {
@@ -480,7 +530,6 @@ describe('LiveScheduleService', () => {
     };
 
     it('tells each Profile with a reminder that it started, with the way to the live', async () => {
-      prisma.scheduledLive.findFirst.mockResolvedValue(started);
       prisma.scheduledLiveReminder.findMany.mockResolvedValue([
         { id: 'r-1', profileId: 'fan-1' },
         { id: 'r-2', profileId: 'fan-2' },
@@ -493,9 +542,14 @@ describe('LiveScheduleService', () => {
       await expect(service.tellStarted('sl-1', 'stream-1')).resolves.toEqual([
         'fan-1',
       ]);
-      expect(prisma.scheduledLive.findFirst).toHaveBeenCalledWith({
-        where: { id: 'sl-1', liveStreamId: 'stream-1', status: 'STARTED' },
-        select: { id: true, hostId: true, title: true, audience: true },
+      expect(prisma.scheduledLive.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'sl-1',
+          liveStreamId: 'stream-1',
+          status: 'STARTED',
+          startedNotifiedAt: null,
+        },
+        data: { startedNotifiedAt: expect.any(Date) },
       });
       expect(notifications.create).toHaveBeenCalledWith({
         recipientId: 'fan-1',
@@ -508,7 +562,7 @@ describe('LiveScheduleService', () => {
     });
 
     it('tells only those still on the list of a live for close friends', async () => {
-      prisma.scheduledLive.findFirst.mockResolvedValue({
+      prisma.scheduledLive.findUniqueOrThrow.mockResolvedValue({
         ...started,
         audience: 'CLOSE_FRIENDS',
       });
@@ -525,7 +579,6 @@ describe('LiveScheduleService', () => {
     });
 
     it('goes through every reminder, page after page', async () => {
-      prisma.scheduledLive.findFirst.mockResolvedValue(started);
       const page = Array.from({ length: 500 }, (_, i) => ({
         id: `r-${i}`,
         profileId: `fan-${i}`,
@@ -540,15 +593,69 @@ describe('LiveScheduleService', () => {
       ).toMatchObject({ cursor: { id: 'r-499' }, skip: 1 });
     });
 
-    it('tells nobody when the live was not started from it', async () => {
+    it('tells nobody when the live was not started from it, or its reminders were told already', async () => {
+      prisma.scheduledLive.updateMany.mockResolvedValue({ count: 0 });
+
       await expect(service.tellStarted('sl-1', 'stream-1')).resolves.toEqual(
         [],
       );
       expect(notifications.create).not.toHaveBeenCalled();
     });
 
+    it('tells each reminder once when the live is started twice at once', async () => {
+      // The claim as the database makes it: only the first finds it empty.
+      let notifiedAt: Date | null = null;
+      prisma.scheduledLive.updateMany.mockImplementation(
+        async ({ where, data }: AnyArgs) => {
+          await Promise.resolve();
+          if (where.startedNotifiedAt !== null || notifiedAt) {
+            return { count: 0 };
+          }
+          notifiedAt = data.startedNotifiedAt;
+          return { count: 1 };
+        },
+      );
+      prisma.scheduledLiveReminder.findMany.mockResolvedValue([
+        { id: 'r-1', profileId: 'fan-1' },
+      ]);
+
+      const [first, second] = await Promise.all([
+        service.tellStarted('sl-1', 'stream-1'),
+        service.tellStarted('sl-1', 'stream-1'),
+      ]);
+
+      expect([...first, ...second]).toEqual(['fan-1']);
+      expect(notifications.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('with no reminders, asks for nobody', async () => {
+      await expect(service.tellStarted('sl-1', 'stream-1')).resolves.toEqual(
+        [],
+      );
+      expect(prisma.profile.findMany).not.toHaveBeenCalled();
+    });
+
+    it('tells nobody whose account is switched off or closed', async () => {
+      prisma.scheduledLiveReminder.findMany.mockResolvedValue([
+        { id: 'r-1', profileId: 'fan-1' },
+        { id: 'r-2', profileId: 'gone' },
+      ]);
+      inactive.push('gone');
+
+      await expect(service.tellStarted('sl-1', 'stream-1')).resolves.toEqual([
+        'fan-1',
+      ]);
+      expect(prisma.profile.findMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: ['fan-1', 'gone'] },
+          user: { isActive: true, deactivatedAt: null },
+        },
+        select: { id: true },
+      });
+    });
+
     it('never fails: a fault is logged and nobody else is told', async () => {
-      prisma.scheduledLive.findFirst.mockRejectedValue(new Error('db down'));
+      prisma.scheduledLive.updateMany.mockRejectedValue(new Error('db down'));
 
       await expect(service.tellStarted('sl-1', 'stream-1')).resolves.toEqual(
         [],
