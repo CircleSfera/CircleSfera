@@ -177,6 +177,7 @@ function compose(
     'setPrice',
     'setScheduledAt',
     'setInteractiveDraft',
+    'setShareToStory',
   ];
   composer.state = {
     mode: 'POST',
@@ -262,6 +263,30 @@ describe('ContentComposerPage', () => {
       pastCamera();
 
       expect(seen.upload.allowModeSwitch).toBe(true);
+    });
+  });
+
+  describe('also sharing a post to the story of its author', () => {
+    it('offers it for a post that is free and out at once', () => {
+      const { hook } = compose({
+        step: 'caption',
+        mediaFiles: [photo],
+        shareToStory: false,
+      });
+
+      expect(seen.caption.shareToStory.on).toBe(false);
+      seen.caption.shareToStory.onChange(true);
+      expect(hook.setShareToStory).toHaveBeenCalledWith(true);
+    });
+
+    it.each([
+      ['a paid post', { isPremium: true }],
+      ['a post not out yet', { scheduledAt: '2099-01-01T10:00' }],
+      ['a Frame', { mode: 'FRAME' }],
+    ])('does not offer it for %s', (_what, state) => {
+      compose({ step: 'caption', mediaFiles: [photo], ...state });
+
+      expect(seen.caption.shareToStory).toBeUndefined();
     });
   });
 

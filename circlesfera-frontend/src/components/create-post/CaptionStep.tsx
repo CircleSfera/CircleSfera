@@ -30,6 +30,7 @@ import type { Audio as AudioTrack } from '../../types';
 import { completeToken, tokenAt } from '../../utils/captionToken';
 import { postAspectClass } from '../../utils/postShape';
 import UserAvatar from '../UserAvatar';
+import { Switch } from '../ui';
 import { CaptionHighlight } from './CaptionHighlight';
 import CaptionSuggestions from './CaptionSuggestions';
 import InteractiveMediaPreview from './InteractiveMediaPreview';
@@ -48,6 +49,8 @@ interface CaptionStepProps {
   interactiveDraft?: InteractiveDraft;
   // A frame whose author already chose its cover.
   hasChosenCover?: boolean;
+  /** Also share the post to one's story; no switch when it cannot be. */
+  shareToStory?: { on: boolean; onChange: (on: boolean) => void };
   /** The shape of a post, for its preview. */
   postShape?: PostShape;
 }
@@ -79,6 +82,7 @@ export default function CaptionStep({
   isPremium,
   interactiveDraft,
   hasChosenCover = false,
+  shareToStory,
   postShape,
 }: CaptionStepProps) {
   const { t } = useTranslation();
@@ -378,6 +382,20 @@ export default function CaptionStep({
               {t('createPost.caption.options')}
             </span>
             {renderRows(primaryRows)}
+
+            {shareToStory ? (
+              <div className="rounded-3xl border border-white/8 bg-white/4 px-3 py-2.5">
+                <Switch
+                  compact
+                  role="switch"
+                  checked={shareToStory.on}
+                  onChange={(e) => shareToStory.onChange(e.target.checked)}
+                  label={t('createPost.caption.share_to_story')}
+                  description={t('createPost.caption.share_to_story_desc')}
+                  aria-label={t('createPost.caption.share_to_story')}
+                />
+              </div>
+            ) : null}
 
             <span className="text-xs font-semibold uppercase tracking-wider text-white/50 px-1 block pt-0.5">
               {t('createPost.caption.more_options')}

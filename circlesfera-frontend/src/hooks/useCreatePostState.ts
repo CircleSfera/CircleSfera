@@ -104,6 +104,8 @@ export function useCreatePostState() {
   // The moment of a new frame chosen as its cover; none means the automatic one.
   const [coverTimeMs, setCoverTimeMs] = useState<number | null>(null);
   const [isSensitive, setIsSensitive] = useState(false);
+  // Once a post is published, open one's story with a card of it.
+  const [shareToStory, setShareToStory] = useState(false);
   // The shape every item of a post shows in, chosen in the editor.
   const [postShape, setPostShape] = useState<PostShape>(DEFAULT_POST_SHAPE);
   const [selectedAudio, setSelectedAudio] = useState<AudioTrack | null>(null);
@@ -142,6 +144,8 @@ export function useCreatePostState() {
   return {
     mode,
     setMode,
+    shareToStory,
+    setShareToStory,
     postShape,
     setPostShape,
     step,

@@ -273,6 +273,61 @@ describe('useCreatePostMutation', () => {
     ).not.toHaveProperty('shape');
   });
 
+  describe('also shared to the story of its author', () => {
+    const card = { id: 'post-1', profile: { username: 'ana' }, media: [] };
+
+    it('opens the story editor with a card of the post once it is out', async () => {
+      vi.mocked(postsApi.create).mockResolvedValue({ data: card } as never);
+      const { submit } = setup({ shareToStory: true });
+      await submit();
+
+      const [[to, options]] = navigate.mock.calls;
+      expect(to).toBe('/create?mode=story');
+      const [element] = options.state.storyStart.elements;
+      expect(JSON.stringify(element)).toContain('post-1');
+    });
+
+    it('goes home as any post does when it is not out yet, or cannot be shared', async () => {
+      vi.mocked(postsApi.create).mockResolvedValue({ data: card } as never);
+      await setup({
+        shareToStory: true,
+        // Any moment still to come.
+        scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
+      }).submit();
+      expect(navigate).toHaveBeenLastCalledWith('/');
+
+      vi.mocked(postsApi.create).mockResolvedValue({
+        data: { ...card, isPremium: true },
+      } as never);
+      await setup({ shareToStory: true }).submit();
+      expect(navigate).toHaveBeenLastCalledWith('/');
+    });
+
+    it('goes home for a Frame, even with the switch left on from a post', async () => {
+      vi.mocked(postsApi.create).mockResolvedValue({
+        data: { ...card, type: 'FRAME' },
+      } as never);
+      await setup({
+        mode: 'FRAME',
+        shareToStory: true,
+        mediaFiles: [
+          {
+            ...image('clip.mp4'),
+            type: 'video',
+            videoData: { startTime: 0, endTime: FRAME_MIN_DURATION_SEC },
+          },
+        ],
+      }).submit();
+      expect(navigate).toHaveBeenLastCalledWith('/');
+    });
+
+    it('goes home when the switch is off', async () => {
+      vi.mocked(postsApi.create).mockResolvedValue({ data: card } as never);
+      await setup({ shareToStory: false }).submit();
+      expect(navigate).toHaveBeenLastCalledWith('/');
+    });
+  });
+
   it('a free post never sends a price', async () => {
     const { submit } = setup({ isPremium: false, price: 9 });
     await submit();
