@@ -28,6 +28,8 @@ describe('SearchController', () => {
     semanticSearchPosts: vi.fn(),
     semanticSearchProfiles: vi.fn(),
     searchUsers: vi.fn(),
+    searchHashtags: vi.fn(),
+    suggestMentions: vi.fn(),
     getHistory: vi.fn(),
     clearHistory: vi.fn(),
   };
@@ -115,6 +117,43 @@ describe('SearchController', () => {
     );
     expect(mockService.getHistory).toHaveBeenCalledWith(TEST_USER.profileId);
     expect(mockService.clearHistory).toHaveBeenCalledWith(TEST_USER.profileId);
+  });
+
+  it('suggests people to mention for the session Profile, with or without a query', async () => {
+    mockService.suggestMentions.mockResolvedValue([{ id: 'p1' }]);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/search/mentions')
+      .set(BEARER)
+      .expect(200);
+    expect(mockService.suggestMentions).toHaveBeenLastCalledWith(
+      '',
+      TEST_USER.profileId,
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/v1/search/mentions?q=an')
+      .set(BEARER)
+      .expect(200);
+    expect(mockService.suggestMentions).toHaveBeenLastCalledWith(
+      'an',
+      TEST_USER.profileId,
+    );
+  });
+
+  it('suggests hashtags for the session Profile', async () => {
+    mockService.searchHashtags.mockResolvedValue([{ id: 'h1', tag: 'mar' }]);
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/search/hashtags?q=ma')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual([{ id: 'h1', tag: 'mar' }]);
+    expect(mockService.searchHashtags).toHaveBeenCalledWith(
+      'ma',
+      TEST_USER.profileId,
+    );
   });
 
   it('searches posts, semantic AI, semantic profiles, and users', async () => {
