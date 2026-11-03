@@ -2,6 +2,7 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
   Trash2,
   Type,
   X,
@@ -14,6 +15,7 @@ import {
 } from '../../constants/uploadLimits';
 import type { StoryElement } from '../../types';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
+import { PHOTO_FILTERS } from '../photo-editor/photoEditor.constants';
 import {
   CREATE_FULL_SCREEN,
   CREATE_GLASS_ICON,
@@ -22,20 +24,34 @@ import {
 import { formatClipClock } from './FrameClipControls';
 import FrameClipsOrder from './FrameClipsOrder';
 import FrameClipTrimBar from './FrameClipTrimBar';
+import FrameFilterPanel, {
+  type FrameFilter,
+  NO_FRAME_FILTER,
+} from './FrameFilterPanel';
 import {
   clipsLength,
   clipsMakeAFrame,
   type FrameClip,
   moveClipTo,
 } from './frameClips';
+import { frameLookCss, frameLookOf } from './frameLook';
 
 const StoryComposer = lazy(() => import('../story/StoryComposer'));
 
-/** What is painted over a Frame: the picture and what it is made of. */
+/**
+ * What goes over a Frame: the painted picture and what it is made of, and
+ * the filter of the whole Frame.
+ */
 export interface FramePainting {
   layer: Blob | null;
   elements: StoryElement[];
+  filter?: FrameFilter;
 }
+
+/** How far a finger moves across the video to change the filter, in px. */
+const FILTER_SWIPE_PX = 48;
+/** How long the name of a filter shows once chosen, in ms. */
+const FILTER_NAME_MS = 900;
 
 export interface FrameClipsEditorProps {
   clips: FrameClip[];
@@ -81,6 +97,31 @@ export default function FrameClipsEditor({
   const [ordering, setOrdering] = useState(false);
   const [layer, setLayer] = useState<Blob | null>(before?.layer ?? null);
   const painted = useRef<StoryElement[]>(before?.elements ?? []);
+  // One filter for the whole Frame, as on Reels: a strip to choose it, or a
+  // swipe across the video; its name shows for a moment.
+  const [filter, setFilter] = useState<FrameFilter>(
+    before?.filter ?? NO_FRAME_FILTER,
+  );
+  const [choosingFilter, setChoosingFilter] = useState(false);
+  const [filterName, setFilterName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!filterName) return;
+    const timer = setTimeout(() => setFilterName(null), FILTER_NAME_MS);
+    return () => clearTimeout(timer);
+  }, [filterName]);
+  const swipeFrom = useRef<number | null>(null);
+  const swipeFilter = (by: 1 | -1) => {
+    const at = PHOTO_FILTERS.findIndex((f) => f.class === filter.filterClass);
+    const next =
+      PHOTO_FILTERS[
+        (Math.max(at, 0) + by + PHOTO_FILTERS.length) % PHOTO_FILTERS.length
+      ];
+    setFilter({ ...NO_FRAME_FILTER, filterClass: next.class });
+    setFilterName(next.name);
+  };
+  const lookCss = frameLookCss(
+    frameLookOf(filter.filterClass, filter.strength),
+  );
 
   // One address per file, let go when the editor closes.
   // Made and let go together, so a second run of the effect makes them
@@ -179,6 +220,7 @@ export default function FrameClipsEditor({
             onDone(clips, {
               layer,
               elements: layer ? painted.current : [],
+              filter,
             })
           }
           disabled={!ready}
@@ -188,7 +230,7 @@ export default function FrameClipsEditor({
         </button>
       </div>
 
-      <div className="relative flex justify-center px-4 pb-2">
+      <div className="relative flex justify-center gap-3 px-4 pb-2">
         <button
           type="button"
           onClick={() => setPainting(true)}
@@ -197,6 +239,17 @@ export default function FrameClipsEditor({
           <Type size={16} aria-hidden />
           <span className="text-sm font-semibold">
             {layer ? t('frames.clips.paint_edit') : t('frames.clips.paint')}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setChoosingFilter((open) => !open)}
+          aria-pressed={choosingFilter}
+          className={`${CREATE_GLASS_ICON} w-auto! gap-1.5 px-4`}
+        >
+          <Sparkles size={16} aria-hidden />
+          <span className="text-sm font-semibold">
+            {t('frames.clips.filters')}
           </span>
         </button>
       </div>
@@ -210,8 +263,30 @@ export default function FrameClipsEditor({
             autoPlay
             muted
             playsInline
-            className="aspect-9/16 h-full max-h-full max-w-full rounded-2xl bg-black object-cover"
+            data-testid="frame-clips-video"
+            style={{ filter: lookCss }}
+            onPointerDown={(event) => {
+              swipeFrom.current = event.clientX;
+            }}
+            onPointerUp={(event) => {
+              const from = swipeFrom.current;
+              swipeFrom.current = null;
+              if (from === null) return;
+              const moved = event.clientX - from;
+              if (Math.abs(moved) >= FILTER_SWIPE_PX) {
+                swipeFilter(moved < 0 ? 1 : -1);
+              }
+            }}
+            className="aspect-9/16 h-full max-h-full max-w-full touch-pan-y rounded-2xl bg-black object-cover"
           />
+        ) : null}
+        {filterName ? (
+          <p
+            className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-2xl font-bold drop-shadow-lg"
+            role="status"
+          >
+            {filterName}
+          </p>
         ) : null}
       </div>
 
@@ -222,7 +297,24 @@ export default function FrameClipsEditor({
       ) : null}
 
       <div className="relative mx-auto w-full max-w-xl pt-3 pb-[max(env(safe-area-inset-bottom),16px)]">
-        {clips.length > 1 ? (
+        {choosingFilter && clips[0] ? (
+          <div
+            className="mx-auto"
+            style={previewPx > 0 ? { maxWidth: previewPx + 32 } : undefined}
+          >
+            <FrameFilterPanel
+              clip={clips[0]}
+              filter={filter}
+              onChange={(next) => {
+                setFilter(next);
+                // The name shows for a swipe; the strip already names it.
+                setFilterName(null);
+              }}
+              onDone={() => setChoosingFilter(false)}
+            />
+          </div>
+        ) : null}
+        {!choosingFilter && clips.length > 1 ? (
           <div className="flex flex-col items-center gap-1 px-4 pb-3">
             <div className="flex items-center gap-2">
               <button
@@ -267,7 +359,7 @@ export default function FrameClipsEditor({
             </div>
           </div>
         ) : null}
-        {clip ? (
+        {!choosingFilter && clip ? (
           <div
             className="mx-auto px-4"
             style={previewPx > 0 ? { maxWidth: previewPx + 32 } : undefined}
@@ -281,7 +373,7 @@ export default function FrameClipsEditor({
           </div>
         ) : null}
         <div
-          className="mx-auto flex items-center justify-between px-4 pt-3"
+          className={`mx-auto flex items-center justify-between px-4 pt-3 ${choosingFilter ? 'hidden' : ''}`}
           style={previewPx > 0 ? { maxWidth: previewPx + 32 } : undefined}
         >
           {clips.length > 1 ? (

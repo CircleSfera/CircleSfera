@@ -1,3 +1,4 @@
+import type { FrameLook } from '@circlesfera/shared';
 import { apiClient } from './api';
 
 /** Where a Frame being put together on the server is. */
@@ -35,7 +36,12 @@ export const uploadApi = {
     ),
   /** Asks for a Frame to be put together; answers the id to ask after. */
   assembleFrame: (
-    body: { clips: FrameAssemblyClip[]; layerUrl?: string; muted?: boolean },
+    body: {
+      clips: FrameAssemblyClip[];
+      layerUrl?: string;
+      muted?: boolean;
+      look?: FrameLook;
+    },
     options: RequestOptions = {},
   ) => apiClient.post<{ id: string }>('/uploads/frames', body, options),
   frameAssemblyStatus: (id: string, options: RequestOptions = {}) =>

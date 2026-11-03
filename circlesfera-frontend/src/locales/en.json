@@ -5348,7 +5348,10 @@
       "order_button": "Reorder",
       "move": "Move {{clip}}",
       "previous": "Previous clip",
-      "next": "Next clip"
+      "next": "Next clip",
+      "filters": "Filters",
+      "filter_strength": "Strength",
+      "filters_done": "Done"
     },
     "assembly": {
       "uploading": "Uploading your clips ({{done}} of {{total}})…",
