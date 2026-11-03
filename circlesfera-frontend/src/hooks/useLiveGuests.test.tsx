@@ -131,6 +131,29 @@ describe('useLiveGuests', () => {
     expect(result.current.guests).toEqual([]);
   });
 
+  it('keeps what the server told the host over an older answer asked for before', async () => {
+    let answer: (value: unknown) => void = () => {};
+    api.getStream.mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+    );
+    const { result } = renderHook(() => useLiveGuests('live-1'));
+    await waitFor(() =>
+      expect(api.handlers.has('live:guest_invites')).toBe(true),
+    );
+    await waitFor(() => expect(api.getStream).toHaveBeenCalled());
+
+    act(() =>
+      api.handlers.get('live:guest_invites')?.({
+        guests: [{ profileId: 'p-luis', username: 'luis', status: 'ON_AIR' }],
+      }),
+    );
+    await act(async () => answer({ guests: [] }));
+
+    expect(result.current.guests.map((g) => g.username)).toEqual(['luis']);
+  });
+
   it('answers when the server would not invite or take off', async () => {
     api.inviteGuest.mockRejectedValue(new Error('403'));
     api.removeGuest.mockRejectedValue(new Error('403'));

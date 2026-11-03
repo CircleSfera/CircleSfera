@@ -23,8 +23,11 @@ export interface QueuedGuest {
 export function useLiveGuests(streamId: string | null) {
   const [guests, setGuests] = useState<LiveGuest[]>([]);
   const [queued, setQueued] = useState<QueuedGuest[]>([]);
+  // The list of the last render that took place, read when the live starts.
   const queuedRef = useRef(queued);
-  queuedRef.current = queued;
+  useEffect(() => {
+    queuedRef.current = queued;
+  }, [queued]);
 
   // Everyone with a place: on air, invited, or waiting for the start.
   const taken = streamId ? guests.length : queued.length;
@@ -36,20 +39,26 @@ export function useLiveGuests(streamId: string | null) {
     // The people chosen in the setup are invited now that the live is on.
     const waiting = queuedRef.current;
     setQueued([]);
+    // What the server told the host lately wins over an answer asked for
+    // before it.
+    let told = 0;
     void Promise.allSettled(
       waiting.map((guest) => liveApi.inviteGuest(streamId, guest.profileId)),
-    ).then(() =>
-      liveApi
+    ).then(() => {
+      const asked = told;
+      return liveApi
         .getStream(streamId)
         .then((stream: { guests?: LiveGuest[] }) => {
-          if (!cancelled) setGuests(stream.guests ?? []);
+          if (!cancelled && told === asked) setGuests(stream.guests ?? []);
         })
-        .catch(() => {}),
-    );
+        .catch(() => {});
+    });
     // Only the host is told who is invited; the room hears who is on air.
     const socket = useSocketStore.getState().socket;
-    const changed = (data: { guests?: LiveGuest[] }) =>
+    const changed = (data: { guests?: LiveGuest[] }) => {
+      told++;
       setGuests(data.guests ?? []);
+    };
     socket?.on('live:guest_invites', changed);
     return () => {
       cancelled = true;
