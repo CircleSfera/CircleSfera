@@ -1756,12 +1756,10 @@
       "filters_adjustments": "Filtros y Ajustes",
       "n_files": "{{count}} archivos",
       "remove_media": "Eliminar medio",
-      "move_earlier": "Mover antes en el carrusel",
       "shape_change": "Cambiar la forma de la publicación, ahora {{shape}}",
       "shape_SQUARE": "1:1",
       "shape_PORTRAIT": "4:5",
       "shape_LANDSCAPE": "1.91:1",
-      "move_later": "Mover después en el carrusel",
       "add_more": "Añadir más medios",
       "media_item": "Elemento {{index}} de {{total}}",
       "select_media": "Seleccionar medio",
@@ -1802,7 +1800,12 @@
         "blur": "Desenfoque",
         "sepia": "Sepia",
         "grayscale": "Escala de grises"
-      }
+      },
+      "order_button": "Ordenar",
+      "order_title": "Ordenar el carrusel",
+      "move_item": "Mover {{item}}",
+      "order_photo": "Foto",
+      "order_video": "Vídeo"
     },
     "frameTrim": {
       "title": "Elige la duración del Frame",

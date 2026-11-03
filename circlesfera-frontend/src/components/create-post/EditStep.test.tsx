@@ -348,40 +348,58 @@ describe('EditStep', () => {
       );
       return onMoveFile;
     }
-    const earlier = () =>
-      screen.getByRole('button', { name: 'Mover antes en el carrusel' });
-    const later = () =>
-      screen.getByRole('button', { name: 'Mover después en el carrusel' });
+    const openOrder = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Ordenar' }));
+      return screen.getByTestId('carousel-order');
+    };
+    const grip = (index: number) =>
+      screen.getByRole('button', {
+        name: `Mover Elemento ${index} de ${mediaFiles.length}`,
+      });
+    const shown = () =>
+      screen
+        .getAllByRole('button', { name: /^Elemento \d+ de/ })
+        .find((b) => b.getAttribute('aria-current') === 'true')
+        ?.getAttribute('aria-label');
 
-    it('moves the item on show one place later, and keeps it on show', () => {
+    it('orders the items in a sheet, each its own card, and keeps the item on show', () => {
       const onMoveFile = renderStep();
 
-      expect(earlier()).toBeDisabled();
-      fireEvent.click(later());
+      const sheet = openOrder();
+      expect(sheet.querySelectorAll('li')).toHaveLength(mediaFiles.length);
+      fireEvent.keyDown(grip(1), { key: 'ArrowDown' });
 
       expect(onMoveFile).toHaveBeenCalledWith(0, 1);
-      expect(
+      fireEvent.click(screen.getByRole('button', { name: 'Listo' }));
+      expect(screen.queryByTestId('carousel-order')).not.toBeInTheDocument();
+      expect(shown()).toBe(`Elemento 2 de ${mediaFiles.length}`);
+    });
+
+    it('keeps the item on show when another moves past it', () => {
+      const onMoveFile = renderStep();
+      fireEvent.click(
         screen.getByRole('button', {
           name: `Elemento 2 de ${mediaFiles.length}`,
         }),
-      ).toHaveAttribute('aria-current', 'true');
+      );
+
+      openOrder();
+      fireEvent.keyDown(grip(1), { key: 'ArrowDown' });
+      expect(onMoveFile).toHaveBeenCalledWith(0, 1);
+      fireEvent.click(screen.getByRole('button', { name: 'Listo' }));
+
+      // The second item is now the first.
+      expect(shown()).toBe(`Elemento 1 de ${mediaFiles.length}`);
     });
 
-    it('cannot move the last item later', () => {
+    it('moves nothing past either end', () => {
       const onMoveFile = renderStep();
 
-      fireEvent.click(
-        screen.getByRole('button', {
-          name: `Elemento ${mediaFiles.length} de ${mediaFiles.length}`,
-        }),
-      );
+      openOrder();
+      fireEvent.keyDown(grip(1), { key: 'ArrowUp' });
+      fireEvent.keyDown(grip(mediaFiles.length), { key: 'ArrowDown' });
 
-      expect(later()).toBeDisabled();
-      fireEvent.click(earlier());
-      expect(onMoveFile).toHaveBeenCalledWith(
-        mediaFiles.length - 1,
-        mediaFiles.length - 2,
-      );
+      expect(onMoveFile).not.toHaveBeenCalled();
     });
 
     it('offers no reordering for a single item', () => {
@@ -399,7 +417,7 @@ describe('EditStep', () => {
       );
 
       expect(
-        screen.queryByRole('button', { name: 'Mover antes en el carrusel' }),
+        screen.queryByRole('button', { name: 'Ordenar' }),
       ).not.toBeInTheDocument();
     });
   });
