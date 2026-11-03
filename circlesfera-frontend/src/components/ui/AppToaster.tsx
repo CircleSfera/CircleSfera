@@ -1,22 +1,9 @@
 import { useEffect, useState } from 'react';
 import toast, { Toaster, useToasterStore } from 'react-hot-toast';
+import { useWideScreen } from '../../hooks/useWideScreen';
 
 // How many notices are on screen at once; an older one leaves for a new one.
 const MAX_VISIBLE = 3;
-
-const WIDE = '(min-width: 768px)';
-
-// Whether the window is as wide as a desktop one.
-function useWideScreen() {
-  const [wide, setWide] = useState(() => window.matchMedia(WIDE).matches);
-  useEffect(() => {
-    const query = window.matchMedia(WIDE);
-    const onChange = () => setWide(query.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
-  return wide;
-}
 
 const DIALOG = '[role="dialog"][aria-modal="true"]';
 

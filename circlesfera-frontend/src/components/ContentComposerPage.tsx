@@ -6,6 +6,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { probeVideoDuration } from '../constants/uploadLimits';
 import { useCloseFriendsList } from '../hooks/useCloseFriendsList';
 import { useCreatePost } from '../hooks/useCreatePost';
+import { useWideScreen } from '../hooks/useWideScreen';
 import { hasDeviceGallery } from '../utils/photoLibrary';
 import BrandAmbientBackground from './common/BrandAmbientBackground';
 import SEO from './common/SEO';
@@ -40,8 +41,15 @@ export default function ContentComposerPage() {
 
   const [stepDirection, setStepDirection] = React.useState(1);
   const [showStoryComposer, setShowStoryComposer] = React.useState(false);
-  // A story starts on the camera; the gallery of the iOS app opens over it.
+  // Creating starts on the camera; the gallery opens over it.
   const [showPicker, setShowPicker] = React.useState(false);
+  // The gallery opened by itself because there is no camera: back leaves.
+  const [pickerIsStart, setPickerIsStart] = React.useState(false);
+  // On a computer a post or a Frame starts on the gallery, as on the web
+  // version of other apps; the camera is a button of the upload step there.
+  const wideScreen = useWideScreen();
+  // Live mode of the camera, before going on to start the live.
+  const [liveMode, setLiveMode] = React.useState(false);
   // The tab the photo editor opens on, chosen from the tools of the edit step.
   const [editorTab, setEditorTab] = React.useState<PhotoEditorTab | undefined>(
     undefined,
@@ -95,6 +103,7 @@ export default function ContentComposerPage() {
   } = composer;
 
   const isStoryMode = mode === 'STORY';
+  const galleryFirst = wideScreen && !isStoryMode;
 
   // A story started from another (an answer shared, a mention added to one's
   // own story) opens the editor with what it starts from. The route forgets
@@ -287,18 +296,32 @@ export default function ContentComposerPage() {
     );
   }
 
-  if (isStoryMode && step === 'upload' && !showPicker) {
+  if (step === 'upload' && !showPicker && !galleryFirst) {
     return (
       <ComposerProvider value={composer}>
         <SEO title={documentTitle} noIndex />
         <StoryCapture
+          mode={liveMode ? 'LIVE' : mode}
+          onModeChange={(next) => {
+            setLiveMode(next === 'LIVE');
+            if (next !== 'LIVE' && next !== mode) {
+              navigate(`/create?mode=${next.toLowerCase()}`, { replace: true });
+            }
+          }}
+          onGoLive={() => navigate('/live/broadcast')}
+          onNoCamera={() => {
+            setPickerIsStart(true);
+            setShowPicker(true);
+          }}
           onCapture={(file) =>
             handleFileSelect({
               target: { files: [file] as unknown as FileList },
             } as Pick<React.ChangeEvent<HTMLInputElement>, 'target'>)
           }
           onOpenGallery={() => {
-            if (hasDeviceGallery()) setShowPicker(true);
+            // A post or a Frame picks on the upload step, with its own
+            // gallery and its limits; a story on the device's gallery.
+            if (!isStoryMode || hasDeviceGallery()) setShowPicker(true);
             else fileInputRef.current?.click();
           }}
           onCreate={() => setShowStoryComposer(true)}
@@ -330,8 +353,14 @@ export default function ContentComposerPage() {
               setShowStoryComposer(true);
               return;
             }
-            // From the gallery, back to the camera.
-            if (isStoryMode && step === 'upload' && showPicker) {
+            // From the gallery, back to the camera, unless the gallery
+            // opened by itself because there is no camera.
+            if (
+              step === 'upload' &&
+              showPicker &&
+              !pickerIsStart &&
+              !galleryFirst
+            ) {
               setShowPicker(false);
               return;
             }

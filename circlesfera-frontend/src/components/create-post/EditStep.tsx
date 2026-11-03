@@ -17,6 +17,7 @@ import {
 import type { MutableRefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { WIDE_SCREEN_QUERY } from '../../constants/breakpoints';
 import type { CreateMode, MediaFile } from '../../hooks/useCreatePost';
 import { parseFilter } from '../../utils/styleUtils';
 import Carousel from '../Carousel';
@@ -135,7 +136,7 @@ export default function EditStep({
       const { clientWidth, clientHeight } = host;
       const isMd =
         typeof window !== 'undefined' &&
-        window.matchMedia('(min-width: 768px)').matches;
+        window.matchMedia(WIDE_SCREEN_QUERY).matches;
       let box = fitAspectBox(clientWidth, clientHeight, ratioW, ratioH);
       if (isMd) {
         const maxW = ratioW === 9 && ratioH === 16 ? 300 : 400;

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { expect, type Page } from '@playwright/test';
+import es from '../../src/locales/es.json' with { type: 'json' };
 import { prepareAuthenticatedSession } from './session';
 
 /** Product fixtures for composer E2E (visible content, not solid color). */
@@ -69,6 +70,16 @@ export async function openComposer(
   mode: ComposerMode,
 ): Promise<void> {
   await page.goto(`/create?mode=${mode}`);
+  // On a phone creating starts on the camera; the gallery is a tap away.
+  const capture = page.getByTestId('story-capture');
+  const composer = composerShell(page);
+  await expect(capture.or(composer)).toBeVisible();
+  if (await capture.isVisible()) {
+    await capture
+      .getByRole('button', { name: es.story.capture.gallery })
+      .first()
+      .click();
+  }
   const expected = mode === 'frame' ? 'FRAME' : 'POST';
   await expect(composerShell(page)).toHaveAttribute(
     'data-create-mode',
