@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Radio, UserPlus, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { liveApi } from '../../services/live';
 
@@ -28,12 +29,20 @@ export default function CoHostInviteBanner({
   const handleAccept = async () => {
     if (!invite) return;
     try {
-      const res = await liveApi.acceptCoHostInvite(invite.streamId);
-      onAccepted(res.token, res.streamId);
-    } catch (err) {
-      console.error('Failed to accept co-host invite', err);
+      const res = await liveApi.acceptGuestInvite(invite.streamId);
+      onAccepted(res.token, res.streamId ?? invite.streamId);
+    } catch {
+      // Three are on air already, or the invite was taken back.
+      toast.error(t('live.guests.accept_failed'));
       onDismiss();
     }
+  };
+
+  // Saying no tells the host; the invite goes either way.
+  const handleDecline = () => {
+    if (invite)
+      void liveApi.declineGuestInvite(invite.streamId).catch(() => {});
+    onDismiss();
   };
 
   return (
@@ -112,7 +121,7 @@ export default function CoHostInviteBanner({
               </button>
               <button
                 type="button"
-                onClick={onDismiss}
+                onClick={handleDecline}
                 className="min-h-12 px-4 bg-white/10 hover:bg-white/15 text-white/70 text-sm font-medium rounded-full transition-all active:scale-95"
               >
                 {t('live.cohost_invite.decline')}

@@ -4965,7 +4965,6 @@
     "ended_or_not_found": "Live stream ended or not found.",
     "chat_placeholder": "Write a comment...",
     "send_reaction": "Send {{emoji}}",
-    "cohost_label": "Co-host:",
     "cohost_remove": "Remove co-host",
     "cohost_input_placeholder": "username",
     "setup_title": "Before going live",
@@ -5008,7 +5007,6 @@
     "cohost_invite_send": "Send invitation",
     "cohost_not_found": "No account called @{{username}} was found.",
     "cohost_invite_failed": "Could not invite the co-host. Try again.",
-    "cohost_remove_failed": "Could not remove the co-host. Try again.",
     "badge": "Live",
     "now": "Live",
     "pinned": "Pinned",
@@ -5074,8 +5072,6 @@
     "camera_on": "Turn the camera on",
     "mic_off": "Mute the microphone",
     "mic_on": "Unmute the microphone",
-    "cohost_sheet_title": "Invite a co-host",
-    "cohost_sheet_hint": "They get an invitation and appear on the video next to you when they accept.",
     "cohost_input_label": "Username",
     "preview_refused": "The camera could not be opened. Allow the camera and the microphone for this site to see yourself before going live.",
     "setup_hint": "Only you see this picture until you go live.",
@@ -5094,6 +5090,28 @@
       "hint_EVERYONE": "Whoever can see your profile can watch, and your followers are told.",
       "hint_CLOSE_FRIENDS": "Only your close friends see it and are told.",
       "hint_PRACTICE": "Nobody else sees it or is told, and it is not recorded: check light, sound and connection."
+    },
+    "guests": {
+      "list": "Guests",
+      "invite": "Invite",
+      "sheet_title": "Invite to your live",
+      "sheet_hint": "Type their username. Up to {{max}} guests at a time.",
+      "remove": "Remove @{{username}}",
+      "remove_failed": "The guest couldn't be removed.",
+      "fallback": "Guest",
+      "leave": "Leave the live",
+      "accept_failed": "You can't join now: the live already has all its guests or the invite was taken back.",
+      "status": {
+        "QUEUED": "Invited when it starts",
+        "INVITED": "Invited",
+        "ON_AIR": "On air"
+      },
+      "error": {
+        "not_found": "We couldn't find @{{username}}.",
+        "full": "The live already has all its guests.",
+        "already": "@{{username}} is already invited.",
+        "failed": "@{{username}} couldn't be invited."
+      }
     }
   },
   "shortcuts": {

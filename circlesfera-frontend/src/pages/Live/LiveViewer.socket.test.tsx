@@ -181,7 +181,7 @@ async function watch(path = '/live/stream-1') {
   await screen.findByTestId('livekit-room');
   // The listeners are attached in the same step as the two requests.
   // Thirteen events of the live, and the new connection that joins it again.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(14));
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(15));
   return view;
 }
 
@@ -214,7 +214,7 @@ describe('LiveViewer on the live connection', () => {
       audio: false,
     });
     const listened = [...live.handlers.keys()];
-    expect(listened).toHaveLength(14);
+    expect(listened).toHaveLength(15);
     expect(listened).toContain('connect');
 
     unmount();
@@ -285,7 +285,7 @@ describe('LiveViewer on the live connection', () => {
     fire('live:goal_set', { title: 'New lens' });
     expect(screen.getByText('goal: New lens')).toBeInTheDocument();
 
-    fire('live:cohost_invite', { streamId: 'stream-1', host: {} });
+    fire('live:guest_invite', { streamId: 'stream-1', host: {} });
     fireEvent.click(screen.getByRole('button', { name: 'dismiss invite' }));
     expect(screen.queryByText(/invited to/)).not.toBeInTheDocument();
   });
@@ -459,7 +459,7 @@ describe('LiveViewer on the live connection', () => {
 
   it('goes on air with camera and microphone when an invitation to co-host is accepted', async () => {
     await watch();
-    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fire('live:guest_invite', { streamId: 'stream-2', host: {} });
 
     fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
 
@@ -480,7 +480,7 @@ describe('LiveViewer on the live connection', () => {
 
   it('back to watching when taken off air, with a token asked for again', async () => {
     await watch();
-    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fire('live:guest_invite', { streamId: 'stream-2', host: {} });
     fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
     expect(live.room).toMatchObject({ token: 'cohost-token', video: true });
 
@@ -488,7 +488,7 @@ describe('LiveViewer on the live connection', () => {
     vi.mocked(apiClient.get).mockResolvedValue({
       data: { token: 'fresh-viewer-token' },
     });
-    fire('live:cohost_removed', { streamId: 'stream-2' });
+    fire('live:guest_removed', { streamId: 'stream-2' });
 
     await waitFor(() =>
       expect(live.room).toMatchObject({
@@ -503,7 +503,7 @@ describe('LiveViewer on the live connection', () => {
 
   it('goes on air in a new room with the co-host token, not the viewer room', async () => {
     await watch();
-    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fire('live:guest_invite', { streamId: 'stream-2', host: {} });
     fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
 
     await waitFor(() =>
@@ -513,7 +513,7 @@ describe('LiveViewer on the live connection', () => {
 
   it('taken off air, told first: the disconnection that follows is not a lost connection', async () => {
     await watch();
-    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fire('live:guest_invite', { streamId: 'stream-2', host: {} });
     fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
     const onAir = live.room;
 
@@ -523,7 +523,7 @@ describe('LiveViewer on the live connection', () => {
         answer = resolve;
       }) as never,
     );
-    fire('live:cohost_removed', { streamId: 'stream-2' });
+    fire('live:guest_removed', { streamId: 'stream-2' });
     act(() => (onAir.onDisconnected as () => void)());
     await act(async () => answer({ data: { token: 'fresh-viewer-token' } }));
 
@@ -539,7 +539,7 @@ describe('LiveViewer on the live connection', () => {
       profile: { id: 'me-id', username: 'me', avatar: 'me.jpg' } as never,
     });
     await watch();
-    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fire('live:guest_invite', { streamId: 'stream-2', host: {} });
     fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
 
     vi.mocked(apiClient.get).mockImplementation(
@@ -547,7 +547,7 @@ describe('LiveViewer on the live connection', () => {
         Promise.resolve(
           String(url).includes('/live/join/')
             ? { data: { token: 'fresh-viewer-token' } }
-            : { data: { status: 'LIVE', coHostId: null } },
+            : { data: { status: 'LIVE', guests: [] } },
         ) as never,
     );
     act(() => (live.room.onDisconnected as () => void)());
@@ -568,11 +568,14 @@ describe('LiveViewer on the live connection', () => {
       profile: { id: 'me-id', username: 'me', avatar: 'me.jpg' } as never,
     });
     await watch();
-    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fire('live:guest_invite', { streamId: 'stream-2', host: {} });
     fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
 
     vi.mocked(apiClient.get).mockResolvedValue({
-      data: { status: 'LIVE', coHostId: 'me-id' },
+      data: {
+        status: 'LIVE',
+        guests: [{ profileId: 'me-id', status: 'ON_AIR' }],
+      },
     });
     act(() => (live.room.onDisconnected as () => void)());
 
@@ -581,17 +584,44 @@ describe('LiveViewer on the live connection', () => {
 
   it('says the live ended when taken off air from a live that is over', async () => {
     await watch();
-    fire('live:cohost_invite', { streamId: 'stream-2', host: {} });
+    fire('live:guest_invite', { streamId: 'stream-2', host: {} });
     fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
 
     vi.mocked(apiClient.get).mockRejectedValue({
       response: { status: 404, data: { errorCode: 'STREAM_NOT_FOUND' } },
     });
-    fire('live:cohost_removed', { streamId: 'stream-2' });
+    fire('live:guest_removed', { streamId: 'stream-2' });
 
     await waitFor(() =>
       expect(screen.queryByTestId('livekit-room')).not.toBeInTheDocument(),
     );
+  });
+
+  it('a guest on air leaves the live and goes back to watching it', async () => {
+    await watch();
+    fire('live:guest_invite', { streamId: 'stream-2', host: {} });
+    fireEvent.click(screen.getByRole('button', { name: 'accept invite' }));
+    vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { token: 'fresh-viewer-token' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Leave the live' }));
+
+    await waitFor(() =>
+      expect(live.room).toMatchObject({
+        token: 'fresh-viewer-token',
+        video: false,
+      }),
+    );
+    expect(apiClient.post).toHaveBeenCalledWith('/live/stream-1/guests/leave');
+  });
+
+  it('offers no way to leave the air to someone only watching', async () => {
+    await watch();
+    expect(
+      screen.queryByRole('button', { name: 'Leave the live' }),
+    ).not.toBeInTheDocument();
   });
 
   it('leaves from the close button', async () => {

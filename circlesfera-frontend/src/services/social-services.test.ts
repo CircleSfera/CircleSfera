@@ -1016,22 +1016,34 @@ const cases: Case[] = [
   ],
   ['live.getStream', () => liveApi.getStream('l1'), 'get', ['/live/l1']],
   [
-    'live.inviteCoHost',
-    () => liveApi.inviteCoHost('l1', 'p2'),
+    'live.inviteGuest',
+    () => liveApi.inviteGuest('l1', 'p2'),
     'post',
-    ['/live/l1/cohost/invite', { coHostProfileId: 'p2' }],
+    ['/live/l1/guests', { profileId: 'p2' }],
   ],
   [
-    'live.acceptCoHostInvite',
-    () => liveApi.acceptCoHostInvite('l1'),
+    'live.acceptGuestInvite',
+    () => liveApi.acceptGuestInvite('l1'),
     'post',
-    ['/live/l1/cohost/accept'],
+    ['/live/l1/guests/accept'],
   ],
   [
-    'live.removeCoHost',
-    () => liveApi.removeCoHost('l1'),
+    'live.declineGuestInvite',
+    () => liveApi.declineGuestInvite('l1'),
+    'post',
+    ['/live/l1/guests/decline'],
+  ],
+  [
+    'live.leaveAsGuest',
+    () => liveApi.leaveAsGuest('l1'),
+    'post',
+    ['/live/l1/guests/leave'],
+  ],
+  [
+    'live.removeGuest',
+    () => liveApi.removeGuest('l1', 'p2'),
     'delete',
-    ['/live/l1/cohost'],
+    ['/live/l1/guests/p2'],
   ],
   [
     'live.sendGift',
@@ -1143,9 +1155,11 @@ describe('service clients', () => {
     await expect(editsService.deleteProject('e1')).resolves.toBeUndefined();
     await expect(liveApi.getActiveStreams()).resolves.toBe('payload');
     await expect(liveApi.getStream('l1')).resolves.toBe('payload');
-    await expect(liveApi.inviteCoHost('l1', 'u2')).resolves.toBe('payload');
-    await expect(liveApi.acceptCoHostInvite('l1')).resolves.toBe('payload');
-    await expect(liveApi.removeCoHost('l1')).resolves.toBe('payload');
+    await expect(liveApi.inviteGuest('l1', 'p2')).resolves.toBe('payload');
+    await expect(liveApi.acceptGuestInvite('l1')).resolves.toBe('payload');
+    await expect(liveApi.declineGuestInvite('l1')).resolves.toBe('payload');
+    await expect(liveApi.leaveAsGuest('l1')).resolves.toBe('payload');
+    await expect(liveApi.removeGuest('l1', 'p2')).resolves.toBe('payload');
     await expect(liveApi.sendGift('l1', 'rose')).resolves.toBe('payload');
     await expect(requestDataExport()).resolves.toBe('payload');
   });

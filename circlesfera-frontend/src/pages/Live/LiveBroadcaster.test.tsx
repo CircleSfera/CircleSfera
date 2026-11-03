@@ -54,8 +54,9 @@ vi.mock('../../stores/socketStore', () => ({
 
 vi.mock('../../services/live', () => ({
   liveApi: {
-    inviteCoHost: vi.fn(),
-    removeCoHost: vi.fn(),
+    inviteGuest: vi.fn(),
+    removeGuest: vi.fn(),
+    getStream: vi.fn().mockResolvedValue({ guests: [] }),
   },
 }));
 
@@ -65,7 +66,8 @@ vi.mock('../../services/profile.service', () => ({
   },
 }));
 
-async function startStream() {
+// The server lets the live start, as stream-1.
+function serverStarts() {
   vi.mocked(apiClient.post).mockImplementation((url: string) => {
     if (url === '/live/start') {
       return Promise.resolve({
@@ -74,7 +76,10 @@ async function startStream() {
     }
     return Promise.resolve({ data: {} });
   });
+}
 
+async function startStream() {
+  serverStarts();
   const view = renderWithProviders(<LiveBroadcaster />);
   fireEvent.click(
     screen.getByRole('button', {
@@ -239,12 +244,14 @@ describe('LiveBroadcaster', () => {
     ).toBeEnabled();
   });
 
-  describe('inviting a co-host', () => {
-    async function openInvite(username: string) {
-      const view = await startStream();
+  describe('inviting guests', () => {
+    async function invite(
+      view: ReturnType<typeof renderWithProviders>,
+      username: string,
+    ) {
       fireEvent.click(
         screen.getByRole('button', {
-          name: view.i18n!.t('live.cohost_invite_button'),
+          name: view.i18n!.t('live.guests.invite'),
         }),
       );
       fireEvent.change(
@@ -261,55 +268,138 @@ describe('LiveBroadcaster', () => {
           }),
         );
       });
-      return view;
     }
 
-    it('invites the account and shows it as co-host, with a named way to remove it', async () => {
-      vi.mocked(profileApi.getProfile).mockResolvedValue({
-        data: { id: 'profile-2', username: 'ana' },
-      } as never);
-      vi.mocked(liveApi.inviteCoHost).mockResolvedValue({} as never);
+    const found = (username: string) =>
+      vi
+        .mocked(profileApi.getProfile)
+        .mockImplementation(
+          async (name: string) =>
+            ({ data: { id: `profile-${name}`, username: name } }) as never,
+        ) && username;
 
-      const { i18n } = await openInvite('@ana');
+    it('invites the account on air and shows it as invited, with a named way to take it off', async () => {
+      found('ana');
+      vi.mocked(liveApi.inviteGuest).mockResolvedValue({} as never);
+      const view = await startStream();
+
+      await invite(view, '@ana');
 
       await waitFor(() =>
-        expect(liveApi.inviteCoHost).toHaveBeenCalledWith(
+        expect(liveApi.inviteGuest).toHaveBeenCalledWith(
           'stream-1',
-          'profile-2',
+          'profile-ana',
         ),
       );
       expect(profileApi.getProfile).toHaveBeenCalledWith('ana');
       expect(await screen.findByText('@ana')).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: i18n!.t('live.cohost_remove') }),
+        screen.getByText(view.i18n!.t('live.guests.status.INVITED')),
       ).toBeInTheDocument();
+
+      vi.mocked(liveApi.removeGuest).mockResolvedValue({} as never);
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole('button', {
+            name: view.i18n!.t('live.guests.remove', { username: 'ana' }),
+          }),
+        );
+      });
+      expect(liveApi.removeGuest).toHaveBeenCalledWith(
+        'stream-1',
+        'profile-ana',
+      );
+      expect(screen.queryByText('@ana')).not.toBeInTheDocument();
+    });
+
+    it('chooses guests before going live and invites them when it starts', async () => {
+      found('ana');
+      vi.mocked(liveApi.inviteGuest).mockResolvedValue({} as never);
+      serverStarts();
+      const view = renderWithProviders(<LiveBroadcaster />);
+
+      await invite(view, 'ana');
+
+      expect(await screen.findByText('@ana')).toBeInTheDocument();
+      expect(
+        screen.getByText(view.i18n!.t('live.guests.status.QUEUED')),
+      ).toBeInTheDocument();
+      expect(liveApi.inviteGuest).not.toHaveBeenCalled();
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole('button', {
+            name: view.i18n!.t('live.start_button'),
+          }),
+        );
+      });
+      await waitFor(() =>
+        expect(liveApi.inviteGuest).toHaveBeenCalledWith(
+          'stream-1',
+          'profile-ana',
+        ),
+      );
+    });
+
+    it('stops offering to invite once the live has all its guests', async () => {
+      found('x');
+      const view = renderWithProviders(<LiveBroadcaster />);
+      for (const name of ['ana', 'luis', 'eva']) {
+        await invite(view, name);
+      }
+
+      expect(
+        screen.queryByRole('button', {
+          name: view.i18n!.t('live.guests.invite'),
+        }),
+      ).not.toBeInTheDocument();
     });
 
     it('says the account was not found, and invites nobody', async () => {
       vi.mocked(profileApi.getProfile).mockRejectedValue(new Error('404'));
+      const view = await startStream();
 
-      const { i18n } = await openInvite('nadie');
+      await invite(view, 'nadie');
 
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith(
-          i18n!.t('live.cohost_not_found', { username: 'nadie' }),
+          view.i18n!.t('live.guests.error.not_found', { username: 'nadie' }),
         ),
       );
-      expect(liveApi.inviteCoHost).not.toHaveBeenCalled();
+      expect(liveApi.inviteGuest).not.toHaveBeenCalled();
     });
 
     it('says the invitation failed', async () => {
-      vi.mocked(profileApi.getProfile).mockResolvedValue({
-        data: { id: 'profile-2', username: 'ana' },
-      } as never);
-      vi.mocked(liveApi.inviteCoHost).mockRejectedValue(new Error('down'));
+      found('ana');
+      vi.mocked(liveApi.inviteGuest).mockRejectedValue(new Error('down'));
+      const view = await startStream();
 
-      const { i18n } = await openInvite('ana');
+      await invite(view, 'ana');
 
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith(
-          i18n!.t('live.cohost_invite_failed'),
+          view.i18n!.t('live.guests.error.failed', { username: 'ana' }),
         ),
+      );
+    });
+
+    it('says when a guest could not be taken off', async () => {
+      found('ana');
+      vi.mocked(liveApi.inviteGuest).mockResolvedValue({} as never);
+      vi.mocked(liveApi.removeGuest).mockRejectedValue(new Error('down'));
+      const view = await startStream();
+      await invite(view, 'ana');
+
+      await act(async () => {
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: view.i18n!.t('live.guests.remove', { username: 'ana' }),
+          }),
+        );
+      });
+
+      expect(toast.error).toHaveBeenCalledWith(
+        view.i18n!.t('live.guests.remove_failed'),
       );
     });
   });
@@ -367,7 +457,7 @@ describe('LiveBroadcaster', () => {
       i18n!.t('live.camera_off'),
       i18n!.t('live.mic_off'),
       i18n!.t('live.qna.title'),
-      i18n!.t('live.cohost_invite_button'),
+      i18n!.t('live.guests.invite'),
       i18n!.t('live.turn_camera'),
     ]) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
