@@ -105,8 +105,10 @@ npx playwright test --project=chromium
 # Admin Panel login smoke (API running; seed applied)
 npx playwright test --project=admin-panel
 
-# Backoffice smoke (API running; seed applied with ADMIN_E2E_FORCE_TOTP=1)
-npx playwright test --project=backoffice
+# Backoffice smoke (API running; seed applied with ADMIN_E2E_FORCE_TOTP=1).
+# The same database as the API, so test staff and teardown reach its accounts.
+DATABASE_URL="${E2E_DATABASE_URL:-postgresql://prisma:prisma@localhost:5433/circlesfera_e2e?schema=public}" \
+  npx playwright test --project=backoffice
 
 # All projects
 npm run test:e2e
