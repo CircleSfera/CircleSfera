@@ -1,5 +1,9 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+} from '../constants/uploadLimits';
 import type { OverlayElement } from '../services/edits.service';
 import { renderWithProviders } from '../test/test-utils';
 import PhotoEditor from './PhotoEditor';
@@ -547,17 +551,28 @@ describe('PhotoEditor', () => {
       const { onSave } = renderEditor({
         image: clip(),
         initialTab: 'TRIM',
-        constrainDuration: { min: 15, max: 90 },
+        constrainDuration: {
+          min: FRAME_MIN_DURATION_SEC,
+          max: FRAME_MAX_DURATION_SEC,
+        },
         initialState: {
-          videoData: { startTime: 0, endTime: 200, muted: false },
+          videoData: {
+            startTime: 0,
+            endTime: FRAME_MAX_DURATION_SEC * 2,
+            muted: false,
+          },
         },
       });
 
       save();
 
       const video = onSave.mock.calls[0][4];
-      expect(video.endTime - video.startTime).toBeLessThanOrEqual(90);
-      expect(video.endTime - video.startTime).toBeGreaterThanOrEqual(15);
+      expect(video.endTime - video.startTime).toBeLessThanOrEqual(
+        FRAME_MAX_DURATION_SEC,
+      );
+      expect(video.endTime - video.startTime).toBeGreaterThanOrEqual(
+        FRAME_MIN_DURATION_SEC,
+      );
     });
   });
 });
