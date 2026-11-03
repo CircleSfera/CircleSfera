@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { canEnterStreamRoom } from '../../live/live-audience.js';
 import { isStreamHostOrCoHost } from '../../live/live-authorization.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -13,6 +14,11 @@ export class LiveRealtimeService {
   private readonly logger = new Logger(LiveRealtimeService.name);
 
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  /** Whether this Profile may be in the room of this live. */
+  canEnterRoom(streamId: string, profileId: string): Promise<boolean> {
+    return canEnterStreamRoom(this.prisma, streamId, profileId);
+  }
 
   /**
    * Whether this Profile is on the Elite Creator or Business plan, which is

@@ -194,7 +194,8 @@ async function goLive(title = '') {
   fireEvent.click(screen.getByRole('button', { name: 'Go live' }));
   await screen.findByRole('button', { name: 'End livestream' });
   // The screen is drawn a moment before it starts listening to the room.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(11));
+  // Eleven events of the live, and the new connection that joins it again.
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(12));
   return view;
 }
 
@@ -244,6 +245,17 @@ describe('LiveBroadcaster on the live connection', () => {
     await goLive();
     expect(apiClient.post).toHaveBeenCalledWith('/live/start', {
       title: 'My Live Stream',
+    });
+  });
+
+  it('joins the room of the live again on a new connection', async () => {
+    await goLive();
+    live.socket.emit.mockClear();
+
+    fire('connect');
+
+    expect(live.socket.emit).toHaveBeenCalledWith('live:join', {
+      streamId: 'stream-1',
     });
   });
 

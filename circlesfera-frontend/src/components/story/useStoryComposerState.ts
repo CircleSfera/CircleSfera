@@ -19,6 +19,7 @@ import {
   type StoryCanvasSize,
 } from './storyComposer.export';
 import {
+  type EditorFrame,
   getStoryCardSizeClass,
   getStoryStageFitClass,
   getStoryStagePadClass,
@@ -29,6 +30,7 @@ import type {
   StoryComposerTab,
 } from './storyComposer.types';
 import { canDuplicateElement, isLiveElement } from './storyInteractive';
+import type { StoryPhotoEdit } from './storyPhoto';
 import { isIdentityPhoto } from './storyPhoto';
 import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryBackground } from './useStoryBackground';
@@ -52,6 +54,12 @@ export function useStoryComposerState(props: {
   onBackgroundChange?: (file: File) => void;
   /** Sharing from the editor; its place is the location sticker's. */
   share?: StoryShareOptions;
+  /** Where the photo was left, when the editor opens again on it. */
+  initialPhoto?: StoryPhotoEdit;
+  /** Each change of the photo's place, scale, angle or filter. */
+  onPhotoChange?: (photo: StoryPhotoEdit) => void;
+  /** The shape of what is edited: a story, or a post in its shape. */
+  frame?: EditorFrame;
 }) {
   const { t } = useTranslation();
   const {
@@ -113,14 +121,21 @@ export function useStoryComposerState(props: {
     removeElement: removeElementBase,
     duplicateElement,
     moveElementLayer,
-  } = useStoryElements({ initialElements, onElementsChange });
+  } = useStoryElements({
+    initialElements,
+    onElementsChange,
+    initialPhoto: props.initialPhoto,
+    onPhotoChange: props.onPhotoChange,
+  });
 
   // Another background starts as it comes: centred, unscaled, unfiltered.
   // It resets in the same render that sees the new background, so the stage
   // never sees the old filter on the new photo.
-  const [shownBackground, setShownBackground] = useState(bg.backgroundUrl);
-  if (shownBackground !== bg.backgroundUrl) {
-    setShownBackground(bg.backgroundUrl);
+  // The photo it opened on keeps where it was left; another file (not the
+  // same one under a new address) starts afresh.
+  const [shownBackground, setShownBackground] = useState(bg.background);
+  if (shownBackground !== bg.background) {
+    setShownBackground(bg.background);
     resetPhoto();
   }
 
@@ -334,7 +349,7 @@ export function useStoryComposerState(props: {
   const stagePadClass = getStoryStagePadClass({ textTakeoverActive });
   // The canvas fills the free height while a panel or text mode needs room.
   const stageFill = panelOpen || textTakeoverActive;
-  const cardSizeClass = getStoryCardSizeClass(stageFill);
+  const cardSizeClass = getStoryCardSizeClass(stageFill, props.frame);
   const stageFitClass = getStoryStageFitClass(stageFill);
   const canPost = Boolean(bg.background || bg.bgStyle) && chromePointerArmed;
 

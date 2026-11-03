@@ -17,7 +17,14 @@ import type { ChangeEvent, MutableRefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { POST_MAX_MEDIA_ITEMS } from '../../constants/uploadLimits';
+import {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+  MAX_UPLOAD_MB,
+  POST_MAX_DURATION_SEC,
+  POST_MAX_MEDIA_ITEMS,
+  STORY_MAX_DURATION_SEC,
+} from '../../constants/uploadLimits';
 import type { CreateMode } from '../../hooks/useCreatePost';
 import { hasDeviceGallery } from '../../utils/photoLibrary';
 import { CREATE_PRIMARY, CREATE_SECONDARY } from './createStyles';
@@ -89,7 +96,13 @@ export default function UploadStep({
     ...config,
     label: t(`createPost.upload.${mode.toLowerCase()}`),
     description: t(`createPost.upload.${mode.toLowerCase()}_desc`),
-    hint: t(`createPost.upload.${mode.toLowerCase()}_hint`),
+    hint: t(`createPost.upload.${mode.toLowerCase()}_hint`, {
+      mb: MAX_UPLOAD_MB,
+      min: FRAME_MIN_DURATION_SEC,
+      max: FRAME_MAX_DURATION_SEC,
+      storyMax: STORY_MAX_DURATION_SEC,
+      postMaxMin: POST_MAX_DURATION_SEC / 60,
+    }),
   };
 
   useEffect(() => {

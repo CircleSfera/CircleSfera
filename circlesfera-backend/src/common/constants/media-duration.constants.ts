@@ -1,16 +1,20 @@
-/** Authoritative media duration windows (seconds). Keep FE uploadLimits in sync. */
+import {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+  POST_MAX_DURATION_SEC,
+  STORY_MAX_DURATION_SEC,
+} from '@circlesfera/shared';
 
-export const FRAME_MIN_DURATION_SEC = 15;
-export const FRAME_MAX_DURATION_SEC = 90;
+/** Media duration windows (seconds), from the values the app shares. */
+export {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+  POST_MAX_DURATION_SEC,
+  STORY_MAX_DURATION_SEC,
+};
 
 /** The latest moment a frame's cover can be asked for: its longest length. */
 export const FRAME_COVER_MAX_TIME_MS = FRAME_MAX_DURATION_SEC * 1000;
-
-/** Aligns with create copy “Up to 60s”. */
-export const STORY_MAX_DURATION_SEC = 60;
-
-/** Soft ceiling for feed Post videos (not short-form Frames). */
-export const POST_MAX_DURATION_SEC = 300;
 
 export type MediaDurationKind = 'FRAME' | 'STORY' | 'POST';
 

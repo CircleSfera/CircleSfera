@@ -1453,7 +1453,12 @@ describe('MediaAuthService', () => {
             },
           ]),
         },
-        select: { hostId: true, publishedAt: true, endedByStaff: true },
+        select: {
+          hostId: true,
+          publishedAt: true,
+          endedByStaff: true,
+          audience: true,
+        },
       });
     });
 

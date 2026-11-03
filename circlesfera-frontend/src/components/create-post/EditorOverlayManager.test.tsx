@@ -1,6 +1,10 @@
 import { act, screen } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+} from '../../constants/uploadLimits';
 import type { MediaFile } from '../../hooks/useCreatePost';
 import { renderInComposer } from '../../test/composer';
 import { type Composer, ComposerProvider } from './ComposerContext';
@@ -13,6 +17,7 @@ const seen = vi.hoisted(() => ({
   trim: {} as Record<string, any>,
   photo: {} as Record<string, any>,
   story: {} as Record<string, any>,
+  canvas: {} as Record<string, any>,
 }));
 
 vi.mock('react-hot-toast', () => ({ toast: { success: vi.fn() } }));
@@ -32,6 +37,12 @@ vi.mock('../story/StoryComposer', () => ({
   default: (props: Props) => {
     seen.story = props;
     return <div data-testid="story-composer" />;
+  },
+}));
+vi.mock('./PostCanvasEditor', () => ({
+  default: (props: Props) => {
+    seen.canvas = props;
+    return <div data-testid="post-canvas" />;
   },
 }));
 vi.mock('../common/BrandAmbientBackground', () => ({ default: () => null }));
@@ -139,21 +150,25 @@ describe('EditorOverlayManager', () => {
       });
     });
 
-    it('starts on the first ninety seconds, or on the whole video when it is shorter', () => {
+    it('starts on the longest Frame from the start, or on the whole video when it is shorter', () => {
       const long = show({
         showFrameTrim: true,
-        frameSourceDurationSec: 200,
+        frameSourceDurationSec: FRAME_MAX_DURATION_SEC * 2,
         mediaFiles: [media('video')],
       });
-      expect(seen.trim.initialWindow).toEqual({ startTime: 0, endTime: 90 });
+      expect(seen.trim.initialWindow).toEqual({
+        startTime: 0,
+        endTime: FRAME_MAX_DURATION_SEC,
+      });
       long.unmount();
 
+      const short = FRAME_MIN_DURATION_SEC + 1;
       show({
         showFrameTrim: true,
-        frameSourceDurationSec: 40,
+        frameSourceDurationSec: short,
         mediaFiles: [media('video')],
       });
-      expect(seen.trim.initialWindow).toEqual({ startTime: 0, endTime: 40 });
+      expect(seen.trim.initialWindow).toEqual({ startTime: 0, endTime: short });
     });
 
     it('does not open for a photo', () => {
@@ -447,7 +462,10 @@ describe('EditorOverlayManager', () => {
       await screen.findByTestId('photo-editor');
 
       expect(seen.photo.initialTab).toBe('TRIM');
-      expect(seen.photo.constrainDuration).toEqual({ min: 15, max: 90 });
+      expect(seen.photo.constrainDuration).toEqual({
+        min: FRAME_MIN_DURATION_SEC,
+        max: FRAME_MAX_DURATION_SEC,
+      });
     });
 
     it('opens on the tool that was asked for', async () => {
@@ -509,6 +527,57 @@ describe('EditorOverlayManager', () => {
       });
 
       expect(await screen.findByText('Processing media…')).toBeInTheDocument();
+    });
+  });
+
+  describe('the layer of a post photo', () => {
+    it('opens the full-screen canvas in the shape of the post', async () => {
+      show({
+        currentEditIndex: 0,
+        initialEditorTab: 'OVERLAY',
+        postShape: 'LANDSCAPE',
+        mediaFiles: [media('image')],
+      });
+
+      expect(await screen.findByTestId('post-canvas')).toBeInTheDocument();
+      expect(seen.canvas.shape).toBe('LANDSCAPE');
+    });
+
+    it('keeps the photo editor for the other tools, and for a story', async () => {
+      show({
+        currentEditIndex: 0,
+        initialEditorTab: 'ADJUST',
+        postShape: 'PORTRAIT',
+        mediaFiles: [media('image')],
+      });
+      await screen.findByTestId('photo-editor');
+      expect(screen.queryByTestId('post-canvas')).not.toBeInTheDocument();
+    });
+
+    it('puts the edited picture in place of the photo, its earlier edits now in it', async () => {
+      const { props } = show({
+        currentEditIndex: 0,
+        initialEditorTab: 'OVERLAY',
+        postShape: 'PORTRAIT',
+        mediaFiles: [
+          media('image', { filter: 'filter-class:moon__style:' }),
+          media('video'),
+        ],
+      });
+      await screen.findByTestId('post-canvas');
+      const edited = new File(['e'], 'a.png', { type: 'image/png' });
+      const edit = { base: edited, elements: [] };
+
+      act(() => seen.canvas.onDone(edited, edit));
+
+      const [[list]] = props.setMediaFiles.mock.calls;
+      expect(list[0]).toMatchObject({
+        file: edited,
+        filter: undefined,
+        canvasEdit: edit,
+      });
+      expect(list[1]).toBe(props.mediaFiles[1]);
+      expect(props.setCurrentEditIndex).toHaveBeenCalledWith(null);
     });
   });
 });

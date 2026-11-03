@@ -256,7 +256,12 @@ export class MediaAuthService {
       // The recording of a broadcast: its host's until published.
       this.prisma.liveStream.findMany({
         where: matchOn('hlsUrl', 'replayUrl', 'thumbnailUrl'),
-        select: { hostId: true, publishedAt: true, endedByStaff: true },
+        select: {
+          hostId: true,
+          publishedAt: true,
+          endedByStaff: true,
+          audience: true,
+        },
       }),
     ]);
 

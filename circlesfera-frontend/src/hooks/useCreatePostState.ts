@@ -9,6 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { CropData, VideoData } from '../components/PhotoEditor';
 import type { PhotoEditorSavedState } from '../components/photo-editor/photoEditor.types';
 import type { StoryCanvasSize } from '../components/story/storyComposer.export';
+import type { StoryPhotoEdit } from '../components/story/storyPhoto';
 import type { Audio as AudioTrack, StoryElement } from '../types';
 
 export type CreateMode = 'POST' | 'STORY' | 'FRAME';
@@ -54,6 +55,16 @@ export interface MediaFile {
   remoteUrl?: string;
   /** What was chosen in the photo editor, to open it again the same way. */
   editorState?: PhotoEditorSavedState;
+  /** What was painted on the photo of a post, to open it again the same way. */
+  canvasEdit?: PostCanvasEdit;
+}
+
+/** A photo of a post edited on the canvas: what it started from and added. */
+export interface PostCanvasEdit {
+  /** The photo as it was before, with its earlier edits in it. */
+  base: File;
+  elements: StoryElement[];
+  photo?: StoryPhotoEdit;
 }
 
 export function useCreatePostState() {

@@ -1,3 +1,5 @@
+import type { PostShape } from '@circlesfera/shared';
+
 // Tailwind reads class names whole from the source, so the sizes below are
 // written out in full and not built from parts. At rest on a phone the story
 // is min(100vw, (100dvh - top safe area) * 9/16) wide: the width of the
@@ -29,15 +31,47 @@ export function getStoryStageFitClass(fill: boolean): string {
 }
 
 /**
- * The canvas is 9:16 and never distorted. At rest on a phone it is as wide as
- * the screen when the height allows; with a panel open it fits the stage. On
- * desktop it is at most 600 px tall.
+ * What the editor edits, which sets the shape of its canvas: a story is
+ * 9:16; a post is square, portrait 4:5 or landscape 1.91:1.
  */
-export function getStoryCardSizeClass(fill: boolean): string {
-  if (fill) {
-    return 'aspect-9/16 w-[min(100cqw,calc(100cqh*9/16))] md:w-[min(100cqw,calc(min(100cqh,600px)*9/16))]';
-  }
-  return 'aspect-9/16 w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))] md:w-[min(337.5px,calc((100dvh-9rem)*9/16))]';
+export type EditorFrame = 'STORY' | PostShape;
+
+/**
+ * The canvas in each shape, never distorted. At rest on a phone it is as
+ * wide as the screen when the height allows; with a panel open it fits the
+ * stage. On desktop a story is at most 600 px tall, and a post at most 600 px
+ * tall and 600 px wide. Written out whole, as Tailwind reads them.
+ */
+const CARD_SIZE: Record<EditorFrame, { fill: string; rest: string }> = {
+  STORY: {
+    fill: 'aspect-9/16 w-[min(100cqw,calc(100cqh*9/16))] md:w-[min(100cqw,calc(min(100cqh,600px)*9/16))]',
+    rest: 'aspect-9/16 w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))] md:w-[min(337.5px,calc((100dvh-9rem)*9/16))]',
+  },
+  PORTRAIT: {
+    fill: 'aspect-4/5 w-[min(100cqw,calc(100cqh*4/5))] md:w-[min(100cqw,calc(min(100cqh,600px)*4/5))]',
+    rest: 'aspect-4/5 w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*4/5))] md:w-[min(480px,calc((100dvh-9rem)*4/5))]',
+  },
+  SQUARE: {
+    fill: 'aspect-square w-[min(100cqw,100cqh)] md:w-[min(100cqw,100cqh,600px)]',
+    rest: 'aspect-square w-[min(100vw,calc(100dvh-env(safe-area-inset-top,0px)))] md:w-[min(600px,calc(100dvh-9rem))]',
+  },
+  LANDSCAPE: {
+    fill: 'aspect-[191/100] w-[min(100cqw,calc(100cqh*191/100))] md:w-[min(100cqw,calc(100cqh*191/100),600px)]',
+    rest: 'aspect-[191/100] w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*191/100))] md:w-[min(600px,calc((100dvh-9rem)*191/100))]',
+  },
+};
+
+export function getStoryCardSizeClass(
+  fill: boolean,
+  frame: EditorFrame = 'STORY',
+): string {
+  const size = CARD_SIZE[frame];
+  return fill ? size.fill : size.rest;
+}
+
+/** The editor's screen: a post sits in its middle, a story at its top. */
+export function getStoryRootClass(frame: EditorFrame = 'STORY'): string {
+  return frame === 'STORY' ? 'md:justify-center' : 'justify-center';
 }
 
 /** Height of the share row's buttons, in px. */
@@ -62,8 +96,16 @@ export type StoryShareRowPlace = 'panel' | 'band' | 'over';
  * At rest on a phone it is the band the story leaves at the bottom of the
  * screen, above the bottom safe area; on desktop it stands under the canvas.
  */
-export function getStoryBottomBarClass(panelOpen: boolean): string {
+export function getStoryBottomBarClass(
+  panelOpen: boolean,
+  frame: EditorFrame = 'STORY',
+): string {
   if (panelOpen) return 'relative shrink-0 w-full';
+  // A post is shorter than the screen: it sits in the middle with "Done"
+  // under it, instead of leaving a band at the bottom.
+  if (frame !== 'STORY') {
+    return 'relative w-full shrink-0 pt-3 pb-[env(safe-area-inset-bottom,0px)] md:pt-0 md:pb-0';
+  }
   return 'relative w-full flex-1 min-h-0 justify-center pb-[env(safe-area-inset-bottom,0px)] md:flex-none md:pb-0';
 }
 
@@ -74,10 +116,22 @@ export function getStoryBottomBarClass(panelOpen: boolean): string {
  * story, on a dark gradient so it reads on any picture. On desktop it stands
  * under the canvas, on the brand's background.
  */
-export function getStoryShareRowClass(place: StoryShareRowPlace): string {
+export function getStoryShareRowClass(
+  place: StoryShareRowPlace,
+  frame: EditorFrame = 'STORY',
+): string {
   if (place === 'panel') {
     return 'pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] bg-surface-elevated md:bg-transparent md:pb-6';
   }
   if (place === 'band') return 'md:pt-2 md:pb-6';
-  return 'absolute inset-x-0 bottom-full mx-auto w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))] pt-10 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-linear-to-t from-black/70 via-black/35 to-transparent md:static md:mx-0 md:w-full md:bg-none md:pt-2 md:pb-6';
+  return `absolute inset-x-0 bottom-full mx-auto ${ROW_OVER_WIDTH[frame]} pt-10 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-linear-to-t from-black/70 via-black/35 to-transparent md:static md:mx-0 md:w-full md:bg-none md:pt-2 md:pb-6`;
 }
+
+/** Over the canvas on a phone, the share row is as wide as the canvas. */
+const ROW_OVER_WIDTH: Record<EditorFrame, string> = {
+  STORY: 'w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*9/16))]',
+  PORTRAIT: 'w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*4/5))]',
+  SQUARE: 'w-[min(100vw,calc(100dvh-env(safe-area-inset-top,0px)))]',
+  LANDSCAPE:
+    'w-[min(100vw,calc((100dvh-env(safe-area-inset-top,0px))*191/100))]',
+};

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { EditorFrame } from './storyComposer.layout';
 import type { StoryComposerTab } from './storyComposer.types';
 import type { StoryShareOptions } from './storyShare.types';
 
@@ -96,7 +97,12 @@ interface StoryToolRailProps {
   onSelectTab: (tab: StoryComposerTab) => void;
   /** Music and place of the story, when the editor shares it itself. */
   share?: StoryShareOptions;
+  /** The shape of what is edited: a post has no background or templates. */
+  frame?: EditorFrame;
 }
+
+/** The tools a post's photo takes: what is painted on it. */
+const POST_TOOLS: ReadonlySet<string> = new Set(['text', 'stickers', 'draw']);
 
 /**
  * The tools of the story editor, as a column at the right of the canvas:
@@ -110,6 +116,7 @@ export default function StoryToolRail({
   activeTab,
   onSelectTab,
   share,
+  frame = 'STORY',
 }: StoryToolRailProps) {
   const { t } = useTranslation();
   const [named, setNamed] = useState(false);
@@ -121,7 +128,9 @@ export default function StoryToolRail({
       aria-orientation="vertical"
       aria-label={t('createPost.storyComposer.tools')}
     >
-      {PRIMARY.map(({ tab, icon: Icon, labelKey }) => {
+      {PRIMARY.filter(
+        ({ tab }) => frame === 'STORY' || POST_TOOLS.has(tab),
+      ).map(({ tab, icon: Icon, labelKey }) => {
         const isActive =
           activeTab === tab ||
           (tab === 'stickers' && STICKER_SETUPS.has(activeTab));

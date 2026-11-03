@@ -29,6 +29,34 @@ describe('LiveRealtimeService', () => {
     service = new LiveRealtimeService(prisma as unknown as PrismaService);
   });
 
+  describe('canEnterRoom', () => {
+    it('lets in to the room of a live for everyone on air, and keeps out of an ended one', async () => {
+      const live = {
+        status: 'LIVE',
+        hostId: 'host',
+        coHostId: null,
+        audience: 'EVERYONE',
+        host: {
+          isAccountBanned: false,
+          suspendedUntil: null,
+          user: { isActive: true, deactivatedAt: null },
+        },
+      };
+      Object.assign(prisma, {
+        block: { findFirst: vi.fn().mockResolvedValue(null) },
+      });
+      Object.assign(prisma.user, { findMany: vi.fn().mockResolvedValue([]) });
+      prisma.liveStream.findUnique.mockResolvedValueOnce(live);
+      expect(await service.canEnterRoom('s-1', 'viewer')).toBe(true);
+
+      prisma.liveStream.findUnique.mockResolvedValueOnce({
+        ...live,
+        status: 'ENDED',
+      });
+      expect(await service.canEnterRoom('s-1', 'viewer')).toBe(false);
+    });
+  });
+
   describe('incrementViewerCount', () => {
     it('increments viewer count and returns updated count', async () => {
       prisma.liveStream.update.mockResolvedValue({ viewerCount: 5 });

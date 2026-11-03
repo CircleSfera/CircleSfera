@@ -1322,4 +1322,87 @@ describe('StoryComposer', () => {
       });
     });
   });
+
+  describe('editing the photo of a post', () => {
+    const photo = new File(['x'], 'photo.png', { type: 'image/png' });
+    const toolbar = () =>
+      screen.getByRole('toolbar', { name: 'Herramientas de historia' });
+
+    it.each([
+      ['PORTRAIT', 'aspect-4/5'],
+      ['SQUARE', 'aspect-square'],
+      ['LANDSCAPE', 'aspect-[191/100]'],
+    ] as const)('a %s post is edited in its shape', (frame, aspect) => {
+      const { container } = renderComposer({
+        initialMedia: photo,
+        bgStyle: '',
+        frame,
+      });
+
+      expect(container.querySelector(`[class*="${aspect}"]`)).not.toBeNull();
+      expect(container.querySelector('[class*="aspect-9/16"]')).toBeNull();
+    });
+
+    it('offers what is painted on the photo: text, stickers and drawing', () => {
+      renderComposer({ initialMedia: photo, bgStyle: '', frame: 'PORTRAIT' });
+
+      for (const name of ['Texto', 'Stickers', 'Dibujar']) {
+        expect(
+          within(toolbar()).getByRole('button', { name }),
+        ).toBeInTheDocument();
+      }
+      for (const name of ['Fondo', 'Plantillas']) {
+        expect(
+          within(toolbar()).queryByRole('button', { name }),
+        ).not.toBeInTheDocument();
+      }
+    });
+
+    it('offers no interactive sticker yet, only emoji', () => {
+      renderComposer({ initialMedia: photo, bgStyle: '', frame: 'PORTRAIT' });
+
+      fireEvent.click(
+        within(toolbar()).getByRole('button', { name: 'Stickers' }),
+      );
+
+      expect(
+        screen.queryByRole('group', { name: 'Interactivos' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Encuesta' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('moves the photo and changes its filter, as a story does', () => {
+      renderComposer({ initialMedia: photo, bgStyle: '', frame: 'PORTRAIT' });
+      const canvas = screen.getByRole('application', {
+        name: /Foto de la historia/,
+      });
+      const picture = screen.getByTestId('story-photo');
+      canvas.focus();
+
+      fireEvent.keyDown(canvas, { key: 'ArrowRight', shiftKey: true });
+      fireEvent.keyDown(canvas, { key: ']' });
+
+      expect(picture.style.transform).toContain('translate(10%, 0%)');
+      expect(picture.style.filter).not.toBe('');
+    });
+
+    it('opens again where the photo was left, and tells each change', () => {
+      const onPhotoChange = vi.fn();
+      const left = { x: 0.1, y: 0, scale: 1.5, rotation: 0, filter: 1 };
+      renderComposer({
+        initialMedia: photo,
+        bgStyle: '',
+        frame: 'PORTRAIT',
+        initialPhoto: left,
+        onPhotoChange,
+      });
+
+      expect(screen.getByTestId('story-photo').style.transform).toContain(
+        'scale(1.5)',
+      );
+      expect(onPhotoChange).toHaveBeenLastCalledWith(left);
+    });
+  });
 });

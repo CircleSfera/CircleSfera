@@ -9,7 +9,12 @@ import StoryComposerShellChrome from './StoryComposerShellChrome';
 import StoryComposerStage from './StoryComposerStage';
 import StoryComposerTextChrome from './StoryComposerTextChrome';
 import type { StoryCanvasSize } from './storyComposer.export';
-import type { StoryShareRowPlace } from './storyComposer.layout';
+import {
+  type EditorFrame,
+  getStoryRootClass,
+  type StoryShareRowPlace,
+} from './storyComposer.layout';
+import type { StoryPhotoEdit } from './storyPhoto';
 import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryComposerState } from './useStoryComposerState';
 
@@ -29,6 +34,12 @@ interface StoryComposerProps {
   onElementsChange?: (elements: StoryElement[]) => void;
   onBgStyleChange?: (style: string) => void;
   onBackgroundChange?: (file: File) => void;
+  /** The shape of what is edited: a story, or a post in its shape. */
+  frame?: EditorFrame;
+  /** Where the photo was left, when the editor opens again on it. */
+  initialPhoto?: StoryPhotoEdit;
+  /** Each change of the photo's place, scale, angle or filter. */
+  onPhotoChange?: (photo: StoryPhotoEdit) => void;
 }
 
 /** Immersive Story create path. Layout shell only — state in hooks. */
@@ -40,7 +51,7 @@ export default function StoryComposer(props: StoryComposerProps) {
 
   return (
     <div
-      className={`${CREATE_FULL_SCREEN} font-sans flex flex-col md:justify-center`}
+      className={`${CREATE_FULL_SCREEN} font-sans flex flex-col ${getStoryRootClass(props.frame)}`}
       data-testid="story-composer"
     >
       <BrandAmbientBackground placement="story" />
@@ -90,6 +101,7 @@ export default function StoryComposer(props: StoryComposerProps) {
         overlay={
           s.textTakeoverActive ? null : (
             <StoryComposerChrome
+              frame={props.frame}
               onClose={s.onClose}
               onUndo={s.undo}
               onRedo={s.redo}
@@ -110,6 +122,7 @@ export default function StoryComposer(props: StoryComposerProps) {
 
       {!s.textTakeoverActive && (
         <StoryComposerShellChrome
+          frame={props.frame}
           chromePointerArmed={s.chromePointerArmed}
           hidden={s.draggingLayer}
           onShareRowPlace={setShareRowPlace}
