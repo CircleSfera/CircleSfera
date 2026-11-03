@@ -35,6 +35,40 @@ import type {
 } from './useCreatePostState';
 import type { UploadResult } from './useMediaUpload';
 
+/**
+ * A Frame from the gallery, put together by the server as one clip: its
+ * window, its painted layer, its look and its sound.
+ */
+async function frameFromServer(
+  media: MediaFile,
+  window: NonNullable<MediaFile['videoData']>,
+): Promise<MediaFile> {
+  const [{ assembleFrame }, { frameLookFromFilterText }] = await Promise.all([
+    import('../components/create-post/frameAssembly'),
+    import('../components/create-post/frameLook'),
+  ]);
+  const layer = media.overlayDataUrl
+    ? await (await fetch(media.overlayDataUrl)).blob()
+    : null;
+  const startMs = Math.round(window.startTime * 1000);
+  const endMs = Math.round(window.endTime * 1000);
+  const frame = await assembleFrame(
+    [{ file: media.file, startMs, endMs, ms: endMs }],
+    {
+      layer,
+      look: frameLookFromFilterText(media.filter),
+      muted: window.muted,
+    },
+    () => {},
+  );
+  return {
+    ...media,
+    file: frame.file,
+    remoteUrl: frame.url,
+    assembledFrame: true,
+  };
+}
+
 interface MutationDeps {
   mode: CreateMode;
   /** Open one's story with a card of the post once it is published. */
@@ -182,6 +216,20 @@ export function useCreatePostMutation(deps: MutationDeps) {
           (!m.filter && !m.cropData && !m.overlayDataUrl && !m.videoData)
         ) {
           return m;
+        }
+
+        // A Frame is put together by the server, with its trim, what is
+        // painted over it and its filter: the phone does not re-encode it.
+        if (deps.mode === 'FRAME' && m.type === 'video' && m.videoData) {
+          try {
+            return await frameFromServer(m, m.videoData);
+          } catch (e) {
+            logger.error(
+              'Error putting a Frame together, failing submission',
+              e,
+            );
+            throw new EditExportError('frame assembly failed');
+          }
         }
 
         try {
