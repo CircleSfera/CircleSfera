@@ -1,0 +1,42 @@
+name: Ops — uptime checks and their alert
+
+# The error tracker's checks of the site and its API from outside the server,
+# and the alert that tells a person when one fails. "inspect" only reads;
+# "apply" adds what is missing and changes nothing that exists. It runs the
+# script of the branch named in "ref", so the script can be adjusted on a
+# branch without merging the workflow again. Logs are public: the script
+# prints names, ids and public addresses only.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: inspect (read only) or apply (add what is missing)
+        type: choice
+        options: [inspect, apply]
+        default: inspect
+      ref:
+        description: Branch whose script runs
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  uptime:
+    name: Uptime checks (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26'
+      - name: Run
+        env:
+          SENTRY_WRITE_TOKEN: ${{ secrets.SENTRY_WRITE_TOKEN }}
+          MODE: ${{ inputs.mode }}
+        run: node scripts/sentry-uptime.mjs "$MODE"
