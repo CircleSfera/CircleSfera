@@ -1,4 +1,5 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import CaptionStep from './CaptionStep';
@@ -12,6 +13,16 @@ vi.mock('../../stores/authStore', () => ({
 
 vi.mock('../UserAvatar', () => ({
   default: () => <div data-testid="avatar" />,
+}));
+
+const suggest = vi.hoisted(() => ({
+  props: null as null | Record<string, any>,
+}));
+vi.mock('./CaptionSuggestions', () => ({
+  default: (props: Record<string, any>) => {
+    suggest.props = props;
+    return props.token ? <div data-testid="suggestions" /> : props.children;
+  },
 }));
 
 vi.mock('./InteractiveMediaPreview', () => ({
@@ -158,5 +169,35 @@ describe('CaptionStep', () => {
     const label = screen.getByText(i18n!.t('createPost.caption.add_location'));
     expect(label.className).toMatch(/line-clamp-2/);
     expect(label.className).not.toMatch(/(?:^|\s)truncate(?:\s|$)/);
+  });
+
+  it('suggests for the mention being written and puts the one chosen in', () => {
+    function Controlled() {
+      const [caption, setCaption] = useState('');
+      return (
+        <CaptionStep
+          {...baseProps}
+          caption={caption}
+          setCaption={setCaption}
+          mediaFiles={[imageFile]}
+          mode="POST"
+        />
+      );
+    }
+    renderWithProviders(<Controlled />, { lng: 'es' });
+    const field = screen.getByRole('textbox');
+    fireEvent.focus(field);
+    fireEvent.change(field, {
+      target: { value: 'Hola @an', selectionStart: 8 },
+    });
+
+    expect(screen.getByTestId('suggestions')).toBeInTheDocument();
+    expect(suggest.props?.token).toMatchObject({
+      kind: 'mention',
+      query: 'an',
+    });
+
+    act(() => suggest.props?.onPick('ana'));
+    expect(field).toHaveValue('Hola @ana ');
   });
 });

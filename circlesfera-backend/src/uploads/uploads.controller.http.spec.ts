@@ -1,4 +1,4 @@
-import type { INestApplication } from '@nestjs/common';
+import { type INestApplication, NotFoundException } from '@nestjs/common';
 import request from 'supertest';
 import {
   afterAll,
@@ -15,6 +15,7 @@ import {
   BEARER,
   createControllerApp,
   TEST_USER,
+  TEST_UUID,
 } from '../common/testing/http-controller.js';
 import { UploadsController } from './uploads.controller.js';
 import { UploadsService } from './uploads.service.js';
@@ -32,7 +33,11 @@ const MP4 = Buffer.from(
 
 describe('UploadsController over HTTP', () => {
   let app: INestApplication;
-  const mockService = { uploadFile: vi.fn() };
+  const mockService = {
+    uploadFile: vi.fn(),
+    startFrameAssembly: vi.fn(),
+    frameAssemblyStatus: vi.fn(),
+  };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -54,6 +59,11 @@ describe('UploadsController over HTTP', () => {
     mockService.uploadFile.mockResolvedValue({
       url: '/uploads/voice.m4a',
       type: 'audio',
+    });
+    mockService.startFrameAssembly.mockResolvedValue({ id: 'frame-job' });
+    mockService.frameAssemblyStatus.mockResolvedValue({
+      status: 'READY',
+      url: '/uploads/frame.mp4',
     });
   });
 
@@ -88,6 +98,96 @@ describe('UploadsController over HTTP', () => {
       .expect(400);
 
     expect(mockService.uploadFile).not.toHaveBeenCalled();
+  });
+
+  describe('a Frame put together from its clips', () => {
+    const CLIP = { url: '/uploads/clip.mp4', startMs: 0, endMs: 20_000 };
+
+    it('is asked for with its clips in order, for the Profile the person acts as', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/uploads/frames')
+        .set(BEARER)
+        .send({
+          clips: [CLIP, { url: '/uploads/b.mp4', startMs: 500, endMs: 9000 }],
+          layerUrl: '/uploads/layer.avif',
+          muted: false,
+        })
+        .expect(202);
+
+      expect(response.body).toEqual({ id: 'frame-job' });
+      expect(mockService.startFrameAssembly).toHaveBeenCalledWith(
+        { profileId: TEST_USER.profileId, userId: TEST_USER.userId },
+        {
+          clips: [CLIP, { url: '/uploads/b.mp4', startMs: 500, endMs: 9000 }],
+          layerUrl: '/uploads/layer.avif',
+          muted: false,
+        },
+      );
+    });
+
+    it.each([
+      ['no clip', { clips: [] }],
+      ['too many clips', { clips: Array.from({ length: 21 }, () => CLIP) }],
+      ['a clip with no address', { clips: [{ startMs: 0, endMs: 20_000 }] }],
+      ['a negative start', { clips: [{ ...CLIP, startMs: -1 }] }],
+      ['a moment that is not a whole ms', { clips: [{ ...CLIP, endMs: 1.5 }] }],
+      ['a muted that is not yes or no', { clips: [CLIP], muted: 'yes' }],
+      ['a field it does not know', { clips: [CLIP], audioUrl: '/x.mp3' }],
+    ])('refuses %s before the service sees it', async (_case, body) => {
+      await request(app.getHttpServer())
+        .post('/api/v1/uploads/frames')
+        .set(BEARER)
+        .send(body)
+        .expect(400);
+
+      expect(mockService.startFrameAssembly).not.toHaveBeenCalled();
+    });
+
+    it('answers where the Frame is, for the Profile the person acts as', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/v1/uploads/frames/${TEST_UUID}`)
+        .set(BEARER)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        status: 'READY',
+        url: '/uploads/frame.mp4',
+      });
+      expect(mockService.frameAssemblyStatus).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        TEST_UUID,
+      );
+    });
+
+    it('answers a job that is not the person’s as not found', async () => {
+      mockService.frameAssemblyStatus.mockRejectedValueOnce(
+        new NotFoundException('FRAME_ASSEMBLY_NOT_FOUND'),
+      );
+
+      await request(app.getHttpServer())
+        .get(`/api/v1/uploads/frames/${TEST_UUID}`)
+        .set(BEARER)
+        .expect(404);
+    });
+
+    it('refuses an id that is not one it gives', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/uploads/frames/transcode-abc')
+        .set(BEARER)
+        .expect(400);
+
+      expect(mockService.frameAssemblyStatus).not.toHaveBeenCalled();
+    });
+
+    it('asks for a session', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/uploads/frames')
+        .send({ clips: [CLIP] })
+        .expect(401);
+      await request(app.getHttpServer())
+        .get(`/api/v1/uploads/frames/${TEST_UUID}`)
+        .expect(401);
+    });
   });
 
   it('asks for a session', async () => {

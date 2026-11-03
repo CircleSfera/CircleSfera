@@ -1735,7 +1735,10 @@
       "mark_sensitive_desc": "Violencia gráfica, lenguaje fuerte o contexto artístico. El contenido sexual explícito no está permitido en CircleSfera y se retira, no se filtra.",
       "price_eur": "Precio (EUR)",
       "share_to_story": "Compartir también en tu historia",
-      "share_to_story_desc": "Al publicar se abre tu historia con la tarjeta del post, lista para compartir."
+      "share_to_story_desc": "Al publicar se abre tu historia con la tarjeta del post, lista para compartir.",
+      "suggestions": "Sugerencias",
+      "tag_posts_one": "{{count}} publicación",
+      "tag_posts_other": "{{count}} publicaciones"
     },
     "edit": {
       "edit_media": "Editar Medio",

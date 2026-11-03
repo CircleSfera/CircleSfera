@@ -6,6 +6,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { type Job, UnrecoverableError } from 'bullmq';
 import sharp from 'sharp';
+import { assertMediaDurationInRange } from '../../common/constants/media-duration.constants.js';
 import {
   getWorkerOptions,
   QUEUE_NAMES,
@@ -18,6 +19,7 @@ import {
   withTimeout,
 } from '../../common/media/ffmpeg-runner.js';
 import {
+  PROBE_TIME_LIMIT_MS,
   probeMediaDurationSec,
   resolveMediaInputPath,
 } from '../../common/utils/media-duration.util.js';
@@ -28,14 +30,39 @@ import {
   type StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
 import { StoredFilesService } from '../services/stored-files.service.js';
-import { UploadsService } from '../uploads.service.js';
+import {
+  FRAME_ASSEMBLY_JOB,
+  type FrameAssemblyJobData,
+  type FrameClip,
+  UploadsService,
+} from '../uploads.service.js';
 import { LiveReplayMaker } from './live-replay.maker.js';
 
-/** A story's video once its painted layer is on it: 9:16, as on screen. */
-const STORY_WIDTH = 720;
-const STORY_HEIGHT = 1280;
+/**
+ * A video the server makes with a painted layer on it (a story's, a Frame's):
+ * 9:16, as on screen.
+ */
+const VERTICAL_WIDTH = 720;
+const VERTICAL_HEIGHT = 1280;
 /** The largest painted layer read. */
 const LAYER_MAX_BYTES = 20 * 1024 * 1024;
+/** The largest painted layer decoded, in pixels. */
+const LAYER_MAX_PIXELS = 8192 ** 2;
+/** The kinds of image a painted layer is stored as. */
+const LAYER_MIME_TYPES = ['image/png', 'image/avif', 'image/webp'];
+/** How long joining a story's layer to its video may take. */
+const STORY_JOIN_TIME_LIMIT_MS = 300_000;
+/** How long putting a Frame together from its clips may take. */
+const FRAME_ASSEMBLY_TIME_LIMIT_MS = 600_000;
+/** A Frame's frames per second, the same for every clip it is made of. */
+const FRAME_FPS = 30;
+/** A Frame's sound: one rate and layout for every clip it is made of. */
+const FRAME_AUDIO_FORMAT = 'sample_rates=48000:channel_layouts=stereo';
+/** The silence a clip with no sound plays in a Frame that has some. */
+const FRAME_SILENCE = 'anullsrc=sample_rate=48000:channel_layout=stereo';
+/** The largest picture of a clip a Frame is put together from: 4K. */
+const FRAME_CLIP_MAX_PIXELS = 3840 * 2160;
+const FRAME_ASSEMBLY_TIMED_OUT = 'Putting a Frame together timed out';
 
 const VIDEO_CONCURRENCY = Math.max(
   1,
@@ -80,7 +107,12 @@ export class VideoProcessor extends WorkerHost {
       storyId?: string;
       streamId?: string;
     }>,
-  ): Promise<void> {
+  ): Promise<{ url: string } | undefined> {
+    if (job.name === FRAME_ASSEMBLY_JOB) {
+      return this.assembleFrame(
+        job.data as unknown as Partial<FrameAssemblyJobData> | undefined,
+      );
+    }
     if (job.name === 'cover') {
       await this.makeCover(job.data?.postMediaId);
       return;
@@ -584,17 +616,7 @@ export class VideoProcessor extends WorkerHost {
       path.join(os.tmpdir(), 'story-overlay-'),
     );
     try {
-      const layer = await safeFetchMedia(story.overlayUrl, {
-        maxBytes: LAYER_MAX_BYTES,
-        allowedMimeTypes: ['image/png', 'image/avif', 'image/webp'],
-      });
-      // Read here, not by FFmpeg: a stored layer may be AVIF, whose
-      // transparency FFmpeg does not always keep.
-      const layerPath = path.join(workDir, 'layer.png');
-      await sharp(layer.buffer, { limitInputPixels: 8192 ** 2 })
-        .resize(STORY_WIDTH, STORY_HEIGHT, { fit: 'fill' })
-        .png()
-        .toFile(layerPath);
+      const layerPath = await this.readLayer(story.overlayUrl, workDir);
 
       const joinedPath = path.join(workDir, 'story.mp4');
       await this.joinLayer(
@@ -664,6 +686,152 @@ export class VideoProcessor extends WorkerHost {
     }
   }
 
+  // Puts a Frame together from its clips: each one trimmed to its part and
+  // cropped to 9:16 from the centre, played one after the other, with the
+  // painted layer over the whole length. The sound is kept unless the author
+  // muted it or no clip has any; a clip with none plays silence. The video is stored as the
+  // Profile's own and its stream is asked for; the clips and the layer are
+  // left as they are, as the author may go back to the editor. Answers the
+  // address of the video.
+  private async assembleFrame(
+    data: Partial<FrameAssemblyJobData> | undefined,
+  ): Promise<{ url: string }> {
+    const { profileId, clips, layerUrl, muted } = data ?? {};
+    if (!profileId || !clips?.length) {
+      throw new UnrecoverableError('Missing the clips of a Frame');
+    }
+    if (!this.storageProvider || !this.uploads) {
+      throw new UnrecoverableError('No storage to keep a Frame');
+    }
+    const { storageProvider, uploads } = this;
+    const files = [
+      ...clips.map((clip) => clip.url),
+      ...(layerUrl ? [layerUrl] : []),
+    ];
+    if (!files.every((url) => uploads.ownsUrl(url))) {
+      throw new UnrecoverableError(
+        'A clip or the layer of a Frame is not of this storage',
+      );
+    }
+
+    const workDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), 'frame-assembly-'),
+    );
+    try {
+      const inputs = clips.map((clip) => resolveMediaInputPath(clip.url));
+      const probes = await Promise.all(
+        inputs.map((input) =>
+          withTimeout(
+            PROBE_TIME_LIMIT_MS,
+            'Reading a clip of a Frame timed out',
+            (signal) => ffprobe(input, { signal }),
+          ),
+        ),
+      );
+      // A part past the end of its clip lasts only to that end. A clip that
+      // is not a video of a length that can be read, or whose picture is
+      // past 4K, is refused, and so is the Frame when what is left is not as
+      // long as a Frame may be.
+      const parts = clips.map((clip, index) => {
+        const probe = probes[index];
+        const streams = probe.streams ?? [];
+        const picture = streams.find((stream) => stream.codec_type === 'video');
+        const clipMs = Math.floor(Number(probe.format?.duration) * 1000);
+        if (!picture || !Number.isFinite(clipMs) || clipMs <= 0) {
+          throw new UnrecoverableError('FRAME_CLIP_UNREADABLE');
+        }
+        if (
+          (picture.width ?? 0) * (picture.height ?? 0) >
+          FRAME_CLIP_MAX_PIXELS
+        ) {
+          throw new UnrecoverableError('FRAME_CLIP_TOO_LARGE');
+        }
+        return {
+          clip: { ...clip, endMs: Math.min(clip.endMs, clipMs) },
+          sound: streams.some((stream) => stream.codec_type === 'audio'),
+        };
+      });
+      const lengthMs = parts.reduce(
+        (sum, { clip }) => sum + Math.max(0, clip.endMs - clip.startMs),
+        0,
+      );
+      const window = assertMediaDurationInRange('FRAME', lengthMs / 1000);
+      if (!window.ok) {
+        throw new UnrecoverableError(window.code);
+      }
+      // A part that starts past the end of its clip has nothing to play.
+      if (parts.some(({ clip }) => clip.endMs <= clip.startMs)) {
+        throw new UnrecoverableError('FRAME_CLIP_RANGE_INVALID');
+      }
+      const sound =
+        muted !== true && parts.some((part) => part.sound)
+          ? parts.map((part) => part.sound)
+          : null;
+
+      const layerPath = layerUrl
+        ? await this.readLayer(layerUrl, workDir)
+        : undefined;
+      const output = path.join(workDir, 'frame.mp4');
+      // A Frame that took too long once takes as long again: not retried.
+      await withTimeout(
+        FRAME_ASSEMBLY_TIME_LIMIT_MS,
+        FRAME_ASSEMBLY_TIMED_OUT,
+        (signal) =>
+          runFfmpeg(
+            frameAssemblyArgs(
+              parts.map((part) => part.clip),
+              inputs,
+              layerPath,
+              sound,
+              output,
+            ),
+            { signal },
+          ),
+      ).catch((error: unknown) => {
+        throw error instanceof Error &&
+          error.message === FRAME_ASSEMBLY_TIMED_OUT
+          ? new UnrecoverableError(FRAME_ASSEMBLY_TIMED_OUT)
+          : error;
+      });
+      const stored = await storageProvider.upload({
+        originalname: `${randomUUID()}.mp4`,
+        buffer: await fs.promises.readFile(output),
+        mimetype: 'video/mp4',
+      });
+      try {
+        await this.storedFiles?.record([stored.url], { profileId });
+      } catch (error) {
+        // Not left on the disk with no owner; the retry makes it again.
+        await storageProvider.delete(stored.url).catch(() => {});
+        throw error;
+      }
+      // Should this fail, the retry makes the Frame again.
+      await uploads.enqueueTranscode(stored.url);
+      this.logger.log(`Frame put together from ${clips.length} clips`);
+      return { url: stored.url };
+    } finally {
+      await fs.promises
+        .rm(workDir, { recursive: true, force: true })
+        .catch(() => {});
+    }
+  }
+
+  // Reads a stored painted layer as a PNG of the vertical video's size, in
+  // the work folder. Read here, not by FFmpeg: a stored layer may be AVIF,
+  // whose transparency FFmpeg does not always keep.
+  private async readLayer(url: string, workDir: string): Promise<string> {
+    const layer = await safeFetchMedia(url, {
+      maxBytes: LAYER_MAX_BYTES,
+      allowedMimeTypes: LAYER_MIME_TYPES,
+    });
+    const layerPath = path.join(workDir, 'layer.png');
+    await sharp(layer.buffer, { limitInputPixels: LAYER_MAX_PIXELS })
+      .resize(VERTICAL_WIDTH, VERTICAL_HEIGHT, { fit: 'fill' })
+      .png()
+      .toFile(layerPath);
+    return layerPath;
+  }
+
   // The video cropped to the story's frame with the layer over it, as MP4.
   // The layer is an image repeated (-loop 1) for the whole of the video.
   private joinLayer(
@@ -672,7 +840,7 @@ export class VideoProcessor extends WorkerHost {
     output: string,
   ): Promise<void> {
     return withTimeout(
-      300_000,
+      STORY_JOIN_TIME_LIMIT_MS,
       'Joining the layer of a story timed out',
       (signal) =>
         runFfmpeg(
@@ -686,7 +854,7 @@ export class VideoProcessor extends WorkerHost {
             '-y',
             '-filter_complex',
             [
-              `[0:v]scale=${STORY_WIDTH}:${STORY_HEIGHT}:force_original_aspect_ratio=increase,crop=${STORY_WIDTH}:${STORY_HEIGHT},setsar=1[video]`,
+              `[0:v]scale=${VERTICAL_WIDTH}:${VERTICAL_HEIGHT}:force_original_aspect_ratio=increase,crop=${VERTICAL_WIDTH}:${VERTICAL_HEIGHT},setsar=1[video]`,
               '[video][1:v]overlay=0:0:shortest=1:format=auto[out]',
             ].join(';'),
             '-map',
@@ -731,4 +899,76 @@ export class VideoProcessor extends WorkerHost {
         ),
     );
   }
+}
+
+/** A moment of a clip, given in ms, as FFmpeg reads it: in seconds. */
+function seconds(ms: number): string {
+  return String(ms / 1000);
+}
+
+/**
+ * The arguments of the one FFmpeg run that puts a Frame together: each clip
+ * trimmed to its part with its time starting again at zero, at one frame
+ * rate, cropped to 9:16 from the centre; the clips joined in their order;
+ * the layer, an image repeated (-loop 1), over the whole length. `sound`
+ * says which clips have sound; one with none plays silence as long as its
+ * part. With no sound (null), the video has no sound track at all.
+ */
+export function frameAssemblyArgs(
+  clips: readonly FrameClip[],
+  inputs: readonly string[],
+  layer: string | undefined,
+  sound: readonly boolean[] | null,
+  output: string,
+): string[] {
+  const withSound = sound !== null;
+  const filters: string[] = [];
+  const joined: string[] = [];
+  clips.forEach((clip, index) => {
+    const part = `start=${seconds(clip.startMs)}:end=${seconds(clip.endMs)}`;
+    filters.push(
+      `[${index}:v]trim=${part},setpts=PTS-STARTPTS,fps=${FRAME_FPS},scale=${VERTICAL_WIDTH}:${VERTICAL_HEIGHT}:force_original_aspect_ratio=increase,crop=${VERTICAL_WIDTH}:${VERTICAL_HEIGHT},setsar=1[v${index}]`,
+    );
+    joined.push(`[v${index}]`);
+    if (sound) {
+      filters.push(
+        sound[index]
+          ? `[${index}:a]atrim=${part},asetpts=PTS-STARTPTS,aformat=${FRAME_AUDIO_FORMAT}[a${index}]`
+          : `${FRAME_SILENCE},atrim=end=${seconds(clip.endMs - clip.startMs)},aformat=${FRAME_AUDIO_FORMAT}[a${index}]`,
+      );
+      joined.push(`[a${index}]`);
+    }
+  });
+  const video = layer ? '[joined]' : '[out]';
+  filters.push(
+    `${joined.join('')}concat=n=${clips.length}:v=1:a=${withSound ? 1 : 0}${video}${withSound ? '[sound]' : ''}`,
+  );
+  if (layer) {
+    filters.push(
+      `[joined][${clips.length}:v]overlay=0:0:shortest=1:format=auto[out]`,
+    );
+  }
+  return [
+    ...inputs.flatMap((input) => ['-i', input]),
+    ...(layer ? ['-loop', '1', '-i', layer] : []),
+    '-y',
+    '-filter_complex',
+    filters.join(';'),
+    '-map',
+    '[out]',
+    ...(withSound
+      ? ['-map', '[sound]', '-c:a', 'aac', '-b:a', '128k']
+      : ['-an']),
+    '-c:v',
+    'h264',
+    '-preset',
+    'veryfast',
+    '-crf',
+    '23',
+    '-pix_fmt',
+    'yuv420p',
+    '-movflags',
+    '+faststart',
+    output,
+  ];
 }
