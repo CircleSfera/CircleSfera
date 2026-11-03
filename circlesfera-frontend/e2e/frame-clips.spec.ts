@@ -106,6 +106,9 @@ test('a Frame recorded in clips is put together and goes on to its caption', asy
   await page.getByRole('button', { name: 'Ordenar' }).click();
   const order = page.getByTestId('frame-clips-order');
   await expect(order).toBeVisible();
+  await expect
+    .poll(() => order.locator('img').count(), { timeout: 10_000 })
+    .toBe(2);
   await capture(page, 'order', info);
   const grip = page.getByRole('button', { name: 'Mover Clip 2 de 2' });
   const box = await grip.boundingBox();

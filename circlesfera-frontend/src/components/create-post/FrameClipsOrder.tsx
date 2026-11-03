@@ -2,7 +2,12 @@ import { GripVertical } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
-import { CREATE_FULL_SCREEN, CREATE_PRIMARY } from './createStyles';
+import {
+  CREATE_FULL_SCREEN,
+  CREATE_PRIMARY,
+  CREATE_THUMB,
+  createThumbRatio,
+} from './createStyles';
 import { formatClipClock } from './FrameClipControls';
 import type { FrameClip } from './frameClips';
 import { dropIndex } from './frameTimeline';
@@ -12,7 +17,10 @@ import { useFilmstrip } from './useFilmstrip';
 function ClipPicture({ clip }: { clip: FrameClip }) {
   const [frame] = useFilmstrip(clip.file, clip.ms, 1);
   return (
-    <div className="h-16 w-9 shrink-0 overflow-hidden rounded-lg bg-white/10">
+    <div
+      className={`${CREATE_THUMB} border-white/10 bg-white/10`}
+      style={{ aspectRatio: createThumbRatio('FRAME') }}
+    >
       {frame ? (
         <img
           src={frame}

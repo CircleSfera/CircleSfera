@@ -63,6 +63,19 @@ export default function FrameClipsEditor({
   const [chosen, setChosen] = useState(0);
   const clip = clips[Math.min(chosen, clips.length - 1)];
   const videoRef = useRef<HTMLVideoElement>(null);
+  // The trim bar is as wide as the video above it.
+  const [previewPx, setPreviewPx] = useState(0);
+  const shownFile = clip?.file;
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !shownFile) return;
+    const measure = () => setPreviewPx(video.clientWidth);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [shownFile]);
   // Text and drawing over the whole Frame, painted on its first clip.
   const [painting, setPainting] = useState(false);
   const [ordering, setOrdering] = useState(false);
@@ -253,7 +266,10 @@ export default function FrameClipsEditor({
           </div>
         ) : null}
         {clip ? (
-          <div className="px-4">
+          <div
+            className="mx-auto px-4"
+            style={previewPx > 0 ? { maxWidth: previewPx + 32 } : undefined}
+          >
             <FrameClipTrimBar
               key={urls.get(clip.file)}
               clip={clip}
@@ -262,7 +278,10 @@ export default function FrameClipsEditor({
             />
           </div>
         ) : null}
-        <div className="flex items-center justify-between px-4 pt-3">
+        <div
+          className="mx-auto flex items-center justify-between px-4 pt-3"
+          style={previewPx > 0 ? { maxWidth: previewPx + 32 } : undefined}
+        >
           {clips.length > 1 ? (
             <button
               type="button"
