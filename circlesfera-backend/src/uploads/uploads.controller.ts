@@ -1,3 +1,4 @@
+import { MAX_UPLOAD_BYTES } from '@circlesfera/shared';
 import {
   Controller,
   FileTypeValidator,
@@ -22,16 +23,14 @@ import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { UploadsService } from './uploads.service.js';
 
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
-
-// REST controller for file uploads. Accepts images and videos up to 100 MB.
+// REST controller for file uploads. Accepts images and videos up to MAX_UPLOAD_MB.
 @Controller('uploads')
 export class UploadsController {
   private readonly logger = new Logger(UploadsController.name);
 
   constructor(private readonly uploadsService: UploadsService) {}
 
-  // Upload a file (image or video, max 100 MB). Returns the public URL and type.
+  // Upload a file (image or video, up to MAX_UPLOAD_MB). Returns the public URL and type.
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   // Publishing needs its media.

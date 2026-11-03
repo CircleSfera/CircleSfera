@@ -1,6 +1,10 @@
 import { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+} from '../../constants/uploadLimits';
+import {
   clampFrameWindow,
   FRAME_DURATION_PRESETS,
   type FrameClipWindow,
@@ -116,7 +120,10 @@ export default function FrameClipControls({
           <p
             className={`text-white/55 text-center ${compact ? 'text-xs' : 'text-xs'}`}
           >
-            {t('createPost.frameTrim.hint', { min: 15, max: 90 })}
+            {t('createPost.frameTrim.hint', {
+              min: FRAME_MIN_DURATION_SEC,
+              max: FRAME_MAX_DURATION_SEC,
+            })}
           </p>
           <fieldset className="flex gap-1.5 justify-center border-0 m-0 p-0 min-w-0">
             <legend className="sr-only">

@@ -1,32 +1,60 @@
 import { describe, expect, it } from 'vitest';
-import { assertMediaDurationInRange } from './media-duration.constants.js';
+import {
+  assertMediaDurationInRange,
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+  POST_MAX_DURATION_SEC,
+  STORY_MAX_DURATION_SEC,
+} from './media-duration.constants.js';
 
 describe('assertMediaDurationInRange', () => {
-  it('accepts Frame within 15–90s', () => {
-    expect(assertMediaDurationInRange('FRAME', 15).ok).toBe(true);
-    expect(assertMediaDurationInRange('FRAME', 45).ok).toBe(true);
-    expect(assertMediaDurationInRange('FRAME', 90).ok).toBe(true);
+  it('accepts a Frame from its shortest to its longest length', () => {
+    const middle = (FRAME_MIN_DURATION_SEC + FRAME_MAX_DURATION_SEC) / 2;
+    for (const seconds of [
+      FRAME_MIN_DURATION_SEC,
+      middle,
+      FRAME_MAX_DURATION_SEC,
+    ]) {
+      expect(assertMediaDurationInRange('FRAME', seconds).ok).toBe(true);
+    }
   });
 
-  it('rejects Frame outside window', () => {
-    const short = assertMediaDurationInRange('FRAME', 10);
+  it('rejects a Frame shorter or longer than that', () => {
+    const short = assertMediaDurationInRange(
+      'FRAME',
+      FRAME_MIN_DURATION_SEC - 1,
+    );
     expect(short.ok).toBe(false);
     if (!short.ok) expect(short.code).toBe('FRAME_DURATION_OUT_OF_RANGE');
 
-    const long = assertMediaDurationInRange('FRAME', 91);
+    const long = assertMediaDurationInRange(
+      'FRAME',
+      FRAME_MAX_DURATION_SEC + 1,
+    );
     expect(long.ok).toBe(false);
   });
 
-  it('enforces Story max 60s', () => {
-    expect(assertMediaDurationInRange('STORY', 60).ok).toBe(true);
-    const over = assertMediaDurationInRange('STORY', 61);
+  it('a Frame may last three minutes', () => {
+    expect(FRAME_MAX_DURATION_SEC).toBe(3 * 60);
+  });
+
+  it('enforces the longest story video', () => {
+    expect(assertMediaDurationInRange('STORY', STORY_MAX_DURATION_SEC).ok).toBe(
+      true,
+    );
+    const over = assertMediaDurationInRange(
+      'STORY',
+      STORY_MAX_DURATION_SEC + 1,
+    );
     expect(over.ok).toBe(false);
     if (!over.ok) expect(over.code).toBe('STORY_DURATION_TOO_LONG');
   });
 
-  it('enforces Post max 300s', () => {
-    expect(assertMediaDurationInRange('POST', 300).ok).toBe(true);
-    const over = assertMediaDurationInRange('POST', 301);
+  it('enforces the longest post video', () => {
+    expect(assertMediaDurationInRange('POST', POST_MAX_DURATION_SEC).ok).toBe(
+      true,
+    );
+    const over = assertMediaDurationInRange('POST', POST_MAX_DURATION_SEC + 1);
     expect(over.ok).toBe(false);
     if (!over.ok) expect(over.code).toBe('POST_DURATION_TOO_LONG');
   });

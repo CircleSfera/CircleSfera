@@ -1,5 +1,9 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+} from '../../constants/uploadLimits';
 import { renderWithProviders } from '../../test/test-utils';
 import FrameClipControls, { formatClipClock } from './FrameClipControls';
 
@@ -29,6 +33,16 @@ describe('FrameClipControls', () => {
     expect(formatClipClock(0)).toBe('0:00');
     expect(formatClipClock(75.9)).toBe('1:15');
     expect(formatClipClock(-3)).toBe('0:00');
+  });
+
+  it('tells the shortest and longest a Frame may be', () => {
+    show(FRAME_MAX_DURATION_SEC * 2, { startTime: 0, endTime: 30 });
+
+    expect(
+      screen.getByText(
+        new RegExp(`${FRAME_MIN_DURATION_SEC}\\D+${FRAME_MAX_DURATION_SEC}`),
+      ),
+    ).toBeInTheDocument();
   });
 
   it('shows where the clip starts and ends and how long it is', () => {
