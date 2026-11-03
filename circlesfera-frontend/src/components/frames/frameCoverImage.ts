@@ -32,22 +32,37 @@ export function coverCrop(
 
 /** The picture, framed at 9:16 where it was placed, as a JPEG file. */
 export async function frameCoverImage(
-  image: HTMLImageElement,
+  picture: Blob,
   place: CoverPlace,
 ): Promise<File> {
-  const canvas = document.createElement('canvas');
-  canvas.width = FRAME_COVER_IMAGE.width;
-  canvas.height = FRAME_COVER_IMAGE.height;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('The cover could not be drawn');
-  const { sx, sy, sw, sh } = coverCrop(
-    { width: image.naturalWidth, height: image.naturalHeight },
-    place,
-  );
-  context.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/jpeg', FRAME_COVER_IMAGE_QUALITY),
-  );
-  if (!blob) throw new Error('The cover could not be drawn');
-  return new File([blob], 'frame-cover.jpg', { type: 'image/jpeg' });
+  const bitmap = await createImageBitmap(picture);
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = FRAME_COVER_IMAGE.width;
+    canvas.height = FRAME_COVER_IMAGE.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('The cover could not be drawn');
+    const { sx, sy, sw, sh } = coverCrop(
+      { width: bitmap.width, height: bitmap.height },
+      place,
+    );
+    context.drawImage(
+      bitmap,
+      sx,
+      sy,
+      sw,
+      sh,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', FRAME_COVER_IMAGE_QUALITY),
+    );
+    if (!blob) throw new Error('The cover could not be drawn');
+    return new File([blob], 'frame-cover.jpg', { type: 'image/jpeg' });
+  } finally {
+    bitmap.close();
+  }
 }

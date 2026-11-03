@@ -19,7 +19,6 @@ export default function FrameCoverImageCrop({
   onCancel,
 }: FrameCoverImageCropProps) {
   const { t } = useTranslation();
-  const imageRef = useRef<HTMLImageElement>(null);
   const [url, setUrl] = useState('');
   const [place, setPlace] = useState<CoverPlace>({ x: 0.5, y: 0.5 });
   const [busy, setBusy] = useState(false);
@@ -35,11 +34,11 @@ export default function FrameCoverImageCrop({
     <div className="space-y-4" data-testid="frame-cover-image-crop">
       <div className="mx-auto aspect-9/16 h-[min(40dvh,26rem)] overflow-hidden rounded-2xl border border-white/10 bg-black">
         {url ? (
-          <img
-            ref={imageRef}
-            src={url}
-            alt={t('frames.cover.image_preview')}
-            draggable={false}
+          // The picture as the box's background, placed by dragging, as an
+          // image covering a 9:16 frame.
+          <div
+            role="img"
+            aria-label={t('frames.cover.image_preview')}
             onPointerDown={(e) => {
               e.currentTarget.setPointerCapture?.(e.pointerId);
               drag.current = { x: e.clientX, y: e.clientY, from: place };
@@ -61,8 +60,11 @@ export default function FrameCoverImageCrop({
             onPointerCancel={() => {
               drag.current = null;
             }}
-            className="h-full w-full cursor-grab touch-none object-cover active:cursor-grabbing"
-            style={{ objectPosition: `${place.x * 100}% ${place.y * 100}%` }}
+            className="h-full w-full cursor-grab touch-none bg-cover bg-no-repeat active:cursor-grabbing"
+            style={{
+              backgroundImage: `url("${url}")`,
+              backgroundPosition: `${place.x * 100}% ${place.y * 100}%`,
+            }}
           />
         ) : null}
       </div>
@@ -77,11 +79,9 @@ export default function FrameCoverImageCrop({
           type="button"
           disabled={busy || !url}
           onClick={async () => {
-            const image = imageRef.current;
-            if (!image) return;
             setBusy(true);
             try {
-              onDone(await frameCoverImage(image, place));
+              onDone(await frameCoverImage(file, place));
             } finally {
               setBusy(false);
             }
