@@ -76,6 +76,18 @@ const VIDEO_JOB_RETRIES = {
   removeOnFail: { count: 100, age: 7 * 24 * 3600 },
 } as const;
 
+/**
+ * Retries and how long a Frame being put together is kept. One retry: a
+ * Frame can take minutes of the video queue. Kept by age only, so a busy
+ * queue does not drop a finished one before its author asks after it.
+ */
+const FRAME_ASSEMBLY_JOB_OPTIONS = {
+  attempts: 2,
+  backoff: { type: 'exponential', delay: 5000 },
+  removeOnComplete: { age: 24 * 3600 },
+  removeOnFail: { age: 7 * 24 * 3600 },
+} as const;
+
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
@@ -102,7 +114,7 @@ export class UploadsService {
    * Admission control and account quota verification for video processing.
    * Rejects requests if:
    * 1. Global backlog of waiting + active transcoding jobs reaches saturation limit.
-   * 2. Per-user quota of concurrent waiting + active transcoding jobs is exceeded.
+   * 2. Per-user quota of waiting, active or retrying (delayed) jobs is exceeded.
    */
   private async assertVideoAdmission(userId?: string): Promise<void> {
     const maxBacklog =
@@ -130,6 +142,7 @@ export class UploadsService {
       const activeAndWaitingJobs = await this.videoQueue.getJobs([
         'active',
         'waiting',
+        'delayed',
       ]);
       const userJobCount = activeAndWaitingJobs.filter(
         (job) => (job.data as TranscodeJobData)?.userId === userId,
@@ -348,7 +361,7 @@ export class UploadsService {
     };
     await this.videoQueue.add(FRAME_ASSEMBLY_JOB, data, {
       jobId: queueJobId(FRAME_ASSEMBLY_JOB, id),
-      ...VIDEO_JOB_RETRIES,
+      ...FRAME_ASSEMBLY_JOB_OPTIONS,
     });
     return { id };
   }

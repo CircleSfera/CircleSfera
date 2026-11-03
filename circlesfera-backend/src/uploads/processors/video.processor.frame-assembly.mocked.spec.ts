@@ -20,7 +20,10 @@ const tool = vi.hoisted(() => ({
   // What ffprobe reads of each clip, by its path.
   probes: {} as Record<
     string,
-    { format?: { duration?: string }; streams?: { codec_type: string }[] }
+    {
+      format?: { duration?: string };
+      streams?: { codec_type: string; width?: number; height?: number }[];
+    }
   >,
 }));
 
@@ -133,6 +136,7 @@ const ENCODING = [
 const SCALE =
   'fps=30,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1';
 const SOUND_FORMAT = 'aformat=sample_rates=48000:channel_layouts=stereo';
+const SILENCE = 'anullsrc=sample_rate=48000:channel_layout=stereo';
 
 describe('VideoProcessor: putting a Frame together from its clips', () => {
   beforeEach(() => {
@@ -253,7 +257,7 @@ describe('VideoProcessor: putting a Frame together from its clips', () => {
     expect(sharpCalls.resize).toEqual([[720, 1280, { fit: 'fill' }]]);
   });
 
-  it('makes a Frame with no sound track when a clip has none', async () => {
+  it('plays silence for a clip with no sound and keeps the sound of the others', async () => {
     tool.probes[at(CLIP_B)] = {
       format: { duration: '12.5' },
       streams: [PICTURE],
@@ -265,7 +269,8 @@ describe('VideoProcessor: putting a Frame together from its clips', () => {
         profileId: 'p-1',
         clips: [
           { url: CLIP_A, startMs: 0, endMs: 10_000 },
-          { url: CLIP_B, startMs: 0, endMs: 10_000 },
+          // Past its end: the silence lasts only as long as the clip.
+          { url: CLIP_B, startMs: 2000, endMs: 20_000 },
         ],
         layerUrl: LAYER,
       }),
@@ -274,13 +279,32 @@ describe('VideoProcessor: putting a Frame together from its clips', () => {
     const filters = tool.args[tool.args.indexOf('-filter_complex') + 1];
     expect(filters.split(';')).toEqual([
       `[0:v]trim=start=0:end=10,setpts=PTS-STARTPTS,${SCALE}[v0]`,
-      `[1:v]trim=start=0:end=10,setpts=PTS-STARTPTS,${SCALE}[v1]`,
-      '[v0][v1]concat=n=2:v=1:a=0[joined]',
+      `[0:a]atrim=start=0:end=10,asetpts=PTS-STARTPTS,${SOUND_FORMAT}[a0]`,
+      `[1:v]trim=start=2:end=12.5,setpts=PTS-STARTPTS,${SCALE}[v1]`,
+      `${SILENCE},atrim=end=10.5,${SOUND_FORMAT}[a1]`,
+      '[v0][a0][v1][a1]concat=n=2:v=1:a=1[joined][sound]',
       '[joined][2:v]overlay=0:0:shortest=1:format=auto[out]',
     ]);
+    expect(tool.args).toContain('[sound]');
+    expect(tool.args).not.toContain('-an');
+  });
+
+  it('makes a Frame with no sound track when no clip has sound', async () => {
+    tool.probes[at(CLIP_A)] = {
+      format: { duration: '30.0' },
+      streams: [PICTURE],
+    };
+    const { processor } = setup();
+
+    await processor.process(
+      job({
+        profileId: 'p-1',
+        clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+      }),
+    );
+
     expect(tool.args).toContain('-an');
-    expect(tool.args).not.toContain('[sound]');
-    expect(tool.args).not.toContain('-c:a');
+    expect(tool.args.join(' ')).not.toContain('anullsrc');
   });
 
   it('makes a Frame with no sound track when the author muted it', async () => {
@@ -311,18 +335,78 @@ describe('VideoProcessor: putting a Frame together from its clips', () => {
     ]);
   });
 
-  it('reads a clip it cannot read the streams of as one with no sound', async () => {
-    tool.probes[at(CLIP_A)] = { format: { duration: '30.0' } };
-    const { processor } = setup();
+  it.each([
+    ['no picture', { format: { duration: '30.0' } }],
+    ['no length', { format: { duration: 'N/A' }, streams: [PICTURE] }],
+    ['a length of nothing', { format: { duration: '0' }, streams: [PICTURE] }],
+  ])('refuses, for good, a clip with %s', async (_, probe) => {
+    tool.probes[at(CLIP_A)] = probe;
+    const { store, processor } = setup();
 
-    await processor.process(
+    const making = processor.process(
       job({
         profileId: 'p-1',
         clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
       }),
     );
 
-    expect(tool.args).toContain('-an');
+    await expect(making).rejects.toBeInstanceOf(UnrecoverableError);
+    await expect(making).rejects.toThrow('FRAME_CLIP_UNREADABLE');
+    expect(tool.args).toEqual([]);
+    expect(store.upload).not.toHaveBeenCalled();
+  });
+
+  it('refuses, for good, a clip whose picture is past 4K', async () => {
+    tool.probes[at(CLIP_A)] = {
+      format: { duration: '30.0' },
+      streams: [{ codec_type: 'video', width: 4096, height: 2160 }],
+    };
+    const { processor } = setup();
+
+    await expect(
+      processor.process(
+        job({
+          profileId: 'p-1',
+          clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+        }),
+      ),
+    ).rejects.toThrow('FRAME_CLIP_TOO_LARGE');
+    expect(tool.args).toEqual([]);
+  });
+
+  it('takes a clip of 4K', async () => {
+    tool.probes[at(CLIP_A)] = {
+      format: { duration: '30.0' },
+      streams: [{ codec_type: 'video', width: 2160, height: 3840 }],
+    };
+    const { processor } = setup();
+
+    await expect(
+      processor.process(
+        job({
+          profileId: 'p-1',
+          clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+        }),
+      ),
+    ).resolves.toEqual({ url: '/uploads/frame.mp4' });
+  });
+
+  it('refuses, for good, a part that starts past the end of its clip', async () => {
+    const { processor } = setup();
+
+    // Clip B lasts 12.5 s; clip A gives the Frame its length.
+    await expect(
+      processor.process(
+        job({
+          profileId: 'p-1',
+          clips: [
+            { url: CLIP_A, startMs: 0, endMs: 20_000 },
+            { url: CLIP_B, startMs: 13_000, endMs: 15_000 },
+          ],
+        }),
+      ),
+    ).rejects.toThrow('FRAME_CLIP_RANGE_INVALID');
+    expect(tool.args).toEqual([]);
   });
 
   it('refuses, for good, a Frame whose parts run past the ends of its clips and leave it too short', async () => {
@@ -340,23 +424,6 @@ describe('VideoProcessor: putting a Frame together from its clips', () => {
     await expect(making).rejects.toThrow('FRAME_DURATION_OUT_OF_RANGE');
     expect(tool.args).toEqual([]);
     expect(store.upload).not.toHaveBeenCalled();
-  });
-
-  it('takes a clip whose length cannot be read at its word', async () => {
-    tool.probes[at(CLIP_B)] = {
-      format: { duration: 'N/A' },
-      streams: [PICTURE],
-    };
-    const { processor } = setup();
-
-    await expect(
-      processor.process(
-        job({
-          profileId: 'p-1',
-          clips: [{ url: CLIP_B, startMs: 0, endMs: 20_000 }],
-        }),
-      ),
-    ).resolves.toEqual({ url: '/uploads/frame.mp4' });
   });
 
   it('fails, to be tried again, when the video tool fails, keeps nothing and removes its work folder', async () => {
@@ -408,11 +475,13 @@ describe('VideoProcessor: putting a Frame together from its clips', () => {
         clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
       }),
     );
-    const outcome = expect(making).rejects.toThrow('timed out');
+    // Not tried again: it would take as long again.
+    const outcome = expect(making).rejects.toBeInstanceOf(UnrecoverableError);
     await vi.waitFor(() => expect(tool.args).not.toEqual([]));
     await vi.advanceTimersByTimeAsync(600_000);
 
     await outcome;
+    await expect(making).rejects.toThrow('timed out');
     expect(tool.signal?.aborted).toBe(true);
   });
 

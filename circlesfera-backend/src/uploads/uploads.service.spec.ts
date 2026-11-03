@@ -275,10 +275,12 @@ describe('UploadsService', () => {
         },
         {
           jobId: `frame-assembly-${answer.id}`,
-          attempts: 3,
+          // Retried once, and kept by age only: never dropped by a busy queue
+          // before its author asks after it.
+          attempts: 2,
           backoff: { type: 'exponential', delay: 5000 },
-          removeOnComplete: { count: 100, age: 24 * 3600 },
-          removeOnFail: { count: 100, age: 7 * 24 * 3600 },
+          removeOnComplete: { age: 24 * 3600 },
+          removeOnFail: { age: 7 * 24 * 3600 },
         },
       );
 
@@ -384,6 +386,12 @@ describe('UploadsService', () => {
         }),
       ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
       expect(mockVideoQueue.add).not.toHaveBeenCalled();
+      // A job waiting to be tried again counts in the share too.
+      expect(mockVideoQueue.getJobs).toHaveBeenCalledWith([
+        'active',
+        'waiting',
+        'delayed',
+      ]);
     });
 
     const jobOf = (state: string, overrides: Record<string, unknown> = {}) => ({

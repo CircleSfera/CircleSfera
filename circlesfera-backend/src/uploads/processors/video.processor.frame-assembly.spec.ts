@@ -209,7 +209,7 @@ describe.skipIf(!hasFfmpeg)(
       }
     });
 
-    it('makes a Frame with no sound track when one of its clips has none', async () => {
+    it('keeps the sound when one of its clips has none, with silence for that one', async () => {
       const withSound = makeClip('blue', '640x360', true);
       const silent = makeClip('red', '640x360', false);
       const { processor } = setup();
@@ -227,7 +227,8 @@ describe.skipIf(!hasFfmpeg)(
       const url = (result as { url: string }).url;
       made.push(path.basename(url));
       const read = probe(path.join(process.cwd(), url));
-      expect(read.streams.map((s) => s.codec_type)).toEqual(['video']);
+      expect(read.streams.map((s) => s.codec_type)).toEqual(['video', 'audio']);
+      // The silence lasts as long as the silent clip: sound and picture end together.
       expect(Number(read.format.duration)).toBeCloseTo(16, 0);
     });
   },
