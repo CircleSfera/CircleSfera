@@ -88,11 +88,7 @@ export class LiveController {
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
   ) {
-    return this.liveService.getViewerToken(
-      streamId,
-      user.userId,
-      user.profileId,
-    );
+    return this.liveService.getViewerToken(streamId, user.profileId);
   }
 
   @Post(':streamId/guests')
