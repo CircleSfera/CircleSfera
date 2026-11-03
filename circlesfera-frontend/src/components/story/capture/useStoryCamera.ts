@@ -179,7 +179,7 @@ export function useStoryCamera() {
       canvas.toBlob(resolve, 'image/jpeg', 0.92),
     );
     return blob
-      ? new File([blob], `story_${Date.now()}.jpg`, { type: 'image/jpeg' })
+      ? new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })
       : null;
   };
 
@@ -187,7 +187,11 @@ export function useStoryCamera() {
    * Records a video with sound until `stopRecording`, or the longest a story
    * takes. The microphone is asked for here, so photos never ask for it.
    */
-  const startRecording = async (onDone: (file: File | null) => void) => {
+  /** Records until stopped, or until `maxSec` seconds, the story's longest by default. */
+  const startRecording = async (
+    onDone: (file: File | null) => void,
+    maxSec: number = STORY_RECORD_MAX_SEC,
+  ) => {
     const video = streamRef.current;
     const type = recordingType();
     if (!video || !type || recorderRef.current) {
@@ -220,7 +224,7 @@ export function useStoryCamera() {
     };
     limitRef.current = setTimeout(
       () => recorder.state === 'recording' && recorder.stop(),
-      STORY_RECORD_MAX_SEC * 1000,
+      maxSec * 1000,
     );
     recorder.onstop = () => {
       if (limitRef.current) clearTimeout(limitRef.current);

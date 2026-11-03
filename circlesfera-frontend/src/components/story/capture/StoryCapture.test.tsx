@@ -1,7 +1,8 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FRAME_MAX_DURATION_SEC } from '../../../constants/uploadLimits';
 import { renderWithProviders } from '../../../test/test-utils';
-import StoryCapture from './StoryCapture';
+import StoryCapture, { type StoryCaptureProps } from './StoryCapture';
 
 /** A camera track, with a light when asked for. */
 function cameraTrack(torch = false) {
@@ -48,14 +49,14 @@ class FakeRecorder {
   }
 }
 
-function show() {
+function show(extra: Partial<StoryCaptureProps> = {}) {
   const props = {
     onCapture: vi.fn(),
     onOpenGallery: vi.fn(),
     onCreate: vi.fn(),
     onClose: vi.fn(),
   };
-  renderWithProviders(<StoryCapture {...props} />, { lng: 'es' });
+  renderWithProviders(<StoryCapture {...props} {...extra} />, { lng: 'es' });
   return props;
 }
 
@@ -319,5 +320,123 @@ describe('StoryCapture', () => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
     await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2));
+  });
+
+  describe('one camera for every format', () => {
+    const frameShutter = () =>
+      screen.getByRole('button', {
+        name: 'Grabar o parar, o mantener para grabar',
+      });
+
+    it('shows the formats along the bottom and changes to the one tapped', async () => {
+      getUserMedia.mockResolvedValue(stream([cameraTrack()]));
+      const onModeChange = vi.fn();
+      show({ mode: 'POST', onModeChange });
+      await waitFor(() => expect(shutter()).toBeInTheDocument());
+
+      const formats = screen.getByRole('group', { name: 'Qué crear' });
+      const names = Array.from(formats.querySelectorAll('button')).map(
+        (b) => b.textContent,
+      );
+      expect(names).toEqual(['Publicación', 'Historia', 'Frame', 'En directo']);
+      expect(
+        screen.getByRole('button', { name: 'Publicación' }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      // A text story belongs to stories only.
+      expect(
+        screen.queryByRole('button', { name: 'Crear Historia de Texto' }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Frame' }));
+      expect(onModeChange).toHaveBeenCalledWith('FRAME');
+    });
+
+    it('a Frame records with a tap and stops with the next', async () => {
+      getUserMedia
+        .mockResolvedValueOnce(stream([cameraTrack()]))
+        .mockResolvedValueOnce(stream([]));
+      const { onCapture } = show({ mode: 'FRAME', onModeChange: vi.fn() });
+      await waitFor(() => expect(frameShutter()).toBeInTheDocument());
+
+      fireEvent.pointerDown(frameShutter(), { pointerId: 1 });
+      fireEvent.pointerUp(frameShutter(), { pointerId: 1 });
+      await waitFor(() => expect(recorders).toHaveLength(1));
+      expect(onCapture).not.toHaveBeenCalled();
+
+      const recording = await screen.findByRole('button', { name: 'Grabando' });
+      fireEvent.pointerDown(recording, { pointerId: 2 });
+      fireEvent.pointerUp(recording, { pointerId: 2 });
+
+      const [[file]] = onCapture.mock.calls;
+      expect(file.type).toBe('video/webm');
+    });
+
+    it('a Frame stops by itself at its longest length', async () => {
+      getUserMedia
+        .mockResolvedValueOnce(stream([cameraTrack()]))
+        .mockResolvedValueOnce(stream([]));
+      const { onCapture } = show({ mode: 'FRAME', onModeChange: vi.fn() });
+      await waitFor(() => expect(frameShutter()).toBeInTheDocument());
+      vi.useFakeTimers();
+
+      fireEvent.keyDown(frameShutter(), { key: 'Enter' });
+      await act(async () => {});
+      expect(recorders).toHaveLength(1);
+
+      await act(async () => {
+        vi.advanceTimersByTime(FRAME_MAX_DURATION_SEC * 1000 - 1);
+      });
+      expect(onCapture).not.toHaveBeenCalled();
+      await act(async () => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(onCapture).toHaveBeenCalledTimes(1);
+    });
+
+    it('live shows the camera and goes on to start the live, with no gallery or shutter', async () => {
+      getUserMedia.mockResolvedValue(stream([cameraTrack()]));
+      const onGoLive = vi.fn();
+      show({ mode: 'LIVE', onModeChange: vi.fn(), onGoLive });
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Ir al directo' }),
+      );
+
+      expect(onGoLive).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByRole('button', { name: 'Elegir de la galería' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Hacer una foto/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['POST', 1],
+      ['FRAME', 1],
+      ['STORY', 0],
+    ] as const)(
+      'with no camera at all, a %s goes to the gallery by itself',
+      async (mode, times) => {
+        getUserMedia.mockRejectedValue({ name: 'NotFoundError' });
+        const onNoCamera = vi.fn();
+        show({ mode, onModeChange: vi.fn(), onNoCamera });
+
+        await screen.findByText('Aquí no hay una cámara que usar.');
+        expect(onNoCamera).toHaveBeenCalledTimes(times);
+      },
+    );
+
+    it('a refused camera stays on its message, for every format', async () => {
+      getUserMedia.mockRejectedValue({ name: 'NotAllowedError' });
+      const onNoCamera = vi.fn();
+      show({ mode: 'POST', onModeChange: vi.fn(), onNoCamera });
+
+      await screen.findByText(/La cámara no está permitida/);
+      expect(onNoCamera).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole('button', { name: 'Elegir de la galería' }),
+      ).toBeInTheDocument();
+    });
   });
 });

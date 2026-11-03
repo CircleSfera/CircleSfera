@@ -1,5 +1,12 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { toast } from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { probeVideoDuration } from '../constants/uploadLimits';
 import { useCloseFriendsList } from '../hooks/useCloseFriendsList';
@@ -101,6 +108,10 @@ vi.mock('./create-post/CaptionStep', () => ({
   },
 }));
 const gallery = vi.hoisted(() => ({ device: false }));
+const screenSize = vi.hoisted(() => ({ wide: false }));
+vi.mock('../hooks/useWideScreen', () => ({
+  useWideScreen: () => screenSize.wide,
+}));
 vi.mock('../utils/photoLibrary', () => ({
   hasDeviceGallery: () => gallery.device,
 }));
@@ -193,6 +204,9 @@ function compose(
   return { hook: composer.state, ...view };
 }
 
+/** Past the camera to the upload step, as where there is no camera. */
+const pastCamera = () => act(() => seen.capture.onNoCamera());
+
 /** Lets the screen finish reading the length of the video it was given. */
 const videoRead = () => act(async () => {});
 
@@ -214,6 +228,7 @@ describe('ContentComposerPage', () => {
           ? { mode, step: 'edit', mediaFiles: [photo], isComposed: true }
           : { mode },
       );
+      if (mode !== 'STORY') pastCamera();
 
       expect(screen.getByText(heading)).toBeInTheDocument();
       expect(seen.title).toBe(tabTitle);
@@ -227,6 +242,7 @@ describe('ContentComposerPage', () => {
   describe('choosing what to create', () => {
     it('lets the kind be changed when the composer was opened plainly', () => {
       compose();
+      pastCamera();
 
       expect(seen.upload.allowModeSwitch).toBe(true);
     });
@@ -235,6 +251,7 @@ describe('ContentComposerPage', () => {
       'keeps the kind chosen on the way in: %s',
       (mode) => {
         compose({}, `/create?mode=${mode}`);
+        pastCamera();
 
         expect(seen.upload.allowModeSwitch).toBe(false);
       },
@@ -242,6 +259,7 @@ describe('ContentComposerPage', () => {
 
     it('ignores a kind it does not know', () => {
       compose({}, '/create?mode=whatever');
+      pastCamera();
 
       expect(seen.upload.allowModeSwitch).toBe(true);
     });
@@ -256,6 +274,7 @@ describe('ContentComposerPage', () => {
 
     it('goes on from the gallery of the upload step once something is chosen', () => {
       compose({ step: 'upload' });
+      pastCamera();
       const next = screen.getByRole('button', { name: 'Next' });
       expect(next).toBeDisabled();
 
@@ -443,6 +462,102 @@ describe('ContentComposerPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Back' }));
       expect(screen.getByTestId('story-capture')).toBeInTheDocument();
       gallery.device = false;
+    });
+
+    describe('one camera for every format', () => {
+      /** The composer, and the address it is at. */
+      function composeAt(mode: string) {
+        const at = { path: '' };
+        function Where() {
+          const here = useLocation();
+          at.path = `${here.pathname}${here.search}`;
+          return null;
+        }
+        compose({ mode });
+        // The page and a probe of the address, in one router.
+        cleanup();
+        renderWithProviders(
+          <>
+            <ContentComposerPage />
+            <Where />
+          </>,
+          { routerProps: { initialEntries: ['/create'] } },
+        );
+        return at;
+      }
+
+      it.each(['POST', 'FRAME'])(
+        'a %s starts on the camera too, with the row of formats',
+        (mode) => {
+          compose({ mode });
+
+          expect(screen.getByTestId('story-capture')).toBeInTheDocument();
+          expect(screen.queryByTestId('upload-step')).not.toBeInTheDocument();
+          expect(seen.capture.mode).toBe(mode);
+          expect(seen.capture.onModeChange).toEqual(expect.any(Function));
+        },
+      );
+
+      it('changing the format changes the address the composer reads it from', () => {
+        const at = composeAt('POST');
+
+        act(() => seen.capture.onModeChange('FRAME'));
+
+        expect(at.path).toBe('/create?mode=frame');
+      });
+
+      it('live is a mode of the camera that goes on to start the live', () => {
+        const at = composeAt('POST');
+
+        act(() => seen.capture.onModeChange('LIVE'));
+        expect(seen.capture.mode).toBe('LIVE');
+        expect(at.path).toBe('/create');
+
+        act(() => seen.capture.onGoLive());
+        expect(at.path).toBe('/live/broadcast');
+      });
+
+      it('a post picks from its own upload step, and back returns to the camera', () => {
+        compose({ mode: 'POST' });
+
+        act(() => seen.capture.onOpenGallery());
+        expect(screen.getByTestId('upload-step')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        expect(screen.getByTestId('story-capture')).toBeInTheDocument();
+      });
+
+      it.each(['POST', 'FRAME'])(
+        'on a computer a %s starts on the gallery, and back leaves',
+        (mode) => {
+          screenSize.wide = true;
+          const { hook } = compose({ mode });
+
+          expect(screen.getByTestId('upload-step')).toBeInTheDocument();
+          expect(screen.queryByTestId('story-capture')).not.toBeInTheDocument();
+          fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+          expect(hook.reset).toHaveBeenCalled();
+          screenSize.wide = false;
+        },
+      );
+
+      it('on a computer a story still starts on the camera', () => {
+        screenSize.wide = true;
+        compose({ mode: 'STORY' });
+
+        expect(screen.getByTestId('story-capture')).toBeInTheDocument();
+        screenSize.wide = false;
+      });
+
+      it('where there is no camera, the gallery is the start and back leaves', () => {
+        const { hook } = compose({ mode: 'POST' });
+
+        pastCamera();
+        expect(screen.getByTestId('upload-step')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        expect(hook.reset).toHaveBeenCalled();
+      });
     });
 
     const started = (storyStart: unknown) => ({
