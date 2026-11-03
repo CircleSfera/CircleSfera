@@ -540,6 +540,38 @@ describe('UploadsService', () => {
       buffer: Buffer.from('fake-video-bytes'),
     };
 
+    it('stores a clip of a Frame as it is: no place in the video queue, no stream of its own', async () => {
+      vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+      // The person's share of the queue is full: a clip still goes in.
+      mockVideoQueue.getJobs.mockResolvedValue([
+        { data: { userId: 'user-abc' } },
+        { data: { userId: 'user-abc' } },
+      ]);
+
+      const result = await service.uploadFile(videoFile, 'user-abc', 'p-1', {
+        frameClip: true,
+      });
+
+      expect(result.url).toContain('/uploads/');
+      expect(mockVideoQueue.getJobs).not.toHaveBeenCalled();
+      expect(mockVideoQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('refuses as a clip of a Frame a file that is not a video', async () => {
+      await expect(
+        service.uploadFile(
+          {
+            originalname: 'photo.png',
+            mimetype: 'image/png',
+            buffer: Buffer.from('fake-image-bytes'),
+          },
+          'user-abc',
+          'p-1',
+          { frameClip: true },
+        ),
+      ).rejects.toThrow('FRAME_CLIP_NOT_VIDEO');
+    });
+
     it('should allow video upload and enqueue with resilient options and userId', async () => {
       vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 

@@ -166,10 +166,16 @@ export class UploadsService {
   // Param userId: The ID of the user requesting the upload (used for video quota enforcement)
   // Param profileId: The Profile the person acts as; the stored files belong to it
   // Returns The public URLs and MIME type of the stored file
+  /**
+   * Stores a file a person sent. A clip of a Frame (`frameClip`) must be a
+   * video and is stored as it is: it is only put together with the others,
+   * so no stream is made of it and it takes no place in the video queue.
+   */
   async uploadFile(
     received: UploadedFile,
     userId?: string,
     profileId?: string,
+    options: { frameClip?: boolean } = {},
   ): Promise<{
     url: string;
     standardUrl?: string;
@@ -194,8 +200,12 @@ export class UploadsService {
         };
       }
 
+      const isVideo = file.mimetype.startsWith('video/');
+      if (options.frameClip && !isVideo) {
+        throw new BadRequestException('FRAME_CLIP_NOT_VIDEO');
+      }
       // Perform video admission control before processing or uploading bytes to storage
-      if (file.mimetype.startsWith('video/')) {
+      if (isVideo && !options.frameClip) {
         await this.assertVideoAdmission(userId);
       }
 
@@ -243,7 +253,7 @@ export class UploadsService {
       });
       await this.recordOrDiscard([result.url], { profileId, userId });
 
-      if (file.mimetype.startsWith('video/')) {
+      if (isVideo && !options.frameClip) {
         await this.enqueueTranscode(result.url, {
           originalname: file.originalname,
           userId,

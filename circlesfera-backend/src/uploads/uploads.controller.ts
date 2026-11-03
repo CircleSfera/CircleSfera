@@ -1,4 +1,4 @@
-import { MAX_UPLOAD_BYTES } from '@circlesfera/shared';
+import { FRAME_CLIPS_MAX, MAX_UPLOAD_BYTES } from '@circlesfera/shared';
 import {
   Body,
   Controller,
@@ -83,6 +83,43 @@ export class UploadsController {
       user?.userId,
       user?.profileId,
     );
+  }
+
+  // Keeps a clip recorded for a Frame, to be put together with the others.
+  // A video only, stored as it is: its stream is made of the Frame, not of
+  // the clip, so it takes no place in the video queue, and as many as a
+  // Frame holds can be sent in a minute.
+  @Post('frames/clips')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @MemberAllowed('content.manage')
+  @Throttle({ short: { limit: FRAME_CLIPS_MAX, ttl: 60000 } })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: MAX_UPLOAD_BYTES,
+        files: 1,
+        fields: 10,
+        parts: 20,
+        fieldSize: 1 * 1024 * 1024,
+      },
+    }),
+  )
+  @ApiResponse({ status: 201 })
+  uploadFrameClip(
+    @UploadedFileDecorator(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: MAX_UPLOAD_BYTES }),
+          new FileTypeValidator({ fileType: /(mp4|mov|quicktime|webm)$/ }),
+        ],
+      }),
+    )
+    file: UploadedFile,
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<{ url: string; type: string }> {
+    return this.uploadsService.uploadFile(file, user.userId, user.profileId, {
+      frameClip: true,
+    });
   }
 
   // Puts a Frame together from its recorded clips, trimmed and in order, with
