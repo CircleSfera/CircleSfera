@@ -14,6 +14,7 @@ import {
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
 import { getBlockedProfileIds } from '../common/policies/block.policy.js';
+import { isPremiumPostLocked } from '../common/policies/premium-post.policy.js';
 import {
   LISTED_POST,
   SHOWN_COMMENTS_COUNT,
@@ -955,9 +956,22 @@ export class FeedService {
       const { likes, media, ...rest } = p;
       const isLiked =
         profileId && Array.isArray(likes) ? likes.length > 0 : false;
+      // A promoted paid post the viewer has not unlocked shows closed, as
+      // it does anywhere else in the feed.
+      const locked = await isPremiumPostLocked(this.prisma, p, profileId);
       promotedPostsDict.set(p.id, {
         ...rest,
-        media: media.map(resolveMediaFields),
+        media: media.map((m: Parameters<typeof resolveMediaFields>[0]) =>
+          locked
+            ? {
+                ...resolveMediaFields(m),
+                url: '',
+                standardUrl: '',
+                stickers: [],
+              }
+            : resolveMediaFields(m),
+        ),
+        ...(locked ? { isLocked: true } : {}),
         isLiked,
         isPromoted: true,
       });
