@@ -154,6 +154,10 @@ services:
   #         password: ${REDIS_PASSWORD}
   #       keys:
   #         ${LIVEKIT_API_KEY:?}: ${LIVEKIT_API_SECRET:?}
+  #       webhook:
+  #         api_key: ${LIVEKIT_API_KEY:?}
+  #         urls:
+  #           - http://backend:3000/api/v1/live/livekit/webhook
   #   depends_on:
   #     redis:
   #       condition: service_healthy
