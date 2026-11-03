@@ -1,8 +1,7 @@
 import type { PostShape } from '@circlesfera/shared';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ChevronLeft,
-  ChevronRight,
+  ArrowUpDown,
   Clock,
   Crop,
   Film,
@@ -31,6 +30,7 @@ import {
   CREATE_THUMB,
   CREATE_TOOL,
 } from './createStyles';
+import MediaOrderSheet from './MediaOrderSheet';
 import QuickFilterRow from './QuickFilterRow';
 
 interface EditStepProps {
@@ -180,13 +180,26 @@ export default function EditStep({
     setCurrentEditIndex(index);
   };
 
-  // The item on show keeps being the one on show after it moves.
-  const moveSelected = (by: -1 | 1) => {
-    const to = selectedIndex + by;
-    if (!onMoveFile || to < 0 || to >= mediaFiles.length) return;
-    onMoveFile(selectedIndex, to);
-    setSelectedIndex(to);
+  // The order of a carousel, in its own sheet. The item on show keeps being
+  // the one on show wherever it goes.
+  const [ordering, setOrdering] = useState(false);
+  const moveItem = (from: number, to: number) => {
+    if (!onMoveFile || to < 0 || to >= mediaFiles.length || to === from) {
+      return;
+    }
+    onMoveFile(from, to);
+    setSelectedIndex((shown) => {
+      if (shown === from) return to;
+      if (from < shown && to >= shown) return shown - 1;
+      if (from > shown && to <= shown) return shown + 1;
+      return shown;
+    });
   };
+  const itemLabel = (index: number) =>
+    t('createPost.edit.media_item', {
+      index: index + 1,
+      total: mediaFiles.length,
+    });
 
   // The tools of the item on show. Each opens the editor on its own tab, so
   // a filter is one tap away instead of two.
@@ -445,10 +458,7 @@ export default function EditStep({
                     else setSelectedIndex(idx);
                   }}
                   onDoubleClick={() => openEditor(idx)}
-                  aria-label={t('createPost.edit.media_item', {
-                    index: idx + 1,
-                    total: mediaFiles.length,
-                  })}
+                  aria-label={itemLabel(idx)}
                   aria-current={isSelected ? 'true' : undefined}
                 >
                   {item.type === 'video' ? (
@@ -493,30 +503,64 @@ export default function EditStep({
           </button>
         ) : null}
 
-        {/* The order of a carousel: the item on show moves one place. */}
+        {/* The order of a carousel, in a sheet of its own. */}
         {onMoveFile && mediaFiles.length > 1 ? (
-          <div className="ml-auto flex items-center gap-1 shrink-0 sticky right-0 pl-2">
-            <button
-              type="button"
-              disabled={selectedIndex === 0}
-              onClick={() => moveSelected(-1)}
-              className={`${CREATE_GLASS_ICON} disabled:opacity-30`}
-              aria-label={t('createPost.edit.move_earlier')}
-            >
-              <ChevronLeft size={18} aria-hidden />
-            </button>
-            <button
-              type="button"
-              disabled={selectedIndex === mediaFiles.length - 1}
-              onClick={() => moveSelected(1)}
-              className={`${CREATE_GLASS_ICON} disabled:opacity-30`}
-              aria-label={t('createPost.edit.move_later')}
-            >
-              <ChevronRight size={18} aria-hidden />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setOrdering(true)}
+            className={`${CREATE_GLASS_ICON} w-auto! gap-1.5 px-4 ml-auto shrink-0 sticky right-0`}
+          >
+            <ArrowUpDown size={16} aria-hidden />
+            <span className="text-sm font-semibold">
+              {t('createPost.edit.order_button')}
+            </span>
+          </button>
         ) : null}
       </div>
+      {ordering ? (
+        <MediaOrderSheet
+          title={t('createPost.edit.order_title')}
+          moveLabel={(item) => t('createPost.edit.move_item', { item })}
+          testId="carousel-order"
+          onMove={moveItem}
+          onDone={() => setOrdering(false)}
+          items={mediaFiles.map((item, idx) => {
+            const look = parseFilter(item.filter);
+            return {
+              key: item.url,
+              label: itemLabel(idx),
+              detail:
+                item.type === 'video'
+                  ? t('createPost.edit.order_video')
+                  : t('createPost.edit.order_photo'),
+              picture: (
+                <div
+                  className={`${CREATE_THUMB} border-white/10 bg-white/10`}
+                  style={{ aspectRatio: `${ratioW} / ${ratioH}` }}
+                >
+                  {item.type === 'video' ? (
+                    <video
+                      src={item.url}
+                      className={`h-full w-full object-cover ${look.className}`}
+                      style={look.style}
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={item.url}
+                      alt=""
+                      draggable={false}
+                      className={`h-full w-full object-cover ${look.className}`}
+                      style={look.style}
+                    />
+                  )}
+                </div>
+              ),
+            };
+          })}
+        />
+      ) : null}
     </div>
   );
 }
