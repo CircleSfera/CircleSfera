@@ -96,15 +96,13 @@ async function inspect() {
 }
 
 async function apply() {
-  const uptime = (await allDetectors()).filter((d) =>
-    /uptime/i.test(d.type ?? ''),
+  const uptime = (await allDetectors()).filter(
+    (d) => d.type === 'uptime_domain_failure',
   );
-  const urlOf = (d) =>
-    d.dataSources?.[0]?.queryObj?.url ??
-    d.dataSources?.[0]?.url ??
-    d.config?.url;
-  const model = uptime[0];
+  const urlOf = (d) => d.dataSources?.[0]?.queryObj?.url;
+  const model = uptime.find((d) => urlOf(d) === TARGETS[0].url) ?? uptime[0];
   if (!model) throw new Error('No uptime check to copy the settings of');
+  const query = model.dataSources[0].queryObj;
 
   const ids = [];
   for (const target of TARGETS) {
@@ -115,15 +113,41 @@ async function apply() {
       continue;
     }
     // The same settings as the check that exists, for another address.
-    const source = model.dataSources?.[0]?.queryObj ?? {};
     const created = await call(
       'POST',
-      `/organizations/${ORG}/projects/${model.projectId ?? PROJECT}/detectors/`,
+      `/organizations/${ORG}/projects/${model.projectId}/detectors/`,
       {
-        name: target.name,
+        name: `Uptime Monitoring for ${target.url}`,
         type: model.type,
-        config: model.config,
-        dataSources: [{ ...source, url: target.url }],
+        enabled: true,
+        dataSources: [
+          {
+            url: target.url,
+            method: query.method,
+            headers: query.headers,
+            body: query.body,
+            intervalSeconds: query.intervalSeconds,
+            timeoutMs: query.timeoutMs,
+            traceSampling: query.traceSampling,
+            assertion: query.assertion,
+          },
+        ],
+        conditionGroup: {
+          logicType: model.conditionGroup.logicType,
+          conditions: model.conditionGroup.conditions.map(
+            ({ type, comparison, conditionResult }) => ({
+              type,
+              comparison,
+              conditionResult,
+            }),
+          ),
+        },
+        config: {
+          mode: 1,
+          environment: model.config.environment,
+          downtimeThreshold: model.config.downtimeThreshold,
+          recoveryThreshold: model.config.recoveryThreshold,
+        },
       },
     );
     console.log(`Uptime check for ${target.url}: ${created.status}`);
@@ -138,17 +162,56 @@ async function apply() {
     'GET',
     `/organizations/${ORG}/workflows/?per_page=100`,
   );
-  const existing = Array.isArray(workflows.data)
-    ? workflows.data.find((w) => w.name === ALERT_NAME)
-    : undefined;
+  const all = Array.isArray(workflows.data) ? workflows.data : [];
+  const existing = all.find((w) => w.name === ALERT_NAME);
   if (existing) {
     console.log(`Alert present: ${ALERT_NAME} (${existing.id})`);
     return;
   }
-  console.log(
-    'The alert is not created yet: its shape is read from the inspect run first.',
-  );
-  console.log(`Checks to connect: ${ids.join(', ')}`);
+  // As the alerts that exist: an email to the issue's owners, or else to
+  // every active member, when a check opens its outage.
+  const alert = await call('POST', `/organizations/${ORG}/workflows/`, {
+    name: ALERT_NAME,
+    enabled: true,
+    config: { frequency: 0 },
+    triggers: {
+      logicType: 'any-short',
+      conditions: [
+        {
+          type: 'new_high_priority_issue',
+          comparison: true,
+          conditionResult: true,
+        },
+        {
+          type: 'existing_high_priority_issue',
+          comparison: true,
+          conditionResult: true,
+        },
+      ],
+      actions: [],
+    },
+    actionFilters: [
+      {
+        logicType: 'any-short',
+        conditions: [],
+        actions: [
+          {
+            type: 'email',
+            integrationId: null,
+            data: { fallthroughType: 'ActiveMembers' },
+            config: { targetType: 'issue_owners', targetIdentifier: null },
+          },
+        ],
+      },
+    ],
+    detectorIds: ids,
+  });
+  console.log(`Alert ${ALERT_NAME}: ${alert.status}`);
+  if (alert.status >= 300) {
+    console.log(JSON.stringify(strip(alert.data), null, 2));
+    throw new Error('Could not add the alert');
+  }
+  console.log(`Alert ${alert.data.id} watches ${ids.join(', ')}`);
 }
 
 const mode = process.argv[2];
