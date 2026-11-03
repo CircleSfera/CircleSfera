@@ -27,6 +27,7 @@ describe('MediaReconciliationService', () => {
   };
   let mockUploadsService: {
     scheduleMediaDeletion: ReturnType<typeof vi.fn>;
+    ownsUrl: ReturnType<typeof vi.fn>;
   };
   let mockStorageProvider: {
     upload: ReturnType<typeof vi.fn>;
@@ -53,6 +54,8 @@ describe('MediaReconciliationService', () => {
     };
     mockUploadsService = {
       scheduleMediaDeletion: vi.fn().mockResolvedValue(undefined),
+      // Every listed file is one this storage deletes, unless a test says.
+      ownsUrl: vi.fn(() => true),
     };
 
     mockStorageProvider = {
@@ -342,6 +345,58 @@ describe('MediaReconciliationService', () => {
     });
 
     expect(result.heldBack).toBe('no row names any file');
+    expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
+  });
+
+  it('never weighs a file this storage does not delete: a stream in its folder, a file of another shape', async () => {
+    mockUploadsService.ownsUrl.mockImplementation(
+      (url: string) => !url.includes('/hls/') && !url.includes('legacy'),
+    );
+    mockPrisma.postMedia.findMany.mockResolvedValue([
+      { url: '/uploads/used.jpg', standardUrl: null, thumbnailUrl: null },
+    ]);
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/used.jpg', lastModified: pastGrace() },
+      { url: '/uploads/orphan.jpg', lastModified: pastGrace() },
+      // Were these weighed, they would be most of the disk and hold it back.
+      { url: '/uploads/hls/x/seg1.ts', lastModified: pastGrace() },
+      { url: '/uploads/hls/x/seg2.ts', lastModified: pastGrace() },
+      { url: '/uploads/legacy-photo.jpg', lastModified: pastGrace() },
+    ]);
+
+    const result = await service.detectAndReconcileOrphans({ dryRun: false });
+
+    expect(result.foreignCount).toBe(3);
+    expect(result.orphans.map((o) => o.url)).toEqual(['/uploads/orphan.jpg']);
+    expect(result.heldBack).toBeUndefined();
+    expect(mockUploadsService.scheduleMediaDeletion).toHaveBeenCalledWith([
+      '/uploads/orphan.jpg',
+    ]);
+  });
+
+  it('keeps a video whose stream or cover in its folder a row still names', async () => {
+    const used = ['/uploads/a.jpg', '/uploads/b.jpg', '/uploads/c.jpg'];
+    vi.spyOn(service, 'getReferencedMediaKeys').mockResolvedValue(
+      new Set(used),
+    );
+    mockStorageProvider.listFiles!.mockResolvedValue(
+      [...used, '/uploads/video.mp4'].map((url) => ({
+        url,
+        lastModified: pastGrace(),
+      })),
+    );
+    // Asked of the candidates, a row names /uploads/video/master.m3u8.
+    mockPrisma.postMedia.findMany.mockImplementation(
+      async (args: { where?: unknown }) =>
+        args.where
+          ? [{ url: null, standardUrl: '/uploads/video/master.m3u8' }]
+          : [],
+    );
+
+    const result = await service.detectAndReconcileOrphans({ dryRun: false });
+
+    expect(result.orphanCount).toBe(1);
+    expect(result.reconciled).toBe(false);
     expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
   });
 

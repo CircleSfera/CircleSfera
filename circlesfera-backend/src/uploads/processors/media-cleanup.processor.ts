@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -64,10 +65,12 @@ export class MediaCleanupProcessor extends WorkerHost {
         await this.uploadsService.deleteFile(url);
       } catch (err: unknown) {
         const errorMsg = err instanceof Error ? err.message : String(err);
+        // The file's name only, never where it is kept.
+        const name = path.basename(url);
         this.logger.warn(
-          `Failed to delete media file "${url}" on attempt ${currentAttempt}: ${errorMsg}`,
+          `Failed to delete media file "${name}" on attempt ${currentAttempt}: ${errorMsg}`,
         );
-        failures.push({ url, error: errorMsg });
+        failures.push({ url: name, error: errorMsg });
       }
     }
 

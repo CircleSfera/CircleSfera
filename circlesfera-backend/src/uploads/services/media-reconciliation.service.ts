@@ -33,6 +33,8 @@ export interface OrphanMediaItem {
 
 export interface OrphanReconciliationResult {
   scannedCount: number;
+  /** Listed files this storage does not delete (another shape, a subfolder). */
+  foreignCount: number;
   referencedCount: number;
   orphanCount: number;
   orphans: OrphanMediaItem[];
@@ -81,6 +83,7 @@ export class MediaReconciliationService {
       );
       return {
         scannedCount: 0,
+        foreignCount: 0,
         referencedCount: 0,
         orphanCount: 0,
         orphans: [],
@@ -113,10 +116,18 @@ export class MediaReconciliationService {
       new Date(Date.now() - DELETED_CONTENT_KEPT_DAYS * 24 * 60 * 60 * 1000),
     );
     const orphans: OrphanMediaItem[] = [];
+    let foreignCount = 0;
 
     for (const file of storedFiles) {
       const url = file.url;
       const base = path.basename(url);
+
+      // Only a file this storage deletes is weighed: a video's stream in its
+      // subfolder, or a file of another shape, is never an orphan here.
+      if (!this.uploadsService.ownsUrl(url)) {
+        foreignCount++;
+        continue;
+      }
 
       const isReferenced = referencedKeys.has(url) || referencedKeys.has(base);
       if (isReferenced || kept.has(url)) {
@@ -146,6 +157,7 @@ export class MediaReconciliationService {
 
     const result: OrphanReconciliationResult = {
       scannedCount: storedFiles.length,
+      foreignCount,
       referencedCount: referencedKeys.size,
       orphanCount: orphans.length,
       orphans,
@@ -160,12 +172,12 @@ export class MediaReconciliationService {
     // So many unused files means the references were misread: nothing goes.
     if (
       referencedKeys.size === 0 ||
-      orphans.length > storedFiles.length * ORPHAN_MAX_SHARE
+      orphans.length > (storedFiles.length - foreignCount) * ORPHAN_MAX_SHARE
     ) {
       result.heldBack =
         referencedKeys.size === 0
           ? 'no row names any file'
-          : `${orphans.length} of ${storedFiles.length} files are unused, past the share of ${ORPHAN_MAX_SHARE}`;
+          : `${orphans.length} of ${storedFiles.length - foreignCount} files are unused, past the share of ${ORPHAN_MAX_SHARE}`;
       this.logger.error(
         `Orphan sweep held back, nothing deleted: ${result.heldBack}.`,
       );
@@ -176,10 +188,16 @@ export class MediaReconciliationService {
     const candidates = [...orphans]
       .sort((a, b) => a.lastModified.getTime() - b.lastModified.getTime())
       .slice(0, Math.max(0, maxDeletions));
-    // A row may have named one of them since the scan began: read again.
-    const stillReferenced = await this.getReferencedMediaKeys();
+    // A row may have named one of them since the scan began: read again,
+    // as a person's deletion does too, so that a row naming the video's
+    // stream or cover in its folder keeps the video and its folder.
+    const [stillReferenced, inUse] = await Promise.all([
+      this.getReferencedMediaKeys(),
+      this.mediaReferences.inUse(candidates.map((orphan) => orphan.url)),
+    ]);
     const toDelete = candidates.filter(
       (orphan) =>
+        !inUse.has(orphan.url) &&
         !stillReferenced.has(orphan.url) &&
         !stillReferenced.has(path.basename(orphan.url)),
     );
