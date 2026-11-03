@@ -13,6 +13,7 @@ const seen = vi.hoisted(() => ({
   trim: {} as Record<string, any>,
   photo: {} as Record<string, any>,
   story: {} as Record<string, any>,
+  canvas: {} as Record<string, any>,
 }));
 
 vi.mock('react-hot-toast', () => ({ toast: { success: vi.fn() } }));
@@ -32,6 +33,12 @@ vi.mock('../story/StoryComposer', () => ({
   default: (props: Props) => {
     seen.story = props;
     return <div data-testid="story-composer" />;
+  },
+}));
+vi.mock('./PostCanvasEditor', () => ({
+  default: (props: Props) => {
+    seen.canvas = props;
+    return <div data-testid="post-canvas" />;
   },
 }));
 vi.mock('../common/BrandAmbientBackground', () => ({ default: () => null }));
@@ -509,6 +516,57 @@ describe('EditorOverlayManager', () => {
       });
 
       expect(await screen.findByText('Processing media…')).toBeInTheDocument();
+    });
+  });
+
+  describe('the layer of a post photo', () => {
+    it('opens the full-screen canvas in the shape of the post', async () => {
+      show({
+        currentEditIndex: 0,
+        initialEditorTab: 'OVERLAY',
+        postShape: 'LANDSCAPE',
+        mediaFiles: [media('image')],
+      });
+
+      expect(await screen.findByTestId('post-canvas')).toBeInTheDocument();
+      expect(seen.canvas.shape).toBe('LANDSCAPE');
+    });
+
+    it('keeps the photo editor for the other tools, and for a story', async () => {
+      show({
+        currentEditIndex: 0,
+        initialEditorTab: 'ADJUST',
+        postShape: 'PORTRAIT',
+        mediaFiles: [media('image')],
+      });
+      await screen.findByTestId('photo-editor');
+      expect(screen.queryByTestId('post-canvas')).not.toBeInTheDocument();
+    });
+
+    it('puts the edited picture in place of the photo, its earlier edits now in it', async () => {
+      const { props } = show({
+        currentEditIndex: 0,
+        initialEditorTab: 'OVERLAY',
+        postShape: 'PORTRAIT',
+        mediaFiles: [
+          media('image', { filter: 'filter-class:moon__style:' }),
+          media('video'),
+        ],
+      });
+      await screen.findByTestId('post-canvas');
+      const edited = new File(['e'], 'a.png', { type: 'image/png' });
+      const edit = { base: edited, elements: [] };
+
+      act(() => seen.canvas.onDone(edited, edit));
+
+      const [[list]] = props.setMediaFiles.mock.calls;
+      expect(list[0]).toMatchObject({
+        file: edited,
+        filter: undefined,
+        canvasEdit: edit,
+      });
+      expect(list[1]).toBe(props.mediaFiles[1]);
+      expect(props.setCurrentEditIndex).toHaveBeenCalledWith(null);
     });
   });
 });

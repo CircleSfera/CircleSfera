@@ -51,6 +51,8 @@ export interface StoryStickersPanelProps {
   canMusic?: boolean;
   /** The story already holds as many interactive stickers as it may. */
   full?: boolean;
+  /** Whether the interactive stickers are offered; not on a post yet. */
+  interactive?: boolean;
 }
 
 const fold = (text: string) =>
@@ -72,12 +74,14 @@ export default function StoryStickersPanel({
   canPlace = false,
   canMusic = false,
   full = false,
+  interactive: withInteractive = true,
 }: StoryStickersPanelProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const q = fold(query.trim());
   const interactive = INTERACTIVE.filter(
     ({ tab, labelKey }) =>
+      withInteractive &&
       (canPlace || tab !== 'location') &&
       (canMusic || tab !== 'music') &&
       (!q || fold(t(`createPost.storyComposer.${labelKey}`)).includes(q)),

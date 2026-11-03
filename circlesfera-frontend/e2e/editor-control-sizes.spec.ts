@@ -136,7 +136,7 @@ test.describe('Post composer', () => {
 });
 
 test.describe('Photo editor', () => {
-  for (const tab of ['Filtros', 'Ajustar', 'Recorte', 'Capa']) {
+  for (const tab of ['Filtros', 'Ajustar', 'Recorte']) {
     test(`tab: ${tab}`, async ({ page }) => {
       await postAtEditStep(page);
       // The tools of the edit step open the editor on their own tab.
@@ -150,6 +150,18 @@ test.describe('Photo editor', () => {
       await expectControlsAtSize(page);
     });
   }
+
+  test('the layer opens the photo on the full-screen canvas', async ({
+    page,
+  }) => {
+    await postAtEditStep(page);
+    await page
+      .getByRole('toolbar', { name: /Editar Medio/i })
+      .getByRole('button', { name: /Capa/i })
+      .click();
+    await expect(page.getByTestId('story-composer')).toBeVisible();
+    await expectControlsAtSize(page);
+  });
 });
 
 test.describe('Frame composer', () => {

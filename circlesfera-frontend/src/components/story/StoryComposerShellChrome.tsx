@@ -8,6 +8,7 @@ import StoryPanelSheet from './StoryPanelSheet';
 import StoryShareRow from './StoryShareRow';
 import type { StoryTemplate } from './storyComposer.constants';
 import {
+  type EditorFrame,
   getStoryBottomBarClass,
   getStoryShareRowClass,
   type StoryShareRowPlace,
@@ -21,6 +22,8 @@ import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryShareRowPlace } from './useStoryShareRowPlace';
 
 interface StoryComposerShellChromeProps {
+  /** The shape of what is edited; a story when not given. */
+  frame?: EditorFrame;
   chromePointerArmed: boolean;
   /** While a piece is dragged the share row over the story steps aside. */
   hidden?: boolean;
@@ -89,7 +92,10 @@ export default function StoryComposerShellChrome(
 ) {
   const { t } = useTranslation();
   const bandRef = useRef<HTMLDivElement>(null);
-  const place = useStoryShareRowPlace(bandRef, p.panelOpen);
+  const measured = useStoryShareRowPlace(bandRef, p.panelOpen);
+  // A post leaves room around it: "Done" always stands under it.
+  const place =
+    (p.frame ?? 'STORY') !== 'STORY' && measured === 'over' ? 'band' : measured;
   const { onShareRowPlace } = p;
   useEffect(() => {
     onShareRowPlace?.(place);
@@ -102,6 +108,7 @@ export default function StoryComposerShellChrome(
       ref={bandRef}
       className={`z-40 flex flex-col items-center ${getStoryBottomBarClass(
         p.panelOpen,
+        p.frame,
       )}`}
       data-testid="story-bottom-bar"
       data-share-row={place}
@@ -110,6 +117,7 @@ export default function StoryComposerShellChrome(
         <div className="flex w-full flex-col rounded-t-2xl md:rounded-3xl border-t md:border border-white/10 bg-surface-elevated md:max-w-md">
           <StoryPanelSheet open>
             <StoryDockContent
+              frame={p.frame}
               selectedElementId={p.selectedElementId}
               selectedElement={p.selectedElement}
               activeTab={p.activeTab}
@@ -173,8 +181,9 @@ export default function StoryComposerShellChrome(
         </div>
       ) : null}
       <div
-        className={`w-full flex items-center justify-end gap-3 px-4 md:justify-center transition-opacity duration-150 ${getStoryShareRowClass(
+        className={`w-full flex items-center ${(p.frame ?? 'STORY') === 'STORY' ? 'justify-end' : 'justify-center'} gap-3 px-4 md:justify-center transition-opacity duration-150 ${getStoryShareRowClass(
           place,
+          p.frame,
         )} ${p.chromePointerArmed ? '' : 'pointer-events-none'} ${
           rowHidden ? 'opacity-0 pointer-events-none' : ''
         }`}

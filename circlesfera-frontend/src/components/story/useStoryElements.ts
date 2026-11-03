@@ -101,11 +101,20 @@ function reduce(state: ElementsState, action: ElementsAction): ElementsState {
 export function useStoryElements(options: {
   initialElements?: StoryElement[];
   onElementsChange?: (elements: StoryElement[]) => void;
+  /** Where the photo was left, when the editor opens again on it. */
+  initialPhoto?: StoryPhotoEdit;
+  /** Each change of the photo's place, scale, angle or filter. */
+  onPhotoChange?: (photo: StoryPhotoEdit) => void;
 }) {
-  const { initialElements = [], onElementsChange } = options;
+  const {
+    initialElements = [],
+    onElementsChange,
+    initialPhoto = STORY_PHOTO_IDENTITY,
+    onPhotoChange,
+  } = options;
 
   const [state, dispatch] = useReducer(reduce, initialElements, (elements) => {
-    const first = { elements, photo: STORY_PHOTO_IDENTITY };
+    const first = { elements, photo: initialPhoto };
     return { ...first, stack: [first], index: 0 };
   });
   const { elements, photo } = state;
@@ -116,6 +125,10 @@ export function useStoryElements(options: {
   useEffect(() => {
     onElementsChange?.(elements);
   }, [elements, onElementsChange]);
+
+  useEffect(() => {
+    onPhotoChange?.(photo);
+  }, [photo, onPhotoChange]);
 
   /** Changes the elements; the result is one undo step. */
   const changeElements = useCallback(
