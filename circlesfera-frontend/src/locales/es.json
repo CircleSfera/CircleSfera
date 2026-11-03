@@ -5299,7 +5299,16 @@
     "delete_title": "¿Eliminar frame?",
     "delete_message": "Irá a Eliminado recientemente, donde podrás restaurarlo durante 30 días.",
     "delete_confirm": "Eliminar",
-    "delete_pending": "Eliminando..."
+    "delete_pending": "Eliminando...",
+    "clips": {
+      "total": "{{length}} de {{max}}",
+      "start": "Inicio",
+      "end": "Final",
+      "item": "Clip {{n}} de {{total}}",
+      "earlier": "Mover el clip antes",
+      "later": "Mover el clip después",
+      "remove": "Quitar el clip"
+    }
   },
   "landing": {
     "seo": {
