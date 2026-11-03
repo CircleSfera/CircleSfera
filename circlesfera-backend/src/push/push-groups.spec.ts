@@ -13,6 +13,7 @@ describe('pushGroupOf', () => {
     expect(pushGroupOf('MESSAGE')).toBe('messages');
     expect(pushGroupOf('REPLY_MESSAGE')).toBe('messages');
     expect(pushGroupOf('LIVE_STARTED')).toBe('live');
+    expect(pushGroupOf('LIVE_STARTING_SOON')).toBe('live');
   });
 
   it('moderation, plan, payment and support notices have no group to switch off', () => {

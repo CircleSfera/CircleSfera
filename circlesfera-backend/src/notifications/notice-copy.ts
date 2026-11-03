@@ -66,6 +66,9 @@ export type Notice =
   // Sent by the person to the Business Profile they joined.
   | { key: 'team_accepted'; role: 'ADMINISTRATOR' | 'EDITOR' }
   | { key: 'live_started' }
+  // To a Profile that asked to be reminded of a scheduled live.
+  | { key: 'live_starting_soon'; title: string }
+  | { key: 'scheduled_live_started'; title: string }
   // Someone who saw what the Profile shared is worried about it.
   | { key: 'support_resources' };
 
@@ -388,6 +391,10 @@ function renderEn(n: Notice): string {
       return `joined this profile's team as ${TEAM_ROLE.en[n.role]}`;
     case 'live_started':
       return 'started a live';
+    case 'live_starting_soon':
+      return `is going live soon: "${n.title}"`;
+    case 'scheduled_live_started':
+      return `started the live you asked to be reminded of: "${n.title}"`;
     case 'support_resources':
       return 'Someone who saw what you shared is worried about you. If you are going through something hard, you are not alone. In immediate danger, call 112 or your local emergency number. To talk to someone for free, find a helpline in your country at findahelpline.com.';
   }
@@ -527,6 +534,10 @@ function renderEs(n: Notice): string {
       return `se ha unido al equipo de este perfil como ${TEAM_ROLE.es[n.role]}`;
     case 'live_started':
       return 'ha empezado un directo';
+    case 'live_starting_soon':
+      return `va a empezar un directo en breve: «${n.title}»`;
+    case 'scheduled_live_started':
+      return `ha empezado el directo del que pediste que te avisáramos: «${n.title}»`;
     case 'support_resources':
       return 'Alguien que ha visto lo que compartiste se preocupa por ti. Si estás pasando por algo difícil, no estás solo ni sola. Si estás en peligro inmediato, llama al 112. Para hablar con alguien, llama al 024: es gratis, confidencial y atiende a cualquier hora.';
   }

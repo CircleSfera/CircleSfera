@@ -4,7 +4,7 @@ import {
   type LiveAudience,
 } from '@circlesfera/shared';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class StartStreamDto {
   @ApiProperty({
@@ -22,4 +22,13 @@ export class StartStreamDto {
   @IsOptional()
   @IsIn(LIVE_AUDIENCES)
   audience?: LiveAudience;
+
+  /**
+   * The host's own scheduled live to go live from: its title and audience
+   * are used, in place of those given here.
+   */
+  @ApiProperty({ required: false, type: () => String, format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  scheduledLiveId?: string;
 }

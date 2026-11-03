@@ -87,6 +87,14 @@ describe('LiveStartNoticeService', () => {
     ).toBe(true);
   });
 
+  it('does not tell again a follower already told by their reminder of the live', async () => {
+    expect(
+      await service.tellFollowers('stream-1', 'host-1', 'EVERYONE', ['fan-1']),
+    ).toBe(1);
+    expect(notifications.create).toHaveBeenCalledTimes(1);
+    expect(notifications.create.mock.calls[0][0].recipientId).toBe('fan-2');
+  });
+
   it('does not count a follower the notice was refused for, such as across a block', async () => {
     notifications.create.mockResolvedValueOnce(null);
 

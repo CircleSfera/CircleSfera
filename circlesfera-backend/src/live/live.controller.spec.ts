@@ -21,12 +21,14 @@ import {
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
 import { LiveGiftService } from './live-gift.service.js';
+import { LiveScheduleService } from './live-schedule.service.js';
 import { LiveStartNoticeService } from './live-start-notice.service.js';
 
 describe('LiveController', () => {
   let app: INestApplication;
 
   const mockStartNotice = { tellFollowers: vi.fn().mockResolvedValue(0) };
+  const mockSchedule = { tellStarted: vi.fn().mockResolvedValue([]) };
   const mockLiveService = {
     startStream: vi.fn(),
     endStream: vi.fn(),
@@ -51,6 +53,7 @@ describe('LiveController', () => {
       providers: [
         { provide: LiveService, useValue: mockLiveService },
         { provide: LiveStartNoticeService, useValue: mockStartNotice },
+        { provide: LiveScheduleService, useValue: mockSchedule },
         { provide: LiveGiftService, useValue: mockLiveGiftService },
       ],
       guards: [
@@ -94,13 +97,16 @@ describe('LiveController', () => {
       TEST_USER.profileId,
       'My Stream',
       undefined,
+      undefined,
     );
     // Once the live exists, the people who follow the host are told.
     expect(mockStartNotice.tellFollowers).toHaveBeenCalledWith(
       'stream-1',
       TEST_USER.profileId,
       'EVERYONE',
+      [],
     );
+    expect(mockSchedule.tellStarted).not.toHaveBeenCalled();
   });
 
   it('starts a live for close friends, telling them only', async () => {
@@ -120,11 +126,13 @@ describe('LiveController', () => {
       TEST_USER.profileId,
       'Solo amigos',
       'CLOSE_FRIENDS',
+      undefined,
     );
     expect(mockStartNotice.tellFollowers).toHaveBeenCalledWith(
       'stream-2',
       TEST_USER.profileId,
       'CLOSE_FRIENDS',
+      [],
     );
   });
 
@@ -142,6 +150,51 @@ describe('LiveController', () => {
       .expect(201);
 
     expect(mockStartNotice.tellFollowers).not.toHaveBeenCalled();
+  });
+
+  it('goes live from a scheduled live: its reminders are told first, then the followers not told yet', async () => {
+    const scheduledLiveId = '0b6c1a52-5f0e-4f1a-9d43-3f2b5d1c7a10';
+    mockLiveService.startStream.mockResolvedValue({
+      stream: { id: 'stream-4', audience: 'CLOSE_FRIENDS' },
+      token: 'jwt',
+    });
+    mockSchedule.tellStarted.mockResolvedValue(['fan-1']);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/live/start')
+      .set(BEARER)
+      .send({ scheduledLiveId })
+      .expect(201);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockLiveService.startStream).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      undefined,
+      undefined,
+      scheduledLiveId,
+    );
+    expect(mockSchedule.tellStarted).toHaveBeenCalledWith(
+      scheduledLiveId,
+      'stream-4',
+    );
+    expect(mockStartNotice.tellFollowers).toHaveBeenCalledWith(
+      'stream-4',
+      TEST_USER.profileId,
+      'CLOSE_FRIENDS',
+      ['fan-1'],
+    );
+    expect(mockSchedule.tellStarted.mock.invocationCallOrder[0]).toBeLessThan(
+      mockStartNotice.tellFollowers.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('refuses a scheduled live that is not an id', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/live/start')
+      .set(BEARER)
+      .send({ scheduledLiveId: 'tomorrow' })
+      .expect(400);
+    expect(mockLiveService.startStream).not.toHaveBeenCalled();
   });
 
   it('refuses an audience it does not know, and a title too long', async () => {

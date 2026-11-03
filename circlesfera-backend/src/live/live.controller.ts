@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
+import type { LiveAudience } from '@prisma/client';
 import type { Request } from 'express';
 import {
   CurrentUser,
@@ -25,6 +26,7 @@ import { SendGiftDto } from './dto/send-gift.dto.js';
 import { StartStreamDto } from './dto/start-stream.dto.js';
 import { LiveService } from './live.service.js';
 import { LiveGiftService } from './live-gift.service.js';
+import { LiveScheduleService } from './live-schedule.service.js';
 import { LiveStartNoticeService } from './live-start-notice.service.js';
 
 @Controller('live')
@@ -34,6 +36,7 @@ export class LiveController {
     private readonly liveService: LiveService,
     private readonly liveGiftService: LiveGiftService,
     private readonly startNotice: LiveStartNoticeService,
+    private readonly schedule: LiveScheduleService,
   ) {}
 
   @Post('start')
@@ -47,18 +50,39 @@ export class LiveController {
       user.profileId,
       dto.title,
       dto.audience,
+      dto.scheduledLiveId,
     );
     // The followers it is for are told once the live exists: none for a
     // practice. Not waited for: the host is on air whether or not everyone
     // has been told yet.
     if (started.stream.audience !== 'PRACTICE') {
-      void this.startNotice.tellFollowers(
+      void this.tellStarted(
         started.stream.id,
         user.profileId,
         started.stream.audience,
+        dto.scheduledLiveId,
       );
     }
     return started;
+  }
+
+  // Those who asked to be reminded of the scheduled live it started from
+  // are told first, then the followers not told yet. Neither throws.
+  private async tellStarted(
+    streamId: string,
+    hostProfileId: string,
+    audience: LiveAudience,
+    scheduledLiveId?: string,
+  ) {
+    const reminded = scheduledLiveId
+      ? await this.schedule.tellStarted(scheduledLiveId, streamId)
+      : [];
+    await this.startNotice.tellFollowers(
+      streamId,
+      hostProfileId,
+      audience,
+      reminded,
+    );
   }
 
   @Post('end')
