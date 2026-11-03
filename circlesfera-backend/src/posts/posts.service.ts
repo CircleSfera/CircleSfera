@@ -63,7 +63,10 @@ import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import { PostPaywallService } from './services/post-paywall.service.js';
+import {
+  type PaywallPost,
+  PostPaywallService,
+} from './services/post-paywall.service.js';
 
 // Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
 @Injectable()
@@ -609,10 +612,13 @@ export class PostsService {
       });
 
     const content = await loadViewerContent(this.prisma, currentProfileId);
-    return this.injectIsLiked(post, currentProfileId, content) as Record<
-      string,
-      unknown
-    >;
+    // A paid post not unlocked shows closed, as in the lists of a profile:
+    // the paywall runs on the post once its media addresses are resolved.
+    const [shown] = await this.postPaywallService.applyPaywall(
+      [this.injectIsLiked(post, currentProfileId, content) as PaywallPost],
+      currentProfileId,
+    );
+    return shown as Record<string, unknown>;
   }
 
   // Retrieve posts by a specific user's username with optional type filter.
