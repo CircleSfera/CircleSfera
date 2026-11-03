@@ -1,6 +1,10 @@
 import { act } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { probeVideoDuration } from '../constants/uploadLimits';
+import {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+  probeVideoDuration,
+} from '../constants/uploadLimits';
 import { useUIStore } from '../stores/uiStore';
 import { renderWithProviders } from '../test/test-utils';
 import { useCreatePost } from './useCreatePost';
@@ -67,23 +71,26 @@ describe('useCreatePost', () => {
     }
 
     it('carries its length, so sharing it as a Frame can check it', async () => {
-      const c = await handOver(40, '2026-12-01T10:00');
+      // Any length a Frame allows, and any time it was scheduled for.
+      const seconds = (FRAME_MIN_DURATION_SEC + FRAME_MAX_DURATION_SEC) / 2;
+      const scheduledAt = new Date(Date.now() + 86_400_000).toISOString();
+      const c = await handOver(seconds, scheduledAt);
       expect(c().mediaFiles[0].videoData).toEqual({
         startTime: 0,
-        endTime: 40,
+        endTime: seconds,
         muted: false,
       });
-      expect(c().frameSourceDurationSec).toBe(40);
+      expect(c().frameSourceDurationSec).toBe(seconds);
       expect(c().step).toBe('caption');
-      expect(c().scheduledAt).toBe('2026-12-01T10:00');
+      expect(c().scheduledAt).toBe(scheduledAt);
       expect(useUIStore.getState().editedMediaForPost).toBeNull();
     });
 
     it('longer than a Frame, it opens the trim at the longest window', async () => {
-      const c = await handOver(200);
+      const c = await handOver(FRAME_MAX_DURATION_SEC * 2);
       expect(c().mediaFiles[0].videoData).toMatchObject({
         startTime: 0,
-        endTime: 90,
+        endTime: FRAME_MAX_DURATION_SEC,
       });
       expect(c().showFrameTrim).toBe(true);
       expect(c().step).toBe('edit');
