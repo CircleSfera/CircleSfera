@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  FRAME_MAX_DURATION_SEC,
+  probeVideoDuration,
+} from '../constants/uploadLimits';
+import { defaultFrameWindow } from '../utils/frameClip';
 import { useCreatePostMedia } from './useCreatePostMedia';
 import { useCreatePostMutation } from './useCreatePostMutation';
 import { type MediaFile, useCreatePostState } from './useCreatePostState';
@@ -27,25 +32,48 @@ export function useCreatePost() {
 
   // Read seamless transfer state from UI Store (Legacy compatibility)
   useEffect(() => {
-    import('../stores/uiStore').then(({ useUIStore }) => {
+    import('../stores/uiStore').then(async ({ useUIStore }) => {
       const uiState = useUIStore.getState();
       if (uiState.editedMediaForPost) {
         const handoff = uiState.editedMediaForPost;
+        uiState.setEditedMediaForPost(null);
         const file = handoff.file;
         const newFile: MediaFile = {
           file,
           url: URL.createObjectURL(file),
           type: file.type.startsWith('video') ? 'video' : 'image',
         };
-        media.setMediaFiles([newFile]);
         if (handoff.scheduledAt) {
           state.setScheduledAt(handoff.scheduledAt);
         }
-        state.setStep('caption');
-        uiState.setEditedMediaForPost(null);
+        // A video from the Studio carries its length, as one chosen from the
+        // gallery does, so sharing it as a Frame can check it and the trim
+        // screen knows how long it is. One longer than a Frame opens the trim.
+        let sourceSec = 0;
+        if (newFile.type === 'video') {
+          sourceSec = await probeVideoDuration(file).catch(() => 0);
+        }
+        if (sourceSec > 0) {
+          const clip = defaultFrameWindow(sourceSec);
+          newFile.videoData = { ...clip, muted: false };
+          state.setFrameSourceDurationSec(sourceSec);
+        }
+        media.setMediaFiles([newFile]);
+        if (sourceSec > FRAME_MAX_DURATION_SEC) {
+          state.setShowFrameTrim(true);
+          state.setStep('edit');
+        } else {
+          state.setStep('caption');
+        }
       }
     });
-  }, [media.setMediaFiles, state.setScheduledAt, state.setStep]);
+  }, [
+    media.setMediaFiles,
+    state.setScheduledAt,
+    state.setStep,
+    state.setFrameSourceDurationSec,
+    state.setShowFrameTrim,
+  ]);
 
   const mutation = useCreatePostMutation({
     mode: state.mode,

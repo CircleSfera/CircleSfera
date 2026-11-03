@@ -6,6 +6,7 @@ import {
   FRAME_MIN_DURATION_SEC,
 } from '../../constants/uploadLimits';
 import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
+import { defaultFrameWindow } from '../../utils/frameClip';
 import { parseFilter } from '../../utils/styleUtils';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
@@ -82,7 +83,7 @@ export default function EditorOverlayManager({
           startTime: clip.videoData.startTime,
           endTime: clip.videoData.endTime,
         }
-      : { startTime: 0, endTime: Math.min(90, frameSourceDurationSec) };
+      : defaultFrameWindow(frameSourceDurationSec);
     return (
       <FrameTrimOverlay
         file={clip.file}
