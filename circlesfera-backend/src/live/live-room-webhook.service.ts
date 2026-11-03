@@ -6,6 +6,13 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { canWatchStream, type StreamAudienceFields } from './live-audience.js';
 import { LiveRecordingService } from './recording/live-recording.service.js';
 
+/**
+ * A person in a room, as the live service tells the kind of a participant
+ * (its protocol's ParticipantInfo.Kind STANDARD). The recorder and other
+ * services join as other kinds, and are never taken out.
+ */
+const PERSON_PARTICIPANT = 0;
+
 /** The events of the live service that can let someone in the room. */
 const ENTRY_EVENTS: ReadonlySet<string> = new Set([
   'participant_joined',
@@ -40,6 +47,10 @@ export class LiveRoomWebhookService {
       const key = this.config.get<string>('LIVEKIT_API_KEY');
       const secret = this.config.get<string>('LIVEKIT_API_SECRET');
       if (!key || !secret) {
+        // Said in the log: without it nobody is kept out of the rooms.
+        this.logger.warn(
+          'Live events refused: the live service key is not set',
+        );
         throw new UnauthorizedException('Live events are not configured');
       }
       this.receiver = new WebhookReceiver(key, secret);
@@ -71,6 +82,11 @@ export class LiveRoomWebhookService {
     const streamId = event.room?.name;
     const profileId = event.participant?.identity;
     if (!streamId || !profileId) return;
+    if (
+      (event.participant?.kind ?? PERSON_PARTICIPANT) !== PERSON_PARTICIPANT
+    ) {
+      return;
+    }
 
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },

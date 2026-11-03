@@ -61,6 +61,12 @@ describe('LiveRoomWebhookController (HTTP)', () => {
       .expect(401);
   });
 
+  it('is not limited per address: every event comes from the one live service', () => {
+    expect(
+      Reflect.getMetadata('THROTTLER:SKIPdefault', LiveRoomWebhookController),
+    ).toBe(true);
+  });
+
   it('refuses a request with no body', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/live/livekit/webhook')
