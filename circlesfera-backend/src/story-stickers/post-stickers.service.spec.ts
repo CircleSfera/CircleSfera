@@ -25,6 +25,7 @@ function prismaMock() {
       findMany: vi.fn().mockResolvedValue([]),
     },
     story: { findUnique: vi.fn() },
+    postUnlock: { findUnique: vi.fn().mockResolvedValue(null) },
     storySticker: {
       findUnique: vi.fn(),
       createMany: vi.fn(),
@@ -309,6 +310,26 @@ describe('StoryStickersService on the photos of a post', () => {
       });
       expect(result).toMatchObject({ isAuthor: false });
       expect(result).not.toHaveProperty('responders');
+    });
+
+    it('answers as a missing sticker on a paid post the viewer has not unlocked', async () => {
+      prisma.post.findUnique.mockResolvedValue({
+        ...openPost(),
+        isPremium: true,
+      });
+      prisma.profile.findUnique.mockResolvedValue({ userId: 'person-v' });
+
+      await expect(
+        service.respond(VIEWER, 'st-1', { optionIndex: 1 }),
+      ).rejects.toThrow('Sticker not found');
+      await expect(service.results(VIEWER, 'st-1')).rejects.toThrow(
+        'Sticker not found',
+      );
+
+      prisma.postUnlock.findUnique.mockResolvedValue({ id: 'u' });
+      await expect(
+        service.respond(VIEWER, 'st-1', { optionIndex: 1 }),
+      ).resolves.toMatchObject({ isAuthor: false });
     });
 
     it("is not answered by the post's author", async () => {

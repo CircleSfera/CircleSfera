@@ -66,6 +66,7 @@ describe('PostsService', () => {
       findMany: vi.fn(),
       findUnique: vi.fn(),
     },
+    postUnlock: { findUnique: vi.fn().mockResolvedValue(null) },
     postMedia: {
       createMany: vi.fn(),
       create: vi.fn(),
@@ -1012,6 +1013,18 @@ describe('PostsService', () => {
       expect(mockPrismaService.post.findUniqueOrThrow).not.toHaveBeenCalled();
     });
 
+    it('refuses stickers on a video of a carousel before anything is created', async () => {
+      await expect(
+        service.create('user-1', {
+          media: [
+            { url: '/uploads/a.jpg', type: 'image' },
+            { url: '/uploads/b.mp4', type: 'video', stickers: [poll] },
+          ],
+        } as CreatePostDto),
+      ).rejects.toThrow('STICKERS_ONLY_ON_PHOTOS');
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
+    });
+
     it('refuses stickers on a Frame before anything is created', async () => {
       await expect(
         service.create('user-1', {
@@ -1073,6 +1086,65 @@ describe('PostsService', () => {
       await expect(service.findOne('missing-id')).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('shows a paid post not unlocked closed: no picture and no sticker', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'p-paid',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        isPremium: true,
+        scheduledStatus: 'PUBLISHED',
+        profile: { id: 'author-1', privacyLevel: Visibility.PUBLIC, user: {} },
+        likes: [],
+        media: [
+          {
+            url: '/uploads/a.jpg',
+            standardUrl: '/uploads/a.webp',
+            stickers: [{ id: 'st-1' }],
+          },
+        ],
+      });
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'person-v',
+      });
+
+      const post = (await service.findOne('p-paid', 'viewer-1')) as {
+        isLocked?: boolean;
+        media: { url: string; standardUrl: string; stickers: unknown[] }[];
+      };
+
+      expect(post.isLocked).toBe(true);
+      expect(post.media[0]).toMatchObject({
+        url: '',
+        standardUrl: '',
+        stickers: [],
+      });
+    });
+
+    it('shows no sticker of a post not out yet to anyone but its author', async () => {
+      const scheduled = {
+        id: 'p-later',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        isPremium: false,
+        scheduledStatus: 'SCHEDULED',
+        profile: { id: 'author-1', privacyLevel: Visibility.PUBLIC, user: {} },
+        likes: [],
+        media: [{ url: '/uploads/a.jpg', stickers: [{ id: 'st-1' }] }],
+      };
+      mockPrismaService.post.findUnique.mockResolvedValueOnce(scheduled);
+      const seen = (await service.findOne('p-later', 'viewer-1')) as {
+        media: { stickers: unknown[]; url: string }[];
+      };
+      expect(seen.media[0].stickers).toEqual([]);
+      expect(seen.media[0].url).toBe('/uploads/a.jpg');
+
+      mockPrismaService.post.findUnique.mockResolvedValueOnce(scheduled);
+      const own = (await service.findOne('p-later', 'author-1')) as {
+        media: { stickers: unknown[] }[];
+      };
+      expect(own.media[0].stickers).toHaveLength(1);
     });
 
     it('allows author to view post even if profile is private', async () => {

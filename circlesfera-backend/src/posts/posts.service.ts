@@ -39,6 +39,7 @@ import {
 } from '../common/policies/block.policy.js';
 import { setModerationStatus } from '../common/policies/moderation-decision.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import { isPremiumPostLocked } from '../common/policies/premium-post.policy.js';
 import {
   LISTED_POST,
   SHOWN_COMMENTS_COUNT,
@@ -112,10 +113,20 @@ export class PostsService {
     if (dto.coverTimeMs !== undefined && dto.type !== 'FRAME') {
       throw new BadRequestException('Only a frame has a cover to choose');
     }
-    // Stickers go on the photos of a post; a Frame takes none.
+    // Stickers go on the photos of a post; a Frame takes none, nor does a
+    // video of a carousel.
     const stickers = (dto.media ?? []).flatMap((m) => m.stickers ?? []);
     if (stickers.length > 0 && dto.type === 'FRAME') {
       throw new BadRequestException('STICKERS_ONLY_ON_POSTS');
+    }
+    if (
+      (dto.media ?? []).some(
+        (m) =>
+          (m.stickers?.length ?? 0) > 0 &&
+          (m.type || 'image').toLowerCase() === 'video',
+      )
+    ) {
+      throw new BadRequestException('STICKERS_ONLY_ON_PHOTOS');
     }
 
     // Only the sending Profile's own stored files can be attached.
@@ -650,11 +661,33 @@ export class PostsService {
       [post],
       currentProfileId,
     );
-    return this.injectIsLiked(
-      withStickers,
+    // A paid post not unlocked shows as the feed shows it: closed, with no
+    // picture and no sticker. A post not out yet shows no sticker to anyone
+    // but its author.
+    const locked = await isPremiumPostLocked(
+      this.prisma,
+      post,
       currentProfileId,
-      content,
-    ) as Record<string, unknown>;
+    );
+    const notOut =
+      post.scheduledStatus !== 'PUBLISHED' &&
+      post.profileId !== currentProfileId;
+    const shown =
+      locked || notOut
+        ? {
+            ...withStickers,
+            ...(locked ? { isLocked: true } : {}),
+            media: withStickers.media?.map((m: Record<string, unknown>) => ({
+              ...m,
+              ...(locked ? { url: '', standardUrl: '' } : {}),
+              stickers: [],
+            })),
+          }
+        : withStickers;
+    return this.injectIsLiked(shown, currentProfileId, content) as Record<
+      string,
+      unknown
+    >;
   }
 
   // Retrieve posts by a specific user's username with optional type filter.

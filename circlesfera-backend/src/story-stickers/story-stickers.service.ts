@@ -19,6 +19,7 @@ import {
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import { isPremiumPostLocked } from '../common/policies/premium-post.policy.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { OPEN_POST } from '../common/policies/story-share.policy.js';
@@ -1006,6 +1007,7 @@ export class StoryStickersService {
         archivedAt: true,
         turnOffComments: true,
         scheduledStatus: true,
+        isPremium: true,
         profile: { select: { privacyLevel: true } },
       },
     });
@@ -1029,6 +1031,10 @@ export class StoryStickersService {
         throw new NotFoundException('Sticker not found');
       }
       throw err;
+    }
+    // A paid post not unlocked keeps its stickers closed too.
+    if (await isPremiumPostLocked(this.prisma, post, viewerProfileId)) {
+      throw new NotFoundException('Sticker not found');
     }
     return { profileId: post.profileId, expiresAt: null };
   }
