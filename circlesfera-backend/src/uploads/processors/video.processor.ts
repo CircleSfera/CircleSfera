@@ -337,17 +337,23 @@ export class VideoProcessor extends WorkerHost {
       }
 
       // Update PostMedia
-      // A frame whose author chose its cover keeps it: only the stream is
-      // written there.
+      // A frame whose author chose its cover, a moment or an image, keeps
+      // it: only the stream is written there.
       const updatedPosts = await this.prisma.postMedia.updateMany({
-        where: { url, coverTimeMs: null },
+        where: { url, coverTimeMs: null, coverImageUrl: null },
         data: {
           standardUrl: m3u8Url,
           thumbnailUrl: thumbUrl,
         },
       });
       await this.prisma.postMedia.updateMany({
-        where: { url, coverTimeMs: { not: null } },
+        where: {
+          url,
+          OR: [
+            { coverTimeMs: { not: null } },
+            { coverImageUrl: { not: null } },
+          ],
+        },
         data: { standardUrl: m3u8Url },
       });
 
@@ -410,7 +416,14 @@ export class VideoProcessor extends WorkerHost {
       // upload/read site is migrated onto the relation). A no-op update
       // when there's no match is expected and harmless.
       const withChosenCover = {
-        postMedia: { some: { coverTimeMs: { not: null } } },
+        postMedia: {
+          some: {
+            OR: [
+              { coverTimeMs: { not: null } },
+              { coverImageUrl: { not: null } },
+            ],
+          },
+        },
       };
       await this.prisma.media
         .updateMany({

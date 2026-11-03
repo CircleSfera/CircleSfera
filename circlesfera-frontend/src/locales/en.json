@@ -1756,12 +1756,10 @@
       "filters_adjustments": "Filters & Adjustments",
       "n_files": "{{count}} files",
       "remove_media": "Remove media",
-      "move_earlier": "Move earlier in the carousel",
       "shape_change": "Change the shape of the post, now {{shape}}",
       "shape_SQUARE": "1:1",
       "shape_PORTRAIT": "4:5",
       "shape_LANDSCAPE": "1.91:1",
-      "move_later": "Move later in the carousel",
       "add_more": "Add more media",
       "media_item": "Item {{index}} of {{total}}",
       "select_media": "Select media",
@@ -1802,7 +1800,12 @@
         "blur": "Blur",
         "sepia": "Sepia",
         "grayscale": "Grayscale"
-      }
+      },
+      "order_button": "Reorder",
+      "order_title": "Reorder the carousel",
+      "move_item": "Move {{item}}",
+      "order_photo": "Photo",
+      "order_video": "Video"
     },
     "frameTrim": {
       "title": "Choose Frame length",
@@ -5351,7 +5354,10 @@
       "order_button": "Reorder",
       "move": "Move {{clip}}",
       "previous": "Previous clip",
-      "next": "Next clip"
+      "next": "Next clip",
+      "filters": "Filters",
+      "filter_strength": "Strength",
+      "filters_done": "Done"
     },
     "assembly": {
       "uploading": "Uploading your clips ({{done}} of {{total}})…",
@@ -5728,6 +5734,7 @@
       "PREMIUM_CONTENT_LOCKED": "Unlock this content to see it.",
       "MEDIA_ACCESS_DENIED": "You don't have access to this file.",
       "FILE_NOT_OWNED": "This file can't be used here. Upload it again from your device.",
+      "FRAME_COVER_IMAGE_INVALID": "That image can't be used as the cover. Choose a photo from your device.",
       "COLLECTION_NOT_FOUND": "We couldn't find that collection.",
       "HIGHLIGHT_NOT_FOUND": "We couldn't find that highlight.",
       "EDIT_PROJECT_NOT_FOUND": "We couldn't find that project.",
@@ -5785,7 +5792,9 @@
       "TEAM_MEMBER_NOT_FOUND": "That invitation or person is no longer there.",
       "TEAM_MEMBER_NOT_ALLOWED": "Your role on this team profile does not include this.",
       "MESSAGE_IS_NOTICE": "This is a notice from CircleSfera and can't be changed.",
-      "GROUP_ADMIN_NOT_ELIGIBLE": "This member can't be an admin of the group."
+      "GROUP_ADMIN_NOT_ELIGIBLE": "This member can't be an admin of the group.",
+      "PREMIUM_PRICE_OUT_OF_RANGE": "The price of premium content is outside the allowed range.",
+      "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ErrorCode } from '@circlesfera/shared';
 import {
   BadRequestException,
   ForbiddenException,
@@ -32,6 +33,7 @@ import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
+import { AppException } from '../common/errors/app.exception.js';
 import {
   getBlockedProfileIds,
   isBlockedEitherWay,
@@ -106,8 +108,13 @@ export class PostsService {
     }
 
     // Only a frame has a cover to choose; said before anything is created.
-    if (dto.coverTimeMs !== undefined && dto.type !== 'FRAME') {
+    const choosesCover =
+      dto.coverTimeMs !== undefined || dto.coverImageUrl !== undefined;
+    if (choosesCover && dto.type !== 'FRAME') {
       throw new BadRequestException('Only a frame has a cover to choose');
+    }
+    if (dto.coverImageUrl !== undefined) {
+      await this.frameCover.assertImage(profileId, dto.coverImageUrl);
     }
 
     // Only the sending Profile's own stored files can be attached.
@@ -156,8 +163,9 @@ export class PostsService {
         select: { accountType: true },
       });
       if (!canMonetize(authorProfile?.accountType)) {
-        throw new ForbiddenException(
-          'Solo las cuentas Creator o Business pueden publicar contenido premium.',
+        throw AppException.Forbidden(
+          ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
+          'Only Creator or Business accounts can publish premium content.',
         );
       }
       if (
@@ -165,8 +173,10 @@ export class PostsService {
         dto.priceCents < MIN_PPV_PRICE_CENTS ||
         dto.priceCents > MAX_PPV_PRICE_CENTS
       ) {
-        throw new BadRequestException(
-          `El precio del contenido premium debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
+        throw AppException.BadRequest(
+          ErrorCode.PREMIUM_PRICE_OUT_OF_RANGE,
+          'The price of premium content is out of range.',
+          { minCents: MIN_PPV_PRICE_CENTS, maxCents: MAX_PPV_PRICE_CENTS },
         );
       }
     }
@@ -211,8 +221,9 @@ export class PostsService {
     }
 
     if (moderation?.flagged) {
-      throw new BadRequestException(
-        'El contenido infringe las normas de la comunidad y ha sido bloqueado.',
+      throw AppException.BadRequest(
+        ErrorCode.CONTENT_BLOCKED_BY_MODERATION,
+        'The content breaks the community guidelines and was blocked.',
       );
     }
 
@@ -322,6 +333,9 @@ export class PostsService {
 
     if (dto.coverTimeMs !== undefined) {
       await this.frameCover.choose(createdPost.id, dto.coverTimeMs);
+    }
+    if (dto.coverImageUrl !== undefined) {
+      await this.frameCover.chooseImage(createdPost.id, dto.coverImageUrl);
     }
 
     // Fetch complete post with relations before returning
@@ -821,6 +835,9 @@ export class PostsService {
     // before its caption changes.
     if (dto.coverTimeMs !== undefined) {
       await this.frameCover.choose(id, dto.coverTimeMs);
+    }
+    if (dto.coverImageUrl !== undefined) {
+      await this.frameCover.chooseImage(id, dto.coverImageUrl);
     }
 
     const post = await this.prisma.post.update({
