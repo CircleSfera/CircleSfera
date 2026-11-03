@@ -183,6 +183,8 @@ export type CreatePostDto = {
   turnOffComments?: boolean;
   /** For a frame: the moment of its video to use as the cover. */
   coverTimeMs?: number;
+  /** For a frame: an uploaded image to use as the cover instead. */
+  coverImageUrl?: string;
   media?: PostMediaItem[];
   audioId?: string;
   audioStartMs?: number;

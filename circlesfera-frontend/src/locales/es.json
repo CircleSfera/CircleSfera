@@ -5322,7 +5322,13 @@
       "use_automatic": "Usar la portada automática",
       "row": "Elegir portada",
       "row_chosen": "Portada elegida",
-      "pending": "Guardado. La portada nueva se verá en unos segundos."
+      "pending": "Guardado. La portada nueva se verá en unos segundos.",
+      "image_add": "Añadir desde la galería",
+      "image_preview": "Imagen de portada",
+      "image_drag": "Arrastra la imagen para colocarla.",
+      "image_use": "Usar como portada",
+      "image_chosen": "La portada es esta imagen. Se ve en tu perfil y allí donde aparezca el frame.",
+      "image_remove": "Quitar la imagen"
     },
     "original_audio": "{{username}} • Audio original",
     "artist_fallback": "Artista",

@@ -748,8 +748,16 @@ describe('ContentComposerPage', () => {
         step: 'caption',
         mediaFiles: [clip()],
         coverTimeMs: 0,
-      });
+      }).unmount();
       await videoRead();
+      expect(seen.caption.hasChosenCover).toBe(true);
+
+      compose({
+        mode: 'FRAME',
+        step: 'caption',
+        mediaFiles: [clip()],
+        coverImage: new File(['jpg'], 'cover.jpg', { type: 'image/jpeg' }),
+      });
       expect(seen.caption.hasChosenCover).toBe(true);
     });
 

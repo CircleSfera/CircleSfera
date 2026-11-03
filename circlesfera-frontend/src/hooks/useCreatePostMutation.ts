@@ -79,6 +79,8 @@ interface MutationDeps {
   hideLikes: boolean;
   turnOffComments: boolean;
   coverTimeMs: number | null;
+  /** An image chosen as a frame's cover, sent with it. */
+  coverImage?: File | null;
   isSensitive: boolean;
   location: string;
   selectedPlace: PlaceInput | null;
@@ -315,6 +317,16 @@ export function useCreatePostMutation(deps: MutationDeps) {
           ),
         );
       } else {
+        // An image chosen as a frame's cover is sent as any other upload.
+        const coverImageUrl =
+          deps.mode === 'FRAME' && deps.coverImage
+            ? (
+                await deps.uploadFiles(
+                  [{ file: deps.coverImage, url: '', type: 'image' }],
+                  {},
+                )
+              )[0].url
+            : undefined;
         const payload: CreatePostDto = {
           caption: deps.caption,
           hideLikes: deps.hideLikes,
@@ -324,7 +336,9 @@ export function useCreatePostMutation(deps: MutationDeps) {
           ...(deps.mode === 'POST' && { shape: deps.postShape }),
           // The cover of a frame, when its author chose one.
           ...(deps.mode === 'FRAME' &&
-            deps.coverTimeMs !== null && { coverTimeMs: deps.coverTimeMs }),
+            deps.coverTimeMs !== null &&
+            !coverImageUrl && { coverTimeMs: deps.coverTimeMs }),
+          ...(coverImageUrl && { coverImageUrl }),
           audioId: deps.selectedAudio?.id,
           audioStartMs: deps.selectedAudio ? deps.audioStartMs : 0,
           location: deps.location || undefined,
