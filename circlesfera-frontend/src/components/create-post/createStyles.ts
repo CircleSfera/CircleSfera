@@ -36,7 +36,7 @@ export const CREATE_PANEL = 'rounded-3xl bg-white/4 border border-white/8';
  * One tool of a tool rail: an icon over its name, with no box. Hover and
  * press only light it up; the icon lifts a little.
  */
-export const CREATE_TOOL = `group relative min-w-14 min-h-11 px-1 inline-flex flex-col items-center justify-center gap-1 rounded-lg text-white/60 hover:text-white active:text-white transition-colors text-[11px] font-medium leading-none tracking-wide ${focus}`;
+export const CREATE_TOOL = `group relative min-w-14 min-h-11 px-1 inline-flex flex-col items-center justify-center gap-1 rounded-lg text-white/60 hover:text-white active:text-white transition-colors text-xs font-medium leading-none tracking-wide ${focus}`;
 
 /** The icon of a tool, lifting a little under the pointer. */
 export const CREATE_TOOL_ICON =
