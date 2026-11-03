@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { LiveService } from './live.service.js';
+import { listedForViewer } from './live-audience.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
 import { LiveRecordingService } from './recording/live-recording.service.js';
 
@@ -24,6 +25,7 @@ describe('LiveService', () => {
   const mockPrismaService = {
     user: { findMany: vi.fn().mockResolvedValue([]) },
     block: { findFirst: vi.fn().mockResolvedValue(null) },
+    closeFriend: { findUnique: vi.fn().mockResolvedValue(null) },
     liveStream: {
       updateMany: vi.fn(),
       update: vi.fn(),
@@ -92,6 +94,7 @@ describe('LiveService', () => {
         id: 'stream-1',
         hostId: 'user-1',
         status: 'LIVE',
+        audience: 'EVERYONE',
         title: 'Test Stream',
       };
       mockPrismaService.liveStream.updateMany.mockResolvedValue({ count: 1 });
@@ -109,6 +112,83 @@ describe('LiveService', () => {
     });
   });
 
+  describe('who a live is for', () => {
+    const shown = {
+      isAccountBanned: false,
+      suspendedUntil: null,
+      user: { isActive: true, deactivatedAt: null },
+    };
+
+    it('keeps the audience chosen, and records any live but a practice', async () => {
+      for (const audience of [
+        'EVERYONE',
+        'CLOSE_FRIENDS',
+        'PRACTICE',
+      ] as const) {
+        mockRecording.start.mockClear();
+        mockPrismaService.liveStream.create.mockResolvedValue({
+          id: `s-${audience}`,
+          hostId: 'host-1',
+          audience,
+        });
+
+        await service.startStream('host-1', 'x', audience);
+
+        expect(mockPrismaService.liveStream.create).toHaveBeenLastCalledWith({
+          data: expect.objectContaining({ audience }),
+        });
+        expect(mockRecording.start).toHaveBeenCalledTimes(
+          audience === 'PRACTICE' ? 0 : 1,
+        );
+      }
+    });
+
+    it('is for everyone when not chosen', async () => {
+      mockPrismaService.liveStream.create.mockResolvedValue({ id: 's' });
+
+      await service.startStream('host-1', 'x');
+
+      expect(mockPrismaService.liveStream.create).toHaveBeenLastCalledWith({
+        data: expect.objectContaining({ audience: 'EVERYONE' }),
+      });
+    });
+
+    it('gives no token and no page to whoever it is not for, as if it did not exist', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        hostId: 'host-1',
+        coHostId: null,
+        status: 'LIVE',
+        audience: 'CLOSE_FRIENDS',
+        host: shown,
+        coHost: null,
+      });
+      mockPrismaService.closeFriend.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.getViewerToken('stream-1', 'user-2', 'outsider'),
+      ).rejects.toThrow(AppException);
+      await expect(service.getStream('stream-1', 'outsider')).rejects.toThrow(
+        AppException,
+      );
+
+      mockPrismaService.closeFriend.findUnique.mockResolvedValue({ id: 'cf' });
+      await expect(
+        service.getViewerToken('stream-1', 'user-3', 'friend'),
+      ).resolves.toHaveProperty('token');
+    });
+
+    it('lists only lives that are for the viewer', async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([]);
+
+      await service.getActiveStreams('viewer-1');
+
+      const [args] =
+        mockPrismaService.liveStream.findMany.mock.calls.at(-1) ?? [];
+      expect(args.where.AND).toEqual([listedForViewer('viewer-1')]);
+    });
+  });
+
   describe('getViewerToken', () => {
     it('should throw NotFoundException if stream does not exist or is ended', async () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue(null);
@@ -122,6 +202,7 @@ describe('LiveService', () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({
         id: 'stream-1',
         status: 'LIVE',
+        audience: 'EVERYONE',
         host: {
           isAccountBanned: false,
           suspendedUntil: null,
@@ -138,6 +219,7 @@ describe('LiveService', () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({
         id: 'stream-1',
         status: 'LIVE',
+        audience: 'EVERYONE',
         hostId: 'host-1',
         host: {
           isAccountBanned: false,
@@ -167,6 +249,7 @@ describe('LiveService', () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({
         id: 'stream-1',
         status: 'LIVE',
+        audience: 'EVERYONE',
         hostId: 'host-1',
         host: {
           isAccountBanned: false,
@@ -185,6 +268,7 @@ describe('LiveService', () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({
         id: 'stream-1',
         status: 'LIVE',
+        audience: 'EVERYONE',
         hostId: 'host-1',
         host: {
           isAccountBanned: false,
@@ -235,6 +319,7 @@ describe('LiveService', () => {
         {
           id: 'stream-1',
           status: 'LIVE',
+          audience: 'EVERYONE',
           host: { id: 'host-profile-1', username: 'alice', avatar: null },
         },
       ]);
@@ -244,6 +329,7 @@ describe('LiveService', () => {
         {
           id: 'stream-1',
           status: 'LIVE',
+          audience: 'EVERYONE',
           host: {
             id: 'host-profile-1',
             profile: { username: 'alice', avatar: null },
@@ -287,6 +373,7 @@ describe('LiveService', () => {
         id: 'stream-1',
         hostId: 'host-1',
         status: 'LIVE',
+        audience: 'EVERYONE',
         host: shownHost,
         coHost: null,
       });
@@ -305,6 +392,7 @@ describe('LiveService', () => {
         id: 'stream-1',
         hostId: 'host-1',
         status: 'LIVE',
+        audience: 'EVERYONE',
         host: { ...shownHost, isAccountBanned: true },
         coHost: null,
       });
@@ -557,6 +645,7 @@ describe('LiveService', () => {
         id: 'stream-1',
         hostId: hostProfileId,
         status: 'LIVE',
+        audience: 'EVERYONE',
         coHostId: null,
       });
 
@@ -572,6 +661,7 @@ describe('LiveService', () => {
         id: 'stream-1',
         hostId: hostProfileId,
         status: 'LIVE',
+        audience: 'EVERYONE',
         coHostId: null,
         title: 'Test',
       });
@@ -594,6 +684,7 @@ describe('LiveService', () => {
         id: 'stream-1',
         hostId: hostProfileId,
         status: 'LIVE',
+        audience: 'EVERYONE',
         coHostId: null,
         title: 'Live!',
       });
@@ -640,6 +731,7 @@ describe('LiveService', () => {
         id: 'stream-1',
         hostId: hostProfileId,
         status: 'LIVE',
+        audience: 'EVERYONE',
         coHostId: previous,
         title: 'Live!',
       });
@@ -663,6 +755,7 @@ describe('LiveService', () => {
       id: 'stream-1',
       hostId: 'host-profile-1',
       status: 'LIVE',
+      audience: 'EVERYONE',
       coHostId: null,
       title: 'Live!',
     });
@@ -694,6 +787,7 @@ describe('LiveService', () => {
       id: 'stream-1',
       hostId: 'host-profile-1',
       status: 'LIVE',
+      audience: 'EVERYONE',
       coHostId: null,
       title: 'Live!',
     });
@@ -721,6 +815,7 @@ describe('LiveService', () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({
         id: 'stream-1',
         status: 'LIVE',
+        audience: 'EVERYONE',
         coHostId: 'other-user',
       });
 
@@ -733,6 +828,7 @@ describe('LiveService', () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({
         id: 'stream-1',
         status: 'LIVE',
+        audience: 'EVERYONE',
         coHostId: 'user-2',
       });
 

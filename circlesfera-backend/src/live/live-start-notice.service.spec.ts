@@ -59,6 +59,22 @@ describe('LiveStartNoticeService', () => {
     expect(where.follower.muting.none.mutedId).toBe('host-1');
   });
 
+  it('tells only the close friends among the followers of a live for close friends', async () => {
+    await service.tellFollowers('stream-1', 'host-1', 'CLOSE_FRIENDS');
+
+    const where = prisma.follow.findMany.mock.calls[0][0].where;
+    expect(where.follower.closeFriendOf).toEqual({
+      some: { profileId: 'host-1' },
+    });
+  });
+
+  it('a live for everyone asks for no close friends list', async () => {
+    await service.tellFollowers('stream-1', 'host-1');
+
+    const where = prisma.follow.findMany.mock.calls[0][0].where;
+    expect(where.follower).not.toHaveProperty('closeFriendOf');
+  });
+
   it('keeps a Test Account within its own audience', async () => {
     prisma.profile.findUnique.mockResolvedValue({
       user: { isTestAccount: true },

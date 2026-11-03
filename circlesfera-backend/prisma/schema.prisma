@@ -1085,14 +1085,23 @@ model EditProject {
 // === Live
 // =============================================================================
 
+/// Who a live is for.
+enum LiveAudience {
+  EVERYONE
+  CLOSE_FRIENDS
+  PRACTICE
+}
+
 model LiveStream {
-  id           String     @id @default(uuid())
+  id           String       @id @default(uuid())
   hostId       String
   coHostId     String?
   title        String?
-  status       LiveStatus @default(LIVE)
-  viewerCount  Int        @default(0)
-  startedAt    DateTime   @default(now())
+  /// Who it is for: everyone, the host's close friends, or a practice.
+  audience     LiveAudience @default(EVERYONE)
+  status       LiveStatus   @default(LIVE)
+  viewerCount  Int          @default(0)
+  startedAt    DateTime     @default(now())
   endedAt      DateTime?
   hlsUrl       String?
   replayUrl    String?

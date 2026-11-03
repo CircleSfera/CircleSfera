@@ -674,6 +674,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     const profileId = client.data?.user?.profileId;
     if (!profileId) return;
+    // Only someone who may watch the live is let into its room.
+    if (
+      !(await this.liveRealtimeService.canEnterRoom(
+        payload.streamId,
+        profileId,
+      ))
+    ) {
+      return;
+    }
 
     await client.join(`live:${payload.streamId}`);
     if (!client.data.liveStreamIds) {

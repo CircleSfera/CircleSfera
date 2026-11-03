@@ -31,6 +31,7 @@ interface ServiceOverrides {
   };
   liveRealtimeService?: Partial<{
     incrementViewerCount: ReturnType<typeof vi.fn>;
+    canEnterRoom: ReturnType<typeof vi.fn>;
     decrementViewerCount: ReturnType<typeof vi.fn>;
     isStreamHostOrCoHost: ReturnType<typeof vi.fn>;
     getUserProfile: ReturnType<typeof vi.fn>;
@@ -72,6 +73,7 @@ function gatewayWithServer(
     },
     (overrides.liveRealtimeService as any) ?? {
       incrementViewerCount: vi.fn().mockResolvedValue(1),
+      canEnterRoom: vi.fn().mockResolvedValue(true),
       decrementViewerCount: vi.fn().mockResolvedValue(0),
       isStreamHostOrCoHost: vi.fn().mockResolvedValue(false),
       getUserProfile: vi.fn().mockResolvedValue(null),
@@ -1409,6 +1411,29 @@ describe('AppGateway payload bounds and authorization', () => {
   });
 
   describe('Live stream join, leave, reactions and comments', () => {
+    it('keeps out of the room of a live whoever may not watch it', async () => {
+      const mockTo = vi.fn();
+      const mockLiveRealtime = {
+        incrementViewerCount: vi.fn(),
+        canEnterRoom: vi.fn().mockResolvedValue(false),
+      };
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { liveRealtimeService: mockLiveRealtime },
+      );
+      const socket = mockSocket('prof-outsider');
+
+      await gateway.handleLiveJoin({ streamId: 's-1' }, socket);
+
+      expect(mockLiveRealtime.canEnterRoom).toHaveBeenCalledWith(
+        's-1',
+        'prof-outsider',
+      );
+      expect(socket.join).not.toHaveBeenCalled();
+      expect(mockLiveRealtime.incrementViewerCount).not.toHaveBeenCalled();
+      expect(mockTo).not.toHaveBeenCalled();
+    });
+
     it('handles live:join and live:leave with viewer updates', async () => {
       const mockEmit = vi.fn();
       const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
@@ -1417,6 +1442,7 @@ describe('AppGateway payload bounds and authorization', () => {
         decrementViewerCount: vi.fn().mockResolvedValue(4),
         isStreamHostOrCoHost: vi.fn(),
         getUserProfile: vi.fn(),
+        canEnterRoom: vi.fn().mockResolvedValue(true),
       };
 
       const gateway = gatewayWithServer(
