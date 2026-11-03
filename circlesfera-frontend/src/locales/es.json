@@ -1756,12 +1756,10 @@
       "filters_adjustments": "Filtros y Ajustes",
       "n_files": "{{count}} archivos",
       "remove_media": "Eliminar medio",
-      "move_earlier": "Mover antes en el carrusel",
       "shape_change": "Cambiar la forma de la publicación, ahora {{shape}}",
       "shape_SQUARE": "1:1",
       "shape_PORTRAIT": "4:5",
       "shape_LANDSCAPE": "1.91:1",
-      "move_later": "Mover después en el carrusel",
       "add_more": "Añadir más medios",
       "media_item": "Elemento {{index}} de {{total}}",
       "select_media": "Seleccionar medio",
@@ -1802,7 +1800,12 @@
         "blur": "Desenfoque",
         "sepia": "Sepia",
         "grayscale": "Escala de grises"
-      }
+      },
+      "order_button": "Ordenar",
+      "order_title": "Ordenar el carrusel",
+      "move_item": "Mover {{item}}",
+      "order_photo": "Foto",
+      "order_video": "Vídeo"
     },
     "frameTrim": {
       "title": "Elige la duración del Frame",
@@ -5345,7 +5348,10 @@
       "order_button": "Ordenar",
       "move": "Mover {{clip}}",
       "previous": "Clip anterior",
-      "next": "Clip siguiente"
+      "next": "Clip siguiente",
+      "filters": "Filtros",
+      "filter_strength": "Intensidad",
+      "filters_done": "Hecho"
     },
     "assembly": {
       "uploading": "Subiendo los clips ({{done}} de {{total}})…",
@@ -5722,6 +5728,7 @@
       "PREMIUM_CONTENT_LOCKED": "Desbloquea este contenido para verlo.",
       "MEDIA_ACCESS_DENIED": "No tienes acceso a este archivo.",
       "FILE_NOT_OWNED": "Este archivo no se puede usar aquí. Vuelve a subirlo desde tu dispositivo.",
+      "FRAME_COVER_IMAGE_INVALID": "Esa imagen no se puede usar como portada. Elige una foto de tu dispositivo.",
       "COLLECTION_NOT_FOUND": "No hemos encontrado esa colección.",
       "HIGHLIGHT_NOT_FOUND": "No hemos encontrado esa historia destacada.",
       "EDIT_PROJECT_NOT_FOUND": "No hemos encontrado ese proyecto.",
@@ -5784,7 +5791,9 @@
       "TEAM_MEMBER_NOT_FOUND": "Esa invitación o persona ya no está.",
       "TEAM_MEMBER_NOT_ALLOWED": "Tu rol en este perfil de equipo no incluye esto.",
       "MESSAGE_IS_NOTICE": "Es un aviso de CircleSfera y no se puede cambiar.",
-      "GROUP_ADMIN_NOT_ELIGIBLE": "Este miembro no puede ser admin del grupo."
+      "GROUP_ADMIN_NOT_ELIGIBLE": "Este miembro no puede ser admin del grupo.",
+      "PREMIUM_PRICE_OUT_OF_RANGE": "El precio del contenido premium está fuera del rango permitido.",
+      "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

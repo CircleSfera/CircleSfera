@@ -16,6 +16,14 @@ class EchoController {
     };
   }
 
+  @Post('api/v1/live/livekit/webhook')
+  liveEvent(@Req() req: Received) {
+    return {
+      rawBody: req.rawBody?.toString('utf8') ?? null,
+      bodyIsBytes: Buffer.isBuffer(req.body),
+    };
+  }
+
   @Post('api/v1/other')
   other(@Req() req: Received) {
     return { rawBody: req.rawBody?.toString('utf8') ?? null, body: req.body };
@@ -46,6 +54,18 @@ describe('useBodyParsers', () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/payments/webhook')
       .set('content-type', 'application/json; charset=utf-8')
+      .send(event)
+      .expect(201);
+
+    expect(res.body).toEqual({ rawBody: event, bodyIsBytes: true });
+  });
+
+  it('keeps the exact bytes of a live service event, sent as webhook JSON', async () => {
+    const event = '{"event":"participant_joined",  "id":"EV_1"}';
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/live/livekit/webhook')
+      .set('content-type', 'application/webhook+json')
       .send(event)
       .expect(201);
 

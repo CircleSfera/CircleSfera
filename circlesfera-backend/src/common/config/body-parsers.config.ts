@@ -3,7 +3,7 @@ import type { INestApplication } from '@nestjs/common';
 import bodyParser from 'body-parser';
 
 // Keeps the bytes of a request as they arrived, on `req.rawBody`. A signature
-// (Stripe's events, Slack's commands) is checked against those bytes, never
+// (Stripe's events, Slack's commands, the live service's events) is checked against those bytes, never
 // against the parsed body.
 function keepRawBody(req: IncomingMessage, _res: unknown, buf: Buffer): void {
   (req as IncomingMessage & { rawBody?: Buffer }).rawBody = buf;
@@ -21,6 +21,13 @@ export function useBodyParsers(app: INestApplication): void {
       limit: '1mb',
       verify: keepRawBody,
     }),
+  );
+
+  // The live service's events (application/webhook+json): the raw body,
+  // whose signature is checked; bounded to 64KB.
+  app.use(
+    '/api/v1/live/livekit/webhook',
+    bodyParser.raw({ type: '*/*', limit: '64kb', verify: keepRawBody }),
   );
 
   // CSP violation reports use their own content types; bounded to 16KB.

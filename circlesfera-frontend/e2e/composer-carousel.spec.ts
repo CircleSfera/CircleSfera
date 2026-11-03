@@ -57,27 +57,48 @@ test('a carousel is shared in the order it was put in, without the item taken ou
   await uploadsNamedAfterTheirFile(page);
   await openComposer(page, 'post');
 
-  const photo = readFileSync(FIXTURES.postImage);
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles(
-      NAMES.map((name) => ({ name, mimeType: 'image/jpeg', buffer: photo })),
-    );
+  await page.locator('input[type="file"]').setInputFiles(
+    NAMES.map((name, index) => ({
+      name,
+      mimeType: 'image/jpeg',
+      buffer: readFileSync(FIXTURES.postImages[index]),
+    })),
+  );
   await waitEditPreviewReady(page, '4:5');
   await expect(
     page.getByRole('button', { name: itemLabel(NAMES.length, NAMES.length) }),
   ).toBeVisible();
 
-  // The last photo moves to the front, one place at a time.
+  // The last photo is dragged to the front in the order sheet, by its grip.
   await page
     .getByRole('button', { name: itemLabel(NAMES.length, NAMES.length) })
     .click();
-  for (let step = 1; step < NAMES.length; step++) {
-    await page.getByRole('button', { name: edit.move_earlier }).click();
-  }
+  await page.screenshot({ path: test.info().outputPath('tray-390.png') });
+  await page.getByRole('button', { name: edit.order_button }).click();
+  const order = page.getByTestId('carousel-order');
+  await expect(order.locator('li')).toHaveCount(NAMES.length);
+  const grip = order.getByRole('button', {
+    name: edit.move_item.replace(
+      '{{item}}',
+      itemLabel(NAMES.length, NAMES.length),
+    ),
+  });
+  const first = await order.locator('li').first().boundingBox();
+  const box = await grip.boundingBox();
+  if (!first || !box) throw new Error('No cards');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, first.y + 4, { steps: 10 });
+  await page.mouse.up();
+  await page.screenshot({ path: test.info().outputPath('order-390.png') });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.screenshot({ path: test.info().outputPath('order-1280.png') });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: edit.done }).click();
+  // The photo on show went with it: first now.
   await expect(
-    page.getByRole('button', { name: edit.move_earlier }),
-  ).toBeDisabled();
+    page.getByRole('button', { name: itemLabel(1, NAMES.length) }),
+  ).toHaveAttribute('aria-current', 'true');
 
   // The photo now last (the second one picked) is taken out.
   await page

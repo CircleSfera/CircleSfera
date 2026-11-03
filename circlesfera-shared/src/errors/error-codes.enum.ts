@@ -63,9 +63,14 @@ export enum ErrorCode {
   GROUP_ADMIN_NOT_ELIGIBLE = 'GROUP_ADMIN_NOT_ELIGIBLE',
   INVALID_MEDIA_PATH = 'INVALID_MEDIA_PATH',
   PREMIUM_CONTENT_LOCKED = 'PREMIUM_CONTENT_LOCKED',
+  PREMIUM_PRICE_OUT_OF_RANGE = 'PREMIUM_PRICE_OUT_OF_RANGE',
+  CONTENT_BLOCKED_BY_MODERATION = 'CONTENT_BLOCKED_BY_MODERATION',
   MEDIA_ACCESS_DENIED = 'MEDIA_ACCESS_DENIED',
   // A stored file that the sending Profile did not upload.
   FILE_NOT_OWNED = 'FILE_NOT_OWNED',
+  // The cover chosen for a frame is not an image of this storage: a file
+  // from elsewhere, or not a picture.
+  FRAME_COVER_IMAGE_INVALID = 'FRAME_COVER_IMAGE_INVALID',
 
   // Collections & Highlights
   COLLECTION_NOT_FOUND = 'COLLECTION_NOT_FOUND',

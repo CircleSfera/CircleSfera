@@ -55,7 +55,7 @@ describe('putting a Frame together on the server', () => {
 
     const frame = await assembleFrame(
       [clip('b', 0, 9000), clip('a', 1000, 8000)],
-      new Blob(['layer'], { type: 'image/png' }),
+      { layer: new Blob(['layer'], { type: 'image/png' }) },
       (step) => steps.push(step),
       d,
     );
@@ -89,7 +89,7 @@ describe('putting a Frame together on the server', () => {
   it('sends no layer when nothing is painted', async () => {
     const { d } = deps([{ status: 'READY', url: '/uploads/frame.mp4' }]);
 
-    await assembleFrame([clip('a', 0, 20_000)], null, () => {}, d);
+    await assembleFrame([clip('a', 0, 20_000)], { layer: null }, () => {}, d);
 
     expect(d.api.upload).not.toHaveBeenCalled();
     expect(d.api.assembleFrame).toHaveBeenCalledWith(
@@ -105,14 +105,19 @@ describe('putting a Frame together on the server', () => {
     const { d } = deps([{ status: 'FAILED' }]);
 
     await expect(
-      assembleFrame([clip('a', 0, 20_000)], null, () => {}, d),
+      assembleFrame([clip('a', 0, 20_000)], { layer: null }, () => {}, d),
     ).rejects.toMatchObject({ reason: 'failed' });
   });
 
   it('gives up once it has waited as long as the server may take', async () => {
     const { d } = deps([]);
 
-    const waiting = assembleFrame([clip('a', 0, 20_000)], null, () => {}, d);
+    const waiting = assembleFrame(
+      [clip('a', 0, 20_000)],
+      { layer: null },
+      () => {},
+      d,
+    );
 
     await expect(waiting).rejects.toBeInstanceOf(FrameAssemblyError);
     await expect(waiting).rejects.toMatchObject({ reason: 'timeout' });
@@ -132,7 +137,7 @@ describe('putting a Frame together on the server', () => {
     await expect(
       assembleFrame(
         [clip('a', 0, 20_000)],
-        null,
+        { layer: null },
         () => {},
         d,
         controller.signal,
@@ -145,6 +150,41 @@ describe('putting a Frame together on the server', () => {
     });
   });
 
+  it('asks for the look and a Frame with no sound, and leaves out a look that changes nothing', async () => {
+    const { d } = deps([{ status: 'READY', url: '/uploads/frame.mp4' }]);
+
+    await assembleFrame(
+      [clip('a', 0, 20_000)],
+      { layer: null, look: { grayscale: 100 }, muted: true },
+      () => {},
+      d,
+    );
+    expect(d.api.assembleFrame).toHaveBeenLastCalledWith(
+      {
+        clips: [{ url: '/uploads/a.webm', startMs: 0, endMs: 20_000 }],
+        layerUrl: undefined,
+        look: { grayscale: 100 },
+        muted: true,
+      },
+      { signal: undefined },
+    );
+
+    const again = deps([{ status: 'READY', url: '/uploads/frame.mp4' }]);
+    await assembleFrame(
+      [clip('a', 0, 20_000)],
+      { layer: null, look: {}, muted: false },
+      () => {},
+      again.d,
+    );
+    expect(again.d.api.assembleFrame).toHaveBeenLastCalledWith(
+      {
+        clips: [{ url: '/uploads/a.webm', startMs: 0, endMs: 20_000 }],
+        layerUrl: undefined,
+      },
+      { signal: undefined },
+    );
+  });
+
   it('sends nothing for a putting together cancelled before it starts', async () => {
     const { d } = deps([]);
     const controller = new AbortController();
@@ -153,7 +193,7 @@ describe('putting a Frame together on the server', () => {
     await expect(
       assembleFrame(
         [clip('a', 0, 20_000)],
-        null,
+        { layer: null },
         () => {},
         d,
         controller.signal,

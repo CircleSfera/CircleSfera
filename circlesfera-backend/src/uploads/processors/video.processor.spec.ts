@@ -84,6 +84,11 @@ const transcodeRuns = () =>
     .mocked(runFfmpeg)
     .mock.calls.filter(([args]) => !args.includes('-vframes'));
 
+// A cover the author chose: a moment of the video or an uploaded image.
+const CHOSEN_COVER = {
+  OR: [{ coverTimeMs: { not: null } }, { coverImageUrl: { not: null } }],
+};
+
 describe('VideoProcessor', () => {
   let processor: VideoProcessor;
 
@@ -341,22 +346,26 @@ describe('VideoProcessor', () => {
     expect(thumbnailRuns()).toHaveLength(1);
     expect(transcodeRuns()).toHaveLength(1);
     expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
-      where: { url: `/uploads/${validUuid}.mp4`, coverTimeMs: null },
+      where: {
+        url: `/uploads/${validUuid}.mp4`,
+        coverTimeMs: null,
+        coverImageUrl: null,
+      },
       data: {
         standardUrl: `/uploads/${validUuid}/master.m3u8`,
         thumbnailUrl: `/uploads/${validUuid}/thumb.jpg`,
       },
     });
-    // A frame whose author chose its cover gets the stream and keeps the
-    // cover.
+    // A frame whose author chose its cover, a moment or an image, gets the
+    // stream and keeps the cover.
     expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
-      where: { url: `/uploads/${validUuid}.mp4`, coverTimeMs: { not: null } },
+      where: { url: `/uploads/${validUuid}.mp4`, ...CHOSEN_COVER },
       data: { standardUrl: `/uploads/${validUuid}/master.m3u8` },
     });
     expect(mockPrisma.media.updateMany).toHaveBeenCalledWith({
       where: {
         url: `/uploads/${validUuid}.mp4`,
-        postMedia: { some: { coverTimeMs: { not: null } } },
+        postMedia: { some: CHOSEN_COVER },
       },
       data: {
         status: 'READY',
@@ -416,7 +425,11 @@ describe('VideoProcessor', () => {
 
     // Database reconciliation still executes
     expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
-      where: { url: `/uploads/${validUuid}.mp4`, coverTimeMs: null },
+      where: {
+        url: `/uploads/${validUuid}.mp4`,
+        coverTimeMs: null,
+        coverImageUrl: null,
+      },
       data: {
         standardUrl: `/uploads/${validUuid}/master.m3u8`,
         thumbnailUrl: `/uploads/${validUuid}/thumb.jpg`,
@@ -538,7 +551,11 @@ describe('VideoProcessor', () => {
     });
 
     expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
-      where: { url: `/uploads/${validUuid}.mp4`, coverTimeMs: null },
+      where: {
+        url: `/uploads/${validUuid}.mp4`,
+        coverTimeMs: null,
+        coverImageUrl: null,
+      },
       data: {
         standardUrl: `https://cdn.example.com/circlesfera/hls/${validUuid}/master.m3u8`,
         thumbnailUrl: `https://cdn.example.com/circlesfera/hls/${validUuid}/thumb.jpg`,
@@ -587,7 +604,7 @@ describe('VideoProcessor', () => {
     expect(mockPrisma.media.updateMany).toHaveBeenCalledWith({
       where: {
         url: `/uploads/${validUuid}.mp4`,
-        NOT: { postMedia: { some: { coverTimeMs: { not: null } } } },
+        NOT: { postMedia: { some: CHOSEN_COVER } },
       },
       data: {
         status: 'READY',
