@@ -175,7 +175,7 @@ export default function FrameClipsTimeline({
         }}
         // The handle is narrow; its touch area reaches 44 px.
         className={`absolute inset-y-0 z-10 w-4 cursor-ew-resize touch-none bg-white before:absolute before:-inset-x-3.5 before:content-[''] ${
-          edge === 'start' ? 'rounded-l-lg' : 'rounded-r-lg'
+          edge === 'start' ? 'rounded-l-xl' : 'rounded-r-xl'
         } flex items-center justify-center focus-visible:outline-2 focus-visible:outline-brand-primary`}
         style={{
           left: edge === 'start' ? pxFor(value) - 16 : pxFor(value),
@@ -192,7 +192,7 @@ export default function FrameClipsTimeline({
         className="overflow-x-auto overscroll-x-contain py-1"
         style={{ touchAction: drag ? 'none' : 'pan-x' }}
       >
-        <ol className="flex w-max items-stretch gap-1 px-4">
+        <ol className="flex w-max items-start gap-3 px-4">
           {clips.map((clip, index) => {
             const isChosen = index === chosen;
             const width = isChosen
@@ -205,7 +205,7 @@ export default function FrameClipsTimeline({
                 ref={(item) => {
                   items.current[index] = item;
                 }}
-                className={`relative h-14 shrink-0 ${
+                className={`relative flex shrink-0 flex-col gap-1.5 ${
                   drag && drag.to === index && drag.from !== index
                     ? drag.to < drag.from
                       ? 'border-l-2 border-brand-primary pl-1'
@@ -222,121 +222,134 @@ export default function FrameClipsTimeline({
                   zIndex: lifted ? 20 : undefined,
                 }}
               >
-                <button
-                  type="button"
-                  aria-label={t('frames.clips.item', {
-                    n: index + 1,
-                    total: clips.length,
-                  })}
-                  aria-current={isChosen ? 'true' : undefined}
-                  aria-keyshortcuts="Shift+ArrowLeft Shift+ArrowRight"
-                  onClick={() => {
-                    if (dragged.current) {
-                      dragged.current = false;
-                      return;
-                    }
-                    onChoose(index);
-                  }}
-                  onKeyDown={(e) => {
-                    if (!e.shiftKey) return;
-                    if (e.key === 'ArrowLeft') onMove(index, index - 1);
-                    else if (e.key === 'ArrowRight') onMove(index, index + 1);
-                    else return;
-                    e.preventDefault();
-                  }}
-                  onContextMenu={(e) => e.preventDefault()}
-                  onPointerDown={(e) => {
-                    const target = e.currentTarget;
-                    const pointerId = e.pointerId;
-                    hold.current = {
-                      index,
-                      x: e.clientX,
-                      y: e.clientY,
-                      timer: window.setTimeout(() => {
-                        target.setPointerCapture?.(pointerId);
-                        dragged.current = true;
-                        setDrag({
-                          from: index,
-                          startX: hold.current?.x ?? 0,
-                          x: hold.current?.x ?? 0,
-                          to: index,
-                        });
-                        hold.current = null;
-                      }, TIMELINE_HOLD_MS),
-                    };
-                  }}
-                  onPointerMove={(e) => {
-                    if (drag) {
-                      const to = dropIndex(middles(), e.clientX, drag.from);
-                      setDrag({ ...drag, x: e.clientX, to });
-                      return;
-                    }
-                    const start = hold.current;
-                    if (
-                      start &&
-                      Math.hypot(e.clientX - start.x, e.clientY - start.y) >
-                        TIMELINE_HOLD_SLOP_PX
-                    ) {
+                <div className="relative h-16">
+                  <button
+                    type="button"
+                    aria-label={t('frames.clips.item', {
+                      n: index + 1,
+                      total: clips.length,
+                    })}
+                    aria-current={isChosen ? 'true' : undefined}
+                    aria-keyshortcuts="Shift+ArrowLeft Shift+ArrowRight"
+                    onClick={() => {
+                      if (dragged.current) {
+                        dragged.current = false;
+                        return;
+                      }
+                      onChoose(index);
+                    }}
+                    onKeyDown={(e) => {
+                      if (!e.shiftKey) return;
+                      if (e.key === 'ArrowLeft') onMove(index, index - 1);
+                      else if (e.key === 'ArrowRight') onMove(index, index + 1);
+                      else return;
+                      e.preventDefault();
+                    }}
+                    onContextMenu={(e) => e.preventDefault()}
+                    onPointerDown={(e) => {
+                      const target = e.currentTarget;
+                      const pointerId = e.pointerId;
+                      hold.current = {
+                        index,
+                        x: e.clientX,
+                        y: e.clientY,
+                        timer: window.setTimeout(() => {
+                          target.setPointerCapture?.(pointerId);
+                          dragged.current = true;
+                          setDrag({
+                            from: index,
+                            startX: hold.current?.x ?? 0,
+                            x: hold.current?.x ?? 0,
+                            to: index,
+                          });
+                          hold.current = null;
+                        }, TIMELINE_HOLD_MS),
+                      };
+                    }}
+                    onPointerMove={(e) => {
+                      if (drag) {
+                        const to = dropIndex(middles(), e.clientX, drag.from);
+                        setDrag({ ...drag, x: e.clientX, to });
+                        return;
+                      }
+                      const start = hold.current;
+                      if (
+                        start &&
+                        Math.hypot(e.clientX - start.x, e.clientY - start.y) >
+                          TIMELINE_HOLD_SLOP_PX
+                      ) {
+                        endHold();
+                      }
+                    }}
+                    onPointerUp={() => {
                       endHold();
-                    }
-                  }}
-                  onPointerUp={() => {
-                    endHold();
-                    if (drag) {
-                      if (drag.to !== drag.from) onMove(drag.from, drag.to);
+                      if (drag) {
+                        if (drag.to !== drag.from) onMove(drag.from, drag.to);
+                        setDrag(null);
+                      }
+                    }}
+                    onPointerCancel={() => {
+                      endHold();
                       setDrag(null);
-                    }
-                  }}
-                  onPointerCancel={() => {
-                    endHold();
-                    setDrag(null);
-                  }}
-                  className={`absolute inset-0 select-none overflow-hidden rounded-lg bg-white/10 transition-shadow ${
-                    lifted ? 'shadow-2xl ring-2 ring-white' : ''
-                  }`}
-                >
-                  <Strip
-                    clip={clip}
-                    url={urlOf(clip.file)}
-                    offsetMs={isChosen ? 0 : clip.startMs}
-                  />
-                  {isChosen ? (
-                    <>
-                      {/* The parts cut off. */}
-                      <span
-                        className="absolute inset-y-0 left-0 bg-black/60"
-                        style={{ width: pxFor(clip.startMs) }}
-                        aria-hidden
-                      />
-                      <span
-                        className="absolute inset-y-0 right-0 bg-black/60"
-                        style={{ width: pxFor(clip.ms - clip.endMs) }}
-                        aria-hidden
-                      />
-                      <span
-                        className="absolute inset-y-0 border-y-2 border-white"
-                        style={{
-                          left: pxFor(clip.startMs),
-                          width: pxFor(clip.endMs - clip.startMs),
-                        }}
-                        aria-hidden
-                      />
-                      {playheadMs !== undefined ? (
+                    }}
+                    className={`absolute inset-0 select-none overflow-hidden rounded-xl bg-white/10 transition-[opacity,box-shadow] ${
+                      lifted
+                        ? 'shadow-2xl ring-2 ring-white'
+                        : isChosen
+                          ? ''
+                          : 'opacity-70'
+                    }`}
+                  >
+                    <Strip
+                      clip={clip}
+                      url={urlOf(clip.file)}
+                      offsetMs={isChosen ? 0 : clip.startMs}
+                    />
+                    {isChosen ? (
+                      <>
+                        {/* The parts cut off. */}
                         <span
-                          className="absolute -inset-y-1 w-0.5 rounded-full bg-white shadow"
-                          style={{ left: pxFor(playheadMs) }}
+                          className="absolute inset-y-0 left-0 bg-black/60"
+                          style={{ width: pxFor(clip.startMs) }}
                           aria-hidden
                         />
-                      ) : null}
+                        <span
+                          className="absolute inset-y-0 right-0 bg-black/60"
+                          style={{ width: pxFor(clip.ms - clip.endMs) }}
+                          aria-hidden
+                        />
+                        <span
+                          className="absolute inset-y-0 border-y-2 border-white"
+                          style={{
+                            left: pxFor(clip.startMs),
+                            width: pxFor(clip.endMs - clip.startMs),
+                          }}
+                          aria-hidden
+                        />
+                        {playheadMs !== undefined ? (
+                          <span
+                            className="absolute -inset-y-1 w-0.5 rounded-full bg-white shadow"
+                            style={{ left: pxFor(playheadMs) }}
+                            aria-hidden
+                          />
+                        ) : null}
+                      </>
+                    ) : null}
+                  </button>
+                  {isChosen ? (
+                    <>
+                      {trimHandle(index, 'start')}
+                      {trimHandle(index, 'end')}
                     </>
                   ) : null}
-                </button>
-                {isChosen ? (
-                  <>
-                    {trimHandle(index, 'start')}
-                    {trimHandle(index, 'end')}
-                  </>
-                ) : null}
+                </div>
+                <span
+                  className={`text-center text-xs tabular-nums ${
+                    isChosen ? 'font-semibold text-white' : 'text-white/60'
+                  }`}
+                >
+                  {formatClipClock((clip.endMs - clip.startMs) / 1000)}
+                </span>
               </li>
             );
           })}
