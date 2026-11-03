@@ -39,6 +39,7 @@ import {
 } from '../common/policies/block.policy.js';
 import { setModerationStatus } from '../common/policies/moderation-decision.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import { isPremiumPostLocked } from '../common/policies/premium-post.policy.js';
 import {
   LISTED_POST,
   SHOWN_COMMENTS_COUNT,
@@ -609,7 +610,20 @@ export class PostsService {
       });
 
     const content = await loadViewerContent(this.prisma, currentProfileId);
-    return this.injectIsLiked(post, currentProfileId, content) as Record<
+    // A paid post not unlocked shows as the feed shows it: closed, with no
+    // picture.
+    const shown = (await isPremiumPostLocked(
+      this.prisma,
+      post,
+      currentProfileId,
+    ))
+      ? {
+          ...post,
+          isLocked: true,
+          media: post.media?.map((m) => ({ ...m, url: '', standardUrl: '' })),
+        }
+      : post;
+    return this.injectIsLiked(shown, currentProfileId, content) as Record<
       string,
       unknown
     >;

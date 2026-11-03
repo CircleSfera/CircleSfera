@@ -65,6 +65,7 @@ describe('PostsService', () => {
       findMany: vi.fn(),
       findUnique: vi.fn(),
     },
+    postUnlock: { findUnique: vi.fn().mockResolvedValue(null) },
     postMedia: {
       createMany: vi.fn(),
       create: vi.fn(),
@@ -894,6 +895,43 @@ describe('PostsService', () => {
       await expect(service.findOne('missing-id')).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('shows a paid post not unlocked closed, with no picture, and open to whoever unlocked it', async () => {
+      const paid = {
+        id: 'p-paid',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        isPremium: true,
+        profile: { id: 'author-1', privacyLevel: Visibility.PUBLIC, user: {} },
+        likes: [],
+        media: [{ url: '/uploads/a.jpg', standardUrl: '/uploads/a.webp' }],
+      };
+      mockPrismaService.post.findUnique.mockResolvedValueOnce(paid);
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'person-v',
+      });
+
+      const closed = (await service.findOne('p-paid', 'viewer-1')) as {
+        isLocked?: boolean;
+        media: { url: string; standardUrl: string }[];
+      };
+      expect(closed.isLocked).toBe(true);
+      expect(closed.media[0]).toMatchObject({ url: '', standardUrl: '' });
+
+      mockPrismaService.post.findUnique.mockResolvedValueOnce(paid);
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'person-v',
+      });
+      mockPrismaService.postUnlock.findUnique.mockResolvedValueOnce({
+        id: 'u',
+      });
+      const open = (await service.findOne('p-paid', 'viewer-1')) as {
+        isLocked?: boolean;
+        media: { url: string }[];
+      };
+      expect(open.isLocked).toBeUndefined();
+      expect(open.media[0].url).toBe('/uploads/a.jpg');
     });
 
     it('allows author to view post even if profile is private', async () => {
