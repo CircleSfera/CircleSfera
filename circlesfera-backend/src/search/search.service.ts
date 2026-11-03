@@ -1,7 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import type { Hashtag, Post } from '@prisma/client';
+import type { Hashtag, Post, Prisma } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
 import {
@@ -41,6 +41,18 @@ export interface SearchResponse {
 const SEARCH_MIN_QUERY_LENGTH = 2;
 /** How many hashtags one search answers. */
 const HASHTAG_RESULTS = 5;
+/** Tags are suggested from the first letter after #, as on Instagram. */
+const HASHTAG_MIN_QUERY_LENGTH = 1;
+/** How many people are suggested for a mention. */
+const MENTION_SUGGESTIONS = 8;
+/** What a mention suggestion shows of a Profile. */
+const MENTION_SUGGESTION_SELECT = {
+  id: true,
+  username: true,
+  fullName: true,
+  avatar: true,
+  verificationLevel: true,
+} as const;
 @Injectable()
 export class SearchService {
   private readonly logger = new Logger(SearchService.name);
@@ -367,11 +379,74 @@ export class SearchService {
   // Param viewerId: Optional ID of the user performing the search
 
   // Param verifiedOnly: only Profiles with a plan badge
+  // The people suggested while a mention is written, as on Instagram: with
+  // nothing typed yet, the people the viewer follows; then those whose
+  // username or name starts with what is typed, the ones followed first.
+  // Only Profiles that can be found: open accounts, not banned or
+  // suspended, no block either way, never the viewer.
+  async suggestMentions(query: string, viewerId: string) {
+    const typed = (query ?? '').trim().toLowerCase();
+    const findable: Prisma.ProfileWhereInput = {
+      id: { not: viewerId },
+      user: { deactivatedAt: null, isActive: true },
+      isAccountBanned: false,
+      AND: [
+        await visibleToViewerWhere(this.prisma, viewerId),
+        {
+          OR: [
+            { suspendedUntil: null },
+            { suspendedUntil: { lt: new Date() } },
+          ],
+        },
+        ...(typed
+          ? [
+              {
+                OR: [
+                  {
+                    username: {
+                      startsWith: typed,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                  {
+                    fullName: {
+                      startsWith: typed,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ],
+    };
+    const followed = await this.prisma.profile.findMany({
+      where: {
+        ...findable,
+        followers: { some: { followerId: viewerId, status: 'ACCEPTED' } },
+      },
+      orderBy: { username: 'asc' },
+      take: MENTION_SUGGESTIONS,
+      select: MENTION_SUGGESTION_SELECT,
+    });
+    if (!typed || followed.length >= MENTION_SUGGESTIONS) return followed;
+    const others = await this.prisma.profile.findMany({
+      where: {
+        ...findable,
+        NOT: { id: { in: followed.map((p) => p.id) } },
+      },
+      orderBy: { followers: { _count: 'desc' } },
+      take: MENTION_SUGGESTIONS - followed.length,
+      select: MENTION_SUGGESTION_SELECT,
+    });
+    return [...followed, ...others];
+  }
+
   // The hashtags whose text holds the query, most used first: none hidden
   // by staff, and only those used on posts the viewer can see. What the
   // combined search shows, and what a caption suggests while it is written.
   async searchHashtags(query: string, profileId?: string) {
-    if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) return [];
+    if (!query || query.length < HASHTAG_MIN_QUERY_LENGTH) return [];
     return this.prisma.hashtag.findMany({
       where: {
         tag: {

@@ -30,6 +30,7 @@ import type { Audio as AudioTrack } from '../../types';
 import { completeToken, tokenAt } from '../../utils/captionToken';
 import { postAspectClass } from '../../utils/postShape';
 import UserAvatar from '../UserAvatar';
+import { CaptionHighlight } from './CaptionHighlight';
 import CaptionSuggestions from './CaptionSuggestions';
 import InteractiveMediaPreview from './InteractiveMediaPreview';
 
@@ -52,6 +53,9 @@ interface CaptionStepProps {
 }
 
 const MAX_CAPTION_LENGTH = 2200;
+
+/** The text of the caption field, shared with the copy laid under it. */
+const CAPTION_TEXT = 'text-base leading-relaxed p-0 md:p-2.5';
 
 type OptionRow = {
   key: string;
@@ -102,6 +106,9 @@ export default function CaptionStep({
   // Where the cursor is in the caption, for the mention or tag being written.
   const [cursor, setCursor] = useState(caption.length);
   const token = tokenAt(caption, cursor);
+
+  // The copy under the caption field, kept scrolled as the field is.
+  const mirrorRef = useRef<HTMLDivElement>(null);
 
   const showTagPeople = mode !== 'FRAME' && hasImageMedia;
 
@@ -300,40 +307,39 @@ export default function CaptionStep({
                   : 'border-transparent md:border-white/8 md:bg-white/3'
               }`}
             >
-              <textarea
-                ref={textareaRef}
-                value={caption}
-                onChange={(e) => {
-                  if (e.target.value.length <= MAX_CAPTION_LENGTH + 100) {
-                    setCaption(e.target.value);
-                    setCursor(e.target.selectionStart ?? e.target.value.length);
-                    requestAnimationFrame(autoResize);
-                  }
-                }}
-                onSelect={(e) =>
-                  setCursor(e.currentTarget.selectionStart ?? caption.length)
-                }
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder={t('createPost.caption.write_caption')}
-                className="w-full bg-transparent text-white/90 border-0 resize-none focus:outline-none placeholder-white/35 text-base leading-relaxed min-h-20 max-h-40 p-0 md:p-2.5"
-                aria-label={t('createPost.caption.write_caption')}
-              />
-              {isFocused && token ? (
-                <CaptionSuggestions
-                  token={token}
-                  onPick={(value) => {
-                    const next = completeToken(caption, token, cursor, value);
-                    setCaption(next.text);
-                    setCursor(next.cursor);
-                    requestAnimationFrame(() => {
-                      const field = textareaRef.current;
-                      field?.setSelectionRange(next.cursor, next.cursor);
-                      autoResize();
-                    });
-                  }}
+              <div className="relative">
+                <CaptionHighlight
+                  ref={mirrorRef}
+                  text={caption}
+                  className={`text-white/90 ${CAPTION_TEXT}`}
                 />
-              ) : null}
+                <textarea
+                  ref={textareaRef}
+                  value={caption}
+                  onChange={(e) => {
+                    if (e.target.value.length <= MAX_CAPTION_LENGTH + 100) {
+                      setCaption(e.target.value);
+                      setCursor(
+                        e.target.selectionStart ?? e.target.value.length,
+                      );
+                      requestAnimationFrame(autoResize);
+                    }
+                  }}
+                  onSelect={(e) =>
+                    setCursor(e.currentTarget.selectionStart ?? caption.length)
+                  }
+                  onScroll={(e) => {
+                    if (mirrorRef.current) {
+                      mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
+                    }
+                  }}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  placeholder={t('createPost.caption.write_caption')}
+                  className={`relative w-full bg-transparent text-transparent caret-white border-0 resize-none focus:outline-none placeholder-white/35 min-h-20 max-h-40 ${CAPTION_TEXT}`}
+                  aria-label={t('createPost.caption.write_caption')}
+                />
+              </div>
               <div className="flex items-center justify-end md:px-2.5 md:pb-1.5">
                 <span
                   className={`text-xs font-semibold tabular-nums ${
@@ -351,17 +357,34 @@ export default function CaptionStep({
           </div>
         </div>
 
-        <div className="px-4 py-2.5 space-y-2.5 pb-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-white/50 px-1 block">
-            {t('createPost.caption.options')}
-          </span>
-          {renderRows(primaryRows)}
+        {/* While a mention or a tag is written its suggestions take the
+            place of the options, on the screen itself, as on Instagram. */}
+        <CaptionSuggestions
+          token={isFocused ? token : null}
+          onPick={(value) => {
+            if (!token) return;
+            const next = completeToken(caption, token, cursor, value);
+            setCaption(next.text);
+            setCursor(next.cursor);
+            requestAnimationFrame(() => {
+              const field = textareaRef.current;
+              field?.setSelectionRange(next.cursor, next.cursor);
+              autoResize();
+            });
+          }}
+        >
+          <div className="px-4 py-2.5 space-y-2.5 pb-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-white/50 px-1 block">
+              {t('createPost.caption.options')}
+            </span>
+            {renderRows(primaryRows)}
 
-          <span className="text-xs font-semibold uppercase tracking-wider text-white/50 px-1 block pt-0.5">
-            {t('createPost.caption.more_options')}
-          </span>
-          {renderRows(moreRows)}
-        </div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-white/50 px-1 block pt-0.5">
+              {t('createPost.caption.more_options')}
+            </span>
+            {renderRows(moreRows)}
+          </div>
+        </CaptionSuggestions>
       </div>
     </div>
   );

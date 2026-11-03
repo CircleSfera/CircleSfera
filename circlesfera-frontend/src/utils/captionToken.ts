@@ -1,5 +1,8 @@
-/** The shortest word after @ or # that is looked up, as the server asks. */
-export const SUGGEST_MIN_CHARS = 2;
+/**
+ * How much has to be typed before suggestions show, as on Instagram: people
+ * right after @ (those followed), tags from the first letter after #.
+ */
+export const SUGGEST_MIN_CHARS = { mention: 0, hashtag: 1 } as const;
 
 /** A mention or a hashtag being written, and where it starts. */
 export interface CaptionToken {

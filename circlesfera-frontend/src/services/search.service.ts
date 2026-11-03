@@ -11,6 +11,19 @@ export const searchApi = {
   searchUsers: (query: string) =>
     apiClient.get<Profile[]>(`search/users?q=${encodeURIComponent(query)}`),
 
+  // The people suggested while a mention is written: those followed first,
+  // and with nothing typed yet, only them.
+  suggestMentions: (query: string) =>
+    apiClient.get<
+      {
+        id: string;
+        username: string;
+        fullName?: string | null;
+        avatar?: string | null;
+        verificationLevel?: string | null;
+      }[]
+    >(`search/mentions?q=${encodeURIComponent(query)}`),
+
   // The hashtags whose text holds the query, most used first.
   searchHashtags: (query: string) =>
     apiClient.get<{ id: string; tag: string; postCount?: number }[]>(

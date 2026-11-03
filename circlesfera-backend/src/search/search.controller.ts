@@ -112,6 +112,18 @@ export class SearchController {
     );
   }
 
+  // The people suggested while a mention is written; none typed yet is fine.
+  @Get('mentions')
+  @MemberAllowed('browse')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
+  suggestMentions(
+    @Query('q') query: string | undefined,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.searchService.suggestMentions(query ?? '', user.profileId);
+  }
+
   // The hashtags whose text holds the query, for suggestions while writing.
   @Get('hashtags')
   @MemberAllowed('browse')

@@ -5,7 +5,7 @@ import { renderWithProviders } from '../../test/test-utils';
 import CaptionSuggestions from './CaptionSuggestions';
 
 vi.mock('../../services/search.service', () => ({
-  searchApi: { searchUsers: vi.fn(), searchHashtags: vi.fn() },
+  searchApi: { suggestMentions: vi.fn(), searchHashtags: vi.fn() },
 }));
 vi.mock('../../hooks/useDebouncedValue', () => ({
   useDebouncedValue: (value: unknown) => value,
@@ -14,7 +14,7 @@ vi.mock('../../hooks/useDebouncedValue', () => ({
 describe('CaptionSuggestions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(searchApi.searchUsers).mockResolvedValue({
+    vi.mocked(searchApi.suggestMentions).mockResolvedValue({
       data: [{ id: 'p1', username: 'ana', fullName: 'Ana' }],
     } as never);
     vi.mocked(searchApi.searchHashtags).mockResolvedValue({
@@ -31,7 +31,7 @@ describe('CaptionSuggestions', () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: /@ana/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /ana/ }));
     expect(onPick).toHaveBeenCalledWith('ana');
     expect(searchApi.searchHashtags).not.toHaveBeenCalled();
   });
@@ -49,15 +49,54 @@ describe('CaptionSuggestions', () => {
     expect(onPick).toHaveBeenCalledWith('mar');
   });
 
-  it('looks nothing up for a word too short', async () => {
+  it('offers the people followed right after @, before any letter', async () => {
     renderWithProviders(
       <CaptionSuggestions
-        token={{ kind: 'mention', query: 'a', start: 0 }}
+        token={{ kind: 'mention', query: '', start: 0 }}
         onPick={vi.fn()}
       />,
     );
 
-    await waitFor(() => expect(searchApi.searchUsers).not.toHaveBeenCalled());
+    expect(await screen.findByRole('button', { name: /ana/ })).toBeVisible();
+    expect(searchApi.suggestMentions).toHaveBeenCalledWith('');
+  });
+
+  it('looks no tag up before the first letter after #', async () => {
+    renderWithProviders(
+      <CaptionSuggestions
+        token={{ kind: 'hashtag', query: '', start: 0 }}
+        onPick={vi.fn()}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(searchApi.searchHashtags).not.toHaveBeenCalled(),
+    );
     expect(screen.queryByRole('list')).toBeNull();
+  });
+
+  it('shows what is under it when there is nothing to suggest, with no list', async () => {
+    renderWithProviders(
+      <CaptionSuggestions token={null} onPick={vi.fn()}>
+        <p>opciones</p>
+      </CaptionSuggestions>,
+    );
+
+    expect(screen.getByText('opciones')).toBeInTheDocument();
+    expect(screen.queryByRole('list')).toBeNull();
+  });
+
+  it('takes the place of what is under it while it suggests', async () => {
+    renderWithProviders(
+      <CaptionSuggestions
+        token={{ kind: 'mention', query: 'an', start: 0 }}
+        onPick={vi.fn()}
+      >
+        <p>opciones</p>
+      </CaptionSuggestions>,
+    );
+
+    await screen.findByRole('button', { name: /ana/ });
+    expect(screen.queryByText('opciones')).toBeNull();
   });
 });

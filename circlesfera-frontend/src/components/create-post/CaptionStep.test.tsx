@@ -21,7 +21,7 @@ const suggest = vi.hoisted(() => ({
 vi.mock('./CaptionSuggestions', () => ({
   default: (props: Record<string, any>) => {
     suggest.props = props;
-    return <div data-testid="suggestions" />;
+    return props.token ? <div data-testid="suggestions" /> : props.children;
   },
 }));
 

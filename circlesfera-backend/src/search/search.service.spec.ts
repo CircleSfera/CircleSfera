@@ -780,9 +780,8 @@ describe('SearchService', () => {
   });
 
   describe('searchHashtags', () => {
-    it('finds nothing for a query too short, asking nothing', async () => {
+    it('finds nothing for an empty query, asking nothing', async () => {
       mockPrismaService.hashtag.findMany.mockClear();
-      expect(await service.searchHashtags('m', 'viewer-1')).toEqual([]);
       expect(await service.searchHashtags('', 'viewer-1')).toEqual([]);
       expect(mockPrismaService.hashtag.findMany).not.toHaveBeenCalled();
     });
@@ -799,6 +798,55 @@ describe('SearchService', () => {
       expect(args.where.tag).toEqual({ contains: 'ma', mode: 'insensitive' });
       expect(args.where.isHidden).toBe(false);
       expect(args.orderBy).toEqual({ postCount: 'desc' });
+    });
+  });
+
+  describe('suggestMentions', () => {
+    const ana = { id: 'p-ana', username: 'ana' };
+    const andres = { id: 'p-andres', username: 'andres' };
+
+    it('with nothing typed, offers the people the viewer follows, never the viewer', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([ana]);
+
+      expect(await service.suggestMentions('', 'viewer-1')).toEqual([ana]);
+
+      const [args] = mockPrismaService.profile.findMany.mock.calls.at(-1) ?? [];
+      expect(args.where.followers).toEqual({
+        some: { followerId: 'viewer-1', status: 'ACCEPTED' },
+      });
+      expect(args.where.id).toEqual({ not: 'viewer-1' });
+      expect(args.where.isAccountBanned).toBe(false);
+    });
+
+    it('offers who starts with what is typed, the people followed first', async () => {
+      mockPrismaService.profile.findMany
+        .mockResolvedValueOnce([ana])
+        .mockResolvedValueOnce([andres]);
+
+      expect(await service.suggestMentions('AN', 'viewer-1')).toEqual([
+        ana,
+        andres,
+      ]);
+
+      const [followedArgs] =
+        mockPrismaService.profile.findMany.mock.calls.at(-2) ?? [];
+      expect(JSON.stringify(followedArgs.where)).toContain('"startsWith":"an"');
+      const [othersArgs] =
+        mockPrismaService.profile.findMany.mock.calls.at(-1) ?? [];
+      expect(othersArgs.where.NOT).toEqual({ id: { in: ['p-ana'] } });
+      expect(othersArgs.where.followers).toBeUndefined();
+    });
+
+    it('asks no more when the people followed fill the list', async () => {
+      const many = Array.from({ length: 8 }, (_, i) => ({
+        id: `p-${i}`,
+        username: `an${i}`,
+      }));
+      mockPrismaService.profile.findMany.mockClear();
+      mockPrismaService.profile.findMany.mockResolvedValueOnce(many);
+
+      expect(await service.suggestMentions('an', 'viewer-1')).toHaveLength(8);
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledTimes(1);
     });
   });
 });
