@@ -1,15 +1,14 @@
-// Must stay aligned with backend `uploads.controller.ts` and nginx `client_max_body_size`.
-export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
-export const MAX_UPLOAD_MB = 100;
-
-/** Keep in sync with backend `media-duration.constants.ts`. */
-export const FRAME_MIN_DURATION_SEC = 15;
-export const FRAME_MAX_DURATION_SEC = 90;
-export const STORY_MAX_DURATION_SEC = 60;
-export const POST_MAX_DURATION_SEC = 300;
-
-/** Keep in sync with backend `post-media.constants.ts`. */
-export const POST_MAX_MEDIA_ITEMS = 20;
+// The limits the app and the server share; the server and nginx's
+// `client_max_body_size` follow the same upload size.
+export {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+  MAX_UPLOAD_BYTES,
+  MAX_UPLOAD_MB,
+  POST_MAX_DURATION_SEC,
+  POST_MAX_MEDIA_ITEMS,
+  STORY_MAX_DURATION_SEC,
+} from '@circlesfera/shared';
 
 /** Probe video duration via HTMLVideoElement metadata. */
 export function probeVideoDuration(file: File): Promise<number> {

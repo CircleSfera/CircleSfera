@@ -896,6 +896,38 @@ describe('PostsService', () => {
       );
     });
 
+    it('runs the paywall on the post once its media addresses are resolved, and answers what it gives', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'p-paid',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        isPremium: true,
+        profile: { id: 'author-1', privacyLevel: Visibility.PUBLIC, user: {} },
+        likes: [],
+        // As a post is created: the row points at its Media, whose own
+        // addresses are the ones shown.
+        media: [
+          {
+            url: '/uploads/old.jpg',
+            media: { url: '/uploads/a.jpg', standardUrl: '/uploads/a.webp' },
+          },
+        ],
+      });
+      const closed = { id: 'p-paid', isLocked: true };
+      mockPostPaywallService.applyPaywall.mockResolvedValueOnce([closed]);
+
+      const shown = await service.findOne('p-paid', 'viewer-1');
+
+      const [[[given], viewer]] =
+        mockPostPaywallService.applyPaywall.mock.calls.slice(-1);
+      expect(viewer).toBe('viewer-1');
+      expect(given.media[0]).toMatchObject({
+        url: '/uploads/a.jpg',
+        standardUrl: '/uploads/a.webp',
+      });
+      expect(shown).toBe(closed);
+    });
+
     it('allows author to view post even if profile is private', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
         id: 'p-1',

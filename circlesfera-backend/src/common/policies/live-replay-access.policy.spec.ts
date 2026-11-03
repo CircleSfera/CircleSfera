@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   canSeeProfileLives,
   canWatchLiveReplay,
+  replaysListedFor,
 } from './live-replay-access.policy.js';
 
 describe('live replay access', () => {
@@ -11,6 +12,7 @@ describe('live replay access', () => {
     profile: { findUnique: vi.fn(), findMany: vi.fn() },
     user: { findMany: vi.fn() },
     follow: { findUnique: vi.fn() },
+    closeFriend: { findUnique: vi.fn() },
   };
   const reader = db as unknown as Prisma.TransactionClient;
 
@@ -21,6 +23,7 @@ describe('live replay access', () => {
     db.user.findMany.mockResolvedValue([]);
     db.profile.findUnique.mockResolvedValue({ privacyLevel: 'PUBLIC' });
     db.follow.findUnique.mockResolvedValue(null);
+    db.closeFriend.findUnique.mockResolvedValue(null);
   });
 
   describe('canSeeProfileLives', () => {
@@ -60,6 +63,7 @@ describe('live replay access', () => {
       hostId: 'host',
       publishedAt: new Date(),
       endedByStaff: false,
+      audience: 'EVERYONE' as const,
     };
 
     it('gives a recording of a broadcast ended by staff to no one', async () => {
@@ -82,6 +86,42 @@ describe('live replay access', () => {
       expect(await canWatchLiveReplay(reader, replay, 'viewer')).toBe(true);
       db.block.findFirst.mockResolvedValue({ id: 'b' });
       expect(await canWatchLiveReplay(reader, replay, 'viewer')).toBe(false);
+    });
+
+    it('keeps a recording of a live for close friends for them', async () => {
+      const forFriends = { ...replay, audience: 'CLOSE_FRIENDS' as const };
+      expect(await canWatchLiveReplay(reader, forFriends, 'viewer')).toBe(
+        false,
+      );
+      expect(await canWatchLiveReplay(reader, forFriends, undefined)).toBe(
+        false,
+      );
+      db.closeFriend.findUnique.mockResolvedValue({ id: 'cf' });
+      expect(await canWatchLiveReplay(reader, forFriends, 'viewer')).toBe(true);
+      expect(await canWatchLiveReplay(reader, forFriends, 'host')).toBe(true);
+    });
+
+    it('gives a practice to no one but its host', async () => {
+      const practice = { ...replay, audience: 'PRACTICE' as const };
+      db.closeFriend.findUnique.mockResolvedValue({ id: 'cf' });
+      expect(await canWatchLiveReplay(reader, practice, 'viewer')).toBe(false);
+      expect(await canWatchLiveReplay(reader, practice, 'host')).toBe(true);
+    });
+  });
+
+  describe('replaysListedFor', () => {
+    it('lists every recording to the host, and to others those for them', () => {
+      expect(replaysListedFor('host', 'host')).toEqual({});
+      expect(replaysListedFor('host', null)).toEqual({ audience: 'EVERYONE' });
+      expect(replaysListedFor('host', 'viewer')).toEqual({
+        OR: [
+          { audience: 'EVERYONE' },
+          {
+            audience: 'CLOSE_FRIENDS',
+            host: { closeFriends: { some: { friendId: 'viewer' } } },
+          },
+        ],
+      });
     });
   });
 });

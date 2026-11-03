@@ -3,6 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../common/errors/app.exception.js';
+import { replaysListedFor } from '../../common/policies/live-replay-access.policy.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import type { UploadsService } from '../../uploads/uploads.service.js';
 import {
@@ -197,6 +198,8 @@ describe('LiveRecordingsService', () => {
             endedByStaff: false,
             recordingStatus: 'READY',
             publishedAt: { not: null },
+            // Only the recordings of lives that were for the viewer.
+            AND: [replaysListedFor('host', 'viewer')],
           },
           take: 3,
           cursor: { id: 'z' },

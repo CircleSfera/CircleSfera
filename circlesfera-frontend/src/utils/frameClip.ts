@@ -1,14 +1,10 @@
+import { FRAME_DURATION_PRESETS } from '@circlesfera/shared';
 import {
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
 } from '../constants/uploadLimits';
 
-export const FRAME_DURATION_PRESETS = [
-  FRAME_MIN_DURATION_SEC,
-  30,
-  60,
-  FRAME_MAX_DURATION_SEC,
-] as const;
+export { FRAME_DURATION_PRESETS };
 
 export type FrameDurationPreset = (typeof FRAME_DURATION_PRESETS)[number];
 
@@ -32,7 +28,7 @@ export function availableFramePresets(
 }
 
 /**
- * Default window: from t=0 for min(source, 90) seconds.
+ * Default window: from t=0 for min(source, FRAME_MAX_DURATION_SEC) seconds.
  * Caller must ensure sourceSec >= FRAME_MIN_DURATION_SEC.
  */
 export function defaultFrameWindow(sourceSec: number): FrameClipWindow {
@@ -41,7 +37,7 @@ export function defaultFrameWindow(sourceSec: number): FrameClipWindow {
 
 /**
  * Clamp a start + desired length into a valid Frame window.
- * Length is forced into [15, min(90, source)].
+ * Length is forced into [FRAME_MIN_DURATION_SEC, min(FRAME_MAX_DURATION_SEC, source)].
  */
 export function clampFrameWindow(
   sourceSec: number,

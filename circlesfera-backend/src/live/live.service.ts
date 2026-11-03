@@ -1,8 +1,8 @@
 import type { UserSessionTerminateEvent } from '@circlesfera/shared';
-import { ErrorCode } from '@circlesfera/shared';
+import { DEFAULT_LIVE_AUDIENCE, ErrorCode } from '@circlesfera/shared';
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import type { Prisma } from '@prisma/client';
+import type { LiveAudience, Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   isBlockedEitherWay,
@@ -12,30 +12,15 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import {
+  canWatchStream,
+  HOST_SHOWN_SELECT,
+  hostShown,
+  listedForViewer,
+} from './live-audience.js';
 import { isStreamCoHost, isStreamHost } from './live-authorization.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
 import { LiveRecordingService } from './recording/live-recording.service.js';
-
-// A stream is shown only while its host may be seen: not banned, not
-// suspended, and with an account that is open.
-const HOST_SHOWN_SELECT = {
-  isAccountBanned: true,
-  suspendedUntil: true,
-  user: { select: { isActive: true, deactivatedAt: true } },
-} as const;
-
-function hostShown(host: {
-  isAccountBanned: boolean;
-  suspendedUntil: Date | null;
-  user: { isActive: boolean; deactivatedAt: Date | null } | null;
-}): boolean {
-  return (
-    !host.isAccountBanned &&
-    (!host.suspendedUntil || host.suspendedUntil < new Date()) &&
-    !!host.user?.isActive &&
-    !host.user.deactivatedAt
-  );
-}
 
 // A ban of the Profile or of the whole account, or a suspension still
 // running: a decision of staff.
@@ -95,7 +80,11 @@ export class LiveService {
     }
   }
 
-  async startStream(hostProfileId: string, title?: string) {
+  async startStream(
+    hostProfileId: string,
+    title?: string,
+    audience: LiveAudience = DEFAULT_LIVE_AUDIENCE,
+  ) {
     await this.assertLiveEnabled();
 
     // Serialize concurrent startStream calls per-host so that at most
@@ -118,6 +107,7 @@ export class LiveService {
             data: {
               hostId: hostProfileId,
               title,
+              audience,
               status: 'LIVE',
             },
           });
@@ -131,7 +121,11 @@ export class LiveService {
         // Not waited for: the host is on air whether or not the recorder
         // has started. A broadcast ended above has its recording stopped by
         // the recorder's check.
-        void this.recording.start(stream.id, hostProfileId);
+        // A practice is only for checking light, sound and connection: it
+        // is not recorded.
+        if (audience !== 'PRACTICE') {
+          void this.recording.start(stream.id, hostProfileId);
+        }
         return { stream, token };
       } finally {
         this.startStreamInFlight.delete(hostProfileId);
@@ -156,7 +150,8 @@ export class LiveService {
     if (
       stream?.status !== 'LIVE' ||
       !hostShown(stream.host) ||
-      (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId))
+      (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId)) ||
+      !(await canWatchStream(this.prisma, stream, viewerProfileId))
     ) {
       throw AppException.NotFound(
         ErrorCode.STREAM_NOT_FOUND,
@@ -289,6 +284,8 @@ export class LiveService {
           ...(await visibleToViewerWhere(this.prisma, viewerProfileId)),
           AND: [HOST_SHOWN_WHERE()],
         },
+        // Who each live is for: a practice is never listed.
+        AND: [listedForViewer(viewerProfileId)],
       },
       include: {
         host: {
@@ -326,7 +323,8 @@ export class LiveService {
     if (
       !stream ||
       !hostShown(stream.host) ||
-      (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId))
+      (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId)) ||
+      !(await canWatchStream(this.prisma, stream, viewerProfileId))
     )
       throw AppException.NotFound(
         ErrorCode.STREAM_NOT_FOUND,
