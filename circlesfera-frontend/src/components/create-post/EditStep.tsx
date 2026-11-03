@@ -26,9 +26,10 @@ import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
 import {
   CREATE_GLASS_CHIP,
   CREATE_GLASS_ICON,
-  CREATE_PANEL,
   CREATE_THUMB,
   CREATE_TOOL,
+  CREATE_TOOL_ICON,
+  CREATE_TOOL_ROW,
 } from './createStyles';
 import MediaOrderSheet from './MediaOrderSheet';
 import QuickFilterRow from './QuickFilterRow';
@@ -405,11 +406,17 @@ export default function EditStep({
       ) : null}
 
       {!onEditMedia ? (
-        <div className="px-4 pb-1 shrink-0">
+        // A line across, as in the full editor, keeps the tools apart from
+        // the filters above them on every size.
+        <div className="mt-2 border-t border-white/8 px-4 pt-2 pb-1 shrink-0">
           <div
             role="toolbar"
             aria-label={t('createPost.edit.edit_media')}
-            className={`flex items-stretch gap-1 p-1 md:max-w-sm md:mx-auto ${CREATE_PANEL}`}
+            // On a narrow screen the tools take two lines rather than leave it.
+            className={`${CREATE_TOOL_ROW} flex-wrap`}
+            style={
+              frameSize.width > 0 ? { maxWidth: frameSize.width } : undefined
+            }
           >
             {tools.map(({ tab, icon: Icon, label }) => (
               <button
@@ -418,7 +425,12 @@ export default function EditStep({
                 onClick={() => openEditor(selectedIndex, tab)}
                 className={CREATE_TOOL}
               >
-                <Icon size={20} strokeWidth={1.75} aria-hidden />
+                <Icon
+                  size={20}
+                  strokeWidth={1.75}
+                  className={CREATE_TOOL_ICON}
+                  aria-hidden
+                />
                 {label}
               </button>
             ))}

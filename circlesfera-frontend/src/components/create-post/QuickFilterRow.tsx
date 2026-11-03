@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PHOTO_FILTERS } from '../photo-editor/photoEditor.constants';
 import { CREATE_QUICK_THUMB } from './createStyles';
@@ -23,48 +24,75 @@ export default function QuickFilterRow({
   onSelect,
 }: QuickFilterRowProps) {
   const { t } = useTranslation();
+  // The fade shows only while there are more filters past the right edge.
+  const strip = useRef<HTMLFieldSetElement>(null);
+  const [more, setMore] = useState(false);
+  const measure = useCallback(() => {
+    const el = strip.current;
+    if (!el) return;
+    setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+  useEffect(() => {
+    measure();
+    const el = strip.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measure]);
 
   return (
-    <fieldset
-      aria-label={t('createPost.edit.tab_filters')}
-      className="flex overflow-x-auto items-start gap-3 px-4 py-2 scroll-px-4 no-scrollbar snap-x touch-pan-x shrink-0 border-0 m-0 min-w-0"
-    >
-      {PHOTO_FILTERS.map((filter) => {
-        const isSelected = filter.class === selectedClass;
-        return (
-          <button
-            type="button"
-            key={filter.name}
-            onClick={() => onSelect(filter.class)}
-            aria-pressed={isSelected}
-            className="flex flex-col items-center gap-1.5 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg snap-start"
-          >
-            <div
-              style={{ aspectRatio: ratio }}
-              className={`${CREATE_QUICK_THUMB} transition-colors ${
-                isSelected ? 'border-brand-primary' : 'border-white/10'
-              }`}
+    // The strip scrolls inside the side margins, so the filter it cuts is
+    // never flush with the edge; a short fade says there are more.
+    <div className="shrink-0 min-w-0 px-4">
+      <fieldset
+        ref={strip}
+        onScroll={measure}
+        data-more={more || undefined}
+        aria-label={t('createPost.edit.tab_filters')}
+        className={`flex overflow-x-auto items-start gap-3 py-2 no-scrollbar snap-x touch-pan-x border-0 m-0 min-w-0 ${
+          more
+            ? '[mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]'
+            : ''
+        }`}
+      >
+        {PHOTO_FILTERS.map((filter) => {
+          const isSelected = filter.class === selectedClass;
+          return (
+            <button
+              type="button"
+              key={filter.name}
+              onClick={() => onSelect(filter.class)}
+              aria-pressed={isSelected}
+              className="flex flex-col items-center gap-1.5 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg snap-start"
             >
-              {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className={`w-full h-full object-cover ${filter.class}`}
-                />
-              ) : (
-                <div className="w-full h-full bg-white/8" />
-              )}
-            </div>
-            <span
-              className={`text-xs font-medium leading-none ${
-                isSelected ? 'text-white' : 'text-white/55'
-              }`}
-            >
-              {filter.name}
-            </span>
-          </button>
-        );
-      })}
-    </fieldset>
+              <div
+                style={{ aspectRatio: ratio }}
+                className={`${CREATE_QUICK_THUMB} transition-colors ${
+                  isSelected ? 'border-brand-primary' : 'border-white/10'
+                }`}
+              >
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className={`w-full h-full object-cover ${filter.class}`}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-white/8" />
+                )}
+              </div>
+              <span
+                className={`text-xs font-medium leading-none ${
+                  isSelected ? 'text-white' : 'text-white/55'
+                }`}
+              >
+                {filter.name}
+              </span>
+            </button>
+          );
+        })}
+      </fieldset>
+    </div>
   );
 }

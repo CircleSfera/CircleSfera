@@ -6,7 +6,12 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { CREATE_PANEL, CREATE_TOOL } from '../create-post/createStyles';
+import {
+  CREATE_TOOL,
+  CREATE_TOOL_ACTIVE,
+  CREATE_TOOL_ICON,
+  CREATE_TOOL_ROW,
+} from '../create-post/createStyles';
 import type { PhotoEditorState } from './usePhotoEditor';
 
 export default function PhotoEditorTabs({
@@ -23,7 +28,7 @@ export default function PhotoEditorTabs({
       role="presentation"
     >
       <div
-        className={`flex w-full md:max-w-sm gap-1 p-1 ${CREATE_PANEL}`}
+        className={CREATE_TOOL_ROW}
         role="tablist"
         aria-label={t('createPost.edit.filters_adjustments')}
       >
@@ -75,11 +80,14 @@ export default function PhotoEditorTabs({
                   setActiveTab(tab.id);
                   if (tab.id === 'OVERLAY') setDrawMode(false);
                 }}
-                className={`${CREATE_TOOL} ${
-                  isActive ? 'bg-brand-primary/20 text-white!' : ''
-                }`}
+                className={`${CREATE_TOOL} ${isActive ? CREATE_TOOL_ACTIVE : ''}`}
               >
-                <Icon size={20} strokeWidth={isActive ? 2 : 1.75} aria-hidden />
+                <Icon
+                  size={20}
+                  strokeWidth={isActive ? 2 : 1.75}
+                  className={CREATE_TOOL_ICON}
+                  aria-hidden
+                />
                 <span>{tab.label}</span>
               </button>
             );
