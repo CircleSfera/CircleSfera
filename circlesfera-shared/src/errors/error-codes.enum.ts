@@ -90,6 +90,12 @@ export enum ErrorCode {
   ONLY_HOST_CAN_REMOVE = 'ONLY_HOST_CAN_REMOVE',
   CANNOT_INVITE_SELF = 'CANNOT_INVITE_SELF',
   NOT_A_COHOST = 'NOT_A_COHOST',
+  // A live has as many guests invited or on air as it may.
+  LIVE_GUESTS_FULL = 'LIVE_GUESTS_FULL',
+  // The Profile is already invited to the live, or on air in it.
+  LIVE_GUEST_ALREADY_INVITED = 'LIVE_GUEST_ALREADY_INVITED',
+  // The Profile is not invited to the live, or not on air in it.
+  NOT_A_LIVE_GUEST = 'NOT_A_LIVE_GUEST',
   CANNOT_GIFT_SELF = 'CANNOT_GIFT_SELF',
   GIFT_NOT_FOUND = 'GIFT_NOT_FOUND',
   CANNOT_RECONNECT_GUEST = 'CANNOT_RECONNECT_GUEST',

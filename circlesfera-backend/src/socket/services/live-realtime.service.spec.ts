@@ -33,8 +33,8 @@ describe('LiveRealtimeService', () => {
     it('lets in to the room of a live for everyone on air, and keeps out of an ended one', async () => {
       const live = {
         status: 'LIVE',
+        id: 'stream-1',
         hostId: 'host',
-        coHostId: null,
         audience: 'EVERYONE',
         host: {
           isAccountBanned: false,
@@ -128,59 +128,78 @@ describe('LiveRealtimeService', () => {
     });
   });
 
-  describe('isStreamHostOrCoHost', () => {
+  describe('isStreamHostOrOnAirGuest', () => {
     it('returns true when profile is stream host', async () => {
       prisma.liveStream.findUnique.mockResolvedValue({
         hostId: 'profile-host',
-        coHostId: null,
+        guests: [],
       });
 
-      const isHost = await service.isStreamHostOrCoHost(
-        'stream-1',
-        'profile-host',
-      );
-      expect(isHost).toBe(true);
+      expect(
+        await service.isStreamHostOrOnAirGuest('stream-1', 'profile-host'),
+      ).toBe(true);
     });
 
-    it('returns true when profile is stream co-host', async () => {
+    it('returns true for a guest on air, reading only their own row', async () => {
       prisma.liveStream.findUnique.mockResolvedValue({
         hostId: 'profile-host',
-        coHostId: 'profile-cohost',
+        guests: [{ status: 'ON_AIR' }],
       });
 
-      const isCoHost = await service.isStreamHostOrCoHost(
-        'stream-1',
-        'profile-cohost',
-      );
-      expect(isCoHost).toBe(true);
+      expect(
+        await service.isStreamHostOrOnAirGuest('stream-1', 'profile-guest'),
+      ).toBe(true);
+      expect(prisma.liveStream.findUnique).toHaveBeenCalledWith({
+        where: { id: 'stream-1' },
+        select: {
+          hostId: true,
+          guests: {
+            where: { profileId: 'profile-guest' },
+            select: { status: true },
+          },
+        },
+      });
     });
 
-    it('returns false when profile is neither host nor cohost', async () => {
+    it('returns false for a guest only invited, or out of the live', async () => {
+      for (const status of ['INVITED', 'LEFT', 'REMOVED', 'DECLINED']) {
+        prisma.liveStream.findUnique.mockResolvedValue({
+          hostId: 'profile-host',
+          guests: [{ status }],
+        });
+        expect(
+          await service.isStreamHostOrOnAirGuest('stream-1', 'profile-guest'),
+        ).toBe(false);
+      }
+    });
+
+    it('returns false when profile is neither host nor guest', async () => {
       prisma.liveStream.findUnique.mockResolvedValue({
         hostId: 'profile-host',
-        coHostId: 'profile-cohost',
+        guests: [],
       });
 
-      const result = await service.isStreamHostOrCoHost(
-        'stream-1',
-        'viewer-profile',
-      );
-      expect(result).toBe(false);
+      expect(
+        await service.isStreamHostOrOnAirGuest('stream-1', 'viewer-profile'),
+      ).toBe(false);
     });
 
     it('returns false if stream is not found', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(null);
 
-      const result = await service.isStreamHostOrCoHost(
-        'stream-nonexistent',
-        'viewer-profile',
-      );
-      expect(result).toBe(false);
+      expect(
+        await service.isStreamHostOrOnAirGuest(
+          'stream-nonexistent',
+          'viewer-profile',
+        ),
+      ).toBe(false);
     });
 
     it('returns false when streamId or profileId is empty', async () => {
-      expect(await service.isStreamHostOrCoHost('', 'prof-1')).toBe(false);
-      expect(await service.isStreamHostOrCoHost('stream-1', '')).toBe(false);
+      expect(await service.isStreamHostOrOnAirGuest('', 'prof-1')).toBe(false);
+      expect(await service.isStreamHostOrOnAirGuest('stream-1', '')).toBe(
+        false,
+      );
     });
   });
 

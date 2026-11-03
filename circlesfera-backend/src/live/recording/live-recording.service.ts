@@ -23,7 +23,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { UploadsService } from '../../uploads/uploads.service.js';
 import {
   COHOST_PARTS_MAX,
-  coHostFileName,
+  guestFileName,
   hostFileName,
   RECORDER_FOLDER,
   RECORDING_ENCODING,
@@ -77,7 +77,7 @@ interface RunningStream {
 /**
  * Records broadcasts with the environment's own recorder (LiveKit egress),
  * keeping what each person already sends: the host's camera and microphone
- * in one MP4 file, and each co-host's in files of their own, in the
+ * in one MP4 file, and each guest's in files of their own, in the
  * recorder's folder. No browser films the screen; the replay composes the
  * parts afterwards. Switched on by LIVE_RECORDING_ENABLED, only where the
  * environment runs its own recorder. Nothing here stops a broadcast: a
@@ -319,11 +319,13 @@ export class LiveRecordingService {
   }
 
   /**
-   * Starts recording a co-host who has just joined a broadcast being
-   * recorded, as a part of its own. A co-host already being recorded is not
-   * recorded twice; one who joins again has a new part. Never throws.
+   * Starts recording a guest who has just gone on air in a broadcast being
+   * recorded, as a part of its own that names them. A guest already being
+   * recorded is not recorded twice; one who joins again has a new part. The
+   * guests of a broadcast keep COHOST_PARTS_MAX parts at most, all together.
+   * Never throws.
    */
-  async startCoHost(streamId: string, coHostProfileId: string): Promise<void> {
+  async startCoHost(streamId: string, guestProfileId: string): Promise<void> {
     if (!this.isEnabled()) return;
     let part: { id: string; file: string };
     try {
@@ -334,7 +336,7 @@ export class LiveRecordingService {
           recordingStatus: true,
           recordingParts: {
             where: { role: 'COHOST' },
-            select: { egressId: true, status: true },
+            select: { egressId: true, status: true, profileId: true },
           },
         },
       });
@@ -343,33 +345,35 @@ export class LiveRecordingService {
       }
       const parts = stream.recordingParts;
       if (parts.length >= COHOST_PARTS_MAX) return;
-      for (const other of parts) {
+      const own = parts.filter((other) => other.profileId === guestProfileId);
+      for (const other of own) {
         if (other.status === 'RECORDING' && (await this.running(other))) {
           return;
         }
       }
-      // Two joins at the same moment name the same file: one of them is
-      // refused by the file's uniqueness.
+      // Two joins of one guest at the same moment name the same file: one
+      // of them is refused by the file's uniqueness.
       part = await this.prisma.liveRecordingPart.create({
         data: {
           streamId,
           role: 'COHOST',
-          file: coHostFileName(streamId, parts.length + 1),
+          profileId: guestProfileId,
+          file: guestFileName(streamId, guestProfileId, own.length + 1),
         },
         select: { id: true, file: true },
       });
     } catch (error: unknown) {
       this.logger.warn(
-        `The co-host of broadcast ${streamId} could not be placed for recording: ${errorText(error)}`,
+        `A guest of broadcast ${streamId} could not be placed for recording: ${errorText(error)}`,
       );
       return;
     }
 
     try {
-      await this.startPart(streamId, coHostProfileId, part);
+      await this.startPart(streamId, guestProfileId, part);
     } catch (error: unknown) {
       this.logger.error(
-        `The co-host of broadcast ${streamId} could not be recorded: ${errorText(error)}`,
+        `A guest of broadcast ${streamId} could not be recorded: ${errorText(error)}`,
       );
       await this.failPart(part.id).catch(() => undefined);
       await this.stopStrayJobs(streamId, [part.file]);
@@ -388,12 +392,16 @@ export class LiveRecordingService {
   }
 
   /**
-   * Asks the recorder to finish the co-host's part of a broadcast, when the
-   * co-host leaves it. Never throws: a part not stopped now ends when the
-   * co-host's device leaves, or with the broadcast.
+   * Asks the recorder to finish one guest's part of a broadcast, when that
+   * guest leaves it; the other guests go on being recorded. Never throws: a
+   * part not stopped now ends when the guest's device leaves, or with the
+   * broadcast.
    */
-  async stopCoHost(streamId: string): Promise<void> {
-    await this.stopParts(streamId, 'COHOST');
+  async stopCoHost(streamId: string, guestProfileId: string): Promise<void> {
+    await this.stopParts(streamId, {
+      role: 'COHOST',
+      profileId: guestProfileId,
+    });
   }
 
   /**
@@ -440,7 +448,7 @@ export class LiveRecordingService {
 
   private async stopParts(
     streamId: string,
-    role?: LiveRecordingRole,
+    only: { role: LiveRecordingRole; profileId: string } | null = null,
   ): Promise<void> {
     if (!this.isEnabled()) return;
     try {
@@ -449,7 +457,7 @@ export class LiveRecordingService {
           streamId,
           status: 'RECORDING',
           egressId: { not: null },
-          ...(role ? { role } : {}),
+          ...(only ?? {}),
         },
         select: { egressId: true },
       });

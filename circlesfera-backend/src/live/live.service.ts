@@ -2,7 +2,7 @@ import type { UserSessionTerminateEvent } from '@circlesfera/shared';
 import { DEFAULT_LIVE_AUDIENCE, ErrorCode } from '@circlesfera/shared';
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import type { LiveAudience, Prisma } from '@prisma/client';
+import type { LiveAudience, LiveGuestStatus, Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   isBlockedEitherWay,
@@ -18,7 +18,17 @@ import {
   hostShown,
   listedForViewer,
 } from './live-audience.js';
-import { isStreamCoHost, isStreamHost } from './live-authorization.js';
+import { isStreamHost } from './live-authorization.js';
+import {
+  GUEST_PLACE_STATUSES,
+  type GuestRefusal,
+  hasPlace,
+  refuseAccept,
+  refuseDecline,
+  refuseInvite,
+  refuseLeave,
+  refuseRemove,
+} from './live-guest.policy.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
 import { LiveRecordingService } from './recording/live-recording.service.js';
 
@@ -41,6 +51,53 @@ const HOST_SHOWN_WHERE = (): Prisma.ProfileWhereInput => ({
   OR: [{ suspendedUntil: null }, { suspendedUntil: { lt: new Date() } }],
   user: { isActive: true, deactivatedAt: null },
 });
+
+// A live's guests with a place, as a live answers them: those on air first,
+// in the order they went on air, then those invited, in the order invited.
+const GUESTS_WITH_PLACE = {
+  where: { status: { in: [...GUEST_PLACE_STATUSES] } },
+  select: {
+    profileId: true,
+    status: true,
+    profile: { select: { username: true, avatar: true } },
+  },
+  orderBy: [{ joinedAt: { sort: 'asc', nulls: 'last' } }, { invitedAt: 'asc' }],
+} satisfies Prisma.LiveStream$guestsArgs;
+
+interface GuestRow {
+  profileId: string;
+  status: LiveGuestStatus;
+  profile: { username: string; avatar: string | null };
+}
+
+/** One guest of a live, as the app is answered and told of it. */
+export interface LiveGuestView {
+  profileId: string;
+  username: string;
+  avatar: string | null;
+  status: LiveGuestStatus;
+}
+
+const guestView = (row: GuestRow): LiveGuestView => ({
+  profileId: row.profileId,
+  username: row.profile.username,
+  avatar: row.profile.avatar,
+  status: row.status,
+});
+
+const refused = (refusal: GuestRefusal): AppException => {
+  switch (refusal.kind) {
+    case 'NOT_FOUND':
+      return AppException.NotFound(refusal.code, refusal.message);
+    case 'CONFLICT':
+      return AppException.Conflict(refusal.code, refusal.message);
+    default:
+      return AppException.Forbidden(refusal.code, refusal.message);
+  }
+};
+
+const streamNotFound = () =>
+  AppException.NotFound(ErrorCode.STREAM_NOT_FOUND, 'Stream not found');
 
 @Injectable()
 export class LiveService {
@@ -69,8 +126,29 @@ export class LiveService {
     };
   }
 
+  /**
+   * A live's guests with a place, and the first guest on air in the shape of
+   * the one co-host a live had: kept for the apps still installed that read
+   * `coHostId` and `coHost`.
+   */
+  private guestsAnswer(rows: GuestRow[]) {
+    const guests = rows.map(guestView);
+    const first = guests.find((guest) => guest.status === 'ON_AIR');
+    return {
+      guests,
+      coHostId: first?.profileId ?? null,
+      coHost: first
+        ? this.mapStreamHost({
+            id: first.profileId,
+            username: first.username,
+            avatar: first.avatar,
+          })
+        : null,
+    };
+  }
+
   // While staff have live streams switched off, nobody starts, joins or is
-  // invited to co-host one.
+  // invited to be a guest of one.
   private async assertLiveEnabled() {
     const liveEnabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.LIVE_STREAMS_ENABLED,
@@ -78,6 +156,21 @@ export class LiveService {
     if (!liveEnabled) {
       throw new ForbiddenException('LIVE_STREAMS_DISABLED');
     }
+  }
+
+  // The guests with a place in lives that ended are out of them.
+  private async endGuests(
+    client: Pick<PrismaService, 'liveGuest'>,
+    streamIds: string[],
+  ) {
+    if (streamIds.length === 0) return;
+    await client.liveGuest.updateMany({
+      where: {
+        streamId: { in: streamIds },
+        status: { in: [...GUEST_PLACE_STATUSES] },
+      },
+      data: { status: 'LEFT', endedAt: new Date() },
+    });
   }
 
   async startStream(
@@ -98,10 +191,18 @@ export class LiveService {
       try {
         // Atomic: terminate previous streams and create the new one in a single transaction.
         const stream = await this.prisma.$transaction(async (tx) => {
+          const previous = await tx.liveStream.findMany({
+            where: { hostId: hostProfileId, status: 'LIVE' },
+            select: { id: true },
+          });
           await tx.liveStream.updateMany({
             where: { hostId: hostProfileId, status: 'LIVE' },
             data: { status: 'ENDED', endedAt: new Date() },
           });
+          await this.endGuests(
+            tx,
+            previous.map((stream) => stream.id),
+          );
 
           return tx.liveStream.create({
             data: {
@@ -178,6 +279,7 @@ export class LiveService {
         where: { id: stream.id },
         data: { status: 'ENDED', endedAt: new Date() },
       });
+      await this.endGuests(this.prisma, [stream.id]);
       await this.recording.stop(stream.id);
     }
 
@@ -187,12 +289,12 @@ export class LiveService {
   // A Profile that may no longer be seen while on air (banned, suspended, or
   // its account closed or being deleted): as host, its broadcast ends at
   // once and its room is closed, so nobody still connected keeps watching; as
-  // co-host, it is taken off the broadcast, which goes on. The Profile's
-  // state is read, not the reason of the event, so a session ended for any
-  // other reason (a password change) leaves the broadcast alone. Only a staff
-  // sanction (a ban or a suspension) marks the broadcast as ended by staff,
-  // which keeps its replay from the host; an account closed or being deleted
-  // ends it as the host ending it would.
+  // a guest, it is removed from every live where it is invited or on air,
+  // which go on. The Profile's state is read, not the reason of the event,
+  // so a session ended for any other reason (a password change) leaves the
+  // broadcast alone. Only a staff sanction (a ban or a suspension) marks the
+  // broadcast as ended by staff, which keeps its replay from the host; an
+  // account closed or being deleted ends it as the host ending it would.
   @OnEvent('user.session.terminate', { async: true })
   async endBroadcastsOfSanctionedHost(
     event: UserSessionTerminateEvent['payload'],
@@ -226,6 +328,7 @@ export class LiveService {
               endedByStaff: sanctionedByStaff(stream.host),
             },
           });
+          await this.endGuests(this.prisma, [stream.id]);
           await this.recording.stop(stream.id);
           await this.recording.closeRoom(stream.id);
         } catch (error: unknown) {
@@ -235,33 +338,20 @@ export class LiveService {
         }
       }
 
-      const coHosted = await this.prisma.liveStream.findMany({
-        where: { status: 'LIVE', coHost: gone },
-        select: { id: true, coHostId: true },
+      const places = await this.prisma.liveGuest.findMany({
+        where: {
+          status: { in: [...GUEST_PLACE_STATUSES] },
+          profile: gone,
+          stream: { status: 'LIVE' },
+        },
+        select: { streamId: true, profileId: true },
       });
-      for (const stream of coHosted) {
-        if (!stream.coHostId) continue;
+      for (const place of places) {
         try {
-          // Only while it is still the co-host: the host may have changed
-          // co-host meanwhile.
-          const { count } = await this.prisma.liveStream.updateMany({
-            where: { id: stream.id, coHostId: stream.coHostId },
-            data: { coHostId: null },
-          });
-          if (count === 0) continue;
-          // The app is told first, so it goes back to watching instead of
-          // taking the disconnection that follows for a lost connection.
-          this.gateway.server
-            .to(`user:${stream.coHostId}`)
-            .emit('live:cohost_removed', { streamId: stream.id });
-          await this.recording.stopCoHost(stream.id);
-          await this.recording.removeFromRoom(stream.id, stream.coHostId);
-          this.gateway.server
-            .to(`live:${stream.id}`)
-            .emit('live:cohost_left', { coHostId: stream.coHostId });
+          await this.takeGuestOff(place.streamId, place.profileId, 'REMOVED');
         } catch (error: unknown) {
           this.logger.error(
-            `Could not take a sanctioned co-host off broadcast ${stream.id}: ${error instanceof Error ? error.message : String(error)}`,
+            `Could not take a sanctioned guest off broadcast ${place.streamId}: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
       }
@@ -291,14 +381,16 @@ export class LiveService {
         host: {
           select: { id: true, username: true, avatar: true },
         },
+        guests: GUESTS_WITH_PLACE,
       },
       orderBy: { startedAt: 'desc' },
       take: 200,
     });
 
-    return streams.map((stream) => ({
+    return streams.map(({ guests, ...stream }) => ({
       ...stream,
       host: this.mapStreamHost(stream.host),
+      ...this.guestsAnswer(guests),
     }));
   }
 
@@ -314,9 +406,7 @@ export class LiveService {
             ...HOST_SHOWN_SELECT,
           },
         },
-        coHost: {
-          select: { id: true, username: true, avatar: true },
-        },
+        guests: GUESTS_WITH_PLACE,
       },
     });
 
@@ -326,19 +416,46 @@ export class LiveService {
       (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId)) ||
       !(await canWatchStream(this.prisma, stream, viewerProfileId))
     )
-      throw AppException.NotFound(
-        ErrorCode.STREAM_NOT_FOUND,
-        'Stream not found',
-      );
+      throw streamNotFound();
 
+    const { guests, ...rest } = stream;
     return {
-      ...stream,
+      ...rest,
       host: this.mapStreamHost(stream.host),
-      coHost: stream.coHost ? this.mapStreamHost(stream.coHost) : null,
+      ...this.guestsAnswer(guests),
     };
   }
 
-  async inviteCoHost(
+  /** A live's guests with a place, as the app is told of them. */
+  async listGuests(streamId: string): Promise<LiveGuestView[]> {
+    const rows = await this.prisma.liveGuest.findMany({
+      where: { streamId, ...GUESTS_WITH_PLACE.where },
+      select: GUESTS_WITH_PLACE.select,
+      orderBy: GUESTS_WITH_PLACE.orderBy,
+    });
+    return rows.map(guestView);
+  }
+
+  // Everyone in the live's room is told who its guests are now.
+  private async announceGuests(streamId: string) {
+    const guests = await this.listGuests(streamId);
+    this.gateway.server
+      .to(`live:${streamId}`)
+      .emit('live:guests_changed', { streamId, guests });
+  }
+
+  // One guest's change at a time per live, so the count of places read is
+  // the one written against.
+  private lockStream(tx: Prisma.TransactionClient, streamId: string) {
+    return tx.$queryRaw`SELECT id FROM "live_streams" WHERE id = ${streamId} FOR UPDATE`;
+  }
+
+  /**
+   * Invites a Profile to be a guest of the host's live. A Profile who
+   * declined, left or was removed may be invited again. Nobody already in
+   * the live loses their place to an invite.
+   */
+  async inviteGuest(
     streamId: string,
     hostProfileId: string,
     invitee: { profileId: string } | { userId: string },
@@ -346,23 +463,9 @@ export class LiveService {
     await this.assertLiveEnabled();
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
+      select: { id: true, hostId: true, status: true, title: true },
     });
-
-    if (!stream)
-      throw AppException.NotFound(
-        ErrorCode.STREAM_NOT_FOUND,
-        'Stream not found',
-      );
-    if (!isStreamHost(stream, hostProfileId))
-      throw AppException.Forbidden(
-        ErrorCode.ONLY_HOST_CAN_INVITE,
-        'Only the host can invite a co-host',
-      );
-    if (stream.status !== 'LIVE')
-      throw AppException.NotFound(
-        ErrorCode.STREAM_NOT_ACTIVE,
-        'Stream is not active',
-      );
+    if (!stream) throw streamNotFound();
 
     const [inviteeProfile, hostProfile] = await Promise.all([
       this.prisma.profile.findFirst({
@@ -378,78 +481,125 @@ export class LiveService {
         select: { id: true, username: true, avatar: true },
       }),
     ]);
+    const blocked =
+      !!inviteeProfile &&
+      (await isBlockedEitherWay(this.prisma, hostProfileId, inviteeProfile.id));
 
-    if (!inviteeProfile)
-      throw AppException.NotFound(
-        ErrorCode.USER_NOT_FOUND,
-        'Invited user not found',
-      );
-    if (inviteeProfile.id === hostProfileId)
-      throw AppException.Forbidden(
-        ErrorCode.CANNOT_INVITE_SELF,
-        'Cannot invite yourself as co-host',
-      );
-    // Across a block the other Profile is not found, as everywhere else.
-    if (await isBlockedEitherWay(this.prisma, hostProfileId, inviteeProfile.id))
-      throw AppException.NotFound(
-        ErrorCode.USER_NOT_FOUND,
-        'Invited user not found',
-      );
-
-    await this.prisma.liveStream.update({
-      where: { id: streamId },
-      data: { coHostId: inviteeProfile.id },
-    });
-    // The co-host this one replaces is no longer recorded.
-    if (stream.coHostId && stream.coHostId !== inviteeProfile.id) {
-      await this.recording.stopCoHost(streamId);
-    }
-
-    this.gateway.server
-      .to(`user:${inviteeProfile.id}`)
-      .emit('live:cohost_invite', {
-        streamId,
-        streamTitle: stream.title,
-        host: {
-          id: hostProfile?.id,
-          username: hostProfile?.username,
-          avatar: hostProfile?.avatar,
+    const inviteeId = await this.prisma.$transaction(async (tx) => {
+      await this.lockStream(tx, streamId);
+      const [current, guests] = await Promise.all([
+        tx.liveStream.findUnique({
+          where: { id: streamId },
+          select: { hostId: true, status: true },
+        }),
+        tx.liveGuest.findMany({
+          where: { streamId },
+          select: { profileId: true, status: true },
+        }),
+      ]);
+      const profileId = inviteeProfile?.id ?? null;
+      const refusal = refuseInvite({
+        stream: current ?? stream,
+        callerId: hostProfileId,
+        inviteeId: profileId,
+        blocked,
+        inviteeStatus:
+          guests.find((guest) => guest.profileId === profileId)?.status ?? null,
+        withPlace: guests.filter((guest) => hasPlace(guest.status)).length,
+      });
+      if (refusal || profileId === null) {
+        throw refused(refusal as GuestRefusal);
+      }
+      const invitedAt = new Date();
+      // A row of a guest who declined, left or was removed is used again.
+      await tx.liveGuest.upsert({
+        where: { streamId_profileId: { streamId, profileId } },
+        create: { streamId, profileId, status: 'INVITED', invitedAt },
+        update: {
+          status: 'INVITED',
+          invitedAt,
+          joinedAt: null,
+          endedAt: null,
         },
       });
-
-    this.gateway.server.to(`live:${streamId}`).emit('live:cohost_joined', {
-      coHostId: inviteeProfile.id,
-      coHostUsername: inviteeProfile.username,
+      return profileId;
     });
 
-    this.logger.log(
-      `Profile ${inviteeProfile.id} invited as co-host for stream ${streamId}`,
-    );
+    const host = {
+      id: hostProfile?.id,
+      username: hostProfile?.username,
+      avatar: hostProfile?.avatar,
+    };
+    this.gateway.server.to(`user:${inviteeId}`).emit('live:guest_invite', {
+      streamId,
+      streamTitle: stream.title,
+      host,
+    });
+    // Kept for the apps still installed that answer the invite of a
+    // co-host.
+    this.gateway.server.to(`user:${inviteeId}`).emit('live:cohost_invite', {
+      streamId,
+      streamTitle: stream.title,
+      host,
+    });
+    await this.announceGuests(streamId);
 
-    return { success: true, coHostId: inviteeProfile.id };
+    this.logger.log(
+      `Profile ${inviteeId} invited as a guest of stream ${streamId}`,
+    );
+    return {
+      success: true,
+      profileId: inviteeId,
+      guests: await this.listGuests(streamId),
+    };
   }
 
-  async acceptCoHostInvite(streamId: string, profileId: string) {
+  /**
+   * The invited Profile goes on air: answered with a token that may publish
+   * video and sound, and recorded as a part of its own. A guest already on
+   * air asks again for a token to rejoin, and nothing else changes.
+   */
+  async acceptGuestInvite(streamId: string, profileId: string) {
     await this.assertLiveEnabled();
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
+      select: { hostId: true, status: true },
     });
+    if (!stream) throw streamNotFound();
+    const blocked = await isBlockedEitherWay(
+      this.prisma,
+      stream.hostId,
+      profileId,
+    );
 
-    if (!stream)
-      throw AppException.NotFound(
-        ErrorCode.STREAM_NOT_FOUND,
-        'Stream not found',
-      );
-    if (stream.status !== 'LIVE')
-      throw AppException.NotFound(
-        ErrorCode.STREAM_NOT_ACTIVE,
-        'Stream is not active',
-      );
-    if (!isStreamCoHost(stream, profileId))
-      throw AppException.Forbidden(
-        ErrorCode.FORBIDDEN_ACCESS,
-        'You are not the invited co-host for this stream',
-      );
+    const wentOnAir = await this.prisma.$transaction(async (tx) => {
+      await this.lockStream(tx, streamId);
+      const [current, guests] = await Promise.all([
+        tx.liveStream.findUnique({
+          where: { id: streamId },
+          select: { hostId: true, status: true },
+        }),
+        tx.liveGuest.findMany({
+          where: { streamId },
+          select: { profileId: true, status: true },
+        }),
+      ]);
+      const status =
+        guests.find((guest) => guest.profileId === profileId)?.status ?? null;
+      const refusal = refuseAccept({
+        stream: current ?? stream,
+        guestStatus: status,
+        blocked,
+        onAir: guests.filter((guest) => guest.status === 'ON_AIR').length,
+      });
+      if (refusal) throw refused(refusal);
+      if (status === 'ON_AIR') return false;
+      await tx.liveGuest.update({
+        where: { streamId_profileId: { streamId, profileId } },
+        data: { status: 'ON_AIR', joinedAt: new Date(), endedAt: null },
+      });
+      return true;
+    });
 
     const token = await this.liveKitTokenService.createToken(
       streamId,
@@ -457,56 +607,165 @@ export class LiveService {
       true,
     );
 
-    // Not waited for: the co-host is on air whether or not the recorder
-    // has started.
+    // Not waited for: the guest is on air whether or not the recorder has
+    // started. One already recorded is not recorded twice.
     void this.recording.startCoHost(streamId, profileId);
 
-    this.logger.log(
-      `Profile ${profileId} accepted co-host role for stream ${streamId}`,
-    );
+    if (wentOnAir) {
+      const profile = await this.prisma.profile.findUnique({
+        where: { id: profileId },
+        select: { username: true },
+      });
+      // Kept for the apps still installed that show one co-host.
+      this.gateway.server.to(`live:${streamId}`).emit('live:cohost_joined', {
+        coHostId: profileId,
+        coHostUsername: profile?.username,
+      });
+      await this.announceGuests(streamId);
+      this.logger.log(`Profile ${profileId} went on air in stream ${streamId}`);
+    }
 
     return { token, streamId };
   }
 
-  async removeCoHost(streamId: string, hostProfileId: string) {
+  /** The invited Profile says no; the host may invite them again. */
+  async declineGuestInvite(streamId: string, profileId: string) {
+    const guest = await this.prisma.liveGuest.findUnique({
+      where: { streamId_profileId: { streamId, profileId } },
+      select: { status: true },
+    });
+    const refusal = refuseDecline(guest?.status ?? null);
+    if (refusal) throw refused(refusal);
+    const { count } = await this.prisma.liveGuest.updateMany({
+      where: { streamId, profileId, status: 'INVITED' },
+      data: { status: 'DECLINED', endedAt: new Date() },
+    });
+    // Answered or removed meanwhile.
+    if (count === 0) throw refused(refuseDecline(null) as GuestRefusal);
+    await this.announceGuests(streamId);
+    return { success: true };
+  }
+
+  /** A guest on air leaves the live, which goes on for the others. */
+  async leaveAsGuest(streamId: string, profileId: string) {
+    const guest = await this.prisma.liveGuest.findUnique({
+      where: { streamId_profileId: { streamId, profileId } },
+      select: { status: true },
+    });
+    const refusal = refuseLeave(guest?.status ?? null);
+    if (refusal) throw refused(refusal);
+    if (!(await this.takeGuestOff(streamId, profileId, 'LEFT'))) {
+      throw refused(refuseLeave(null) as GuestRefusal);
+    }
+    return { success: true };
+  }
+
+  /** The host removes one guest, invited or on air. */
+  async removeGuest(
+    streamId: string,
+    hostProfileId: string,
+    guestProfileId: string,
+  ) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
+      select: { hostId: true },
     });
-
-    if (!stream)
-      throw AppException.NotFound(
-        ErrorCode.STREAM_NOT_FOUND,
-        'Stream not found',
+    if (!stream) throw streamNotFound();
+    const guest = await this.prisma.liveGuest.findUnique({
+      where: {
+        streamId_profileId: { streamId, profileId: guestProfileId },
+      },
+      select: { status: true },
+    });
+    const refusal = refuseRemove({
+      stream,
+      callerId: hostProfileId,
+      guestStatus: guest?.status ?? null,
+    });
+    if (refusal) throw refused(refusal);
+    if (!(await this.takeGuestOff(streamId, guestProfileId, 'REMOVED'))) {
+      throw refused(
+        refuseRemove({
+          stream,
+          callerId: hostProfileId,
+          guestStatus: null,
+        }) as GuestRefusal,
       );
+    }
+    this.logger.log(`Guest removed from stream ${streamId}`);
+    return { success: true };
+  }
+
+  /**
+   * The host removes every guest invited or on air: what removing the one
+   * co-host did, kept for the apps still installed with it.
+   */
+  async removeAllGuests(streamId: string, hostProfileId: string) {
+    const stream = await this.prisma.liveStream.findUnique({
+      where: { id: streamId },
+      select: { hostId: true },
+    });
+    if (!stream) throw streamNotFound();
     if (!isStreamHost(stream, hostProfileId))
       throw AppException.Forbidden(
         ErrorCode.ONLY_HOST_CAN_REMOVE,
-        'Only the host can remove a co-host',
+        'Only the host can remove a guest',
       );
-
-    const removedCoHostId = stream.coHostId;
-
-    await this.prisma.liveStream.update({
-      where: { id: streamId },
-      data: { coHostId: null },
+    const guests = await this.prisma.liveGuest.findMany({
+      where: { streamId, status: { in: [...GUEST_PLACE_STATUSES] } },
+      select: { profileId: true },
     });
+    for (const guest of guests) {
+      await this.takeGuestOff(streamId, guest.profileId, 'REMOVED');
+    }
+    this.logger.log(`Guests removed from stream ${streamId}`);
+    return { success: true };
+  }
 
-    if (removedCoHostId) {
+  /**
+   * Takes a guest with a place out of a live, as leaving or removed. One on
+   * air has their recording part stopped and is taken out of the video
+   * room; the live goes on for the others. Only from the state read: a
+   * guest who changed meanwhile is left as they are, and false answered.
+   */
+  private async takeGuestOff(
+    streamId: string,
+    profileId: string,
+    to: Extract<LiveGuestStatus, 'LEFT' | 'REMOVED'>,
+  ): Promise<boolean> {
+    const guest = await this.prisma.liveGuest.findUnique({
+      where: { streamId_profileId: { streamId, profileId } },
+      select: { status: true },
+    });
+    if (!guest || !hasPlace(guest.status)) return false;
+    const { count } = await this.prisma.liveGuest.updateMany({
+      where: { streamId, profileId, status: guest.status },
+      data: { status: to, endedAt: new Date() },
+    });
+    if (count === 0) return false;
+
+    if (to === 'REMOVED') {
       // The app is told first, so it goes back to watching instead of
       // taking the disconnection that follows for a lost connection.
       this.gateway.server
-        .to(`user:${removedCoHostId}`)
+        .to(`user:${profileId}`)
+        .emit('live:guest_removed', { streamId });
+      // Kept for the apps still installed that know one co-host.
+      this.gateway.server
+        .to(`user:${profileId}`)
         .emit('live:cohost_removed', { streamId });
-      await this.recording.stopCoHost(streamId);
+    }
+    if (guest.status === 'ON_AIR') {
+      await this.recording.stopCoHost(streamId, profileId);
       // Taken out of the room by the live service too, so their camera
       // stops for everyone even if their app does not react.
-      await this.recording.removeFromRoom(streamId, removedCoHostId);
+      await this.recording.removeFromRoom(streamId, profileId);
+      // Kept for the apps still installed that show one co-host.
       this.gateway.server
         .to(`live:${streamId}`)
-        .emit('live:cohost_left', { coHostId: removedCoHostId });
+        .emit('live:cohost_left', { coHostId: profileId });
     }
-
-    this.logger.log(`Co-host removed from stream ${streamId}`);
-    return { success: true };
+    await this.announceGuests(streamId);
+    return true;
   }
 }

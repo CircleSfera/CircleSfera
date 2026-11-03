@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
+import { GUEST_PLACE_STATUSES } from '../../../../live/live-guest.policy.js';
 import { LiveRecordingService } from '../../../../live/recording/live-recording.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
@@ -29,6 +30,11 @@ export class EndLiveStreamUseCase {
       // host. No replay address is set here: there is no file behind one
       // until the recording is made into its replay.
       data: { status: 'ENDED', endedAt: new Date(), endedByStaff: true },
+    });
+    // Its guests invited or on air are out of it.
+    await this.prisma.liveGuest.updateMany({
+      where: { streamId, status: { in: [...GUEST_PLACE_STATUSES] } },
+      data: { status: 'LEFT', endedAt: new Date() },
     });
     await this.recording.stop(streamId);
     // Whoever is still in the room is taken out: ending it here alone

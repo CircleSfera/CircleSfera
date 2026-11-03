@@ -6,7 +6,10 @@ import * as path from 'node:path';
  */
 export const RECORDINGS_AT_ONCE_DEFAULT = 1;
 
-/** The most co-host parts one broadcast's recording keeps. */
+/**
+ * The most guest parts one broadcast's recording keeps, all its guests
+ * together: each part is one more input of the replay.
+ */
 export const COHOST_PARTS_MAX = 20;
 
 /** The longest recording. The broadcast may go on; its recording stops. */
@@ -44,6 +47,27 @@ export const recordingsFolder = (): string =>
 export const hostFileName = (streamId: string): string =>
   `live-${streamId}-host.mp4`;
 
-/** The recorder's file of a co-host's n-th time on air, counted from 1. */
-export const coHostFileName = (streamId: string, n: number): string =>
-  `live-${streamId}-cohost-${n}.mp4`;
+/**
+ * The recorder's file of a guest's n-th time on air, counted from 1 for each
+ * guest.
+ */
+export const guestFileName = (
+  streamId: string,
+  profileId: string,
+  n: number,
+): string => `live-${streamId}-guest-${profileId}-${n}.mp4`;
+
+/**
+ * Whether a file is one the recorder was asked to write for a guest of this
+ * broadcast: named for the guest, or, before guests were named, numbered
+ * for the broadcast's one co-host.
+ */
+export const isGuestFileName = (streamId: string, file: string): boolean => {
+  const prefix = `live-${streamId}-`;
+  return (
+    file.startsWith(prefix) &&
+    /^(?:cohost-\d+|guest-[0-9a-f-]{36}-\d+)\.mp4$/i.test(
+      file.slice(prefix.length),
+    )
+  );
+};
