@@ -416,8 +416,14 @@ export class PostsService {
       }),
     ]);
 
-    return createPaginatedResult(
+    // A paid post the viewer has not unlocked is listed closed.
+    const processedPosts = await this.postPaywallService.applyPaywall(
       posts.map((post) => this.injectIsLiked(post, currentProfileId, content)),
+      currentProfileId,
+    );
+
+    return createPaginatedResult(
+      processedPosts,
       total,
       page,
       limit,
@@ -777,8 +783,14 @@ export class PostsService {
       }),
     ]);
 
-    return createPaginatedResult(
+    // A paid post the viewer has not unlocked is listed closed.
+    const processedPosts = await this.postPaywallService.applyPaywall(
       posts.map((post) => this.injectIsLiked(post, currentProfileId, content)),
+      currentProfileId,
+    );
+
+    return createPaginatedResult(
+      processedPosts,
       total,
       page,
       limit,

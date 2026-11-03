@@ -3,6 +3,17 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
+import {
+  AUTHOR_ID,
+  BUYER_ID,
+  expectClosed,
+  expectWhole,
+  inlinePaidMedia,
+  paidPost,
+  realPaywall,
+  STRANGER_ID,
+} from '../common/testing/paid-posts.js';
+import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import { SearchService } from './search.service.js';
@@ -58,6 +69,7 @@ describe('SearchService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: AIService, useValue: mockAIService },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
+        { provide: PostPaywallService, useValue: realPaywall() },
       ],
     }).compile();
 
@@ -742,6 +754,55 @@ describe('SearchService', () => {
       expect(res).toHaveLength(2);
       expect(res[0].id).toBe('p-standard');
     });
+  });
+
+  describe('a paid post in search results', () => {
+    const post = () =>
+      paidPost([inlinePaidMedia()], { _count: { likes: 0, comments: 0 } });
+
+    // Each search with the paid post as its only result, for one viewer.
+    const searches = {
+      'by caption': async (viewer?: string) => {
+        mockPrismaService.post.findMany.mockResolvedValueOnce([post()]);
+        return (await service.searchPosts('paid', viewer))[0];
+      },
+      trending: async (viewer?: string) => {
+        mockCacheManager.get.mockResolvedValueOnce(null);
+        mockPrismaService.$queryRaw.mockResolvedValueOnce([
+          { id: post().id, velocity_score: 1 },
+        ]);
+        mockPrismaService.post.findMany.mockResolvedValueOnce([post()]);
+        return (await service.getTrending(10, viewer))[0];
+      },
+      'trending, from the cache': async (viewer?: string) => {
+        mockCacheManager.get.mockResolvedValueOnce([post()]);
+        return (await service.getTrending(10, viewer))[0];
+      },
+      semantic: async (viewer?: string) => {
+        mockCacheManager.get.mockResolvedValueOnce(null);
+        mockPrismaService.$queryRaw.mockResolvedValueOnce([
+          { id: post().id, distance: 0.1 },
+        ]);
+        mockPrismaService.post.findUnique.mockResolvedValueOnce(post());
+        return (await service.semanticSearchPosts('paid post', 10, viewer))[0];
+      },
+      'semantic, from the cache': async (viewer?: string) => {
+        mockCacheManager.get.mockResolvedValueOnce([post()]);
+        return (await service.semanticSearchPosts('paid post', 10, viewer))[0];
+      },
+    };
+
+    for (const [name, search] of Object.entries(searches)) {
+      it(`${name}: is closed to a viewer who has not unlocked it, and to a guest`, async () => {
+        expectClosed(await search(STRANGER_ID));
+        expectClosed(await search());
+      });
+
+      it(`${name}: is whole for its author and for someone who unlocked it`, async () => {
+        expectWhole(await search(AUTHOR_ID));
+        expectWhole(await search(BUYER_ID));
+      });
+    }
   });
 
   describe('handleUserHardDeleted', () => {

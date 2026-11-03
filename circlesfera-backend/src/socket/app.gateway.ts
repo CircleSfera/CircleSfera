@@ -39,6 +39,7 @@ import {
 } from '../common/config/origin.config.js';
 import { isEliteLiveReaction } from '../common/constants/live-reactions.constants.js';
 import { CorrelationContext } from '../common/correlation/correlation.context.js';
+import type { PaywallPost } from '../posts/services/post-paywall.service.js';
 import { WebrtcSignalingService } from '../webrtc/webrtc-signaling.service.js';
 import type {
   CallAcceptDeclineDto,
@@ -1114,9 +1115,21 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
         return;
       }
-      event.participants?.forEach((p) => {
+      for (const p of event.participants ?? []) {
         this.addConversationToSocket(p.profileId, event.payload.conversationId);
-        const seen = asSeenBy(p.profileId);
+        const masked = asSeenBy(p.profileId);
+        // A paid post the message shares reaches each member as they may
+        // see it: closed to one who has not unlocked it.
+        const shared = masked.post as PaywallPost | null | undefined;
+        const seen = shared?.isPremium
+          ? {
+              ...masked,
+              post: await this.chatRealtimeService.sharedPostAsSeenBy(
+                shared,
+                p.profileId,
+              ),
+            }
+          : masked;
         // A message just sent can't have been unlocked yet by anyone but the
         // sender — mirror GetMessagesQuery's redaction so the realtime channel
         // can't leak locked-message content/media past the paywall.
@@ -1133,7 +1146,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
               }
             : seen;
         this.server.to(`user:${p.profileId}`).emit('receiveMessage', payload);
-      });
+      }
     });
   }
 

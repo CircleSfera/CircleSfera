@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  AUTHOR_ID,
+  BUYER_ID,
+  expectClosed,
+  expectWhole,
+  inlinePaidMedia,
+  paidPost,
+  realPaywall,
+  STRANGER_ID,
+} from '../common/testing/paid-posts.js';
+import {
   AppGateway,
   CHAT_EVENT_BURST,
   CHAT_EVENTS_PER_SECOND,
@@ -19,6 +29,8 @@ interface ServiceOverrides {
   chatRealtimeService?: {
     addReaction: ReturnType<typeof vi.fn>;
     membersOf?: ReturnType<typeof vi.fn>;
+    blocksAmong?: ReturnType<typeof vi.fn>;
+    sharedPostAsSeenBy?: ReturnType<typeof vi.fn>;
   };
   webrtcSignalingService?: {
     authorizeSignal: ReturnType<typeof vi.fn>;
@@ -1772,6 +1784,76 @@ describe('AppGateway payload bounds and authorization', () => {
           voiceUrl: null,
           priceCents: 999,
         }),
+      );
+    });
+
+    it('sends a shared paid post to each member as they may see it', async () => {
+      const sent = new Map<string, any>();
+      const gateway = gatewayWithServer(
+        {
+          to: (room: string) => ({
+            emit: (_event: string, payload: any) => {
+              sent.set(room, payload);
+            },
+          }),
+          sockets: new Map(),
+        },
+        {
+          chatRealtimeService: {
+            addReaction: vi.fn(),
+            blocksAmong: vi.fn(async () => new Map()),
+            sharedPostAsSeenBy: vi.fn((post, profileId) =>
+              realPaywall()
+                .applyPaywall([post], profileId)
+                .then(([seen]) => seen),
+            ),
+          },
+        },
+      );
+
+      await gateway.handleChatMessageSent({
+        participants: [
+          { profileId: AUTHOR_ID },
+          { profileId: BUYER_ID },
+          { profileId: STRANGER_ID },
+        ],
+        payload: {
+          id: 'msg-shared',
+          conversationId: 'c-1',
+          senderId: AUTHOR_ID,
+          post: paidPost([inlinePaidMedia()]),
+        },
+      });
+
+      expectWhole(sent.get(`user:${AUTHOR_ID}`).post);
+      expectWhole(sent.get(`user:${BUYER_ID}`).post);
+      expectClosed(sent.get(`user:${STRANGER_ID}`).post);
+    });
+
+    it('sends a shared post that is not paid as it is, without asking', async () => {
+      const mockEmit = vi.fn();
+      const sharedPostAsSeenBy = vi.fn();
+      const gateway = gatewayWithServer(
+        { to: vi.fn().mockReturnValue({ emit: mockEmit }), sockets: new Map() },
+        {
+          chatRealtimeService: {
+            addReaction: vi.fn(),
+            blocksAmong: vi.fn(async () => new Map()),
+            sharedPostAsSeenBy,
+          },
+        },
+      );
+      const post = { id: 'free', profileId: 'a', isPremium: false, media: [] };
+
+      await gateway.handleChatMessageSent({
+        participants: [{ profileId: 'p-1' }],
+        payload: { id: 'm', conversationId: 'c-1', senderId: 'a', post },
+      });
+
+      expect(sharedPostAsSeenBy).not.toHaveBeenCalled();
+      expect(mockEmit).toHaveBeenCalledWith(
+        'receiveMessage',
+        expect.objectContaining({ post }),
       );
     });
 

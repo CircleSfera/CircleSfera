@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface PaywallMediaItem {
@@ -77,6 +78,32 @@ export class PostPaywallService {
       }
       return post;
     });
+  }
+
+  /**
+   * The same rule as a database filter, for a place that shows one picture
+   * picked among many posts (a collection's cover): the posts the viewer may
+   * see whole are the ones not paid, their own, and the ones they unlocked.
+   */
+  async seenWholeWhere(
+    currentProfileId?: string,
+  ): Promise<Prisma.PostWhereInput> {
+    if (!currentProfileId) {
+      return { isPremium: false };
+    }
+    const viewer = await this.prisma.profile.findUnique({
+      where: { id: currentProfileId },
+      select: { userId: true },
+    });
+    return {
+      OR: [
+        { isPremium: false },
+        { profileId: currentProfileId },
+        ...(viewer
+          ? [{ postUnlocks: { some: { userId: viewer.userId } } }]
+          : []),
+      ],
+    };
   }
 
   private buildTeaserMedia(m: PaywallMediaItem): PaywallMediaItem {
