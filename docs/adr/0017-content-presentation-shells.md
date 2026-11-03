@@ -34,7 +34,7 @@ CircleSfera uses a **content presentation shell** matrix on the SPA. Helper: `ge
 
 Does **not** change LiveKit media (ADR-0005), feed fan-out, or API contracts.
 
-**Follow-on:** Content Composer dual-path IA (Story immersive vs Post/Frame stepped) and Mobile First create chrome are defined in [ADR-0018](./0018-content-composer-ia.md).
+**Follow-on:** Content Composer dual-path IA (Story immersive vs Post/Frame stepped) and Mobile First create chrome were defined in [ADR-0018](./0018-content-composer-ia.md), superseded by [ADR-0030](./0030-one-create-screen-one-canvas.md) (one Create screen and one full-screen editor for every format).
 
 ## Alternatives considered
 
