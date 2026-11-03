@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { LiveAudience } from '@prisma/client';
 import { NotificationType } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -22,7 +23,11 @@ export class LiveStartNoticeService {
   ) {}
 
   // Returns how many followers were told.
-  async tellFollowers(streamId: string, hostProfileId: string) {
+  async tellFollowers(
+    streamId: string,
+    hostProfileId: string,
+    audience: LiveAudience = 'EVERYONE',
+  ) {
     if (this.told.includes(streamId)) return 0;
     this.told.push(streamId);
     if (this.told.length > REMEMBERED) this.told.shift();
@@ -50,6 +55,10 @@ export class LiveStartNoticeService {
                 isActive: true,
                 deactivatedAt: null,
               },
+              // A live for close friends is told to them only.
+              ...(audience === 'CLOSE_FRIENDS'
+                ? { closeFriendOf: { some: { profileId: hostProfileId } } }
+                : {}),
               // Whoever muted the host asked not to hear from them.
               muting: {
                 none: {

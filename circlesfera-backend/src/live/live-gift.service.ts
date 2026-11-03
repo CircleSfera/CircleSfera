@@ -24,6 +24,7 @@ import {
   resolveGiftAmountCents,
   resolveGiftName,
 } from './gift-catalog.js';
+import { canWatchStream } from './live-audience.js';
 
 function appendCheckoutQuery(returnUrl: string, query: string): string {
   const sep = returnUrl.includes('?') ? '&' : '?';
@@ -78,9 +79,16 @@ export class LiveGiftService {
       },
     });
 
+    // A live the sender may not watch takes no gift from them, as if it
+    // were not on.
     if (
       stream?.status !== 'LIVE' ||
-      (await isBlockedEitherWay(this.prisma, senderProfileId, stream.host.id))
+      (await isBlockedEitherWay(
+        this.prisma,
+        senderProfileId,
+        stream.host.id,
+      )) ||
+      !(await canWatchStream(this.prisma, stream, senderProfileId))
     ) {
       throw AppException.NotFound(
         ErrorCode.STREAM_NOT_ACTIVE,
