@@ -203,9 +203,9 @@ describe('LiveController', () => {
       .expect(200);
 
     expect(res.body).toEqual({ token: 'jwt-viewer' });
+    // The Profile of the session, never the person's id.
     expect(mockLiveService.getViewerToken).toHaveBeenCalledWith(
       'stream-1',
-      TEST_USER.userId,
       TEST_USER.profileId,
     );
   });

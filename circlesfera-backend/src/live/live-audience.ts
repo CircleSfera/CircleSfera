@@ -34,7 +34,8 @@ export function hostShown(host: {
  * - Practice: only the host and their guests; nobody else ever sees it.
  *
  * The host and a guest with a place (invited or on air) always see their
- * own live.
+ * own live. Anyone else in a block with a guest on air, whoever blocked whom,
+ * does not see the live while that guest is on air; the host is not told.
  */
 export interface StreamAudienceFields {
   id: string;
@@ -42,32 +43,49 @@ export interface StreamAudienceFields {
   audience: LiveAudience;
 }
 
-/** Whether the Profile is a guest invited to the live, or on air in it. */
-export async function hasGuestPlace(
-  prisma: Pick<PrismaService, 'liveGuest'>,
+/**
+ * Whether the viewer is a guest of the live with a place (invited or on
+ * air), or else in a block with one of its guests on air.
+ */
+async function guestStanding(
+  prisma: Pick<PrismaService, 'liveGuest' | 'block'>,
   streamId: string,
-  profileId: string,
-): Promise<boolean> {
-  const guest = await prisma.liveGuest.findFirst({
+  viewerProfileId: string,
+): Promise<'GUEST' | 'BLOCKED' | null> {
+  const guests = await prisma.liveGuest.findMany({
+    where: { streamId, status: { in: [...GUEST_PLACE_STATUSES] } },
+    select: { profileId: true, status: true },
+  });
+  if (guests.some((guest) => guest.profileId === viewerProfileId)) {
+    return 'GUEST';
+  }
+  const onAir = guests
+    .filter((guest) => guest.status === 'ON_AIR')
+    .map((guest) => guest.profileId);
+  if (onAir.length === 0) return null;
+  const block = await prisma.block.findFirst({
     where: {
-      streamId,
-      profileId,
-      status: { in: [...GUEST_PLACE_STATUSES] },
+      OR: [
+        { blockerId: viewerProfileId, blockedId: { in: onAir } },
+        { blockedId: viewerProfileId, blockerId: { in: onAir } },
+      ],
     },
     select: { id: true },
   });
-  return guest !== null;
+  return block ? 'BLOCKED' : null;
 }
 
 export async function canWatchStream(
-  prisma: Pick<PrismaService, 'closeFriend' | 'liveGuest'>,
+  prisma: Pick<PrismaService, 'closeFriend' | 'liveGuest' | 'block'>,
   stream: StreamAudienceFields,
   viewerProfileId: string | undefined,
 ): Promise<boolean> {
   if (viewerProfileId && isStreamHost(stream, viewerProfileId)) return true;
+  if (!viewerProfileId) return stream.audience === 'EVERYONE';
+  const standing = await guestStanding(prisma, stream.id, viewerProfileId);
+  if (standing === 'GUEST') return true;
+  if (standing === 'BLOCKED') return false;
   if (stream.audience === 'EVERYONE') return true;
-  if (!viewerProfileId) return false;
-  if (await hasGuestPlace(prisma, stream.id, viewerProfileId)) return true;
   if (stream.audience === 'PRACTICE') return false;
   const friend = await prisma.closeFriend.findUnique({
     where: {
@@ -84,18 +102,34 @@ export async function canWatchStream(
 /**
  * The lives a viewer may find in the list: those for everyone, those for
  * close friends whose host has the viewer on their list, and their own as
- * host or as a guest invited or on air. Nobody else ever finds a practice.
+ * host or as a guest invited or on air. Nobody else ever finds a practice,
+ * nor a live while a guest on air is in a block with them (`blockedIds`:
+ * the Profiles the viewer blocked or was blocked by).
  */
 export function listedForViewer(
   viewerProfileId: string | undefined,
+  blockedIds: string[] = [],
 ): Prisma.LiveStreamWhereInput {
   if (!viewerProfileId) return { audience: 'EVERYONE' };
   return {
     OR: [
-      { audience: 'EVERYONE' },
       {
-        audience: 'CLOSE_FRIENDS',
-        host: { closeFriends: { some: { friendId: viewerProfileId } } },
+        OR: [
+          { audience: 'EVERYONE' },
+          {
+            audience: 'CLOSE_FRIENDS',
+            host: { closeFriends: { some: { friendId: viewerProfileId } } },
+          },
+        ],
+        ...(blockedIds.length > 0
+          ? {
+              NOT: {
+                guests: {
+                  some: { status: 'ON_AIR', profileId: { in: blockedIds } },
+                },
+              },
+            }
+          : {}),
       },
       { hostId: viewerProfileId },
       {

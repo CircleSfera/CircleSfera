@@ -5,6 +5,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import type { LiveAudience, LiveGuestStatus, Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import {
+  getBlockedProfileIds,
   isBlockedEitherWay,
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
@@ -241,16 +242,31 @@ export class LiveService {
     return streamPromise;
   }
 
-  async getViewerToken(
-    streamId: string,
-    userId: string,
-    viewerProfileId?: string,
-  ) {
+  /**
+   * A token to watch a live, for the Profile the person acts as: it is their
+   * identity in the video room, the one a guest of theirs goes on air with
+   * and the one a block takes out. A session with no Profile watches nothing,
+   * and the host does not watch their own live: a second connection with
+   * their identity would take the place of the one on air.
+   */
+  async getViewerToken(streamId: string, viewerProfileId: string) {
     await this.assertLiveEnabled();
+    if (!viewerProfileId) {
+      throw AppException.NotFound(
+        ErrorCode.STREAM_NOT_FOUND,
+        'Stream not found or ended',
+      );
+    }
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
       include: { host: { select: HOST_SHOWN_SELECT } },
     });
+    if (stream?.status === 'LIVE' && stream.hostId === viewerProfileId) {
+      throw AppException.Conflict(
+        ErrorCode.ALREADY_ON_AIR,
+        'The host is on air in this live',
+      );
+    }
 
     if (
       stream?.status !== 'LIVE' ||
@@ -266,7 +282,7 @@ export class LiveService {
 
     const token = await this.liveKitTokenService.createToken(
       stream.id,
-      userId,
+      viewerProfileId,
       false,
     );
     return { token };
@@ -352,7 +368,12 @@ export class LiveService {
       });
       for (const place of places) {
         try {
-          await this.takeGuestOff(place.streamId, place.profileId, 'REMOVED');
+          await this.takeGuestOff(
+            place.streamId,
+            place.profileId,
+            'REMOVED',
+            'disconnect',
+          );
         } catch (error: unknown) {
           this.logger.error(
             `Could not take a sanctioned guest off broadcast ${place.streamId}: ${error instanceof Error ? error.message : String(error)}`,
@@ -379,7 +400,12 @@ export class LiveService {
           AND: [HOST_SHOWN_WHERE()],
         },
         // Who each live is for: a practice is never listed.
-        AND: [listedForViewer(viewerProfileId)],
+        AND: [
+          listedForViewer(
+            viewerProfileId,
+            await getBlockedProfileIds(this.prisma, viewerProfileId),
+          ),
+        ],
       },
       include: {
         host: {
@@ -523,11 +549,20 @@ export class LiveService {
         }),
       ]);
       const profileId = inviteeProfile?.id ?? null;
+      // A block with the host, or with any guest invited or on air.
+      const blockedWithGuest =
+        profileId !== null &&
+        (await this.blockedWithAnyOf(
+          profileId,
+          guests
+            .filter((g) => hasPlace(g.status) && g.profileId !== profileId)
+            .map((g) => g.profileId),
+        ));
       const refusal = refuseInvite({
         stream: current ?? stream,
         callerId: hostProfileId,
         inviteeId: profileId,
-        blocked,
+        blocked: blocked || blockedWithGuest,
         inviteeStatus:
           guests.find((guest) => guest.profileId === profileId)?.status ?? null,
         withPlace: guests.filter((guest) => hasPlace(guest.status)).length,
@@ -611,10 +646,17 @@ export class LiveService {
       ]);
       const status =
         guests.find((guest) => guest.profileId === profileId)?.status ?? null;
+      // A block with the host, or with any other guest invited or on air.
+      const blockedWithGuest = await this.blockedWithAnyOf(
+        profileId,
+        guests
+          .filter((g) => hasPlace(g.status) && g.profileId !== profileId)
+          .map((g) => g.profileId),
+      );
       const refusal = refuseAccept({
         stream: current ?? stream,
         guestStatus: status,
-        blocked,
+        blocked: blocked || blockedWithGuest,
         onAir: guests.filter((guest) => guest.status === 'ON_AIR').length,
       });
       if (refusal) throw refused(refusal);
@@ -640,6 +682,15 @@ export class LiveService {
     void this.recording.startCoHost(streamId, profileId);
 
     if (wentOnAir) {
+      // Those in a block with the guest leave the live's room before it is
+      // told who went on air; their video connection is cut without being
+      // waited for.
+      const hidden = await this.hideFromBlocked(
+        streamId,
+        stream.hostId,
+        profileId,
+      );
+      void this.removeFromVideoRoom(streamId, hidden);
       const profile = await this.prisma.profile.findUnique({
         where: { id: profileId },
         select: { username: true },
@@ -654,6 +705,132 @@ export class LiveService {
     }
 
     return { token, streamId };
+  }
+
+  /**
+   * A guest just went on air: the live is hidden from every Profile in a
+   * block with them, whoever blocked whom, while they are on air. The host
+   * and the live's guests are left alone, and the host is not told. Here,
+   * each of them is told the live is unavailable and their connections
+   * leave its room; answers the Profiles hidden, for their video connection
+   * to be cut after. Each Profile is handled on its own, so one that fails
+   * leaves the others hidden. Never throws.
+   */
+  private async hideFromBlocked(
+    streamId: string,
+    hostId: string,
+    guestProfileId: string,
+  ): Promise<string[]> {
+    try {
+      const blocked = await getBlockedProfileIds(this.prisma, guestProfileId);
+      if (blocked.length === 0) return [];
+      const guests = await this.prisma.liveGuest.findMany({
+        where: { streamId, status: { in: [...GUEST_PLACE_STATUSES] } },
+        select: { profileId: true },
+      });
+      const inLive = new Set([hostId, ...guests.map((g) => g.profileId)]);
+      const hidden = blocked.filter((viewer) => !inLive.has(viewer));
+      await Promise.allSettled(
+        hidden.map((viewer) => this.leaveLive(streamId, viewer)),
+      );
+      return hidden;
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not hide stream ${streamId} from those in a block with a guest: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return [];
+    }
+  }
+
+  // Cuts the video connection of each Profile hidden from a live, by their
+  // watching identity; one that fails leaves the others. Never throws.
+  private async removeFromVideoRoom(streamId: string, profileIds: string[]) {
+    await Promise.allSettled(
+      profileIds.map((id) => this.recording.removeFromRoom(streamId, id)),
+    );
+  }
+
+  // Whether a Profile is in a block, either way, with any of the others.
+  private async blockedWithAnyOf(
+    profileId: string,
+    others: string[],
+  ): Promise<boolean> {
+    if (others.length === 0) return false;
+    const block = await this.prisma.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: profileId, blockedId: { in: others } },
+          { blockedId: profileId, blockerId: { in: others } },
+        ],
+      },
+      select: { id: true },
+    });
+    return block !== null;
+  }
+
+  /**
+   * A block was just made between two Profiles: where one of them is a guest
+   * on air in a live that goes on, the live is hidden from the other, as it
+   * is from those in a block with a guest who goes on air. Never from its
+   * host or its guests. Called without being waited for by the one who
+   * blocks; never throws.
+   */
+  async hideOnBlock(profileA: string, profileB: string): Promise<void> {
+    try {
+      const onAir = await this.prisma.liveGuest.findMany({
+        where: {
+          status: 'ON_AIR',
+          profileId: { in: [profileA, profileB] },
+          stream: { status: 'LIVE' },
+        },
+        select: {
+          streamId: true,
+          profileId: true,
+          stream: {
+            select: {
+              hostId: true,
+              guests: {
+                where: { status: { in: [...GUEST_PLACE_STATUSES] } },
+                select: { profileId: true },
+              },
+            },
+          },
+        },
+      });
+      await Promise.allSettled(
+        onAir.flatMap((row) => {
+          const other = row.profileId === profileA ? profileB : profileA;
+          const inLive =
+            row.stream.hostId === other ||
+            row.stream.guests.some((guest) => guest.profileId === other);
+          return inLive ? [] : [this.hideLiveFrom(row.streamId, other)];
+        }),
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Could not hide the lives of a new block: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Hides a live from one Profile: they are told it is unavailable, so an
+   * app watching it closes it; their connections leave its room for
+   * comments; and they are taken out of the video room by their watching
+   * identity, the Profile's id, so another Profile of the same person stays.
+   */
+  private async hideLiveFrom(streamId: string, profileId: string) {
+    await this.leaveLive(streamId, profileId);
+    await this.recording.removeFromRoom(streamId, profileId);
+  }
+
+  // A Profile is told a live is unavailable, and its connections leave the
+  // live's room for comments.
+  private async leaveLive(streamId: string, profileId: string) {
+    this.gateway.server
+      .to(`user:${profileId}`)
+      .emit('live:unavailable', { streamId });
+    await this.gateway.leaveLiveRoom(profileId, streamId);
   }
 
   /** The invited Profile says no; the host may invite them again. */
@@ -755,11 +932,18 @@ export class LiveService {
    * air has their recording part stopped and is taken out of the video
    * room; the live goes on for the others. Only from the state read: a
    * guest who changed meanwhile is left as they are, and false answered.
+   *
+   * A guest who leaves or is removed by the host goes back to watching with
+   * the same identity, so they are not disconnected: their publishing is
+   * revoked, which takes their camera and microphone off for everyone and
+   * leaves alone a watching connection that may already have replaced the
+   * one on air. A sanctioned guest is disconnected.
    */
   private async takeGuestOff(
     streamId: string,
     profileId: string,
     to: Extract<LiveGuestStatus, 'LEFT' | 'REMOVED'>,
+    room: 'keep-watching' | 'disconnect' = 'keep-watching',
   ): Promise<boolean> {
     // Under the live's lock, as invite and accept are: a guest is never put
     // on air and taken off at the same moment.
@@ -791,9 +975,13 @@ export class LiveService {
     }
     if (was === 'ON_AIR') {
       await this.recording.stopCoHost(streamId, profileId);
-      // Taken out of the room by the live service too, so their camera
-      // stops for everyone even if their app does not react.
-      await this.recording.removeFromRoom(streamId, profileId);
+      // Done by the live service too, so their camera stops for everyone
+      // even if their app does not react.
+      if (room === 'disconnect') {
+        await this.recording.removeFromRoom(streamId, profileId);
+      } else {
+        await this.recording.stopPublishing(streamId, profileId);
+      }
     }
     const guests = await this.announceGuests(streamId);
     if (was === 'ON_AIR') {

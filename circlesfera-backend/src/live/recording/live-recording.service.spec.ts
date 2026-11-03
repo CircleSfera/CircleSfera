@@ -13,6 +13,7 @@ const sdk = vi.hoisted(() => ({
   createRoom: vi.fn(),
   deleteRoom: vi.fn(),
   removeParticipant: vi.fn(),
+  updateParticipant: vi.fn(),
   startParticipantEgress: vi.fn(),
   stopEgress: vi.fn(),
   listEgress: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock('livekit-server-sdk', async (importOriginal) => {
         createRoom: sdk.createRoom,
         deleteRoom: sdk.deleteRoom,
         removeParticipant: sdk.removeParticipant,
+        updateParticipant: sdk.updateParticipant,
       });
     }),
   };
@@ -510,6 +512,40 @@ describe('LiveRecordingService', () => {
       sdk.deleteRoom.mockRejectedValueOnce(new Error('connection refused'));
 
       await expect(service.closeRoom('s1')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('stopPublishing', () => {
+    it('takes away the right to publish, leaving the participant watching', async () => {
+      sdk.updateParticipant.mockResolvedValueOnce({});
+
+      await service.stopPublishing('s1', 'guest-1');
+
+      expect(sdk.updateParticipant).toHaveBeenCalledWith('s1', 'guest-1', {
+        permission: {
+          canPublish: false,
+          canPublishData: true,
+          canSubscribe: true,
+        },
+      });
+    });
+
+    it('one no longer there counts as done', async () => {
+      sdk.updateParticipant.mockRejectedValueOnce(
+        new ServerError('twirp', 'participant not found', 404, 'not_found'),
+      );
+
+      await expect(
+        service.stopPublishing('s1', 'guest-1'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('any other failure is left to the log, not to the caller', async () => {
+      sdk.updateParticipant.mockRejectedValueOnce(new Error('refused'));
+
+      await expect(
+        service.stopPublishing('s1', 'guest-1'),
+      ).resolves.toBeUndefined();
     });
   });
 
