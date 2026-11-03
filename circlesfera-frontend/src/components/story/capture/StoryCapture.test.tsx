@@ -426,7 +426,8 @@ describe('StoryCapture', () => {
         show({ mode, onModeChange: vi.fn(), onNoCamera });
 
         await screen.findByText('Aquí no hay una cámara que usar.');
-        expect(onNoCamera).toHaveBeenCalledTimes(times);
+        // The gallery opens from an effect, run once the message is drawn.
+        await waitFor(() => expect(onNoCamera).toHaveBeenCalledTimes(times));
       },
     );
 

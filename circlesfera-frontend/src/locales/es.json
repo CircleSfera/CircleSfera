@@ -1736,7 +1736,10 @@
       "turn_off_comments_desc": "Nadie podrá comentar esta publicación. No se puede cambiar después de publicarla.",
       "mark_sensitive": "Marcar como contenido sensible",
       "mark_sensitive_desc": "Violencia gráfica, lenguaje fuerte o contexto artístico. El contenido sexual explícito no está permitido en CircleSfera y se retira, no se filtra.",
-      "price_eur": "Precio (EUR)"
+      "price_eur": "Precio (EUR)",
+      "suggestions": "Sugerencias",
+      "tag_posts_one": "{{count}} publicación",
+      "tag_posts_other": "{{count}} publicaciones"
     },
     "edit": {
       "edit_media": "Editar Medio",

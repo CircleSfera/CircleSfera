@@ -7,6 +7,9 @@
 export const FRAME_MIN_DURATION_SEC = 15;
 export const FRAME_MAX_DURATION_SEC = 180;
 
+/** The most clips one Frame is put together from. */
+export const FRAME_CLIPS_MAX = 20;
+
 /** The lengths offered when trimming a Frame, shortest to longest. */
 export const FRAME_DURATION_PRESETS = [
   FRAME_MIN_DURATION_SEC,

@@ -1,3 +1,4 @@
+import { FRAME_CLIPS_MAX } from '@circlesfera/shared';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
@@ -37,6 +38,40 @@ describe('UploadsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('uploadFrameClip', () => {
+    it('stores a clip of a Frame as the Profile’s, as a clip', async () => {
+      const clip: UploadedFile = {
+        buffer: Buffer.from('clip'),
+        mimetype: 'video/mp4',
+        originalname: 'clip.mp4',
+      };
+      mockUploadsService.uploadFile.mockResolvedValueOnce({
+        url: '/uploads/clip.mp4',
+        type: 'video',
+      });
+
+      await controller.uploadFrameClip(clip, {
+        userId: 'user-123',
+        profileId: 'profile-123',
+      } as CurrentUserData);
+
+      expect(mockUploadsService.uploadFile).toHaveBeenCalledWith(
+        clip,
+        'user-123',
+        'profile-123',
+        { frameClip: true },
+      );
+    });
+
+    it('lets a whole Frame of clips be sent in a minute', () => {
+      const limit = Reflect.getMetadata(
+        'THROTTLER:LIMITshort',
+        UploadsController.prototype.uploadFrameClip,
+      );
+      expect(limit).toBe(FRAME_CLIPS_MAX);
+    });
   });
 
   describe('uploadFile', () => {
