@@ -78,7 +78,7 @@ describe('who a live is for', () => {
     }
   });
 
-  it('lists lives for everyone, and for close friends to them, never a practice', () => {
+  it('lists lives for everyone, for close friends to them, and their own; never a practice of others', () => {
     expect(listedForViewer(undefined)).toEqual({ audience: 'EVERYONE' });
     expect(listedForViewer('v')).toEqual({
       OR: [
@@ -87,6 +87,8 @@ describe('who a live is for', () => {
           audience: 'CLOSE_FRIENDS',
           host: { closeFriends: { some: { friendId: 'v' } } },
         },
+        { hostId: 'v' },
+        { coHostId: 'v' },
       ],
     });
   });

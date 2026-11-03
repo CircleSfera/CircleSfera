@@ -62,9 +62,9 @@ export async function canWatchStream(
 }
 
 /**
- * The lives a viewer may find in the list: those for everyone, and those for
- * close friends whose host has the viewer on their list. A practice is never
- * listed.
+ * The lives a viewer may find in the list: those for everyone, those for
+ * close friends whose host has the viewer on their list, and their own as
+ * host or guest. Nobody else ever finds a practice.
  */
 export function listedForViewer(
   viewerProfileId: string | undefined,
@@ -77,6 +77,8 @@ export function listedForViewer(
         audience: 'CLOSE_FRIENDS',
         host: { closeFriends: { some: { friendId: viewerProfileId } } },
       },
+      { hostId: viewerProfileId },
+      { coHostId: viewerProfileId },
     ],
   };
 }

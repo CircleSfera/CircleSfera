@@ -106,6 +106,14 @@ export interface SocketWithAuth extends Socket {
 export const CHAT_EVENT_BURST = 20;
 export const CHAT_EVENTS_PER_SECOND = 5;
 
+/**
+ * Whether this connection is in the room of a live: let in by `live:join`,
+ * which asks whether the Profile may watch it.
+ */
+function inLiveRoom(client: SocketWithAuth, streamId: string): boolean {
+  return client.data?.liveStreamIds?.has(streamId) ?? false;
+}
+
 @WebSocketGateway({
   cors: {
     credentials: true,
@@ -684,6 +692,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
+    // Joining again from the same connection counts once.
+    if (client.data.liveStreamIds?.has(payload.streamId)) return;
     await client.join(`live:${payload.streamId}`);
     if (!client.data.liveStreamIds) {
       client.data.liveStreamIds = new Set();
@@ -719,7 +729,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     )
       return;
     const profileId = client.data?.user?.profileId;
-    if (!profileId) return;
+    if (!profileId || !inLiveRoom(client, payload.streamId)) return;
 
     await client.leave(`live:${payload.streamId}`);
     client.data.liveStreamIds?.delete(payload.streamId);
@@ -754,6 +764,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
       return;
     }
+    // Only from inside the room: whoever may not watch the live may not
+    // write to it either.
+    if (!inLiveRoom(client, payload.streamId)) return;
     const cleanMessage = payload.message.trim().slice(0, 500);
     if (!cleanMessage) return;
 
@@ -810,6 +823,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
       return;
     }
+    // Only from inside the room: whoever may not watch the live may not
+    // pin in it either.
+    if (!inLiveRoom(client, payload.streamId)) return;
 
     const callerProfileId = await this.requireStreamHostOrCoHost(
       client,
@@ -882,6 +898,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     if (!payload?.streamId || typeof payload.streamId !== 'string') return;
+    if (!inLiveRoom(client, payload.streamId)) return;
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
@@ -903,6 +920,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     if (!payload?.streamId || typeof payload.streamId !== 'string') return;
+    if (!inLiveRoom(client, payload.streamId)) return;
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
@@ -934,6 +952,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
       return;
     }
+    if (!inLiveRoom(client, payload.streamId)) return;
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
