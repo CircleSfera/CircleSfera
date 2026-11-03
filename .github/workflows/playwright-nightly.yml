@@ -67,7 +67,9 @@ jobs:
       ABUSE_HASH_PEPPER: ci-nightly-abuse-hash-pepper-not-for-production-use!!
       STRIPE_SECRET_KEY: sk_test_dummy
       STRIPE_WEBHOOK_SECRET: whsec_dummy
-      CORS_ORIGIN: http://localhost:5173
+      # The app and the Backoffice, which is served on a backoffice.* host.
+      CORS_ORIGIN: http://localhost:5173,http://backoffice.localhost:5173
+      BACKOFFICE_BASE_URL: http://backoffice.localhost:5173
       BASE_URL: http://localhost:5173
       BACKEND_URL: http://localhost:3005/api/v1
       # Frontend must talk to the CI backend (PORT=3005), not the local default :3000
@@ -99,6 +101,9 @@ jobs:
           npm ci
           npx prisma generate
           npx prisma migrate deploy
+          # The seeded staff (with a known second-step secret) sign in to the
+          # Backoffice in its suite.
+          ADMIN_E2E_FORCE_TOTP=1 npx tsx prisma/seed.ts
           npm run build
 
       - name: "Frontend: Install Dependencies"
@@ -146,7 +151,7 @@ jobs:
         env:
           PLAYWRIGHT_SKIP_WEBSERVER: 'true'
         run: |
-          npm run test:e2e -- --project=chromium
+          npm run test:e2e -- --project=chromium --project=backoffice
 
       - name: Dump backend logs on failure
         if: failure()
