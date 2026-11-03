@@ -7,6 +7,15 @@ describe('isCsrfExempt', () => {
     expect(isCsrfExempt('/api/v1/slack/interactions')).toBe(true);
   });
 
+  it("lets the live service's events in without a CSRF token, and no route around them", () => {
+    expect(isCsrfExempt('/api/v1/live/livekit/webhook')).toBe(true);
+    expect(isCsrfExempt('/api/v1/live/livekit')).toBe(false);
+    expect(isCsrfExempt('/api/v1/live/start')).toBe(false);
+    expect(isCsrfExempt('/api/v1/posts/api/v1/live/livekit/webhook')).toBe(
+      false,
+    );
+  });
+
   it('exempts no other Slack route, nor one that only contains their path', () => {
     expect(isCsrfExempt('/api/v1/slack')).toBe(false);
     expect(isCsrfExempt('/api/v1/slack/other')).toBe(false);

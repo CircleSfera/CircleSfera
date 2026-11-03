@@ -7,6 +7,8 @@ import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
 import { LiveGiftService } from './live-gift.service.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
+import { LiveRoomWebhookController } from './live-room-webhook.controller.js';
+import { LiveRoomWebhookService } from './live-room-webhook.service.js';
 import { LiveStartNoticeService } from './live-start-notice.service.js';
 import { LiveRecordingModule } from './recording/live-recording.module.js';
 
@@ -18,12 +20,13 @@ import { LiveRecordingModule } from './recording/live-recording.module.js';
     LiveRecordingModule,
     forwardRef(() => SocketModule),
   ],
-  controllers: [LiveController],
+  controllers: [LiveController, LiveRoomWebhookController],
   providers: [
     LiveService,
     LiveGiftService,
     LiveKitTokenService,
     LiveStartNoticeService,
+    LiveRoomWebhookService,
   ],
   exports: [LiveService, LiveGiftService],
 })

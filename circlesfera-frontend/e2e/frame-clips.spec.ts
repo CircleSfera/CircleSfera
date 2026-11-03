@@ -121,6 +121,34 @@ test('a Frame recorded in clips is put together and goes on to its caption', asy
   // The clip shown is still the one that was: first now.
   await expect(editor.getByText('Clip 1 de 2')).toBeVisible();
   await capture(page, 'clips-editor-after-order', info);
+
+  // One filter for the whole Frame: a swipe across the video, then the
+  // strip and its strength.
+  const video = page.getByTestId('frame-clips-video');
+  const shown = await video.boundingBox();
+  if (!shown) throw new Error('No video');
+  await page.mouse.move(
+    shown.x + shown.width * 0.8,
+    shown.y + shown.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    shown.x + shown.width * 0.2,
+    shown.y + shown.height / 2,
+    {
+      steps: 6,
+    },
+  );
+  await page.mouse.up();
+  await expect(editor.getByText('Clarendon')).toBeVisible();
+  await page.getByRole('button', { name: 'Filtros' }).click();
+  await expect(page.getByTestId('frame-filter-panel')).toBeVisible();
+  await page.getByRole('button', { name: 'Moon' }).click();
+  await page.getByRole('slider', { name: /Intensidad/ }).fill('60');
+  // The borders take a moment to change colour.
+  await page.waitForTimeout(300);
+  await capture(page, 'filters', info);
+  await page.getByRole('button', { name: 'Hecho' }).click();
   await editor.getByRole('button', { name: 'Siguiente', exact: true }).click();
 
   await expect(page.getByTestId('frame-assembly-progress')).toBeVisible();
@@ -138,6 +166,8 @@ test('a Frame recorded in clips is put together and goes on to its caption', asy
         expect.objectContaining({ url: '/uploads/clip-1.webm', startMs: 0 }),
         expect.objectContaining({ url: '/uploads/clip-2.webm', startMs: 0 }),
       ],
+      // Moon at 60 %, as whole numbers.
+      look: { grayscale: 60, brightness: 106, contrast: 106 },
     },
   ]);
 

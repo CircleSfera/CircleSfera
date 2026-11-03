@@ -4,7 +4,7 @@ import { type ValidationError, validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
 import { CreateStoryDto } from '../../stories/dto/create-story.dto.js';
-import { CreatePostDto } from './create-post.dto.js';
+import { CreatePostDto, POST_FILE_URL_MAX_LENGTH } from './create-post.dto.js';
 import { UpdatePostDto } from './update-post.dto.js';
 
 const place = (translations?: unknown) => ({
@@ -167,6 +167,59 @@ describe('the moment of the cover of a frame', () => {
   it('can be left out', async () => {
     expect(await rules(UpdatePostDto, undefined)).toEqual([]);
   });
+});
+
+describe('an image as the cover of a frame', () => {
+  const rules = async (
+    dto: typeof CreatePostDto | typeof UpdatePostDto,
+    body: object,
+  ) => {
+    const errors = await validate(plainToInstance(dto, body) as object, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
+    return Object.keys(
+      errors.find((error) => error.property === 'coverImageUrl')?.constraints ??
+        {},
+    ).sort();
+  };
+
+  it.each([
+    ['creating', CreatePostDto],
+    ['editing', UpdatePostDto],
+  ])('is the address of an uploaded file, when %s', async (_when, dto) => {
+    expect(await rules(dto, { coverImageUrl: '/uploads/cover.webp' })).toEqual(
+      [],
+    );
+    expect(await rules(dto, { coverImageUrl: 42 })).toContain('isString');
+    expect(
+      await rules(dto, {
+        coverImageUrl: `/uploads/${'x'.repeat(POST_FILE_URL_MAX_LENGTH)}.jpg`,
+      }),
+    ).toEqual(['maxLength']);
+    expect(await rules(dto, {})).toEqual([]);
+  });
+
+  it.each([
+    ['creating', CreatePostDto],
+    ['editing', UpdatePostDto],
+  ])(
+    'is refused together with a moment of the video, when %s',
+    async (_when, dto) => {
+      expect(
+        await rules(dto, {
+          coverImageUrl: '/uploads/cover.webp',
+          coverTimeMs: 1000,
+        }),
+      ).toEqual(['notWithCoverTime']);
+      expect(
+        await rules(dto, {
+          coverImageUrl: '/uploads/cover.webp',
+          coverTimeMs: 0,
+        }),
+      ).toEqual(['notWithCoverTime']);
+    },
+  );
 });
 
 describe('the number of photos and videos of a post', () => {

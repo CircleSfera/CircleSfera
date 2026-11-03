@@ -2,7 +2,13 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { FRAME_MIN_DURATION_SEC } from '../../constants/uploadLimits';
 import { renderWithProviders } from '../../test/test-utils';
+import { PHOTO_FILTERS } from '../photo-editor/photoEditor.constants';
 import FrameClipsEditor from './FrameClipsEditor';
+import { NO_FRAME_FILTER } from './FrameFilterPanel';
+import { frameLookCss, frameLookOf } from './frameLook';
+
+const MOON =
+  PHOTO_FILTERS.find((filter) => filter.name === 'Moon')?.class ?? '';
 
 const painter = vi.hoisted(() => ({ props: {} as Record<string, any> }));
 vi.mock('../story/StoryComposer', () => ({
@@ -128,6 +134,7 @@ describe('FrameClipsEditor', () => {
     expect(onDone.mock.calls[0][1]).toEqual({
       layer,
       elements: [{ id: 't', type: 'text' }],
+      filter: NO_FRAME_FILTER,
     });
   });
 
@@ -153,7 +160,11 @@ describe('FrameClipsEditor', () => {
     act(() => painter.props.onClose());
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
-    expect(onDone.mock.calls[0][1]).toEqual({ layer, elements });
+    expect(onDone.mock.calls[0][1]).toEqual({
+      layer,
+      elements,
+      filter: NO_FRAME_FILTER,
+    });
   });
 
   it('goes on with no layer when nothing was painted', async () => {
@@ -164,6 +175,79 @@ describe('FrameClipsEditor', () => {
     act(() => painter.props.onPost(new Blob(['png'])));
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
-    expect(onDone.mock.calls[0][1]).toEqual({ layer: null, elements: [] });
+    expect(onDone.mock.calls[0][1]).toEqual({
+      layer: null,
+      elements: [],
+      filter: NO_FRAME_FILTER,
+    });
+  });
+
+  it('gives the whole Frame one filter from the strip, with its strength, shown on the video', () => {
+    const onDone = open();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filtros' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Moon' }));
+    const strength = screen.getByRole('slider', { name: /Intensidad/ });
+    fireEvent.change(strength, { target: { value: '50' } });
+    expect(screen.getByTestId('frame-clips-video').style.filter).toBe(
+      frameLookCss(frameLookOf(MOON, 50)),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Hecho' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    expect(onDone.mock.calls[0][1].filter).toEqual({
+      filterClass: MOON,
+      strength: 50,
+    });
+  });
+
+  it('changes the filter with a swipe across the video, and names it for a moment', () => {
+    vi.useFakeTimers();
+    try {
+      open();
+      const video = screen.getByTestId('frame-clips-video');
+
+      fireEvent.pointerDown(video, { clientX: 300 });
+      fireEvent.pointerUp(video, { clientX: 200 });
+      expect(screen.getByText(PHOTO_FILTERS[1].name)).toBeTruthy();
+      expect(video.style.filter).toBe(
+        frameLookCss(frameLookOf(PHOTO_FILTERS[1].class)),
+      );
+
+      // Back the other way, and a small move changes nothing.
+      fireEvent.pointerDown(video, { clientX: 200 });
+      fireEvent.pointerUp(video, { clientX: 300 });
+      fireEvent.pointerDown(video, { clientX: 200 });
+      fireEvent.pointerUp(video, { clientX: 220 });
+      expect(video.style.filter).toBe(frameLookCss(frameLookOf('')));
+
+      act(() => vi.advanceTimersByTime(1000));
+      expect(screen.queryByText(PHOTO_FILTERS[0].name)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('opens again with the filter chosen before', () => {
+    const onDone = vi.fn();
+    renderWithProviders(
+      <FrameClipsEditor
+        clips={[clip('a', half), clip('b', half)]}
+        painting={{
+          layer: null,
+          elements: [],
+          filter: { filterClass: MOON, strength: 30 },
+        }}
+        onDone={onDone}
+        onCancel={vi.fn()}
+      />,
+      { lng: 'es' },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    expect(onDone.mock.calls[0][1].filter).toEqual({
+      filterClass: MOON,
+      strength: 30,
+    });
   });
 });

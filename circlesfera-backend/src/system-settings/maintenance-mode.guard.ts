@@ -14,6 +14,8 @@ const EXEMPT_PREFIXES = [
   '/api/v1/admin-auth',
   '/api/v1/admin',
   '/api/v1/payments/webhook',
+  // The live service's events keep lives on air to who may be there.
+  '/api/v1/live/livekit/webhook',
 ] as const;
 
 @Injectable()

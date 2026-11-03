@@ -16,6 +16,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateBy,
   ValidateNested,
 } from 'class-validator';
 import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
@@ -23,6 +24,26 @@ import { POST_MAX_MEDIA_ITEMS } from '../../common/constants/post-media.constant
 
 /** The longest caption of a post or frame; the composer shows the same limit. */
 export const POST_CAPTION_MAX_LENGTH = 2200;
+
+/** The longest address of an uploaded file the request may name. */
+export const POST_FILE_URL_MAX_LENGTH = 2048;
+
+/**
+ * A frame's cover is a moment of its video or an image, never both: the
+ * image is refused when the moment is sent with it.
+ */
+export function NotWithCoverTime() {
+  return ValidateBy({
+    name: 'notWithCoverTime',
+    validator: {
+      validate: (_value, args) =>
+        (args?.object as { coverTimeMs?: unknown } | undefined)?.coverTimeMs ===
+        undefined,
+      defaultMessage: () =>
+        'coverImageUrl cannot be sent together with coverTimeMs',
+    },
+  });
+}
 
 class TagDto {
   @ApiProperty({ required: true, type: () => String })
@@ -278,4 +299,17 @@ export class CreatePostDto {
   @Min(0)
   @Max(FRAME_COVER_MAX_TIME_MS)
   coverTimeMs?: number;
+
+  // For a frame: the address of an image the author uploaded, to use as the
+  // cover in place of a moment of the video. Not sent with coverTimeMs.
+  @ApiProperty({
+    required: false,
+    type: () => String,
+    maxLength: POST_FILE_URL_MAX_LENGTH,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(POST_FILE_URL_MAX_LENGTH)
+  @NotWithCoverTime()
+  coverImageUrl?: string;
 }

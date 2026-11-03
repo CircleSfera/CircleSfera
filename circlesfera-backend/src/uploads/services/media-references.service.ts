@@ -36,7 +36,7 @@ export const EDIT_CLIP_PATH =
 export const EDIT_CLIP_ADDRESSES = Prisma.sql`jsonb_path_query_array(e."state", ${Prisma.raw(`'${EDIT_CLIP_PATH}'`)}::jsonpath)`;
 
 export const MEDIA_COLUMNS = {
-  postMedia: ['url', 'standardUrl', 'thumbnailUrl'],
+  postMedia: ['url', 'standardUrl', 'thumbnailUrl', 'coverImageUrl'],
   profile: [
     'avatar',
     'standardUrl',

@@ -84,6 +84,9 @@ export function isCsrfExempt(normalizedPath: string): boolean {
     // click acts only as the member of staff behind that Slack account.
     normalizedPath === '/api/v1/slack/commands' ||
     normalizedPath === '/api/v1/slack/interactions' ||
+    // The live service posts its events without cookies. The route has no
+    // session and asks for the service's signature of each event.
+    normalizedPath === '/api/v1/live/livekit/webhook' ||
     normalizedPath.includes('/socket.io')
   );
 }

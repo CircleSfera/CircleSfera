@@ -1,4 +1,4 @@
-import type { NotificationCreateEvent } from '@circlesfera/shared';
+import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -21,6 +21,7 @@ import {
   MAX_PPV_PRICE_CENTS,
   MIN_PPV_PRICE_CENTS,
 } from '../common/constants/monetization.constants.js';
+import { AppException } from '../common/errors/app.exception.js';
 import {
   decodeKeysetCursor,
   type KeysetPage,
@@ -166,8 +167,9 @@ export class StoriesService {
         select: { accountType: true },
       });
       if (!canMonetize(authorProfile?.accountType)) {
-        throw new ForbiddenException(
-          'Solo las cuentas Creator o Business pueden publicar historias premium.',
+        throw AppException.Forbidden(
+          ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
+          'Only Creator or Business accounts can publish premium stories.',
         );
       }
       if (
@@ -175,8 +177,10 @@ export class StoriesService {
         dto.priceCents < MIN_PPV_PRICE_CENTS ||
         dto.priceCents > MAX_PPV_PRICE_CENTS
       ) {
-        throw new BadRequestException(
-          `El precio de la historia premium debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
+        throw AppException.BadRequest(
+          ErrorCode.PREMIUM_PRICE_OUT_OF_RANGE,
+          'The price of a premium story is out of range.',
+          { minCents: MIN_PPV_PRICE_CENTS, maxCents: MAX_PPV_PRICE_CENTS },
         );
       }
     }

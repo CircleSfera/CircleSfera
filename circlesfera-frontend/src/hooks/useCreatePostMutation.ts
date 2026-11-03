@@ -22,7 +22,7 @@ import type {
   Post,
   StoryElement,
 } from '../types';
-import { apiErrorBody } from '../utils/apiErrorMessage';
+import { apiErrorBody, apiErrorCode } from '../utils/apiErrorMessage';
 import { isFrameClipInRange } from '../utils/frameClip';
 import { logger } from '../utils/logger';
 import { canOfferStoryShare, postStoryCard } from '../utils/storyShare';
@@ -34,6 +34,40 @@ import type {
   StoryOverlay,
 } from './useCreatePostState';
 import type { UploadResult } from './useMediaUpload';
+
+/**
+ * A Frame from the gallery, put together by the server as one clip: its
+ * window, its painted layer, its look and its sound.
+ */
+async function frameFromServer(
+  media: MediaFile,
+  window: NonNullable<MediaFile['videoData']>,
+): Promise<MediaFile> {
+  const [{ assembleFrame }, { frameLookFromFilterText }] = await Promise.all([
+    import('../components/create-post/frameAssembly'),
+    import('../components/create-post/frameLook'),
+  ]);
+  const layer = media.overlayDataUrl
+    ? await (await fetch(media.overlayDataUrl)).blob()
+    : null;
+  const startMs = Math.round(window.startTime * 1000);
+  const endMs = Math.round(window.endTime * 1000);
+  const frame = await assembleFrame(
+    [{ file: media.file, startMs, endMs, ms: endMs }],
+    {
+      layer,
+      look: frameLookFromFilterText(media.filter),
+      muted: window.muted,
+    },
+    () => {},
+  );
+  return {
+    ...media,
+    file: frame.file,
+    remoteUrl: frame.url,
+    assembledFrame: true,
+  };
+}
 
 interface MutationDeps {
   mode: CreateMode;
@@ -182,6 +216,20 @@ export function useCreatePostMutation(deps: MutationDeps) {
           (!m.filter && !m.cropData && !m.overlayDataUrl && !m.videoData)
         ) {
           return m;
+        }
+
+        // A Frame is put together by the server, with its trim, what is
+        // painted over it and its filter: the phone does not re-encode it.
+        if (deps.mode === 'FRAME' && m.type === 'video' && m.videoData) {
+          try {
+            return await frameFromServer(m, m.videoData);
+          } catch (e) {
+            logger.error(
+              'Error putting a Frame together, failing submission',
+              e,
+            );
+            throw new EditExportError('frame assembly failed');
+          }
         }
 
         try {
@@ -344,16 +392,23 @@ export function useCreatePostMutation(deps: MutationDeps) {
       logger.error('Error creating content:', error);
       // A link the server would not take says why.
       const refused = apiErrorBody(error)?.message;
+      // A refusal with a code of its own says why, in the reader's language.
+      const coded = apiErrorCode(error);
+      const codedText = coded
+        ? t(`errors.codes.${coded}`, { defaultValue: '' })
+        : '';
       toast.error(
-        t(
-          error instanceof EditExportError
-            ? 'createPost.upload.edit_export_error'
-            : typeof refused === 'string' && LINK_REFUSALS.has(refused)
-              ? `createPost.storyComposer.link_errors.${refused}`
-              : typeof refused === 'string' && POST_SHARE_REFUSALS.has(refused)
-                ? `createPost.storyComposer.post_errors.${refused}`
-                : 'createPost.upload.publish_failed',
-        ),
+        codedText ||
+          t(
+            error instanceof EditExportError
+              ? 'createPost.upload.edit_export_error'
+              : typeof refused === 'string' && LINK_REFUSALS.has(refused)
+                ? `createPost.storyComposer.link_errors.${refused}`
+                : typeof refused === 'string' &&
+                    POST_SHARE_REFUSALS.has(refused)
+                  ? `createPost.storyComposer.post_errors.${refused}`
+                  : 'createPost.upload.publish_failed',
+          ),
       );
     } finally {
       deps.setIsProcessingEdit(false);

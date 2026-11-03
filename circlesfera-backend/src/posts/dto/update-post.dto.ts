@@ -10,7 +10,11 @@ import {
   Min,
 } from 'class-validator';
 import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
-import { POST_CAPTION_MAX_LENGTH } from './create-post.dto.js';
+import {
+  NotWithCoverTime,
+  POST_CAPTION_MAX_LENGTH,
+  POST_FILE_URL_MAX_LENGTH,
+} from './create-post.dto.js';
 
 export class UpdatePostDto {
   @ApiProperty({
@@ -41,4 +45,17 @@ export class UpdatePostDto {
   @Min(0)
   @Max(FRAME_COVER_MAX_TIME_MS)
   coverTimeMs?: number;
+
+  // For a frame: the address of an image the author uploaded, to use as the
+  // cover in place of a moment of the video. Not sent with coverTimeMs.
+  @ApiProperty({
+    required: false,
+    type: () => String,
+    maxLength: POST_FILE_URL_MAX_LENGTH,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(POST_FILE_URL_MAX_LENGTH)
+  @NotWithCoverTime()
+  coverImageUrl?: string;
 }
