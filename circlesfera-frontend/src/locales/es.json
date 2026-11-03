@@ -5088,7 +5088,16 @@
     "viewer_ended_profile": "Ver su perfil",
     "viewers_peak": "Máximo de espectadores",
     "comments": "Comentarios",
-    "gifts_received": "Regalos recibidos"
+    "gifts_received": "Regalos recibidos",
+    "audience": {
+      "label": "Para quién es el directo",
+      "EVERYONE": "Todos",
+      "CLOSE_FRIENDS": "Mejores amigos",
+      "PRACTICE": "Prueba",
+      "hint_EVERYONE": "Te ven quienes pueden ver tu perfil, y avisamos a tus seguidores.",
+      "hint_CLOSE_FRIENDS": "Solo tus mejores amigos lo ven y reciben el aviso.",
+      "hint_PRACTICE": "Nadie más lo ve ni recibe aviso, y no se graba: prueba luz, sonido y conexión."
+    }
   },
   "shortcuts": {
     "next_post": "Siguiente publicación",

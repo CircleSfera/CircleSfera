@@ -44,7 +44,7 @@ async function expectScreenInOrder(page: Page) {
 
 async function holdVideoConnection(page: Page) {
   await page.routeWebSocket(/livekit/, () => {});
-  await page.route(/livekit\.cloud/, () => {});
+  await page.route(/livekit\.(cloud|e2e\.invalid)/, () => {});
 }
 
 async function goLive(page: Page) {

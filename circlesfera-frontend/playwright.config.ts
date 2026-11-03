@@ -1,5 +1,6 @@
 import process from 'node:process';
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_LIVEKIT_URL } from './e2e/e2e-livekit';
 
 /**
  * Read environment variables from file.
@@ -62,6 +63,12 @@ export default defineConfig({
     : {
         command: 'npm run dev',
         url: 'http://localhost:5173',
+        // The app is built with the address of its LiveKit server; the
+        // tests answer for it, so it only needs to be one.
+        env: {
+          ...(process.env as Record<string, string>),
+          VITE_LIVEKIT_URL: process.env.VITE_LIVEKIT_URL || E2E_LIVEKIT_URL,
+        },
         reuseExistingServer: !process.env.CI,
         timeout: 120 * 1000,
       },
