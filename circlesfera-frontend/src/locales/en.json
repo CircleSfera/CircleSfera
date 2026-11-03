@@ -1733,7 +1733,10 @@
       "turn_off_comments_desc": "Nobody can comment on this post. This can't be changed after it's published.",
       "mark_sensitive": "Mark as sensitive content",
       "mark_sensitive_desc": "Graphic violence, strong language, or artistic context. Explicit sexual content is not allowed on CircleSfera and is removed, not filtered.",
-      "price_eur": "Price (EUR)"
+      "price_eur": "Price (EUR)",
+      "suggestions": "Suggestions",
+      "tag_posts_one": "{{count}} post",
+      "tag_posts_other": "{{count}} posts"
     },
     "edit": {
       "edit_media": "Edit Media",

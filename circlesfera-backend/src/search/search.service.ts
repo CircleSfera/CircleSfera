@@ -36,6 +36,11 @@ export interface SearchResponse {
 
 // Service for user search, hashtag search, AI-powered semantic search, and search history.
 // Uses cache-manager for embedding caching and AIService for vector similarity.
+
+/** The shortest query searched; anything shorter finds nothing. */
+const SEARCH_MIN_QUERY_LENGTH = 2;
+/** How many hashtags one search answers. */
+const HASHTAG_RESULTS = 5;
 @Injectable()
 export class SearchService {
   private readonly logger = new Logger(SearchService.name);
@@ -291,30 +296,7 @@ export class SearchService {
     const [users, hashtags, semanticPosts, semanticProfiles] =
       await Promise.all([
         this.searchUsers(sanitizedQuery, profileId, verifiedOnly),
-        this.prisma.hashtag.findMany({
-          where: {
-            tag: {
-              contains: sanitizedQuery,
-              mode: 'insensitive',
-            },
-            // One hidden by staff is not offered.
-            isHidden: false,
-            // Only tags used by Profiles the viewer can see (blocks), on
-            // posts moderation has not removed.
-            posts: {
-              some: {
-                post: {
-                  ...LISTED_POST,
-                  profile: await visibleToViewerWhere(this.prisma, profileId),
-                },
-              },
-            },
-          },
-          take: 5,
-          orderBy: {
-            postCount: 'desc',
-          },
-        }),
+        this.searchHashtags(sanitizedQuery, profileId),
         this.semanticSearchPosts(sanitizedQuery, 3, profileId),
         query.length >= 3
           ? this.semanticSearchProfiles(sanitizedQuery, 5, profileId)
@@ -385,6 +367,34 @@ export class SearchService {
   // Param viewerId: Optional ID of the user performing the search
 
   // Param verifiedOnly: only Profiles with a plan badge
+  // The hashtags whose text holds the query, most used first: none hidden
+  // by staff, and only those used on posts the viewer can see. What the
+  // combined search shows, and what a caption suggests while it is written.
+  async searchHashtags(query: string, profileId?: string) {
+    if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) return [];
+    return this.prisma.hashtag.findMany({
+      where: {
+        tag: {
+          contains: query.toLowerCase(),
+          mode: 'insensitive',
+        },
+        isHidden: false,
+        posts: {
+          some: {
+            post: {
+              ...LISTED_POST,
+              profile: await visibleToViewerWhere(this.prisma, profileId),
+            },
+          },
+        },
+      },
+      take: HASHTAG_RESULTS,
+      orderBy: {
+        postCount: 'desc',
+      },
+    });
+  }
+
   async searchUsers(
     query: string,
     viewerId?: string,

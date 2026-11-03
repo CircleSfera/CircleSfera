@@ -27,8 +27,10 @@ import type {
 } from '../../hooks/useCreatePost';
 import { useAuthStore } from '../../stores/authStore';
 import type { Audio as AudioTrack } from '../../types';
+import { completeToken, tokenAt } from '../../utils/captionToken';
 import { postAspectClass } from '../../utils/postShape';
 import UserAvatar from '../UserAvatar';
+import CaptionSuggestions from './CaptionSuggestions';
 import InteractiveMediaPreview from './InteractiveMediaPreview';
 
 interface CaptionStepProps {
@@ -97,6 +99,10 @@ export default function CaptionStep({
   }, [autoResize]);
 
   const hasImageMedia = mediaFiles.some((m) => m.type === 'image');
+  // Where the cursor is in the caption, for the mention or tag being written.
+  const [cursor, setCursor] = useState(caption.length);
+  const token = tokenAt(caption, cursor);
+
   const showTagPeople = mode !== 'FRAME' && hasImageMedia;
 
   const primaryRows: OptionRow[] = [
@@ -300,15 +306,34 @@ export default function CaptionStep({
                 onChange={(e) => {
                   if (e.target.value.length <= MAX_CAPTION_LENGTH + 100) {
                     setCaption(e.target.value);
+                    setCursor(e.target.selectionStart ?? e.target.value.length);
                     requestAnimationFrame(autoResize);
                   }
                 }}
+                onSelect={(e) =>
+                  setCursor(e.currentTarget.selectionStart ?? caption.length)
+                }
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 placeholder={t('createPost.caption.write_caption')}
                 className="w-full bg-transparent text-white/90 border-0 resize-none focus:outline-none placeholder-white/35 text-base leading-relaxed min-h-20 max-h-40 p-0 md:p-2.5"
                 aria-label={t('createPost.caption.write_caption')}
               />
+              {isFocused && token ? (
+                <CaptionSuggestions
+                  token={token}
+                  onPick={(value) => {
+                    const next = completeToken(caption, token, cursor, value);
+                    setCaption(next.text);
+                    setCursor(next.cursor);
+                    requestAnimationFrame(() => {
+                      const field = textareaRef.current;
+                      field?.setSelectionRange(next.cursor, next.cursor);
+                      autoResize();
+                    });
+                  }}
+                />
+              ) : null}
               <div className="flex items-center justify-end md:px-2.5 md:pb-1.5">
                 <span
                   className={`text-xs font-semibold tabular-nums ${

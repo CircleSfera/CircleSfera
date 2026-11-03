@@ -778,4 +778,27 @@ describe('SearchService', () => {
       expect(mockPrismaService.searchHistory.deleteMany).not.toHaveBeenCalled();
     });
   });
+
+  describe('searchHashtags', () => {
+    it('finds nothing for a query too short, asking nothing', async () => {
+      mockPrismaService.hashtag.findMany.mockClear();
+      expect(await service.searchHashtags('m', 'viewer-1')).toEqual([]);
+      expect(await service.searchHashtags('', 'viewer-1')).toEqual([]);
+      expect(mockPrismaService.hashtag.findMany).not.toHaveBeenCalled();
+    });
+
+    it('offers the most used tags holding the text, none hidden by staff', async () => {
+      mockPrismaService.hashtag.findMany.mockResolvedValueOnce([
+        { id: 'h1', tag: 'mar' },
+      ]);
+
+      const found = await service.searchHashtags('MA', 'viewer-1');
+
+      expect(found).toEqual([{ id: 'h1', tag: 'mar' }]);
+      const [args] = mockPrismaService.hashtag.findMany.mock.calls.at(-1) ?? [];
+      expect(args.where.tag).toEqual({ contains: 'ma', mode: 'insensitive' });
+      expect(args.where.isHidden).toBe(false);
+      expect(args.orderBy).toEqual({ postCount: 'desc' });
+    });
+  });
 });

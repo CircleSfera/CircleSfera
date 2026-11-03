@@ -11,6 +11,12 @@ export const searchApi = {
   searchUsers: (query: string) =>
     apiClient.get<Profile[]>(`search/users?q=${encodeURIComponent(query)}`),
 
+  // The hashtags whose text holds the query, most used first.
+  searchHashtags: (query: string) =>
+    apiClient.get<{ id: string; tag: string; postCount?: number }[]>(
+      `search/hashtags?q=${encodeURIComponent(query)}`,
+    ),
+
   searchPosts: (query: string) =>
     apiClient.get<Post[]>(`search/posts?q=${encodeURIComponent(query)}`),
 

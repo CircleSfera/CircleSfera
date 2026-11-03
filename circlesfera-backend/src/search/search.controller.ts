@@ -112,6 +112,18 @@ export class SearchController {
     );
   }
 
+  // The hashtags whose text holds the query, for suggestions while writing.
+  @Get('hashtags')
+  @MemberAllowed('browse')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, type: [Object] })
+  searchHashtags(
+    @Query('q') query: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.searchService.searchHashtags(query, user.profileId);
+  }
+
   // Get the user's recent search history.
   @Get('history')
   @UseGuards(JwtAuthGuard)
