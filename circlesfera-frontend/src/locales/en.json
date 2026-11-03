@@ -5085,7 +5085,16 @@
     "viewer_ended_profile": "See their profile",
     "viewers_peak": "Most watching at once",
     "comments": "Comments",
-    "gifts_received": "Gifts received"
+    "gifts_received": "Gifts received",
+    "audience": {
+      "label": "Who the live is for",
+      "EVERYONE": "Everyone",
+      "CLOSE_FRIENDS": "Close friends",
+      "PRACTICE": "Practice",
+      "hint_EVERYONE": "Whoever can see your profile can watch, and your followers are told.",
+      "hint_CLOSE_FRIENDS": "Only your close friends see it and are told.",
+      "hint_PRACTICE": "Nobody else sees it or is told, and it is not recorded: check light, sound and connection."
+    }
   },
   "shortcuts": {
     "next_post": "Next post",

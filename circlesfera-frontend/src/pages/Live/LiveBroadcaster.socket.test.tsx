@@ -1,4 +1,8 @@
 import {
+  DEFAULT_LIVE_AUDIENCE,
+  LIVE_TITLE_MAX_LENGTH,
+} from '@circlesfera/shared';
+import {
   act,
   configure,
   fireEvent,
@@ -230,6 +234,7 @@ describe('LiveBroadcaster on the live connection', () => {
     const first = await goLive('  Sunset set  ');
     expect(apiClient.post).toHaveBeenCalledWith('/live/start', {
       title: 'Sunset set',
+      audience: DEFAULT_LIVE_AUDIENCE,
     });
     expect(live.room).toMatchObject({
       token: 'lk-token',
@@ -245,6 +250,7 @@ describe('LiveBroadcaster on the live connection', () => {
     await goLive();
     expect(apiClient.post).toHaveBeenCalledWith('/live/start', {
       title: 'My Live Stream',
+      audience: DEFAULT_LIVE_AUDIENCE,
     });
   });
 
@@ -257,6 +263,37 @@ describe('LiveBroadcaster on the live connection', () => {
     expect(live.socket.emit).toHaveBeenCalledWith('live:join', {
       streamId: 'stream-1',
     });
+  });
+
+  it('goes live for the audience chosen, telling what each one means', async () => {
+    renderWithProviders(<LiveBroadcaster />);
+    const everyone = screen.getByRole('button', { name: 'Everyone' });
+    expect(everyone).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Practice' }));
+    expect(screen.getByRole('button', { name: 'Practice' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(everyone).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText(/not recorded/)).toBeInTheDocument();
+
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: { token: 'lk-token', stream: { id: 'stream-1' } },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Go live' }));
+    await screen.findByRole('button', { name: 'End livestream' });
+    expect(apiClient.post).toHaveBeenCalledWith('/live/start', {
+      title: 'My Live Stream',
+      audience: 'PRACTICE',
+    });
+  });
+
+  it('keeps the title within the length the server takes', () => {
+    renderWithProviders(<LiveBroadcaster />);
+    expect(
+      screen.getByRole('textbox', { name: 'Title of the live' }),
+    ).toHaveAttribute('maxLength', String(LIVE_TITLE_MAX_LENGTH));
   });
 
   it('leaves the set-up screen from its close button', () => {

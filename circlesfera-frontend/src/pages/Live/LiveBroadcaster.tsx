@@ -1,3 +1,9 @@
+import {
+  DEFAULT_LIVE_AUDIENCE,
+  LIVE_AUDIENCES,
+  LIVE_TITLE_MAX_LENGTH,
+  type LiveAudience,
+} from '@circlesfera/shared';
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import {
@@ -48,6 +54,7 @@ import LiveQnAPanel, {
 } from '../../components/live/LiveQnAPanel';
 import LiveRecordingChoice from '../../components/live/LiveRecordingChoice';
 import ConfirmModal from '../../components/modals/ConfirmModal';
+import { LIVEKIT_URL } from '../../constants/livekit';
 import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { profileApi } from '../../services/profile.service';
@@ -72,6 +79,8 @@ export default function LiveBroadcaster() {
   const [coHostUsername, setCoHostUsername] = useState<string | null>(null);
   const [isInviting, setIsInviting] = useState(false);
   const [titleInput, setTitleInput] = useState('');
+  // Who the live is for, chosen before going live.
+  const [audience, setAudience] = useState<LiveAudience>(DEFAULT_LIVE_AUDIENCE);
   const [hasStarted, setHasStarted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isEnded, setIsEnded] = useState(false);
@@ -159,7 +168,7 @@ export default function LiveBroadcaster() {
     const title = titleInput.trim() || t('live.default_title');
     setIsStarting(true);
     try {
-      const res: any = await api.post('/live/start', { title });
+      const res: any = await api.post('/live/start', { title, audience });
       setToken(res.data.token);
       setStreamId(res.data.stream.id);
       preview.stop();
@@ -446,11 +455,31 @@ export default function LiveBroadcaster() {
             value={titleInput}
             onChange={(e) => setTitleInput(e.target.value)}
             placeholder={t('live.title_placeholder')}
-            maxLength={100}
+            maxLength={LIVE_TITLE_MAX_LENGTH}
             className="live-glass min-h-12 rounded-full px-4 text-base text-white placeholder-white/60 outline-none focus:border-white/40"
           />
+          <fieldset className="m-0 flex min-w-0 gap-2 border-0 p-0">
+            <legend className="sr-only">{t('live.audience.label')}</legend>
+            {LIVE_AUDIENCES.map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                aria-pressed={audience === choice}
+                onClick={() => setAudience(choice)}
+                // The glass sets its own background, so the chosen one is
+                // drawn without it.
+                className={`min-h-11 flex-1 whitespace-nowrap rounded-full px-3 text-sm font-semibold transition-colors ${
+                  audience === choice
+                    ? 'bg-white text-black'
+                    : 'live-glass text-white hover:bg-white/15'
+                }`}
+              >
+                {t(`live.audience.${choice}`)}
+              </button>
+            ))}
+          </fieldset>
           <p className="px-1 text-center text-xs text-white/70">
-            {t('live.setup_hint')}
+            {t(`live.audience.hint_${audience}`)} {t('live.setup_hint')}
           </p>
           <button
             type="submit"
@@ -511,9 +540,7 @@ export default function LiveBroadcaster() {
     );
   }
 
-  const serverUrl =
-    import.meta.env.VITE_LIVEKIT_URL ||
-    'wss://circlesfera-6sxa79qt.livekit.cloud';
+  const serverUrl = LIVEKIT_URL;
 
   return (
     <>

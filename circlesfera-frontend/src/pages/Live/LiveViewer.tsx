@@ -29,6 +29,7 @@ import LivePinnedComment, {
 import LiveQnAPanel, {
   type LiveQuestion,
 } from '../../components/live/LiveQnAPanel';
+import { LIVEKIT_URL } from '../../constants/livekit';
 import { apiClient as api } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
@@ -380,9 +381,7 @@ export default function LiveViewer() {
     );
   }
 
-  const serverUrl =
-    import.meta.env.VITE_LIVEKIT_URL ||
-    'wss://circlesfera-6sxa79qt.livekit.cloud';
+  const serverUrl = LIVEKIT_URL;
 
   return (
     <>
