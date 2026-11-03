@@ -434,7 +434,7 @@ jobs:
             docker tag "${REGISTRY}/backend:${IMAGE_SHA}" "${REGISTRY}/backend:latest"
             docker tag "${REGISTRY}/frontend:${IMAGE_SHA}" "${REGISTRY}/frontend:latest"
 
-            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps --remove-orphans backend frontend nginx-proxy
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps --remove-orphans backend frontend nginx-proxy recordings-folder livekit egress
 
             # Every deploy leaves its SHA-tagged backend/frontend images on disk
             # forever — `docker system prune -f` alone never touches them (they're

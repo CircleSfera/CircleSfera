@@ -91,9 +91,8 @@ services:
       - uploads_data:/app/circlesfera-backend/uploads
       # Analytics ETL CSV (BullMQ nightly job). Host path: ETL_HOST_DIR in .env.production.
       - ${ETL_HOST_DIR:-./backups/etl}:/app/circlesfera-backend/backups/etl
-      # Recordings of broadcasts, once production runs its own live service
-      # and recorder (the two services at the end of this file, commented):
-      # - recordings_data:/app/circlesfera-backend/recordings
+      # Recordings of broadcasts, written by the recorder below.
+      - recordings_data:/app/circlesfera-backend/recordings
     depends_on:
       postgres:
         condition: service_healthy
@@ -127,89 +126,89 @@ services:
       - circlesfera-network
 
   # Production's own live service and recorder, as staging and dev run them
-  # (docker-compose.env.yml). Off until the owner switches production away
-  # from the hosted live service: uncomment the three (livekit,
-  # recordings-folder and egress), the backend's recordings
-  # line above and the recordings_data volume below, set the settings named
-  # in infra/host/environment.env.example, and open the media ports in the
-  # firewall (7881/tcp and 7882/udp). Images as in docker-compose.env.yml.
+  # (docker-compose.env.yml). They run idle while LIVEKIT_URL and
+  # VITE_LIVEKIT_URL point at the hosted service; the switch is those two
+  # settings, the host nginx routes (/rtc and /twirp) and the media ports in
+  # the firewall (7881/tcp and 7882/udp). Images as in docker-compose.env.yml.
   #
-  # livekit:
-  #   <<: *default-logging
-  #   image: livekit/livekit-server:v1.13.10@sha256:89ca9ce0791e18d6e03bf6e2c49ceb27e1c754eae8bd50c989386c1a5963791a
-  #   container_name: CircleSfera-LiveKit
-  #   ports:
-  #     - "127.0.0.1:7880:7880"
-  #     - "7881:7881/tcp"
-  #     - "7882:7882/udp"
-  #   environment:
-  #     LIVEKIT_CONFIG: |
-  #       port: 7880
-  #       rtc:
-  #         tcp_port: 7881
-  #         udp_port: 7882
-  #         use_external_ip: true
-  #       redis:
-  #         address: redis:6379
-  #         password: ${REDIS_PASSWORD}
-  #       keys:
-  #         ${LIVEKIT_API_KEY:?}: ${LIVEKIT_API_SECRET:?}
-  #       webhook:
-  #         api_key: ${LIVEKIT_API_KEY:?}
-  #         urls:
-  #           - http://backend:3000/api/v1/live/livekit/webhook
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #   mem_limit: 1g
-  #   cpus: 2.0
-  #   networks:
-  #     - circlesfera-network
-  #
-  # # The recorder's folder, readied as in docker-compose.env.yml: a new
-  # # volume is writable by root alone, and the recorder is not root.
-  # recordings-folder:
-  #   <<: *default-logging
-  #   image: ${REGISTRY:-ghcr.io/circlesfera/circlesfera}/backend:${IMAGE_TAG:-latest}
-  #   user: "0:0"
-  #   entrypoint: ["sh", "-c", "chown node:root /out && chmod 2775 /out"]
-  #   volumes:
-  #     - recordings_data:/out
-  #   restart: "no"
-  #   networks:
-  #     - circlesfera-network
-  #
-  # egress:
-  #   <<: *default-logging
-  #   image: livekit/egress:v1.15.0@sha256:ac244a40268ce1dd1510fbff6eb529609ec68aceff1602343f79be8ca08c355b
-  #   container_name: CircleSfera-Recorder
-  #   environment:
-  #     EGRESS_CONFIG_BODY: |
-  #       api_key: ${LIVEKIT_API_KEY:?}
-  #       api_secret: ${LIVEKIT_API_SECRET:?}
-  #       ws_url: ws://livekit:7880
-  #       redis:
-  #         address: redis:6379
-  #         password: ${REDIS_PASSWORD}
-  #   volumes:
-  #     - recordings_data:/out
-  #   depends_on:
-  #     recordings-folder:
-  #       condition: service_completed_successfully
-  #     livekit:
-  #       condition: service_started
-  #   restart: unless-stopped
-  #   mem_limit: 4g
-  #   cpus: 4.0
-  #   networks:
-  #     - circlesfera-network
+  livekit:
+    <<: *default-logging
+    image: livekit/livekit-server:v1.13.10@sha256:89ca9ce0791e18d6e03bf6e2c49ceb27e1c754eae8bd50c989386c1a5963791a
+    container_name: CircleSfera-LiveKit
+    ports:
+      - "127.0.0.1:7880:7880"
+      - "7881:7881/tcp"
+      - "7882:7882/udp"
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          use_external_ip: true
+        redis:
+          address: redis:6379
+          password: ${REDIS_PASSWORD}
+        keys:
+          ${LIVEKIT_API_KEY:?}: ${LIVEKIT_API_SECRET:?}
+        # Each arrival in a room is told to the backend, on the
+        # environment's own network, which keeps out who may not be there.
+        webhook:
+          api_key: ${LIVEKIT_API_KEY:?}
+          urls:
+            - http://backend:3000/api/v1/live/livekit/webhook
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 2.0
+    networks:
+      - circlesfera-network
+
+  # The recorder's folder, readied as in docker-compose.env.yml: a new
+  # volume is writable by root alone, and the recorder is not root.
+  recordings-folder:
+    <<: *default-logging
+    image: ${REGISTRY:-ghcr.io/circlesfera/circlesfera}/backend:${IMAGE_TAG:-latest}
+    user: "0:0"
+    entrypoint: ["sh", "-c", "chown node:root /out && chmod 2775 /out"]
+    volumes:
+      - recordings_data:/out
+    restart: "no"
+    networks:
+      - circlesfera-network
+
+  egress:
+    <<: *default-logging
+    image: livekit/egress:v1.15.0@sha256:ac244a40268ce1dd1510fbff6eb529609ec68aceff1602343f79be8ca08c355b
+    container_name: CircleSfera-Recorder
+    environment:
+      EGRESS_CONFIG_BODY: |
+        api_key: ${LIVEKIT_API_KEY:?}
+        api_secret: ${LIVEKIT_API_SECRET:?}
+        ws_url: ws://livekit:7880
+        redis:
+          address: redis:6379
+          password: ${REDIS_PASSWORD}
+    volumes:
+      - recordings_data:/out
+    depends_on:
+      recordings-folder:
+        condition: service_completed_successfully
+      livekit:
+        condition: service_started
+    restart: unless-stopped
+    mem_limit: 4g
+    cpus: 4.0
+    networks:
+      - circlesfera-network
 
 volumes:
   postgres_data:
   redis_data:
   uploads_data:
-  # recordings_data:
+  recordings_data:
 
 networks:
   circlesfera-network:
