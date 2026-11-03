@@ -449,7 +449,7 @@ export class LiveService {
   // Everyone in the live's room is told who is on air with the host; the
   // host alone is told who is invited too, as an invite is between them and
   // the invitee.
-  private async announceGuests(streamId: string) {
+  private async announceGuests(streamId: string): Promise<LiveGuestView[]> {
     const [guests, stream] = await Promise.all([
       this.listGuests(streamId),
       this.prisma.liveStream.findUnique({
@@ -466,6 +466,7 @@ export class LiveService {
         .to(`user:${stream.hostId}`)
         .emit('live:guest_invites', { streamId, guests });
     }
+    return guests;
   }
 
   // One guest's change at a time per live, so the count of places read is
@@ -618,10 +619,13 @@ export class LiveService {
       });
       if (refusal) throw refused(refusal);
       if (status === 'ON_AIR') return false;
-      await tx.liveGuest.update({
-        where: { streamId_profileId: { streamId, profileId } },
+      // Only from the invite read: one removed or declined meanwhile is not
+      // put on air, and gets no token.
+      const { count } = await tx.liveGuest.updateMany({
+        where: { streamId, profileId, status: 'INVITED' },
         data: { status: 'ON_AIR', joinedAt: new Date(), endedAt: null },
       });
+      if (count === 0) throw refused(refuseDecline(null) as GuestRefusal);
       return true;
     });
 
@@ -757,16 +761,22 @@ export class LiveService {
     profileId: string,
     to: Extract<LiveGuestStatus, 'LEFT' | 'REMOVED'>,
   ): Promise<boolean> {
-    const guest = await this.prisma.liveGuest.findUnique({
-      where: { streamId_profileId: { streamId, profileId } },
-      select: { status: true },
+    // Under the live's lock, as invite and accept are: a guest is never put
+    // on air and taken off at the same moment.
+    const was = await this.prisma.$transaction(async (tx) => {
+      await this.lockStream(tx, streamId);
+      const guest = await tx.liveGuest.findUnique({
+        where: { streamId_profileId: { streamId, profileId } },
+        select: { status: true },
+      });
+      if (!guest || !hasPlace(guest.status)) return null;
+      const { count } = await tx.liveGuest.updateMany({
+        where: { streamId, profileId, status: guest.status },
+        data: { status: to, endedAt: new Date() },
+      });
+      return count === 0 ? null : guest.status;
     });
-    if (!guest || !hasPlace(guest.status)) return false;
-    const { count } = await this.prisma.liveGuest.updateMany({
-      where: { streamId, profileId, status: guest.status },
-      data: { status: to, endedAt: new Date() },
-    });
-    if (count === 0) return false;
+    if (was === null) return false;
 
     if (to === 'REMOVED') {
       // The app is told first, so it goes back to watching instead of
@@ -779,17 +789,28 @@ export class LiveService {
         .to(`user:${profileId}`)
         .emit('live:cohost_removed', { streamId });
     }
-    if (guest.status === 'ON_AIR') {
+    if (was === 'ON_AIR') {
       await this.recording.stopCoHost(streamId, profileId);
       // Taken out of the room by the live service too, so their camera
       // stops for everyone even if their app does not react.
       await this.recording.removeFromRoom(streamId, profileId);
-      // Kept for the apps still installed that show one co-host.
-      this.gateway.server
-        .to(`live:${streamId}`)
-        .emit('live:cohost_left', { coHostId: profileId });
     }
-    await this.announceGuests(streamId);
+    const guests = await this.announceGuests(streamId);
+    if (was === 'ON_AIR') {
+      // Kept for the apps still installed that show one co-host: the
+      // co-host leaves only when nobody is on air any more; otherwise the
+      // first guest still on air is shown as the co-host.
+      const first = guests.find((guest) => guest.status === 'ON_AIR');
+      const room = this.gateway.server.to(`live:${streamId}`);
+      if (first) {
+        room.emit('live:cohost_joined', {
+          coHostId: first.profileId,
+          coHostUsername: first.username,
+        });
+      } else {
+        room.emit('live:cohost_left', { coHostId: profileId });
+      }
+    }
     return true;
   }
 }

@@ -147,7 +147,7 @@ describe('LiveService', () => {
         },
       ),
     },
-    $queryRaw: vi.fn(async () => []),
+    $queryRaw: vi.fn<AnyFn>(async () => []),
     profile: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -653,9 +653,17 @@ describe('LiveService', () => {
       expect(emit.mock.invocationCallOrder[told]).toBeLessThan(
         mockRecording.removeFromRoom.mock.invocationCallOrder[0],
       );
-      expect(emit).toHaveBeenCalledWith('live:cohost_left', {
-        coHostId: 'guest-1',
+      // Another guest is still on air there: installed apps are shown them
+      // as the co-host instead of being told the co-host left.
+      expect(emit).toHaveBeenCalledWith('live:cohost_joined', {
+        coHostId: 'guest-2',
+        coHostUsername: 'guest-2_name',
       });
+      expect(
+        emit.mock.calls.filter(
+          ([name]: unknown[]) => name === 'live:cohost_left',
+        ),
+      ).toEqual([]);
     });
 
     it('a ban of the whole account ends the broadcast as ended by staff', async () => {
@@ -1057,8 +1065,45 @@ describe('LiveService', () => {
 
         expect(typeof result.token).toBe('string');
         expect(guests[0].joinedAt).toEqual(new Date(5));
-        expect(mockPrismaService.liveGuest.update).not.toHaveBeenCalled();
+        expect(mockPrismaService.liveGuest.updateMany).not.toHaveBeenCalled();
         expect(mockServer.emit).not.toHaveBeenCalled();
+      });
+
+      it('puts on air under the live lock', async () => {
+        seedGuest('stream-1', 'ana', 'INVITED');
+
+        await service.acceptGuestInvite('stream-1', 'ana');
+
+        expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(1);
+        expect(mockPrismaService.$queryRaw.mock.calls[0][1]).toBe('stream-1');
+        const [lockOrder] =
+          mockPrismaService.$queryRaw.mock.invocationCallOrder;
+        expect(lockOrder).toBeLessThan(
+          mockPrismaService.liveGuest.updateMany.mock.invocationCallOrder[0],
+        );
+      });
+
+      it('refuses a guest removed between the read and the write, with no token and nothing on air', async () => {
+        // The row says removed; the read made before it was changed says
+        // invited.
+        seedGuest('stream-1', 'ana', 'REMOVED');
+        mockPrismaService.liveGuest.findMany.mockResolvedValueOnce([
+          { profileId: 'ana', status: 'INVITED' },
+        ]);
+        const createToken = vi.spyOn(
+          (service as any).liveKitTokenService,
+          'createToken',
+        );
+
+        await expect(
+          service.acceptGuestInvite('stream-1', 'ana'),
+        ).rejects.toMatchObject({ errorCode: 'NOT_A_LIVE_GUEST' });
+
+        expect(statusOf('stream-1', 'ana')).toBe('REMOVED');
+        expect(createToken).not.toHaveBeenCalled();
+        expect(mockRecording.startCoHost).not.toHaveBeenCalled();
+        expect(mockServer.emit).not.toHaveBeenCalled();
+        createToken.mockRestore();
       });
 
       it('refuses a Profile not invited, or invited no more', async () => {
@@ -1176,8 +1221,11 @@ describe('LiveService', () => {
         expect(mockRecording.removeFromRoom.mock.calls).toEqual([
           ['stream-1', 'ana'],
         ]);
-        expect(mockServer.emit).toHaveBeenCalledWith('live:cohost_left', {
-          coHostId: 'ana',
+        // Bea is still on air: installed apps show her as the co-host.
+        expect(emitted('live:cohost_left')).toEqual([]);
+        expect(mockServer.emit).toHaveBeenCalledWith('live:cohost_joined', {
+          coHostId: 'bea',
+          coHostUsername: 'bea_name',
         });
         expect(emitted('live:guest_removed')).toEqual([]);
         expect(mockServer.emit).toHaveBeenCalledWith('live:guests_changed', {
@@ -1251,9 +1299,26 @@ describe('LiveService', () => {
         expect(mockServer.emit.mock.invocationCallOrder[told]).toBeLessThan(
           mockRecording.removeFromRoom.mock.invocationCallOrder[0],
         );
-        expect(mockServer.emit).toHaveBeenCalledWith('live:cohost_left', {
-          coHostId: 'bea',
+        expect(emitted('live:cohost_left')).toEqual([]);
+        expect(mockServer.emit).toHaveBeenCalledWith('live:cohost_joined', {
+          coHostId: 'ana',
+          coHostUsername: 'ana_name',
         });
+        // Taken off under the live's lock.
+        expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(1);
+        expect(mockPrismaService.$queryRaw.mock.calls[0][1]).toBe('stream-1');
+      });
+
+      it('tells installed apps the co-host left once nobody is on air any more', async () => {
+        seedGuest('stream-1', 'ana', 'ON_AIR');
+        seedGuest('stream-1', 'bea', 'INVITED');
+
+        await service.removeGuest('stream-1', HOST, 'ana');
+
+        expect(emitted('live:cohost_left')).toEqual([
+          ['live:cohost_left', { coHostId: 'ana' }],
+        ]);
+        expect(emitted('live:cohost_joined')).toEqual([]);
       });
 
       it('the host removes a guest only invited, with nothing to stop', async () => {

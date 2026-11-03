@@ -319,6 +319,9 @@ export class LiveReplayMaker {
     const outputDir = path.join(process.cwd(), 'uploads', baseName);
     await fs.promises.mkdir(outputDir, { recursive: true });
     let keepOutput = false;
+    // The guest files left out of the replay: kept, not deleted with the
+    // others.
+    const leftOut = new Set<string>();
     try {
       // Up to twice the recording's length: the replay is encoded again.
       const limitMs = Math.max(
@@ -350,7 +353,7 @@ export class LiveReplayMaker {
           await runFfmpeg(
             composeArgs(
               { file: input, audio: hasAudio(host) },
-              await this.placeGuests(guests, signal),
+              await this.placeGuests(guests, signal, leftOut),
               outputDir,
               playlist,
             ),
@@ -399,7 +402,10 @@ export class LiveReplayMaker {
       }
     }
 
-    for (const file of [input, ...guests.map((guest) => guest.file)]) {
+    const used = guests
+      .map((guest) => guest.file)
+      .filter((file) => !leftOut.has(file));
+    for (const file of [input, ...used]) {
       await fs.promises
         .rm(file, { force: true })
         .catch((error: unknown) =>
@@ -414,11 +420,13 @@ export class LiveReplayMaker {
   /**
    * Reads each guest's recording for its sound and, when the recorder did
    * not say, its length, and gives it its column. A part that finds no
-   * column is left out of the replay.
+   * column is left out of the replay, and its file added to `leftOut`: it is
+   * not deleted with the others, and the nightly clean-up takes it later.
    */
   private async placeGuests(
     guests: FoundGuestPart[],
     signal: AbortSignal,
+    leftOut: Set<string>,
   ): Promise<GuestReplayPart[]> {
     const probed: { audio: boolean; durationMs: number | null }[] = [];
     for (const guest of guests) {
@@ -440,8 +448,9 @@ export class LiveReplayMaker {
       const column = columns[index];
       if (column === null) {
         this.logger.warn(
-          `The guest recording ${path.basename(guest.file)} overlaps more guests than the replay shows: left out`,
+          `The guest recording ${path.basename(guest.file)} overlaps more guests than the replay shows: left out, its file kept`,
         );
+        leftOut.add(guest.file);
         return;
       }
       parts.push({

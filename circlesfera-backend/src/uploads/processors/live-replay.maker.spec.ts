@@ -540,7 +540,7 @@ describe('LiveReplayMaker', () => {
       expect(fs.readdirSync(recordings)).toEqual([]);
     });
 
-    it('leaves out of the replay a part that finds no column, and still deletes its file', async () => {
+    it('leaves out of the replay a part that finds no column, and keeps its file', async () => {
       const guests = [ANA, BEA, CAI, DAN];
       const files = guests.map((guest) => guestFile(guest, 1));
       for (const file of files) {
@@ -562,7 +562,8 @@ describe('LiveReplayMaker', () => {
       const args = vi.mocked(runFfmpeg).mock.calls[1][0];
       expect(args).toContain(path.join(recordings, files[2]));
       expect(args).not.toContain(path.join(recordings, files[3]));
-      expect(fs.readdirSync(recordings)).toEqual([]);
+      // The others are deleted; the one left out is kept.
+      expect(fs.readdirSync(recordings)).toEqual([files[3]]);
     });
 
     it("makes a host's replay when the host's part is not known", async () => {

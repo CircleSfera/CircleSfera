@@ -44,12 +44,19 @@ SELECT
 FROM "live_streams" s
 WHERE s."coHostId" IS NOT NULL;
 
--- The co-host parts already recorded name the co-host their live still
--- names; a part whose co-host was removed since stays with nobody named.
+-- Only a co-host part still being recorded on a live still on is named after
+-- the co-host the live names: an invite of another co-host stopped the part
+-- of the one before, so the part recording now is the current co-host's, and
+-- naming it lets that guest's leaving stop it. Every other co-host part stays
+-- with nobody named: a new invite overwrote the live's co-host, so an older
+-- part may be someone else's. The replay shows the parts of nobody named as
+-- one guest, as the old co-hosts were never on air together.
 UPDATE "live_recording_parts" p
 SET "profileId" = s."coHostId"
 FROM "live_streams" s
 WHERE p."streamId" = s."id"
   AND p."role" = 'COHOST'
+  AND p."status" = 'RECORDING'
   AND p."profileId" IS NULL
+  AND s."status" = 'LIVE'
   AND s."coHostId" IS NOT NULL;
