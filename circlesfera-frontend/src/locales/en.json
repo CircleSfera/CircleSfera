@@ -5308,7 +5308,11 @@
       "paint_edit": "Edit text and drawing",
       "trim_start": "Start of the clip",
       "trim_end": "End of the clip",
-      "hold_to_move": "Press and hold a clip to move it"
+      "order": "Order clips",
+      "order_button": "Reorder",
+      "move": "Move {{clip}}",
+      "previous": "Previous clip",
+      "next": "Next clip"
     },
     "assembly": {
       "uploading": "Uploading your clips ({{done}} of {{total}})…",

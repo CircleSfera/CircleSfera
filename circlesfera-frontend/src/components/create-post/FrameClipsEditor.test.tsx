@@ -28,14 +28,53 @@ function open(clips = [clip('a', half), clip('b', half), clip('c', half)]) {
 }
 
 describe('FrameClipsEditor', () => {
+  it('shows one clip at a time, gone through with the arrows', () => {
+    open();
+    expect(screen.getByText('Clip 1 de 3')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Clip anterior' }),
+    ).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clip siguiente' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clip siguiente' }));
+
+    expect(screen.getByText('Clip 3 de 3')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Clip siguiente' }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Clip anterior' }));
+    expect(screen.getByText('Clip 2 de 3')).toBeInTheDocument();
+  });
+
+  it('has nothing to go through or order with one clip', () => {
+    open([clip('a', FRAME_MIN_DURATION_SEC * 1000)]);
+    expect(screen.queryByRole('button', { name: 'Ordenar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Clip siguiente' })).toBeNull();
+  });
+
+  it('keeps showing the clip it showed after the order changes', () => {
+    open();
+    fireEvent.click(screen.getByRole('button', { name: 'Clip siguiente' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ordenar' }));
+    // The clip shown (b) goes first.
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Mover Clip 2 de 3' }),
+      { key: 'ArrowUp' },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Listo' }));
+    expect(screen.getByText('Clip 1 de 3')).toBeInTheDocument();
+  });
+
   it('goes on with the clips in the order and windows chosen', () => {
     const onDone = open();
 
-    // The last clip, moved a place earlier on the timeline.
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Clip 3 de 3' }), {
-      key: 'ArrowLeft',
-      shiftKey: true,
-    });
+    // The last clip, moved a place earlier in the order.
+    fireEvent.click(screen.getByRole('button', { name: 'Ordenar' }));
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Mover Clip 3 de 3' }),
+      { key: 'ArrowUp' },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Listo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
     const [[clips]] = onDone.mock.calls;

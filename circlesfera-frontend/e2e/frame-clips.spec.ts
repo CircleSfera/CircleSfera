@@ -94,25 +94,31 @@ test('a Frame recorded in clips is put together and goes on to its caption', asy
   const editor = page.getByTestId('frame-clips-editor');
   await expect(editor).toBeVisible();
   await capture(page, 'clips-editor', info);
-  // The timeline draws each clip's frames.
+  // The trim bar draws the chosen clip's frames.
   await expect
-    .poll(() => editor.locator('ol img').count(), { timeout: 10_000 })
+    .poll(() => editor.locator('img').count(), { timeout: 10_000 })
     .toBeGreaterThan(0);
-  // The second clip, held and dragged before the first.
-  const second = page.getByRole('button', { name: 'Clip 2 de 2' });
-  const box = await second.boundingBox();
-  if (!box) throw new Error('No second clip');
+  await expect(editor.getByText('Clip 1 de 2')).toBeVisible();
+  await page.getByRole('button', { name: 'Clip siguiente' }).click();
+  await expect(editor.getByText('Clip 2 de 2')).toBeVisible();
+
+  // The order: the second clip's card dragged above the first by its grip.
+  await page.getByRole('button', { name: 'Ordenar' }).click();
+  const order = page.getByTestId('frame-clips-order');
+  await expect(order).toBeVisible();
+  await capture(page, 'order', info);
+  const grip = page.getByRole('button', { name: 'Mover Clip 2 de 2' });
+  const box = await grip.boundingBox();
+  if (!box) throw new Error('No grip');
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(600);
-  await page.mouse.move(box.x - 200, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.move(box.x + box.width / 2, box.y - 120, { steps: 8 });
   await page.mouse.up();
-  // The moved clip is the chosen one, first now.
-  await expect(
-    page.getByRole('button', { name: 'Clip 1 de 2' }),
-  ).toHaveAttribute('aria-current', 'true');
-  await capture(page, 'timeline-moved', info);
-  await editor.getByRole('button', { name: 'Siguiente' }).click();
+  await page.getByRole('button', { name: 'Listo' }).click();
+  // The clip shown is still the one that was: first now.
+  await expect(editor.getByText('Clip 1 de 2')).toBeVisible();
+  await capture(page, 'clips-editor-after-order', info);
+  await editor.getByRole('button', { name: 'Siguiente', exact: true }).click();
 
   await expect(page.getByTestId('frame-assembly-progress')).toBeVisible();
   await capture(page, 'assembling', info);

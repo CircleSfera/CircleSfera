@@ -1,4 +1,11 @@
-import { Trash2, Type, X } from 'lucide-react';
+import {
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  Type,
+  X,
+} from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -13,7 +20,8 @@ import {
   CREATE_PRIMARY,
 } from './createStyles';
 import { formatClipClock } from './FrameClipControls';
-import FrameClipsTimeline from './FrameClipsTimeline';
+import FrameClipsOrder from './FrameClipsOrder';
+import FrameClipTrimBar from './FrameClipTrimBar';
 import {
   clipsLength,
   clipsMakeAFrame,
@@ -57,6 +65,7 @@ export default function FrameClipsEditor({
   const videoRef = useRef<HTMLVideoElement>(null);
   // Text and drawing over the whole Frame, painted on its first clip.
   const [painting, setPainting] = useState(false);
+  const [ordering, setOrdering] = useState(false);
   const [layer, setLayer] = useState<Blob | null>(before?.layer ?? null);
   const painted = useRef<StoryElement[]>(before?.elements ?? []);
 
@@ -100,6 +109,20 @@ export default function FrameClipsEditor({
       className={`${CREATE_FULL_SCREEN} flex flex-col text-white`}
       data-testid="frame-clips-editor"
     >
+      {ordering ? (
+        <FrameClipsOrder
+          clips={clips}
+          onMove={(from, to) => {
+            const moved = clips[from];
+            const shown = clips[chosen];
+            const next = moveClipTo(clips, from, to);
+            setClips(next);
+            // The clip shown stays the one shown, wherever it went.
+            setChosen(Math.max(0, next.indexOf(shown ?? moved)));
+          }}
+          onDone={() => setOrdering(false)}
+        />
+      ) : null}
       {painting && clips[0] ? (
         <Suspense fallback={null}>
           <StoryComposer
@@ -184,31 +207,89 @@ export default function FrameClipsEditor({
       ) : null}
 
       <div className="relative mx-auto w-full max-w-xl pt-3 pb-[max(env(safe-area-inset-bottom),16px)]">
-        <FrameClipsTimeline
-          clips={clips}
-          chosen={Math.min(chosen, clips.length - 1)}
-          playheadMs={playheadMs}
-          onChoose={setChosen}
-          onTrim={trim}
-          onMove={(from, to) => {
-            setClips((all) => moveClipTo(all, from, to));
-            setChosen(Math.max(0, Math.min(clips.length - 1, to)));
-          }}
-          actions={
+        {clips.length > 1 ? (
+          <div className="flex flex-col items-center gap-1 px-4 pb-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setChosen((i) => Math.max(0, i - 1))}
+                disabled={chosen === 0}
+                aria-label={t('frames.clips.previous')}
+                className={`${CREATE_GLASS_ICON} disabled:opacity-30`}
+              >
+                <ChevronLeft size={20} aria-hidden />
+              </button>
+              <p
+                className="min-w-28 text-center text-sm font-semibold"
+                aria-live="polite"
+              >
+                {t('frames.clips.item', {
+                  n: chosen + 1,
+                  total: clips.length,
+                })}
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setChosen((i) => Math.min(clips.length - 1, i + 1))
+                }
+                disabled={chosen === clips.length - 1}
+                aria-label={t('frames.clips.next')}
+                className={`${CREATE_GLASS_ICON} disabled:opacity-30`}
+              >
+                <ChevronRight size={20} aria-hidden />
+              </button>
+            </div>
+            <div className="flex gap-1.5" aria-hidden>
+              {clips.map((c, index) => (
+                <span
+                  key={urls.get(c.file)}
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === chosen ? 'w-4 bg-white' : 'w-1.5 bg-white/35'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {clip ? (
+          <div className="px-4">
+            <FrameClipTrimBar
+              key={urls.get(clip.file)}
+              clip={clip}
+              playheadMs={playheadMs}
+              onTrim={(next) => trim(chosen, next)}
+            />
+          </div>
+        ) : null}
+        <div className="flex items-center justify-between px-4 pt-3">
+          {clips.length > 1 ? (
             <button
               type="button"
-              onClick={() => {
-                setClips((all) => all.filter((_, i) => i !== chosen));
-                setChosen((i) => Math.max(0, i - 1));
-              }}
-              disabled={clips.length === 1}
-              aria-label={t('frames.clips.remove')}
-              className={`${CREATE_GLASS_ICON} disabled:opacity-30`}
+              onClick={() => setOrdering(true)}
+              className={`${CREATE_GLASS_ICON} w-auto! gap-1.5 px-4`}
             >
-              <Trash2 size={18} aria-hidden />
+              <ArrowUpDown size={16} aria-hidden />
+              <span className="text-sm font-semibold">
+                {t('frames.clips.order_button')}
+              </span>
             </button>
-          }
-        />
+          ) : (
+            <span />
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setClips((all) => all.filter((_, i) => i !== chosen));
+              setChosen((i) => Math.max(0, i - 1));
+            }}
+            disabled={clips.length === 1}
+            aria-label={t('frames.clips.remove')}
+            className={`${CREATE_GLASS_ICON} disabled:opacity-30`}
+          >
+            <Trash2 size={18} aria-hidden />
+          </button>
+        </div>
       </div>
     </div>
   );
