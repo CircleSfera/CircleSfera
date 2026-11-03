@@ -21,6 +21,7 @@ import type { PaginatedResponse } from '../../types';
 import { formatDate, formatNumber } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import { sellsInApp } from '../../utils/sellsInApp';
+import { postThumbShape } from '../common/MediaThumb';
 import { Button, Dialog } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
 import { CreatorBadge, CreatorPager, CreatorRow } from './CreatorPieces';
@@ -381,6 +382,11 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             return (
               <CreatorRow
                 key={promo.id}
+                mediaShape={
+                  promo.targetType === 'STORY'
+                    ? 'STORY'
+                    : postThumbShape(promo.target?.type)
+                }
                 media={
                   promo.target?.thumbnail ? (
                     <img

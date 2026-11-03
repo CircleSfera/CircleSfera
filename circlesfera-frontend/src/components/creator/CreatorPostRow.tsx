@@ -2,6 +2,7 @@ import { Film, Image as ImageIcon, Megaphone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { CreatorPost } from '../../services/creator.service';
 import { sellsInApp } from '../../utils/sellsInApp';
+import { postThumbShape } from '../common/MediaThumb';
 import { Button } from '../ui';
 import { CreatorRow } from './CreatorPieces';
 import { postFacts } from './creatorWords';
@@ -20,6 +21,7 @@ export default function CreatorPostRow({ post, onOpen, onPromote }: Props) {
 
   return (
     <CreatorRow
+      mediaShape={postThumbShape(post.type)}
       media={
         post.media?.[0] ? (
           <img

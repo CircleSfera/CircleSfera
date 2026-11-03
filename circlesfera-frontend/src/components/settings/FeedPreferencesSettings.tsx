@@ -11,6 +11,7 @@ import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { api } from '../../services';
 import { usersApi } from '../../services/users.service';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import MediaThumb from '../common/MediaThumb';
 import { ErrorState } from '../ErrorEmptyStates';
 import { Button, Switch } from '../ui';
 import SettingsRow from './SettingsRow';
@@ -309,21 +310,16 @@ export default function FeedPreferencesSettings() {
               className="flex items-center justify-between gap-3 p-3 min-h-11 rounded-lg bg-white/5"
             >
               <div className="flex items-center gap-3 min-w-0">
-                {p.thumbnailUrl ? (
-                  <img
-                    src={p.thumbnailUrl}
-                    alt=""
-                    className="w-10 h-10 rounded-lg object-cover shrink-0 border border-white/10"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                <MediaThumb
+                  src={p.thumbnailUrl}
+                  fallback={
                     <EyeOff
                       size={14}
                       className="text-brand-primary-text"
                       aria-hidden
                     />
-                  </div>
-                )}
+                  }
+                />
                 <div className="min-w-0">
                   {p.authorUsername ? (
                     <p className="text-white text-sm font-medium truncate">
