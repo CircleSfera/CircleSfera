@@ -108,8 +108,13 @@ export class PostsService {
     }
 
     // Only a frame has a cover to choose; said before anything is created.
-    if (dto.coverTimeMs !== undefined && dto.type !== 'FRAME') {
+    const choosesCover =
+      dto.coverTimeMs !== undefined || dto.coverImageUrl !== undefined;
+    if (choosesCover && dto.type !== 'FRAME') {
       throw new BadRequestException('Only a frame has a cover to choose');
+    }
+    if (dto.coverImageUrl !== undefined) {
+      await this.frameCover.assertImage(profileId, dto.coverImageUrl);
     }
 
     // Only the sending Profile's own stored files can be attached.
@@ -328,6 +333,9 @@ export class PostsService {
 
     if (dto.coverTimeMs !== undefined) {
       await this.frameCover.choose(createdPost.id, dto.coverTimeMs);
+    }
+    if (dto.coverImageUrl !== undefined) {
+      await this.frameCover.chooseImage(createdPost.id, dto.coverImageUrl);
     }
 
     // Fetch complete post with relations before returning
@@ -827,6 +835,9 @@ export class PostsService {
     // before its caption changes.
     if (dto.coverTimeMs !== undefined) {
       await this.frameCover.choose(id, dto.coverTimeMs);
+    }
+    if (dto.coverImageUrl !== undefined) {
+      await this.frameCover.chooseImage(id, dto.coverImageUrl);
     }
 
     const post = await this.prisma.post.update({
