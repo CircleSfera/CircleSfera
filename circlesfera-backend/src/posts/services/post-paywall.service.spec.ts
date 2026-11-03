@@ -111,4 +111,29 @@ describe('PostPaywallService', () => {
     expect(result[0].isLocked).toBe(true);
     expect(result[0].media?.[0].url).toBe('/api/v1/media/teaser/m1/locked.mp4');
   });
+
+  describe('the posts a viewer may see whole, as a filter', () => {
+    it('is only the posts that are not paid for a guest', async () => {
+      expect(await service.seenWholeWhere()).toEqual({ isPremium: false });
+      expect(mockPrisma.profile.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('adds the viewer own posts and the ones their account unlocked', async () => {
+      mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-v' });
+      expect(await service.seenWholeWhere('viewer-1')).toEqual({
+        OR: [
+          { isPremium: false },
+          { profileId: 'viewer-1' },
+          { postUnlocks: { some: { userId: 'user-v' } } },
+        ],
+      });
+    });
+
+    it('has no unlocks for a Profile that is not found', async () => {
+      mockPrisma.profile.findUnique.mockResolvedValue(null);
+      expect(await service.seenWholeWhere('gone')).toEqual({
+        OR: [{ isPremium: false }, { profileId: 'gone' }],
+      });
+    });
+  });
 });

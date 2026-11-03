@@ -26,6 +26,10 @@ import {
   ORPHAN_GRACE_HOURS,
 } from '../uploads/services/orphan-sweep.policy.js';
 import { DELETED_CONTENT_KEPT_DAYS } from '../uploads/services/stored-files.service.js';
+import {
+  breakdownLines,
+  breakdownUnusedFiles,
+} from './orphan-files-breakdown.js';
 import { listStoredFilesOnDisk } from './stored-files-on-disk.js';
 
 function megabytes(bytes: number): string {
@@ -69,7 +73,7 @@ async function main(): Promise<void> {
     );
     const onDisk = new Set(files.map((file) => file.url));
     let used = 0;
-    let unusedOld = 0;
+    const unusedOldFiles: typeof files = [];
     let unusedOldBytes = 0;
     let unusedRecent = 0;
     let keptDeleted = 0;
@@ -83,7 +87,7 @@ async function main(): Promise<void> {
       } else if (file.lastModified.getTime() > cutoff) {
         unusedRecent++;
       } else {
-        unusedOld++;
+        unusedOldFiles.push(file);
         unusedOldBytes += file.sizeBytes;
       }
     }
@@ -97,14 +101,22 @@ async function main(): Promise<void> {
     );
     console.log(`  used by a row: ${used}`);
     console.log(
-      `  used by no row, older than ${ORPHAN_GRACE_HOURS} h (the sweep would delete these): ${unusedOld} (${megabytes(unusedOldBytes)})`,
+      `  used by no row, older than ${ORPHAN_GRACE_HOURS} h (the sweep would delete these): ${unusedOldFiles.length} (${megabytes(unusedOldBytes)})`,
     );
     console.log(
-      `    nights to delete them, ${ORPHAN_DELETIONS_PER_NIGHT} a night: ${Math.ceil(unusedOld / ORPHAN_DELETIONS_PER_NIGHT)}`,
+      `    nights to delete them, ${ORPHAN_DELETIONS_PER_NIGHT} a night: ${Math.ceil(unusedOldFiles.length / ORPHAN_DELETIONS_PER_NIGHT)}`,
     );
     console.log(
       `  of content deleted less than ${DELETED_CONTENT_KEPT_DAYS} days ago (kept): ${keptDeleted}`,
     );
+    const owners = new Set(
+      records.filter((record) => record.profileId).map((record) => record.key),
+    );
+    for (const line of breakdownLines(
+      breakdownUnusedFiles(unusedOldFiles, owners, Date.now()),
+    )) {
+      console.log(line);
+    }
     console.log(`  used by no row, more recent: ${unusedRecent}`);
     console.log(`Record of owners: ${records.length} rows`);
     console.log(`  with an owner: ${owned}`);

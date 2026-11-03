@@ -6,6 +6,7 @@ import type { AdminLiveStream } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { formatNumber } from '../../utils/format';
+import MediaThumb from '../common/MediaThumb';
 import ConfirmModal from '../modals/ConfirmModal';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -151,9 +152,7 @@ export default function LiveStreamsTab() {
                     title={stream.title || t('admin.shared.unknown')}
                     subtitle={`@${stream.host?.profile?.username || t('admin.shared.unknown')}`}
                     avatar={
-                      <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-white/50 overflow-hidden">
-                        <Radio size={20} />
-                      </div>
+                      <MediaThumb shape="LIVE" fallback={<Radio size={20} />} />
                     }
                     badge={
                       <span

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { bookmarksApi, collectionsApi } from '../../services';
 import type { Collection } from '../../types';
 import { asList } from '../../utils/asList';
+import MediaThumb from '../common/MediaThumb';
 import FrameBottomSheet from '../frames/FrameBottomSheet';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
@@ -139,17 +140,7 @@ function CollectionPickerBody({
               compact ? 'px-2 py-2' : 'p-2'
             }`}
           >
-            <div className="w-10 h-10 bg-white/5 rounded-lg overflow-hidden border border-white/5 shrink-0">
-              {collection.coverUrl ? (
-                <img
-                  src={collection.coverUrl}
-                  className="w-full h-full object-cover"
-                  alt=""
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-800" />
-              )}
-            </div>
+            <MediaThumb src={collection.coverUrl} shape="SQUARE" />
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold text-sm truncate">
                 {collection.name}

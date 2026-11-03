@@ -3,6 +3,17 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
+import {
+  AUTHOR_ID,
+  BUYER_ID,
+  expectClosed,
+  expectWhole,
+  inlinePaidMedia,
+  paidPost,
+  realPaywall,
+  STRANGER_ID,
+} from '../common/testing/paid-posts.js';
+import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import { SearchService } from './search.service.js';
@@ -58,6 +69,7 @@ describe('SearchService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: AIService, useValue: mockAIService },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
+        { provide: PostPaywallService, useValue: realPaywall() },
       ],
     }).compile();
 
@@ -744,6 +756,55 @@ describe('SearchService', () => {
     });
   });
 
+  describe('a paid post in search results', () => {
+    const post = () =>
+      paidPost([inlinePaidMedia()], { _count: { likes: 0, comments: 0 } });
+
+    // Each search with the paid post as its only result, for one viewer.
+    const searches = {
+      'by caption': async (viewer?: string) => {
+        mockPrismaService.post.findMany.mockResolvedValueOnce([post()]);
+        return (await service.searchPosts('paid', viewer))[0];
+      },
+      trending: async (viewer?: string) => {
+        mockCacheManager.get.mockResolvedValueOnce(null);
+        mockPrismaService.$queryRaw.mockResolvedValueOnce([
+          { id: post().id, velocity_score: 1 },
+        ]);
+        mockPrismaService.post.findMany.mockResolvedValueOnce([post()]);
+        return (await service.getTrending(10, viewer))[0];
+      },
+      'trending, from the cache': async (viewer?: string) => {
+        mockCacheManager.get.mockResolvedValueOnce([post()]);
+        return (await service.getTrending(10, viewer))[0];
+      },
+      semantic: async (viewer?: string) => {
+        mockCacheManager.get.mockResolvedValueOnce(null);
+        mockPrismaService.$queryRaw.mockResolvedValueOnce([
+          { id: post().id, distance: 0.1 },
+        ]);
+        mockPrismaService.post.findUnique.mockResolvedValueOnce(post());
+        return (await service.semanticSearchPosts('paid post', 10, viewer))[0];
+      },
+      'semantic, from the cache': async (viewer?: string) => {
+        mockCacheManager.get.mockResolvedValueOnce([post()]);
+        return (await service.semanticSearchPosts('paid post', 10, viewer))[0];
+      },
+    };
+
+    for (const [name, search] of Object.entries(searches)) {
+      it(`${name}: is closed to a viewer who has not unlocked it, and to a guest`, async () => {
+        expectClosed(await search(STRANGER_ID));
+        expectClosed(await search());
+      });
+
+      it(`${name}: is whole for its author and for someone who unlocked it`, async () => {
+        expectWhole(await search(AUTHOR_ID));
+        expectWhole(await search(BUYER_ID));
+      });
+    }
+  });
+
   describe('handleUserHardDeleted', () => {
     it('should clear search history for all profiles of the deleted user', async () => {
       mockPrismaService.searchHistory.deleteMany.mockResolvedValue({
@@ -776,6 +837,104 @@ describe('SearchService', () => {
       );
 
       expect(mockPrismaService.searchHistory.deleteMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('searchHashtags', () => {
+    it('finds nothing for an empty query, asking nothing', async () => {
+      mockPrismaService.hashtag.findMany.mockClear();
+      expect(await service.searchHashtags('', 'viewer-1')).toEqual([]);
+      expect(mockPrismaService.hashtag.findMany).not.toHaveBeenCalled();
+    });
+
+    it('offers the most used tags holding the text, none hidden by staff', async () => {
+      mockPrismaService.hashtag.findMany.mockResolvedValueOnce([
+        { id: 'h1', tag: 'mar' },
+      ]);
+
+      const found = await service.searchHashtags('MA', 'viewer-1');
+
+      expect(found).toEqual([{ id: 'h1', tag: 'mar' }]);
+      const [args] = mockPrismaService.hashtag.findMany.mock.calls.at(-1) ?? [];
+      expect(args.where.tag).toEqual({ contains: 'ma', mode: 'insensitive' });
+      expect(args.where.isHidden).toBe(false);
+      expect(args.orderBy).toEqual({ postCount: 'desc' });
+    });
+  });
+
+  describe('a query sent twice, which arrives as a list', () => {
+    const twice = ['ana', 'andres'] as unknown as string;
+
+    it('is searched for nothing', async () => {
+      expect(await service.search(twice, 'viewer-1')).toEqual(
+        await service.search('', 'viewer-1'),
+      );
+      expect(await service.searchUsers(twice)).toEqual([]);
+      expect(await service.searchPosts(twice)).toEqual([]);
+      expect(await service.searchHashtags(twice)).toEqual([]);
+      expect(await service.semanticSearchPosts(twice)).toEqual([]);
+      expect(await service.semanticSearchProfiles(twice)).toEqual([]);
+    });
+
+    it('suggests for a mention as if nothing were typed', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
+
+      await service.suggestMentions(twice, 'viewer-1');
+
+      const [args] = mockPrismaService.profile.findMany.mock.calls.at(-1) ?? [];
+      expect(args.where.followers).toEqual({
+        some: { followerId: 'viewer-1', status: 'ACCEPTED' },
+      });
+      expect(JSON.stringify(args.where)).not.toContain('andres');
+    });
+  });
+
+  describe('suggestMentions', () => {
+    const ana = { id: 'p-ana', username: 'ana' };
+    const andres = { id: 'p-andres', username: 'andres' };
+
+    it('with nothing typed, offers the people the viewer follows, never the viewer', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([ana]);
+
+      expect(await service.suggestMentions('', 'viewer-1')).toEqual([ana]);
+
+      const [args] = mockPrismaService.profile.findMany.mock.calls.at(-1) ?? [];
+      expect(args.where.followers).toEqual({
+        some: { followerId: 'viewer-1', status: 'ACCEPTED' },
+      });
+      expect(args.where.id).toEqual({ not: 'viewer-1' });
+      expect(args.where.isAccountBanned).toBe(false);
+    });
+
+    it('offers who starts with what is typed, the people followed first', async () => {
+      mockPrismaService.profile.findMany
+        .mockResolvedValueOnce([ana])
+        .mockResolvedValueOnce([andres]);
+
+      expect(await service.suggestMentions('AN', 'viewer-1')).toEqual([
+        ana,
+        andres,
+      ]);
+
+      const [followedArgs] =
+        mockPrismaService.profile.findMany.mock.calls.at(-2) ?? [];
+      expect(JSON.stringify(followedArgs.where)).toContain('"startsWith":"an"');
+      const [othersArgs] =
+        mockPrismaService.profile.findMany.mock.calls.at(-1) ?? [];
+      expect(othersArgs.where.NOT).toEqual({ id: { in: ['p-ana'] } });
+      expect(othersArgs.where.followers).toBeUndefined();
+    });
+
+    it('asks no more when the people followed fill the list', async () => {
+      const many = Array.from({ length: 8 }, (_, i) => ({
+        id: `p-${i}`,
+        username: `an${i}`,
+      }));
+      mockPrismaService.profile.findMany.mockClear();
+      mockPrismaService.profile.findMany.mockResolvedValueOnce(many);
+
+      expect(await service.suggestMentions('an', 'viewer-1')).toHaveLength(8);
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -1,6 +1,7 @@
 import { MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { PlaceMapPin } from '../../types';
+import MediaThumb from '../common/MediaThumb';
 import { Button } from '../ui';
 import { formatPlaceAreaParts } from './placeDetailFormat';
 
@@ -84,24 +85,17 @@ export default function PlacesPeekList({
                     onClick={() => onSelectPlace(place.id)}
                     className="w-full flex items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/6 active:bg-white/10 transition-colors min-h-14"
                   >
-                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/8 border border-white/10 shrink-0">
-                      {thumb ? (
-                        <img
-                          src={thumb}
-                          alt=""
-                          className="w-full h-full object-cover"
-                          loading="lazy"
+                    <MediaThumb
+                      src={thumb}
+                      shape="SQUARE"
+                      fallback={
+                        <MapPin
+                          size={18}
+                          className="text-white/35"
+                          aria-hidden
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <MapPin
-                            size={18}
-                            className="text-white/35"
-                            aria-hidden
-                          />
-                        </div>
-                      )}
-                    </div>
+                      }
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-white truncate leading-tight">
                         {place.name}

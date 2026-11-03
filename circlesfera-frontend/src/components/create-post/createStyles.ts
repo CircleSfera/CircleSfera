@@ -1,3 +1,5 @@
+import { MEDIA_THUMB } from '../common/MediaThumb';
+
 /**
  * The shared look of everything that creates content: posts, frames,
  * stories, the editors and the live.
@@ -35,12 +37,10 @@ export const CREATE_TOOL = `flex-1 min-w-0 min-h-14 flex flex-col items-center j
 
 /**
  * A small preview: a thumbnail of the edit step, the preview of the alt text
- * screen, a filter, a story background or a template. One size and shape
- * everywhere: 56 px high, at least 44 px wide, in the shape of the format,
- * with 12 px corners.
+ * screen, a filter, a story background or a template. The thumbnail of every
+ * list of the app (`MediaThumb`).
  */
-export const CREATE_THUMB =
-  'h-14 w-auto min-w-11 shrink-0 rounded-md overflow-hidden border-2';
+export const CREATE_THUMB = MEDIA_THUMB;
 
 /** A filter preview of the edit step: larger, it fills the space below. */
 export const CREATE_QUICK_THUMB =

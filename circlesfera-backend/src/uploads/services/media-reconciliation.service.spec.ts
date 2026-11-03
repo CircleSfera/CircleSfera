@@ -10,6 +10,7 @@ import {
 import {
   ORPHAN_DELETIONS_PER_NIGHT,
   ORPHAN_GRACE_HOURS,
+  ORPHAN_SHARE_WINDOW_DAYS,
 } from './orphan-sweep.policy.js';
 import type { StoredFilesService } from './stored-files.service.js';
 
@@ -316,7 +317,7 @@ describe('MediaReconciliationService', () => {
     expect(ORPHAN_DELETIONS_PER_NIGHT).toBe(300);
   });
 
-  it('deletes nothing when most of the disk reads as unused', async () => {
+  it('deletes nothing when most of what was stored lately reads as unused', async () => {
     mockPrisma.postMedia.findMany.mockResolvedValue([
       { url: '/uploads/used.jpg', standardUrl: null, thumbnailUrl: null },
     ]);
@@ -329,9 +330,51 @@ describe('MediaReconciliationService', () => {
     const result = await service.detectAndReconcileOrphans({ dryRun: false });
 
     expect(result.orphanCount).toBe(2);
-    expect(result.heldBack).toContain('2 of 3 files are unused');
+    expect(result.heldBack).toContain(
+      `2 of the 3 files of the last ${ORPHAN_SHARE_WINDOW_DAYS} days are unused`,
+    );
     expect(result.deletedCount).toBe(0);
     expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
+  });
+
+  it('is not held back by files left over from long ago', async () => {
+    const old = hoursAgo((ORPHAN_SHARE_WINDOW_DAYS + 10) * 24);
+    mockPrisma.postMedia.findMany.mockResolvedValue([
+      { url: '/uploads/used.jpg', standardUrl: null, thumbnailUrl: null },
+    ]);
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      // Lately: one file, used.
+      { url: '/uploads/used.jpg', lastModified: pastGrace() },
+      // Long ago: most of the disk, used by no row.
+      { url: '/uploads/old-1.webp', lastModified: old, sizeBytes: 1 },
+      { url: '/uploads/old-2.webp', lastModified: old, sizeBytes: 2 },
+      { url: '/uploads/old-3.webp', lastModified: old, sizeBytes: 3 },
+    ]);
+
+    const result = await service.detectAndReconcileOrphans({ dryRun: false });
+
+    expect(result.heldBack).toBeUndefined();
+    expect(result.deletedCount).toBe(3);
+    expect(mockUploadsService.scheduleMediaDeletion).toHaveBeenCalledWith([
+      '/uploads/old-1.webp',
+      '/uploads/old-2.webp',
+      '/uploads/old-3.webp',
+    ]);
+  });
+
+  it('weighs no share when nothing was stored lately', async () => {
+    const old = hoursAgo((ORPHAN_SHARE_WINDOW_DAYS + 10) * 24);
+    vi.spyOn(service, 'getReferencedMediaKeys').mockResolvedValue(
+      new Set(['/uploads/something-else.jpg']),
+    );
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/old.webp', lastModified: old },
+    ]);
+
+    const result = await service.detectAndReconcileOrphans({ dryRun: false });
+
+    expect(result.heldBack).toBeUndefined();
+    expect(result.deletedCount).toBe(1);
   });
 
   it('deletes nothing when no row reads as naming any file', async () => {

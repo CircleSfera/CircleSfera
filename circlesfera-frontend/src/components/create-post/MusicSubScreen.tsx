@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { audioApi } from '../../services/audio.service';
 import type { Audio } from '../../types';
 import AudioClipWaveform from '../audio/AudioClipWaveform';
+import { MEDIA_THUMB, thumbRatio } from '../common/MediaThumb';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
 import { SearchError, SearchMessage } from './SearchState';
 import SubScreenHeader from './SubScreenHeader';
@@ -409,8 +410,11 @@ export default function MusicSubScreen({
                       >
                         <div className="flex items-center gap-4 min-w-0 flex-1">
                           <div
-                            className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 flex items-center justify-center shadow-md"
-                            style={{ background: generateGradient(audio.id) }}
+                            className={`${MEDIA_THUMB} relative flex items-center justify-center border-white/10 shadow-md`}
+                            style={{
+                              background: generateGradient(audio.id),
+                              aspectRatio: thumbRatio('SQUARE'),
+                            }}
                           >
                             <Music className="w-4 h-4 text-white/30 absolute" />
                             <button

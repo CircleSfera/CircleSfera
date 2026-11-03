@@ -11,6 +11,7 @@ import {
   ORPHAN_DELETIONS_PER_NIGHT,
   ORPHAN_GRACE_HOURS,
   ORPHAN_MAX_SHARE,
+  ORPHAN_SHARE_WINDOW_DAYS,
 } from './orphan-sweep.policy.js';
 import {
   DELETED_CONTENT_KEPT_DAYS,
@@ -169,15 +170,27 @@ export class MediaReconciliationService {
       return result;
     }
 
-    // So many unused files means the references were misread: nothing goes.
+    // So many unused files among those stored lately means the references
+    // were misread: nothing goes. Old leftovers are not counted.
+    const windowStart =
+      Date.now() - ORPHAN_SHARE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    const recentFiles = storedFiles.filter(
+      (file) =>
+        this.uploadsService.ownsUrl(file.url) &&
+        file.lastModified &&
+        file.lastModified.getTime() >= windowStart,
+    ).length;
+    const recentOrphans = orphans.filter(
+      (orphan) => orphan.lastModified.getTime() >= windowStart,
+    ).length;
     if (
       referencedKeys.size === 0 ||
-      orphans.length > (storedFiles.length - foreignCount) * ORPHAN_MAX_SHARE
+      recentOrphans > recentFiles * ORPHAN_MAX_SHARE
     ) {
       result.heldBack =
         referencedKeys.size === 0
           ? 'no row names any file'
-          : `${orphans.length} of ${storedFiles.length - foreignCount} files are unused, past the share of ${ORPHAN_MAX_SHARE}`;
+          : `${recentOrphans} of the ${recentFiles} files of the last ${ORPHAN_SHARE_WINDOW_DAYS} days are unused, past the share of ${ORPHAN_MAX_SHARE}`;
       this.logger.error(
         `Orphan sweep held back, nothing deleted: ${result.heldBack}.`,
       );

@@ -136,6 +136,10 @@ describe('AudioController', () => {
       .expect(200);
 
     expect(mockService.findOne).toHaveBeenCalledWith('audio-1');
-    expect(mockService.getAudioPosts).toHaveBeenCalledWith('audio-1');
+    // The posts come as the signed-in Profile sees them.
+    expect(mockService.getAudioPosts).toHaveBeenCalledWith(
+      'audio-1',
+      'profile-1',
+    );
   });
 });

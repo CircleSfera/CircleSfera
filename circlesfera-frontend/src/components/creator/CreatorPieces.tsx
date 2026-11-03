@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { MEDIA_THUMB, type ThumbShape, thumbRatio } from '../common/MediaThumb';
 import { Button, Card } from '../ui';
 
 // The pieces every page of the creator area is drawn with. Each is a card of
@@ -108,6 +109,8 @@ interface RowProps {
   action?: ReactNode;
   onOpen?: () => void;
   openLabel?: string;
+  // The shape of what `media` shows, for its thumbnail.
+  mediaShape?: ThumbShape;
 }
 
 // A list item: roomy on a phone, two lines on desktop.
@@ -120,11 +123,15 @@ export function CreatorRow({
   action,
   onOpen,
   openLabel,
+  mediaShape = 'POST',
 }: RowProps) {
   const body = (
     <>
       {media ? (
-        <span className="w-14 h-14 md:w-11 md:h-11 rounded-lg overflow-hidden shrink-0 bg-surface-raised border border-white/10 text-white/40 flex items-center justify-center">
+        <span
+          className={`${MEDIA_THUMB} flex items-center justify-center border-white/10 bg-surface-raised text-white/40`}
+          style={{ aspectRatio: thumbRatio(mediaShape) }}
+        >
           {media}
         </span>
       ) : null}

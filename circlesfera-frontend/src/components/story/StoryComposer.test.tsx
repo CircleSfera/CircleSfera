@@ -1343,34 +1343,19 @@ describe('StoryComposer', () => {
       expect(container.querySelector('[class*="aspect-9/16"]')).toBeNull();
     });
 
-    it('offers what is painted on the photo: text, stickers and drawing', () => {
+    it('offers text and drawing on the photo; stickers are for stories', () => {
       renderComposer({ initialMedia: photo, bgStyle: '', frame: 'PORTRAIT' });
 
-      for (const name of ['Texto', 'Stickers', 'Dibujar']) {
+      for (const name of ['Texto', 'Dibujar']) {
         expect(
           within(toolbar()).getByRole('button', { name }),
         ).toBeInTheDocument();
       }
-      for (const name of ['Fondo', 'Plantillas']) {
+      for (const name of ['Stickers', 'Fondo', 'Plantillas']) {
         expect(
           within(toolbar()).queryByRole('button', { name }),
         ).not.toBeInTheDocument();
       }
-    });
-
-    it('offers no interactive sticker yet, only emoji', () => {
-      renderComposer({ initialMedia: photo, bgStyle: '', frame: 'PORTRAIT' });
-
-      fireEvent.click(
-        within(toolbar()).getByRole('button', { name: 'Stickers' }),
-      );
-
-      expect(
-        screen.queryByRole('group', { name: 'Interactivos' }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: 'Encuesta' }),
-      ).not.toBeInTheDocument();
     });
 
     it('moves the photo and changes its filter, as a story does', () => {
