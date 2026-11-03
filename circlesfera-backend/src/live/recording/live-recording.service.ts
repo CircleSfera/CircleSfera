@@ -431,6 +431,29 @@ export class LiveRecordingService {
   }
 
   /**
+   * Takes away one participant's right to publish in a broadcast's room, so
+   * their camera and microphone stop for everyone while they may go on
+   * watching. One no longer there counts as done; any other failure is
+   * logged and the caller goes on.
+   */
+  async stopPublishing(streamId: string, identity: string): Promise<void> {
+    try {
+      await this.rooms().updateParticipant(streamId, identity, {
+        permission: {
+          canPublish: false,
+          canPublishData: true,
+          canSubscribe: true,
+        },
+      });
+    } catch (error: unknown) {
+      if (alreadyStopped(error)) return;
+      this.logger.warn(
+        `Could not stop ${identity} publishing in the room of stream ${streamId}: ${errorText(error)}`,
+      );
+    }
+  }
+
+  /**
    * Closes a broadcast's room at the live service, so whoever is still in it,
    * host and viewers, is taken out at once. A room already gone counts as
    * closed; any other failure is logged and the caller goes on.

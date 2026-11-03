@@ -96,6 +96,8 @@ export enum ErrorCode {
   LIVE_GUEST_ALREADY_INVITED = 'LIVE_GUEST_ALREADY_INVITED',
   // The Profile is not invited to the live, or not on air in it.
   NOT_A_LIVE_GUEST = 'NOT_A_LIVE_GUEST',
+  // The host asks to watch their own live, where they are on air.
+  ALREADY_ON_AIR = 'ALREADY_ON_AIR',
   CANNOT_GIFT_SELF = 'CANNOT_GIFT_SELF',
   GIFT_NOT_FOUND = 'GIFT_NOT_FOUND',
   CANNOT_RECONNECT_GUEST = 'CANNOT_RECONNECT_GUEST',

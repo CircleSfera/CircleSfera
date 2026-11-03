@@ -198,6 +198,7 @@ describe('LiveService', () => {
     stopCoHost: vi.fn(async () => undefined),
     closeRoom: vi.fn(async () => undefined),
     removeFromRoom: vi.fn(async () => undefined),
+    stopPublishing: vi.fn(async () => undefined),
   };
 
   const mockConfigService = {
@@ -320,7 +321,7 @@ describe('LiveService', () => {
       mockPrismaService.closeFriend.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.getViewerToken('stream-1', 'user-2', 'outsider'),
+        service.getViewerToken('stream-1', 'outsider'),
       ).rejects.toThrow(AppException);
       await expect(service.getStream('stream-1', 'outsider')).rejects.toThrow(
         AppException,
@@ -328,7 +329,7 @@ describe('LiveService', () => {
 
       mockPrismaService.closeFriend.findUnique.mockResolvedValue({ id: 'cf' });
       await expect(
-        service.getViewerToken('stream-1', 'user-3', 'friend'),
+        service.getViewerToken('stream-1', 'friend'),
       ).resolves.toHaveProperty('token');
     });
 
@@ -364,9 +365,42 @@ describe('LiveService', () => {
         },
       });
 
-      const result = await service.getViewerToken('stream-1', 'user-2');
-      expect(result).toHaveProperty('token');
+      const result = await service.getViewerToken('stream-1', 'profile-2');
       expect(typeof result.token).toBe('string');
+      // The Profile watching is its identity in the room, may not publish.
+      const grant = JSON.parse(
+        Buffer.from(result.token.split('.')[1], 'base64url').toString(),
+      );
+      expect(grant.sub).toBe('profile-2');
+      expect(grant.video).toMatchObject({
+        room: 'stream-1',
+        canPublish: false,
+      });
+    });
+
+    it('refuses a session with no Profile, as a live not found', async () => {
+      await expect(
+        service.getViewerToken('stream-1', ''),
+      ).rejects.toMatchObject({ errorCode: 'STREAM_NOT_FOUND' });
+      expect(mockPrismaService.liveStream.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('refuses the host a token to watch their own live, which would take their place on air', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        hostId: 'host-1',
+        status: 'LIVE',
+        audience: 'EVERYONE',
+        host: {
+          isAccountBanned: false,
+          suspendedUntil: null,
+          user: { isActive: true, deactivatedAt: null },
+        },
+      });
+
+      await expect(
+        service.getViewerToken('stream-1', 'host-1'),
+      ).rejects.toMatchObject({ errorCode: 'ALREADY_ON_AIR' });
     });
 
     it('refuses a token to a viewer in a block relation with the host', async () => {
@@ -384,7 +418,7 @@ describe('LiveService', () => {
       mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
 
       await expect(
-        service.getViewerToken('stream-1', 'user-2', 'viewer-1'),
+        service.getViewerToken('stream-1', 'viewer-1'),
       ).rejects.toThrow(AppException);
     });
 
@@ -414,7 +448,7 @@ describe('LiveService', () => {
       });
 
       await expect(
-        service.getViewerToken('stream-1', 'user-2', 'viewer-1'),
+        service.getViewerToken('stream-1', 'viewer-1'),
       ).rejects.toMatchObject({ errorCode: 'STREAM_NOT_FOUND' });
     });
 
@@ -432,7 +466,7 @@ describe('LiveService', () => {
       });
 
       await expect(
-        service.getViewerToken('stream-1', 'user-2', 'viewer-1'),
+        service.getViewerToken('stream-1', 'viewer-1'),
       ).resolves.toHaveProperty('token');
     });
 
@@ -441,7 +475,7 @@ describe('LiveService', () => {
       settings.isEnabled.mockResolvedValueOnce(false);
 
       await expect(
-        service.getViewerToken('stream-1', 'user-2', 'viewer-1'),
+        service.getViewerToken('stream-1', 'viewer-1'),
       ).rejects.toThrow('LIVE_STREAMS_DISABLED');
       expect(mockPrismaService.liveStream.findUnique).not.toHaveBeenCalled();
     });
@@ -668,7 +702,9 @@ describe('LiveService', () => {
       expect(statusOf('stream-3', 'guest-1')).toBe('REMOVED');
       // The other guest stays on air.
       expect(statusOf('stream-2', 'guest-2')).toBe('ON_AIR');
-      // Only the guest who was on air is taken out of the room.
+      // Only the guest who was on air is taken out of the room: a
+      // sanctioned guest is disconnected, not left watching.
+      expect(mockRecording.stopPublishing).not.toHaveBeenCalled();
       expect(mockRecording.stopCoHost.mock.calls).toEqual([
         ['stream-2', 'guest-1'],
       ]);
@@ -1255,9 +1291,12 @@ describe('LiveService', () => {
         expect(mockRecording.stopCoHost.mock.calls).toEqual([
           ['stream-1', 'ana'],
         ]);
-        expect(mockRecording.removeFromRoom.mock.calls).toEqual([
+        // Their publishing is revoked, not their connection: they go back
+        // to watching with the same identity, which a removal could cut.
+        expect(mockRecording.stopPublishing.mock.calls).toEqual([
           ['stream-1', 'ana'],
         ]);
+        expect(mockRecording.removeFromRoom).not.toHaveBeenCalled();
         // Bea is still on air: installed apps show her as the co-host.
         expect(emitted('live:cohost_left')).toEqual([]);
         expect(mockServer.emit).toHaveBeenCalledWith('live:cohost_joined', {
@@ -1325,16 +1364,18 @@ describe('LiveService', () => {
         expect(mockRecording.stopCoHost.mock.calls).toEqual([
           ['stream-1', 'bea'],
         ]);
-        // The live service takes them out of the room as well, after the
-        // app was told, so it does not take that for a lost connection.
-        expect(mockRecording.removeFromRoom.mock.calls).toEqual([
+        // The live service stops their publishing as well, after the app
+        // was told, so it does not take that for a lost connection; they
+        // stay connected to go on watching.
+        expect(mockRecording.stopPublishing.mock.calls).toEqual([
           ['stream-1', 'bea'],
         ]);
+        expect(mockRecording.removeFromRoom).not.toHaveBeenCalled();
         const told = mockServer.emit.mock.calls.findIndex(
           ([name]: unknown[]) => name === 'live:guest_removed',
         );
         expect(mockServer.emit.mock.invocationCallOrder[told]).toBeLessThan(
-          mockRecording.removeFromRoom.mock.invocationCallOrder[0],
+          mockRecording.stopPublishing.mock.invocationCallOrder[0],
         );
         expect(emitted('live:cohost_left')).toEqual([]);
         expect(mockServer.emit).toHaveBeenCalledWith('live:cohost_joined', {
@@ -1398,6 +1439,7 @@ describe('LiveService', () => {
           service.removeGuest('stream-1', HOST, 'ana'),
         ).rejects.toMatchObject({ errorCode: 'NOT_A_LIVE_GUEST' });
         expect(mockRecording.removeFromRoom).not.toHaveBeenCalled();
+        expect(mockRecording.stopPublishing).not.toHaveBeenCalled();
       });
 
       it('removing the co-host, as installed apps still do, removes every guest with a place', async () => {
@@ -1412,7 +1454,7 @@ describe('LiveService', () => {
         expect(statusOf('stream-1', 'ana')).toBe('REMOVED');
         expect(statusOf('stream-1', 'bea')).toBe('REMOVED');
         expect(statusOf('stream-1', 'cai')).toBe('LEFT');
-        expect(mockRecording.removeFromRoom.mock.calls).toEqual([
+        expect(mockRecording.stopPublishing.mock.calls).toEqual([
           ['stream-1', 'ana'],
         ]);
       });
@@ -1486,7 +1528,7 @@ describe('LiveService', () => {
       });
       const refused = async (viewer: string) => {
         await expect(
-          service.getViewerToken('stream-1', `user-of-${viewer}`, viewer),
+          service.getViewerToken('stream-1', viewer),
         ).rejects.toMatchObject({ errorCode: 'STREAM_NOT_FOUND', status: 404 });
         await expect(
           service.getStream('stream-1', viewer),
@@ -1494,7 +1536,7 @@ describe('LiveService', () => {
       };
       const allowed = async (viewer: string) => {
         await expect(
-          service.getViewerToken('stream-1', `user-of-${viewer}`, viewer),
+          service.getViewerToken('stream-1', viewer),
         ).resolves.toHaveProperty('token');
         await expect(
           service.getStream('stream-1', viewer),
@@ -1579,11 +1621,29 @@ describe('LiveService', () => {
             ].includes(room as string),
           );
         expect(told).toEqual(['user:zed', 'user:yan']);
-        // By the identity of their watching token: their person's id.
+        // By the identity of their watching token: the Profile's id.
         expect(mockRecording.removeFromRoom.mock.calls).toEqual([
-          ['stream-1', 'user-of-zed'],
-          ['stream-1', 'user-of-yan'],
+          ['stream-1', 'zed'],
+          ['stream-1', 'yan'],
         ]);
+      });
+
+      it('takes out only the Profile in the block, never another Profile of the same person', async () => {
+        seedGuest('stream-1', 'ana', 'INVITED');
+        // zed and zed-work are two Profiles of one person; only zed is in a
+        // block with the guest.
+        mockPrismaService.profile.findMany.mockImplementation(
+          async ({ where }: { where: { id: { in: string[] } } }) =>
+            where.id.in.map((id) => ({ id, userId: 'one-person' })),
+        );
+        blocks = [['ana', 'zed']];
+
+        await service.acceptGuestInvite('stream-1', 'ana');
+
+        expect(mockRecording.removeFromRoom.mock.calls).toEqual([
+          ['stream-1', 'zed'],
+        ]);
+        expect(mockServer.to).not.toHaveBeenCalledWith('user:zed-work');
       });
 
       it('goes on air even when taking someone out of the room fails', async () => {
@@ -1746,10 +1806,10 @@ describe('LiveService', () => {
         });
 
         await expect(
-          service.getViewerToken('stream-1', 'user-ana', 'ana'),
+          service.getViewerToken('stream-1', 'ana'),
         ).resolves.toHaveProperty('token');
         await expect(
-          service.getViewerToken('stream-1', 'user-bea', 'bea'),
+          service.getViewerToken('stream-1', 'bea'),
         ).rejects.toMatchObject({ errorCode: 'STREAM_NOT_FOUND' });
       });
     });

@@ -5699,6 +5699,7 @@
       "LIVE_GUESTS_FULL": "This live already has as many guests as it can.",
       "LIVE_GUEST_ALREADY_INVITED": "They're already invited to this live.",
       "NOT_A_LIVE_GUEST": "You're not a guest of this live.",
+      "ALREADY_ON_AIR": "You're on air in this live.",
       "CANNOT_GIFT_SELF": "You can't send a gift to yourself.",
       "GIFT_NOT_FOUND": "That gift isn't available.",
       "CANNOT_RECONNECT_GUEST": "You can't rejoin as a guest.",
