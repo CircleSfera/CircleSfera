@@ -1,3 +1,4 @@
+import { POST_SHAPES, type PostShape } from '@circlesfera/shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { Visibility } from '@prisma/client';
 import { Type } from 'class-transformer';
@@ -235,6 +236,12 @@ export class CreatePostDto {
   @IsOptional()
   @IsEnum(['GENERAL', 'MATURE'])
   contentRating?: 'GENERAL' | 'MATURE';
+
+  /** The shape every item shows in; a post only, a Frame is always upright. */
+  @ApiProperty({ required: false, enum: POST_SHAPES })
+  @IsOptional()
+  @IsIn(POST_SHAPES)
+  shape?: PostShape;
 
   @ApiProperty({ required: false, type: () => [TagDto] })
   @IsArray()

@@ -1,3 +1,4 @@
+import type { PostShape } from '@circlesfera/shared';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChevronLeft,
@@ -18,6 +19,7 @@ import type { MutableRefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CreateMode, MediaFile } from '../../hooks/useCreatePost';
+import { nextShape, shapeRatio } from '../../utils/postShape';
 import { parseFilter } from '../../utils/styleUtils';
 import Carousel from '../Carousel';
 import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
@@ -46,6 +48,10 @@ interface EditStepProps {
   onApplyFilter?: (index: number, filterClass: string) => void;
   fileInputRef: MutableRefObject<HTMLInputElement | null>;
   allowModeSwitch?: boolean;
+  /** The shape of a post, every item in it; Stories and Frames are 9:16. */
+  postShape?: PostShape;
+  /** Changing the shape of a post from the button on its preview. */
+  onPostShapeChange?: (shape: PostShape) => void;
 }
 
 const MODE_CONFIG = {
@@ -110,6 +116,8 @@ export default function EditStep({
   onApplyFilter,
   fileInputRef,
   allowModeSwitch = true,
+  postShape,
+  onPostShapeChange,
 }: EditStepProps) {
   const { t } = useTranslation();
   const config = MODE_CONFIG[mode];
@@ -118,8 +126,10 @@ export default function EditStep({
   const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Post shell is vertical 4:5 (ratioW:ratioH = 4:5 → taller than wide).
-  const { ratioW, ratioH } = config;
+  // A post shows in its shape; a story and a Frame are always 9:16.
+  const shape = mode === 'POST' && postShape ? shapeRatio(postShape) : null;
+  const ratioW = shape ? shape.width : config.ratioW;
+  const ratioH = shape ? shape.height : config.ratioH;
 
   useEffect(() => {
     if (selectedIndex >= mediaFiles.length) {
@@ -294,7 +304,23 @@ export default function EditStep({
             </button>
 
             <div className="absolute top-3 left-3 flex items-center gap-1.5 pointer-events-none">
-              <span className={CREATE_GLASS_CHIP}>{config.badge}</span>
+              {mode === 'POST' && postShape && onPostShapeChange ? (
+                <button
+                  type="button"
+                  className={`pointer-events-auto px-3 gap-1.5 w-auto! ${CREATE_GLASS_ICON}`}
+                  onClick={() => onPostShapeChange(nextShape(postShape))}
+                  aria-label={t('createPost.edit.shape_change', {
+                    shape: t(`createPost.edit.shape_${postShape}`),
+                  })}
+                >
+                  <Crop size={16} strokeWidth={2} aria-hidden />
+                  <span className="text-sm font-semibold">
+                    {t(`createPost.edit.shape_${postShape}`)}
+                  </span>
+                </button>
+              ) : (
+                <span className={CREATE_GLASS_CHIP}>{config.badge}</span>
+              )}
               {mediaFiles.length > 1 && (
                 <span className={CREATE_GLASS_CHIP}>
                   {selectedIndex + 1} / {mediaFiles.length}

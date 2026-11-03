@@ -236,6 +236,7 @@ export default function Carousel({
         sizes="(max-width: 768px) 100vw, 800px"
         alt={item.altText || 'Post content'}
         className={`w-full h-full ${fitClass} ${filterClass} ${blurClass}`}
+        fit={objectFit}
         style={filterStyle}
         loading={priority ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : undefined}

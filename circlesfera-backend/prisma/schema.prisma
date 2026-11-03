@@ -546,6 +546,8 @@ model Post {
   turnOffComments Boolean @default(false)
 
   type             PostType      @default(POST)
+  /// The shape every item shows in (a post, not a Frame); none before shapes.
+  shape            PostShape?
   contentRating    ContentRating @default(GENERAL)
   views            Int           @default(0)
   loops            Int           @default(0) // For Frames (vertical video)
@@ -2809,6 +2811,13 @@ enum MediaStatus {
   FAILED
   DELETING
   DELETED
+}
+
+/// The shape of a post: 1:1, 4:5 or 1.91:1.
+enum PostShape {
+  SQUARE
+  PORTRAIT
+  LANDSCAPE
 }
 
 enum ModerationStatus {

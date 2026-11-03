@@ -4,6 +4,8 @@ interface ProgressiveImageProps
   extends React.ImgHTMLAttributes<HTMLImageElement> {
   placeholderSrc?: string;
   src: string;
+  /** Fill the box and crop, or show the whole picture inside it. */
+  fit?: 'cover' | 'contain';
 }
 
 export default function ProgressiveImage({
@@ -11,6 +13,7 @@ export default function ProgressiveImage({
   src,
   className = '',
   alt,
+  fit = 'cover',
   ...props
 }: ProgressiveImageProps) {
   const [imgSrc, setImgSrc] = useState(placeholderSrc || src);
@@ -63,7 +66,7 @@ export default function ProgressiveImage({
         src={imgSrc}
         alt={alt}
         className={`
-          w-full h-full object-cover transition-[filter,transform,opacity] duration-500 ease-out
+          w-full h-full ${fit === 'cover' ? 'object-cover' : 'object-contain'} transition-[filter,transform,opacity] duration-500 ease-out
           ${!isLoaded ? 'blur-xl scale-110 opacity-70' : 'blur-0 scale-100 opacity-100'}
         `}
       />

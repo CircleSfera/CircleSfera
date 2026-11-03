@@ -77,6 +77,7 @@ export function useCreatePost() {
 
   const mutation = useCreatePostMutation({
     mode: state.mode,
+    postShape: state.postShape,
     caption: state.caption,
     hideLikes: state.hideLikes,
     turnOffComments: state.turnOffComments,

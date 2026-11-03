@@ -60,6 +60,8 @@ export default function ContentComposerPage() {
   const {
     mode,
     setMode,
+    postShape,
+    setPostShape,
     step,
     setStep,
     subScreen,
@@ -408,6 +410,8 @@ export default function ContentComposerPage() {
                   onApplyFilter={handleQuickFilter}
                   fileInputRef={fileInputRef}
                   allowModeSwitch={!modeLockedFromEntry}
+                  postShape={postShape}
+                  onPostShapeChange={setPostShape}
                 />
               </StepAnimationWrapper>
             )}
@@ -433,6 +437,7 @@ export default function ContentComposerPage() {
                   isPremium={isPremium}
                   interactiveDraft={interactiveDraft}
                   hasChosenCover={coverTimeMs !== null}
+                  postShape={postShape}
                 />
               </StepAnimationWrapper>
             )}

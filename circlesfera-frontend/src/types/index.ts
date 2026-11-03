@@ -23,6 +23,7 @@ import type {
   SuggestedUser as ISuggestedUser,
   UpdateProfileDto as IUpdateProfileDto,
   User as IUser,
+  PostShape,
   StoryStickerInput,
 } from '@circlesfera/shared';
 import type { FeedSticker, StoryStickerRef } from '../utils/storySticker';
@@ -31,6 +32,8 @@ import type { StoryElement } from './story-element.types';
 export type User = IUser;
 export type Profile = IProfile & { isVerified?: boolean };
 export type Post = IPost & {
+  /** The shape its items show in; none for a Frame and for older posts. */
+  shape?: PostShape | null;
   // Set when its author archived it: shown in their archive only.
   archivedAt?: string | null;
   isPromoted?: boolean;
@@ -192,6 +195,8 @@ export type CreatePostDto = {
   priceCents?: number;
   scheduledAt?: string | Date;
   contentRating?: 'GENERAL' | 'MATURE';
+  /** The shape every item shows in; a post only. */
+  shape?: PostShape;
 };
 
 export type CreateStoryDto = {

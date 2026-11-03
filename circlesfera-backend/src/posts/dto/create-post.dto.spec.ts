@@ -1,3 +1,4 @@
+import { POST_SHAPES } from '@circlesfera/shared';
 import { plainToInstance } from 'class-transformer';
 import { type ValidationError, validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
@@ -184,5 +185,25 @@ describe('the number of photos and videos of a post', () => {
   it('is at most twenty', async () => {
     expect(await rules(20)).toEqual([]);
     expect(await rules(21)).toEqual(['arrayMaxSize']);
+  });
+});
+
+describe('the shape of a post', () => {
+  const rules = async (shape: unknown) => {
+    const errors = await validate(
+      plainToInstance(CreatePostDto, { shape }) as object,
+    );
+    return Object.keys(
+      errors.find((error) => error.property === 'shape')?.constraints ?? {},
+    );
+  };
+
+  it('is one of the shapes, or left out', async () => {
+    for (const shape of POST_SHAPES) expect(await rules(shape)).toEqual([]);
+    expect(await rules(undefined)).toEqual([]);
+  });
+
+  it('is no other value', async () => {
+    expect(await rules('CIRCLE')).toEqual(['isIn']);
   });
 });

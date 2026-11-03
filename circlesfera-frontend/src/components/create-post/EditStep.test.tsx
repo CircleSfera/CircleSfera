@@ -1,3 +1,8 @@
+import {
+  POST_SHAPE_RATIO,
+  POST_SHAPES,
+  type PostShape,
+} from '@circlesfera/shared';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
@@ -270,6 +275,60 @@ describe('EditStep', () => {
     expect(frame).toHaveStyle({
       width: `${expected.width}px`,
       height: `${expected.height}px`,
+    });
+  });
+
+  describe('the shape of a post', () => {
+    function renderShape(
+      mode: 'POST' | 'FRAME',
+      postShape: PostShape,
+      onPostShapeChange = vi.fn(),
+    ) {
+      renderWithProviders(
+        <EditStep
+          mediaFiles={mediaFiles}
+          mode={mode}
+          setMode={vi.fn()}
+          setCurrentEditIndex={vi.fn()}
+          handleRemoveFile={vi.fn()}
+          fileInputRef={{ current: null }}
+          postShape={postShape}
+          onPostShapeChange={onPostShapeChange}
+        />,
+        { lng: 'es' },
+      );
+      return onPostShapeChange;
+    }
+    const shapeButton = () =>
+      screen.queryByRole('button', { name: /Cambiar la forma/ });
+
+    it.each(POST_SHAPES)('shows a post in its shape: %s', (shape) => {
+      renderShape('POST', shape);
+      const { width, height } = POST_SHAPE_RATIO[shape];
+
+      expect(screen.getByTestId('edit-preview-frame')).toHaveAttribute(
+        'data-aspect',
+        `${width}:${height}`,
+      );
+    });
+
+    it('the button changes to the next shape', () => {
+      const [first, second] = POST_SHAPES;
+      const onPostShapeChange = renderShape('POST', first);
+
+      fireEvent.click(shapeButton() as HTMLElement);
+
+      expect(onPostShapeChange).toHaveBeenCalledWith(second);
+    });
+
+    it('a Frame keeps 9:16, with no button for a shape', () => {
+      renderShape('FRAME', POST_SHAPES[0]);
+
+      expect(shapeButton()).not.toBeInTheDocument();
+      expect(screen.getByTestId('edit-preview-frame')).toHaveAttribute(
+        'data-aspect',
+        '9:16',
+      );
     });
   });
 

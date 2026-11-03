@@ -1,19 +1,24 @@
+import type { PostShape } from '@circlesfera/shared';
 import { Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MediaFile } from '../../hooks/useCreatePost';
+import { postAspectClass } from '../../utils/postShape';
 import Carousel from '../Carousel';
 
 interface InteractiveMediaPreviewProps {
   mediaFiles: MediaFile[];
   mode: 'POST' | 'FRAME' | 'STORY';
   className?: string;
+  /** The shape of a post; Frames and stories are 9:16. */
+  postShape?: PostShape;
 }
 
 export default function InteractiveMediaPreview({
   mediaFiles,
   mode,
   className = '',
+  postShape,
 }: InteractiveMediaPreviewProps) {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -70,11 +75,12 @@ export default function InteractiveMediaPreview({
     setCurrentTime(newTime);
   };
 
-  // Post = vertical 4:5. Frame/Story = 9:16. Compact for caption density.
+  // A post in its shape, a Frame or a story 9:16. Compact for the caption.
+  const postAspect = postAspectClass({ shape: postShape });
   const aspectClass =
     mode === 'FRAME' || mode === 'STORY'
       ? 'w-[96px] h-[170px] aspect-9/16'
-      : 'w-[120px] h-[150px] aspect-4/5';
+      : `w-[120px] ${postAspect}`;
 
   return (
     <div
@@ -152,7 +158,7 @@ export default function InteractiveMediaPreview({
             type: m.type,
             filter: m.filter,
           }))}
-          aspectRatio={mode === 'POST' ? 'aspect-4/5' : 'aspect-9/16'}
+          aspectRatio={mode === 'POST' ? postAspect : 'aspect-9/16'}
           objectFit="cover"
         />
       )}

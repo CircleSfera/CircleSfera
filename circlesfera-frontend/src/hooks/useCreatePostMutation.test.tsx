@@ -1,3 +1,4 @@
+import { DEFAULT_POST_SHAPE, POST_SHAPES } from '@circlesfera/shared';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -6,6 +7,7 @@ import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildHashtagElement } from '../components/story/storyComposer.append';
+import { FRAME_MIN_DURATION_SEC } from '../constants/uploadLimits';
 import { interactiveApi, postsApi, storiesApi } from '../services';
 import { createTestI18n, createTestQueryClient } from '../test/test-utils';
 import { exportEditedImage } from '../utils/imageExport';
@@ -47,6 +49,7 @@ const UPLOADED = [
 function setup(overrides: Record<string, unknown> = {}) {
   const deps = {
     mode: 'POST',
+    postShape: DEFAULT_POST_SHAPE,
     caption: 'Hola',
     hideLikes: false,
     turnOffComments: true,
@@ -242,6 +245,31 @@ describe('useCreatePostMutation', () => {
     );
     expect(navigate).toHaveBeenCalledWith('/');
     expect(deps.setIsProcessingEdit).toHaveBeenLastCalledWith(false);
+  });
+
+  it('sends the shape of a post, and none for a Frame', async () => {
+    const [, shape] = POST_SHAPES;
+    const post = setup({ postShape: shape });
+    await post.submit();
+    expect(vi.mocked(postsApi.create).mock.calls.at(-1)?.[0]).toMatchObject({
+      shape,
+    });
+
+    const frame = setup({
+      mode: 'FRAME',
+      postShape: shape,
+      mediaFiles: [
+        {
+          ...image('clip.mp4'),
+          type: 'video',
+          videoData: { startTime: 0, endTime: FRAME_MIN_DURATION_SEC },
+        },
+      ],
+    });
+    await frame.submit();
+    expect(
+      vi.mocked(postsApi.create).mock.calls.at(-1)?.[0],
+    ).not.toHaveProperty('shape');
   });
 
   it('a free post never sends a price', async () => {
