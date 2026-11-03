@@ -176,7 +176,11 @@ export default function LiveBroadcaster() {
 
     const socket = useSocketStore.getState().socket;
     if (!socket) return;
-    socket.emit('live:join', { streamId });
+    // A new connection is outside the room: it joins again, or what it
+    // sends to the live would be dropped.
+    const join = () => socket.emit('live:join', { streamId });
+    join();
+    socket.on('connect', join);
 
     socket.on('live:chat_message', (msg: any) => {
       setChatMessages((prev) => [...prev.slice(-49), msg]);
@@ -257,6 +261,7 @@ export default function LiveBroadcaster() {
 
     return () => {
       socket.emit('live:leave', { streamId });
+      socket.off('connect', join);
       socket.off('live:chat_message');
       socket.off('live:viewer_count_update');
       socket.off('live:comment_pinned');

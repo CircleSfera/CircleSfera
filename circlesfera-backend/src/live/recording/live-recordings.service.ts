@@ -9,7 +9,10 @@ import {
   appealDeadline,
 } from '../../appeals/appeal-window.js';
 import { AppException } from '../../common/errors/app.exception.js';
-import { canSeeProfileLives } from '../../common/policies/live-replay-access.policy.js';
+import {
+  canSeeProfileLives,
+  replaysListedFor,
+} from '../../common/policies/live-replay-access.policy.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { UploadsService } from '../../uploads/uploads.service.js';
 import {
@@ -164,6 +167,8 @@ export class LiveRecordingsService {
         endedByStaff: false,
         recordingStatus: 'READY',
         publishedAt: { not: null },
+        // A recording keeps the audience its broadcast had.
+        AND: [replaysListedFor(hostId, viewerProfileId)],
       },
       select: RECORDING_SELECT,
       orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],

@@ -1,3 +1,4 @@
+import { LIVE_TITLE_MAX_LENGTH } from '@circlesfera/shared';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import {
@@ -72,7 +73,7 @@ describe('LiveController', () => {
 
   it('starts a stream as the session profileId', async () => {
     mockLiveService.startStream.mockResolvedValue({
-      stream: { id: 'stream-1' },
+      stream: { id: 'stream-1', audience: 'EVERYONE' },
       token: 'jwt',
     });
 
@@ -82,16 +83,75 @@ describe('LiveController', () => {
       .send({ title: 'My Stream' })
       .expect(201);
 
-    expect(res.body).toEqual({ stream: { id: 'stream-1' }, token: 'jwt' });
+    expect(res.body).toEqual({
+      stream: { id: 'stream-1', audience: 'EVERYONE' },
+      token: 'jwt',
+    });
     expect(mockLiveService.startStream).toHaveBeenCalledWith(
       TEST_USER.profileId,
       'My Stream',
+      undefined,
     );
     // Once the live exists, the people who follow the host are told.
     expect(mockStartNotice.tellFollowers).toHaveBeenCalledWith(
       'stream-1',
       TEST_USER.profileId,
+      'EVERYONE',
     );
+  });
+
+  it('starts a live for close friends, telling them only', async () => {
+    mockStartNotice.tellFollowers.mockClear();
+    mockLiveService.startStream.mockResolvedValue({
+      stream: { id: 'stream-2', audience: 'CLOSE_FRIENDS' },
+      token: 'jwt',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/live/start')
+      .set(BEARER)
+      .send({ title: 'Solo amigos', audience: 'CLOSE_FRIENDS' })
+      .expect(201);
+
+    expect(mockLiveService.startStream).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'Solo amigos',
+      'CLOSE_FRIENDS',
+    );
+    expect(mockStartNotice.tellFollowers).toHaveBeenCalledWith(
+      'stream-2',
+      TEST_USER.profileId,
+      'CLOSE_FRIENDS',
+    );
+  });
+
+  it('tells nobody of a practice', async () => {
+    mockStartNotice.tellFollowers.mockClear();
+    mockLiveService.startStream.mockResolvedValue({
+      stream: { id: 'stream-3', audience: 'PRACTICE' },
+      token: 'jwt',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/live/start')
+      .set(BEARER)
+      .send({ audience: 'PRACTICE' })
+      .expect(201);
+
+    expect(mockStartNotice.tellFollowers).not.toHaveBeenCalled();
+  });
+
+  it('refuses an audience it does not know, and a title too long', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/live/start')
+      .set(BEARER)
+      .send({ audience: 'FOLLOWERS' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/v1/live/start')
+      .set(BEARER)
+      .send({ title: 'x'.repeat(LIVE_TITLE_MAX_LENGTH + 1) })
+      .expect(400);
   });
 
   it('tells nobody when the live could not start', async () => {

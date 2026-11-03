@@ -30,6 +30,8 @@ describe('LiveGiftService', () => {
     liveStream: {
       findUnique: vi.fn(),
     },
+    closeFriend: { findUnique: vi.fn().mockResolvedValue(null) },
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
     user: { findMany: vi.fn().mockResolvedValue([]), findUnique: vi.fn() },
     liveGift: {
       create: vi.fn(),
@@ -81,6 +83,7 @@ describe('LiveGiftService', () => {
     const liveHost = {
       id: 'stream-1',
       status: 'LIVE',
+      audience: 'EVERYONE',
       hostId: 'host-profile-1',
       host: {
         id: 'host-profile-1',
@@ -94,6 +97,32 @@ describe('LiveGiftService', () => {
       await expect(
         service.sendGift('stream-1', 'fan-1', 'not-a-gift', 'http://localhost'),
       ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('takes no gift for a live the sender may not watch, as if it were not on', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'fan-1',
+        email: 'fan@example.com',
+        isTestAccount: false,
+      });
+      for (const audience of ['PRACTICE', 'CLOSE_FRIENDS']) {
+        mockPrismaService.liveStream.findUnique.mockResolvedValue({
+          ...liveHost,
+          coHostId: null,
+          audience,
+        });
+        await expect(
+          service.sendGift(
+            'stream-1',
+            'fan-1',
+            'crown',
+            'http://localhost',
+            undefined,
+            'fan-profile',
+          ),
+        ).rejects.toThrow('Live stream not active');
+      }
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 

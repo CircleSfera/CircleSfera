@@ -180,7 +180,8 @@ async function watch(path = '/live/stream-1') {
   );
   await screen.findByTestId('livekit-room');
   // The listeners are attached in the same step as the two requests.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(13));
+  // Thirteen events of the live, and the new connection that joins it again.
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(14));
   return view;
 }
 
@@ -213,7 +214,8 @@ describe('LiveViewer on the live connection', () => {
       audio: false,
     });
     const listened = [...live.handlers.keys()];
-    expect(listened).toHaveLength(13);
+    expect(listened).toHaveLength(14);
+    expect(listened).toContain('connect');
 
     unmount();
 
