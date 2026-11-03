@@ -16,6 +16,19 @@ import { ComposerProvider } from './create-post/ComposerContext';
 import { CREATE_FULL_SCREEN } from './create-post/createStyles';
 import EditorOverlayManager from './create-post/EditorOverlayManager';
 import EditStep from './create-post/EditStep';
+import FrameAssemblyProgress from './create-post/FrameAssemblyProgress';
+import FrameClipsEditor, {
+  type FramePainting,
+} from './create-post/FrameClipsEditor';
+import {
+  assembleFrame,
+  type FrameAssemblyStep,
+} from './create-post/frameAssembly';
+import {
+  clipsLength,
+  type FrameClip,
+  wholeClip,
+} from './create-post/frameClips';
 import Header from './create-post/Header';
 import StepAnimationWrapper from './create-post/StepAnimationWrapper.tsx';
 import StoryControlsBar from './create-post/StoryControlsBar';
@@ -55,6 +68,19 @@ export default function ContentComposerPage() {
     undefined,
   );
   const [clipWindowMs, setClipWindowMs] = React.useState(15_000);
+  // A Frame recorded in clips: the clips and what is painted over them, kept
+  // to go back to them from the caption.
+  const [frameDraft, setFrameDraft] = React.useState<{
+    clips: FrameClip[];
+    painting: FramePainting;
+  } | null>(null);
+  const [clipsEditorOpen, setClipsEditorOpen] = React.useState(false);
+  const [assembly, setAssembly] = React.useState<FrameAssemblyStep | null>(
+    null,
+  );
+  // Each putting together has its number: one cancelled is left to finish
+  // unheard.
+  const assemblyRun = React.useRef(0);
   // In the iOS app, how "Next" continues from the gallery of the upload step.
   const [galleryNext, setGalleryNext] = React.useState<(() => void) | null>(
     null,
@@ -102,6 +128,8 @@ export default function ContentComposerPage() {
     isPremium,
     interactiveDraft,
     isPending,
+    setMediaFiles,
+    takeAssembledFrame,
   } = composer;
 
   const isStoryMode = mode === 'STORY';
@@ -259,6 +287,65 @@ export default function ContentComposerPage() {
     />
   );
 
+  const putFrameTogether = async (
+    clips: FrameClip[],
+    painting: FramePainting,
+  ) => {
+    const run = ++assemblyRun.current;
+    const current = () => run === assemblyRun.current;
+    setFrameDraft({ clips, painting });
+    setClipsEditorOpen(false);
+    setAssembly({ kind: 'uploading', done: 0, total: clips.length });
+    try {
+      const frame = await assembleFrame(clips, painting.layer, (step) => {
+        if (current()) setAssembly(step);
+      });
+      if (!current()) return;
+      takeAssembledFrame({
+        ...frame,
+        durationSec: clipsLength(clips) / 1000,
+      });
+    } catch {
+      if (!current()) return;
+      toast.error(t('frames.assembly.failed'));
+      setClipsEditorOpen(true);
+    } finally {
+      if (current()) setAssembly(null);
+    }
+  };
+
+  if (assembly)
+    return (
+      <>
+        <SEO title={documentTitle} noIndex />
+        <FrameAssemblyProgress
+          step={assembly}
+          onCancel={() => {
+            assemblyRun.current++;
+            setAssembly(null);
+            setClipsEditorOpen(true);
+          }}
+        />
+      </>
+    );
+
+  if (clipsEditorOpen && frameDraft)
+    return (
+      <>
+        <SEO title={documentTitle} noIndex />
+        <FrameClipsEditor
+          clips={frameDraft.clips}
+          painting={frameDraft.painting}
+          onDone={(clips, painting) => void putFrameTogether(clips, painting)}
+          onCancel={() => {
+            // The clips are let go: back to the camera.
+            setClipsEditorOpen(false);
+            setFrameDraft(null);
+          }}
+        />
+      </>
+    );
+
   if (isStarting)
     return (
       <div
@@ -327,6 +414,17 @@ export default function ContentComposerPage() {
             else fileInputRef.current?.click();
           }}
           onCreate={() => setShowStoryComposer(true)}
+          onCaptureClips={
+            mode === 'FRAME'
+              ? (recorded) => {
+                  setFrameDraft({
+                    clips: recorded.map(wholeClip),
+                    painting: { layer: null, elements: [] },
+                  });
+                  setClipsEditorOpen(true);
+                }
+              : undefined
+          }
           onClose={reset}
         />
         <input
@@ -350,6 +448,17 @@ export default function ContentComposerPage() {
       >
         <Header
           onBack={() => {
+            // A Frame put together from clips goes back to its clips.
+            if (
+              step === 'caption' &&
+              mediaFiles[0]?.assembledFrame &&
+              frameDraft
+            ) {
+              setMediaFiles([]);
+              setStep('upload');
+              setClipsEditorOpen(true);
+              return;
+            }
             // Composed story: back reopens the immersive editor (don't wipe to upload)
             if (isStoryMode && step === 'edit' && isComposed) {
               setShowStoryComposer(true);

@@ -23,10 +23,18 @@ import {
 
 const StoryComposer = lazy(() => import('../story/StoryComposer'));
 
+/** What is painted over a Frame: the picture and what it is made of. */
+export interface FramePainting {
+  layer: Blob | null;
+  elements: StoryElement[];
+}
+
 export interface FrameClipsEditorProps {
   clips: FrameClip[];
-  /** The clips, and what is painted over them all when there is any. */
-  onDone: (clips: FrameClip[], layer: Blob | null) => void;
+  /** What was painted before, when the editor opens again. */
+  painting?: FramePainting;
+  /** The clips, and what is painted over them all. */
+  onDone: (clips: FrameClip[], painting: FramePainting) => void;
   onCancel: () => void;
 }
 
@@ -38,6 +46,7 @@ export interface FrameClipsEditorProps {
  */
 export default function FrameClipsEditor({
   clips: recorded,
+  painting: before,
   onDone,
   onCancel,
 }: FrameClipsEditorProps) {
@@ -48,8 +57,8 @@ export default function FrameClipsEditor({
   const videoRef = useRef<HTMLVideoElement>(null);
   // Text and drawing over the whole Frame, painted on its first clip.
   const [painting, setPainting] = useState(false);
-  const [layer, setLayer] = useState<Blob | null>(null);
-  const painted = useRef<StoryElement[]>([]);
+  const [layer, setLayer] = useState<Blob | null>(before?.layer ?? null);
+  const painted = useRef<StoryElement[]>(before?.elements ?? []);
 
   // One address per file, let go when the editor closes.
   const urls = useMemo(
@@ -124,7 +133,12 @@ export default function FrameClipsEditor({
         </p>
         <button
           type="button"
-          onClick={() => onDone(clips, layer)}
+          onClick={() =>
+            onDone(clips, {
+              layer,
+              elements: layer ? painted.current : [],
+            })
+          }
           disabled={!ready}
           className={`${CREATE_PRIMARY} min-h-11 px-5 disabled:opacity-40`}
         >
@@ -166,7 +180,7 @@ export default function FrameClipsEditor({
       ) : null}
 
       {clip ? (
-        <div className="relative space-y-2 px-4 pt-3">
+        <div className="relative mx-auto w-full max-w-xl space-y-2 px-4 pt-3">
           <label className="flex items-center gap-3 text-xs">
             <span className="w-14 shrink-0">{t('frames.clips.start')}</span>
             <input
@@ -204,7 +218,7 @@ export default function FrameClipsEditor({
         </div>
       ) : null}
 
-      <div className="relative flex items-center gap-2 overflow-x-auto px-4 pt-3 pb-[max(env(safe-area-inset-bottom),16px)]">
+      <div className="relative mx-auto flex w-full max-w-xl items-center gap-2 overflow-x-auto px-4 pt-3 pb-[max(env(safe-area-inset-bottom),16px)]">
         {clips.map((c, index) => (
           <button
             key={urls.get(c.file)}

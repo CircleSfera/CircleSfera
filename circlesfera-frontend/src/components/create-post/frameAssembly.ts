@@ -1,0 +1,94 @@
+import {
+  FRAME_ASSEMBLY_POLL_MS,
+  FRAME_ASSEMBLY_WAIT_MS,
+} from '../../constants/frameAssembly';
+import { uploadApi } from '../../services/upload.service';
+import { sanitizeUrl } from '../../utils/apiUtils';
+import type { FrameClip } from './frameClips';
+
+/** Where the putting together of a Frame is, to show it. */
+export type FrameAssemblyStep =
+  | { kind: 'uploading'; done: number; total: number }
+  | { kind: 'assembling' };
+
+export class FrameAssemblyError extends Error {
+  readonly reason: 'failed' | 'timeout';
+  constructor(reason: 'failed' | 'timeout') {
+    super(`The Frame could not be put together (${reason})`);
+    this.reason = reason;
+  }
+}
+
+export interface FrameAssemblyDeps {
+  api: Pick<
+    typeof uploadApi,
+    'upload' | 'uploadFrameClip' | 'assembleFrame' | 'frameAssemblyStatus'
+  >;
+  fetchFile: (url: string) => Promise<Blob>;
+  sleep: (ms: number) => Promise<void>;
+  now: () => number;
+}
+
+const defaultDeps: FrameAssemblyDeps = {
+  api: uploadApi,
+  fetchFile: async (url) => {
+    const response = await fetch(sanitizeUrl(url) ?? url, {
+      credentials: 'include',
+    });
+    if (!response.ok) throw new Error(`The Frame could not be read`);
+    return response.blob();
+  },
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  now: () => Date.now(),
+};
+
+function asForm(file: Blob, name: string): FormData {
+  const form = new FormData();
+  form.append('file', file, name);
+  return form;
+}
+
+/**
+ * Puts a Frame together on the server: its clips are sent one after the
+ * other, then what is painted over them, then the server is asked to join
+ * them and asked again until the video is ready. Answers the video's
+ * address and the video itself, to show and publish as a Frame.
+ */
+export async function assembleFrame(
+  clips: FrameClip[],
+  layer: Blob | null,
+  onStep: (step: FrameAssemblyStep) => void,
+  deps: FrameAssemblyDeps = defaultDeps,
+): Promise<{ url: string; file: File }> {
+  const sent = [];
+  for (const [index, clip] of clips.entries()) {
+    onStep({ kind: 'uploading', done: index, total: clips.length });
+    const { data } = await deps.api.uploadFrameClip(
+      asForm(clip.file, clip.file.name),
+    );
+    sent.push({ url: data.url, startMs: clip.startMs, endMs: clip.endMs });
+  }
+  onStep({ kind: 'uploading', done: clips.length, total: clips.length });
+  const layerUrl = layer
+    ? (await deps.api.upload(asForm(layer, 'frame-layer.png'))).data.url
+    : undefined;
+
+  onStep({ kind: 'assembling' });
+  const {
+    data: { id },
+  } = await deps.api.assembleFrame({ clips: sent, layerUrl });
+  const until = deps.now() + FRAME_ASSEMBLY_WAIT_MS;
+  for (;;) {
+    const { data } = await deps.api.frameAssemblyStatus(id);
+    if (data.status === 'READY' && data.url) {
+      const video = await deps.fetchFile(data.url);
+      return {
+        url: data.url,
+        file: new File([video], 'frame.mp4', { type: 'video/mp4' }),
+      };
+    }
+    if (data.status !== 'PENDING') throw new FrameAssemblyError('failed');
+    if (deps.now() >= until) throw new FrameAssemblyError('timeout');
+    await deps.sleep(FRAME_ASSEMBLY_POLL_MS);
+  }
+}

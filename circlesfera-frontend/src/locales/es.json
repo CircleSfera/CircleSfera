@@ -5310,6 +5310,12 @@
       "remove": "Quitar el clip",
       "paint": "Texto y dibujo",
       "paint_edit": "Editar texto y dibujo"
+    },
+    "assembly": {
+      "uploading": "Subiendo los clips ({{done}} de {{total}})…",
+      "assembling": "Montando tu Frame…",
+      "hint": "Puede tardar un par de minutos. No cierres esta pantalla.",
+      "failed": "No se pudo montar el Frame. Inténtalo de nuevo."
     }
   },
   "landing": {

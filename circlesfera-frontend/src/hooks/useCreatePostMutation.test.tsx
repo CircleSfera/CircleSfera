@@ -11,6 +11,7 @@ import { FRAME_MIN_DURATION_SEC } from '../constants/uploadLimits';
 import { interactiveApi, postsApi, storiesApi } from '../services';
 import { createTestI18n, createTestQueryClient } from '../test/test-utils';
 import { exportEditedImage } from '../utils/imageExport';
+import { exportEditedVideo } from '../utils/videoExport';
 import { useCreatePostMutation } from './useCreatePostMutation';
 import type { MediaFile } from './useCreatePostState';
 
@@ -474,6 +475,26 @@ describe('useCreatePostMutation', () => {
     expect(vi.mocked(storiesApi.create).mock.calls[0][0]).not.toHaveProperty(
       'stickers',
     );
+  });
+
+  it('publishes a Frame the server put together as it is: not made or sent again', async () => {
+    const stored = '/uploads/frame.mp4';
+    const { deps, submit } = setup({
+      mode: 'FRAME',
+      mediaFiles: [
+        {
+          ...image('frame.mp4'),
+          type: 'video',
+          videoData: { startTime: 0, endTime: 20, muted: false },
+          remoteUrl: stored,
+          assembledFrame: true,
+        },
+      ],
+    });
+    await submit();
+
+    expect(exportEditedVideo).not.toHaveBeenCalled();
+    expect(deps.uploadFiles.mock.calls[0][0][0].remoteUrl).toBe(stored);
   });
 
   describe('a photo that already has an uploaded copy', () => {

@@ -84,7 +84,35 @@ describe('FrameClipsEditor', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
-    expect(onDone.mock.calls[0][1]).toBe(layer);
+    expect(onDone.mock.calls[0][1]).toEqual({
+      layer,
+      elements: [{ id: 't', type: 'text' }],
+    });
+  });
+
+  it('opens again with what was painted, and keeps it', async () => {
+    const layer = new Blob(['png'], { type: 'image/png' });
+    const elements = [{ id: 't', type: 'text' }] as never[];
+    const onDone = vi.fn();
+    renderWithProviders(
+      <FrameClipsEditor
+        clips={[clip('a', half), clip('b', half)]}
+        painting={{ layer, elements }}
+        onDone={onDone}
+        onCancel={vi.fn()}
+      />,
+      { lng: 'es' },
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Editar texto y dibujo' }),
+    );
+    await screen.findByTestId('painter');
+    expect(painter.props.elements).toEqual(elements);
+    act(() => painter.props.onClose());
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    expect(onDone.mock.calls[0][1]).toEqual({ layer, elements });
   });
 
   it('goes on with no layer when nothing was painted', async () => {
@@ -95,6 +123,6 @@ describe('FrameClipsEditor', () => {
     act(() => painter.props.onPost(new Blob(['png'])));
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
-    expect(onDone.mock.calls[0][1]).toBeNull();
+    expect(onDone.mock.calls[0][1]).toEqual({ layer: null, elements: [] });
   });
 });
