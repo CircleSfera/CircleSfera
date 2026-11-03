@@ -7,7 +7,15 @@ import {
   MEDIA_COLUMNS,
   MediaReferencesService,
 } from './media-references.service.js';
+import {
+  ORPHAN_DELETIONS_PER_NIGHT,
+  ORPHAN_GRACE_HOURS,
+} from './orphan-sweep.policy.js';
 import type { StoredFilesService } from './stored-files.service.js';
+
+const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3600 * 1000);
+/** Older than the sweep's grace. */
+const pastGrace = () => hoursAgo(ORPHAN_GRACE_HOURS + 24);
 
 describe('MediaReconciliationService', () => {
   let service: MediaReconciliationService;
@@ -15,6 +23,7 @@ describe('MediaReconciliationService', () => {
   let mockStoredFiles: {
     record: ReturnType<typeof vi.fn>;
     detachedSince: ReturnType<typeof vi.fn>;
+    ownersOf: ReturnType<typeof vi.fn>;
   };
   let mockUploadsService: {
     scheduleMediaDeletion: ReturnType<typeof vi.fn>;
@@ -40,6 +49,7 @@ describe('MediaReconciliationService', () => {
     mockStoredFiles = {
       record: vi.fn().mockResolvedValue(undefined),
       detachedSince: vi.fn().mockResolvedValue(new Set<string>()),
+      ownersOf: vi.fn().mockResolvedValue(new Map<string, string>()),
     };
     mockUploadsService = {
       scheduleMediaDeletion: vi.fn().mockResolvedValue(undefined),
@@ -180,7 +190,7 @@ describe('MediaReconciliationService', () => {
   });
 
   it('records with no owner the files on the disk past the grace period', async () => {
-    const twoDaysAgo = new Date(Date.now() - 48 * 3600 * 1000);
+    const twoDaysAgo = pastGrace();
     mockStorageProvider.listFiles!.mockResolvedValue([
       { url: '/uploads/a.jpg', lastModified: twoDaysAgo, sizeBytes: 1 },
       { url: '/uploads/b.mp4', lastModified: twoDaysAgo, sizeBytes: 2 },
@@ -223,17 +233,171 @@ describe('MediaReconciliationService', () => {
     await expect(service.handleDailyReconciliation()).resolves.not.toThrow();
   });
 
-  it('reports only at night: it deletes nothing, however many files no row uses', async () => {
-    const twoDaysAgo = new Date(Date.now() - 48 * 3600 * 1000);
-    mockStorageProvider.listFiles!.mockResolvedValue([
-      { url: '/uploads/orphan.jpg', lastModified: twoDaysAgo, sizeBytes: 3000 },
-    ]);
+  it('deletes at night with the grace and the cap of the sweep', async () => {
     const sweep = vi.spyOn(service, 'detectAndReconcileOrphans');
 
     await service.handleDailyReconciliation();
 
-    expect(sweep).toHaveBeenCalledWith({ olderThanHours: 24, dryRun: true });
+    expect(sweep).toHaveBeenCalledWith({ dryRun: false });
+  });
+
+  it('keeps a file used by no row for a week by default', async () => {
+    mockPrisma.postMedia.findMany.mockResolvedValue([
+      { url: '/uploads/used.jpg', standardUrl: null, thumbnailUrl: null },
+    ]);
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/used.jpg', lastModified: pastGrace(), sizeBytes: 1 },
+      { url: '/uploads/six-days.jpg', lastModified: hoursAgo(6 * 24) },
+      { url: '/uploads/eight-days.jpg', lastModified: hoursAgo(8 * 24) },
+      { url: '/uploads/used-too.jpg', lastModified: pastGrace() },
+    ]);
+    mockPrisma.postMedia.findMany.mockResolvedValue([
+      { url: '/uploads/used.jpg', standardUrl: '/uploads/used-too.jpg' },
+    ]);
+
+    const result = await service.detectAndReconcileOrphans({ dryRun: false });
+
+    expect(ORPHAN_GRACE_HOURS).toBe(7 * 24);
+    expect(result.orphans.map((o) => o.url)).toEqual([
+      '/uploads/eight-days.jpg',
+    ]);
+    expect(mockUploadsService.scheduleMediaDeletion).toHaveBeenCalledWith([
+      '/uploads/eight-days.jpg',
+    ]);
+  });
+
+  it('never deletes a file whose age the storage cannot tell', async () => {
+    mockPrisma.postMedia.findMany.mockResolvedValue([
+      { url: '/uploads/used.jpg', standardUrl: null, thumbnailUrl: null },
+    ]);
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/used.jpg', lastModified: pastGrace() },
+      { url: '/uploads/ageless.jpg' },
+    ]);
+
+    const result = await service.detectAndReconcileOrphans({ dryRun: false });
+
+    expect(result.orphanCount).toBe(0);
     expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
+  });
+
+  it('deletes only so many a night, the oldest first', async () => {
+    const used = Array.from({ length: 10 }, (_, i) => ({
+      url: `/uploads/used-${i}.jpg`,
+      standardUrl: null,
+      thumbnailUrl: null,
+    }));
+    mockPrisma.postMedia.findMany.mockResolvedValue(used);
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      ...used.map((m) => ({ url: m.url, lastModified: pastGrace() })),
+      { url: '/uploads/old.jpg', lastModified: hoursAgo(400), sizeBytes: 3 },
+      { url: '/uploads/older.jpg', lastModified: hoursAgo(500), sizeBytes: 4 },
+      { url: '/uploads/newer.jpg', lastModified: hoursAgo(300), sizeBytes: 5 },
+    ]);
+
+    const result = await service.detectAndReconcileOrphans({
+      dryRun: false,
+      maxDeletions: 2,
+    });
+
+    expect(result.orphanCount).toBe(3);
+    expect(result.deletedCount).toBe(2);
+    expect(result.deletedBytes).toBe(7);
+    expect(mockUploadsService.scheduleMediaDeletion).toHaveBeenCalledWith([
+      '/uploads/older.jpg',
+      '/uploads/old.jpg',
+    ]);
+  });
+
+  it('caps a night at a few hundred files by default', () => {
+    expect(ORPHAN_DELETIONS_PER_NIGHT).toBe(300);
+  });
+
+  it('deletes nothing when most of the disk reads as unused', async () => {
+    mockPrisma.postMedia.findMany.mockResolvedValue([
+      { url: '/uploads/used.jpg', standardUrl: null, thumbnailUrl: null },
+    ]);
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/used.jpg', lastModified: pastGrace() },
+      { url: '/uploads/a.jpg', lastModified: pastGrace() },
+      { url: '/uploads/b.jpg', lastModified: pastGrace() },
+    ]);
+
+    const result = await service.detectAndReconcileOrphans({ dryRun: false });
+
+    expect(result.orphanCount).toBe(2);
+    expect(result.heldBack).toContain('2 of 3 files are unused');
+    expect(result.deletedCount).toBe(0);
+    expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
+  });
+
+  it('deletes nothing when no row reads as naming any file', async () => {
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/a.jpg', lastModified: pastGrace() },
+    ]);
+    const result = await service.detectAndReconcileOrphans({
+      dryRun: false,
+      // Even were the share allowed: no references is a misread.
+      olderThanHours: 1,
+    });
+
+    expect(result.heldBack).toBe('no row names any file');
+    expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
+  });
+
+  it('spares a file a row named while the sweep was running', async () => {
+    const used = ['/uploads/a.jpg', '/uploads/b.jpg', '/uploads/c.jpg'];
+    vi.spyOn(service, 'getReferencedMediaKeys')
+      .mockResolvedValueOnce(new Set(used))
+      .mockResolvedValueOnce(new Set([...used, 'just-named.jpg']));
+    mockStorageProvider.listFiles!.mockResolvedValue(
+      [...used, '/uploads/just-named.jpg'].map((url) => ({
+        url,
+        lastModified: pastGrace(),
+      })),
+    );
+
+    const result = await service.detectAndReconcileOrphans({ dryRun: false });
+
+    expect(result.orphanCount).toBe(1);
+    expect(result.reconciled).toBe(false);
+    expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
+  });
+
+  it('logs each file it deletes with its owner and size, never its address', async () => {
+    const log = vi.spyOn(
+      (service as unknown as { logger: { log: (message: string) => void } })
+        .logger,
+      'log',
+    );
+    mockPrisma.postMedia.findMany.mockResolvedValue([
+      { url: '/uploads/used.jpg', standardUrl: null, thumbnailUrl: null },
+    ]);
+    mockStorageProvider.listFiles!.mockResolvedValue([
+      { url: '/uploads/used.jpg', lastModified: pastGrace() },
+      { url: '/uploads/a/mine.jpg', lastModified: pastGrace(), sizeBytes: 42 },
+      { url: '/uploads/a/nobodys.jpg', lastModified: pastGrace() },
+      { url: '/uploads/used2.jpg', lastModified: pastGrace() },
+    ]);
+    mockPrisma.postMedia.findMany.mockResolvedValue([
+      { url: '/uploads/used.jpg', standardUrl: '/uploads/used2.jpg' },
+    ]);
+    mockStoredFiles.ownersOf.mockResolvedValue(
+      new Map([['/uploads/a/mine.jpg', 'profile-1']]),
+    );
+
+    await service.detectAndReconcileOrphans({ dryRun: false });
+
+    const lines = log.mock.calls.map((call) => String(call[0]));
+    expect(lines).toContain(
+      `Orphan sweep deletes mine.jpg (owner: profile-1, 42 bytes, ${ORPHAN_GRACE_HOURS + 24} h old)`,
+    );
+    expect(
+      lines.some((l) =>
+        l.startsWith('Orphan sweep deletes nobodys.jpg (owner: none, 0 bytes'),
+      ),
+    ).toBe(true);
+    expect(lines.some((l) => l.includes('/uploads/a/'))).toBe(false);
   });
 
   it('should catch and log error when reconciliation fails during cron', async () => {
@@ -243,8 +407,15 @@ describe('MediaReconciliationService', () => {
     await expect(service.handleDailyReconciliation()).resolves.not.toThrow();
   });
 
+  it('survives a sweep that fails with something other than an error', async () => {
+    vi.spyOn(service, 'detectAndReconcileOrphans').mockRejectedValueOnce(
+      'disk gone',
+    );
+    await expect(service.handleDailyReconciliation()).resolves.not.toThrow();
+  });
+
   it('counts as no orphan the file of content deleted less than 30 days ago', async () => {
-    const old = new Date(Date.now() - 72 * 60 * 60 * 1000);
+    const old = pastGrace();
     mockStorageProvider.listFiles?.mockResolvedValue([
       { url: '/uploads/kept.jpg', lastModified: old },
       { url: '/uploads/orphan.jpg', lastModified: old },
