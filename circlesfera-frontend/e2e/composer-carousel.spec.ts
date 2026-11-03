@@ -57,12 +57,13 @@ test('a carousel is shared in the order it was put in, without the item taken ou
   await uploadsNamedAfterTheirFile(page);
   await openComposer(page, 'post');
 
-  const photo = readFileSync(FIXTURES.postImage);
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles(
-      NAMES.map((name) => ({ name, mimeType: 'image/jpeg', buffer: photo })),
-    );
+  await page.locator('input[type="file"]').setInputFiles(
+    NAMES.map((name, index) => ({
+      name,
+      mimeType: 'image/jpeg',
+      buffer: readFileSync(FIXTURES.postImages[index]),
+    })),
+  );
   await waitEditPreviewReady(page, '4:5');
   await expect(
     page.getByRole('button', { name: itemLabel(NAMES.length, NAMES.length) }),
