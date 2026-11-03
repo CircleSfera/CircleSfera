@@ -1,5 +1,6 @@
 import process from 'node:process';
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_LIVEKIT_URL } from './e2e/e2e-livekit';
 
 /**
  * Read environment variables from file.
@@ -10,9 +11,6 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
-/** The LiveKit address of the app under test: no server, the tests answer. */
-const E2E_LIVEKIT_URL = 'wss://livekit.e2e.invalid';
-
 export default defineConfig({
   testDir: './e2e',
   /* Run tests in files in parallel */

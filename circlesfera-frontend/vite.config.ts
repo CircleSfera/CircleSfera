@@ -1,7 +1,19 @@
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
+import { E2E_LIVEKIT_URL } from './e2e/e2e-livekit.ts';
 import { copyStudioMediaAssets } from './vite.studio-assets.ts';
+
+// The end-to-end tests of CI run the dev server of the app with no LiveKit
+// server of its own: it is given the address the tests answer for. A build
+// never takes it, and a deploy refuses a build with no address.
+if (
+  process.env.CI &&
+  !process.env.VITE_LIVEKIT_URL &&
+  !process.argv.includes('build')
+) {
+  process.env.VITE_LIVEKIT_URL = E2E_LIVEKIT_URL;
+}
 
 // https://vite.dev/config/
 export default defineConfig({
