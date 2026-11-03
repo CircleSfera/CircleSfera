@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PHOTO_FILTERS } from '../photo-editor/photoEditor.constants';
 import { CREATE_QUICK_THUMB } from './createStyles';
@@ -23,14 +24,37 @@ export default function QuickFilterRow({
   onSelect,
 }: QuickFilterRowProps) {
   const { t } = useTranslation();
+  // The fade shows only while there are more filters past the right edge.
+  const strip = useRef<HTMLFieldSetElement>(null);
+  const [more, setMore] = useState(false);
+  const measure = useCallback(() => {
+    const el = strip.current;
+    if (!el) return;
+    setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+  useEffect(() => {
+    measure();
+    const el = strip.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measure]);
 
   return (
     // The strip scrolls inside the side margins, so the filter it cuts is
     // never flush with the edge; a short fade says there are more.
     <div className="shrink-0 min-w-0 px-4">
       <fieldset
+        ref={strip}
+        onScroll={measure}
+        data-more={more || undefined}
         aria-label={t('createPost.edit.tab_filters')}
-        className="flex overflow-x-auto items-start gap-3 py-2 no-scrollbar snap-x touch-pan-x border-0 m-0 min-w-0 [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]"
+        className={`flex overflow-x-auto items-start gap-3 py-2 no-scrollbar snap-x touch-pan-x border-0 m-0 min-w-0 ${
+          more
+            ? '[mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]'
+            : ''
+        }`}
       >
         {PHOTO_FILTERS.map((filter) => {
           const isSelected = filter.class === selectedClass;

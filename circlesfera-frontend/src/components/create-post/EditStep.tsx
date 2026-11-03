@@ -412,7 +412,8 @@ export default function EditStep({
           <div
             role="toolbar"
             aria-label={t('createPost.edit.edit_media')}
-            className={CREATE_TOOL_ROW}
+            // On a narrow screen the tools take two lines rather than leave it.
+            className={`${CREATE_TOOL_ROW} flex-wrap`}
             style={
               frameSize.width > 0 ? { maxWidth: frameSize.width } : undefined
             }
