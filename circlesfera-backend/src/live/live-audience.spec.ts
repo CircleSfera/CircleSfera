@@ -19,11 +19,25 @@ const stream = (audience: 'EVERYONE' | 'CLOSE_FRIENDS' | 'PRACTICE') => ({
   audience,
 });
 
+type Status = 'INVITED' | 'ON_AIR' | 'DECLINED' | 'LEFT' | 'REMOVED';
+
 /**
- * A close friends list that holds only `friend`, and `guest` invited to or on
- * air in live-1 (a guest with a place).
+ * A close friends list that holds only `friend`; the guests of live-1 (by
+ * default `guest`, invited); and the blocks between Profiles, as
+ * [blocker, blocked].
  */
-const prisma = (friend = 'friend') => {
+const prisma = (
+  options: {
+    friend?: string;
+    guests?: [string, Status][];
+    blocks?: [string, string][];
+  } = {},
+) => {
+  const {
+    friend = 'friend',
+    guests = [[guest, 'INVITED']],
+    blocks = [],
+  } = options;
   const findUnique = vi.fn(
     async ({
       where,
@@ -31,25 +45,48 @@ const prisma = (friend = 'friend') => {
       where: { profileId_friendId: { friendId: string } };
     }) => (where.profileId_friendId.friendId === friend ? { id: 'cf' } : null),
   );
+  const findMany = vi.fn(
+    async ({
+      where,
+    }: {
+      where: { streamId: string; status: { in: string[] } };
+    }) =>
+      where.streamId === 'live-1'
+        ? guests
+            .filter(([, status]) => where.status.in.includes(status))
+            .map(([profileId, status]) => ({ profileId, status }))
+        : [],
+  );
   const findFirst = vi.fn(
     async ({
       where,
     }: {
-      where: { streamId: string; profileId: string; status: { in: string[] } };
-    }) =>
-      where.streamId === 'live-1' &&
-      where.profileId === guest &&
-      where.status.in.includes('INVITED') &&
-      where.status.in.includes('ON_AIR')
-        ? { id: 'g' }
-        : null,
+      where: {
+        OR: [
+          { blockerId: string; blockedId: { in: string[] } },
+          { blockedId: string; blockerId: { in: string[] } },
+        ];
+      };
+    }) => {
+      const [byViewer, ofViewer] = where.OR;
+      const hit = blocks.some(
+        ([blocker, blocked]) =>
+          (blocker === byViewer.blockerId &&
+            byViewer.blockedId.in.includes(blocked)) ||
+          (blocked === ofViewer.blockedId &&
+            ofViewer.blockerId.in.includes(blocker)),
+      );
+      return hit ? { id: 'b' } : null;
+    },
   );
   return {
     closeFriend: { findUnique },
-    liveGuest: { findFirst },
+    liveGuest: { findMany },
+    block: { findFirst },
   } as unknown as Parameters<typeof canWatchStream>[0] & {
     closeFriend: { findUnique: typeof findUnique };
-    liveGuest: { findFirst: typeof findFirst };
+    liveGuest: { findMany: typeof findMany };
+    block: { findFirst: typeof findFirst };
   };
 };
 
@@ -80,31 +117,27 @@ describe('who a live is for', () => {
     );
   });
 
-  it('practice: nobody but the host and the guest, close friends neither', async () => {
+  it('practice: nobody but the host and the guests, close friends neither', async () => {
     const db = prisma();
     expect(await canWatchStream(db, stream('PRACTICE'), 'friend')).toBe(false);
     expect(await canWatchStream(db, stream('PRACTICE'), undefined)).toBe(false);
     expect(db.closeFriend.findUnique).not.toHaveBeenCalled();
   });
 
-  it('a live for everyone asks nobody whether the viewer is a guest', async () => {
-    const db = prisma();
-    expect(await canWatchStream(db, stream('EVERYONE'), 'someone')).toBe(true);
-    expect(db.liveGuest.findFirst).not.toHaveBeenCalled();
-  });
-
   it('a guest who declined, left or was removed sees a practice no more', async () => {
-    const db = prisma();
-    db.liveGuest.findFirst.mockResolvedValueOnce(null);
-    expect(await canWatchStream(db, stream('PRACTICE'), guest)).toBe(false);
+    for (const status of ['DECLINED', 'LEFT', 'REMOVED'] as const) {
+      const db = prisma({ guests: [[guest, status]] });
+      expect(await canWatchStream(db, stream('PRACTICE'), guest)).toBe(false);
+    }
   });
 
   it('the host and a guest invited or on air always see their own live', async () => {
     for (const audience of ['EVERYONE', 'CLOSE_FRIENDS', 'PRACTICE'] as const) {
-      for (const viewer of [host, guest]) {
-        expect(await canWatchStream(prisma(), stream(audience), viewer)).toBe(
-          true,
-        );
+      for (const status of ['INVITED', 'ON_AIR'] as const) {
+        for (const viewer of [host, guest]) {
+          const db = prisma({ guests: [[guest, status]] });
+          expect(await canWatchStream(db, stream(audience), viewer)).toBe(true);
+        }
       }
     }
   });
@@ -113,10 +146,93 @@ describe('who a live is for', () => {
     expect(listedForViewer(undefined)).toEqual({ audience: 'EVERYONE' });
     expect(listedForViewer('v')).toEqual({
       OR: [
-        { audience: 'EVERYONE' },
         {
-          audience: 'CLOSE_FRIENDS',
-          host: { closeFriends: { some: { friendId: 'v' } } },
+          OR: [
+            { audience: 'EVERYONE' },
+            {
+              audience: 'CLOSE_FRIENDS',
+              host: { closeFriends: { some: { friendId: 'v' } } },
+            },
+          ],
+        },
+        { hostId: 'v' },
+        {
+          guests: {
+            some: { profileId: 'v', status: { in: ['INVITED', 'ON_AIR'] } },
+          },
+        },
+      ],
+    });
+  });
+});
+
+describe('a guest on air in a block with the viewer', () => {
+  const onAir = (blocks: [string, string][], also: [string, Status][] = []) =>
+    prisma({ guests: [[guest, 'ON_AIR'], ...also], blocks });
+
+  it('hides the live from a viewer the guest blocked, whatever its audience', async () => {
+    for (const audience of ['EVERYONE', 'CLOSE_FRIENDS'] as const) {
+      const db = onAir([[guest, 'friend']]);
+      expect(await canWatchStream(db, stream(audience), 'friend')).toBe(false);
+    }
+  });
+
+  it('hides the live from a viewer who blocked the guest', async () => {
+    const db = onAir([['viewer', guest]]);
+    expect(await canWatchStream(db, stream('EVERYONE'), 'viewer')).toBe(false);
+    expect(db.block.findFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { blockerId: 'viewer', blockedId: { in: [guest] } },
+          { blockedId: 'viewer', blockerId: { in: [guest] } },
+        ],
+      },
+      select: { id: true },
+    });
+  });
+
+  it('a guest only invited hides nothing', async () => {
+    const db = prisma({
+      guests: [[guest, 'INVITED']],
+      blocks: [[guest, 'viewer']],
+    });
+    expect(await canWatchStream(db, stream('EVERYONE'), 'viewer')).toBe(true);
+    expect(db.block.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('leaves the host, the other guests and anyone else as they are', async () => {
+    const db = onAir(
+      [
+        [guest, host],
+        [guest, 'other-guest'],
+      ],
+      [['other-guest', 'ON_AIR']],
+    );
+    expect(await canWatchStream(db, stream('EVERYONE'), host)).toBe(true);
+    expect(await canWatchStream(db, stream('EVERYONE'), 'other-guest')).toBe(
+      true,
+    );
+    expect(await canWatchStream(db, stream('EVERYONE'), 'someone')).toBe(true);
+    // Nobody signed in has any block.
+    expect(await canWatchStream(db, stream('EVERYONE'), undefined)).toBe(true);
+  });
+
+  it('leaves out of the list the lives with a guest on air in a block with the viewer, but never their own', () => {
+    expect(listedForViewer('v', ['g1', 'g2'])).toEqual({
+      OR: [
+        {
+          OR: [
+            { audience: 'EVERYONE' },
+            {
+              audience: 'CLOSE_FRIENDS',
+              host: { closeFriends: { some: { friendId: 'v' } } },
+            },
+          ],
+          NOT: {
+            guests: {
+              some: { status: 'ON_AIR', profileId: { in: ['g1', 'g2'] } },
+            },
+          },
         },
         { hostId: 'v' },
         {
@@ -135,8 +251,8 @@ describe('the room of a live', () => {
     suspendedUntil: null,
     user: { isActive: true, deactivatedAt: null },
   };
-  const db = (found: unknown) => ({
-    ...prisma(),
+  const db = (found: unknown, options: Parameters<typeof prisma>[0] = {}) => ({
+    ...prisma(options),
     liveStream: { findUnique: vi.fn().mockResolvedValue(found) },
   });
   const live = (over: Record<string, unknown> = {}) => ({
@@ -174,6 +290,16 @@ describe('the room of a live', () => {
         's',
         'v',
       ),
+    ).toBe(false);
+  });
+
+  it('keeps out someone in a block with a guest on air', async () => {
+    const options = {
+      guests: [[guest, 'ON_AIR']] as [string, Status][],
+      blocks: [['v', guest]] as [string, string][],
+    };
+    expect(
+      await canEnterStreamRoom(db(live(), options) as never, 'live-1', 'v'),
     ).toBe(false);
   });
 
