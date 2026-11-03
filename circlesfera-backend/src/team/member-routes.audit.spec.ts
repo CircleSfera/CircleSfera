@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Areas that stay the owner's (ADR-0028): direct messages, money, the
+// Areas that stay the owner's: direct messages, money, the
 // owner's notices and the account. No route there may be opened to a team
 // member until a later step reviews it.
 const OWNER_ONLY_DIRS = [

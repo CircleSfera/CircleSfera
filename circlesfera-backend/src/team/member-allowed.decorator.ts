@@ -4,7 +4,7 @@ import type { ProfileAction } from './profile-actions.js';
 export const MEMBER_ALLOWED = 'team:memberAllowed';
 
 // What opens a route to a session acting as a Profile the person works on as
-// a team member (ADR-0028):
+// a team member:
 // - 'session': keeping and leaving the session (any role);
 // - 'browse': reading what anyone signed in may read (any role);
 // - an action of the role table: only roles that allow it.

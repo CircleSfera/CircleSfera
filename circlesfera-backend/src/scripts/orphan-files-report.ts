@@ -1,6 +1,6 @@
 /**
  * Read-only report of the files the nightly orphan sweep would delete, for
- * the owner to read before deletion is turned on (TD-008, QF-065).
+ * the owner to read before deletion is turned on.
  *
  * It lists the stored files on the server's disk and compares them with
  * every row that names a file (MEDIA_COLUMNS and the clips of edit projects)

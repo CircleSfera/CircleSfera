@@ -21,7 +21,7 @@ Platform auth uses **HTTP-only cookies** managed by the backend — not Bearer t
 
 CSRF: fetch `/api/v1/csrf-token` and send `x-csrf-token` on mutating requests.
 
-Admin Panel uses a separate `adminAuthStore` and admin cookie domain ([ADR-0013](../docs/adr/0013-admin-panel-admin-identity.md)).
+Admin Panel uses a separate `adminAuthStore` and admin cookie domain ([decision record](../docs/adr/0013-admin-panel-admin-identity.md)).
 
 ### Identity in the UI
 

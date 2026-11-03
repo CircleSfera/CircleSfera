@@ -28,7 +28,7 @@ Collection of automation, database, diagnostic, deployment, verification, and do
 | `npm run env:upload`<br>`./scripts/upload-prod-env.sh` | Local Ops | Validates critical secrets in `.env.production` and updates `ENV_PRODUCTION_B64` secret via `gh`. | **Medium** (Updates secrets) |
 | `./scripts/setup-github-e2e.sh` | Local Ops | Configures E2E testing credentials and feature flags in GitHub Secrets/Variables. | **Low** (Configuration) |
 | `npm run ops:diagnose-crypto`<br>`node scripts/diagnose-message-crypto.mjs` | Ops Container | Diagnoses AES-256-GCM encryption status of messages (`Message.content`) against key candidates. | **Low** (Read-only) |
-| `npm run smoke:profile-drift`<br>`node scripts/validate-profile-drift-smoke.mjs` | Local / Post-deploy | HTTP smoke test verifying User vs Profile identity segregation contracts (ADR-0015). | **Low** (Controlled probes) |
+| `npm run smoke:profile-drift`<br>`node scripts/validate-profile-drift-smoke.mjs` | Local / Post-deploy | HTTP smoke test verifying User vs Profile identity segregation contracts. | **Low** (Controlled probes) |
 | `npm run backend:cov`<br>`npm run test:cov --prefix circlesfera-backend` | CI / Local | Runs backend unit tests with V8 coverage and enforces critical-domain thresholds. | **Low** (Test runner) |
 
 ---

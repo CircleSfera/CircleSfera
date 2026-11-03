@@ -111,7 +111,7 @@ export class MediaReconciliationService {
       { profileId: null },
     );
 
-    // The files of content deleted less than 30 days ago are kept (PD-040):
+    // The files of content deleted less than 30 days ago are kept:
     // not orphans until their time comes.
     const kept = await this.storedFilesRecord.detachedSince(
       new Date(Date.now() - DELETED_CONTENT_KEPT_DAYS * 24 * 60 * 60 * 1000),

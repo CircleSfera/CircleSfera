@@ -245,7 +245,7 @@ describe('EditsService', () => {
       });
       expect(mockPrismaService.editProject.delete).not.toHaveBeenCalled();
 
-      // Its files are kept 30 days, then erased (PD-040): none goes now.
+      // Its files are kept 30 days, then erased: none goes now.
       // They are settled in the transaction that deletes the row.
       expect(mockUploadsService.releaseContentFiles).toHaveBeenCalledWith(
         [

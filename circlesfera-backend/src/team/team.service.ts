@@ -13,7 +13,7 @@ import { ProfileAccessService } from './profile-access.service.js';
 import { hasTeamPlan } from './team-plan.js';
 
 // At most this many members per Business Profile, besides its owner,
-// counting those invited and those paused (PD-014).
+// counting those invited and those paused.
 export const TEAM_SEATS = 5;
 
 // The states that hold a seat.
@@ -28,7 +28,7 @@ const PERSON_SELECT = {
   },
 } satisfies Prisma.UserSelect;
 
-// Team access to a Business Profile (ADR-0028, step 2): the owner invites
+// Team access to a Business Profile: the owner invites
 // and removes people; a person accepts or declines.
 @Injectable()
 export class TeamService {
@@ -176,7 +176,7 @@ export class TeamService {
   }
 
   // What was done on the Profile in use and by whom, newest first, for its
-  // owner (PD-014: the owner sees every person's actions).
+  // owner: the owner sees every person's actions.
   async activity(userId: string, profileId: string, page = 1, limit = 20) {
     await this.access.assertCan(userId, profileId, 'team.manage');
     const where = { profileId };

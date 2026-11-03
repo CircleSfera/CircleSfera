@@ -21,7 +21,7 @@ import { InviteMemberDto } from './dto/invite-member.dto.js';
 import { MemberAllowed } from './member-allowed.decorator.js';
 import { TeamService } from './team.service.js';
 
-// Team access to a Business Profile (ADR-0028). The owner's side works on
+// Team access to a Business Profile. The owner's side works on
 // the Profile of the session; the invited person's side on their account.
 @Controller('team')
 @UseGuards(JwtAuthGuard)

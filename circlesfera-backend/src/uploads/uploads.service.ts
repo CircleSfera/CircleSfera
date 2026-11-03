@@ -522,8 +522,8 @@ export class UploadsService {
    * Settles the files of a deleted piece of content, once its row is gone:
    * each file no row uses any more is marked detached, readable by its owner
    * only, and is deleted 30 days later by the nightly erasure
-   * (eraseExpiredDetachedFiles), not now: deleted content is kept that long
-   * (PD-040). Deletes nothing. Given the transaction that deletes the
+   * (eraseExpiredDetachedFiles), not now: deleted content is kept that long.
+   * Deletes nothing. Given the transaction that deletes the
    * content's row, the files are settled in it: if this fails, the content
    * is not deleted, so its files can never be left public.
    */

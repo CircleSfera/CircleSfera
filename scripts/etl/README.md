@@ -1,4 +1,4 @@
-# Analytics ETL — Postgres → ClickHouse (ADR-0016)
+# Analytics ETL — Postgres → ClickHouse
 
 CircleSfera exports analytics **read-only** from PostgreSQL. Operational queues stay in Postgres; ClickHouse powers trends and BI.
 
@@ -31,7 +31,7 @@ On OVH Docker, set `ETL_HOST_DIR=/srv/circlesfera/backups/etl` and `ETL_DIR=/app
 
 ### Grafana / Metabase
 
-Connect read-only to ClickHouse Cloud. P0 dashboards (ADR-0016):
+Connect read-only to ClickHouse Cloud. P0 dashboards:
 
 - Trust: daily median MTTR by queue (`reports`, `appeals`, `support_tickets`)
 - Monetization: daily sum `amount` by `type` from `transactions`. A payment is loaded again each time it
@@ -59,5 +59,5 @@ clickhouse-client --secure --query "INSERT INTO circlesfera_analytics.reports FO
 
 ## References
 
-- [ADR-0016](../../docs/adr/0016-analytical-warehouse-clickhouse.md)
+- [Decision record: analytical warehouse on ClickHouse](../../docs/adr/0016-analytical-warehouse-clickhouse.md)
 - Backend: `circlesfera-backend/src/warehouse/`

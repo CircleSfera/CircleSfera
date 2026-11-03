@@ -19,7 +19,7 @@ JWT session exposes `userId` (`sub`) and the session `profileId`. Details: Notio
 - NestJS 11, TypeScript, Vitest
 - PostgreSQL 16 + Prisma 7
 - Redis (cache, BullMQ, Socket.IO adapter)
-- Argon2 password hashing, cookie JWT + CSRF ([ADR-0007](../docs/adr/0007-auth-cookies-csrf.md))
+- Argon2 password hashing, cookie JWT + CSRF ([decision record](../docs/adr/0007-auth-cookies-csrf.md))
 
 ## Module map (high level)
 

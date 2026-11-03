@@ -1,5 +1,5 @@
-// The platform plans CircleSfera sells, what each includes (PD-013, PD-047)
-// and its monthly price, VAT included (BD-005, BD-021). A benefit is listed
+// The platform plans CircleSfera sells, what each includes and its monthly
+// price, VAT included. A benefit is listed
 // here once it is built, never before; `verified_badge` is also the key the
 // profile reads to show the badge.
 export type CatalogPlan = {

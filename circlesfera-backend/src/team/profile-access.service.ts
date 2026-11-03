@@ -11,7 +11,7 @@ export type ProfileRelation =
   | { kind: 'none' };
 
 // The one place that answers whether a person can do an action on a
-// Profile (ADR-0028). The owner is the person whose account holds the
+// Profile. The owner is the person whose account holds the
 // Profile; a member counts only while active.
 @Injectable()
 export class ProfileAccessService {
