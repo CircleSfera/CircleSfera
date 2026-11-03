@@ -100,7 +100,7 @@ describe('MediaCleanupProcessor', () => {
       id: 'job-4',
       name: 'delete-media-batch',
       data: {
-        mediaUrls: ['/uploads/failed-permanently.mp4'],
+        mediaUrls: ['https://files.example/circlesfera/failed-permanently.mp4'],
       },
       opts: { attempts: 5 },
       attemptsMade: 4, // 5th attempt (0-indexed 4)
@@ -123,6 +123,10 @@ describe('MediaCleanupProcessor', () => {
         }),
       }),
     );
+    // The alert names the file, never where it is kept.
+    const alert = JSON.stringify(mockEventEmitter.emit.mock.calls);
+    expect(alert).toContain('failed-permanently.mp4');
+    expect(alert).not.toContain('files.example');
   });
 
   it('should ignore unknown job names', async () => {

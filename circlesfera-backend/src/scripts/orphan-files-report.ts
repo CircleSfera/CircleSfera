@@ -22,13 +22,15 @@ import { PrismaClient } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { MediaReferencesService } from '../uploads/services/media-references.service.js';
 import {
+  ORPHAN_DELETIONS_PER_NIGHT,
+  ORPHAN_GRACE_HOURS,
+} from '../uploads/services/orphan-sweep.policy.js';
+import { DELETED_CONTENT_KEPT_DAYS } from '../uploads/services/stored-files.service.js';
+import {
   breakdownLines,
   breakdownUnusedFiles,
 } from './orphan-files-breakdown.js';
 import { listStoredFilesOnDisk } from './stored-files-on-disk.js';
-
-// The sweep keeps a file this recent: it may be an upload in progress.
-const GRACE_HOURS = 24;
 
 function megabytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -52,20 +54,36 @@ async function main(): Promise<void> {
       // write a test file in it, and answers no file when it cannot read it.
       listStoredFilesOnDisk(path.join(process.cwd(), 'uploads')),
       references.referencedKeys(),
-      prisma.storedFile.findMany({ select: { key: true, profileId: true } }),
+      prisma.storedFile.findMany({
+        select: { key: true, profileId: true, detachedAt: true },
+      }),
     ]);
 
-    const cutoff = Date.now() - GRACE_HOURS * 60 * 60 * 1000;
+    const cutoff = Date.now() - ORPHAN_GRACE_HOURS * 60 * 60 * 1000;
+    // The files of content deleted less than this long ago are kept.
+    const keptSince =
+      Date.now() - DELETED_CONTENT_KEPT_DAYS * 24 * 60 * 60 * 1000;
+    const kept = new Set(
+      records
+        .filter(
+          (record) =>
+            record.detachedAt && record.detachedAt.getTime() >= keptSince,
+        )
+        .map((record) => record.key),
+    );
     const onDisk = new Set(files.map((file) => file.url));
     let used = 0;
     const unusedOldFiles: typeof files = [];
     let unusedOldBytes = 0;
     let unusedRecent = 0;
+    let keptDeleted = 0;
     let totalBytes = 0;
     for (const file of files) {
       totalBytes += file.sizeBytes;
       if (referenced.has(file.url) || referenced.has(path.basename(file.url))) {
         used++;
+      } else if (kept.has(file.url)) {
+        keptDeleted++;
       } else if (file.lastModified.getTime() > cutoff) {
         unusedRecent++;
       } else {
@@ -83,7 +101,13 @@ async function main(): Promise<void> {
     );
     console.log(`  used by a row: ${used}`);
     console.log(
-      `  used by no row, older than ${GRACE_HOURS} h (the sweep would delete these): ${unusedOldFiles.length} (${megabytes(unusedOldBytes)})`,
+      `  used by no row, older than ${ORPHAN_GRACE_HOURS} h (the sweep would delete these): ${unusedOldFiles.length} (${megabytes(unusedOldBytes)})`,
+    );
+    console.log(
+      `    nights to delete them, ${ORPHAN_DELETIONS_PER_NIGHT} a night: ${Math.ceil(unusedOldFiles.length / ORPHAN_DELETIONS_PER_NIGHT)}`,
+    );
+    console.log(
+      `  of content deleted less than ${DELETED_CONTENT_KEPT_DAYS} days ago (kept): ${keptDeleted}`,
     );
     const owners = new Set(
       records.filter((record) => record.profileId).map((record) => record.key),
