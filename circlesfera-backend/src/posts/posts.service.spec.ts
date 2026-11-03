@@ -210,15 +210,30 @@ describe('PostsService', () => {
 
       await expect(
         service.create('user-1', { isPremium: true, priceCents: 50 }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toMatchObject({
+        status: 400,
+        response: expect.objectContaining({
+          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
+        }),
+      });
 
       await expect(
         service.create('user-1', { isPremium: true, priceCents: 200000 }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toMatchObject({
+        status: 400,
+        response: expect.objectContaining({
+          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
+        }),
+      });
 
       await expect(
         service.create('user-1', { isPremium: true }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toMatchObject({
+        status: 400,
+        response: expect.objectContaining({
+          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
+        }),
+      });
     });
 
     it('rejects premium posts from PERSONAL accounts', async () => {
@@ -228,7 +243,12 @@ describe('PostsService', () => {
 
       await expect(
         service.create('user-1', { isPremium: true, priceCents: 500 }),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+        }),
+      });
     });
 
     it('validates audio track exists and resolves offset when audioId provided', async () => {
@@ -462,7 +482,7 @@ describe('PostsService', () => {
       );
     });
 
-    it('throws BadRequestException when AI moderation flags content', async () => {
+    it('refuses, with its code, content the moderation flags', async () => {
       mockAIService.moderateContent.mockResolvedValueOnce({
         flagged: true,
         reason: 'Violates policy',
@@ -472,7 +492,12 @@ describe('PostsService', () => {
         service.create('user-1', {
           caption: 'Bad content',
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toMatchObject({
+        status: 400,
+        response: expect.objectContaining({
+          errorCode: 'CONTENT_BLOCKED_BY_MODERATION',
+        }),
+      });
     });
 
     it('publishes the post when automatic moderation does not answer, and has it checked later', async () => {

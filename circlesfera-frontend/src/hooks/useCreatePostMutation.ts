@@ -22,7 +22,7 @@ import type {
   Post,
   StoryElement,
 } from '../types';
-import { apiErrorBody } from '../utils/apiErrorMessage';
+import { apiErrorBody, apiErrorCode } from '../utils/apiErrorMessage';
 import { isFrameClipInRange } from '../utils/frameClip';
 import { logger } from '../utils/logger';
 import { canOfferStoryShare, postStoryCard } from '../utils/storyShare';
@@ -392,16 +392,23 @@ export function useCreatePostMutation(deps: MutationDeps) {
       logger.error('Error creating content:', error);
       // A link the server would not take says why.
       const refused = apiErrorBody(error)?.message;
+      // A refusal with a code of its own says why, in the reader's language.
+      const coded = apiErrorCode(error);
+      const codedText = coded
+        ? t(`errors.codes.${coded}`, { defaultValue: '' })
+        : '';
       toast.error(
-        t(
-          error instanceof EditExportError
-            ? 'createPost.upload.edit_export_error'
-            : typeof refused === 'string' && LINK_REFUSALS.has(refused)
-              ? `createPost.storyComposer.link_errors.${refused}`
-              : typeof refused === 'string' && POST_SHARE_REFUSALS.has(refused)
-                ? `createPost.storyComposer.post_errors.${refused}`
-                : 'createPost.upload.publish_failed',
-        ),
+        codedText ||
+          t(
+            error instanceof EditExportError
+              ? 'createPost.upload.edit_export_error'
+              : typeof refused === 'string' && LINK_REFUSALS.has(refused)
+                ? `createPost.storyComposer.link_errors.${refused}`
+                : typeof refused === 'string' &&
+                    POST_SHARE_REFUSALS.has(refused)
+                  ? `createPost.storyComposer.post_errors.${refused}`
+                  : 'createPost.upload.publish_failed',
+          ),
       );
     } finally {
       deps.setIsProcessingEdit(false);

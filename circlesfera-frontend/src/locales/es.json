@@ -5785,7 +5785,9 @@
       "TEAM_MEMBER_NOT_FOUND": "Esa invitación o persona ya no está.",
       "TEAM_MEMBER_NOT_ALLOWED": "Tu rol en este perfil de equipo no incluye esto.",
       "MESSAGE_IS_NOTICE": "Es un aviso de CircleSfera y no se puede cambiar.",
-      "GROUP_ADMIN_NOT_ELIGIBLE": "Este miembro no puede ser admin del grupo."
+      "GROUP_ADMIN_NOT_ELIGIBLE": "Este miembro no puede ser admin del grupo.",
+      "PREMIUM_PRICE_OUT_OF_RANGE": "El precio del contenido premium está fuera del rango permitido.",
+      "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

@@ -266,9 +266,12 @@ describe('StoriesService', () => {
         priceCents: 50,
       };
 
-      await expect(service.create('user-1', dto)).rejects.toThrow(
-        'El precio de la historia premium debe estar entre €3.00 y €500.00.',
-      );
+      await expect(service.create('user-1', dto)).rejects.toMatchObject({
+        status: 400,
+        response: expect.objectContaining({
+          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
+        }),
+      });
     });
 
     it('rejects premium stories from PERSONAL accounts', async () => {
@@ -281,9 +284,12 @@ describe('StoriesService', () => {
         priceCents: 500,
       };
 
-      await expect(service.create('user-1', dto)).rejects.toThrow(
-        'Solo las cuentas Creator o Business pueden publicar historias premium.',
-      );
+      await expect(service.create('user-1', dto)).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+        }),
+      });
     });
 
     it('throws BadRequestException if audioId is not found in database', async () => {

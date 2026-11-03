@@ -667,6 +667,25 @@ describe('useCreatePostMutation', () => {
     );
   });
 
+  it.each([
+    'CONTENT_BLOCKED_BY_MODERATION',
+    'PREMIUM_PRICE_OUT_OF_RANGE',
+    'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+  ])(
+    "says why when the server refuses with %s, in the reader's language",
+    async (code) => {
+      vi.mocked(postsApi.create).mockRejectedValue({
+        status: 400,
+        data: { errorCode: code, message: 'The server says it in English' },
+      });
+      const { submit } = setup();
+      await submit();
+
+      expect(toast.error).toHaveBeenCalledWith(i18n.t(`errors.codes.${code}`));
+      expect(i18n.t(`errors.codes.${code}`)).not.toBe(`errors.codes.${code}`);
+    },
+  );
+
   it('shows its own message, never the server text, when publishing fails', async () => {
     vi.mocked(postsApi.create).mockRejectedValue(
       new Error('Internal: column "x" does not exist'),
