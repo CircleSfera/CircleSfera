@@ -406,6 +406,24 @@ describe('LiveService', () => {
       ).rejects.toMatchObject({ errorCode: 'ALREADY_ON_AIR' });
     });
 
+    it('answers the host of a live that ended as for any live that ended', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        hostId: 'host-1',
+        status: 'ENDED',
+        audience: 'EVERYONE',
+        host: {
+          isAccountBanned: false,
+          suspendedUntil: null,
+          user: { isActive: true, deactivatedAt: null },
+        },
+      });
+
+      await expect(
+        service.getViewerToken('stream-1', 'host-1'),
+      ).rejects.toMatchObject({ errorCode: 'STREAM_NOT_FOUND' });
+    });
+
     it('refuses a token to a viewer in a block relation with the host', async () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({
         id: 'stream-1',
@@ -1070,6 +1088,35 @@ describe('LiveService', () => {
         },
       );
 
+      it.each([
+        ['a guest invited blocked them', 'INVITED', ['bea', 'ana']],
+        ['they blocked a guest invited', 'INVITED', ['ana', 'bea']],
+        ['a guest on air blocked them', 'ON_AIR', ['bea', 'ana']],
+        ['they blocked a guest on air', 'ON_AIR', ['ana', 'bea']],
+      ] as const)(
+        'finds no Profile to invite when %s',
+        async (_label, status, block) => {
+          seedGuest('stream-1', 'bea', status);
+          blocks = [[block[0], block[1]]];
+          profilesFound('ana');
+
+          await expect(
+            service.inviteGuest('stream-1', HOST, { profileId: 'ana' }),
+          ).rejects.toMatchObject({ errorCode: 'USER_NOT_FOUND' });
+          expect(statusOf('stream-1', 'ana')).toBeUndefined();
+        },
+      );
+
+      it('invites a Profile in a block only with a guest who has no place any more', async () => {
+        seedGuest('stream-1', 'bea', 'LEFT');
+        blocks = [['bea', 'ana']];
+        profilesFound('ana');
+
+        await service.inviteGuest('stream-1', HOST, { profileId: 'ana' });
+
+        expect(statusOf('stream-1', 'ana')).toBe('INVITED');
+      });
+
       it('finds no Profile to invite across a block', async () => {
         profilesFound('ana');
         mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b-1' });
@@ -1192,6 +1239,32 @@ describe('LiveService', () => {
         }
         expect(mockRecording.startCoHost).not.toHaveBeenCalled();
       });
+
+      it.each([
+        ['a guest on air blocked them', 'ON_AIR', ['bea', 'ana']],
+        ['they blocked a guest on air', 'ON_AIR', ['ana', 'bea']],
+        ['a guest invited blocked them', 'INVITED', ['bea', 'ana']],
+        ['they blocked a guest invited', 'INVITED', ['ana', 'bea']],
+      ] as const)(
+        'refuses to put on air an invitee when %s, with no token',
+        async (_label, status, block) => {
+          seedGuest('stream-1', 'bea', status);
+          seedGuest('stream-1', 'ana', 'INVITED');
+          blocks = [[block[0], block[1]]];
+          const createToken = vi.spyOn(
+            (service as any).liveKitTokenService,
+            'createToken',
+          );
+
+          await expect(
+            service.acceptGuestInvite('stream-1', 'ana'),
+          ).rejects.toMatchObject({ errorCode: 'NOT_A_LIVE_GUEST' });
+
+          expect(statusOf('stream-1', 'ana')).toBe('INVITED');
+          expect(createToken).not.toHaveBeenCalled();
+          createToken.mockRestore();
+        },
+      );
 
       it('refuses when three guests are already on air', async () => {
         for (const other of ['bea', 'cai', 'dan']) {
@@ -1628,8 +1701,6 @@ describe('LiveService', () => {
         blocks = [
           ['ana', 'zed'],
           ['yan', 'ana'],
-          // Another guest of the live is left alone.
-          ['ana', 'bea'],
           // A block that is not the guest's is not theirs to hide.
           ['someone', 'else'],
         ];
@@ -1677,6 +1748,31 @@ describe('LiveService', () => {
 
         expect(typeof result.token).toBe('string');
         expect(statusOf('stream-1', 'ana')).toBe('ON_AIR');
+      });
+
+      it('takes those in a block out of the live room before telling the room who went on air', async () => {
+        seedGuest('stream-1', 'ana', 'INVITED');
+        blocks = [['ana', 'zed']];
+
+        await service.acceptGuestInvite('stream-1', 'ana');
+
+        const [left] = mockGateway.leaveLiveRoom.mock.invocationCallOrder;
+        const [unavailable] = emitted('live:unavailable').map(
+          (call) =>
+            mockServer.emit.mock.invocationCallOrder[
+              mockServer.emit.mock.calls.indexOf(call)
+            ],
+        );
+        const orderOf = (event: string) =>
+          mockServer.emit.mock.invocationCallOrder[
+            mockServer.emit.mock.calls.findIndex(
+              ([name]: unknown[]) => name === event,
+            )
+          ];
+        expect(left).toBeDefined();
+        expect(unavailable).toBeLessThan(orderOf('live:cohost_joined'));
+        expect(left).toBeLessThan(orderOf('live:cohost_joined'));
+        expect(left).toBeLessThan(orderOf('live:guests_changed'));
       });
 
       it('takes out the others when taking out one fails', async () => {

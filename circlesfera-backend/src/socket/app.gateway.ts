@@ -803,8 +803,31 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * server: they no longer receive its comments and events, nor may send
    * to it, until they are let in again.
    */
-  leaveLiveRoom(profileId: string, streamId: string): void {
+  async leaveLiveRoom(profileId: string, streamId: string): Promise<void> {
     this.server.in(`user:${profileId}`).socketsLeave(`live:${streamId}`);
+    // The connections this server holds are no longer counted as watching,
+    // as if they had left; one that then sends live:leave is not counted
+    // out twice. A connection held by another server keeps the live in its
+    // list, is counted out when it leaves or disconnects, and is let back in
+    // without being counted again.
+    for (const client of this.connectedSockets()) {
+      if (client.data?.user?.profileId !== profileId) continue;
+      if (!client.data.liveStreamIds?.delete(streamId)) continue;
+      await this.countViewerOut(streamId, profileId);
+    }
+  }
+
+  // One viewer fewer in a live: the count goes down and the room is told.
+  private async countViewerOut(streamId: string, profileId: string) {
+    const count = await this.liveRealtimeService.decrementViewerCount(streamId);
+    this.server.to(`live:${streamId}`).emit('live:viewer_left', {
+      profileId,
+      viewerCount: count,
+    });
+    this.server.to(`live:${streamId}`).emit('live:viewer_count_update', {
+      streamId,
+      viewerCount: count,
+    });
   }
 
   // Shared policy for live actions of the host or a guest on air — the one
