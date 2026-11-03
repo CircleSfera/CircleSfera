@@ -1475,7 +1475,10 @@
       "live_hint": "Prepara el título y empieza el directo en la siguiente pantalla.",
       "refused": "La cámara no está permitida. Puedes permitirla en los ajustes del navegador o del dispositivo.",
       "none": "Aquí no hay una cámara que usar.",
-      "starting": "Abriendo la cámara…"
+      "starting": "Abriendo la cámara…",
+      "clip_undo": "Borrar el último clip",
+      "clips_next": "Seguir con los clips",
+      "clips_min": "Un Frame dura al menos {{min}} segundos: graba un poco más."
     },
     "add_to_your_story": "Añadir a tu historia",
     "start_picture_error": "No se pudo abrir la imagen de la historia.",

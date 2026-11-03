@@ -1,8 +1,10 @@
 import {
+  Check,
   Images,
   Radio,
   Sparkles,
   SwitchCamera,
+  Undo2,
   X,
   Zap,
   ZapOff,
@@ -12,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
   POST_MAX_DURATION_SEC,
 } from '../../../constants/uploadLimits';
 import BrandAmbientBackground from '../../common/BrandAmbientBackground';
@@ -42,6 +45,12 @@ const MODE_LABEL: Record<CaptureMode, string> = {
   LIVE: 'story.capture.mode_live',
 };
 
+/** A clip of a Frame as it was recorded, and how long it is in ms. */
+export interface CapturedClip {
+  file: File;
+  ms: number;
+}
+
 export interface StoryCaptureProps {
   /** The format being made; a story when not given. */
   mode?: CaptureMode;
@@ -51,6 +60,8 @@ export interface StoryCaptureProps {
   onGoLive?: () => void;
   /** A post or a Frame where there is no camera at all. */
   onNoCamera?: () => void;
+  /** A Frame recorded in clips: given, the Frame mode records clips. */
+  onCaptureClips?: (clips: CapturedClip[]) => void;
   /** A photo taken or a video recorded, for the editor. */
   onCapture: (file: File) => void;
   /** The gallery of the device, or the file picker. */
@@ -71,6 +82,7 @@ export default function StoryCapture({
   onModeChange,
   onGoLive,
   onNoCamera,
+  onCaptureClips,
   onCapture,
   onOpenGallery,
   onCreate,
@@ -80,6 +92,11 @@ export default function StoryCapture({
   const camera = useStoryCamera();
   const holdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  // The clips of a Frame recorded so far, in order, with how long each is.
+  const [clips, setClips] = useState<CapturedClip[]>([]);
+  const clipStartedAt = useRef(0);
+  const clipsMode = mode === 'FRAME' && Boolean(onCaptureClips);
+  const recordedMs = clips.reduce((sum, clip) => sum + clip.ms, 0);
 
   // How much of the longest video has been recorded, for the ring.
   useEffect(() => {
@@ -88,6 +105,7 @@ export default function StoryCapture({
       return;
     }
     const started = Date.now();
+    clipStartedAt.current = started;
     const timer = setInterval(() => setElapsed(Date.now() - started), 100);
     return () => clearInterval(timer);
   }, [camera.recording]);
@@ -105,10 +123,23 @@ export default function StoryCapture({
   };
 
   const recordMaxSec = mode === 'LIVE' ? 0 : RECORD_MAX_SEC[mode];
-  const record = () =>
+  const leftSec = Math.max(0, recordMaxSec - recordedMs / 1000);
+  const record = () => {
+    // A Frame in clips: each recording adds one, up to what is left of the
+    // longest Frame.
+    if (clipsMode) {
+      if (leftSec <= 0) return;
+      void camera.startRecording((file) => {
+        if (!file) return;
+        const ms = Math.min(Date.now() - clipStartedAt.current, leftSec * 1000);
+        setClips((before) => [...before, { file, ms }]);
+      }, leftSec);
+      return;
+    }
     void camera.startRecording((file) => {
       if (file) onCapture(file);
     }, recordMaxSec);
+  };
 
   const onShutterDown = (e: React.PointerEvent) => {
     // While recording, the shutter stops it when let go.
@@ -140,7 +171,11 @@ export default function StoryCapture({
 
   const live = camera.state === 'on' || camera.state === 'starting';
   const progress =
-    recordMaxSec > 0 ? Math.min(1, elapsed / (recordMaxSec * 1000)) : 0;
+    recordMaxSec > 0
+      ? Math.min(1, (recordedMs + elapsed) / (recordMaxSec * 1000))
+      : 0;
+  const hasClips = clipsMode && clips.length > 0;
+  const enoughClips = recordedMs >= FRAME_MIN_DURATION_SEC * 1000;
   const isLive = mode === 'LIVE';
   const isStory = mode === 'STORY';
   const RING = 2 * Math.PI * 38;
@@ -268,6 +303,16 @@ export default function StoryCapture({
           <div className="mx-auto flex max-w-sm items-center justify-between">
             {isLive ? (
               <span className="h-11 w-11" />
+            ) : hasClips ? (
+              <button
+                type="button"
+                onClick={() => setClips((before) => before.slice(0, -1))}
+                disabled={camera.recording}
+                aria-label={t('story.capture.clip_undo')}
+                className={`${ROUND} disabled:opacity-40`}
+              >
+                <Undo2 size={24} aria-hidden />
+              </button>
             ) : (
               <button
                 type="button"
@@ -351,16 +396,35 @@ export default function StoryCapture({
               <span className="h-20 w-20" />
             )}
 
-            <button
-              type="button"
-              onClick={camera.switchCamera}
-              disabled={camera.state !== 'on' || camera.recording}
-              aria-label={t('story.capture.switch_camera')}
-              className={`${ROUND} disabled:opacity-40`}
-            >
-              <SwitchCamera size={24} aria-hidden />
-            </button>
+            {hasClips ? (
+              // On to the editor with the clips, once they make a Frame.
+              <button
+                type="button"
+                onClick={() => onCaptureClips?.(clips)}
+                disabled={camera.recording || !enoughClips}
+                aria-label={t('story.capture.clips_next')}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-black disabled:opacity-40"
+              >
+                <Check size={22} aria-hidden />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={camera.switchCamera}
+                disabled={camera.state !== 'on' || camera.recording}
+                aria-label={t('story.capture.switch_camera')}
+                className={`${ROUND} disabled:opacity-40`}
+              >
+                <SwitchCamera size={24} aria-hidden />
+              </button>
+            )}
           </div>
+        ) : null}
+
+        {hasClips && !enoughClips ? (
+          <p className="mt-3 text-center text-xs text-white/70">
+            {t('story.capture.clips_min', { min: FRAME_MIN_DURATION_SEC })}
+          </p>
         ) : null}
 
         {live && isLive ? (
@@ -378,7 +442,8 @@ export default function StoryCapture({
               key={m}
               type="button"
               aria-pressed={m === mode}
-              disabled={camera.recording}
+              // Changing format would lose the clips recorded.
+              disabled={camera.recording || hasClips}
               onClick={() => m !== mode && onModeChange?.(m)}
               className={`min-h-11 whitespace-nowrap rounded-full px-3 text-sm ${
                 m === mode

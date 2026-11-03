@@ -1,6 +1,9 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FRAME_MAX_DURATION_SEC } from '../../../constants/uploadLimits';
+import {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+} from '../../../constants/uploadLimits';
 import { renderWithProviders } from '../../../test/test-utils';
 import StoryCapture, { type StoryCaptureProps } from './StoryCapture';
 
@@ -437,6 +440,69 @@ describe('StoryCapture', () => {
       expect(
         screen.getByRole('button', { name: 'Elegir de la galería' }),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('a Frame recorded in clips', () => {
+    const shutter = () =>
+      screen.getByRole('button', {
+        name: 'Grabar o parar, o mantener para grabar',
+      });
+
+    /** Records one clip of the given length with a tap, and another tap. */
+    async function recordClip(ms: number) {
+      fireEvent.keyDown(shutter(), { key: 'Enter' });
+      await act(async () => {});
+      await act(async () => {
+        vi.advanceTimersByTime(ms);
+      });
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Grabando' }), {
+        key: 'Enter',
+      });
+      await act(async () => {});
+    }
+
+    it('adds each recording as a clip, goes on once they make a Frame, and takes the last one back', async () => {
+      getUserMedia.mockResolvedValue(stream([cameraTrack()]));
+      const onCaptureClips = vi.fn();
+      const onCapture = vi.fn();
+      renderWithProviders(
+        <StoryCapture
+          mode="FRAME"
+          onModeChange={vi.fn()}
+          onCaptureClips={onCaptureClips}
+          onCapture={onCapture}
+          onOpenGallery={vi.fn()}
+          onCreate={vi.fn()}
+          onClose={vi.fn()}
+        />,
+        { lng: 'es' },
+      );
+      await waitFor(() => expect(shutter()).toBeInTheDocument());
+      vi.useFakeTimers();
+
+      const short = (FRAME_MIN_DURATION_SEC * 1000) / 2;
+      await recordClip(short);
+      const next = screen.getByRole('button', { name: 'Seguir con los clips' });
+      expect(next).toBeDisabled();
+      expect(screen.getByText(/al menos/)).toBeInTheDocument();
+      // Changing format would lose the clips.
+      expect(screen.getByRole('button', { name: 'Historia' })).toBeDisabled();
+
+      await recordClip(short);
+      expect(next).toBeEnabled();
+      fireEvent.click(next);
+      const [[clips]] = onCaptureClips.mock.calls;
+      expect(clips).toHaveLength(2);
+      expect(clips.every((c: { file: File }) => c.file instanceof File)).toBe(
+        true,
+      );
+      expect(onCapture).not.toHaveBeenCalled();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Borrar el último clip' }),
+      );
+      expect(next).toBeDisabled();
     });
   });
 });

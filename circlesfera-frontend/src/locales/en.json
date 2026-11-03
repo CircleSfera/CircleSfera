@@ -1475,7 +1475,10 @@
       "live_hint": "Set the title and start the live on the next screen.",
       "refused": "The camera is not allowed. You can allow it in the settings of your browser or device.",
       "none": "There is no camera to use here.",
-      "starting": "Opening the camera…"
+      "starting": "Opening the camera…",
+      "clip_undo": "Delete the last clip",
+      "clips_next": "Go on with the clips",
+      "clips_min": "A Frame lasts at least {{min}} seconds: record a little more."
     },
     "add_to_your_story": "Add to your story",
     "start_picture_error": "The picture of the story could not be opened.",
