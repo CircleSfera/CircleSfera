@@ -1,3 +1,4 @@
+import type { FrameLook } from '@circlesfera/shared';
 import {
   FRAME_ASSEMBLY_POLL_MS,
   FRAME_ASSEMBLY_WAIT_MS,
@@ -54,6 +55,13 @@ const defaultDeps: FrameAssemblyDeps = {
   now: () => Date.now(),
 };
 
+/** What goes over a Frame's clips: the painted layer, its look, its sound. */
+export interface FrameFinish {
+  layer: Blob | null;
+  look?: FrameLook;
+  muted?: boolean;
+}
+
 function asForm(file: Blob, name: string): FormData {
   const form = new FormData();
   form.append('file', file, name);
@@ -63,12 +71,12 @@ function asForm(file: Blob, name: string): FormData {
 /**
  * Puts a Frame together on the server: its clips are sent one after the
  * other, then what is painted over them, then the server is asked to join
- * them and asked again until the video is ready. Answers the video's
+ * them with their look and asked again until the video is ready. Answers the video's
  * address and the video itself, to show and publish as a Frame.
  */
 export async function assembleFrame(
   clips: FrameClip[],
-  layer: Blob | null,
+  { layer, look, muted }: FrameFinish,
   onStep: (step: FrameAssemblyStep) => void,
   deps: FrameAssemblyDeps = defaultDeps,
   signal?: AbortSignal,
@@ -95,7 +103,15 @@ export async function assembleFrame(
   onStep({ kind: 'assembling' });
   const {
     data: { id },
-  } = await deps.api.assembleFrame({ clips: sent, layerUrl }, request);
+  } = await deps.api.assembleFrame(
+    {
+      clips: sent,
+      layerUrl,
+      ...(look && Object.keys(look).length > 0 ? { look } : {}),
+      ...(muted ? { muted } : {}),
+    },
+    request,
+  );
   const until = deps.now() + FRAME_ASSEMBLY_WAIT_MS;
   for (;;) {
     const { data } = await deps.api.frameAssemblyStatus(id, request);

@@ -6,6 +6,12 @@ import { prepareAuthenticatedSession } from './session';
 /** Product fixtures for composer E2E (visible content, not solid color). */
 export const FIXTURES = {
   postImage: path.join('e2e', 'fixtures', 'post-4x5.jpg'),
+  /** Three different 4:5 photos, for posts with several items. */
+  postImages: [
+    path.join('e2e', 'fixtures', 'post-4x5.jpg'),
+    path.join('e2e', 'fixtures', 'post-4x5-city.jpg'),
+    path.join('e2e', 'fixtures', 'post-4x5-coffee.jpg'),
+  ],
   frameVideo: path.join('e2e', 'fixtures', 'frame-20s.mp4'),
 } as const;
 

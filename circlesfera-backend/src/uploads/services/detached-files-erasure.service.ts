@@ -14,8 +14,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const ERASE_PAGE = 500;
 
 /**
- * Deletes the files of deleted content once they have been kept 30 days
- * (PD-040): each file with an owner detached more than 30 days ago, if no
+ * Deletes the files of deleted content once they have been kept 30 days:
+ * each file with an owner detached more than 30 days ago, if no
  * row uses it; one a row uses again is no longer detached.
  */
 @Injectable()

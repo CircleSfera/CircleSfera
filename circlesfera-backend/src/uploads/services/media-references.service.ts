@@ -96,10 +96,11 @@ export class MediaReferencesService {
 
   /**
    * The stored files of the list that some row still names, by their exact
-   * key: a file attached since TD-008 is named by the key it was recorded
-   * with. Given a transaction, it reads what that transaction sees: a row
-   * it has just deleted names nothing. The rows of `ignoring` do not count:
-   * the rows about to be erased with the files. With `shownOnly`, the rows
+   * key: a file attached since files are recorded with their uploader is
+   * named by the key it was recorded with. Given a transaction, it reads
+   * what that transaction sees: a row it has just deleted names nothing.
+   * The rows of `ignoring` do not count: the rows about to be erased with
+   * the files. With `shownOnly`, the rows
    * of a post or story its author deleted do not count either: what is
    * asked is whether anyone but the owner may still see the file.
    */

@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { assembleFrame } from '../components/create-post/frameAssembly';
 import { buildHashtagElement } from '../components/story/storyComposer.append';
 import { FRAME_MIN_DURATION_SEC } from '../constants/uploadLimits';
 import { interactiveApi, postsApi, storiesApi } from '../services';
@@ -24,6 +25,12 @@ vi.mock('react-hot-toast', () => ({ toast: { error: vi.fn() } }));
 vi.mock('../utils/imageExport', () => ({ exportEditedImage: vi.fn() }));
 vi.mock('../utils/videoExport', () => ({
   exportEditedVideo: vi.fn(async (file: File) => file),
+}));
+vi.mock('../components/create-post/frameAssembly', () => ({
+  assembleFrame: vi.fn(async () => ({
+    url: '/uploads/frame.mp4',
+    file: new File([new Uint8Array(4)], 'frame.mp4', { type: 'video/mp4' }),
+  })),
 }));
 vi.mock('../utils/logger', () => ({ logger: { error: vi.fn() } }));
 const navigate = vi.hoisted(() => vi.fn());
@@ -208,6 +215,54 @@ describe('useCreatePostMutation', () => {
       expect(vi.mocked(postsApi.create).mock.calls[0][0]).not.toHaveProperty(
         'coverTimeMs',
       );
+    });
+
+    it('has a Frame from the gallery put together by the server, not re-encoded on the phone', async () => {
+      const { deps, submit } = setup({
+        mode: 'FRAME',
+        mediaFiles: [
+          {
+            ...clip,
+            videoData: { startTime: 1.5, endTime: 21.5, muted: true },
+            filter:
+              'filter-class:grayscale brightness-110 contrast-110__style:brightness(100%) contrast(100%) saturate(100%) sepia(0%) grayscale(0%) hue-rotate(0deg) blur(0px)__temp:100__vignette:0__noise:0',
+          },
+        ],
+      });
+      await submit();
+
+      expect(exportEditedVideo).not.toHaveBeenCalled();
+      expect(assembleFrame).toHaveBeenCalledWith(
+        [
+          {
+            file: clip.file,
+            startMs: 1500,
+            endMs: 21_500,
+            ms: 21_500,
+          },
+        ],
+        {
+          layer: null,
+          look: { grayscale: 100, brightness: 110, contrast: 110 },
+          muted: true,
+        },
+        expect.any(Function),
+      );
+      // The server's video is published as it is, not sent again.
+      const sent = vi.mocked(deps.uploadFiles).mock.calls[0][0][0];
+      expect(sent).toMatchObject({
+        remoteUrl: '/uploads/frame.mp4',
+        assembledFrame: true,
+      });
+    });
+
+    it('stops, saying so, when the server cannot put the Frame together', async () => {
+      vi.mocked(assembleFrame).mockRejectedValueOnce(new Error('failed'));
+      const { submit } = setup({ mode: 'FRAME', mediaFiles: [clip] });
+      await submit();
+
+      expect(postsApi.create).not.toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalled();
     });
 
     it('is never sent for a post', async () => {
@@ -611,6 +666,25 @@ describe('useCreatePostMutation', () => {
       i18n.t('createPost.storyComposer.link_errors.LINK_DOMAIN_BLOCKED'),
     );
   });
+
+  it.each([
+    'CONTENT_BLOCKED_BY_MODERATION',
+    'PREMIUM_PRICE_OUT_OF_RANGE',
+    'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+  ])(
+    "says why when the server refuses with %s, in the reader's language",
+    async (code) => {
+      vi.mocked(postsApi.create).mockRejectedValue({
+        status: 400,
+        data: { errorCode: code, message: 'The server says it in English' },
+      });
+      const { submit } = setup();
+      await submit();
+
+      expect(toast.error).toHaveBeenCalledWith(i18n.t(`errors.codes.${code}`));
+      expect(i18n.t(`errors.codes.${code}`)).not.toBe(`errors.codes.${code}`);
+    },
+  );
 
   it('shows its own message, never the server text, when publishing fails', async () => {
     vi.mocked(postsApi.create).mockRejectedValue(

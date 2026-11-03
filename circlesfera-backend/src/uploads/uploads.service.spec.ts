@@ -290,6 +290,43 @@ describe('UploadsService', () => {
       expect(again.id).not.toBe(answer.id);
     });
 
+    it('carries the look the author chose, without the values that change nothing', async () => {
+      await service.startFrameAssembly(BY, {
+        clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+        // A value left out (undefined) is as if not given.
+        look: { grayscale: 100, brightness: 100, hue: 350, blur: undefined },
+      });
+      expect(mockVideoQueue.add).toHaveBeenLastCalledWith(
+        'frame-assembly',
+        expect.objectContaining({ look: { grayscale: 100, hue: 350 } }),
+        expect.anything(),
+      );
+
+      // A look that changes nothing is no look.
+      await service.startFrameAssembly(BY, {
+        clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+        look: { brightness: 100, sepia: 0 },
+      });
+      expect(mockVideoQueue.add.mock.lastCall?.[1]).not.toHaveProperty('look');
+    });
+
+    it.each([
+      ['a value past its range', { brightness: 201 }],
+      ['a value under its range', { contrast: -1 }],
+      ['a value that is not whole', { hue: 12.5 }],
+      ['a value that is not a number', { blur: '2' }],
+      ['a value the server does not know', { exposure: 50 }],
+      ['a look that is not an object', 'grayscale'],
+    ])('refuses a look with %s, and queues nothing', async (_, look) => {
+      await expect(
+        service.startFrameAssembly(BY, {
+          clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+          look: look as never,
+        }),
+      ).rejects.toThrow('FRAME_LOOK_INVALID');
+      expect(mockVideoQueue.add).not.toHaveBeenCalled();
+    });
+
     it.each([
       ['no clip', [], 'FRAME_CLIPS_OUT_OF_RANGE'],
       [

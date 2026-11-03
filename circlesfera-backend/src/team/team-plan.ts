@@ -2,12 +2,12 @@ import type { PrismaService } from '../prisma/prisma.service.js';
 
 type PlanOf = { accountType: string; verificationLevel: string };
 
-// A team is part of the Business plan on a Business Profile (PD-014).
+// A team is part of the Business plan on a Business Profile.
 export const hasTeamPlan = (profile: PlanOf | null | undefined): boolean =>
   profile?.accountType === 'BUSINESS' &&
   profile.verificationLevel === 'BUSINESS';
 
-// The members of a Profile follow its plan (PD-014): when the Business plan
+// The members of a Profile follow its plan: when the Business plan
 // ends, or the Profile stops being a Business Profile, they are paused, not
 // removed; when the plan returns they are active again. Called wherever the
 // plan or the kind of a Profile changes. It only moves members between the

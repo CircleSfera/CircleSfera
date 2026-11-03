@@ -1,4 +1,4 @@
-# Composer QA (ADR-0030)
+# Composer QA
 
 Product coverage for the Post/Frame stepped composer. The UI under test is always the real React
 composer (`ContentComposerPage` / `ComposerChrome`). This file is the composer slice of the repo
@@ -29,30 +29,31 @@ Locale is fixed to **es** so roles stay stable (`Siguiente` / `Compartir` / `Lis
 
 ## Fixtures (visible media, not solid color)
 
-| File | Spec |
-| --- | --- |
-| `e2e/fixtures/post-4x5.jpg` | 800×1000, synthetic scene (gradient + shapes + “CS”) |
-| `e2e/fixtures/frame-20s.mp4` | 360×640 (9:16), 20s, `testsrc2` motion pattern |
+Illustrated scenes in the brand's purple, pink and blue colours. None of them has text, so no
+letters or logo show up in a capture.
 
-Regenerate (requires `ffmpeg`, no npm deps):
+| File | What it shows |
+| --- | --- |
+| `e2e/fixtures/post-4x5.jpg` | 1080×1350 (4:5), sunset over the sea, the sun above the mountains |
+| `e2e/fixtures/post-4x5-city.jpg` | 1080×1350 (4:5), a city at night under the moon |
+| `e2e/fixtures/post-4x5-coffee.jpg` | 1080×1350 (4:5), a cup of coffee by a window |
+| `e2e/fixtures/frame-20s.mp4` | 720×1280 (9:16), 20 s, an aurora over mountains while the view pans down; no audio |
+
+`FIXTURES.postImage` is the sunset; `FIXTURES.postImages` holds the three photos, for posts with
+several items (`composer-carousel.spec.ts` uploads one of each).
+
+Regenerate them all from `circlesfera-frontend` (needs `ffmpeg` on the `PATH`, and the frontend's
+installed `sharp`):
 
 ```bash
-# Post still (4:5)
-ffmpeg -y -f lavfi -i "color=c=0x1a2744:s=800x1000:d=1" \
-  -f lavfi -i "color=c=0x3d7ea6:s=800x1000:d=1" \
-  -filter_complex "[0][1]blend=all_expr='A*(1-T/1)+B*(T/1)',\
-    drawbox=x=80:y=120:w=280:h=280:color=0xf2c94c@0.9:t=fill,\
-    drawbox=x=420:y=480:w=260:h=360:color=0xe85d4c@0.85:t=fill,\
-    drawtext=text='CS':fontsize=120:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2" \
-  -frames:v 1 -update 1 e2e/fixtures/post-4x5.jpg
-
-# Frame video (9:16, ≥15s)
-ffmpeg -y -f lavfi -i "testsrc2=size=360x640:rate=10" -t 20 \
-  -c:v libx264 -pix_fmt yuv420p -movflags +faststart \
-  e2e/fixtures/frame-20s.mp4
+node e2e/fixtures/make-fixtures.mjs
 ```
 
-Other SPA Playwright specs (`feed`, `login`, `profile`, `search`, `messages`, `stripe`, `smoke`) share `e2e/helpers/session.ts` and the Post still `e2e/fixtures/post-4x5.jpg`. See `e2e/README.md`.
+The script draws each scene as SVG; `sharp` turns the photos into JPEG files and `ffmpeg` makes
+the video from a taller scene that pans down.
+After regenerating, update the captures that show them (see Notes).
+
+Other SPA Playwright specs (`feed`, `login`, `profile`, `search`, `messages`, `stripe`, `smoke`) share `e2e/helpers/session.ts` and the Post still `e2e/fixtures/post-4x5.jpg` (the sunset). See `e2e/README.md`.
 
 ## Commands
 

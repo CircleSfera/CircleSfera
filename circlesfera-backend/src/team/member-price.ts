@@ -3,7 +3,7 @@ import type { CurrentUserData } from '../auth/decorators/current-user.decorator.
 import { AppException } from '../common/errors/app.exception.js';
 
 // Putting a price on content is money, which stays with the owner of the
-// Profile (PD-014): a team member publishes free content only.
+// Profile: a team member publishes free content only.
 export function refuseMemberPrice(
   user: Pick<CurrentUserData, 'memberRole'>,
   priceCents: number | null | undefined,

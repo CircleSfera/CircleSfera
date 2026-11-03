@@ -191,7 +191,7 @@ describe('VideoProcessor: joining the layer of a story, step by step', () => {
     expect(uploads.enqueueTranscode).toHaveBeenCalledWith(
       '/uploads/joined.mp4',
     );
-    // The originals go only if they are the story's own and unused (TD-008).
+    // The originals go only if they are the story's own and unused.
     expect(uploads.deleteContentFiles).toHaveBeenCalledWith('p-1', [
       STORY.overlayUrl,
       STORY.url,

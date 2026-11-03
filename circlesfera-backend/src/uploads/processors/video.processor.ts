@@ -2,6 +2,11 @@ import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import {
+  FRAME_LOOK_RANGES,
+  type FrameLook,
+  type FrameLookKey,
+} from '@circlesfera/shared';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { type Job, UnrecoverableError } from 'bullmq';
@@ -674,7 +679,7 @@ export class VideoProcessor extends WorkerHost {
       // Should this fail, the five-minute recovery asks for the stream again.
       await this.uploads.enqueueTranscode(stored.url);
       // The story no longer names them: the originals go if they are the
-      // story's own and nothing else uses them (TD-008).
+      // story's own and nothing else uses them.
       await this.uploads
         .deleteContentFiles(story.profileId, [story.overlayUrl, story.url])
         .catch(() => {});
@@ -696,7 +701,7 @@ export class VideoProcessor extends WorkerHost {
   private async assembleFrame(
     data: Partial<FrameAssemblyJobData> | undefined,
   ): Promise<{ url: string }> {
-    const { profileId, clips, layerUrl, muted } = data ?? {};
+    const { profileId, clips, layerUrl, muted, look } = data ?? {};
     if (!profileId || !clips?.length) {
       throw new UnrecoverableError('Missing the clips of a Frame');
     }
@@ -784,6 +789,7 @@ export class VideoProcessor extends WorkerHost {
               layerPath,
               sound,
               output,
+              frameLookFilters(look),
             ),
             { signal },
           ),
@@ -901,6 +907,66 @@ export class VideoProcessor extends WorkerHost {
   }
 }
 
+/** A number written for a filter, with no more than four decimals. */
+function filterNumber(value: number): string {
+  return String(Number(value.toFixed(4)));
+}
+
+/**
+ * The FFmpeg filters of a Frame's look, written from its numbers alone. A
+ * value that is not a whole number within its range, or that leaves the
+ * picture as it is, adds nothing.
+ */
+export function frameLookFilters(look: FrameLook | undefined): string[] {
+  const value = (key: FrameLookKey): number => {
+    const range = FRAME_LOOK_RANGES[key];
+    const given = look?.[key];
+    return typeof given === 'number' &&
+      Number.isInteger(given) &&
+      given >= range.min &&
+      given <= range.max
+      ? given
+      : range.neutral;
+  };
+  const filters: string[] = [];
+  const hue = value('hue');
+  if (hue !== 0) filters.push(`hue=h=${hue}`);
+  const brightness = (value('brightness') - 100) / 100;
+  const contrast = value('contrast') / 100;
+  const saturation =
+    (value('saturation') / 100) * (1 - value('grayscale') / 100);
+  if (brightness !== 0 || contrast !== 1 || saturation !== 1) {
+    filters.push(
+      `eq=brightness=${filterNumber(brightness)}:contrast=${filterNumber(contrast)}:saturation=${filterNumber(saturation)}`,
+    );
+  }
+  const sepia = value('sepia') / 100;
+  if (sepia > 0) {
+    // The sepia matrix, mixed with the picture as it is by its share.
+    const mix = (plain: number, toned: number) =>
+      filterNumber(plain * (1 - sepia) + toned * sepia);
+    filters.push(
+      `colorchannelmixer=rr=${mix(1, 0.393)}:rg=${mix(0, 0.769)}:rb=${mix(0, 0.189)}:gr=${mix(0, 0.349)}:gg=${mix(1, 0.686)}:gb=${mix(0, 0.168)}:br=${mix(0, 0.272)}:bg=${mix(0, 0.534)}:bb=${mix(1, 0.131)}`,
+    );
+  }
+  // Warmer is more red and less blue; cooler the other way.
+  const warmth = (value('temperature') - 100) / 100;
+  if (warmth !== 0) {
+    filters.push(
+      `colorbalance=rm=${filterNumber(warmth)}:bm=${filterNumber(-warmth)}`,
+    );
+  }
+  const blur = value('blur');
+  if (blur > 0) filters.push(`gblur=sigma=${blur}`);
+  const vignette = value('vignette') / 100;
+  if (vignette > 0) {
+    filters.push(`vignette=angle=${filterNumber((Math.PI / 2) * vignette)}`);
+  }
+  const noise = value('noise');
+  if (noise > 0) filters.push(`noise=alls=${Math.round(noise / 2)}:allf=t`);
+  return filters;
+}
+
 /** A moment of a clip, given in ms, as FFmpeg reads it: in seconds. */
 function seconds(ms: number): string {
   return String(ms / 1000);
@@ -920,6 +986,7 @@ export function frameAssemblyArgs(
   layer: string | undefined,
   sound: readonly boolean[] | null,
   output: string,
+  look: readonly string[] = [],
 ): string[] {
   const withSound = sound !== null;
   const filters: string[] = [];
@@ -939,10 +1006,16 @@ export function frameAssemblyArgs(
       joined.push(`[a${index}]`);
     }
   });
+  // The look goes on the joined clips, under the layer, so the text and the
+  // drawing keep their colours.
   const video = layer ? '[joined]' : '[out]';
+  const concat = look.length > 0 ? '[plain]' : video;
   filters.push(
-    `${joined.join('')}concat=n=${clips.length}:v=1:a=${withSound ? 1 : 0}${video}${withSound ? '[sound]' : ''}`,
+    `${joined.join('')}concat=n=${clips.length}:v=1:a=${withSound ? 1 : 0}${concat}${withSound ? '[sound]' : ''}`,
   );
+  if (look.length > 0) {
+    filters.push(`[plain]${look.join(',')}${video}`);
+  }
   if (layer) {
     filters.push(
       `[joined][${clips.length}:v]overlay=0:0:shortest=1:format=auto[out]`,

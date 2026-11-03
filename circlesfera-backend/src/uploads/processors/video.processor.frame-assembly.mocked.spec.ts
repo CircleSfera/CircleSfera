@@ -9,7 +9,7 @@ import type {
   FrameAssemblyJobData,
   UploadsService,
 } from '../uploads.service.js';
-import { VideoProcessor } from './video.processor.js';
+import { frameLookFilters, VideoProcessor } from './video.processor.js';
 
 /** How the video tools should end, what they were asked and what they read. */
 const tool = vi.hoisted(() => ({
@@ -255,6 +255,46 @@ describe('VideoProcessor: putting a Frame together from its clips', () => {
     ]);
     // The layer is read at the size of the video.
     expect(sharpCalls.resize).toEqual([[720, 1280, { fit: 'fill' }]]);
+  });
+
+  it('puts the look on the joined clips, under the layer', async () => {
+    const { processor } = setup();
+
+    await processor.process(
+      job({
+        profileId: 'p-1',
+        clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+        layerUrl: LAYER,
+        muted: true,
+        look: { grayscale: 100, vignette: 50 },
+      }),
+    );
+
+    const filters = tool.args[tool.args.indexOf('-filter_complex') + 1];
+    expect(filters.split(';').slice(1)).toEqual([
+      '[v0]concat=n=1:v=1:a=0[plain]',
+      '[plain]eq=brightness=0:contrast=1:saturation=0,vignette=angle=0.7854[joined]',
+      '[joined][1:v]overlay=0:0:shortest=1:format=auto[out]',
+    ]);
+  });
+
+  it('puts the look on the joined clips as the video itself when there is no layer', async () => {
+    const { processor } = setup();
+
+    await processor.process(
+      job({
+        profileId: 'p-1',
+        clips: [{ url: CLIP_A, startMs: 0, endMs: 20_000 }],
+        muted: true,
+        look: { hue: 90 },
+      }),
+    );
+
+    const filters = tool.args[tool.args.indexOf('-filter_complex') + 1];
+    expect(filters.split(';').slice(1)).toEqual([
+      '[v0]concat=n=1:v=1:a=0[plain]',
+      '[plain]hue=h=90[out]',
+    ]);
   });
 
   it('plays silence for a clip with no sound and keeps the sound of the others', async () => {
@@ -512,5 +552,63 @@ describe('VideoProcessor: putting a Frame together from its clips', () => {
       ),
     ).rejects.toThrow('not of this storage');
     expect(tool.args).toEqual([]);
+  });
+});
+
+describe('frameLookFilters: the look of a Frame as FFmpeg filters', () => {
+  it('adds nothing for no look or a look that leaves the picture as it is', () => {
+    expect(frameLookFilters(undefined)).toEqual([]);
+    expect(frameLookFilters({})).toEqual([]);
+    expect(
+      frameLookFilters({
+        brightness: 100,
+        contrast: 100,
+        saturation: 100,
+        temperature: 100,
+        sepia: 0,
+        grayscale: 0,
+        vignette: 0,
+        noise: 0,
+        hue: 0,
+        blur: 0,
+      }),
+    ).toEqual([]);
+  });
+
+  it('writes every value of a look, in one order', () => {
+    expect(
+      frameLookFilters({
+        brightness: 110,
+        contrast: 125,
+        saturation: 150,
+        grayscale: 50,
+        sepia: 20,
+        temperature: 130,
+        vignette: 100,
+        noise: 21,
+        hue: 350,
+        blur: 2,
+      }),
+    ).toEqual([
+      'hue=h=350',
+      'eq=brightness=0.1:contrast=1.25:saturation=0.75',
+      'colorchannelmixer=rr=0.8786:rg=0.1538:rb=0.0378:gr=0.0698:gg=0.9372:gb=0.0336:br=0.0544:bg=0.1068:bb=0.8262',
+      'colorbalance=rm=0.3:bm=-0.3',
+      'gblur=sigma=2',
+      'vignette=angle=1.5708',
+      'noise=alls=11:allf=t',
+    ]);
+  });
+
+  it('ignores a value that is not a whole number within its range', () => {
+    expect(
+      frameLookFilters({
+        brightness: 201,
+        contrast: -1,
+        hue: 12.5,
+        blur: Number.NaN,
+        noise: '50' as unknown as number,
+      }),
+    ).toEqual([]);
   });
 });

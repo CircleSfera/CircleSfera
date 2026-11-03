@@ -14,7 +14,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { RECORDS_ACTIVITY } from './records-activity.decorator.js';
 
 // Records, after it succeeds, a content action on a Business Profile with
-// the person who took it: the Profile stays the public author (ADR-0028).
+// the person who took it: the Profile stays the public author.
 // A failure to record never undoes or fails the action.
 @Injectable()
 export class ActivityInterceptor implements NestInterceptor {

@@ -125,6 +125,19 @@ describe('UploadsController over HTTP', () => {
       );
     });
 
+    it('passes the look as numbers', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/uploads/frames')
+        .set(BEARER)
+        .send({ clips: [CLIP], look: { grayscale: 100, hue: 350 } })
+        .expect(202);
+
+      expect(mockService.startFrameAssembly).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ look: { grayscale: 100, hue: 350 } }),
+      );
+    });
+
     it.each([
       ['no clip', { clips: [] }],
       ['too many clips', { clips: Array.from({ length: 21 }, () => CLIP) }],
@@ -133,6 +146,17 @@ describe('UploadsController over HTTP', () => {
       ['a moment that is not a whole ms', { clips: [{ ...CLIP, endMs: 1.5 }] }],
       ['a muted that is not yes or no', { clips: [CLIP], muted: 'yes' }],
       ['a field it does not know', { clips: [CLIP], audioUrl: '/x.mp3' }],
+      ['a look value past its range', { clips: [CLIP], look: { blur: 11 } }],
+      ['a look value that is not whole', { clips: [CLIP], look: { hue: 1.5 } }],
+      [
+        'a look given as filter text',
+        { clips: [CLIP], look: { brightness: '1,drawtext=x' } },
+      ],
+      [
+        'a look value it does not know',
+        { clips: [CLIP], look: { exposure: 5 } },
+      ],
+      ['a look that is not an object', { clips: [CLIP], look: 'gray' }],
     ])('refuses %s before the service sees it', async (_case, body) => {
       await request(app.getHttpServer())
         .post('/api/v1/uploads/frames')

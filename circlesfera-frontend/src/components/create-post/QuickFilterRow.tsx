@@ -3,8 +3,8 @@ import { PHOTO_FILTERS } from '../photo-editor/photoEditor.constants';
 import { CREATE_QUICK_THUMB } from './createStyles';
 
 interface QuickFilterRowProps {
-  /** The photo on show, drawn under each filter. */
-  imageUrl: string;
+  /** The photo on show, drawn under each filter; none while it is drawn. */
+  imageUrl?: string;
   /** The shape of the small previews, as a CSS aspect ratio. */
   ratio: string;
   /** The classes of the filter the photo has; empty for none. */
@@ -48,11 +48,15 @@ export default function QuickFilterRow({
                   isSelected ? 'border-brand-primary' : 'border-white/10'
                 }`}
               >
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className={`w-full h-full object-cover ${filter.class}`}
-                />
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className={`w-full h-full object-cover ${filter.class}`}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-white/8" />
+                )}
               </div>
               <span
                 className={`text-xs font-medium leading-none ${
