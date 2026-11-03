@@ -6,7 +6,7 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { ApiExcludeController } from '@nestjs/swagger';
+import { ApiExcludeController, ApiResponse } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { LiveRoomWebhookService } from './live-room-webhook.service.js';
@@ -26,6 +26,7 @@ export class LiveRoomWebhookController {
 
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: HttpStatus.OK })
   async receive(@Req() req: Request): Promise<{ received: true }> {
     const rawBody = (req as { rawBody?: Buffer }).rawBody;
     if (!rawBody) throw new BadRequestException('Missing body');
