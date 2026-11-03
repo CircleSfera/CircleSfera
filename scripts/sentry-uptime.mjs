@@ -23,7 +23,7 @@ const ALERT_NAME = 'CircleSfera is down';
 // organization is refused to this token.
 const PROJECT_IDS = ['4511288202887248', '4511288199938128'];
 
-async function allDetectors() {
+async function allDetectors({ strict = false } = {}) {
   const found = [];
   for (const id of PROJECT_IDS) {
     const page = await call(
@@ -32,7 +32,11 @@ async function allDetectors() {
     );
     console.log(`Detectors of project ${id}: ${page.status}`);
     if (Array.isArray(page.data)) found.push(...page.data);
-    else console.log(page.data);
+    else if (strict) {
+      // A read that failed is not a project with no checks: adding one now
+      // could add it twice.
+      throw new Error(`Could not read the checks of project ${id}`);
+    } else console.log(page.data);
   }
   return found;
 }
@@ -96,7 +100,7 @@ async function inspect() {
 }
 
 async function apply() {
-  const uptime = (await allDetectors()).filter(
+  const uptime = (await allDetectors({ strict: true })).filter(
     (d) => d.type === 'uptime_domain_failure',
   );
   const urlOf = (d) => d.dataSources?.[0]?.queryObj?.url;
@@ -162,10 +166,31 @@ async function apply() {
     'GET',
     `/organizations/${ORG}/workflows/?per_page=100`,
   );
-  const all = Array.isArray(workflows.data) ? workflows.data : [];
-  const existing = all.find((w) => w.name === ALERT_NAME);
+  if (!Array.isArray(workflows.data)) {
+    // Not knowing the alerts, adding one could send every email twice.
+    throw new Error(`Could not read the alerts (${workflows.status})`);
+  }
+  const existing = workflows.data.find((w) => w.name === ALERT_NAME);
   if (existing) {
-    console.log(`Alert present: ${ALERT_NAME} (${existing.id})`);
+    const watched = new Set((existing.detectorIds ?? []).map(String));
+    const missing = ids.filter((id) => !watched.has(String(id)));
+    if (missing.length === 0) {
+      console.log(`Alert present: ${ALERT_NAME} (${existing.id})`);
+      return;
+    }
+    // A check added since: the alert watches it too.
+    const updated = await call(
+      'PUT',
+      `/organizations/${ORG}/workflows/${existing.id}/`,
+      { ...existing, detectorIds: [...watched, ...missing.map(String)] },
+    );
+    console.log(
+      `Alert ${existing.id} now watches ${missing.join(', ')}: ${updated.status}`,
+    );
+    if (updated.status >= 300) {
+      console.log(JSON.stringify(strip(updated.data), null, 2));
+      throw new Error('Could not update the alert');
+    }
     return;
   }
   // As the alerts that exist: an email to the issue's owners, or else to
