@@ -3,9 +3,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { buildPostElement } from '../components/story/storyComposer.append';
 import { STORY_STICKER_MAX } from '../components/story/storyComposer.constants';
 import type { StoryCanvasSize } from '../components/story/storyComposer.export';
 import { stickersFromElements } from '../components/story/storyInteractive';
+import { storyStartRoute } from '../components/story/storyStart';
 import {
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
@@ -17,11 +19,13 @@ import type {
   Audio as AudioTrack,
   CreatePostDto,
   CreateStoryDto,
+  Post,
   StoryElement,
 } from '../types';
 import { apiErrorBody } from '../utils/apiErrorMessage';
 import { isFrameClipInRange } from '../utils/frameClip';
 import { logger } from '../utils/logger';
+import { canOfferStoryShare, postStoryCard } from '../utils/storyShare';
 import type {
   CreateMode,
   InteractiveDraft,
@@ -33,6 +37,8 @@ import type { UploadResult } from './useMediaUpload';
 
 interface MutationDeps {
   mode: CreateMode;
+  /** Open one's story with a card of the post once it is published. */
+  shareToStory?: boolean;
   /** The shape of a post; a Frame has none. */
   postShape: PostShape;
   caption: string;
@@ -311,7 +317,22 @@ export function useCreatePostMutation(deps: MutationDeps) {
             toast.error(t('createPost.interactive.qna_create_failed'));
           }
         }
-        navigate('/');
+        // Shared to one's story: the story editor opens with a card of the
+        // post, as "Add to your story" does. A post that is not out yet, or
+        // that cannot be shared, goes home as any post does.
+        if (
+          deps.shareToStory &&
+          created?.id &&
+          !deps.scheduledAt &&
+          canOfferStoryShare(created as Post)
+        ) {
+          const route = storyStartRoute({
+            elements: [buildPostElement(postStoryCard(created as Post))],
+          });
+          navigate(route.to, route.options);
+        } else {
+          navigate('/');
+        }
       }
     } catch (error: unknown) {
       // Upload and server errors carry technical, untranslated text: show

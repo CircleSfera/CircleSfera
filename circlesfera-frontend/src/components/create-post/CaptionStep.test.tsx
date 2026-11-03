@@ -46,6 +46,29 @@ describe('CaptionStep', () => {
     session.profile = { username: 'tester' };
   });
 
+  it('offers to share the post to the story of its author only when it may be', () => {
+    const onChange = vi.fn();
+    const shown = renderWithProviders(
+      <CaptionStep
+        {...baseProps}
+        mediaFiles={[imageFile]}
+        mode="POST"
+        shareToStory={{ on: false, onChange }}
+      />,
+    );
+    const label = shown.i18n!.t('createPost.caption.share_to_story');
+    const toggle = screen.getByRole('switch', { name: label });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(onChange).toHaveBeenCalledWith(true);
+    shown.unmount();
+
+    renderWithProviders(
+      <CaptionStep {...baseProps} mediaFiles={[imageFile]} mode="POST" />,
+    );
+    expect(screen.queryByRole('switch', { name: label })).toBeNull();
+  });
+
   it('offers a price to the owner, never to a team member', () => {
     const owner = renderWithProviders(
       <CaptionStep {...baseProps} mediaFiles={[imageFile]} mode="POST" />,

@@ -466,6 +466,16 @@ export default function ContentComposerPage() {
                   isPremium={isPremium}
                   interactiveDraft={interactiveDraft}
                   hasChosenCover={coverTimeMs !== null}
+                  // Not for a paid post, which is never shared, nor for one
+                  // not out yet, which has nothing to share until it is.
+                  shareToStory={
+                    mode === 'POST' && !isPremium && !composer.scheduledAt
+                      ? {
+                          on: composer.shareToStory,
+                          onChange: composer.setShareToStory,
+                        }
+                      : undefined
+                  }
                   postShape={postShape}
                 />
               </StepAnimationWrapper>
