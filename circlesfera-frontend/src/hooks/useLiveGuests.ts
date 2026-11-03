@@ -18,7 +18,7 @@ export interface QueuedGuest {
  * The guests of the host's live: invited or on air, at most
  * `LIVE_GUESTS_MAX`. Before the live starts the people chosen wait in a
  * list and are invited the moment it starts; once on air the list is the
- * server's, kept up to date by the live's room.
+ * server's, kept up to date by what the server tells the host alone.
  */
 export function useLiveGuests(streamId: string | null) {
   const [guests, setGuests] = useState<LiveGuest[]>([]);
@@ -46,13 +46,14 @@ export function useLiveGuests(streamId: string | null) {
         })
         .catch(() => {}),
     );
+    // Only the host is told who is invited; the room hears who is on air.
     const socket = useSocketStore.getState().socket;
     const changed = (data: { guests?: LiveGuest[] }) =>
       setGuests(data.guests ?? []);
-    socket?.on('live:guests_changed', changed);
+    socket?.on('live:guest_invites', changed);
     return () => {
       cancelled = true;
-      socket?.off('live:guests_changed', changed);
+      socket?.off('live:guest_invites', changed);
     };
   }, [streamId]);
 

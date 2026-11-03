@@ -102,7 +102,7 @@ describe('useLiveGuests', () => {
   it('invites on air, follows the room, and takes a guest off', async () => {
     const { result } = renderHook(() => useLiveGuests('live-1'));
     await waitFor(() =>
-      expect(api.handlers.has('live:guests_changed')).toBe(true),
+      expect(api.handlers.has('live:guest_invites')).toBe(true),
     );
 
     await act(async () => {
@@ -118,7 +118,7 @@ describe('useLiveGuests', () => {
     ]);
 
     act(() =>
-      api.handlers.get('live:guests_changed')?.({
+      api.handlers.get('live:guest_invites')?.({
         guests: [{ profileId: 'p-luis', username: 'luis', status: 'ON_AIR' }],
       }),
     );
