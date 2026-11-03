@@ -29,6 +29,7 @@ import {
   type FrameClip,
   wholeClip,
 } from './create-post/frameClips';
+import { frameLookOf } from './create-post/frameLook';
 import Header from './create-post/Header';
 import StepAnimationWrapper from './create-post/StepAnimationWrapper.tsx';
 import StoryControlsBar from './create-post/StoryControlsBar';
@@ -303,7 +304,12 @@ export default function ContentComposerPage() {
     try {
       const frame = await assembleFrame(
         clips,
-        painting.layer,
+        {
+          layer: painting.layer,
+          look: painting.filter
+            ? frameLookOf(painting.filter.filterClass, painting.filter.strength)
+            : undefined,
+        },
         (step) => {
           if (current()) setAssembly(step);
         },
