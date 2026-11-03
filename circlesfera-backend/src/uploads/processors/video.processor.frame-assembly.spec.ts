@@ -209,6 +209,71 @@ describe.skipIf(!hasFfmpeg)(
       }
     });
 
+    it('puts the look on the picture and not on the layer', async () => {
+      const first = makeClip('red', '360x640', false);
+      const second = makeClip('red', '360x640', false);
+      const layer = await makeLayer();
+      const { processor } = setup();
+
+      const result = await processor.process(
+        job({
+          profileId: 'p-1',
+          clips: [
+            { url: first, startMs: 0, endMs: 8000 },
+            { url: second, startMs: 0, endMs: 8000 },
+          ],
+          layerUrl: layer,
+          look: { grayscale: 100, sepia: 0, vignette: 0 },
+        }),
+      );
+
+      const url = (result as { url: string }).url;
+      made.push(path.basename(url));
+      const frame = path.join(process.cwd(), url);
+      // The red turns grey, with no colour left.
+      const picture = await colourAt(frame, 4, 540, 1000);
+      expect(Math.abs(picture.r - picture.g)).toBeLessThan(12);
+      expect(Math.abs(picture.r - picture.b)).toBeLessThan(12);
+      // The layer keeps its green.
+      const layered = await colourAt(frame, 4, 90, 160);
+      expect(layered.g).toBeGreaterThan(200);
+      expect(layered.r).toBeLessThan(60);
+    });
+
+    it('takes every value of a look at its far end', async () => {
+      const first = makeClip('blue', '360x640', true);
+      const second = makeClip('blue', '360x640', true);
+      const { processor } = setup();
+
+      const result = await processor.process(
+        job({
+          profileId: 'p-1',
+          clips: [
+            { url: first, startMs: 0, endMs: 8000 },
+            { url: second, startMs: 0, endMs: 8000 },
+          ],
+          look: {
+            brightness: 200,
+            contrast: 0,
+            saturation: 200,
+            temperature: 0,
+            sepia: 100,
+            grayscale: 100,
+            vignette: 100,
+            noise: 100,
+            hue: 360,
+            blur: 10,
+          },
+        }),
+      );
+
+      const url = (result as { url: string }).url;
+      made.push(path.basename(url));
+      expect(
+        Number(probe(path.join(process.cwd(), url)).format.duration),
+      ).toBeCloseTo(16, 0);
+    });
+
     it('keeps the sound when one of its clips has none, with silence for that one', async () => {
       const withSound = makeClip('blue', '640x360', true);
       const silent = makeClip('red', '640x360', false);

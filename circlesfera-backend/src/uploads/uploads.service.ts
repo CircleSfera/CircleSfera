@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import * as path from 'node:path';
+import {
+  FRAME_LOOK_RANGES,
+  type FrameLook,
+  type FrameLookKey,
+} from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -56,6 +61,36 @@ export interface FrameAssemblyJobData {
   clips: FrameClip[];
   layerUrl?: string;
   muted?: boolean;
+  look?: FrameLook;
+}
+
+/**
+ * Only the known values of a look, each a whole number within its range; a
+ * look that leaves the picture as it is is none. Anything else is refused.
+ */
+export function frameLookFrom(look: unknown): FrameLook | undefined {
+  if (look === undefined || look === null) return undefined;
+  if (typeof look !== 'object') {
+    throw new BadRequestException('FRAME_LOOK_INVALID');
+  }
+  const kept: FrameLook = {};
+  for (const [key, value] of Object.entries(look)) {
+    if (value === undefined) continue;
+    if (!Object.hasOwn(FRAME_LOOK_RANGES, key)) {
+      throw new BadRequestException('FRAME_LOOK_INVALID');
+    }
+    const range = FRAME_LOOK_RANGES[key as FrameLookKey];
+    if (
+      typeof value !== 'number' ||
+      !Number.isInteger(value) ||
+      value < range.min ||
+      value > range.max
+    ) {
+      throw new BadRequestException('FRAME_LOOK_INVALID');
+    }
+    if (value !== range.neutral) kept[key as FrameLookKey] = value;
+  }
+  return Object.keys(kept).length > 0 ? kept : undefined;
 }
 
 /** Where a Frame being put together is: its video once it is ready. */
@@ -326,9 +361,15 @@ export class UploadsService {
    */
   async startFrameAssembly(
     by: { profileId: string; userId?: string },
-    request: { clips: FrameClip[]; layerUrl?: string; muted?: boolean },
+    request: {
+      clips: FrameClip[];
+      layerUrl?: string;
+      muted?: boolean;
+      look?: FrameLook;
+    },
   ): Promise<{ id: string }> {
     const { clips, layerUrl, muted } = request;
+    const look = frameLookFrom(request.look);
     if (clips.length === 0 || clips.length > FRAME_CLIPS_MAX) {
       throw new BadRequestException('FRAME_CLIPS_OUT_OF_RANGE');
     }
@@ -368,6 +409,7 @@ export class UploadsService {
       clips: clips.map(({ url, startMs, endMs }) => ({ url, startMs, endMs })),
       layerUrl,
       muted,
+      ...(look ? { look } : {}),
     };
     await this.videoQueue.add(FRAME_ASSEMBLY_JOB, data, {
       jobId: queueJobId(FRAME_ASSEMBLY_JOB, id),
