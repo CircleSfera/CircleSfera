@@ -1,8 +1,8 @@
 name: Ops — orphan files report
 
 # Reports how many stored files the nightly orphan sweep would delete, so the
-# owner can decide with numbers before its deletion is turned on (TD-008,
-# QF-065). Read-only: it lists the files on the server's disk and reads the
+# owner can decide with numbers before its deletion is turned on.
+# Read-only: it lists the files on the server's disk and reads the
 # database; it writes and deletes nothing. Actions logs are public, so the
 # report prints only counts and sizes, never a file name or an address.
 on:

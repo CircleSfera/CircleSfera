@@ -2,7 +2,7 @@ name: Ops — server resources report
 
 # Reports how much memory, disk and CPU the production server has and uses,
 # and what each container takes, so the owner can decide with numbers
-# whether a new service (an analytics store, ADR-0016) fits on it.
+# whether a new service (an analytics store) fits on it.
 # Read-only: it changes nothing. Actions logs are public, so it prints only
 # sizes, counts and container names, never an address, a path of user files
 # or a setting.
