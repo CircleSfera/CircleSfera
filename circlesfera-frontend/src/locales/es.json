@@ -5302,14 +5302,13 @@
     "delete_pending": "Eliminando...",
     "clips": {
       "total": "{{length}} de {{max}}",
-      "start": "Inicio",
-      "end": "Final",
       "item": "Clip {{n}} de {{total}}",
-      "earlier": "Mover el clip antes",
-      "later": "Mover el clip después",
       "remove": "Quitar el clip",
       "paint": "Texto y dibujo",
-      "paint_edit": "Editar texto y dibujo"
+      "paint_edit": "Editar texto y dibujo",
+      "trim_start": "Inicio del clip",
+      "trim_end": "Final del clip",
+      "hold_to_move": "Mantén pulsado un clip para moverlo"
     },
     "assembly": {
       "uploading": "Subiendo los clips ({{done}} de {{total}})…",

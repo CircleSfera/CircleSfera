@@ -8,6 +8,7 @@ import {
   clipsLength,
   clipsMakeAFrame,
   moveClip,
+  moveClipTo,
   trimClip,
   wholeClip,
 } from './frameClips';
@@ -57,5 +58,23 @@ describe('the clips of a Frame', () => {
     ]);
     expect(moveClip(list, 0, -1)).toBe(list);
     expect(moveClip(list, 2, 1)).toBe(list);
+  });
+});
+
+describe('moveClipTo', () => {
+  const [a, b, c] = ['a', 'b', 'c'].map((n) =>
+    wholeClip({ file: new File([n], n), ms: 1000 }),
+  );
+
+  it('puts a clip at another place', () => {
+    expect(moveClipTo([a, b, c], 0, 2)).toEqual([b, c, a]);
+    expect(moveClipTo([a, b, c], 2, 0)).toEqual([c, a, b]);
+  });
+
+  it('keeps the clips as they are for a move to nowhere', () => {
+    const clips = [a, b, c];
+    expect(moveClipTo(clips, 1, 1)).toBe(clips);
+    expect(moveClipTo(clips, 5, 0)).toBe(clips);
+    expect(moveClipTo(clips, 0, 9)).toEqual([b, c, a]);
   });
 });

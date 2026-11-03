@@ -94,8 +94,24 @@ test('a Frame recorded in clips is put together and goes on to its caption', asy
   const editor = page.getByTestId('frame-clips-editor');
   await expect(editor).toBeVisible();
   await capture(page, 'clips-editor', info);
-  await page.getByRole('button', { name: 'Clip 2 de 2' }).click();
-  await page.getByRole('button', { name: 'Mover el clip antes' }).click();
+  // The timeline draws each clip's frames.
+  await expect
+    .poll(() => editor.locator('ol img').count(), { timeout: 10_000 })
+    .toBeGreaterThan(0);
+  // The second clip, held and dragged before the first.
+  const second = page.getByRole('button', { name: 'Clip 2 de 2' });
+  const box = await second.boundingBox();
+  if (!box) throw new Error('No second clip');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(600);
+  await page.mouse.move(box.x - 200, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.up();
+  // The moved clip is the chosen one, first now.
+  await expect(
+    page.getByRole('button', { name: 'Clip 1 de 2' }),
+  ).toHaveAttribute('aria-current', 'true');
+  await capture(page, 'timeline-moved', info);
   await editor.getByRole('button', { name: 'Siguiente' }).click();
 
   await expect(page.getByTestId('frame-assembly-progress')).toBeVisible();

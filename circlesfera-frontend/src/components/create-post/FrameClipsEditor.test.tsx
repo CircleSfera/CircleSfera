@@ -31,10 +31,11 @@ describe('FrameClipsEditor', () => {
   it('goes on with the clips in the order and windows chosen', () => {
     const onDone = open();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Clip 3 de 3' }));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Mover el clip antes' }),
-    );
+    // The last clip, moved a place earlier on the timeline.
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Clip 3 de 3' }), {
+      key: 'ArrowLeft',
+      shiftKey: true,
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
     const [[clips]] = onDone.mock.calls;
@@ -62,8 +63,9 @@ describe('FrameClipsEditor', () => {
   it('trims the clip chosen from its start', () => {
     const onDone = open([clip('a', FRAME_MIN_DURATION_SEC * 1000 + 2000)]);
 
-    const [start] = screen.getAllByRole('slider');
-    fireEvent.change(start, { target: { value: '1000' } });
+    const start = screen.getByRole('slider', { name: 'Inicio del clip' });
+    for (let i = 0; i < 10; i++)
+      fireEvent.keyDown(start, { key: 'ArrowRight' });
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
     expect(onDone.mock.calls[0][0][0]).toMatchObject({ startMs: 1000 });

@@ -66,3 +66,17 @@ export function moveClip(
   [next[index], next[to]] = [next[to], next[index]];
   return next;
 }
+
+/** The clips with the one at `from` taken out and put at `to`. */
+export function moveClipTo(
+  clips: FrameClip[],
+  from: number,
+  to: number,
+): FrameClip[] {
+  if (from === to || from < 0 || from >= clips.length) return clips;
+  const target = Math.max(0, Math.min(clips.length - 1, to));
+  const next = [...clips];
+  const [moved] = next.splice(from, 1);
+  next.splice(target, 0, moved);
+  return next;
+}
