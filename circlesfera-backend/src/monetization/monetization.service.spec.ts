@@ -706,7 +706,12 @@ describe('MonetizationService', () => {
       });
       await expect(
         service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow(/entre €3.00 y €500.00/);
+      ).rejects.toMatchObject({
+        status: 400,
+        response: expect.objectContaining({
+          errorCode: 'NOT_PREMIUM_OR_NO_PRICE',
+        }),
+      });
 
       mockPrismaService.message.findUnique.mockResolvedValueOnce({
         id: 'm-1',
@@ -716,7 +721,12 @@ describe('MonetizationService', () => {
       });
       await expect(
         service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow(/entre €3.00 y €500.00/);
+      ).rejects.toMatchObject({
+        status: 400,
+        response: expect.objectContaining({
+          errorCode: 'NOT_PREMIUM_OR_NO_PRICE',
+        }),
+      });
     });
 
     it('should throw if sender (by User.id, not Profile.id) is unlocking own message', async () => {
@@ -1433,14 +1443,20 @@ describe('MonetizationService', () => {
     it("refuses a Personal Profile, and a Profile that is not the person's", async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(person());
       acting('PERSONAL');
-      await expect(onboard()).rejects.toThrow(
-        'Solo las cuentas Creator o Business pueden habilitar el cobro con Stripe.',
-      );
+      await expect(onboard()).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+        }),
+      });
 
       mockPrismaService.profile.findFirst.mockResolvedValue(null);
-      await expect(onboard()).rejects.toThrow(
-        'Solo las cuentas Creator o Business pueden habilitar el cobro con Stripe.',
-      );
+      await expect(onboard()).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+        }),
+      });
       expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'prof-2', userId: 'u-1' } }),
       );
