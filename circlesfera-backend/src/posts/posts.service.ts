@@ -39,7 +39,6 @@ import {
 } from '../common/policies/block.policy.js';
 import { setModerationStatus } from '../common/policies/moderation-decision.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
-import { isPremiumPostLocked } from '../common/policies/premium-post.policy.js';
 import {
   LISTED_POST,
   SHOWN_COMMENTS_COUNT,
@@ -64,7 +63,10 @@ import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import { PostPaywallService } from './services/post-paywall.service.js';
+import {
+  type PaywallPost,
+  PostPaywallService,
+} from './services/post-paywall.service.js';
 
 // Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
 @Injectable()
@@ -610,23 +612,13 @@ export class PostsService {
       });
 
     const content = await loadViewerContent(this.prisma, currentProfileId);
-    // A paid post not unlocked shows as the feed shows it: closed, with no
-    // picture.
-    const shown = (await isPremiumPostLocked(
-      this.prisma,
-      post,
+    // A paid post not unlocked shows closed, as in the lists of a profile:
+    // the paywall runs on the post once its media addresses are resolved.
+    const [shown] = await this.postPaywallService.applyPaywall(
+      [this.injectIsLiked(post, currentProfileId, content) as PaywallPost],
       currentProfileId,
-    ))
-      ? {
-          ...post,
-          isLocked: true,
-          media: post.media?.map((m) => ({ ...m, url: '', standardUrl: '' })),
-        }
-      : post;
-    return this.injectIsLiked(shown, currentProfileId, content) as Record<
-      string,
-      unknown
-    >;
+    );
+    return shown as Record<string, unknown>;
   }
 
   // Retrieve posts by a specific user's username with optional type filter.

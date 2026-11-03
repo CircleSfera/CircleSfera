@@ -65,7 +65,6 @@ describe('PostsService', () => {
       findMany: vi.fn(),
       findUnique: vi.fn(),
     },
-    postUnlock: { findUnique: vi.fn().mockResolvedValue(null) },
     postMedia: {
       createMany: vi.fn(),
       create: vi.fn(),
@@ -897,41 +896,36 @@ describe('PostsService', () => {
       );
     });
 
-    it('shows a paid post not unlocked closed, with no picture, and open to whoever unlocked it', async () => {
-      const paid = {
+    it('runs the paywall on the post once its media addresses are resolved, and answers what it gives', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
         id: 'p-paid',
         profileId: 'author-1',
         visibility: Visibility.PUBLIC,
         isPremium: true,
         profile: { id: 'author-1', privacyLevel: Visibility.PUBLIC, user: {} },
         likes: [],
-        media: [{ url: '/uploads/a.jpg', standardUrl: '/uploads/a.webp' }],
-      };
-      mockPrismaService.post.findUnique.mockResolvedValueOnce(paid);
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        userId: 'person-v',
+        // As a post is created: the row points at its Media, whose own
+        // addresses are the ones shown.
+        media: [
+          {
+            url: '/uploads/old.jpg',
+            media: { url: '/uploads/a.jpg', standardUrl: '/uploads/a.webp' },
+          },
+        ],
       });
+      const closed = { id: 'p-paid', isLocked: true };
+      mockPostPaywallService.applyPaywall.mockResolvedValueOnce([closed]);
 
-      const closed = (await service.findOne('p-paid', 'viewer-1')) as {
-        isLocked?: boolean;
-        media: { url: string; standardUrl: string }[];
-      };
-      expect(closed.isLocked).toBe(true);
-      expect(closed.media[0]).toMatchObject({ url: '', standardUrl: '' });
+      const shown = await service.findOne('p-paid', 'viewer-1');
 
-      mockPrismaService.post.findUnique.mockResolvedValueOnce(paid);
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        userId: 'person-v',
+      const [[[given], viewer]] =
+        mockPostPaywallService.applyPaywall.mock.calls.slice(-1);
+      expect(viewer).toBe('viewer-1');
+      expect(given.media[0]).toMatchObject({
+        url: '/uploads/a.jpg',
+        standardUrl: '/uploads/a.webp',
       });
-      mockPrismaService.postUnlock.findUnique.mockResolvedValueOnce({
-        id: 'u',
-      });
-      const open = (await service.findOne('p-paid', 'viewer-1')) as {
-        isLocked?: boolean;
-        media: { url: string }[];
-      };
-      expect(open.isLocked).toBeUndefined();
-      expect(open.media[0].url).toBe('/uploads/a.jpg');
+      expect(shown).toBe(closed);
     });
 
     it('allows author to view post even if profile is private', async () => {
