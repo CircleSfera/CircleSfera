@@ -6,6 +6,7 @@ import {
   STORY_STICKER_MAX,
   type StoryTemplate,
 } from '../storyComposer.constants';
+import type { EditorFrame } from '../storyComposer.layout';
 import type {
   PanelTab,
   StoryBrush,
@@ -30,6 +31,8 @@ import StoryStickersPanel from './StoryStickersPanel';
 import StoryTemplatesPanel from './StoryTemplatesPanel';
 
 export interface StoryDockContentProps {
+  /** The shape of what is edited: a post offers no interactive sticker yet. */
+  frame?: EditorFrame;
   selectedElementId: string | null;
   selectedElement: StoryElement | undefined;
   activeTab: StoryComposerTab;
@@ -125,6 +128,7 @@ export default function StoryDockContent({
   onApplyTemplate,
   place,
   music,
+  frame = 'STORY',
 }: StoryDockContentProps) {
   return (
     <AnimatePresence mode="wait">
@@ -181,6 +185,7 @@ export default function StoryDockContent({
           canPlace={Boolean(place)}
           canMusic={Boolean(music)}
           full={elements.filter(isLiveElement).length >= STORY_STICKER_MAX}
+          interactive={frame === 'STORY'}
         />
       )}
 

@@ -18,6 +18,7 @@ import FrameTrimOverlay from './FrameTrimOverlay';
 
 const PhotoEditor = lazy(() => import('../PhotoEditor'));
 const StoryComposer = lazy(() => import('../story/StoryComposer'));
+const PostCanvasEditor = lazy(() => import('./PostCanvasEditor'));
 interface EditorOverlayManagerProps {
   showStoryComposer: boolean;
   setShowStoryComposer: (val: boolean) => void;
@@ -40,6 +41,7 @@ export default function EditorOverlayManager({
     handleFrameTrimCancel,
     mediaFiles,
     setMediaFiles,
+    postShape,
     setIsComposed,
     setStep,
     discardStory,
@@ -181,6 +183,52 @@ export default function EditorOverlayManager({
               type: file.type.startsWith('video') ? 'video' : 'image',
             })
           }
+        />
+      </Suspense>
+    );
+  }
+
+  // The layer tool of a post's photo opens the full-screen canvas, in the
+  // shape of the post.
+  const canvasItem =
+    currentEditIndex !== null &&
+    mode === 'POST' &&
+    initialEditorTab === 'OVERLAY' &&
+    mediaFiles[currentEditIndex]?.type === 'image'
+      ? mediaFiles[currentEditIndex]
+      : null;
+  if (canvasItem && currentEditIndex !== null) {
+    const index = currentEditIndex;
+    return (
+      <Suspense fallback={null}>
+        <PostCanvasEditor
+          item={canvasItem}
+          shape={postShape}
+          onCancel={() => setCurrentEditIndex(null)}
+          onDone={(file, canvasEdit) => {
+            if (canvasItem.url.startsWith('blob:')) {
+              URL.revokeObjectURL(canvasItem.url);
+            }
+            // What was edited before is in the picture now.
+            setMediaFiles(
+              mediaFiles.map((m, i) =>
+                i === index
+                  ? {
+                      ...m,
+                      file,
+                      url: URL.createObjectURL(file),
+                      remoteUrl: undefined,
+                      filter: undefined,
+                      cropData: undefined,
+                      overlayDataUrl: undefined,
+                      editorState: undefined,
+                      canvasEdit,
+                    }
+                  : m,
+              ),
+            );
+            setCurrentEditIndex(null);
+          }}
         />
       </Suspense>
     );

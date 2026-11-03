@@ -1,6 +1,7 @@
 import { MapPin, Music, RotateCcw, RotateCw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import StoryToolRail, { STORY_CHROME_SHADOW } from './StoryToolRail';
+import type { EditorFrame } from './storyComposer.layout';
 import type { StoryComposerTab } from './storyComposer.types';
 import type { StoryShareOptions } from './storyShare.types';
 
@@ -18,6 +19,8 @@ interface StoryComposerChromeProps {
   pointerArmed: boolean;
   /** Music and place of the story, when the editor shares it itself. */
   share?: StoryShareOptions;
+  /** The shape of what is edited: a post takes fewer tools. */
+  frame?: EditorFrame;
   /** The place is on the story as a sticker, so it is not shown twice. */
   placeOnStory?: boolean;
   /** The song shows as its sticker, so its chip is not needed. */
@@ -50,6 +53,7 @@ export default function StoryComposerChrome({
   hidden,
   pointerArmed,
   share,
+  frame,
   placeOnStory = false,
   musicOnStory = false,
   shareRowOver = false,
@@ -106,6 +110,7 @@ export default function StoryComposerChrome({
           activeTab={activeTab}
           onSelectTab={onSelectTab}
           share={share}
+          frame={frame}
         />
       </div>
 
