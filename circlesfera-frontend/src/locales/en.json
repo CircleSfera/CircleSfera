@@ -5779,7 +5779,9 @@
       "TEAM_MEMBER_NOT_FOUND": "That invitation or person is no longer there.",
       "TEAM_MEMBER_NOT_ALLOWED": "Your role on this team profile does not include this.",
       "MESSAGE_IS_NOTICE": "This is a notice from CircleSfera and can't be changed.",
-      "GROUP_ADMIN_NOT_ELIGIBLE": "This member can't be an admin of the group."
+      "GROUP_ADMIN_NOT_ELIGIBLE": "This member can't be an admin of the group.",
+      "PREMIUM_PRICE_OUT_OF_RANGE": "The price of premium content is outside the allowed range.",
+      "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
