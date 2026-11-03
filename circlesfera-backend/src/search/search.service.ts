@@ -272,7 +272,7 @@ export class SearchService {
     profileId?: string,
     verifiedOnly = false,
   ): Promise<SearchResponse> {
-    if (!query || query.length < 2) {
+    if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) {
       return {
         users: [],
         hashtags: [],
@@ -475,7 +475,7 @@ export class SearchService {
     viewerId?: string,
     verifiedOnly = false,
   ): Promise<any[]> {
-    if (!query || query.length < 2) return [];
+    if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) return [];
 
     const sanitizedQuery = query.toLowerCase();
 
@@ -644,7 +644,7 @@ export class SearchService {
   // Search posts with Authority Weighting and Velocity ranking.
   // Param query: Keyword to search in captions
   async searchPosts(query: string, viewerId?: string): Promise<Post[]> {
-    if (!query || query.length < 2) return [];
+    if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) return [];
 
     const sanitizedQuery = query.toLowerCase();
 
