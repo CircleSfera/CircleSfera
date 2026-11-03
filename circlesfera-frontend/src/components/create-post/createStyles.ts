@@ -32,8 +32,22 @@ export const CREATE_GLASS_CHIP =
 /** A panel that groups controls. */
 export const CREATE_PANEL = 'rounded-3xl bg-white/4 border border-white/8';
 
-/** One tool of a tool rail: an icon over its name. */
-export const CREATE_TOOL = `flex-1 min-w-0 min-h-14 flex flex-col items-center justify-center gap-1 rounded-2xl text-white/75 hover:text-white hover:bg-white/8 active:scale-[0.97] transition-all text-xs font-semibold ${focus}`;
+/**
+ * One tool of a tool rail: an icon over its name, with no box. Hover and
+ * press only light it up; the icon lifts a little.
+ */
+export const CREATE_TOOL = `group relative min-w-14 min-h-11 px-1 inline-flex flex-col items-center justify-center gap-1 rounded-lg text-white/60 hover:text-white active:text-white transition-colors text-[11px] font-medium leading-none tracking-wide ${focus}`;
+
+/** The icon of a tool, lifting a little under the pointer. */
+export const CREATE_TOOL_ICON =
+  'transition-transform duration-150 group-hover:-translate-y-px';
+
+/** The tool in use: white, with a dot of the brand under its name. */
+export const CREATE_TOOL_ACTIVE =
+  "text-white! after:absolute after:-bottom-1 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-brand-primary after:content-['']";
+
+export const CREATE_TOOL_ROW =
+  'mx-auto flex max-w-full items-start justify-center gap-6 py-1';
 
 /**
  * A small preview: a thumbnail of the edit step, the preview of the alt text

@@ -27,9 +27,10 @@ import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
 import {
   CREATE_GLASS_CHIP,
   CREATE_GLASS_ICON,
-  CREATE_PANEL,
   CREATE_THUMB,
   CREATE_TOOL,
+  CREATE_TOOL_ICON,
+  CREATE_TOOL_ROW,
 } from './createStyles';
 import QuickFilterRow from './QuickFilterRow';
 
@@ -396,7 +397,10 @@ export default function EditStep({
           <div
             role="toolbar"
             aria-label={t('createPost.edit.edit_media')}
-            className={`flex items-stretch gap-1 p-1 md:max-w-sm md:mx-auto ${CREATE_PANEL}`}
+            className={CREATE_TOOL_ROW}
+            style={
+              frameSize.width > 0 ? { maxWidth: frameSize.width } : undefined
+            }
           >
             {tools.map(({ tab, icon: Icon, label }) => (
               <button
@@ -405,7 +409,12 @@ export default function EditStep({
                 onClick={() => openEditor(selectedIndex, tab)}
                 className={CREATE_TOOL}
               >
-                <Icon size={20} strokeWidth={1.75} aria-hidden />
+                <Icon
+                  size={20}
+                  strokeWidth={1.75}
+                  className={CREATE_TOOL_ICON}
+                  aria-hidden
+                />
                 {label}
               </button>
             ))}
