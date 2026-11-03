@@ -66,6 +66,26 @@ describe('ChatRealtimeService', () => {
       expectWhole(await seenBy(AUTHOR_ID));
       expectWhole(await seenBy(BUYER_ID));
     });
+
+    it.each([new Error('database gone'), 'database gone'])(
+      'is closed when the unlocks cannot be read (%s)',
+      async (failure) => {
+        const paywall = realPaywall();
+        vi.spyOn(paywall, 'applyPaywall').mockRejectedValueOnce(failure);
+        const failing = new ChatRealtimeService(
+          prisma as unknown as PrismaService,
+          addReactionUseCase as unknown as AddReactionUseCase,
+          paywall,
+        );
+
+        expectClosed(
+          await failing.sharedPostAsSeenBy(
+            paidPost([inlinePaidMedia()]),
+            BUYER_ID,
+          ),
+        );
+      },
+    );
   });
 
   describe('membersOf', () => {

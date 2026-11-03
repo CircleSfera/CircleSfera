@@ -29,13 +29,22 @@ export class ChatRealtimeService {
   ) {}
 
   // A post a message shares, as one member sees it: a paid post they have
-  // not unlocked is closed, as it is everywhere else.
+  // not unlocked is closed, as it is everywhere else. When their unlocks
+  // cannot be read, it is closed: the message still reaches them.
   async sharedPostAsSeenBy<T extends PaywallPost>(
     post: T,
     profileId: string,
   ): Promise<T & { isLocked?: boolean }> {
-    const [seen] = await this.postPaywall.applyPaywall([post], profileId);
-    return seen;
+    try {
+      const [seen] = await this.postPaywall.applyPaywall([post], profileId);
+      return seen;
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Shared post sent closed, unlocks unread: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      const [closed] = await this.postPaywall.applyPaywall([post]);
+      return closed;
+    }
   }
 
   /**

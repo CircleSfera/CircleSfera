@@ -1115,21 +1115,28 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
         return;
       }
-      for (const p of event.participants ?? []) {
+      // A paid post the message shares reaches each member as they may see
+      // it: closed to one who has not unlocked it. Read for every member at
+      // once, before any is sent.
+      const members = event.participants ?? [];
+      const seenByEach = await Promise.all(
+        members.map(async (p) => {
+          const masked = asSeenBy(p.profileId);
+          const shared = masked.post as PaywallPost | null | undefined;
+          return shared?.isPremium
+            ? {
+                ...masked,
+                post: await this.chatRealtimeService.sharedPostAsSeenBy(
+                  shared,
+                  p.profileId,
+                ),
+              }
+            : masked;
+        }),
+      );
+      for (const [index, p] of members.entries()) {
         this.addConversationToSocket(p.profileId, event.payload.conversationId);
-        const masked = asSeenBy(p.profileId);
-        // A paid post the message shares reaches each member as they may
-        // see it: closed to one who has not unlocked it.
-        const shared = masked.post as PaywallPost | null | undefined;
-        const seen = shared?.isPremium
-          ? {
-              ...masked,
-              post: await this.chatRealtimeService.sharedPostAsSeenBy(
-                shared,
-                p.profileId,
-              ),
-            }
-          : masked;
+        const seen = seenByEach[index];
         // A message just sent can't have been unlocked yet by anyone but the
         // sender — mirror GetMessagesQuery's redaction so the realtime channel
         // can't leak locked-message content/media past the paywall.
