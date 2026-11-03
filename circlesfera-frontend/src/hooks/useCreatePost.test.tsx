@@ -57,6 +57,31 @@ describe('useCreatePost', () => {
     expect(c.step).toBe('upload');
   });
 
+  it('a Frame the server put together goes to its caption, whole, with no cover of another video', () => {
+    let c = {} as Composer;
+    renderWithProviders(<Probe onRender={(v) => (c = v)} />);
+    const file = new File(['v'], 'frame.mp4', { type: 'video/mp4' });
+    act(() => c.setCoverTimeMs(42_000));
+
+    act(() =>
+      c.takeAssembledFrame({
+        file,
+        url: '/uploads/frame.mp4',
+        durationSec: 20,
+      }),
+    );
+
+    expect(c.mediaFiles[0]).toMatchObject({
+      file,
+      type: 'video',
+      remoteUrl: '/uploads/frame.mp4',
+      assembledFrame: true,
+      videoData: { startTime: 0, endTime: 20, muted: false },
+    });
+    expect(c.coverTimeMs).toBeNull();
+    expect(c.step).toBe('caption');
+  });
+
   describe('a video handed over from the Studio', () => {
     async function handOver(seconds: number, scheduledAt?: string) {
       vi.mocked(probeVideoDuration).mockResolvedValue(seconds);

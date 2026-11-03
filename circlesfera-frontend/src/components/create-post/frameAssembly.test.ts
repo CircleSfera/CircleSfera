@@ -23,7 +23,7 @@ function deps(statuses: Array<{ status: string; url?: string }>) {
   const sent: string[] = [];
   const d = {
     api: {
-      uploadFrameClip: vi.fn(async (form: FormData) => {
+      uploadFrameClip: vi.fn(async (form: FormData, _request?: unknown) => {
         const file = form.get('file') as File;
         sent.push(file.name);
         return { data: { url: `/uploads/${file.name}`, type: 'video' } };
@@ -61,16 +61,21 @@ describe('putting a Frame together on the server', () => {
     );
 
     expect(sent).toEqual(['b.webm', 'a.webm']);
-    expect(d.api.assembleFrame).toHaveBeenCalledWith({
-      clips: [
-        { url: '/uploads/b.webm', startMs: 0, endMs: 9000 },
-        { url: '/uploads/a.webm', startMs: 1000, endMs: 8000 },
-      ],
-      layerUrl: '/uploads/layer.png',
+    expect(d.api.assembleFrame).toHaveBeenCalledWith(
+      {
+        clips: [
+          { url: '/uploads/b.webm', startMs: 0, endMs: 9000 },
+          { url: '/uploads/a.webm', startMs: 1000, endMs: 8000 },
+        ],
+        layerUrl: '/uploads/layer.png',
+      },
+      { signal: undefined },
+    );
+    expect(d.api.frameAssemblyStatus).toHaveBeenCalledWith('job-1', {
+      signal: undefined,
     });
-    expect(d.api.frameAssemblyStatus).toHaveBeenCalledWith('job-1');
-    expect(d.sleep).toHaveBeenCalledWith(FRAME_ASSEMBLY_POLL_MS);
-    expect(d.fetchFile).toHaveBeenCalledWith('/uploads/frame.mp4');
+    expect(d.sleep).toHaveBeenCalledWith(FRAME_ASSEMBLY_POLL_MS, undefined);
+    expect(d.fetchFile).toHaveBeenCalledWith('/uploads/frame.mp4', undefined);
     expect(frame.url).toBe('/uploads/frame.mp4');
     expect(frame.file.type).toBe('video/mp4');
     expect(steps).toEqual([
@@ -87,10 +92,13 @@ describe('putting a Frame together on the server', () => {
     await assembleFrame([clip('a', 0, 20_000)], null, () => {}, d);
 
     expect(d.api.upload).not.toHaveBeenCalled();
-    expect(d.api.assembleFrame).toHaveBeenCalledWith({
-      clips: [{ url: '/uploads/a.webm', startMs: 0, endMs: 20_000 }],
-      layerUrl: undefined,
-    });
+    expect(d.api.assembleFrame).toHaveBeenCalledWith(
+      {
+        clips: [{ url: '/uploads/a.webm', startMs: 0, endMs: 20_000 }],
+        layerUrl: undefined,
+      },
+      { signal: undefined },
+    );
   });
 
   it('fails when the server could not put it together', async () => {
@@ -111,5 +119,46 @@ describe('putting a Frame together on the server', () => {
     expect(d.sleep).toHaveBeenCalledTimes(
       FRAME_ASSEMBLY_WAIT_MS / FRAME_ASSEMBLY_POLL_MS,
     );
+  });
+
+  it('stops sending and asking once cancelled', async () => {
+    const { d } = deps([]);
+    const controller = new AbortController();
+    d.sleep.mockImplementation(async () => {
+      controller.abort(new Error('cancelled'));
+      throw controller.signal.reason;
+    });
+
+    await expect(
+      assembleFrame(
+        [clip('a', 0, 20_000)],
+        null,
+        () => {},
+        d,
+        controller.signal,
+      ),
+    ).rejects.toThrow('cancelled');
+    expect(d.api.frameAssemblyStatus).toHaveBeenCalledTimes(1);
+    // Every request is given the signal that cancels it.
+    expect(d.api.uploadFrameClip.mock.calls[0][1]).toEqual({
+      signal: controller.signal,
+    });
+  });
+
+  it('sends nothing for a putting together cancelled before it starts', async () => {
+    const { d } = deps([]);
+    const controller = new AbortController();
+    controller.abort(new Error('cancelled'));
+
+    await expect(
+      assembleFrame(
+        [clip('a', 0, 20_000)],
+        null,
+        () => {},
+        d,
+        controller.signal,
+      ),
+    ).rejects.toThrow('cancelled');
+    expect(d.api.uploadFrameClip).not.toHaveBeenCalled();
   });
 });

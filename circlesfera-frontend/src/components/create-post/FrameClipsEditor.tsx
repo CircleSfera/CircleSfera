@@ -6,7 +6,7 @@ import {
   Type,
   X,
 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FRAME_MAX_DURATION_SEC,
@@ -83,16 +83,18 @@ export default function FrameClipsEditor({
   const painted = useRef<StoryElement[]>(before?.elements ?? []);
 
   // One address per file, let go when the editor closes.
-  const urls = useMemo(
-    () => new Map(recorded.map((c) => [c.file, URL.createObjectURL(c.file)])),
-    [recorded],
-  );
-  useEffect(
-    () => () => {
-      for (const url of urls.values()) URL.revokeObjectURL(url);
-    },
-    [urls],
-  );
+  // Made and let go together, so a second run of the effect makes them
+  // again rather than keeping ones already let go.
+  const [urls, setUrls] = useState<Map<File, string>>(() => new Map());
+  useEffect(() => {
+    const made = new Map(
+      recorded.map((c) => [c.file, URL.createObjectURL(c.file)]),
+    );
+    setUrls(made);
+    return () => {
+      for (const url of made.values()) URL.revokeObjectURL(url);
+    };
+  }, [recorded]);
 
   // The chosen clip plays its window, over and over; the timeline marks
   // where it is.

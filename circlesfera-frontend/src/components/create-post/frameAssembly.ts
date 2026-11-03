@@ -24,21 +24,33 @@ export interface FrameAssemblyDeps {
     typeof uploadApi,
     'upload' | 'uploadFrameClip' | 'assembleFrame' | 'frameAssemblyStatus'
   >;
-  fetchFile: (url: string) => Promise<Blob>;
-  sleep: (ms: number) => Promise<void>;
+  fetchFile: (url: string, signal?: AbortSignal) => Promise<Blob>;
+  sleep: (ms: number, signal?: AbortSignal) => Promise<void>;
   now: () => number;
 }
 
 const defaultDeps: FrameAssemblyDeps = {
   api: uploadApi,
-  fetchFile: async (url) => {
+  fetchFile: async (url, signal) => {
     const response = await fetch(sanitizeUrl(url) ?? url, {
       credentials: 'include',
+      signal,
     });
     if (!response.ok) throw new Error(`The Frame could not be read`);
     return response.blob();
   },
-  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  sleep: (ms, signal) =>
+    new Promise((resolve, reject) => {
+      const timer = setTimeout(resolve, ms);
+      signal?.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(timer);
+          reject(signal.reason);
+        },
+        { once: true },
+      );
+    }),
   now: () => Date.now(),
 };
 
@@ -59,29 +71,36 @@ export async function assembleFrame(
   layer: Blob | null,
   onStep: (step: FrameAssemblyStep) => void,
   deps: FrameAssemblyDeps = defaultDeps,
+  signal?: AbortSignal,
 ): Promise<{ url: string; file: File }> {
+  // Cancelled: no more is sent, waited for or asked. A job the server has
+  // already taken runs to its end and its video is left unused.
+  const request = { signal };
   const sent = [];
   for (const [index, clip] of clips.entries()) {
     onStep({ kind: 'uploading', done: index, total: clips.length });
+    signal?.throwIfAborted();
     const { data } = await deps.api.uploadFrameClip(
       asForm(clip.file, clip.file.name),
+      request,
     );
     sent.push({ url: data.url, startMs: clip.startMs, endMs: clip.endMs });
   }
   onStep({ kind: 'uploading', done: clips.length, total: clips.length });
   const layerUrl = layer
-    ? (await deps.api.upload(asForm(layer, 'frame-layer.png'))).data.url
+    ? (await deps.api.upload(asForm(layer, 'frame-layer.png'), request)).data
+        .url
     : undefined;
 
   onStep({ kind: 'assembling' });
   const {
     data: { id },
-  } = await deps.api.assembleFrame({ clips: sent, layerUrl });
+  } = await deps.api.assembleFrame({ clips: sent, layerUrl }, request);
   const until = deps.now() + FRAME_ASSEMBLY_WAIT_MS;
   for (;;) {
-    const { data } = await deps.api.frameAssemblyStatus(id);
+    const { data } = await deps.api.frameAssemblyStatus(id, request);
     if (data.status === 'READY' && data.url) {
-      const video = await deps.fetchFile(data.url);
+      const video = await deps.fetchFile(data.url, signal);
       return {
         url: data.url,
         file: new File([video], 'frame.mp4', { type: 'video/mp4' }),
@@ -89,6 +108,6 @@ export async function assembleFrame(
     }
     if (data.status !== 'PENDING') throw new FrameAssemblyError('failed');
     if (deps.now() >= until) throw new FrameAssemblyError('timeout');
-    await deps.sleep(FRAME_ASSEMBLY_POLL_MS);
+    await deps.sleep(FRAME_ASSEMBLY_POLL_MS, signal);
   }
 }

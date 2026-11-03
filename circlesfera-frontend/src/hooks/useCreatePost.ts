@@ -122,6 +122,8 @@ export function useCreatePost() {
       },
     ]);
     state.setFrameSourceDurationSec(frame.durationSec);
+    // A cover chosen for another video is not this one's.
+    state.setCoverTimeMs(null);
     state.setStep('caption');
   };
 

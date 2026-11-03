@@ -78,9 +78,10 @@ export default function ContentComposerPage() {
   const [assembly, setAssembly] = React.useState<FrameAssemblyStep | null>(
     null,
   );
-  // Each putting together has its number: one cancelled is left to finish
-  // unheard.
+  // Each putting together has its number, and a way to stop it: one
+  // cancelled sends and waits no more, and its answer goes unheard.
   const assemblyRun = React.useRef(0);
+  const assemblyAbort = React.useRef<AbortController | null>(null);
   // In the iOS app, how "Next" continues from the gallery of the upload step.
   const [galleryNext, setGalleryNext] = React.useState<(() => void) | null>(
     null,
@@ -293,13 +294,22 @@ export default function ContentComposerPage() {
   ) => {
     const run = ++assemblyRun.current;
     const current = () => run === assemblyRun.current;
+    assemblyAbort.current?.abort();
+    const controller = new AbortController();
+    assemblyAbort.current = controller;
     setFrameDraft({ clips, painting });
     setClipsEditorOpen(false);
     setAssembly({ kind: 'uploading', done: 0, total: clips.length });
     try {
-      const frame = await assembleFrame(clips, painting.layer, (step) => {
-        if (current()) setAssembly(step);
-      });
+      const frame = await assembleFrame(
+        clips,
+        painting.layer,
+        (step) => {
+          if (current()) setAssembly(step);
+        },
+        undefined,
+        controller.signal,
+      );
       if (!current()) return;
       takeAssembledFrame({
         ...frame,
@@ -322,6 +332,7 @@ export default function ContentComposerPage() {
           step={assembly}
           onCancel={() => {
             assemblyRun.current++;
+            assemblyAbort.current?.abort();
             setAssembly(null);
             setClipsEditorOpen(true);
           }}

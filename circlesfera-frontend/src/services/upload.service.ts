@@ -15,26 +15,29 @@ export interface FrameAssemblyClip {
 
 const multipart = { headers: { 'Content-Type': 'multipart/form-data' } };
 
+/** What a request can be given: a signal that cancels it. */
+export interface RequestOptions {
+  signal?: AbortSignal;
+}
+
 export const uploadApi = {
-  upload: (formData: FormData) =>
-    apiClient.post<{ url: string; type: string }>(
-      '/uploads',
-      formData,
-      multipart,
-    ),
+  upload: (formData: FormData, options: RequestOptions = {}) =>
+    apiClient.post<{ url: string; type: string }>('/uploads', formData, {
+      ...multipart,
+      ...options,
+    }),
   /** Keeps a recorded clip of a Frame, only to be put together. */
-  uploadFrameClip: (formData: FormData) =>
+  uploadFrameClip: (formData: FormData, options: RequestOptions = {}) =>
     apiClient.post<{ url: string; type: string }>(
       '/uploads/frames/clips',
       formData,
-      multipart,
+      { ...multipart, ...options },
     ),
   /** Asks for a Frame to be put together; answers the id to ask after. */
-  assembleFrame: (body: {
-    clips: FrameAssemblyClip[];
-    layerUrl?: string;
-    muted?: boolean;
-  }) => apiClient.post<{ id: string }>('/uploads/frames', body),
-  frameAssemblyStatus: (id: string) =>
-    apiClient.get<FrameAssemblyStatus>(`/uploads/frames/${id}`),
+  assembleFrame: (
+    body: { clips: FrameAssemblyClip[]; layerUrl?: string; muted?: boolean },
+    options: RequestOptions = {},
+  ) => apiClient.post<{ id: string }>('/uploads/frames', body, options),
+  frameAssemblyStatus: (id: string, options: RequestOptions = {}) =>
+    apiClient.get<FrameAssemblyStatus>(`/uploads/frames/${id}`, options),
 };
