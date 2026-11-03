@@ -302,6 +302,24 @@ describe('useCreatePostMutation', () => {
       expect(navigate).toHaveBeenLastCalledWith('/');
     });
 
+    it('goes home for a Frame, even with the switch left on from a post', async () => {
+      vi.mocked(postsApi.create).mockResolvedValue({
+        data: { ...card, type: 'FRAME' },
+      } as never);
+      await setup({
+        mode: 'FRAME',
+        shareToStory: true,
+        mediaFiles: [
+          {
+            ...image('clip.mp4'),
+            type: 'video',
+            videoData: { startTime: 0, endTime: FRAME_MIN_DURATION_SEC },
+          },
+        ],
+      }).submit();
+      expect(navigate).toHaveBeenLastCalledWith('/');
+    });
+
     it('goes home when the switch is off', async () => {
       vi.mocked(postsApi.create).mockResolvedValue({ data: card } as never);
       await setup({ shareToStory: false }).submit();

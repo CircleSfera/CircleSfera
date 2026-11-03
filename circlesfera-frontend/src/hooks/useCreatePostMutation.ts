@@ -321,6 +321,7 @@ export function useCreatePostMutation(deps: MutationDeps) {
         // post, as "Add to your story" does. A post that is not out yet, or
         // that cannot be shared, goes home as any post does.
         if (
+          deps.mode === 'POST' &&
           deps.shareToStory &&
           created?.id &&
           !deps.scheduledAt &&
