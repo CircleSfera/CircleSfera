@@ -46,6 +46,7 @@ describe('FeedService', () => {
     },
     postUnlock: {
       findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     promotion: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -690,7 +691,11 @@ describe('FeedService', () => {
     // A feed of five posts, seen by a Profile on the given plan level.
     // Answers are queued only for the queries that level makes, so nothing
     // is left over for the next test.
-    async function feedSeenBy(verificationLevel: string, promoted: boolean) {
+    async function feedSeenBy(
+      verificationLevel: string,
+      promoted: boolean,
+      promotedPost: Record<string, unknown> = {},
+    ) {
       mockCache.get.mockResolvedValue(null);
       mockPrismaService.like.findMany.mockResolvedValueOnce([]);
       mockPrismaService.$queryRaw.mockResolvedValueOnce(
@@ -713,7 +718,13 @@ describe('FeedService', () => {
       mockPrismaService.promotion.findMany.mockClear();
       if (promoted) {
         mockPrismaService.post.findMany.mockResolvedValueOnce([
-          { id: 'promoted-p1', caption: 'Buy now', likes: [], media: [] },
+          {
+            id: 'promoted-p1',
+            caption: 'Buy now',
+            likes: [],
+            media: [],
+            ...promotedPost,
+          },
         ]);
         mockPrismaService.promotion.findMany.mockResolvedValueOnce([
           { id: 'promo-1', targetId: 'promoted-p1', countries: null },

@@ -43,6 +43,7 @@ interface ServiceOverrides {
   };
   liveRealtimeService?: Partial<{
     incrementViewerCount: ReturnType<typeof vi.fn>;
+    canEnterRoom: ReturnType<typeof vi.fn>;
     decrementViewerCount: ReturnType<typeof vi.fn>;
     isStreamHostOrCoHost: ReturnType<typeof vi.fn>;
     getUserProfile: ReturnType<typeof vi.fn>;
@@ -84,6 +85,7 @@ function gatewayWithServer(
     },
     (overrides.liveRealtimeService as any) ?? {
       incrementViewerCount: vi.fn().mockResolvedValue(1),
+      canEnterRoom: vi.fn().mockResolvedValue(true),
       decrementViewerCount: vi.fn().mockResolvedValue(0),
       isStreamHostOrCoHost: vi.fn().mockResolvedValue(false),
       getUserProfile: vi.fn().mockResolvedValue(null),
@@ -95,7 +97,10 @@ function gatewayWithServer(
   return gateway;
 }
 
-function mockSocket(profileId: string): SocketWithAuth {
+function mockSocket(
+  profileId: string,
+  liveRooms: string[] = [],
+): SocketWithAuth {
   return {
     join: vi.fn().mockResolvedValue(undefined),
     leave: vi.fn().mockResolvedValue(undefined),
@@ -104,6 +109,8 @@ function mockSocket(profileId: string): SocketWithAuth {
     data: {
       user: { sub: 'user-account', email: 'a@b.com', profileId },
       conversationIds: new Set<string>(),
+      // The rooms of lives it joined.
+      liveStreamIds: new Set<string>(liveRooms),
     },
   } as unknown as SocketWithAuth;
 }
@@ -502,7 +509,7 @@ describe('AppGateway payload bounds and authorization', () => {
       { liveRealtimeService: mockLiveRealtime },
     );
 
-    const socket = mockSocket('profile-1');
+    const socket = mockSocket('profile-1', ['stream-123']);
     const longMessage = 'A'.repeat(800);
 
     await gateway.handleLiveChat(
@@ -534,7 +541,7 @@ describe('AppGateway payload bounds and authorization', () => {
       { liveRealtimeService: mockLiveRealtime },
     );
 
-    const socket = mockSocket('viewer-profile');
+    const socket = mockSocket('viewer-profile', ['stream-1']);
 
     await gateway.handleLivePinComment(
       {
@@ -564,7 +571,7 @@ describe('AppGateway payload bounds and authorization', () => {
       { liveRealtimeService: mockLiveRealtime },
     );
 
-    const socket = mockSocket('host-profile');
+    const socket = mockSocket('host-profile', ['stream-1']);
 
     await gateway.handleLivePinComment(
       {
@@ -770,7 +777,7 @@ describe('AppGateway payload bounds and authorization', () => {
     const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
     const gateway = gatewayWithServer({ to: mockTo });
 
-    const socket = mockSocket('viewer-profile');
+    const socket = mockSocket('viewer-profile', ['stream-1']);
     await gateway.handleLiveAskQuestion(
       {
         streamId: 'stream-1',
@@ -1421,6 +1428,79 @@ describe('AppGateway payload bounds and authorization', () => {
   });
 
   describe('Live stream join, leave, reactions and comments', () => {
+    it('drops what is sent to a live from outside its room', async () => {
+      const mockTo = vi.fn().mockReturnValue({ emit: vi.fn() });
+      const mockLiveRealtime = {
+        decrementViewerCount: vi.fn(),
+        getUserProfile: vi.fn(),
+        isStreamHostOrCoHost: vi.fn().mockResolvedValue(true),
+        hasElitePlan: vi.fn(),
+      };
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { liveRealtimeService: mockLiveRealtime },
+      );
+      const outsider = mockSocket('prof-outsider');
+      const streamId = 's-closed';
+
+      await gateway.handleLiveChat({ streamId, message: 'hola' }, outsider);
+      await gateway.handleLiveHeart({ streamId } as never, outsider);
+      await gateway.handleLiveSendReaction({ streamId } as never, outsider);
+      await gateway.handleLiveAskQuestion(
+        { streamId, question: '¿Qué tal?' } as never,
+        outsider,
+      );
+      await gateway.handleLivePinComment(
+        { streamId, commentId: 'c', message: 'm' } as never,
+        outsider,
+      );
+      await gateway.handleLiveLeave({ streamId }, outsider);
+
+      expect(mockTo).not.toHaveBeenCalled();
+      expect(mockLiveRealtime.decrementViewerCount).not.toHaveBeenCalled();
+    });
+
+    it('counts a viewer once however often the same connection joins', async () => {
+      const mockTo = vi.fn().mockReturnValue({ emit: vi.fn() });
+      const mockLiveRealtime = {
+        incrementViewerCount: vi.fn().mockResolvedValue(1),
+        canEnterRoom: vi.fn().mockResolvedValue(true),
+      };
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { liveRealtimeService: mockLiveRealtime },
+      );
+      const socket = mockSocket('prof-viewer');
+
+      await gateway.handleLiveJoin({ streamId: 's-1' }, socket);
+      await gateway.handleLiveJoin({ streamId: 's-1' }, socket);
+
+      expect(mockLiveRealtime.incrementViewerCount).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps out of the room of a live whoever may not watch it', async () => {
+      const mockTo = vi.fn();
+      const mockLiveRealtime = {
+        incrementViewerCount: vi.fn(),
+        canEnterRoom: vi.fn().mockResolvedValue(false),
+      };
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { liveRealtimeService: mockLiveRealtime },
+      );
+      const socket = mockSocket('prof-outsider');
+
+      await gateway.handleLiveJoin({ streamId: 's-1' }, socket);
+
+      expect(mockLiveRealtime.canEnterRoom).toHaveBeenCalledWith(
+        's-1',
+        'prof-outsider',
+      );
+      expect(socket.join).not.toHaveBeenCalled();
+      expect(mockLiveRealtime.incrementViewerCount).not.toHaveBeenCalled();
+      expect(mockTo).not.toHaveBeenCalled();
+    });
+
     it('handles live:join and live:leave with viewer updates', async () => {
       const mockEmit = vi.fn();
       const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
@@ -1429,6 +1509,7 @@ describe('AppGateway payload bounds and authorization', () => {
         decrementViewerCount: vi.fn().mockResolvedValue(4),
         isStreamHostOrCoHost: vi.fn(),
         getUserProfile: vi.fn(),
+        canEnterRoom: vi.fn().mockResolvedValue(true),
       };
 
       const gateway = gatewayWithServer(
@@ -1594,7 +1675,7 @@ describe('AppGateway payload bounds and authorization', () => {
         { to: mockTo },
         { liveRealtimeService: { hasElitePlan } },
       );
-      const socket = mockSocket('prof-user');
+      const socket = mockSocket('prof-user', ['s-1']);
 
       await gateway.handleLiveSendReaction(
         { streamId: 's-1', reaction: '💎' },
@@ -1628,7 +1709,7 @@ describe('AppGateway payload bounds and authorization', () => {
 
       await gateway.handleLiveHeart(
         { streamId: 's-1', reaction: '👑' },
-        mockSocket('prof-user'),
+        mockSocket('prof-user', ['s-1']),
       );
 
       expect(mockEmit).toHaveBeenCalledWith('live:heart_received', {
@@ -1641,7 +1722,7 @@ describe('AppGateway payload bounds and authorization', () => {
       const mockEmit = vi.fn();
       const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
       const gateway = gatewayWithServer({ to: mockTo });
-      const socket = mockSocket('prof-user');
+      const socket = mockSocket('prof-user', ['s-1']);
 
       // live:heart default
       await gateway.handleLiveHeart({ streamId: 's-1' } as any, socket);

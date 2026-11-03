@@ -142,7 +142,11 @@ export default function LiveViewer() {
 
     const socket = useSocketStore.getState().socket;
     if (!socket) return;
-    socket.emit('live:join', { streamId });
+    // A new connection is outside the room: it joins again, or what it
+    // sends to the live would be dropped.
+    const join = () => socket.emit('live:join', { streamId });
+    join();
+    socket.on('connect', join);
 
     socket.on('live:viewer_count_update', (data: { viewerCount: number }) => {
       if (typeof data?.viewerCount === 'number') {
@@ -228,6 +232,7 @@ export default function LiveViewer() {
 
     return () => {
       socket.emit('live:leave', { streamId });
+      socket.off('connect', join);
       socket.off('live:viewer_count_update');
       socket.off('live:chat_message');
       socket.off('live:comment_pinned');

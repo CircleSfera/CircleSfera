@@ -44,10 +44,18 @@ export class LiveController {
     const started = await this.liveService.startStream(
       user.profileId,
       dto.title,
+      dto.audience,
     );
-    // The followers are told once the live exists. Not waited for: the host
-    // is on air whether or not everyone has been told yet.
-    void this.startNotice.tellFollowers(started.stream.id, user.profileId);
+    // The followers it is for are told once the live exists: none for a
+    // practice. Not waited for: the host is on air whether or not everyone
+    // has been told yet.
+    if (started.stream.audience !== 'PRACTICE') {
+      void this.startNotice.tellFollowers(
+        started.stream.id,
+        user.profileId,
+        started.stream.audience,
+      );
+    }
     return started;
   }
 
