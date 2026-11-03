@@ -1,6 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { type ValidationError, validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
+import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
 import { CreateStoryDto } from '../../stories/dto/create-story.dto.js';
 import { CreatePostDto } from './create-post.dto.js';
 import { UpdatePostDto } from './update-post.dto.js';
@@ -154,8 +155,8 @@ describe('the moment of the cover of a frame', () => {
     'is a whole number of milliseconds within the longest frame, when %s',
     async (_when, dto) => {
       expect(await rules(dto, 0)).toEqual([]);
-      expect(await rules(dto, 90_000)).toEqual([]);
-      expect(await rules(dto, 90_001)).toEqual(['max']);
+      expect(await rules(dto, FRAME_COVER_MAX_TIME_MS)).toEqual([]);
+      expect(await rules(dto, FRAME_COVER_MAX_TIME_MS + 1)).toEqual(['max']);
       expect(await rules(dto, -1)).toEqual(['min']);
       expect(await rules(dto, 1.5)).toEqual(['isInt']);
       expect(await rules(dto, '1000')).toContain('isInt');

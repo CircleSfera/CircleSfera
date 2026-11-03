@@ -1,6 +1,10 @@
 import { act, screen } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  FRAME_MAX_DURATION_SEC,
+  FRAME_MIN_DURATION_SEC,
+} from '../../constants/uploadLimits';
 import type { MediaFile } from '../../hooks/useCreatePost';
 import { renderInComposer } from '../../test/composer';
 import { type Composer, ComposerProvider } from './ComposerContext';
@@ -447,7 +451,10 @@ describe('EditorOverlayManager', () => {
       await screen.findByTestId('photo-editor');
 
       expect(seen.photo.initialTab).toBe('TRIM');
-      expect(seen.photo.constrainDuration).toEqual({ min: 15, max: 90 });
+      expect(seen.photo.constrainDuration).toEqual({
+        min: FRAME_MIN_DURATION_SEC,
+        max: FRAME_MAX_DURATION_SEC,
+      });
     });
 
     it('opens on the tool that was asked for', async () => {

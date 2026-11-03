@@ -2,7 +2,10 @@ import { act, renderHook } from '@testing-library/react';
 import type { ChangeEvent } from 'react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { probeVideoDuration } from '../constants/uploadLimits';
+import {
+  FRAME_MAX_DURATION_SEC,
+  probeVideoDuration,
+} from '../constants/uploadLimits';
 import { aiApi } from '../services';
 import { useCreatePostMedia } from './useCreatePostMedia';
 import type { CreateMode, PostTagData } from './useCreatePostState';
@@ -242,17 +245,18 @@ describe('useCreatePostMedia', () => {
       expect(page.setStep).toHaveBeenCalledWith('edit');
     });
 
-    it('starts a long video with its first ninety seconds', async () => {
-      vi.mocked(probeVideoDuration).mockResolvedValue(600);
+    it('starts a long video with its longest Frame from the start', async () => {
+      const long = FRAME_MAX_DURATION_SEC * 2;
+      vi.mocked(probeVideoDuration).mockResolvedValue(long);
       const { pick, media, page } = setup('FRAME');
 
       await pick(clip());
 
       expect(media().mediaFiles[0].videoData).toMatchObject({
         startTime: 0,
-        endTime: 90,
+        endTime: FRAME_MAX_DURATION_SEC,
       });
-      expect(page.setFrameSourceDurationSec).toHaveBeenCalledWith(600);
+      expect(page.setFrameSourceDurationSec).toHaveBeenCalledWith(long);
     });
 
     it('replaces the video chosen before', async () => {

@@ -1,3 +1,4 @@
+import { STORY_MAX_DURATION_SEC } from '@circlesfera/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type CameraFacing = 'user' | 'environment';
@@ -5,7 +6,7 @@ export type CameraFacing = 'user' | 'environment';
 export type CameraState = 'starting' | 'on' | 'refused' | 'none';
 
 /** The longest video a story takes, in seconds. */
-export const STORY_RECORD_MAX_SEC = 60;
+export const STORY_RECORD_MAX_SEC = STORY_MAX_DURATION_SEC;
 
 /** The format the device records in, as the server takes both. */
 export function recordingType(): string {
