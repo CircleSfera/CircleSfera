@@ -34,6 +34,8 @@ export default function SubScreenRouter({
     setTurnOffComments,
     coverTimeMs,
     setCoverTimeMs,
+    coverImage,
+    setCoverImage,
     isSensitive,
     setIsSensitive,
     setLocation,
@@ -92,6 +94,8 @@ export default function SubScreenRouter({
         mediaFiles={mediaFiles}
         coverTimeMs={coverTimeMs}
         setCoverTimeMs={setCoverTimeMs}
+        coverImage={coverImage}
+        setCoverImage={setCoverImage}
         onClose={() => setSubScreen('none')}
       />
     );

@@ -112,6 +112,7 @@ export default function ContentComposerPage() {
     setCaption,
     location,
     coverTimeMs,
+    coverImage,
     selectedAudio,
     setSelectedAudio,
     setAudioStartMs,
@@ -585,7 +586,7 @@ export default function ContentComposerPage() {
                   onOpenMusic={() => setSubScreen('music')}
                   isPremium={isPremium}
                   interactiveDraft={interactiveDraft}
-                  hasChosenCover={coverTimeMs !== null}
+                  hasChosenCover={coverTimeMs !== null || Boolean(coverImage)}
                   // Not for a paid post, which is never shared, nor for one
                   // not out yet, which has nothing to share until it is.
                   shareToStory={

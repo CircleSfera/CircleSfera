@@ -83,6 +83,7 @@ export function useCreatePost() {
     hideLikes: state.hideLikes,
     turnOffComments: state.turnOffComments,
     coverTimeMs: state.coverTimeMs,
+    coverImage: state.coverImage,
     isSensitive: state.isSensitive,
     location: state.location,
     selectedPlace: state.selectedPlace,
@@ -125,6 +126,7 @@ export function useCreatePost() {
     state.setFrameSourceDurationSec(frame.durationSec);
     // A cover chosen for another video is not this one's.
     state.setCoverTimeMs(null);
+    state.setCoverImage(null);
     state.setStep('caption');
   };
 

@@ -103,6 +103,8 @@ export function useCreatePostState() {
   const [turnOffComments, setTurnOffComments] = useState(false);
   // The moment of a new frame chosen as its cover; none means the automatic one.
   const [coverTimeMs, setCoverTimeMs] = useState<number | null>(null);
+  // An image chosen as a new frame's cover instead of a moment.
+  const [coverImage, setCoverImage] = useState<File | null>(null);
   const [isSensitive, setIsSensitive] = useState(false);
   // Once a post is published, open one's story with a card of it.
   const [shareToStory, setShareToStory] = useState(false);
@@ -170,6 +172,8 @@ export function useCreatePostState() {
     setTurnOffComments,
     coverTimeMs,
     setCoverTimeMs,
+    coverImage,
+    setCoverImage,
     isSensitive,
     setIsSensitive,
     selectedAudio,

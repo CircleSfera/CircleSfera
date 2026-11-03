@@ -5319,7 +5319,13 @@
       "use_automatic": "Use the automatic cover",
       "row": "Choose cover",
       "row_chosen": "Cover chosen",
-      "pending": "Saved. The new cover will show in a few seconds."
+      "pending": "Saved. The new cover will show in a few seconds.",
+      "image_add": "Add from gallery",
+      "image_preview": "Cover image",
+      "image_drag": "Drag the image to place it.",
+      "image_use": "Use as cover",
+      "image_chosen": "The cover is this image. It shows on your profile and wherever the frame appears.",
+      "image_remove": "Remove the image"
     },
     "original_audio": "{{username}} • Original audio",
     "artist_fallback": "Artist",

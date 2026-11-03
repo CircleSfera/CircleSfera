@@ -210,6 +210,42 @@ describe('useCreatePostMutation', () => {
       );
     });
 
+    it('sends an image chosen as the cover, uploaded, in place of a moment', async () => {
+      const cover = new File(['jpg'], 'frame-cover.jpg', {
+        type: 'image/jpeg',
+      });
+      const { deps, submit } = setup({
+        mode: 'FRAME',
+        mediaFiles: [clip],
+        coverTimeMs: 4200,
+        coverImage: cover,
+      });
+      vi.mocked(deps.uploadFiles)
+        .mockResolvedValueOnce(UPLOADED)
+        .mockResolvedValueOnce([{ url: '/uploads/cover.jpg', type: 'image' }]);
+      await submit();
+
+      expect(deps.uploadFiles).toHaveBeenLastCalledWith(
+        [{ file: cover, url: '', type: 'image' }],
+        {},
+      );
+      const sent = vi.mocked(postsApi.create).mock.calls[0][0];
+      expect(sent).toMatchObject({ coverImageUrl: '/uploads/cover.jpg' });
+      expect(sent).not.toHaveProperty('coverTimeMs');
+    });
+
+    it('sends no cover image for a post', async () => {
+      const { deps, submit } = setup({
+        coverImage: new File(['jpg'], 'c.jpg', { type: 'image/jpeg' }),
+      });
+      await submit();
+
+      expect(deps.uploadFiles).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(postsApi.create).mock.calls[0][0]).not.toHaveProperty(
+        'coverImageUrl',
+      );
+    });
+
     it('is never sent for a post', async () => {
       const { submit } = setup({ coverTimeMs: 4200 });
       await submit();
