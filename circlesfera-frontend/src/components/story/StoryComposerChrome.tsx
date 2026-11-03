@@ -21,6 +21,8 @@ interface StoryComposerChromeProps {
   share?: StoryShareOptions;
   /** The shape of what is edited: a post takes fewer tools. */
   frame?: EditorFrame;
+  /** Only text and drawing, over a Frame's video. */
+  paintOnly?: boolean;
   /** The place is on the story as a sticker, so it is not shown twice. */
   placeOnStory?: boolean;
   /** The song shows as its sticker, so its chip is not needed. */
@@ -54,6 +56,7 @@ export default function StoryComposerChrome({
   pointerArmed,
   share,
   frame,
+  paintOnly,
   placeOnStory = false,
   musicOnStory = false,
   shareRowOver = false,
@@ -111,6 +114,7 @@ export default function StoryComposerChrome({
           onSelectTab={onSelectTab}
           share={share}
           frame={frame}
+          paintOnly={paintOnly}
         />
       </div>
 

@@ -5307,7 +5307,9 @@
       "item": "Clip {{n}} de {{total}}",
       "earlier": "Mover el clip antes",
       "later": "Mover el clip después",
-      "remove": "Quitar el clip"
+      "remove": "Quitar el clip",
+      "paint": "Texto y dibujo",
+      "paint_edit": "Editar texto y dibujo"
     }
   },
   "landing": {

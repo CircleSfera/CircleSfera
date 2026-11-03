@@ -109,4 +109,19 @@ describe('StoryToolRail', () => {
 
     expect(onSelectTab).toHaveBeenCalledWith('draw');
   });
+
+  it('offers only text and drawing over the video of a Frame', () => {
+    renderWithProviders(
+      <StoryToolRail activeTab="none" onSelectTab={vi.fn()} paintOnly />,
+      { lng: 'es' },
+    );
+    const rail = screen.getByRole('toolbar');
+    const names = within(rail)
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label'))
+      .filter(Boolean);
+    expect(names).toEqual(expect.arrayContaining(['Texto', 'Dibujar']));
+    expect(names).not.toContain('Stickers');
+    expect(names).not.toContain('Fondo');
+  });
 });

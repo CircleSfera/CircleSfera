@@ -1,10 +1,11 @@
-import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Trash2, Type, X } from 'lucide-react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
 } from '../../constants/uploadLimits';
+import type { StoryElement } from '../../types';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import {
   CREATE_FULL_SCREEN,
@@ -20,9 +21,12 @@ import {
   trimClip,
 } from './frameClips';
 
+const StoryComposer = lazy(() => import('../story/StoryComposer'));
+
 export interface FrameClipsEditorProps {
   clips: FrameClip[];
-  onDone: (clips: FrameClip[]) => void;
+  /** The clips, and what is painted over them all when there is any. */
+  onDone: (clips: FrameClip[], layer: Blob | null) => void;
   onCancel: () => void;
 }
 
@@ -42,6 +46,10 @@ export default function FrameClipsEditor({
   const [chosen, setChosen] = useState(0);
   const clip = clips[Math.min(chosen, clips.length - 1)];
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Text and drawing over the whole Frame, painted on its first clip.
+  const [painting, setPainting] = useState(false);
+  const [layer, setLayer] = useState<Blob | null>(null);
+  const painted = useRef<StoryElement[]>([]);
 
   // One address per file, let go when the editor closes.
   const urls = useMemo(
@@ -79,6 +87,25 @@ export default function FrameClipsEditor({
       className={`${CREATE_FULL_SCREEN} flex flex-col text-white`}
       data-testid="frame-clips-editor"
     >
+      {painting && clips[0] ? (
+        <Suspense fallback={null}>
+          <StoryComposer
+            initialMedia={clips[0].file}
+            bgStyle=""
+            paintOnly
+            elements={painted.current}
+            onElementsChange={(elements) => {
+              painted.current = elements;
+            }}
+            onClose={() => setPainting(false)}
+            onPost={(blob) => {
+              // Nothing painted is no layer at all.
+              setLayer(painted.current.length > 0 ? blob : null);
+              setPainting(false);
+            }}
+          />
+        </Suspense>
+      ) : null}
       <BrandAmbientBackground placement="story" />
       <div className="relative flex items-center justify-between px-3 pt-[max(env(safe-area-inset-top),12px)] pb-2">
         <button
@@ -97,11 +124,24 @@ export default function FrameClipsEditor({
         </p>
         <button
           type="button"
-          onClick={() => onDone(clips)}
+          onClick={() => onDone(clips, layer)}
           disabled={!ready}
           className={`${CREATE_PRIMARY} min-h-11 px-5 disabled:opacity-40`}
         >
           {t('createPost.header.next')}
+        </button>
+      </div>
+
+      <div className="relative flex justify-center px-4 pb-2">
+        <button
+          type="button"
+          onClick={() => setPainting(true)}
+          className={`${CREATE_GLASS_ICON} w-auto! gap-1.5 px-4`}
+        >
+          <Type size={16} aria-hidden />
+          <span className="text-sm font-semibold">
+            {layer ? t('frames.clips.paint_edit') : t('frames.clips.paint')}
+          </span>
         </button>
       </div>
 

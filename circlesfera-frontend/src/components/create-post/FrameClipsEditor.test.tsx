@@ -1,8 +1,17 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { FRAME_MIN_DURATION_SEC } from '../../constants/uploadLimits';
 import { renderWithProviders } from '../../test/test-utils';
 import FrameClipsEditor from './FrameClipsEditor';
+
+const painter = vi.hoisted(() => ({ props: {} as Record<string, any> }));
+vi.mock('../story/StoryComposer', () => ({
+  default: (props: Record<string, any>) => {
+    painter.props = props;
+    return <div data-testid="painter" />;
+  },
+}));
+
 import { wholeClip } from './frameClips';
 
 const clip = (name: string, ms: number) =>
@@ -58,5 +67,34 @@ describe('FrameClipsEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
     expect(onDone.mock.calls[0][0][0]).toMatchObject({ startMs: 1000 });
+  });
+
+  it('paints text and drawing over the first clip, and goes on with that layer', async () => {
+    const onDone = open();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Texto y dibujo' }));
+    await screen.findByTestId('painter');
+    expect(painter.props.paintOnly).toBe(true);
+    expect(painter.props.initialMedia.name).toBe('a');
+
+    const layer = new Blob(['png'], { type: 'image/png' });
+    act(() => {
+      painter.props.onElementsChange([{ id: 't', type: 'text' }]);
+      painter.props.onPost(layer);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    expect(onDone.mock.calls[0][1]).toBe(layer);
+  });
+
+  it('goes on with no layer when nothing was painted', async () => {
+    const onDone = open();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Texto y dibujo' }));
+    await screen.findByTestId('painter');
+    act(() => painter.props.onPost(new Blob(['png'])));
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    expect(onDone.mock.calls[0][1]).toBeNull();
   });
 });
