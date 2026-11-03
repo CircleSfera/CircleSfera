@@ -91,6 +91,7 @@ If `BASE_URL` points at the Nest API (`:3000` / `:3005`), Playwright ignores it 
 | `support-tickets.spec.ts` | Guest portal + authenticated ticket |
 | `admin.spec.ts` | Apex `/admin` → Admin Panel host |
 | `admin-panel.spec.ts` | Project `admin-panel`; seeded operator + MFA |
+| `backoffice.spec.ts` | Project `backoffice`; every section as the seeded SUPER_ADMIN, a payments-only staff member, phone width |
 
 Visible Post media is `circlesfera-frontend/e2e/fixtures/post-4x5.jpg` (not a solid colour).
 
@@ -105,6 +106,11 @@ npx playwright test --project=chromium
 
 # Admin Panel login smoke (API running; seed applied)
 npx playwright test --project=admin-panel
+
+# Backoffice smoke (API running; seed applied with ADMIN_E2E_FORCE_TOTP=1).
+# The same database as the API, so test staff and teardown reach its accounts.
+DATABASE_URL="${E2E_DATABASE_URL:-postgresql://prisma:prisma@localhost:5433/circlesfera_e2e?schema=public}" \
+  npx playwright test --project=backoffice
 
 # All projects
 npm run test:e2e
@@ -125,3 +131,22 @@ reads the on-screen secret when present.
 
 Backend must accept cookies from `admin.localhost` (CORS / cookie domain). Vite allows that host via
 `server.allowedHosts`.
+
+## Backoffice
+
+`backoffice.spec.ts` signs staff in on `BACKOFFICE_BASE_URL` (default
+`http://backoffice.localhost:5173`) and needs the seed run with `ADMIN_E2E_FORCE_TOTP=1`, so the
+seeded SUPER_ADMIN has a known authenticator. The payments-only staff member is made per test
+(`helpers/staff.ts`): a test account is registered, a staff identity with its own role is linked to
+it, and both are removed when the test ends.
+
+- With `CORS_ORIGIN` unset, Nest already accepts `http://backoffice.localhost:5173` (local default).
+  When you set `CORS_ORIGIN`, include the Backoffice origin, or point `VITE_API_URL` at `/api/v1`
+  with `VITE_API_PROXY_TARGET` so the browser calls the API on its own origin.
+- Nightly CI runs `--project=chromium` only, without the seed: this project does not run there yet.
+
+## Cleanup
+
+The global teardown (`helpers/teardown.ts`) deletes every account on `@circlesfera.test` (every
+test account, `e2e…` and scenario prefixes alike), staff identities on that domain and roles whose
+id starts with `arole_e2e_`. Seed accounts are on `@circlesfera.com` and are never touched.

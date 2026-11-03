@@ -4,6 +4,7 @@
 export const DEFAULT_DEV_ORIGINS: readonly string[] = [
   'http://localhost:5173',
   'http://admin.localhost:5173',
+  'http://backoffice.localhost:5173',
   'http://localhost:8080',
   'http://localhost:8081',
   'http://[::1]:5173',

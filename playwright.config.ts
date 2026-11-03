@@ -22,6 +22,9 @@ const apexBaseURL = resolveApexBaseURL();
 /** Admin Panel host — hostname must start with `admin.` (see adminPanel.ts). */
 const adminBaseURL =
   process.env.ADMIN_BASE_URL || 'http://admin.localhost:5173';
+/** Backoffice host — hostname must start with `backoffice.` (see adminPanel.ts). */
+const backofficeBaseURL =
+  process.env.BACKOFFICE_BASE_URL || 'http://backoffice.localhost:5173';
 
 export default defineConfig({
   testDir: './e2e',
@@ -50,8 +53,17 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: [/admin-panel\.spec\.ts$/],
+      testIgnore: [/admin-panel\.spec\.ts$/, /backoffice\.spec\.ts$/],
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'backoffice',
+      testMatch: /backoffice\.spec\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: backofficeBaseURL,
+        storageState: { cookies: [], origins: [] },
+      },
     },
     {
       name: 'admin-panel',

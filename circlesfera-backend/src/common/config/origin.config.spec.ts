@@ -18,6 +18,15 @@ describe('Origin & CSP Hardening Configuration', () => {
       );
     });
 
+    it('allows the local staff sites by default: the Admin Panel and the Backoffice', () => {
+      expect(parseAllowedOrigins(undefined, false)).toEqual(
+        expect.arrayContaining([
+          'http://admin.localhost:5173',
+          'http://backoffice.localhost:5173',
+        ]),
+      );
+    });
+
     it('parses, trims and filters comma-separated origins', () => {
       const input =
         'https://circlesfera.com, https://admin.circlesfera.com , https://app.circlesfera.com';

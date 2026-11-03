@@ -33,11 +33,23 @@ export default async function globalTeardown() {
   const pool = new PoolCtor({ connectionString: databaseUrl() });
 
   try {
-    const res = await pool.query(
-      `DELETE FROM "users" WHERE email LIKE 'e2e%@circlesfera.test'`,
+    // Every account a test creates has an address on the reserved test
+    // domain, whatever its prefix (e2e…, a scenario such as settings…):
+    // see helpers/unique.ts and helpers/factories.ts. Seeded accounts use
+    // @circlesfera.com and are never touched. Deleting the person removes
+    // its Profiles, sign-ins and passkeys with it.
+    const users = await pool.query(
+      `DELETE FROM "users" WHERE email LIKE '%@circlesfera.test'`,
+    );
+    // Staff identities and roles a test created (helpers/staff.ts).
+    const staff = await pool.query(
+      `DELETE FROM "admin_identities" WHERE email LIKE '%@circlesfera.test'`,
+    );
+    const roles = await pool.query(
+      `DELETE FROM "admin_roles" WHERE id LIKE 'arole_e2e_%'`,
     );
     console.log(
-      `\n🧹 Cleaned up ${res.rowCount} E2E test users from database.`,
+      `\n🧹 Cleaned up ${users.rowCount} test users, ${staff.rowCount} test staff identities and ${roles.rowCount} test staff roles.`,
     );
   } catch (err) {
     console.error('Error cleaning up E2E users:', err);
