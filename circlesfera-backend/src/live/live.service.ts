@@ -127,12 +127,16 @@ export class LiveService {
   }
 
   /**
-   * A live's guests with a place, and the first guest on air in the shape of
-   * the one co-host a live had: kept for the apps still installed that read
+   * A live's guests as a viewer is answered them: those on air, and to the
+   * host of the live those invited too, as an invite is between the host
+   * and the invitee. With the first guest on air in the shape of the one
+   * co-host a live had: kept for the apps still installed that read
    * `coHostId` and `coHost`.
    */
-  private guestsAnswer(rows: GuestRow[]) {
-    const guests = rows.map(guestView);
+  private guestsAnswer(rows: GuestRow[], toHost: boolean) {
+    const guests = rows
+      .filter((row) => toHost || row.status === 'ON_AIR')
+      .map(guestView);
     const first = guests.find((guest) => guest.status === 'ON_AIR');
     return {
       guests,
@@ -390,7 +394,10 @@ export class LiveService {
     return streams.map(({ guests, ...stream }) => ({
       ...stream,
       host: this.mapStreamHost(stream.host),
-      ...this.guestsAnswer(guests),
+      ...this.guestsAnswer(
+        guests,
+        !!viewerProfileId && stream.hostId === viewerProfileId,
+      ),
     }));
   }
 
@@ -422,7 +429,10 @@ export class LiveService {
     return {
       ...rest,
       host: this.mapStreamHost(stream.host),
-      ...this.guestsAnswer(guests),
+      ...this.guestsAnswer(
+        guests,
+        !!viewerProfileId && stream.hostId === viewerProfileId,
+      ),
     };
   }
 
@@ -436,12 +446,26 @@ export class LiveService {
     return rows.map(guestView);
   }
 
-  // Everyone in the live's room is told who its guests are now.
+  // Everyone in the live's room is told who is on air with the host; the
+  // host alone is told who is invited too, as an invite is between them and
+  // the invitee.
   private async announceGuests(streamId: string) {
-    const guests = await this.listGuests(streamId);
-    this.gateway.server
-      .to(`live:${streamId}`)
-      .emit('live:guests_changed', { streamId, guests });
+    const [guests, stream] = await Promise.all([
+      this.listGuests(streamId),
+      this.prisma.liveStream.findUnique({
+        where: { id: streamId },
+        select: { hostId: true },
+      }),
+    ]);
+    this.gateway.server.to(`live:${streamId}`).emit('live:guests_changed', {
+      streamId,
+      guests: guests.filter((guest) => guest.status === 'ON_AIR'),
+    });
+    if (stream) {
+      this.gateway.server
+        .to(`user:${stream.hostId}`)
+        .emit('live:guest_invites', { streamId, guests });
+    }
   }
 
   // One guest's change at a time per live, so the count of places read is

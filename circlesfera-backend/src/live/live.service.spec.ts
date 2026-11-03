@@ -846,11 +846,17 @@ describe('LiveService', () => {
             status: 'INVITED',
           },
         ];
+        // The room is told nobody new is on air: an invite is between the
+        // host and the invitee.
         expect(mockServer.to).toHaveBeenCalledWith('live:stream-1');
-        expect(mockServer.emit).toHaveBeenCalledWith('live:guests_changed', {
-          streamId: 'stream-1',
-          guests: guestList,
-        });
+        expect(emitted('live:guests_changed')).toEqual([
+          ['live:guests_changed', { streamId: 'stream-1', guests: [] }],
+        ]);
+        // The host alone is told who is invited.
+        expect(mockServer.to).toHaveBeenCalledWith(`user:${HOST}`);
+        expect(emitted('live:guest_invites')).toEqual([
+          ['live:guest_invites', { streamId: 'stream-1', guests: guestList }],
+        ]);
         // An invite is not being on air.
         expect(emitted('live:cohost_joined')).toEqual([]);
         expect(result).toEqual({
@@ -1372,7 +1378,7 @@ describe('LiveService', () => {
         profile: { username: `${profileId}_name`, avatar: null },
       });
 
-      it('its guests with a place, and the first on air as the co-host installed apps show', async () => {
+      it('to a viewer, only the guests on air, and the first on air as the co-host installed apps show', async () => {
         mockPrismaService.liveStream.findUnique.mockResolvedValue({
           id: 'stream-1',
           hostId: HOST,
@@ -1405,12 +1411,6 @@ describe('LiveService', () => {
             avatar: null,
             status: 'ON_AIR',
           },
-          {
-            profileId: 'bea',
-            username: 'bea_name',
-            avatar: null,
-            status: 'INVITED',
-          },
         ]);
         expect(stream.coHostId).toBe('ana');
         expect(stream.coHost).toEqual({
@@ -1419,17 +1419,66 @@ describe('LiveService', () => {
         });
       });
 
+      it('to its host, the guests invited too', async () => {
+        mockPrismaService.liveStream.findUnique.mockResolvedValue({
+          id: 'stream-1',
+          hostId: HOST,
+          status: 'LIVE',
+          audience: 'EVERYONE',
+          host: shownHost,
+          guests: [row('ana', 'ON_AIR'), row('bea', 'INVITED')],
+        });
+
+        const stream = await service.getStream('stream-1', HOST);
+
+        expect(stream.guests).toEqual([
+          {
+            profileId: 'ana',
+            username: 'ana_name',
+            avatar: null,
+            status: 'ON_AIR',
+          },
+          {
+            profileId: 'bea',
+            username: 'bea_name',
+            avatar: null,
+            status: 'INVITED',
+          },
+        ]);
+      });
+
+      it('in the list of lives, the invited only to the host, and never without a viewer', async () => {
+        const lives = () => [
+          {
+            id: 'stream-1',
+            hostId: HOST,
+            host: { id: HOST, username: 'host', avatar: null },
+            guests: [row('ana', 'ON_AIR'), row('bea', 'INVITED')],
+          },
+        ];
+        const listed = async (viewer?: string) => {
+          mockPrismaService.liveStream.findMany.mockResolvedValueOnce(lives());
+          const [stream] = await service.getActiveStreams(viewer);
+          return stream.guests.map((guest) => guest.profileId);
+        };
+
+        expect(await listed(HOST)).toEqual(['ana', 'bea']);
+        expect(await listed('bea')).toEqual(['ana']);
+        expect(await listed(undefined)).toEqual(['ana']);
+      });
+
       it('no co-host while nobody is on air, whatever the old column says', async () => {
         mockPrismaService.liveStream.findMany.mockResolvedValueOnce([
           {
             id: 'stream-1',
+            hostId: HOST,
             coHostId: 'stale-column',
             host: { id: HOST, username: 'host', avatar: null },
             guests: [row('bea', 'INVITED')],
           },
         ]);
 
-        const [stream] = await service.getActiveStreams('viewer');
+        const [stream] = await service.getActiveStreams(HOST);
 
         expect(stream).toMatchObject({
           coHostId: null,
