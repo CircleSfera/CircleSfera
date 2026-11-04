@@ -54,14 +54,24 @@ export default function PostContent({
 
       {/* With the caption: the detail view on desktop renders this component
           twice, once for the caption and once for the figures. */}
-      {!hideCaption && (post.place?.name || post.location) && (
-        <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1 min-w-0">
-          <MapPin size={12} className="shrink-0 text-gray-400" aria-hidden />
-          <span className="truncate">
-            {post.place?.fullName || post.place?.name || post.location}
-          </span>
-        </p>
-      )}
+      {!hideCaption &&
+        (post.place?.name || post.location) &&
+        (post.place?.id ? (
+          <Link
+            to={`/explore/places/${post.place.id}`}
+            className="text-xs text-gray-400 hover:text-white mb-1.5 min-h-11 -my-2 flex items-center gap-1 min-w-0"
+          >
+            <MapPin size={12} className="shrink-0 text-gray-400" aria-hidden />
+            <span className="truncate">
+              {post.place.fullName || post.place.name}
+            </span>
+          </Link>
+        ) : (
+          <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1 min-w-0">
+            <MapPin size={12} className="shrink-0 text-gray-400" aria-hidden />
+            <span className="truncate">{post.location}</span>
+          </p>
+        ))}
 
       {!hideStats && !isDetailMode && (post._count?.comments ?? 0) > 0 && (
         <Link

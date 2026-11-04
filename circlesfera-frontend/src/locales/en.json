@@ -5884,5 +5884,22 @@
       "required": "Without this, the purchase cannot start.",
       "continue": "Continue to payment"
     }
+  },
+  "audio_page": {
+    "use": "Use this audio",
+    "count_one": "{{count}} post",
+    "count_other": "{{count}} posts",
+    "empty": "Nobody has used it yet",
+    "empty_sub": "Be the first to make a Frame with this audio.",
+    "error_title": "Could not open this audio",
+    "error_message": "It may no longer be available. Try again."
+  },
+  "place_page": {
+    "count_one": "{{count}} post",
+    "count_other": "{{count}} posts",
+    "empty": "No posts here yet",
+    "empty_sub": "Posts with this place will show here.",
+    "error_title": "Could not open this place",
+    "error_message": "It may no longer be available. Try again."
   }
 }

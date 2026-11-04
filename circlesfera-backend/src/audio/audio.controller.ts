@@ -18,6 +18,7 @@ import {
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { AudioService } from './audio.service.js';
 import { CreateAudioDto } from './dto/create-audio.dto.js';
 
@@ -71,7 +72,11 @@ export class AudioController {
   @Get(':id/posts')
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200, type: [Object] })
-  getPosts(@Param('id') id: string, @CurrentUser() user: CurrentUserData) {
-    return this.audioService.getAudioPosts(id, user.profileId);
+  getPosts(
+    @Param('id') id: string,
+    @Query() pagination: PaginationDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.audioService.getAudioPosts(id, pagination, user.profileId);
   }
 }
