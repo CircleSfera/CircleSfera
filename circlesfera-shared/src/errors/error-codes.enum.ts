@@ -54,6 +54,8 @@ export enum ErrorCode {
   STORY_NOT_FOUND = 'STORY_NOT_FOUND',
   MEDIA_NOT_FOUND = 'MEDIA_NOT_FOUND',
   COMMENT_NOT_FOUND = 'COMMENT_NOT_FOUND',
+  // A post already has the most pinned comments it can have.
+  COMMENT_PINS_FULL = 'COMMENT_PINS_FULL',
   MESSAGE_NOT_FOUND = 'MESSAGE_NOT_FOUND',
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.

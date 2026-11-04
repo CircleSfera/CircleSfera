@@ -1643,6 +1643,25 @@ describe('PostsService', () => {
       ).toHaveBeenCalledWith('post-1', 'new caption');
     });
 
+    it('turns comments and the like count off or on after posting', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        media: [],
+      });
+
+      await service.update('post-1', {
+        turnOffComments: true,
+        hideLikes: false,
+      });
+
+      const { data } = mockPrismaService.post.update.mock.calls.at(-1)[0];
+      expect(data.turnOffComments).toBe(true);
+      expect(data.hideLikes).toBe(false);
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).not.toHaveBeenCalled();
+    });
+
     it('does not check the post again when its caption is not changed', async () => {
       mockPrismaService.post.update.mockResolvedValue({
         id: 'post-1',

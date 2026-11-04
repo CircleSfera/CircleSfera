@@ -845,6 +845,8 @@ export class PostsService {
       data: {
         caption: dto.caption,
         visibility: dto.visibility as Visibility,
+        turnOffComments: dto.turnOffComments,
+        hideLikes: dto.hideLikes,
       },
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },

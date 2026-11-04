@@ -18,4 +18,11 @@ export const commentsApi = {
 
   unlike: (postId: string, commentId: string) =>
     apiClient.delete(`posts/${postId}/comments/${commentId}/like`),
+
+  // The author of the post pins a comment, so it is shown first.
+  pin: (postId: string, commentId: string) =>
+    apiClient.post(`posts/${postId}/comments/${commentId}/pin`),
+
+  unpin: (postId: string, commentId: string) =>
+    apiClient.delete(`posts/${postId}/comments/${commentId}/pin`),
 };

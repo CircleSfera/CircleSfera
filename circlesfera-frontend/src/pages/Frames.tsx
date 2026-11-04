@@ -358,6 +358,9 @@ export default function Frames() {
                       variant="drawer"
                       isOpen
                       postId={activeFrame.id}
+                      authorId={
+                        activeFrame.profileId || activeFrame.profile?.id
+                      }
                       onClose={() => setCommentsOpen(false)}
                     />
                   </div>
@@ -406,6 +409,7 @@ export default function Frames() {
                 variant="sidebar"
                 isOpen
                 postId={activeFrame.id}
+                authorId={activeFrame.profileId || activeFrame.profile?.id}
                 onClose={() => setCommentsOpen(false)}
               />
             </div>

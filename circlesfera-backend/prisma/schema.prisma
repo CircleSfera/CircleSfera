@@ -873,7 +873,7 @@ model HighlightStory {
 }
 
 model Comment {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   postId       String
   profileId    String
   content      String
@@ -881,9 +881,12 @@ model Comment {
   standardUrl  String? // New: Optimized variant (HLS)
   thumbnailUrl String? // New: Optimized variant
   mediaType    String? // "image", "video", "file"
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  isEdited     Boolean  @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  isEdited     Boolean   @default(false)
+  // When the author of the post pinned it; null when it is not pinned. A
+  // pinned comment is shown first, and a post has at most COMMENT_PINS_MAX.
+  pinnedAt     DateTime?
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?

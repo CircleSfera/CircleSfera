@@ -1,3 +1,4 @@
+import { COMMENT_PINS_MAX } from '@circlesfera/shared';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -335,6 +336,131 @@ describe('CommentsService', () => {
     });
   });
 
+  describe('pinned comments', () => {
+    const shownComment = {
+      id: 'c-1',
+      postId: 'post-1',
+      parentId: null,
+      pinnedAt: null,
+      moderationStatus: 'VISIBLE',
+    };
+
+    beforeEach(() => {
+      (mockPrismaService as any).$queryRaw = vi.fn().mockResolvedValue([]);
+      mockPrismaService.comment.findUnique.mockResolvedValue(shownComment);
+      mockPrismaService.comment.update.mockImplementation(async ({ data }) => ({
+        id: 'c-1',
+        pinnedAt: data.pinnedAt,
+      }));
+    });
+
+    it('lets the author of the post pin a comment, under the post lock', async () => {
+      mockPrismaService.comment.count.mockResolvedValue(COMMENT_PINS_MAX - 1);
+
+      const result = await service.pin('post-1', 'c-1', 'author-1');
+
+      expect(result.pinnedAt).toBeInstanceOf(Date);
+      expect((mockPrismaService as any).$queryRaw).toHaveBeenCalled();
+      expect(mockPrismaService.comment.count).toHaveBeenCalledWith({
+        where: { postId: 'post-1', pinnedAt: { not: null } },
+      });
+    });
+
+    it('refuses a pin past the most a post can have', async () => {
+      mockPrismaService.comment.count.mockResolvedValue(COMMENT_PINS_MAX);
+
+      await expect(
+        service.pin('post-1', 'c-1', 'author-1'),
+      ).rejects.toMatchObject({ response: { errorCode: 'COMMENT_PINS_FULL' } });
+      expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses anyone but the author of the post', async () => {
+      await expect(
+        service.pin('post-1', 'c-1', 'viewer-1'),
+      ).rejects.toMatchObject({ response: { errorCode: 'FORBIDDEN_ACCESS' } });
+      await expect(
+        service.unpin('post-1', 'c-1', 'viewer-1'),
+      ).rejects.toMatchObject({ response: { errorCode: 'FORBIDDEN_ACCESS' } });
+      expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('pins no reply, no comment of another post and none moderation hid', async () => {
+      for (const other of [
+        { ...shownComment, parentId: 'c-0' },
+        { ...shownComment, postId: 'post-2' },
+        { ...shownComment, moderationStatus: 'HIDDEN' },
+        null,
+      ]) {
+        mockPrismaService.comment.findUnique.mockResolvedValueOnce(other);
+        await expect(
+          service.pin('post-1', 'c-1', 'author-1'),
+        ).rejects.toMatchObject({
+          response: { errorCode: 'COMMENT_NOT_FOUND' },
+        });
+      }
+      expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('changes nothing when a pinned comment is pinned again', async () => {
+      const at = new Date('2026-11-01T00:00:00Z');
+      mockPrismaService.comment.findUnique.mockResolvedValue({
+        ...shownComment,
+        pinnedAt: at,
+      });
+
+      await expect(service.pin('post-1', 'c-1', 'author-1')).resolves.toEqual({
+        id: 'c-1',
+        pinnedAt: at,
+      });
+      expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('unpins a comment of the post', async () => {
+      const result = await service.unpin('post-1', 'c-1', 'author-1');
+
+      expect(result.pinnedAt).toBeNull();
+      expect(mockPrismaService.comment.update).toHaveBeenCalledWith({
+        where: { id: 'c-1' },
+        data: { pinnedAt: null },
+        select: { id: true, pinnedAt: true },
+      });
+    });
+
+    it('shows the pinned comments first on the first page, and not again below', async () => {
+      mockPrismaService.comment.findMany
+        .mockResolvedValueOnce([{ id: 'pinned' }])
+        .mockResolvedValueOnce([{ id: 'newest' }]);
+      mockPrismaService.comment.count.mockResolvedValue(2);
+
+      const result = await service.findByPost('post-1', { page: 1, limit: 10 });
+
+      expect((result.data as any[]).map((c) => c.id)).toEqual([
+        'pinned',
+        'newest',
+      ]);
+      const [pinnedArgs, pageArgs] = mockPrismaService.comment.findMany.mock
+        .calls as any[];
+      expect(pinnedArgs[0].where.pinnedAt).toEqual({ not: null });
+      expect(pinnedArgs[0].where.parentId).toBeNull();
+      expect(pinnedArgs[0].take).toBe(COMMENT_PINS_MAX);
+      expect(pageArgs[0].where.pinnedAt).toBeNull();
+    });
+
+    it('does not repeat the pinned comments on a later page', async () => {
+      mockPrismaService.comment.findMany.mockResolvedValue([{ id: 'older' }]);
+      mockPrismaService.comment.count.mockResolvedValue(12);
+
+      await service.findByPost('post-1', { page: 2, limit: 10 });
+
+      expect(mockPrismaService.comment.findMany).toHaveBeenCalledTimes(1);
+      expect(
+        (mockPrismaService.comment.findMany.mock.calls[0] as any)[0].where
+          .pinnedAt,
+      ).toBeNull();
+    });
+  });
+
   describe('findByPost', () => {
     it('returns empty comments when turnOffComments is true and viewer is not author', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
@@ -395,7 +521,10 @@ describe('CommentsService', () => {
     });
 
     it('should return paginated comments', async () => {
-      mockPrismaService.comment.findMany.mockResolvedValue([{ id: '1' }]);
+      // No pinned comment, then the page.
+      mockPrismaService.comment.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: '1' }]);
       mockPrismaService.comment.count.mockResolvedValue(1);
 
       const result = await service.findByPost('post-1', { page: 1, limit: 10 });
@@ -450,9 +579,9 @@ describe('CommentsService', () => {
     });
 
     it('should include like state when currentProfileId is provided', async () => {
-      mockPrismaService.comment.findMany.mockResolvedValue([
-        { id: '1', likes: [{ id: 'like-1' }] },
-      ]);
+      mockPrismaService.comment.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: '1', likes: [{ id: 'like-1' }] }]);
       mockPrismaService.comment.count.mockResolvedValue(1);
 
       const result = await service.findByPost(

@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
@@ -27,6 +27,32 @@ function show(over: Partial<Props> = {}) {
 }
 
 describe('PostMenu', () => {
+  it('offers the author to turn comments and the like count off, and on again', () => {
+    const onToggleComments = vi.fn();
+    const onToggleLikes = vi.fn();
+    show({ onToggleComments, onToggleLikes });
+    fireEvent.click(screen.getByText('Turn off commenting'));
+    fireEvent.click(screen.getByText('Hide like count'));
+    expect(onToggleComments).toHaveBeenCalledTimes(1);
+    expect(onToggleLikes).toHaveBeenCalledTimes(1);
+    cleanup();
+
+    show({
+      onToggleComments,
+      onToggleLikes,
+      commentsOff: true,
+      likesHidden: true,
+    });
+    expect(screen.getByText('Turn on commenting')).toBeInTheDocument();
+    expect(screen.getByText('Show like count')).toBeInTheDocument();
+  });
+
+  it('offers no such switch to someone else', () => {
+    show({ isOwner: false, onToggleComments: vi.fn(), onToggleLikes: vi.fn() });
+    expect(screen.queryByText('Turn off commenting')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hide like count')).not.toBeInTheDocument();
+  });
+
   it('offers the author to archive their post', () => {
     const onArchive = vi.fn();
     show({ onArchive });

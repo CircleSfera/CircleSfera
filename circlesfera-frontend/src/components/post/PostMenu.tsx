@@ -6,8 +6,12 @@ import {
   CirclePlus,
   EyeOff,
   Flag,
+  Heart,
+  HeartOff,
   Info,
   Megaphone,
+  MessageCircle,
+  MessageCircleOff,
   Pencil,
   Trash2,
   UserX,
@@ -36,6 +40,11 @@ interface PostMenuProps {
   onAddToStory?: () => void;
   // Why the post is shown to the viewer.
   onWhy?: () => void;
+  // The author's: comments and the like count, off or on at any time.
+  onToggleComments?: () => void;
+  commentsOff?: boolean;
+  onToggleLikes?: () => void;
+  likesHidden?: boolean;
 }
 
 interface MenuItemProps {
@@ -127,6 +136,10 @@ export default function PostMenu({
   onHideAuthor,
   onAddToStory,
   onWhy,
+  onToggleComments,
+  commentsOff = false,
+  onToggleLikes,
+  likesHidden = false,
 }: PostMenuProps) {
   const { t } = useTranslation();
   if (!showMenu) return null;
@@ -184,6 +197,28 @@ export default function PostMenu({
                   : t('post.menu.archive')
               }
               onClick={onArchive}
+            />
+          )}
+          {onToggleComments && (
+            <MenuItem
+              icon={commentsOff ? MessageCircle : MessageCircleOff}
+              label={
+                commentsOff
+                  ? t('post.menu.turn_on_comments')
+                  : t('post.menu.turn_off_comments')
+              }
+              onClick={onToggleComments}
+            />
+          )}
+          {onToggleLikes && (
+            <MenuItem
+              icon={likesHidden ? Heart : HeartOff}
+              label={
+                likesHidden
+                  ? t('post.menu.show_like_count')
+                  : t('post.menu.hide_like_count')
+              }
+              onClick={onToggleLikes}
             />
           )}
           <MenuDivider />
