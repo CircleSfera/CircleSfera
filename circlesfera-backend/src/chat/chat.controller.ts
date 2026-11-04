@@ -39,7 +39,11 @@ import { EditMessageUseCase } from './use-cases/messages/edit-message.use-case.j
 import { MarkAsReadUseCase } from './use-cases/messages/mark-as-read.use-case.js';
 import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.js';
 // Queries
-import { GetConversationsQuery } from './use-cases/queries/get-conversations.query.js';
+import {
+  CHAT_FOLDERS,
+  type ChatFolder,
+  GetConversationsQuery,
+} from './use-cases/queries/get-conversations.query.js';
 import {
   GetMessagesQuery,
   MESSAGE_PAGE,
@@ -94,11 +98,13 @@ export class ChatController {
   @ApiResponse({ status: 200 })
   async getConversations(
     @Req() req: AuthRequest,
-    @Query('folder') folder?: 'inbox' | 'requests',
+    @Query('folder') folder?: string,
   ): Promise<Conversation[]> {
     return this.getConversationsQuery.execute(
       req.user.profileId,
-      folder === 'requests' ? 'requests' : 'inbox',
+      CHAT_FOLDERS.includes(folder as ChatFolder)
+        ? (folder as ChatFolder)
+        : 'inbox',
     );
   }
 

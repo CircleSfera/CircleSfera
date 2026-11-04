@@ -72,6 +72,23 @@ const CONVERSATION_INCLUDE = {
   },
 } satisfies Prisma.ConversationInclude;
 
+// The three lists of a Profile's conversations: the inbox, message requests,
+// and the requests with one of its hidden words.
+export type ChatFolder = 'inbox' | 'requests' | 'hidden_requests';
+export const CHAT_FOLDERS: ChatFolder[] = [
+  'inbox',
+  'requests',
+  'hidden_requests',
+];
+
+function folderWhere(folder: ChatFolder) {
+  if (folder === 'inbox') return { hasAccepted: true };
+  return {
+    hasAccepted: false,
+    requestHiddenByWords: folder === 'hidden_requests',
+  };
+}
+
 @Injectable()
 export class GetConversationsQuery {
   constructor(
@@ -80,15 +97,14 @@ export class GetConversationsQuery {
     @Inject(PostPaywallService) private postPaywall: PostPaywallService,
   ) {}
 
-  async execute(profileId: string, folder: 'inbox' | 'requests' = 'inbox') {
-    const hasAccepted = folder !== 'requests';
+  async execute(profileId: string, folder: ChatFolder = 'inbox') {
     const conversations = await this.prisma.conversation.findMany({
       where: {
         participants: {
           some: {
             profileId,
             deletedAt: null,
-            hasAccepted,
+            ...folderWhere(folder),
           },
         },
       },
@@ -113,7 +129,7 @@ export class GetConversationsQuery {
   // page.
   async executePage(
     profileId: string,
-    folder: 'inbox' | 'requests',
+    folder: ChatFolder,
     cursor?: string,
     limit: number = CONVERSATION_PAGE_DEFAULT,
   ) {
@@ -125,7 +141,7 @@ export class GetConversationsQuery {
           some: {
             profileId,
             deletedAt: null,
-            hasAccepted: folder !== 'requests',
+            ...folderWhere(folder),
           },
         },
         ...(after && {

@@ -9,15 +9,19 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { CONVERSATION_PAGE_MAX } from '../use-cases/queries/get-conversations.query.js';
+import {
+  CHAT_FOLDERS,
+  type ChatFolder,
+  CONVERSATION_PAGE_MAX,
+} from '../use-cases/queries/get-conversations.query.js';
 
 // One page of the conversation list: the folder, where the page before
 // ended (the cursor it returned) and how many to read.
 export class ConversationPageDto {
-  @ApiProperty({ required: false, enum: ['inbox', 'requests'] })
+  @ApiProperty({ required: false, enum: CHAT_FOLDERS })
   @IsOptional()
-  @IsIn(['inbox', 'requests'])
-  folder?: 'inbox' | 'requests';
+  @IsIn(CHAT_FOLDERS)
+  folder?: ChatFolder;
 
   @ApiProperty({ required: false, type: () => String, maxLength: 200 })
   @IsOptional()

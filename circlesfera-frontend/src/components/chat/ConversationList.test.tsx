@@ -70,7 +70,9 @@ describe('ConversationList', () => {
           items:
             folder === 'requests'
               ? [conv('c9', 'stranger', 'hola')]
-              : [conv('c1', 'ana', 'first'), conv('c2', 'leo', 'second')],
+              : folder === 'hidden_requests'
+                ? [conv('c7', 'troll', 'algo feo')]
+                : [conv('c1', 'ana', 'first'), conv('c2', 'leo', 'second')],
           nextCursor: null,
         },
       })) as never);
@@ -101,6 +103,28 @@ describe('ConversationList', () => {
 
     expect(await screen.findByText('stranger')).toBeInTheDocument();
     expect(screen.queryByText('ana')).not.toBeInTheDocument();
+  });
+
+  it('keeps the requests with a hidden word in their own list, reached from the requests', async () => {
+    const { i18n } = renderWithProviders(<ConversationList />, { lng: 'en' });
+    await screen.findByText('ana');
+    expect(chatApi.getConversationPage).not.toHaveBeenCalledWith(
+      'hidden_requests',
+      null,
+    );
+
+    fireEvent.click(screen.getByText(i18n!.t('chat.requests')));
+    await screen.findByText('stranger');
+    expect(screen.queryByText('troll')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Hidden requests\s*1/ }),
+    );
+    expect(await screen.findByText('troll')).toBeInTheDocument();
+    expect(screen.queryByText('stranger')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hidden requests' }));
+    expect(await screen.findByText('stranger')).toBeInTheDocument();
   });
 
   it('says there are no requests in the app language', async () => {
