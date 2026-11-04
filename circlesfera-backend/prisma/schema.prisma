@@ -562,17 +562,20 @@ model Post {
   // Offset into the selected track (ms). Clip window length = media duration at playback.
   audioStartMs     Int           @default(0)
 
-  moderationStatus ModerationStatus @default(VISIBLE)
-  moderationNote   String?          @db.Text
+  moderationStatus  ModerationStatus @default(VISIBLE)
+  moderationNote    String?          @db.Text
   // When it was last hidden or removed by moderation: the six months to
   // appeal it count from then.
-  moderatedAt      DateTime?
+  moderatedAt       DateTime?
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt        DateTime?
+  deletedAt         DateTime?
   // When its author archived it: shown in their archive only, with its likes
   // and comments, until they show it on their profile again.
-  archivedAt       DateTime?
+  archivedAt        DateTime?
+  // When its author pinned it to the top of their profile; null when not
+  // pinned. A Profile pins at most PROFILE_PINS_MAX.
+  pinnedToProfileAt DateTime?
 
   // Premium Content
 
