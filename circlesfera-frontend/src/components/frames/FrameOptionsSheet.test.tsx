@@ -126,15 +126,18 @@ describe('FrameOptionsSheet', () => {
     });
 
     it('offers the same options, with a named close button and a backdrop that closes', () => {
-      const { props, container } = show({
+      const { props } = show({
         presentation: 'default',
         isOwner: true,
       });
       expect(options()).toEqual(['Edit', 'Delete', 'Save']);
 
       fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      // The sheet is drawn on the page itself, above its bars.
       fireEvent.click(
-        container.querySelector('.fixed.inset-0.bg-black\\/60') as HTMLElement,
+        document.body.querySelector(
+          '.fixed.inset-0.bg-black\\/60',
+        ) as HTMLElement,
       );
       expect(props.onClose).toHaveBeenCalledTimes(2);
     });

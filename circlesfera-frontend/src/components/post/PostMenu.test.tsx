@@ -16,6 +16,7 @@ function show(over: Partial<Props> = {}) {
     menuRef: { current: null },
     menuPosition: { top: 0, right: 0 },
     isOwner: true,
+    onClose: vi.fn(),
     onEdit: vi.fn(),
     onDelete: vi.fn(),
     onReport: vi.fn(),
@@ -82,5 +83,29 @@ describe('PostMenu', () => {
   it('offers no reason to the author of the post', () => {
     show({ isOwner: true, onWhy: vi.fn() });
     expect(screen.queryByText('Why am I seeing this?')).not.toBeInTheDocument();
+  });
+
+  it('opens as a sheet from the bottom on a phone, closed by the shade behind it', () => {
+    const props = show({ isOwner: false });
+    const sheet = screen.getByRole('dialog', { name: 'Options' });
+    expect(sheet).toHaveTextContent('Report');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens as a menu by its button on a wide screen', () => {
+    const wide = vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) =>
+        ({
+          matches: true,
+          media: query,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }) as unknown as MediaQueryList,
+    );
+    show({ isOwner: false });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Report')).toBeInTheDocument();
+    wide.mockRestore();
   });
 });
