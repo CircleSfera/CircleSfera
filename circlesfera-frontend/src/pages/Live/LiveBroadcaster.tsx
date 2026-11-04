@@ -4,6 +4,7 @@ import {
   LIVE_GUESTS_MAX,
   LIVE_TITLE_MAX_LENGTH,
   type LiveAudience,
+  type LiveChatMessage,
 } from '@circlesfera/shared';
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
@@ -72,7 +73,7 @@ export default function LiveBroadcaster() {
   const [streamId, setStreamId] = useState<string | null>(null);
   // Up to three guests: chosen in the setup, invited and taken off on air.
   const liveGuests = useLiveGuests(streamId);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<LiveChatMessage[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [hearts, setHearts] = useState<
     { id: string; x: number; emoji: string }[]
@@ -109,7 +110,8 @@ export default function LiveBroadcaster() {
   const [pinnedComment, setPinnedComment] = useState<PinnedCommentData | null>(
     null,
   );
-  const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
+  const [selectedMessage, setSelectedMessage] =
+    useState<LiveChatMessage | null>(null);
 
   // Phase 2 State
   const [liveGoal, setLiveGoal] = useState<LiveGoalData | null>(null);
@@ -192,7 +194,7 @@ export default function LiveBroadcaster() {
     join();
     socket.on('connect', join);
 
-    socket.on('live:chat_message', (msg: any) => {
+    socket.on('live:chat_message', (msg: LiveChatMessage) => {
       setChatMessages((prev) => [...prev.slice(-49), msg]);
       setCommentsCount((count) => count + 1);
       setTimeout(
@@ -380,8 +382,8 @@ export default function LiveBroadcaster() {
       streamId,
       commentId: selectedMessage.id,
       message: selectedMessage.message,
-      username: selectedMessage.user.username,
-      avatar: selectedMessage.user.avatar,
+      username: selectedMessage.profile.username,
+      avatar: selectedMessage.profile.avatar,
     });
     setSelectedMessage(null);
   };
@@ -724,7 +726,7 @@ export default function LiveBroadcaster() {
                     }`}
                   >
                     <span className="font-extrabold text-white">
-                      {msg.user.username}:{' '}
+                      {msg.profile.username}:{' '}
                     </span>
                     <span className="text-white/90">{msg.message}</span>
                   </span>
@@ -795,7 +797,7 @@ export default function LiveBroadcaster() {
           <LiveSheet
             isOpen={!!selectedMessage}
             onClose={() => setSelectedMessage(null)}
-            title={selectedMessage?.user?.username ?? ''}
+            title={selectedMessage?.profile.username ?? ''}
           >
             <p className="mb-3 text-sm text-white/80 wrap-break-word">
               {selectedMessage?.message}

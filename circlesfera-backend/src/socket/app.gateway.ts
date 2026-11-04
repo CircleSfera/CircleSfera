@@ -6,6 +6,7 @@ import type {
   ChatMessageDeletedEvent,
   ChatMessageEditedEvent,
   ChatMessageSentEvent,
+  LiveChatMessage,
   NotificationDispatchedEvent,
   UserSessionTerminateEvent,
 } from '@circlesfera/shared';
@@ -784,18 +785,20 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const cleanMessage = payload.message.trim().slice(0, 500);
     if (!cleanMessage) return;
 
-    const userProfile = await this.liveRealtimeService.getUserProfile(
-      client.data?.user?.sub,
-    );
+    const profileId = client.data?.user?.profileId;
+    if (!profileId) return;
+    const profile = await this.liveRealtimeService.getChatAuthor(profileId);
+    if (!profile) return;
 
-    if (userProfile) {
-      this.server.to(`live:${payload.streamId}`).emit('live:chat_message', {
-        id: crypto.randomUUID(),
-        profile: userProfile,
-        message: cleanMessage,
-        timestamp: new Date().toISOString(),
-      });
-    }
+    const comment: LiveChatMessage = {
+      id: crypto.randomUUID(),
+      profile,
+      message: cleanMessage,
+      timestamp: new Date().toISOString(),
+    };
+    this.server
+      .to(`live:${payload.streamId}`)
+      .emit('live:chat_message', comment);
   }
 
   /**

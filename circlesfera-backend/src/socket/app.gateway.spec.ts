@@ -46,7 +46,7 @@ interface ServiceOverrides {
     canEnterRoom: ReturnType<typeof vi.fn>;
     decrementViewerCount: ReturnType<typeof vi.fn>;
     isStreamHostOrOnAirGuest: ReturnType<typeof vi.fn>;
-    getUserProfile: ReturnType<typeof vi.fn>;
+    getChatAuthor: ReturnType<typeof vi.fn>;
     hasElitePlan: ReturnType<typeof vi.fn>;
   }>;
   configService?: {
@@ -88,7 +88,7 @@ function gatewayWithServer(
       canEnterRoom: vi.fn().mockResolvedValue(true),
       decrementViewerCount: vi.fn().mockResolvedValue(0),
       isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(false),
-      getUserProfile: vi.fn().mockResolvedValue(null),
+      getChatAuthor: vi.fn().mockResolvedValue(null),
     },
     overrides.configService as any,
   );
@@ -504,7 +504,7 @@ describe('AppGateway payload bounds and authorization', () => {
       incrementViewerCount: vi.fn(),
       decrementViewerCount: vi.fn(),
       isStreamHostOrOnAirGuest: vi.fn(),
-      getUserProfile: vi.fn().mockResolvedValue({
+      getChatAuthor: vi.fn().mockResolvedValue({
         id: 'profile-1',
         username: 'tester',
         avatar: null,
@@ -533,6 +533,68 @@ describe('AppGateway payload bounds and authorization', () => {
     );
   });
 
+  it('shows a live comment as the Profile the person is using', async () => {
+    const mockEmit = vi.fn();
+    const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+    const mockLiveRealtime = {
+      incrementViewerCount: vi.fn(),
+      decrementViewerCount: vi.fn(),
+      isStreamHostOrOnAirGuest: vi.fn(),
+      getChatAuthor: vi.fn().mockResolvedValue({
+        id: 'profile-2',
+        username: 'second',
+        avatar: 'second.jpg',
+      }),
+    };
+    const gateway = gatewayWithServer(
+      { to: mockTo },
+      { liveRealtimeService: mockLiveRealtime },
+    );
+
+    await gateway.handleLiveChat(
+      { streamId: 'stream-123', message: 'hey' },
+      mockSocket('profile-2', ['stream-123']),
+    );
+
+    expect(mockLiveRealtime.getChatAuthor).toHaveBeenCalledWith('profile-2');
+    expect(mockEmit).toHaveBeenCalledWith('live:chat_message', {
+      id: expect.any(String),
+      profile: { id: 'profile-2', username: 'second', avatar: 'second.jpg' },
+      message: 'hey',
+      timestamp: expect.any(String),
+    });
+  });
+
+  it('sends no live comment without a Profile to show it as', async () => {
+    const mockEmit = vi.fn();
+    const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+    const mockLiveRealtime = {
+      incrementViewerCount: vi.fn(),
+      decrementViewerCount: vi.fn(),
+      isStreamHostOrOnAirGuest: vi.fn(),
+      getChatAuthor: vi.fn().mockResolvedValue(null),
+    };
+    const gateway = gatewayWithServer(
+      { to: mockTo },
+      { liveRealtimeService: mockLiveRealtime },
+    );
+    const socket = mockSocket('profile-gone', ['stream-123']);
+
+    await gateway.handleLiveChat(
+      { streamId: 'stream-123', message: 'hey' },
+      socket,
+    );
+    expect(mockEmit).not.toHaveBeenCalled();
+
+    (socket.data.user as { profileId?: string }).profileId = undefined;
+    await gateway.handleLiveChat(
+      { streamId: 'stream-123', message: 'hey' },
+      socket,
+    );
+    expect(mockLiveRealtime.getChatAuthor).toHaveBeenCalledTimes(1);
+    expect(mockEmit).not.toHaveBeenCalled();
+  });
+
   it('rejects live:pin_comment when caller is not the stream host or a guest on air', async () => {
     const mockEmit = vi.fn();
     const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
@@ -540,7 +602,7 @@ describe('AppGateway payload bounds and authorization', () => {
       incrementViewerCount: vi.fn(),
       decrementViewerCount: vi.fn(),
       isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(false),
-      getUserProfile: vi.fn(),
+      getChatAuthor: vi.fn(),
     };
 
     const gateway = gatewayWithServer(
@@ -570,7 +632,7 @@ describe('AppGateway payload bounds and authorization', () => {
       incrementViewerCount: vi.fn(),
       decrementViewerCount: vi.fn(),
       isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(true),
-      getUserProfile: vi.fn(),
+      getChatAuthor: vi.fn(),
     };
 
     const gateway = gatewayWithServer(
@@ -608,7 +670,7 @@ describe('AppGateway payload bounds and authorization', () => {
       incrementViewerCount: vi.fn(),
       decrementViewerCount: vi.fn(),
       isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(false),
-      getUserProfile: vi.fn(),
+      getChatAuthor: vi.fn(),
     };
 
     const gateway = gatewayWithServer(
@@ -630,7 +692,7 @@ describe('AppGateway payload bounds and authorization', () => {
       incrementViewerCount: vi.fn(),
       decrementViewerCount: vi.fn(),
       isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(true),
-      getUserProfile: vi.fn(),
+      getChatAuthor: vi.fn(),
     };
 
     const gateway = gatewayWithServer(
@@ -655,7 +717,7 @@ describe('AppGateway payload bounds and authorization', () => {
       incrementViewerCount: vi.fn(),
       decrementViewerCount: vi.fn(),
       isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(false),
-      getUserProfile: vi.fn(),
+      getChatAuthor: vi.fn(),
     };
 
     const gateway = gatewayWithServer(
@@ -688,7 +750,7 @@ describe('AppGateway payload bounds and authorization', () => {
       incrementViewerCount: vi.fn(),
       decrementViewerCount: vi.fn(),
       isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(true),
-      getUserProfile: vi.fn(),
+      getChatAuthor: vi.fn(),
     };
 
     const gateway = gatewayWithServer(
@@ -717,7 +779,7 @@ describe('AppGateway payload bounds and authorization', () => {
       incrementViewerCount: vi.fn(),
       decrementViewerCount: vi.fn(),
       isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(false),
-      getUserProfile: vi.fn(),
+      getChatAuthor: vi.fn(),
     };
 
     const gateway = gatewayWithServer(
@@ -746,7 +808,7 @@ describe('AppGateway payload bounds and authorization', () => {
       incrementViewerCount: vi.fn(),
       decrementViewerCount: vi.fn(),
       isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(true),
-      getUserProfile: vi.fn(),
+      getChatAuthor: vi.fn(),
     };
 
     const gateway = gatewayWithServer(
@@ -1439,7 +1501,7 @@ describe('AppGateway payload bounds and authorization', () => {
       const mockTo = vi.fn().mockReturnValue({ emit: vi.fn() });
       const mockLiveRealtime = {
         decrementViewerCount: vi.fn(),
-        getUserProfile: vi.fn(),
+        getChatAuthor: vi.fn(),
         isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(true),
         hasElitePlan: vi.fn(),
       };
@@ -1515,7 +1577,7 @@ describe('AppGateway payload bounds and authorization', () => {
         incrementViewerCount: vi.fn().mockResolvedValue(5),
         decrementViewerCount: vi.fn().mockResolvedValue(4),
         isStreamHostOrOnAirGuest: vi.fn(),
-        getUserProfile: vi.fn(),
+        getChatAuthor: vi.fn(),
         canEnterRoom: vi.fn().mockResolvedValue(true),
       };
 
@@ -1581,7 +1643,7 @@ describe('AppGateway payload bounds and authorization', () => {
         decrementViewerCount: vi.fn().mockResolvedValue(2),
         isStreamHostOrOnAirGuest: vi.fn(),
         canEnterRoom: vi.fn().mockResolvedValue(true),
-        getUserProfile: vi.fn(),
+        getChatAuthor: vi.fn(),
       };
       const watching = mockSocket('prof-hidden', ['s-1']);
       const elsewhere = mockSocket('prof-hidden', ['s-2']);
@@ -1635,7 +1697,7 @@ describe('AppGateway payload bounds and authorization', () => {
         decrementViewerCount: vi.fn().mockResolvedValue(1),
         isStreamHostOrOnAirGuest: vi.fn(),
         canEnterRoom: vi.fn().mockResolvedValue(true),
-        getUserProfile: vi.fn().mockResolvedValue({
+        getChatAuthor: vi.fn().mockResolvedValue({
           id: 'prof-other',
           username: 'other',
           avatar: null,
@@ -1673,7 +1735,7 @@ describe('AppGateway payload bounds and authorization', () => {
         incrementViewerCount: vi.fn(),
         decrementViewerCount: vi.fn().mockResolvedValue(0),
         isStreamHostOrOnAirGuest: vi.fn(),
-        getUserProfile: vi.fn(),
+        getChatAuthor: vi.fn(),
       };
       const gateway = gatewayWithServer(
         { to: mockTo },
@@ -1705,7 +1767,7 @@ describe('AppGateway payload bounds and authorization', () => {
           .mockResolvedValueOnce(2)
           .mockResolvedValueOnce(0),
         isStreamHostOrOnAirGuest: vi.fn(),
-        getUserProfile: vi.fn(),
+        getChatAuthor: vi.fn(),
       };
 
       const gateway = gatewayWithServer(
@@ -1749,7 +1811,7 @@ describe('AppGateway payload bounds and authorization', () => {
         incrementViewerCount: vi.fn(),
         decrementViewerCount: vi.fn(),
         isStreamHostOrOnAirGuest: vi.fn(),
-        getUserProfile: vi.fn(),
+        getChatAuthor: vi.fn(),
       };
 
       const gateway = gatewayWithServer(
@@ -1773,7 +1835,7 @@ describe('AppGateway payload bounds and authorization', () => {
           .fn()
           .mockResolvedValueOnce(false)
           .mockResolvedValueOnce(true),
-        getUserProfile: vi.fn(),
+        getChatAuthor: vi.fn(),
       };
 
       const gateway = gatewayWithServer(
@@ -2688,7 +2750,7 @@ describe('AppGateway payload bounds and authorization', () => {
         incrementViewerCount: vi.fn(),
         decrementViewerCount: vi.fn(),
         isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(false),
-        getUserProfile: vi.fn(),
+        getChatAuthor: vi.fn(),
       };
       const gateway = gatewayWithServer(
         {},

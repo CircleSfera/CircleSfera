@@ -1,3 +1,4 @@
+import type { LiveChatMessage } from '@circlesfera/shared';
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -79,7 +80,7 @@ export default function LiveViewer() {
     streamTitle?: string | null;
     host: { id?: string; username?: string; avatar?: string | null };
   } | null>(null);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<LiveChatMessage[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
 
@@ -159,7 +160,7 @@ export default function LiveViewer() {
       }
     });
 
-    socket.on('live:chat_message', (msg: any) => {
+    socket.on('live:chat_message', (msg: LiveChatMessage) => {
       setChatMessages((prev) => [...prev.slice(-49), msg]); // Keep last 50
       setTimeout(
         () => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }),
@@ -610,7 +611,7 @@ export default function LiveViewer() {
                     className="text-white text-xs sm:text-sm bg-black/40 border border-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit max-w-[85%] shadow-md flex items-center gap-1.5"
                   >
                     <span className="font-extrabold text-white drop-shadow-sm">
-                      {msg.user.username}
+                      {msg.profile.username}
                     </span>
                     <span className="text-white/90 font-medium">
                       {msg.message}
