@@ -4,6 +4,10 @@ import { Track } from 'livekit-client';
 import { useTranslation } from 'react-i18next';
 
 /** The host and every guest on air, each in their own tile. */
+
+// The live service's stylesheet shows an upright video whole, with bands
+// above and below it (object-fit: contain, on a more specific rule); here
+// every video fills its tile, as the frame of a live asks.
 const STAGE_MAX = 1 + LIVE_GUESTS_MAX;
 
 /**
@@ -35,7 +39,7 @@ export default function CinematicStage({
       <div className="absolute inset-0 w-full h-full bg-surface-base overflow-hidden">
         <VideoTrack
           trackRef={tracks[0]}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-cover!"
         />
         <div className="absolute inset-0 bg-linear-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
       </div>
@@ -61,7 +65,7 @@ export default function CinematicStage({
         >
           <VideoTrack
             trackRef={trackRef}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover!"
           />
           <div className="absolute bottom-3 left-3 flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-full border border-white/20 bg-black/70 px-3 py-1 text-xs font-bold text-white shadow-md backdrop-blur-md">
             <span className="h-2 w-2 shrink-0 rounded-full bg-brand-primary" />

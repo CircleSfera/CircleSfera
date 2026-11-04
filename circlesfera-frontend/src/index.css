@@ -635,6 +635,28 @@ video {
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
 }
 
+/* What is drawn straight over the video, as on Instagram's live: white
+   icons and words with a soft shadow, so they read on a light picture too,
+   with nothing drawn around them. */
+
+.live-icon {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+.live-text {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* The comment field over the video: an outline, the video seen through it. */
+.live-field {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.live-field:focus {
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
 /* The margins of a Live screen: every element laid over the video, on every
    Live screen, begins and ends at these three distances and none sets its
    own. Nothing touches an edge, and nothing sits under the clock.

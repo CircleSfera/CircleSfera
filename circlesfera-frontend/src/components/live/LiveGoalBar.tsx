@@ -1,6 +1,3 @@
-import { Target } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-
 export interface LiveGoalData {
   title: string;
   target: number;
@@ -10,28 +7,12 @@ export interface LiveGoalData {
 interface LiveGoalBarProps {
   goal: LiveGoalData | null;
   onClick?: () => void;
-  isHost?: boolean;
 }
 
-export default function LiveGoalBar({
-  goal,
-  onClick,
-  isHost,
-}: LiveGoalBarProps) {
-  const { t } = useTranslation();
-  if (!goal) {
-    if (!isHost) return null;
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="live-glass flex min-h-11 items-center gap-1.5 rounded-full px-4 text-xs font-semibold text-white transition-transform active:scale-95"
-      >
-        <Target size={16} aria-hidden />
-        <span>{t('live.goal.add')}</span>
-      </button>
-    );
-  }
+export default function LiveGoalBar({ goal, onClick }: LiveGoalBarProps) {
+  // With no goal there is nothing to show: the host adds one from the
+  // bottom row.
+  if (!goal) return null;
 
   const percentage = Math.min(
     100,
