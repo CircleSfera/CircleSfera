@@ -3,9 +3,11 @@ import { StrictMode, startTransition } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter } from 'react-router-dom';
+import { AppUpdateOnNavigation } from './components/AppUpdateOnNavigation';
 import { AppToaster } from './components/ui/AppToaster';
 import { i18nReady } from './i18n';
 import { initSentry } from './sentry.ts';
+import { watchForAppUpdates } from './utils/appUpdates';
 import { moveToOneAddress } from './utils/oneAddress';
 import { watchForStaleBuild } from './utils/staleBuild';
 import './index.css';
@@ -37,6 +39,7 @@ const renderApp = () =>
             <QueryClientProvider client={queryClient}>
               <BrowserRouter useTransitions={false}>
                 <App />
+                <AppUpdateOnNavigation />
                 <AppToaster />
               </BrowserRouter>
             </QueryClientProvider>
@@ -78,16 +81,6 @@ if (!moveToOneAddress()) {
 // Register Service Worker for PWA & Push Notifications auto-initiation
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/service-worker.js')
-      .then((reg) => {
-        console.log(
-          'Service Worker registered successfully with scope:',
-          reg.scope,
-        );
-      })
-      .catch((err) => {
-        console.error('Service Worker registration failed:', err);
-      });
+    watchForAppUpdates(navigator.serviceWorker);
   });
 }

@@ -16,6 +16,10 @@ vi.mock('@livekit/components-react', () => ({
   RoomAudioRenderer: () => null,
 }));
 
+// The mirror works on a real camera track (MirrorOwnCamera.test.tsx).
+vi.mock('../../components/live/MirrorOwnCamera', () => ({
+  MirrorOwnCamera: () => null,
+}));
 vi.mock('../../components/live/CinematicStage', () => ({
   default: () => <div data-testid="cinematic-stage" />,
 }));
