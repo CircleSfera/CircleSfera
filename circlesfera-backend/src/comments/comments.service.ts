@@ -426,8 +426,15 @@ export class CommentsService {
     return this.prisma.$transaction(async (tx) => {
       // The post is locked so two pins at once cannot pass the limit.
       await tx.$queryRaw`SELECT id FROM "posts" WHERE id = ${postId} FOR UPDATE`;
+      // Only the pins anyone can see count: one moderation took down frees
+      // its place.
       const pins = await tx.comment.count({
-        where: { postId, pinnedAt: { not: null } },
+        where: {
+          postId,
+          parentId: null,
+          pinnedAt: { not: null },
+          moderationStatus: SHOWN_COMMENT_STATUSES,
+        },
       });
       if (pins >= COMMENT_PINS_MAX) {
         throw AppException.Conflict(
