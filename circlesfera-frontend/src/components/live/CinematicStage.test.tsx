@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import CinematicStage from './CinematicStage';
@@ -10,16 +10,47 @@ const { useTracksMock } = vi.hoisted(() => ({
 vi.mock('@livekit/components-react', () => ({
   useTracks: () => useTracksMock(),
   TrackToggle: () => null,
-  VideoTrack: () => <div data-testid="video-track" />,
+  VideoTrack: ({ className }: { className?: string }) => (
+    <div data-testid="video-track" className={className} />
+  ),
 }));
 
 vi.mock('livekit-client', () => ({
   Track: { Source: { Camera: 'camera' } },
+  TrackEvent: { Restarted: 'restarted' },
 }));
+
+// A camera track whose browser says which way it looks, and that can be
+// restarted with the other camera, as turning the camera does.
+function camera(facingMode?: string) {
+  const listeners = new Set<() => void>();
+  const media = { getSettings: () => ({ facingMode }) };
+  return {
+    mediaStreamTrack: media,
+    on: (_: string, fn: () => void) => listeners.add(fn),
+    off: (_: string, fn: () => void) => listeners.delete(fn),
+    turnTo(next: string) {
+      facingMode = next;
+      for (const fn of listeners) fn();
+    },
+  };
+}
+
+function own(facingMode?: string) {
+  const cam = camera(facingMode);
+  return {
+    cam,
+    ref: {
+      participant: { identity: 'host-profile', sid: 'sid-1', isLocal: true },
+      publication: { track: cam },
+    },
+  };
+}
 
 function track(identity?: string, sid = 'sid-1') {
   return {
-    participant: { identity, sid },
+    participant: { identity, sid, isLocal: false },
+    publication: { track: camera('user') },
   };
 }
 
@@ -102,5 +133,36 @@ describe('CinematicStage', () => {
     expect(screen.getByTestId('live-stage').className).toContain('grid-cols-2');
     // Never more than the host and the guests a live may have.
     expect(screen.getAllByTestId('video-track')).toHaveLength(4);
+  });
+
+  it("shows the host's own front camera as a mirror", () => {
+    useTracksMock.mockReturnValue([own('user').ref]);
+    renderWithProviders(<CinematicStage isBroadcaster />);
+
+    expect(screen.getByTestId('video-track')).toHaveClass('-scale-x-100');
+  });
+
+  it('mirrors a camera that does not say which way it looks, as a webcam', () => {
+    useTracksMock.mockReturnValue([own(undefined).ref]);
+    renderWithProviders(<CinematicStage isBroadcaster />);
+
+    expect(screen.getByTestId('video-track')).toHaveClass('-scale-x-100');
+  });
+
+  it('does not mirror the back camera, and follows a turn of the camera', () => {
+    const host = own('environment');
+    useTracksMock.mockReturnValue([host.ref]);
+    renderWithProviders(<CinematicStage isBroadcaster />);
+    expect(screen.getByTestId('video-track')).not.toHaveClass('-scale-x-100');
+
+    act(() => host.cam.turnTo('user'));
+    expect(screen.getByTestId('video-track')).toHaveClass('-scale-x-100');
+  });
+
+  it("never mirrors someone else's camera, which is what viewers see", () => {
+    useTracksMock.mockReturnValue([track('host-profile')]);
+    renderWithProviders(<CinematicStage />);
+
+    expect(screen.getByTestId('video-track')).not.toHaveClass('-scale-x-100');
   });
 });
