@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  reloadIfAppUpdated,
+  loadAppUpdate,
   resetAppUpdatesForTest,
   watchForAppUpdates,
 } from './appUpdates';
@@ -37,39 +37,69 @@ function browser({ controlled }: { controlled: boolean }) {
     register: vi.fn(() => Promise.resolve(registration)),
   };
   const doc = { ...emitter(), visibilityState: 'visible' };
+  const reload = vi.fn();
   const watch = () =>
     watchForAppUpdates(
       container as unknown as ServiceWorkerContainer,
       doc as unknown as Document,
+      reload,
     );
-  return { registration, container, doc, watch };
+  return { registration, container, doc, reload, watch };
 }
 
 describe('watchForAppUpdates', () => {
   beforeEach(() => resetAppUpdatesForTest());
 
-  it('lets a version found waiting take over at once', async () => {
+  it('keeps a newer version waiting until the page lets it take over', async () => {
     const b = browser({ controlled: true });
     const waiting = worker('installed');
     b.registration.waiting = waiting;
     await b.watch();
 
+    // Nothing is taken over on its own: the old files stay served.
+    expect(waiting.postMessage).not.toHaveBeenCalled();
+
+    expect(loadAppUpdate()).toBe(true);
     expect(waiting.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+    expect(b.reload).not.toHaveBeenCalled();
+
+    // The page loads once the newer version serves it, and only once.
+    b.container.emit('controllerchange');
+    b.container.emit('controllerchange');
+    expect(b.reload).toHaveBeenCalledTimes(1);
+    expect(loadAppUpdate()).toBe(false);
   });
 
-  it('lets a version that arrives while open take over once installed', async () => {
+  it('waits for a version that arrives while the app is open', async () => {
     const b = browser({ controlled: true });
     await b.watch();
     const arriving = worker();
     b.registration.installing = arriving;
     b.registration.emit('updatefound');
-    expect(arriving.postMessage).not.toHaveBeenCalled();
+    expect(loadAppUpdate()).toBe(false);
 
     arriving.state = 'installed';
     arriving.emit('statechange');
-    expect(arriving.postMessage).toHaveBeenCalledWith({
-      type: 'SKIP_WAITING',
-    });
+    expect(loadAppUpdate()).toBe(true);
+  });
+
+  it('follows a version already installing when the page asks', async () => {
+    const b = browser({ controlled: true });
+    const installing = worker();
+    b.registration.installing = installing;
+    await b.watch();
+
+    installing.state = 'installed';
+    installing.emit('statechange');
+    expect(loadAppUpdate()).toBe(true);
+  });
+
+  it('takes a version already installed when the page asks', async () => {
+    const b = browser({ controlled: true });
+    b.registration.installing = worker('installed');
+    await b.watch();
+
+    expect(loadAppUpdate()).toBe(true);
   });
 
   it('asks for a newer version each time the app comes back to the screen', async () => {
@@ -84,27 +114,26 @@ describe('watchForAppUpdates', () => {
     expect(b.registration.update).toHaveBeenCalledTimes(1);
   });
 
-  it('loads the new version once, after it took over', async () => {
-    const b = browser({ controlled: true });
-    await b.watch();
-    const reload = vi.fn();
-    expect(reloadIfAppUpdated(reload)).toBe(false);
-
-    b.container.emit('controllerchange');
-    expect(reloadIfAppUpdated(reload)).toBe(true);
-    expect(reloadIfAppUpdated(reload)).toBe(false);
-    expect(reload).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not reload a page the very first version starts serving', async () => {
+  it('treats the first version ever installed as no update, and a later one as one', async () => {
     const b = browser({ controlled: false });
-    const first = worker('installed');
-    b.registration.waiting = first;
+    const first = worker();
+    b.registration.installing = first;
     await b.watch();
-    b.container.emit('controllerchange');
 
-    expect(first.postMessage).not.toHaveBeenCalled();
-    expect(reloadIfAppUpdated(vi.fn())).toBe(false);
+    first.state = 'installed';
+    first.emit('statechange');
+    b.container.emit('controllerchange');
+    expect(loadAppUpdate()).toBe(false);
+    expect(b.reload).not.toHaveBeenCalled();
+
+    // The first version now serves the page; the next deploy is an update.
+    b.container.controller = {};
+    const next = worker();
+    b.registration.installing = next;
+    b.registration.emit('updatefound');
+    next.state = 'installed';
+    next.emit('statechange');
+    expect(loadAppUpdate()).toBe(true);
   });
 
   it('keeps the app running when the worker cannot be registered', async () => {
