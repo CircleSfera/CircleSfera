@@ -2242,7 +2242,7 @@
     "started_chat": "Started a chat",
     "sent_voice": "Sent a voice message",
     "sent_image": "Sent an image",
-    "file_too_large": "To ensure E2E encryption, files cannot exceed 50 MB.",
+    "file_too_large": "Files cannot exceed 50 MB.",
     "sent_attachment": "Sent an attachment",
     "shared_post": "Shared a post",
     "message_deleted": "This message was deleted",
@@ -2251,7 +2251,6 @@
     "react": "React",
     "remove_reaction": "Remove reaction",
     "edit": "Edit",
-    "e2ee": "End-to-end encrypted messaging",
     "chat": "Chat",
     "group_chat": "Group Chat",
     "user": "User",
@@ -2304,7 +2303,7 @@
     "details": {
       "title": "Details",
       "view_profile": "View profile",
-      "encrypted": "End-to-end encrypted",
+      "encrypted": "Encrypted on our servers",
       "delete_for_me_hint": "Removed from your inbox only."
     },
     "group_details": {
@@ -2382,7 +2381,8 @@
     "make_admin_error": "Couldn't make them an admin. Try again.",
     "leave_group_error": "Couldn't leave the group. Try again.",
     "unavailable_user": "Unavailable user",
-    "cannot_write_blocked": "You can’t send messages in this conversation."
+    "cannot_write_blocked": "You can’t send messages in this conversation.",
+    "encrypted_on_servers": "Messages are stored encrypted on our servers."
   },
   "creator": {
     "title": "Creator Studio",

@@ -52,14 +52,19 @@ describe('ChatDetailsModal', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('mentions the encryption only when the conversation has it', () => {
+  // The messages are encrypted on the servers, not end to end: the chat
+  // says so, and never claims end-to-end encryption.
+  it('says the messages are encrypted on the servers, and never end to end', () => {
     const { unmount } = renderDetails();
-    expect(screen.getByText('Cifrado de extremo a extremo')).toBeVisible();
+    expect(screen.getByText('Cifrados en nuestros servidores')).toBeVisible();
+    expect(
+      screen.queryByText(/extremo a extremo|E2EE/),
+    ).not.toBeInTheDocument();
     unmount();
 
     renderDetails({ isEncrypted: false });
     expect(
-      screen.queryByText('Cifrado de extremo a extremo'),
+      screen.queryByText('Cifrados en nuestros servidores'),
     ).not.toBeInTheDocument();
   });
 
