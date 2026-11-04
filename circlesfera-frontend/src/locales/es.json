@@ -5884,5 +5884,22 @@
       "required": "Sin esto, la compra no puede empezar.",
       "continue": "Continuar al pago"
     }
+  },
+  "audio_page": {
+    "use": "Usar este audio",
+    "count_one": "{{count}} publicación",
+    "count_other": "{{count}} publicaciones",
+    "empty": "Aún nadie lo ha usado",
+    "empty_sub": "Sé el primero en hacer un Frame con este audio.",
+    "error_title": "No se pudo abrir este audio",
+    "error_message": "Puede que ya no esté disponible. Inténtalo de nuevo."
+  },
+  "place_page": {
+    "count_one": "{{count}} publicación",
+    "count_other": "{{count}} publicaciones",
+    "empty": "Aún no hay publicaciones aquí",
+    "empty_sub": "Las publicaciones con este lugar aparecerán aquí.",
+    "error_title": "No se pudo abrir este lugar",
+    "error_message": "Puede que ya no esté disponible. Inténtalo de nuevo."
   }
 }

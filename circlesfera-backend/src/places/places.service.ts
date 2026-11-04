@@ -1,13 +1,14 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { type Prisma, Visibility } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
 import {
-  LISTED_POST,
-  SHOWN_COMMENTS_COUNT,
-} from '../common/policies/removed-content.policy.js';
+  publicPostListWhere,
+  withLikeCountAsSeenBy,
+} from '../common/policies/public-post-list.policy.js';
+import { SHOWN_COMMENTS_COUNT } from '../common/policies/removed-content.policy.js';
 import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { MapBboxDto } from './dto/map-bbox.dto.js';
@@ -57,7 +58,7 @@ export class PlacesService {
     const maxLng = Math.max(bbox.minLng, bbox.maxLng);
     const limit = Math.min(bbox.limit ?? MAP_LIMIT_DEFAULT, MAP_LIMIT_DEFAULT);
 
-    const postFilter = await this.buildEligiblePostFilter(currentProfileId);
+    const postFilter = await publicPostListWhere(this.prisma, currentProfileId);
 
     const places = await this.prisma.place.findMany({
       where: {
@@ -199,7 +200,7 @@ export class PlacesService {
       throw new NotFoundException('Place not found');
     }
 
-    const postFilter = await this.buildEligiblePostFilter(currentProfileId);
+    const postFilter = await publicPostListWhere(this.prisma, currentProfileId);
     const postCount = await this.prisma.post.count({
       where: { placeId: id, ...postFilter },
     });
@@ -225,7 +226,7 @@ export class PlacesService {
 
     const { page = 1, limit = 20, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
-    const postFilter = await this.buildEligiblePostFilter(currentProfileId);
+    const postFilter = await publicPostListWhere(this.prisma, currentProfileId);
 
     const where: Prisma.PostWhereInput = {
       placeId,
@@ -270,7 +271,7 @@ export class PlacesService {
     const data = posts.map((post) => {
       const { likes, ...rest } = post;
       return {
-        ...rest,
+        ...withLikeCountAsSeenBy(rest, currentProfileId),
         isLiked:
           currentProfileId && Array.isArray(likes) ? likes.length > 0 : false,
       };
@@ -289,45 +290,5 @@ export class PlacesService {
       limit,
       shown.length > 0 ? shown[shown.length - 1].id : undefined,
     );
-  }
-
-  private async buildEligiblePostFilter(
-    currentProfileId?: string | null,
-  ): Promise<Prisma.PostWhereInput> {
-    const base: Prisma.PostWhereInput = {
-      visibility: Visibility.PUBLIC,
-      moderationStatus: 'VISIBLE',
-      deletedAt: null,
-      archivedAt: null,
-      profile: { privacyLevel: Visibility.PUBLIC },
-    };
-
-    if (!currentProfileId) {
-      return base;
-    }
-
-    const blocks = await this.prisma.block.findMany({
-      where: {
-        OR: [{ blockerId: currentProfileId }, { blockedId: currentProfileId }],
-      },
-      select: { blockerId: true, blockedId: true },
-    });
-
-    const excluded = new Set<string>();
-    for (const b of blocks) {
-      if (b.blockerId === currentProfileId) excluded.add(b.blockedId);
-      if (b.blockedId === currentProfileId) excluded.add(b.blockerId);
-    }
-
-    const filter: Prisma.PostWhereInput = {
-      ...base,
-      ...(excluded.size > 0 ? { profileId: { notIn: [...excluded] } } : {}),
-    };
-
-    // The viewer's own, but what moderation removed or they deleted or
-    // archived.
-    return {
-      OR: [filter, { profileId: currentProfileId, ...LISTED_POST }],
-    };
   }
 }
