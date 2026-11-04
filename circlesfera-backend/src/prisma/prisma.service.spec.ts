@@ -31,7 +31,11 @@ vi.mock('pg', () => {
   };
 });
 
-import { PrismaService, USER_SECRET_OMIT } from './prisma.service.js';
+import {
+  PrismaService,
+  USER_RETIRED_OMIT,
+  USER_SECRET_OMIT,
+} from './prisma.service.js';
 
 describe('PrismaService', () => {
   it('instantiates adapter and manages connect/disconnect lifecycle', async () => {
@@ -52,8 +56,20 @@ describe('PrismaService', () => {
       'postgresql://test:test@localhost:5432/test',
     ) as unknown as { options: { omit: { user: Record<string, boolean> } } };
 
-    expect(service.options.omit.user).toEqual(USER_SECRET_OMIT);
+    expect(service.options.omit.user).toMatchObject(USER_SECRET_OMIT);
     expect(Object.keys(USER_SECRET_OMIT)).toEqual(['currentChallenge']);
     expect(Object.values(USER_SECRET_OMIT).every((v) => v === true)).toBe(true);
+  });
+
+  it('names the payout account column of the person in no query, ahead of its drop', () => {
+    const service = new PrismaService(
+      'postgresql://test:test@localhost:5432/test',
+    ) as unknown as { options: { omit: { user: Record<string, boolean> } } };
+
+    expect(USER_RETIRED_OMIT).toEqual({ stripeConnectAccountId: true });
+    expect(service.options.omit.user).toEqual({
+      ...USER_SECRET_OMIT,
+      stripeConnectAccountId: true,
+    });
   });
 });
