@@ -1642,7 +1642,10 @@
     },
     "private_account": "Private account",
     "private_label": "Private",
-    "company_verified": "Verified company"
+    "company_verified": "Verified company",
+    "upcoming_lives": {
+      "title": "Upcoming lives"
+    }
   },
   "suggestions": {
     "title": "Suggested for you",
@@ -2223,7 +2226,8 @@
     "appeal_cta": "Appeal this decision",
     "strike_details_cta": "See details and appeal",
     "removal_appeal_cta": "Appeal",
-    "just_now": "now"
+    "just_now": "now",
+    "view_live": "Watch the live"
   },
   "chat": {
     "loading": "Loading chats...",
@@ -5124,7 +5128,40 @@
         "failed": "@{{username}} couldn't be invited."
       }
     },
-    "unavailable": "This live is no longer available to you."
+    "unavailable": "This live is no longer available to you.",
+    "schedule": {
+      "tool": "Schedule",
+      "sheet_title": "Schedule a live",
+      "summary_EVERYONE": "“{{title}}”, for everyone. The title and the audience are the ones set on this screen.",
+      "summary_CLOSE_FRIENDS": "“{{title}}”, for your close friends. The title and the audience are the ones set on this screen.",
+      "practice_hint": "A practice can't be scheduled: nobody else sees it. Choose Everyone or Close friends to schedule this live.",
+      "when_label": "Date and time",
+      "limits_hint": "From {{min}} minutes to {{days}} days from now. Those who ask to be reminded are told before it starts.",
+      "error_missing": "Choose a date and time.",
+      "error_too_soon": "Choose a time at least {{min}} minutes from now.",
+      "error_too_far": "Choose a time no more than {{days}} days from now.",
+      "submit": "Schedule live",
+      "submitting": "Scheduling…",
+      "failed": "Couldn't schedule the live. Try again.",
+      "scheduled_toast": "Live scheduled: {{when}}",
+      "upcoming_button_one": "{{count}} upcoming live",
+      "upcoming_button_other": "{{count}} upcoming lives",
+      "upcoming_title": "Your upcoming lives",
+      "start_now": "Go live now",
+      "cancel": "Cancel",
+      "cancel_confirm_title": "Cancel this live?",
+      "cancel_confirm_message": "It will no longer show on your profile, and nobody is told.",
+      "cancel_confirm": "Cancel live",
+      "keep": "Keep it",
+      "cancelled": "Live cancelled",
+      "cancel_failed": "Couldn't cancel the live. Try again.",
+      "reminders_one": "{{count}} person asked to be reminded",
+      "reminders_other": "{{count}} people asked to be reminded",
+      "remind": "Remind me",
+      "reminded": "Reminder set",
+      "reminded_toast": "We'll let you know {{min}} minutes before it starts.",
+      "remind_failed": "Couldn't change the reminder. Try again."
+    }
   },
   "shortcuts": {
     "next_post": "Next post",

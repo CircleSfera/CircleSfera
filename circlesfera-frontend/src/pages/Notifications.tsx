@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   AtSign,
   Bell,
+  CalendarClock,
   ChevronRight,
   Coins,
   Heart,
@@ -70,7 +71,7 @@ function offersAppeal(notif: Notification): boolean {
  * The page a notice leads to when it is about something other than a post
  * or a person: a support request, or a live broadcast that has started.
  */
-function supportRequestPath(notif: {
+function targetPath(notif: {
   targetType?: string | null;
   targetId?: string | null;
 }): string | null {
@@ -83,6 +84,16 @@ function supportRequestPath(notif: {
   }
   return null;
 }
+
+/** A notice from the support team, not from a person. */
+const isSupportNotice = (notif: { targetType?: string | null }) =>
+  notif.targetType === 'support_ticket';
+
+/** What the link to a notice's target is called. */
+const targetLabelKey = (notif: { targetType?: string | null }) =>
+  isSupportNotice(notif)
+    ? 'notifications.view_request'
+    : 'notifications.view_live';
 
 export default function Notifications() {
   const { t, i18n } = useTranslation();
@@ -188,6 +199,8 @@ export default function Notifications() {
         return <AtSign size={13} />;
       case 'LIVE_STARTED':
         return <Radio size={13} />;
+      case 'LIVE_STARTING_SOON':
+        return <CalendarClock size={13} />;
       case 'MODERATION':
         return <Shield size={13} />;
       case 'PROMOTION_SUCCESS':
@@ -222,6 +235,15 @@ export default function Notifications() {
           background: 'var(--brand-primary)',
         };
       case 'MENTION':
+        return {
+          background: 'var(--brand-primary)',
+        };
+      // Coral is for what is on air; a live still to come is purple.
+      case 'LIVE_STARTED':
+        return {
+          background: 'var(--brand-secondary)',
+        };
+      case 'LIVE_STARTING_SOON':
         return {
           background: 'var(--brand-primary)',
         };
@@ -357,11 +379,11 @@ export default function Notifications() {
               {/* Avatar with gradient icon badge */}
               <div className="relative shrink-0 ml-2">
                 <Link
-                  to={supportRequestPath(notif) ?? `/${notif.sender?.username}`}
+                  to={targetPath(notif) ?? `/${notif.sender?.username}`}
                   className="block p-0.5 transition-transform active:scale-95"
                   aria-label={
-                    supportRequestPath(notif)
-                      ? t('notifications.view_request')
+                    targetPath(notif)
+                      ? t(targetLabelKey(notif))
                       : t('common.view_profile', {
                           username:
                             notif.sender?.username ||
@@ -374,7 +396,7 @@ export default function Notifications() {
                     thumbnailUrl={notif.sender?.thumbnailUrl}
                     standardUrl={notif.sender?.standardUrl}
                     alt={
-                      supportRequestPath(notif)
+                      isSupportNotice(notif)
                         ? t('notifications.from_support')
                         : notif.sender?.username ||
                           t('notifications.unknown_user')
@@ -394,12 +416,10 @@ export default function Notifications() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm leading-snug">
                   <Link
-                    to={
-                      supportRequestPath(notif) ?? `/${notif.sender?.username}`
-                    }
+                    to={targetPath(notif) ?? `/${notif.sender?.username}`}
                     className="font-bold text-white hover:opacity-80 transition-opacity"
                   >
-                    {supportRequestPath(notif)
+                    {isSupportNotice(notif)
                       ? t('notifications.from_support')
                       : notif.sender?.username ||
                         t('notifications.unknown_user')}
@@ -436,7 +456,10 @@ export default function Notifications() {
                         content: notif.content,
                       })}
                     {/* Written by the server in the reader's language. */}
-                    {(notif.type === 'PAYMENT' || notif.type === 'SYSTEM') &&
+                    {(notif.type === 'PAYMENT' ||
+                      notif.type === 'SYSTEM' ||
+                      notif.type === 'LIVE_STARTED' ||
+                      notif.type === 'LIVE_STARTING_SOON') &&
                       notif.content}
                   </span>
                 </p>
@@ -457,11 +480,11 @@ export default function Notifications() {
                 </p>
               </div>
 
-              {/* The way to the support request */}
-              {supportRequestPath(notif) && (
+              {/* The way to the support request, or to the live */}
+              {targetPath(notif) && (
                 <Link
-                  to={supportRequestPath(notif) as string}
-                  aria-label={t('notifications.view_request')}
+                  to={targetPath(notif) as string}
+                  aria-label={t(targetLabelKey(notif))}
                   className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center bg-white/5 border border-white/8 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
                 >
                   <ChevronRight size={18} aria-hidden="true" />
