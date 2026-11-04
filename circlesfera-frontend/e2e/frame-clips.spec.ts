@@ -202,6 +202,7 @@ test('a Frame takes emoji stickers over its video, and no interactive one', asyn
     0,
   );
   await page.getByRole('button', { name: '🔥', exact: true }).first().click();
-  await expect(page.getByText('🔥').first()).toBeVisible();
+  await expect(page.getByTestId('story-element')).toHaveCount(1);
+  await expect(page.getByTestId('story-element')).toContainText('🔥');
   await capture(page, 'frame-sticker', info);
 });
