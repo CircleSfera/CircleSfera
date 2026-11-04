@@ -14,10 +14,13 @@ let loadOnTakeOver = false;
 
 /**
  * Lets a waiting newer version take over, and loads the page once it does;
- * true when there was one.
+ * true when there was one. Without a connection the page could not load
+ * again, so the newer version keeps waiting for a screen change online.
  */
-export function loadAppUpdate(): boolean {
-  if (!waiting) return false;
+export function loadAppUpdate(
+  online: () => boolean = () => navigator.onLine,
+): boolean {
+  if (!waiting || !online()) return false;
   const worker = waiting;
   waiting = null;
   loadOnTakeOver = true;

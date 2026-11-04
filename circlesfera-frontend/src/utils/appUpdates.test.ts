@@ -70,6 +70,19 @@ describe('watchForAppUpdates', () => {
     expect(loadAppUpdate()).toBe(false);
   });
 
+  it('keeps a newer version waiting while there is no connection', async () => {
+    const b = browser({ controlled: true });
+    const waiting = worker('installed');
+    b.registration.waiting = waiting;
+    await b.watch();
+
+    expect(loadAppUpdate(() => false)).toBe(false);
+    expect(waiting.postMessage).not.toHaveBeenCalled();
+
+    expect(loadAppUpdate(() => true)).toBe(true);
+    expect(waiting.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+  });
+
   it('waits for a version that arrives while the app is open', async () => {
     const b = browser({ controlled: true });
     await b.watch();
