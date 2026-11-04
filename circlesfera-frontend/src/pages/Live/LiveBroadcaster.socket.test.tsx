@@ -56,6 +56,10 @@ vi.mock('@livekit/components-react', () => ({
     isMicrophoneEnabled: true,
   }),
 }));
+// The mirror works on a real camera track (MirrorOwnCamera.test.tsx).
+vi.mock('../../components/live/MirrorOwnCamera', () => ({
+  MirrorOwnCamera: () => null,
+}));
 vi.mock('../../components/live/CinematicStage', () => ({
   default: () => null,
 }));

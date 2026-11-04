@@ -29,6 +29,7 @@ import LivePinnedComment, {
 import LiveQnAPanel, {
   type LiveQuestion,
 } from '../../components/live/LiveQnAPanel';
+import { MirrorOwnCamera } from '../../components/live/MirrorOwnCamera';
 import { LIVEKIT_URL } from '../../constants/livekit';
 import { apiClient as api } from '../../services/api';
 import { type LiveGuest, liveApi } from '../../services/live';
@@ -478,6 +479,7 @@ export default function LiveViewer() {
           video={
             <>
               <CinematicStage names={stageNames} />
+              <MirrorOwnCamera />
               <RoomAudioRenderer />
             </>
           }
