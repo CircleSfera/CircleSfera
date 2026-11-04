@@ -14,10 +14,11 @@ import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 // one shape of control, the mark that says the broadcast is live, and the
 // one sheet that opens from the bottom.
 
-// The frame. On a phone the video is the screen: it reaches every edge, the
-// part of the screen a browser draws its own bars over included, and nothing
-// of the app shows around it. The controls stay inside the part that is
-// really in sight. On a desktop it is an upright frame in the middle.
+// The frame. A live is upright 9:16 and the whole picture is shown, as the
+// camera takes it: on a phone the frame is as wide as the screen, in the
+// middle of the part really in sight, with black around it where the screen
+// is longer, and the controls are drawn over both. On a desktop it is an
+// upright frame in the middle.
 export function LiveFrame({
   video,
   children,
@@ -33,22 +34,27 @@ export function LiveFrame({
     <div className="live-frame fixed inset-0 z-40 bg-black md:static md:z-auto md:flex md:h-dvh md:items-center md:justify-center md:bg-transparent">
       {/* biome-ignore lint/a11y/noStaticElementInteractions: double tap on the video area, with the reaction buttons as the keyboard path */}
       <div
-        className="absolute inset-0 select-none overflow-hidden bg-black md:relative md:inset-auto md:h-[88vh] md:w-full md:max-w-105 md:rounded-3xl md:border md:border-white/10 md:shadow-[0_0_60px_rgba(0,0,0,0.9)]"
+        className="absolute inset-0 select-none overflow-hidden bg-black md:relative md:inset-auto md:aspect-9/16 md:h-[88vh] md:rounded-3xl md:border md:border-white/10 md:shadow-[0_0_60px_rgba(0,0,0,0.9)]"
         onDoubleClick={onDoubleClick}
       >
-        <div className="absolute inset-0" data-testid="live-video">
-          {video}
+        <div className="absolute inset-x-0 top-0 flex h-dvh items-center justify-center md:inset-0 md:h-full">
+          <div
+            className="relative aspect-9/16 w-[min(100%,calc(100dvh*9/16))] overflow-hidden md:h-full md:w-full"
+            data-testid="live-video"
+          >
+            {video}
+            {/* A dark fade at the top and at the bottom keeps what is
+                written over the video readable, whatever the video shows. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-linear-to-b from-black/55 to-transparent"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] bg-linear-to-t from-black/75 via-black/30 to-transparent"
+            />
+          </div>
         </div>
-        {/* A dark fade at the top and at the bottom keeps what is written
-            over the video readable, whatever the video shows. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-linear-to-b from-black/55 to-transparent"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] bg-linear-to-t from-black/75 via-black/30 to-transparent"
-        />
         {/* What is in sight: a phone's browser hides part of the screen
             under its own bars, and no control may end up there. The layer
             itself lets a tap through to the video and to the controls drawn
