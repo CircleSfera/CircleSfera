@@ -165,6 +165,7 @@ export default function PostOverlays({
             menuRef={menuRef}
             menuPosition={menuPosition}
             isOwner={isOwner}
+            onClose={() => setShowMenu(false)}
             onEdit={() => {
               setShowMenu(false);
               setEditCaption(post.caption || '');

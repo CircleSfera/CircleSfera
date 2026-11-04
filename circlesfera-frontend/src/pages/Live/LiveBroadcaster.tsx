@@ -60,6 +60,7 @@ import LiveQnAPanel, {
 import LiveRecordingChoice from '../../components/live/LiveRecordingChoice';
 import LiveScheduleSheet from '../../components/live/LiveScheduleSheet';
 import LiveUpcomingLives from '../../components/live/LiveUpcomingLives';
+import { MirrorOwnCamera } from '../../components/live/MirrorOwnCamera';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 import { LIVEKIT_URL } from '../../constants/livekit';
 import { useLiveGuests } from '../../hooks/useLiveGuests';
@@ -677,6 +678,7 @@ export default function LiveBroadcaster() {
           video={
             <>
               <CinematicStage isBroadcaster={true} names={stageNames} />
+              <MirrorOwnCamera />
               <RoomAudioRenderer />
             </>
           }
