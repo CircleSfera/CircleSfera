@@ -25,4 +25,11 @@ export const commentsApi = {
 
   unpin: (postId: string, commentId: string) =>
     apiClient.delete(`posts/${postId}/comments/${commentId}/pin`),
+
+  // The author's: comments of the post hidden by their hidden words.
+  hidden: (postId: string) =>
+    apiClient.get<{ data: Comment[] }>(`posts/${postId}/comments/hidden`),
+
+  showHidden: (postId: string, commentId: string) =>
+    apiClient.post(`posts/${postId}/comments/${commentId}/show`),
 };

@@ -56,6 +56,10 @@ export enum ErrorCode {
   COMMENT_NOT_FOUND = 'COMMENT_NOT_FOUND',
   // A post already has the most pinned comments it can have.
   COMMENT_PINS_FULL = 'COMMENT_PINS_FULL',
+  // A hidden word that is empty or too long, or one past the most a
+  // Profile can hide.
+  HIDDEN_WORD_INVALID = 'HIDDEN_WORD_INVALID',
+  HIDDEN_WORDS_FULL = 'HIDDEN_WORDS_FULL',
   MESSAGE_NOT_FOUND = 'MESSAGE_NOT_FOUND',
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.

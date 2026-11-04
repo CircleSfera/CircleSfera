@@ -7,6 +7,7 @@ import {
   Flag,
   Key,
   type LucideIcon,
+  MessageSquareOff,
   Scale,
   Shield,
   Star,
@@ -32,6 +33,7 @@ export type SettingsSectionId =
   | 'requests'
   | 'close_friends'
   | 'mutes'
+  | 'hidden_words'
   | 'feed_prefs'
   | 'appeals'
   | 'reports'
@@ -70,6 +72,7 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'requests',
   'close_friends',
   'mutes',
+  'hidden_words',
   'feed_prefs',
   'appeals',
   'reports',
@@ -154,6 +157,11 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'mutes',
         labelKey: 'settings.tabs.mutes.label',
         icon: UserX,
+      },
+      {
+        id: 'hidden_words',
+        labelKey: 'settings.tabs.hidden_words.label',
+        icon: MessageSquareOff,
       },
     ],
   },

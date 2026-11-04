@@ -1654,7 +1654,7 @@ describe('PostsService', () => {
         hideLikes: false,
       });
 
-      const { data } = mockPrismaService.post.update.mock.calls.at(-1)[0];
+      const [{ data }] = mockPrismaService.post.update.mock.calls.at(-1) ?? [];
       expect(data.turnOffComments).toBe(true);
       expect(data.hideLikes).toBe(false);
       expect(
