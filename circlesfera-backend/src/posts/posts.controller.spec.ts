@@ -39,6 +39,8 @@ describe('PostsController', () => {
     update: vi.fn(),
     remove: vi.fn(),
     adminRemove: vi.fn(),
+    pinToProfile: vi.fn(),
+    unpinFromProfile: vi.fn(),
   };
   const mockWhy = { why: vi.fn() };
 
@@ -277,6 +279,27 @@ describe('PostsController', () => {
       caption: 'Edited',
     });
     expect(mockService.remove).toHaveBeenCalledWith('post-1');
+  });
+
+  it('pins a post to the profile and unpins it, by post id', async () => {
+    mockService.pinToProfile.mockResolvedValue({ id: 'post-1' });
+    mockService.unpinFromProfile.mockResolvedValue({ id: 'post-1' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/profile-pin')
+      .set(BEARER)
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete('/api/v1/posts/post-1/profile-pin')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/profile-pin')
+      .expect(401);
+
+    expect(mockService.pinToProfile).toHaveBeenCalledTimes(1);
+    expect(mockService.pinToProfile).toHaveBeenCalledWith('post-1');
+    expect(mockService.unpinFromProfile).toHaveBeenCalledWith('post-1');
   });
 
   it('rejects admin delete with a user session', async () => {

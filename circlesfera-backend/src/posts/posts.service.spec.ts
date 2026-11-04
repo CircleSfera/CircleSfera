@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { POST_SHAPES } from '@circlesfera/shared';
+import { POST_SHAPES, PROFILE_PINS_MAX } from '@circlesfera/shared';
 import {
   BadRequestException,
   ForbiddenException,
@@ -1252,6 +1252,115 @@ describe('PostsService', () => {
         expect.any(Error),
       );
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('pinning to the profile', () => {
+    const shown = {
+      id: 'post-1',
+      profileId: 'author-1',
+      pinnedToProfileAt: null,
+      deletedAt: null,
+      archivedAt: null,
+      moderationStatus: 'VISIBLE',
+    };
+    let tx: any;
+
+    beforeEach(() => {
+      tx = {
+        post: {
+          findUnique: vi.fn().mockResolvedValue(shown),
+          count: vi.fn().mockResolvedValue(0),
+          update: vi.fn(async ({ data }) => ({ id: 'post-1', ...data })),
+        },
+        $queryRaw: vi.fn().mockResolvedValue([]),
+      };
+      (mockPrismaService as any).$transaction = vi.fn((cb: any) => cb(tx));
+    });
+
+    it('pins a post under the Profile lock, counting only the posts it shows', async () => {
+      tx.post.count.mockResolvedValue(PROFILE_PINS_MAX - 1);
+
+      const result = await service.pinToProfile('post-1');
+
+      expect(result.pinnedToProfileAt).toBeInstanceOf(Date);
+      expect(tx.$queryRaw).toHaveBeenCalled();
+      expect(tx.post.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          profileId: 'author-1',
+          pinnedToProfileAt: { not: null },
+          deletedAt: null,
+          archivedAt: null,
+        }),
+      });
+    });
+
+    it('refuses a pin past the most a Profile can pin', async () => {
+      tx.post.count.mockResolvedValue(PROFILE_PINS_MAX);
+
+      await expect(service.pinToProfile('post-1')).rejects.toMatchObject({
+        response: { errorCode: 'PROFILE_PINS_FULL' },
+      });
+      expect(tx.post.update).not.toHaveBeenCalled();
+    });
+
+    it('changes nothing for a post already pinned, and pins none deleted or archived', async () => {
+      const at = new Date('2026-11-01T00:00:00Z');
+      tx.post.findUnique.mockResolvedValueOnce({
+        ...shown,
+        pinnedToProfileAt: at,
+      });
+      await expect(service.pinToProfile('post-1')).resolves.toEqual({
+        id: 'post-1',
+        pinnedToProfileAt: at,
+      });
+
+      for (const gone of [
+        { ...shown, deletedAt: at },
+        { ...shown, archivedAt: at },
+        null,
+      ]) {
+        tx.post.findUnique.mockResolvedValueOnce(gone);
+        await expect(service.pinToProfile('post-1')).rejects.toMatchObject({
+          response: { errorCode: 'POST_NOT_FOUND' },
+        });
+      }
+      expect(tx.post.update).not.toHaveBeenCalled();
+    });
+
+    it('unpins a post', async () => {
+      mockPrismaService.post.update.mockResolvedValueOnce({
+        id: 'post-1',
+        pinnedToProfileAt: null,
+      });
+      await expect(service.unpinFromProfile('post-1')).resolves.toEqual({
+        id: 'post-1',
+        pinnedToProfileAt: null,
+      });
+      expect(mockPrismaService.post.update).toHaveBeenCalledWith({
+        where: { id: 'post-1' },
+        data: { pinnedToProfileAt: null },
+        select: { id: true, pinnedToProfileAt: true },
+      });
+    });
+
+    it('lists the pinned posts of a profile first, then the rest newest first', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        id: 'user-1',
+        privacyLevel: Visibility.PUBLIC,
+      });
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.count.mockResolvedValueOnce(0);
+
+      await service.findByUser('user', { page: 1, limit: 10 });
+
+      expect(
+        mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].orderBy,
+      ).toEqual([
+        { pinnedToProfileAt: { sort: 'desc', nulls: 'last' } },
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ]);
     });
   });
 

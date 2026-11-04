@@ -185,6 +185,28 @@ export class PostsController {
   async remove(@Param('id') id: string) {
     await this.postsService.remove(id);
   }
+  // Pin a post or Frame to the top of one's profile (author only).
+  @Post(':id/profile-pin')
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Post' })
+  @MemberAllowed('content.manage')
+  @RecordsActivity('POST_EDITED')
+  @ApiResponse({ status: 201 })
+  async pinToProfile(@Param('id') id: string) {
+    return this.postsService.pinToProfile(id);
+  }
+
+  // Unpin it (author only).
+  @Delete(':id/profile-pin')
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Post' })
+  @MemberAllowed('content.manage')
+  @RecordsActivity('POST_EDITED')
+  @ApiResponse({ status: 200 })
+  async unpinFromProfile(@Param('id') id: string) {
+    return this.postsService.unpinFromProfile(id);
+  }
+
   // Admin-only post deletion (bypasses ownership check).
   @Delete(':id/admin')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
