@@ -126,6 +126,7 @@ export default function StoryComposer(props: StoryComposerProps) {
       {!s.textTakeoverActive && (
         <StoryComposerShellChrome
           frame={props.frame}
+          paintOnly={props.paintOnly}
           chromePointerArmed={s.chromePointerArmed}
           hidden={s.draggingLayer}
           onShareRowPlace={setShareRowPlace}
