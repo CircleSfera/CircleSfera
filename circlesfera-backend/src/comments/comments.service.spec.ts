@@ -449,7 +449,8 @@ describe('CommentsService', () => {
         .calls as any[];
       expect(pinnedArgs[0].where.pinnedAt).toEqual({ not: null });
       expect(pinnedArgs[0].where.parentId).toBeNull();
-      expect(pinnedArgs[0].take).toBe(COMMENT_PINS_MAX);
+      // Every shown pin: one shown again by moderation can be a fourth.
+      expect(pinnedArgs[0].take).toBeUndefined();
       expect(pageArgs[0].where.pinnedAt).toBeNull();
     });
 

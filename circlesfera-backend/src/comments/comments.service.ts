@@ -358,8 +358,10 @@ export class CommentsService {
         ? []
         : await this.prisma.comment.findMany({
             where: { ...shownTopLevel, pinnedAt: { not: null } },
+            // Every shown pin, with no limit here: a pin that moderation
+            // shows again can make one more than COMMENT_PINS_MAX, and a
+            // pinned comment is never listed below.
             orderBy: { pinnedAt: 'asc' },
-            take: COMMENT_PINS_MAX,
             include,
           });
 

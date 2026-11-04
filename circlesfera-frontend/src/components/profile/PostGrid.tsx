@@ -182,10 +182,12 @@ export default function PostGrid({
               )}
 
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 pointer-events-none">
-                <div className="flex items-center gap-1.5 text-white font-bold text-xs md:text-sm">
-                  <Heart size={statIconSize} fill="white" />
-                  <span>{post._count?.likes || 0}</span>
-                </div>
+                {post._count?.likes !== null && (
+                  <div className="flex items-center gap-1.5 text-white font-bold text-xs md:text-sm">
+                    <Heart size={statIconSize} fill="white" />
+                    <span>{post._count?.likes || 0}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5 text-white font-bold text-xs md:text-sm">
                   <MessageCircle size={statIconSize} fill="white" />
                   <span>{post._count?.comments || 0}</span>
