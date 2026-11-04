@@ -260,7 +260,8 @@ describe('LiveViewer on the live connection', () => {
 
     fire('live:chat_message', {
       id: 'm0',
-      user: { username: 'bob' },
+      profile: { id: 'bob-id', username: 'bob', avatar: null },
+      timestamp: '2026-11-04T00:00:00.000Z',
       message: 'first!',
     });
     expect(screen.getByText('bob')).toBeInTheDocument();
@@ -269,7 +270,8 @@ describe('LiveViewer on the live connection', () => {
     for (let i = 1; i <= 50; i++) {
       fire('live:chat_message', {
         id: `m${i}`,
-        user: { username: 'bob' },
+        profile: { id: 'bob-id', username: 'bob', avatar: null },
+        timestamp: '2026-11-04T00:00:00.000Z',
         message: `line ${i}`,
       });
     }

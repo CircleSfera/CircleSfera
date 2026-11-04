@@ -13,6 +13,9 @@ describe('LiveRealtimeService', () => {
     user: {
       findUnique: ReturnType<typeof vi.fn>;
     };
+    profile: {
+      findUnique: ReturnType<typeof vi.fn>;
+    };
   };
 
   beforeEach(() => {
@@ -23,6 +26,9 @@ describe('LiveRealtimeService', () => {
         findUnique: vi.fn(),
       },
       user: {
+        findUnique: vi.fn(),
+      },
+      profile: {
         findUnique: vi.fn(),
       },
     };
@@ -204,27 +210,31 @@ describe('LiveRealtimeService', () => {
     });
   });
 
-  describe('getUserProfile', () => {
-    it('returns user profile data for chat messages', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        profiles: [{ id: 'p-1', username: 'user1', avatar: 'avatar.png' }],
+  describe('getChatAuthor', () => {
+    it('shows a comment as the Profile the person is using', async () => {
+      prisma.profile.findUnique.mockResolvedValue({
+        id: 'p-2',
+        username: 'second',
+        avatar: 'avatar.png',
       });
 
-      const profile = await service.getUserProfile('u-1');
+      const author = await service.getChatAuthor('p-2');
 
-      expect(profile).toEqual({
-        id: 'p-1',
-        username: 'user1',
+      expect(prisma.profile.findUnique).toHaveBeenCalledWith({
+        where: { id: 'p-2' },
+        select: { id: true, username: true, avatar: true },
+      });
+      expect(author).toEqual({
+        id: 'p-2',
+        username: 'second',
         avatar: 'avatar.png',
       });
     });
 
-    it('returns null if user or profile not found', async () => {
-      prisma.user.findUnique.mockResolvedValue({ profiles: [] });
+    it('is null for a Profile that no longer exists', async () => {
+      prisma.profile.findUnique.mockResolvedValue(null);
 
-      const profile = await service.getUserProfile('u-nonexistent');
-
-      expect(profile).toBeNull();
+      expect(await service.getChatAuthor('p-gone')).toBeNull();
     });
   });
 });

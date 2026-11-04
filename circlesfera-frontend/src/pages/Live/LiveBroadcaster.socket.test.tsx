@@ -224,7 +224,8 @@ const comment = () =>
 const say = (id: string, username: string, message: string) =>
   fire('live:chat_message', {
     id,
-    user: { username, avatar: `${username}.jpg` },
+    profile: { id: `${username}-id`, username, avatar: `${username}.jpg` },
+    timestamp: '2026-11-04T00:00:00.000Z',
     message,
   });
 
