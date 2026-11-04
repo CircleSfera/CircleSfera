@@ -99,12 +99,15 @@ interface StoryToolRailProps {
   share?: StoryShareOptions;
   /** The shape of what is edited: a post has no background or templates. */
   frame?: EditorFrame;
-  /** Only what is painted, text and drawing: a Frame, whose video is its own. */
+  /** Only what is painted over a video that is its own: a Frame. */
   paintOnly?: boolean;
 }
 
-/** What is painted over a video that is not the story's own: text and drawing. */
-const PAINT_TOOLS: ReadonlySet<string> = new Set(['text', 'draw']);
+/**
+ * What is painted over a video that is not the story's own: text, emoji
+ * stickers and drawing. The interactive stickers are Stories'.
+ */
+const PAINT_TOOLS: ReadonlySet<string> = new Set(['text', 'stickers', 'draw']);
 
 /** The tools a post's photo takes: text and drawing. Stickers are Stories'. */
 const POST_TOOLS: ReadonlySet<string> = new Set(['text', 'draw']);

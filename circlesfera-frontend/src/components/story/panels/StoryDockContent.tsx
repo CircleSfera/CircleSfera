@@ -33,6 +33,8 @@ import StoryTemplatesPanel from './StoryTemplatesPanel';
 export interface StoryDockContentProps {
   /** The shape of what is edited: a post offers no interactive sticker yet. */
   frame?: EditorFrame;
+  /** Only painted over a video of its own (a Frame): no interactive sticker. */
+  paintOnly?: boolean;
   selectedElementId: string | null;
   selectedElement: StoryElement | undefined;
   activeTab: StoryComposerTab;
@@ -129,6 +131,7 @@ export default function StoryDockContent({
   place,
   music,
   frame = 'STORY',
+  paintOnly = false,
 }: StoryDockContentProps) {
   return (
     <AnimatePresence mode="wait">
@@ -185,7 +188,7 @@ export default function StoryDockContent({
           canPlace={Boolean(place)}
           canMusic={Boolean(music)}
           full={elements.filter(isLiveElement).length >= STORY_STICKER_MAX}
-          interactive={frame === 'STORY'}
+          interactive={frame === 'STORY' && !paintOnly}
         />
       )}
 

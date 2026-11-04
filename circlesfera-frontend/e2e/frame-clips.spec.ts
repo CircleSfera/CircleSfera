@@ -178,3 +178,30 @@ test('a Frame recorded in clips is put together and goes on to its caption', asy
     .click();
   await expect(editor).toBeVisible();
 });
+
+// Over a Frame's video go text, drawing and emoji stickers; the interactive
+// stickers (polls, questions and the rest) are Stories' own.
+test('a Frame takes emoji stickers over its video, and no interactive one', async ({
+  page,
+}, info) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize(PHONE);
+  await prepareComposerSession(page);
+  await page.goto('/create?mode=frame');
+  await expect(page.locator('[data-testid="story-capture"] video')).toBeVisible(
+    { timeout: 15_000 },
+  );
+  await recordClip(page, 8500);
+  await recordClip(page, 8500);
+  await page.getByRole('button', { name: 'Seguir con los clips' }).click();
+  await page.getByRole('button', { name: 'Texto y dibujo' }).click();
+
+  const tools = page.getByRole('toolbar');
+  await tools.getByRole('button', { name: 'Stickers' }).click();
+  await expect(page.getByRole('region', { name: 'Interactivos' })).toHaveCount(
+    0,
+  );
+  await page.getByRole('button', { name: '🔥', exact: true }).first().click();
+  await expect(page.getByText('🔥').first()).toBeVisible();
+  await capture(page, 'frame-sticker', info);
+});
