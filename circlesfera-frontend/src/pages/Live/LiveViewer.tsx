@@ -1,3 +1,4 @@
+import type { LiveChatMessage } from '@circlesfera/shared';
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -80,7 +81,7 @@ export default function LiveViewer() {
     streamTitle?: string | null;
     host: { id?: string; username?: string; avatar?: string | null };
   } | null>(null);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<LiveChatMessage[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
 
@@ -160,7 +161,7 @@ export default function LiveViewer() {
       }
     });
 
-    socket.on('live:chat_message', (msg: any) => {
+    socket.on('live:chat_message', (msg: LiveChatMessage) => {
       setChatMessages((prev) => [...prev.slice(-49), msg]); // Keep last 50
       setTimeout(
         () => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }),
@@ -613,8 +614,8 @@ export default function LiveViewer() {
                     className="max-w-[85%] px-1 py-1"
                   >
                     <LiveCommentLine
-                      username={msg.user.username}
-                      avatar={msg.user.avatar}
+                      username={msg.profile.username}
+                      avatar={msg.profile.avatar}
                       message={msg.message}
                     />
                   </motion.div>

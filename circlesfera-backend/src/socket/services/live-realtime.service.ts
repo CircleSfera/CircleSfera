@@ -1,13 +1,8 @@
+import type { LiveChatAuthor } from '@circlesfera/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { canEnterStreamRoom } from '../../live/live-audience.js';
 import { isStreamHostOrOnAirGuest } from '../../live/live-authorization.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-
-export interface ChatUserProfile {
-  id: string;
-  username: string;
-  avatar: string | null;
-}
 
 @Injectable()
 export class LiveRealtimeService {
@@ -108,21 +103,12 @@ export class LiveRealtimeService {
   }
 
   /**
-   * Retrieves profile display data for chat messages.
+   * Who a comment on a live is shown as: the Profile the person is using.
    */
-  async getUserProfile(userId: string): Promise<ChatUserProfile | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { profiles: true },
+  async getChatAuthor(profileId: string): Promise<LiveChatAuthor | null> {
+    return this.prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { id: true, username: true, avatar: true },
     });
-
-    const profile = user?.profiles[0];
-    if (!profile) return null;
-
-    return {
-      id: profile.id,
-      username: profile.username,
-      avatar: profile.avatar,
-    };
   }
 }

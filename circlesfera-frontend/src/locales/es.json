@@ -1642,7 +1642,10 @@
     },
     "private_account": "Cuenta privada",
     "private_label": "Privada",
-    "company_verified": "Empresa verificada"
+    "company_verified": "Empresa verificada",
+    "upcoming_lives": {
+      "title": "Próximos directos"
+    }
   },
   "suggestions": {
     "title": "Sugerencias para ti",
@@ -2223,7 +2226,8 @@
     "appeal_cta": "Apelar esta decisión",
     "strike_details_cta": "Ver detalles y apelar",
     "removal_appeal_cta": "Apelar",
-    "just_now": "ahora"
+    "just_now": "ahora",
+    "view_live": "Ver el directo"
   },
   "chat": {
     "loading": "Cargando chats...",
@@ -5124,7 +5128,40 @@
         "failed": "No se pudo invitar a @{{username}}."
       }
     },
-    "unavailable": "Este directo ya no está disponible para ti."
+    "unavailable": "Este directo ya no está disponible para ti.",
+    "schedule": {
+      "tool": "Programar",
+      "sheet_title": "Programar un directo",
+      "summary_EVERYONE": "«{{title}}», para todos. El título y el público son los elegidos en esta pantalla.",
+      "summary_CLOSE_FRIENDS": "«{{title}}», para tus mejores amigos. El título y el público son los elegidos en esta pantalla.",
+      "practice_hint": "Una prueba no se puede programar: nadie más la ve. Elige Todos o Mejores amigos para programar este directo.",
+      "when_label": "Fecha y hora",
+      "limits_hint": "Desde {{min}} minutos hasta {{days}} días a partir de ahora. Quienes pidan que les avisemos reciben un aviso antes de que empiece.",
+      "error_missing": "Elige una fecha y una hora.",
+      "error_too_soon": "Elige una hora al menos {{min}} minutos a partir de ahora.",
+      "error_too_far": "Elige una hora como mucho {{days}} días a partir de ahora.",
+      "submit": "Programar directo",
+      "submitting": "Programando…",
+      "failed": "No se pudo programar el directo. Inténtalo de nuevo.",
+      "scheduled_toast": "Directo programado: {{when}}",
+      "upcoming_button_one": "{{count}} directo programado",
+      "upcoming_button_other": "{{count}} directos programados",
+      "upcoming_title": "Tus próximos directos",
+      "start_now": "Empezar ahora",
+      "cancel": "Cancelar",
+      "cancel_confirm_title": "¿Cancelar este directo?",
+      "cancel_confirm_message": "Dejará de mostrarse en tu perfil y no se avisa a nadie.",
+      "cancel_confirm": "Cancelar directo",
+      "keep": "Mantenerlo",
+      "cancelled": "Directo cancelado",
+      "cancel_failed": "No se pudo cancelar el directo. Inténtalo de nuevo.",
+      "reminders_one": "{{count}} persona pidió que le avisemos",
+      "reminders_other": "{{count}} personas pidieron que les avisemos",
+      "remind": "Recordarme",
+      "reminded": "Recordatorio activado",
+      "reminded_toast": "Te avisaremos {{min}} minutos antes de que empiece.",
+      "remind_failed": "No se pudo cambiar el recordatorio. Inténtalo de nuevo."
+    }
   },
   "shortcuts": {
     "next_post": "Siguiente publicación",
