@@ -18,6 +18,7 @@ import LiveGoalBar, {
   type LiveGoalData,
 } from '../../components/live/LiveGoalBar';
 import {
+  LiveCommentLine,
   LiveControl,
   LiveFrame,
   LiveHost,
@@ -488,8 +489,10 @@ export default function LiveViewer() {
             data-testid="live-top-band"
             className="pointer-events-none absolute inset-x-(--live-side) top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto"
           >
-            <div className="flex min-w-0 flex-col items-start gap-2">
-              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2.5 gap-y-2">
+            <div className="flex min-w-0 flex-col items-start gap-2 pt-1.5">
+              {/* One line, as Instagram's: who, the live mark and the
+                  viewers. */}
+              <div className="flex min-w-0 max-w-full items-center gap-2">
                 <LiveHost
                   username={
                     streamDetails?.host?.profile?.username ||
@@ -507,9 +510,9 @@ export default function LiveViewer() {
                   viewers={viewerCount}
                 />
               </div>
-              <LiveGoalBar goal={liveGoal} isHost={false} />
+              <LiveGoalBar goal={liveGoal} />
             </div>
-            <div className="flex shrink-0 flex-col gap-2.5">
+            <div className="flex shrink-0 flex-col items-center gap-1">
               <LiveControl
                 label={t('common.close')}
                 onClick={() => {
@@ -517,11 +520,11 @@ export default function LiveViewer() {
                   navigate(-1);
                 }}
               >
-                <X className="h-5 w-5" aria-hidden />
+                <X className="h-7 w-7" aria-hidden />
               </LiveControl>
               {coHostToken ? (
                 <LiveControl label={t('live.guests.leave')} onClick={leaveAir}>
-                  <LogOut className="h-5 w-5" aria-hidden />
+                  <LogOut className="h-6 w-6" aria-hidden />
                 </LiveControl>
               ) : null}
             </div>
@@ -592,29 +595,28 @@ export default function LiveViewer() {
           {/* Bottom band: the comments, the reactions and what is written. */}
           <div
             data-testid="live-bottom-band"
-            className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end bg-linear-to-t from-black/85 via-black/40 to-transparent px-(--live-side) pt-4 pb-(--live-bottom)"
+            className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end px-(--live-side) pt-4 pb-(--live-bottom)"
           >
             {/* Pinned Comment Banner */}
             <LivePinnedComment pinnedComment={pinnedComment} />
 
             {/* Live chat messages — stream of semi-transparent text lines */}
-            <div className="overflow-y-auto max-h-52 mb-4 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
+            <div className="relative mb-2 max-h-[30vh] overflow-y-auto no-scrollbar pt-6 mask-[linear-gradient(to_bottom,transparent,black_20%)]">
               <AnimatePresence initial={false}>
                 {chatMessages.map((msg) => (
                   <motion.div
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                    className="text-white text-xs sm:text-sm bg-black/40 border border-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit max-w-[85%] shadow-md flex items-center gap-1.5"
+                    className="max-w-[85%] px-1 py-1"
                   >
-                    <span className="font-extrabold text-white drop-shadow-sm">
-                      {msg.user.username}
-                    </span>
-                    <span className="text-white/90 font-medium">
-                      {msg.message}
-                    </span>
+                    <LiveCommentLine
+                      username={msg.user.username}
+                      avatar={msg.user.avatar}
+                      message={msg.message}
+                    />
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -629,7 +631,7 @@ export default function LiveViewer() {
                     type="button"
                     key={emoji}
                     onClick={() => sendQuickReaction(emoji)}
-                    className="live-glass flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg transition-transform active:scale-90"
+                    className="live-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl transition-transform active:scale-90"
                     aria-label={t('live.send_reaction', { emoji })}
                   >
                     <span aria-hidden>{emoji}</span>
@@ -645,7 +647,7 @@ export default function LiveViewer() {
                   type="button"
                   key={emoji}
                   onClick={() => sendQuickReaction(emoji)}
-                  className="live-glass flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg transition-transform active:scale-90"
+                  className="live-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl transition-transform active:scale-90"
                   aria-label={t('live.send_reaction', { emoji })}
                 >
                   <span aria-hidden>{emoji}</span>
@@ -662,7 +664,7 @@ export default function LiveViewer() {
                 placeholder={t('live.chat_placeholder')}
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
-                className="live-glass min-h-12 min-w-0 flex-1 rounded-full px-4 text-base text-white placeholder-white/60 outline-none focus:border-white/40"
+                className="live-field min-h-12 min-w-0 flex-1 rounded-full px-4 text-base text-white placeholder-white/75 outline-none"
               />
               {messageInput.trim() ? (
                 <LiveControl
@@ -678,7 +680,7 @@ export default function LiveViewer() {
                     label={t('live.qna.title')}
                     onClick={() => setIsQnAOpen(true)}
                   >
-                    <HelpCircle className="h-5 w-5" aria-hidden />
+                    <HelpCircle className="h-6 w-6" aria-hidden />
                   </LiveControl>
                   {/* Gifts are bought on the web only: not in the apps. */}
                   {sellsInApp() && (
@@ -686,7 +688,7 @@ export default function LiveViewer() {
                       label={t('live.send_gift_btn')}
                       onClick={() => setGiftModalOpen(true)}
                     >
-                      <Gift className="h-5 w-5" aria-hidden />
+                      <Gift className="h-6 w-6" aria-hidden />
                     </LiveControl>
                   )}
                 </>

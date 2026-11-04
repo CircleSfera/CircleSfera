@@ -39,6 +39,16 @@ export function LiveFrame({
         <div className="absolute inset-0" data-testid="live-video">
           {video}
         </div>
+        {/* A dark fade at the top and at the bottom keeps what is written
+            over the video readable, whatever the video shows. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-linear-to-b from-black/55 to-transparent"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] bg-linear-to-t from-black/75 via-black/30 to-transparent"
+        />
         {/* What is in sight: a phone's browser hides part of the screen
             under its own bars, and no control may end up there. The layer
             itself lets a tap through to the video and to the controls drawn
@@ -51,23 +61,25 @@ export function LiveFrame({
   );
 }
 
-// The one control of a Live screen: a round button of glass, 44 px.
+// The one control of a Live screen: a white icon over the video, with 44 px
+// to tap and a soft shadow, and no button drawn around it, as Instagram's
+// live has them.
 export function LiveControl({
   label,
-  tone = 'glass',
+  tone = 'plain',
   className = '',
   children,
   ...button
 }: {
   label: string;
-  // glass: the usual one. on: something switched off that is now the state
+  // plain: the usual one. on: something switched off that is now the state
   // to notice (a muted microphone). brand: the one action of a form.
-  tone?: 'glass' | 'on' | 'brand';
+  tone?: 'plain' | 'on' | 'brand';
   children: ReactNode;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-label'>) {
   const tones = {
-    glass: 'live-glass text-white',
-    on: 'bg-white text-black',
+    plain: 'live-icon text-white',
+    on: 'live-icon text-white',
     brand: 'bg-brand-primary text-white',
   };
   return (
@@ -75,9 +87,16 @@ export function LiveControl({
       type="button"
       {...button}
       aria-label={label}
-      className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${tones[tone]} ${className}`}
+      className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${tones[tone]} ${className}`}
     >
-      {children}
+      {tone === 'on' ? (
+        // Switched off: the icon sits on a small white disc to be noticed.
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black">
+          {children}
+        </span>
+      ) : (
+        children
+      )}
     </button>
   );
 }
@@ -109,9 +128,8 @@ export function LiveStatus({
   }, [startedAt]);
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex min-h-9 items-center gap-1.5 rounded-full bg-red-600 px-3 text-xs font-bold text-white shadow-lg">
-        <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
+    <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex h-6 items-center gap-1 rounded-md bg-red-600 px-1.5 text-xs font-bold text-white">
         <span className="uppercase tracking-wide">{t('live.now')}</span>
         {startedAt ? (
           <span className="tabular-nums font-semibold" data-testid="live-clock">
@@ -119,8 +137,8 @@ export function LiveStatus({
           </span>
         ) : null}
       </div>
-      <div className="live-glass flex min-h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-white">
-        <Eye className="h-4 w-4" aria-hidden />
+      <div className="flex h-6 items-center gap-1 rounded-md bg-black/45 px-1.5 text-xs font-bold text-white">
+        <Eye className="h-3.5 w-3.5" aria-hidden />
         <span className="tabular-nums">{viewers}</span>
         <span className="sr-only">{t('live.viewers')}</span>
       </div>
@@ -146,23 +164,49 @@ export function LiveHost({
         // The name is written next to it: read aloud once, not twice.
         alt=""
         data-testid="live-host-picture"
-        className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-white/25"
+        className="h-8 w-8 shrink-0 rounded-full object-cover"
       />
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-white drop-shadow">
+        <p className="live-text truncate text-sm font-semibold text-white">
           {username}
         </p>
         {title ? (
-          <p className="truncate text-xs text-white/75 drop-shadow">{title}</p>
+          <p className="live-text truncate text-xs text-white/80">{title}</p>
         ) : null}
       </div>
     </div>
   );
 }
 
+// One comment over the video, as a line and not a bubble: a small picture,
+// the name in bold and the words.
+export function LiveCommentLine({
+  username,
+  avatar,
+  message,
+}: {
+  username: string;
+  avatar?: string | null;
+  message: string;
+}) {
+  return (
+    <span className="flex min-w-0 items-start gap-2 text-left">
+      <img
+        src={avatar || initialsAvatarUrl(username)}
+        alt=""
+        className="mt-0.5 h-6 w-6 shrink-0 rounded-full object-cover"
+      />
+      <span className="live-text min-w-0 text-sm leading-snug text-white wrap-break-word">
+        <span className="font-semibold">{username}</span>{' '}
+        <span className="text-white/90">{message}</span>
+      </span>
+    </span>
+  );
+}
+
 // The one sheet: it opens from the bottom and never covers more than about
-// two thirds of the screen, so the video stays in sight. A tap outside
-// closes it.
+// two thirds of the screen, so the video stays in sight. It is solid: nothing
+// of the screen under it shows through. A tap outside closes it.
 export function LiveSheet({
   isOpen,
   onClose,
@@ -201,7 +245,7 @@ export function LiveSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="live-glass-sheet relative flex max-h-[66%] flex-col rounded-t-3xl pb-(--live-bottom) animate-in slide-in-from-bottom-8 duration-200"
+        className="relative flex max-h-[66%] flex-col rounded-t-3xl border-t border-white/10 bg-surface-elevated pb-(--live-bottom) shadow-[0_-12px_40px_rgba(0,0,0,0.45)] animate-in slide-in-from-bottom-8 duration-200"
       >
         <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2">
           <h3

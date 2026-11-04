@@ -34,13 +34,13 @@ export function LiveCameraTurn() {
       onClick={turnCamera}
       disabled={!isCameraEnabled}
     >
-      <SwitchCamera className="h-5 w-5" aria-hidden />
+      <SwitchCamera className="h-6 w-6" aria-hidden />
     </LiveControl>
   );
 }
 
 // The host switches their own picture and sound off and on. A thing switched
-// off is drawn in white, so the host notices the state they are in.
+// off sits on a white disc, so the host notices the state they are in.
 export function LiveCameraMicSwitches() {
   const { t } = useTranslation();
   const { localParticipant, isCameraEnabled, isMicrophoneEnabled } =
@@ -60,13 +60,13 @@ export function LiveCameraMicSwitches() {
       <LiveControl
         label={isCameraEnabled ? t('live.camera_off') : t('live.camera_on')}
         aria-pressed={!isCameraEnabled}
-        tone={isCameraEnabled ? 'glass' : 'on'}
+        tone={isCameraEnabled ? 'plain' : 'on'}
         onClick={() =>
           switchDevice(localParticipant.setCameraEnabled(!isCameraEnabled))
         }
       >
         {isCameraEnabled ? (
-          <Video className="h-5 w-5" aria-hidden />
+          <Video className="h-6 w-6" aria-hidden />
         ) : (
           <VideoOff className="h-5 w-5" aria-hidden />
         )}
@@ -74,7 +74,7 @@ export function LiveCameraMicSwitches() {
       <LiveControl
         label={isMicrophoneEnabled ? t('live.mic_off') : t('live.mic_on')}
         aria-pressed={!isMicrophoneEnabled}
-        tone={isMicrophoneEnabled ? 'glass' : 'on'}
+        tone={isMicrophoneEnabled ? 'plain' : 'on'}
         onClick={() =>
           switchDevice(
             localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled),
@@ -82,7 +82,7 @@ export function LiveCameraMicSwitches() {
         }
       >
         {isMicrophoneEnabled ? (
-          <Mic className="h-5 w-5" aria-hidden />
+          <Mic className="h-6 w-6" aria-hidden />
         ) : (
           <MicOff className="h-5 w-5" aria-hidden />
         )}

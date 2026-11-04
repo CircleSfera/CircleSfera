@@ -13,6 +13,7 @@ import {
   Pin,
   Send,
   SwitchCamera,
+  Target,
   Trash2,
   UserPlus,
   X,
@@ -40,6 +41,7 @@ import {
   LiveCameraTurn,
 } from '../../components/live/LiveHostControls';
 import {
+  LiveCommentLine,
   LiveControl,
   LiveFrame,
   LiveHost,
@@ -617,8 +619,10 @@ export default function LiveBroadcaster() {
             data-testid="live-top-band"
             className="pointer-events-none absolute inset-x-(--live-side) top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto"
           >
-            <div className="flex min-w-0 flex-col items-start gap-2">
-              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2.5 gap-y-2">
+            <div className="flex min-w-0 flex-col items-start gap-2 pt-1.5">
+              {/* One line, as Instagram's: who, the live mark and the
+                  viewers. */}
+              <div className="flex min-w-0 max-w-full items-center gap-2">
                 <LiveHost
                   username={profile?.username ?? ''}
                   avatar={profile?.avatar}
@@ -631,17 +635,18 @@ export default function LiveBroadcaster() {
               />
               <LiveGoalBar
                 goal={liveGoal}
-                isHost={true}
                 onClick={() => setGoalDialogOpen(true)}
               />
             </div>
-            <div className="flex shrink-0 flex-col gap-2.5">
+            {/* The way out, and under it the host's own camera and sound. */}
+            <div className="flex shrink-0 flex-col items-center gap-1">
               <LiveControl
                 label={t('live.end_stream')}
                 onClick={() => setConfirmEndOpen(true)}
               >
-                <X className="h-5 w-5" aria-hidden />
+                <X className="h-7 w-7" aria-hidden />
               </LiveControl>
+              <LiveCameraTurn />
               <LiveCameraMicSwitches />
             </div>
           </div>
@@ -695,16 +700,16 @@ export default function LiveBroadcaster() {
           {/* Bottom band: the comments and what the host writes. */}
           <div
             data-testid="live-bottom-band"
-            className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end bg-linear-to-t from-black/85 via-black/40 to-transparent px-(--live-side) pt-3 pb-(--live-bottom)"
+            className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end px-(--live-side) pt-3 pb-(--live-bottom)"
           >
             <LivePinnedComment
               pinnedComment={pinnedComment}
               onUnpin={handleUnpinMessage}
             />
 
-            <div className="overflow-y-auto max-h-40 mb-2 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
+            <div className="relative mb-2 max-h-[30vh] space-y-0.5 overflow-y-auto no-scrollbar pt-6 mask-[linear-gradient(to_bottom,transparent,black_20%)]">
               {chatMessages.map((msg) => (
-                // The whole row answers the tap; the bubble inside keeps its size.
+                // The whole line answers the tap: the host pins or removes it.
                 <button
                   type="button"
                   key={msg.id}
@@ -714,20 +719,15 @@ export default function LiveBroadcaster() {
                     )
                   }
                   aria-pressed={selectedMessage?.id === msg.id}
-                  className="min-h-11 flex items-center text-left max-w-[85%]"
+                  className={`flex min-h-11 max-w-[85%] items-center rounded-xl px-1 ${
+                    selectedMessage?.id === msg.id ? 'bg-white/15' : ''
+                  }`}
                 >
-                  <span
-                    className={`text-white text-xs bg-black/40 border backdrop-blur-md px-2.5 py-1 rounded-2xl shadow-sm ${
-                      selectedMessage?.id === msg.id
-                        ? 'border-brand-primary'
-                        : 'border-white/10'
-                    }`}
-                  >
-                    <span className="font-extrabold text-white">
-                      {msg.user.username}:{' '}
-                    </span>
-                    <span className="text-white/90">{msg.message}</span>
-                  </span>
+                  <LiveCommentLine
+                    username={msg.user.username}
+                    avatar={msg.user.avatar}
+                    message={msg.message}
+                  />
                 </button>
               ))}
               <div ref={chatEndRef} />
@@ -742,7 +742,7 @@ export default function LiveBroadcaster() {
                 placeholder={t('live.chat_placeholder')}
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
-                className="live-glass min-h-12 min-w-0 flex-1 rounded-full px-4 text-base text-white placeholder-white/60 outline-none focus:border-white/40"
+                className="live-field min-h-12 min-w-0 flex-1 rounded-full px-4 text-base text-white placeholder-white/75 outline-none"
               />
               {messageInput.trim() ? (
                 <LiveControl
@@ -764,10 +764,10 @@ export default function LiveBroadcaster() {
                     }
                     onClick={() => setSheet('questions')}
                   >
-                    <HelpCircle className="h-5 w-5" aria-hidden />
+                    <HelpCircle className="h-6 w-6" aria-hidden />
                     {questions.length > 0 && (
                       <span
-                        className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-secondary px-1 text-xs font-bold"
+                        className="absolute top-0 right-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-secondary px-1 text-xs font-bold"
                         aria-hidden
                       >
                         {questions.length}
@@ -780,10 +780,17 @@ export default function LiveBroadcaster() {
                       aria-expanded={guestFormOpen}
                       onClick={() => setSheet('guests')}
                     >
-                      <UserPlus className="h-5 w-5" aria-hidden />
+                      <UserPlus className="h-6 w-6" aria-hidden />
                     </LiveControl>
                   )}
-                  <LiveCameraTurn />
+                  {!liveGoal && (
+                    <LiveControl
+                      label={t('live.goal.add')}
+                      onClick={() => setGoalDialogOpen(true)}
+                    >
+                      <Target className="h-6 w-6" aria-hidden />
+                    </LiveControl>
+                  )}
                 </>
               )}
             </form>

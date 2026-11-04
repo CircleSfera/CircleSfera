@@ -161,7 +161,9 @@ describe('LiveBroadcaster', () => {
     expect(
       screen.queryByRole('button', { name: 'Terminar transmisión' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText(i18n!.t('live.goal.add'))).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n!.t('live.goal.add') }),
+    ).toBeInTheDocument();
   });
 
   it('shows the ended summary from the catalog', async () => {
@@ -459,6 +461,7 @@ describe('LiveBroadcaster', () => {
       i18n!.t('live.qna.title'),
       i18n!.t('live.guests.invite'),
       i18n!.t('live.turn_camera'),
+      i18n!.t('live.goal.add'),
     ]) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }
@@ -471,7 +474,11 @@ describe('LiveBroadcaster', () => {
       screen.getByRole('button', { name: i18n!.t('live.send_comment') }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: i18n!.t('live.turn_camera') }),
+      screen.queryByRole('button', { name: i18n!.t('live.guests.invite') }),
     ).not.toBeInTheDocument();
+    // Turning the camera stays at hand, in the column on the right.
+    expect(
+      screen.getByRole('button', { name: i18n!.t('live.turn_camera') }),
+    ).toBeInTheDocument();
   });
 });
