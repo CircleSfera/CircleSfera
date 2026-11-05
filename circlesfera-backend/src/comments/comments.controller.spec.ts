@@ -33,6 +33,8 @@ describe('CommentsController', () => {
     unlikeComment: vi.fn(),
     pin: vi.fn(),
     unpin: vi.fn(),
+    hiddenByWordsOf: vi.fn(),
+    showHidden: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -182,6 +184,30 @@ describe('CommentsController', () => {
       TEST_USER.profileId,
     );
     expect(mockService.unpin).toHaveBeenCalledWith(
+      'post-1',
+      'c-1',
+      TEST_USER.profileId,
+    );
+  });
+
+  it('lists the hidden comments of a post and shows one, as the session profile', async () => {
+    mockService.hiddenByWordsOf.mockResolvedValue({ data: [] });
+    mockService.showHidden.mockResolvedValue({ id: 'c-1' });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/post-1/comments/hidden')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/comments/c-1/show')
+      .set(BEARER)
+      .expect(201);
+
+    expect(mockService.hiddenByWordsOf).toHaveBeenCalledWith(
+      'post-1',
+      TEST_USER.profileId,
+    );
+    expect(mockService.showHidden).toHaveBeenCalledWith(
       'post-1',
       'c-1',
       TEST_USER.profileId,

@@ -29,6 +29,8 @@ vi.mock('../services', () => ({
     unlike: vi.fn(),
     pin: vi.fn(),
     unpin: vi.fn(),
+    hidden: vi.fn(),
+    showHidden: vi.fn(),
   },
   uploadApi: { upload: vi.fn() },
 }));
@@ -113,6 +115,9 @@ describe('CommentList actions', () => {
     vi.clearAllMocks();
     native.pick.mockResolvedValue(false);
     vi.mocked(commentsApi.create).mockResolvedValue({} as never);
+    vi.mocked(commentsApi.hidden).mockResolvedValue({
+      data: { data: [] },
+    } as never);
   });
 
   it('invites the first comment on a post with none', () => {
@@ -120,6 +125,37 @@ describe('CommentList actions', () => {
     expect(
       screen.getByText('No comments yet. Be the first to comment!'),
     ).toBeInTheDocument();
+  });
+
+  describe('comments hidden by words', () => {
+    it('lets the author open them and show one to everyone', async () => {
+      vi.mocked(commentsApi.hidden).mockResolvedValue({
+        data: { data: [comment('h1', { content: 'algo feo' })] },
+      } as never);
+      vi.mocked(commentsApi.showHidden).mockResolvedValue({} as never);
+      show([comment('c1')], { postAuthorId: 'me' });
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Hidden comments (1)' }),
+      );
+      expect(screen.getByText('algo feo')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Show' }));
+
+      await waitFor(() =>
+        expect(commentsApi.showHidden).toHaveBeenCalledWith('post-1', 'h1'),
+      );
+    });
+
+    it('asks for them only for the author, and shows nothing when there are none', async () => {
+      show([comment('c1')], { postAuthorId: 'someone-else' });
+      expect(commentsApi.hidden).not.toHaveBeenCalled();
+
+      show([comment('c2')], { postAuthorId: 'me' });
+      await waitFor(() => expect(commentsApi.hidden).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('button', { name: /Hidden comments/ }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('pinning a comment', () => {

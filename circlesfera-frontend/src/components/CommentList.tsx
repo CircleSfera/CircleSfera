@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Heart,
   Image as ImageIcon,
@@ -307,6 +307,25 @@ export default function CommentList({
   });
   const canPin = Boolean(profile?.id) && profile?.id === postAuthorId;
 
+  // The author's: comments hidden by their hidden words, to look at and show.
+  const [hiddenOpen, setHiddenOpen] = useState(false);
+  const hidden = useQuery({
+    queryKey: ['comments', postId, 'hidden'],
+    queryFn: () => commentsApi.hidden(postId).then((r) => r.data.data),
+    enabled: canPin,
+  });
+  const showHiddenMutation = useMutation({
+    mutationFn: (commentId: string) =>
+      commentsApi.showHidden(postId, commentId),
+    onSuccess: () => {
+      toast.success(t('comments.hidden_shown'));
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+      queryClient.invalidateQueries({ queryKey: ['post', postId] });
+    },
+    onError: () => toast.error(t('comments.hidden_error')),
+  });
+  const hiddenComments = hidden.data ?? [];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newComment.trim() || media) {
@@ -546,6 +565,48 @@ export default function CommentList({
                 onPin={canPin ? (c) => pinMutation.mutate(c) : undefined}
               />
             ))}
+          </div>
+        )}
+
+        {hiddenComments.length > 0 && (
+          <div className="pt-1">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setHiddenOpen((open) => !open)}
+              aria-expanded={hiddenOpen}
+              className="min-h-11 h-auto px-2 -mx-2 text-xs font-semibold text-gray-400 hover:text-white hover:bg-transparent"
+            >
+              {t('comments.hidden_open')} ({hiddenComments.length})
+            </Button>
+            {hiddenOpen && (
+              <div className="mt-2 space-y-2">
+                <p className="text-xs text-gray-400">
+                  {t('comments.hidden_desc')}
+                </p>
+                {hiddenComments.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between gap-2 rounded-lg bg-white/5 pl-3"
+                  >
+                    <p className="min-w-0 text-sm text-gray-300 wrap-break-word py-2">
+                      <span className="font-semibold text-white mr-1">
+                        {c.profile.username}
+                      </span>
+                      {c.content}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => showHiddenMutation.mutate(c.id)}
+                      className="min-h-11 shrink-0 text-xs font-semibold text-brand-primary-text"
+                    >
+                      {t('comments.hidden_show')}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

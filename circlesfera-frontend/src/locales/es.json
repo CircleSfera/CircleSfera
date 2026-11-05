@@ -128,6 +128,10 @@
       "archive": {
         "label": "Archivo",
         "desc": "Lo que solo ves tú"
+      },
+      "hidden_words": {
+        "label": "Palabras ocultas",
+        "desc": "Comentarios"
       }
     },
     "profile": {
@@ -1533,7 +1537,14 @@
     "pinned": "Fijado por el autor",
     "pin": "Fijar comentario",
     "unpin": "Dejar de fijar",
-    "pin_error": "No se pudo fijar el comentario."
+    "pin_error": "No se pudo fijar el comentario.",
+    "hidden_open": "Comentarios ocultos",
+    "hidden_title": "Comentarios ocultos",
+    "hidden_desc": "Contienen alguna de tus palabras ocultas. Solo los ve quien los escribió.",
+    "hidden_none": "No hay comentarios ocultos.",
+    "hidden_show": "Mostrar",
+    "hidden_shown": "Comentario visible para todos",
+    "hidden_error": "No se pudo mostrar el comentario."
   },
   "profile": {
     "tabs": {
@@ -5850,7 +5861,9 @@
       "MESSAGE_IS_NOTICE": "Es un aviso de CircleSfera y no se puede cambiar.",
       "GROUP_ADMIN_NOT_ELIGIBLE": "Este miembro no puede ser admin del grupo.",
       "PREMIUM_PRICE_OUT_OF_RANGE": "El precio del contenido premium está fuera del rango permitido.",
-      "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado."
+      "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado.",
+      "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
+      "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",
@@ -5898,6 +5911,18 @@
       "required": "Sin esto, la compra no puede empezar.",
       "continue": "Continuar al pago"
     }
+  },
+  "hiddenWords": {
+    "title": "Palabras ocultas",
+    "desc": "Los comentarios en tus publicaciones que contengan una de estas palabras, frases o emojis solo los verá quien los escribió. Puedes revisarlos y mostrarlos desde cada publicación.",
+    "placeholder": "Añade una palabra, frase o emoji",
+    "add": "Añadir",
+    "remove": "Quitar {{word}}",
+    "none": "Aún no has ocultado ninguna palabra.",
+    "added": "Palabra oculta",
+    "removed": "Palabra quitada",
+    "error": "No se pudo guardar. Inténtalo de nuevo.",
+    "count": "{{count}} de {{max}}"
   },
   "audio_page": {
     "use": "Usar este audio",

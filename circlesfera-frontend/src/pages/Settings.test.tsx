@@ -22,6 +22,9 @@ vi.mock('../components/settings/FeedPreferencesSettings', () => ({
 vi.mock('../components/settings/MutesSettings', () => ({
   default: () => <div>panel:mutes</div>,
 }));
+vi.mock('../components/settings/HiddenWordsSettings', () => ({
+  default: () => <div>panel:hidden_words</div>,
+}));
 vi.mock('../components/settings/MyReportsSettings', () => ({
   default: () => <div>panel:reports</div>,
 }));
