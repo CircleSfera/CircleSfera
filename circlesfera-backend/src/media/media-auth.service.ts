@@ -123,6 +123,7 @@ export class MediaAuthService {
     viewerUserId: string | null,
     viewerProfileId: string | null,
     isStaff: () => Promise<boolean> = () => Promise.resolve(false),
+    isReviewer: () => Promise<boolean> = () => Promise.resolve(false),
   ): Promise<boolean> {
     // Nginx passes the raw, undecoded $request_uri (including any query
     // string/fragment) via X-Original-URI, but its own `location /uploads/`
@@ -274,6 +275,36 @@ export class MediaAuthService {
     // access to someone else's private/PPV file. Requiring every matched
     // owner (across every table) to independently grant access closes that
     // without costing anything in the normal, non-adversarial case.
+    // A file of paid content on sale: the review area shows it, without
+    // buying it, to whoever holds the review permission. Only when every row
+    // naming the file is such a post's or story's: never a message's, nor
+    // content hidden, removed, deleted or archived.
+    const onSale = (content: {
+      isPremium: boolean;
+      moderationStatus: string;
+      deletedAt: Date | null;
+      archivedAt?: Date | null;
+    }) =>
+      content.isPremium &&
+      (content.moderationStatus === 'VISIBLE' ||
+        content.moderationStatus === 'FLAGGED') &&
+      !content.deletedAt &&
+      !content.archivedAt;
+    if (
+      postMedia.length + story.length > 0 &&
+      message.length +
+        comment.length +
+        collection.length +
+        editProject.length +
+        liveStream.length ===
+        0 &&
+      postMedia.every((media) => onSale(media.post)) &&
+      story.every(onSale) &&
+      (await isReviewer())
+    ) {
+      return true;
+    }
+
     // A file of removed content: staff who moderate content may see it,
     // nobody else. The other rows naming the file are still checked.
     const removedPostMedia = postMedia.filter((media) => isRemoved(media.post));

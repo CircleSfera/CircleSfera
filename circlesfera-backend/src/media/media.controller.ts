@@ -67,12 +67,15 @@ export class MediaController {
     const viewerUserId = req.user?.userId ?? null;
     const viewerProfileId = req.user?.profileId ?? null;
 
-    // Staff are recognised only when a file of removed content is asked for.
+    // Staff are recognised only when a file of removed content is asked for,
+    // and whoever reads the review area only for a file of paid content on
+    // sale.
     const allowed = await this.mediaAuthService.isAccessAllowed(
       originalUri,
       viewerUserId,
       viewerProfileId,
       () => this.staffViewer.isContentStaff(req),
+      () => this.staffViewer.isReviewer(req),
     );
 
     if (!allowed) {

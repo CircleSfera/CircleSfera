@@ -79,6 +79,7 @@ import { ProfilesModule } from './profiles/profiles.module.js';
 import { PushModule } from './push/push.module.js';
 import { RecentlyDeletedModule } from './recently-deleted/recently-deleted.module.js';
 import { ReportsModule } from './reports/reports.module.js';
+import { ReviewModule } from './review/review.module.js';
 import { SearchModule } from './search/search.module.js';
 import { SecurityReportsModule } from './security-reports/security-reports.module.js';
 import { SeoModule } from './seo/seo.module.js';
@@ -227,6 +228,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     SecurityReportsModule,
     NewsletterModule,
     IllegalNoticesModule,
+    ReviewModule,
     WellKnownModule,
     TeamModule,
   ],
