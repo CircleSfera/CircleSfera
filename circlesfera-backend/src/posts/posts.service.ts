@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ErrorCode } from '@circlesfera/shared';
+import { ErrorCode, PROFILE_PINS_MAX } from '@circlesfera/shared';
 import {
   BadRequestException,
   ForbiddenException,
@@ -692,7 +692,12 @@ export class PostsService {
         skip,
         take: limit,
         ...(cursor && { cursor: { id: cursor } }),
-        orderBy: { createdAt: 'desc' },
+        // Pinned first, the latest pin first; then the rest, newest first.
+        orderBy: [
+          { pinnedToProfileAt: { sort: 'desc', nulls: 'last' } },
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
         include: {
           profile: { select: PUBLIC_PROFILE_SELECT },
           media: { include: { media: true } },
@@ -853,6 +858,60 @@ export class PostsService {
       );
     }
     return { ...post, media: post.media.map(resolveMediaFields) };
+  }
+
+  // Pin a post or Frame to the top of its author's profile. Ownership is
+  // checked by OwnershipGuard. A Profile pins at most PROFILE_PINS_MAX of the
+  // posts it shows; pinning one already pinned changes nothing.
+  async pinToProfile(id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const post = await tx.post.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          profileId: true,
+          pinnedToProfileAt: true,
+          deletedAt: true,
+          archivedAt: true,
+          moderationStatus: true,
+        },
+      });
+      if (!post || post.deletedAt || post.archivedAt) {
+        throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
+      }
+      if (post.pinnedToProfileAt) {
+        return { id, pinnedToProfileAt: post.pinnedToProfileAt };
+      }
+      // The Profile is locked so two pins at once cannot pass the limit.
+      await tx.$queryRaw`SELECT id FROM "profiles" WHERE id = ${post.profileId} FOR UPDATE`;
+      const pins = await tx.post.count({
+        where: {
+          profileId: post.profileId,
+          pinnedToProfileAt: { not: null },
+          ...LISTED_POST,
+        },
+      });
+      if (pins >= PROFILE_PINS_MAX) {
+        throw AppException.Conflict(
+          ErrorCode.PROFILE_PINS_FULL,
+          `A Profile pins at most ${PROFILE_PINS_MAX} posts`,
+        );
+      }
+      return tx.post.update({
+        where: { id },
+        data: { pinnedToProfileAt: new Date() },
+        select: { id: true, pinnedToProfileAt: true },
+      });
+    });
+  }
+
+  // Unpin a post or Frame from its author's profile.
+  async unpinFromProfile(id: string) {
+    return this.prisma.post.update({
+      where: { id },
+      data: { pinnedToProfileAt: null },
+      select: { id: true, pinnedToProfileAt: true },
+    });
   }
 
   // Delete a post (a frame too) into its author's Recently deleted: it is

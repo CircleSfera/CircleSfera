@@ -124,14 +124,14 @@ describe('AudioController', () => {
 
   it('loads one track and its posts by id', async () => {
     mockService.findOne.mockResolvedValue({ id: 'audio-1' });
-    mockService.getAudioPosts.mockResolvedValue([]);
+    mockService.getAudioPosts.mockResolvedValue({ data: [], meta: {} });
 
     await request(app.getHttpServer())
       .get('/api/v1/audio/audio-1')
       .set(BEARER)
       .expect(200);
     await request(app.getHttpServer())
-      .get('/api/v1/audio/audio-1/posts')
+      .get('/api/v1/audio/audio-1/posts?page=2&limit=12')
       .set(BEARER)
       .expect(200);
 
@@ -139,6 +139,7 @@ describe('AudioController', () => {
     // The posts come as the signed-in Profile sees them.
     expect(mockService.getAudioPosts).toHaveBeenCalledWith(
       'audio-1',
+      expect.objectContaining({ page: 2, limit: 12 }),
       'profile-1',
     );
   });

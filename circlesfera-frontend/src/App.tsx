@@ -77,6 +77,8 @@ const Saved = lazy(() => import('./pages/Saved'));
 const SelectChat = lazy(() => import('./components/chat/SelectChat'));
 const Settings = lazy(() => import('./pages/Settings'));
 const TagFeed = lazy(() => import('./pages/TagFeed'));
+const AudioPage = lazy(() => import('./pages/AudioPage'));
+const PlacePage = lazy(() => import('./pages/PlacePage'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const NewsletterUnsubscribe = lazy(
@@ -374,6 +376,22 @@ function App() {
           element={
             <AuthGuard>
               <TagFeed />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/explore/places/:id"
+          element={
+            <AuthGuard>
+              <PlacePage />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/audio/:id"
+          element={
+            <AuthGuard>
+              <AudioPage />
             </AuthGuard>
           }
         />

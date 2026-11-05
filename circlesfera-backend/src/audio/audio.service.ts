@@ -1,4 +1,13 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
+import {
+  createPaginatedResult,
+  type PaginationDto,
+} from '../common/dto/pagination.dto.js';
+import {
+  publicPostListWhere,
+  withLikeCountAsSeenBy,
+} from '../common/policies/public-post-list.policy.js';
 import { SHOWN_COMMENTS_COUNT } from '../common/policies/removed-content.policy.js';
 import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -110,29 +119,49 @@ export class AudioService {
   // Get all posts (Posts and Frames) using a specific audio track, as the
   // viewer sees them: a paid post they have not unlocked is closed.
   // Param id: The audio track's ID
-  async getAudioPosts(id: string, viewerProfileId?: string) {
-    const posts = await this.prisma.post.findMany({
-      where: {
-        audioId: id,
-        visibility: 'PUBLIC',
-        moderationStatus: 'VISIBLE',
-        deletedAt: null,
-        archivedAt: null,
-      },
-      include: {
-        profile: {
-          select: {
-            id: true,
-            username: true,
-            avatar: true,
-            fullName: true,
+  // The posts and Frames that use a song, newest first, a page at a time:
+  // only those the viewer may find in a public list, with a like count the
+  // author hid left out.
+  async getAudioPosts(
+    id: string,
+    pagination: PaginationDto,
+    viewerProfileId?: string,
+  ) {
+    await this.findOne(id);
+    const { page = 1, limit = 20, cursor } = pagination;
+    const where: Prisma.PostWhereInput = {
+      audioId: id,
+      ...(await publicPostListWhere(this.prisma, viewerProfileId)),
+    };
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        skip: cursor ? 1 : (page - 1) * limit,
+        take: limit,
+        ...(cursor && { cursor: { id: cursor } }),
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        include: {
+          profile: {
+            select: { id: true, username: true, avatar: true, fullName: true },
+          },
+          media: { orderBy: { order: 'asc' } },
+          _count: {
+            select: { likes: true, comments: SHOWN_COMMENTS_COUNT },
           },
         },
-        media: true,
-        _count: { select: { likes: true, comments: SHOWN_COMMENTS_COUNT } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return this.postPaywall.applyPaywall(posts, viewerProfileId);
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+    const shown = await this.postPaywall.applyPaywall(
+      posts.map((post) => withLikeCountAsSeenBy(post, viewerProfileId)),
+      viewerProfileId,
+    );
+    return createPaginatedResult(
+      shown,
+      total,
+      page,
+      limit,
+      shown.length > 0 ? shown[shown.length - 1].id : undefined,
+    );
   }
 }
