@@ -423,6 +423,24 @@ describe('AdminOperatorsService', () => {
         expect(proof.sendLink).not.toHaveBeenCalled();
       });
 
+      it('becoming a reviewer with an end already past gives a new one', async () => {
+        prisma.adminIdentity.findUnique.mockResolvedValue({
+          id: 'op-1',
+          accessExpiresAt: new Date(Date.now() - DAY),
+          roles: [{ roleId: 'arole_support' }],
+        });
+        rolesAfter('arole_external_reviewer');
+
+        await service.replaceRoles('actor-1', 'op-1', [
+          'arole_external_reviewer',
+        ]);
+
+        const { data } = prisma.adminIdentity.update.mock.calls[0][0];
+        expect(data.accessExpiresAt.getTime()).toBeGreaterThan(
+          Date.now() + 29 * DAY,
+        );
+      });
+
       it('a reviewer keeps an end already within 90 days', async () => {
         const end = new Date(Date.now() + 5 * DAY);
         prisma.adminIdentity.findUnique.mockResolvedValue({
