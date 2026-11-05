@@ -4,6 +4,7 @@ import { lazy, Suspense, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { usePostInteractionSettings } from '../../hooks/usePostInteractionSettings';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
 import { api, archiveApi } from '../../services';
 import type { Post } from '../../types';
@@ -101,6 +102,8 @@ export default function PostOverlays({
     },
   });
 
+  const interactionSettings = usePostInteractionSettings(post);
+
   const hidePost = async () => {
     setShowMenu(false);
     try {
@@ -167,6 +170,24 @@ export default function PostOverlays({
                 : undefined
             }
             isArchived={isArchived}
+            onToggleComments={
+              isOwner
+                ? () => {
+                    setShowMenu(false);
+                    interactionSettings.toggleComments();
+                  }
+                : undefined
+            }
+            commentsOff={interactionSettings.commentsOff}
+            onToggleLikes={
+              isOwner
+                ? () => {
+                    setShowMenu(false);
+                    interactionSettings.toggleLikes();
+                  }
+                : undefined
+            }
+            likesHidden={interactionSettings.likesHidden}
             onAddToCollection={() => {
               setShowMenu(false);
               setShowAddToCollectionModal(true);

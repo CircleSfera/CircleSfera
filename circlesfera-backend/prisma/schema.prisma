@@ -501,6 +501,7 @@ model Profile {
   feedHiddenAuthors       FeedHiddenAuthor[]      @relation("FeedHidingAuthor")
   feedHiddenByAuthors     FeedHiddenAuthor[]      @relation("FeedHiddenAsAuthor")
   feedMutedKeywords       FeedMutedKeyword[]
+  hiddenWords             HiddenWord[]
   editProjects            EditProject[]
   pollVotes               PollVote[]
   qnaAnswers              QnaAnswer[]
@@ -876,17 +877,23 @@ model HighlightStory {
 }
 
 model Comment {
-  id           String   @id @default(uuid())
-  postId       String
-  profileId    String
-  content      String
-  url          String?
-  standardUrl  String? // New: Optimized variant (HLS)
-  thumbnailUrl String? // New: Optimized variant
-  mediaType    String? // "image", "video", "file"
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  isEdited     Boolean  @default(false)
+  id            String    @id @default(uuid())
+  postId        String
+  profileId     String
+  content       String
+  url           String?
+  standardUrl   String? // New: Optimized variant (HLS)
+  thumbnailUrl  String? // New: Optimized variant
+  mediaType     String? // "image", "video", "file"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isEdited      Boolean   @default(false)
+  // When the author of the post pinned it; null when it is not pinned. A
+  // pinned comment is shown first, and a post has at most COMMENT_PINS_MAX.
+  pinnedAt      DateTime?
+  // It contains one of the hidden words of the post's author: shown only to
+  // whoever wrote it, until the author shows it.
+  hiddenByWords Boolean   @default(false)
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?
@@ -3257,4 +3264,19 @@ enum ProfileActivityAction {
   COMMENT_EDITED
   COMMENT_DELETED
   PROFILE_EDITED
+}
+
+// A word, phrase or emoji a Profile hides: a comment on its posts that
+// contains one is shown only to whoever wrote it. Stored as matched:
+// lower case, without accents.
+model HiddenWord {
+  id        String   @id @default(uuid())
+  profileId String
+  word      String
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, word])
+  @@map("hidden_words")
 }

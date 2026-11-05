@@ -1,4 +1,8 @@
-import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
+import {
+  COMMENT_PINS_MAX,
+  ErrorCode,
+  type NotificationCreateEvent,
+} from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   ForbiddenException,
@@ -22,6 +26,7 @@ import {
   buildVoiceMediaCreateInput,
   resolveMediaFields,
 } from '../common/utils/media-lifecycle.util.js';
+import { HiddenWordsService } from '../hidden-words/hidden-words.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ActionLimitsService } from '../trust/action-limits.service.js';
 
@@ -44,6 +49,9 @@ import {
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { UpdateCommentDto } from './dto/update-comment.dto.js';
 
+// The most hidden comments of one post listed at once for its author.
+const HIDDEN_COMMENTS_PAGE = 100;
+
 // Service for creating, listing, and deleting comments on posts.
 // Supports threaded replies (parentId), media attachments, and @mention notifications.
 @Injectable()
@@ -57,6 +65,8 @@ export class CommentsService {
     private readonly actionLimits: ActionLimitsService,
     @Inject(StoredFilesService)
     private readonly storedFiles: StoredFilesService,
+    @Inject(HiddenWordsService)
+    private readonly hiddenWords: HiddenWordsService,
   ) {}
 
   // Create a comment on a post. Sends notifications to the post owner, mentioned users,
@@ -78,6 +88,12 @@ export class CommentsService {
 
     // Per-Profile comment caps (spam protection).
     await this.actionLimits.consume(profileId, 'comment');
+
+    // A comment with one of the author's hidden words is shown only to
+    // whoever wrote it, and tells nobody else anything.
+    const hiddenByWords =
+      profileId !== post.profileId &&
+      (await this.hiddenWords.hides(post.profileId, dto.content));
 
     // Media rows are created separately (not via a nested `media: { create
     // }`) because mixing raw FK scalars (postId, profileId, ...) with a
@@ -105,6 +121,7 @@ export class CommentsService {
             postId,
             profileId,
             content: dto.content,
+            hiddenByWords,
             url: dto.url,
             mediaType: dto.mediaType,
             mediaId: media?.id,
@@ -148,6 +165,11 @@ export class CommentsService {
         targetType: 'COMMENT',
         text: dto.content,
       });
+    }
+
+    if (hiddenByWords) {
+      await this.analyticsQueue.add('update-performance-score', { postId });
+      return comment;
     }
 
     // Create notification for post owner
@@ -282,18 +304,27 @@ export class CommentsService {
     // Comments by the other audience are left out, replies included.
     const audience = await viewerAudienceWhere(this.prisma, currentProfileId);
     const shown = SHOWN_COMMENT_STATUSES;
-    const baseWhere = {
+    // A comment hidden by the author's words is shown only to its writer.
+    const notHidden = currentProfileId
+      ? { OR: [{ hiddenByWords: false }, { profileId: currentProfileId }] }
+      : { hiddenByWords: false };
+    const shownTopLevel = {
       postId,
       parentId: null,
       profile: audience,
       moderationStatus: shown,
+      AND: [notHidden],
     };
+    // Pinned comments are shown first, on the first page only, and are not
+    // repeated among the others.
+    const baseWhere = { ...shownTopLevel, pinnedAt: null };
     // The count counts what the list shows: the shown comments and the shown
     // replies under them, of the viewer's audience.
     const countWhere = {
       postId,
       profile: audience,
       moderationStatus: shown,
+      AND: [notHidden],
       OR: [
         { parentId: null },
         {
@@ -301,6 +332,7 @@ export class CommentsService {
             parentId: null,
             moderationStatus: shown,
             profile: audience,
+            AND: [notHidden],
           },
         },
       ],
@@ -313,7 +345,7 @@ export class CommentsService {
       _count: { select: { likes: true } },
       // Replies are shown as the comments they answer are.
       replies: {
-        where: { profile: audience, moderationStatus: shown },
+        where: { profile: audience, moderationStatus: shown, AND: [notHidden] },
         orderBy: { createdAt: 'asc' as const },
         include: {
           profile: { select: profileSelect },
@@ -345,6 +377,18 @@ export class CommentsService {
       }
       return resolved;
     };
+
+    const pinned =
+      cursor || page > 1
+        ? []
+        : await this.prisma.comment.findMany({
+            where: { ...shownTopLevel, pinnedAt: { not: null } },
+            // Every shown pin, with no limit here: a pin that moderation
+            // shows again can make one more than COMMENT_PINS_MAX, and a
+            // pinned comment is never listed below.
+            orderBy: { pinnedAt: 'asc' },
+            include,
+          });
 
     if (cursor) {
       const decoded = decodeKeysetCursor(cursor);
@@ -391,12 +435,152 @@ export class CommentsService {
       comments.length === limit && last ? encodeKeysetCursor(last) : undefined;
 
     return createPaginatedResult(
-      comments.map(resolveComment),
+      [...pinned, ...comments].map(resolveComment),
       total,
       page,
       limit,
       nextCursor,
     );
+  }
+
+  // Pin a comment of one's own post, so it is shown first. Only a comment
+  // (not a reply) that is shown can be pinned, and a post has at most
+  // COMMENT_PINS_MAX. Pinning one already pinned changes nothing.
+  async pin(postId: string, commentId: string, profileId: string) {
+    const comment = await this.ownPostComment(postId, commentId, profileId);
+    if (comment.pinnedAt) return { id: comment.id, pinnedAt: comment.pinnedAt };
+
+    return this.prisma.$transaction(async (tx) => {
+      // The post is locked so two pins at once cannot pass the limit.
+      await tx.$queryRaw`SELECT id FROM "posts" WHERE id = ${postId} FOR UPDATE`;
+      // Only the pins anyone can see count: one moderation took down frees
+      // its place.
+      const pins = await tx.comment.count({
+        where: {
+          postId,
+          parentId: null,
+          pinnedAt: { not: null },
+          moderationStatus: SHOWN_COMMENT_STATUSES,
+          // Nor does one edited since to carry a hidden word: nobody else
+          // sees it.
+          hiddenByWords: false,
+        },
+      });
+      if (pins >= COMMENT_PINS_MAX) {
+        throw AppException.Conflict(
+          ErrorCode.COMMENT_PINS_FULL,
+          `A post has at most ${COMMENT_PINS_MAX} pinned comments`,
+        );
+      }
+      return tx.comment.update({
+        where: { id: commentId },
+        data: { pinnedAt: new Date() },
+        select: { id: true, pinnedAt: true },
+      });
+    });
+  }
+
+  // Unpin a comment of one's own post. Unpinning one not pinned changes
+  // nothing.
+  async unpin(postId: string, commentId: string, profileId: string) {
+    await this.ownPostComment(postId, commentId, profileId);
+    return this.prisma.comment.update({
+      where: { id: commentId },
+      data: { pinnedAt: null },
+      select: { id: true, pinnedAt: true },
+    });
+  }
+
+  // The comments of one's own post hidden by one's hidden words, newest
+  // first, so the author can look at them and show one.
+  async hiddenByWordsOf(postId: string, profileId: string) {
+    await this.assertPostAuthor(postId, profileId);
+    const data = await this.prisma.comment.findMany({
+      where: {
+        postId,
+        hiddenByWords: true,
+        moderationStatus: SHOWN_COMMENT_STATUSES,
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: HIDDEN_COMMENTS_PAGE,
+      include: {
+        profile: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+            fullName: true,
+            verificationLevel: true,
+            accountType: true,
+          },
+        },
+      },
+    });
+    return { data };
+  }
+
+  // Shows to everyone a comment of one's own post that one's hidden words
+  // had hidden.
+  async showHidden(postId: string, commentId: string, profileId: string) {
+    await this.assertPostAuthor(postId, profileId);
+    const shownNow = await this.prisma.comment.updateMany({
+      where: { id: commentId, postId, hiddenByWords: true },
+      data: { hiddenByWords: false },
+    });
+    if (shownNow.count === 0) {
+      throw AppException.NotFound(
+        ErrorCode.COMMENT_NOT_FOUND,
+        'Comment not found',
+      );
+    }
+    return { id: commentId, hiddenByWords: false };
+  }
+
+  private async assertPostAuthor(postId: string, profileId: string) {
+    const post = await assertCanAccessPost(this.prisma, postId, profileId);
+    if (post.profileId !== profileId) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Only the author of the post can do this',
+      );
+    }
+    return post;
+  }
+
+  // A shown comment (not a reply) of a post of this Profile; anything else
+  // answers as missing, and someone else's post as forbidden.
+  private async ownPostComment(
+    postId: string,
+    commentId: string,
+    profileId: string,
+  ) {
+    await this.assertPostAuthor(postId, profileId);
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      select: {
+        id: true,
+        postId: true,
+        parentId: true,
+        pinnedAt: true,
+        moderationStatus: true,
+        hiddenByWords: true,
+      },
+    });
+    if (
+      !comment ||
+      comment.postId !== postId ||
+      comment.parentId !== null ||
+      comment.hiddenByWords ||
+      !(SHOWN_COMMENT_STATUSES.in as string[]).includes(
+        comment.moderationStatus,
+      )
+    ) {
+      throw AppException.NotFound(
+        ErrorCode.COMMENT_NOT_FOUND,
+        'Comment not found',
+      );
+    }
+    return comment;
   }
 
   // Delete a comment. Ownership is enforced by OwnershipGuard at the controller level.
@@ -472,11 +656,18 @@ export class CommentsService {
       );
     }
 
+    // An edited comment is checked again against the author's hidden words.
+    const hiddenByWords =
+      dto.content !== undefined && profileId !== post.profileId
+        ? await this.hiddenWords.hides(post.profileId, dto.content)
+        : undefined;
+
     const updatedComment = await this.prisma.comment.update({
       where: { id },
       data: {
         content: dto.content,
         isEdited: true,
+        hiddenByWords,
       },
       include: {
         profile: {
@@ -510,7 +701,7 @@ export class CommentsService {
     }
 
     // Handle mentions in edited comment
-    if (dto.content) {
+    if (dto.content && !hiddenByWords) {
       const mentions = dto.content.match(/@[\w.]+/g);
       if (mentions) {
         const uniqueMentions = [...new Set(mentions.map((m) => m.slice(1)))];

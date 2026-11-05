@@ -1,11 +1,20 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Heart, Image as ImageIcon, Send, Trash2, X } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Heart,
+  Image as ImageIcon,
+  Pin,
+  PinOff,
+  Send,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { commentsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Comment, CreateCommentDto } from '../types';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 import { formatDate } from '../utils/format';
 import { logger } from '../utils/logger';
 import { pickNativeImage } from '../utils/nativeFilePicker';
@@ -24,6 +33,8 @@ interface CommentListProps {
   frameContext?: boolean;
   captionComponent?: React.ReactNode;
   actionsComponent?: React.ReactNode;
+  // The Profile that wrote the post: it can pin comments.
+  postAuthorId?: string;
 }
 
 interface CommentItemProps {
@@ -34,6 +45,8 @@ interface CommentItemProps {
   onDelete: (commentId: string) => void;
   deletingId: string | null;
   onLike: (commentId: string, isLiked: boolean) => void;
+  // Given to the author of the post, for comments (not replies).
+  onPin?: (comment: Comment) => void;
   depth?: number;
 }
 
@@ -45,6 +58,7 @@ const CommentItem = ({
   onDelete,
   deletingId,
   onLike,
+  onPin,
   depth = 0,
 }: CommentItemProps) => {
   const { t, i18n } = useTranslation();
@@ -54,6 +68,7 @@ const CommentItem = ({
   const isDeleting = deletingId === comment.id;
   const hasReplies = comment.replies && comment.replies.length > 0;
 
+  const isPinned = Boolean(comment.pinnedAt);
   const isLiked = (comment.likes?.length ?? 0) > 0;
   const likesCount = comment._count?.likes ?? comment.likes?.length ?? 0;
 
@@ -77,6 +92,12 @@ const CommentItem = ({
           className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0"
         />
         <div className="flex-1 min-w-0">
+          {isPinned && (
+            <p className="mb-0.5 inline-flex items-center gap-1 text-xs text-gray-400">
+              <Pin size={12} aria-hidden />
+              {t('comments.pinned')}
+            </p>
+          )}
           <div className="flex items-start justify-between gap-2">
             <div className="text-sm leading-relaxed">
               <span className="font-semibold text-white mr-1 inline-flex items-center gap-1">
@@ -126,6 +147,21 @@ const CommentItem = ({
               >
                 <Heart size={16} fill={isLiked ? 'currentColor' : 'none'} />
               </Button>
+
+              {onPin && depth === 0 && (
+                <Button
+                  onClick={() => onPin(comment)}
+                  variant="ghost"
+                  size="icon"
+                  className="w-11 h-11 p-0 text-gray-300 hover:text-white transition-colors"
+                  title={isPinned ? t('comments.unpin') : t('comments.pin')}
+                  aria-label={
+                    isPinned ? t('comments.unpin') : t('comments.pin')
+                  }
+                >
+                  {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
+                </Button>
+              )}
 
               {isOwner && (
                 <Button
@@ -197,6 +233,7 @@ export default function CommentList({
   frameContext = false,
   captionComponent,
   actionsComponent,
+  postAuthorId,
 }: CommentListProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -256,6 +293,38 @@ export default function CommentList({
     },
     onError: () => toast.error(t('comments.like_error')),
   });
+
+  const pinMutation = useMutation({
+    mutationFn: (comment: Comment) =>
+      comment.pinnedAt
+        ? commentsApi.unpin(postId, comment.id)
+        : commentsApi.pin(postId, comment.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+    },
+    onError: (error) =>
+      toast.error(apiErrorMessage(error, t, 'comments.pin_error')),
+  });
+  const canPin = Boolean(profile?.id) && profile?.id === postAuthorId;
+
+  // The author's: comments hidden by their hidden words, to look at and show.
+  const [hiddenOpen, setHiddenOpen] = useState(false);
+  const hidden = useQuery({
+    queryKey: ['comments', postId, 'hidden'],
+    queryFn: () => commentsApi.hidden(postId).then((r) => r.data.data),
+    enabled: canPin,
+  });
+  const showHiddenMutation = useMutation({
+    mutationFn: (commentId: string) =>
+      commentsApi.showHidden(postId, commentId),
+    onSuccess: () => {
+      toast.success(t('comments.hidden_shown'));
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+      queryClient.invalidateQueries({ queryKey: ['post', postId] });
+    },
+    onError: () => toast.error(t('comments.hidden_error')),
+  });
+  const hiddenComments = hidden.data ?? [];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -493,8 +562,51 @@ export default function CommentList({
                 onDelete={handleDelete}
                 deletingId={deletingId}
                 onLike={handleLike}
+                onPin={canPin ? (c) => pinMutation.mutate(c) : undefined}
               />
             ))}
+          </div>
+        )}
+
+        {hiddenComments.length > 0 && (
+          <div className="pt-1">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setHiddenOpen((open) => !open)}
+              aria-expanded={hiddenOpen}
+              className="min-h-11 h-auto px-2 -mx-2 text-xs font-semibold text-gray-400 hover:text-white hover:bg-transparent"
+            >
+              {t('comments.hidden_open')} ({hiddenComments.length})
+            </Button>
+            {hiddenOpen && (
+              <div className="mt-2 space-y-2">
+                <p className="text-xs text-gray-400">
+                  {t('comments.hidden_desc')}
+                </p>
+                {hiddenComments.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between gap-2 rounded-lg bg-white/5 pl-3"
+                  >
+                    <p className="min-w-0 text-sm text-gray-300 wrap-break-word py-2">
+                      <span className="font-semibold text-white mr-1">
+                        {c.profile.username}
+                      </span>
+                      {c.content}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => showHiddenMutation.mutate(c.id)}
+                      className="min-h-11 shrink-0 text-xs font-semibold text-brand-primary-text"
+                    >
+                      {t('comments.hidden_show')}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

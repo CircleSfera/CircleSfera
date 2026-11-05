@@ -27,6 +27,10 @@ vi.mock('../services', () => ({
     delete: vi.fn(),
     like: vi.fn(),
     unlike: vi.fn(),
+    pin: vi.fn(),
+    unpin: vi.fn(),
+    hidden: vi.fn(),
+    showHidden: vi.fn(),
   },
   uploadApi: { upload: vi.fn() },
 }));
@@ -111,6 +115,9 @@ describe('CommentList actions', () => {
     vi.clearAllMocks();
     native.pick.mockResolvedValue(false);
     vi.mocked(commentsApi.create).mockResolvedValue({} as never);
+    vi.mocked(commentsApi.hidden).mockResolvedValue({
+      data: { data: [] },
+    } as never);
   });
 
   it('invites the first comment on a post with none', () => {
@@ -118,6 +125,94 @@ describe('CommentList actions', () => {
     expect(
       screen.getByText('No comments yet. Be the first to comment!'),
     ).toBeInTheDocument();
+  });
+
+  describe('comments hidden by words', () => {
+    it('lets the author open them and show one to everyone', async () => {
+      vi.mocked(commentsApi.hidden).mockResolvedValue({
+        data: { data: [comment('h1', { content: 'algo feo' })] },
+      } as never);
+      vi.mocked(commentsApi.showHidden).mockResolvedValue({} as never);
+      show([comment('c1')], { postAuthorId: 'me' });
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Hidden comments (1)' }),
+      );
+      expect(screen.getByText('algo feo')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Show' }));
+
+      await waitFor(() =>
+        expect(commentsApi.showHidden).toHaveBeenCalledWith('post-1', 'h1'),
+      );
+    });
+
+    it('asks for them only for the author, and shows nothing when there are none', async () => {
+      show([comment('c1')], { postAuthorId: 'someone-else' });
+      expect(commentsApi.hidden).not.toHaveBeenCalled();
+
+      show([comment('c2')], { postAuthorId: 'me' });
+      await waitFor(() => expect(commentsApi.hidden).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('button', { name: /Hidden comments/ }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('pinning a comment', () => {
+    it('lets the author of the post pin a comment, and not a reply', async () => {
+      vi.mocked(commentsApi.pin).mockResolvedValue({} as never);
+      show([comment('c1', { replies: [comment('r1', { parentId: 'c1' })] })], {
+        postAuthorId: 'me',
+      });
+
+      const pins = screen.getAllByRole('button', { name: 'Pin comment' });
+      expect(pins).toHaveLength(1);
+      fireEvent.click(pins[0]);
+
+      await waitFor(() =>
+        expect(commentsApi.pin).toHaveBeenCalledWith('post-1', 'c1'),
+      );
+    });
+
+    it('unpins a pinned comment, and says to everyone that it is pinned', async () => {
+      vi.mocked(commentsApi.unpin).mockResolvedValue({} as never);
+      show([comment('c1', { pinnedAt: '2026-11-01T00:00:00.000Z' })], {
+        postAuthorId: 'me',
+      });
+
+      expect(screen.getByText('Pinned by the author')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Unpin' }));
+
+      await waitFor(() =>
+        expect(commentsApi.unpin).toHaveBeenCalledWith('post-1', 'c1'),
+      );
+    });
+
+    it('offers no pin to someone who did not write the post', () => {
+      show([comment('c1', { pinnedAt: '2026-11-01T00:00:00.000Z' })], {
+        postAuthorId: 'someone-else',
+      });
+
+      expect(screen.getByText('Pinned by the author')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Pin comment|Unpin/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('says why a pin was refused', async () => {
+      vi.mocked(commentsApi.pin).mockRejectedValue({
+        response: { data: { errorCode: 'COMMENT_PINS_FULL' } },
+      });
+      show([comment('c1')], { postAuthorId: 'me' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Pin comment' }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          'You already have 3 pinned comments. Unpin one to pin another.',
+        ),
+      );
+    });
   });
 
   describe('writing a comment', () => {

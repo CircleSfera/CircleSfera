@@ -88,6 +88,57 @@ export class CommentsController {
     await this.commentsService.remove(id);
   }
 
+  // Pin a comment of one's own post, so it is shown first.
+  @Post(':id/pin')
+  @UseGuards(JwtAuthGuard)
+  @MemberAllowed('comments.answer')
+  @ApiResponse({ status: 201 })
+  async pin(
+    @Param('postId') postId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.commentsService.pin(postId, id, user.profileId);
+  }
+
+  // Unpin a comment of one's own post.
+  @Delete(':id/pin')
+  @UseGuards(JwtAuthGuard)
+  @MemberAllowed('comments.answer')
+  @ApiResponse({ status: 200 })
+  async unpin(
+    @Param('postId') postId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.commentsService.unpin(postId, id, user.profileId);
+  }
+
+  // The comments of one's own post hidden by one's hidden words.
+  @Get('hidden')
+  @UseGuards(JwtAuthGuard)
+  @MemberAllowed('comments.answer')
+  @ApiResponse({ status: 200 })
+  async hidden(
+    @Param('postId') postId: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.commentsService.hiddenByWordsOf(postId, user.profileId);
+  }
+
+  // Show to everyone a comment one's hidden words had hidden.
+  @Post(':id/show')
+  @UseGuards(JwtAuthGuard)
+  @MemberAllowed('comments.answer')
+  @ApiResponse({ status: 201 })
+  async show(
+    @Param('postId') postId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.commentsService.showHidden(postId, id, user.profileId);
+  }
+
   // Like a comment.
   @Post(':id/like')
   @UseGuards(JwtAuthGuard)

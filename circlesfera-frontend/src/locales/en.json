@@ -128,6 +128,10 @@
       "archive": {
         "label": "Archive",
         "desc": "What only you see"
+      },
+      "hidden_words": {
+        "label": "Hidden words",
+        "desc": "Comments"
       }
     },
     "profile": {
@@ -1353,7 +1357,16 @@
       "not_interested": "Not interested",
       "archive": "Archive",
       "show_on_profile": "Show on profile",
-      "add_to_story": "Add to your story"
+      "add_to_story": "Add to your story",
+      "turn_off_comments": "Turn off commenting",
+      "turn_on_comments": "Turn on commenting",
+      "hide_like_count": "Hide like count",
+      "show_like_count": "Show like count",
+      "comments_turned_off": "Commenting turned off",
+      "comments_turned_on": "Commenting turned on",
+      "like_count_hidden": "Like count hidden",
+      "like_count_shown": "Like count shown",
+      "interactions_error": "Could not save the change. Try again."
     },
     "modals": {
       "delete_title": "Delete post?",
@@ -1520,7 +1533,18 @@
     "delete_warning": "Are you sure you want to delete this comment? This action cannot be undone.",
     "add_media": "Add media",
     "remove_media": "Remove the file",
-    "voice_note": "🎤 Voice note"
+    "voice_note": "🎤 Voice note",
+    "pinned": "Pinned by the author",
+    "pin": "Pin comment",
+    "unpin": "Unpin",
+    "pin_error": "Could not pin the comment.",
+    "hidden_open": "Hidden comments",
+    "hidden_title": "Hidden comments",
+    "hidden_desc": "They contain one of your hidden words. Only whoever wrote them sees them.",
+    "hidden_none": "No hidden comments.",
+    "hidden_show": "Show",
+    "hidden_shown": "Comment shown to everyone",
+    "hidden_error": "Could not show the comment."
   },
   "profile": {
     "tabs": {
@@ -5936,6 +5960,7 @@
       "STORY_NOT_FOUND": "This story is no longer available.",
       "MEDIA_NOT_FOUND": "We couldn't find that file.",
       "COMMENT_NOT_FOUND": "This comment is no longer available.",
+      "COMMENT_PINS_FULL": "You already have 3 pinned comments. Unpin one to pin another.",
       "MESSAGE_NOT_FOUND": "This message is no longer available.",
       "INVALID_MEDIA_PATH": "That file can't be used.",
       "PREMIUM_CONTENT_LOCKED": "Unlock this content to see it.",
@@ -6006,7 +6031,9 @@
       "MESSAGE_IS_NOTICE": "This is a notice from CircleSfera and can't be changed.",
       "GROUP_ADMIN_NOT_ELIGIBLE": "This member can't be an admin of the group.",
       "PREMIUM_PRICE_OUT_OF_RANGE": "The price of premium content is outside the allowed range.",
-      "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published."
+      "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published.",
+      "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
+      "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
@@ -6054,6 +6081,18 @@
       "required": "Without this, the purchase cannot start.",
       "continue": "Continue to payment"
     }
+  },
+  "hiddenWords": {
+    "title": "Hidden words",
+    "desc": "Comments on your posts that contain one of these words, phrases or emojis are seen only by whoever wrote them. You can review and show them from each post.",
+    "placeholder": "Add a word, phrase or emoji",
+    "add": "Add",
+    "remove": "Remove {{word}}",
+    "none": "You have not hidden any words yet.",
+    "added": "Word hidden",
+    "removed": "Word removed",
+    "error": "Could not save. Try again.",
+    "count": "{{count}} of {{max}}"
   },
   "audio_page": {
     "use": "Use this audio",

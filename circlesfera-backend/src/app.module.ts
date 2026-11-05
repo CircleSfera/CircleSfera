@@ -60,6 +60,7 @@ import { FollowsModule } from './follows/follows.module.js';
 import { HealthModule } from './health/health.module.js';
 import { helpdeskFor } from './helpdesk/helpdesk.module.js';
 import { CircleSferaHelpdeskHostModule } from './helpdesk-host/circlesfera-helpdesk-host.module.js';
+import { HiddenWordsModule } from './hidden-words/hidden-words.module.js';
 import { HighlightsModule } from './highlights/highlights.module.js';
 import { IllegalNoticesModule } from './illegal-notices/illegal-notices.module.js';
 import { InteractiveModule } from './interactive/interactive.module.js';
@@ -216,6 +217,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     MonetizationModule,
     SeoModule,
     FeedModule,
+    HiddenWordsModule,
     WebrtcModule,
     EditsModule,
     SlackModule,

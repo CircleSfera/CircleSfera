@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Visibility } from '@prisma/client';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -58,4 +59,17 @@ export class UpdatePostDto {
   @MaxLength(POST_FILE_URL_MAX_LENGTH)
   @NotWithCoverTime()
   coverImageUrl?: string;
+
+  // Comments on or off, at any time: with them off, nobody but the author
+  // sees the comments or can write one.
+  @ApiProperty({ required: false, type: () => Boolean })
+  @IsOptional()
+  @IsBoolean()
+  turnOffComments?: boolean;
+
+  // The like count hidden from everyone but the author, at any time.
+  @ApiProperty({ required: false, type: () => Boolean })
+  @IsOptional()
+  @IsBoolean()
+  hideLikes?: boolean;
 }

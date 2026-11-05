@@ -501,17 +501,10 @@ export class PostsService {
       }),
     ]);
 
-    const formattedPosts = posts.map((post) => {
-      const { likes, ...rest } = post;
-      const isLiked =
-        currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
-      return {
-        ...rest,
-        media: rest.media.map(resolveMediaFields),
-        isLiked,
-        shouldBlurSensitive: shouldBlur(rest, content, currentProfileId),
-      };
-    });
+    // A like count the author hid is shown to the author only.
+    const formattedPosts = posts.map((post) =>
+      this.injectIsLiked(post, currentProfileId, content),
+    );
 
     const processedPosts = await this.postPaywallService.applyPaywall(
       formattedPosts,
@@ -571,17 +564,10 @@ export class PostsService {
       }),
     ]);
 
-    const formattedPosts = posts.map((post) => {
-      const { likes, ...rest } = post;
-      const isLiked =
-        currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
-      return {
-        ...rest,
-        media: rest.media.map(resolveMediaFields),
-        isLiked,
-        shouldBlurSensitive: shouldBlur(rest, content, currentProfileId),
-      };
-    });
+    // A like count the author hid is shown to the author only.
+    const formattedPosts = posts.map((post) =>
+      this.injectIsLiked(post, currentProfileId, content),
+    );
 
     const processedPosts = await this.postPaywallService.applyPaywall(
       formattedPosts,
@@ -850,6 +836,8 @@ export class PostsService {
       data: {
         caption: dto.caption,
         visibility: dto.visibility as Visibility,
+        turnOffComments: dto.turnOffComments,
+        hideLikes: dto.hideLikes,
       },
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },

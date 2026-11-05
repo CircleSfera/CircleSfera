@@ -963,6 +963,47 @@ describe('PostsService', () => {
     });
   });
 
+  describe('a like count the author hid', () => {
+    const hidden = (id: string, type: 'POST' | 'FRAME') => ({
+      id,
+      type,
+      profileId: 'author-1',
+      hideLikes: true,
+      media: [],
+      likes: [],
+      _count: { likes: 7, comments: 2 },
+    });
+
+    it('is left out of the feed and the Frames for everyone but the author', async () => {
+      for (const [viewer, likes] of [
+        ['viewer-1', null],
+        ['author-1', 7],
+        [undefined, null],
+      ] as const) {
+        mockPrismaService.post.findMany.mockResolvedValueOnce([
+          hidden('p1', 'POST'),
+        ]);
+        mockPrismaService.post.count.mockResolvedValueOnce(1);
+        const feed = await service.findAll(
+          { page: 1, limit: 10 },
+          'latest',
+          viewer,
+        );
+        expect((feed.data[0] as any)._count).toEqual({ likes, comments: 2 });
+
+        mockPrismaService.post.findMany.mockResolvedValueOnce([
+          hidden('f1', 'FRAME'),
+        ]);
+        mockPrismaService.post.count.mockResolvedValueOnce(1);
+        const frames = await service.getFramesFeed(
+          { page: 1, limit: 10 },
+          viewer,
+        );
+        expect((frames.data[0] as any)._count).toEqual({ likes, comments: 2 });
+      }
+    });
+  });
+
   describe('getFramesFeed', () => {
     it('returns frames feed with currentProfileId and cursor', async () => {
       mockPrismaService.post.findMany.mockResolvedValueOnce([
@@ -1750,6 +1791,27 @@ describe('PostsService', () => {
       expect(
         mockPostDistributionService.moderateEditedCaption,
       ).toHaveBeenCalledWith('post-1', 'new caption');
+    });
+
+    it('turns comments and the like count off or on after posting', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        media: [],
+      });
+
+      await service.update('post-1', {
+        turnOffComments: true,
+        hideLikes: false,
+      });
+
+      const [{ data }] = mockPrismaService.post.update.mock.calls.at(-1) ?? [
+        {},
+      ];
+      expect(data.turnOffComments).toBe(true);
+      expect(data.hideLikes).toBe(false);
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).not.toHaveBeenCalled();
     });
 
     it('does not check the post again when its caption is not changed', async () => {

@@ -129,6 +129,7 @@ export default memo(function PostDetailView({
           <div className="flex-1 flex flex-col min-h-0">
             <CommentList
               postId={post.id}
+              postAuthorId={post.profileId || post.profile?.id}
               comments={comments}
               isDetailMode
               captionComponent={

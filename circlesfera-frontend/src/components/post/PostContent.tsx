@@ -21,6 +21,8 @@ export default function PostContent({
   isDetailMode = false,
 }: PostContentProps) {
   const { t, i18n } = useTranslation();
+  // A count its author hid stays hidden, even after the viewer's own like.
+  const likesHidden = post._count?.likes === null;
 
   const formattedLikes = new Intl.NumberFormat(i18n.language, {
     notation: likesCount >= 10000 ? 'compact' : 'standard',
@@ -29,7 +31,7 @@ export default function PostContent({
 
   return (
     <div className={isDetailMode ? 'pt-2' : 'pt-2.5'}>
-      {!hideStats && likesCount > 0 && (
+      {!hideStats && !likesHidden && likesCount > 0 && (
         <div className="flex items-baseline gap-1.5 mb-1.5">
           <span className="font-black text-sm text-white tracking-tight">
             {formattedLikes}

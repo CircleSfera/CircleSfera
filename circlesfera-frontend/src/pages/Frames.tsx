@@ -16,6 +16,7 @@ import { LoadingSpinner } from '../components/LoadingStates';
 import AddToCollectionModal from '../components/modals/AddToCollectionModal';
 import FrameCommentsModal from '../components/modals/FrameCommentsModal';
 import SharePostModal from '../components/modals/SharePostModal';
+import { usePostInteractionSettings } from '../hooks/usePostInteractionSettings';
 import { postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { PaginatedResponse, Post } from '../types';
@@ -199,6 +200,11 @@ export default function Frames() {
     };
   }, []);
 
+  // The author turns the active Frame's comments or like count off or on.
+  const frameInteractionSettings = usePostInteractionSettings(
+    displayFrames[activeFrameIndex],
+  );
+
   if (isLoading) {
     return (
       <div className="h-full min-h-0 w-full flex items-center justify-center">
@@ -358,6 +364,9 @@ export default function Frames() {
                       variant="drawer"
                       isOpen
                       postId={activeFrame.id}
+                      authorId={
+                        activeFrame.profileId || activeFrame.profile?.id
+                      }
                       onClose={() => setCommentsOpen(false)}
                     />
                   </div>
@@ -391,6 +400,18 @@ export default function Frames() {
                     onArchive={menuActions.onArchive}
                     onAddToStory={menuActions.onAddToStory}
                     onWhy={menuActions.onWhy}
+                    onToggleComments={
+                      isFrameOwner
+                        ? frameInteractionSettings.toggleComments
+                        : undefined
+                    }
+                    commentsOff={frameInteractionSettings.commentsOff}
+                    onToggleLikes={
+                      isFrameOwner
+                        ? frameInteractionSettings.toggleLikes
+                        : undefined
+                    }
+                    likesHidden={frameInteractionSettings.likesHidden}
                     onPromote={
                       canPromoteFrame ? menuActions.onPromote : undefined
                     }
@@ -406,6 +427,7 @@ export default function Frames() {
                 variant="sidebar"
                 isOpen
                 postId={activeFrame.id}
+                authorId={activeFrame.profileId || activeFrame.profile?.id}
                 onClose={() => setCommentsOpen(false)}
               />
             </div>

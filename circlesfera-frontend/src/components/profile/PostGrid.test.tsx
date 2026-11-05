@@ -150,4 +150,24 @@ describe('PostGrid', () => {
     expect(screen.getByAltText('General')).not.toHaveClass('blur-xl');
     expect(screen.getAllByText(/sensitive/i)).toHaveLength(1);
   });
+
+  it('shows no like count on a post whose author hid it', () => {
+    const { container } = renderWithProviders(
+      <PostGrid
+        items={[
+          post({
+            id: 'post-1',
+            _count: { likes: null, comments: 4 },
+          } as unknown as Partial<Post> & { id: string }),
+        ]}
+        emptyMessage="Empty"
+        emptySubtext=""
+        icon={null}
+      />,
+    );
+
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+    expect(container.querySelectorAll('.lucide-heart')).toHaveLength(0);
+  });
 });

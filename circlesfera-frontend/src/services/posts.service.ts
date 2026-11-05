@@ -51,6 +51,12 @@ export const postsApi = {
       ...(coverTimeMs !== undefined && { coverTimeMs }),
     }),
 
+  // The author turns comments, or the like count, off or on at any time.
+  setInteractions: (
+    id: string,
+    changes: { turnOffComments?: boolean; hideLikes?: boolean },
+  ) => apiClient.put<Post>(`/posts/${id}`, changes),
+
   delete: (id: string) => apiClient.delete(`/posts/${id}`),
 
   adminDelete: (id: string) => apiClient.delete(`/posts/${id}/admin`),

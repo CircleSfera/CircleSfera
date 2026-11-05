@@ -321,6 +321,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
           assertOwnedBy: vi.fn().mockResolvedValue(undefined),
           release: vi.fn().mockResolvedValue([]),
         } as never,
+        { hides: vi.fn().mockResolvedValue(false) } as never,
       );
     });
 
