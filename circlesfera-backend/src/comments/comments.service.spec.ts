@@ -524,13 +524,15 @@ describe('CommentsService', () => {
 
       expect(result.pinnedAt).toBeInstanceOf(Date);
       expect((mockPrismaService as any).$queryRaw).toHaveBeenCalled();
-      // A pin moderation took down does not hold a place.
+      // A pin moderation took down, or one a hidden word hides, does not
+      // hold a place.
       expect(mockPrismaService.comment.count).toHaveBeenCalledWith({
         where: {
           postId: 'post-1',
           parentId: null,
           pinnedAt: { not: null },
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          hiddenByWords: false,
         },
       });
     });

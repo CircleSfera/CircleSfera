@@ -461,6 +461,9 @@ export class CommentsService {
           parentId: null,
           pinnedAt: { not: null },
           moderationStatus: SHOWN_COMMENT_STATUSES,
+          // Nor does one edited since to carry a hidden word: nobody else
+          // sees it.
+          hiddenByWords: false,
         },
       });
       if (pins >= COMMENT_PINS_MAX) {
