@@ -19,6 +19,7 @@ import {
   accessHasExpired,
   isExternalReviewer,
   REVIEWER_SESSION_MAX_MS,
+  reviewerAccessIsValid,
 } from './external-reviewer.js';
 
 // A short fingerprint of an authenticator secret, never the secret.
@@ -200,7 +201,7 @@ export class AdminAuthService {
     // An external reviewer signs in with the password alone (see
     // external-reviewer.ts), and only while their access has an end date.
     if (isExternalReviewer(this.permissionsOf(admin).roles)) {
-      if (!admin.accessExpiresAt) {
+      if (!reviewerAccessIsValid(admin.accessExpiresAt)) {
         return fail(admin.id);
       }
       await this.prisma.adminIdentity.update({
@@ -390,11 +391,15 @@ export class AdminAuthService {
 
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: payload.sub },
+      include: { roles: { select: { role: { select: { name: true } } } } },
     });
+    // An external reviewer never opens a session with the second factor:
+    // only theirs, capped, which this would not be.
     if (
       !admin?.totpSecret ||
       admin.status !== 'ACTIVE' ||
-      accessHasExpired(admin.accessExpiresAt)
+      accessHasExpired(admin.accessExpiresAt) ||
+      isExternalReviewer(admin.roles.map((r) => r.role.name))
     ) {
       throw new UnauthorizedException('MFA not configured');
     }
@@ -554,7 +559,7 @@ export class AdminAuthService {
       const startedAt = (payload.sst as number) * 1000;
       if (
         !isExternalReviewer(admin.roles.map((r) => r.role.name)) ||
-        !admin.accessExpiresAt ||
+        !reviewerAccessIsValid(admin.accessExpiresAt) ||
         startedAt + REVIEWER_SESSION_MAX_MS <= Date.now()
       ) {
         throw new UnauthorizedException('Sign in again');
@@ -565,7 +570,12 @@ export class AdminAuthService {
       });
     }
 
-    if (!admin.totpEnabled) {
+    // A session with the second factor is never renewed for an identity
+    // that is now a reviewer: they sign in as one.
+    if (
+      !admin.totpEnabled ||
+      isExternalReviewer(admin.roles.map((r) => r.role.name))
+    ) {
       throw new UnauthorizedException('Sign in again');
     }
     return this.issueSession(payload.sub, payload.email, meta);
@@ -622,13 +632,18 @@ export class AdminAuthService {
   ): Promise<{ accessToken: string }> {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
+      include: { roles: { select: { role: { select: { name: true } } } } },
     });
     if (admin?.status !== 'ACTIVE') {
       throw new UnauthorizedException();
     }
 
     // Step-up proves the second factor again; a password alone never does.
-    if (!admin.totpEnabled) {
+    // An external reviewer has nothing to step up to.
+    if (
+      !admin.totpEnabled ||
+      isExternalReviewer(admin.roles.map((r) => r.role.name))
+    ) {
       throw new UnauthorizedException('Step-up verification failed');
     }
     let ok = false;

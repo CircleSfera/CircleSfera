@@ -263,6 +263,16 @@ describe('ReviewReportUseCase claim, unclaim and reassign', () => {
     await expect(
       t.useCase.reassign(adminId, reportId, 'admin-3'),
     ).rejects.toThrow(BadRequestException);
+
+    // Nor to staff whose access has run out.
+    t.prisma.adminIdentity.findUnique.mockResolvedValueOnce({
+      id: 'admin-4',
+      status: 'ACTIVE',
+      accessExpiresAt: new Date(Date.now() - 1000),
+    });
+    await expect(
+      t.useCase.reassign(adminId, reportId, 'admin-4'),
+    ).rejects.toThrow(BadRequestException);
     expect(t.prisma.report.update).not.toHaveBeenCalled();
   });
 

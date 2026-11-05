@@ -366,6 +366,28 @@ describe('AdminJwtStrategy', () => {
       );
     });
 
+    it('a session with the second factor is refused once the identity is a reviewer', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        ...reviewer,
+        totpEnabled: true,
+      });
+      await expect(
+        strategy.validate(
+          reviewerPayload({ rev: undefined, sst: undefined, mfa: true }),
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('is refused when the access ends further than a reviewer is ever given', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        ...reviewer,
+        accessExpiresAt: new Date(Date.now() + 91 * 24 * 60 * 60 * 1000),
+      });
+      await expect(strategy.validate(reviewerPayload())).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
     it('is refused past a working day from the sign-in', async () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer);
       await expect(

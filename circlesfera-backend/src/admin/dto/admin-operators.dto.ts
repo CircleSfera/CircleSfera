@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateAdminOperatorDto {
@@ -43,7 +44,8 @@ export class SetAdminOperatorAccessExpiryDto {
     format: 'date-time',
     nullable: true,
   })
-  @IsOptional()
+  // Sent always: null, explicitly, for no end; never left out.
+  @ValidateIf((_dto, value) => value !== null)
   @IsDateString()
   accessExpiresAt!: string | null;
 }

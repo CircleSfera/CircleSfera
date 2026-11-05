@@ -273,6 +273,12 @@ describe('AdminOperatorsController', () => {
       .set(ADMIN_BEARER)
       .send({ accessExpiresAt: 'tomorrow' })
       .expect(400);
+    // Leaving it out never clears an end: null is sent on purpose.
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/operators/op-1/access-expiry')
+      .set(ADMIN_BEARER)
+      .send({})
+      .expect(400);
 
     expect(mockService.setAccessExpiry).toHaveBeenNthCalledWith(
       1,

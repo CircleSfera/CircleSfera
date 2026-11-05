@@ -7,6 +7,7 @@ import {
   accessHasExpired,
   isExternalReviewer,
   REVIEWER_SESSION_MAX_MS,
+  reviewerAccessIsValid,
 } from '../../admin-auth/external-reviewer.js';
 import { getAdminJwtSecret } from '../../common/config/admin-jwt.config.js';
 import { ADMIN_ACCESS_TOKEN_COOKIE } from '../../common/config/cookie.config.js';
@@ -103,12 +104,12 @@ export class AdminJwtStrategy extends PassportStrategy(
     if (reviewerToken) {
       if (
         !externalReviewer ||
-        !admin.accessExpiresAt ||
+        !reviewerAccessIsValid(admin.accessExpiresAt) ||
         (payload.sst as number) * 1000 + REVIEWER_SESSION_MAX_MS <= Date.now()
       ) {
         throw new UnauthorizedException('Admin identity not found or disabled');
       }
-    } else if (!admin.totpEnabled) {
+    } else if (!admin.totpEnabled || externalReviewer) {
       throw new UnauthorizedException('Admin identity not found or disabled');
     }
     const permissions = [

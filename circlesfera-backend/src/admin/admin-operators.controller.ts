@@ -95,7 +95,7 @@ export class AdminOperatorsController {
     return this.operatorsService.setAccessExpiry(
       admin.adminId,
       id,
-      dto.accessExpiresAt ?? null,
+      dto.accessExpiresAt,
     );
   }
 

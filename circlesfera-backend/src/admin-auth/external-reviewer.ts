@@ -47,3 +47,24 @@ export function reviewerAccessEnd(
 export function reviewerAccessLatestEnd(now: number = Date.now()): Date {
   return reviewerAccessEnd(REVIEWER_ACCESS_MAX_DAYS, now);
 }
+
+// Whether a reviewer's access may be used now: it has an end, that end is
+// ahead, and no further than a reviewer is ever given (a later end, left by
+// two changes made at once, is refused rather than honoured).
+export function reviewerAccessIsValid(
+  accessExpiresAt: Date | null | undefined,
+  now: number = Date.now(),
+): accessExpiresAt is Date {
+  return (
+    !!accessExpiresAt &&
+    !accessHasExpired(accessExpiresAt, now) &&
+    accessExpiresAt <= reviewerAccessLatestEnd(now)
+  );
+}
+
+// The staff identities whose access has not run out, for a database query.
+export function accessNotExpired(now: number = Date.now()) {
+  return {
+    OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: new Date(now) } }],
+  };
+}
