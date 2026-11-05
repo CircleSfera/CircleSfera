@@ -81,13 +81,23 @@ export class AdminAuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 20, ttl: 60000 } })
   @ApiResponse({ status: HttpStatus.OK })
-  async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
+  async login(
+    @Body() dto: AdminLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.adminAuthService.login(
       dto.email,
       dto.password,
       this.clientMeta(req),
     );
 
+    // An external reviewer is signed in at once; their tokens go only into
+    // the cookies, never into the answer.
+    if (result.status === 'SIGNED_IN') {
+      this.setSessionCookies(res, result.tokens);
+      return { status: result.status };
+    }
     return { status: result.status, mfaToken: result.mfaToken };
   }
 

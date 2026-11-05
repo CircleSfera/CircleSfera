@@ -15,6 +15,11 @@ import { getAdminJwtSecret } from '../common/config/admin-jwt.config.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EnrolmentProofService } from './enrolment-proof.service.js';
+import {
+  accessHasExpired,
+  isExternalReviewer,
+  REVIEWER_SESSION_MAX_MS,
+} from './external-reviewer.js';
 
 // A short fingerprint of an authenticator secret, never the secret.
 function secretMark(secret: string): string {
@@ -32,6 +37,10 @@ export type AdminTokenPair = {
   accessToken: string;
   refreshToken: string;
 };
+
+// An external reviewer's session: when it began, carried through every
+// renewal, and when the reviewer's access ends.
+type ReviewerSession = { startedAt: number; accessExpiresAt: Date };
 
 @Injectable()
 export class AdminAuthService {
@@ -142,6 +151,7 @@ export class AdminAuthService {
   ): Promise<
     | { status: 'MFA_REQUIRED'; mfaToken: string }
     | { status: 'ENROLMENT_PROOF_REQUIRED'; mfaToken: string }
+    | { status: 'SIGNED_IN'; tokens: AdminTokenPair }
   > {
     const admin = await this.loadAdminByEmail(email);
 
@@ -174,7 +184,8 @@ export class AdminAuthService {
       throw new UnauthorizedException('Invalid credentials');
     };
 
-    if (admin?.status !== 'ACTIVE') {
+    // An identity whose access has run out is refused like a disabled one.
+    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
       return fail(admin?.id);
     }
 
@@ -184,6 +195,23 @@ export class AdminAuthService {
 
     if (!(await this.passwordIsValid(admin, password))) {
       await fail(admin.id);
+    }
+
+    // An external reviewer signs in with the password alone (see
+    // external-reviewer.ts), and only while their access has an end date.
+    if (isExternalReviewer(this.permissionsOf(admin).roles)) {
+      if (!admin.accessExpiresAt) {
+        return fail(admin.id);
+      }
+      await this.prisma.adminIdentity.update({
+        where: { id: admin.id },
+        data: { failedLoginCount: 0, lockedUntil: null },
+      });
+      const tokens = await this.issueSession(admin.id, admin.email, meta, {
+        startedAt: Date.now(),
+        accessExpiresAt: admin.accessExpiresAt,
+      });
+      return { status: 'SIGNED_IN', tokens };
     }
 
     // A right password clears the failed attempts, except while the
@@ -363,7 +391,11 @@ export class AdminAuthService {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: payload.sub },
     });
-    if (!admin?.totpSecret || admin.status !== 'ACTIVE') {
+    if (
+      !admin?.totpSecret ||
+      admin.status !== 'ACTIVE' ||
+      accessHasExpired(admin.accessExpiresAt)
+    ) {
       throw new UnauthorizedException('MFA not configured');
     }
 
@@ -448,6 +480,8 @@ export class AdminAuthService {
       roles,
       permissions,
       lastLoginAt: admin.lastLoginAt,
+      accessExpiresAt: admin.accessExpiresAt,
+      externalReviewer: isExternalReviewer(roles),
     };
   }
 
@@ -465,6 +499,8 @@ export class AdminAuthService {
       aud?: string;
       typ?: string;
       mfa?: boolean;
+      rev?: boolean;
+      sst?: number;
     };
     try {
       payload = this.jwtService.verify(rawRefresh, {
@@ -474,9 +510,12 @@ export class AdminAuthService {
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
-    // Only a refresh token issued after a verified second factor renews a
-    // session; tokens from before that rule carry no such mark.
-    if (payload.typ !== 'refresh' || payload.mfa !== true) {
+    // Only a refresh token issued after a verified second factor, or to an
+    // external reviewer, renews a session; tokens from before that rule carry
+    // no such mark.
+    const reviewerToken =
+      payload.rev === true && typeof payload.sst === 'number';
+    if (payload.typ !== 'refresh' || (payload.mfa !== true && !reviewerToken)) {
       throw new UnauthorizedException('Sign in again');
     }
 
@@ -494,16 +533,41 @@ export class AdminAuthService {
 
     await this.prisma.adminRefreshToken.delete({ where: { id: stored.id } });
 
-    // A staff member who is no longer active, or whose second factor was reset,
-    // is not renewed: they sign in again.
+    // A staff member who is no longer active, whose access ran out, or whose
+    // second factor was reset, is not renewed: they sign in again.
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: payload.sub },
-      select: { status: true, totpEnabled: true },
+      select: {
+        status: true,
+        totpEnabled: true,
+        accessExpiresAt: true,
+        roles: { select: { role: { select: { name: true } } } },
+      },
     });
-    if (admin?.status !== 'ACTIVE' || !admin.totpEnabled) {
+    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
       throw new UnauthorizedException('Sign in again');
     }
 
+    if (reviewerToken) {
+      // Still a reviewer only, still with an end date, and within the
+      // session's working day counted from its sign-in.
+      const startedAt = (payload.sst as number) * 1000;
+      if (
+        !isExternalReviewer(admin.roles.map((r) => r.role.name)) ||
+        !admin.accessExpiresAt ||
+        startedAt + REVIEWER_SESSION_MAX_MS <= Date.now()
+      ) {
+        throw new UnauthorizedException('Sign in again');
+      }
+      return this.issueSession(payload.sub, payload.email, meta, {
+        startedAt,
+        accessExpiresAt: admin.accessExpiresAt,
+      });
+    }
+
+    if (!admin.totpEnabled) {
+      throw new UnauthorizedException('Sign in again');
+    }
     return this.issueSession(payload.sub, payload.email, meta);
   }
 
@@ -612,19 +676,35 @@ export class AdminAuthService {
     return { accessToken };
   }
 
+  // A staff session after the second factor, or an external reviewer's
+  // session, which carries when it began and never outlasts its working day
+  // nor the reviewer's access (both still ahead: sign-in and renewal check).
   private async issueSession(
     adminId: string,
     email: string,
     meta: { ip?: string; userAgent?: string },
+    reviewer?: ReviewerSession,
   ): Promise<AdminTokenPair> {
+    const now = Date.now();
+    const mark = reviewer
+      ? { rev: true, sst: Math.floor(reviewer.startedAt / 1000) }
+      : { mfa: true };
+    const refreshTtlMs = reviewer
+      ? Math.min(
+          REFRESH_TTL_MS,
+          reviewer.startedAt + REVIEWER_SESSION_MAX_MS - now,
+          reviewer.accessExpiresAt.getTime() - now,
+        )
+      : REFRESH_TTL_MS;
+
     const jti = randomUUID();
     const accessToken = this.signAdminToken(
-      { sub: adminId, email, jti, typ: 'access', mfa: true },
+      { sub: adminId, email, jti, typ: 'access', ...mark },
       ACCESS_TTL,
     );
     const refreshToken = this.signAdminToken(
-      { sub: adminId, email, jti: randomUUID(), typ: 'refresh', mfa: true },
-      '8h',
+      { sub: adminId, email, jti: randomUUID(), typ: 'refresh', ...mark },
+      Math.ceil(refreshTtlMs / 1000),
     );
 
     await this.prisma.adminRefreshToken.create({
@@ -633,7 +713,7 @@ export class AdminAuthService {
         adminId,
         userAgent: meta.userAgent,
         ipAddress: meta.ip,
-        expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+        expiresAt: new Date(now + refreshTtlMs),
       },
     });
 

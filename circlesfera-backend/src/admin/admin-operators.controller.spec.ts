@@ -32,6 +32,7 @@ describe('AdminOperatorsController', () => {
     replaceRoles: vi.fn(),
     resetMfa: vi.fn(),
     unlock: vi.fn(),
+    setAccessExpiry: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -252,5 +253,39 @@ describe('AdminOperatorsController', () => {
       'op-1',
     );
     expect(mockService.unlock).toHaveBeenCalledWith(TEST_ADMIN.adminId, 'op-1');
+  });
+  it('sets when an identity stops working, or that it does not', async () => {
+    mockService.setAccessExpiry.mockResolvedValue({ ok: true });
+    const end = '2027-01-31T00:00:00.000Z';
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/operators/op-1/access-expiry')
+      .set(ADMIN_BEARER)
+      .send({ accessExpiresAt: end })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/operators/op-1/access-expiry')
+      .set(ADMIN_BEARER)
+      .send({ accessExpiresAt: null })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/operators/op-1/access-expiry')
+      .set(ADMIN_BEARER)
+      .send({ accessExpiresAt: 'tomorrow' })
+      .expect(400);
+
+    expect(mockService.setAccessExpiry).toHaveBeenNthCalledWith(
+      1,
+      TEST_ADMIN.adminId,
+      'op-1',
+      end,
+    );
+    expect(mockService.setAccessExpiry).toHaveBeenNthCalledWith(
+      2,
+      TEST_ADMIN.adminId,
+      'op-1',
+      null,
+    );
+    expect(mockService.setAccessExpiry).toHaveBeenCalledTimes(2);
   });
 });

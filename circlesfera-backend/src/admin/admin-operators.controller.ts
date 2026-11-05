@@ -26,6 +26,7 @@ import {
   CreateAdminOperatorDto,
   ListAdminOperatorsQueryDto,
   ReplaceAdminOperatorRolesDto,
+  SetAdminOperatorAccessExpiryDto,
   UpdateAdminOperatorStatusDto,
 } from './dto/admin-operators.dto.js';
 
@@ -80,6 +81,22 @@ export class AdminOperatorsController {
     @Body() dto: UpdateAdminOperatorStatusDto,
   ) {
     return this.operatorsService.updateStatus(admin.adminId, id, dto.status);
+  }
+
+  // When the identity stops working; extends an external reviewer's access.
+  @Patch(':id/access-expiry')
+  @RequireAdminStepUp()
+  @ApiResponse({ status: 200 })
+  setAccessExpiry(
+    @CurrentAdmin() admin: CurrentAdminData,
+    @Param('id') id: string,
+    @Body() dto: SetAdminOperatorAccessExpiryDto,
+  ) {
+    return this.operatorsService.setAccessExpiry(
+      admin.adminId,
+      id,
+      dto.accessExpiresAt ?? null,
+    );
   }
 
   @Put(':id/roles')

@@ -147,6 +147,7 @@ describe('AdminJwtStrategy', () => {
         permissions: ['content.read', 'users.ban'],
         roles: ['SUPERADMIN'],
         stepUpVerified: true,
+        externalReviewer: false,
       });
       expect(mockPrisma.adminIdentity.update).toHaveBeenCalledWith({
         where: { id: 'admin-1' },
@@ -303,5 +304,100 @@ describe('AdminJwtStrategy', () => {
 
       expect(extractor(req)).toBeNull();
     });
+  });
+  describe('an external reviewer', () => {
+    const reviewer = {
+      ...activeAdmin,
+      totpEnabled: false,
+      accessExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      roles: [
+        {
+          role: {
+            name: 'EXTERNAL_REVIEWER',
+            permissions: [{ permission: { key: 'review' } }],
+          },
+        },
+      ],
+    };
+    const nowSec = () => Math.floor(Date.now() / 1000);
+    const reviewerPayload = (extra: Partial<AdminJwtPayload> = {}) =>
+      ({
+        sub: 'admin-1',
+        email: 'ops@circlesfera.com',
+        jti: 'j',
+        aud: ADMIN_JWT_AUDIENCE,
+        typ: 'access',
+        rev: true,
+        sst: nowSec(),
+        ...extra,
+      }) as AdminJwtPayload;
+
+    it('is let in without a second factor, marked as a reviewer', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer);
+      await expect(strategy.validate(reviewerPayload())).resolves.toMatchObject(
+        { permissions: ['review'], externalReviewer: true },
+      );
+    });
+
+    it('is refused once the identity holds another role too', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        ...reviewer,
+        roles: [...reviewer.roles, ...activeAdmin.roles],
+      });
+      await expect(strategy.validate(reviewerPayload())).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('is refused when the access has no end, or it has passed', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        ...reviewer,
+        accessExpiresAt: null,
+      });
+      await expect(strategy.validate(reviewerPayload())).rejects.toThrow(
+        UnauthorizedException,
+      );
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        ...reviewer,
+        accessExpiresAt: new Date(Date.now() - 1000),
+      });
+      await expect(strategy.validate(reviewerPayload())).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('is refused past a working day from the sign-in', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer);
+      await expect(
+        strategy.validate(reviewerPayload({ sst: nowSec() - 8 * 60 * 60 - 1 })),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('a token without the reviewer mark or the second factor is refused', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer);
+      await expect(
+        strategy.validate(reviewerPayload({ rev: undefined })),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        strategy.validate(reviewerPayload({ sst: undefined })),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  it('a member of staff whose access has passed is refused', async () => {
+    mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+      ...activeAdmin,
+      accessExpiresAt: new Date(Date.now() - 1000),
+    });
+    await expect(
+      strategy.validate({
+        sub: 'admin-1',
+        email: 'ops@circlesfera.com',
+        jti: 'j',
+        aud: ADMIN_JWT_AUDIENCE,
+        typ: 'access',
+        mfa: true,
+      }),
+    ).rejects.toThrow(UnauthorizedException);
   });
 });

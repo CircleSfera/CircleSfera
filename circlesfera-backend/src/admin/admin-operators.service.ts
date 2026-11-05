@@ -9,6 +9,11 @@ import {
 } from '@nestjs/common';
 import { AdminAction, type AdminIdentityStatus } from '@prisma/client';
 import { EnrolmentProofService } from '../admin-auth/enrolment-proof.service.js';
+import {
+  EXTERNAL_REVIEWER_ROLE_ID,
+  reviewerAccessEnd,
+  reviewerAccessLatestEnd,
+} from '../admin-auth/external-reviewer.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UNUSED_STAFF_PASSWORD_HASH } from './staff-password.constants.js';
 
@@ -21,7 +26,13 @@ const KNOWN_ROLE_IDS = new Set([
   'arole_content',
   'arole_security',
   'arole_analytics',
+  EXTERNAL_REVIEWER_ROLE_ID,
 ]);
+
+// Whether a set of roles makes an external reviewer: that role alone.
+function isReviewerRoleSet(roleIds: readonly string[]): boolean {
+  return roleIds.length === 1 && roleIds[0] === EXTERNAL_REVIEWER_ROLE_ID;
+}
 
 @Injectable()
 export class AdminOperatorsService {
@@ -55,10 +66,19 @@ export class AdminOperatorsService {
     }
   }
 
-  // An identity that already has its authenticator has nothing to enrol.
+  // An identity that already has its authenticator has nothing to enrol, nor
+  // has an external reviewer, who signs in without one.
   private async awaitingEnrolment(id: string) {
-    const admin = await this.prisma.adminIdentity.findUnique({ where: { id } });
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id },
+      include: { roles: { select: { roleId: true } } },
+    });
     if (!admin) throw new NotFoundException('Operator not found');
+    if (isReviewerRoleSet(admin.roles.map((r) => r.roleId))) {
+      throw new ConflictException(
+        'An external reviewer signs in without an authenticator',
+      );
+    }
     if (admin.totpEnabled) {
       throw new ConflictException('This operator already has an authenticator');
     }
@@ -124,6 +144,7 @@ export class AdminOperatorsService {
     lastLoginAt: Date | null;
     lastActivityAt: Date | null;
     linkedUserId: string | null;
+    accessExpiresAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
     roles: Array<{
@@ -139,6 +160,8 @@ export class AdminOperatorsService {
       lastLoginAt: admin.lastLoginAt,
       lastActivityAt: admin.lastActivityAt,
       linkedUserId: admin.linkedUserId,
+      accessExpiresAt: admin.accessExpiresAt,
+      externalReviewer: isReviewerRoleSet(admin.roles.map((r) => r.role.id)),
       createdAt: admin.createdAt,
       updatedAt: admin.updatedAt,
       roles: admin.roles.map((r) => ({
@@ -158,6 +181,35 @@ export class AdminOperatorsService {
         throw new BadRequestException(`Unknown role id: ${id}`);
       }
     }
+    // The reviewer role is never held with another: whoever holds it reads
+    // the review area and nothing else.
+    if (roleIds.includes(EXTERNAL_REVIEWER_ROLE_ID) && roleIds.length > 1) {
+      throw new BadRequestException(
+        'The external reviewer role cannot be combined with another role',
+      );
+    }
+  }
+
+  // The end of an identity's access asked for: a date in the future, and for
+  // an external reviewer, always one, at most the longest a reviewer is
+  // given at once (30 days from now when none is asked for).
+  private accessEndFor(
+    reviewer: boolean,
+    asked: string | null | undefined,
+  ): Date | null {
+    if (asked === null || asked === undefined) {
+      return reviewer ? reviewerAccessEnd() : null;
+    }
+    const end = new Date(asked);
+    if (Number.isNaN(end.getTime()) || end.getTime() <= Date.now()) {
+      throw new BadRequestException('The access end must be in the future');
+    }
+    if (reviewer && end > reviewerAccessLatestEnd()) {
+      throw new BadRequestException(
+        'An external reviewer is given access for at most 90 days at once',
+      );
+    }
+    return end;
   }
 
   async listRoles() {
@@ -233,10 +285,13 @@ export class AdminOperatorsService {
       email: string;
       displayName: string;
       roleIds: string[];
+      accessExpiresAt?: string;
     },
   ) {
     const email = dto.email.toLowerCase().trim();
     this.validateRoleIds(dto.roleIds);
+    const reviewer = isReviewerRoleSet(dto.roleIds);
+    const accessExpiresAt = this.accessEndFor(reviewer, dto.accessExpiresAt);
 
     const existing = await this.prisma.adminIdentity.findUnique({
       where: { email },
@@ -265,6 +320,7 @@ export class AdminOperatorsService {
         status: 'ACTIVE',
         totpEnabled: false,
         linkedUserId: signIn.userId,
+        accessExpiresAt,
         roles: {
           create: dto.roleIds.map((roleId) => ({ roleId })),
         },
@@ -277,9 +333,14 @@ export class AdminOperatorsService {
       AdminAction.ADMIN_IDENTITY_CREATED,
       'admin',
       created.id,
-      `Created operator ${email}`,
+      reviewer
+        ? `Created external reviewer ${email} until ${accessExpiresAt?.toISOString()}`
+        : `Created operator ${email}`,
     );
-    await this.sendEnrolmentLink(actorAdminId, created);
+    // A reviewer has no authenticator to enrol.
+    if (!reviewer) {
+      await this.sendEnrolmentLink(actorAdminId, created);
+    }
 
     return this.serialize(created);
   }
@@ -327,14 +388,40 @@ export class AdminOperatorsService {
 
   async replaceRoles(actorAdminId: string, id: string, roleIds: string[]) {
     this.validateRoleIds(roleIds);
-    const admin = await this.prisma.adminIdentity.findUnique({ where: { id } });
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id },
+      include: { roles: { select: { roleId: true } } },
+    });
     if (!admin) throw new NotFoundException('Operator not found');
+
+    const wasReviewer = isReviewerRoleSet(admin.roles.map((r) => r.roleId));
+    const reviewer = isReviewerRoleSet(roleIds);
+    // Becoming a reviewer gives the access an end if it has none, or a
+    // later one than a reviewer may have.
+    const keepsEnd =
+      admin.accessExpiresAt !== null &&
+      admin.accessExpiresAt <= reviewerAccessLatestEnd();
+    const accessExpiresAt =
+      reviewer && !keepsEnd ? reviewerAccessEnd() : admin.accessExpiresAt;
 
     await this.prisma.$transaction([
       this.prisma.adminIdentityRole.deleteMany({ where: { adminId: id } }),
       this.prisma.adminIdentityRole.createMany({
         data: roleIds.map((roleId) => ({ adminId: id, roleId })),
       }),
+      this.prisma.adminIdentity.update({
+        where: { id },
+        data: { accessExpiresAt },
+      }),
+      // Becoming a reviewer, or ceasing to be one, changes how the identity
+      // signs in: its sessions end.
+      ...(wasReviewer === reviewer
+        ? []
+        : [
+            this.prisma.adminRefreshToken.deleteMany({
+              where: { adminId: id },
+            }),
+          ]),
     ]);
 
     const updated = await this.prisma.adminIdentity.findUniqueOrThrow({
@@ -349,7 +436,49 @@ export class AdminOperatorsService {
       id,
       `Roles: ${roleIds.join(',')}`,
     );
+    // No longer a reviewer: a member of staff enrols an authenticator.
+    if (wasReviewer && !reviewer && !updated.totpEnabled) {
+      await this.sendEnrolmentLink(actorAdminId, updated);
+    }
 
+    return this.serialize(updated);
+  }
+
+  // Sets when an identity stops working, or that it does not (never for an
+  // external reviewer). A reviewer's access is extended by this.
+  async setAccessExpiry(
+    actorAdminId: string,
+    id: string,
+    asked: string | null,
+  ) {
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id },
+      include: { roles: { select: { roleId: true } } },
+    });
+    if (!admin) throw new NotFoundException('Operator not found');
+    if (actorAdminId === id) {
+      throw new ForbiddenException('Cannot change your own access end');
+    }
+    const reviewer = isReviewerRoleSet(admin.roles.map((r) => r.roleId));
+    if (reviewer && asked === null) {
+      throw new BadRequestException('An external reviewer always has an end');
+    }
+    const accessExpiresAt = this.accessEndFor(reviewer, asked);
+
+    const updated = await this.prisma.adminIdentity.update({
+      where: { id },
+      data: { accessExpiresAt },
+      include: { roles: { include: { role: true } } },
+    });
+    await this.logAction(
+      actorAdminId,
+      AdminAction.ADMIN_ACCESS_EXPIRY_SET,
+      'admin',
+      id,
+      accessExpiresAt
+        ? `Access ends ${accessExpiresAt.toISOString()}`
+        : 'Access has no end',
+    );
     return this.serialize(updated);
   }
 

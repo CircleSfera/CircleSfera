@@ -3,6 +3,7 @@ import { AdminIdentityStatus } from '@prisma/client';
 import {
   ArrayMinSize,
   IsArray,
+  IsDateString,
   IsEmail,
   IsEnum,
   IsOptional,
@@ -25,6 +26,26 @@ export class CreateAdminOperatorDto {
   @ArrayMinSize(1)
   @IsString({ each: true })
   roleIds!: string[];
+
+  // When the identity stops working. An external reviewer always has one:
+  // 30 days from now unless another date is given.
+  @ApiProperty({ required: false, type: () => String, format: 'date-time' })
+  @IsOptional()
+  @IsDateString()
+  accessExpiresAt?: string;
+}
+
+export class SetAdminOperatorAccessExpiryDto {
+  // A date in the future, or null for no end (never for a reviewer).
+  @ApiProperty({
+    required: true,
+    type: () => String,
+    format: 'date-time',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  accessExpiresAt!: string | null;
 }
 
 export class UpdateAdminOperatorStatusDto {
