@@ -50,3 +50,10 @@ describe('CreateReportDto: intellectual property', () => {
     expect(await check({ reason: 'SELF_HARM' })).toEqual([]);
   });
 });
+
+describe('CreateReportDto: reasons', () => {
+  it('takes nudity or sexual content as a reason of its own, with nothing more asked', async () => {
+    expect(await check({ reason: 'SEXUAL_CONTENT' })).toEqual([]);
+    expect(await check({ reason: 'NUDITY' })).toEqual(['reason']);
+  });
+});

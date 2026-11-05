@@ -2986,6 +2986,8 @@ enum PromotionTargetType {
 enum ReportReason {
   SPAM
   HARASSMENT
+  // Nudity or sexually explicit content, which is not allowed, paid or not.
+  SEXUAL_CONTENT
   ILLEGAL_CONTENT
   VIOLENCE
   HATE_SPEECH
