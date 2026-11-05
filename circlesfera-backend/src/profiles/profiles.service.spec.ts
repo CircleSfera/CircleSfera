@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../common/errors/app.exception.js';
+import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -46,6 +47,10 @@ describe('ProfilesService', () => {
     media: {
       create: vi.fn().mockResolvedValue({ id: 'media-1' }),
     },
+    monetization: { findUnique: vi.fn().mockResolvedValue(null) },
+  };
+  const mockStripe = {
+    setCreatorWebsite: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockCacheManager = {
@@ -71,6 +76,7 @@ describe('ProfilesService', () => {
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
         { provide: getQueueToken('ai-processing'), useValue: mockAiQueue },
         { provide: UsersService, useValue: mockUsersService },
+        { provide: StripeService, useValue: mockStripe },
       ],
     }).compile();
 
@@ -319,6 +325,79 @@ describe('ProfilesService', () => {
   });
 
   describe('updateProfile', () => {
+    describe('a creator who takes a new username', () => {
+      const saved = (username: string) => ({
+        id: 'p-1',
+        userId: 'u-1',
+        username,
+        privacyLevel: 'PUBLIC',
+        user: {},
+        _count: { followers: 0, following: 0 },
+      });
+      beforeEach(() => {
+        mockPrismaService.profile.findUnique.mockResolvedValue({
+          id: 'p-1',
+          userId: 'u-1',
+          username: 'old_name',
+          verificationLevel: 'BASIC',
+        });
+        mockPrismaService.profile.findFirst.mockResolvedValue(null);
+        mockStripe.setCreatorWebsite.mockClear();
+      });
+
+      it('gives their own payout account the new address of their page', async () => {
+        mockPrismaService.profile.update.mockResolvedValue(saved('new_name'));
+        mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+          stripeConnectAccountId: 'acct_1',
+        });
+
+        await service.updateProfile('p-1', { username: 'new_name' });
+
+        expect(mockPrismaService.monetization.findUnique).toHaveBeenCalledWith({
+          where: { profileId: 'p-1' },
+          select: { stripeConnectAccountId: true },
+        });
+        expect(mockStripe.setCreatorWebsite).toHaveBeenCalledWith(
+          'acct_1',
+          'new_name',
+        );
+      });
+
+      it('keeps the change when the address cannot be sent', async () => {
+        mockPrismaService.profile.update.mockResolvedValue(saved('new_name'));
+        mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+          stripeConnectAccountId: 'acct_1',
+        });
+        mockStripe.setCreatorWebsite.mockRejectedValueOnce(new Error('down'));
+
+        await expect(
+          service.updateProfile('p-1', { username: 'new_name' }),
+        ).resolves.toMatchObject({ username: 'new_name' });
+
+        mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+          stripeConnectAccountId: 'acct_1',
+        });
+        mockStripe.setCreatorWebsite.mockRejectedValueOnce('not an error');
+        await expect(
+          service.updateProfile('p-1', { username: 'new_name' }),
+        ).resolves.toBeDefined();
+      });
+
+      it('sends nothing without a payout account, or with the same username', async () => {
+        mockPrismaService.profile.update.mockResolvedValue(saved('new_name'));
+        await service.updateProfile('p-1', { username: 'new_name' });
+
+        mockPrismaService.profile.update.mockResolvedValue(saved('old_name'));
+        mockPrismaService.monetization.findUnique.mockClear();
+        await service.updateProfile('p-1', { bio: 'hi' });
+        expect(
+          mockPrismaService.monetization.findUnique,
+        ).not.toHaveBeenCalled();
+
+        expect(mockStripe.setCreatorWebsite).not.toHaveBeenCalled();
+      });
+    });
+
     it('checks only a new photo: the one it has is sent back as it is', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValue({
         id: 'p-1',

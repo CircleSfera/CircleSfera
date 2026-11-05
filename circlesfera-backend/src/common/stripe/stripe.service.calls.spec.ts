@@ -589,6 +589,26 @@ describe('StripeService creator accounts and identity', () => {
     );
   });
 
+  it("gives a payout account the address of its creator's page", async () => {
+    const { service: onSite } = serviceWith({
+      FRONTEND_URL: 'https://circlesfera.com/',
+    });
+    await onSite.setCreatorWebsite('acct_1', 'ana.trazos');
+    expect(client.accounts.update).toHaveBeenLastCalledWith(
+      'acct_1',
+      { business_profile: { url: 'https://circlesfera.com/ana.trazos' } },
+      { apiVersion: '2026-10-28.preview' },
+    );
+
+    // Without a site configured, the public one.
+    await serviceWith().service.setCreatorWebsite('acct_2', 'bea');
+    expect(client.accounts.update).toHaveBeenLastCalledWith(
+      'acct_2',
+      { business_profile: { url: 'https://circlesfera.com/bea' } },
+      { apiVersion: '2026-10-28.preview' },
+    );
+  });
+
   it('holds the payouts of an account, and gives it its Monday payouts back', async () => {
     await service.setPayoutsHeld('acct_1', true);
     expect(client.accounts.update).toHaveBeenLastCalledWith('acct_1', {

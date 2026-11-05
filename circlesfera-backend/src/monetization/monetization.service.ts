@@ -583,7 +583,7 @@ export class MonetizationService {
     // The account is the active Profile's, which must earn.
     const profile = await this.prisma.profile.findFirst({
       where: { id: profileId, userId },
-      select: { id: true, accountType: true },
+      select: { id: true, accountType: true, username: true },
     });
     if (!profile || !canMonetize(profile.accountType)) {
       throw AppException.Forbidden(
@@ -597,6 +597,7 @@ export class MonetizationService {
         user.email,
         await this.payoutAccountToOnboard(user, profile.id),
       );
+      await this.keepCreatorWebsite(accountId, profile.username);
       const link = await this.stripeService.createAccountLink(
         accountId,
         returnUrl,
@@ -611,6 +612,21 @@ export class MonetizationService {
         error instanceof Error
           ? error.message
           : 'Failed to connect with Stripe',
+      );
+    }
+  }
+
+  /**
+   * Gives a payout account the address of its Profile's public page, which
+   * the provider asks of every creator. A failure is written down and never
+   * stops what was being done: it is sent again the next time.
+   */
+  async keepCreatorWebsite(accountId: string, username: string) {
+    try {
+      await this.stripeService.setCreatorWebsite(accountId, username);
+    } catch (error) {
+      this.logger.warn(
+        `The profile address of payout account ${accountId} could not be sent: ${error instanceof Error ? error.message : 'unknown error'}`,
       );
     }
   }
