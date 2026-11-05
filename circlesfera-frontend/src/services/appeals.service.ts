@@ -87,6 +87,7 @@ export type ProfileStrikeReason =
   | 'HATE_SPEECH'
   | 'IMPERSONATION'
   | 'CSAM'
+  | 'SEXUAL_CONTENT'
   | 'SCAM'
   | 'SELF_HARM'
   | 'INTELLECTUAL_PROPERTY'

@@ -433,7 +433,8 @@
         "SCAM": "Estafa",
         "SELF_HARM": "Autolesión",
         "INTELLECTUAL_PROPERTY": "Propiedad intelectual",
-        "OTHER": "Incumplimiento de las normas de la comunidad"
+        "OTHER": "Incumplimiento de las normas de la comunidad",
+        "SEXUAL_CONTENT": "Desnudos o contenido sexual"
       },
       "type_restriction": "Restricción temporal de actividad",
       "type_promotion": "Promoción rechazada"
@@ -2205,7 +2206,8 @@
       "csam": "Explotación sexual infantil (CSAM)",
       "self_harm": "Autolesión o suicidio",
       "intellectual_property": "Propiedad intelectual (derechos de autor, marca)",
-      "other": "Otra cosa"
+      "other": "Otra cosa",
+      "sexual_content": "Desnudos o contenido sexual"
     },
     "ip": {
       "rights_holder": "Quién tiene el derecho",
@@ -3075,7 +3077,8 @@
         "SCAM": "Estafa",
         "SELF_HARM": "Autolesión",
         "INTELLECTUAL_PROPERTY": "Propiedad intelectual",
-        "OTHER": "Otro"
+        "OTHER": "Otro",
+        "SEXUAL_CONTENT": "Desnudos o contenido sexual"
       },
       "badge": {
         "PENDING": "Pendiente",

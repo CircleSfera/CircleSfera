@@ -317,6 +317,7 @@ describe('ReportsService', () => {
       for (const [reason, urgent] of [
         ['SELF_HARM', true],
         ['INTELLECTUAL_PROPERTY', false],
+        ['SEXUAL_CONTENT', false],
         ['SPAM', false],
       ] as const) {
         await service.create('user-1', {

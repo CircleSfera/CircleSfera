@@ -23,6 +23,7 @@ interface ReportModalProps {
 export const REPORT_REASONS = [
   { id: 'SPAM', labelKey: 'report.reasons.spam' },
   { id: 'HARASSMENT', labelKey: 'report.reasons.harassment' },
+  { id: 'SEXUAL_CONTENT', labelKey: 'report.reasons.sexual_content' },
   { id: 'HATE_SPEECH', labelKey: 'report.reasons.hate_speech' },
   { id: 'VIOLENCE', labelKey: 'report.reasons.violence' },
   { id: 'SELF_HARM', labelKey: 'report.reasons.self_harm' },

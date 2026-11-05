@@ -97,8 +97,8 @@ describe('ReportModal', () => {
     });
   });
 
-  it('offers self-harm and sends it by its own reason', async () => {
-    for (const reason of ['SELF_HARM']) {
+  it('offers self-harm, and nudity or sexual content, each sent by its own reason', async () => {
+    for (const reason of ['SELF_HARM', 'SEXUAL_CONTENT']) {
       vi.mocked(reportsApi.create).mockClear();
       const view = renderWithProviders(
         <ReportModal

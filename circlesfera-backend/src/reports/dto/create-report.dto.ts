@@ -37,6 +37,7 @@ export class CreateReportDto {
       'VIOLENCE',
       'HATE_SPEECH',
       'HARASSMENT',
+      'SEXUAL_CONTENT',
       'SCAM',
       'SPAM',
       'ILLEGAL_CONTENT',
