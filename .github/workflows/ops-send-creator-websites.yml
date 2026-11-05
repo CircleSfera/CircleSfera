@@ -1,0 +1,58 @@
+name: Ops — send creator websites to Stripe
+
+# Gives every payout account a Profile holds the address of that Profile's
+# public page (business_profile.url), which Stripe asks of every creator of a
+# content platform. New accounts get it on their own; this reaches the ones
+# opened before. A dry run unless "send" is chosen; it prints counts only,
+# never an account or a username, as Actions logs are public.
+on:
+  workflow_dispatch:
+    inputs:
+      send:
+        description: Send the addresses to Stripe (otherwise only count them)
+        type: boolean
+        default: false
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    name: Send the creator websites
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Send, or count, the creator websites
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          CONFIRM: ${{ inputs.send && 'YES' || 'NO' }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          command_timeout: 10m
+          envs: CONFIRM
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            $DC exec -T -e CONFIRM="$CONFIRM" backend node dist/scripts/send-creator-websites.js

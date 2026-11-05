@@ -8,7 +8,9 @@
  * Only an account a Profile holds itself is given an address: one its
  * person shares with another Profile is not one page's.
  *
- * Dry run by default: it lists what it would send and sends nothing.
+ * Dry run by default: it counts what it would send and sends nothing. It
+ * prints counts only, never an account or a username: the ops workflow that
+ * runs it writes to public logs.
  *
  *   npx tsx src/scripts/send-creator-websites.ts
  *   CONFIRM=YES npx tsx src/scripts/send-creator-websites.ts
@@ -45,17 +47,15 @@ async function main() {
     const accountId = row.stripeConnectAccountId as string;
     const username = row.profile?.username;
     if (!username) continue;
-    if (!apply) {
-      console.log(`would send: ${accountId} -> /${username}`);
-      continue;
-    }
+    if (!apply) continue;
     try {
       await stripe.setCreatorWebsite(accountId, username);
       sent += 1;
     } catch (error) {
       failed += 1;
+      // The kind of error only: its message may name the account.
       console.error(
-        `not sent: ${accountId}: ${error instanceof Error ? error.message : 'unknown error'}`,
+        `not sent: ${error instanceof Error ? error.name : 'unknown error'}`,
       );
     }
   }
