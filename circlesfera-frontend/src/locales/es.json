@@ -5917,7 +5917,7 @@
   },
   "hiddenWords": {
     "title": "Palabras ocultas",
-    "desc": "Los comentarios en tus publicaciones y las solicitudes de mensaje que contengan una de estas palabras, frases o emojis quedan ocultos: los comentarios solo los ve quien los escribió y las solicitudes van a «Solicitudes ocultas».",
+    "desc": "Los comentarios en tus publicaciones y las solicitudes de mensaje que contengan una de estas palabras, frases o emojis quedan ocultos: los comentarios solo los ve quien los escribió, y puedes revisarlos y mostrarlos desde cada publicación; las solicitudes van a «Solicitudes ocultas».",
     "placeholder": "Añade una palabra, frase o emoji",
     "add": "Añadir",
     "remove": "Quitar {{word}}",

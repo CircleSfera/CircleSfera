@@ -462,6 +462,11 @@ describe('CircleSfera as the host of the Help Desk', () => {
 
       const { where } = prisma.adminIdentity.findMany.mock.calls[0][0];
       expect(where.status).toBe('ACTIVE');
+      // Nobody whose access has run out.
+      expect(where.OR).toEqual([
+        { accessExpiresAt: null },
+        { accessExpiresAt: { gt: expect.any(Date) } },
+      ]);
       expect(where.roles.some.role.OR).toEqual([
         { name: 'SUPER_ADMIN' },
         {

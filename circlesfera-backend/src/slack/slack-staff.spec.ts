@@ -74,6 +74,15 @@ describe('SlackStaff', () => {
     }
   });
 
+  it('is nobody once the access of the staff identity has run out', async () => {
+    prisma.adminIdentity.findUnique.mockResolvedValue({
+      ...identity('ACTIVE', [{ name: 'MODERATOR', permissions: ['reports'] }]),
+      accessExpiresAt: new Date(Date.now() - 1000),
+    });
+
+    await expect(staff.moderatorFor('U123')).resolves.toBeNull();
+  });
+
   it('is nobody when Slack does not give the email of the account', async () => {
     vi.mocked(axios.get).mockResolvedValueOnce({
       data: { ok: false, error: 'missing_scope' },

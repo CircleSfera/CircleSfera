@@ -2,6 +2,7 @@ import type { SupportTicketCreatedEvent } from '@circlesfera/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AdminAction, SubscriptionStatus } from '@prisma/client';
+import { accessNotExpired } from '../admin-auth/external-reviewer.js';
 import {
   primaryProfileIdForUser,
   withPrimaryProfile,
@@ -299,6 +300,7 @@ export class StaffAgentDirectory implements AgentDirectory {
     const staff = await this.prisma.adminIdentity.findMany({
       where: {
         status: 'ACTIVE',
+        ...accessNotExpired(),
         roles: {
           some: {
             role: {

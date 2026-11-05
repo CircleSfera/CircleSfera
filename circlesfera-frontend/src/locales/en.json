@@ -5917,7 +5917,7 @@
   },
   "hiddenWords": {
     "title": "Hidden words",
-    "desc": "Comments on your posts and message requests that contain one of these words, phrases or emojis are hidden: the comments are seen only by whoever wrote them, and the requests go to Hidden requests.",
+    "desc": "Comments on your posts and message requests that contain one of these words, phrases or emojis are hidden: the comments are seen only by whoever wrote them, and you can review and show them from each post; the requests go to Hidden requests.",
     "placeholder": "Add a word, phrase or emoji",
     "add": "Add",
     "remove": "Remove {{word}}",

@@ -1988,6 +1988,9 @@ model AdminIdentity {
   enrolmentProofPasswordMark String?
   lastLoginAt                DateTime?
   lastActivityAt             DateTime?
+  /// When this identity stops working, if it does. Every external reviewer
+  /// has one; a member of staff may.
+  accessExpiresAt            DateTime?
   failedLoginCount           Int                 @default(0)
   lockedUntil                DateTime?
   linkedUserId               String?
@@ -2808,6 +2811,9 @@ enum AdminAction {
   ADMIN_IDENTITY_CREATED
   ADMIN_IDENTITY_DISABLED
   ADMIN_STEP_UP
+  ADMIN_ACCESS_EXPIRY_SET
+  // A page of the review area opened by an external reviewer.
+  REVIEW_VIEWED
 
   // Domains a link on a story cannot point to
   LINK_DOMAIN_BLOCKED

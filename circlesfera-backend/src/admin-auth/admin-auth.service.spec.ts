@@ -199,7 +199,9 @@ describe('AdminAuthService', () => {
         status: 'ENROLMENT_PROOF_REQUIRED',
         mfaToken: expect.any(String),
       });
-      expect(jwt.decode(result.mfaToken)).toMatchObject({
+      expect(
+        jwt.decode((result as { mfaToken: string }).mfaToken),
+      ).toMatchObject({
         sub: 'admin-1',
         purpose: 'admin-enrol-proof',
       });
@@ -226,6 +228,7 @@ describe('AdminAuthService', () => {
           lockedUntil: null,
           failedLoginCount: 0,
           ...over,
+          roles: [],
         });
 
       it('spends the proof, then makes, keeps encrypted and shows a new secret once', async () => {
@@ -398,6 +401,7 @@ describe('AdminAuthService', () => {
         totpEnabled: true,
         role: 'SUPER_ADMIN',
         tokenVersion: 1,
+        roles: [],
       });
 
       const result = await service.stepUp('admin-1', {
@@ -422,6 +426,7 @@ describe('AdminAuthService', () => {
         totpEnabled: true,
         role: 'SUPER_ADMIN',
         tokenVersion: 1,
+        roles: [],
       });
 
       await service.stepUp('admin-1', {
@@ -473,6 +478,7 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         totpSecret: 'base32-admin-secret',
         totpEnabled: true,
+        roles: [],
       });
       const res = await service.stepUp('admin-1', { totpCode: '123456' });
       expect(res.accessToken).toBeDefined();
@@ -498,6 +504,7 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         failedLoginCount: 4,
         lockedUntil: null,
+        roles: [],
       });
       mockPrisma.adminIdentity.update.mockResolvedValueOnce({
         failedLoginCount: 5,
@@ -533,6 +540,7 @@ describe('AdminAuthService', () => {
         id: 'admin-1',
         email: 'suspended@circlesfera.com',
         status: 'SUSPENDED',
+        roles: [],
       });
       mockPrisma.adminIdentity.update.mockResolvedValue({
         failedLoginCount: 1,
@@ -549,6 +557,7 @@ describe('AdminAuthService', () => {
         email: 'locked@circlesfera.com',
         status: 'ACTIVE',
         lockedUntil: new Date(Date.now() + 60000),
+        roles: [],
       });
 
       await expect(
@@ -740,6 +749,7 @@ describe('AdminAuthService', () => {
         id: 'admin-1',
         status: 'ACTIVE',
         totpSecret: null,
+        roles: [],
       });
 
       await expect(service.verifyMfa(token, '123456', {})).rejects.toThrow(
@@ -756,6 +766,7 @@ describe('AdminAuthService', () => {
         id: 'admin-1',
         status: 'ACTIVE',
         totpSecret: 'enc:base32-admin-secret',
+        roles: [],
       });
 
       await expect(service.verifyMfa(token, '999999', {})).rejects.toThrow(
@@ -782,6 +793,7 @@ describe('AdminAuthService', () => {
         id: 'admin-1',
         status: 'ACTIVE',
         totpSecret: 'enc:base32-admin-secret',
+        roles: [],
       });
       await expect(service.verifyMfa(token, '123456', {})).rejects.toThrow(
         'Invalid MFA code',
@@ -797,6 +809,7 @@ describe('AdminAuthService', () => {
         id: 'admin-1',
         status: 'ACTIVE',
         totpSecret: 'enc:base32-admin-secret',
+        roles: [],
       });
       await expect(service.verifyMfa(token, '123', {})).rejects.toThrow(
         'Invalid MFA code',
@@ -819,6 +832,7 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         totpSecret: 'enc:base32-admin-secret',
         totpEnabled: false,
+        roles: [],
       });
 
       await expect(service.verifyMfa(token, '123456', {})).rejects.toThrow(
@@ -870,6 +884,7 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         totpSecret: 'enc:base32-admin-secret',
         totpEnabled: false,
+        roles: [],
       });
 
       const result = await service.verifyMfa(token, '123456', {
@@ -894,6 +909,7 @@ describe('AdminAuthService', () => {
     it('throws UnauthorizedException if admin is not active', async () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         status: 'DEACTIVATED',
+        roles: [],
       });
       await expect(service.me('admin-1')).rejects.toThrow();
     });
@@ -1034,6 +1050,7 @@ describe('AdminAuthService', () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         status: 'ACTIVE',
         totpEnabled: true,
+        roles: [],
       });
 
       const result = await service.refresh(token, {
@@ -1153,6 +1170,7 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         totpEnabled: false,
         totpSecret: 'enc:base32-admin-secret',
+        roles: [],
       });
 
       await expect(
@@ -1164,6 +1182,7 @@ describe('AdminAuthService', () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
         status: 'INACTIVE',
+        roles: [],
       });
       await expect(
         service.stepUp('admin-1', { totpCode: '123456' }),
@@ -1175,10 +1194,259 @@ describe('AdminAuthService', () => {
         linkedUserId: 'user-1',
         totpSecret: 'enc:base32-admin-secret',
         totpEnabled: true,
+        roles: [],
       });
       await expect(
         service.stepUp('admin-1', { totpCode: '000000' }),
       ).rejects.toThrow('Step-up verification failed');
+    });
+  });
+  describe('an external reviewer', () => {
+    const HOUR = 60 * 60 * 1000;
+    const reviewerRoles = [
+      { role: { name: 'EXTERNAL_REVIEWER', permissions: [] } },
+    ];
+    const reviewer = (extra: Record<string, unknown> = {}) => ({
+      id: 'rev-1',
+      email: 'stripereview@circlesfera.com',
+      linkedUserId: 'user-1',
+      status: 'ACTIVE',
+      totpEnabled: false,
+      accessExpiresAt: new Date(Date.now() + 30 * 24 * HOUR),
+      roles: reviewerRoles,
+      ...extra,
+    });
+
+    it("is signed in with the password alone, the session marked as a reviewer's", async () => {
+      withSignInPassword(await argon2.hash('review-password'));
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
+
+      const result = await service.login(
+        'stripereview@circlesfera.com',
+        'review-password',
+        { ip: '1.2.3.4' },
+      );
+
+      expect(result.status).toBe('SIGNED_IN');
+      const { tokens } = result as { tokens: Record<string, string> };
+      const access = jwt.decode(tokens.accessToken) as Record<string, unknown>;
+      const refresh = jwt.decode(tokens.refreshToken) as Record<
+        string,
+        number | boolean
+      >;
+      expect(access).toMatchObject({ typ: 'access', rev: true });
+      expect(access.mfa).toBeUndefined();
+      expect(refresh).toMatchObject({ typ: 'refresh', rev: true });
+      // The refresh token never outlives the working day of the session.
+      expect(
+        (refresh.exp as number) - (refresh.sst as number),
+      ).toBeLessThanOrEqual(8 * 60 * 60 + 1);
+      expect(mockPrisma.adminAuditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: 'ADMIN_LOGIN' }),
+      });
+    });
+
+    it('is refused with a wrong password, like anyone', async () => {
+      withSignInPassword(await argon2.hash('review-password'));
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
+      mockPrisma.adminIdentity.update.mockResolvedValue({
+        failedLoginCount: 1,
+      });
+
+      await expect(
+        service.login('stripereview@circlesfera.com', 'wrong', {}),
+      ).rejects.toThrow('Invalid credentials');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('is refused when the access has no end date', async () => {
+      withSignInPassword(await argon2.hash('review-password'));
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(
+        reviewer({ accessExpiresAt: null }),
+      );
+      mockPrisma.adminIdentity.update.mockResolvedValue({
+        failedLoginCount: 1,
+      });
+
+      await expect(
+        service.login('stripereview@circlesfera.com', 'review-password', {}),
+      ).rejects.toThrow('Invalid credentials');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('anyone whose access has passed is refused, before the password is looked at', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(
+        reviewer({ accessExpiresAt: new Date(Date.now() - 1000) }),
+      );
+      mockPrisma.adminIdentity.update.mockResolvedValue({
+        failedLoginCount: 1,
+      });
+
+      await expect(
+        service.login('stripereview@circlesfera.com', 'review-password', {}),
+      ).rejects.toThrow('Invalid credentials');
+      expect(mockPrisma.signIn.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('a member of staff whose access has passed cannot finish the second factor', async () => {
+      const mfaToken = jwtService.sign(
+        { sub: 'admin-1', email: 'a@circlesfera.com', purpose: 'admin-mfa' },
+        { secret: adminSecret, audience: 'circlesfera-admin' },
+      );
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        status: 'ACTIVE',
+        totpSecret: 'enc:base32-admin-secret',
+        totpEnabled: true,
+        accessExpiresAt: new Date(Date.now() - 1000),
+        roles: [],
+      });
+
+      await expect(service.verifyMfa(mfaToken, '123456', {})).rejects.toThrow(
+        'MFA not configured',
+      );
+    });
+
+    const reviewerRefresh = (sst: number) =>
+      jwtService.sign(
+        {
+          sub: 'rev-1',
+          email: 'stripereview@circlesfera.com',
+          jti: 'jti-r',
+          typ: 'refresh',
+          rev: true,
+          sst,
+        },
+        { secret: adminSecret, audience: 'circlesfera-admin' },
+      );
+    const storedToken = () =>
+      mockPrisma.adminRefreshToken.findUnique.mockResolvedValue({
+        id: 'db-r',
+        adminId: 'rev-1',
+        expiresAt: new Date(Date.now() + HOUR),
+      });
+
+    it('is renewed within the working day, keeping when the session began', async () => {
+      const sst = Math.floor((Date.now() - 2 * HOUR) / 1000);
+      storedToken();
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
+
+      const result = await service.refresh(reviewerRefresh(sst), {});
+
+      const refresh = jwt.decode(result.refreshToken) as Record<string, number>;
+      expect(refresh.sst).toBe(sst);
+      expect(refresh.exp).toBeLessThanOrEqual(sst + 8 * 60 * 60 + 1);
+      const [{ data }] = mockPrisma.adminRefreshToken.create.mock.calls[0];
+      expect(data.expiresAt.getTime()).toBeLessThanOrEqual(
+        sst * 1000 + 8 * HOUR + 1000,
+      );
+    });
+
+    it('a renewal never outlasts the access', async () => {
+      storedToken();
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(
+        reviewer({ accessExpiresAt: new Date(Date.now() + HOUR) }),
+      );
+
+      await service.refresh(reviewerRefresh(Math.floor(Date.now() / 1000)), {});
+
+      const [{ data }] = mockPrisma.adminRefreshToken.create.mock.calls[0];
+      expect(data.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + HOUR);
+    });
+
+    it.each([
+      ['past the working day', -9 * HOUR, {}],
+      [
+        'once it holds another role',
+        0,
+        {
+          roles: [
+            ...reviewerRoles,
+            { role: { name: 'SUPER_ADMIN', permissions: [] } },
+          ],
+        },
+      ],
+      ['once its access has no end', 0, { accessExpiresAt: null }],
+      [
+        'once its access has passed',
+        0,
+        {
+          accessExpiresAt: new Date(Date.now() - 1000),
+        },
+      ],
+    ])('is not renewed %s', async (_label, startOffset, extra) => {
+      storedToken();
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer(extra));
+
+      await expect(
+        service.refresh(
+          reviewerRefresh(Math.floor((Date.now() + startOffset) / 1000)),
+          {},
+        ),
+      ).rejects.toThrow('Sign in again');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('is refused when the access ends further than a reviewer is ever given', async () => {
+      withSignInPassword(await argon2.hash('review-password'));
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(
+        reviewer({ accessExpiresAt: new Date(Date.now() + 91 * 24 * HOUR) }),
+      );
+      mockPrisma.adminIdentity.update.mockResolvedValue({
+        failedLoginCount: 1,
+      });
+
+      await expect(
+        service.login('stripereview@circlesfera.com', 'review-password', {}),
+      ).rejects.toThrow('Invalid credentials');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('never finishes a second factor, renews such a session nor steps up', async () => {
+      const enrolled = reviewer({
+        totpEnabled: true,
+        totpSecret: 'enc:base32-admin-secret',
+      });
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(enrolled);
+
+      const mfaToken = jwtService.sign(
+        { sub: 'rev-1', email: 'r@circlesfera.com', purpose: 'admin-mfa' },
+        { secret: adminSecret, audience: 'circlesfera-admin' },
+      );
+      await expect(service.verifyMfa(mfaToken, '123456', {})).rejects.toThrow(
+        'MFA not configured',
+      );
+
+      storedToken();
+      const mfaRefresh = jwtService.sign(
+        {
+          sub: 'rev-1',
+          email: 'r@circlesfera.com',
+          jti: 'j',
+          typ: 'refresh',
+          mfa: true,
+        },
+        { secret: adminSecret, audience: 'circlesfera-admin' },
+      );
+      await expect(service.refresh(mfaRefresh, {})).rejects.toThrow(
+        'Sign in again',
+      );
+
+      await expect(
+        service.stepUp('rev-1', { totpCode: '123456' }),
+      ).rejects.toThrow('Step-up verification failed');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('me tells the panel the identity is a reviewer, and until when', async () => {
+      const ends = new Date(Date.now() + HOUR);
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(
+        reviewer({ accessExpiresAt: ends }),
+      );
+      await expect(service.me('rev-1')).resolves.toMatchObject({
+        externalReviewer: true,
+        accessExpiresAt: ends,
+      });
     });
   });
 });
