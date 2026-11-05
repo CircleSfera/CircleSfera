@@ -39,6 +39,7 @@ export class AcceptMessageRequestUseCase {
           where: { id: participant.id },
           data: {
             hasAccepted: true,
+            requestHiddenByWords: false,
             lastReadAt: new Date(),
           },
         });

@@ -24,7 +24,11 @@ import { isUnavailable, personName } from './unavailable';
 
 // The list is read a page at a time as it scrolls, so every conversation can
 // be reached. Requests share their pages with the requests folder.
-const folderPages = (folder: 'inbox' | 'requests') => ({
+// Requests with one of the Profile's hidden words wait in a list of their
+// own, reached from the requests.
+type ChatFolder = 'inbox' | 'requests' | 'hidden_requests';
+
+const folderPages = (folder: ChatFolder) => ({
   queryKey: ['conversations', 'pages', folder],
   queryFn: async ({ pageParam }: { pageParam: string | null }) => {
     const res = await chatApi.getConversationPage(folder, pageParam);
@@ -39,7 +43,7 @@ export default function ConversationList() {
   const { id: activeId } = useParams();
   const queryClient = useQueryClient();
   const listRef = useRef<HTMLDivElement>(null);
-  const [folder, setFolder] = useState<'inbox' | 'requests'>('inbox');
+  const [folder, setFolder] = useState<ChatFolder>('inbox');
 
   const pages = useInfiniteQuery(folderPages(folder));
   const conversations = pages.data?.pages.flatMap((p) => p.items ?? []) ?? [];
@@ -53,6 +57,14 @@ export default function ConversationList() {
   const requestsLabel = requestPages.hasNextPage
     ? `${requestsCount}+`
     : `${requestsCount}`;
+
+  const hiddenPages = useInfiniteQuery({
+    ...folderPages('hidden_requests'),
+    enabled: folder !== 'inbox',
+  });
+  const hiddenCount =
+    hiddenPages.data?.pages.reduce((n, p) => n + (p.items?.length ?? 0), 0) ??
+    0;
 
   const { data: unreadData } = useQuery({
     queryKey: ['unreadMessages'],
@@ -268,7 +280,7 @@ export default function ConversationList() {
             type="button"
             onClick={() => setFolder('requests')}
             className={`min-h-11 transition-all relative flex items-center gap-1.5 ${
-              folder === 'requests'
+              folder !== 'inbox'
                 ? 'text-white font-semibold'
                 : 'text-white/50 hover:text-white/80'
             }`}
@@ -279,7 +291,7 @@ export default function ConversationList() {
                 {requestsLabel}
               </span>
             )}
-            {folder === 'requests' && (
+            {folder !== 'inbox' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-brand-secondary to-brand-primary rounded-full shadow-[0_0_8px_rgba(var(--brand-primary-rgb),0.5)]" />
             )}
           </button>
@@ -297,8 +309,39 @@ export default function ConversationList() {
         ref={listRef}
         className="flex-1 overflow-y-auto custom-scrollbar p-2 min-h-0"
       >
+        {folder === 'hidden_requests' && (
+          <div className="px-2 pb-2">
+            <button
+              type="button"
+              onClick={() => setFolder('requests')}
+              className="min-h-11 flex items-center gap-1 text-sm font-semibold text-white"
+            >
+              <ChevronLeft size={18} aria-hidden />
+              {t('chat.hidden_requests')}
+            </button>
+            <p className="text-xs text-white/50">
+              {t('chat.hidden_requests_desc')}
+            </p>
+          </div>
+        )}
+        {folder === 'requests' && hiddenCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setFolder('hidden_requests')}
+            className="mx-2 mb-2 min-h-12 w-[calc(100%-1rem)] flex items-center justify-between rounded-xl bg-white/5 px-3 text-sm font-semibold text-white hover:bg-white/10"
+          >
+            <span>{t('chat.hidden_requests')}</span>
+            <span className="text-white/50">{hiddenCount}</span>
+          </button>
+        )}
         {conversations.length === 0 ? (
-          folder === 'requests' ? (
+          folder === 'hidden_requests' ? (
+            <EmptyState
+              icon="comments"
+              title={t('chat.no_hidden_requests')}
+              message={t('chat.hidden_requests_desc')}
+            />
+          ) : folder === 'requests' ? (
             <EmptyState
               icon="comments"
               title={t('chat.no_requests')}

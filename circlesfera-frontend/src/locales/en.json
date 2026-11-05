@@ -2408,6 +2408,9 @@
     "leave_group_error": "Couldn't leave the group. Try again.",
     "unavailable_user": "Unavailable user",
     "cannot_write_blocked": "You can’t send messages in this conversation.",
+    "hidden_requests": "Hidden requests",
+    "hidden_requests_desc": "Message requests that contain one of your hidden words. You are not notified about them.",
+    "no_hidden_requests": "No hidden requests",
     "encrypted_on_servers": "Messages are stored encrypted on our servers."
   },
   "creator": {
@@ -5917,7 +5920,7 @@
   },
   "hiddenWords": {
     "title": "Hidden words",
-    "desc": "Comments on your posts that contain one of these words, phrases or emojis are seen only by whoever wrote them. You can review and show them from each post.",
+    "desc": "Comments on your posts and message requests that contain one of these words, phrases or emojis are hidden: the comments are seen only by whoever wrote them, and you can review and show them from each post; the requests go to Hidden requests.",
     "placeholder": "Add a word, phrase or emoji",
     "add": "Add",
     "remove": "Remove {{word}}",

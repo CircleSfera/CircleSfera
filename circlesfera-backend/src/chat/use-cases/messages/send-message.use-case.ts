@@ -18,6 +18,7 @@ import {
   buildVoiceMediaCreateInput,
   resolveMediaFields,
 } from '../../../common/utils/media-lifecycle.util.js';
+import { HiddenWordsService } from '../../../hidden-words/hidden-words.service.js';
 import { renderChatPush } from '../../../notifications/notice-copy.js';
 import {
   type PaywallPost,
@@ -44,6 +45,8 @@ export class SendMessageUseCase {
     private readonly storedFiles: StoredFilesService,
     @Inject(PostPaywallService)
     private readonly postPaywall: PostPaywallService,
+    @Inject(HiddenWordsService)
+    private readonly hiddenWords: HiddenWordsService,
   ) {}
 
   private async assertShareable(
@@ -347,6 +350,31 @@ export class SendMessageUseCase {
           },
         });
 
+        // A message request with one of the recipient's hidden words goes to
+        // their Hidden requests, and stays there until they accept it. The
+        // text is only compared, never kept or logged.
+        if (!conv.isGroup && content) {
+          for (const p of conv.participants as Array<{
+            id: string;
+            profileId: string;
+            hasAccepted: boolean;
+            requestHiddenByWords?: boolean;
+          }>) {
+            if (
+              p.profileId === senderId ||
+              p.hasAccepted ||
+              p.requestHiddenByWords
+            ) {
+              continue;
+            }
+            if (await this.hiddenWords.hides(p.profileId, content)) {
+              await tx.participant.update({
+                where: { id: p.id },
+                data: { requestHiddenByWords: true },
+              });
+            }
+          }
+        }
         // A new message brings a removed 1:1 chat back for both sides. A
         // group never: whoever declined it stays out.
         if (!conv.isGroup) {

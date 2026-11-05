@@ -1456,15 +1456,18 @@ model Conversation {
 }
 
 model Participant {
-  id             String    @id @default(uuid())
-  conversationId String
-  profileId      String
-  isAdmin        Boolean   @default(false)
-  hasAccepted    Boolean   @default(true)
-  lastReadAt     DateTime  @default(now()) // For "Seen" status
-  createdAt      DateTime  @default(now())
-  deletedAt      DateTime? // Allows "Delete for me" functionality
-  clearedAt      DateTime? // Hides messages before this time
+  id                   String    @id @default(uuid())
+  conversationId       String
+  profileId            String
+  isAdmin              Boolean   @default(false)
+  hasAccepted          Boolean   @default(true)
+  // A message request with one of this Profile's hidden words: kept in
+  // Hidden requests, out of Requests, until it is accepted.
+  requestHiddenByWords Boolean   @default(false)
+  lastReadAt           DateTime  @default(now()) // For "Seen" status
+  createdAt            DateTime  @default(now())
+  deletedAt            DateTime? // Allows "Delete for me" functionality
+  clearedAt            DateTime? // Hides messages before this time
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)

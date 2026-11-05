@@ -185,6 +185,22 @@ describe('GetConversationsQuery', () => {
     });
   });
 
+  it('keeps the requests with a hidden word in their own list, out of Requests', async () => {
+    mockPrisma.conversation.findMany.mockResolvedValue([]);
+
+    await query.execute('prof-1', 'hidden_requests');
+    await query.executePage('prof-1', 'hidden_requests');
+
+    for (const [args] of mockPrisma.conversation.findMany.mock.calls) {
+      expect(args.where.participants.some).toEqual({
+        profileId: 'prof-1',
+        deletedAt: null,
+        hasAccepted: false,
+        requestHiddenByWords: true,
+      });
+    }
+  });
+
   it('fetches request conversations when folder is requests', async () => {
     mockPrisma.conversation.findMany.mockResolvedValue([]);
 
@@ -198,6 +214,7 @@ describe('GetConversationsQuery', () => {
               profileId: 'prof-1',
               deletedAt: null,
               hasAccepted: false,
+              requestHiddenByWords: false,
             },
           },
         },
@@ -256,6 +273,7 @@ describe('GetConversationsQuery', () => {
                 profileId: 'prof-1',
                 deletedAt: null,
                 hasAccepted: false,
+                requestHiddenByWords: false,
               },
             },
             OR: [

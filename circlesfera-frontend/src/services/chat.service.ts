@@ -14,7 +14,10 @@ export const chatApi = {
     ),
 
   // One page of the list; the cursor is the nextCursor of the page before.
-  getConversationPage: (folder: 'inbox' | 'requests', cursor?: string | null) =>
+  getConversationPage: (
+    folder: 'inbox' | 'requests' | 'hidden_requests',
+    cursor?: string | null,
+  ) =>
     apiClient.get<ConversationPage>('/chat/conversations/page', {
       params: { folder, ...(cursor ? { cursor } : {}) },
     }),

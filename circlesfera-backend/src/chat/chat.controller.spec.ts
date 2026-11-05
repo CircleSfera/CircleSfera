@@ -702,6 +702,42 @@ describe('ChatController', () => {
     );
   });
 
+  it('gets the hidden requests, and the inbox for an unknown folder', async () => {
+    mockGetConversationsQuery.execute.mockResolvedValue([]);
+    mockGetConversationsQuery.executePage.mockResolvedValue({
+      items: [],
+      nextCursor: null,
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations?folder=hidden_requests')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations?folder=nope')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/page?folder=hidden_requests')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/page?folder=nope')
+      .set(BEARER)
+      .expect(400);
+
+    expect(mockGetConversationsQuery.execute.mock.calls).toEqual([
+      [TEST_USER.profileId, 'hidden_requests'],
+      [TEST_USER.profileId, 'inbox'],
+    ]);
+    expect(mockGetConversationsQuery.executePage).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'hidden_requests',
+      undefined,
+      undefined,
+    );
+  });
+
   it('gets a single conversation by id', async () => {
     const conv = { id: 'conv-1', participants: [] };
     mockGetConversationsQuery.executeOne.mockResolvedValue(conv);

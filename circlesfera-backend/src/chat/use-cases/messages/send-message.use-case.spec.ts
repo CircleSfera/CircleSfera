@@ -37,6 +37,8 @@ describe('SendMessageUseCase', () => {
   let mockTx: any;
   // Every file here is the sender's own unless a test says so.
   const storedFiles = { assertOwnedBy: vi.fn().mockResolvedValue(undefined) };
+  // No one hides any word unless a test says so.
+  const hiddenWords = { hides: vi.fn().mockResolvedValue(false) };
   let mockCryptoService: {
     encrypt: ReturnType<typeof vi.fn>;
   };
@@ -63,6 +65,7 @@ describe('SendMessageUseCase', () => {
       },
       participant: {
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        update: vi.fn().mockResolvedValue({}),
       },
       media: {
         create: vi.fn().mockResolvedValue({ id: 'media-1' }),
@@ -104,7 +107,9 @@ describe('SendMessageUseCase', () => {
       } as never,
       storedFiles as never,
       realPaywall(),
+      hiddenWords as never,
     );
+    hiddenWords.hides.mockReset().mockResolvedValue(false);
   });
 
   it("refuses another Profile's stored file before anything else", async () => {
@@ -609,6 +614,67 @@ describe('SendMessageUseCase', () => {
     expect(result.content).toBe('Direct');
     // Push notification must NOT be sent to recipient if hasAccepted is false
     expect(mockPushService.sendNotification).not.toHaveBeenCalled();
+  });
+
+  describe('a request with one of the recipient hidden words', () => {
+    const request = (over: object = {}) => {
+      mockTx.conversation.findFirst.mockResolvedValue(null);
+      mockTx.follow.findFirst.mockResolvedValue(null);
+      mockTx.conversation.create.mockResolvedValue({
+        id: 'conv-created',
+        isGroup: false,
+        participants: [
+          { id: 'part-s', profileId: 'sender-1', hasAccepted: true },
+          {
+            id: 'part-r',
+            profileId: 'recipient-2',
+            hasAccepted: false,
+            ...over,
+          },
+        ],
+      });
+      mockTx.message.create.mockResolvedValue({
+        id: 'msg-2',
+        senderId: 'sender-1',
+        conversationId: 'conv-created',
+        sender: { id: 'sender-1', username: 'someone' },
+      });
+    };
+
+    it('goes to Hidden requests, in the same transaction as the message', async () => {
+      request();
+      hiddenWords.hides.mockResolvedValue(true);
+
+      await useCase.execute('sender-1', 'recipient-2', 'qué feo');
+
+      expect(hiddenWords.hides).toHaveBeenCalledWith('recipient-2', 'qué feo');
+      expect(hiddenWords.hides).toHaveBeenCalledTimes(1);
+      expect(mockTx.participant.update).toHaveBeenCalledWith({
+        where: { id: 'part-r' },
+        data: { requestHiddenByWords: true },
+      });
+    });
+
+    it('stays in Requests when it has none of them', async () => {
+      request();
+
+      await useCase.execute('sender-1', 'recipient-2', 'hola');
+
+      expect(mockTx.participant.update).not.toHaveBeenCalled();
+    });
+
+    it('is not checked again once hidden, nor once accepted, nor without text', async () => {
+      hiddenWords.hides.mockResolvedValue(true);
+      request({ requestHiddenByWords: true });
+      await useCase.execute('sender-1', 'recipient-2', 'qué feo');
+      request({ hasAccepted: true });
+      await useCase.execute('sender-1', 'recipient-2', 'qué feo');
+      request();
+      await useCase.execute('sender-1', 'recipient-2', '');
+
+      expect(hiddenWords.hides).not.toHaveBeenCalled();
+      expect(mockTx.participant.update).not.toHaveBeenCalled();
+    });
   });
 
   it('sends push notification when recipient follows sender and has accepted', async () => {

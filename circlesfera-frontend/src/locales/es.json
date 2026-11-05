@@ -2408,6 +2408,9 @@
     "leave_group_error": "No se ha podido salir del grupo. Inténtalo de nuevo.",
     "unavailable_user": "Usuario no disponible",
     "cannot_write_blocked": "No puedes enviar mensajes en esta conversación.",
+    "hidden_requests": "Solicitudes ocultas",
+    "hidden_requests_desc": "Solicitudes de mensaje que contienen alguna de tus palabras ocultas. No te avisamos de ellas.",
+    "no_hidden_requests": "No hay solicitudes ocultas",
     "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores."
   },
   "creator": {
@@ -5917,7 +5920,7 @@
   },
   "hiddenWords": {
     "title": "Palabras ocultas",
-    "desc": "Los comentarios en tus publicaciones que contengan una de estas palabras, frases o emojis solo los verá quien los escribió. Puedes revisarlos y mostrarlos desde cada publicación.",
+    "desc": "Los comentarios en tus publicaciones y las solicitudes de mensaje que contengan una de estas palabras, frases o emojis quedan ocultos: los comentarios solo los ve quien los escribió, y puedes revisarlos y mostrarlos desde cada publicación; las solicitudes van a «Solicitudes ocultas».",
     "placeholder": "Añade una palabra, frase o emoji",
     "add": "Añadir",
     "remove": "Quitar {{word}}",

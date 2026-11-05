@@ -70,6 +70,8 @@ describe('AcceptMessageRequestUseCase', () => {
       where: { id: 'part-1' },
       data: expect.objectContaining({
         hasAccepted: true,
+        // A hidden request, once accepted, is an ordinary conversation.
+        requestHiddenByWords: false,
         lastReadAt: expect.any(Date),
       }),
     });
