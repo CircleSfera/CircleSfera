@@ -430,6 +430,21 @@ export class StripeService implements OnModuleInit {
     });
   }
 
+  // The address of a creator's payout account: their public profile on
+  // CircleSfera, so the provider sees each creator's own page. Sent with
+  // the preview version, as every change to a payout account is.
+  async setCreatorWebsite(accountId: string, username: string): Promise<void> {
+    const site = (
+      this.configService.get<string>('FRONTEND_URL') ||
+      'https://circlesfera.com'
+    ).replace(/\/+$/, '');
+    await this.stripe.accounts.update(
+      accountId,
+      { business_profile: { url: `${site}/${encodeURIComponent(username)}` } },
+      { apiVersion: PAYOUT_ACCOUNT_API_VERSION },
+    );
+  }
+
   // Create a login link for the connected Express account.
   async createLoginLink(accountId: string): Promise<Stripe.LoginLink> {
     return this.stripe.accounts.createLoginLink(accountId);

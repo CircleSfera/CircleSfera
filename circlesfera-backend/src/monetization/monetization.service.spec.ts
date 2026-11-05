@@ -80,6 +80,7 @@ describe('MonetizationService', () => {
 
   const mockStripeService = {
     createCheckoutSession: vi.fn(),
+    setCreatorWebsite: vi.fn().mockResolvedValue(undefined),
     // The creator's tax settings are complete unless a test says otherwise.
     creatorTaxActive: vi.fn().mockResolvedValue(true),
     createExpressAccount: vi.fn(),
@@ -1365,6 +1366,7 @@ describe('MonetizationService', () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({
         id,
         accountType,
+        username: 'ana.trazos',
       });
     const onboard = (profileId = 'prof-2') =>
       service.onboardConnectAccount(
@@ -1482,6 +1484,30 @@ describe('MonetizationService', () => {
         'http://ret',
         'http://ref',
       );
+      // The account carries the address of the creator's page.
+      expect(mockStripeService.setCreatorWebsite).toHaveBeenCalledWith(
+        'acct_new',
+        'ana.trazos',
+      );
+    });
+
+    it('onboards even when the address of the page cannot be sent', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(person('acct_new'));
+      acting();
+      withRows({
+        userId: 'u-1',
+        profileId: 'prof-2',
+        stripeConnectAccountId: 'acct_new',
+      });
+      mockStripeService.setCreatorWebsite.mockRejectedValueOnce(
+        new Error('down'),
+      );
+      await expect(onboard()).resolves.toEqual({
+        url: 'https://connect.stripe.com/onboard',
+      });
+
+      mockStripeService.setCreatorWebsite.mockRejectedValueOnce('not an error');
+      await expect(onboard()).resolves.toBeDefined();
     });
 
     it('should throw if user is not found', async () => {

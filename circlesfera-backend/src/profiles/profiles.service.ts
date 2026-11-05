@@ -1,7 +1,7 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   type AccountType,
   SubscriptionStatus,
@@ -25,6 +25,7 @@ import {
 } from '../common/policies/block.policy.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
+import { StripeService } from '../common/stripe/stripe.service.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { payoutRowForProfile } from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -100,7 +101,34 @@ export class ProfilesService {
     @Inject(UsersService) private readonly usersService: UsersService,
     @Inject(StoredFilesService)
     private readonly storedFiles: StoredFilesService,
+    @Inject(StripeService) private readonly stripeService: StripeService,
   ) {}
+
+  private readonly logger = new Logger(ProfilesService.name);
+
+  // A creator who takes a new username gives their payout account the new
+  // address of their page, which the provider asks of every creator. A
+  // failure is written down and never undoes the change: the address is sent
+  // again when they next open their payout settings.
+  // Only the account the Profile holds itself: one its person shares with
+  // another Profile is not this page's.
+  private async keepCreatorWebsite(profileId: string, username: string) {
+    const payout = await this.prisma.monetization.findUnique({
+      where: { profileId },
+      select: { stripeConnectAccountId: true },
+    });
+    if (!payout?.stripeConnectAccountId) return;
+    try {
+      await this.stripeService.setCreatorWebsite(
+        payout.stripeConnectAccountId,
+        username,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `The new profile address of payout account ${payout.stripeConnectAccountId} could not be sent: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+  }
 
   private buildProfileEmbeddingText(profile: {
     username: string;
@@ -443,6 +471,10 @@ export class ProfilesService {
       await this.enqueueProfileEmbedding(updated.id, embeddingText).catch(
         () => undefined,
       );
+    }
+
+    if (updated.username !== profile.username) {
+      await this.keepCreatorWebsite(updated.id, updated.username);
     }
 
     // Invalidate cache
