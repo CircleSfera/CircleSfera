@@ -346,6 +346,26 @@ describe('MonetizationService', () => {
       ).rejects.toThrow('This post is not premium or has no price');
     });
 
+    it('sells no post moderation hid or removed', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce(null);
+      await expect(
+        service.createPostUnlockSession(
+          'user-1',
+          'profile-1',
+          'post-1',
+          'http://localhost/return',
+        ),
+      ).rejects.toThrow();
+      expect(mockPrismaService.post.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'post-1',
+            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          }),
+        }),
+      );
+    });
+
     it('should throw if buyer is buying own post', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: 'post-1',
@@ -501,6 +521,26 @@ describe('MonetizationService', () => {
   });
 
   describe('createStoryUnlockSession', () => {
+    it('sells no story moderation hid or removed', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValueOnce(null);
+      await expect(
+        service.createStoryUnlockSession(
+          'user-1',
+          'prof-1',
+          's-1',
+          'http://return',
+        ),
+      ).rejects.toThrow();
+      expect(mockPrismaService.story.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 's-1',
+            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          }),
+        }),
+      );
+    });
+
     it('should throw if story not found or not premium or has no price', async () => {
       mockPrismaService.story.findUnique.mockResolvedValueOnce(null);
       await expect(
@@ -1150,6 +1190,15 @@ describe('MonetizationService', () => {
           'x',
         ),
       ).rejects.toThrow('Post not found');
+      // A post moderation hid or removed is looked for among those shown only.
+      expect(mockPrismaService.post.findUnique).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'x',
+            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          }),
+        }),
+      );
 
       // Naming the person, any post of theirs is taken, and its Profile is
       // the one tipped.

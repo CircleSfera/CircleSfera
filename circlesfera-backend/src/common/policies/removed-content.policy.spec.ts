@@ -8,6 +8,8 @@ import {
   isUnlisted,
   LISTED_POST,
   NOT_REMOVED,
+  SELLABLE_POST,
+  SELLABLE_STORY,
   SHOWN_COMMENTS_COUNT,
 } from './removed-content.policy.js';
 
@@ -194,6 +196,18 @@ describe('setModerationStatus', () => {
       where: { id: 'x-1' },
       data: { moderationStatus: 'VISIBLE', moderationNote: undefined },
       select,
+    });
+  });
+  it('sells and lets tip only what is shown: never what moderation hid or removed', () => {
+    const shown = { in: ['VISIBLE', 'FLAGGED'] };
+    expect(SELLABLE_POST).toEqual({
+      moderationStatus: shown,
+      deletedAt: null,
+      archivedAt: null,
+    });
+    expect(SELLABLE_STORY).toEqual({
+      moderationStatus: shown,
+      deletedAt: null,
     });
   });
 });
