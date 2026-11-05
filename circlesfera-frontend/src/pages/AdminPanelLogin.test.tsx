@@ -164,9 +164,11 @@ describe('Admin Panel sign-in', () => {
 
     submitCredentials(i18n!);
 
+    // The credentials were right: the failure is never said to be them.
     expect(
-      await screen.findByText(i18n!.t('adminPanel.login.invalid')),
+      await screen.findByText(i18n!.t('errors.generic.server')),
     ).toBeInTheDocument();
+    expect(screen.queryByText(i18n!.t('adminPanel.login.invalid'))).toBeNull();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 

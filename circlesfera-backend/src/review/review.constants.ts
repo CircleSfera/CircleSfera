@@ -33,11 +33,15 @@ export const POST_ON_SALE = {
   deletedAt: null,
   archivedAt: null,
 };
-export const STORY_ON_SALE = {
-  isPremium: true,
-  moderationStatus: SHOWN_STATUSES,
-  deletedAt: null,
-};
+// A story is on sale only for its 24 hours, as it is shown.
+export function storyOnSale(now: number = Date.now()) {
+  return {
+    isPremium: true,
+    moderationStatus: SHOWN_STATUSES,
+    deletedAt: null,
+    expiresAt: { gt: new Date(now) },
+  };
+}
 
 // The accounts that may charge for their content.
 export const CHARGING_ACCOUNT_TYPES = ['CREATOR', 'BUSINESS'] as Array<

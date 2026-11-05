@@ -3,7 +3,7 @@ import type { PrismaService } from '../prisma/prisma.service.js';
 import {
   POST_ON_SALE,
   REVIEW_PAGE_MAX,
-  STORY_ON_SALE,
+  storyOnSale,
 } from './review.constants.js';
 import { ReviewService } from './review.service.js';
 
@@ -124,7 +124,11 @@ describe('ReviewService', () => {
         illegalContentNotices: {},
       });
       expect(prisma.post.count).toHaveBeenCalledWith({ where: POST_ON_SALE });
-      expect(prisma.story.count).toHaveBeenCalledWith({ where: STORY_ON_SALE });
+      expect(prisma.story.count).toHaveBeenCalledWith({
+        where: storyOnSale(NOW),
+      });
+      // A story past its 24 hours is not on sale.
+      expect(storyOnSale(NOW).expiresAt).toEqual({ gt: new Date(NOW) });
       const since = new Date(NOW - 30 * 24 * 60 * 60 * 1000);
       expect(prisma.transaction.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({ where: { createdAt: { gte: since } } }),
@@ -238,7 +242,7 @@ describe('ReviewService', () => {
         { ...story, id: 's-2', isCloseFriendsOnly: true },
       ]);
 
-      const page = await service.paidContent('story', 1, 500);
+      const page = await service.paidContent('story', 1, 500, NOW);
 
       expect(page.data[0]).toEqual({
         id: 's-1',
@@ -261,7 +265,7 @@ describe('ReviewService', () => {
       expect(page.data[1]).toMatchObject({ audience: 'CLOSE_FRIENDS' });
       // Never more than a page holds.
       expect(prisma.story.findMany.mock.calls[0][0]).toMatchObject({
-        where: STORY_ON_SALE,
+        where: storyOnSale(NOW),
         take: REVIEW_PAGE_MAX,
       });
     });

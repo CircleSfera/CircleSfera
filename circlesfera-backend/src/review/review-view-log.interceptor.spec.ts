@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { lastValueFrom, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../prisma/prisma.service.js';
@@ -47,16 +48,16 @@ describe('ReviewViewLogInterceptor', () => {
     });
   });
 
-  it('still shows the page when it cannot be written down', async () => {
+  it('does not show a page that cannot be written down', async () => {
     create.mockRejectedValueOnce(new Error('db down'));
-    const result = await interceptor.intercept(
-      context({ adminId: 'rev-1' }),
-      next,
-    );
-    await expect(lastValueFrom(result)).resolves.toBe('page');
+    await expect(
+      interceptor.intercept(context({ adminId: 'rev-1' }), next),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
 
     create.mockRejectedValueOnce('not an error');
-    await interceptor.intercept(context({ adminId: 'rev-1' }), next);
+    await expect(
+      interceptor.intercept(context({ adminId: 'rev-1' }), next),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
   it('writes nothing without a staff session (the guard has refused it)', async () => {

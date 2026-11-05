@@ -83,8 +83,11 @@ export default function RolesTab({ onToast }: Props) {
     roleIds: ['arole_platform'] as string[],
     accessDay: accessDays.initial,
   });
-  // The day the selected operator's access ends, as it is being edited.
-  const [accessDay, setAccessDay] = useState('');
+  // A day typed for an operator's access end, kept with the operator it was
+  // typed for: another operator shows their own.
+  const [dayTyped, setDayTyped] = useState<{ id: string; day: string } | null>(
+    null,
+  );
 
   const { data: rolesCatalog } = useQuery({
     queryKey: ['admin', 'operator-roles'],
@@ -237,13 +240,15 @@ export default function RolesTab({ onToast }: Props) {
     },
   });
 
-  useEffect(() => {
-    setAccessDay(
-      selected?.accessExpiresAt
+  const accessDay =
+    dayTyped && dayTyped.id === selected?.id
+      ? dayTyped.day
+      : selected?.accessExpiresAt
         ? toDateField(new Date(selected.accessExpiresAt))
-        : '',
-    );
-  }, [selected?.accessExpiresAt]);
+        : '';
+  const setAccessDay = (day: string) => {
+    if (selected) setDayTyped({ id: selected.id, day });
+  };
 
   // Sets when the selected operator's access ends, or that it does not.
   const accessMutation = useMutation({

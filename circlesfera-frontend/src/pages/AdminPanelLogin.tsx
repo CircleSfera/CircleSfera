@@ -87,9 +87,14 @@ export default function AdminPanelLogin() {
     mutationFn: () => adminAuthApi.login(email.trim(), password),
     onSuccess: ({ data }) => {
       setError(null);
-      // An external reviewer: no second factor, the session is open.
+      // An external reviewer: no second factor, the session is open. The
+      // credentials were accepted, so a failure now is the server's.
       if (data.status === 'SIGNED_IN') {
-        void finishLogin().catch(() => setError(t('adminPanel.login.invalid')));
+        void finishLogin().catch((err: unknown) =>
+          setError(
+            apiErrorMessage(err, t, 'errors.generic.server', { signIn: true }),
+          ),
+        );
         return;
       }
       if (data.status === 'MFA_REQUIRED') {

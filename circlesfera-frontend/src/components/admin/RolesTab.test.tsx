@@ -699,6 +699,20 @@ describe('RolesTab', () => {
       );
     });
 
+    it('never carries a day typed for one operator over to the next', async () => {
+      api.getOperators.mockResolvedValue(
+        list([operator('a'), operator('b')]) as never,
+      );
+      show();
+      const first = await open('Operator a');
+      fireEvent.change(within(first).getByLabelText('Access ends on'), {
+        target: { value: '2027-01-15' },
+      });
+
+      const second = await open('Operator b');
+      expect(within(second).getByLabelText('Access ends on')).toHaveValue('');
+    });
+
     it("lets a member of staff's end be removed, and says when saving fails", async () => {
       api.getOperators.mockResolvedValue(
         list([

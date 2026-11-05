@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   type NestInterceptor,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import type { Observable } from 'rxjs';
@@ -13,7 +14,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 // Every page of the review area anyone opens is written down: who, which page
 // with which filters, when and from where. So the owner can see what an
-// external reviewer looked at. A failure to write it never blocks the page.
+// external reviewer looked at. A page that cannot be written down is not
+// shown: the reviewer is told every page is recorded, and so it is.
 @Injectable()
 export class ReviewViewLogInterceptor implements NestInterceptor {
   private readonly logger = new Logger(ReviewViewLogInterceptor.name);
@@ -29,8 +31,8 @@ export class ReviewViewLogInterceptor implements NestInterceptor {
       .getRequest<Request & { user?: CurrentAdminData }>();
     const adminId = request.user?.adminId;
     if (adminId) {
-      await this.prisma.adminAuditLog
-        .create({
+      try {
+        await this.prisma.adminAuditLog.create({
           data: {
             adminId,
             action: 'REVIEW_VIEWED',
@@ -40,12 +42,13 @@ export class ReviewViewLogInterceptor implements NestInterceptor {
             ipAddress: request.ip,
             userAgent: request.headers['user-agent'],
           },
-        })
-        .catch((error: unknown) =>
-          this.logger.warn(
-            `A review page view could not be written down: ${error instanceof Error ? error.message : 'unknown error'}`,
-          ),
+        });
+      } catch (error) {
+        this.logger.warn(
+          `A review page view could not be written down, so it was not shown: ${error instanceof Error ? error.message : 'unknown error'}`,
         );
+        throw new ServiceUnavailableException();
+      }
     }
     return next.handle();
   }

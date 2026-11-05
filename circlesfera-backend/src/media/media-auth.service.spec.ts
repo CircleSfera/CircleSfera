@@ -1257,6 +1257,15 @@ describe('MediaAuthService', () => {
       expect(reviewer).not.toHaveBeenCalled();
     });
 
+    it('without a review check handed over, nobody reads it unbought', async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+        { postId: 'post-1', post: paidPost() },
+      ]);
+      expect(await service.isAccessAllowed('/uploads/p.jpg', null, null)).toBe(
+        false,
+      );
+    });
+
     it('asks nothing of the session for a file no row names', async () => {
       reviewer.mockClear();
       await service.isAccessAllowed(

@@ -8,7 +8,7 @@ import {
   REVIEW_SUMMARY_DAYS,
   type ReviewEnforcementKind,
   type ReviewPaidKind,
-  STORY_ON_SALE,
+  storyOnSale,
 } from './review.constants.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -71,7 +71,7 @@ export class ReviewService {
       notices,
     ] = await Promise.all([
       this.prisma.post.count({ where: POST_ON_SALE }),
-      this.prisma.story.count({ where: STORY_ON_SALE }),
+      this.prisma.story.count({ where: storyOnSale(now) }),
       this.prisma.profile.count({
         where: { accountType: { in: CHARGING_ACCOUNT_TYPES } },
       }),
@@ -135,14 +135,16 @@ export class ReviewService {
     kind: ReviewPaidKind = 'post',
     page?: number,
     limit?: number,
+    now: number = Date.now(),
   ) {
     const { take, skip, page: current } = pageOf(page, limit);
 
     if (kind === 'story') {
+      const onSale = storyOnSale(now);
       const [total, stories] = await Promise.all([
-        this.prisma.story.count({ where: STORY_ON_SALE }),
+        this.prisma.story.count({ where: onSale }),
         this.prisma.story.findMany({
-          where: STORY_ON_SALE,
+          where: onSale,
           orderBy: { createdAt: 'desc' },
           skip,
           take,
