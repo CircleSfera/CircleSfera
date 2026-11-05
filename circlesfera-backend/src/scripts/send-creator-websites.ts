@@ -67,6 +67,8 @@ async function main() {
   );
   await prisma.$disconnect();
   await pool.end();
+  // A run where some account was not reached ends failed, so it is seen.
+  if (failed > 0) process.exitCode = 1;
 }
 
 main().catch((error) => {
