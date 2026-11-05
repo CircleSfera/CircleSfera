@@ -16,6 +16,7 @@ import { LoadingSpinner } from '../components/LoadingStates';
 import AddToCollectionModal from '../components/modals/AddToCollectionModal';
 import FrameCommentsModal from '../components/modals/FrameCommentsModal';
 import SharePostModal from '../components/modals/SharePostModal';
+import { usePostInteractionSettings } from '../hooks/usePostInteractionSettings';
 import { postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { PaginatedResponse, Post } from '../types';
@@ -198,6 +199,11 @@ export default function Frames() {
       });
     };
   }, []);
+
+  // The author turns the active Frame's comments or like count off or on.
+  const frameInteractionSettings = usePostInteractionSettings(
+    displayFrames[activeFrameIndex],
+  );
 
   if (isLoading) {
     return (
@@ -394,6 +400,18 @@ export default function Frames() {
                     onArchive={menuActions.onArchive}
                     onAddToStory={menuActions.onAddToStory}
                     onWhy={menuActions.onWhy}
+                    onToggleComments={
+                      isFrameOwner
+                        ? frameInteractionSettings.toggleComments
+                        : undefined
+                    }
+                    commentsOff={frameInteractionSettings.commentsOff}
+                    onToggleLikes={
+                      isFrameOwner
+                        ? frameInteractionSettings.toggleLikes
+                        : undefined
+                    }
+                    likesHidden={frameInteractionSettings.likesHidden}
                     onPromote={
                       canPromoteFrame ? menuActions.onPromote : undefined
                     }

@@ -155,7 +155,8 @@ export interface Post {
   updatedAt: Date | string;
   profile: ProfileWithUser;
   _count: {
-    likes: number;
+    // null when its author hid the like count from everyone else.
+    likes: number | null;
     comments: number;
   };
   isLiked?: boolean;

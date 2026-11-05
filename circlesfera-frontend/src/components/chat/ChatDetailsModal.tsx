@@ -84,7 +84,7 @@ export default function ChatDetailsModal({
         {isEncrypted && (
           <p
             className={`relative mt-3 gap-1.5 text-emerald-400! ${CREATE_GLASS_CHIP}`}
-            title={t('chat.e2ee')}
+            title={t('chat.encrypted_on_servers')}
           >
             <ShieldCheck size={14} className="shrink-0" aria-hidden="true" />
             {t('chat.details.encrypted')}

@@ -2266,7 +2266,7 @@
     "started_chat": "Inició una conversación",
     "sent_voice": "Envió un mensaje de voz",
     "sent_image": "Envió una imagen",
-    "file_too_large": "Para garantizar el cifrado E2E, los archivos no pueden superar los 50 MB.",
+    "file_too_large": "Los archivos no pueden superar los 50 MB.",
     "sent_attachment": "Envió un archivo adjunto",
     "shared_post": "Compartió una publicación",
     "message_deleted": "Este mensaje fue eliminado",
@@ -2275,7 +2275,6 @@
     "react": "Reaccionar",
     "remove_reaction": "Quitar reacción",
     "edit": "Editar",
-    "e2ee": "Mensajería cifrada de extremo a extremo (E2EE)",
     "chat": "Chat",
     "group_chat": "Chat de Grupo",
     "user": "Usuario",
@@ -2328,7 +2327,7 @@
     "details": {
       "title": "Detalles",
       "view_profile": "Ver perfil",
-      "encrypted": "Cifrado de extremo a extremo",
+      "encrypted": "Cifrados en nuestros servidores",
       "delete_for_me_hint": "Desaparece solo de tu bandeja."
     },
     "group_details": {
@@ -2406,7 +2405,8 @@
     "make_admin_error": "No se ha podido hacer admin. Inténtalo de nuevo.",
     "leave_group_error": "No se ha podido salir del grupo. Inténtalo de nuevo.",
     "unavailable_user": "Usuario no disponible",
-    "cannot_write_blocked": "No puedes enviar mensajes en esta conversación."
+    "cannot_write_blocked": "No puedes enviar mensajes en esta conversación.",
+    "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores."
   },
   "creator": {
     "title": "Creator Studio",
@@ -5923,5 +5923,22 @@
     "removed": "Palabra quitada",
     "error": "No se pudo guardar. Inténtalo de nuevo.",
     "count": "{{count}} de {{max}}"
+  },
+  "audio_page": {
+    "use": "Usar este audio",
+    "count_one": "{{count}} publicación",
+    "count_other": "{{count}} publicaciones",
+    "empty": "Aún nadie lo ha usado",
+    "empty_sub": "Sé el primero en hacer un Frame con este audio.",
+    "error_title": "No se pudo abrir este audio",
+    "error_message": "Puede que ya no esté disponible. Inténtalo de nuevo."
+  },
+  "place_page": {
+    "count_one": "{{count}} publicación",
+    "count_other": "{{count}} publicaciones",
+    "empty": "Aún no hay publicaciones aquí",
+    "empty_sub": "Las publicaciones con este lugar aparecerán aquí.",
+    "error_title": "No se pudo abrir este lugar",
+    "error_message": "Puede que ya no esté disponible. Inténtalo de nuevo."
   }
 }

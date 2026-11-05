@@ -241,6 +241,34 @@ describe('ContentComposerPage', () => {
   });
 
   describe('choosing what to create', () => {
+    it('opens a Frame with the song chosen from its page, and only once', async () => {
+      const song = {
+        id: 'a1',
+        title: 'Summer',
+        artist: 'Nia',
+        url: '/s.mp3',
+        duration: 30,
+      };
+      const { hook } = compose(
+        {},
+        {
+          pathname: '/create',
+          search: '?mode=frame',
+          state: { frameAudio: song },
+        },
+      );
+
+      await waitFor(() =>
+        expect(hook.setSelectedAudio).toHaveBeenCalledWith(song),
+      );
+      expect(hook.setSelectedAudio).toHaveBeenCalledTimes(1);
+    });
+
+    it('chooses no song when opened plainly', () => {
+      const { hook } = compose();
+      expect(hook.setSelectedAudio).not.toHaveBeenCalled();
+    });
+
     it('lets the kind be changed when the composer was opened plainly', () => {
       compose();
       pastCamera();

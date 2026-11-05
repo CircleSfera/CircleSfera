@@ -1,11 +1,25 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
-import { LiveControl, LiveSheet, LiveStatus } from './LivePieces';
+import { LiveControl, LiveFrame, LiveSheet, LiveStatus } from './LivePieces';
 
 describe('the pieces of a Live screen', () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('shows the whole upright picture, never cut down to the screen', () => {
+    renderWithProviders(
+      <LiveFrame video={<div data-testid="camera" />}>
+        <span>controls</span>
+      </LiveFrame>,
+    );
+
+    const frame = screen.getByTestId('live-video');
+    expect(frame).toContainElement(screen.getByTestId('camera'));
+    // 9:16, as wide as the screen unless the part in sight is too short.
+    expect(frame).toHaveClass('aspect-9/16');
+    expect(frame.className).toContain('w-[min(100%,calc(100dvh*9/16))]');
   });
 
   it('says the broadcast is live, for how long and how many watch', () => {

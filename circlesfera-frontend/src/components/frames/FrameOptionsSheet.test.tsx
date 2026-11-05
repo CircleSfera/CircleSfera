@@ -78,6 +78,41 @@ describe('FrameOptionsSheet', () => {
     expect(order).toEqual(['close', 'archive']);
   });
 
+  it('offers the owner to turn commenting off and hide the like count, closing first', () => {
+    show({
+      isOwner: true,
+      onToggleComments: vi.fn(() => order.push('comments')),
+      onToggleLikes: vi.fn(() => order.push('likes')),
+    });
+    expect(options()).toEqual([
+      'Edit',
+      'Turn off commenting',
+      'Hide like count',
+      'Delete',
+      'Save',
+    ]);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Turn off commenting' }),
+    );
+    expect(order).toEqual(['close', 'comments']);
+    order.length = 0;
+    fireEvent.click(screen.getByRole('button', { name: 'Hide like count' }));
+    expect(order).toEqual(['close', 'likes']);
+  });
+
+  it('offers to turn them back on once they are off', () => {
+    show({
+      isOwner: true,
+      onToggleComments: vi.fn(),
+      commentsOff: true,
+      onToggleLikes: vi.fn(),
+      likesHidden: true,
+    });
+    expect(options()).toContain('Turn on commenting');
+    expect(options()).toContain('Show like count');
+  });
+
   it('does not offer a viewer to archive', () => {
     show({ onArchive: vi.fn() });
     expect(options()).toEqual(['Report', 'Save']);
@@ -126,15 +161,18 @@ describe('FrameOptionsSheet', () => {
     });
 
     it('offers the same options, with a named close button and a backdrop that closes', () => {
-      const { props, container } = show({
+      const { props } = show({
         presentation: 'default',
         isOwner: true,
       });
       expect(options()).toEqual(['Edit', 'Delete', 'Save']);
 
       fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      // The sheet is drawn on the page itself, above its bars.
       fireEvent.click(
-        container.querySelector('.fixed.inset-0.bg-black\\/60') as HTMLElement,
+        document.body.querySelector(
+          '.fixed.inset-0.bg-black\\/60',
+        ) as HTMLElement,
       );
       expect(props.onClose).toHaveBeenCalledTimes(2);
     });

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
   ArchiveRestore,
@@ -19,12 +20,16 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useWideScreen } from '../../hooks/useWideScreen';
+import { OptionRow, OptionsSheet } from '../sheets/OptionsSheet';
 
 interface PostMenuProps {
   showMenu: boolean;
   menuRef: React.RefObject<HTMLDivElement | null>;
   menuPosition: { top: number; right: number; placement?: 'above' | 'below' };
   isOwner: boolean;
+  // Closes the menu: a tap on the shade behind the sheet, or its close.
+  onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onReport: () => void;
@@ -48,7 +53,7 @@ interface PostMenuProps {
 }
 
 interface MenuItemProps {
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
   onClick: () => void;
   variant?: 'default' | 'danger' | 'highlight';
@@ -124,6 +129,7 @@ export default function PostMenu({
   menuRef,
   menuPosition,
   isOwner,
+  onClose,
   onEdit,
   onDelete,
   onReport,
@@ -142,7 +148,125 @@ export default function PostMenu({
   likesHidden = false,
 }: PostMenuProps) {
   const { t } = useTranslation();
+  const wide = useWideScreen();
   if (!showMenu) return null;
+
+  // One list for both: a sheet from the bottom on a phone, as Instagram's,
+  // and a menu by the button on a wide screen. A null is a divider.
+  const items: Array<MenuItemProps | null> = isOwner
+    ? ([
+        onPromote
+          ? {
+              icon: Megaphone,
+              label: t('post.menu.promote'),
+              onClick: onPromote,
+              variant: 'highlight',
+            }
+          : undefined,
+        { icon: Pencil, label: t('post.menu.edit'), onClick: onEdit },
+        onArchive
+          ? {
+              icon: isArchived ? ArchiveRestore : Archive,
+              label: isArchived
+                ? t('post.menu.show_on_profile')
+                : t('post.menu.archive'),
+              onClick: onArchive,
+            }
+          : undefined,
+        onToggleComments
+          ? {
+              icon: commentsOff ? MessageCircle : MessageCircleOff,
+              label: commentsOff
+                ? t('post.menu.turn_on_comments')
+                : t('post.menu.turn_off_comments'),
+              onClick: onToggleComments,
+            }
+          : undefined,
+        onToggleLikes
+          ? {
+              icon: likesHidden ? Heart : HeartOff,
+              label: likesHidden
+                ? t('post.menu.show_like_count')
+                : t('post.menu.hide_like_count'),
+              onClick: onToggleLikes,
+            }
+          : undefined,
+        null,
+        {
+          icon: Trash2,
+          label: t('post.menu.delete'),
+          onClick: onDelete,
+          variant: 'danger',
+        },
+      ].filter((item) => item !== undefined) as Array<MenuItemProps | null>)
+    : ([
+        onHidePost
+          ? {
+              icon: EyeOff,
+              label: t('post.menu.not_interested'),
+              onClick: onHidePost,
+            }
+          : undefined,
+        onHideAuthor
+          ? {
+              icon: UserX,
+              label: t('post.menu.hide_author'),
+              onClick: onHideAuthor,
+            }
+          : undefined,
+        onMute
+          ? { icon: VolumeX, label: t('post.menu.mute'), onClick: onMute }
+          : undefined,
+        onWhy
+          ? { icon: Info, label: t('post.why_seeing.open'), onClick: onWhy }
+          : undefined,
+        {
+          icon: Flag,
+          label: t('post.menu.report'),
+          onClick: onReport,
+          variant: 'danger',
+        },
+      ].filter((item) => item !== undefined) as Array<MenuItemProps | null>);
+  items.push(null);
+  if (onAddToStory) {
+    items.push({
+      icon: CirclePlus,
+      label: t('post.menu.add_to_story'),
+      onClick: onAddToStory,
+    });
+  }
+  items.push({
+    icon: Bookmark,
+    label: t('post.menu.save'),
+    onClick: onAddToCollection,
+  });
+
+  // Each divider is named by how many came before it.
+  let dividers = 0;
+  const entries = items.map((item) =>
+    item ? { key: item.label, item } : { key: `divider-${dividers++}`, item },
+  );
+
+  if (!wide) {
+    return (
+      <OptionsSheet
+        isOpen
+        onClose={onClose}
+        title={t('frames.options')}
+        panelRef={menuRef}
+      >
+        <div className="px-2 pb-3 space-y-0.5">
+          {entries.map(({ key, item }) =>
+            item ? (
+              <OptionRow key={key} {...item} />
+            ) : (
+              <div key={key} className="mx-2 my-1 h-px bg-white/10" />
+            ),
+          )}
+        </div>
+      </OptionsSheet>
+    );
+  }
 
   return createPortal(
     <motion.div
@@ -173,113 +297,9 @@ export default function PostMenu({
       }}
       className="py-2"
     >
-      {isOwner ? (
-        <>
-          {onPromote && (
-            <MenuItem
-              icon={Megaphone}
-              label={t('post.menu.promote')}
-              onClick={onPromote}
-              variant="highlight"
-            />
-          )}
-          <MenuItem
-            icon={Pencil}
-            label={t('post.menu.edit')}
-            onClick={onEdit}
-          />
-          {onArchive && (
-            <MenuItem
-              icon={isArchived ? ArchiveRestore : Archive}
-              label={
-                isArchived
-                  ? t('post.menu.show_on_profile')
-                  : t('post.menu.archive')
-              }
-              onClick={onArchive}
-            />
-          )}
-          {onToggleComments && (
-            <MenuItem
-              icon={commentsOff ? MessageCircle : MessageCircleOff}
-              label={
-                commentsOff
-                  ? t('post.menu.turn_on_comments')
-                  : t('post.menu.turn_off_comments')
-              }
-              onClick={onToggleComments}
-            />
-          )}
-          {onToggleLikes && (
-            <MenuItem
-              icon={likesHidden ? Heart : HeartOff}
-              label={
-                likesHidden
-                  ? t('post.menu.show_like_count')
-                  : t('post.menu.hide_like_count')
-              }
-              onClick={onToggleLikes}
-            />
-          )}
-          <MenuDivider />
-          <MenuItem
-            icon={Trash2}
-            label={t('post.menu.delete')}
-            onClick={onDelete}
-            variant="danger"
-          />
-        </>
-      ) : (
-        <>
-          {onHidePost && (
-            <MenuItem
-              icon={EyeOff}
-              label={t('post.menu.not_interested')}
-              onClick={onHidePost}
-            />
-          )}
-          {onHideAuthor && (
-            <MenuItem
-              icon={UserX}
-              label={t('post.menu.hide_author')}
-              onClick={onHideAuthor}
-            />
-          )}
-          {onMute && (
-            <MenuItem
-              icon={VolumeX}
-              label={t('post.menu.mute')}
-              onClick={onMute}
-            />
-          )}
-          {onWhy && (
-            <MenuItem
-              icon={Info}
-              label={t('post.why_seeing.open')}
-              onClick={onWhy}
-            />
-          )}
-          <MenuItem
-            icon={Flag}
-            label={t('post.menu.report')}
-            onClick={onReport}
-            variant="danger"
-          />
-        </>
+      {entries.map(({ key, item }) =>
+        item ? <MenuItem key={key} {...item} /> : <MenuDivider key={key} />,
       )}
-      <MenuDivider />
-      {onAddToStory && (
-        <MenuItem
-          icon={CirclePlus}
-          label={t('post.menu.add_to_story')}
-          onClick={onAddToStory}
-        />
-      )}
-      <MenuItem
-        icon={Bookmark}
-        label={t('post.menu.save')}
-        onClick={onAddToCollection}
-      />
     </motion.div>,
     document.body,
   );
