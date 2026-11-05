@@ -397,10 +397,11 @@ export class AdminOperatorsService {
 
     const wasReviewer = isReviewerRoleSet(admin.roles.map((r) => r.roleId));
     const reviewer = isReviewerRoleSet(roleIds);
-    // Becoming a reviewer gives the access an end if it has none, or a
-    // later one than a reviewer may have.
+    // Becoming a reviewer gives the access a new end if it has none, one
+    // already past, or a later one than a reviewer may have.
     const keepsEnd =
       admin.accessExpiresAt !== null &&
+      admin.accessExpiresAt.getTime() > Date.now() &&
       admin.accessExpiresAt <= reviewerAccessLatestEnd();
     const accessExpiresAt =
       reviewer && !keepsEnd ? reviewerAccessEnd() : admin.accessExpiresAt;
