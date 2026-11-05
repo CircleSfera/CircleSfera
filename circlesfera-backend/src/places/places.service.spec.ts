@@ -209,6 +209,26 @@ describe('PlacesService', () => {
     expect(result.meta.nextCursor).toBe('post-1');
   });
 
+  it('getPlacePosts leaves out a like count the author hid, for everyone but the author', async () => {
+    prisma.place.findUnique.mockResolvedValue({ id: 'pl-1' });
+    prisma.post.findMany.mockResolvedValue([
+      {
+        id: 'post-1',
+        profileId: 'author-1',
+        hideLikes: true,
+        likes: [],
+        _count: { likes: 8, comments: 0 },
+      },
+    ]);
+    prisma.post.count.mockResolvedValue(1);
+
+    const seen = await service.getPlacePosts('pl-1', {}, 'viewer-1');
+    const own = await service.getPlacePosts('pl-1', {}, 'author-1');
+
+    expect((seen.data[0] as any)._count.likes).toBeNull();
+    expect((own.data[0] as any)._count.likes).toBe(8);
+  });
+
   it('getPlacePosts returns empty paginated list without cursor or viewer', async () => {
     prisma.place.findUnique.mockResolvedValue({ id: 'pl-1' });
     prisma.post.findMany.mockResolvedValue([]);

@@ -24,6 +24,7 @@ import {
   assembleFrame,
   type FrameAssemblyStep,
 } from './create-post/frameAssembly';
+import { readFrameAudio } from './create-post/frameAudioStart';
 import {
   clipsLength,
   type FrameClip,
@@ -147,6 +148,16 @@ export default function ContentComposerPage() {
     Boolean(readStoryStart(routerLocation.state)),
   );
   const startedRef = React.useRef(false);
+  // "Use this audio": a new Frame opens with the song chosen.
+  React.useEffect(() => {
+    const audio = readFrameAudio(routerLocation.state);
+    if (!audio) return;
+    navigate(`${routerLocation.pathname}${routerLocation.search}`, {
+      replace: true,
+      state: null,
+    });
+    composer.setSelectedAudio(audio);
+  }, [routerLocation, navigate, composer.setSelectedAudio]);
   const { setStoryElements, setOriginalStoryMedia, setStoryBgStyle } = composer;
   React.useEffect(() => {
     const start = readStoryStart(routerLocation.state);

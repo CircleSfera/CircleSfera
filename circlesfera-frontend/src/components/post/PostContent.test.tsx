@@ -25,3 +25,19 @@ describe('PostContent', () => {
     expect(screen.getByText(likes, { exact: false })).toBeInTheDocument();
   });
 });
+
+describe('PostContent with a like count its author hid', () => {
+  it('shows no count, even after the viewer liked it', () => {
+    renderWithProviders(
+      <PostContent
+        post={
+          { ...post, _count: { likes: null, comments: 0 } } as unknown as Post
+        }
+        likesCount={1}
+      />,
+    );
+
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    expect(screen.queryByText('likes')).not.toBeInTheDocument();
+  });
+});

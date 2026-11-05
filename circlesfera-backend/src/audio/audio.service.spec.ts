@@ -27,8 +27,10 @@ describe('AudioService', () => {
       update: vi.fn(),
       delete: vi.fn(),
     },
+    block: { findMany: vi.fn().mockResolvedValue([]) },
     post: {
       findMany: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
     },
   };
 
@@ -174,24 +176,83 @@ describe('AudioService', () => {
   });
 
   describe('getAudioPosts', () => {
-    it('should return public posts utilizing the audio track', async () => {
+    beforeEach(() => {
+      mockPrismaService.audio.findUnique.mockResolvedValue({ id: 'audio-1' });
+      mockPrismaService.block.findMany.mockResolvedValue([]);
+    });
+
+    it('lists a page of the posts a viewer may find, newest first', async () => {
       mockPrismaService.post.findMany.mockResolvedValue([
-        { id: 'post-1', audioId: 'audio-1' },
+        { id: 'post-1', audioId: 'audio-1', profileId: 'p1' },
+      ]);
+      mockPrismaService.post.count.mockResolvedValue(41);
+      mockPrismaService.block.findMany.mockResolvedValue([
+        { blockerId: 'viewer-1', blockedId: 'blocked-1' },
       ]);
 
-      const result = await service.getAudioPosts('audio-1');
-      expect(result).toHaveLength(1);
-      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith({
-        where: {
-          audioId: 'audio-1',
-          visibility: 'PUBLIC',
-          moderationStatus: 'VISIBLE',
-          deletedAt: null,
-          archivedAt: null,
-        },
-        include: expect.any(Object),
-        orderBy: { createdAt: 'desc' },
+      const result = await service.getAudioPosts(
+        'audio-1',
+        { page: 2, limit: 20 },
+        'viewer-1',
+      );
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(41);
+      const args = mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      expect(args.skip).toBe(20);
+      expect(args.take).toBe(20);
+      expect(args.orderBy).toEqual([{ createdAt: 'desc' }, { id: 'desc' }]);
+      expect(args.where.audioId).toBe('audio-1');
+      // Public posts of public Profiles, none across a block, plus the
+      // viewer's own.
+      const [others, own] = args.where.OR;
+      expect(others).toMatchObject({
+        visibility: 'PUBLIC',
+        moderationStatus: 'VISIBLE',
+        deletedAt: null,
+        archivedAt: null,
+        profile: { privacyLevel: 'PUBLIC' },
+        profileId: { notIn: ['blocked-1'] },
       });
+      expect(own.profileId).toBe('viewer-1');
+    });
+
+    it('continues after the cursor it is given', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+
+      await service.getAudioPosts('audio-1', { limit: 10, cursor: 'post-9' });
+
+      const args = mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      expect(args.cursor).toEqual({ id: 'post-9' });
+      expect(args.skip).toBe(1);
+    });
+
+    it('leaves out a like count the author hid, for everyone but the author', async () => {
+      const post = {
+        id: 'post-1',
+        profileId: 'author-1',
+        hideLikes: true,
+        _count: { likes: 5, comments: 1 },
+      };
+      mockPrismaService.post.findMany.mockResolvedValue([post]);
+
+      const seen = await service.getAudioPosts('audio-1', {}, 'viewer-1');
+      const own = await service.getAudioPosts('audio-1', {}, 'author-1');
+
+      expect((seen.data[0] as any)._count).toEqual({
+        likes: null,
+        comments: 1,
+      });
+      expect((own.data[0] as any)._count).toEqual({ likes: 5, comments: 1 });
+    });
+
+    it('answers missing for a song that does not exist', async () => {
+      mockPrismaService.audio.findUnique.mockResolvedValue(null);
+
+      await expect(service.getAudioPosts('nope', {})).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
     });
   });
 
@@ -200,7 +261,8 @@ describe('AudioService', () => {
       mockPrismaService.post.findMany.mockResolvedValueOnce([
         paidPost([inlinePaidMedia()]),
       ]);
-      return (await service.getAudioPosts('audio-1', viewer))[0];
+      mockPrismaService.audio.findUnique.mockResolvedValue({ id: 'audio-1' });
+      return (await service.getAudioPosts('audio-1', {}, viewer)).data[0];
     };
 
     it('is closed to a viewer who has not unlocked it', async () => {

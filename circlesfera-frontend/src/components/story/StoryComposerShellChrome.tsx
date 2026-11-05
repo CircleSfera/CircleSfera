@@ -24,6 +24,8 @@ import { useStoryShareRowPlace } from './useStoryShareRowPlace';
 interface StoryComposerShellChromeProps {
   /** The shape of what is edited; a story when not given. */
   frame?: EditorFrame;
+  /** Only painted over a video of its own (a Frame). */
+  paintOnly?: boolean;
   chromePointerArmed: boolean;
   /** While a piece is dragged the share row over the story steps aside. */
   hidden?: boolean;
@@ -118,6 +120,7 @@ export default function StoryComposerShellChrome(
           <StoryPanelSheet open>
             <StoryDockContent
               frame={p.frame}
+              paintOnly={p.paintOnly}
               selectedElementId={p.selectedElementId}
               selectedElement={p.selectedElement}
               activeTab={p.activeTab}

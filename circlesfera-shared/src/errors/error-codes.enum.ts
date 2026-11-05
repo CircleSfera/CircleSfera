@@ -60,6 +60,8 @@ export enum ErrorCode {
   // Profile can hide.
   HIDDEN_WORD_INVALID = 'HIDDEN_WORD_INVALID',
   HIDDEN_WORDS_FULL = 'HIDDEN_WORDS_FULL',
+  // A Profile already has the most posts it can pin to its profile.
+  PROFILE_PINS_FULL = 'PROFILE_PINS_FULL',
   MESSAGE_NOT_FOUND = 'MESSAGE_NOT_FOUND',
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.

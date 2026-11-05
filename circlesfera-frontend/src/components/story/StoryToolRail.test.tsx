@@ -110,7 +110,7 @@ describe('StoryToolRail', () => {
     expect(onSelectTab).toHaveBeenCalledWith('draw');
   });
 
-  it('offers only text and drawing over the video of a Frame', () => {
+  it('offers text, stickers and drawing over the video of a Frame', () => {
     renderWithProviders(
       <StoryToolRail activeTab="none" onSelectTab={vi.fn()} paintOnly />,
       { lng: 'es' },
@@ -120,8 +120,9 @@ describe('StoryToolRail', () => {
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'))
       .filter(Boolean);
-    expect(names).toEqual(expect.arrayContaining(['Texto', 'Dibujar']));
-    expect(names).not.toContain('Stickers');
+    expect(names).toEqual(
+      expect.arrayContaining(['Texto', 'Stickers', 'Dibujar']),
+    );
     expect(names).not.toContain('Fondo');
   });
 });

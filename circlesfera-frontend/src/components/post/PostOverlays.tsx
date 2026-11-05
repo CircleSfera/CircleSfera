@@ -4,8 +4,9 @@ import { lazy, Suspense, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { usePostInteractionSettings } from '../../hooks/usePostInteractionSettings';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
-import { api, archiveApi, postsApi } from '../../services';
+import { api, archiveApi } from '../../services';
 import type { Post } from '../../types';
 import { canOfferStoryShare, postStoryCard } from '../../utils/storyShare';
 import AddToCollectionModal from '../modals/AddToCollectionModal';
@@ -101,34 +102,7 @@ export default function PostOverlays({
     },
   });
 
-  // Comments or the like count, off or on: the post changes for everyone at
-  // once, the author included.
-  const interactionsMutation = useMutation({
-    mutationFn: (changes: { turnOffComments?: boolean; hideLikes?: boolean }) =>
-      postsApi.setInteractions(post.id, changes),
-    onSuccess: (_data, changes) => {
-      toast.success(
-        changes.turnOffComments !== undefined
-          ? changes.turnOffComments
-            ? t('post.menu.comments_turned_off')
-            : t('post.menu.comments_turned_on')
-          : changes.hideLikes
-            ? t('post.menu.like_count_hidden')
-            : t('post.menu.like_count_shown'),
-      );
-      for (const queryKey of [
-        ['feed'],
-        ['posts'],
-        ['userPosts'],
-        ['frames'],
-        ['post', post.id],
-        ['comments', post.id],
-      ]) {
-        void queryClient.invalidateQueries({ queryKey });
-      }
-    },
-    onError: () => toast.error(t('post.menu.interactions_error')),
-  });
+  const interactionSettings = usePostInteractionSettings(post);
 
   const hidePost = async () => {
     setShowMenu(false);
@@ -165,6 +139,7 @@ export default function PostOverlays({
             menuRef={menuRef}
             menuPosition={menuPosition}
             isOwner={isOwner}
+            onClose={() => setShowMenu(false)}
             onEdit={() => {
               setShowMenu(false);
               setEditCaption(post.caption || '');
@@ -199,22 +174,20 @@ export default function PostOverlays({
               isOwner
                 ? () => {
                     setShowMenu(false);
-                    interactionsMutation.mutate({
-                      turnOffComments: !post.turnOffComments,
-                    });
+                    interactionSettings.toggleComments();
                   }
                 : undefined
             }
-            commentsOff={Boolean(post.turnOffComments)}
+            commentsOff={interactionSettings.commentsOff}
             onToggleLikes={
               isOwner
                 ? () => {
                     setShowMenu(false);
-                    interactionsMutation.mutate({ hideLikes: !post.hideLikes });
+                    interactionSettings.toggleLikes();
                   }
                 : undefined
             }
-            likesHidden={Boolean(post.hideLikes)}
+            likesHidden={interactionSettings.likesHidden}
             onAddToCollection={() => {
               setShowMenu(false);
               setShowAddToCollectionModal(true);

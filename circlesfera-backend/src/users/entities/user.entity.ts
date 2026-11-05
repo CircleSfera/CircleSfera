@@ -8,7 +8,9 @@ import {
 } from '@prisma/client';
 import { Exclude } from 'class-transformer';
 
-export class UserEntity implements User {
+// The person's payout account column is read by no query (see
+// USER_RETIRED_OMIT) and is about to be dropped.
+export class UserEntity implements Omit<User, 'stripeConnectAccountId'> {
   @ApiProperty({ required: true, type: () => String })
   id!: string;
   @ApiProperty({ required: true, type: () => String })
@@ -111,10 +113,6 @@ export class UserEntity implements User {
   @ApiProperty({ required: true, type: () => String, nullable: true })
   @Exclude()
   stripeCustomerId!: string | null;
-
-  @ApiProperty({ required: true, type: () => String, nullable: true })
-  @Exclude()
-  stripeConnectAccountId!: string | null;
 
   @ApiProperty({ required: true, type: () => String, nullable: true })
   @Exclude()

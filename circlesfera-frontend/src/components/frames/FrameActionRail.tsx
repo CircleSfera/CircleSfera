@@ -34,7 +34,8 @@ export default function FrameActionRail({
       <InteractionRail
         postId={post.id}
         variant="vertical"
-        likesCount={likesCount}
+        // A count its author hid stays hidden, even after the viewer's like.
+        likesCount={post._count?.likes === null ? undefined : likesCount}
         commentsCount={post._count?.comments || 0}
         isBookmarked={isBookmarked}
         onLikeToggle={onLikeToggle}

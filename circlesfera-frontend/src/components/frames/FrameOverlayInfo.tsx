@@ -93,17 +93,26 @@ export default function FrameOverlayInfo({
         </div>
       )}
 
-      {(post.place?.name || post.location) && (
-        <p className="pointer-events-auto mb-1.5 text-xs text-white/85 drop-shadow-md flex items-center gap-1 min-w-0">
-          <MapPin size={12} className="shrink-0" aria-hidden />
-          <span className="truncate">
-            {post.place?.fullName || post.place?.name || post.location}
-          </span>
-        </p>
-      )}
+      {(post.place?.name || post.location) &&
+        (post.place?.id ? (
+          <Link
+            to={`/explore/places/${post.place.id}`}
+            className="pointer-events-auto mb-1.5 min-h-11 -my-2 text-xs text-white/85 drop-shadow-md flex items-center gap-1 min-w-0 hover:text-white"
+          >
+            <MapPin size={12} className="shrink-0" aria-hidden />
+            <span className="truncate">
+              {post.place.fullName || post.place.name}
+            </span>
+          </Link>
+        ) : (
+          <p className="pointer-events-auto mb-1.5 text-xs text-white/85 drop-shadow-md flex items-center gap-1 min-w-0">
+            <MapPin size={12} className="shrink-0" aria-hidden />
+            <span className="truncate">{post.location}</span>
+          </p>
+        ))}
 
       <Link
-        to={post.audioId ? `/audio/${post.audioId}` : '#'}
+        to={post.audioId ? `/audio/${post.audioId}` : `/p/${post.id}`}
         className="min-h-11 -mb-3.5 flex items-center gap-1.5 pointer-events-auto text-white drop-shadow-md hover:opacity-80 transition min-w-0"
       >
         <Music size={12} className="shrink-0" />

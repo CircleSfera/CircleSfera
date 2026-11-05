@@ -28,6 +28,12 @@ export function usePostInteractions(post: Post) {
   const [showMuteModal, setShowMuteModal] = useState(false);
   const [editCaption, setEditCaption] = useState(post.caption || '');
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
+  // The count follows the server's whenever it changes: a like count the
+  // author hid or showed again arrives with the post.
+  const serverLikes = post._count?.likes ?? 0;
+  useEffect(() => {
+    setLikesCount(serverLikes);
+  }, [serverLikes]);
   const [isDeleted, setIsDeleted] = useState(false);
 
   const postRef = useRef<HTMLDivElement>(null);
