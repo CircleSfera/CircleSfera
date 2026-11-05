@@ -138,3 +138,75 @@ test.describe('on desktop', () => {
     expect(brokenWord).toBeNull();
   });
 });
+
+// The author of a post pins a comment, which everyone then sees marked as
+// pinned, and turns commenting off from the post's menu.
+test('the author pins a comment and turns commenting off', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await prepareComposerSession(page);
+  await page.route('**/api/v1/posts/post-1', (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 200,
+          json: testPost({ turnOffComments: true }),
+        })
+      : route.fulfill({ status: 200, json: testPost({ caption: CAPTION }) }),
+  );
+  const comment = (id: string, content: string, pinnedAt: string | null) => ({
+    id,
+    content,
+    pinnedAt,
+    createdAt: new Date().toISOString(),
+    postId: 'post-1',
+    profileId: 'profile-ana',
+    profile: { ...testProfile(), id: 'profile-ana', username: 'ana' },
+    _count: { likes: 0, replies: 0 },
+    replies: [],
+  });
+  await page.route(/api\/v1\/posts\/post-1\/comments(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      json: {
+        data: [
+          comment(
+            'c-pinned',
+            'Gracias a todos por venir',
+            '2026-11-01T00:00:00Z',
+          ),
+          comment('c-new', 'Qué bonito, me encanta la luz', null),
+        ],
+        meta: { total: 2, page: 1, limit: 10, totalPages: 1 },
+      },
+    }),
+  );
+  const pins: string[] = [];
+  await page.route(/comments\/[^/]+\/pin$/, (route) => {
+    pins.push(
+      `${route.request().method()} ${new URL(route.request().url()).pathname}`,
+    );
+    return route.fulfill({ status: 201, json: {} });
+  });
+  await page.goto('/p/post-1');
+
+  await expect(page.getByText('Fijado por el autor')).toBeVisible();
+  const pin = page.getByRole('button', { name: 'Fijar comentario' });
+  await expect(pin).toHaveCount(1);
+  const box = await pin.boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  expect(box?.width).toBeGreaterThanOrEqual(44);
+  await pin.click();
+  await page.getByRole('button', { name: 'Dejar de fijar' }).click();
+  await expect
+    .poll(() => pins)
+    .toEqual([
+      'POST /api/v1/posts/post-1/comments/c-new/pin',
+      'DELETE /api/v1/posts/post-1/comments/c-pinned/pin',
+    ]);
+
+  const sent = page.waitForRequest(
+    (r) => r.method() === 'PUT' && r.url().endsWith('/api/v1/posts/post-1'),
+  );
+  await page.getByRole('button', { name: 'Más opciones' }).first().click();
+  await page.getByText('Desactivar comentarios').click();
+  expect((await sent).postDataJSON()).toEqual({ turnOffComments: true });
+});

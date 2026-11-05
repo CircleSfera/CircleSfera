@@ -3,8 +3,12 @@ import {
   Bookmark,
   CirclePlus,
   Flag,
+  Heart,
+  HeartOff,
   Info,
   Megaphone,
+  MessageCircle,
+  MessageCircleOff,
   Pencil,
   Trash2,
 } from 'lucide-react';
@@ -25,6 +29,11 @@ export interface FrameMenuActions {
   onAddToStory?: () => void;
   // Why the Frame is shown to the viewer.
   onWhy?: () => void;
+  // The author's: comments and the like count, off or on at any time.
+  onToggleComments?: () => void;
+  commentsOff?: boolean;
+  onToggleLikes?: () => void;
+  likesHidden?: boolean;
 }
 
 interface FrameOptionsSheetProps extends FrameMenuActions {
@@ -44,6 +53,10 @@ function OptionsBody({
   onArchive,
   onAddToStory,
   onWhy,
+  onToggleComments,
+  commentsOff = false,
+  onToggleLikes,
+  likesHidden = false,
   onClose,
 }: FrameMenuActions & { isOwner: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -54,7 +67,8 @@ function OptionsBody({
   };
 
   return (
-    <div className="px-2 pb-2 space-y-0.5">
+    // Scrolls when the author's options outgrow the sheet.
+    <div className="px-2 pb-2 space-y-0.5 min-h-0 overflow-y-auto">
       {isOwner ? (
         <>
           {onPromote && (
@@ -75,6 +89,28 @@ function OptionsBody({
               icon={Archive}
               label={t('post.menu.archive')}
               onClick={() => run(onArchive)}
+            />
+          )}
+          {onToggleComments && (
+            <OptionRow
+              icon={commentsOff ? MessageCircle : MessageCircleOff}
+              label={
+                commentsOff
+                  ? t('post.menu.turn_on_comments')
+                  : t('post.menu.turn_off_comments')
+              }
+              onClick={() => run(onToggleComments)}
+            />
+          )}
+          {onToggleLikes && (
+            <OptionRow
+              icon={likesHidden ? Heart : HeartOff}
+              label={
+                likesHidden
+                  ? t('post.menu.show_like_count')
+                  : t('post.menu.hide_like_count')
+              }
+              onClick={() => run(onToggleLikes)}
             />
           )}
           <OptionRow
@@ -130,6 +166,10 @@ export default function FrameOptionsSheet({
   onArchive,
   onAddToStory,
   onWhy,
+  onToggleComments,
+  commentsOff,
+  onToggleLikes,
+  likesHidden,
 }: FrameOptionsSheetProps) {
   const { t } = useTranslation();
   const isFrame = presentation === 'frame';
@@ -159,6 +199,10 @@ export default function FrameOptionsSheet({
     onArchive,
     onAddToStory,
     onWhy,
+    onToggleComments,
+    commentsOff,
+    onToggleLikes,
+    likesHidden,
     onClose,
   };
 

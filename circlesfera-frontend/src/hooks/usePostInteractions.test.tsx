@@ -241,6 +241,26 @@ describe('usePostInteractions', () => {
   });
 
   describe('liking and sharing', () => {
+    it('follows the count the server sends, a hidden one as none', () => {
+      const client = createTestQueryClient();
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      );
+      const hook = renderHook(({ p }) => usePostInteractions(p), {
+        wrapper,
+        initialProps: { p: post() },
+      });
+      expect(hook.result.current.likesCount).toBe(3);
+
+      hook.rerender({ p: post({ _count: { likes: 9, comments: 0 } }) });
+      expect(hook.result.current.likesCount).toBe(9);
+
+      hook.rerender({
+        p: post({ _count: { likes: null, comments: 0 } } as never),
+      });
+      expect(hook.result.current.likesCount).toBe(0);
+    });
+
     it('moves the count with the like and counts only the like', () => {
       const { on } = setup();
 

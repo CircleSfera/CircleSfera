@@ -1,4 +1,8 @@
-import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
+import {
+  COMMENT_PINS_MAX,
+  ErrorCode,
+  type NotificationCreateEvent,
+} from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   ForbiddenException,
@@ -282,12 +286,15 @@ export class CommentsService {
     // Comments by the other audience are left out, replies included.
     const audience = await viewerAudienceWhere(this.prisma, currentProfileId);
     const shown = SHOWN_COMMENT_STATUSES;
-    const baseWhere = {
+    const shownTopLevel = {
       postId,
       parentId: null,
       profile: audience,
       moderationStatus: shown,
     };
+    // Pinned comments are shown first, on the first page only, and are not
+    // repeated among the others.
+    const baseWhere = { ...shownTopLevel, pinnedAt: null };
     // The count counts what the list shows: the shown comments and the shown
     // replies under them, of the viewer's audience.
     const countWhere = {
@@ -346,6 +353,18 @@ export class CommentsService {
       return resolved;
     };
 
+    const pinned =
+      cursor || page > 1
+        ? []
+        : await this.prisma.comment.findMany({
+            where: { ...shownTopLevel, pinnedAt: { not: null } },
+            // Every shown pin, with no limit here: a pin that moderation
+            // shows again can make one more than COMMENT_PINS_MAX, and a
+            // pinned comment is never listed below.
+            orderBy: { pinnedAt: 'asc' },
+            include,
+          });
+
     if (cursor) {
       const decoded = decodeKeysetCursor(cursor);
       const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
@@ -391,12 +410,97 @@ export class CommentsService {
       comments.length === limit && last ? encodeKeysetCursor(last) : undefined;
 
     return createPaginatedResult(
-      comments.map(resolveComment),
+      [...pinned, ...comments].map(resolveComment),
       total,
       page,
       limit,
       nextCursor,
     );
+  }
+
+  // Pin a comment of one's own post, so it is shown first. Only a comment
+  // (not a reply) that is shown can be pinned, and a post has at most
+  // COMMENT_PINS_MAX. Pinning one already pinned changes nothing.
+  async pin(postId: string, commentId: string, profileId: string) {
+    const comment = await this.ownPostComment(postId, commentId, profileId);
+    if (comment.pinnedAt) return { id: comment.id, pinnedAt: comment.pinnedAt };
+
+    return this.prisma.$transaction(async (tx) => {
+      // The post is locked so two pins at once cannot pass the limit.
+      await tx.$queryRaw`SELECT id FROM "posts" WHERE id = ${postId} FOR UPDATE`;
+      // Only the pins anyone can see count: one moderation took down frees
+      // its place.
+      const pins = await tx.comment.count({
+        where: {
+          postId,
+          parentId: null,
+          pinnedAt: { not: null },
+          moderationStatus: SHOWN_COMMENT_STATUSES,
+        },
+      });
+      if (pins >= COMMENT_PINS_MAX) {
+        throw AppException.Conflict(
+          ErrorCode.COMMENT_PINS_FULL,
+          `A post has at most ${COMMENT_PINS_MAX} pinned comments`,
+        );
+      }
+      return tx.comment.update({
+        where: { id: commentId },
+        data: { pinnedAt: new Date() },
+        select: { id: true, pinnedAt: true },
+      });
+    });
+  }
+
+  // Unpin a comment of one's own post. Unpinning one not pinned changes
+  // nothing.
+  async unpin(postId: string, commentId: string, profileId: string) {
+    await this.ownPostComment(postId, commentId, profileId);
+    return this.prisma.comment.update({
+      where: { id: commentId },
+      data: { pinnedAt: null },
+      select: { id: true, pinnedAt: true },
+    });
+  }
+
+  // A shown comment (not a reply) of a post of this Profile; anything else
+  // answers as missing, and someone else's post as forbidden.
+  private async ownPostComment(
+    postId: string,
+    commentId: string,
+    profileId: string,
+  ) {
+    const post = await assertCanAccessPost(this.prisma, postId, profileId);
+    if (post.profileId !== profileId) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Only the author of the post can pin its comments',
+      );
+    }
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      select: {
+        id: true,
+        postId: true,
+        parentId: true,
+        pinnedAt: true,
+        moderationStatus: true,
+      },
+    });
+    if (
+      !comment ||
+      comment.postId !== postId ||
+      comment.parentId !== null ||
+      !(SHOWN_COMMENT_STATUSES.in as string[]).includes(
+        comment.moderationStatus,
+      )
+    ) {
+      throw AppException.NotFound(
+        ErrorCode.COMMENT_NOT_FOUND,
+        'Comment not found',
+      );
+    }
+    return comment;
   }
 
   // Delete a comment. Ownership is enforced by OwnershipGuard at the controller level.

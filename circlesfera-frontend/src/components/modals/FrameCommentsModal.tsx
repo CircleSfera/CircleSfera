@@ -9,15 +9,19 @@ interface FrameCommentsModalProps {
   isOpen: boolean;
   onClose: () => void;
   postId: string;
+  // The Profile that made the frame: it can pin comments.
+  authorId?: string;
   // Mobile: bottom drawer overlay. Desktop sidebar: embedded panel beside player.
   variant?: 'drawer' | 'sidebar';
 }
 
 function FrameCommentsContent({
   postId,
+  authorId,
   variant,
 }: {
   postId: string;
+  authorId?: string;
   variant: 'drawer' | 'sidebar';
 }) {
   const { data: comments, isLoading } = useQuery({
@@ -39,6 +43,7 @@ function FrameCommentsContent({
   return (
     <CommentList
       postId={postId}
+      postAuthorId={authorId}
       comments={comments?.data?.data || []}
       isDetailMode
       compactComposer={isSidebar}
@@ -51,6 +56,7 @@ export default function FrameCommentsModal({
   isOpen,
   onClose,
   postId,
+  authorId,
   variant = 'drawer',
 }: FrameCommentsModalProps) {
   const { t } = useTranslation();
@@ -85,7 +91,11 @@ export default function FrameCommentsModal({
           </h2>
         </div>
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <FrameCommentsContent postId={postId} variant="sidebar" />
+          <FrameCommentsContent
+            postId={postId}
+            authorId={authorId}
+            variant="sidebar"
+          />
         </div>
       </div>
     );
@@ -106,7 +116,11 @@ export default function FrameCommentsModal({
       titleId={titleId}
       maxHeightClass="max-h-[58%]"
     >
-      <FrameCommentsContent postId={postId} variant="drawer" />
+      <FrameCommentsContent
+        postId={postId}
+        authorId={authorId}
+        variant="drawer"
+      />
     </FrameBottomSheet>
   );
 }

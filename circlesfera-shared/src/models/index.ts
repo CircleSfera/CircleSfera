@@ -135,6 +135,9 @@ export interface Post {
   media: PostMedia[];
   type?: string;
   location?: string | null;
+  // Chosen by the author, at creation and at any time after.
+  turnOffComments?: boolean;
+  hideLikes?: boolean;
 
   isPremium?: boolean;
   priceCents?: number | null;
@@ -152,7 +155,8 @@ export interface Post {
   updatedAt: Date | string;
   profile: ProfileWithUser;
   _count: {
-    likes: number;
+    // null when its author hid the like count from everyone else.
+    likes: number | null;
     comments: number;
   };
   isLiked?: boolean;
@@ -170,6 +174,8 @@ export interface Comment {
   createdAt: Date | string;
   updatedAt: Date | string;
   isEdited?: boolean;
+  // When the author of the post pinned it; it is then shown first.
+  pinnedAt?: Date | string | null;
   profile: ProfileWithUser;
   parentId?: string | null;
   replies?: Comment[];

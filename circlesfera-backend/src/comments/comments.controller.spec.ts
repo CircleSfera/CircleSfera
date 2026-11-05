@@ -31,6 +31,8 @@ describe('CommentsController', () => {
     remove: vi.fn(),
     likeComment: vi.fn(),
     unlikeComment: vi.fn(),
+    pin: vi.fn(),
+    unpin: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -157,6 +159,40 @@ describe('CommentsController', () => {
       'c-1',
       TEST_USER.profileId,
     );
+  });
+
+  it('pins and unpins a comment as the session profile', async () => {
+    mockService.pin.mockResolvedValue({ id: 'c-1', pinnedAt: 'now' });
+    mockService.unpin.mockResolvedValue({ id: 'c-1', pinnedAt: null });
+
+    const pinned = await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/comments/c-1/pin')
+      .set(BEARER)
+      .expect(201);
+    const unpinned = await request(app.getHttpServer())
+      .delete('/api/v1/posts/post-1/comments/c-1/pin')
+      .set(BEARER)
+      .expect(200);
+
+    expect(pinned.body).toEqual({ id: 'c-1', pinnedAt: 'now' });
+    expect(unpinned.body).toEqual({ id: 'c-1', pinnedAt: null });
+    expect(mockService.pin).toHaveBeenCalledWith(
+      'post-1',
+      'c-1',
+      TEST_USER.profileId,
+    );
+    expect(mockService.unpin).toHaveBeenCalledWith(
+      'post-1',
+      'c-1',
+      TEST_USER.profileId,
+    );
+  });
+
+  it('rejects a pin without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/comments/c-1/pin')
+      .expect(401);
+    expect(mockService.pin).not.toHaveBeenCalled();
   });
 
   it('rejects edit without a session', async () => {

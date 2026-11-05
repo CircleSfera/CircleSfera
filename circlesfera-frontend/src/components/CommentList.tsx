@@ -1,11 +1,20 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Heart, Image as ImageIcon, Send, Trash2, X } from 'lucide-react';
+import {
+  Heart,
+  Image as ImageIcon,
+  Pin,
+  PinOff,
+  Send,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { commentsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Comment, CreateCommentDto } from '../types';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 import { formatDate } from '../utils/format';
 import { logger } from '../utils/logger';
 import { pickNativeImage } from '../utils/nativeFilePicker';
@@ -24,6 +33,8 @@ interface CommentListProps {
   frameContext?: boolean;
   captionComponent?: React.ReactNode;
   actionsComponent?: React.ReactNode;
+  // The Profile that wrote the post: it can pin comments.
+  postAuthorId?: string;
 }
 
 interface CommentItemProps {
@@ -34,6 +45,8 @@ interface CommentItemProps {
   onDelete: (commentId: string) => void;
   deletingId: string | null;
   onLike: (commentId: string, isLiked: boolean) => void;
+  // Given to the author of the post, for comments (not replies).
+  onPin?: (comment: Comment) => void;
   depth?: number;
 }
 
@@ -45,6 +58,7 @@ const CommentItem = ({
   onDelete,
   deletingId,
   onLike,
+  onPin,
   depth = 0,
 }: CommentItemProps) => {
   const { t, i18n } = useTranslation();
@@ -54,6 +68,7 @@ const CommentItem = ({
   const isDeleting = deletingId === comment.id;
   const hasReplies = comment.replies && comment.replies.length > 0;
 
+  const isPinned = Boolean(comment.pinnedAt);
   const isLiked = (comment.likes?.length ?? 0) > 0;
   const likesCount = comment._count?.likes ?? comment.likes?.length ?? 0;
 
@@ -77,6 +92,12 @@ const CommentItem = ({
           className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0"
         />
         <div className="flex-1 min-w-0">
+          {isPinned && (
+            <p className="mb-0.5 inline-flex items-center gap-1 text-xs text-gray-400">
+              <Pin size={12} aria-hidden />
+              {t('comments.pinned')}
+            </p>
+          )}
           <div className="flex items-start justify-between gap-2">
             <div className="text-sm leading-relaxed">
               <span className="font-semibold text-white mr-1 inline-flex items-center gap-1">
@@ -126,6 +147,21 @@ const CommentItem = ({
               >
                 <Heart size={16} fill={isLiked ? 'currentColor' : 'none'} />
               </Button>
+
+              {onPin && depth === 0 && (
+                <Button
+                  onClick={() => onPin(comment)}
+                  variant="ghost"
+                  size="icon"
+                  className="w-11 h-11 p-0 text-gray-300 hover:text-white transition-colors"
+                  title={isPinned ? t('comments.unpin') : t('comments.pin')}
+                  aria-label={
+                    isPinned ? t('comments.unpin') : t('comments.pin')
+                  }
+                >
+                  {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
+                </Button>
+              )}
 
               {isOwner && (
                 <Button
@@ -197,6 +233,7 @@ export default function CommentList({
   frameContext = false,
   captionComponent,
   actionsComponent,
+  postAuthorId,
 }: CommentListProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -256,6 +293,19 @@ export default function CommentList({
     },
     onError: () => toast.error(t('comments.like_error')),
   });
+
+  const pinMutation = useMutation({
+    mutationFn: (comment: Comment) =>
+      comment.pinnedAt
+        ? commentsApi.unpin(postId, comment.id)
+        : commentsApi.pin(postId, comment.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+    },
+    onError: (error) =>
+      toast.error(apiErrorMessage(error, t, 'comments.pin_error')),
+  });
+  const canPin = Boolean(profile?.id) && profile?.id === postAuthorId;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -493,6 +543,7 @@ export default function CommentList({
                 onDelete={handleDelete}
                 deletingId={deletingId}
                 onLike={handleLike}
+                onPin={canPin ? (c) => pinMutation.mutate(c) : undefined}
               />
             ))}
           </div>

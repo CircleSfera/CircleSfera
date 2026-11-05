@@ -88,6 +88,32 @@ export class CommentsController {
     await this.commentsService.remove(id);
   }
 
+  // Pin a comment of one's own post, so it is shown first.
+  @Post(':id/pin')
+  @UseGuards(JwtAuthGuard)
+  @MemberAllowed('comments.answer')
+  @ApiResponse({ status: 201 })
+  async pin(
+    @Param('postId') postId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.commentsService.pin(postId, id, user.profileId);
+  }
+
+  // Unpin a comment of one's own post.
+  @Delete(':id/pin')
+  @UseGuards(JwtAuthGuard)
+  @MemberAllowed('comments.answer')
+  @ApiResponse({ status: 200 })
+  async unpin(
+    @Param('postId') postId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.commentsService.unpin(postId, id, user.profileId);
+  }
+
   // Like a comment.
   @Post(':id/like')
   @UseGuards(JwtAuthGuard)

@@ -1353,7 +1353,16 @@
       "not_interested": "No me interesa",
       "archive": "Archivar",
       "show_on_profile": "Mostrar en el perfil",
-      "add_to_story": "Añadir a tu historia"
+      "add_to_story": "Añadir a tu historia",
+      "turn_off_comments": "Desactivar comentarios",
+      "turn_on_comments": "Activar comentarios",
+      "hide_like_count": "Ocultar número de me gusta",
+      "show_like_count": "Mostrar número de me gusta",
+      "comments_turned_off": "Comentarios desactivados",
+      "comments_turned_on": "Comentarios activados",
+      "like_count_hidden": "Número de me gusta oculto",
+      "like_count_shown": "Número de me gusta visible",
+      "interactions_error": "No se pudo guardar el cambio. Inténtalo de nuevo."
     },
     "modals": {
       "delete_title": "¿Eliminar publicación?",
@@ -1520,7 +1529,11 @@
     "delete_warning": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer.",
     "add_media": "Añadir media",
     "remove_media": "Quitar el archivo",
-    "voice_note": "🎤 Nota de voz"
+    "voice_note": "🎤 Nota de voz",
+    "pinned": "Fijado por el autor",
+    "pin": "Fijar comentario",
+    "unpin": "Dejar de fijar",
+    "pin_error": "No se pudo fijar el comentario."
   },
   "profile": {
     "tabs": {
@@ -5766,6 +5779,7 @@
       "STORY_NOT_FOUND": "Esta historia ya no está disponible.",
       "MEDIA_NOT_FOUND": "No hemos encontrado ese archivo.",
       "COMMENT_NOT_FOUND": "Este comentario ya no está disponible.",
+      "COMMENT_PINS_FULL": "Ya tienes 3 comentarios fijados. Quita uno para fijar otro.",
       "MESSAGE_NOT_FOUND": "Este mensaje ya no está disponible.",
       "INVALID_MEDIA_PATH": "Ese archivo no se puede usar.",
       "PREMIUM_CONTENT_LOCKED": "Desbloquea este contenido para verlo.",
