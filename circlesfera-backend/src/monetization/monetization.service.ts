@@ -11,8 +11,8 @@ import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import {
-  LISTED_POST,
-  NOT_REMOVED,
+  SELLABLE_POST,
+  SELLABLE_STORY,
 } from '../common/policies/removed-content.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
@@ -264,9 +264,9 @@ export class MonetizationService {
     returnUrl: string,
     idempotencyKey?: string,
   ) {
-    // A post moderation removed is shown to nobody, and sold to nobody.
+    // A post moderation hid or removed is sold to nobody.
     const post = await this.prisma.post.findUnique({
-      where: { id: postId, ...LISTED_POST },
+      where: { id: postId, ...SELLABLE_POST },
       include: { profile: { include: { user: true } } },
     });
 
@@ -320,9 +320,9 @@ export class MonetizationService {
     returnUrl: string,
     idempotencyKey?: string,
   ) {
-    // A story moderation removed is shown to nobody, and sold to nobody.
+    // A story moderation hid or removed is sold to nobody.
     const story = await this.prisma.story.findUnique({
-      where: { id: storyId, ...NOT_REMOVED },
+      where: { id: storyId, ...SELLABLE_STORY },
       include: { profile: { include: { user: true } } },
     });
 
@@ -496,9 +496,9 @@ export class MonetizationService {
     // check below is about it.
     let tipped = named;
     if (postId) {
-      // No tip for a post moderation removed: it is shown to nobody.
+      // No tip for a post moderation hid or removed.
       const post = await this.prisma.post.findUnique({
-        where: { id: postId, ...LISTED_POST },
+        where: { id: postId, ...SELLABLE_POST },
         select: { profileId: true, profile: { select: TIPPED_PROFILE_SELECT } },
       });
       const ofTipped = named
