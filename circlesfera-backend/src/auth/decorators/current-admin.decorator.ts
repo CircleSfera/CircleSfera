@@ -9,6 +9,8 @@ export interface CurrentAdminData {
   roles: string[];
   // True when JWT includes a recent step-up claim.
   stepUpVerified?: boolean;
+  // An external reviewer's session: reads the review area only.
+  externalReviewer?: boolean;
   // Compatibility alias: admin services historically used userId for audit actor.
   // Always equals adminId for Admin Panel sessions.
   userId: string;

@@ -3,6 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import {
+  accessHasExpired,
+  isExternalReviewer,
+  REVIEWER_SESSION_MAX_MS,
+  reviewerAccessIsValid,
+} from '../../admin-auth/external-reviewer.js';
 import { getAdminJwtSecret } from '../../common/config/admin-jwt.config.js';
 import { ADMIN_ACCESS_TOKEN_COOKIE } from '../../common/config/cookie.config.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -18,6 +24,9 @@ export interface AdminJwtPayload {
   aud: string;
   typ?: 'access' | 'refresh';
   mfa?: boolean;
+  // An external reviewer's session, and when it began (seconds).
+  rev?: boolean;
+  sst?: number;
   purpose?: string;
   stepUp?: boolean;
   stepUpExp?: number;
@@ -54,12 +63,15 @@ export class AdminJwtStrategy extends PassportStrategy(
     if (payload.aud !== ADMIN_JWT_AUDIENCE) {
       throw new UnauthorizedException('Invalid admin token audience');
     }
-    // Only an access token issued after a verified second factor opens a staff
-    // session. The sign-in step token (purpose) and the refresh token are signed
-    // with the same key and must never be accepted here.
+    // Only an access token issued after a verified second factor, or to an
+    // external reviewer, opens a staff session. The sign-in step token
+    // (purpose) and the refresh token are signed with the same key and must
+    // never be accepted here.
+    const reviewerToken =
+      payload.rev === true && typeof payload.sst === 'number';
     if (
       payload.typ !== 'access' ||
-      payload.mfa !== true ||
+      (payload.mfa !== true && !reviewerToken) ||
       payload.purpose !== undefined
     ) {
       throw new UnauthorizedException('Invalid admin token');
@@ -80,11 +92,26 @@ export class AdminJwtStrategy extends PassportStrategy(
       },
     });
 
-    if (admin?.status !== 'ACTIVE' || !admin.totpEnabled) {
+    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
       throw new UnauthorizedException('Admin identity not found or disabled');
     }
 
     const roles = admin.roles.map((r) => r.role.name);
+    const externalReviewer = isExternalReviewer(roles);
+    // A reviewer's session holds only while the identity is a reviewer alone,
+    // with an end date, within the working day from its sign-in. Any other
+    // session needs the second factor, enrolled and verified.
+    if (reviewerToken) {
+      if (
+        !externalReviewer ||
+        !reviewerAccessIsValid(admin.accessExpiresAt) ||
+        (payload.sst as number) * 1000 + REVIEWER_SESSION_MAX_MS <= Date.now()
+      ) {
+        throw new UnauthorizedException('Admin identity not found or disabled');
+      }
+    } else if (!admin.totpEnabled || externalReviewer) {
+      throw new UnauthorizedException('Admin identity not found or disabled');
+    }
     const permissions = [
       ...new Set(
         admin.roles.flatMap((r) =>
@@ -114,6 +141,7 @@ export class AdminJwtStrategy extends PassportStrategy(
       permissions,
       roles,
       stepUpVerified,
+      externalReviewer: reviewerToken,
     };
   }
 }

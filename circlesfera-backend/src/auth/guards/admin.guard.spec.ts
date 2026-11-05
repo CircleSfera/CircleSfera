@@ -164,4 +164,19 @@ describe('AdminGuard (Admin Panel RBAC)', () => {
     expect(holds(['admins.manage'], [])).toBe(true);
     expect(holds([], ['SUPER_ADMIN'])).toBe(true);
   });
+  it('an external reviewer opens the review area only, even holding another permission', () => {
+    const reviewer = {
+      adminId: 'rev-1',
+      permissions: ['review', 'content'],
+      roles: ['EXTERNAL_REVIEWER'],
+      externalReviewer: true,
+    };
+    expect(guard.canActivate(ctx(reviewer, ['review']))).toBe(true);
+    expect(() => guard.canActivate(ctx(reviewer, ['content']))).toThrow(
+      /external reviewer/,
+    );
+    expect(() =>
+      guard.canActivate(ctx(reviewer, ['review', 'reports'])),
+    ).toThrow(/external reviewer/);
+  });
 });

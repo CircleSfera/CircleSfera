@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { accessHasExpired } from '../admin-auth/external-reviewer.js';
 import {
   type StaffPermission,
   staffHoldsPermission,
@@ -62,6 +63,7 @@ export class SlackStaff {
       select: {
         id: true,
         status: true,
+        accessExpiresAt: true,
         roles: {
           select: {
             role: {
@@ -76,7 +78,10 @@ export class SlackStaff {
         },
       },
     });
-    if (admin?.status !== 'ACTIVE') return null;
+    // Staff whose access has run out act here no more than in the panel.
+    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
+      return null;
+    }
     const roles = admin.roles.map((r) => r.role.name);
     const permissions = admin.roles.flatMap((r) =>
       r.role.permissions.map((p) => p.permission.key),

@@ -14,6 +14,7 @@ import {
   Prisma,
   ReportStatus,
 } from '@prisma/client';
+import { accessHasExpired } from '../../../../admin-auth/external-reviewer.js';
 import { primaryProfileIdForUser } from '../../../../common/utils/user-profile-shape.util.js';
 import type { Notice } from '../../../../notifications/notice-copy.js';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
@@ -190,9 +191,12 @@ export class ReviewReportUseCase {
 
     const target = await this.prisma.adminIdentity.findUnique({
       where: { id: toAdminId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, accessExpiresAt: true },
     });
-    if (target?.status !== 'ACTIVE') {
+    if (
+      target?.status !== 'ACTIVE' ||
+      accessHasExpired(target.accessExpiresAt)
+    ) {
       throw new BadRequestException('Target admin identity is not active');
     }
 

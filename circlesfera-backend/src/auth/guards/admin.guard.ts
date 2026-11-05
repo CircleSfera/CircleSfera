@@ -26,6 +26,7 @@ export type StaffPermission =
   | 'live'
   | 'content'
   | 'plans'
+  | 'review'
   | 'admins.manage';
 
 export const STAFF_PERMISSIONS_KEY = 'staff_permissions';
@@ -75,6 +76,15 @@ export class AdminGuard implements CanActivate {
       throw new ForbiddenException(
         'Explicit permissions required for staff routes',
       );
+    }
+
+    // An external reviewer's session opens the review area and nothing else,
+    // whatever its identity holds.
+    if (
+      admin.externalReviewer &&
+      required.some((permission) => permission !== 'review')
+    ) {
+      throw new ForbiddenException('Access denied for an external reviewer');
     }
 
     const permissionSet = new Set(admin.permissions);
