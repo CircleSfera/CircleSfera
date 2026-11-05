@@ -92,6 +92,10 @@ export interface AdminOperator {
   lastLoginAt: string | null;
   lastActivityAt: string | null;
   linkedUserId: string | null;
+  // When the identity stops working, if it does; an external reviewer
+  // always has one.
+  accessExpiresAt: string | null;
+  externalReviewer: boolean;
   createdAt: string;
   updatedAt: string;
   roles: AdminOperatorRoleOption[];
@@ -1639,7 +1643,15 @@ export const adminApi = {
     email: string;
     displayName: string;
     roleIds: string[];
+    accessExpiresAt?: string;
   }) => apiClient.post<AdminOperator>('admin/operators', data),
+
+  // When an identity stops working (null: it does not). Extends an external
+  // reviewer's access.
+  setOperatorAccessExpiry: (id: string, accessExpiresAt: string | null) =>
+    apiClient.patch<AdminOperator>(`admin/operators/${id}/access-expiry`, {
+      accessExpiresAt,
+    }),
 
   updateOperatorStatus: (id: string, status: 'ACTIVE' | 'DISABLED') =>
     apiClient.patch<AdminOperator>(`admin/operators/${id}/status`, { status }),

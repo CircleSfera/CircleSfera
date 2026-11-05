@@ -16,6 +16,7 @@ vi.mock('../../services/admin.service', () => ({
     unlockOperator: vi.fn(),
     sendOperatorEnrolmentLink: vi.fn(),
     issueOperatorEnrolmentCode: vi.fn(),
+    setOperatorAccessExpiry: vi.fn(),
   },
 }));
 vi.mock('../../services/admin-auth.service', () => ({
@@ -33,6 +34,11 @@ const ROLES = [
   { id: 'arole_platform', name: 'Platform', description: 'Everything' },
   { id: 'arole_support', name: 'Support', description: null },
   { id: 'arole_finance', name: 'Finance', description: 'Money screens' },
+  {
+    id: 'arole_external_reviewer',
+    name: 'EXTERNAL_REVIEWER',
+    description: 'Reads the review area only',
+  },
 ];
 const operator = (id: string, over: object = {}) => ({
   id,
@@ -103,6 +109,7 @@ describe('RolesTab', () => {
       data: { code: 'ABCD-EFGH-JKMN', expiresInHours: 24 },
     } as never);
     auth.stepUp.mockResolvedValue({} as never);
+    api.setOperatorAccessExpiry.mockResolvedValue({} as never);
   });
 
   it('says when there are no operators, and when the list could not be loaded', async () => {
@@ -595,5 +602,135 @@ describe('RolesTab', () => {
       .closest('.glass-panel') as HTMLElement;
     fireEvent.click(within(prompt).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByPlaceholderText('000000')).not.toBeInTheDocument();
+  });
+  describe('external reviewers', () => {
+    const reviewer = (over: object = {}) =>
+      operator('rev', {
+        totpEnabled: false,
+        externalReviewer: true,
+        accessExpiresAt: '2026-12-05T00:00:00.000Z',
+        roles: [{ id: 'arole_external_reviewer', name: 'EXTERNAL_REVIEWER' }],
+        ...over,
+      });
+
+    it('creates one with the day its access ends, the role alone', async () => {
+      show();
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'New operator' }),
+      );
+      const panel = fillNewOperator();
+      expect(within(panel).queryByLabelText('Access ends on')).toBeNull();
+
+      fireEvent.click(
+        within(panel).getByRole('button', { name: 'External reviewer' }),
+      );
+      const day = within(panel).getByLabelText('Access ends on');
+      expect(day).toHaveAttribute('type', 'date');
+      expect(
+        within(panel).getByText(/signs in with the password/),
+      ).toBeInTheDocument();
+      fireEvent.change(day, { target: { value: '2026-12-20' } });
+      fireEvent.click(within(panel).getByRole('button', { name: 'Create' }));
+
+      await waitFor(() =>
+        expect(api.createOperator).toHaveBeenCalledWith({
+          email: 'new@circlesfera.test',
+          displayName: 'New person',
+          roleIds: ['arole_external_reviewer'],
+          accessExpiresAt: new Date(2026, 11, 20).toISOString(),
+        }),
+      );
+    });
+
+    it('cannot be created without a day its access ends', async () => {
+      show();
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'New operator' }),
+      );
+      const panel = fillNewOperator();
+      fireEvent.click(
+        within(panel).getByRole('button', { name: 'External reviewer' }),
+      );
+      fireEvent.change(within(panel).getByLabelText('Access ends on'), {
+        target: { value: '' },
+      });
+      expect(
+        within(panel).getByRole('button', { name: 'Create' }),
+      ).toBeDisabled();
+    });
+
+    it('shows a reviewer without the authenticator actions, and extends the access', async () => {
+      api.getOperators.mockResolvedValue(list([reviewer()]) as never);
+      show();
+      const pane = await open('Operator rev');
+
+      expect(
+        within(pane).getByText(
+          /External reviewer: signs in without an authenticator/,
+        ),
+      ).toBeInTheDocument();
+      expect(within(pane).getByText(/Access ends on .+\./)).toBeInTheDocument();
+      expect(
+        within(pane).queryByRole('button', {
+          name: 'Reset two-step verification',
+        }),
+      ).toBeNull();
+      expect(
+        within(pane).getByRole('button', { name: 'Disable' }),
+      ).toBeInTheDocument();
+      expect(
+        within(pane).queryByRole('button', { name: 'Remove end date' }),
+      ).toBeNull();
+
+      fireEvent.change(within(pane).getByLabelText('Access ends on'), {
+        target: { value: '2027-01-15' },
+      });
+      fireEvent.click(
+        within(pane).getByRole('button', { name: 'Save end date' }),
+      );
+      await waitFor(() =>
+        expect(api.setOperatorAccessExpiry).toHaveBeenCalledWith(
+          'rev',
+          new Date(2027, 0, 15).toISOString(),
+        ),
+      );
+      await waitFor(() =>
+        expect(onToast).toHaveBeenCalledWith('Access end saved', 'success'),
+      );
+    });
+
+    it("lets a member of staff's end be removed, and says when saving fails", async () => {
+      api.getOperators.mockResolvedValue(
+        list([
+          operator('a', { accessExpiresAt: '2026-12-05T00:00:00.000Z' }),
+          operator('b'),
+        ]) as never,
+      );
+      show();
+      const pane = await open('Operator a');
+
+      fireEvent.click(
+        within(pane).getByRole('button', { name: 'Remove end date' }),
+      );
+      await waitFor(() =>
+        expect(api.setOperatorAccessExpiry).toHaveBeenCalledWith('a', null),
+      );
+
+      api.setOperatorAccessExpiry.mockRejectedValueOnce(refused);
+      fireEvent.click(
+        within(pane).getByRole('button', { name: 'Save end date' }),
+      );
+      await waitFor(() =>
+        expect(onToast).toHaveBeenCalledWith(
+          'The access end could not be saved',
+          'error',
+        ),
+      );
+
+      const other = await open('Operator b');
+      expect(
+        within(other).getByText('Access has no end date.'),
+      ).toBeInTheDocument();
+    });
   });
 });

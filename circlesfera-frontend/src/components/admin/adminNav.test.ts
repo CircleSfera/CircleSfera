@@ -46,7 +46,35 @@ describe('the two staff sites', () => {
       'payouts',
       'monetization',
       'newsletter',
+      'review-business',
     ]);
+  });
+
+  describe('the review area of an external reviewer', () => {
+    const reviewer = (key: string) => key === 'review';
+
+    it('is one section in each site, and nothing else opens', () => {
+      expect(tabSite('review-compliance')).toBe('admin');
+      expect(tabSite('review-business')).toBe('backoffice');
+      const openable = (site: 'admin' | 'backoffice') =>
+        navItemsFor(site)
+          .filter((item) => canOpenTab(reviewer, item.id))
+          .map((item) => item.id);
+      expect(openable('admin')).toEqual(['review-compliance']);
+      expect(openable('backoffice')).toEqual(['review-business']);
+    });
+
+    it('opens on it in each site, never on the home of the Backoffice', () => {
+      expect(canOpenTab(reviewer, 'overview')).toBe(false);
+      expect(getAdminHomeTab(reviewer, 'admin')).toBe('review-compliance');
+      expect(getAdminHomeTab(reviewer, 'backoffice')).toBe('review-business');
+      expect(canOpenSite(reviewer, 'admin')).toBe(true);
+      expect(canOpenSite(reviewer, 'backoffice')).toBe(true);
+    });
+
+    it('a business section still opens the home of the Backoffice', () => {
+      expect(canOpenTab((key) => key === 'payments', 'overview')).toBe(true);
+    });
   });
 
   it('keeps the queues of moderation work together, after Users', () => {

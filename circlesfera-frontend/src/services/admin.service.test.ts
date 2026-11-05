@@ -1157,6 +1157,21 @@ const cases: Case[] = [
     'post',
     ['admin/operators/o1/unlock'],
   ],
+  [
+    'setOperatorAccessExpiry ending',
+    () => adminApi.setOperatorAccessExpiry('o1', '2026-12-05T00:00:00.000Z'),
+    'patch',
+    [
+      'admin/operators/o1/access-expiry',
+      { accessExpiresAt: '2026-12-05T00:00:00.000Z' },
+    ],
+  ],
+  [
+    'setOperatorAccessExpiry with no end',
+    () => adminApi.setOperatorAccessExpiry('o1', null),
+    'patch',
+    ['admin/operators/o1/access-expiry', { accessExpiresAt: null }],
+  ],
 ];
 
 describe('the staff API client', () => {

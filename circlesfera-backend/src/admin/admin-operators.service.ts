@@ -11,6 +11,7 @@ import { AdminAction, type AdminIdentityStatus } from '@prisma/client';
 import { EnrolmentProofService } from '../admin-auth/enrolment-proof.service.js';
 import {
   EXTERNAL_REVIEWER_ROLE_ID,
+  REVIEWER_ACCESS_MAX_DAYS,
   reviewerAccessEnd,
   reviewerAccessLatestEnd,
 } from '../admin-auth/external-reviewer.js';
@@ -206,7 +207,7 @@ export class AdminOperatorsService {
     }
     if (reviewer && end > reviewerAccessLatestEnd()) {
       throw new BadRequestException(
-        'An external reviewer is given access for at most 90 days at once',
+        `An external reviewer is given access for at most ${REVIEWER_ACCESS_MAX_DAYS} days at once`,
       );
     }
     return end;

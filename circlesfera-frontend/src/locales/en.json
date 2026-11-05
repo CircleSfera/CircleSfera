@@ -2772,7 +2772,10 @@
       "spam_review": "Spam review",
       "link_domains": "Blocked link domains",
       "illegal_notices": "Illegal content notices",
-      "companies": "Verified companies"
+      "companies": "Verified companies",
+      "review": "Review",
+      "review_compliance": "Rules enforcement",
+      "review_business": "Sales and creators"
     },
     "table": {
       "empty_title": "No data available",
@@ -4457,7 +4460,8 @@
         "SUPPORT_ADMIN": "Support",
         "FINANCE_ADMIN": "Finance",
         "SECURITY_ADMIN": "Security",
-        "ANALYTICS_ADMIN": "Analytics"
+        "ANALYTICS_ADMIN": "Analytics",
+        "EXTERNAL_REVIEWER": "External reviewer"
       },
       "enrolment_title": "Authenticator set-up",
       "enrolment_hint": "This person has no authenticator yet. They set it up with the link sent to their email or with a code you give them in person.",
@@ -4468,7 +4472,17 @@
       "code_hint": "Give it to the person in person. It is shown only now, works once and expires in {{hours}} hours. Creating it stops the previous link or code from working.",
       "copy_code": "Copy code",
       "code_copied": "Code copied",
-      "enrolment_error": "It could not be done. Try again."
+      "enrolment_error": "It could not be done. Try again.",
+      "access_title": "Access",
+      "access_ends_on": "Access ends on {{date}}.",
+      "access_no_end": "Access has no end date.",
+      "access_ends_label": "Access ends on",
+      "access_save": "Save end date",
+      "access_clear": "Remove end date",
+      "access_updated": "Access end saved",
+      "access_error": "The access end could not be saved",
+      "reviewer_hint": "An external reviewer, such as the payment provider, signs in with the password of their CircleSfera account and no authenticator. They only read the Review section of the Admin Panel and the Backoffice, and every page they open is recorded.",
+      "reviewer_no_mfa": "External reviewer: signs in without an authenticator, read only"
     },
     "split": {
       "list_region": "List",
@@ -4611,6 +4625,161 @@
       "payout_no": "No payout account",
       "verified_yes": "Company verified by Stripe",
       "verified_no": "Not verified as a company by Stripe"
+    },
+    "review": {
+      "intro_label": "About this review area",
+      "read_only": "Read only. Creators appear by their public username; no one's email, address, messages or notes are shown. Every page opened here is recorded.",
+      "access_until": "Your review access ends on {{date}}.",
+      "policy": {
+        "terms": "Terms of Service",
+        "guidelines": "Community Guidelines",
+        "illegal_content": "Report illegal content"
+      },
+      "compliance_title": "Rules enforcement",
+      "compliance_subtitle": "Reports, strikes, appeals and notices of illegal content, with their outcome.",
+      "business_title": "Sales and creators",
+      "business_subtitle": "What is sold, who sells it and the money it moves.",
+      "last_days_one": "Last {{count}} day",
+      "last_days_other": "Last {{count}} days",
+      "on_sale_and_last_days_one": "On sale now and in the last {{count}} day",
+      "on_sale_and_last_days_other": "On sale now and in the last {{count}} days",
+      "figure": {
+        "reports": "Reports received",
+        "reports_hint_one": "{{count}} decided",
+        "reports_hint_other": "{{count}} decided",
+        "strikes": "Strikes given",
+        "strikes_hint_one": "{{count}} with a suspension or ban",
+        "strikes_hint_other": "{{count}} with a suspension or ban",
+        "appeals": "Appeals",
+        "appeals_hint_one": "{{count}} upheld",
+        "appeals_hint_other": "{{count}} upheld",
+        "notices": "Notices of illegal content",
+        "notices_hint_one": "{{count}} acted on",
+        "notices_hint_other": "{{count}} acted on",
+        "on_sale": "Paid content on sale",
+        "on_sale_hint": "{{posts}} posts · {{stories}} stories",
+        "charging_accounts": "Accounts that can charge",
+        "payments": "Payments made",
+        "payments_hint_one": "{{count}} payment",
+        "payments_hint_other": "{{count}} payments",
+        "refunds_disputes": "Refunded",
+        "disputes_hint_one": "{{count}} dispute",
+        "disputes_hint_other": "{{count}} disputes"
+      },
+      "tab": {
+        "reports": "Reports",
+        "strikes": "Strikes",
+        "appeals": "Appeals",
+        "notices": "Notices",
+        "paid_posts": "Paid posts",
+        "paid_stories": "Paid stories",
+        "creators": "Creators",
+        "payments": "Payments"
+      },
+      "load_failed": "This could not be loaded. Try again in a moment.",
+      "empty": "Nothing here yet.",
+      "empty_paid": "No paid content is on sale.",
+      "report_reason": {
+        "SPAM": "Spam",
+        "HARASSMENT": "Harassment",
+        "ILLEGAL_CONTENT": "Illegal content",
+        "VIOLENCE": "Violence",
+        "HATE_SPEECH": "Hate speech",
+        "IMPERSONATION": "Impersonation",
+        "CSAM": "Child sexual abuse material",
+        "SCAM": "Scam",
+        "SELF_HARM": "Self-harm",
+        "INTELLECTUAL_PROPERTY": "Intellectual property",
+        "OTHER": "Other"
+      },
+      "target": {
+        "USER": "Profile",
+        "POST": "Post",
+        "COMMENT": "Comment",
+        "STORY": "Story",
+        "MESSAGE": "Message",
+        "PAYMENT": "Payment",
+        "SYSTEM": "Platform"
+      },
+      "appeal_target": {
+        "ACCOUNT_BAN": "Account ban",
+        "POST_REMOVAL": "Post removal",
+        "BOT_LABEL": "Automated account label",
+        "STRIKE": "Strike",
+        "RESTRICTION": "Restriction",
+        "PROMOTION_REJECTION": "Rejected promotion"
+      },
+      "strike_kind": {
+        "WARNING": "Warning",
+        "STRIKE": "Strike"
+      },
+      "consequence": {
+        "NONE": "No suspension",
+        "SUSPENDED": "Profile suspended",
+        "BANNED": "Profile banned"
+      },
+      "state": {
+        "PENDING": "Pending",
+        "REVIEWING": "Under review",
+        "RESOLVED": "Acted on",
+        "REJECTED": "No breach found",
+        "APPROVED": "Upheld",
+        "RECEIVED": "Received",
+        "ACTIONED": "Acted on",
+        "NO_ACTION": "No action",
+        "COMPLETED": "Completed",
+        "FAILED": "Failed",
+        "REFUNDED": "Refunded",
+        "DISPUTED": "Disputed",
+        "FLAGGED": "Flagged by moderation"
+      },
+      "received_on": "Received {{date}}",
+      "decided_on": "Decided {{date}}",
+      "given_on": "Given {{date}}",
+      "expires_on": "Expires {{date}}",
+      "revoked_on": "Withdrawn {{date}}",
+      "urgent": "Urgent",
+      "notice_title": "Notice of illegal content",
+      "notice_child_abuse": "Reports child sexual abuse",
+      "paid_media_alt": "Paid content",
+      "more_files_one": "+{{count}} file",
+      "more_files_other": "+{{count}} files",
+      "audience": {
+        "PUBLIC": "Public",
+        "FOLLOWERS": "Followers",
+        "PRIVATE": "Private account",
+        "CLOSE_FRIENDS": "Close friends"
+      },
+      "sales_one": "{{count}} sale",
+      "sales_other": "{{count}} sales",
+      "account_type": {
+        "CREATOR": "Creator",
+        "BUSINESS": "Business",
+        "PERSONAL": "Personal"
+      },
+      "standing": {
+        "ACTIVE": "Active",
+        "SUSPENDED": "Suspended",
+        "BANNED": "Banned"
+      },
+      "creator_paid_one": "{{amount}} from {{count}} payment",
+      "creator_paid_other": "{{amount}} from {{count}} payments",
+      "creator_on_sale_one": "{{count}} paid post on sale",
+      "creator_on_sale_other": "{{count}} paid posts on sale",
+      "active_strikes_one": "{{count}} active strike",
+      "active_strikes_other": "{{count}} active strikes",
+      "payment_type": {
+        "DIRECT_POST_UNLOCK": "Paid posts",
+        "DIRECT_STORY_UNLOCK": "Paid stories",
+        "DIRECT_MESSAGE_UNLOCK": "Paid messages",
+        "DIRECT_TIP": "Tips",
+        "DIRECT_LIVE_GIFT": "Live gifts",
+        "STRIPE_SUBSCRIPTION": "Platform plans",
+        "PROMOTION_PAYMENT": "Promotions"
+      },
+      "payments_count_one": "{{count}} payment",
+      "payments_count_other": "{{count}} payments",
+      "refunded": "{{amount}} refunded"
     }
   },
   "collections": {

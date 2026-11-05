@@ -2772,7 +2772,10 @@
       "spam_review": "Revisión de spam",
       "link_domains": "Dominios bloqueados",
       "illegal_notices": "Avisos de contenido ilegal",
-      "companies": "Empresas verificadas"
+      "companies": "Empresas verificadas",
+      "review": "Revisión",
+      "review_compliance": "Cumplimiento de normas",
+      "review_business": "Ventas y creadores"
     },
     "table": {
       "empty_title": "No hay datos disponibles",
@@ -4457,7 +4460,8 @@
         "SUPPORT_ADMIN": "Soporte",
         "FINANCE_ADMIN": "Finanzas",
         "SECURITY_ADMIN": "Seguridad",
-        "ANALYTICS_ADMIN": "Analítica"
+        "ANALYTICS_ADMIN": "Analítica",
+        "EXTERNAL_REVIEWER": "Revisor externo"
       },
       "enrolment_title": "Alta del autenticador",
       "enrolment_hint": "Esta persona aún no tiene autenticador. Lo configura con el enlace enviado a su email o con un código que le des en persona.",
@@ -4468,7 +4472,17 @@
       "code_hint": "Dáselo en persona. Solo se muestra ahora, sirve una vez y caduca en {{hours}} horas. Al crearlo, el enlace o código anterior deja de funcionar.",
       "copy_code": "Copiar código",
       "code_copied": "Código copiado",
-      "enrolment_error": "No se ha podido hacer. Inténtalo de nuevo."
+      "enrolment_error": "No se ha podido hacer. Inténtalo de nuevo.",
+      "access_title": "Acceso",
+      "access_ends_on": "El acceso termina el {{date}}.",
+      "access_no_end": "El acceso no tiene fecha de fin.",
+      "access_ends_label": "El acceso termina el",
+      "access_save": "Guardar fecha de fin",
+      "access_clear": "Quitar fecha de fin",
+      "access_updated": "Fecha de fin guardada",
+      "access_error": "No se ha podido guardar la fecha de fin",
+      "reviewer_hint": "Un revisor externo, como el proveedor de pagos, entra con la contraseña de su cuenta de CircleSfera y sin autenticador. Solo lee la sección Revisión del Admin Panel y del Backoffice, y cada página que abre queda registrada.",
+      "reviewer_no_mfa": "Revisor externo: entra sin autenticador, solo lectura"
     },
     "split": {
       "list_region": "Lista",
@@ -4611,6 +4625,161 @@
       "payout_no": "Sin cuenta de cobro",
       "verified_yes": "Empresa verificada por Stripe",
       "verified_no": "Stripe no la ha verificado como empresa"
+    },
+    "review": {
+      "intro_label": "Sobre esta sección de revisión",
+      "read_only": "Solo lectura. Los creadores aparecen por su nombre de usuario público; no se muestran correos, direcciones, mensajes ni notas de nadie. Cada página que se abre aquí queda registrada.",
+      "access_until": "Tu acceso de revisión termina el {{date}}.",
+      "policy": {
+        "terms": "Condiciones de servicio",
+        "guidelines": "Normas de la comunidad",
+        "illegal_content": "Notificar contenido ilegal"
+      },
+      "compliance_title": "Cumplimiento de normas",
+      "compliance_subtitle": "Denuncias, strikes, apelaciones y avisos de contenido ilegal, con su resultado.",
+      "business_title": "Ventas y creadores",
+      "business_subtitle": "Qué se vende, quién lo vende y el dinero que mueve.",
+      "last_days_one": "Último {{count}} día",
+      "last_days_other": "Últimos {{count}} días",
+      "on_sale_and_last_days_one": "A la venta ahora y en el último {{count}} día",
+      "on_sale_and_last_days_other": "A la venta ahora y en los últimos {{count}} días",
+      "figure": {
+        "reports": "Denuncias recibidas",
+        "reports_hint_one": "{{count}} decidida",
+        "reports_hint_other": "{{count}} decididas",
+        "strikes": "Strikes puestos",
+        "strikes_hint_one": "{{count}} con suspensión o bloqueo",
+        "strikes_hint_other": "{{count}} con suspensión o bloqueo",
+        "appeals": "Apelaciones",
+        "appeals_hint_one": "{{count}} aceptada",
+        "appeals_hint_other": "{{count}} aceptadas",
+        "notices": "Avisos de contenido ilegal",
+        "notices_hint_one": "{{count}} con medidas",
+        "notices_hint_other": "{{count}} con medidas",
+        "on_sale": "Contenido de pago a la venta",
+        "on_sale_hint": "{{posts}} publicaciones · {{stories}} historias",
+        "charging_accounts": "Cuentas que pueden cobrar",
+        "payments": "Pagos realizados",
+        "payments_hint_one": "{{count}} pago",
+        "payments_hint_other": "{{count}} pagos",
+        "refunds_disputes": "Reembolsado",
+        "disputes_hint_one": "{{count}} disputa",
+        "disputes_hint_other": "{{count}} disputas"
+      },
+      "tab": {
+        "reports": "Denuncias",
+        "strikes": "Strikes",
+        "appeals": "Apelaciones",
+        "notices": "Avisos",
+        "paid_posts": "Publicaciones de pago",
+        "paid_stories": "Historias de pago",
+        "creators": "Creadores",
+        "payments": "Pagos"
+      },
+      "load_failed": "No se ha podido cargar. Vuelve a intentarlo en un momento.",
+      "empty": "Aún no hay nada aquí.",
+      "empty_paid": "No hay contenido de pago a la venta.",
+      "report_reason": {
+        "SPAM": "Spam",
+        "HARASSMENT": "Acoso",
+        "ILLEGAL_CONTENT": "Contenido ilegal",
+        "VIOLENCE": "Violencia",
+        "HATE_SPEECH": "Discurso de odio",
+        "IMPERSONATION": "Suplantación",
+        "CSAM": "Material de abuso sexual infantil",
+        "SCAM": "Estafa",
+        "SELF_HARM": "Autolesión",
+        "INTELLECTUAL_PROPERTY": "Propiedad intelectual",
+        "OTHER": "Otro"
+      },
+      "target": {
+        "USER": "Perfil",
+        "POST": "Publicación",
+        "COMMENT": "Comentario",
+        "STORY": "Historia",
+        "MESSAGE": "Mensaje",
+        "PAYMENT": "Pago",
+        "SYSTEM": "Plataforma"
+      },
+      "appeal_target": {
+        "ACCOUNT_BAN": "Bloqueo de la cuenta",
+        "POST_REMOVAL": "Publicación retirada",
+        "BOT_LABEL": "Etiqueta de cuenta automatizada",
+        "STRIKE": "Strike",
+        "RESTRICTION": "Restricción",
+        "PROMOTION_REJECTION": "Promoción rechazada"
+      },
+      "strike_kind": {
+        "WARNING": "Aviso",
+        "STRIKE": "Strike"
+      },
+      "consequence": {
+        "NONE": "Sin suspensión",
+        "SUSPENDED": "Perfil suspendido",
+        "BANNED": "Perfil bloqueado"
+      },
+      "state": {
+        "PENDING": "Pendiente",
+        "REVIEWING": "En revisión",
+        "RESOLVED": "Con medidas",
+        "REJECTED": "Sin infracción",
+        "APPROVED": "Aceptada",
+        "RECEIVED": "Recibido",
+        "ACTIONED": "Con medidas",
+        "NO_ACTION": "Sin medidas",
+        "COMPLETED": "Completado",
+        "FAILED": "Fallido",
+        "REFUNDED": "Reembolsado",
+        "DISPUTED": "En disputa",
+        "FLAGGED": "Marcado por moderación"
+      },
+      "received_on": "Recibido el {{date}}",
+      "decided_on": "Decidido el {{date}}",
+      "given_on": "Puesto el {{date}}",
+      "expires_on": "Caduca el {{date}}",
+      "revoked_on": "Retirado el {{date}}",
+      "urgent": "Urgente",
+      "notice_title": "Aviso de contenido ilegal",
+      "notice_child_abuse": "Denuncia abuso sexual infantil",
+      "paid_media_alt": "Contenido de pago",
+      "more_files_one": "+{{count}} archivo",
+      "more_files_other": "+{{count}} archivos",
+      "audience": {
+        "PUBLIC": "Público",
+        "FOLLOWERS": "Seguidores",
+        "PRIVATE": "Cuenta privada",
+        "CLOSE_FRIENDS": "Mejores amigos"
+      },
+      "sales_one": "{{count}} venta",
+      "sales_other": "{{count}} ventas",
+      "account_type": {
+        "CREATOR": "Creador",
+        "BUSINESS": "Empresa",
+        "PERSONAL": "Personal"
+      },
+      "standing": {
+        "ACTIVE": "Activo",
+        "SUSPENDED": "Suspendido",
+        "BANNED": "Bloqueado"
+      },
+      "creator_paid_one": "{{amount}} de {{count}} pago",
+      "creator_paid_other": "{{amount}} de {{count}} pagos",
+      "creator_on_sale_one": "{{count}} publicación de pago a la venta",
+      "creator_on_sale_other": "{{count}} publicaciones de pago a la venta",
+      "active_strikes_one": "{{count}} strike activo",
+      "active_strikes_other": "{{count}} strikes activos",
+      "payment_type": {
+        "DIRECT_POST_UNLOCK": "Publicaciones de pago",
+        "DIRECT_STORY_UNLOCK": "Historias de pago",
+        "DIRECT_MESSAGE_UNLOCK": "Mensajes de pago",
+        "DIRECT_TIP": "Propinas",
+        "DIRECT_LIVE_GIFT": "Regalos en directo",
+        "STRIPE_SUBSCRIPTION": "Planes de la plataforma",
+        "PROMOTION_PAYMENT": "Promociones"
+      },
+      "payments_count_one": "{{count}} pago",
+      "payments_count_other": "{{count}} pagos",
+      "refunded": "{{amount}} reembolsado"
     }
   },
   "collections": {
