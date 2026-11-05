@@ -4690,7 +4690,8 @@
         "SCAM": "Scam",
         "SELF_HARM": "Self-harm",
         "INTELLECTUAL_PROPERTY": "Intellectual property",
-        "OTHER": "Other"
+        "OTHER": "Other",
+        "SEXUAL_CONTENT": "Nudity or sexual content"
       },
       "target": {
         "USER": "Profile",
