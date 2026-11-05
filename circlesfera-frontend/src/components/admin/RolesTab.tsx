@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Copy,
+  Eye,
   KeyRound,
   LockOpen,
   Mail,
@@ -25,6 +26,7 @@ import {
   apiErrorMessage,
   apiErrorStatus,
 } from '../../utils/apiErrorMessage';
+import { formatDay } from '../../utils/format';
 import { Button, Input } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -33,6 +35,13 @@ import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { Pagination, SearchInput, StatusBadge } from './AdminTable';
+import {
+  accessEndOf,
+  isReviewerRoleSet,
+  reviewerAccessDays,
+  switchRole,
+  toDateField,
+} from './operatorAccess';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -51,7 +60,7 @@ function isStepUpRequired(err: unknown): boolean {
 }
 
 export default function RolesTab({ onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,11 +76,18 @@ export default function RolesTab({ onToast }: Props) {
     (() => Promise<unknown>) | null
   >(null);
 
+  const accessDays = useMemo(() => reviewerAccessDays(), []);
   const [createForm, setCreateForm] = useState({
     email: '',
     displayName: '',
     roleIds: ['arole_platform'] as string[],
+    accessDay: accessDays.initial,
   });
+  // A day typed for an operator's access end, kept with the operator it was
+  // typed for: another operator shows their own.
+  const [dayTyped, setDayTyped] = useState<{ id: string; day: string } | null>(
+    null,
+  );
 
   const { data: rolesCatalog } = useQuery({
     queryKey: ['admin', 'operator-roles'],
@@ -146,17 +162,32 @@ export default function RolesTab({ onToast }: Props) {
   const createMutation = useMutation({
     mutationFn: () =>
       runWithStepUp(() =>
-        adminApi.createOperator(createForm).then(async (res) => {
-          onToast(t('admin.operators.created'), 'success');
-          setShowCreate(false);
-          setCreateForm({
-            email: '',
-            displayName: '',
-            roleIds: ['arole_platform'],
-          });
-          await invalidate();
-          setSelectedId(res.data.id);
-        }),
+        adminApi
+          .createOperator({
+            email: createForm.email,
+            displayName: createForm.displayName,
+            roleIds: createForm.roleIds,
+            // An external reviewer's access always ends; a member of staff's
+            // is set later, if ever.
+            ...(isReviewerRoleSet(createForm.roleIds)
+              ? {
+                  accessExpiresAt:
+                    accessEndOf(createForm.accessDay) ?? undefined,
+                }
+              : {}),
+          })
+          .then(async (res) => {
+            onToast(t('admin.operators.created'), 'success');
+            setShowCreate(false);
+            setCreateForm({
+              email: '',
+              displayName: '',
+              roleIds: ['arole_platform'],
+              accessDay: accessDays.initial,
+            });
+            await invalidate();
+            setSelectedId(res.data.id);
+          }),
       ),
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
@@ -203,6 +234,38 @@ export default function RolesTab({ onToast }: Props) {
       if (!isStepUpRequired(err)) {
         onToast(
           apiErrorMessage(err, t, 'admin.operators.roles_error'),
+          'error',
+        );
+      }
+    },
+  });
+
+  const accessDay =
+    dayTyped && dayTyped.id === selected?.id
+      ? dayTyped.day
+      : selected?.accessExpiresAt
+        ? toDateField(new Date(selected.accessExpiresAt))
+        : '';
+  const setAccessDay = (day: string) => {
+    if (selected) setDayTyped({ id: selected.id, day });
+  };
+
+  // Sets when the selected operator's access ends, or that it does not.
+  const accessMutation = useMutation({
+    mutationFn: (day: string | null) =>
+      runWithStepUp(async () => {
+        if (!selectedId) return;
+        await adminApi.setOperatorAccessExpiry(
+          selectedId,
+          day ? accessEndOf(day) : null,
+        );
+        onToast(t('admin.operators.access_updated'), 'success');
+        await invalidate();
+      }),
+    onError: (err: any) => {
+      if (!isStepUpRequired(err)) {
+        onToast(
+          apiErrorMessage(err, t, 'admin.operators.access_error'),
           'error',
         );
       }
@@ -409,6 +472,23 @@ export default function RolesTab({ onToast }: Props) {
             selected={createForm.roleIds}
             onChange={(roleIds) => setCreateForm((f) => ({ ...f, roleIds }))}
           />
+          {isReviewerRoleSet(createForm.roleIds) && (
+            <div className="space-y-1.5">
+              <Input
+                type="date"
+                label={t('admin.operators.access_ends_label')}
+                min={accessDays.min}
+                max={accessDays.max}
+                value={createForm.accessDay}
+                onChange={(e) =>
+                  setCreateForm((f) => ({ ...f, accessDay: e.target.value }))
+                }
+              />
+              <p className="text-xs text-white/60 leading-relaxed">
+                {t('admin.operators.reviewer_hint')}
+              </p>
+            </div>
+          )}
           <div className="flex gap-2">
             <Button
               type="button"
@@ -417,7 +497,9 @@ export default function RolesTab({ onToast }: Props) {
               disabled={
                 !createForm.email ||
                 !createForm.displayName ||
-                createForm.roleIds.length === 0
+                createForm.roleIds.length === 0 ||
+                (isReviewerRoleSet(createForm.roleIds) &&
+                  !accessEndOf(createForm.accessDay))
               }
               onClick={() => createMutation.mutate()}
             >
@@ -506,7 +588,12 @@ export default function RolesTab({ onToast }: Props) {
                     <StatusBadge status={selected.status.toLowerCase()} />
                   </div>
                   <p className="text-xs text-white/50 flex items-center gap-1.5">
-                    {selected.totpEnabled ? (
+                    {selected.externalReviewer ? (
+                      <>
+                        <Eye size={14} className="text-brand-primary-text" />
+                        {t('admin.operators.reviewer_no_mfa')}
+                      </>
+                    ) : selected.totpEnabled ? (
                       <>
                         <ShieldCheck size={14} className="text-emerald-400" />
                         {t('admin.operators.mfa_on')}
@@ -531,6 +618,56 @@ export default function RolesTab({ onToast }: Props) {
                   />
                 </div>
 
+                <section className="py-4 space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
+                    {t('admin.operators.access_title')}
+                  </h4>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    {selected.accessExpiresAt
+                      ? t('admin.operators.access_ends_on', {
+                          date: formatDay(
+                            selected.accessExpiresAt,
+                            i18n.language,
+                          ),
+                        })
+                      : t('admin.operators.access_no_end')}
+                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                    <Input
+                      type="date"
+                      label={t('admin.operators.access_ends_label')}
+                      min={accessDays.min}
+                      max={
+                        selected.externalReviewer ? accessDays.max : undefined
+                      }
+                      value={accessDay}
+                      onChange={(e) => setAccessDay(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="min-h-11"
+                      isLoading={accessMutation.isPending}
+                      disabled={!accessEndOf(accessDay)}
+                      onClick={() => accessMutation.mutate(accessDay)}
+                    >
+                      {t('admin.operators.access_save')}
+                    </Button>
+                    {!selected.externalReviewer && selected.accessExpiresAt && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-11"
+                        onClick={() => accessMutation.mutate(null)}
+                      >
+                        {t('admin.operators.access_clear')}
+                      </Button>
+                    )}
+                  </div>
+                </section>
+
                 <div className="py-4 space-y-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
                     {t('admin.operators.actions')}
@@ -551,16 +688,18 @@ export default function RolesTab({ onToast }: Props) {
                         ? t('admin.operators.disable')
                         : t('admin.operators.enable')}
                     </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="min-h-11 gap-2"
-                      onClick={() => resetMfaMutation.mutate()}
-                    >
-                      <KeyRound size={14} />
-                      {t('admin.operators.reset_mfa')}
-                    </Button>
+                    {!selected.externalReviewer && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="min-h-11 gap-2"
+                        onClick={() => resetMfaMutation.mutate()}
+                      >
+                        <KeyRound size={14} />
+                        {t('admin.operators.reset_mfa')}
+                      </Button>
+                    )}
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button
@@ -575,65 +714,67 @@ export default function RolesTab({ onToast }: Props) {
                     </Button>
                   </div>
                 </div>
-                {!selected.totpEnabled && selected.status === 'ACTIVE' && (
-                  <section className="py-4 space-y-2.5">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
-                      {t('admin.operators.enrolment_title')}
-                    </h4>
-                    <p className="text-xs text-white/60 leading-relaxed">
-                      {t('admin.operators.enrolment_hint')}
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="min-h-11 gap-2"
-                        isLoading={sendLinkMutation.isPending}
-                        onClick={() => sendLinkMutation.mutate()}
-                      >
-                        <Mail size={14} />
-                        {t('admin.operators.send_link')}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="min-h-11 gap-2"
-                        isLoading={issueCodeMutation.isPending}
-                        onClick={() => issueCodeMutation.mutate()}
-                      >
-                        <KeyRound size={14} />
-                        {t('admin.operators.issue_code')}
-                      </Button>
-                    </div>
-                    {issuedCode?.id === selected.id && (
-                      <div className="space-y-1.5 rounded-lg border border-brand-primary/30 bg-brand-primary/10 p-3">
-                        <p className="text-[11px] font-bold uppercase tracking-wide text-white/70">
-                          {t('admin.operators.code_title')}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <p className="flex-1 font-mono text-base tracking-widest text-white break-all">
-                            {issuedCode.code}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => void copyIssuedCode()}
-                            className="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
-                            aria-label={t('admin.operators.copy_code')}
-                          >
-                            <Copy size={16} />
-                          </button>
-                        </div>
-                        <p className="text-xs text-white/60 leading-relaxed">
-                          {t('admin.operators.code_hint', {
-                            hours: issuedCode.hours,
-                          })}
-                        </p>
+                {!selected.totpEnabled &&
+                  !selected.externalReviewer &&
+                  selected.status === 'ACTIVE' && (
+                    <section className="py-4 space-y-2.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
+                        {t('admin.operators.enrolment_title')}
+                      </h4>
+                      <p className="text-xs text-white/60 leading-relaxed">
+                        {t('admin.operators.enrolment_hint')}
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="min-h-11 gap-2"
+                          isLoading={sendLinkMutation.isPending}
+                          onClick={() => sendLinkMutation.mutate()}
+                        >
+                          <Mail size={14} />
+                          {t('admin.operators.send_link')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="min-h-11 gap-2"
+                          isLoading={issueCodeMutation.isPending}
+                          onClick={() => issueCodeMutation.mutate()}
+                        >
+                          <KeyRound size={14} />
+                          {t('admin.operators.issue_code')}
+                        </Button>
                       </div>
-                    )}
-                  </section>
-                )}
+                      {issuedCode?.id === selected.id && (
+                        <div className="space-y-1.5 rounded-lg border border-brand-primary/30 bg-brand-primary/10 p-3">
+                          <p className="text-[11px] font-bold uppercase tracking-wide text-white/70">
+                            {t('admin.operators.code_title')}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="flex-1 font-mono text-base tracking-widest text-white break-all">
+                              {issuedCode.code}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => void copyIssuedCode()}
+                              className="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
+                              aria-label={t('admin.operators.copy_code')}
+                            >
+                              <Copy size={16} />
+                            </button>
+                          </div>
+                          <p className="text-xs text-white/60 leading-relaxed">
+                            {t('admin.operators.code_hint', {
+                              hours: issuedCode.hours,
+                            })}
+                          </p>
+                        </div>
+                      )}
+                    </section>
+                  )}
               </div>
             ) : null
           }
@@ -663,12 +804,7 @@ function RoleChecklist({
             key={role.id}
             type="button"
             title={role.description || role.name}
-            onClick={() => {
-              const next = active
-                ? selected.filter((id) => id !== role.id)
-                : [...selected, role.id];
-              if (next.length) onChange(next);
-            }}
+            onClick={() => onChange(switchRole(selected, role.id))}
             className={`px-3 min-h-11 sm:min-h-9 rounded-lg text-xs font-semibold border transition-colors ${
               active
                 ? 'bg-brand-primary/15 text-white border-brand-primary/30'

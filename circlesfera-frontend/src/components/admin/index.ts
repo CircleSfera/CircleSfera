@@ -52,6 +52,8 @@ export { default as PostsTab } from './PostsTab';
 export { default as PromotionsTab } from './PromotionsTab';
 export { default as ReportsTab } from './ReportsTab';
 export { default as RolesTab } from './RolesTab';
+export { default as ReviewBusinessTab } from './review/ReviewBusinessTab';
+export { default as ReviewComplianceTab } from './review/ReviewComplianceTab';
 export { default as SettingsTab } from './SettingsTab';
 export { default as SpamReviewTab } from './SpamReviewTab';
 export { default as StatCard } from './StatCard';

@@ -109,7 +109,7 @@ describe('MediaController (HTTP integration)', () => {
   const mockMediaAuthService = {
     isAccessAllowed: vi.fn().mockResolvedValue(true),
   };
-  const mockStaffViewer = { isContentStaff: vi.fn() };
+  const mockStaffViewer = { isContentStaff: vi.fn(), isReviewer: vi.fn() };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -459,6 +459,7 @@ describe('MediaController (HTTP integration)', () => {
         null,
         null,
         expect.any(Function),
+        expect.any(Function),
       );
     });
 
@@ -479,6 +480,26 @@ describe('MediaController (HTTP integration)', () => {
         .expect(204);
 
       expect(mockStaffViewer.isContentStaff).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks whether the request reads the review area only through the check it hands over', async () => {
+      mockStaffViewer.isReviewer.mockResolvedValueOnce(true);
+      mockMediaAuthService.isAccessAllowed.mockImplementationOnce(
+        async (
+          _uri: string,
+          _user: string | null,
+          _profile: string | null,
+          _isStaff: () => Promise<boolean>,
+          isReviewer: () => Promise<boolean>,
+        ) => isReviewer(),
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/media/auth-check')
+        .set('x-original-uri', '/uploads/paid.jpg')
+        .expect(204);
+
+      expect(mockStaffViewer.isReviewer).toHaveBeenCalledTimes(1);
     });
 
     it('returns 403 when access is denied', async () => {

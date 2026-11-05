@@ -1150,6 +1150,135 @@ describe('MediaAuthService', () => {
 
   // Content removed by moderation is kept for its appeal and shown to
   // nobody, its author included: its files are for staff who moderate.
+  describe('Paid content, for the review area', () => {
+    const paidPost = (extra: Record<string, unknown> = {}) => ({
+      profileId: 'author-1',
+      visibility: 'PUBLIC',
+      isPremium: true,
+      moderationStatus: 'VISIBLE',
+      deletedAt: null,
+      archivedAt: null,
+      profile: { privacyLevel: 'PRIVATE' },
+      ...extra,
+    });
+    const paidStory = (extra: Record<string, unknown> = {}) => ({
+      id: 'story-1',
+      profileId: 'author-1',
+      isPremium: true,
+      isCloseFriendsOnly: false,
+      moderationStatus: 'FLAGGED',
+      deletedAt: null,
+      profile: { privacyLevel: 'PRIVATE' },
+      ...extra,
+    });
+    const reviewer = vi.fn(() => Promise.resolve(true));
+    const notReviewer = () => Promise.resolve(false);
+    const staff = () => Promise.resolve(false);
+
+    it("shows a paid post or story on sale to whoever reads the review area, unbought, a private account's too", async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+        { postId: 'post-1', post: paidPost() },
+      ]);
+      expect(
+        await service.isAccessAllowed(
+          '/uploads/p.jpg',
+          null,
+          null,
+          staff,
+          reviewer,
+        ),
+      ).toBe(true);
+
+      mockPrismaService.story.findMany.mockResolvedValueOnce([paidStory()]);
+      expect(
+        await service.isAccessAllowed(
+          '/uploads/s.jpg',
+          null,
+          null,
+          staff,
+          reviewer,
+        ),
+      ).toBe(true);
+    });
+
+    it('refuses it to anyone else who has not bought it', async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+        { postId: 'post-1', post: paidPost() },
+      ]);
+      expect(
+        await service.isAccessAllowed(
+          '/uploads/p.jpg',
+          null,
+          null,
+          staff,
+          notReviewer,
+        ),
+      ).toBe(false);
+    });
+
+    it.each([
+      ['hidden', { moderationStatus: 'HIDDEN' }],
+      ['removed', { moderationStatus: 'REMOVED' }],
+      ['deleted', { deletedAt: new Date() }],
+      ['archived', { archivedAt: new Date() }],
+      ['not paid', { isPremium: false }],
+    ])('does not open a post that is %s', async (_label, extra) => {
+      reviewer.mockClear();
+      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+        { postId: 'post-1', post: paidPost(extra) },
+      ]);
+      await service.isAccessAllowed(
+        '/uploads/p.jpg',
+        null,
+        null,
+        staff,
+        reviewer,
+      );
+      expect(reviewer).not.toHaveBeenCalled();
+    });
+
+    it('does not open a file another row names too, such as a message', async () => {
+      reviewer.mockClear();
+      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+        { postId: 'post-1', post: paidPost() },
+      ]);
+      mockPrismaService.message.findMany.mockResolvedValueOnce([
+        { id: 'm-1', conversationId: 'c-1', senderId: 'u-2', isLocked: true },
+      ]);
+      expect(
+        await service.isAccessAllowed(
+          '/uploads/p.jpg',
+          null,
+          null,
+          staff,
+          reviewer,
+        ),
+      ).toBe(false);
+      expect(reviewer).not.toHaveBeenCalled();
+    });
+
+    it('without a review check handed over, nobody reads it unbought', async () => {
+      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
+        { postId: 'post-1', post: paidPost() },
+      ]);
+      expect(await service.isAccessAllowed('/uploads/p.jpg', null, null)).toBe(
+        false,
+      );
+    });
+
+    it('asks nothing of the session for a file no row names', async () => {
+      reviewer.mockClear();
+      await service.isAccessAllowed(
+        '/uploads/none.jpg',
+        null,
+        null,
+        staff,
+        reviewer,
+      );
+      expect(reviewer).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Removed content', () => {
     const publicPost = (moderationStatus: string) => ({
       profileId: 'author-1',

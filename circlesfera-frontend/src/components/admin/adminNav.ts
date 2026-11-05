@@ -4,6 +4,7 @@ import {
   BookOpen,
   Bot,
   Briefcase,
+  ClipboardCheck,
   Clock,
   CreditCard,
   DollarSign,
@@ -71,7 +72,9 @@ export type AdminTab =
   | 'roles'
   | 'trust'
   | 'live'
-  | 'settings';
+  | 'settings'
+  | 'review-compliance'
+  | 'review-business';
 
 export interface AdminNavItem {
   id: AdminTab;
@@ -126,6 +129,10 @@ export const ADMIN_TAB_PERMISSIONS: Record<
   subscriptions: 'payments',
   disputes: 'payments',
   companies: 'payments',
+  // The review area, read only: how the rules are enforced in the Admin
+  // Panel, what is sold and who sells it in the Backoffice.
+  'review-compliance': 'review',
+  'review-business': 'review',
 };
 
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
@@ -323,6 +330,22 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       },
     ],
   },
+  {
+    labelKey: 'admin.nav.review',
+    icon: ClipboardCheck,
+    items: [
+      {
+        id: 'review-compliance',
+        labelKey: 'admin.nav.review_compliance',
+        icon: ClipboardCheck,
+      },
+      {
+        id: 'review-business',
+        labelKey: 'admin.nav.review_business',
+        icon: ClipboardCheck,
+      },
+    ],
+  },
 ];
 
 // The two staff sites. The sections that run the business live in the
@@ -342,7 +365,12 @@ const BACKOFFICE_TABS: readonly AdminTab[] = [
   'payouts',
   'monetization',
   'newsletter',
+  'review-business',
 ];
+
+// A Backoffice section that is not the business itself: who opens only it
+// does not open the home of the Backoffice, which shows the business.
+const NOT_BUSINESS_TABS: readonly AdminTab[] = ['review-business'];
 
 export function tabSite(tab: AdminTab): StaffSite {
   return BACKOFFICE_TABS.includes(tab) ? 'backoffice' : 'admin';
@@ -357,7 +385,9 @@ export function canOpenTab(
   if (tab === 'overview') {
     return BACKOFFICE_TABS.some(
       (other) =>
-        other !== 'overview' && hasPermission(ADMIN_TAB_PERMISSIONS[other]),
+        other !== 'overview' &&
+        !NOT_BUSINESS_TABS.includes(other) &&
+        hasPermission(ADMIN_TAB_PERMISSIONS[other]),
     );
   }
   return hasPermission(ADMIN_TAB_PERMISSIONS[tab]);

@@ -9,13 +9,19 @@
 // a working day from its sign-in and is never renewed past it, the role reads
 // nothing but the review area, and every page it opens is written down.
 
-export const EXTERNAL_REVIEWER_ROLE = 'EXTERNAL_REVIEWER';
-export const EXTERNAL_REVIEWER_ROLE_ID = 'arole_external_reviewer';
+import {
+  EXTERNAL_REVIEWER_ROLE,
+  EXTERNAL_REVIEWER_ROLE_ID,
+  REVIEWER_ACCESS_DEFAULT_DAYS,
+  REVIEWER_ACCESS_MAX_DAYS,
+} from '@circlesfera/shared';
 
-// How long a reviewer's access lasts when it is given, and the longest it may
-// be given for at once; it can be extended again.
-export const REVIEWER_ACCESS_DEFAULT_DAYS = 30;
-export const REVIEWER_ACCESS_MAX_DAYS = 90;
+export {
+  EXTERNAL_REVIEWER_ROLE,
+  EXTERNAL_REVIEWER_ROLE_ID,
+  REVIEWER_ACCESS_DEFAULT_DAYS,
+  REVIEWER_ACCESS_MAX_DAYS,
+};
 
 // The longest a reviewer's session lasts from its sign-in, renewals included.
 export const REVIEWER_SESSION_MAX_MS = 8 * 60 * 60 * 1000;

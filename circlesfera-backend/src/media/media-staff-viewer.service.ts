@@ -2,7 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
-import { staffHoldsPermission } from '../auth/guards/admin.guard.js';
+import {
+  type StaffPermission,
+  staffHoldsPermission,
+} from '../auth/guards/admin.guard.js';
 import {
   ADMIN_JWT_AUDIENCE,
   type AdminJwtPayload,
@@ -28,6 +31,19 @@ export class MediaStaffViewerService {
   ) {}
 
   async isContentStaff(req: Pick<Request, 'cookies'>): Promise<boolean> {
+    return this.holds(req, 'content');
+  }
+
+  // Whether the file is asked for by whoever reads the review area: an
+  // external reviewer, or staff holding the review permission.
+  async isReviewer(req: Pick<Request, 'cookies'>): Promise<boolean> {
+    return this.holds(req, 'review');
+  }
+
+  private async holds(
+    req: Pick<Request, 'cookies'>,
+    permission: StaffPermission,
+  ): Promise<boolean> {
     const token = (req.cookies as Record<string, string> | undefined)?.[
       ADMIN_ACCESS_TOKEN_COOKIE
     ];
@@ -38,7 +54,7 @@ export class MediaStaffViewerService {
         audience: ADMIN_JWT_AUDIENCE,
       });
       const staff = await this.staffSessions.validate(payload);
-      return staffHoldsPermission(staff, 'content');
+      return staffHoldsPermission(staff, permission);
     } catch {
       return false;
     }

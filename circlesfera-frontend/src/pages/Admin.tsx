@@ -28,6 +28,8 @@ import {
   PostsTab,
   PromotionsTab,
   ReportsTab,
+  ReviewBusinessTab,
+  ReviewComplianceTab,
   RolesTab,
   SettingsTab,
   SpamReviewTab,
@@ -132,6 +134,8 @@ export default function Admin() {
         {activeTab === 'whitelist' && <WhitelistTab />}
         {activeTab === 'audit' && <AuditLogTab />}
         {activeTab === 'appeals' && <AppealsTab />}
+        {activeTab === 'review-compliance' && <ReviewComplianceTab />}
+        {activeTab === 'review-business' && <ReviewBusinessTab />}
         {activeTab === 'spam-review' && <SpamReviewTab />}
         {activeTab === 'support' && <SupportTicketsTab onToast={addToast} />}
         {activeTab === 'help-centre' && <HelpCentreTab onToast={addToast} />}
