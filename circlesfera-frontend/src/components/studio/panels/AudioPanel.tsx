@@ -55,8 +55,13 @@ export default function AudioPanel({
       return;
     }
     const el = new Audio(audio.url);
-    el.onended = () => setHearing(null);
-    void el.play().catch(() => setHearing(null));
+    // Only the song heard now changes the button: an older one, paused
+    // while it loaded, rejects its play and must not.
+    const done = () => {
+      if (previewRef.current === el) setHearing(null);
+    };
+    el.onended = done;
+    void el.play().catch(done);
     previewRef.current = el;
     setHearing(audio.id);
   };

@@ -13,7 +13,10 @@ import type { MediaClip } from '../../../types/studio';
 import AudioPanel from './AudioPanel';
 import ClipFadesPanel from './ClipFadesPanel';
 import ProjectSettingsPanel from './ProjectSettingsPanel';
-import VoicePanel, { VOICE_COUNTDOWN_SEC } from './VoicePanel';
+import VoicePanel, {
+  VOICE_COUNTDOWN_SEC,
+  VOICE_MAX_STEP_SEC,
+} from './VoicePanel';
 
 vi.mock('../../../services/audio.service', () => ({
   audioApi: { getTrending: vi.fn(), search: vi.fn() },
@@ -68,6 +71,39 @@ describe('the music panel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Nightfall' }));
     expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ id: 'a2' }));
+  });
+
+  it('keeps showing the song heard now when an older one fails to start', async () => {
+    const rejects: ((e: Error) => void)[] = [];
+    vi.stubGlobal(
+      'Audio',
+      vi.fn(function (this: Record<string, unknown>) {
+        this.play = vi.fn(
+          () =>
+            new Promise((_, reject) => {
+              rejects.push(reject);
+            }),
+        );
+        this.pause = vi.fn();
+      }),
+    );
+    renderWithProviders(
+      <AudioPanel onAddAudioFile={vi.fn()} onAddLibraryAudio={vi.fn()} />,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Listen to Sunrise' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Listen to Nightfall' }),
+    );
+    await act(async () => rejects[0](new Error('AbortError')));
+    expect(
+      screen.getByRole('button', { name: 'Stop Nightfall' }),
+    ).toBeInTheDocument();
+    await act(async () => rejects[1](new Error('NotAllowedError')));
+    expect(
+      screen.getByRole('button', { name: 'Listen to Nightfall' }),
+    ).toBeInTheDocument();
   });
 
   it('finds songs by name', async () => {
@@ -239,7 +275,7 @@ describe('the voice panel', () => {
     ).toBeInTheDocument();
     act(() => vi.advanceTimersByTime(VOICE_COUNTDOWN_SEC * 1000));
     expect(store()).toMatchObject({ isRecordingVoice: true, isPlaying: true });
-    act(() => store().setPlayhead(5));
+    playTo(5);
     expect(screen.getByText(/Recording · 0:03.0/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
     expect(onRecorded).toHaveBeenCalledWith({
@@ -261,10 +297,97 @@ describe('the voice panel', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Record' }));
     });
     act(() => vi.advanceTimersByTime(VOICE_COUNTDOWN_SEC * 1000));
-    act(() => store().setPlayhead(10));
+    playTo(10);
     expect(onRecorded).toHaveBeenCalledWith(
       expect.objectContaining({ startAt: 2, duration: 8 }),
     );
+  });
+
+  // Plays the video on to a moment, a little at a time, as the player does.
+  const playTo = (to: number) => {
+    act(() => {
+      for (let at = store().playhead; at < to; ) {
+        at = Math.min(to, at + VOICE_MAX_STEP_SEC / 2);
+        store().setPlayhead(at);
+      }
+    });
+  };
+
+  const recordFor = async (onRecorded = vi.fn()) => {
+    renderWithProviders(<VoicePanel onRecorded={onRecorded} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Record' }));
+    });
+    act(() => vi.advanceTimersByTime(VOICE_COUNTDOWN_SEC * 1000));
+    playTo(4);
+    return onRecorded;
+  };
+
+  it('ends when the video is paused, keeping what was recorded', async () => {
+    const onRecorded = await recordFor();
+    act(() => store().setPlaying(false));
+    expect(onRecorded).toHaveBeenCalledWith(
+      expect.objectContaining({ startAt: 2, duration: 2 }),
+    );
+    expect(stopped).toHaveBeenCalled();
+  });
+
+  it('ends when the playhead jumps elsewhere, with the length played before the jump', async () => {
+    const onRecorded = await recordFor();
+    act(() => store().setPlayhead(0));
+    expect(onRecorded).toHaveBeenCalledWith(
+      expect.objectContaining({ startAt: 2, duration: 2 }),
+    );
+  });
+
+  it('asks for the microphone once, however many times it is pressed', async () => {
+    let grant: (mic: unknown) => void = () => {};
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValueOnce(
+      new Promise((resolve) => {
+        grant = resolve;
+      }) as never,
+    );
+    renderWithProviders(<VoicePanel onRecorded={vi.fn()} />);
+    const button = screen.getByRole('button', { name: 'Record' });
+    fireEvent.click(button);
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    await act(async () => grant({ getTracks: () => [{ stop: stopped }] }));
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets go of a microphone granted after the panel closed', async () => {
+    let grant: (mic: unknown) => void = () => {};
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValueOnce(
+      new Promise((resolve) => {
+        grant = resolve;
+      }) as never,
+    );
+    const view = renderWithProviders(<VoicePanel onRecorded={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
+    view.unmount();
+    await act(async () => grant({ getTracks: () => [{ stop: stopped }] }));
+    act(() => vi.advanceTimersByTime(VOICE_COUNTDOWN_SEC * 1000));
+    expect(stopped).toHaveBeenCalled();
+    expect(recorders).toHaveLength(0);
+    expect(store().isRecordingVoice).toBe(false);
+  });
+
+  it('lets go of the microphone and can try again when recording cannot start', async () => {
+    vi.mocked(MediaRecorder).mockImplementationOnce(() => {
+      throw new Error('unsupported');
+    });
+    renderWithProviders(<VoicePanel onRecorded={vi.fn()} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Record' }));
+    });
+    act(() => vi.advanceTimersByTime(VOICE_COUNTDOWN_SEC * 1000));
+    expect(stopped).toHaveBeenCalled();
+    expect(store()).toMatchObject({
+      isRecordingVoice: false,
+      isPlaying: false,
+    });
+    expect(screen.getByRole('button', { name: 'Record' })).toBeEnabled();
   });
 
   it('says so when the microphone is not allowed', async () => {

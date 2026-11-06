@@ -7,6 +7,12 @@ import { formatTimecode } from '../editor/EditorTransport';
 /** Seconds counted down before a recording starts. */
 export const VOICE_COUNTDOWN_SEC = 3;
 
+/**
+ * The most the playhead moves between two frames of playback, in seconds.
+ * A bigger move is a jump to another moment, which ends a recording.
+ */
+export const VOICE_MAX_STEP_SEC = 1;
+
 // The formats a recording is asked for, in order: Chrome, Firefox and
 // Android record webm, Safari mp4.
 const RECORDED_TYPES = ['audio/webm', 'audio/mp4'] as const;
@@ -32,7 +38,7 @@ interface VoicePanelProps {
   onRecorded: (recording: VoiceRecording) => void;
 }
 
-type Phase = 'idle' | 'counting' | 'recording' | 'denied';
+type Phase = 'idle' | 'asking' | 'counting' | 'recording' | 'denied';
 
 /**
  * A voice over the video: after a count of three, the video plays silent
@@ -50,48 +56,107 @@ export default function VoicePanel({ onRecorded }: VoicePanelProps) {
   const startAt = useRef(0);
   const timer = useRef<number | null>(null);
 
+  // Whether the panel is still open: a microphone granted after it closed
+  // is let go at once.
+  const open = useRef(true);
+  // Where the playhead last was while recording, before any jump or reset.
+  const heardTo = useRef(0);
+  const unsubscribe = useRef<(() => void) | null>(null);
+
   const release = () => {
     if (timer.current !== null) window.clearInterval(timer.current);
     timer.current = null;
+    unsubscribe.current?.();
+    unsubscribe.current = null;
     for (const track of stream.current?.getTracks() ?? []) track.stop();
     stream.current = null;
+    recorder.current = null;
     useStudioStore.getState().setRecordingVoice(false);
     useStudioStore.getState().setPlaying(false);
   };
 
   // Leaving the panel stops a recording and lets go of the microphone.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    open.current = true;
+    return () => {
+      open.current = false;
       if (recorder.current?.state === 'recording') recorder.current.stop();
       if (timer.current !== null) window.clearInterval(timer.current);
+      unsubscribe.current?.();
       for (const track of stream.current?.getTracks() ?? []) track.stop();
       useStudioStore.getState().setRecordingVoice(false);
-    },
-    [],
-  );
+    };
+  }, []);
 
   const stop = () => {
     if (recorder.current?.state === 'recording') recorder.current.stop();
   };
 
-  // The recording ends on its own at the end of the video.
-  const atEnd = playhead >= duration - 0.05;
-  useEffect(() => {
-    if (
-      phase === 'recording' &&
-      atEnd &&
-      recorder.current?.state === 'recording'
-    ) {
-      recorder.current.stop();
+  // A recording follows the video as it plays: it ends at the end of the
+  // video, when the video stops, or when the playhead jumps elsewhere. Its
+  // length is how far the video played, read before any of that.
+  const follow = () =>
+    useStudioStore.subscribe((state) => {
+      const at = state.playhead;
+      const jumped =
+        at < heardTo.current || at > heardTo.current + VOICE_MAX_STEP_SEC;
+      if (!jumped) heardTo.current = at;
+      if (jumped || !state.isPlaying || at >= duration - 0.05) stop();
+    });
+
+  const record = (mic: MediaStream) => {
+    const type = recordedType();
+    let rec: MediaRecorder;
+    try {
+      rec = new MediaRecorder(mic, type ? { mimeType: type } : undefined);
+    } catch {
+      release();
+      setPhase('idle');
+      return;
     }
-  }, [phase, atEnd]);
+    const chunks: BlobPart[] = [];
+    rec.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    rec.onstop = () => {
+      const length = Math.min(
+        heardTo.current - startAt.current,
+        duration - startAt.current,
+      );
+      release();
+      setPhase('idle');
+      if (length > 0 && chunks.length > 0) {
+        onRecorded({
+          blob: new Blob(chunks, { type: rec.mimeType || type }),
+          startAt: startAt.current,
+          duration: length,
+        });
+      }
+    };
+    recorder.current = rec;
+    const store = useStudioStore.getState();
+    startAt.current = store.playhead;
+    heardTo.current = store.playhead;
+    store.setRecordingVoice(true);
+    rec.start();
+    store.setPlaying(true);
+    unsubscribe.current = follow();
+    setPhase('recording');
+  };
 
   const start = async () => {
+    // One request for the microphone at a time.
+    if (phase === 'asking' || stream.current) return;
+    setPhase('asking');
     let mic: MediaStream;
     try {
       mic = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      setPhase('denied');
+      if (open.current) setPhase('denied');
+      return;
+    }
+    if (!open.current) {
+      for (const track of mic.getTracks()) track.stop();
       return;
     }
     stream.current = mic;
@@ -104,35 +169,7 @@ export default function VoicePanel({ onRecorded }: VoicePanelProps) {
       if (left > 0) return;
       if (timer.current !== null) window.clearInterval(timer.current);
       timer.current = null;
-      const type = recordedType();
-      const rec = new MediaRecorder(mic, type ? { mimeType: type } : undefined);
-      const chunks: BlobPart[] = [];
-      rec.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data);
-      };
-      rec.onstop = () => {
-        const store = useStudioStore.getState();
-        const length = Math.min(
-          store.playhead - startAt.current,
-          duration - startAt.current,
-        );
-        release();
-        setPhase('idle');
-        if (length > 0 && chunks.length > 0) {
-          onRecorded({
-            blob: new Blob(chunks, { type: rec.mimeType || type }),
-            startAt: startAt.current,
-            duration: length,
-          });
-        }
-      };
-      recorder.current = rec;
-      const store = useStudioStore.getState();
-      startAt.current = store.playhead;
-      store.setRecordingVoice(true);
-      rec.start();
-      store.setPlaying(true);
-      setPhase('recording');
+      record(mic);
     }, 1000);
   };
 
@@ -168,7 +205,11 @@ export default function VoicePanel({ onRecorded }: VoicePanelProps) {
         <button
           type="button"
           onClick={() => void start()}
-          disabled={phase === 'counting' || playhead >= duration - 0.05}
+          disabled={
+            phase === 'asking' ||
+            phase === 'counting' ||
+            playhead >= duration - 0.05
+          }
           className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-sm font-bold text-black disabled:opacity-50"
         >
           <Mic size={16} aria-hidden />
