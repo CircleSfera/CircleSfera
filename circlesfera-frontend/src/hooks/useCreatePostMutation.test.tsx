@@ -108,6 +108,35 @@ describe('useCreatePostMutation', () => {
     } as never);
   });
 
+  it('sends a song already mixed into a Studio video so it counts, keeping the video sound', async () => {
+    const { submit } = setup({
+      songInVideo: { id: 'song-1', startMs: 1500 },
+    });
+    await submit();
+    expect(postsApi.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audioId: 'song-1',
+        audioStartMs: 1500,
+        audioInVideo: true,
+      }),
+    );
+  });
+
+  it('plays a song chosen in the composer over the video, even with one from the Studio', async () => {
+    const { submit } = setup({
+      selectedAudio: { id: 'chosen' },
+      audioStartMs: 2000,
+      songInVideo: { id: 'song-1', startMs: 1500 },
+    });
+    await submit();
+    const sent = vi.mocked(postsApi.create).mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(sent).toMatchObject({ audioId: 'chosen', audioStartMs: 2000 });
+    expect(sent.audioInVideo).toBeUndefined();
+  });
+
   it('does nothing without media', async () => {
     const { deps, submit } = setup({ mediaFiles: [] });
     await submit();

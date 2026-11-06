@@ -112,6 +112,11 @@ export function useCreatePostState() {
   const [postShape, setPostShape] = useState<PostShape>(DEFAULT_POST_SHAPE);
   const [selectedAudio, setSelectedAudio] = useState<AudioTrack | null>(null);
   const [audioStartMs, setAudioStartMs] = useState(0);
+  // A song already in a video brought from the Edits Studio.
+  const [songInVideo, setSongInVideo] = useState<{
+    id: string;
+    startMs: number;
+  } | null>(null);
   const [isCloseFriendsOnly, setIsCloseFriendsOnly] = useState(
     modeParam === 'circle' || searchParams.get('circle') === '1',
   );
@@ -180,6 +185,8 @@ export function useCreatePostState() {
     setSelectedAudio,
     audioStartMs,
     setAudioStartMs,
+    songInVideo,
+    setSongInVideo,
     isCloseFriendsOnly,
     setIsCloseFriendsOnly,
     isPremium,

@@ -562,6 +562,10 @@ model Post {
   audio            Audio?        @relation(fields: [audioId], references: [id], onDelete: SetNull)
   // Offset into the selected track (ms). Clip window length = media duration at playback.
   audioStartMs     Int           @default(0)
+  /// The song is already mixed into the video (a video made in the Edits
+  /// Studio): it still counts as a use of the song, but is not played again
+  /// over a muted video.
+  audioInVideo     Boolean       @default(false)
 
   moderationStatus  ModerationStatus @default(VISIBLE)
   moderationNote    String?          @db.Text

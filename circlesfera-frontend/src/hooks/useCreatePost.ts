@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FRAME_MAX_DURATION_SEC,
@@ -30,6 +30,19 @@ export function useCreatePost() {
     setOriginalStoryMedia: state.setOriginalStoryMedia,
   });
 
+  // The video a song came mixed into, from the Studio: the song goes with
+  // that video only.
+  const songVideoRef = useRef<File | null>(null);
+  const { songInVideo, setSongInVideo } = state;
+  useEffect(() => {
+    if (!songInVideo) return;
+    const still = media.mediaFiles.some((m) => m.file === songVideoRef.current);
+    if (!still) {
+      songVideoRef.current = null;
+      setSongInVideo(null);
+    }
+  }, [media.mediaFiles, songInVideo, setSongInVideo]);
+
   // Read seamless transfer state from UI Store (Legacy compatibility)
   useEffect(() => {
     import('../stores/uiStore').then(async ({ useUIStore }) => {
@@ -59,6 +72,10 @@ export function useCreatePost() {
           state.setFrameSourceDurationSec(sourceSec);
         }
         media.setMediaFiles([newFile]);
+        // Set with the video it belongs to, so it is not taken for a song
+        // left from another one.
+        songVideoRef.current = handoff.songInVideo ? file : null;
+        state.setSongInVideo(handoff.songInVideo ?? null);
         if (sourceSec > FRAME_MAX_DURATION_SEC) {
           state.setShowFrameTrim(true);
           state.setStep('edit');
@@ -70,6 +87,7 @@ export function useCreatePost() {
   }, [
     media.setMediaFiles,
     state.setScheduledAt,
+    state.setSongInVideo,
     state.setStep,
     state.setFrameSourceDurationSec,
     state.setShowFrameTrim,
@@ -89,6 +107,7 @@ export function useCreatePost() {
     selectedPlace: state.selectedPlace,
     selectedAudio: state.selectedAudio,
     audioStartMs: state.audioStartMs,
+    songInVideo: state.songInVideo,
     isCloseFriendsOnly: state.isCloseFriendsOnly,
     isPremium: state.isPremium,
     price: state.price,

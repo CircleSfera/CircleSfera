@@ -83,11 +83,16 @@ describe('useCreatePost', () => {
   });
 
   describe('a video handed over from the Studio', () => {
-    async function handOver(seconds: number, scheduledAt?: string) {
+    async function handOver(
+      seconds: number,
+      scheduledAt?: string,
+      songInVideo?: { id: string; startMs: number },
+    ) {
       vi.mocked(probeVideoDuration).mockResolvedValue(seconds);
       useUIStore.getState().setEditedMediaForPost({
         file: new File(['v'], 'export.mp4', { type: 'video/mp4' }),
         scheduledAt,
+        songInVideo,
       });
       let c = {} as Composer;
       renderWithProviders(<Probe onRender={(v) => (c = v)} />);
@@ -109,6 +114,33 @@ describe('useCreatePost', () => {
       expect(c().step).toBe('caption');
       expect(c().scheduledAt).toBe(scheduledAt);
       expect(useUIStore.getState().editedMediaForPost).toBeNull();
+    });
+
+    it('carries the song already mixed into it, if any', async () => {
+      const seconds = FRAME_MIN_DURATION_SEC + 1;
+      const c = await handOver(seconds, undefined, {
+        id: 'song-1',
+        startMs: 500,
+      });
+      expect(c().songInVideo).toEqual({ id: 'song-1', startMs: 500 });
+    });
+
+    it('forgets that song when its video is replaced by another', async () => {
+      const seconds = FRAME_MIN_DURATION_SEC + 1;
+      const c = await handOver(seconds, undefined, {
+        id: 'song-1',
+        startMs: 500,
+      });
+      act(() =>
+        c().setMediaFiles([
+          {
+            file: new File(['o'], 'other.mp4', { type: 'video/mp4' }),
+            url: 'blob:other',
+            type: 'video',
+          },
+        ]),
+      );
+      await vi.waitFor(() => expect(c().songInVideo).toBeNull());
     });
 
     it('longer than a Frame, it opens the trim at the longest window', async () => {

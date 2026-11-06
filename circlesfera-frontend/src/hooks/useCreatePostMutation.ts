@@ -86,6 +86,8 @@ interface MutationDeps {
   selectedPlace: PlaceInput | null;
   selectedAudio: AudioTrack | null;
   audioStartMs: number;
+  /** A song already mixed into the video (from the Edits Studio). */
+  songInVideo?: { id: string; startMs: number } | null;
   isCloseFriendsOnly: boolean;
   isPremium: boolean;
   price: number;
@@ -339,8 +341,21 @@ export function useCreatePostMutation(deps: MutationDeps) {
             deps.coverTimeMs !== null &&
             !coverImageUrl && { coverTimeMs: deps.coverTimeMs }),
           ...(coverImageUrl && { coverImageUrl }),
-          audioId: deps.selectedAudio?.id,
-          audioStartMs: deps.selectedAudio ? deps.audioStartMs : 0,
+          // A song chosen here plays over the video; one already mixed into
+          // it (from the Edits Studio) is sent so it counts as used, and the
+          // video keeps its own sound.
+          ...(deps.selectedAudio
+            ? {
+                audioId: deps.selectedAudio.id,
+                audioStartMs: deps.audioStartMs,
+              }
+            : deps.songInVideo
+              ? {
+                  audioId: deps.songInVideo.id,
+                  audioStartMs: deps.songInVideo.startMs,
+                  audioInVideo: true,
+                }
+              : { audioId: undefined, audioStartMs: 0 }),
           location: deps.location || undefined,
           place: deps.selectedPlace || undefined,
           tags: Object.values(deps.tagsMap)

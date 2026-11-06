@@ -248,6 +248,15 @@ export class CreatePostDto {
   @Min(0)
   audioStartMs?: number;
 
+  /**
+   * The song is already mixed into the video (made in the Edits Studio): it
+   * counts as a use of the song, and the video keeps its own sound.
+   */
+  @ApiProperty({ required: false, type: () => Boolean })
+  @IsOptional()
+  @IsBoolean()
+  audioInVideo?: boolean;
+
   @ApiProperty({ required: false, enum: ['PUBLIC', 'FOLLOWERS', 'PRIVATE'] })
   @IsOptional()
   @IsEnum(Visibility)
