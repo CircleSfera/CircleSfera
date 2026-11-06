@@ -13,9 +13,10 @@ import { useUIStore } from '../stores/uiStore';
 import { renderWithProviders } from '../test/test-utils';
 import type { MediaClip, StudioProject, TextClip } from '../types/studio';
 import { exportStudioProject } from '../utils/ffmpegExport';
+import { MEDIA_PROBE_TIMEOUT_MS } from '../utils/mediaDuration';
 import { StudioExportError } from '../utils/studioExportHelpers';
 import { loadLocalStudioDraft } from '../utils/studioLocalDraft';
-import EditsStudio, { MEDIA_PROBE_TIMEOUT_MS } from './EditsStudio';
+import EditsStudio from './EditsStudio';
 
 type Props = Record<string, any>;
 
