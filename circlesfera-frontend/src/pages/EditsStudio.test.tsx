@@ -48,6 +48,50 @@ vi.mock('../utils/ffmpegExport', () => ({ exportStudioProject: vi.fn() }));
 vi.mock('../utils/studioLocalDraft', () => ({ loadLocalStudioDraft: vi.fn() }));
 vi.mock('../components/common/SEO', () => ({ default: () => null }));
 vi.mock('../components/studio/StudioPlayer', () => ({ default: () => null }));
+vi.mock('../components/studio/panels/AudioPanel', () => ({
+  default: (props: Props) => (
+    <>
+      <button
+        type="button"
+        onClick={() =>
+          props.onAddLibraryAudio({
+            id: 'song-1',
+            title: 'Sunrise',
+            artist: 'A',
+            url: 'https://cdn/song.mp3',
+            duration: 30,
+          })
+        }
+      >
+        use song
+      </button>
+      <input
+        type="file"
+        accept="audio/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) props.onAddAudioFile(file);
+        }}
+      />
+    </>
+  ),
+}));
+vi.mock('../components/studio/panels/VoicePanel', () => ({
+  default: (props: Props) => (
+    <button
+      type="button"
+      onClick={() =>
+        props.onRecorded({
+          blob: new Blob(['v'], { type: 'audio/webm;codecs=opus' }),
+          startAt: 1,
+          duration: 2,
+        })
+      }
+    >
+      record voice
+    </button>
+  ),
+}));
 vi.mock('../components/studio/modals/ExportModal', () => ({
   default: (props: Props) => {
     seen.exportModal = props;
@@ -375,6 +419,79 @@ describe('EditsStudio', () => {
     });
   });
 
+  describe('sound', () => {
+    it('puts a song of the library at the playhead, no longer than the video', async () => {
+      await open(project([clip('a', { duration: 10 })]));
+      act(() => store().setPlayhead(4));
+      fireEvent.click(screen.getByRole('button', { name: 'Audio' }));
+      fireEvent.click(screen.getByRole('button', { name: 'use song' }));
+      const layer = store().project?.tracks[1];
+      expect(layer).toMatchObject({ type: 'audio' });
+      expect(layer?.clips[0]).toMatchObject({
+        audioId: 'song-1',
+        label: 'Sunrise',
+        fileUrl: 'https://cdn/song.mp3',
+        startAt: 4,
+        duration: 6,
+        sourceDuration: 30,
+      });
+      expect(toast.success).toHaveBeenCalledWith('"Sunrise" added');
+      expect(store().openSheet).toBeNull();
+    });
+
+    it('puts a song in an empty project for its whole length', async () => {
+      await open(project([]));
+      act(() => store().setOpenSheet('audio'));
+      fireEvent.click(screen.getByRole('button', { name: 'use song' }));
+      expect(store().project?.tracks[1].clips[0]).toMatchObject({
+        duration: 30,
+      });
+    });
+
+    it('uploads a recorded voice and puts it where it was recorded, on a voice layer', async () => {
+      await open(project([clip('a', { duration: 10 })]));
+      fireEvent.click(screen.getByRole('button', { name: 'Voice' }));
+      fireEvent.click(screen.getByRole('button', { name: 'record voice' }));
+      await waitFor(() => expect(store().project?.tracks).toHaveLength(2));
+      const sent = vi.mocked(uploadApi.upload).mock.calls[0][0] as FormData;
+      expect((sent.get('file') as File).name).toBe('voice.webm');
+      expect(store().project?.tracks[1]).toMatchObject({
+        type: 'voice',
+        name: 'Voice',
+      });
+      expect(store().project?.tracks[1].clips[0]).toMatchObject({
+        startAt: 1,
+        duration: 2,
+        fileUrl: 'https://cdn/uploaded.mp4',
+      });
+      expect(toast.success).toHaveBeenCalledWith('Voice added');
+    });
+
+    it('says so when a recorded voice cannot be uploaded', async () => {
+      vi.mocked(uploadApi.upload).mockRejectedValueOnce(new Error('no'));
+      await open(project([clip('a', { duration: 10 })]));
+      act(() => store().setOpenSheet('voice'));
+      fireEvent.click(screen.getByRole('button', { name: 'record voice' }));
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
+      expect(store().project?.tracks).toHaveLength(1);
+    });
+
+    it('takes the sound of a video out from its tools', async () => {
+      await open(project([clip('a', { duration: 10 })]));
+      act(() => store().selectClip('a'));
+      fireEvent.click(screen.getByRole('button', { name: 'Extract audio' }));
+      expect(mainClips()[0].muted).toBe(true);
+      expect(store().project?.tracks[1].clips[0]).toMatchObject({
+        detachedFrom: 'a',
+      });
+      act(() => store().selectClip('a'));
+      expect(
+        screen.queryByRole('button', { name: 'Extract audio' }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fades' })).toBeInTheDocument();
+    });
+  });
+
   describe('a chosen clip', () => {
     it('turns the tools to the clip, and Done lets go of it', async () => {
       await open(project([clip('a')]));
@@ -698,8 +815,43 @@ describe('EditsStudio', () => {
       await act(async () => seen.exportModal.onPublish('2026-12-01T10:00'));
       expect(useUIStore.getState().editedMediaForPost).toMatchObject({
         scheduledAt: '2026-12-01T10:00',
+        songInVideo: undefined,
       });
       expect(seen.navigate).toHaveBeenCalledWith('/create?mode=frame');
+    });
+
+    it('names the library song the video carries, so publishing it counts as a use', async () => {
+      vi.mocked(exportStudioProject).mockResolvedValue(
+        new File(['mp4'], 'e.mp4'),
+      );
+      const song = clip('s', {
+        type: 'audio',
+        trackId: 'music',
+        audioId: 'song-1',
+        mediaStart: 12.5,
+      });
+      await open(
+        project(
+          [clip('a')],
+          [
+            {
+              id: 'music',
+              type: 'audio',
+              name: 'Audio',
+              clips: [song],
+              muted: false,
+              hidden: false,
+              locked: false,
+            },
+          ],
+        ),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await act(async () => seen.exportModal.onStartExport('balanced'));
+      await act(async () => seen.exportModal.onPublish(''));
+      expect(useUIStore.getState().editedMediaForPost).toMatchObject({
+        songInVideo: { id: 'song-1', startMs: 12500 },
+      });
     });
 
     it('downloads the video under the project name, and closes', async () => {

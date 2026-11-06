@@ -171,6 +171,9 @@ describe('the studio store, for the editor', () => {
       sourceDuration: null,
     });
     store().addLayerClip('text', textClip('w'), layer('text'));
+    store().setClipFades('a', { fadeIn: 1 });
+    store().detachSound('a', layer('audio'));
+    store().setDuckUnderVoice(false);
     expect(store().project).toBeNull();
   });
 
@@ -240,5 +243,46 @@ describe('the studio store, for the editor', () => {
     useStudioStore.setState({ project: null });
     store().replaceMediaUrl('a', 'b');
     expect(store().project).toBeNull();
+  });
+
+  it('sets the fades of a clip within their limits, and leaves a text alone', () => {
+    store().setClipFades('b', { fadeIn: 1, fadeOut: 9 });
+    expect(main()[1]).toMatchObject({ fadeIn: 1, fadeOut: 2 });
+    const before = store().project;
+    store().setClipFades('b', { fadeIn: 1 });
+    expect(store().project).toBe(before);
+    const steps = store().past.length;
+    store().setClipFades('b', { fadeIn: 0.5 }, { history: false });
+    expect(store().past).toHaveLength(steps);
+    store().addLayerClip('text', textClip('w'), layer('text'));
+    const withText = store().project;
+    store().setClipFades('w', { fadeIn: 1 });
+    store().setClipFades('missing', { fadeIn: 1 });
+    expect(store().project).toBe(withText);
+  });
+
+  it('takes the sound of a video out, chooses it, and undoes it', () => {
+    store().detachSound('a', layer('audio'));
+    expect(main()[0].muted).toBe(true);
+    expect(tracks()[1].clips[0]).toMatchObject({
+      type: 'audio',
+      detachedFrom: 'a',
+    });
+    expect(store().selectedClipId).toBe(tracks()[1].clips[0].id);
+    store().undo();
+    expect(main()[0].muted).toBe(false);
+    const before = store().project;
+    store().detachSound('missing', layer('audio'));
+    expect(store().project).toBe(before);
+  });
+
+  it('turns the drop under a voice off and on, once each', () => {
+    store().setDuckUnderVoice(false);
+    expect(store().project?.duckUnderVoice).toBe(false);
+    const steps = store().past.length;
+    store().setDuckUnderVoice(false);
+    expect(store().past).toHaveLength(steps);
+    store().setRecordingVoice(true);
+    expect(store().isRecordingVoice).toBe(true);
   });
 });

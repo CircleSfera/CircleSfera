@@ -5047,7 +5047,8 @@
       "removed": "Pista eliminada",
       "added": "Pista de {{type}} añadida",
       "keep_one_video": "Debes conservar al menos una pista de vídeo",
-      "remove_confirm": "¿Eliminar esta pista y todos sus clips?"
+      "remove_confirm": "¿Eliminar esta pista y todos sus clips?",
+      "voice": "Voz"
     },
     "tools": {
       "dock_label": "Herramientas de Studio",
@@ -5063,7 +5064,10 @@
       "replace": "Reemplazar",
       "duplicate": "Duplicar",
       "done": "Listo",
-      "clip_label": "Herramientas del clip"
+      "clip_label": "Herramientas del clip",
+      "voice": "Voz",
+      "fades": "Fundidos",
+      "detach": "Extraer audio"
     },
     "properties": {
       "title": "Propiedades",
@@ -5123,7 +5127,17 @@
     "audio": {
       "title": "Pistas de audio y efectos de sonido",
       "upload": "Cargar audio del dispositivo",
-      "added": "Pista de audio añadida"
+      "added": "Pista de audio añadida",
+      "search": "Buscar canciones",
+      "results": "Resultados",
+      "trending": "Populares",
+      "load_error": "No se han podido cargar las canciones.",
+      "none": "No hay canciones.",
+      "stop": "Parar {{title}}",
+      "listen": "Escuchar {{title}}",
+      "use": "Añadir {{title}}",
+      "add": "Añadir",
+      "added_song": "«{{title}}» añadida"
     },
     "filters": {
       "title": "Filtros visuales",
@@ -5195,7 +5209,9 @@
       "title": "Ajustes del proyecto",
       "name": "Nombre",
       "format": "Formato",
-      "format_hint": "Los Frames y las historias se ven en vertical (9:16)."
+      "format_hint": "Los Frames y las historias se ven en vertical (9:16).",
+      "duck": "Bajar la música bajo la voz",
+      "duck_hint": "Mientras suena una voz grabada, el resto del sonido baja."
     },
     "speed": {
       "length": "El clip dura {{seconds}} s a esta velocidad."
@@ -5215,6 +5231,20 @@
     "volume": {
       "mute": "Silenciar el clip",
       "unmute": "Activar el sonido del clip"
+    },
+    "voice": {
+      "needs_clips": "Añade clips para grabar tu voz sobre ellos.",
+      "denied": "No hay permiso para usar el micrófono. Actívalo en los ajustes del navegador.",
+      "starting": "Empieza en {{count}}…",
+      "recording": "Grabando · {{time}}",
+      "hint": "Se grabará desde {{time}} hasta que la pares o termine el vídeo. El vídeo suena en silencio mientras grabas.",
+      "stop": "Parar",
+      "record": "Grabar",
+      "added": "Voz añadida"
+    },
+    "fades": {
+      "in": "Entrada",
+      "out": "Salida"
     }
   },
   "live": {

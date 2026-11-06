@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../stores/studioStore';
 import type { AspectRatioType, MediaClip, TextClip } from '../../types/studio';
+import { clipGainAt, isSoundTrack } from '../../utils/studioAudio';
 import {
   containRect,
   resolutionForAspect,
@@ -52,7 +53,8 @@ function drawMediaClip(
 
 export default function StudioPlayer() {
   const { t } = useTranslation();
-  const { project, playhead, isPlaying, setPlayhead } = useStudioStore();
+  const { project, playhead, isPlaying, setPlayhead, isRecordingVoice } =
+    useStudioStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioElementsRef = useRef<Record<string, HTMLAudioElement>>({});
   const videoElementsRef = useRef<Record<string, HTMLVideoElement>>({});
@@ -108,8 +110,16 @@ export default function StudioPlayer() {
         const parentTrack = videoTracks.find((tr) =>
           tr.clips.some((c) => c.id === clip.id),
         );
-        videoEl.muted = Boolean(clip.muted) || Boolean(parentTrack?.muted);
-        videoEl.volume = Math.max(0, Math.min(1, clip.volume ?? 1));
+        // Silent while a voice is recorded, so the microphone hears only it.
+        videoEl.muted =
+          Boolean(clip.muted) ||
+          Boolean(parentTrack?.muted) ||
+          isRecordingVoice;
+        // Its volume, its fades and the drop under a voice, as exported.
+        videoEl.volume = Math.max(
+          0,
+          Math.min(1, clipGainAt(project, clip, playhead, false)),
+        );
         videoEl.playbackRate = clip.speed ?? 1;
 
         const targetTime =
@@ -136,9 +146,15 @@ export default function StudioPlayer() {
       if (!activeVideoIds.has(id) && !el.paused) el.pause();
     });
 
-    const audioClips = project.tracks
-      .filter((tr) => tr.type === 'audio' && !tr.muted)
-      .flatMap((tr) => tr.clips) as MediaClip[];
+    const soundTracks = project.tracks.filter(
+      (tr) => isSoundTrack(tr) && !tr.muted,
+    );
+    const audioClips = soundTracks.flatMap((tr) => tr.clips) as MediaClip[];
+    const voiceIds = new Set(
+      soundTracks
+        .filter((tr) => tr.type === 'voice')
+        .flatMap((tr) => tr.clips.map((c) => c.id)),
+    );
 
     const soundingAudioIds = new Set<string>();
 
@@ -156,13 +172,19 @@ export default function StudioPlayer() {
       const overlappingAudio =
         playhead >= clip.startAt && playhead < clip.startAt + clip.duration;
 
-      if (overlappingAudio && !clip.muted) {
+      if (overlappingAudio && !clip.muted && !isRecordingVoice) {
         const targetTime =
           clip.mediaStart + (playhead - clip.startAt) * (clip.speed ?? 1);
         if (Math.abs(audioEl.currentTime - targetTime) > 0.2) {
           audioEl.currentTime = targetTime;
         }
-        audioEl.volume = Math.max(0, Math.min(1, clip.volume ?? 1));
+        audioEl.volume = Math.max(
+          0,
+          Math.min(
+            1,
+            clipGainAt(project, clip, playhead, voiceIds.has(clip.id)),
+          ),
+        );
         audioEl.playbackRate = clip.speed ?? 1;
         if (isPlaying && audioEl.paused) {
           audioEl.play().catch(() => {});
@@ -179,7 +201,7 @@ export default function StudioPlayer() {
     Object.entries(audioElementsRef.current).forEach(([id, el]) => {
       if (!soundingAudioIds.has(id) && !el.paused) el.pause();
     });
-  }, [playhead, project, isPlaying]);
+  }, [playhead, project, isPlaying, isRecordingVoice]);
 
   useEffect(() => {
     const videos = videoElementsRef.current;

@@ -5047,7 +5047,8 @@
       "removed": "Track removed",
       "added": "{{type}} track added",
       "keep_one_video": "Keep at least one video track",
-      "remove_confirm": "Remove this track and all of its clips?"
+      "remove_confirm": "Remove this track and all of its clips?",
+      "voice": "Voice"
     },
     "tools": {
       "dock_label": "Studio tools",
@@ -5063,7 +5064,10 @@
       "replace": "Replace",
       "duplicate": "Duplicate",
       "done": "Done",
-      "clip_label": "Clip tools"
+      "clip_label": "Clip tools",
+      "voice": "Voice",
+      "fades": "Fades",
+      "detach": "Extract audio"
     },
     "properties": {
       "title": "Properties",
@@ -5123,7 +5127,17 @@
     "audio": {
       "title": "Audio tracks & SFX",
       "upload": "Upload audio from device",
-      "added": "Audio track added"
+      "added": "Audio track added",
+      "search": "Search songs",
+      "results": "Results",
+      "trending": "Popular",
+      "load_error": "The songs could not be loaded.",
+      "none": "No songs.",
+      "stop": "Stop {{title}}",
+      "listen": "Listen to {{title}}",
+      "use": "Add {{title}}",
+      "add": "Add",
+      "added_song": "\"{{title}}\" added"
     },
     "filters": {
       "title": "Visual filters",
@@ -5195,7 +5209,9 @@
       "title": "Project settings",
       "name": "Name",
       "format": "Format",
-      "format_hint": "Frames and stories are shown upright (9:16)."
+      "format_hint": "Frames and stories are shown upright (9:16).",
+      "duck": "Lower music under voice",
+      "duck_hint": "While a recorded voice plays, the rest of the sound drops."
     },
     "speed": {
       "length": "At this speed the clip lasts {{seconds}} s."
@@ -5215,6 +5231,20 @@
     "volume": {
       "mute": "Mute clip",
       "unmute": "Unmute clip"
+    },
+    "voice": {
+      "needs_clips": "Add clips to record your voice over them.",
+      "denied": "There is no permission to use the microphone. Allow it in the browser settings.",
+      "starting": "Starting in {{count}}…",
+      "recording": "Recording · {{time}}",
+      "hint": "Records from {{time}} until you stop or the video ends. The video plays silent while you record.",
+      "stop": "Stop",
+      "record": "Record",
+      "added": "Voice added"
+    },
+    "fades": {
+      "in": "Fade in",
+      "out": "Fade out"
     }
   },
   "live": {

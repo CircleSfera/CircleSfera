@@ -21,6 +21,7 @@ const ICONS = {
 const LAYER_COLORS: Record<string, string> = {
   text: 'bg-brand-accent/80',
   audio: 'bg-brand-primary/70',
+  voice: 'bg-brand-blue/70',
 };
 
 interface TimelineClipProps {
@@ -29,6 +30,8 @@ interface TimelineClipProps {
   /** On the main track a clip is moved to another place; on a layer, in time. */
   kind: 'main' | 'layer';
   locked?: boolean;
+  /** The kind of layer it lies on, for its colour. */
+  layer?: 'audio' | 'voice' | 'text' | 'video';
   /** Where a clip of the main track being moved would go, as it moves. */
   onMoving?: (clipId: string, timelineX: number | null) => void;
   onMoved?: (clipId: string, timelineX: number) => void;
@@ -36,7 +39,7 @@ interface TimelineClipProps {
 
 function clipLabel(clip: Clip, t: (key: string) => string): string {
   if (clip.type === 'text') return clip.content;
-  return t(`studio.clip_types.${clip.type}`);
+  return (clip as MediaClip).label || t(`studio.clip_types.${clip.type}`);
 }
 
 export default function TimelineClip({
@@ -44,6 +47,7 @@ export default function TimelineClip({
   zoom,
   kind,
   locked = false,
+  layer,
   onMoving,
   onMoved,
 }: TimelineClipProps) {
@@ -201,7 +205,7 @@ export default function TimelineClip({
   const background =
     kind === 'main'
       ? 'bg-surface-high'
-      : (LAYER_COLORS[clip.type] ?? 'bg-surface-high');
+      : (LAYER_COLORS[layer ?? clip.type] ?? 'bg-surface-high');
 
   return (
     <div
