@@ -10,7 +10,7 @@ services:
 
   nginx-proxy:
     <<: *default-logging
-    image: nginx:alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606
+    image: nginx:alpine@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11
     container_name: CircleSfera-Proxy
     ports:
       # Loopback only: the host nginx is the single way in. Published on all
@@ -55,7 +55,7 @@ services:
 
   redis:
     <<: *default-logging
-    image: redis:7-alpine@sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f
+    image: redis:7-alpine@sha256:c5d34a98396a4775e223c74e929162c35c5a2182901ba26b50ade939941ce14b
     container_name: CircleSfera-Redis
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env.production}"]
     volumes:
