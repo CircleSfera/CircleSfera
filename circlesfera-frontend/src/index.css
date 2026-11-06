@@ -1202,7 +1202,9 @@ input[type="range"]::-moz-range-progress {
 }
 body:has([data-app-top-bar]) .app-toaster {
   --app-toaster-top: calc(
-    var(--nav-top-height) + env(safe-area-inset-top, 0px) + 0.5rem
+    var(--nav-top-height) +
+    env(safe-area-inset-top, 0px) +
+    0.5rem
   );
 }
 /* A pill as wide as its words, up to most of a phone or 420 px. */
