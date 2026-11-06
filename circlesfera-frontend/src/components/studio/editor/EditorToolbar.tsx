@@ -1,22 +1,25 @@
 import {
+  AudioLines,
   Captions,
   Check,
   Copy,
   Film,
   Gauge,
   type LucideIcon,
+  Mic,
   Move,
   Music,
   Replace,
   Scissors,
   Trash2,
   Type,
+  Unlink,
   Volume2,
   Wand2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
-import type { Clip, StudioPanel } from '../../../types/studio';
+import type { Clip, MediaClip, StudioPanel } from '../../../types/studio';
 import { locateClip } from '../../../utils/studioTimeline';
 
 interface Tool {
@@ -33,12 +36,14 @@ interface EditorToolbarProps {
   onAddMedia: () => void;
   onReplace: () => void;
   onDuplicate: () => void;
+  onDetachSound: () => void;
 }
 
 /** The tools of the project, when no clip is chosen. */
 export const PROJECT_TOOLS: Tool[] = [
   { id: 'media', icon: Film, labelKey: 'studio.tools.media' },
   { id: 'audio', icon: Music, labelKey: 'studio.tools.audio', panel: 'audio' },
+  { id: 'voice', icon: Mic, labelKey: 'studio.tools.voice', panel: 'voice' },
   { id: 'text', icon: Type, labelKey: 'studio.tools.text', panel: 'text' },
   {
     id: 'subtitles',
@@ -65,6 +70,7 @@ export default function EditorToolbar({
   onAddMedia,
   onReplace,
   onDuplicate,
+  onDetachSound,
 }: EditorToolbarProps) {
   const { t } = useTranslation();
   const project = useStudioStore((s) => s.project);
@@ -113,6 +119,23 @@ export default function EditorToolbar({
               icon: Volume2,
               labelKey: 'studio.tools.volume',
               panel: 'volume' as const,
+            },
+            {
+              id: 'fades',
+              icon: AudioLines,
+              labelKey: 'studio.tools.fades',
+              panel: 'fades' as const,
+            },
+          ]
+        : []),
+      // A video's own sound can be taken out to be edited on its own.
+      ...(clip.type === 'video' && !(clip as MediaClip).muted
+        ? [
+            {
+              id: 'detach',
+              icon: Unlink,
+              labelKey: 'studio.tools.detach',
+              run: onDetachSound,
             },
           ]
         : []),

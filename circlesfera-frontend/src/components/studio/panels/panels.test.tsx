@@ -111,7 +111,10 @@ describe('AudioPanel', () => {
   it('hands over the chosen sound file, and nothing when none is chosen', () => {
     const onAddAudioFile = vi.fn();
     const { container } = renderWithProviders(
-      <AudioPanel onAddAudioFile={onAddAudioFile} />,
+      <AudioPanel
+        onAddLibraryAudio={vi.fn()}
+        onAddAudioFile={onAddAudioFile}
+      />,
     );
     const file = new File(['x'], 'song.mp3', { type: 'audio/mpeg' });
 
@@ -126,7 +129,7 @@ describe('AudioPanel', () => {
 
   it('opens the file picker from its button', () => {
     const { container } = renderWithProviders(
-      <AudioPanel onAddAudioFile={vi.fn()} />,
+      <AudioPanel onAddLibraryAudio={vi.fn()} onAddAudioFile={vi.fn()} />,
     );
     const click = vi.spyOn(
       container.querySelector('input[type="file"]') as HTMLElement,

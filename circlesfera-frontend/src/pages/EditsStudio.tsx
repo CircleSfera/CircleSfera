@@ -9,11 +9,13 @@ import EditorToolbar from '../components/studio/editor/EditorToolbar';
 import EditorTopbar from '../components/studio/editor/EditorTopbar';
 import EditorTransport from '../components/studio/editor/EditorTransport';
 import ExportModal from '../components/studio/modals/ExportModal';
+import type { VoiceRecording } from '../components/studio/panels/VoicePanel';
 import StudioPlayer from '../components/studio/StudioPlayer';
 import { useStudioAutosave } from '../hooks/useStudioAutosave';
 import { useWideScreen } from '../hooks/useWideScreen';
 import { uploadApi } from '../services/upload.service';
 import { useStudioStore } from '../stores/studioStore';
+import type { Audio } from '../types';
 import type { MediaClip, Track } from '../types/studio';
 import { exportStudioProject } from '../utils/ffmpegExport';
 import { readMediaDuration } from '../utils/mediaDuration';
@@ -170,6 +172,7 @@ export default function EditsStudio() {
         trackId: '',
         type: 'audio',
         file,
+        label: file.name.replace(/\.[^.]+$/, ''),
         fileUrl: localUrl,
         startAt: useStudioStore.getState().playhead,
         duration: sourceDuration,
@@ -184,6 +187,67 @@ export default function EditsStudio() {
       useStudioStore.getState().setOpenSheet(null);
       toast.success(t('studio.audio.added'));
       await swapToUploaded(file, localUrl);
+    } catch {
+      toast.error(t('studio.media.upload_error'));
+    }
+  };
+
+  // A song of the library starts at the playhead, as long as it is or
+  // until the video ends, on the first sound layer free there.
+  const addLibraryAudio = (audio: Audio) => {
+    const state = useStudioStore.getState();
+    const current = state.project;
+    if (!current) return;
+    const end = projectContentEnd(current);
+    const room = end > state.playhead ? end - state.playhead : audio.duration;
+    const clip: MediaClip = {
+      id: newStudioId(),
+      trackId: '',
+      type: 'audio',
+      file: null,
+      fileUrl: audio.url,
+      startAt: state.playhead,
+      duration: Math.min(audio.duration, room),
+      sourceDuration: audio.duration,
+      audioId: audio.id,
+      label: audio.title,
+      mediaStart: 0,
+      speed: 1,
+      volume: 1,
+      muted: false,
+      transform: { scale: 1, rotation: 0, x: 0, y: 0 },
+    };
+    addLayerClip('audio', clip, () => newTrack('audio'));
+    useStudioStore.getState().setOpenSheet(null);
+    toast.success(t('studio.audio.added_song', { title: audio.title }));
+  };
+
+  // A recorded voice goes where it was recorded, on a voice layer, once
+  // uploaded.
+  const addRecording = async ({ blob, startAt, duration }: VoiceRecording) => {
+    const type = blob.type.split(';')[0] || 'audio/webm';
+    const ext = type.includes('mp4') ? 'm4a' : 'webm';
+    const file = new File([blob], `voice.${ext}`, { type });
+    try {
+      const url = await upload(file);
+      const clip: MediaClip = {
+        id: newStudioId(),
+        trackId: '',
+        type: 'audio',
+        file: null,
+        fileUrl: url,
+        startAt,
+        duration,
+        sourceDuration: duration,
+        label: t('studio.tracks.voice'),
+        mediaStart: 0,
+        speed: 1,
+        volume: 1,
+        muted: false,
+        transform: { scale: 1, rotation: 0, x: 0, y: 0 },
+      };
+      addLayerClip('voice', clip, () => newTrack('voice'));
+      toast.success(t('studio.voice.added'));
     } catch {
       toast.error(t('studio.media.upload_error'));
     }
@@ -347,6 +411,12 @@ export default function EditsStudio() {
     navigate('/edits');
   };
 
+  const panelActions = {
+    onAddAudioFile: (f: File) => void addAudioFile(f),
+    onAddLibraryAudio: addLibraryAudio,
+    onRecorded: (r: VoiceRecording) => void addRecording(r),
+  };
+
   if (!hydrated || !project) {
     return (
       <div className="flex h-full items-center justify-center bg-surface-base">
@@ -382,10 +452,7 @@ export default function EditsStudio() {
             className="w-90 shrink-0 border-l border-white/10 bg-surface-elevated"
             aria-label={t('studio.panel_label')}
           >
-            <EditorPanel
-              variant="side"
-              onAddAudioFile={(f) => void addAudioFile(f)}
-            />
+            <EditorPanel variant="side" {...panelActions} />
           </aside>
         )}
       </div>
@@ -393,10 +460,7 @@ export default function EditsStudio() {
       <div className="relative h-[30vh] min-h-44 max-h-72 shrink-0 border-t border-white/10 bg-surface-base">
         <EditorTimeline onAddMedia={() => mediaInputRef.current?.click()} />
         {!wide && openSheet && (
-          <EditorPanel
-            variant="sheet"
-            onAddAudioFile={(f) => void addAudioFile(f)}
-          />
+          <EditorPanel variant="sheet" {...panelActions} />
         )}
       </div>
 
@@ -404,6 +468,11 @@ export default function EditsStudio() {
         onAddMedia={() => mediaInputRef.current?.click()}
         onReplace={() => replaceInputRef.current?.click()}
         onDuplicate={() => duplicateSelected(newTrack)}
+        onDetachSound={() => {
+          const id = useStudioStore.getState().selectedClipId;
+          if (id)
+            useStudioStore.getState().detachSound(id, () => newTrack('audio'));
+        }}
       />
 
       <input

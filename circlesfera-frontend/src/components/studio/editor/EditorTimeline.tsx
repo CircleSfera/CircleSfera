@@ -244,6 +244,7 @@ export default function EditorTimeline({ onAddMedia }: EditorTimelineProps) {
                   clip={clip}
                   zoom={zoom}
                   kind="layer"
+                  layer={track.type}
                   locked={track.locked}
                 />
               ))}

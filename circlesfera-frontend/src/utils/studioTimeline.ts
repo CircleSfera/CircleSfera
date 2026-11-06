@@ -111,7 +111,7 @@ export function isFreeOnTrack(
  */
 export function layerFor(
   project: StudioProject,
-  type: 'text' | 'audio',
+  type: 'text' | 'audio' | 'voice',
   start: number,
   duration: number,
   newTrack: () => Track,

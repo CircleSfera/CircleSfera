@@ -1,20 +1,25 @@
 import { MousePointerClick, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
+import type { Audio } from '../../../types';
 import type { StudioPanel } from '../../../types/studio';
 import PropertiesPanel from '../layout/PropertiesPanel';
 import AudioPanel from '../panels/AudioPanel';
 import CaptionsPanel from '../panels/CaptionsPanel';
+import ClipFadesPanel from '../panels/ClipFadesPanel';
 import ClipSpeedPanel from '../panels/ClipSpeedPanel';
 import ClipVolumePanel from '../panels/ClipVolumePanel';
 import FiltersPanel from '../panels/FiltersPanel';
 import ProjectSettingsPanel from '../panels/ProjectSettingsPanel';
 import TextPanel from '../panels/TextPanel';
+import VoicePanel, { type VoiceRecording } from '../panels/VoicePanel';
 
 const TITLES: Record<StudioPanel, string> = {
   media: 'studio.tools.media',
   text: 'studio.tools.text',
   audio: 'studio.tools.audio',
+  voice: 'studio.tools.voice',
+  fades: 'studio.tools.fades',
   filters: 'studio.tools.filters',
   subtitles: 'studio.tools.captions',
   speed: 'studio.tools.speed',
@@ -23,24 +28,38 @@ const TITLES: Record<StudioPanel, string> = {
   settings: 'studio.settings.title',
 };
 
-interface EditorPanelProps {
+export interface PanelActions {
+  onAddAudioFile: (file: File) => void;
+  onAddLibraryAudio: (audio: Audio) => void;
+  onRecorded: (recording: VoiceRecording) => void;
+}
+
+interface EditorPanelProps extends PanelActions {
   /** Over the timeline on a phone; a column beside the video on a wide screen. */
   variant: 'sheet' | 'side';
-  onAddAudioFile: (file: File) => void;
 }
 
 function PanelBody({
   panel,
-  onAddAudioFile,
+  actions,
 }: {
   panel: StudioPanel;
-  onAddAudioFile: (file: File) => void;
+  actions: PanelActions;
 }) {
   switch (panel) {
     case 'text':
       return <TextPanel />;
     case 'audio':
-      return <AudioPanel onAddAudioFile={onAddAudioFile} />;
+      return (
+        <AudioPanel
+          onAddAudioFile={actions.onAddAudioFile}
+          onAddLibraryAudio={actions.onAddLibraryAudio}
+        />
+      );
+    case 'voice':
+      return <VoicePanel onRecorded={actions.onRecorded} />;
+    case 'fades':
+      return <ClipFadesPanel />;
     case 'filters':
       return <FiltersPanel />;
     case 'subtitles':
@@ -59,10 +78,7 @@ function PanelBody({
 }
 
 /** The panel of the tool that is open. */
-export default function EditorPanel({
-  variant,
-  onAddAudioFile,
-}: EditorPanelProps) {
+export default function EditorPanel({ variant, ...actions }: EditorPanelProps) {
   const { t } = useTranslation();
   const panel = useStudioStore((s) => s.openSheet);
   const setOpenSheet = useStudioStore((s) => s.setOpenSheet);
@@ -100,7 +116,7 @@ export default function EditorPanel({
         </button>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4">
-        <PanelBody panel={panel} onAddAudioFile={onAddAudioFile} />
+        <PanelBody panel={panel} actions={actions} />
       </div>
     </section>
   );

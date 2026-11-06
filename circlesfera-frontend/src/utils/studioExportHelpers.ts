@@ -243,9 +243,10 @@ export function visualClipsOnVideoTrack(project: StudioProject): MediaClip[] {
   return visualClipsOnVideoTracks(project);
 }
 
+// The clips of the sound and voice layers that are not silenced.
 export function audioClipsOnTracks(project: StudioProject): MediaClip[] {
   return project.tracks
-    .filter((t) => t.type === 'audio' && !t.muted)
+    .filter((t) => (t.type === 'audio' || t.type === 'voice') && !t.muted)
     .flatMap((t) => t.clips)
     .filter((c): c is MediaClip => c.type === 'audio')
     .slice()

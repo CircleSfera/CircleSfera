@@ -27,6 +27,11 @@ vi.mock('../layout/PropertiesPanel', () => ({
 }));
 
 const store = () => useStudioStore.getState();
+const panelActions = {
+  onAddAudioFile: vi.fn(),
+  onAddLibraryAudio: vi.fn(),
+  onRecorded: vi.fn(),
+};
 const main = () => store().project?.tracks[0].clips as MediaClip[];
 const clipButton = (id: string) =>
   document.querySelector(`[data-studio-clip="${id}"] > button`) as HTMLElement;
@@ -324,6 +329,13 @@ describe('a clip on the timeline', () => {
     expect(store().selectedClipId).toBeNull();
   });
 
+  it('is named on the timeline by its label when it has one', () => {
+    act(() => store().updateClip('w', { content: 'Hello' } as never));
+    expect(clipButton('w')).toHaveAccessibleName(/Hello/);
+    act(() => store().updateClip('a', { label: 'Beach' } as never));
+    expect(clipButton('a')).toHaveAccessibleName(/^Beach/);
+  });
+
   it('on a layer is moved in time', () => {
     const w = clipButton('w');
     fireEvent.pointerDown(w, {
@@ -414,15 +426,13 @@ describe('the panels', () => {
   beforeEach(() => openTwoClips());
 
   it('beside the video, says what to do when none is open', () => {
-    renderWithProviders(
-      <EditorPanel variant="side" onAddAudioFile={vi.fn()} />,
-    );
+    renderWithProviders(<EditorPanel variant="side" {...panelActions} />);
     expect(screen.getByText(/Choose a tool/)).toBeInTheDocument();
   });
 
   it('over the timeline, shows nothing when none is open, and closes', () => {
     const { container } = renderWithProviders(
-      <EditorPanel variant="sheet" onAddAudioFile={vi.fn()} />,
+      <EditorPanel variant="sheet" {...panelActions} />,
     );
     expect(container).toBeEmptyDOMElement();
     act(() => store().setOpenSheet('adjust'));
@@ -442,9 +452,7 @@ describe('the panels', () => {
     'media',
   ] as const)('shows the %s panel', (panel) => {
     act(() => store().setOpenSheet(panel));
-    renderWithProviders(
-      <EditorPanel variant="side" onAddAudioFile={vi.fn()} />,
-    );
+    renderWithProviders(<EditorPanel variant="side" {...panelActions} />);
     expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
   });
 

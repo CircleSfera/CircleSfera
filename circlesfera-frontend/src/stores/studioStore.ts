@@ -8,6 +8,11 @@ import type {
   StudioTab,
   Track,
 } from '../types/studio';
+import {
+  clampFade,
+  ducksUnderVoice,
+  withDetachedSound,
+} from '../utils/studioAudio';
 import { resolutionForAspect } from '../utils/studioExportHelpers';
 import { withLengthOfClips } from '../utils/studioProject';
 import {
@@ -36,6 +41,9 @@ interface StudioState {
   activeTab: StudioTab;
   openSheet: StudioPanel | null;
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  /** A voice is being recorded: the preview plays silent. */
+  isRecordingVoice: boolean;
+  setRecordingVoice: (on: boolean) => void;
 
   past: StudioProject[];
   future: StudioProject[];
@@ -89,9 +97,19 @@ interface StudioState {
    * in its history: a copy made while the file was uploading included.
    */
   replaceMediaUrl: (from: string, to: string) => void;
+  /** Sets how long a clip's sound fades in and out, within their limits. */
+  setClipFades: (
+    clipId: string,
+    fades: { fadeIn?: number; fadeOut?: number },
+    options?: { history?: boolean },
+  ) => void;
+  /** Takes a video's sound out onto a sound layer and chooses it. */
+  detachSound: (clipId: string, newTrack: () => Track) => void;
+  /** Whether other sound drops while a voice speaks. */
+  setDuckUnderVoice: (on: boolean) => void;
   /** Adds a text or a sound on the first layer of its kind free there. */
   addLayerClip: (
-    type: 'text' | 'audio',
+    type: 'text' | 'audio' | 'voice',
     clip: Clip,
     newTrack: () => Track,
   ) => void;
@@ -103,6 +121,7 @@ interface StudioState {
 const CLIP_PANELS: ReadonlySet<StudioPanel> = new Set([
   'speed',
   'volume',
+  'fades',
   'adjust',
   'filters',
 ]);
@@ -146,6 +165,8 @@ export const useStudioStore = create<StudioState>((set) => ({
   activeTab: 'media',
   openSheet: null,
   saveStatus: 'idle',
+  isRecordingVoice: false,
+  setRecordingVoice: (on) => set({ isRecordingVoice: on }),
 
   past: [],
   future: [],
@@ -483,6 +504,52 @@ export const useStudioStore = create<StudioState>((set) => ({
         clips: t.clips.map((c) => (c.id === clipId ? replaced : c)),
       }));
       return pushHistory(state, settle({ ...state.project, tracks }));
+    }),
+
+  setClipFades: (clipId, fades, options) =>
+    set((state) => {
+      if (!state.project) return state;
+      const found = locateClip(state.project, clipId);
+      if (!found || found.clip.type === 'text') return state;
+      const clip = found.clip as MediaClip;
+      const next: MediaClip = {
+        ...clip,
+        ...(fades.fadeIn !== undefined
+          ? { fadeIn: clampFade(fades.fadeIn, clip.duration) }
+          : {}),
+        ...(fades.fadeOut !== undefined
+          ? { fadeOut: clampFade(fades.fadeOut, clip.duration) }
+          : {}),
+      };
+      if (next.fadeIn === clip.fadeIn && next.fadeOut === clip.fadeOut) {
+        return state;
+      }
+      const tracks = state.project.tracks.map((t) => ({
+        ...t,
+        clips: t.clips.map((c) => (c.id === clipId ? next : c)),
+      }));
+      const updated = { ...state.project, tracks };
+      return options?.history === false
+        ? { project: updated }
+        : pushHistory(state, updated);
+    }),
+
+  detachSound: (clipId, newTrack) =>
+    set((state) => {
+      if (!state.project) return state;
+      const done = withDetachedSound(state.project, clipId, newTrack);
+      if (!done) return state;
+      return {
+        ...pushHistory(state, settle(done.project)),
+        selectedClipId: done.soundId,
+        openSheet: null,
+      };
+    }),
+
+  setDuckUnderVoice: (on) =>
+    set((state) => {
+      if (!state.project || ducksUnderVoice(state.project) === on) return state;
+      return pushHistory(state, { ...state.project, duckUnderVoice: on });
     }),
 
   replaceMediaUrl: (from, to) =>

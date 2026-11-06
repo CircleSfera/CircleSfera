@@ -2,6 +2,12 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import type { MediaClip, StudioProject, TextClip } from '../types/studio';
 import {
+  duckFilter,
+  ducksUnderVoice,
+  fadeFilters,
+  voiceSpans,
+} from './studioAudio';
+import {
   audioClipsOnTracks,
   cssColorToFfmpeg,
   cssFilterToFfmpeg,
@@ -215,6 +221,16 @@ export async function exportStudioProject(
       let currentVideo = 'basev';
       const mixLabels = ['[basea]'];
       let mixCount = 0;
+      // Under a voice, the rest of the sound drops, unless the project
+      // turns that off; voices themselves never drop.
+      const duck = ducksUnderVoice(project)
+        ? duckFilter(voiceSpans(project))
+        : null;
+      const voiceClipIds = new Set(
+        project.tracks
+          .filter((t) => t.type === 'voice')
+          .flatMap((t) => t.clips.map((c) => c.id)),
+      );
 
       for (const { clip, inputIndex: idx, isImage } of prepared) {
         const speed = clip.speed ?? 1;
@@ -269,14 +285,17 @@ export async function exportStudioProject(
           (clip.volume ?? 1) > 0
         ) {
           const aLabel = `va${mixCount++}`;
-          parts.push(`[${idx}:a]${buildAudioChain(clip)}[${aLabel}]`);
+          parts.push(`[${idx}:a]${buildAudioChain(clip, duck)}[${aLabel}]`);
           mixLabels.push(`[${aLabel}]`);
         }
       }
 
       for (const { clip, inputIndex: idx } of audioInputIndexes) {
         const aLabel = `aa${mixCount++}`;
-        parts.push(`[${idx}:a]${buildAudioChain(clip)}[${aLabel}]`);
+        const isVoice = voiceClipIds.has(clip.id);
+        parts.push(
+          `[${idx}:a]${buildAudioChain(clip, isVoice ? null : duck)}[${aLabel}]`,
+        );
         mixLabels.push(`[${aLabel}]`);
       }
 
@@ -348,7 +367,15 @@ export async function exportStudioProject(
   }
 }
 
-function buildAudioChain(clip: MediaClip): string {
+/**
+ * The sound of one clip, on the project's timeline: its stretch of the
+ * file, its speed, volume and fades, moved to where it starts, and lowered
+ * under the voices when it is not a voice itself.
+ */
+export function buildAudioChain(
+  clip: MediaClip,
+  duck: string | null = null,
+): string {
   const speed = clip.speed ?? 1;
   const parts = [
     `atrim=start=${clip.mediaStart}:duration=${clip.duration * speed}`,
@@ -359,8 +386,10 @@ function buildAudioChain(clip: MediaClip): string {
   }
   const vol = clip.muted ? 0 : (clip.volume ?? 1);
   if (vol !== 1) parts.push(`volume=${vol}`);
+  parts.push(...fadeFilters(clip));
   const delayMs = Math.round(clip.startAt * 1000);
   parts.push(`adelay=${delayMs}|${delayMs}`);
+  if (duck) parts.push(duck);
   return parts.join(',');
 }
 
