@@ -13,7 +13,6 @@ import { renderWithProviders } from '../../../test/test-utils';
 import type { MediaClip, TextClip } from '../../../types/studio';
 import AudioPanel from './AudioPanel';
 import FiltersPanel from './FiltersPanel';
-import MediaPanel from './MediaPanel';
 import TextPanel from './TextPanel';
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -58,17 +57,44 @@ describe('TextPanel', () => {
         duration: 3,
       });
       expect(added.style).toMatchObject({ fontSize, color });
-      expect(toast.success).toHaveBeenCalledWith('Text added to canvas');
+      // Chosen, and open to be written.
+      expect(useStudioStore.getState().selectedClipId).toBe(added.id);
+      expect(useStudioStore.getState().openSheet).toBe('adjust');
     },
   );
 
-  it('uses the first track when there is no text track', () => {
+  it('makes a text layer when there is none', () => {
     openStudioProject([studioTrack('v1', 'video')]);
     renderWithProviders(<TextPanel />);
 
     fireEvent.click(screen.getByRole('button', { name: /Bold title/ }));
 
-    expect(studioClips()[0].trackId).toBe('v1');
+    const tracks = useStudioStore.getState().project?.tracks ?? [];
+    expect(tracks).toHaveLength(2);
+    expect(tracks[1]).toMatchObject({ type: 'text', name: 'Text' });
+    expect(tracks[1].clips).toHaveLength(1);
+  });
+
+  it('puts a text that would cover another on a new layer', () => {
+    openStudioProject(
+      [
+        studioTrack('v1', 'video'),
+        studioTrack('t1', 'text', [
+          textClip('old', { trackId: 't1', startAt: 6, duration: 3 }),
+        ]),
+      ],
+      { playhead: 7 },
+    );
+    renderWithProviders(<TextPanel />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Bold title/ }));
+
+    const tracks = useStudioStore.getState().project?.tracks ?? [];
+    expect(tracks.filter((tr) => tr.type === 'text')).toHaveLength(2);
+    expect(tracks[2].clips[0]).toMatchObject({
+      startAt: 7,
+      trackId: tracks[2].id,
+    });
   });
 
   it('adds nothing without a project', () => {
@@ -77,94 +103,7 @@ describe('TextPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Bold title/ }));
 
-    expect(toast.success).not.toHaveBeenCalled();
-  });
-});
-
-describe('MediaPanel', () => {
-  it('hands over the chosen file and leaves the field ready for the same file again', () => {
-    openStudioProject([studioTrack('v1', 'video')]);
-    const onAddMediaFile = vi.fn();
-    const { container } = renderWithProviders(
-      <MediaPanel onAddMediaFile={onAddMediaFile} />,
-    );
-    const file = new File(['x'], 'clip.mp4', { type: 'video/mp4' });
-
-    const input = choose(container, file);
-
-    expect(onAddMediaFile).toHaveBeenCalledWith(file);
-    expect(input.value).toBe('');
-    expect(input.accept).toBe('video/*,image/*');
-  });
-
-  it('hands over nothing when the picker is closed without a file', () => {
-    openStudioProject([studioTrack('v1', 'video')]);
-    const onAddMediaFile = vi.fn();
-    const { container } = renderWithProviders(
-      <MediaPanel onAddMediaFile={onAddMediaFile} />,
-    );
-
-    choose(container, null);
-
-    expect(onAddMediaFile).not.toHaveBeenCalled();
-  });
-
-  it('opens the file picker from the import button', () => {
-    openStudioProject([studioTrack('v1', 'video')]);
-    const { container } = renderWithProviders(
-      <MediaPanel onAddMediaFile={vi.fn()} />,
-    );
-    const input = container.querySelector('input[type="file"]') as HTMLElement;
-    const click = vi.spyOn(input, 'click');
-
-    fireEvent.click(
-      screen.getByRole('button', { name: /Import video or image/ }),
-    );
-
-    expect(click).toHaveBeenCalled();
-  });
-
-  it.each([
-    ['Neon abstraction', 'photo-1618005182384'],
-    ['Studio gradient', 'photo-1579546929518'],
-  ])(
-    'adds the "%s" sample as a silent four second picture on the video track',
-    (name, picture) => {
-      openStudioProject(
-        [studioTrack('t1', 'text'), studioTrack('v1', 'video')],
-        { playhead: 3 },
-      );
-      renderWithProviders(<MediaPanel onAddMediaFile={vi.fn()} />);
-
-      fireEvent.click(screen.getByRole('button', { name: name }));
-
-      const [added] = studioClips() as MediaClip[];
-      expect(added).toMatchObject({
-        type: 'image',
-        trackId: 'v1',
-        startAt: 3,
-        duration: 4,
-        muted: true,
-      });
-      expect(added.fileUrl).toContain(picture);
-      expect(toast.success).toHaveBeenCalledWith(`${name} added`);
-    },
-  );
-
-  it('uses the first track when there is no video track, and nothing without a project', () => {
-    openStudioProject([studioTrack('t1', 'text')]);
-    const { unmount } = renderWithProviders(
-      <MediaPanel onAddMediaFile={vi.fn()} />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Neon abstraction' }));
-    expect(studioClips()[0].trackId).toBe('t1');
-    unmount();
-
-    vi.clearAllMocks();
-    useStudioStore.setState({ project: null });
-    renderWithProviders(<MediaPanel onAddMediaFile={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Neon abstraction' }));
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(useStudioStore.getState().project).toBeNull();
   });
 });
 

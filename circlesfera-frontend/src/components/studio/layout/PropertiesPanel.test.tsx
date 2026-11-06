@@ -52,12 +52,6 @@ describe('PropertiesPanel', () => {
     expect(screen.getAllByText(kind)[0]).toBeInTheDocument();
   });
 
-  it('lets go of the clip from the close button', () => {
-    open('clip');
-    fireEvent.click(screen.getByRole('button', { name: 'Close properties' }));
-    expect(useStudioStore.getState().selectedClipId).toBeNull();
-  });
-
   describe('the tabs each kind of clip has', () => {
     it('gives a video its position, its filters and its sound', () => {
       open('clip');
@@ -99,6 +93,18 @@ describe('PropertiesPanel', () => {
 
       act(() => useStudioStore.setState({ selectedClipId: 'words' }));
 
+      // A text falls back to its words.
+      expect(
+        screen.getByRole('textbox', { name: 'Text content' }),
+      ).toBeInTheDocument();
+    });
+
+    it('opens a text on its words and anything else on its position', () => {
+      open('words');
+      expect(
+        screen.getByRole('textbox', { name: 'Text content' }),
+      ).toBeInTheDocument();
+      act(() => useStudioStore.setState({ selectedClipId: 'clip' }));
       expect(screen.getByRole('slider', { name: 'Scale' })).toBeInTheDocument();
     });
 

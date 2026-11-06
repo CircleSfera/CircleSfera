@@ -5055,7 +5055,15 @@
       "text": "Texto",
       "audio": "Audio",
       "filters": "Filtros",
-      "captions": "Subtítulos"
+      "captions": "Subtítulos",
+      "speed": "Velocidad",
+      "volume": "Volumen",
+      "adjust": "Ajustar",
+      "edit_text": "Editar",
+      "replace": "Reemplazar",
+      "duplicate": "Duplicar",
+      "done": "Listo",
+      "clip_label": "Herramientas del clip"
     },
     "properties": {
       "title": "Propiedades",
@@ -5170,6 +5178,43 @@
       "fullscreen": "Pantalla completa",
       "frame_back": "Fotograma anterior",
       "frame_forward": "Fotograma siguiente"
+    },
+    "add_media": "Añadir clips",
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "back_to_projects": "Volver a los proyectos",
+    "panel_hint": "Elige una herramienta o toca un clip de la línea de tiempo para editarlo.",
+    "panel_label": "Panel de la herramienta",
+    "save_status": {
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "error": "No se ha guardado"
+    },
+    "settings": {
+      "open": "Ajustes del proyecto",
+      "title": "Ajustes del proyecto",
+      "name": "Nombre",
+      "format": "Formato",
+      "format_hint": "Los Frames y las historias se ven en vertical (9:16)."
+    },
+    "speed": {
+      "length": "El clip dura {{seconds}} s a esta velocidad."
+    },
+    "replace": {
+      "wrong_kind": "Un sonido solo se puede reemplazar por otro sonido, y una imagen o un vídeo por una imagen o un vídeo."
+    },
+    "home": {
+      "title": "Edits",
+      "subtitle": "Monta tus vídeos con clips, texto, música y subtítulos.",
+      "new": "Nuevo proyecto",
+      "projects": "Proyectos",
+      "empty": "Aún no tienes proyectos.",
+      "on_this_device": "Sin guardar en la nube",
+      "options": "Opciones de {{name}}"
+    },
+    "volume": {
+      "mute": "Silenciar el clip",
+      "unmute": "Activar el sonido del clip"
     }
   },
   "live": {

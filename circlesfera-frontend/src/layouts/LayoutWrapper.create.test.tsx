@@ -99,7 +99,7 @@ function renderEditsRoute() {
   return renderWithProviders(
     <Routes>
       <Route
-        path="/edits"
+        path="/edits/editor"
         element={
           <LayoutWrapper>
             <div data-testid="edits-page">Edits</div>
@@ -107,7 +107,7 @@ function renderEditsRoute() {
         }
       />
     </Routes>,
-    { routerProps: { initialEntries: ['/edits'] } },
+    { routerProps: { initialEntries: ['/edits/editor'] } },
   );
 }
 

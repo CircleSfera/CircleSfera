@@ -11,7 +11,6 @@ import {
   Sparkles,
   Type as TypeIcon,
   Volume2,
-  X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,15 +19,10 @@ import type { MediaClip, TextClip } from '../../../types/studio';
 
 export default function PropertiesPanel() {
   const { t } = useTranslation();
-  const {
-    project,
-    selectedClipId,
-    selectClip,
-    updateClip,
-    beginHistoryTransaction,
-  } = useStudioStore();
-  const [chosenTab, setTab] = useState<'transform' | 'style' | 'audio'>(
-    'transform',
+  const { project, selectedClipId, updateClip, beginHistoryTransaction } =
+    useStudioStore();
+  const [chosenTab, setTab] = useState<'transform' | 'style' | 'audio' | null>(
+    null,
   );
 
   const selectedClip = project?.tracks
@@ -47,10 +41,14 @@ export default function PropertiesPanel() {
   // clip lacks would leave the panel empty, so it falls back to the first one.
   const hasStyleTab = isText || isMedia;
   const hasAudioTab = selectedClip.type === 'video' || isAudio;
+  // A text opens on its words; anything else on how it is placed.
   const tab =
+    chosenTab === null ||
     (chosenTab === 'style' && !hasStyleTab) ||
     (chosenTab === 'audio' && !hasAudioTab)
-      ? 'transform'
+      ? isText
+        ? 'style'
+        : 'transform'
       : chosenTab;
 
   const transform = selectedClip.transform || {
@@ -91,14 +89,6 @@ export default function PropertiesPanel() {
               : t(`studio.clip_types.${selectedClip.type}`)}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={() => selectClip(null)}
-          className="hidden md:flex min-h-11 min-w-11 items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all"
-          aria-label={t('studio.properties.close')}
-        >
-          <X size={16} />
-        </button>
       </div>
 
       <div className="flex items-center justify-around gap-1 bg-white/5 p-1 rounded-full border border-white/8">

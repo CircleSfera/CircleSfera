@@ -2,12 +2,29 @@ import { create } from 'zustand';
 import type {
   AspectRatioType,
   Clip,
+  MediaClip,
+  StudioPanel,
   StudioProject,
   StudioTab,
   Track,
 } from '../types/studio';
 import { resolutionForAspect } from '../utils/studioExportHelpers';
 import { withLengthOfClips } from '../utils/studioProject';
+import {
+  layerFor,
+  locateClip,
+  moveMainClip,
+  newStudioId,
+  packMainTrack,
+  duplicateClip as withDuplicate,
+  withoutEmptyLayers,
+  withSpeed,
+} from '../utils/studioTimeline';
+
+// Every change leaves the main track with no gaps and the project as long
+// as its clips.
+const settle = (project: StudioProject) =>
+  withLengthOfClips(packMainTrack(project));
 
 interface StudioState {
   project: StudioProject | null;
@@ -17,7 +34,7 @@ interface StudioState {
   selectedClipId: string | null;
   zoom: number;
   activeTab: StudioTab;
-  openSheet: StudioTab | 'properties' | null;
+  openSheet: StudioPanel | null;
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
 
   past: StudioProject[];
@@ -32,7 +49,7 @@ interface StudioState {
   setZoom: (zoom: number) => void;
   selectClip: (clipId: string | null) => void;
   setActiveTab: (tab: StudioTab) => void;
-  setOpenSheet: (sheet: StudioTab | 'properties' | null) => void;
+  setOpenSheet: (sheet: StudioPanel | null) => void;
   setAspectRatio: (aspectRatio: AspectRatioType) => void;
   setSaveStatus: (status: StudioState['saveStatus']) => void;
 
@@ -55,6 +72,24 @@ interface StudioState {
   ) => void;
   removeClip: (clipId: string) => void;
   splitClip: () => void;
+  /** Moves a clip of the main track to another place in it. */
+  moveClip: (clipId: string, toIndex: number) => void;
+  /** Copies the selected clip, right after it, and selects the copy. */
+  duplicateSelected: (newTrack: (type: Track['type']) => Track) => void;
+  setClipSpeed: (clipId: string, speed: number) => void;
+  /** Puts other media in a clip, keeping where it is and how long it is. */
+  replaceClipMedia: (
+    clipId: string,
+    media: Pick<MediaClip, 'type' | 'file' | 'fileUrl'> & {
+      sourceDuration: number | null;
+    },
+  ) => void;
+  /** Adds a text or a sound on the first layer of its kind free there. */
+  addLayerClip: (
+    type: 'text' | 'audio',
+    clip: Clip,
+    newTrack: () => Track,
+  ) => void;
 
   calculateDuration: () => void;
 }
@@ -86,9 +121,11 @@ export const useStudioStore = create<StudioState>((set) => ({
   canUndo: false,
   canRedo: false,
 
+  // A project made before the main track kept its clips together is
+  // opened with them together, and without its empty layers.
   setProject: (project) =>
     set({
-      project,
+      project: withoutEmptyLayers(settle(project)),
       past: [],
       future: [],
       canUndo: false,
@@ -117,11 +154,13 @@ export const useStudioStore = create<StudioState>((set) => ({
 
   setZoom: (zoom) => set({ zoom: Math.max(10, Math.min(200, zoom)) }),
 
+  // Choosing a clip turns the tools to that clip; what was open closes.
   selectClip: (clipId) =>
-    set({
-      selectedClipId: clipId,
-      openSheet: clipId ? 'properties' : null,
-    }),
+    set((state) =>
+      clipId === state.selectedClipId
+        ? state
+        : { selectedClipId: clipId, openSheet: null },
+    ),
 
   setActiveTab: (tab) => set({ activeTab: tab, openSheet: tab }),
 
@@ -247,7 +286,7 @@ export const useStudioStore = create<StudioState>((set) => ({
 
       // The length of the project follows its clips, both ways: it is not
       // only raised when one is added.
-      const updated = withLengthOfClips({ ...state.project, tracks });
+      const updated = settle({ ...state.project, tracks });
       return pushHistory(state, updated);
     }),
 
@@ -260,7 +299,7 @@ export const useStudioStore = create<StudioState>((set) => ({
           c.id === clipId ? ({ ...c, ...updates } as Clip) : c,
         ),
       }));
-      const updated = withLengthOfClips({ ...state.project, tracks });
+      const updated = settle({ ...state.project, tracks });
       if (options?.history) {
         return pushHistory(state, updated);
       }
@@ -274,7 +313,8 @@ export const useStudioStore = create<StudioState>((set) => ({
         ...t,
         clips: t.clips.filter((c) => c.id !== clipId),
       }));
-      const updated = withLengthOfClips({ ...state.project, tracks });
+      // A layer left with no clips goes with it.
+      const updated = settle(withoutEmptyLayers({ ...state.project, tracks }));
       const historyResult = pushHistory(state, updated);
       return {
         ...historyResult,
@@ -311,14 +351,9 @@ export const useStudioStore = create<StudioState>((set) => ({
 
       const relativeSplit = playhead - targetClip.startAt;
 
-      const generateId = () =>
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : Math.random().toString(36).substring(2);
-
       const newClip: Clip = {
         ...targetClip,
-        id: generateId(),
+        id: newStudioId(),
         startAt: playhead,
         duration: targetClip.duration - relativeSplit,
       };
@@ -344,8 +379,96 @@ export const useStudioStore = create<StudioState>((set) => ({
         return t;
       });
 
-      const updatedProject = { ...state.project, tracks: updatedTracks };
+      const updatedProject = settle({
+        ...state.project,
+        tracks: updatedTracks,
+      });
       return pushHistory(state, updatedProject);
+    }),
+
+  moveClip: (clipId, toIndex) =>
+    set((state) => {
+      if (!state.project) return state;
+      const moved = moveMainClip(state.project, clipId, toIndex);
+      if (moved === state.project) return state;
+      return pushHistory(state, settle(moved));
+    }),
+
+  duplicateSelected: (newTrack) =>
+    set((state) => {
+      if (!state.project || !state.selectedClipId) return state;
+      const id = newStudioId();
+      const updated = withDuplicate(
+        state.project,
+        state.selectedClipId,
+        id,
+        newTrack,
+      );
+      if (updated === state.project) return state;
+      return { ...pushHistory(state, settle(updated)), selectedClipId: id };
+    }),
+
+  setClipSpeed: (clipId, speed) =>
+    set((state) => {
+      if (!state.project) return state;
+      const found = locateClip(state.project, clipId);
+      if (!found || found.clip.type === 'text') return state;
+      const changed = withSpeed(found.clip as MediaClip, speed);
+      if (changed === found.clip) return state;
+      const tracks = state.project.tracks.map((t) => ({
+        ...t,
+        clips: t.clips.map((c) => (c.id === clipId ? changed : c)),
+      }));
+      return pushHistory(state, settle({ ...state.project, tracks }));
+    }),
+
+  replaceClipMedia: (clipId, media) =>
+    set((state) => {
+      if (!state.project) return state;
+      const found = locateClip(state.project, clipId);
+      if (!found || found.clip.type === 'text') return state;
+      const clip = found.clip as MediaClip;
+      // A shorter video makes the clip shorter; a photo lasts as long as
+      // the clip did.
+      const longest =
+        media.sourceDuration === null
+          ? clip.duration
+          : media.sourceDuration / (clip.speed || 1);
+      const replaced: MediaClip = {
+        ...clip,
+        type: media.type,
+        file: media.file,
+        fileUrl: media.fileUrl,
+        mediaStart: 0,
+        muted: media.type === 'image' ? true : clip.muted,
+        duration: Math.min(clip.duration, longest),
+      };
+      const tracks = state.project.tracks.map((t) => ({
+        ...t,
+        clips: t.clips.map((c) => (c.id === clipId ? replaced : c)),
+      }));
+      return pushHistory(state, settle({ ...state.project, tracks }));
+    }),
+
+  addLayerClip: (type, clip, newTrack) =>
+    set((state) => {
+      if (!state.project) return state;
+      const { project, trackId } = layerFor(
+        state.project,
+        type,
+        clip.startAt,
+        clip.duration,
+        newTrack,
+      );
+      const tracks = project.tracks.map((t) =>
+        t.id === trackId
+          ? { ...t, clips: [...t.clips, { ...clip, trackId } as Clip] }
+          : t,
+      );
+      return {
+        ...pushHistory(state, settle({ ...project, tracks })),
+        selectedClipId: clip.id,
+      };
     }),
 
   calculateDuration: () =>

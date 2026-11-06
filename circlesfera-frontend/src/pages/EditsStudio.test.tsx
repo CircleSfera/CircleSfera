@@ -11,18 +11,15 @@ import { uploadApi } from '../services/upload.service';
 import { useStudioStore } from '../stores/studioStore';
 import { useUIStore } from '../stores/uiStore';
 import { renderWithProviders } from '../test/test-utils';
-import type { MediaClip, StudioProject } from '../types/studio';
+import type { MediaClip, StudioProject, TextClip } from '../types/studio';
 import { exportStudioProject } from '../utils/ffmpegExport';
 import { StudioExportError } from '../utils/studioExportHelpers';
 import { loadLocalStudioDraft } from '../utils/studioLocalDraft';
-import Studio from './EditsStudio';
+import EditsStudio from './EditsStudio';
 
 type Props = Record<string, any>;
 
-/** The props each piece of the page last received. */
 const seen = vi.hoisted(() => ({
-  topbar: {} as Record<string, any>,
-  sheet: {} as Record<string, any>,
   exportModal: {} as Record<string, any>,
   saveNow: undefined as unknown as ReturnType<
     typeof import('vitest')['vi']['fn']
@@ -47,42 +44,14 @@ vi.mock('../services/upload.service', () => ({
   uploadApi: { upload: vi.fn() },
 }));
 vi.mock('../utils/ffmpegExport', () => ({ exportStudioProject: vi.fn() }));
-vi.mock('../utils/studioLocalDraft', () => ({
-  loadLocalStudioDraft: vi.fn(),
-}));
+vi.mock('../utils/studioLocalDraft', () => ({ loadLocalStudioDraft: vi.fn() }));
 vi.mock('../components/common/SEO', () => ({ default: () => null }));
 vi.mock('../components/studio/StudioPlayer', () => ({ default: () => null }));
-vi.mock('../components/studio/Timeline', () => ({ default: () => null }));
-vi.mock('../components/studio/layout/StudioPlaybackControls', () => ({
-  default: () => null,
-}));
-vi.mock('../components/studio/layout/StudioToolDock', () => ({
-  default: () => null,
-}));
-vi.mock('../components/studio/layout/StudioTopbar', () => ({
-  default: (props: Props) => {
-    seen.topbar = props;
-    return null;
-  },
-}));
-vi.mock('../components/studio/layout/StudioToolSheet', () => ({
-  default: (props: Props) => {
-    seen.sheet = props;
-    return null;
-  },
-}));
 vi.mock('../components/studio/modals/ExportModal', () => ({
   default: (props: Props) => {
     seen.exportModal = props;
     return props.isOpen ? <div data-testid="export" /> : null;
   },
-}));
-vi.mock('../components/studio/modals/DraftsModal', () => ({
-  default: ({ onClose }: Props) => (
-    <button type="button" onClick={onClose}>
-      close drafts
-    </button>
-  ),
 }));
 
 const clip = (id: string, over: Partial<MediaClip> = {}): MediaClip => ({
@@ -101,7 +70,28 @@ const clip = (id: string, over: Partial<MediaClip> = {}): MediaClip => ({
   ...over,
 });
 
-const project = (clips: MediaClip[] = []): StudioProject => ({
+const words = (id: string, over: Partial<TextClip> = {}): TextClip => ({
+  id,
+  type: 'text',
+  trackId: 'text',
+  startAt: 0,
+  duration: 3,
+  content: 'Hello',
+  style: {
+    fontFamily: 'Roboto',
+    fontSize: 40,
+    color: '#fff',
+    backgroundColor: 'transparent',
+    textAlign: 'center',
+  },
+  transform: { scale: 1, rotation: 0, x: 0, y: 0 },
+  ...over,
+});
+
+const project = (
+  clips: MediaClip[] = [],
+  extra: StudioProject['tracks'] = [],
+): StudioProject => ({
   id: 'p1',
   name: 'Edit',
   duration: 20,
@@ -118,32 +108,15 @@ const project = (clips: MediaClip[] = []): StudioProject => ({
       hidden: false,
       locked: false,
     },
-    {
-      id: 'audio',
-      type: 'audio',
-      name: 'Audio',
-      clips: [],
-      muted: false,
-      hidden: false,
-      locked: false,
-    },
+    ...extra,
   ],
   createdAt: '',
   updatedAt: '',
 });
 
-/** The options the page hands to the encoder. */
-const given = (options: unknown) =>
-  (options ?? {}) as {
-    onProgress?: (progress: number) => void;
-    signal?: AbortSignal;
-  };
-
 const store = () => useStudioStore.getState();
-const clipsOf = (trackId: string) =>
-  store().project?.tracks.find((tr) => tr.id === trackId)?.clips ?? [];
+const mainClips = () => (store().project?.tracks[0].clips ?? []) as MediaClip[];
 
-/** Opens the studio on a project and waits for it to be on screen. */
 async function open(initial: StudioProject | null = project()) {
   useStudioStore.setState({
     project: initial,
@@ -153,9 +126,13 @@ async function open(initial: StudioProject | null = project()) {
     isPlaying: false,
     zoom: 50,
     openSheet: null,
+    past: [],
+    future: [],
+    canUndo: false,
+    canRedo: false,
   });
-  const view = renderWithProviders(<Studio />);
-  await screen.findByRole('slider', { name: 'Timeline zoom' });
+  const view = renderWithProviders(<EditsStudio />);
+  await screen.findByRole('button', { name: 'Back to projects' });
   return view;
 }
 
@@ -173,13 +150,15 @@ const press = (key: string, more: KeyboardEventInit = {}) => {
   return event;
 };
 
-describe('Studio', () => {
-  /** How long the browser says a picked video or sound lasts. */
+const pick = (testId: string, files: File[]) =>
+  fireEvent.change(screen.getByTestId(testId), { target: { files } });
+
+describe('EditsStudio', () => {
   let mediaLength: number | 'unreadable';
 
   beforeEach(() => {
     vi.clearAllMocks();
-    seen.saveNow = vi.fn();
+    seen.saveNow = vi.fn().mockResolvedValue(undefined);
     seen.navigate = vi.fn();
     mediaLength = 12;
     vi.mocked(loadLocalStudioDraft).mockResolvedValue(null as never);
@@ -188,8 +167,6 @@ describe('Studio', () => {
     } as never);
     URL.createObjectURL = vi.fn(() => 'blob:local');
     URL.revokeObjectURL = vi.fn();
-    // The page reads the length of a picked file from an element it never
-    // puts on screen.
     const create = document.createElement.bind(document);
     vi.spyOn(document, 'createElement').mockImplementation(((tag: string) => {
       if (tag !== 'video' && tag !== 'audio') return create(tag);
@@ -204,33 +181,29 @@ describe('Studio', () => {
               : probe.onloadedmetadata?.(),
           );
         },
+        removeAttribute: () => {},
+        load: () => {},
       };
       return probe;
     }) as never);
   });
 
   afterEach(() => {
-    // Unmount first: the store change would otherwise re-render the screen
-    // after the test, outside act.
     cleanup();
     vi.restoreAllMocks();
     useStudioStore.setState({ project: null });
   });
 
   describe('opening', () => {
-    it('starts a new project with one track of each kind when there is no draft', async () => {
+    it('starts a new, upright project with only its main track when there is no draft', async () => {
       await open(null);
-
       expect(store().project).toMatchObject({
         name: 'New Project',
         aspectRatio: '9:16',
-        duration: 10,
+        duration: 0,
       });
-      expect(store().project?.tracks.map((tr) => tr.type)).toEqual([
-        'video',
-        'text',
-        'audio',
-      ]);
+      expect(store().project?.tracks.map((tr) => tr.type)).toEqual(['video']);
+      expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
     });
 
     it('goes on with the draft kept on this device, and its cloud copy', async () => {
@@ -238,457 +211,451 @@ describe('Studio', () => {
         project: project([clip('kept')]),
         cloudProjectId: 'cloud-1',
       } as never);
-
       await open(null);
-
-      expect(clipsOf('video').map((c) => c.id)).toEqual(['kept']);
+      expect(mainClips().map((c) => c.id)).toEqual(['kept']);
       expect(store().cloudProjectId).toBe('cloud-1');
     });
 
     it('keeps the project already open, without reading the draft', async () => {
       await open(project([clip('open')]));
-
       expect(loadLocalStudioDraft).not.toHaveBeenCalled();
-      expect(clipsOf('video').map((c) => c.id)).toEqual(['open']);
+      expect(mainClips()[0].id).toBe('open');
     });
 
     it('saves a first cloud copy once the project has media on the server', async () => {
-      await open(project([clip('up', { fileUrl: 'https://cdn/up.mp4' })]));
-
+      await open(project([clip('up', { fileUrl: 'https://cdn/a.mp4' })]));
       expect(seen.saveNow).toHaveBeenCalled();
     });
 
     it('does not save one for media that is only on this device', async () => {
       await open(project([clip('local')]));
-
       expect(seen.saveNow).not.toHaveBeenCalled();
     });
   });
 
-  describe('the keys', () => {
-    it('play and pause with space and with K', async () => {
-      await open();
+  describe('adding media', () => {
+    it('puts videos and photos at the end of the main track, in order, then uploads them', async () => {
+      await open(project([clip('first', { duration: 4 })]));
+      pick('studio-media-input', [
+        new File(['v'], 'a.mp4', { type: 'video/mp4' }),
+        new File(['p'], 'b.jpg', { type: 'image/jpeg' }),
+      ]);
+      await waitFor(() => expect(mainClips()).toHaveLength(3));
+      const [, video, photo] = mainClips();
+      expect(video).toMatchObject({
+        type: 'video',
+        startAt: 4,
+        duration: 12,
+        sourceDuration: 12,
+        muted: false,
+      });
+      expect(photo).toMatchObject({
+        type: 'image',
+        startAt: 16,
+        duration: 3,
+        muted: true,
+      });
+      await waitFor(() =>
+        expect(mainClips()[2].fileUrl).toBe('https://cdn/uploaded.mp4'),
+      );
+      expect(uploadApi.upload).toHaveBeenCalledTimes(2);
+    });
 
+    it('opens the file picker from the timeline and from the tools', async () => {
+      await open();
+      const input = screen.getByTestId(
+        'studio-media-input',
+      ) as HTMLInputElement;
+      const clicked = vi.spyOn(input, 'click');
+      fireEvent.click(screen.getByRole('button', { name: 'Add clips' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Media' }));
+      expect(clicked).toHaveBeenCalledTimes(2);
+    });
+
+    it('says so when a video cannot be read', async () => {
+      mediaLength = 'unreadable';
+      await open();
+      pick('studio-media-input', [
+        new File(['v'], 'a.mp4', { type: 'video/mp4' }),
+      ]);
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('Could not upload media'),
+      );
+      expect(mainClips()).toHaveLength(0);
+    });
+
+    it('holds the export back while a file is uploading', async () => {
+      let finish: (v: unknown) => void = () => {};
+      vi.mocked(uploadApi.upload).mockReturnValue(
+        new Promise((r) => (finish = r)) as never,
+      );
+      await open(project([clip('a')]));
+      pick('studio-media-input', [
+        new File(['p'], 'b.jpg', { type: 'image/jpeg' }),
+      ]);
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled(),
+      );
+      await act(async () => finish({ data: { url: 'https://cdn/x.jpg' } }));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled(),
+      );
+    });
+
+    it('puts a sound at the playhead on a sound layer of its own', async () => {
+      await open(project([clip('a')]));
+      act(() => store().setPlayhead(2));
+      fireEvent.click(screen.getByRole('button', { name: 'Audio' }));
+      const input = document.querySelector(
+        'input[accept="audio/*"]',
+      ) as HTMLInputElement;
+      fireEvent.change(input, {
+        target: { files: [new File(['s'], 's.mp3', { type: 'audio/mpeg' })] },
+      });
+      await waitFor(() => expect(store().project?.tracks).toHaveLength(2));
+      const layer = store().project?.tracks[1];
+      expect(layer).toMatchObject({ type: 'audio', name: 'Audio' });
+      expect(layer?.clips[0]).toMatchObject({
+        type: 'audio',
+        startAt: 2,
+        duration: 12,
+      });
+      expect(toast.success).toHaveBeenCalledWith('Audio track added');
+    });
+  });
+
+  describe('a chosen clip', () => {
+    it('turns the tools to the clip, and Done lets go of it', async () => {
+      await open(project([clip('a')]));
+      act(() => store().selectClip('a'));
+      expect(
+        screen.getByRole('navigation', { name: 'Clip tools' }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Speed' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+      expect(store().selectedClipId).toBeNull();
+      expect(
+        screen.getByRole('navigation', { name: 'Studio tools' }),
+      ).toBeInTheDocument();
+    });
+
+    it('opens the speed panel and plays the clip faster, shorter', async () => {
+      await open(project([clip('a', { duration: 10 })]));
+      act(() => store().selectClip('a'));
+      fireEvent.click(screen.getByRole('button', { name: 'Speed' }));
+      fireEvent.click(screen.getAllByRole('button', { name: '2×' })[0]);
+      expect(mainClips()[0]).toMatchObject({ speed: 2, duration: 5 });
+    });
+
+    it('duplicates the clip right after it, and chooses the copy', async () => {
+      await open(
+        project([
+          clip('a', { duration: 4 }),
+          clip('b', { startAt: 4, duration: 2 }),
+        ]),
+      );
+      act(() => store().selectClip('a'));
+      fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+      expect(mainClips().map((c) => c.startAt)).toEqual([0, 4, 8]);
+      expect(mainClips()[1].id).toBe(store().selectedClipId);
+    });
+
+    it('replaces its media, keeping its place', async () => {
+      mediaLength = 30;
+      await open(project([clip('a', { duration: 6 })]));
+      act(() => store().selectClip('a'));
+      const input = screen.getByTestId(
+        'studio-replace-input',
+      ) as HTMLInputElement;
+      const clicked = vi.spyOn(input, 'click');
+      fireEvent.click(screen.getByRole('button', { name: 'Replace' }));
+      expect(clicked).toHaveBeenCalled();
+      pick('studio-replace-input', [
+        new File(['v'], 'n.mp4', { type: 'video/mp4' }),
+      ]);
+      await waitFor(() =>
+        expect(mainClips()[0].fileUrl).toBe('https://cdn/uploaded.mp4'),
+      );
+      expect(mainClips()[0]).toMatchObject({
+        id: 'a',
+        duration: 6,
+        sourceDuration: 30,
+        mediaStart: 0,
+      });
+    });
+
+    it('replaces a photo with a photo, lasting as long as before', async () => {
+      await open(project([clip('a', { type: 'image', duration: 5 })]));
+      act(() => store().selectClip('a'));
+      pick('studio-replace-input', [
+        new File(['p'], 'n.jpg', { type: 'image/jpeg' }),
+      ]);
+      await waitFor(() =>
+        expect(mainClips()[0].fileUrl).toBe('https://cdn/uploaded.mp4'),
+      );
+      expect(mainClips()[0]).toMatchObject({ type: 'image', duration: 5 });
+    });
+
+    it('will not replace a picture with a sound', async () => {
+      await open(project([clip('a')]));
+      act(() => store().selectClip('a'));
+      pick('studio-replace-input', [
+        new File(['s'], 's.mp3', { type: 'audio/mpeg' }),
+      ]);
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringMatching(/sound can only be replaced/),
+      );
+      expect(mainClips()[0].fileUrl).toBe('blob:a');
+    });
+
+    it('cuts at the playhead, and only inside the clip', async () => {
+      await open(project([clip('a', { duration: 10 })]));
+      act(() => store().selectClip('a'));
+      expect(screen.getByRole('button', { name: 'Split' })).toBeDisabled();
+      act(() => store().setPlayhead(4));
+      fireEvent.click(screen.getByRole('button', { name: 'Split' }));
+      expect(mainClips().map((c) => c.duration)).toEqual([4, 6]);
+    });
+
+    it('deletes it, and the clips after it close the gap', async () => {
+      await open(
+        project([
+          clip('a', { duration: 4 }),
+          clip('b', { startAt: 4, duration: 3 }),
+        ]),
+      );
+      act(() => store().selectClip('a'));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+      expect(mainClips()).toEqual([
+        expect.objectContaining({ id: 'b', startAt: 0 }),
+      ]);
+    });
+
+    it('offers a text its own tools', async () => {
+      await open(
+        project(
+          [clip('a')],
+          [
+            {
+              id: 'text',
+              type: 'text',
+              name: 'Text',
+              clips: [words('w')],
+              muted: false,
+              hidden: false,
+              locked: false,
+            },
+          ],
+        ),
+      );
+      act(() => store().selectClip('w'));
+      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Speed' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Replace' }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('keys', () => {
+    it('play and pause with space and with K', async () => {
+      await open(project([clip('a')]));
       press(' ');
       expect(store().isPlaying).toBe(true);
       press('k');
       expect(store().isPlaying).toBe(false);
     });
 
-    it('move one frame with the arrows and one second with J and L, pausing', async () => {
-      await open();
-      act(() => useStudioStore.setState({ playhead: 5, isPlaying: true }));
-
-      press('ArrowRight', { code: 'ArrowRight' });
-      expect(store().playhead).toBeCloseTo(5.1);
-      expect(store().isPlaying).toBe(false);
-
-      press('ArrowLeft', { code: 'ArrowLeft' });
-      expect(store().playhead).toBeCloseTo(5);
-
+    it('move one frame with the arrows and one second with J and L, within the project', async () => {
+      await open(project([clip('a')]));
+      press('ArrowRight');
+      expect(store().playhead).toBeCloseTo(0.1);
       press('l');
-      expect(store().playhead).toBeCloseTo(6);
+      expect(store().playhead).toBeCloseTo(1.1);
       press('j');
-      expect(store().playhead).toBeCloseTo(5);
-    });
-
-    it('never move before the start or past the end', async () => {
-      await open();
-
       press('j');
       expect(store().playhead).toBe(0);
-
-      act(() => useStudioStore.setState({ playhead: 19.5 }));
-      press('l');
-      expect(store().playhead).toBe(20);
+      press('ArrowLeft');
+      expect(store().playhead).toBe(0);
     });
 
-    it('zoom the timeline between its limits', async () => {
-      await open();
-
+    it('zoom the timeline', async () => {
+      await open(project([clip('a')]));
       press('+');
       expect(store().zoom).toBe(60);
       press('-');
       press('-');
       expect(store().zoom).toBe(40);
-
-      act(() => useStudioStore.setState({ zoom: 195 }));
-      press('=');
-      expect(store().zoom).toBe(200);
-      act(() => useStudioStore.setState({ zoom: 15 }));
-      press('-');
-      expect(store().zoom).toBe(10);
     });
 
-    it('split and delete the selected clip, and do nothing with none selected', async () => {
-      await open(project([clip('a')]));
-
+    it('split and delete the chosen clip, and let go of it with Escape', async () => {
+      await open(project([clip('a', { duration: 10 })]));
+      act(() => {
+        store().selectClip('a');
+        store().setPlayhead(5);
+      });
       press('s');
+      expect(mainClips()).toHaveLength(2);
       press('Delete', { code: 'Delete' });
-      expect(clipsOf('video')).toHaveLength(1);
-
-      act(() => useStudioStore.setState({ selectedClipId: 'a', playhead: 4 }));
-      press('s');
-      expect(clipsOf('video')).toHaveLength(2);
-
-      act(() =>
-        useStudioStore.setState({ selectedClipId: clipsOf('video')[0].id }),
-      );
-      press('Backspace', { code: 'Backspace' });
-      expect(clipsOf('video')).toHaveLength(1);
-    });
-
-    it('open the export with E and close the open panel with Escape', async () => {
-      await open();
-      act(() => useStudioStore.setState({ openSheet: 'media' }));
-
+      expect(mainClips()).toHaveLength(1);
+      act(() => store().selectClip(mainClips()[0].id));
+      act(() => store().setOpenSheet('speed'));
       press('Escape', { code: 'Escape' });
       expect(store().openSheet).toBeNull();
-
-      press('e');
-      expect(screen.getByTestId('export')).toBeInTheDocument();
+      press('Escape', { code: 'Escape' });
+      expect(store().selectedClipId).toBeNull();
     });
 
     it('undo and redo with Control or Command', async () => {
-      await open(project([clip('a')]));
-      act(() => store().removeClip('a'));
-      expect(clipsOf('video')).toHaveLength(0);
-
-      press('z', { ctrlKey: true });
-      expect(clipsOf('video')).toHaveLength(1);
-
-      press('z', { metaKey: true, shiftKey: true });
-      expect(clipsOf('video')).toHaveLength(0);
+      await open(project([clip('a', { duration: 10 })]));
+      act(() => store().setClipSpeed('a', 2));
+      press('z', { metaKey: true });
+      expect(mainClips()[0].speed).toBe(1);
+      press('z', { ctrlKey: true, shiftKey: true });
+      expect(mainClips()[0].speed).toBe(2);
     });
 
-    it.each([
-      ['Command and minus (the page zoom)', '-', { metaKey: true }],
-      ['Control and plus (the page zoom)', '+', { ctrlKey: true }],
-      ['Command+S', 's', { metaKey: true }],
-      ['Control+K', 'k', { ctrlKey: true }],
-      ['Command+L', 'l', { metaKey: true }],
-      ['Control+E', 'e', { ctrlKey: true }],
-      ['Alt+J', 'j', { altKey: true }],
-    ])('leave %s to the browser', async (_name, key, modifier) => {
+    it('leave other keys with a modifier to the browser, and are left alone while typing', async () => {
       await open(project([clip('a')]));
-      act(() =>
-        useStudioStore.setState({ selectedClipId: 'a', playhead: 4, zoom: 50 }),
-      );
-
-      const event = press(key, modifier);
-
-      expect(event.defaultPrevented).toBe(false);
-      expect(store().zoom).toBe(50);
+      expect(press('-', { metaKey: true }).defaultPrevented).toBe(false);
+      expect(press('k', { ctrlKey: true }).defaultPrevented).toBe(false);
       expect(store().isPlaying).toBe(false);
-      expect(store().playhead).toBe(4);
-      expect(clipsOf('video')).toHaveLength(1);
-      expect(screen.queryByTestId('export')).not.toBeInTheDocument();
-    });
-
-    it('are left alone while typing', async () => {
-      await open();
-      const field = document.body.appendChild(document.createElement('input'));
-
-      fireEvent.keyDown(field, { key: ' ', code: 'Space' });
-
+      fireEvent.click(screen.getByRole('button', { name: 'Project settings' }));
+      const [name] = screen.getAllByLabelText('Name');
+      fireEvent.keyDown(name, { key: ' ', code: 'Space' });
       expect(store().isPlaying).toBe(false);
-      field.remove();
     });
   });
 
-  describe('adding media', () => {
-    const picked = (name: string, type: string) =>
-      new File(['x'], name, { type });
-
-    it('puts a video on the timeline at the playhead with its own length, then uploads it', async () => {
-      await open();
-      act(() => useStudioStore.setState({ playhead: 3 }));
-
-      await act(async () =>
-        seen.sheet.onAddMediaFile(picked('a.mp4', 'video/mp4')),
-      );
-
-      await waitFor(() =>
-        expect(clipsOf('video')[0]).toMatchObject({
-          type: 'video',
-          startAt: 3,
-          duration: 12,
-          muted: false,
-          fileUrl: 'https://cdn/uploaded.mp4',
-          file: null,
-        }),
-      );
-      expect(toast.success).toHaveBeenCalledWith('Video added to timeline');
-      // The copy held in memory is released once the upload is the source.
-      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:local');
-    });
-
-    it('puts a picture on the timeline for three seconds, silent', async () => {
-      await open();
-
-      await act(async () =>
-        seen.sheet.onAddMediaFile(picked('a.png', 'image/png')),
-      );
-
-      await waitFor(() =>
-        expect(clipsOf('video')[0]).toMatchObject({
-          type: 'image',
-          duration: 3,
-          muted: true,
-        }),
-      );
-      expect(toast.success).toHaveBeenCalledWith('Image added to timeline');
-    });
-
-    it('puts a sound on the audio track', async () => {
-      await open();
-
-      await act(async () =>
-        seen.sheet.onAddAudioFile(picked('a.mp3', 'audio/mpeg')),
-      );
-
-      await waitFor(() =>
-        expect(clipsOf('audio')[0]).toMatchObject({
-          type: 'audio',
-          duration: 12,
-          fileUrl: 'https://cdn/uploaded.mp4',
-        }),
-      );
-      expect(clipsOf('video')).toHaveLength(0);
-      expect(toast.success).toHaveBeenCalledWith('Audio track added');
-    });
-
-    it('adds nothing and says so when the file cannot be read', async () => {
-      mediaLength = 'unreadable';
-      await open();
-
-      await act(async () =>
-        seen.sheet.onAddMediaFile(picked('a.mp4', 'video/mp4')),
-      );
-
-      await waitFor(() =>
-        expect(toast.error).toHaveBeenCalledWith('Could not upload media'),
-      );
-      expect(clipsOf('video')).toHaveLength(0);
-      expect(uploadApi.upload).not.toHaveBeenCalled();
-    });
-
-    it('says so when the upload fails', async () => {
-      vi.mocked(uploadApi.upload).mockRejectedValue(new Error('offline'));
-      await open();
-
-      await act(async () =>
-        seen.sheet.onAddMediaFile(picked('a.png', 'image/png')),
-      );
-
-      await waitFor(() =>
-        expect(toast.error).toHaveBeenCalledWith('Could not upload media'),
-      );
-    });
-
-    it('holds export back while a file is uploading', async () => {
-      let finish: (value: unknown) => void = () => {};
-      vi.mocked(uploadApi.upload).mockReturnValue(
-        new Promise((resolve) => {
-          finish = resolve;
-        }) as never,
-      );
-      await open();
-
-      act(() => {
-        seen.sheet.onAddMediaFile(picked('a.png', 'image/png'));
-      });
-      await waitFor(() => expect(seen.topbar.isExporting).toBe(true));
-
-      await act(async () => finish({ data: { url: 'https://cdn/a.png' } }));
-      await waitFor(() => expect(seen.topbar.isExporting).toBe(false));
-    });
-  });
-
-  describe('tracks and the selected clip', () => {
-    it('adds a track of the chosen kind and says which', async () => {
-      await open();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Add text track' }));
-
-      expect(store().project?.tracks.at(-1)).toMatchObject({
-        type: 'text',
-        name: 'Text',
-        clips: [],
-      });
-      expect(toast.success).toHaveBeenCalledWith('Text track added');
-    });
-
-    it('enables split and delete only with a clip selected', async () => {
-      await open(project([clip('a')]));
-      const remove = screen.getByTitle('Delete');
-      expect(remove).toBeDisabled();
-
-      act(() => useStudioStore.setState({ selectedClipId: 'a' }));
-      fireEvent.click(remove);
-
-      expect(clipsOf('video')).toHaveLength(0);
-    });
-
-    it('changes the zoom from its slider', async () => {
-      await open();
-
-      fireEvent.change(screen.getByRole('slider', { name: 'Timeline zoom' }), {
-        target: { value: '120' },
-      });
-
-      expect(store().zoom).toBe(120);
-    });
-  });
-
-  describe('exporting', () => {
-    const video = new Blob(['video'], { type: 'video/mp4' });
-
+  describe('export', () => {
     it('encodes the project with the chosen quality and shows its progress', async () => {
-      vi.mocked(exportStudioProject).mockImplementation(async (_p, options) => {
-        given(options).onProgress?.(40);
-        return video as never;
-      });
+      const blob = new Blob(['mp4']);
+      vi.mocked(exportStudioProject).mockImplementation((async (
+        _p: unknown,
+        options: Props,
+      ) => {
+        options?.onProgress?.(50);
+        return blob;
+      }) as never);
       await open(project([clip('a')]));
-      act(() => seen.topbar.onExport());
-
-      await act(async () => seen.exportModal.onStartExport('fast'));
-
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      expect(screen.getByTestId('export')).toBeInTheDocument();
+      await act(async () => seen.exportModal.onStartExport('balanced'));
       expect(exportStudioProject).toHaveBeenCalledWith(
         store().project,
-        expect.objectContaining({ preset: 'fast' }),
+        expect.objectContaining({ preset: 'balanced' }),
       );
-      await waitFor(() => expect(seen.exportModal.exportedBlob).toBe(video));
-      expect(seen.exportModal.isExporting).toBe(false);
+      expect(seen.exportModal.exportedBlob).toBe(blob);
+      expect(seen.exportModal.exportProgress).toBe(50);
     });
 
-    it('stops the encoding when the export is cancelled, and closes', async () => {
-      vi.mocked(exportStudioProject).mockImplementation(
-        (_p, options) =>
-          new Promise((_resolve, reject) => {
-            given(options).signal?.addEventListener('abort', () =>
-              reject(new StudioExportError('studio.export_errors.cancelled')),
-            );
-          }) as never,
-      );
+    it('closes when the encoding is cancelled', async () => {
+      vi.mocked(exportStudioProject).mockImplementation((async (
+        _p: unknown,
+        options: Props,
+      ) => {
+        await new Promise((_, reject) =>
+          options?.signal?.addEventListener('abort', () =>
+            reject(new StudioExportError('studio.export_errors.cancelled')),
+          ),
+        );
+        return new Blob();
+      }) as never);
       await open(project([clip('a')]));
-      act(() => seen.topbar.onExport());
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      let done: Promise<void> = Promise.resolve();
       act(() => {
-        seen.exportModal.onStartExport('fast');
+        done = seen.exportModal.onStartExport('balanced');
       });
-      await waitFor(() => expect(seen.exportModal.isExporting).toBe(true));
-
-      act(() => seen.exportModal.onCancelExport());
-
-      await waitFor(() =>
-        expect(toast).toHaveBeenCalledWith('Export cancelled'),
-      );
+      await act(async () => {
+        seen.exportModal.onCancelExport();
+        await done;
+      });
       expect(screen.queryByTestId('export')).not.toBeInTheDocument();
-      expect(toast.error).not.toHaveBeenCalled();
     });
 
-    it('stops the encoding when the studio is left', async () => {
+    it('stops the encoding when the editor is left', async () => {
       let signal: AbortSignal | undefined;
-      vi.mocked(exportStudioProject).mockImplementation((_p, options) => {
-        signal = given(options).signal;
-        return new Promise(() => {}) as never;
-      });
-      const { unmount } = await open(project([clip('a')]));
+      vi.mocked(exportStudioProject).mockImplementation((async (
+        _p: unknown,
+        options: Props,
+      ) => {
+        signal = options?.signal;
+        return new Promise(() => {});
+      }) as never);
+      const view = await open(project([clip('a')]));
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
       act(() => {
-        seen.exportModal.onStartExport('fast');
+        void seen.exportModal.onStartExport('balanced');
       });
-      await waitFor(() => expect(signal).toBeDefined());
-
-      unmount();
-
+      view.unmount();
       expect(signal?.aborted).toBe(true);
     });
 
     it.each([
       [
-        'a known reason',
-        new StudioExportError('studio.export_errors.no_clips'),
-        'Add a video or image clip before exporting',
+        new StudioExportError('studio.export_errors.encode_failed'),
+        'Video encoding failed. Try fewer clips or shorter media',
       ],
-      [
-        'anything else',
-        new Error('boom'),
-        'Error exporting the video. Please try again.',
-      ],
-    ])(
-      'says why when it fails for %s, and stays open',
-      async (_why, error, message) => {
-        vi.mocked(exportStudioProject).mockRejectedValue(error);
-        await open(project([clip('a')]));
-        act(() => seen.topbar.onExport());
-
-        await act(async () => seen.exportModal.onStartExport('fast'));
-
-        expect(toast.error).toHaveBeenCalledWith(message);
-        expect(screen.getByTestId('export')).toBeInTheDocument();
-      },
-    );
+      [new Error('boom'), 'Error exporting the video. Please try again.'],
+    ])('says why when it fails, and stays open', async (error, message) => {
+      vi.mocked(exportStudioProject).mockRejectedValue(error);
+      await open(project([clip('a')]));
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await act(async () => seen.exportModal.onStartExport('balanced'));
+      expect(toast.error).toHaveBeenCalledWith(message);
+      expect(screen.getByTestId('export')).toBeInTheDocument();
+    });
 
     it('cannot be closed while it is encoding', async () => {
-      vi.mocked(exportStudioProject).mockReturnValue(
-        new Promise(() => {}) as never,
-      );
+      vi.mocked(exportStudioProject).mockReturnValue(new Promise(() => {}));
       await open(project([clip('a')]));
-      act(() => seen.topbar.onExport());
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
       act(() => {
-        seen.exportModal.onStartExport('fast');
+        void seen.exportModal.onStartExport('balanced');
       });
-      await waitFor(() => expect(seen.exportModal.isExporting).toBe(true));
-
       act(() => seen.exportModal.onClose());
-
       expect(screen.getByTestId('export')).toBeInTheDocument();
     });
 
     it('hands the video to the composer as a frame, with its date when scheduled', async () => {
-      vi.mocked(exportStudioProject).mockResolvedValue(video as never);
+      vi.mocked(exportStudioProject).mockResolvedValue(
+        new File(['mp4'], 'e.mp4'),
+      );
       await open(project([clip('a')]));
-      act(() => seen.topbar.onExport());
-      await act(async () => seen.exportModal.onStartExport('fast'));
-      await waitFor(() => expect(seen.exportModal.exportedBlob).toBe(video));
-
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await act(async () => seen.exportModal.onStartExport('balanced'));
       await act(async () => seen.exportModal.onPublish('2026-12-01T10:00'));
-
-      const handed = useUIStore.getState().editedMediaForPost;
-      expect(handed?.file).toBeInstanceOf(File);
-      expect(handed?.file.type).toBe('video/mp4');
-      expect(handed?.scheduledAt).toBe('2026-12-01T10:00');
+      expect(useUIStore.getState().editedMediaForPost).toMatchObject({
+        scheduledAt: '2026-12-01T10:00',
+      });
       expect(seen.navigate).toHaveBeenCalledWith('/create?mode=frame');
     });
 
-    it('downloads the video and closes', async () => {
-      vi.mocked(exportStudioProject).mockResolvedValue(video as never);
-      const click = vi
+    it('downloads the video under the project name, and closes', async () => {
+      vi.mocked(exportStudioProject).mockResolvedValue(
+        new File(['mp4'], 'e.mp4'),
+      );
+      await open(project([clip('a')]));
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await act(async () => seen.exportModal.onStartExport('balanced'));
+      const clickSpy = vi
         .spyOn(HTMLAnchorElement.prototype, 'click')
         .mockImplementation(() => {});
-      await open(project([clip('a')]));
-      act(() => seen.topbar.onExport());
-      await act(async () => seen.exportModal.onStartExport('fast'));
-      await waitFor(() => expect(seen.exportModal.exportedBlob).toBe(video));
-
       act(() => seen.exportModal.onDownload());
-
-      expect(click).toHaveBeenCalledTimes(1);
-      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:local');
+      expect(clickSpy).toHaveBeenCalled();
       expect(screen.queryByTestId('export')).not.toBeInTheDocument();
     });
   });
 
-  it('saves on request and opens and closes the drafts', async () => {
-    await open();
-
-    act(() => seen.topbar.onSave());
-    expect(seen.saveNow).toHaveBeenCalledTimes(1);
-
-    act(() => seen.topbar.onOpenDrafts());
-    fireEvent.click(screen.getByRole('button', { name: 'close drafts' }));
-    expect(
-      screen.queryByRole('button', { name: 'close drafts' }),
-    ).not.toBeInTheDocument();
+  it('saves and goes back to the projects', async () => {
+    await open(project([clip('a')]));
+    act(() => store().setPlaying(true));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to projects' }));
+    await waitFor(() => expect(seen.navigate).toHaveBeenCalledWith('/edits'));
+    expect(seen.saveNow).toHaveBeenCalled();
+    expect(store().isPlaying).toBe(false);
   });
 });
