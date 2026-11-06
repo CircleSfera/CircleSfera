@@ -1,41 +1,69 @@
-import { useEffect, useState } from 'react';
-import toast, { Toaster, useToasterStore } from 'react-hot-toast';
-import { useWideScreen } from '../../hooks/useWideScreen';
+import { useEffect, useRef } from 'react';
+import toast, {
+  resolveValue,
+  type Toast,
+  ToastBar,
+  Toaster,
+  useToasterStore,
+} from 'react-hot-toast';
 
-// How many notices are on screen at once; an older one leaves for a new one.
-const MAX_VISIBLE = 3;
+/** How many notices are on screen at once: a new one replaces the last. */
+export const MAX_VISIBLE = 1;
+/** How long a notice stays, in ms; an error is read more slowly. */
+export const NOTICE_MS = 3000;
+export const ERROR_NOTICE_MS = 5000;
+/** How far up a notice is swiped to close it, in px. */
+export const SWIPE_CLOSE_PX = 24;
 
-const DIALOG = '[role="dialog"][aria-modal="true"]';
-
-// Whether a dialog is open, watched only while there is a notice to place:
-// a dialog may open or close while the notice is on screen.
-function useDialogOpen(watching: boolean) {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (!watching) {
-      setOpen(false);
-      return;
-    }
-    const look = () => setOpen(document.querySelector(DIALOG) !== null);
-    look();
-    const observer = new MutationObserver(look);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [watching]);
-  return open;
+/** One notice: closed by a tap, or by swiping it up. */
+function Notice({ notice }: { notice: Toast }) {
+  const startY = useRef<number | null>(null);
+  return (
+    <ToastBar toast={notice}>
+      {({ icon }) => (
+        // biome-ignore lint/a11y/noStaticElementInteractions: the notice is announced by its own live region; a tap or swipe only closes it early, as it closes on its own
+        // biome-ignore lint/a11y/useKeyWithClickEvents: as above; it closes on its own and is never the only way to anything
+        <div
+          className="flex min-h-11 items-center gap-2"
+          onClick={() => toast.dismiss(notice.id)}
+          onPointerDown={(e) => {
+            startY.current = e.clientY;
+          }}
+          onPointerUp={(e) => {
+            if (
+              startY.current !== null &&
+              startY.current - e.clientY > SWIPE_CLOSE_PX
+            ) {
+              toast.dismiss(notice.id);
+            }
+            startY.current = null;
+          }}
+          style={{ touchAction: 'none' }}
+        >
+          {icon}
+          {/* An error is announced at once; anything else when the reader
+              is free. */}
+          <div
+            role={notice.type === 'error' ? 'alert' : 'status'}
+            aria-live={notice.type === 'error' ? 'assertive' : 'polite'}
+            className="flex-1 whitespace-pre-line py-2"
+          >
+            {resolveValue(notice.message, notice)}
+          </div>
+        </div>
+      )}
+    </ToastBar>
+  );
 }
 
 /**
- * The one place the short notices of the app appear, in the dark surface of
- * the product. On phones they sit at the bottom, just above the navigation
- * bar; on desktop at the bottom left, beside the sidebar. On a phone with a
- * dialog open they move to the top, because the buttons of a dialog are at
- * its bottom.
+ * The one place the short notices of the app appear: a compact pill at the
+ * top centre, below the top bar when there is one, centred on the content
+ * beside the sidebar on a wide screen. It never covers a bar at the bottom,
+ * a toolbar, a text field or the buttons of a dialog.
  */
 export function AppToaster() {
   const { toasts } = useToasterStore();
-  const wide = useWideScreen();
-  const overDialog = useDialogOpen(!wide && toasts.length > 0);
 
   useEffect(() => {
     toasts
@@ -49,25 +77,24 @@ export function AppToaster() {
 
   return (
     <Toaster
-      position={
-        wide ? 'bottom-left' : overDialog ? 'top-center' : 'bottom-center'
-      }
+      position="top-center"
+      reverseOrder={false}
       gutter={8}
       containerClassName="app-toaster"
       containerStyle={{
         top: 'var(--app-toaster-top)',
-        bottom: 'var(--app-toaster-bottom)',
         left: 'var(--app-toaster-left)',
+        right: 'var(--app-toaster-right)',
       }}
       toastOptions={{
-        duration: 4000,
+        duration: NOTICE_MS,
         className: 'app-toast',
         style: {
           background: 'var(--surface-raised)',
           color: '#ffffff',
           border: '1px solid rgba(255, 255, 255, 0.12)',
-          borderRadius: '14px',
-          padding: '10px 14px',
+          borderRadius: '9999px',
+          padding: '4px 16px',
           fontSize: '14px',
           lineHeight: '20px',
           fontWeight: 500,
@@ -76,12 +103,14 @@ export function AppToaster() {
         success: {
           iconTheme: { primary: '#4ade80', secondary: '#0a0a0a' },
         },
-        // An error is read more slowly than a "saved".
+        // Read more slowly, and announced at once.
         error: {
-          duration: 6000,
+          duration: ERROR_NOTICE_MS,
           iconTheme: { primary: '#f87171', secondary: '#0a0a0a' },
         },
       }}
-    />
+    >
+      {(notice) => <Notice notice={notice} />}
+    </Toaster>
   );
 }
