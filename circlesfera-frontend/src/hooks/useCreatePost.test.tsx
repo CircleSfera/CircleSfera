@@ -125,6 +125,24 @@ describe('useCreatePost', () => {
       expect(c().songInVideo).toEqual({ id: 'song-1', startMs: 500 });
     });
 
+    it('forgets that song when its video is replaced by another', async () => {
+      const seconds = FRAME_MIN_DURATION_SEC + 1;
+      const c = await handOver(seconds, undefined, {
+        id: 'song-1',
+        startMs: 500,
+      });
+      act(() =>
+        c().setMediaFiles([
+          {
+            file: new File(['o'], 'other.mp4', { type: 'video/mp4' }),
+            url: 'blob:other',
+            type: 'video',
+          },
+        ]),
+      );
+      await vi.waitFor(() => expect(c().songInVideo).toBeNull());
+    });
+
     it('longer than a Frame, it opens the trim at the longest window', async () => {
       const c = await handOver(FRAME_MAX_DURATION_SEC * 2);
       expect(c().mediaFiles[0].videoData).toMatchObject({

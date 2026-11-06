@@ -254,8 +254,13 @@ export class PostsService {
             turnOffComments: dto.turnOffComments,
             audioId: dto.audioId,
             audioStartMs,
-            // Only a post with a song can have it in its video.
-            audioInVideo: Boolean(dto.audioId && dto.audioInVideo),
+            // Only a post with a song and a video can have the song in its
+            // video; anything else plays the song over it, as before.
+            audioInVideo: Boolean(
+              dto.audioId &&
+                dto.audioInVideo &&
+                dto.media?.some((m) => m.type === 'video'),
+            ),
             contentRating: dto.contentRating || ContentRating.GENERAL,
             visibility: dto.visibility || Visibility.PUBLIC,
             isPremium: dto.isPremium || false,
