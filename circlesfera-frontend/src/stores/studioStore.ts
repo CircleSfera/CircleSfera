@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   AspectRatioType,
   Clip,
+  ClipTransition,
   MediaClip,
   StudioPanel,
   StudioProject,
@@ -18,6 +19,8 @@ import { withLengthOfClips } from '../utils/studioProject';
 import {
   layerFor,
   locateClip,
+  mainClips,
+  mainTrackOf,
   moveMainClip,
   newStudioId,
   packMainTrack,
@@ -25,6 +28,7 @@ import {
   withoutEmptyLayers,
   withSpeed,
 } from '../utils/studioTimeline';
+import { withoutTransition, withTransition } from '../utils/studioTransitions';
 
 // Every change leaves the main track with no gaps and the project as long
 // as its clips.
@@ -37,6 +41,8 @@ interface StudioState {
   playhead: number;
   isPlaying: boolean;
   selectedClipId: string | null;
+  /** The cut chosen on the main track: the id of the clip before it. */
+  selectedCut: string | null;
   zoom: number;
   activeTab: StudioTab;
   openSheet: StudioPanel | null;
@@ -56,6 +62,15 @@ interface StudioState {
   setPlaying: (playing: boolean) => void;
   setZoom: (zoom: number) => void;
   selectClip: (clipId: string | null) => void;
+  /** Chooses the cut after a clip of the main track and opens its transitions. */
+  selectCut: (clipId: string | null) => void;
+  /** Sets the transition of a cut, or takes it away. */
+  setTransition: (
+    clipId: string,
+    transition: ClipTransition | undefined,
+  ) => void;
+  /** Sets the same transition on every cut of the main track. */
+  setAllTransitions: (transition: ClipTransition | undefined) => void;
   setActiveTab: (tab: StudioTab) => void;
   setOpenSheet: (sheet: StudioPanel | null) => void;
   setAspectRatio: (aspectRatio: AspectRatioType) => void;
@@ -109,7 +124,7 @@ interface StudioState {
   setDuckUnderVoice: (on: boolean) => void;
   /** Adds a text or a sound on the first layer of its kind free there. */
   addLayerClip: (
-    type: 'text' | 'audio' | 'voice',
+    type: 'text' | 'audio' | 'voice' | 'effect',
     clip: Clip,
     newTrack: () => Track,
   ) => void;
@@ -124,6 +139,8 @@ const CLIP_PANELS: ReadonlySet<StudioPanel> = new Set([
   'fades',
   'adjust',
   'filters',
+  'color',
+  'effect',
 ]);
 
 // After undo or redo, a chosen clip that is no longer there is let go, and
@@ -132,16 +149,25 @@ const withoutLostSelection = (
   state: StudioState,
   project: StudioProject,
 ): Partial<StudioState> => {
-  if (!state.selectedClipId || locateClip(project, state.selectedClipId)) {
-    return {};
+  const lost: Partial<StudioState> = {};
+  if (state.selectedCut && !hasCutAfter(project, state.selectedCut)) {
+    lost.selectedCut = null;
+    if (state.openSheet === 'transition') lost.openSheet = null;
   }
-  return {
-    selectedClipId: null,
-    openSheet:
-      state.openSheet && CLIP_PANELS.has(state.openSheet)
-        ? null
-        : state.openSheet,
-  };
+  if (state.selectedClipId && !locateClip(project, state.selectedClipId)) {
+    lost.selectedClipId = null;
+    if (state.openSheet && CLIP_PANELS.has(state.openSheet)) {
+      lost.openSheet = null;
+    }
+  }
+  return lost;
+};
+
+// Whether a clip of the main track has another after it.
+const hasCutAfter = (project: StudioProject, clipId: string) => {
+  const ordered = mainClips(project);
+  const index = ordered.findIndex((c) => c.id === clipId);
+  return index >= 0 && index < ordered.length - 1;
 };
 
 const pushHistory = (state: StudioState, newProject: StudioProject) => {
@@ -161,6 +187,7 @@ export const useStudioStore = create<StudioState>((set) => ({
   playhead: 0,
   isPlaying: false,
   selectedClipId: null,
+  selectedCut: null,
   zoom: 50,
   activeTab: 'media',
   openSheet: null,
@@ -212,12 +239,49 @@ export const useStudioStore = create<StudioState>((set) => ({
     set((state) =>
       clipId === state.selectedClipId
         ? state
-        : { selectedClipId: clipId, openSheet: null },
+        : { selectedClipId: clipId, selectedCut: null, openSheet: null },
     ),
+
+  selectCut: (clipId) =>
+    set({
+      selectedCut: clipId,
+      selectedClipId: null,
+      openSheet: clipId ? 'transition' : null,
+    }),
+
+  setTransition: (clipId, transition) =>
+    set((state) => {
+      if (!state.project) return state;
+      const tracks = state.project.tracks.map((t) => ({
+        ...t,
+        clips: t.clips.map((c) =>
+          c.id === clipId ? withTransition(c, transition) : c,
+        ),
+      }));
+      return pushHistory(state, settle({ ...state.project, tracks }));
+    }),
+
+  setAllTransitions: (transition) =>
+    set((state) => {
+      if (!state.project) return state;
+      const main = mainTrackOf(state.project);
+      if (!main) return state;
+      const tracks = state.project.tracks.map((t) =>
+        t === main
+          ? { ...t, clips: t.clips.map((c) => withTransition(c, transition)) }
+          : t,
+      );
+      return pushHistory(state, settle({ ...state.project, tracks }));
+    }),
 
   setActiveTab: (tab) => set({ activeTab: tab, openSheet: tab }),
 
-  setOpenSheet: (sheet) => set({ openSheet: sheet }),
+  // A cut stays chosen only while its transitions are open.
+  setOpenSheet: (sheet) =>
+    set((state) => ({
+      openSheet: sheet,
+      selectedCut: sheet === 'transition' ? state.selectedCut : null,
+    })),
 
   setAspectRatio: (aspectRatio) =>
     set((state) => {
@@ -424,7 +488,11 @@ export const useStudioStore = create<StudioState>((set) => ({
         if (t.id === targetTrack!.id) {
           const updatedClips = t.clips.map((c) => {
             if (c.id === targetClip!.id) {
-              return { ...c, duration: relativeSplit } as Clip;
+              // The second half keeps the way into the next clip.
+              return withoutTransition({
+                ...c,
+                duration: relativeSplit,
+              } as Clip);
             }
             return c;
           });

@@ -8,7 +8,23 @@ import type {
   TextClip,
   Track,
 } from '../../types/studio';
+import {
+  drawEffect,
+  drawTransition,
+  liftPicture,
+  sharpenPicture,
+  warmPicture,
+} from '../../utils/studioCanvasFx';
 import StudioPlayer from './StudioPlayer';
+
+vi.mock('../../utils/studioCanvasFx', async (original) => ({
+  ...(await original<typeof import('../../utils/studioCanvasFx')>()),
+  drawEffect: vi.fn(),
+  drawTransition: vi.fn(),
+  liftPicture: vi.fn(),
+  warmPicture: vi.fn(),
+  sharpenPicture: vi.fn(),
+}));
 
 const media = (
   id: string,
@@ -84,6 +100,8 @@ const playing = new WeakMap<HTMLMediaElement, boolean>();
 /** What was drawn on the preview since the last frame. */
 let drawn: string[];
 let frame: () => void;
+/** How each picture was drawn: its filter and how opaque. */
+let paints: { filter: string; alpha: number }[];
 
 const element = <T extends HTMLMediaElement>(tag: string, src: string) =>
   [...document.querySelectorAll<T>(tag)].find(
@@ -109,6 +127,7 @@ const change = (state: Partial<ReturnType<typeof useStudioStore.getState>>) =>
 describe('StudioPlayer', () => {
   beforeEach(() => {
     drawn = [];
+    paints = [];
     HTMLMediaElement.prototype.play = vi.fn(function (this: HTMLMediaElement) {
       playing.set(this, true);
       return Promise.resolve();
@@ -123,10 +142,16 @@ describe('StudioPlayer', () => {
         return !playing.get(this);
       },
     });
-    const context = {
+    const context: Record<string, unknown> = {
+      filter: 'none',
+      globalAlpha: 1,
+      fillRect: vi.fn(),
       clearRect: () => drawn.push('clear'),
       save: vi.fn(),
-      restore: vi.fn(),
+      restore: () => {
+        context.filter = 'none';
+        context.globalAlpha = 1;
+      },
       translate: (x: number, y: number) => drawn.push(`at ${x},${y}`),
       rotate: (r: number) => drawn.push(`rotate ${r.toFixed(2)}`),
       scale: (x: number, y: number) => drawn.push(`scale ${x},${y}`),
@@ -136,10 +161,15 @@ describe('StudioPlayer', () => {
         y: number,
         w: number,
         h: number,
-      ) =>
+      ) => {
+        paints.push({
+          filter: context.filter as string,
+          alpha: context.globalAlpha as number,
+        });
         drawn.push(
           `${source.tagName.toLowerCase()} ${source.getAttribute('src')} ${x},${y} ${w}x${h}`,
-        ),
+        );
+      },
       measureText: (content: string) => ({ width: content.length * 10 }),
       beginPath: vi.fn(),
       roundRect: (x: number, y: number, w: number, h: number) =>
@@ -522,5 +552,189 @@ describe('StudioPlayer', () => {
     expect(clipAudio.paused).toBe(true);
     expect(clipVideo.isConnected).toBe(false);
     expect(clipAudio.isConnected).toBe(false);
+  });
+  describe('transitions, adjustments and effects', () => {
+    const sized = (el: HTMLVideoElement) => {
+      Object.defineProperty(el, 'videoWidth', { value: 1080 });
+      Object.defineProperty(el, 'videoHeight', { value: 1920 });
+    };
+    beforeEach(() => {
+      for (const fn of [
+        drawTransition,
+        drawEffect,
+        liftPicture,
+        warmPicture,
+        sharpenPicture,
+      ]) {
+        vi.mocked(fn).mockClear();
+      }
+    });
+
+    const cut = (over: Partial<MediaClip> = {}) =>
+      project([
+        track('video', [
+          media('a', 'video', {
+            duration: 4,
+            transitionOut: { kind: 'slideleft', duration: 1 },
+            ...over,
+          }),
+          media('b', 'video', { startAt: 3, duration: 4 }),
+        ]),
+      ]);
+
+    it('draws the two clips of a cut through its transition, at how far in it is', () => {
+      open(cut(), { playhead: 3.25 });
+      sized(video('a'));
+      sized(video('b'));
+      act(() => frame());
+      expect(drawTransition).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(HTMLCanvasElement),
+        expect.any(HTMLCanvasElement),
+        'slideleft',
+        0.25,
+        1080,
+        1920,
+      );
+      // Both clips play through the overlap.
+      expect(video('a')).toBeDefined();
+      expect(video('b')).toBeDefined();
+    });
+
+    it('draws a layer’s overlapping clips one over the other, with no transition', () => {
+      open(
+        project([
+          track('video', [media('base', 'video', { duration: 10 })]),
+          track(
+            'video',
+            [
+              media('x', 'video', {
+                duration: 4,
+                transitionOut: { kind: 'crossfade', duration: 1 },
+              }),
+              media('y', 'video', { startAt: 3, duration: 4 }),
+            ],
+            { id: 'layer' },
+          ),
+        ]),
+        { playhead: 3.5 },
+      );
+      act(() => frame());
+      expect(drawTransition).not.toHaveBeenCalled();
+    });
+
+    it('draws part of a filter over the plain picture, with its adjustments', () => {
+      open(
+        project([
+          track('video', [
+            media('v1', 'video', {
+              filter: 'sepia(1)',
+              filterIntensity: 40,
+              color: {
+                brightness: 0,
+                contrast: 50,
+                saturation: 0,
+                warmth: 0,
+                exposure: 0,
+                sharpness: 0,
+              },
+            }),
+          ]),
+        ]),
+      );
+      sized(video('v1'));
+      act(() => frame());
+      expect(paints).toEqual([
+        { filter: 'contrast(1.5)', alpha: 1 },
+        { filter: 'contrast(1.5) sepia(1)', alpha: 0.4 },
+      ]);
+    });
+
+    it('draws all of a filter at once at full intensity', () => {
+      open(
+        project([
+          track('video', [media('v1', 'video', { filter: 'sepia(1)' })]),
+        ]),
+      );
+      sized(video('v1'));
+      act(() => frame());
+      expect(paints).toEqual([{ filter: 'sepia(1)', alpha: 1 }]);
+    });
+
+    it('lifts and warms a picture as it plays, and sharpens it only when still, once', () => {
+      const color = {
+        brightness: 40,
+        contrast: 0,
+        saturation: 0,
+        warmth: 30,
+        exposure: 0,
+        sharpness: 50,
+      };
+      open(project([track('video', [media('v1', 'video', { color })])]), {
+        isPlaying: true,
+      });
+      sized(video('v1'));
+      Object.defineProperty(video('v1'), 'readyState', { value: 4 });
+      act(() => frame());
+      expect(liftPicture).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        0.2,
+      );
+      expect(warmPicture).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        0.105,
+      );
+      expect(sharpenPicture).not.toHaveBeenCalled();
+
+      change({ isPlaying: false });
+      act(() => frame());
+      act(() => frame());
+      expect(sharpenPicture).toHaveBeenCalledTimes(1);
+    });
+
+    it('lays the effects under way over the picture, at their own time', () => {
+      open(
+        project([
+          track('video', [media('v1', 'video')]),
+          track(
+            'effect',
+            [
+              {
+                id: 'fx',
+                type: 'effect',
+                trackId: 'e',
+                startAt: 2,
+                duration: 3,
+                effect: 'shake',
+                intensity: 50,
+              },
+              {
+                id: 'later',
+                type: 'effect',
+                trackId: 'e',
+                startAt: 8,
+                duration: 3,
+                effect: 'blur',
+                intensity: 50,
+              },
+            ] as never,
+            { id: 'e' },
+          ),
+        ]),
+        { playhead: 3 },
+      );
+      act(() => frame());
+      // Only the effect the playhead is in, on every frame drawn.
+      const drawnFx = vi.mocked(drawEffect).mock.calls.map(([, , fx]) => fx.id);
+      expect(new Set(drawnFx)).toEqual(new Set(['fx']));
+      expect(drawEffect).toHaveBeenCalledWith(
+        expect.any(HTMLCanvasElement),
+        expect.any(HTMLCanvasElement),
+        expect.objectContaining({ id: 'fx' }),
+        1,
+      );
+    });
   });
 });

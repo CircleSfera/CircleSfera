@@ -5025,7 +5025,8 @@
     "clip_types": {
       "video": "Video",
       "image": "Image",
-      "audio": "Audio"
+      "audio": "Audio",
+      "effect": "Effect"
     },
     "trim_start": "Trim start",
     "trim_end": "Trim end",
@@ -5048,7 +5049,8 @@
       "added": "{{type}} track added",
       "keep_one_video": "Keep at least one video track",
       "remove_confirm": "Remove this track and all of its clips?",
-      "voice": "Voice"
+      "voice": "Voice",
+      "effects": "Effects"
     },
     "tools": {
       "dock_label": "Studio tools",
@@ -5067,7 +5069,11 @@
       "clip_label": "Clip tools",
       "voice": "Voice",
       "fades": "Fades",
-      "detach": "Extract audio"
+      "detach": "Extract audio",
+      "color": "Color",
+      "effects": "Effects",
+      "effect": "Effect",
+      "transition": "Transition"
     },
     "properties": {
       "title": "Properties",
@@ -5148,7 +5154,8 @@
       "sepia": "Vintage sepia",
       "neon": "Cyber neon",
       "drama": "Drama contrast",
-      "invert": "Inverted"
+      "invert": "Inverted",
+      "intensity": "Intensity"
     },
     "captions": {
       "title": "Captions",
@@ -5245,6 +5252,45 @@
     "fades": {
       "in": "Fade in",
       "out": "Fade out"
+    },
+    "effects": {
+      "blur": "Blur",
+      "vignette": "Vignette",
+      "grain": "Film grain",
+      "shake": "Shake",
+      "slowzoom": "Slow zoom",
+      "mono": "Black and white",
+      "glow": "Glow",
+      "rgbsplit": "RGB split",
+      "intensity": "Intensity",
+      "replace": "Change to",
+      "add_hint": "Added at the playhead, on the effects layer"
+    },
+    "transitions": {
+      "title": "Transitions",
+      "none": "None",
+      "crossfade": "Crossfade",
+      "fadeblack": "Fade through black",
+      "slideleft": "Slide left",
+      "slideright": "Slide right",
+      "slideup": "Slide up",
+      "slidedown": "Slide down",
+      "zoomin": "Zoom in",
+      "blur": "Blur",
+      "length": "Length",
+      "apply_all": "Apply to all",
+      "cut": "Transition after clip {{index}}",
+      "cut_named": "Transition after clip {{index}}: {{name}}",
+      "too_short": "These clips are too short for a transition."
+    },
+    "color": {
+      "brightness": "Brightness",
+      "contrast": "Contrast",
+      "saturation": "Saturation",
+      "warmth": "Warmth",
+      "exposure": "Exposure",
+      "sharpness": "Sharpness",
+      "reset": "Reset"
     }
   },
   "live": {

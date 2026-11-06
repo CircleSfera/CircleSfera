@@ -51,7 +51,7 @@ export default function PropertiesPanel() {
         : 'transform'
       : chosenTab;
 
-  const transform = selectedClip.transform || {
+  const transform = ('transform' in selectedClip && selectedClip.transform) || {
     scale: 1,
     rotation: 0,
     x: 0,

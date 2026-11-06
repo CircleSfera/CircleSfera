@@ -1,6 +1,7 @@
 import { useStudioStore } from '../stores/studioStore';
 import type {
   Clip,
+  EffectClip,
   MediaClip,
   StudioProject,
   TextClip,
@@ -48,6 +49,20 @@ export const textClip = (
   ...over,
 });
 
+export const effectClip = (
+  id: string,
+  over: Partial<EffectClip> = {},
+): EffectClip => ({
+  id,
+  type: 'effect',
+  trackId: 'fx1',
+  startAt: 2,
+  duration: 3,
+  effect: 'blur',
+  intensity: 50,
+  ...over,
+});
+
 export const studioTrack = (
   id: string,
   type: Track['type'],
@@ -87,6 +102,7 @@ export function openStudioProject(
     project: studioProject(tracks),
     cloudProjectId: null,
     selectedClipId: null,
+    selectedCut: null,
     playhead: 0,
     zoom: 10,
     isPlaying: false,

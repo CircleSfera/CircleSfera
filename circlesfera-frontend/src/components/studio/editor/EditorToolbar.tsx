@@ -9,8 +9,10 @@ import {
   Mic,
   Move,
   Music,
+  Palette,
   Replace,
   Scissors,
+  Sparkles,
   Trash2,
   Type,
   Unlink,
@@ -45,6 +47,12 @@ export const PROJECT_TOOLS: Tool[] = [
   { id: 'audio', icon: Music, labelKey: 'studio.tools.audio', panel: 'audio' },
   { id: 'voice', icon: Mic, labelKey: 'studio.tools.voice', panel: 'voice' },
   { id: 'text', icon: Type, labelKey: 'studio.tools.text', panel: 'text' },
+  {
+    id: 'effects',
+    icon: Sparkles,
+    labelKey: 'studio.tools.effects',
+    panel: 'effects',
+  },
   {
     id: 'subtitles',
     icon: Captions,
@@ -147,18 +155,38 @@ export default function EditorToolbar({
               labelKey: 'studio.tools.filters',
               panel: 'filters' as const,
             },
+            {
+              id: 'color',
+              icon: Palette,
+              labelKey: 'studio.tools.color',
+              panel: 'color' as const,
+            },
           ]
         : []),
-      {
-        id: 'adjust',
-        icon: clip.type === 'text' ? Type : Move,
-        labelKey:
-          clip.type === 'text'
-            ? 'studio.tools.edit_text'
-            : 'studio.tools.adjust',
-        panel: 'adjust',
-      },
-      ...(clip.type !== 'text'
+      ...(clip.type === 'effect'
+        ? [
+            {
+              id: 'effect',
+              icon: Sparkles,
+              labelKey: 'studio.tools.effect',
+              panel: 'effect' as const,
+            },
+          ]
+        : []),
+      ...(clip.type === 'effect'
+        ? []
+        : [
+            {
+              id: 'adjust',
+              icon: clip.type === 'text' ? Type : Move,
+              labelKey:
+                clip.type === 'text'
+                  ? 'studio.tools.edit_text'
+                  : 'studio.tools.adjust',
+              panel: 'adjust' as const,
+            },
+          ]),
+      ...(clip.type !== 'text' && clip.type !== 'effect'
         ? [
             {
               id: 'replace',

@@ -50,7 +50,7 @@ describe('studioProject helpers', () => {
     const serialized = serializeStudioProject(project);
     const clip = serialized.tracks[0].clips[0];
     expect(clip.type).toBe('video');
-    if (clip.type !== 'text') {
+    if (clip.type === 'video') {
       expect(clip.file).toBeNull();
       expect(clip.fileUrl).toBe('https://cdn.example.com/a.mp4');
     }

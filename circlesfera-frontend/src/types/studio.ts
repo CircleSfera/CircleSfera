@@ -1,4 +1,10 @@
-export type MediaType = 'video' | 'image' | 'audio' | 'text' | 'overlay';
+export type MediaType =
+  | 'video'
+  | 'image'
+  | 'audio'
+  | 'text'
+  | 'overlay'
+  | 'effect';
 
 export type AspectRatioType = '9:16' | '16:9' | '1:1' | '4:5';
 
@@ -8,6 +14,7 @@ export type StudioTab =
   | 'audio'
   | 'voice'
   | 'filters'
+  | 'effects'
   | 'subtitles';
 
 /**
@@ -20,6 +27,9 @@ export type StudioPanel =
   | 'volume'
   | 'fades'
   | 'adjust'
+  | 'color'
+  | 'effect'
+  | 'transition'
   | 'settings';
 
 export interface BaseClip {
@@ -57,6 +67,12 @@ export interface MediaClip extends BaseClip {
 
   // Visuals
   filter?: string; // CSS filter string
+  /** How much of its colour filter shows, 0 to 100; all of it when unset. */
+  filterIntensity?: number;
+  /** Brightness, contrast and the rest, each from -100 to 100. */
+  color?: ColorAdjustments;
+  /** On a clip of the main video track: how it passes to the next one. */
+  transitionOut?: ClipTransition;
   opacity?: number; // 0 to 1
   flipX?: boolean;
   flipY?: boolean;
@@ -95,12 +111,57 @@ export interface TextClip extends BaseClip {
   };
 }
 
-export type Clip = MediaClip | TextClip;
+/** The picture adjustments of a clip, each from -100 to 100, 0 being none. */
+export interface ColorAdjustments {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  warmth: number;
+  exposure: number;
+  sharpness: number;
+}
+
+export type TransitionKind =
+  | 'crossfade'
+  | 'fadeblack'
+  | 'slideleft'
+  | 'slideright'
+  | 'slideup'
+  | 'slidedown'
+  | 'zoomin'
+  | 'blur';
+
+/** How a clip passes to the next: the two overlap for its length. */
+export interface ClipTransition {
+  kind: TransitionKind;
+  /** Seconds. */
+  duration: number;
+}
+
+export type EffectKind =
+  | 'blur'
+  | 'vignette'
+  | 'grain'
+  | 'shake'
+  | 'slowzoom'
+  | 'mono'
+  | 'glow'
+  | 'rgbsplit';
+
+/** An effect on the effects layer: it changes the picture for its stretch. */
+export interface EffectClip extends BaseClip {
+  type: 'effect';
+  effect: EffectKind;
+  /** 0 to 100. */
+  intensity: number;
+}
+
+export type Clip = MediaClip | TextClip | EffectClip;
 
 export interface Track {
   id: string;
   /** A voice layer holds recordings; other sound goes under it. */
-  type: 'video' | 'audio' | 'voice' | 'text';
+  type: 'video' | 'audio' | 'voice' | 'text' | 'effect';
   name: string;
   clips: Clip[];
   muted: boolean;

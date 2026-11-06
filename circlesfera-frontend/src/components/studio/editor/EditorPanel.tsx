@@ -9,9 +9,12 @@ import CaptionsPanel from '../panels/CaptionsPanel';
 import ClipFadesPanel from '../panels/ClipFadesPanel';
 import ClipSpeedPanel from '../panels/ClipSpeedPanel';
 import ClipVolumePanel from '../panels/ClipVolumePanel';
+import ColorPanel from '../panels/ColorPanel';
+import EffectsPanel from '../panels/EffectsPanel';
 import FiltersPanel from '../panels/FiltersPanel';
 import ProjectSettingsPanel from '../panels/ProjectSettingsPanel';
 import TextPanel from '../panels/TextPanel';
+import TransitionPanel from '../panels/TransitionPanel';
 import VoicePanel, { type VoiceRecording } from '../panels/VoicePanel';
 
 const TITLES: Record<StudioPanel, string> = {
@@ -25,6 +28,10 @@ const TITLES: Record<StudioPanel, string> = {
   speed: 'studio.tools.speed',
   volume: 'studio.tools.volume',
   adjust: 'studio.tools.adjust',
+  color: 'studio.tools.color',
+  effects: 'studio.tools.effects',
+  effect: 'studio.tools.effect',
+  transition: 'studio.tools.transition',
   settings: 'studio.settings.title',
 };
 
@@ -70,6 +77,13 @@ function PanelBody({
       return <ClipVolumePanel />;
     case 'adjust':
       return <PropertiesPanel />;
+    case 'color':
+      return <ColorPanel />;
+    case 'effects':
+    case 'effect':
+      return <EffectsPanel />;
+    case 'transition':
+      return <TransitionPanel />;
     case 'settings':
       return <ProjectSettingsPanel />;
     default:

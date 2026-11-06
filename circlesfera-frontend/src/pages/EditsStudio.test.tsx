@@ -4,6 +4,7 @@ import {
   fireEvent,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -489,6 +490,58 @@ describe('EditsStudio', () => {
         screen.queryByRole('button', { name: 'Extract audio' }),
       ).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Fades' })).toBeInTheDocument();
+    });
+  });
+
+  describe('transitions and effects', () => {
+    it('offers effects among the tools of the project, and colour among a picture’s', async () => {
+      await open(project([clip('a', { duration: 10 })]));
+      fireEvent.click(screen.getByRole('button', { name: 'Effects' }));
+      expect(store().openSheet).toBe('effects');
+      act(() => store().selectClip('a'));
+      fireEvent.click(screen.getByRole('button', { name: 'Color' }));
+      expect(store().openSheet).toBe('color');
+    });
+
+    it('gives an effect only its own tools', async () => {
+      await open(
+        project(
+          [clip('a', { duration: 10 })],
+          [
+            {
+              id: 'fx',
+              type: 'effect',
+              name: 'Effects',
+              clips: [
+                {
+                  id: 'e',
+                  type: 'effect',
+                  trackId: 'fx',
+                  startAt: 1,
+                  duration: 3,
+                  effect: 'grain',
+                  intensity: 50,
+                },
+              ],
+              muted: false,
+              hidden: false,
+              locked: false,
+            },
+          ],
+        ),
+      );
+      act(() => store().selectClip('e'));
+      const tools = screen.getByRole('navigation', { name: 'Clip tools' });
+      for (const name of ['Effect', 'Duplicate', 'Delete', 'Split']) {
+        expect(within(tools).getByRole('button', { name })).toBeInTheDocument();
+      }
+      for (const name of ['Adjust', 'Replace', 'Filters', 'Color', 'Speed']) {
+        expect(
+          within(tools).queryByRole('button', { name }),
+        ).not.toBeInTheDocument();
+      }
+      fireEvent.click(within(tools).getByRole('button', { name: 'Effect' }));
+      expect(store().openSheet).toBe('effect');
     });
   });
 

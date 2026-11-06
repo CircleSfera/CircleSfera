@@ -7,6 +7,14 @@ import {
   fadeFilters,
   voiceSpans,
 } from './studioAudio';
+import { vignetteMaskPng } from './studioCanvasFx';
+import {
+  activeColor,
+  colorFilter,
+  effectAmounts,
+  effectClipsOf,
+  effectFilter,
+} from './studioEffects';
 import {
   audioClipsOnTracks,
   cssColorToFfmpeg,
@@ -21,6 +29,8 @@ import {
   visualClipsOnVideoTracks,
 } from './studioExportHelpers';
 import { projectContentEnd } from './studioProject';
+import { mainClips, mainTrackOf } from './studioTimeline';
+import { transitionOf, withCutFades, XFADE_OF } from './studioTransitions';
 
 // Same-origin core copied by vite plugin into public/ffmpeg
 const FFMPEG_BASE = '/ffmpeg';
@@ -211,6 +221,32 @@ export async function exportStudioProject(
       inputIndex++;
     }
 
+    // A vignette is laid over the picture as a mask drawn the way the
+    // preview draws it.
+    const effects = effectClipsOf(project);
+    const maskInputs = new Map<string, number>();
+    for (const fx of effects) {
+      if (fx.effect !== 'vignette') continue;
+      throwIfAborted(signal);
+      const { dark } = effectAmounts('vignette', fx.intensity, w) as {
+        dark: number;
+      };
+      const fileName = `fx_mask_${inputIndex}.png`;
+      await ffmpeg.writeFile(fileName, await vignetteMaskPng(w, h, dark));
+      cliInputs.push('-loop', '1', '-t', String(duration), '-i', fileName);
+      maskInputs.set(fx.id, inputIndex);
+      inputIndex++;
+    }
+
+    // The clips of the main track join one after another, through their
+    // transitions, when any of them has one.
+    const main = mainTrackOf(project);
+    const ordered = main && !main.hidden ? mainClips(project) : [];
+    const joined = ordered.some(
+      (c, i) => i < ordered.length - 1 && transitionOf(c),
+    );
+    const mainIds = new Set(joined ? ordered.map((c) => c.id) : []);
+
     const buildFilter = (includeVideoAudio: boolean): string => {
       const parts: string[] = [];
       parts.push(`color=c=black:s=${w}x${h}:d=${duration}:r=${fps}[basev]`);
@@ -218,7 +254,7 @@ export async function exportStudioProject(
         `anullsrc=r=44100:cl=stereo,atrim=0:${duration},asetpts=PTS-STARTPTS[basea]`,
       );
 
-      let currentVideo = 'basev';
+      let currentVideo = joined ? 'mainv' : 'basev';
       const mixLabels = ['[basea]'];
       let mixCount = 0;
       // Under a voice, the rest of the sound drops, unless the project
@@ -240,6 +276,9 @@ export async function exportStudioProject(
         const tx = clip.transform?.x ?? 0;
         const ty = clip.transform?.y ?? 0;
         const cssFx = cssFilterToFfmpeg(clip.filter || '');
+        const color = activeColor(clip.color);
+        const filterShare =
+          Math.max(0, Math.min(100, clip.filterIntensity ?? 100)) / 100;
 
         const vChain: string[] = [];
         if (isImage) {
@@ -263,7 +302,14 @@ export async function exportStudioProject(
         if (rot !== 0) {
           vChain.push(`rotate=${rot}*PI/180:c=none:ow=rotw(iw):oh=roth(ih)`);
         }
-        if (cssFx) vChain.push(cssFx);
+        if (color) vChain.push(colorFilter(color, w, `c${idx}`));
+        if (cssFx && filterShare >= 1) vChain.push(cssFx);
+        else if (cssFx && filterShare > 0) {
+          // Part of the filter: the filtered picture over the plain one.
+          vChain.push(
+            `format=rgba,split[f${idx}a][f${idx}b];[f${idx}b]${cssFx},format=rgba[f${idx}c];[f${idx}a][f${idx}c]blend=all_mode=normal:all_opacity=${filterShare}`,
+          );
+        }
         if (opacity < 1) {
           vChain.push('format=rgba', `colorchannelmixer=aa=${opacity}`);
         }
@@ -275,12 +321,21 @@ export async function exportStudioProject(
 
         const seg = `seg${idx}`;
         parts.push(`[${idx}:v]${vChain.join(',')}[${seg}]`);
-        const next = `ov${idx}`;
-        const enable = `between(t\\,${clip.startAt}\\,${clip.startAt + clip.duration})`;
-        parts.push(
-          `[${currentVideo}][${seg}]overlay=x=(W-w)/2+${tx}:y=(H-h)/2+${ty}:enable='${enable}'[${next}]`,
-        );
-        currentVideo = next;
+        if (mainIds.has(clip.id)) {
+          // Laid on black the size of the video, as long as the clip, to be
+          // joined to the others.
+          parts.push(
+            `color=c=black:s=${w}x${h}:r=${fps}:d=${clip.duration}[bg${idx}]`,
+            `[bg${idx}][${seg}]overlay=x=(W-w)/2+${tx}:y=(H-h)/2+${ty}:shortest=1,format=yuv420p,setsar=1,fps=${fps},settb=AVTB[m${idx}]`,
+          );
+        } else {
+          const next = `ov${idx}`;
+          const enable = `between(t\\,${clip.startAt}\\,${clip.startAt + clip.duration})`;
+          parts.push(
+            `[${currentVideo}][${seg}]overlay=x=(W-w)/2+${tx}:y=(H-h)/2+${ty}:enable='${enable}'[${next}]`,
+          );
+          currentVideo = next;
+        }
 
         if (
           includeVideoAudio &&
@@ -289,7 +344,9 @@ export async function exportStudioProject(
           (clip.volume ?? 1) > 0
         ) {
           const aLabel = `va${mixCount++}`;
-          parts.push(`[${idx}:a]${buildAudioChain(clip, duck)}[${aLabel}]`);
+          parts.push(
+            `[${idx}:a]${buildAudioChain(withCutFades(ordered, clip), duck)}[${aLabel}]`,
+          );
           mixLabels.push(`[${aLabel}]`);
         }
       }
@@ -302,6 +359,39 @@ export async function exportStudioProject(
         );
         mixLabels.push(`[${aLabel}]`);
       }
+
+      if (joined) {
+        const byId = new Map(prepared.map((p) => [p.clip.id, p.inputIndex]));
+        let chain = `m${byId.get(ordered[0].id)}`;
+        ordered.slice(1).forEach((clip, i) => {
+          const before = transitionOf(ordered[i]);
+          const next = `j${i}`;
+          const into = `[${chain}][m${byId.get(clip.id)}]`;
+          parts.push(
+            before
+              ? `${into}xfade=transition=${XFADE_OF[before.kind]}:duration=${before.duration}:offset=${clip.startAt}[${next}]`
+              : `${into}concat=n=2:v=1:a=0[${next}]`,
+          );
+          chain = next;
+        });
+        // The joined clips go under the layers, from the start.
+        parts.push(`[basev][${chain}]overlay=eof_action=pass[mainv]`);
+      }
+
+      // Effects change the picture for their stretch; the texts drawn after
+      // them are never changed.
+      effects.forEach((fx, i) => {
+        const start = fx.startAt;
+        const end = fx.startAt + fx.duration;
+        const mask = maskInputs.get(fx.id);
+        const next = `fx${i}`;
+        parts.push(
+          `[${currentVideo}]split[fx${i}a][fx${i}b]`,
+          `[fx${i}b]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,${effectFilter(fx, w, h, `e${i}`, mask === undefined ? undefined : `${mask}:v`)},format=yuv420p,setpts=PTS+${start}/TB[fx${i}c]`,
+          `[fx${i}a][fx${i}c]overlay=eof_action=pass:enable='between(t\\,${start}\\,${end})'[${next}]`,
+        );
+        currentVideo = next;
+      });
 
       let videoOut = currentVideo;
       textClipsOnTracks(project).forEach((tClip, i) => {
