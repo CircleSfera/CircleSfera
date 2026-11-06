@@ -1194,31 +1194,31 @@ input[type="range"]::-moz-range-progress {
    bar on phones and beside the sidebar on desktop. All the same width, so
    several of them read as one column. */
 .app-toaster {
+  /* Top centre: below the safe area, and below the top bar of a phone when
+     it is on screen. */
   --app-toaster-top: calc(0.5rem + env(safe-area-inset-top, 0px));
-  --app-toaster-bottom: calc(
-    var(--nav-bottom-height) +
-    env(safe-area-inset-bottom, 0px) +
-    0.5rem
-  );
   --app-toaster-left: 1rem;
+  --app-toaster-right: 1rem;
 }
+body:has([data-app-top-bar]) .app-toaster {
+  --app-toaster-top: calc(
+    var(--nav-top-height) + env(safe-area-inset-top, 0px) + 0.5rem
+  );
+}
+/* A pill as wide as its words, up to most of a phone or 420 px. */
 .app-toast {
-  width: 100%;
-  max-width: 26rem;
+  width: auto;
+  max-width: min(90vw, 26.25rem);
 }
-.app-toast > [role="status"] {
+.app-toast > [role="status"],
+.app-toast > [role="alert"] {
   justify-content: flex-start;
 }
 @media (min-width: 48rem) {
   .app-toaster {
     --app-toaster-top: 1rem;
-    --app-toaster-bottom: 1rem;
   }
-  /* Narrow enough to stay in the margin between the sidebar and the
-     content column. */
-  .app-toast {
-    width: 18rem;
-  }
+  /* Centred on the content, beside the sidebar. */
   body:has(.sidebar-root) .app-toaster {
     --app-toaster-left: calc(var(--nav-sidebar-collapsed) + 1rem);
   }
@@ -1228,15 +1228,10 @@ input[type="range"]::-moz-range-progress {
     --app-toaster-left: calc(var(--nav-sidebar-width) + 1rem);
   }
 }
-/* The staff sites: no bar at the bottom of a phone, and from the width
-   where the list of sections is on screen the notice starts where the
-   section starts, which the shell measures. */
-body:has(.admin-shell) .app-toaster {
-  --app-toaster-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-}
+/* The staff sites: from the width where the list of sections is on screen
+   the notice is centred on the section, which the shell measures. */
 @media (min-width: 64rem) {
   body:has(.admin-shell) .app-toaster {
-    --app-toaster-bottom: 1rem;
     --app-toaster-left: var(--admin-content-left, 1rem);
   }
 }

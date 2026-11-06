@@ -1,10 +1,22 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import toast from 'react-hot-toast';
-import { afterEach, describe, expect, it } from 'vitest';
-import { AppToaster } from './AppToaster';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  AppToaster,
+  ERROR_NOTICE_MS,
+  NOTICE_MS,
+  SWIPE_CLOSE_PX,
+} from './AppToaster';
 
 describe('AppToaster', () => {
   afterEach(() => {
+    vi.useRealTimers();
     act(() => toast.remove());
   });
 
@@ -17,53 +29,22 @@ describe('AppToaster', () => {
       side: placed.style.justifyContent,
     };
   };
-  const wideWindow = (wide: boolean) => {
-    const original = window.matchMedia;
-    window.matchMedia = ((query: string) => ({
-      matches: wide,
-      media: query,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    })) as never;
-    return () => {
-      window.matchMedia = original;
-    };
-  };
 
-  it('shows a notice at the bottom of a phone, in the dark surface of the product', async () => {
-    const restore = wideWindow(false);
+  it('shows a notice as a pill at the top centre, in the dark surface of the product', async () => {
     const { container } = render(<AppToaster />);
     act(() => {
       toast.success('Saved');
     });
 
     const text = await screen.findByText('Saved');
-    const box = text.parentElement as HTMLElement;
-    expect(box.style.background).toContain('--surface-raised');
-    expect(box.style.color).toBe('rgb(255, 255, 255)');
-    expect(placeOf(container)).toEqual({ edge: 'bottom', side: 'center' });
-    restore();
+    const pill = container.querySelector('.app-toast') as HTMLElement;
+    expect(pill).toContainElement(text);
+    expect(pill.style.background).toContain('--surface-raised');
+    expect(pill.style.borderRadius).toBe('9999px');
+    expect(placeOf(container)).toEqual({ edge: 'top', side: 'center' });
   });
 
-  it('sits at the bottom left on a wide window, dialog or not', async () => {
-    const restore = wideWindow(true);
-    const { container } = render(
-      <>
-        <div role="dialog" aria-modal="true" />
-        <AppToaster />
-      </>,
-    );
-    act(() => {
-      toast('Wide');
-    });
-    await screen.findByText('Wide');
-    // The library leaves the row at its start: the left.
-    expect(placeOf(container)).toEqual({ edge: 'bottom', side: '' });
-    restore();
-  });
-
-  it('moves to the top of a phone while a dialog is open, so its buttons stay free', async () => {
-    const restore = wideWindow(false);
+  it('stays at the top centre with a dialog open: it never covers its buttons', async () => {
     const { container } = render(
       <>
         <div role="dialog" aria-modal="true" />
@@ -75,46 +56,63 @@ describe('AppToaster', () => {
     });
     await screen.findByText('Could not save');
     expect(placeOf(container)).toEqual({ edge: 'top', side: 'center' });
-    restore();
   });
 
-  it('keeps at most three on screen: the older ones are taken away for the new ones', async () => {
+  it('shows one at a time: a new one replaces the last', async () => {
     render(<AppToaster />);
     act(() => {
-      for (const text of ['one', 'two', 'three', 'four', 'five']) {
-        toast(text);
-      }
+      for (const text of ['one', 'two', 'three']) toast(text);
     });
-
-    await waitFor(() => expect(screen.queryByText('one')).toBeNull());
-    expect(screen.queryByText('two')).toBeNull();
-    for (const text of ['three', 'four', 'five']) {
-      expect(screen.getByText(text)).toBeInTheDocument();
-    }
-    expect(document.querySelectorAll('.app-toast')).toHaveLength(3);
+    await waitFor(() => expect(screen.queryByText('two')).toBeNull());
+    expect(screen.queryByText('one')).toBeNull();
+    expect(screen.getByText('three')).toBeInTheDocument();
+    expect(document.querySelectorAll('.app-toast')).toHaveLength(1);
   });
 
-  it('follows a dialog that opens and closes while the notice is on screen', async () => {
-    const restore = wideWindow(false);
-    const { container } = render(<AppToaster />);
+  it('keeps a notice three seconds and an error five, the error announced at once', async () => {
+    vi.useFakeTimers();
+    render(<AppToaster />);
+    act(() => {
+      toast.success('Saved');
+    });
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(NOTICE_MS + 100));
+    act(() => vi.advanceTimersByTime(1500));
+    expect(screen.queryByText('Saved')).toBeNull();
+
     act(() => {
       toast.error('Could not save');
     });
-    await screen.findByText('Could not save');
-    expect(placeOf(container).edge).toBe('bottom');
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not save');
+    act(() => vi.advanceTimersByTime(NOTICE_MS + 100));
+    expect(screen.getByText('Could not save')).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(ERROR_NOTICE_MS));
+    act(() => vi.advanceTimersByTime(1500));
+    expect(screen.queryByText('Could not save')).toBeNull();
+  });
 
-    const dialog = document.createElement('div');
-    dialog.setAttribute('role', 'dialog');
-    dialog.setAttribute('aria-modal', 'true');
+  it('closes with a tap, or a swipe up, but not a small drag', async () => {
+    vi.useFakeTimers();
+    render(<AppToaster />);
     act(() => {
-      document.body.appendChild(dialog);
+      toast('Tap me');
     });
-    await waitFor(() => expect(placeOf(container).edge).toBe('top'));
+    fireEvent.click(screen.getByText('Tap me'));
+    act(() => vi.advanceTimersByTime(1500));
+    expect(screen.queryByText('Tap me')).toBeNull();
 
     act(() => {
-      dialog.remove();
+      toast('Swipe me');
     });
-    await waitFor(() => expect(placeOf(container).edge).toBe('bottom'));
-    restore();
+    const body = screen.getByText('Swipe me').parentElement as HTMLElement;
+    fireEvent.pointerDown(body, { clientY: 100 });
+    fireEvent.pointerUp(body, { clientY: 100 - SWIPE_CLOSE_PX / 2 });
+    act(() => vi.advanceTimersByTime(1500));
+    expect(screen.getByText('Swipe me')).toBeInTheDocument();
+    fireEvent.pointerDown(body, { clientY: 100 });
+    fireEvent.pointerUp(body, { clientY: 100 - SWIPE_CLOSE_PX - 1 });
+    act(() => vi.advanceTimersByTime(1500));
+    expect(screen.queryByText('Swipe me')).toBeNull();
   });
 });

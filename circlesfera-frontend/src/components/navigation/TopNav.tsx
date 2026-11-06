@@ -24,6 +24,7 @@ export default function TopNav() {
 
   return (
     <div
+      data-app-top-bar
       className="flex md:hidden fixed top-0 left-0 right-0 z-50 items-center justify-between px-4"
       style={{
         height:
