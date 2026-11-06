@@ -1,4 +1,5 @@
 import { Volume2, VolumeX } from 'lucide-react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { MediaClip } from '../../../types/studio';
@@ -13,6 +14,12 @@ export default function ClipVolumePanel() {
   const beginHistoryTransaction = useStudioStore(
     (s) => s.beginHistoryTransaction,
   );
+  // One step of undo for each drag or held key, and none for a touch that
+  // changes nothing.
+  const changing = useRef(false);
+  const settle = () => {
+    changing.current = false;
+  };
   const found =
     project && selectedClipId ? locateClip(project, selectedClipId) : null;
   if (!found || found.clip.type === 'text') return null;
@@ -24,7 +31,15 @@ export default function ClipVolumePanel() {
       <button
         type="button"
         onClick={() =>
-          updateClip(clip.id, { muted: !clip.muted }, { history: true })
+          updateClip(
+            clip.id,
+            // Sound back on a clip silenced at zero comes back at its own
+            // level, not at zero.
+            clip.muted && clip.volume === 0
+              ? { muted: false, volume: 1 }
+              : { muted: !clip.muted },
+            { history: true },
+          )
         }
         aria-label={
           clip.muted ? t('studio.volume.unmute') : t('studio.volume.mute')
@@ -45,10 +60,15 @@ export default function ClipVolumePanel() {
         step={5}
         value={percent}
         aria-label={t('studio.properties.volume')}
-        onPointerDown={beginHistoryTransaction}
-        onKeyDown={beginHistoryTransaction}
+        onPointerUp={settle}
+        onKeyUp={settle}
+        onBlur={settle}
         onChange={(e) => {
           const volume = Number(e.target.value) / 100;
+          if (!changing.current) {
+            changing.current = true;
+            beginHistoryTransaction();
+          }
           updateClip(clip.id, {
             volume,
             muted: volume === 0,

@@ -94,8 +94,19 @@ export default function EditsHome() {
   const remove = useMutation({
     mutationFn: (id: string) => editsService.deleteProject(id),
     onSuccess: (_, id) => {
+      // The project deleted was the one open: it is closed too, so going
+      // back to the editor cannot save it again.
       if (useStudioStore.getState().cloudProjectId === id) {
         setCloudProjectId(null);
+        useStudioStore.setState({
+          project: null,
+          selectedClipId: null,
+          openSheet: null,
+          past: [],
+          future: [],
+          canUndo: false,
+          canRedo: false,
+        });
         void clearLocalStudioDraft();
       }
       queryClient.invalidateQueries({ queryKey: ['studioDrafts'] });
@@ -110,7 +121,12 @@ export default function EditsHome() {
     navigate(EDITOR_PATH);
   };
 
+  // One new project per press: a second press while the first is being
+  // made does nothing.
+  const [starting, setStarting] = useState(false);
   const startNew = async () => {
+    if (starting) return;
+    setStarting(true);
     await clearLocalStudioDraft();
     open(newBlankProject(t('studio.default_project_name'), t), null);
   };
@@ -130,6 +146,7 @@ export default function EditsHome() {
       <button
         type="button"
         onClick={() => void startNew()}
+        disabled={starting}
         className="mb-8 inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-sm font-bold text-black"
       >
         <Plus size={18} aria-hidden />

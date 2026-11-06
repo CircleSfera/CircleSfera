@@ -279,6 +279,12 @@ describe('trimming', () => {
     expect(trimmedClip(clip, 'end', -20).duration).toBe(MIN_CLIP_SEC);
   });
 
+  it('cuts a clip whose file length is unknown shorter, never longer', () => {
+    const old = media('a', { duration: 4 });
+    expect(trimmedClip(old, 'end', 3).duration).toBe(4);
+    expect(trimmedClip(old, 'end', -1).duration).toBe(3);
+  });
+
   it('lets a photo or a text last as long as wanted', () => {
     expect(
       trimmedClip(media('p', { type: 'image', sourceDuration: 1 }), 'end', 20)

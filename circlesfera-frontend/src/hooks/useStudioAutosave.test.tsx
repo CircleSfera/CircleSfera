@@ -103,6 +103,35 @@ describe('useStudioAutosave', () => {
     expect(saveLocalStudioDraft).toHaveBeenCalledWith(mine, 'cloud-new');
   });
 
+  it('makes one cloud project when saves are asked for at once, then saves what changed meanwhile', async () => {
+    let created: (v: unknown) => void = () => {};
+    vi.mocked(editsService.createProject).mockReturnValue(
+      new Promise((r) => (created = r)) as never,
+    );
+    const { result } = renderHook(() => useStudioAutosave());
+    open({ project: project('First') });
+
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+    act(() => {
+      first = result.current.saveNow();
+    });
+    open({ project: project('Second') });
+    act(() => {
+      second = result.current.saveNow();
+    });
+    await act(async () => {
+      created({ id: 'cloud-new' });
+      await Promise.all([first, second]);
+    });
+
+    expect(editsService.createProject).toHaveBeenCalledTimes(1);
+    expect(editsService.updateProjectState).toHaveBeenCalledWith('cloud-new', {
+      version: 3,
+      studio: project('Second'),
+    });
+  });
+
   it('does not save again what is already saved', async () => {
     const { result } = renderHook(() => useStudioAutosave());
     open({ project: project(), cloudProjectId: 'cloud-1' });

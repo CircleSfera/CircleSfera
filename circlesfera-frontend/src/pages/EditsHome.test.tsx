@@ -158,7 +158,23 @@ describe('EditsHome', () => {
     );
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
     expect(useStudioStore.getState().cloudProjectId).toBeNull();
+    expect(useStudioStore.getState().project).toBeNull();
     expect(clearLocalStudioDraft).toHaveBeenCalled();
+  });
+
+  it('makes one new project however fast it is pressed', async () => {
+    let finish: () => void = () => {};
+    vi.mocked(clearLocalStudioDraft).mockReturnValue(
+      new Promise<void>((r) => (finish = r)),
+    );
+    renderWithProviders(<EditsHome />);
+    const button = screen.getByRole('button', { name: 'New project' });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(button).toBeDisabled();
+    finish();
+    await waitFor(() => expect(navigate).toHaveBeenCalledTimes(1));
+    expect(clearLocalStudioDraft).toHaveBeenCalledTimes(1);
   });
 
   it('says so when a project cannot be deleted', async () => {

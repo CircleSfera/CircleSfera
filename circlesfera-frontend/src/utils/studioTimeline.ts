@@ -278,6 +278,10 @@ export function trimmedClip(
       duration,
       (media.sourceDuration - media.mediaStart) / speed,
     );
+  } else if (bounded) {
+    // A clip saved before the length of its file was kept can be cut
+    // shorter, not made longer: how much more the file has is unknown.
+    duration = Math.min(duration, Math.max(clip.duration, MIN_CLIP_SEC));
   }
   return { ...clip, duration } as Clip;
 }

@@ -44,14 +44,40 @@ export function readMediaDuration(
       kind === 'video'
         ? document.createElement('video')
         : document.createElement('audio');
+    let settled = false;
+    const timer = window.setTimeout(() => finish(null), MEDIA_PROBE_TIMEOUT_MS);
+    const finish = (seconds: number | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      if (seconds !== null && Number.isFinite(seconds) && seconds > 0) {
+        resolve(seconds);
+      } else {
+        reject(new Error('metadata'));
+      }
+    };
     el.preload = 'metadata';
-    el.onloadedmetadata = () => resolve(el.duration);
-    el.onerror = () => reject(new Error('metadata'));
+    el.onloadedmetadata = () => {
+      if (Number.isFinite(el.duration)) {
+        finish(el.duration);
+        return;
+      }
+      // Some recordings say nothing of their length until asked for a
+      // moment past their end.
+      el.ondurationchange = () => {
+        if (Number.isFinite(el.duration)) finish(el.duration);
+      };
+      el.currentTime = Number.MAX_SAFE_INTEGER;
+    };
+    el.onerror = () => finish(null);
     el.src = url;
   });
 }
 
 const STUDIO_KEYS_IGNORED_IN = ['INPUT', 'TEXTAREA', 'SELECT'];
+
+/** How long the length of a picked file is waited for, in ms. */
+export const MEDIA_PROBE_TIMEOUT_MS = 10_000;
 
 /** The editor of one project of the Edits Studio. */
 export default function EditsStudio() {
@@ -67,7 +93,6 @@ export default function EditsStudio() {
   const setCloudProjectId = useStudioStore((s) => s.setCloudProjectId);
   const addClip = useStudioStore((s) => s.addClip);
   const addLayerClip = useStudioStore((s) => s.addLayerClip);
-  const updateClip = useStudioStore((s) => s.updateClip);
   const replaceClipMedia = useStudioStore((s) => s.replaceClipMedia);
   const duplicateSelected = useStudioStore((s) => s.duplicateSelected);
   const openSheet = useStudioStore((s) => s.openSheet);
@@ -78,6 +103,8 @@ export default function EditsStudio() {
   const [exportProgress, setExportProgress] = useState(0);
   const [exportedBlob, setExportedBlob] = useState<Blob | null>(null);
   const [showExport, setShowExport] = useState(false);
+  const exportOpenRef = useRef(false);
+  exportOpenRef.current = showExport;
   const exportAbortRef = useRef<AbortController | null>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
@@ -130,16 +157,11 @@ export default function EditsStudio() {
 
   // The clip shows the file from this device at once; the uploaded copy
   // takes its place when it is ready.
-  const swapToUploaded = async (
-    clipId: string,
-    file: File,
-    localUrl: string,
-  ) => {
+  const swapToUploaded = async (file: File, localUrl: string) => {
     const remoteUrl = await upload(file);
-    updateClip(clipId, {
-      fileUrl: remoteUrl,
-      file: null,
-    } as Partial<MediaClip>);
+    // Every clip showing this file takes the uploaded copy, a copy of the
+    // clip made meanwhile included, before the file on this device goes.
+    useStudioStore.getState().replaceMediaUrl(localUrl, remoteUrl);
     URL.revokeObjectURL(localUrl);
   };
 
@@ -174,7 +196,7 @@ export default function EditsStudio() {
           transform: { scale: 1, rotation: 0, x: 0, y: 0 },
         };
         addClip(main.id, clip);
-        await swapToUploaded(id, file, localUrl);
+        await swapToUploaded(file, localUrl);
       } catch {
         toast.error(t('studio.media.upload_error'));
       }
@@ -205,7 +227,7 @@ export default function EditsStudio() {
       addLayerClip('audio', clip, () => newTrack('audio'));
       useStudioStore.getState().setOpenSheet(null);
       toast.success(t('studio.audio.added'));
-      await swapToUploaded(id, file, localUrl);
+      await swapToUploaded(file, localUrl);
     } catch {
       toast.error(t('studio.media.upload_error'));
     }
@@ -237,10 +259,7 @@ export default function EditsStudio() {
         fileUrl: localUrl,
         sourceDuration,
       });
-      if (sourceDuration !== null) {
-        updateClip(clipId, { sourceDuration } as Partial<MediaClip>);
-      }
-      await swapToUploaded(clipId, file, localUrl);
+      await swapToUploaded(file, localUrl);
     } catch {
       toast.error(t('studio.media.upload_error'));
     }
@@ -254,6 +273,10 @@ export default function EditsStudio() {
         target.isContentEditable
       )
         return;
+      // With the export open, the keys belong to it.
+      if (exportOpenRef.current) return;
+      // Space on a button presses that button.
+      if (e.code === 'Space' && target.tagName === 'BUTTON') return;
       const store = useStudioStore.getState();
       const frame = 1 / (store.project?.fps || 30);
       const end = store.project?.duration ?? 0;

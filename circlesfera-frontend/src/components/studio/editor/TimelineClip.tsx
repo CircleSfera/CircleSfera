@@ -68,6 +68,17 @@ export default function TimelineClip({
     timer: number | null;
   } | null>(null);
 
+  // A clip gone (undone, deleted) while a finger rests on it is not chosen
+  // when the wait is up.
+  useEffect(
+    () => () => {
+      const timer = gesture.current?.timer;
+      if (timer != null) window.clearTimeout(timer);
+      gesture.current = null;
+    },
+    [],
+  );
+
   // A finger held on a clip moves it, so the timeline must not scroll then.
   useEffect(() => {
     if (!moving) return;
@@ -173,6 +184,18 @@ export default function TimelineClip({
     if (!g.active) selectClip(isSelected ? null : clip.id);
   };
 
+  // The browser took the pointer away (a scroll, a call): the gesture ends
+  // with nothing chosen and nothing moved.
+  const cancel = (e: React.PointerEvent) => {
+    const g = gesture.current;
+    if (!g || g.pointerId !== e.pointerId) return;
+    if (g.timer !== null) window.clearTimeout(g.timer);
+    gesture.current = null;
+    if (g.active && kind === 'main' && !g.edge) onMoving?.(clip.id, null);
+    setOffset(0);
+    setMoving(false);
+  };
+
   const Icon = ICONS[clip.type as keyof typeof ICONS] ?? Video;
   const width = Math.max(clip.duration * zoom, 4);
   const background =
@@ -197,7 +220,7 @@ export default function TimelineClip({
         onPointerDown={(e) => begin(e, null)}
         onPointerMove={move}
         onPointerUp={end}
-        onPointerCancel={end}
+        onPointerCancel={cancel}
         onContextMenu={(e) => e.preventDefault()}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -241,7 +264,7 @@ export default function TimelineClip({
             onPointerDown={(e) => begin(e, 'start')}
             onPointerMove={move}
             onPointerUp={end}
-            onPointerCancel={end}
+            onPointerCancel={cancel}
             className="absolute -left-5.5 inset-y-0 w-11 flex justify-start cursor-ew-resize touch-none"
           >
             <span className="ml-0.5 h-full w-5 rounded-l-lg bg-white flex items-center justify-center">
@@ -254,7 +277,7 @@ export default function TimelineClip({
             onPointerDown={(e) => begin(e, 'end')}
             onPointerMove={move}
             onPointerUp={end}
-            onPointerCancel={end}
+            onPointerCancel={cancel}
             className="absolute -right-5.5 inset-y-0 w-11 flex justify-end cursor-ew-resize touch-none"
           >
             <span className="mr-0.5 h-full w-5 rounded-r-lg bg-white flex items-center justify-center">

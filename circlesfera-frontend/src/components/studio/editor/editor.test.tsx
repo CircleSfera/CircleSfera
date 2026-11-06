@@ -105,6 +105,29 @@ describe('the timeline', () => {
     expect(store().isPlaying).toBe(false);
   });
 
+  it('still follows a scroll by hand after the playhead was past where it can scroll', () => {
+    renderWithProviders(<EditorTimeline onAddMedia={vi.fn()} />);
+    const scroller = document.querySelector(
+      '[data-studio-timeline] > div',
+    ) as HTMLElement;
+    // jsdom does not scroll: the position stays where it is, as at a limit.
+    Object.defineProperty(scroller, 'scrollLeft', {
+      configurable: true,
+      get: () => 0,
+      set: () => {},
+    });
+    act(() => store().setPlayhead(9));
+    Object.defineProperty(scroller, 'scrollLeft', {
+      configurable: true,
+      value: 20,
+      writable: true,
+    });
+    act(() => {
+      fireEvent.scroll(scroller);
+    });
+    expect(store().playhead).toBe(2);
+  });
+
   it('follows the playhead when it moves from elsewhere', () => {
     renderWithProviders(<EditorTimeline onAddMedia={vi.fn()} />);
     const scroller = document.querySelector(
@@ -253,6 +276,54 @@ describe('a clip on the timeline', () => {
     expect(main().map((c) => c.id)).toEqual(['b', 'a']);
   });
 
+  it('ends a gesture the browser takes away without choosing or moving anything', () => {
+    vi.useFakeTimers();
+    const a = clipButton('a');
+    fireEvent.pointerDown(a, {
+      pointerId: 11,
+      clientX: 0,
+      pointerType: 'touch',
+    });
+    fireEvent.pointerCancel(a, {
+      pointerId: 11,
+      clientX: 0,
+      pointerType: 'touch',
+    });
+    act(() => vi.advanceTimersByTime(HOLD_TO_MOVE_MS));
+    expect(store().selectedClipId).toBeNull();
+
+    fireEvent.pointerDown(a, {
+      pointerId: 12,
+      clientX: 0,
+      pointerType: 'mouse',
+    });
+    fireEvent.pointerMove(a, {
+      pointerId: 12,
+      clientX: 70,
+      pointerType: 'mouse',
+    });
+    fireEvent.pointerCancel(a, {
+      pointerId: 12,
+      clientX: 70,
+      pointerType: 'mouse',
+    });
+    expect(main().map((c) => c.id)).toEqual(['a', 'b']);
+    expect(document.querySelector('.bg-brand-primary.z-40')).toBeNull();
+    fireEvent.pointerCancel(a, { pointerId: 99 });
+  });
+
+  it('is not chosen when it is gone before the wait of a resting finger is up', () => {
+    vi.useFakeTimers();
+    fireEvent.pointerDown(clipButton('b'), {
+      pointerId: 13,
+      clientX: 0,
+      pointerType: 'touch',
+    });
+    act(() => store().removeClip('b'));
+    act(() => vi.advanceTimersByTime(HOLD_TO_MOVE_MS));
+    expect(store().selectedClipId).toBeNull();
+  });
+
   it('on a layer is moved in time', () => {
     const w = clipButton('w');
     fireEvent.pointerDown(w, {
@@ -330,9 +401,9 @@ describe('the top bar', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Back to projects' }));
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Project settings' }));
+    fireEvent.click(screen.getByRole('button', { name: /Project settings/ }));
     expect(store().openSheet).toBe('settings');
-    fireEvent.click(screen.getByRole('button', { name: 'Project settings' }));
+    fireEvent.click(screen.getByRole('button', { name: /Project settings/ }));
     expect(store().openSheet).toBeNull();
     expect(onClose).toHaveBeenCalled();
     expect(onExport).toHaveBeenCalled();
@@ -400,6 +471,34 @@ describe('the panels', () => {
     expect(main()[0].muted).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Unmute clip' }));
     expect(main()[0].muted).toBe(false);
+  });
+
+  it('brings the sound of a clip silenced at zero back at its own level', () => {
+    useStudioStore.setState({ selectedClipId: 'a' });
+    act(() =>
+      store().updateClip('a', { volume: 0, muted: true } as Partial<MediaClip>),
+    );
+    renderWithProviders(<ClipVolumePanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Unmute clip' }));
+    expect(main()[0]).toMatchObject({ volume: 1, muted: false });
+  });
+
+  it('keeps one step of undo for one drag of the volume, and none for a touch', () => {
+    useStudioStore.setState({ selectedClipId: 'a', past: [] });
+    renderWithProviders(<ClipVolumePanel />);
+    const slider = screen.getByRole('slider', { name: 'Volume' });
+    fireEvent.pointerDown(slider);
+    fireEvent.pointerUp(slider);
+    expect(store().past).toHaveLength(0);
+    fireEvent.change(slider, { target: { value: '120' } });
+    fireEvent.change(slider, { target: { value: '140' } });
+    fireEvent.pointerUp(slider);
+    expect(store().past).toHaveLength(1);
+    fireEvent.change(slider, { target: { value: '60' } });
+    fireEvent.keyUp(slider);
+    fireEvent.change(slider, { target: { value: '50' } });
+    fireEvent.blur(slider);
+    expect(store().past).toHaveLength(3);
   });
 
   it('shows no speed or volume for a text, or with nothing chosen', () => {

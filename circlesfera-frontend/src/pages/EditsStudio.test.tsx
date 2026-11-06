@@ -15,7 +15,7 @@ import type { MediaClip, StudioProject, TextClip } from '../types/studio';
 import { exportStudioProject } from '../utils/ffmpegExport';
 import { StudioExportError } from '../utils/studioExportHelpers';
 import { loadLocalStudioDraft } from '../utils/studioLocalDraft';
-import EditsStudio from './EditsStudio';
+import EditsStudio, { MEDIA_PROBE_TIMEOUT_MS } from './EditsStudio';
 
 type Props = Record<string, any>;
 
@@ -272,6 +272,56 @@ describe('EditsStudio', () => {
       expect(clicked).toHaveBeenCalledTimes(2);
     });
 
+    it('waits for the length of a recording that does not say it at first', async () => {
+      await open();
+      const create = (tag: string) =>
+        Document.prototype.createElement.call(document, tag);
+      vi.mocked(document.createElement).mockImplementation(((tag: string) => {
+        if (tag !== 'video' && tag !== 'audio') return create(tag);
+        let length = Number.POSITIVE_INFINITY;
+        const probe: Props = {
+          get duration() {
+            return length;
+          },
+          set currentTime(_v: number) {
+            length = 7;
+            queueMicrotask(() => probe.ondurationchange?.());
+          },
+          set src(_v: string) {
+            queueMicrotask(() => probe.onloadedmetadata?.());
+          },
+        };
+        return probe;
+      }) as never);
+      pick('studio-media-input', [
+        new File(['v'], 'r.webm', { type: 'video/webm' }),
+      ]);
+      await waitFor(() => expect(mainClips()[0]?.duration).toBe(7));
+    });
+
+    it('gives up on a file whose length never comes', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        await open();
+        const create = (tag: string) =>
+          Document.prototype.createElement.call(document, tag);
+        vi.mocked(document.createElement).mockImplementation(((tag: string) =>
+          tag === 'video' || tag === 'audio'
+            ? { set src(_v: string) {} }
+            : create(tag)) as never);
+        pick('studio-media-input', [
+          new File(['v'], 'x.mp4', { type: 'video/mp4' }),
+        ]);
+        await act(async () => {
+          vi.advanceTimersByTime(MEDIA_PROBE_TIMEOUT_MS);
+        });
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(mainClips()).toHaveLength(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('says so when a video cannot be read', async () => {
       mediaLength = 'unreadable';
       await open();
@@ -517,12 +567,29 @@ describe('EditsStudio', () => {
       expect(mainClips()[0].speed).toBe(2);
     });
 
+    it('are left to the export while it is open, and Space presses a button', async () => {
+      await open(project([clip('a', { duration: 10 })]));
+      act(() => {
+        store().selectClip('a');
+        store().setPlayhead(5);
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      press('s');
+      press('Delete', { code: 'Delete' });
+      expect(mainClips()).toHaveLength(1);
+      act(() => seen.exportModal.onClose());
+
+      const play = screen.getByRole('button', { name: 'Play' });
+      fireEvent.keyDown(play, { key: ' ', code: 'Space' });
+      expect(store().isPlaying).toBe(false);
+    });
+
     it('leave other keys with a modifier to the browser, and are left alone while typing', async () => {
       await open(project([clip('a')]));
       expect(press('-', { metaKey: true }).defaultPrevented).toBe(false);
       expect(press('k', { ctrlKey: true }).defaultPrevented).toBe(false);
       expect(store().isPlaying).toBe(false);
-      fireEvent.click(screen.getByRole('button', { name: 'Project settings' }));
+      fireEvent.click(screen.getByRole('button', { name: /Project settings/ }));
       const [name] = screen.getAllByLabelText('Name');
       fireEvent.keyDown(name, { key: ' ', code: 'Space' });
       expect(store().isPlaying).toBe(false);

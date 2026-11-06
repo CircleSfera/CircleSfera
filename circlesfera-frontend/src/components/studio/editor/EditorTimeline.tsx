@@ -64,8 +64,12 @@ export default function EditorTimeline({ onAddMedia }: EditorTimelineProps) {
     if (!el) return;
     const target = playhead * zoom;
     if (Math.abs(el.scrollLeft - target) > 0.5) {
+      const before = el.scrollLeft;
       settingScroll.current = true;
       el.scrollLeft = target;
+      // Already as far as it goes: no scroll follows, so nothing is to be
+      // ignored.
+      if (el.scrollLeft === before) settingScroll.current = false;
     }
   }, [playhead, zoom]);
 

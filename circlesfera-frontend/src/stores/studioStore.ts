@@ -84,6 +84,11 @@ interface StudioState {
       sourceDuration: number | null;
     },
   ) => void;
+  /**
+   * Points every clip showing a file at another address, in the project and
+   * in its history: a copy made while the file was uploading included.
+   */
+  replaceMediaUrl: (from: string, to: string) => void;
   /** Adds a text or a sound on the first layer of its kind free there. */
   addLayerClip: (
     type: 'text' | 'audio',
@@ -93,6 +98,32 @@ interface StudioState {
 
   calculateDuration: () => void;
 }
+
+// The panels that act on the chosen clip.
+const CLIP_PANELS: ReadonlySet<StudioPanel> = new Set([
+  'speed',
+  'volume',
+  'adjust',
+  'filters',
+]);
+
+// After undo or redo, a chosen clip that is no longer there is let go, and
+// a panel of that clip closes; a panel of the project stays open.
+const withoutLostSelection = (
+  state: StudioState,
+  project: StudioProject,
+): Partial<StudioState> => {
+  if (!state.selectedClipId || locateClip(project, state.selectedClipId)) {
+    return {};
+  }
+  return {
+    selectedClipId: null,
+    openSheet:
+      state.openSheet && CLIP_PANELS.has(state.openSheet)
+        ? null
+        : state.openSheet,
+  };
+};
 
 const pushHistory = (state: StudioState, newProject: StudioProject) => {
   if (!state.project) return { project: newProject };
@@ -121,11 +152,12 @@ export const useStudioStore = create<StudioState>((set) => ({
   canUndo: false,
   canRedo: false,
 
-  // A project made before the main track kept its clips together is
-  // opened with them together, and without its empty layers.
+  // A project is opened as it was saved, only without its empty layers. One
+  // made before the main track kept its clips together has them brought
+  // together on its first change, which can be undone.
   setProject: (project) =>
     set({
-      project: withoutEmptyLayers(settle(project)),
+      project: withoutEmptyLayers(project),
       past: [],
       future: [],
       canUndo: false,
@@ -201,6 +233,7 @@ export const useStudioStore = create<StudioState>((set) => ({
         project: previous,
         canUndo: newPast.length > 0,
         canRedo: true,
+        ...withoutLostSelection(state, previous),
       };
     }),
 
@@ -215,6 +248,7 @@ export const useStudioStore = create<StudioState>((set) => ({
         project: next,
         canUndo: true,
         canRedo: newFuture.length > 0,
+        ...withoutLostSelection(state, next),
       };
     }),
 
@@ -440,6 +474,7 @@ export const useStudioStore = create<StudioState>((set) => ({
         file: media.file,
         fileUrl: media.fileUrl,
         mediaStart: 0,
+        sourceDuration: media.sourceDuration ?? undefined,
         muted: media.type === 'image' ? true : clip.muted,
         duration: Math.min(clip.duration, longest),
       };
@@ -448,6 +483,29 @@ export const useStudioStore = create<StudioState>((set) => ({
         clips: t.clips.map((c) => (c.id === clipId ? replaced : c)),
       }));
       return pushHistory(state, settle({ ...state.project, tracks }));
+    }),
+
+  replaceMediaUrl: (from, to) =>
+    set((state) => {
+      const swap = (project: StudioProject): StudioProject => {
+        let changed = false;
+        const tracks = project.tracks.map((t) => ({
+          ...t,
+          clips: t.clips.map((c) => {
+            if (c.type === 'text' || (c as MediaClip).fileUrl !== from)
+              return c;
+            changed = true;
+            return { ...c, fileUrl: to, file: null } as Clip;
+          }),
+        }));
+        return changed ? { ...project, tracks } : project;
+      };
+      if (!state.project) return state;
+      return {
+        project: swap(state.project),
+        past: state.past.map(swap),
+        future: state.future.map(swap),
+      };
     }),
 
   addLayerClip: (type, clip, newTrack) =>

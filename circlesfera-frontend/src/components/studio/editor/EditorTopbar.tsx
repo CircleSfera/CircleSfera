@@ -66,7 +66,7 @@ export default function EditorTopbar({
         onClick={() =>
           setOpenSheet(openSheet === 'settings' ? null : 'settings')
         }
-        aria-label={t('studio.settings.open')}
+        aria-label={`${name}, ${t('studio.settings.open')}`}
         aria-pressed={openSheet === 'settings'}
         className="flex min-w-0 flex-1 items-center gap-2 min-h-11 rounded-xl px-2 text-left hover:bg-white/5"
       >

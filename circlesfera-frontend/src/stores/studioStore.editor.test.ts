@@ -31,7 +31,7 @@ describe('the studio store, for the editor', () => {
     ]);
   });
 
-  it('opens a project with its main track together and without empty layers', () => {
+  it('opens a project as saved, without its empty layers; its first change brings the main track together, and can be undone', () => {
     const old: StudioProject = {
       ...(store().project as StudioProject),
       tracks: [
@@ -43,8 +43,13 @@ describe('the studio store, for the editor', () => {
     };
     store().setProject(old);
     expect(tracks().map((t) => t.id)).toEqual(['v1']);
-    expect(main()[0].startAt).toBe(0);
+    expect(main()[0].startAt).toBe(5);
     expect(store().canUndo).toBe(false);
+
+    store().setClipSpeed('x', 2);
+    expect(main()[0].startAt).toBe(0);
+    store().undo();
+    expect(main()[0].startAt).toBe(5);
   });
 
   it('moves a clip of the main track, and undoes it', () => {
@@ -166,6 +171,74 @@ describe('the studio store, for the editor', () => {
       sourceDuration: null,
     });
     store().addLayerClip('text', textClip('w'), layer('text'));
+    expect(store().project).toBeNull();
+  });
+
+  it('lets go of a chosen clip that undo takes away, closing its panel but not a project panel', () => {
+    useStudioStore.setState({ selectedClipId: 'a' });
+    store().duplicateSelected(layer('video'));
+    useStudioStore.setState({ openSheet: 'speed' });
+    store().undo();
+    expect(store()).toMatchObject({ selectedClipId: null, openSheet: null });
+
+    store().redo();
+    useStudioStore.setState({
+      selectedClipId: main()[1].id,
+      openSheet: 'settings',
+    });
+    store().undo();
+    expect(store()).toMatchObject({
+      selectedClipId: null,
+      openSheet: 'settings',
+    });
+
+    useStudioStore.setState({ selectedClipId: 'a', openSheet: 'volume' });
+    store().redo();
+    expect(store()).toMatchObject({ selectedClipId: 'a', openSheet: 'volume' });
+  });
+
+  it('keeps the length of the new file when a clip is replaced', () => {
+    store().replaceClipMedia('b', {
+      type: 'video',
+      file: null,
+      fileUrl: 'n',
+      sourceDuration: 5,
+    });
+    expect(main()[1].sourceDuration).toBe(5);
+    store().replaceClipMedia('b', {
+      type: 'image',
+      file: null,
+      fileUrl: 'p',
+      sourceDuration: null,
+    });
+    expect(main()[1].sourceDuration).toBeUndefined();
+  });
+
+  it('points every clip showing a file at its uploaded copy, in the history too', () => {
+    openStudioProject([
+      studioTrack('v1', 'video', [
+        mediaClip('a', {
+          trackId: 'v1',
+          startAt: 0,
+          duration: 2,
+          fileUrl: 'blob:x',
+        }),
+      ]),
+    ]);
+    useStudioStore.setState({ selectedClipId: 'a' });
+    store().duplicateSelected(layer('video'));
+    store().replaceMediaUrl('blob:x', 'https://cdn/x.mp4');
+    expect(main().map((c) => c.fileUrl)).toEqual([
+      'https://cdn/x.mp4',
+      'https://cdn/x.mp4',
+    ]);
+    store().undo();
+    expect(main()[0].fileUrl).toBe('https://cdn/x.mp4');
+    const before = store().project;
+    store().replaceMediaUrl('blob:none', 'y');
+    expect(store().project).toBe(before);
+    useStudioStore.setState({ project: null });
+    store().replaceMediaUrl('a', 'b');
     expect(store().project).toBeNull();
   });
 });
