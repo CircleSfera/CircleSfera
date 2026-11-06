@@ -815,8 +815,43 @@ describe('EditsStudio', () => {
       await act(async () => seen.exportModal.onPublish('2026-12-01T10:00'));
       expect(useUIStore.getState().editedMediaForPost).toMatchObject({
         scheduledAt: '2026-12-01T10:00',
+        songInVideo: undefined,
       });
       expect(seen.navigate).toHaveBeenCalledWith('/create?mode=frame');
+    });
+
+    it('names the library song the video carries, so publishing it counts as a use', async () => {
+      vi.mocked(exportStudioProject).mockResolvedValue(
+        new File(['mp4'], 'e.mp4'),
+      );
+      const song = clip('s', {
+        type: 'audio',
+        trackId: 'music',
+        audioId: 'song-1',
+        mediaStart: 12.5,
+      });
+      await open(
+        project(
+          [clip('a')],
+          [
+            {
+              id: 'music',
+              type: 'audio',
+              name: 'Audio',
+              clips: [song],
+              muted: false,
+              hidden: false,
+              locked: false,
+            },
+          ],
+        ),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await act(async () => seen.exportModal.onStartExport('balanced'));
+      await act(async () => seen.exportModal.onPublish(''));
+      expect(useUIStore.getState().editedMediaForPost).toMatchObject({
+        songInVideo: { id: 'song-1', startMs: 12500 },
+      });
     });
 
     it('downloads the video under the project name, and closes', async () => {

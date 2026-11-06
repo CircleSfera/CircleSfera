@@ -120,7 +120,7 @@ export function withDetachedSound(
   newTrack: () => Track,
 ): { project: StudioProject; soundId: string } | null {
   const found = locateClip(project, clipId);
-  if (!found || found.clip.type !== 'video') return null;
+  if (found?.clip.type !== 'video') return null;
   const video = found.clip as MediaClip;
   const soundId = newStudioId();
   const free = project.tracks.find(
@@ -154,4 +154,20 @@ export function withDetachedSound(
     },
   );
   return { project: { ...project, tracks }, soundId };
+}
+
+/**
+ * The library song a published video carries, so it counts as used: the
+ * first one heard on the timeline, from where its clip starts in the song.
+ */
+export function librarySongOf(
+  project: StudioProject,
+): { id: string; startMs: number } | null {
+  const song = project.tracks
+    .filter((t) => t.type === 'audio' && !t.muted)
+    .flatMap((t) => t.clips as MediaClip[])
+    .filter((c) => c.audioId && !c.muted && c.volume > 0)
+    .sort((a, b) => a.startAt - b.startAt)[0];
+  if (!song?.audioId) return null;
+  return { id: song.audioId, startMs: Math.round(song.mediaStart * 1000) };
 }

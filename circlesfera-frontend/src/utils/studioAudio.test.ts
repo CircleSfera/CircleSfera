@@ -13,6 +13,7 @@ import {
   fadeFilters,
   fadeGainAt,
   isSoundTrack,
+  librarySongOf,
   MAX_FADE_SEC,
   voiceSpans,
   withDetachedSound,
@@ -208,5 +209,51 @@ describe('taking a video sound out', () => {
     ]);
     expect(withDetachedSound(base, 'img', newTrack)).toBeNull();
     expect(withDetachedSound(base, 'missing', newTrack)).toBeNull();
+  });
+});
+
+describe('the library song a published video carries', () => {
+  const song = (id: string, over: Partial<MediaClip> = {}) =>
+    sound(id, { trackId: 'm', audioId: id, ...over });
+  const music = (clips: MediaClip[], over: Partial<Track> = {}) =>
+    project([
+      studioTrack('v1', 'video'),
+      { ...studioTrack('m', 'audio', clips), ...over },
+    ]);
+
+  it('is the first heard on the timeline, from where its clip starts in it', () => {
+    expect(
+      librarySongOf(
+        music([
+          song('late', { startAt: 6 }),
+          song('early', { startAt: 1, mediaStart: 30.25 }),
+        ]),
+      ),
+    ).toEqual({ id: 'early', startMs: 30250 });
+  });
+
+  it('skips a song that is not heard, and a file that is not from the library', () => {
+    expect(
+      librarySongOf(
+        music([
+          sound('file', { trackId: 'm' }),
+          song('muted', { muted: true }),
+          song('silent', { volume: 0 }),
+        ]),
+      ),
+    ).toBeNull();
+    expect(librarySongOf(music([song('a')], { muted: true }))).toBeNull();
+  });
+
+  it('never takes a recorded voice', () => {
+    expect(
+      librarySongOf(
+        project([
+          studioTrack('vo', 'voice', [
+            sound('v', { trackId: 'vo', audioId: 'x' }),
+          ]),
+        ]),
+      ),
+    ).toBeNull();
   });
 });

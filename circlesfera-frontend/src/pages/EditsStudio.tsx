@@ -19,6 +19,7 @@ import type { Audio } from '../types';
 import type { MediaClip, Track } from '../types/studio';
 import { exportStudioProject } from '../utils/ffmpegExport';
 import { readMediaDuration } from '../utils/mediaDuration';
+import { librarySongOf } from '../utils/studioAudio';
 import {
   type FfmpegEncodePreset,
   StudioExportError,
@@ -401,6 +402,7 @@ export default function EditsStudio() {
     useUIStore.getState().setEditedMediaForPost({
       file: new File([exportedBlob], 'export.mp4', { type: 'video/mp4' }),
       scheduledAt: scheduledAt || undefined,
+      songInVideo: project ? (librarySongOf(project) ?? undefined) : undefined,
     });
     navigate('/create?mode=frame');
   };
