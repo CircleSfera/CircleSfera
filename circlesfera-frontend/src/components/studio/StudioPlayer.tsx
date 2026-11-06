@@ -1,16 +1,18 @@
-import { useEffect, useRef } from 'react';
+import { type MouseEvent, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../stores/studioStore';
 import type {
   AspectRatioType,
   EffectClip,
   MediaClip,
+  StudioProject,
   TextClip,
 } from '../../types/studio';
 import { clipGainAt, isSoundTrack } from '../../utils/studioAudio';
 import {
   drawEffect,
   drawTransition,
+  keyPicture,
   liftPicture,
   scratchCanvas,
   sharpenPicture,
@@ -26,7 +28,17 @@ import {
   containRect,
   resolutionForAspect,
 } from '../../utils/studioExportHelpers';
-import { mainTrackOf } from '../../utils/studioTimeline';
+import {
+  chromaAmounts,
+  compositeOf,
+  DEFAULT_CHROMA_SOFTNESS,
+  DEFAULT_CHROMA_STRENGTH,
+  hexOf,
+  needsOwnPicture,
+  rgbOf,
+  shapePath,
+} from '../../utils/studioOverlay';
+import { locateClip, mainTrackOf } from '../../utils/studioTimeline';
 import {
   transitionOf,
   transitionProgress,
@@ -78,6 +90,11 @@ function drawMediaClip(
 
   ctx.translate(canvas.width / 2 + tx, canvas.height / 2 + ty);
   ctx.rotate(rot);
+  // A shape cuts the clip as it is placed and turned, never mirrored.
+  if (clip.shape && clip.shape !== 'none') {
+    shapePath(ctx, clip.shape, fit.w * scale, fit.h * scale);
+    ctx.clip();
+  }
   ctx.scale((clip.flipX ? -1 : 1) * scale, (clip.flipY ? -1 : 1) * scale);
   ctx.drawImage(source, -fit.w / 2, -fit.h / 2, fit.w, fit.h);
   if (filtered && !full) {
@@ -106,18 +123,49 @@ function drawPicture(
   scratch: { picture: Scratch; copy: Scratch; sharp: SharpCache },
   still: boolean,
   at: number,
+  picking = false,
 ) {
   const color = activeColor(clip.color);
   const amounts = color ? colorAmounts(color) : null;
+  const own = needsOwnPicture(clip);
   if (
-    !amounts ||
-    (amounts.lift === 0 &&
-      amounts.warmth === 0 &&
-      (amounts.sharpen === 0 || !still))
+    !own &&
+    (!amounts ||
+      (amounts.lift === 0 &&
+        amounts.warmth === 0 &&
+        (amounts.sharpen === 0 || !still)))
   ) {
     drawMediaClip(target, canvas, clip, sources.video, sources.image);
     return;
   }
+  // A green screen and a blend need the clip's own picture every frame.
+  if (own) {
+    const picture = scratchCanvas(scratch.picture, canvas.width, canvas.height);
+    const pctx = picture.getContext('2d');
+    if (!pctx) return;
+    pctx.clearRect(0, 0, picture.width, picture.height);
+    drawMediaClip(pctx, picture, clip, sources.video, sources.image);
+    const copy = scratchCanvas(scratch.copy, canvas.width, canvas.height);
+    if (amounts) {
+      liftPicture(picture, copy, amounts.lift);
+      warmPicture(picture, copy, amounts.warmth);
+    }
+    // While its colour is being picked, the clip shows with it.
+    if (clip.chroma && !picking) {
+      keyPicture(
+        picture,
+        clipBox(canvas, clip, sources),
+        rgbOf(clip.chroma.color),
+        chromaAmounts(clip.chroma),
+      );
+    }
+    target.save();
+    target.globalCompositeOperation = compositeOf(clip.blend);
+    target.drawImage(picture, 0, 0);
+    target.restore();
+    return;
+  }
+  if (!amounts) return;
   // A still frame is sharpened once, not on every redraw while it stays,
   // and only once its picture is there: a video still seeking or a photo
   // still loading is drawn without it, and sharpened when it settles.
@@ -158,6 +206,35 @@ function drawPicture(
   target.drawImage(picture, 0, 0);
 }
 
+/**
+ * The stretch of the canvas a clip can cover, however it is turned: a
+ * square around its centre as wide as its picture's diagonal.
+ */
+function clipBox(
+  canvas: HTMLCanvasElement,
+  clip: MediaClip,
+  sources: {
+    video: HTMLVideoElement | undefined;
+    image: HTMLImageElement | undefined;
+  },
+) {
+  const source = clip.type === 'video' ? sources.video : sources.image;
+  const srcW =
+    source instanceof HTMLVideoElement
+      ? source.videoWidth
+      : (source?.naturalWidth ?? 0);
+  const srcH =
+    source instanceof HTMLVideoElement
+      ? source.videoHeight
+      : (source?.naturalHeight ?? 0);
+  const fit = containRect(srcW || 1, srcH || 1, canvas.width, canvas.height);
+  const scale = clip.transform?.scale ?? 1;
+  const half = (Math.hypot(fit.w, fit.h) * scale) / 2;
+  const cx = canvas.width / 2 + (clip.transform?.x ?? 0);
+  const cy = canvas.height / 2 + (clip.transform?.y ?? 0);
+  return { x: cx - half, y: cy - half, w: half * 2, h: half * 2 };
+}
+
 /** The sharpened still frames, the last few kept. */
 class SharpCache {
   private readonly frames = new Map<string, HTMLCanvasElement>();
@@ -178,6 +255,7 @@ export default function StudioPlayer() {
   const { t } = useTranslation();
   const { project, playhead, isPlaying, setPlayhead, isRecordingVoice } =
     useStudioStore();
+  const pickingColor = useStudioStore((s) => s.pickingColor);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioElementsRef = useRef<Record<string, HTMLAudioElement>>({});
   const videoElementsRef = useRef<Record<string, HTMLVideoElement>>({});
@@ -373,7 +451,9 @@ export default function StudioPlayer() {
             (tr) => tr.type === 'video' && !tr.hidden,
           );
           const scratch = scratchRef.current;
-          const still = !useStudioStore.getState().isPlaying;
+          const { isPlaying: playingNow, pickingColor } =
+            useStudioStore.getState();
+          const still = !playingNow;
           const sourcesOf = (clip: MediaClip) => ({
             video: videoElementsRef.current[clip.id],
             image: imageCacheRef.current[clip.fileUrl],
@@ -413,6 +493,7 @@ export default function StudioPlayer() {
                     scratch,
                     still,
                     ph,
+                    pickingColor,
                   );
                 }
                 return pic;
@@ -438,6 +519,7 @@ export default function StudioPlayer() {
                 scratch,
                 still,
                 ph,
+                pickingColor,
               );
             }
           }
@@ -540,6 +622,44 @@ export default function StudioPlayer() {
     return () => clearInterval(interval);
   }, [isPlaying, setPlayhead]);
 
+  // The eyedropper: the colour under a tap becomes the chosen clip's green
+  // screen colour.
+  const pickColor = (e: MouseEvent<HTMLCanvasElement>) => {
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor(((e.clientX - rect.left) / rect.width) * canvas.width);
+    const y = Math.floor(
+      ((e.clientY - rect.top) / rect.height) * canvas.height,
+    );
+    const state = useStudioStore.getState();
+    const clip = state.selectedClipId
+      ? locateClip(state.project as StudioProject, state.selectedClipId)?.clip
+      : null;
+    state.setPickingColor(false);
+    if (!clip || (clip.type !== 'video' && clip.type !== 'image')) return;
+    let pixel: Uint8ClampedArray;
+    try {
+      pixel =
+        canvas.getContext('2d')?.getImageData(x, y, 1, 1).data ??
+        new Uint8ClampedArray();
+    } catch {
+      return;
+    }
+    if (pixel.length < 3) return;
+    const media = clip as MediaClip;
+    state.updateClip(
+      clip.id,
+      {
+        chroma: {
+          strength: media.chroma?.strength ?? DEFAULT_CHROMA_STRENGTH,
+          softness: media.chroma?.softness ?? DEFAULT_CHROMA_SOFTNESS,
+          color: hexOf(pixel[0], pixel[1], pixel[2]),
+        },
+      } as Partial<MediaClip>,
+      { history: true },
+    );
+  };
+
   if (!project) return null;
 
   const hasClips = project.tracks.some((track) => track.clips.length > 0);
@@ -561,8 +681,14 @@ export default function StudioPlayer() {
           ref={canvasRef}
           width={dims.width}
           height={dims.height}
-          className="w-full h-full object-contain"
+          onClick={pickingColor ? pickColor : undefined}
+          className={`w-full h-full object-contain ${pickingColor ? 'cursor-crosshair' : ''}`}
         />
+        {pickingColor && (
+          <p className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white">
+            {t('studio.chroma.pick_hint')}
+          </p>
+        )}
       </div>
     </div>
   );

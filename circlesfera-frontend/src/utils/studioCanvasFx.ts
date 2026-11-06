@@ -7,6 +7,7 @@ import {
   vignetteDarkAt,
   WARM_COLOR,
 } from './studioEffects';
+import { chromaKeep } from './studioOverlay';
 
 /*
  * How the preview draws transitions and effects on its canvas, matching
@@ -390,4 +391,37 @@ export function drawVignette(
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, width, height);
   ctx.restore();
+}
+
+/**
+ * Takes a green screen's colour out of a stretch of a picture: each pixel
+ * keeps the share the export's colorkey keeps of it.
+ */
+export function keyPicture(
+  picture: HTMLCanvasElement,
+  box: { x: number; y: number; w: number; h: number },
+  key: [number, number, number],
+  amounts: { similarity: number; edge: number },
+) {
+  const ctx = picture.getContext('2d');
+  const x = Math.max(0, Math.floor(box.x));
+  const y = Math.max(0, Math.floor(box.y));
+  const w = Math.min(picture.width, Math.ceil(box.x + box.w)) - x;
+  const h = Math.min(picture.height, Math.ceil(box.y + box.h)) - y;
+  if (!ctx || w <= 0 || h <= 0) return;
+  let image: ImageData;
+  try {
+    image = ctx.getImageData(x, y, w, h);
+  } catch {
+    // A file the page may not read is shown as it is; the export keys it.
+    return;
+  }
+  const d = image.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0) continue;
+    d[i + 3] = Math.round(
+      d[i + 3] * chromaKeep(d[i], d[i + 1], d[i + 2], key, amounts),
+    );
+  }
+  ctx.putImageData(image, x, y);
 }

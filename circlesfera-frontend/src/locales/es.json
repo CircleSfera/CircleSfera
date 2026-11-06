@@ -5073,7 +5073,9 @@
       "color": "Color",
       "effects": "Efectos",
       "effect": "Efecto",
-      "transition": "Transición"
+      "transition": "Transición",
+      "blend": "Fusión",
+      "chroma": "Pantalla verde"
     },
     "properties": {
       "title": "Propiedades",
@@ -5291,6 +5293,34 @@
       "exposure": "Exposición",
       "sharpness": "Nitidez",
       "reset": "Restablecer"
+    },
+    "blend": {
+      "mode": "Modo de fusión",
+      "shape": "Forma",
+      "modes": {
+        "normal": "Normal",
+        "screen": "Trama",
+        "multiply": "Multiplicar",
+        "overlay": "Superponer",
+        "lighten": "Aclarar",
+        "darken": "Oscurecer"
+      },
+      "shapes": {
+        "none": "Ninguna",
+        "circle": "Círculo",
+        "rounded": "Redondeada",
+        "heart": "Corazón"
+      }
+    },
+    "chroma": {
+      "color": "Color que quitar",
+      "off": "Desactivada",
+      "green": "Verde",
+      "blue": "Azul",
+      "pick": "Elegir color",
+      "pick_hint": "Toca en el vídeo el color que quieres quitar",
+      "strength": "Intensidad",
+      "softness": "Suavizado del borde"
     }
   },
   "live": {

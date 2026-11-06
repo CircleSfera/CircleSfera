@@ -30,6 +30,7 @@ import {
   textClipsOnTracks,
   visualClipsOnVideoTracks,
 } from './studioExportHelpers';
+import { chromaFilter, shapeFilter } from './studioOverlay';
 import { projectContentEnd } from './studioProject';
 import { mainClips, mainTrackOf } from './studioTimeline';
 import { transitionOf, withCutFades, XFADE_OF } from './studioTransitions';
@@ -308,9 +309,6 @@ export async function exportStudioProject(
         );
         if (clip.flipX) vChain.push('hflip');
         if (clip.flipY) vChain.push('vflip');
-        if (rot !== 0) {
-          vChain.push(`rotate=${rot}*PI/180:c=none:ow=rotw(iw):oh=roth(ih)`);
-        }
         // The order the preview draws in: the adjustments its CSS filter
         // makes, the colour filter, then lift, warmth and sharpening.
         if (color) {
@@ -328,6 +326,15 @@ export async function exportStudioProject(
         if (color) {
           const after = colorFilterAfter(color, `c${idx}`);
           if (after) vChain.push(after);
+        }
+        // A green screen takes its colour out after the colour changes, as
+        // the preview does; a shape cuts the clip before it is turned.
+        if (clip.chroma) vChain.push(chromaFilter(clip.chroma));
+        if (clip.shape && clip.shape !== 'none') {
+          vChain.push(shapeFilter(clip.shape, `s${idx}`));
+        }
+        if (rot !== 0) {
+          vChain.push(`rotate=${rot}*PI/180:c=none:ow=rotw(iw):oh=roth(ih)`);
         }
         if (opacity < 1) {
           vChain.push('format=rgba', `colorchannelmixer=aa=${opacity}`);
@@ -353,9 +360,27 @@ export async function exportStudioProject(
         } else {
           const next = `ov${idx}`;
           const enable = `between(t\\,${clip.startAt}\\,${clip.startAt + clip.duration})`;
-          parts.push(
-            `[${currentVideo}][${seg}]overlay=x=(W-w)/2+${tx}:y=(H-h)/2+${ty}:enable='${enable}'[${next}]`,
-          );
+          const at = `x=(W-w)/2+${tx}:y=(H-h)/2+${ty}`;
+          if (clip.blend && clip.blend !== 'normal') {
+            // Mixed with what is under it: the clip laid on a clear frame
+            // the size of the video, mixed in RGB, then laid back with its
+            // own see-through parts.
+            parts.push(
+              `[${currentVideo}]split[b${idx}a][b${idx}b]`,
+              `color=c=black@0:s=${w}x${h}:r=${fps}:d=${duration},format=rgba[b${idx}t]`,
+              `[b${idx}t][${seg}]overlay=${at}:format=auto,split[b${idx}c][b${idx}d]`,
+              `[b${idx}d]alphaextract[b${idx}e]`,
+              `[b${idx}b]format=gbrp[b${idx}f]`,
+              `[b${idx}c]format=gbrp[b${idx}g]`,
+              `[b${idx}f][b${idx}g]blend=all_mode=${clip.blend},format=rgba[b${idx}h]`,
+              `[b${idx}h][b${idx}e]alphamerge[b${idx}i]`,
+              `[b${idx}a][b${idx}i]overlay=format=auto:enable='${enable}'[${next}]`,
+            );
+          } else {
+            parts.push(
+              `[${currentVideo}][${seg}]overlay=${at}:enable='${enable}'[${next}]`,
+            );
+          }
           currentVideo = next;
         }
 

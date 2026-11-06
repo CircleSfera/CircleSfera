@@ -503,6 +503,38 @@ describe('EditsStudio', () => {
       expect(store().openSheet).toBe('color');
     });
 
+    it('offers blend and green screen on a layer, not on the main track', async () => {
+      await open(
+        project(
+          [clip('a', { duration: 10 })],
+          [
+            {
+              id: 'v2',
+              type: 'video',
+              name: 'Video',
+              clips: [clip('over', { trackId: 'v2', startAt: 1, duration: 3 })],
+              muted: false,
+              hidden: false,
+              locked: false,
+            },
+          ],
+        ),
+      );
+      act(() => store().selectClip('a'));
+      let tools = screen.getByRole('navigation', { name: 'Clip tools' });
+      expect(
+        within(tools).queryByRole('button', { name: 'Blend' }),
+      ).not.toBeInTheDocument();
+      act(() => store().selectClip('over'));
+      tools = screen.getByRole('navigation', { name: 'Clip tools' });
+      fireEvent.click(
+        within(tools).getByRole('button', { name: 'Green screen' }),
+      );
+      expect(store().openSheet).toBe('chroma');
+      fireEvent.click(within(tools).getByRole('button', { name: 'Blend' }));
+      expect(store().openSheet).toBe('blend');
+    });
+
     it('gives an effect only its own tools', async () => {
       await open(
         project(

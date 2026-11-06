@@ -186,4 +186,56 @@ describe('exporting transitions, effects and adjustments', () => {
     );
     expect(graph()).not.toContain('colorchannelmixer');
   });
+
+  it('keys a layer, cuts it to a shape before it turns, and blends it in RGB', async () => {
+    await exported(
+      studioProject([
+        studioTrack('v1', 'video', [
+          mediaClip('a', { startAt: 0, duration: 4 }),
+        ]),
+        studioTrack('v2', 'video', [
+          mediaClip('over', {
+            trackId: 'v2',
+            startAt: 1,
+            duration: 2,
+            chroma: { color: '#00ff00', strength: 40, softness: 20 },
+            shape: 'circle',
+            blend: 'screen',
+            transform: { scale: 0.5, rotation: 30, x: 0, y: 0 },
+          }),
+        ]),
+      ]),
+    );
+    const g = graph();
+    const chain = g.split(';').find((p) => p.startsWith('[1:v]')) ?? '';
+    const at = (part: string) => g.indexOf(part);
+    expect(chain).toContain('format=rgba,colorkey=0x00ff00:0.2:0.06');
+    expect(at('colorkey')).toBeLessThan(at('[s1b]alphaextract'));
+    expect(at('[s1a][s1c]alphamerge')).toBeLessThan(at('rotate=30*PI/180'));
+    expect(g).toContain('[ov0]split[b1a][b1b]');
+    expect(g).toContain('[b1f][b1g]blend=all_mode=screen,format=rgba[b1h]');
+    expect(g).toContain(
+      "[b1a][b1i]overlay=format=auto:enable='between(t\\,1\\,3)'[ov1]",
+    );
+  });
+
+  it('lays a normal layer straight over the picture', async () => {
+    await exported(
+      studioProject([
+        studioTrack('v1', 'video', [
+          mediaClip('a', { startAt: 0, duration: 4 }),
+        ]),
+        studioTrack('v2', 'video', [
+          mediaClip('over', {
+            trackId: 'v2',
+            startAt: 0,
+            duration: 2,
+            blend: 'normal',
+          }),
+        ]),
+      ]),
+    );
+    expect(graph()).not.toContain('blend=all_mode=normal,format=rgba[b');
+    expect(graph()).toContain('[ov0][seg1]overlay=');
+  });
 });

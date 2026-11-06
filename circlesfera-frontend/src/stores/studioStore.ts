@@ -50,6 +50,9 @@ interface StudioState {
   /** A voice is being recorded: the preview plays silent. */
   isRecordingVoice: boolean;
   setRecordingVoice: (on: boolean) => void;
+  /** A tap on the video picks the chosen clip's green screen colour. */
+  pickingColor: boolean;
+  setPickingColor: (on: boolean) => void;
 
   past: StudioProject[];
   future: StudioProject[];
@@ -141,6 +144,8 @@ const CLIP_PANELS: ReadonlySet<StudioPanel> = new Set([
   'filters',
   'color',
   'effect',
+  'blend',
+  'chroma',
 ]);
 
 // After undo or redo, a chosen clip that is no longer there is let go, and
@@ -194,6 +199,8 @@ export const useStudioStore = create<StudioState>((set) => ({
   saveStatus: 'idle',
   isRecordingVoice: false,
   setRecordingVoice: (on) => set({ isRecordingVoice: on }),
+  pickingColor: false,
+  setPickingColor: (on) => set({ pickingColor: on }),
 
   past: [],
   future: [],
@@ -246,7 +253,12 @@ export const useStudioStore = create<StudioState>((set) => ({
                 state.openSheet === 'transition' ? null : state.openSheet,
             }
           : state
-        : { selectedClipId: clipId, selectedCut: null, openSheet: null },
+        : {
+            selectedClipId: clipId,
+            selectedCut: null,
+            openSheet: null,
+            pickingColor: false,
+          },
     ),
 
   selectCut: (clipId) =>
@@ -288,6 +300,7 @@ export const useStudioStore = create<StudioState>((set) => ({
     set((state) => ({
       openSheet: sheet,
       selectedCut: sheet === 'transition' ? state.selectedCut : null,
+      pickingColor: sheet === 'chroma' ? state.pickingColor : false,
     })),
 
   setAspectRatio: (aspectRatio) =>
