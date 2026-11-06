@@ -5055,7 +5055,15 @@
       "text": "Text",
       "audio": "Audio",
       "filters": "Filters",
-      "captions": "Captions"
+      "captions": "Captions",
+      "speed": "Speed",
+      "volume": "Volume",
+      "adjust": "Adjust",
+      "edit_text": "Edit",
+      "replace": "Replace",
+      "duplicate": "Duplicate",
+      "done": "Done",
+      "clip_label": "Clip tools"
     },
     "properties": {
       "title": "Properties",
@@ -5170,6 +5178,43 @@
       "fullscreen": "Fullscreen",
       "frame_back": "Previous frame",
       "frame_forward": "Next frame"
+    },
+    "add_media": "Add clips",
+    "play": "Play",
+    "pause": "Pause",
+    "back_to_projects": "Back to projects",
+    "panel_hint": "Choose a tool, or tap a clip on the timeline to edit it.",
+    "panel_label": "Tool panel",
+    "save_status": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "error": "Not saved"
+    },
+    "settings": {
+      "open": "Project settings",
+      "title": "Project settings",
+      "name": "Name",
+      "format": "Format",
+      "format_hint": "Frames and stories are shown upright (9:16)."
+    },
+    "speed": {
+      "length": "At this speed the clip lasts {{seconds}} s."
+    },
+    "replace": {
+      "wrong_kind": "A sound can only be replaced by a sound, and a photo or video by a photo or video."
+    },
+    "home": {
+      "title": "Edits",
+      "subtitle": "Put your videos together with clips, text, music and captions.",
+      "new": "New project",
+      "projects": "Projects",
+      "empty": "You have no projects yet.",
+      "on_this_device": "Not saved to the cloud",
+      "options": "Options for {{name}}"
+    },
+    "volume": {
+      "mute": "Mute clip",
+      "unmute": "Unmute clip"
     }
   },
   "live": {

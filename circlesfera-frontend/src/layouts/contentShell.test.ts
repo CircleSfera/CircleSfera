@@ -11,7 +11,9 @@ describe('getContentShell', () => {
   it('maps create and edits to create shell', () => {
     expect(getContentShell('/create')).toBe('create');
     expect(getContentShell('/create?mode=story')).toBe('create');
-    expect(getContentShell('/edits')).toBe('create');
+    expect(getContentShell('/edits/editor')).toBe('create');
+    // The list of projects is an ordinary page.
+    expect(getContentShell('/edits')).toBe('stream');
   });
 
   it('maps live broadcast to broadcast and viewer to playback', () => {

@@ -1,14 +1,13 @@
 import { Plus } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { TextClip } from '../../../types/studio';
 import { STUDIO_DEFAULT_FONT_FAMILY } from '../../../utils/studioExportHelpers';
-
-const generateId = () =>
-  typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : Math.random().toString(36).substring(2);
+import {
+  emptyTrack,
+  newStudioId,
+  TEXT_CLIP_SEC,
+} from '../../../utils/studioTimeline';
 
 const PRESETS = [
   {
@@ -39,7 +38,7 @@ const PRESETS = [
 
 export default function TextPanel() {
   const { t } = useTranslation();
-  const { project, playhead, addClip } = useStudioStore();
+  const { project, playhead, addLayerClip, setOpenSheet } = useStudioStore();
 
   const handlePreset = (
     content: string,
@@ -48,15 +47,13 @@ export default function TextPanel() {
     bg: string,
   ) => {
     if (!project) return;
-    let trackId = project.tracks.find((tr) => tr.type === 'text')?.id;
-    if (!trackId) trackId = project.tracks[0].id;
 
     const newClip: TextClip = {
-      id: generateId(),
-      trackId,
+      id: newStudioId(),
+      trackId: '',
       type: 'text',
       startAt: playhead,
-      duration: 3,
+      duration: TEXT_CLIP_SEC,
       content,
       style: {
         fontFamily: STUDIO_DEFAULT_FONT_FAMILY,
@@ -70,8 +67,11 @@ export default function TextPanel() {
       transform: { scale: 1, rotation: 0, x: 0, y: 0 },
     };
 
-    addClip(trackId, newClip);
-    toast.success(t('studio.text.added'));
+    // On the first text layer free there, chosen, and open to be written.
+    addLayerClip('text', newClip, () =>
+      emptyTrack('text', t('studio.tracks.text')),
+    );
+    setOpenSheet('adjust');
   };
 
   return (

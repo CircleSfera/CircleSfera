@@ -23,7 +23,7 @@ export function useStudioAutosave() {
   const localTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSerializedRef = useRef<string>('');
 
-  const saveNow = useCallback(async () => {
+  const saveOnce = useCallback(async () => {
     const state = useStudioStore.getState();
     if (!state.project) return;
 
@@ -66,6 +66,29 @@ export function useStudioAutosave() {
       toast.error(t('studio.save_error'));
     }
   }, [setCloudProjectId, setSaveStatus, t]);
+
+  // One save at a time: a save asked for while one runs follows it, with
+  // what changed meanwhile. Two at once could each create a cloud project.
+  const inFlightRef = useRef<Promise<void> | null>(null);
+  const againRef = useRef(false);
+  const saveNow = useCallback(async () => {
+    if (inFlightRef.current) {
+      againRef.current = true;
+      return inFlightRef.current;
+    }
+    const run = (async () => {
+      do {
+        againRef.current = false;
+        await saveOnce();
+      } while (againRef.current);
+    })();
+    inFlightRef.current = run;
+    try {
+      await run;
+    } finally {
+      inFlightRef.current = null;
+    }
+  }, [saveOnce]);
 
   // Local IndexedDB buffer (works with blob: URLs)
   useEffect(() => {

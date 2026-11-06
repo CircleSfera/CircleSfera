@@ -10,7 +10,7 @@ export type ContentShell =
 
 // Resolve the content shell for a location pathname (no search or hash)
 export function getContentShell(pathname: string): ContentShell {
-  if (pathname.startsWith('/create') || pathname.startsWith('/edits')) {
+  if (pathname.startsWith('/create') || isEditsPath(pathname)) {
     return 'create';
   }
   if (pathname.startsWith('/live/broadcast')) {
@@ -70,9 +70,10 @@ export function hidesBottomNav(shell: ContentShell): boolean {
   );
 }
 
-// The edits studio keeps the sidebar as a narrow rail of icons at every width
+// The editor of the edits studio keeps the sidebar as a narrow rail of
+// icons at every width; its list of projects is an ordinary page.
 export function isEditsPath(pathname: string): boolean {
-  return pathname.startsWith('/edits');
+  return pathname.startsWith('/edits/');
 }
 
 /** The legal pages: the policies and the form to report illegal content. */

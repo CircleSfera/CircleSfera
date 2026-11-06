@@ -53,6 +53,7 @@ const ContentComposerPage = lazy(
 );
 const Creator = lazy(() => import('./pages/Creator'));
 const EditsStudio = lazy(() => import('./pages/EditsStudio'));
+const EditsHome = lazy(() => import('./pages/EditsHome'));
 const Explore = lazy(() => import('./pages/Explore'));
 const ExploreMapPage = lazy(() => import('./pages/explore-map/ExploreMapPage'));
 const HelpArticle = lazy(() => import('./pages/HelpArticle'));
@@ -335,6 +336,14 @@ function App() {
         {/* Edits Studio */}
         <Route
           path="/edits"
+          element={
+            <AuthGuard>
+              <EditsHome />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/edits/editor"
           element={
             <AuthGuard>
               <EditsStudio />

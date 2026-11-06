@@ -4,6 +4,17 @@ export type AspectRatioType = '9:16' | '16:9' | '1:1' | '4:5';
 
 export type StudioTab = 'media' | 'text' | 'audio' | 'filters' | 'subtitles';
 
+/**
+ * What the panel of the editor shows: a tool of the project, a tool of the
+ * selected clip, or the settings of the project.
+ */
+export type StudioPanel =
+  | StudioTab
+  | 'speed'
+  | 'volume'
+  | 'adjust'
+  | 'settings';
+
 export interface BaseClip {
   id: string;
   type: MediaType;
@@ -20,6 +31,8 @@ export interface MediaClip extends BaseClip {
 
   // Media timing
   mediaStart: number; // Start time within the media file (for trimming)
+  /** How long the file is, in seconds, when known: a clip cannot take more. */
+  sourceDuration?: number;
 
   // Adjustments
   speed: number;

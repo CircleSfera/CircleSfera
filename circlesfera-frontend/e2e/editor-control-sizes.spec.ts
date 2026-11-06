@@ -286,16 +286,19 @@ test.describe('Story composer, editing an element', () => {
 });
 
 test.describe('Edits studio', () => {
-  test('main screen, with track controls folded and open', async ({ page }) => {
+  test('the projects and an empty project', async ({ page }) => {
     await prepare(page);
+    await page.route('**/api/v1/edits', (route) =>
+      route.fulfill({ status: 200, json: [] }),
+    );
     await page.goto('/edits');
-    await expect(page.getByRole('button', { name: 'Exportar' })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Nuevo proyecto' }),
+    ).toBeVisible();
     await expectControlsAtSize(page);
 
-    await page
-      .getByRole('button', { name: 'Opciones de la pista' })
-      .first()
-      .click();
+    await page.getByRole('button', { name: 'Nuevo proyecto' }).click();
+    await expect(page.getByRole('button', { name: 'Exportar' })).toBeVisible();
     await expectControlsAtSize(page);
 
     // Nothing may make the page wider than the screen.
@@ -303,81 +306,37 @@ test.describe('Edits studio', () => {
       () => document.documentElement.scrollWidth,
     );
     expect(width).toBeLessThanOrEqual(390);
-
-    // The last button of the playback row is whole on the screen, not cut
-    // by its edge.
-    const fullscreen = await page
-      .getByRole('button', { name: 'Pantalla completa' })
-      .boundingBox();
-    if (!fullscreen) throw new Error('The full-screen button has no box');
-    expect(fullscreen.x + fullscreen.width).toBeLessThanOrEqual(390);
   });
 
-  test('with an image on the timeline: the clip is free of the track button, and its properties', async ({
+  test('with a photo and a video: the clips touch, and the tools of a clip', async ({
     page,
   }) => {
     await prepare(page);
     // The upload has no server here; the clip keeps its local file.
     await page.route('**/api/v1/upload**', (route) => route.abort());
-    await page.goto('/edits');
-    await page.getByRole('button', { name: 'Medios', exact: true }).click();
+    await page.goto('/edits/editor');
     await page
-      .locator('input[type="file"][accept*="image"]')
-      .setInputFiles(FIXTURES.postImage);
-    const sheet = page.getByRole('dialog');
-    await sheet.getByRole('button', { name: 'Cerrar' }).last().click();
+      .getByTestId('studio-media-input')
+      .setInputFiles([FIXTURES.postImage, FIXTURES.frameVideo]);
 
-    const clip = page
-      .locator('[data-studio-timeline]')
-      .getByText('Imagen', { exact: true });
-    await expect(clip).toBeVisible();
-    await expectControlsAtSize(page);
-
-    // The button of the track stays left of where the clip starts.
-    const trackButton = await page
-      .getByRole('button', { name: /Opciones de la pista/ })
-      .first()
-      .boundingBox();
-    const clipBox = await clip.boundingBox();
-    expect(trackButton && clipBox).toBeTruthy();
-    expect(
-      (trackButton?.x ?? 0) + (trackButton?.width ?? 0),
-    ).toBeLessThanOrEqual(clipBox?.x ?? 0);
-
-    await clip.click();
-    await expect(sheet.getByText('Propiedades')).toBeVisible();
-    await expectControlsAtSize(page);
-    await sheet.getByRole('button', { name: 'Filtros' }).click();
-    await expectControlsAtSize(page);
-    // A still image has no sound to change.
-    await expect(
-      sheet.getByRole('button', { name: 'Audio y velocidad' }),
-    ).toHaveCount(0);
-    await sheet.getByRole('button', { name: 'Cerrar' }).last().click();
-
-    // A video added next goes after the image instead of covering it.
-    await page.getByRole('button', { name: 'Medios', exact: true }).click();
-    await page
-      .locator('input[type="file"][accept*="video"]')
-      .setInputFiles(FIXTURES.frameVideo);
-    await sheet.getByRole('button', { name: 'Cerrar' }).last().click();
-    const video = page
-      .locator('[data-studio-timeline]')
-      .getByText('Vídeo', { exact: true });
-    await expect(video).toBeVisible();
-    // The boxes of the clips themselves, not of their names.
-    const imageBox = await clip
-      .locator('xpath=ancestor::button[1]')
-      .boundingBox();
-    const videoBox = await video
-      .locator('xpath=ancestor::button[1]')
-      .boundingBox();
-    if (!imageBox || !videoBox) throw new Error('A clip has no box');
+    const clips = page.locator('[data-studio-main-track] [data-studio-clip]');
+    await expect(clips).toHaveCount(2);
+    const [photoBox, videoBox] = await Promise.all([
+      clips.nth(0).boundingBox(),
+      clips.nth(1).boundingBox(),
+    ]);
+    if (!photoBox || !videoBox) throw new Error('A clip has no box');
     // The clips touch; a pixel is left for rounding.
-    expect(videoBox.x + 1).toBeGreaterThanOrEqual(imageBox.x + imageBox.width);
+    expect(videoBox.x).toBeLessThanOrEqual(photoBox.x + photoBox.width + 1);
 
-    await video.click();
-    await sheet.getByRole('button', { name: 'Audio y velocidad' }).click();
+    await clips.nth(1).locator('button').first().click();
+    await expect(
+      page.getByRole('navigation', { name: 'Herramientas del clip' }),
+    ).toBeVisible();
+    await expectControlsAtSize(page);
+    await page.getByRole('button', { name: 'Velocidad' }).click();
+    await expectControlsAtSize(page);
+    await page.getByRole('button', { name: 'Volumen' }).click();
     await expectControlsAtSize(page);
   });
 });

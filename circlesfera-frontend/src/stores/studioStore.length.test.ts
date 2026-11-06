@@ -123,13 +123,23 @@ describe('the length of a studio project follows its clips', () => {
   });
 
   it('follows a clip that is moved or stretched past the end, and one that is trimmed', () => {
-    store().addClip('v1', clip('a', { duration: 8 }));
+    // On a second video track, where a clip can be put anywhere in time.
+    store().addClip('v2', clip('a', { trackId: 'v2', duration: 8 }));
 
     store().updateClip('a', { startAt: 12 });
     expect(length()).toBe(20);
 
     store().updateClip('a', { startAt: 0, duration: 6 });
     expect(length()).toBe(6);
+  });
+
+  it('keeps the clips of the main track together: one moved later goes back to its place', () => {
+    store().addClip('v1', clip('a', { duration: 8 }));
+
+    store().updateClip('a', { startAt: 12 });
+
+    expect(store().project?.tracks[0].clips[0].startAt).toBe(0);
+    expect(length()).toBe(8);
   });
 
   it('shrinks when the track holding the longest clip is removed', () => {

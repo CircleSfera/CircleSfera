@@ -98,7 +98,7 @@ test('the edits studio keeps the sidebar as a narrow rail of icons', async ({
   page,
 }) => {
   await prepareComposerSession(page);
-  await page.goto('/edits');
+  await page.goto('/edits/editor');
   const exportButton = page.getByRole('button', { name: 'Exportar' });
   await expect(exportButton).toBeVisible();
   const sidebarBox = await page.locator('.sidebar-root').boundingBox();

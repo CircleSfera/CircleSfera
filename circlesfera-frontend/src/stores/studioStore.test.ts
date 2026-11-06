@@ -126,10 +126,16 @@ describe('studioStore', () => {
     expect(canUndo || useStudioStore.getState().canUndo).toBeDefined();
   });
 
-  it('opens properties sheet when selecting a clip', () => {
+  it('turns the tools to a clip when it is chosen, closing what was open', () => {
+    useStudioStore.getState().setOpenSheet('text');
     useStudioStore.getState().selectClip('abc');
-    expect(useStudioStore.getState().openSheet).toBe('properties');
+    expect(useStudioStore.getState().openSheet).toBeNull();
     expect(useStudioStore.getState().selectedClipId).toBe('abc');
+
+    // Choosing it again leaves the open panel as it is.
+    useStudioStore.getState().setOpenSheet('speed');
+    useStudioStore.getState().selectClip('abc');
+    expect(useStudioStore.getState().openSheet).toBe('speed');
   });
 
   it('updates resolution when aspect ratio changes', () => {
