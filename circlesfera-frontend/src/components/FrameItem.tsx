@@ -28,6 +28,7 @@ import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
 import { hasCreatorTools } from '../utils/creatorTools';
 import { reportPaymentError } from '../utils/identityVerification';
+import { libraryTrackUrl } from '../utils/libraryAudio';
 import { logger } from '../utils/logger';
 import { sellsInApp } from '../utils/sellsInApp';
 import { canOfferStoryShare, postStoryCard } from '../utils/storyShare';
@@ -232,10 +233,13 @@ export default function FrameItem({
     canShareToStory,
   ]);
 
+  const libraryTrack = libraryTrackUrl(post);
+
   useEffect(() => {
     if (isActive && videoRef.current) {
-      // When a library track is attached, mute the original video bed and play the clip.
-      const hasLibraryAudio = Boolean(post.audio?.url);
+      // When a library track is played over it, the video's own sound is
+      // muted; one with the song already mixed in keeps its sound.
+      const hasLibraryAudio = Boolean(libraryTrack);
       videoRef.current.muted = hasLibraryAudio ? true : isMuted;
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {
@@ -255,11 +259,11 @@ export default function FrameItem({
         watchTimeRef.current = 0;
       }
     }
-  }, [isActive, post.id, post.audio?.url, isMuted, setMuted]);
+  }, [isActive, post.id, libraryTrack, isMuted, setMuted]);
 
   useSyncedLibraryAudio({
     enabled: isActive,
-    trackUrl: post.audio?.url,
+    trackUrl: libraryTrack,
     audioStartMs: post.audioStartMs,
     isMuted,
     videoRef,

@@ -147,6 +147,8 @@ export interface Post {
   audioId?: string | null;
   /** Offset into attached track (ms). Clip window = media duration at playback. */
   audioStartMs?: number | null;
+  /** The song is mixed into the video: play the video's own sound, not the song. */
+  audioInVideo?: boolean;
   audio?: Audio | null;
   placeId?: string | null;
   place?: Place | null;

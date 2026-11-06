@@ -331,9 +331,52 @@ describe('PostsService', () => {
           data: expect.objectContaining({
             audioId: 'aud-1',
             audioStartMs: 5000,
+            audioInVideo: false,
           }),
         }),
       );
+    });
+
+    it('keeps that the song is already in the video only for a post with a song', async () => {
+      const created: unknown[] = [];
+      const mockTx = {
+        post: {
+          create: vi
+            .fn()
+            .mockImplementation(async (args: { data: unknown }) => {
+              created.push(args.data);
+              return { id: 'post-mix' };
+            }),
+        },
+        postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
+      };
+      mockPrismaService.$transaction.mockImplementation(async (cb) =>
+        cb(mockTx),
+      );
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValue({
+        id: 'post-mix',
+        media: [],
+      });
+      mockPrismaService.audio.findUnique.mockResolvedValueOnce({
+        id: 'aud-1',
+        duration: 45,
+      });
+
+      await service.create('user-1', { audioId: 'aud-1', audioInVideo: true });
+      await service.create('user-1', { audioInVideo: true });
+
+      expect(created[0]).toMatchObject({
+        audioId: 'aud-1',
+        audioInVideo: true,
+      });
+      expect(created[1]).toMatchObject({ audioInVideo: false });
     });
 
     it('saves the place and its names inside the post transaction', async () => {

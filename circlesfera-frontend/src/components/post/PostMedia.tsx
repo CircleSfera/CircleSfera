@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
 import type { Post } from '../../types';
 import { reportPaymentError } from '../../utils/identityVerification';
+import { libraryTrackUrl } from '../../utils/libraryAudio';
 import Carousel from '../Carousel';
 import PaywallOverlay from '../monetization/PaywallOverlay';
 import {
@@ -90,7 +91,7 @@ export default function PostMedia({
           objectFit={objectFit}
           isLocked={post.isLocked}
           priority={priority}
-          libraryAudioUrl={post.audio?.url}
+          libraryAudioUrl={libraryTrackUrl(post)}
           libraryAudioStartMs={post.audioStartMs ?? 0}
         />
       </div>

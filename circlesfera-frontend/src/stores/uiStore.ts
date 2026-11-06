@@ -3,6 +3,11 @@ import { create } from 'zustand';
 export type EditedMediaHandoff = {
   file: File;
   scheduledAt?: string;
+  /**
+   * A song of the library already mixed into the video: published with the
+   * post so it counts as used, while the video keeps its own sound.
+   */
+  songInVideo?: { id: string; startMs: number };
 };
 
 interface UIState {

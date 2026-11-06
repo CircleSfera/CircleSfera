@@ -46,6 +46,7 @@ export function useCreatePost() {
         if (handoff.scheduledAt) {
           state.setScheduledAt(handoff.scheduledAt);
         }
+        state.setSongInVideo(handoff.songInVideo ?? null);
         // A video from the Studio carries its length, as one chosen from the
         // gallery does, so sharing it as a Frame can check it and the trim
         // screen knows how long it is. One longer than a Frame opens the trim.
@@ -70,6 +71,7 @@ export function useCreatePost() {
   }, [
     media.setMediaFiles,
     state.setScheduledAt,
+    state.setSongInVideo,
     state.setStep,
     state.setFrameSourceDurationSec,
     state.setShowFrameTrim,
@@ -89,6 +91,7 @@ export function useCreatePost() {
     selectedPlace: state.selectedPlace,
     selectedAudio: state.selectedAudio,
     audioStartMs: state.audioStartMs,
+    songInVideo: state.songInVideo,
     isCloseFriendsOnly: state.isCloseFriendsOnly,
     isPremium: state.isPremium,
     price: state.price,
