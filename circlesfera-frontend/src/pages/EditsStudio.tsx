@@ -38,7 +38,12 @@ export function readMediaDuration(
   kind: 'video' | 'audio',
 ): Promise<number> {
   return new Promise((resolve, reject) => {
-    const el = document.createElement(kind);
+    // Named as written, not from a variable: the element is a video or a
+    // sound, never one that could run what it loads.
+    const el: HTMLMediaElement =
+      kind === 'video'
+        ? document.createElement('video')
+        : document.createElement('audio');
     el.preload = 'metadata';
     el.onloadedmetadata = () => resolve(el.duration);
     el.onerror = () => reject(new Error('metadata'));
