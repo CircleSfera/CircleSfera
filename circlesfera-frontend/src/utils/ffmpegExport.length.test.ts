@@ -141,3 +141,63 @@ describe('when each clip of an exported studio video plays', () => {
     expect(chainOf(2)).toMatch(/,setpts=PTS\+1\.5\/TB\[seg2\]$/);
   });
 });
+
+describe('the size of what is placed in a smaller export', () => {
+  it('shrinks moves and text with the video, as set in the editor', async () => {
+    const words: Track = {
+      id: 't',
+      type: 'text',
+      name: 't',
+      muted: false,
+      hidden: false,
+      locked: false,
+      clips: [
+        {
+          id: 'words',
+          type: 'text',
+          trackId: 't',
+          startAt: 0,
+          duration: 3,
+          content: 'Hi',
+          style: {
+            fontFamily: 'Roboto',
+            fontSize: 60,
+            color: '#ffffff',
+            backgroundColor: '#000000',
+            padding: 12,
+            textAlign: 'center',
+            strokeColor: '#ff0000',
+            strokeWidth: 4,
+            shadowColor: '#000000',
+          },
+          transform: { scale: 1, rotation: 0, x: 40, y: 200 },
+        },
+      ],
+    };
+    await exportStudioProject(
+      project(
+        [
+          track('v', [picture('base', { startAt: 0, duration: 3 })]),
+          track('layer', [
+            picture('over', {
+              duration: 3,
+              transform: { scale: 0.5, rotation: 0, x: 100, y: -300 },
+            }),
+          ]),
+          words,
+        ],
+        3,
+      ),
+      { maxLongEdge: 960 },
+    );
+    const graph = command[command.indexOf('-filter_complex') + 1];
+    // Half the editor's 1080 × 1920.
+    expect(graph).toContain('overlay=x=(W-w)/2+50:y=(H-h)/2+-150');
+    expect(graph).toContain(
+      ':fontsize=30:fontcolor=0xffffff:x=(w-text_w)/2+20:y=(h-text_h)/2+100:box=1',
+    );
+    expect(graph).toContain(':boxborderw=6:');
+    expect(graph).toContain(':borderw=2:');
+    expect(graph).toContain(':shadowx=1:shadowy=1:');
+  });
+});

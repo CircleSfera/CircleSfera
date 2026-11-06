@@ -14,6 +14,7 @@ import {
   escapeDrawText,
   type FfmpegEncodePreset,
   isConstrainedDevice,
+  resolutionForAspect,
   resolveStudioFontFile,
   StudioExportError,
   scaleResolutionForExport,
@@ -21,6 +22,8 @@ import {
   visualClipsOnVideoTracks,
 } from './studioExportHelpers';
 import { projectContentEnd } from './studioProject';
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 // Same-origin core copied by vite plugin into public/ffmpeg
 const FFMPEG_BASE = '/ffmpeg';
@@ -160,6 +163,9 @@ export async function exportStudioProject(
     );
     const w = scaled.width;
     const h = scaled.height;
+    // The editor draws at the full size of its format; sizes and moves set
+    // there shrink with the export.
+    const k = w / resolutionForAspect(project.aspectRatio).width;
     // The video ends with its last clip. The length kept by the project is
     // the one of its timeline, which is never shorter than a few seconds.
     const contentEnd = projectContentEnd(project, { visibleOnly: true });
@@ -237,8 +243,10 @@ export async function exportStudioProject(
         const opacity = clip.opacity ?? 1;
         const scale = clip.transform?.scale ?? 1;
         const rot = clip.transform?.rotation ?? 0;
-        const tx = clip.transform?.x ?? 0;
-        const ty = clip.transform?.y ?? 0;
+        // Moves are in the editor's pixels: the export's are fewer when it
+        // is made smaller.
+        const tx = round2((clip.transform?.x ?? 0) * k);
+        const ty = round2((clip.transform?.y ?? 0) * k);
         const cssFx = cssFilterToFfmpeg(clip.filter || '');
 
         const vChain: string[] = [];
@@ -307,7 +315,7 @@ export async function exportStudioProject(
       textClipsOnTracks(project).forEach((tClip, i) => {
         const prev = videoOut;
         videoOut = `txt${i}`;
-        parts.push(buildDrawTextFilter(prev, videoOut, tClip, w));
+        parts.push(buildDrawTextFilter(prev, videoOut, tClip, w, k));
       });
 
       if (mixLabels.length === 1) {
@@ -402,12 +410,14 @@ export function buildDrawTextFilter(
   outNode: string,
   tClip: TextClip,
   canvasWidth: number,
+  /** Export pixels per editor pixel. */
+  k = 1,
 ): string {
   const textStr = escapeDrawText(tClip.content);
-  const fontSize = tClip.style.fontSize || 32;
+  const fontSize = round2((tClip.style.fontSize || 32) * k);
   const color = cssColorToFfmpeg(tClip.style.color || '#ffffff');
-  const tx = tClip.transform?.x ?? 0;
-  const ty = tClip.transform?.y ?? 0;
+  const tx = round2((tClip.transform?.x ?? 0) * k);
+  const ty = round2((tClip.transform?.y ?? 0) * k);
   const align = tClip.style.textAlign || 'center';
   const font = resolveStudioFontFile(tClip.style.fontFamily, true);
 
@@ -423,16 +433,16 @@ export function buildDrawTextFilter(
     tClip.style.backgroundColor !== 'transparent' &&
     tClip.style.backgroundColor !== 'rgba(0,0,0,0)';
   const box = hasBox
-    ? `:box=1:boxcolor=${cssColorToFfmpeg(tClip.style.backgroundColor!)}:boxborderw=${tClip.style.padding ?? 8}`
+    ? `:box=1:boxcolor=${cssColorToFfmpeg(tClip.style.backgroundColor!)}:boxborderw=${round2((tClip.style.padding ?? 8) * k)}`
     : '';
 
   const stroke =
     tClip.style.strokeColor && tClip.style.strokeWidth
-      ? `:borderw=${tClip.style.strokeWidth}:bordercolor=${cssColorToFfmpeg(tClip.style.strokeColor)}`
+      ? `:borderw=${round2(tClip.style.strokeWidth * k)}:bordercolor=${cssColorToFfmpeg(tClip.style.strokeColor)}`
       : '';
 
   const shadow = tClip.style.shadowColor
-    ? `:shadowx=2:shadowy=2:shadowcolor=${cssColorToFfmpeg(tClip.style.shadowColor)}`
+    ? `:shadowx=${round2(2 * k)}:shadowy=${round2(2 * k)}:shadowcolor=${cssColorToFfmpeg(tClip.style.shadowColor)}`
     : '';
 
   return `[${prevNode}]drawtext=fontfile=${font.ffmpegFileName}:text='${textStr}':fontsize=${fontSize}:fontcolor=${color}:x=${xExpr}:y=${yExpr}${box}${stroke}${shadow}:enable='${enable}'[${outNode}]`;
