@@ -576,6 +576,24 @@ describe('the cuts of the main track', () => {
     expect(store()).toMatchObject({ selectedCut: null, openSheet: null });
   });
 
+  it('hides the cuts beside a chosen clip, whose edges are its trim handles', () => {
+    renderWithProviders(<EditorTimeline onAddMedia={vi.fn()} />);
+    act(() => store().selectClip('b'));
+    expect(cut()).toBeNull();
+    act(() => store().selectClip(null));
+    expect(cut()).not.toBeNull();
+  });
+
+  it('lets go of a chosen cut when the empty timeline is tapped', () => {
+    act(() => store().selectCut('a'));
+    act(() => store().selectClip(null));
+    expect(store()).toMatchObject({ selectedCut: null, openSheet: null });
+    // With nothing chosen, a panel of the project stays open.
+    act(() => store().setOpenSheet('effects'));
+    act(() => store().selectClip(null));
+    expect(store().openSheet).toBe('effects');
+  });
+
   it('lets go of the cut when its panel closes or another opens', () => {
     act(() => store().selectCut('a'));
     act(() => store().setOpenSheet('transition'));

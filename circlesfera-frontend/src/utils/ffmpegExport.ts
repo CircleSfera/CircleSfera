@@ -10,7 +10,8 @@ import {
 import { vignetteMaskPng } from './studioCanvasFx';
 import {
   activeColor,
-  colorFilter,
+  colorFilterAfter,
+  colorFilterBefore,
   effectAmounts,
   effectClipsOf,
   effectFilter,
@@ -302,13 +303,22 @@ export async function exportStudioProject(
         if (rot !== 0) {
           vChain.push(`rotate=${rot}*PI/180:c=none:ow=rotw(iw):oh=roth(ih)`);
         }
-        if (color) vChain.push(colorFilter(color, w, `c${idx}`));
+        // The order the preview draws in: the adjustments its CSS filter
+        // makes, the colour filter, then lift, warmth and sharpening.
+        if (color) {
+          const before = colorFilterBefore(color, w);
+          if (before) vChain.push(before);
+        }
         if (cssFx && filterShare >= 1) vChain.push(cssFx);
         else if (cssFx && filterShare > 0) {
           // Part of the filter: the filtered picture over the plain one.
           vChain.push(
             `format=rgba,split[f${idx}a][f${idx}b];[f${idx}b]${cssFx},format=rgba[f${idx}c];[f${idx}a][f${idx}c]blend=all_mode=normal:all_opacity=${filterShare}`,
           );
+        }
+        if (color) {
+          const after = colorFilterAfter(color, `c${idx}`);
+          if (after) vChain.push(after);
         }
         if (opacity < 1) {
           vChain.push('format=rgba', `colorchannelmixer=aa=${opacity}`);
@@ -326,7 +336,7 @@ export async function exportStudioProject(
           // joined to the others.
           parts.push(
             `color=c=black:s=${w}x${h}:r=${fps}:d=${clip.duration}[bg${idx}]`,
-            `[bg${idx}][${seg}]overlay=x=(W-w)/2+${tx}:y=(H-h)/2+${ty}:shortest=1,format=yuv420p,setsar=1,fps=${fps},settb=AVTB[m${idx}]`,
+            `[bg${idx}][${seg}]overlay=x=(W-w)/2+${tx}:y=(H-h)/2+${ty},format=yuv420p,setsar=1,fps=${fps},settb=AVTB[m${idx}]`,
           );
         } else {
           const next = `ov${idx}`;
@@ -387,7 +397,7 @@ export async function exportStudioProject(
         const next = `fx${i}`;
         parts.push(
           `[${currentVideo}]split[fx${i}a][fx${i}b]`,
-          `[fx${i}b]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,${effectFilter(fx, w, h, `e${i}`, mask === undefined ? undefined : `${mask}:v`)},format=yuv420p,setpts=PTS+${start}/TB[fx${i}c]`,
+          `[fx${i}b]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,${effectFilter(fx, w, h, `e${i}`, mask === undefined ? undefined : `${mask}:v`, fps)},format=yuv420p,setpts=PTS+${start}/TB[fx${i}c]`,
           `[fx${i}a][fx${i}c]overlay=eof_action=pass:enable='between(t\\,${start}\\,${end})'[${next}]`,
         );
         currentVideo = next;

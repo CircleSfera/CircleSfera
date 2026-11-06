@@ -69,7 +69,7 @@ describe('exporting transitions, effects and adjustments', () => {
     const g = graph();
     // Each main clip laid on black the size of the video, as long as it.
     expect(g).toContain(
-      'color=c=black:s=1080x1920:r=30:d=4[bg0];[bg0][seg0]overlay=x=(W-w)/2+0:y=(H-h)/2+0:shortest=1,format=yuv420p,setsar=1,fps=30,settb=AVTB[m0]',
+      'color=c=black:s=1080x1920:r=30:d=4[bg0];[bg0][seg0]overlay=x=(W-w)/2+0:y=(H-h)/2+0,format=yuv420p,setsar=1,fps=30,settb=AVTB[m0]',
     );
     expect(g).toContain(
       '[m0][m1]xfade=transition=slideleft:duration=0.5:offset=3.5[j0]',
@@ -144,7 +144,7 @@ describe('exporting transitions, effects and adjustments', () => {
               brightness: 0,
               contrast: 50,
               saturation: 0,
-              warmth: 0,
+              warmth: 30,
               exposure: 0,
               sharpness: 0,
             },
@@ -156,6 +156,12 @@ describe('exporting transitions, effects and adjustments', () => {
     );
     expect(graph()).toContain(
       'eq=contrast=1.5:saturation=1,format=rgba,split[f0a][f0b];[f0b]colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3,format=rgba[f0c];[f0a][f0c]blend=all_mode=normal:all_opacity=0.4',
+    );
+    // Warmth goes on after the filter, as the preview lays it on: a grey
+    // filter keeps the tint.
+    const g = graph();
+    expect(g.indexOf('drawbox=c=0xff9a3c')).toBeGreaterThan(
+      g.indexOf('colorchannelmixer=.3'),
     );
   });
 

@@ -238,7 +238,14 @@ export const useStudioStore = create<StudioState>((set) => ({
   selectClip: (clipId) =>
     set((state) =>
       clipId === state.selectedClipId
-        ? state
+        ? // Letting go with nothing chosen lets go of a chosen cut.
+          clipId === null && state.selectedCut
+          ? {
+              selectedCut: null,
+              openSheet:
+                state.openSheet === 'transition' ? null : state.openSheet,
+            }
+          : state
         : { selectedClipId: clipId, selectedCut: null, openSheet: null },
     ),
 

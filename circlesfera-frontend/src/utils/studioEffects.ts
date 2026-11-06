@@ -113,6 +113,7 @@ export function effectFilter(
   height: number,
   tag: string,
   mask?: string,
+  fps = 30,
 ): string {
   const a = effectAmounts(clip.effect, clip.intensity, width);
   switch (clip.effect) {
@@ -134,12 +135,13 @@ export function effectFilter(
       ].join(',');
     }
     case 'slowzoom': {
+      // zoompan keeps the picture's size and its centre, frame by frame.
       const { zoom } = a as { zoom: number };
-      const length = Math.max(clip.duration, 0.01);
-      return [
-        `scale=w=ceil(iw*(1+${zoom}*t/${length})/2)*2:h=ceil(ih*(1+${zoom}*t/${length})/2)*2:eval=frame`,
-        `crop=w=${width}:h=${height}:x=(iw-${width})/2:y=(ih-${height})/2`,
-      ].join(',');
+      const frames = Math.max(
+        1,
+        Math.round(Math.max(clip.duration, 0.01) * fps),
+      );
+      return `zoompan=z='1+${zoom}*on/${frames}':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${width}x${height}:fps=${fps}`;
     }
     case 'mono':
       return `hue=s=${round(1 - (a as { amount: number }).amount)}`;
@@ -209,41 +211,55 @@ export function colorAmounts(color: ColorAdjustments) {
 export const WARM_COLOR = '#ff9a3c';
 export const COOL_COLOR = '#3c8cff';
 
-/** The ffmpeg filters of a clip's adjustments, for a picture of a width. */
-export function colorFilter(
+/**
+ * The ffmpeg filters of the adjustments the preview draws with its CSS
+ * filter, before the colour filter: exposure and the dimming of
+ * brightness, contrast and saturation, and softening.
+ */
+export function colorFilterBefore(
   color: ColorAdjustments,
   width: number,
-  tag: string,
 ): string {
   const a = colorAmounts(color);
   const px = width / EFFECT_BASE_WIDTH;
   const parts: string[] = [];
-  const lut = (value: string) =>
-    `lutrgb=r='${value}':g='${value}':b='${value}'`;
-  // In the order the preview draws them: its CSS filter scales, then
-  // changes contrast and saturation; the lift is laid on after.
   if (a.scale !== 1) parts.push(lut(`clip(val*${a.scale}\\,0\\,255)`));
   if (a.contrast !== 1 || a.saturation !== 1) {
     parts.push(`eq=contrast=${a.contrast}:saturation=${a.saturation}`);
   }
+  if (a.soften > 0) parts.push(`gblur=sigma=${round(a.soften * px)}`);
+  return parts.join(',');
+}
+
+/**
+ * The ffmpeg filters of the adjustments the preview lays on after the
+ * colour filter: the lift of brightness, warmth and sharpening. They work
+ * in RGB and keep the clip's see-through parts as they are.
+ */
+export function colorFilterAfter(color: ColorAdjustments, tag: string): string {
+  const a = colorAmounts(color);
+  const parts: string[] = [];
   if (a.lift > 0) {
     parts.push(lut(`clip(val+${Math.round(a.lift * 255)}\\,0\\,255)`));
   }
   if (a.warmth !== 0) {
     const hex = (a.warmth > 0 ? WARM_COLOR : COOL_COLOR).replace('#', '0x');
     parts.push(
-      `format=gbrp,split[${tag}a][${tag}b];[${tag}b]drawbox=c=${hex}@1:t=fill[${tag}c];[${tag}a][${tag}c]blend=all_mode=softlight:all_opacity=${Math.abs(a.warmth)}`,
+      `split[${tag}w][${tag}x];[${tag}x]drawbox=c=${hex}@1:t=fill[${tag}y];[${tag}w][${tag}y]blend=all_mode=softlight:all_opacity=${Math.abs(a.warmth)}`,
     );
   }
   if (a.sharpen > 0) {
     // The same 3×3 kernel the preview sharpens a still frame with.
     const n = round(a.sharpen * 0.25);
     const m = `0 -${n} 0 -${n} ${round(1 + 4 * n)} -${n} 0 -${n} 0`;
-    parts.push(`format=gbrp,convolution=0m='${m}':1m='${m}':2m='${m}'`);
+    parts.push(`convolution=0m='${m}':1m='${m}':2m='${m}'`);
   }
-  if (a.soften > 0) parts.push(`gblur=sigma=${round(a.soften * px)}`);
-  return parts.join(',');
+  if (!parts.length) return '';
+  // Worked on in RGB without the alpha, which is put back after.
+  return `format=rgba,split[${tag}a][${tag}b];[${tag}b]alphaextract[${tag}c];[${tag}a]format=gbrp,${parts.join(',')},format=rgba[${tag}d];[${tag}d][${tag}c]alphamerge`;
 }
+
+const lut = (value: string) => `lutrgb=r='${value}':g='${value}':b='${value}'`;
 
 /** The CSS filter the preview draws a clip's adjustments with, but warmth and sharpening. */
 export function colorCssFilter(color: ColorAdjustments, width: number): string {

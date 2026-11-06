@@ -10,7 +10,8 @@ import {
   activeColor,
   colorAmounts,
   colorCssFilter,
-  colorFilter,
+  colorFilterAfter,
+  colorFilterBefore,
   EFFECT_KINDS,
   effectAmounts,
   effectClipsOf,
@@ -58,7 +59,7 @@ describe('effects', () => {
     ],
     [
       'slowzoom',
-      /^scale=w=ceil\(iw\*\(1\+0\.15\*t\/3\)\/2\)\*2.*:eval=frame,crop=w=1080:h=1920/,
+      /^zoompan=z='1\+0\.15\*on\/90':d=1:x='iw\/2-\(iw\/zoom\/2\)':y='ih\/2-\(ih\/zoom\/2\)':s=1080x1920:fps=30$/,
     ],
     ['mono', /^hue=s=0\.5$/],
     ['rgbsplit', /^rgbashift=rh=-11:bh=11$/],
@@ -121,35 +122,49 @@ describe('picture adjustments', () => {
     });
   });
 
-  it('writes the ffmpeg filters of the adjustments in order', () => {
-    expect(colorFilter(NO_COLOR, 1080, 'c0')).toBe('');
-    const all = colorFilter(
-      {
-        brightness: 40,
-        contrast: 20,
-        saturation: -50,
-        warmth: 50,
-        exposure: 0,
-        sharpness: 40,
-      },
-      1080,
-      'c0',
-    );
-    expect(all).toBe(
+  it('writes before the colour filter what the preview’s CSS draws', () => {
+    expect(colorFilterBefore(NO_COLOR, 1080)).toBe('');
+    expect(
+      colorFilterBefore(
+        {
+          ...NO_COLOR,
+          exposure: 100,
+          contrast: 20,
+          saturation: -50,
+          sharpness: -50,
+        },
+        540,
+      ),
+    ).toBe(
       [
+        "lutrgb=r='clip(val*2\\,0\\,255)':g='clip(val*2\\,0\\,255)':b='clip(val*2\\,0\\,255)'",
         'eq=contrast=1.2:saturation=0.5',
-        "lutrgb=r='clip(val+51\\,0\\,255)':g='clip(val+51\\,0\\,255)':b='clip(val+51\\,0\\,255)'",
-        'format=gbrp,split[c0a][c0b];[c0b]drawbox=c=0xff9a3c@1:t=fill[c0c];[c0a][c0c]blend=all_mode=softlight:all_opacity=0.175',
-        "format=gbrp,convolution=0m='0 -0.15 0 -0.15 1.6 -0.15 0 -0.15 0':1m='0 -0.15 0 -0.15 1.6 -0.15 0 -0.15 0':2m='0 -0.15 0 -0.15 1.6 -0.15 0 -0.15 0'",
+        'gblur=sigma=0.75',
       ].join(','),
     );
-    expect(colorFilter({ ...NO_COLOR, brightness: -100 }, 1080, 'c2')).toBe(
-      "lutrgb=r='clip(val*0.5\\,0\\,255)':g='clip(val*0.5\\,0\\,255)':b='clip(val*0.5\\,0\\,255)'",
-    );
+    // The lift of brightness is laid on after, not here.
+    expect(colorFilterBefore({ ...NO_COLOR, brightness: 40 }, 1080)).toBe('');
+  });
+
+  it('writes after the colour filter the lift, warmth and sharpening, keeping the alpha', () => {
+    expect(colorFilterAfter(NO_COLOR, 'c0')).toBe('');
+    const m = '0 -0.15 0 -0.15 1.6 -0.15 0 -0.15 0';
     expect(
-      colorFilter({ ...NO_COLOR, warmth: -20, sharpness: -50 }, 540, 'c1'),
+      colorFilterAfter(
+        { ...NO_COLOR, brightness: 40, warmth: 50, sharpness: 40 },
+        'c0',
+      ),
     ).toBe(
-      'format=gbrp,split[c1a][c1b];[c1b]drawbox=c=0x3c8cff@1:t=fill[c1c];[c1a][c1c]blend=all_mode=softlight:all_opacity=0.07,gblur=sigma=0.75',
+      [
+        'format=rgba,split[c0a][c0b];[c0b]alphaextract[c0c];[c0a]format=gbrp',
+        "lutrgb=r='clip(val+51\\,0\\,255)':g='clip(val+51\\,0\\,255)':b='clip(val+51\\,0\\,255)'",
+        'split[c0w][c0x];[c0x]drawbox=c=0xff9a3c@1:t=fill[c0y];[c0w][c0y]blend=all_mode=softlight:all_opacity=0.175',
+        `convolution=0m='${m}':1m='${m}':2m='${m}'`,
+        'format=rgba[c0d];[c0d][c0c]alphamerge',
+      ].join(','),
+    );
+    expect(colorFilterAfter({ ...NO_COLOR, warmth: -20 }, 'c1')).toContain(
+      'drawbox=c=0x3c8cff@1',
     );
   });
 

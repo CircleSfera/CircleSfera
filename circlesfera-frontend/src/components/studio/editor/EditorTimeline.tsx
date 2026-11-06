@@ -40,6 +40,7 @@ export default function EditorTimeline({ onAddMedia }: EditorTimelineProps) {
   const isPlaying = useStudioStore((s) => s.isPlaying);
   const setPlayhead = useStudioStore((s) => s.setPlayhead);
   const selectedCut = useStudioStore((s) => s.selectedCut);
+  const selectedClipId = useStudioStore((s) => s.selectedClipId);
   const selectCut = useStudioStore((s) => s.selectCut);
   const setPlaying = useStudioStore((s) => s.setPlaying);
   const setZoom = useStudioStore((s) => s.setZoom);
@@ -208,6 +209,11 @@ export default function EditorTimeline({ onAddMedia }: EditorTimelineProps) {
             {/* A button on every cut: the transition into the next clip. */}
             {ordered.slice(0, -1).map((clip, i) => {
               const next = ordered[i + 1];
+              // A chosen clip's edges are its trim handles: the cuts beside
+              // it come back when it is let go.
+              if (selectedClipId === clip.id || selectedClipId === next.id) {
+                return null;
+              }
               const transition = transitionOf(clip);
               const at = next.startAt + (transition?.duration ?? 0) / 2;
               const chosen = selectedCut === clip.id;

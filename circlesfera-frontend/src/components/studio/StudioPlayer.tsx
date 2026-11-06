@@ -118,8 +118,20 @@ function drawPicture(
     drawMediaClip(target, canvas, clip, sources.video, sources.image);
     return;
   }
-  // A still frame is sharpened once, not on every redraw while it stays.
-  const key = still
+  // A still frame is sharpened once, not on every redraw while it stays,
+  // and only once its picture is there: a video still seeking or a photo
+  // still loading is drawn without it, and sharpened when it settles.
+  const source = clip.type === 'video' ? sources.video : sources.image;
+  const settled =
+    source instanceof HTMLVideoElement
+      ? !source.seeking && source.readyState >= 2
+      : Boolean(source?.complete && source.naturalWidth > 0);
+  const sharpen = still && settled && amounts.sharpen > 0;
+  if (still && !settled && amounts.lift === 0 && amounts.warmth === 0) {
+    drawMediaClip(target, canvas, clip, sources.video, sources.image);
+    return;
+  }
+  const key = sharpen
     ? `${clip.id}|${at}|${JSON.stringify(clip)}|${canvas.width}`
     : '';
   const cached = scratch.sharp.get(key);
@@ -127,7 +139,7 @@ function drawPicture(
     target.drawImage(cached, 0, 0);
     return;
   }
-  const picture = still
+  const picture = sharpen
     ? document.createElement('canvas')
     : scratchCanvas(scratch.picture, canvas.width, canvas.height);
   picture.width = canvas.width;
@@ -139,13 +151,9 @@ function drawPicture(
   const copy = scratchCanvas(scratch.copy, canvas.width, canvas.height);
   liftPicture(picture, copy, amounts.lift);
   warmPicture(picture, copy, amounts.warmth);
-  if (still) {
+  if (sharpen) {
     sharpenPicture(picture, amounts.sharpen);
-    // A video still finding its frame is drawn again once it has it.
-    const settled =
-      !sources.video ||
-      (!sources.video.seeking && sources.video.readyState >= 2);
-    if (settled) scratch.sharp.set(key, picture);
+    scratch.sharp.set(key, picture);
   }
   target.drawImage(picture, 0, 0);
 }

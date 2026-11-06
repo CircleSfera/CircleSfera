@@ -694,6 +694,68 @@ describe('StudioPlayer', () => {
       expect(sharpenPicture).toHaveBeenCalledTimes(1);
     });
 
+    it('sharpens a still video only once it has found its frame', () => {
+      const color = {
+        brightness: 0,
+        contrast: 0,
+        saturation: 0,
+        warmth: 0,
+        exposure: 0,
+        sharpness: 50,
+      };
+      open(project([track('video', [media('v1', 'video', { color })])]));
+      sized(video('v1'));
+      Object.defineProperty(video('v1'), 'readyState', { value: 4 });
+      Object.defineProperty(video('v1'), 'seeking', {
+        value: true,
+        configurable: true,
+      });
+      act(() => frame());
+      expect(sharpenPicture).not.toHaveBeenCalled();
+      Object.defineProperty(video('v1'), 'seeking', { value: false });
+      act(() => frame());
+      expect(sharpenPicture).toHaveBeenCalledTimes(1);
+    });
+
+    it('sharpens a still photo only once it has loaded', () => {
+      const photos: Record<string, unknown>[] = [];
+      vi.stubGlobal(
+        'Image',
+        class {
+          complete = false;
+          naturalWidth = 0;
+          naturalHeight = 0;
+          src = '';
+          crossOrigin = '';
+          tagName = 'IMG';
+          constructor() {
+            photos.push(this as unknown as Record<string, unknown>);
+          }
+          getAttribute() {
+            return this.src;
+          }
+        },
+      );
+      const color = {
+        brightness: 0,
+        contrast: 0,
+        saturation: 0,
+        warmth: 0,
+        exposure: 0,
+        sharpness: 50,
+      };
+      open(project([track('video', [media('p1', 'image', { color })])]));
+      act(() => frame());
+      expect(sharpenPicture).not.toHaveBeenCalled();
+      Object.assign(photos[0], {
+        complete: true,
+        naturalWidth: 1080,
+        naturalHeight: 1920,
+      });
+      act(() => frame());
+      expect(sharpenPicture).toHaveBeenCalledTimes(1);
+    });
+
     it('lays the effects under way over the picture, at their own time', () => {
       open(
         project([
