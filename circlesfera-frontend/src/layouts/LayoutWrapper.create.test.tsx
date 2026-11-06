@@ -186,3 +186,31 @@ describe('LayoutWrapper room for the bottom bar', () => {
     },
   );
 });
+
+describe('LayoutWrapper on a legal page, signed in', () => {
+  it.each(['/terms', '/privacy', '/guidelines', '/report-illegal-content'])(
+    'shows %s as a screen of its own: no TopNav or BottomNav, the Sidebar kept',
+    (path) => {
+      renderWithProviders(
+        <Routes>
+          <Route
+            path={path}
+            element={
+              <LayoutWrapper>
+                <div data-testid="legal-page">Legal</div>
+              </LayoutWrapper>
+            }
+          />
+        </Routes>,
+        { routerProps: { initialEntries: [path] } },
+      );
+
+      expect(screen.getByTestId('legal-page')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Top navigation')).not.toBeInTheDocument();
+      expect(
+        screen.queryByLabelText('Mobile navigation'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Sidebar')).toBeInTheDocument();
+    },
+  );
+});

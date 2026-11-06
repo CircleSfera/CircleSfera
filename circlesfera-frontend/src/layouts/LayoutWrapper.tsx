@@ -16,6 +16,7 @@ import {
   hidesBottomNav,
   hidesTopNav,
   isEditsPath,
+  isLegalPath,
   isViewportLockedShell,
 } from './contentShell';
 
@@ -39,8 +40,9 @@ export default function LayoutWrapper({
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isFramesRoute = shell === 'vertical';
   const isEditsRoute = isEditsPath(location.pathname);
-  const hideTopNavRoute = hidesTopNav(shell);
-  const hideBottomNavRoute = hidesBottomNav(shell);
+  const isLegalScreen = isAuthenticated && isLegalPath(location.pathname);
+  const hideTopNavRoute = hidesTopNav(shell) || isLegalScreen;
+  const hideBottomNavRoute = hidesBottomNav(shell) || isLegalScreen;
   const isViewportLocked = isViewportLockedShell(shell);
   // The edits studio keeps the narrow rail of icons at every width
   const isCreateComposer =

@@ -74,3 +74,17 @@ export function hidesBottomNav(shell: ContentShell): boolean {
 export function isEditsPath(pathname: string): boolean {
   return pathname.startsWith('/edits');
 }
+
+/** The legal pages: the policies and the form to report illegal content. */
+export const LEGAL_PATHS = [
+  '/privacy',
+  '/terms',
+  '/guidelines',
+  '/report-illegal-content',
+] as const;
+
+// Signed in, a legal page is a screen of its own, like a setting: it has its
+// own bar with a way back, so neither bar of the app is shown on a phone.
+export function isLegalPath(pathname: string): boolean {
+  return (LEGAL_PATHS as readonly string[]).includes(pathname);
+}
