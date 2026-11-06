@@ -118,3 +118,26 @@ describe('how long an exported studio video is', () => {
     expect(lengths().video).toBe('1');
   });
 });
+
+describe('when each clip of an exported studio video plays', () => {
+  it('puts each clip’s first frame where it starts on the timeline', async () => {
+    await exportStudioProject(
+      project(
+        [
+          track('v', [
+            picture('first', { startAt: 0, duration: 3 }),
+            picture('second', { startAt: 3, duration: 2 }),
+          ]),
+          track('layer', [picture('over', { startAt: 1.5, duration: 1 })]),
+        ],
+        5,
+      ),
+    );
+    const graph = command[command.indexOf('-filter_complex') + 1];
+    const chainOf = (input: number) =>
+      graph.split(';').find((part) => part.startsWith(`[${input}:v]`)) ?? '';
+    expect(chainOf(0)).not.toContain('setpts=PTS+');
+    expect(chainOf(1)).toMatch(/,setpts=PTS\+3\/TB\[seg1\]$/);
+    expect(chainOf(2)).toMatch(/,setpts=PTS\+1\.5\/TB\[seg2\]$/);
+  });
+});
