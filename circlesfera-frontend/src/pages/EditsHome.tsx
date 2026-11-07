@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import { formatClock } from '../components/studio/editor/EditorTimeline';
+import TemplatesSection from '../components/studio/home/TemplatesSection';
 import { type EditProject, editsService } from '../services/edits.service';
 import { useStudioStore } from '../stores/studioStore';
 import type { StudioProject } from '../types/studio';
@@ -152,6 +153,8 @@ export default function EditsHome() {
         <Plus size={18} aria-hidden />
         {t('studio.home.new')}
       </button>
+
+      <TemplatesSection drafts={data} onOpen={(studio) => open(studio, null)} />
 
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
         {t('studio.home.projects')}

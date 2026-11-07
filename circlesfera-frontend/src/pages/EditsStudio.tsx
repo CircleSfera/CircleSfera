@@ -124,6 +124,24 @@ export default function EditsStudio() {
     URL.revokeObjectURL(localUrl);
   };
 
+  // A project made from a template here brings its files: they upload once,
+  // as the editor opens, each taking its place in the clips that show it.
+  const pendingTaken = useRef(false);
+  const swapRef = useRef(swapToUploaded);
+  swapRef.current = swapToUploaded;
+  useEffect(() => {
+    if (pendingTaken.current) return;
+    pendingTaken.current = true;
+    const pending = useStudioStore.getState().pendingUploads;
+    if (!pending.length) return;
+    useStudioStore.getState().setPendingUploads([]);
+    for (const { file, localUrl } of pending) {
+      swapRef
+        .current(file, localUrl)
+        .catch(() => toast.error(t('studio.media.upload_error')));
+    }
+  }, [t]);
+
   // Media goes at the end of the main track, in the order chosen.
   const addMediaFiles = async (files: File[]) => {
     for (const file of files) {

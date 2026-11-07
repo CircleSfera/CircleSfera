@@ -1,4 +1,5 @@
 import type { StudioProject } from '../types/studio';
+import type { TemplateState } from '../utils/studioTemplates';
 import { apiClient } from './api';
 
 export interface OverlayElement {
@@ -56,7 +57,8 @@ export type EditProjectState =
   | {
       version: 3;
       studio: StudioProject;
-    };
+    }
+  | TemplateState;
 
 export interface EditProject {
   id: string;
@@ -100,6 +102,11 @@ export const editsService = {
     state: EditProjectState,
   ): Promise<EditProject> {
     const { data } = await apiClient.put(`/edits/${id}`, { state });
+    return data;
+  },
+
+  async renameProject(id: string, name: string): Promise<EditProject> {
+    const { data } = await apiClient.put(`/edits/${id}`, { name });
     return data;
   },
 

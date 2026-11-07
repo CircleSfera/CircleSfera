@@ -307,6 +307,32 @@ describe('EditsStudio', () => {
       expect(uploadApi.upload).toHaveBeenCalledTimes(2);
     });
 
+    it('uploads the files a project from a template was made with, as it opens', async () => {
+      const file = new File(['v'], 'a.mp4', { type: 'video/mp4' });
+      useStudioStore.setState({
+        pendingUploads: [{ file, localUrl: 'blob:a' }],
+      });
+      await open(project([clip('a', { fileUrl: 'blob:a' })]));
+      await waitFor(() =>
+        expect(mainClips()[0].fileUrl).toBe('https://cdn/uploaded.mp4'),
+      );
+      expect(useStudioStore.getState().pendingUploads).toEqual([]);
+    });
+
+    it('says so when a file of a template cannot be uploaded', async () => {
+      vi.mocked(uploadApi.upload).mockRejectedValueOnce(new Error('no'));
+      useStudioStore.setState({
+        pendingUploads: [
+          {
+            file: new File(['v'], 'a.mp4', { type: 'video/mp4' }),
+            localUrl: 'blob:a',
+          },
+        ],
+      });
+      await open(project([clip('a', { fileUrl: 'blob:a' })]));
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    });
+
     it('opens the file picker from the timeline and from the tools', async () => {
       await open();
       const input = screen.getByTestId(

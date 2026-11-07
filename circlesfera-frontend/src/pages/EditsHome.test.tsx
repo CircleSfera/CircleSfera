@@ -110,7 +110,7 @@ describe('EditsHome', () => {
 
   it('lists the projects kept, with a picture and length, and opens one', async () => {
     vi.mocked(editsService.getProjects).mockResolvedValue([
-      saved('p1', 'Trip', 'https://cdn/trip.mp4'),
+      saved('p1', 'Beach', 'https://cdn/trip.mp4'),
       saved('p2', 'Food', 'https://cdn/food.jpg', 'image'),
       {
         ...saved('p3', 'Photo edit', 'https://cdn/x.jpg'),
@@ -118,7 +118,7 @@ describe('EditsHome', () => {
       },
     ] as never);
     const { container } = renderWithProviders(<EditsHome />);
-    expect(await screen.findByText('Trip')).toBeInTheDocument();
+    expect(await screen.findByText('Beach')).toBeInTheDocument();
     expect(screen.queryByText('Photo edit')).not.toBeInTheDocument();
     expect(container.querySelector('video')).toHaveAttribute(
       'src',
@@ -130,21 +130,21 @@ describe('EditsHome', () => {
     );
     expect(screen.getAllByText('0:12')).toHaveLength(2);
 
-    fireEvent.click(screen.getByText('Trip'));
+    fireEvent.click(screen.getByText('Beach'));
     expect(useStudioStore.getState().cloudProjectId).toBe('p1');
-    expect(useStudioStore.getState().project?.name).toBe('Trip');
+    expect(useStudioStore.getState().project?.name).toBe('Beach');
     expect(navigate).toHaveBeenCalledWith(EDITOR_PATH);
   });
 
   it('deletes a project after asking, forgetting it if it was open', async () => {
     vi.mocked(editsService.getProjects).mockResolvedValue([
-      saved('p1', 'Trip', 'https://cdn/trip.mp4'),
+      saved('p1', 'Beach', 'https://cdn/trip.mp4'),
     ] as never);
     vi.mocked(editsService.deleteProject).mockResolvedValue();
     useStudioStore.setState({ cloudProjectId: 'p1' });
     renderWithProviders(<EditsHome />);
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Options for Trip' }),
+      await screen.findByRole('button', { name: 'Options for Beach' }),
     );
     fireEvent.click(screen.getByRole('button', { name: /Delete/ }));
     fireEvent.click(
@@ -179,12 +179,12 @@ describe('EditsHome', () => {
 
   it('says so when a project cannot be deleted', async () => {
     vi.mocked(editsService.getProjects).mockResolvedValue([
-      saved('p1', 'Trip', 'https://cdn/trip.mp4'),
+      saved('p1', 'Beach', 'https://cdn/trip.mp4'),
     ] as never);
     vi.mocked(editsService.deleteProject).mockRejectedValue(new Error('no'));
     renderWithProviders(<EditsHome />);
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Options for Trip' }),
+      await screen.findByRole('button', { name: 'Options for Beach' }),
     );
     fireEvent.click(screen.getByRole('button', { name: /Delete/ }));
     fireEvent.click(

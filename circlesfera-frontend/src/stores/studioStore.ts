@@ -58,6 +58,9 @@ interface StudioState {
   /** A tap on the video picks the chosen clip's green screen colour. */
   pickingColor: boolean;
   setPickingColor: (on: boolean) => void;
+  /** Files a project was made with on this device, for the editor to upload. */
+  pendingUploads: { file: File; localUrl: string }[];
+  setPendingUploads: (files: { file: File; localUrl: string }[]) => void;
 
   past: StudioProject[];
   future: StudioProject[];
@@ -216,6 +219,8 @@ export const useStudioStore = create<StudioState>((set) => ({
   setRecordingVoice: (on) => set({ isRecordingVoice: on }),
   pickingColor: false,
   setPickingColor: (on) => set({ pickingColor: on }),
+  pendingUploads: [],
+  setPendingUploads: (files) => set({ pendingUploads: files }),
 
   past: [],
   future: [],
