@@ -29,7 +29,9 @@ const ALLOWED = new Map([
   ],
 ]);
 
-const STRETCHED = /(^|[\s`'"])(flex-1|max-sm:w-full)(?=[\s`'"]|$)/;
+// `flex-1` at any breakpoint (`sm:flex-1`, `md:flex-1` too).
+const STRETCHED =
+  /(^|[\s`'"])((?:[a-z0-9-]+:)*flex-1|max-sm:w-full)(?=[\s`'"]|$)/;
 const LIST_ROW = /\b(text-left|text-start|justify-between)\b/;
 const CHOICE = /\b(role="tab"|aria-pressed=|aria-checked=|aria-selected=)/;
 
