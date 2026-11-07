@@ -1090,8 +1090,14 @@ export class PostsService {
     currentProfileId?: string,
     content?: ViewerContent,
   ): T & { isLiked: boolean; shouldBlurSensitive?: boolean } {
-    const { likes, ...rest } = post as T & {
+    // The template a post was made with shows only as its credit.
+    const {
+      likes,
+      templateId: _templateId,
+      ...rest
+    } = post as T & {
       likes?: unknown[];
+      templateId?: string | null;
       media?: any[];
       _count?: { likes?: number | null; comments?: number };
       hideLikes?: boolean;

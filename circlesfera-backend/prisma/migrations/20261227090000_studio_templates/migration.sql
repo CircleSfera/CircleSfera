@@ -34,11 +34,12 @@ CREATE INDEX "studio_templates_profileId_updatedAt_idx" ON "studio_templates"("p
 -- CreateIndex
 CREATE INDEX "studio_template_uses_profileId_idx" ON "studio_template_uses"("profileId");
 
--- CreateIndex
-CREATE INDEX "posts_templateId_idx" ON "posts"("templateId");
 
 -- AddForeignKey
-ALTER TABLE "posts" ADD CONSTRAINT "posts_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "studio_templates"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- NOT VALID: the column is new and empty, so there is nothing to check;
+-- it skips the scan of "posts" under SHARE ROW EXCLUSIVE. Validated in the
+-- next migration.
+ALTER TABLE "posts" ADD CONSTRAINT "posts_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "studio_templates"("id") ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;
 
 -- AddForeignKey
 ALTER TABLE "studio_templates" ADD CONSTRAINT "studio_templates_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;

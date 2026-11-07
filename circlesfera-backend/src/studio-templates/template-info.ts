@@ -11,6 +11,16 @@ export const TEMPLATE_INCLUDE = {
       isPublic: true,
       postId: true,
       profile: { select: { id: true, username: true } },
+      // The Frame the credit links to, to credit only one anyone can open.
+      post: {
+        select: {
+          deletedAt: true,
+          archivedAt: true,
+          moderationStatus: true,
+          visibility: true,
+          profile: { select: { privacyLevel: true } },
+        },
+      },
     },
   },
 } satisfies Prisma.PostInclude;
@@ -22,7 +32,32 @@ interface WithTemplates {
     isPublic: boolean;
     postId: string | null;
     profile: { id: string; username: string };
+    post?: {
+      deletedAt: Date | null;
+      archivedAt: Date | null;
+      moderationStatus: string;
+      visibility: string;
+      profile: { privacyLevel: string } | null;
+    } | null;
   } | null;
+  templateId?: string | null;
+}
+
+/** Whether the Frame a credit links to can be opened by anyone. */
+function openToAll(
+  source: NonNullable<WithTemplates['madeWithTemplate']>,
+): boolean {
+  const frame = source.post;
+  return Boolean(
+    source.isPublic &&
+      source.postId &&
+      frame &&
+      !frame.deletedAt &&
+      !frame.archivedAt &&
+      frame.moderationStatus === 'VISIBLE' &&
+      frame.visibility === 'PUBLIC' &&
+      frame.profile?.privacyLevel !== 'PRIVATE',
+  );
 }
 
 /** A Frame's template, as the post shows it. */
@@ -50,7 +85,7 @@ export async function withTemplateInfo<P extends WithTemplates>(
   posts: P[],
   viewerProfileId?: string | null,
 ): Promise<
-  (Omit<P, 'studioTemplate' | 'madeWithTemplate'> & {
+  (Omit<P, 'studioTemplate' | 'madeWithTemplate' | 'templateId'> & {
     studioTemplate: TemplateOffer | null;
     madeWithTemplate: TemplateCredit | null;
   })[]
@@ -58,7 +93,7 @@ export async function withTemplateInfo<P extends WithTemplates>(
   const authors = [
     ...new Set(
       posts.flatMap((p) =>
-        p.madeWithTemplate?.isPublic && p.madeWithTemplate.postId
+        p.madeWithTemplate && openToAll(p.madeWithTemplate)
           ? [p.madeWithTemplate.profile.id]
           : [],
       ),
@@ -69,25 +104,28 @@ export async function withTemplateInfo<P extends WithTemplates>(
     if (await isBlockedEitherWay(db, viewerProfileId, author))
       blocked.add(author);
   }
-  return posts.map(({ studioTemplate, madeWithTemplate, ...post }) => {
-    const own = viewerProfileId === post.profileId;
-    const offer =
-      studioTemplate && (studioTemplate.isPublic || own)
-        ? {
-            id: studioTemplate.id,
-            uses: studioTemplate.uses,
-            ...(own ? { isPublic: studioTemplate.isPublic } : {}),
-          }
-        : null;
-    const credit =
-      madeWithTemplate?.isPublic &&
-      madeWithTemplate.postId &&
-      !blocked.has(madeWithTemplate.profile.id)
-        ? {
-            postId: madeWithTemplate.postId,
-            username: madeWithTemplate.profile.username,
-          }
-        : null;
-    return { ...post, studioTemplate: offer, madeWithTemplate: credit };
-  });
+  // The template a post was made with shows only as its credit.
+  return posts.map(
+    ({ studioTemplate, madeWithTemplate, templateId: _id, ...post }) => {
+      const own = viewerProfileId === post.profileId;
+      const offer =
+        studioTemplate && (studioTemplate.isPublic || own)
+          ? {
+              id: studioTemplate.id,
+              uses: studioTemplate.uses,
+              ...(own ? { isPublic: studioTemplate.isPublic } : {}),
+            }
+          : null;
+      const credit =
+        madeWithTemplate &&
+        openToAll(madeWithTemplate) &&
+        !blocked.has(madeWithTemplate.profile.id)
+          ? {
+              postId: madeWithTemplate.postId as string,
+              username: madeWithTemplate.profile.username,
+            }
+          : null;
+      return { ...post, studioTemplate: offer, madeWithTemplate: credit };
+    },
+  );
 }

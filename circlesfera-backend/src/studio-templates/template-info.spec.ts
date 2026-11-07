@@ -12,14 +12,23 @@ const post = (over: Record<string, unknown> = {}) => ({
   madeWithTemplate: null,
   ...over,
 });
+const openFrame = {
+  deletedAt: null,
+  archivedAt: null,
+  moderationStatus: 'VISIBLE',
+  visibility: 'PUBLIC',
+  profile: { privacyLevel: 'PUBLIC' },
+};
 const credit = (
   isPublic = true,
   postId: string | null = 'source',
   id = 'maker',
+  frame: Record<string, unknown> | null = openFrame,
 ) => ({
   isPublic,
   postId,
   profile: { id, username: id },
+  post: frame as typeof openFrame | null,
 });
 
 describe('the templates a post shows', () => {
@@ -54,6 +63,29 @@ describe('the templates a post shows', () => {
     });
     expect(off.madeWithTemplate).toBeNull();
     expect(frameless.madeWithTemplate).toBeNull();
+  });
+
+  it.each([
+    ['deleted', { deletedAt: new Date() }],
+    ['archived', { archivedAt: new Date() }],
+    ['moderated', { moderationStatus: 'HIDDEN' }],
+    ['for followers', { visibility: 'FOLLOWERS' }],
+    ['on a private account', { profile: { privacyLevel: 'PRIVATE' } }],
+    ['gone', null],
+  ])('does not credit a template whose Frame is %s', async (_what, change) => {
+    const frame = change === null ? null : { ...openFrame, ...change };
+    const [shown] = await withTemplateInfo(
+      db,
+      [
+        post({
+          madeWithTemplate: credit(true, 'source', 'maker', frame),
+          templateId: 'tpl',
+        }),
+      ],
+      'viewer',
+    );
+    expect(shown.madeWithTemplate).toBeNull();
+    expect(shown).not.toHaveProperty('templateId');
   });
 
   it('does not credit someone the viewer and they have blocked, asking once per author', async () => {
