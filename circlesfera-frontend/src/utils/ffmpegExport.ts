@@ -311,9 +311,10 @@ export async function exportStudioProject(
         }
         if (cssFx && filterShare >= 1) vChain.push(cssFx);
         else if (cssFx && filterShare > 0) {
-          // Part of the filter: the filtered picture over the plain one.
+          // Part of the filter: the filtered picture over the plain one. In
+          // ffmpeg's normal blend the opacity is the share of the top input.
           vChain.push(
-            `format=rgba,split[f${idx}a][f${idx}b];[f${idx}b]${cssFx},format=rgba[f${idx}c];[f${idx}a][f${idx}c]blend=all_mode=normal:all_opacity=${filterShare}`,
+            `format=rgba,split[f${idx}a][f${idx}b];[f${idx}b]${cssFx},format=rgba[f${idx}c];[f${idx}c][f${idx}a]blend=all_mode=normal:all_opacity=${filterShare}`,
           );
         }
         if (color) {

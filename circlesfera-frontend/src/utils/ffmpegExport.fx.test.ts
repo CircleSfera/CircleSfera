@@ -155,7 +155,7 @@ describe('exporting transitions, effects and adjustments', () => {
       ]),
     );
     expect(graph()).toContain(
-      'eq=contrast=1.5:saturation=1,format=rgba,split[f0a][f0b];[f0b]colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3,format=rgba[f0c];[f0a][f0c]blend=all_mode=normal:all_opacity=0.4',
+      'eq=contrast=1.5:saturation=1,format=rgba,split[f0a][f0b];[f0b]colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3,format=rgba[f0c];[f0c][f0a]blend=all_mode=normal:all_opacity=0.4',
     );
     // Warmth goes on after the filter, as the preview lays it on: a grey
     // filter keeps the tint.
