@@ -79,6 +79,12 @@ describe('exporting transitions, effects and adjustments', () => {
     expect(g).toContain('[mainv][seg3]overlay=');
     // The main clips are not laid over the base one by one.
     expect(g).not.toContain('[basev][seg0]');
+    // Joined clips start at 0, for the join to place them; a layer starts
+    // where it starts on the timeline.
+    const chainOf = (input: number) =>
+      g.split(';').find((part) => part.startsWith(`[${input}:v]`)) ?? '';
+    expect(chainOf(2)).not.toContain('setpts=PTS+');
+    expect(chainOf(3)).toMatch(/,setpts=PTS\+1\/TB\[seg3\]$/);
   });
 
   it('fades the sound of the clips on either side of a transition over its length', async () => {

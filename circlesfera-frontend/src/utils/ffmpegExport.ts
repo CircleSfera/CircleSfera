@@ -328,7 +328,10 @@ export async function exportStudioProject(
         // The clip's first frame belongs where it starts on the timeline:
         // the overlay matches frames by time, so a clip left at 0 would show
         // the wrong moment of itself, or its last frame held.
-        if (clip.startAt > 0) vChain.push(`setpts=PTS+${clip.startAt}/TB`);
+        // Clips joined through transitions are placed by the join instead.
+        if (!mainIds.has(clip.id) && clip.startAt > 0) {
+          vChain.push(`setpts=PTS+${clip.startAt}/TB`);
+        }
 
         const seg = `seg${idx}`;
         parts.push(`[${idx}:v]${vChain.join(',')}[${seg}]`);
