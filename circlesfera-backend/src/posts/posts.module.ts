@@ -7,6 +7,7 @@ import {
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { StudioTemplatesModule } from '../studio-templates/studio-templates.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { PostWhyService } from './post-why.service.js';
 import { PostsController } from './posts.controller.js';
@@ -26,6 +27,7 @@ import { PostPaywallService } from './services/post-paywall.service.js';
     AIModule,
     AnalyticsModule,
     UploadsModule,
+    StudioTemplatesModule,
   ],
   controllers: [PostsController],
   providers: [

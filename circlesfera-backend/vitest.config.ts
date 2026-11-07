@@ -252,6 +252,18 @@ export default defineConfig({
           lines: 100,
         },
         'src/edits/edits.service.ts': { statements: 100, lines: 100 },
+        'src/studio-templates/studio-templates.service.ts': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/studio-templates/template-structure.ts': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/studio-templates/template-info.ts': {
+          statements: 100,
+          lines: 100,
+        },
         'src/edits/edits.controller.ts': { statements: 100, lines: 100 },
         'src/edits/processors/edits.processor.ts': {
           statements: 100,

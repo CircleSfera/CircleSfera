@@ -23,6 +23,7 @@ import {
 } from '../common/testing/paid-posts.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StudioTemplatesService } from '../studio-templates/studio-templates.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { StoredFilesService } from '../uploads/services/stored-files.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
@@ -124,6 +125,9 @@ describe('PostsService', () => {
     assertImage: vi.fn(),
   };
   const mockEventEmitter = { emit: vi.fn() };
+  const mockStudioTemplates = {
+    usable: vi.fn(async (_profileId: string, id: string) => ({ id })),
+  };
 
   const mockAnalyticsService = {
     trackPostView: vi.fn().mockResolvedValue(undefined),
@@ -157,6 +161,7 @@ describe('PostsService', () => {
         },
         { provide: FrameCoverService, useValue: mockFrameCover },
         { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: StudioTemplatesService, useValue: mockStudioTemplates },
       ],
     }).compile();
 
@@ -335,6 +340,54 @@ describe('PostsService', () => {
           }),
         }),
       );
+    });
+
+    it('credits the template a post was made with, only one its author may use', async () => {
+      const created: Record<string, unknown>[] = [];
+      const mockTx = {
+        post: {
+          create: vi
+            .fn()
+            .mockImplementation(
+              async (args: { data: Record<string, unknown> }) => {
+                created.push(args.data);
+                return { id: 'post-tpl' };
+              },
+            ),
+        },
+        postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
+      };
+      mockPrismaService.$transaction.mockImplementation(async (cb) =>
+        cb(mockTx),
+      );
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValue({
+        id: 'post-tpl',
+        media: [],
+      });
+      const video = [{ url: 'https://cdn/v.mp4', type: 'video' }] as never;
+
+      await service.create('user-1', { media: video, templateId: 'tpl-1' });
+      await service.create('user-1', { media: video });
+      expect(mockStudioTemplates.usable).toHaveBeenCalledWith(
+        'user-1',
+        'tpl-1',
+      );
+      expect(created.map((d) => d.templateId)).toEqual(['tpl-1', null]);
+
+      mockStudioTemplates.usable.mockRejectedValueOnce(
+        new Error('Template not found'),
+      );
+      await expect(
+        service.create('user-1', { media: video, templateId: 'tpl-2' }),
+      ).rejects.toThrow('Template not found');
+      expect(mockTx.post.create).toHaveBeenCalledTimes(2);
     });
 
     it('keeps that the song is already in the video only for a post with a song and a video', async () => {
@@ -1061,6 +1114,35 @@ describe('PostsService', () => {
   });
 
   describe('getFramesFeed', () => {
+    it('brings each Frame’s template and credit, as the viewer may see them', async () => {
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        {
+          id: 'frame-1',
+          type: 'FRAME',
+          profileId: 'author',
+          media: [],
+          likes: [],
+          studioTemplate: { id: 'tpl-1', uses: 7, isPublic: true },
+          madeWithTemplate: null,
+        },
+      ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(1);
+      const result = await service.getFramesFeed(
+        { page: 1, limit: 5 },
+        'viewer-1',
+      );
+      expect(
+        mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].include,
+      ).toMatchObject({
+        studioTemplate: expect.any(Object),
+        madeWithTemplate: expect.any(Object),
+      });
+      expect(result.data[0]).toMatchObject({
+        studioTemplate: { id: 'tpl-1', uses: 7 },
+        madeWithTemplate: null,
+      });
+    });
+
     it('returns frames feed with currentProfileId and cursor', async () => {
       mockPrismaService.post.findMany.mockResolvedValueOnce([
         {

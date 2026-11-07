@@ -503,6 +503,8 @@ model Profile {
   feedMutedKeywords       FeedMutedKeyword[]
   hiddenWords             HiddenWord[]
   editProjects            EditProject[]
+  studioTemplates         StudioTemplate[]
+  studioTemplateUses      StudioTemplateUse[]
   pollVotes               PollVote[]
   qnaAnswers              QnaAnswer[]
   storyStickerResponses   StoryStickerResponse[]
@@ -549,23 +551,29 @@ model Post {
   hideLikes       Boolean @default(false)
   turnOffComments Boolean @default(false)
 
-  type             PostType      @default(POST)
+  type             PostType        @default(POST)
   /// The shape every item shows in (a post, not a Frame); none before shapes.
   shape            PostShape?
-  contentRating    ContentRating @default(GENERAL)
-  views            Int           @default(0)
-  loops            Int           @default(0) // For Frames (vertical video)
-  watchTime        Int           @default(0) // Total watch time in seconds
-  performanceScore Float         @default(0)
-  visibility       Visibility    @default(PUBLIC)
+  contentRating    ContentRating   @default(GENERAL)
+  views            Int             @default(0)
+  loops            Int             @default(0) // For Frames (vertical video)
+  watchTime        Int             @default(0) // Total watch time in seconds
+  performanceScore Float           @default(0)
+  visibility       Visibility      @default(PUBLIC)
   audioId          String?
-  audio            Audio?        @relation(fields: [audioId], references: [id], onDelete: SetNull)
+  audio            Audio?          @relation(fields: [audioId], references: [id], onDelete: SetNull)
   // Offset into the selected track (ms). Clip window length = media duration at playback.
-  audioStartMs     Int           @default(0)
+  audioStartMs     Int             @default(0)
   /// The song is already mixed into the video (a video made in the Edits
   /// Studio): it still counts as a use of the song, but is not played again
   /// over a muted video.
-  audioInVideo     Boolean       @default(false)
+  audioInVideo     Boolean         @default(false)
+  /// The template of the Edits Studio this post was made with, for its
+  /// credit; emptied if the template goes.
+  templateId       String?
+  madeWithTemplate StudioTemplate? @relation("MadeWithTemplate", fields: [templateId], references: [id], onDelete: SetNull)
+  /// The template others may use, offered from this Frame.
+  studioTemplate   StudioTemplate? @relation("TemplateOfPost")
 
   moderationStatus  ModerationStatus @default(VISIBLE)
   moderationNote    String?          @db.Text
@@ -609,6 +617,7 @@ model Post {
   @@index([profileId, deletedAt])
   @@index([deletedAt])
   @@index([profileId, archivedAt])
+  @@index([templateId])
   @@map("posts")
 }
 
@@ -1083,6 +1092,45 @@ model SearchHistory {
   @@index([profileId])
   @@index([expiresAt])
   @@map("search_history")
+}
+
+/// The timing and look of an Edits Studio video, without anyone's media,
+/// voice or text: its slots, effects and library song. Kept by its author,
+/// and offered to others from one of their Frames when they turn it on.
+model StudioTemplate {
+  id        String   @id @default(uuid())
+  profileId String
+  /// The Frame it is offered from, if any.
+  postId    String?  @unique
+  name      String
+  structure Json
+  /// Whether people who can see its Frame may use it.
+  isPublic  Boolean  @default(false)
+  uses      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile   Profile             @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  post      Post?               @relation("TemplateOfPost", fields: [postId], references: [id], onDelete: Cascade)
+  usedBy    StudioTemplateUse[]
+  madePosts Post[]              @relation("MadeWithTemplate")
+
+  @@index([profileId, updatedAt])
+  @@map("studio_templates")
+}
+
+/// A Profile's use of a template: one each, so the count is of people.
+model StudioTemplateUse {
+  templateId String
+  profileId  String
+  createdAt  DateTime @default(now())
+
+  template StudioTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  profile  Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, profileId])
+  @@index([profileId])
+  @@map("studio_template_uses")
 }
 
 model EditProject {

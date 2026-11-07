@@ -54,6 +54,11 @@ import {
 } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StudioTemplatesService } from '../studio-templates/studio-templates.service.js';
+import {
+  TEMPLATE_INCLUDE,
+  withTemplateInfo,
+} from '../studio-templates/template-info.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import {
@@ -91,6 +96,8 @@ export class PostsService {
     @Inject(StoredFilesService)
     private readonly storedFiles: StoredFilesService,
     @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+    @Inject(StudioTemplatesService)
+    private readonly studioTemplates: StudioTemplatesService,
   ) {}
 
   // Create a new post with media, caption, hashtags, and mentions.
@@ -122,6 +129,11 @@ export class PostsService {
       profileId,
       (dto.media ?? []).flatMap((m) => [m.url, m.standardUrl, m.thumbnailUrl]),
     );
+
+    // A template credited must be one the author may use.
+    const templateId = dto.templateId
+      ? (await this.studioTemplates.usable(profileId, dto.templateId)).id
+      : null;
 
     // Extract hashtags and mentions
     // Extract hashtags and mentions with ReDoS-safe, robust patterns
@@ -254,6 +266,7 @@ export class PostsService {
             turnOffComments: dto.turnOffComments,
             audioId: dto.audioId,
             audioStartMs,
+            templateId,
             // Only a post with a song and a video can have the song in its
             // video; anything else plays the song over it, as before.
             audioInVideo: Boolean(
@@ -552,6 +565,7 @@ export class PostsService {
           media: { include: { media: true } },
           audio: true,
           place: true,
+          ...TEMPLATE_INCLUDE,
           _count: {
             select: {
               likes: true,
@@ -572,9 +586,9 @@ export class PostsService {
     ]);
 
     // A like count the author hid is shown to the author only.
-    const formattedPosts = posts.map((post) =>
-      this.injectIsLiked(post, currentProfileId, content),
-    );
+    const formattedPosts = (
+      await withTemplateInfo(this.prisma, posts, currentProfileId)
+    ).map((post) => this.injectIsLiked(post, currentProfileId, content));
 
     const processedPosts = await this.postPaywallService.applyPaywall(
       formattedPosts,
@@ -607,6 +621,7 @@ export class PostsService {
         place: true,
         poll: { select: { id: true } },
         qnaBox: { select: { id: true } },
+        ...TEMPLATE_INCLUDE,
       },
     });
 
@@ -627,8 +642,19 @@ export class PostsService {
     const content = await loadViewerContent(this.prisma, currentProfileId);
     // A paid post not unlocked shows closed, as in the lists of a profile:
     // the paywall runs on the post once its media addresses are resolved.
+    const [withTemplate] = await withTemplateInfo(
+      this.prisma,
+      [post],
+      currentProfileId,
+    );
     const [shown] = await this.postPaywallService.applyPaywall(
-      [this.injectIsLiked(post, currentProfileId, content) as PaywallPost],
+      [
+        this.injectIsLiked(
+          withTemplate,
+          currentProfileId,
+          content,
+        ) as PaywallPost,
+      ],
       currentProfileId,
     );
     return shown as Record<string, unknown>;
