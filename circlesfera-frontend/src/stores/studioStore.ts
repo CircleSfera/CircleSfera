@@ -15,6 +15,11 @@ import {
   withDetachedSound,
 } from '../utils/studioAudio';
 import { resolutionForAspect } from '../utils/studioExportHelpers';
+import {
+  editedAt,
+  splitKeyframes,
+  toggleKeyframe as toggleOn,
+} from '../utils/studioKeyframes';
 import { withLengthOfClips } from '../utils/studioProject';
 import {
   layerFor,
@@ -67,6 +72,8 @@ interface StudioState {
   selectClip: (clipId: string | null) => void;
   /** Chooses the cut after a clip of the main track and opens its transitions. */
   selectCut: (clipId: string | null) => void;
+  /** Adds a keyframe to a clip at the playhead, or takes away the one there. */
+  toggleKeyframe: (clipId: string) => void;
   /** Sets the transition of a cut, or takes it away. */
   setTransition: (
     clipId: string,
@@ -175,6 +182,14 @@ const hasCutAfter = (project: StudioProject, clipId: string) => {
   return index >= 0 && index < ordered.length - 1;
 };
 
+// An edit made with the playhead at a moment of the timeline.
+const editAt = (clip: Clip, updates: Partial<Clip>, playhead: number): Clip =>
+  editedAt(
+    clip,
+    updates,
+    Math.max(0, Math.min(clip.duration, playhead - clip.startAt)),
+  );
+
 const pushHistory = (state: StudioState, newProject: StudioProject) => {
   if (!state.project) return { project: newProject };
   return {
@@ -266,6 +281,21 @@ export const useStudioStore = create<StudioState>((set) => ({
       selectedCut: clipId,
       selectedClipId: null,
       openSheet: clipId ? 'transition' : null,
+    }),
+
+  toggleKeyframe: (clipId) =>
+    set((state) => {
+      if (!state.project) return state;
+      const found = locateClip(state.project, clipId);
+      if (!found) return state;
+      const { clip } = found;
+      const t = state.playhead - clip.startAt;
+      if (t < 0 || t > clip.duration) return state;
+      const tracks = state.project.tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((c) => (c.id === clipId ? toggleOn(c, t) : c)),
+      }));
+      return pushHistory(state, { ...state.project, tracks });
     }),
 
   setTransition: (clipId, transition) =>
@@ -435,7 +465,7 @@ export const useStudioStore = create<StudioState>((set) => ({
       const tracks = state.project.tracks.map((t) => ({
         ...t,
         clips: t.clips.map((c) =>
-          c.id === clipId ? ({ ...c, ...updates } as Clip) : c,
+          c.id === clipId ? editAt(c, updates, state.playhead) : c,
         ),
       }));
       const updated = settle({ ...state.project, tracks });
@@ -490,11 +520,13 @@ export const useStudioStore = create<StudioState>((set) => ({
 
       const relativeSplit = playhead - targetClip.startAt;
 
+      const halves = splitKeyframes(targetClip, relativeSplit);
       const newClip: Clip = {
         ...targetClip,
         id: newStudioId(),
         startAt: playhead,
         duration: targetClip.duration - relativeSplit,
+        keyframes: halves.second,
       };
 
       if (targetClip.type !== 'text') {
@@ -512,6 +544,7 @@ export const useStudioStore = create<StudioState>((set) => ({
               return withoutTransition({
                 ...c,
                 duration: relativeSplit,
+                keyframes: halves.first,
               } as Clip);
             }
             return c;

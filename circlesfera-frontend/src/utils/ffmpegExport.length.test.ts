@@ -192,9 +192,9 @@ describe('the size of what is placed in a smaller export', () => {
     );
     const graph = command[command.indexOf('-filter_complex') + 1];
     // Half the editor's 1080 × 1920.
-    expect(graph).toContain('overlay=x=(W-w)/2+50:y=(H-h)/2+-150');
+    expect(graph).toContain("overlay=x='(W-w)/2+50':y='(H-h)/2+-150'");
     expect(graph).toContain(
-      ':fontsize=30:fontcolor=0xffffff:x=(w-text_w)/2+20:y=(h-text_h)/2+100:box=1',
+      ":fontsize=30:fontcolor=0xffffff:x='(w-text_w)/2+20':y='(h-text_h)/2+100':box=1",
     );
     expect(graph).toContain(':boxborderw=6:');
     expect(graph).toContain(':borderw=2:');

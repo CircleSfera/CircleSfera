@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { MediaClip, TextClip } from '../../../types/studio';
+import { clipAt } from '../../../utils/studioKeyframes';
 
 export default function PropertiesPanel() {
   const { t } = useTranslation();
@@ -25,11 +26,14 @@ export default function PropertiesPanel() {
     null,
   );
 
-  const selectedClip = project?.tracks
+  const playhead = useStudioStore((s) => s.playhead);
+  const ownClip = project?.tracks
     .flatMap((tr) => tr.clips)
     .find((c) => c.id === selectedClipId);
 
-  if (!selectedClip) return null;
+  if (!ownClip) return null;
+  // As it shows at the playhead, keyframes and all.
+  const selectedClip = clipAt(ownClip, playhead - ownClip.startAt);
 
   const isText = selectedClip.type === 'text';
   const isMedia =

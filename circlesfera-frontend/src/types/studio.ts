@@ -41,7 +41,33 @@ export interface BaseClip {
   // Timeline timing
   startAt: number; // Start time on the timeline (in seconds)
   duration: number; // Duration on the timeline (in seconds)
+  /** Values a property takes at moments of the clip, eased between. */
+  keyframes?: Keyframes;
 }
+
+/** The properties keyframes can animate. */
+export type KeyProp =
+  | 'x'
+  | 'y'
+  | 'scale'
+  | 'rotation'
+  | 'opacity'
+  | 'volume'
+  | 'brightness'
+  | 'contrast'
+  | 'saturation'
+  | 'warmth'
+  | 'exposure'
+  | 'sharpness'
+  | 'filter';
+
+/** A value at a moment, in seconds from the clip's start. */
+export interface Keyframe {
+  t: number;
+  v: number;
+}
+
+export type Keyframes = Partial<Record<KeyProp, Keyframe[]>>;
 
 export interface MediaClip extends BaseClip {
   type: 'video' | 'image' | 'audio';

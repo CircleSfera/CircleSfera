@@ -1,6 +1,8 @@
-import { Pause, Play, Redo2, Undo2 } from 'lucide-react';
+import { Diamond, Pause, Play, Redo2, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
+import { hasKeyframeAt, keyPropsOf } from '../../../utils/studioKeyframes';
+import { locateClip } from '../../../utils/studioTimeline';
 
 /** Time as minutes, seconds and tenths: 0:04.2. */
 export function formatTimecode(seconds: number): string {
@@ -21,6 +23,18 @@ export default function EditorTransport() {
   const redo = useStudioStore((s) => s.redo);
   const canUndo = useStudioStore((s) => s.canUndo);
   const canRedo = useStudioStore((s) => s.canRedo);
+  const toggleKeyframe = useStudioStore((s) => s.toggleKeyframe);
+  // The chosen clip, when it can be animated and the playhead is on it.
+  const clip = useStudioStore((s) => {
+    const found =
+      s.project && s.selectedClipId
+        ? locateClip(s.project, s.selectedClipId)
+        : null;
+    return found && keyPropsOf(found.clip).length ? found.clip : null;
+  });
+  const local = clip ? playhead - clip.startAt : -1;
+  const onClip = clip !== null && local >= 0 && local <= clip.duration;
+  const keyed = onClip && hasKeyframeAt(clip, local);
 
   return (
     <div className="shrink-0 grid grid-cols-3 items-center px-3 h-14">
@@ -47,6 +61,26 @@ export default function EditorTransport() {
         </button>
       </div>
       <div className="flex justify-end gap-1">
+        {clip && (
+          <button
+            type="button"
+            onClick={() => toggleKeyframe(clip.id)}
+            disabled={!onClip}
+            aria-pressed={keyed}
+            aria-label={
+              keyed ? t('studio.keyframes.remove') : t('studio.keyframes.add')
+            }
+            className={`min-h-11 min-w-11 flex items-center justify-center rounded-full hover:bg-white/10 disabled:opacity-30 ${
+              keyed ? 'text-brand-primary-text' : 'text-white'
+            }`}
+          >
+            <Diamond
+              size={18}
+              fill={keyed ? 'currentColor' : 'none'}
+              aria-hidden
+            />
+          </button>
+        )}
         <button
           type="button"
           onClick={undo}

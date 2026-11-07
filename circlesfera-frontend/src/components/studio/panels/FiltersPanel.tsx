@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { MediaClip } from '../../../types/studio';
+import { clipAt } from '../../../utils/studioKeyframes';
 import { locateClip } from '../../../utils/studioTimeline';
 import StudioSlider from './StudioSlider';
 
@@ -23,9 +24,11 @@ export default function FiltersPanel() {
   // A filter changes how a picture looks: text, sound and effects have none.
   const found =
     project && selectedClipId ? locateClip(project, selectedClipId) : null;
+  const playhead = useStudioStore((s) => s.playhead);
+  // As it shows at the playhead, keyframes and all.
   const clip =
     found && (found.clip.type === 'video' || found.clip.type === 'image')
-      ? (found.clip as MediaClip)
+      ? clipAt(found.clip as MediaClip, playhead - found.clip.startAt)
       : null;
   if (!clip) {
     return (

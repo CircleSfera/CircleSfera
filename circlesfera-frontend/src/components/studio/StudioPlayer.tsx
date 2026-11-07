@@ -22,12 +22,15 @@ import {
   activeColor,
   colorAmounts,
   colorCssFilter,
+  EFFECT_BASE_WIDTH,
   effectClipsOf,
 } from '../../utils/studioEffects';
 import {
   containRect,
   resolutionForAspect,
 } from '../../utils/studioExportHelpers';
+import { SOFTEN_PX } from '../../utils/studioKeyframeExport';
+import { clipAt } from '../../utils/studioKeyframes';
 import {
   chromaAmounts,
   compositeOf,
@@ -73,7 +76,7 @@ function drawMediaClip(
 
   ctx.save();
   const color = activeColor(clip.color);
-  const colorCss = color ? colorCssFilter(color, canvas.width) : '';
+  const colorCss = color ? colorCssFilter(color) : '';
   const share = Math.max(0, Math.min(100, clip.filterIntensity ?? 100)) / 100;
   const filtered = Boolean(clip.filter) && share > 0;
   const opacity = typeof clip.opacity === 'number' ? clip.opacity : 1;
@@ -100,6 +103,17 @@ function drawMediaClip(
   if (filtered && !full) {
     ctx.filter = [colorCss, clip.filter].filter(Boolean).join(' ');
     ctx.globalAlpha = opacity * share;
+    ctx.drawImage(source, -fit.w / 2, -fit.h / 2, fit.w, fit.h);
+  }
+  // Softening: the picture blurred, laid over it by how soft it is, as the
+  // export blends the two.
+  const soften = color ? colorAmounts(color).soften : 0;
+  if (soften > 0) {
+    const blur = `blur(${(SOFTEN_PX * canvas.width) / EFFECT_BASE_WIDTH}px)`;
+    ctx.filter = [colorCss, full ? clip.filter : '', blur]
+      .filter(Boolean)
+      .join(' ');
+    ctx.globalAlpha = opacity * soften;
     ctx.drawImage(source, -fit.w / 2, -fit.h / 2, fit.w, fit.h);
   }
   ctx.restore();
@@ -469,7 +483,9 @@ export default function StudioPlayer() {
                   ph < c.startAt + c.duration,
               )
               .slice()
-              .sort((a, b) => a.startAt - b.startAt);
+              .sort((a, b) => a.startAt - b.startAt)
+              // Each as it is at this moment of itself, keyframes and all.
+              .map((c) => clipAt(c, ph - c.startAt));
 
             // Two clips of the main track at once: a transition between them.
             const [from, to] = layers;
@@ -542,18 +558,21 @@ export default function StudioPlayer() {
                 if (ph < clip.startAt || ph >= clip.startAt + clip.duration) {
                   return;
                 }
-                const textClip = clip as TextClip;
+                const textClip = clipAt(clip as TextClip, ph - clip.startAt);
                 const style = textClip.style;
-                const fontSize = style.fontSize || 40;
+                // Its size grows every part of it, as the export does.
+                const size = textClip.transform?.scale ?? 1;
+                const fontSize = (style.fontSize || 40) * size;
                 const fontFamily = style.fontFamily || 'Roboto';
 
                 ctx.save();
+                ctx.globalAlpha = style.opacity ?? 1;
                 ctx.font = `bold ${fontSize}px ${fontFamily}, sans-serif`;
                 ctx.textAlign = style.textAlign || 'center';
 
                 const textMetrics = ctx.measureText(textClip.content);
                 const textWidth = textMetrics.width;
-                const padding = style.padding ?? 12;
+                const padding = (style.padding ?? 12) * size;
                 const textHeight = fontSize * 1.2;
                 const x = canvas.width / 2 + (textClip.transform?.x ?? 0);
                 const y = canvas.height / 2 + (textClip.transform?.y ?? 0);
@@ -583,7 +602,7 @@ export default function StudioPlayer() {
                 }
                 if (style.strokeColor && style.strokeWidth) {
                   ctx.strokeStyle = style.strokeColor;
-                  ctx.lineWidth = style.strokeWidth;
+                  ctx.lineWidth = style.strokeWidth * size;
                   ctx.strokeText(textClip.content, x, y);
                 }
                 ctx.fillStyle = style.color || '#ffffff';

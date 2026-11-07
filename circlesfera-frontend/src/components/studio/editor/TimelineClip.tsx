@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { Clip, MediaClip } from '../../../types/studio';
+import { keyframeTimes } from '../../../utils/studioKeyframes';
 import { trimmedClip } from '../../../utils/studioTimeline';
 import { useClipThumbnail } from './useClipThumbnail';
 
@@ -156,6 +157,7 @@ export default function TimelineClip({
       updateClip(clip.id, {
         startAt: trimmed.startAt,
         duration: trimmed.duration,
+        keyframes: trimmed.keyframes,
         ...(trimmed.type !== 'text'
           ? { mediaStart: (trimmed as MediaClip).mediaStart }
           : {}),
@@ -254,6 +256,16 @@ export default function TimelineClip({
             </span>
           )}
         </span>
+        {/* Its keyframes, marked where they are. */}
+        {keyframeTimes(clip).map((at) => (
+          <span
+            key={at}
+            data-studio-keyframe={at}
+            aria-hidden
+            className="pointer-events-none absolute bottom-0.5 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-brand-primary-text ring-1 ring-black/40"
+            style={{ left: `${at * zoom}px` }}
+          />
+        ))}
         {(clip.type === 'video' || clip.type === 'audio') &&
           (clip as MediaClip).speed !== 1 && (
             <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 text-xs font-bold text-white pointer-events-none">

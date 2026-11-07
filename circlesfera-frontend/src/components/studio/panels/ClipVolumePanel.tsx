@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { MediaClip } from '../../../types/studio';
+import { clipAt } from '../../../utils/studioKeyframes';
 import { locateClip, MAX_CLIP_VOLUME } from '../../../utils/studioTimeline';
 
 /** How loud the chosen video or sound is, or whether it is silent. */
@@ -11,6 +12,7 @@ export default function ClipVolumePanel() {
   const project = useStudioStore((s) => s.project);
   const selectedClipId = useStudioStore((s) => s.selectedClipId);
   const updateClip = useStudioStore((s) => s.updateClip);
+  const playhead = useStudioStore((s) => s.playhead);
   const beginHistoryTransaction = useStudioStore(
     (s) => s.beginHistoryTransaction,
   );
@@ -23,7 +25,8 @@ export default function ClipVolumePanel() {
   const found =
     project && selectedClipId ? locateClip(project, selectedClipId) : null;
   if (!found || found.clip.type === 'text') return null;
-  const clip = found.clip as MediaClip;
+  // As it sounds at the playhead, keyframes and all.
+  const clip = clipAt(found.clip as MediaClip, playhead - found.clip.startAt);
   const percent = Math.round((clip.muted ? 0 : clip.volume) * 100);
 
   return (
