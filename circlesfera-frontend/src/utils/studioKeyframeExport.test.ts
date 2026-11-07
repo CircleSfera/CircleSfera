@@ -240,3 +240,48 @@ describe('the frame-by-frame script', () => {
     expect(commandScript([], 3, 30)).toBe('');
   });
 });
+
+describe('what the review found in animated colour', () => {
+  it('blends softening in by the amount itself, as the preview does', () => {
+    // Keyframes that soften to −50 at most: half the blur there, not all.
+    const clip = animated({
+      sharpness: k([
+        [0, 0],
+        [4, -50],
+      ]),
+    });
+    const before = colorBefore(clip, 1080, 'c0');
+    const fade = before.commands.find((c) => c.target === 'blend@c0s0');
+    expect(fade?.at(4)).toBeCloseTo(0.5);
+    expect(fade?.at(2)).toBeCloseTo(0.25);
+    expect(before.filter).toContain('gblur=sigma=3[c0s0r]');
+  });
+
+  it('adds no softening when the keyframes never soften', () => {
+    const clip = animated({
+      sharpness: k([
+        [0, 0],
+        [4, 60],
+      ]),
+    });
+    expect(colorBefore(clip, 1080, 'c0').filter).not.toContain('gblur');
+  });
+
+  it('shows as much of a filter as its keyframes say, even short of all of it', () => {
+    const clip = animated({
+      filter: k([
+        [0, 0],
+        [4, 60],
+      ]),
+    });
+    expect(filterAt(clip, 'hue=s=0', 'f2').commands[0].at(4)).toBeCloseTo(0.6);
+  });
+
+  it('leaves nothing in the chain when a filter’s keyframes never show it', () => {
+    const clip = animated({ filter: k([[0, 0]]) });
+    expect(filterAt(clip, 'hue=s=0', 'f3')).toEqual({
+      filter: '',
+      commands: [],
+    });
+  });
+});

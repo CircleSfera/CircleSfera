@@ -219,25 +219,89 @@ export function withValuesAt<C extends Clip>(
   return clip.keyframes ? withFrames(next, frames) : next;
 }
 
+/** Whether an edit's fields set a property: what the caller changed. */
+function touches(updates: Record<string, unknown>, prop: KeyProp): boolean {
+  switch (prop) {
+    case 'x':
+    case 'y':
+    case 'scale':
+    case 'rotation':
+      return 'transform' in updates;
+    case 'opacity':
+      return 'opacity' in updates || 'style' in updates;
+    case 'volume':
+      return 'volume' in updates;
+    case 'filter':
+      return 'filterIntensity' in updates;
+    default:
+      return 'color' in updates;
+  }
+}
+
 /**
- * The properties an edit of a clip changes, and their new values, compared
- * with how the clip is at a moment.
+ * The properties an edit sets to something other than what the clip shows
+ * at a moment, and their new values. Only the fields the edit holds count:
+ * a trim sets none, and a panel showing the animated values changes only
+ * the one moved.
  */
 export function changedValues(
   before: Clip,
-  after: Clip,
+  updates: Partial<Clip>,
   t: number,
 ): Partial<Record<KeyProp, number>> {
+  const after = { ...before, ...updates } as Clip;
+  const fields = updates as Record<string, unknown>;
   const changed: Partial<Record<KeyProp, number>> = {};
   for (const prop of keyPropsOf(after)) {
+    if (!touches(fields, prop)) continue;
     const v = baseValue(after, prop);
-    // An edit that leaves the clip's own value, or sets what is shown
-    // there already, changes nothing: a trim, or a panel showing the
-    // animated value.
-    if (Math.abs(v - baseValue(before, prop)) < 1e-9) continue;
     if (Math.abs(v - valueAt(before, prop, t)) > 1e-9) changed[prop] = v;
   }
   return changed;
+}
+
+/**
+ * A clip after an edit made at a moment of itself. On a clip with
+ * keyframes, a changed animated value becomes a keyframe there, and the
+ * clip's own values of every animated property stay as they were (a panel
+ * sends the values it shows at the playhead). Silencing follows a keyed
+ * volume, so a volume keyed to 0 does not silence the whole clip.
+ */
+export function editedAt<C extends Clip>(
+  before: C,
+  updates: Partial<Clip>,
+  t: number,
+): C {
+  const after = { ...before, ...updates } as C;
+  if (!hasKeyframes(before)) return after;
+  const changed = changedValues(before, updates, t);
+  let kept = after;
+  for (const prop of keyPropsOf(before)) {
+    if (isAnimated(before, prop)) {
+      kept = withBaseValue(kept, prop, baseValue(before, prop));
+    }
+  }
+  if (
+    isAnimated(before, 'volume') &&
+    'muted' in updates &&
+    'volume' in updates
+  ) {
+    kept = { ...kept, muted: (before as unknown as MediaClip).muted } as C;
+  }
+  return withValuesAt(kept, changed, t);
+}
+
+/** The clip with a keyframe at a moment for each animated property, at its value there. */
+export function withEdgeKeyframes<C extends Clip>(clip: C, at: number): C {
+  if (!clip.keyframes) return clip;
+  const frames: Keyframes = { ...clip.keyframes };
+  for (const prop of Object.keys(frames) as KeyProp[]) {
+    const list = framesOf(clip, prop);
+    if (!list.length || list.some((f) => Math.abs(f.t - at) < KEYFRAME_EPS))
+      continue;
+    frames[prop] = withFrame(list, at, valueAt(clip, prop, at));
+  }
+  return { ...clip, keyframes: frames };
 }
 
 /**

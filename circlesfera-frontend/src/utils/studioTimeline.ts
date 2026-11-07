@@ -1,5 +1,9 @@
 import type { Clip, MediaClip, StudioProject, Track } from '../types/studio';
-import { shiftedKeyframes, stretchedKeyframes } from './studioKeyframes';
+import {
+  shiftedKeyframes,
+  stretchedKeyframes,
+  withEdgeKeyframes,
+} from './studioKeyframes';
 import {
   fittedTransition,
   transitionOf,
@@ -302,8 +306,12 @@ export function trimmedClip(
     };
     if (media)
       (next as MediaClip).mediaStart = media.mediaStart + moved * speed;
-    // Its keyframes stay on the same moments of what it shows.
-    return shiftedKeyframes(next as Clip, -moved);
+    // Its keyframes stay on the same moments of what it shows, with one at
+    // the new start holding the value shown there.
+    return shiftedKeyframes(
+      withEdgeKeyframes(next as Clip, moved) as Clip,
+      -moved,
+    );
   }
   let duration = Math.max(MIN_CLIP_SEC, clip.duration + by);
   if (bounded && media?.sourceDuration) {
@@ -316,5 +324,12 @@ export function trimmedClip(
     // shorter, not made longer: how much more the file has is unknown.
     duration = Math.min(duration, Math.max(clip.duration, MIN_CLIP_SEC));
   }
-  return shiftedKeyframes({ ...clip, duration } as Clip, 0);
+  // One at the new end holds the value shown there.
+  return shiftedKeyframes(
+    withEdgeKeyframes(
+      { ...clip, duration } as Clip,
+      Math.min(duration, clip.duration),
+    ),
+    0,
+  );
 }

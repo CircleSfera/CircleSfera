@@ -140,6 +140,22 @@ function grown(
       commands: [],
     };
   }
+  if (share) {
+    // Drawn at its fullest and blended in by the amount itself, as the
+    // preview draws it.
+    const [low, high] = rangeOf(clip, amount.prop);
+    if (Math.max(amount.of(low), amount.of(high)) <= amount.none) return none;
+    const at = (t: number) =>
+      Math.max(
+        0,
+        Math.min(MOST_SHARE, amount.of(valueAt(clip, amount.prop, t))),
+      );
+    const name = `${tag}0`;
+    return {
+      filter: `split[${name}p][${name}q];[${name}q]${draw(1)}[${name}r];[${name}r][${name}p]blend@${name}=all_mode=normal:all_opacity=${num(at(0))}`,
+      commands: [{ target: `blend@${name}`, option: 'all_opacity', at }],
+    };
+  }
   const filters: string[] = [];
   const commands: FrameCommand[] = [];
   sidesOf(clip, amount).forEach((side, i) => {
@@ -226,7 +242,13 @@ export function filterAt(
     if (share <= 0) return none;
     if (share >= 1) return { filter: cssFx, commands: [] };
   }
-  const part = grown(clip, AMOUNTS.filter, tag, () => `${cssFx},format=rgba`);
+  const part = grown(
+    clip,
+    AMOUNTS.filter,
+    tag,
+    () => `${cssFx},format=rgba`,
+    true,
+  );
   if (!isAnimated(clip, 'filter')) {
     // At a fixed share: the filtered picture over the plain one.
     const share = AMOUNTS.filter.of(baseValue(clip, 'filter'));
@@ -235,6 +257,8 @@ export function filterAt(
       commands: [],
     };
   }
+  // Keyframes that never show the filter leave nothing in the chain.
+  if (!part.filter) return none;
   return { ...part, filter: `format=rgba,${part.filter}` };
 }
 

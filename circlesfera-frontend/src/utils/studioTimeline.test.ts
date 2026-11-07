@@ -325,3 +325,45 @@ describe('new things', () => {
     ]);
   });
 });
+
+describe('trimming an animated clip', () => {
+  const animatedClip = () =>
+    ({
+      id: 'a',
+      type: 'video',
+      trackId: 'v',
+      startAt: 0,
+      duration: 4,
+      fileUrl: 'blob:a',
+      file: null,
+      mediaStart: 0,
+      sourceDuration: 10,
+      speed: 1,
+      volume: 1,
+      muted: false,
+      transform: { scale: 1, rotation: 0, x: 0, y: 0 },
+      keyframes: {
+        x: [
+          { t: 1, v: 0 },
+          { t: 3, v: 100 },
+        ],
+      },
+    }) as MediaClip;
+
+  it('holds at the new start the value shown there before', () => {
+    const trimmed = trimmedClip(animatedClip(), 'start', 2) as MediaClip;
+    // At 2 s the eased value was 50; it is now the first keyframe.
+    expect(trimmed.keyframes?.x).toEqual([
+      { t: 0, v: 50 },
+      { t: 1, v: 100 },
+    ]);
+  });
+
+  it('holds at the new end the value shown there before', () => {
+    const trimmed = trimmedClip(animatedClip(), 'end', -2) as MediaClip;
+    expect(trimmed.keyframes?.x).toEqual([
+      { t: 1, v: 0 },
+      { t: 2, v: 50 },
+    ]);
+  });
+});

@@ -3,7 +3,6 @@ import type {
   AspectRatioType,
   Clip,
   ClipTransition,
-  KeyProp,
   MediaClip,
   StudioPanel,
   StudioProject,
@@ -17,14 +16,9 @@ import {
 } from '../utils/studioAudio';
 import { resolutionForAspect } from '../utils/studioExportHelpers';
 import {
-  baseValue,
-  changedValues,
-  hasKeyframes,
-  isAnimated,
+  editedAt,
   splitKeyframes,
   toggleKeyframe as toggleOn,
-  withBaseValue,
-  withValuesAt,
 } from '../utils/studioKeyframes';
 import { withLengthOfClips } from '../utils/studioProject';
 import {
@@ -188,23 +182,13 @@ const hasCutAfter = (project: StudioProject, clipId: string) => {
   return index >= 0 && index < ordered.length - 1;
 };
 
-/**
- * A clip after an edit made with the playhead at a moment: on a clip with
- * keyframes, a changed value of an animated property becomes a keyframe
- * there instead of changing the clip's own value.
- */
-const editedAt = (before: Clip, after: Clip, playhead: number): Clip => {
-  if (!hasKeyframes(before)) return after;
-  const t = Math.max(0, Math.min(before.duration, playhead - before.startAt));
-  const changed = changedValues(before, after, t);
-  let kept = after;
-  for (const prop of Object.keys(changed) as KeyProp[]) {
-    if (isAnimated(before, prop)) {
-      kept = withBaseValue(kept, prop, baseValue(before, prop));
-    }
-  }
-  return withValuesAt(kept, changed, t);
-};
+// An edit made with the playhead at a moment of the timeline.
+const editAt = (clip: Clip, updates: Partial<Clip>, playhead: number): Clip =>
+  editedAt(
+    clip,
+    updates,
+    Math.max(0, Math.min(clip.duration, playhead - clip.startAt)),
+  );
 
 const pushHistory = (state: StudioState, newProject: StudioProject) => {
   if (!state.project) return { project: newProject };
@@ -481,9 +465,7 @@ export const useStudioStore = create<StudioState>((set) => ({
       const tracks = state.project.tracks.map((t) => ({
         ...t,
         clips: t.clips.map((c) =>
-          c.id === clipId
-            ? editedAt(c, { ...c, ...updates } as Clip, state.playhead)
-            : c,
+          c.id === clipId ? editAt(c, updates, state.playhead) : c,
         ),
       }));
       const updated = settle({ ...state.project, tracks });

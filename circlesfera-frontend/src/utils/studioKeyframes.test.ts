@@ -5,6 +5,7 @@ import {
   changedValues,
   clipAt,
   ease,
+  editedAt,
   framesExpr,
   hasKeyframeAt,
   hasKeyframes,
@@ -21,6 +22,7 @@ import {
   toggleKeyframe,
   valueAt,
   withBaseValue,
+  withEdgeKeyframes,
   withValuesAt,
 } from './studioKeyframes';
 
@@ -182,12 +184,90 @@ describe('setting keyframes', () => {
     expect(plain.keyframes).toBeUndefined();
   });
 
-  it('finds what an edit changed, against the clip at that moment', () => {
+  it('finds what an edit changed: only the fields it holds, against the clip at that moment', () => {
     const clip = moving();
-    const after = { ...clipAt(clip, 2), opacity: 0.5 };
-    expect(changedValues(clip, after, 2)).toEqual({ opacity: 0.5 });
-    // A trim leaves every value as it was.
-    expect(changedValues(clip, { ...clip, duration: 2 }, 2)).toEqual({});
+    const shown = clipAt(clip, 2);
+    expect(changedValues(clip, { opacity: 0.5 }, 2)).toEqual({ opacity: 0.5 });
+    // A panel sends the place it shows: only a moved value changes.
+    expect(
+      changedValues(clip, { transform: { ...shown.transform, y: 30 } }, 2),
+    ).toEqual({ y: 30 });
+    // A trim holds none of them.
+    expect(changedValues(clip, { duration: 2, startAt: 1 }, 2)).toEqual({});
+  });
+
+  describe('an edit at a moment of an animated clip', () => {
+    const glowing = () =>
+      mediaClip('a', {
+        duration: 4,
+        color: {
+          brightness: 0,
+          contrast: 0,
+          saturation: 0,
+          warmth: 0,
+          exposure: 0,
+          sharpness: 0,
+        },
+        keyframes: {
+          brightness: [
+            { t: 0, v: 0 },
+            { t: 4, v: 100 },
+          ],
+          warmth: [
+            { t: 0, v: 0 },
+            { t: 4, v: 100 },
+          ],
+          volume: [
+            { t: 0, v: 1 },
+            { t: 4, v: 1 },
+          ],
+        },
+      });
+
+    it('keys the one moved, and keeps every animated property’s own value', () => {
+      const clip = glowing();
+      const shown = clipAt(clip, 2).color as NonNullable<typeof clip.color>;
+      const edited = editedAt(clip, { color: { ...shown, contrast: 40 } }, 2);
+      // Brightness and warmth showed 50; their own values stay at 0.
+      expect(edited.color).toMatchObject({
+        brightness: 0,
+        warmth: 0,
+        contrast: 40,
+      });
+      expect(edited.keyframes?.brightness).toEqual(clip.keyframes?.brightness);
+    });
+
+    it('keys an animated property set back to its own value', () => {
+      const clip = glowing();
+      const shown = clipAt(clip, 2).color as NonNullable<typeof clip.color>;
+      const edited = editedAt(clip, { color: { ...shown, warmth: 0 } }, 2);
+      expect(edited.keyframes?.warmth).toContainEqual({ t: 2, v: 0 });
+    });
+
+    it('keys a volume of 0 without silencing the whole clip', () => {
+      const edited = editedAt(glowing(), { volume: 0, muted: true }, 2);
+      expect(edited.keyframes?.volume).toContainEqual({ t: 2, v: 0 });
+      expect(edited.muted).toBe(false);
+    });
+
+    it('is a plain edit on a clip without keyframes', () => {
+      const plain = mediaClip('b');
+      expect(editedAt(plain, { opacity: 0.3 }, 1)).toMatchObject({
+        opacity: 0.3,
+      });
+    });
+  });
+
+  it('holds the value shown at a new edge with a keyframe there', () => {
+    const clip = moving();
+    expect(withEdgeKeyframes(clip, 2).keyframes?.x).toEqual([
+      { t: 1, v: 0 },
+      { t: 2, v: 50 },
+      { t: 3, v: 100 },
+    ]);
+    // One there already, or no keyframes, change nothing.
+    expect(withEdgeKeyframes(clip, 1).keyframes?.x).toHaveLength(2);
+    expect(withEdgeKeyframes(mediaClip('b'), 1)).toEqual(mediaClip('b'));
   });
 
   it('stops adding at the most a property holds', () => {
