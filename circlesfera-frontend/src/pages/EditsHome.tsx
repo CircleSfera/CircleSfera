@@ -3,10 +3,11 @@ import { Clapperboard, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import { formatClock } from '../components/studio/editor/EditorTimeline';
+import TemplatesSection from '../components/studio/home/TemplatesSection';
 import { type EditProject, editsService } from '../services/edits.service';
 import { useStudioStore } from '../stores/studioStore';
 import type { StudioProject } from '../types/studio';
@@ -55,6 +56,7 @@ function Thumbnail({ url, type }: { url: string; type: string }) {
 export default function EditsHome() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const setProject = useStudioStore((s) => s.setProject);
   const setCloudProjectId = useStudioStore((s) => s.setCloudProjectId);
@@ -152,6 +154,11 @@ export default function EditsHome() {
         <Plus size={18} aria-hidden />
         {t('studio.home.new')}
       </button>
+
+      <TemplatesSection
+        fromPostId={searchParams.get('template')}
+        onOpen={(studio) => open(studio, null)}
+      />
 
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
         {t('studio.home.projects')}

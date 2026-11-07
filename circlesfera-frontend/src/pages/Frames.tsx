@@ -412,6 +412,10 @@ export default function Frames() {
                         : undefined
                     }
                     likesHidden={frameInteractionSettings.likesHidden}
+                    onToggleTemplate={
+                      isFrameOwner ? menuActions.onToggleTemplate : undefined
+                    }
+                    templateOffered={menuActions.templateOffered}
                     onPromote={
                       canPromoteFrame ? menuActions.onPromote : undefined
                     }

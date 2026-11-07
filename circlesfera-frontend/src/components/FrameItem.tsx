@@ -23,6 +23,7 @@ import {
 } from '../services';
 import { creatorApi } from '../services/creator.service';
 import { monetizationApi } from '../services/monetization.service';
+import { studioTemplatesApi } from '../services/studioTemplates.service';
 import { useAuthStore } from '../stores/authStore';
 import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
@@ -204,6 +205,37 @@ export default function FrameItem({
     };
   }, [post, navigate]);
 
+  // The author's own template of the Frame, offered or not: only the
+  // author is told whether it is on.
+  const ownTemplate =
+    post.studioTemplate?.isPublic !== undefined ? post.studioTemplate : null;
+  const [templateOffered, setTemplateOffered] = useState(
+    Boolean(ownTemplate?.isPublic),
+  );
+  // Follows the server's value whenever the Frame's data is fetched again.
+  const serverOffered = Boolean(ownTemplate?.isPublic);
+  useEffect(() => {
+    setTemplateOffered(serverOffered);
+  }, [serverOffered]);
+  const toggleTemplate = useCallback(() => {
+    if (!ownTemplate) return;
+    const next = !templateOffered;
+    studioTemplatesApi
+      .update(ownTemplate.id, { isPublic: next })
+      .then(() => {
+        setTemplateOffered(next);
+        // The Frame's cached data learns the change too.
+        queryClient.invalidateQueries({ queryKey: ['frames'] });
+        queryClient.invalidateQueries({ queryKey: ['post', post.id] });
+        toast.success(
+          next
+            ? t('post.menu.template_offered')
+            : t('post.menu.template_stopped'),
+        );
+      })
+      .catch(() => toast.error(t('post.menu.template_error')));
+  }, [ownTemplate, templateOffered, t, queryClient, post.id]);
+
   useEffect(() => {
     if (!isActive || !onRegisterMenuActions) return;
 
@@ -222,6 +254,8 @@ export default function FrameItem({
       onAddToStory: canShareToStory
         ? () => shareToStoryRef.current()
         : undefined,
+      onToggleTemplate: ownTemplate ? toggleTemplate : undefined,
+      templateOffered,
     });
 
     return () => onRegisterMenuActions(null);
@@ -231,6 +265,9 @@ export default function FrameItem({
     canPromote,
     archiveFrame,
     canShareToStory,
+    ownTemplate,
+    toggleTemplate,
+    templateOffered,
   ]);
 
   const libraryTrack = libraryTrackUrl(post);

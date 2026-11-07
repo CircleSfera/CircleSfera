@@ -11,6 +11,7 @@ import {
 } from '../services';
 import { creatorApi } from '../services/creator.service';
 import { monetizationApi } from '../services/monetization.service';
+import { studioTemplatesApi } from '../services/studioTemplates.service';
 import { useFrameStore } from '../stores/frameStore';
 import { renderWithProviders } from '../test/test-utils';
 import type { Post } from '../types';
@@ -43,6 +44,9 @@ vi.mock('../services', () => ({
   postsApi: { delete: vi.fn(), update: vi.fn() },
 }));
 
+vi.mock('../services/studioTemplates.service', () => ({
+  studioTemplatesApi: { update: vi.fn().mockResolvedValue({ data: {} }) },
+}));
 vi.mock('../services/creator.service', () => ({
   creatorApi: {
     trackFrameWatch: vi.fn(),
@@ -735,6 +739,47 @@ describe('FrameItem', () => {
         />,
       );
       expect(actions()).toBeNull();
+    });
+
+    it('lets its author turn its template off and on, and tells them', async () => {
+      const own = frame({
+        studioTemplate: { id: 'tpl-1', uses: 3, isPublic: true },
+      } as Partial<Post>);
+      const { actions } = withMenu(own);
+      expect(actions()?.templateOffered).toBe(true);
+      await act(async () => actions()?.onToggleTemplate?.());
+      expect(studioTemplatesApi.update).toHaveBeenCalledWith('tpl-1', {
+        isPublic: false,
+      });
+      await vi.waitFor(() => expect(actions()?.templateOffered).toBe(false));
+      expect(toast.success).toHaveBeenCalledWith(
+        'Its template is no longer offered',
+      );
+    });
+
+    it('says so when its template cannot be changed', async () => {
+      vi.mocked(studioTemplatesApi.update).mockRejectedValueOnce(
+        new Error('x'),
+      );
+      const { actions } = withMenu(
+        frame({
+          studioTemplate: { id: 'tpl-1', uses: 3, isPublic: false },
+        } as Partial<Post>),
+      );
+      await act(async () => actions()?.onToggleTemplate?.());
+      await vi.waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          'Could not change it. Try again.',
+        ),
+      );
+    });
+
+    it('offers no template switch to someone else, nor for a Frame without one', () => {
+      // Others are not told whether it is on.
+      const { actions } = withMenu(
+        frame({ studioTemplate: { id: 'tpl-1', uses: 3 } } as Partial<Post>),
+      );
+      expect(actions()?.onToggleTemplate).toBeUndefined();
     });
 
     it('saves through the latest handler of the page', () => {

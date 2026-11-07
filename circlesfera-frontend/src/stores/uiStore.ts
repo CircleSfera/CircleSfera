@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { StudioTemplate } from '../utils/studioTemplates';
 
 export type EditedMediaHandoff = {
   file: File;
@@ -8,6 +9,17 @@ export type EditedMediaHandoff = {
    * post so it counts as used, while the video keeps its own sound.
    */
   songInVideo?: { id: string; startMs: number };
+  /**
+   * The Studio template of the video, which its author may offer from the
+   * Frame, and the community template it was made with, credited.
+   */
+  studioTemplate?: StudioTemplateHandoff;
+};
+
+export type StudioTemplateHandoff = {
+  name: string;
+  structure: StudioTemplate;
+  usedId?: string;
 };
 
 interface UIState {

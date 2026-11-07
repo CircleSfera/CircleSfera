@@ -43,6 +43,21 @@ export function useCreatePost() {
     }
   }, [media.mediaFiles, songInVideo, setSongInVideo]);
 
+  // The Studio template goes with the very video it was made for.
+  const templateVideoRef = useRef<File | null>(null);
+  const { studioTemplate, setStudioTemplate, setOfferTemplate } = state;
+  useEffect(() => {
+    if (!studioTemplate) return;
+    const still = media.mediaFiles.some(
+      (m) => m.file === templateVideoRef.current,
+    );
+    if (!still) {
+      templateVideoRef.current = null;
+      setStudioTemplate(null);
+      setOfferTemplate(false);
+    }
+  }, [media.mediaFiles, studioTemplate, setStudioTemplate, setOfferTemplate]);
+
   // Read seamless transfer state from UI Store (Legacy compatibility)
   useEffect(() => {
     import('../stores/uiStore').then(async ({ useUIStore }) => {
@@ -76,6 +91,9 @@ export function useCreatePost() {
         // left from another one.
         songVideoRef.current = handoff.songInVideo ? file : null;
         state.setSongInVideo(handoff.songInVideo ?? null);
+        templateVideoRef.current = handoff.studioTemplate ? file : null;
+        state.setStudioTemplate(handoff.studioTemplate ?? null);
+        state.setOfferTemplate(false);
         if (sourceSec > FRAME_MAX_DURATION_SEC) {
           state.setShowFrameTrim(true);
           state.setStep('edit');
@@ -88,6 +106,8 @@ export function useCreatePost() {
     media.setMediaFiles,
     state.setScheduledAt,
     state.setSongInVideo,
+    state.setStudioTemplate,
+    state.setOfferTemplate,
     state.setStep,
     state.setFrameSourceDurationSec,
     state.setShowFrameTrim,
@@ -108,6 +128,8 @@ export function useCreatePost() {
     selectedAudio: state.selectedAudio,
     audioStartMs: state.audioStartMs,
     songInVideo: state.songInVideo,
+    studioTemplate: state.studioTemplate,
+    offerTemplate: state.offerTemplate,
     isCloseFriendsOnly: state.isCloseFriendsOnly,
     isPremium: state.isPremium,
     price: state.price,

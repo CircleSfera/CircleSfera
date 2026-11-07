@@ -10,6 +10,7 @@ import { assembleFrame } from '../components/create-post/frameAssembly';
 import { buildHashtagElement } from '../components/story/storyComposer.append';
 import { FRAME_MIN_DURATION_SEC } from '../constants/uploadLimits';
 import { interactiveApi, postsApi, storiesApi } from '../services';
+import { studioTemplatesApi } from '../services/studioTemplates.service';
 import { createTestI18n, createTestQueryClient } from '../test/test-utils';
 import { exportEditedImage } from '../utils/imageExport';
 import { exportEditedVideo } from '../utils/videoExport';
@@ -33,6 +34,9 @@ vi.mock('../components/create-post/frameAssembly', () => ({
   })),
 }));
 vi.mock('../utils/logger', () => ({ logger: { error: vi.fn() } }));
+vi.mock('../services/studioTemplates.service', () => ({
+  studioTemplatesApi: { create: vi.fn().mockResolvedValue({ data: {} }) },
+}));
 const navigate = vi.hoisted(() => vi.fn());
 vi.mock('react-router-dom', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-router-dom')>()),
@@ -135,6 +139,69 @@ describe('useCreatePostMutation', () => {
     >;
     expect(sent).toMatchObject({ audioId: 'chosen', audioStartMs: 2000 });
     expect(sent.audioInVideo).toBeUndefined();
+  });
+
+  describe('a Frame made in the Studio', () => {
+    const structure = {
+      version: 1,
+      name: 'Trip',
+      aspectRatio: '9:16',
+      slots: [{ duration: 2, speed: 1 }],
+      effects: [],
+    };
+    const frame = (over: Record<string, unknown> = {}) =>
+      setup({
+        mode: 'FRAME',
+        mediaFiles: [
+          {
+            ...image('clip.mp4'),
+            type: 'video',
+            videoData: { startTime: 0, endTime: 20 },
+          },
+        ],
+        studioTemplate: { name: 'Trip', structure, usedId: 'tpl-used' },
+        ...over,
+      });
+
+    it('credits the template it was made with', async () => {
+      const { submit } = frame();
+      await submit();
+      expect(postsApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({ templateId: 'tpl-used' }),
+      );
+      expect(studioTemplatesApi.create).not.toHaveBeenCalled();
+    });
+
+    it('offers its own template from the Frame when its author turns that on', async () => {
+      const { submit } = frame({ offerTemplate: true });
+      await submit();
+      expect(studioTemplatesApi.create).toHaveBeenCalledWith({
+        name: 'Trip',
+        structure,
+        postId: 'post-1',
+        isPublic: true,
+      });
+    });
+
+    it('still publishes when its template cannot be offered', async () => {
+      vi.mocked(studioTemplatesApi.create).mockRejectedValueOnce(
+        new Error('down'),
+      );
+      const { submit } = frame({ offerTemplate: true });
+      await submit();
+      expect(postsApi.create).toHaveBeenCalled();
+    });
+
+    it('neither credits nor offers outside a Frame', async () => {
+      const { submit } = frame({ mode: 'POST', offerTemplate: true });
+      await submit();
+      const sent = vi.mocked(postsApi.create).mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(sent.templateId).toBeUndefined();
+      expect(studioTemplatesApi.create).not.toHaveBeenCalled();
+    });
   });
 
   it('does nothing without media', async () => {

@@ -13,6 +13,9 @@ interface AdvancedSettingsSubScreenProps {
   showSensitiveToggle: boolean;
   scheduledAt: string;
   setScheduledAt: (value: string) => void;
+  /** A Frame made in the Studio: whether others may use its template. */
+  offerTemplate?: boolean;
+  setOfferTemplate?: (value: boolean) => void;
   onClose: () => void;
 }
 
@@ -26,6 +29,8 @@ export default function AdvancedSettingsSubScreen({
   showSensitiveToggle,
   scheduledAt,
   setScheduledAt,
+  offerTemplate,
+  setOfferTemplate,
   onClose,
 }: AdvancedSettingsSubScreenProps) {
   const { t } = useTranslation();
@@ -76,6 +81,20 @@ export default function AdvancedSettingsSubScreen({
                 label={t('createPost.caption.mark_sensitive')}
                 description={t('createPost.caption.mark_sensitive_desc')}
                 aria-label={t('createPost.caption.mark_sensitive')}
+              />
+            </div>
+          ) : null}
+
+          {setOfferTemplate ? (
+            <div className="px-3 py-2.5">
+              <Switch
+                compact
+                role="switch"
+                checked={Boolean(offerTemplate)}
+                onChange={(e) => setOfferTemplate(e.target.checked)}
+                label={t('createPost.caption.offer_template')}
+                description={t('createPost.caption.offer_template_desc')}
+                aria-label={t('createPost.caption.offer_template')}
               />
             </div>
           ) : null}

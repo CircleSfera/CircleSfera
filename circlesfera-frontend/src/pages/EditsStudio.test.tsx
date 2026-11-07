@@ -307,6 +307,32 @@ describe('EditsStudio', () => {
       expect(uploadApi.upload).toHaveBeenCalledTimes(2);
     });
 
+    it('uploads the files a project from a template was made with, as it opens', async () => {
+      const file = new File(['v'], 'a.mp4', { type: 'video/mp4' });
+      useStudioStore.setState({
+        pendingUploads: [{ file, localUrl: 'blob:a' }],
+      });
+      await open(project([clip('a', { fileUrl: 'blob:a' })]));
+      await waitFor(() =>
+        expect(mainClips()[0].fileUrl).toBe('https://cdn/uploaded.mp4'),
+      );
+      expect(useStudioStore.getState().pendingUploads).toEqual([]);
+    });
+
+    it('says so when a file of a template cannot be uploaded', async () => {
+      vi.mocked(uploadApi.upload).mockRejectedValueOnce(new Error('no'));
+      useStudioStore.setState({
+        pendingUploads: [
+          {
+            file: new File(['v'], 'a.mp4', { type: 'video/mp4' }),
+            localUrl: 'blob:a',
+          },
+        ],
+      });
+      await open(project([clip('a', { fileUrl: 'blob:a' })]));
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    });
+
     it('opens the file picker from the timeline and from the tools', async () => {
       await open();
       const input = screen.getByTestId(
@@ -903,6 +929,27 @@ describe('EditsStudio', () => {
         songInVideo: undefined,
       });
       expect(seen.navigate).toHaveBeenCalledWith('/create?mode=frame');
+    });
+
+    it('hands over its template, and the community template it was made with', async () => {
+      vi.mocked(exportStudioProject).mockResolvedValue(
+        new File(['mp4'], 'e.mp4'),
+      );
+      await open({
+        ...project([clip('a')]),
+        name: 'Trip',
+        templateId: 'tpl-9',
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await act(async () => seen.exportModal.onStartExport('balanced'));
+      await act(async () => seen.exportModal.onPublish(''));
+      const handoff = useUIStore.getState().editedMediaForPost;
+      expect(handoff?.studioTemplate).toMatchObject({
+        name: 'Trip',
+        usedId: 'tpl-9',
+        structure: { version: 1, name: 'Trip', slots: [{ duration: 10 }] },
+      });
+      expect(JSON.stringify(handoff?.studioTemplate)).not.toContain('blob:');
     });
 
     it('names the library song the video carries, so publishing it counts as a use', async () => {

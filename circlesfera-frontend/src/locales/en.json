@@ -1367,7 +1367,12 @@
       "comments_turned_on": "Commenting turned on",
       "like_count_hidden": "Like count hidden",
       "like_count_shown": "Like count shown",
-      "interactions_error": "Could not save the change. Try again."
+      "interactions_error": "Could not save the change. Try again.",
+      "offer_template": "Let others use its template",
+      "stop_offering_template": "Stop offering its template",
+      "template_offered": "Others can now use its template",
+      "template_stopped": "Its template is no longer offered",
+      "template_error": "Could not change it. Try again."
     },
     "modals": {
       "delete_title": "Delete post?",
@@ -1769,7 +1774,9 @@
       "share_to_story_desc": "Once it is published, your story opens with a card of the post, ready to share.",
       "suggestions": "Suggestions",
       "tag_posts_one": "{{count}} post",
-      "tag_posts_other": "{{count}} posts"
+      "tag_posts_other": "{{count}} posts",
+      "offer_template": "Let others use this as a template",
+      "offer_template_desc": "They get its timing, transitions, colour and song, never your videos, voice or text. Frames made with it credit you."
     },
     "edit": {
       "edit_media": "Edit Media",
@@ -5282,6 +5289,34 @@
     "keyframes": {
       "add": "Add keyframe",
       "remove": "Remove keyframe"
+    },
+    "templates": {
+      "title": "Templates",
+      "hint": "Fill one with your own videos and photos: it keeps its timing, transitions, colour and song.",
+      "mine": "Yours",
+      "circlesfera": "From CircleSfera",
+      "summary": "{{count}} clips · {{length}}",
+      "use": "Use {{name}}",
+      "use_short": "Use",
+      "rename": "Rename {{name}}",
+      "delete": "Delete {{name}}",
+      "delete_title": "Delete template",
+      "delete_confirm": "The template is deleted. Projects made with it stay.",
+      "deleted": "Template deleted",
+      "saved": "Saved as a template",
+      "error": "The template could not be saved. Try again.",
+      "name": "Template name",
+      "save": "Save as template",
+      "save_hint": "A template keeps this project's timing, transitions, colour, effects and library song, without your videos, voice or text.",
+      "built_in": {
+        "quick_cuts": "Quick cuts",
+        "soft_story": "Soft story",
+        "before_after": "Before and after",
+        "trip": "Trip"
+      },
+      "by": "Template by @{{username}}",
+      "from_frame": "From the Frame you came from",
+      "unavailable": "That Frame’s template is no longer available."
     }
   },
   "live": {
@@ -5713,6 +5748,11 @@
       "assembling": "Putting your Frame together…",
       "hint": "This can take a couple of minutes. Keep this screen open.",
       "failed": "Your Frame couldn't be put together. Try again."
+    },
+    "template": {
+      "use_one": "Use template · {{count}} use",
+      "use_other": "Use template · {{count}} uses",
+      "by": "Template by @{{username}}"
     }
   },
   "landing": {

@@ -54,6 +54,9 @@ export default function SubScreenRouter({
     setSelectedAudio,
     audioStartMs,
     setAudioStartMs,
+    studioTemplate,
+    offerTemplate,
+    setOfferTemplate,
   } = useComposer();
 
   if (subScreen === 'location') {
@@ -113,6 +116,11 @@ export default function SubScreenRouter({
         showSensitiveToggle={mode !== 'STORY'}
         scheduledAt={scheduledAt}
         setScheduledAt={setScheduledAt}
+        // Only a Frame made in the Studio has a template to offer.
+        offerTemplate={offerTemplate}
+        setOfferTemplate={
+          mode === 'FRAME' && studioTemplate ? setOfferTemplate : undefined
+        }
         onClose={() => setSubScreen('none')}
       />
     );
