@@ -175,12 +175,33 @@ describe('FiltersPanel', () => {
 
       expect(studioClip('clip').filter).toBe(filter);
       expect(useStudioStore.getState().canUndo).toBe(true);
-      expect(toast.success).toHaveBeenCalledWith(`Filter "${name}" applied`);
+      expect(screen.getByRole('button', { name })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
       expect(
         screen.queryByText('Select a clip to apply a filter'),
       ).not.toBeInTheDocument();
     },
   );
+
+  it('shows part of a filter, one step of undo per drag, and back to all of it with a double tap', () => {
+    open('clip');
+    renderWithProviders(<FiltersPanel />);
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cinema B&W' }));
+    const slider = screen.getByRole('slider', { name: /Intensity/ });
+    expect(slider).toHaveValue('100');
+    const before = useStudioStore.getState().past.length;
+    fireEvent.change(slider, { target: { value: '60' } });
+    fireEvent.change(slider, { target: { value: '40' } });
+    fireEvent.pointerUp(slider);
+    expect((studioClip('clip') as MediaClip).filterIntensity).toBe(40);
+    expect(useStudioStore.getState().past.length).toBe(before + 1);
+    fireEvent.doubleClick(slider);
+    expect((studioClip('clip') as MediaClip).filterIntensity).toBe(100);
+    expect(useStudioStore.getState().past.length).toBe(before + 2);
+  });
 
   it('applies to a picture as well', () => {
     open('photo');
@@ -204,12 +225,9 @@ describe('FiltersPanel', () => {
       expect(
         screen.getByText('Select a clip to apply a filter'),
       ).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Cinema B&W' }));
-
-      expect(toast.error).toHaveBeenCalledWith(
-        'Select a clip to apply a filter',
-      );
-      expect(toast.success).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('button', { name: 'Cinema B&W' }),
+      ).not.toBeInTheDocument();
       expect(useStudioStore.getState().canUndo).toBe(false);
       for (const clip of studioClips()) {
         expect((clip as MediaClip).filter).toBeUndefined();

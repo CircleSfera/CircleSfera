@@ -1,4 +1,4 @@
-import { Image as ImageIcon, Music, Type, Video } from 'lucide-react';
+import { Image as ImageIcon, Music, Sparkles, Type, Video } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
@@ -16,12 +16,14 @@ const ICONS = {
   image: ImageIcon,
   audio: Music,
   text: Type,
+  effect: Sparkles,
 } as const;
 
 const LAYER_COLORS: Record<string, string> = {
   text: 'bg-brand-accent/80',
   audio: 'bg-brand-primary/70',
   voice: 'bg-brand-blue/70',
+  effect: 'bg-brand-secondary/60',
 };
 
 interface TimelineClipProps {
@@ -31,7 +33,7 @@ interface TimelineClipProps {
   kind: 'main' | 'layer';
   locked?: boolean;
   /** The kind of layer it lies on, for its colour. */
-  layer?: 'audio' | 'voice' | 'text' | 'video';
+  layer?: 'audio' | 'voice' | 'text' | 'video' | 'effect';
   /** Where a clip of the main track being moved would go, as it moves. */
   onMoving?: (clipId: string, timelineX: number | null) => void;
   onMoved?: (clipId: string, timelineX: number) => void;
@@ -39,6 +41,7 @@ interface TimelineClipProps {
 
 function clipLabel(clip: Clip, t: (key: string) => string): string {
   if (clip.type === 'text') return clip.content;
+  if (clip.type === 'effect') return t(`studio.effects.${clip.effect}`);
   return (clip as MediaClip).label || t(`studio.clip_types.${clip.type}`);
 }
 
@@ -251,11 +254,12 @@ export default function TimelineClip({
             </span>
           )}
         </span>
-        {clip.type !== 'text' && (clip as MediaClip).speed !== 1 && (
-          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 text-xs font-bold text-white pointer-events-none">
-            {(clip as MediaClip).speed}×
-          </span>
-        )}
+        {(clip.type === 'video' || clip.type === 'audio') &&
+          (clip as MediaClip).speed !== 1 && (
+            <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 text-xs font-bold text-white pointer-events-none">
+              {(clip as MediaClip).speed}×
+            </span>
+          )}
       </button>
 
       {isSelected && !locked && (

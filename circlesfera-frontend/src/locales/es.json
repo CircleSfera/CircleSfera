@@ -5025,7 +5025,8 @@
     "clip_types": {
       "video": "Vídeo",
       "image": "Imagen",
-      "audio": "Audio"
+      "audio": "Audio",
+      "effect": "Efecto"
     },
     "trim_start": "Recortar inicio",
     "trim_end": "Recortar final",
@@ -5048,7 +5049,8 @@
       "added": "Pista de {{type}} añadida",
       "keep_one_video": "Debes conservar al menos una pista de vídeo",
       "remove_confirm": "¿Eliminar esta pista y todos sus clips?",
-      "voice": "Voz"
+      "voice": "Voz",
+      "effects": "Efectos"
     },
     "tools": {
       "dock_label": "Herramientas de Studio",
@@ -5067,7 +5069,11 @@
       "clip_label": "Herramientas del clip",
       "voice": "Voz",
       "fades": "Fundidos",
-      "detach": "Extraer audio"
+      "detach": "Extraer audio",
+      "color": "Color",
+      "effects": "Efectos",
+      "effect": "Efecto",
+      "transition": "Transición"
     },
     "properties": {
       "title": "Propiedades",
@@ -5148,7 +5154,8 @@
       "sepia": "Sepia antiguo",
       "neon": "Neón",
       "drama": "Contraste dramático",
-      "invert": "Invertido"
+      "invert": "Invertido",
+      "intensity": "Intensidad"
     },
     "captions": {
       "title": "Subtítulos",
@@ -5245,6 +5252,45 @@
     "fades": {
       "in": "Entrada",
       "out": "Salida"
+    },
+    "effects": {
+      "blur": "Desenfoque",
+      "vignette": "Viñeta",
+      "grain": "Grano",
+      "shake": "Temblor",
+      "slowzoom": "Zoom lento",
+      "mono": "Blanco y negro",
+      "glow": "Brillo",
+      "rgbsplit": "Separación RGB",
+      "intensity": "Intensidad",
+      "replace": "Cambiar por",
+      "add_hint": "Se añade en el cursor, en la capa de efectos"
+    },
+    "transitions": {
+      "title": "Transiciones",
+      "none": "Ninguna",
+      "crossfade": "Fundido cruzado",
+      "fadeblack": "Fundido a negro",
+      "slideleft": "Deslizar a la izquierda",
+      "slideright": "Deslizar a la derecha",
+      "slideup": "Deslizar hacia arriba",
+      "slidedown": "Deslizar hacia abajo",
+      "zoomin": "Zoom de entrada",
+      "blur": "Desenfoque",
+      "length": "Duración",
+      "apply_all": "Aplicar a todas",
+      "cut": "Transición tras el clip {{index}}",
+      "cut_named": "Transición tras el clip {{index}}: {{name}}",
+      "too_short": "Estos clips son demasiado cortos para una transición."
+    },
+    "color": {
+      "brightness": "Brillo",
+      "contrast": "Contraste",
+      "saturation": "Saturación",
+      "warmth": "Calidez",
+      "exposure": "Exposición",
+      "sharpness": "Nitidez",
+      "reset": "Restablecer"
     }
   },
   "live": {

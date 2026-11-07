@@ -540,3 +540,88 @@ describe('the panels', () => {
     expect(container).toBeEmptyDOMElement();
   });
 });
+
+describe('the cuts of the main track', () => {
+  beforeEach(() => openTwoClips(10));
+  const cut = () =>
+    document.querySelector('[data-studio-cut="a"]') as HTMLElement;
+
+  it('has a button on every cut, none after the last clip, that opens its transitions', () => {
+    renderWithProviders(<EditorTimeline onAddMedia={vi.fn()} />);
+    expect(document.querySelectorAll('[data-studio-cut]')).toHaveLength(1);
+    expect(cut()).toHaveAccessibleName('Transition after clip 1');
+    expect(cut().style.left).toBe('40px');
+    fireEvent.click(cut());
+    expect(store()).toMatchObject({
+      selectedCut: 'a',
+      selectedClipId: null,
+      openSheet: 'transition',
+    });
+    expect(cut()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(cut());
+    expect(store()).toMatchObject({ selectedCut: null, openSheet: null });
+  });
+
+  it('names the transition on its cut, in the middle of the overlap', () => {
+    act(() => store().setTransition('a', { kind: 'crossfade', duration: 1 }));
+    renderWithProviders(<EditorTimeline onAddMedia={vi.fn()} />);
+    expect(cut()).toHaveAccessibleName('Transition after clip 1: Crossfade');
+    // The next clip starts at 3 s; the cut sits half a second on.
+    expect(cut().style.left).toBe('35px');
+  });
+
+  it('lets go of the cut when a clip is chosen', () => {
+    act(() => store().selectCut('a'));
+    act(() => store().selectClip('b'));
+    expect(store()).toMatchObject({ selectedCut: null, openSheet: null });
+  });
+
+  it('hides the cuts beside a chosen clip, whose edges are its trim handles', () => {
+    renderWithProviders(<EditorTimeline onAddMedia={vi.fn()} />);
+    act(() => store().selectClip('b'));
+    expect(cut()).toBeNull();
+    act(() => store().selectClip(null));
+    expect(cut()).not.toBeNull();
+  });
+
+  it('lets go of a chosen cut when the empty timeline is tapped', () => {
+    act(() => store().selectCut('a'));
+    act(() => store().selectClip(null));
+    expect(store()).toMatchObject({ selectedCut: null, openSheet: null });
+    // With nothing chosen, a panel of the project stays open.
+    act(() => store().setOpenSheet('effects'));
+    act(() => store().selectClip(null));
+    expect(store().openSheet).toBe('effects');
+  });
+
+  it('lets go of the cut when its panel closes or another opens', () => {
+    act(() => store().selectCut('a'));
+    act(() => store().setOpenSheet('transition'));
+    expect(store().selectedCut).toBe('a');
+    act(() => store().setOpenSheet(null));
+    expect(store().selectedCut).toBeNull();
+    act(() => store().selectCut('a'));
+    act(() => store().setOpenSheet('effects'));
+    expect(store().selectedCut).toBeNull();
+  });
+
+  it('opens the transitions panel under its title', () => {
+    act(() => store().selectCut('a'));
+    renderWithProviders(<EditorPanel variant="sheet" {...panelActions} />);
+    expect(
+      screen.getByRole('heading', { name: 'Transition' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Crossfade' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the second half’s transition when a clip is split', () => {
+    act(() => store().setTransition('a', { kind: 'zoomin', duration: 0.5 }));
+    useStudioStore.setState({ selectedClipId: 'a', playhead: 2 });
+    act(() => store().splitClip());
+    const [first, second] = main();
+    expect(first.transitionOut).toBeUndefined();
+    expect(second.transitionOut).toEqual({ kind: 'zoomin', duration: 0.5 });
+  });
+});

@@ -1,5 +1,6 @@
 import type { Clip, MediaClip, StudioProject, Track } from '../types/studio';
-import { locateClip, newStudioId } from './studioTimeline';
+import { locateClip, mainClips, newStudioId } from './studioTimeline';
+import { withCutFades } from './studioTransitions';
 
 /** The longest fade in or out of a clip, in seconds. */
 export const MAX_FADE_SEC = 3;
@@ -81,7 +82,8 @@ export function clipGainAt(
     !isVoice && ducksUnderVoice(project)
       ? duckGainAt(voiceSpans(project), t)
       : 1;
-  return (clip.volume ?? 1) * fadeGainAt(clip, t) * ducked;
+  const faded = withCutFades(mainClips(project), clip);
+  return (clip.volume ?? 1) * fadeGainAt(faded, t) * ducked;
 }
 
 /** The ffmpeg filters of a clip's fades, in its own time from 0. */

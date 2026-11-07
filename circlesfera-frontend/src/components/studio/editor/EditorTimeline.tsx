@@ -1,8 +1,9 @@
-import { Plus } from 'lucide-react';
+import { ArrowRightLeft, Blend, Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import { mainClips, mainTrackOf } from '../../../utils/studioTimeline';
+import { transitionOf } from '../../../utils/studioTransitions';
 import TimelineClip from './TimelineClip';
 
 export const MIN_ZOOM = 10;
@@ -38,6 +39,9 @@ export default function EditorTimeline({ onAddMedia }: EditorTimelineProps) {
   const zoom = useStudioStore((s) => s.zoom);
   const isPlaying = useStudioStore((s) => s.isPlaying);
   const setPlayhead = useStudioStore((s) => s.setPlayhead);
+  const selectedCut = useStudioStore((s) => s.selectedCut);
+  const selectedClipId = useStudioStore((s) => s.selectedClipId);
+  const selectCut = useStudioStore((s) => s.selectCut);
   const setPlaying = useStudioStore((s) => s.setPlaying);
   const setZoom = useStudioStore((s) => s.setZoom);
   const selectClip = useStudioStore((s) => s.selectClip);
@@ -202,6 +206,53 @@ export default function EditorTimeline({ onAddMedia }: EditorTimelineProps) {
                 }}
               />
             ))}
+            {/* A button on every cut: the transition into the next clip. */}
+            {ordered.slice(0, -1).map((clip, i) => {
+              const next = ordered[i + 1];
+              // A chosen clip's edges are its trim handles: the cuts beside
+              // it come back when it is let go.
+              if (selectedClipId === clip.id || selectedClipId === next.id) {
+                return null;
+              }
+              const transition = transitionOf(clip);
+              const at = next.startAt + (transition?.duration ?? 0) / 2;
+              const chosen = selectedCut === clip.id;
+              return (
+                <button
+                  key={`cut-${clip.id}`}
+                  type="button"
+                  data-studio-cut={clip.id}
+                  onClick={() => selectCut(chosen ? null : clip.id)}
+                  aria-pressed={chosen}
+                  aria-label={
+                    transition
+                      ? t('studio.transitions.cut_named', {
+                          index: i + 1,
+                          name: t(`studio.transitions.${transition.kind}`),
+                        })
+                      : t('studio.transitions.cut', { index: i + 1 })
+                  }
+                  className="absolute top-1/2 z-30 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+                  style={{ left: `${at * zoom}px` }}
+                >
+                  <span
+                    className={`flex h-6 w-6 items-center justify-center rounded-md shadow ${
+                      chosen
+                        ? 'bg-brand-primary text-white'
+                        : transition
+                          ? 'bg-white text-brand-primary'
+                          : 'bg-white text-black'
+                    }`}
+                  >
+                    {transition ? (
+                      <Blend size={14} aria-hidden />
+                    ) : (
+                      <ArrowRightLeft size={12} aria-hidden />
+                    )}
+                  </span>
+                </button>
+              );
+            })}
             {dropX !== null && (
               <span
                 className="absolute -top-1 -bottom-1 w-0.5 rounded-full bg-brand-primary z-40"

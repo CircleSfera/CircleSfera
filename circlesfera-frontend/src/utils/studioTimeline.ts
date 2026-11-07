@@ -1,4 +1,10 @@
 import type { Clip, MediaClip, StudioProject, Track } from '../types/studio';
+import {
+  fittedTransition,
+  transitionOf,
+  withoutTransition,
+  withTransition,
+} from './studioTransitions';
 
 /** The speeds a clip can be given, slowest first. */
 export const CLIP_SPEEDS = [0.25, 0.5, 1, 1.5, 2, 3] as const;
@@ -33,15 +39,29 @@ export function mainClips(project: StudioProject): Clip[] {
   return [...main.clips].sort((a, b) => a.startAt - b.startAt);
 }
 
+/**
+ * The clips of the main track laid one after another from the start, in
+ * the order given: each starts where the one before ends, less the
+ * transition between them, which is fitted to the two clips. A clip that
+ * needs no change is kept as it is.
+ */
+function laidOut(clips: Clip[]): Clip[] {
+  let at = 0;
+  return clips.map((clip, index) => {
+    const transition = transitionOf(clip);
+    const fitted = fittedTransition(transition, clip, clips[index + 1]);
+    let placed = clip;
+    if (fitted !== transition) placed = withTransition(placed, fitted);
+    if (placed.startAt !== at) placed = { ...placed, startAt: at };
+    at += clip.duration - (fitted?.duration ?? 0);
+    return placed;
+  });
+}
+
 function withMainClips(project: StudioProject, clips: Clip[]): StudioProject {
   const main = mainTrackOf(project);
   if (!main) return project;
-  let at = 0;
-  const packed = clips.map((clip) => {
-    const placed = clip.startAt === at ? clip : { ...clip, startAt: at };
-    at += clip.duration;
-    return placed;
-  });
+  const packed = laidOut(clips);
   return {
     ...project,
     tracks: project.tracks.map((track) =>
@@ -53,17 +73,15 @@ function withMainClips(project: StudioProject, clips: Clip[]): StudioProject {
 /**
  * The project with the clips of its main track laid end to end from the
  * start, in the order they are in: a clip removed, cut shorter or made
- * faster closes its gap.
+ * faster closes its gap. Clips joined by a transition overlap by its
+ * length.
  */
 export function packMainTrack(project: StudioProject): StudioProject {
-  const ordered = mainClips(project);
   const main = mainTrackOf(project);
   if (!main) return project;
-  const unchanged = ordered.every((clip, index) => {
-    const before = ordered[index - 1];
-    const at = before ? before.startAt + before.duration : 0;
-    return clip.startAt === at && main.clips[index] === clip;
-  });
+  const ordered = mainClips(project);
+  const packed = laidOut(ordered);
+  const unchanged = packed.every((clip, index) => main.clips[index] === clip);
   return unchanged ? project : withMainClips(project, ordered);
 }
 
@@ -78,8 +96,12 @@ export function moveMainClip(
   if (from < 0) return project;
   const to = Math.max(0, Math.min(toIndex, ordered.length - 1));
   if (from === to) return project;
+  // The cuts a clip leaves and the cuts it lands between lose their
+  // transitions: they now join other clips.
+  if (from > 0) ordered[from - 1] = withoutTransition(ordered[from - 1]);
   const [moved] = ordered.splice(from, 1);
-  ordered.splice(to, 0, moved);
+  ordered.splice(to, 0, withoutTransition(moved));
+  if (to > 0) ordered[to - 1] = withoutTransition(ordered[to - 1]);
   return withMainClips(project, ordered);
 }
 
@@ -111,7 +133,7 @@ export function isFreeOnTrack(
  */
 export function layerFor(
   project: StudioProject,
-  type: 'text' | 'audio' | 'voice',
+  type: 'text' | 'audio' | 'voice' | 'effect',
   start: number,
   duration: number,
   newTrack: () => Track,
@@ -176,6 +198,9 @@ export function duplicateClip(
   if (track === mainTrackOf(project)) {
     const ordered = mainClips(project);
     const index = ordered.findIndex((c) => c.id === clipId);
+    // The copy takes the clip's way into the next one; between the clip
+    // and its copy there is a plain cut.
+    ordered[index] = withoutTransition(clip);
     ordered.splice(index + 1, 0, { ...clip, id: newId });
     return withMainClips(project, ordered);
   }
@@ -249,7 +274,9 @@ export function trimmedClip(
   edge: 'start' | 'end',
   by: number,
 ): Clip {
-  const media = clip.type === 'text' ? null : (clip as MediaClip);
+  // Texts and effects have no file: they last as long as wanted.
+  const media =
+    clip.type === 'text' || clip.type === 'effect' ? null : (clip as MediaClip);
   const speed = media?.speed || 1;
   // Photos and texts can last as long as wanted; a video or a sound only
   // as long as its file.

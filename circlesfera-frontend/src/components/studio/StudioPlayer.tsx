@@ -1,12 +1,36 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../stores/studioStore';
-import type { AspectRatioType, MediaClip, TextClip } from '../../types/studio';
+import type {
+  AspectRatioType,
+  EffectClip,
+  MediaClip,
+  TextClip,
+} from '../../types/studio';
 import { clipGainAt, isSoundTrack } from '../../utils/studioAudio';
+import {
+  drawEffect,
+  drawTransition,
+  liftPicture,
+  scratchCanvas,
+  sharpenPicture,
+  warmPicture,
+} from '../../utils/studioCanvasFx';
+import {
+  activeColor,
+  colorAmounts,
+  colorCssFilter,
+  effectClipsOf,
+} from '../../utils/studioEffects';
 import {
   containRect,
   resolutionForAspect,
 } from '../../utils/studioExportHelpers';
+import { mainTrackOf } from '../../utils/studioTimeline';
+import {
+  transitionOf,
+  transitionProgress,
+} from '../../utils/studioTransitions';
 
 function isVisualClip(clip: { type: string }): clip is MediaClip {
   return clip.type === 'video' || clip.type === 'image';
@@ -36,8 +60,16 @@ function drawMediaClip(
   const fit = containRect(srcW, srcH, canvas.width, canvas.height);
 
   ctx.save();
-  if (clip.filter) ctx.filter = clip.filter;
-  if (typeof clip.opacity === 'number') ctx.globalAlpha = clip.opacity;
+  const color = activeColor(clip.color);
+  const colorCss = color ? colorCssFilter(color, canvas.width) : '';
+  const share = Math.max(0, Math.min(100, clip.filterIntensity ?? 100)) / 100;
+  const filtered = Boolean(clip.filter) && share > 0;
+  const opacity = typeof clip.opacity === 'number' ? clip.opacity : 1;
+  // A filter at part of its intensity is drawn over the plain picture.
+  const full = filtered && share >= 1;
+  const css = [colorCss, full ? clip.filter : ''].filter(Boolean).join(' ');
+  if (css) ctx.filter = css;
+  ctx.globalAlpha = opacity;
 
   const scale = clip.transform?.scale ?? 1;
   const rot = ((clip.transform?.rotation ?? 0) * Math.PI) / 180;
@@ -48,7 +80,98 @@ function drawMediaClip(
   ctx.rotate(rot);
   ctx.scale((clip.flipX ? -1 : 1) * scale, (clip.flipY ? -1 : 1) * scale);
   ctx.drawImage(source, -fit.w / 2, -fit.h / 2, fit.w, fit.h);
+  if (filtered && !full) {
+    ctx.filter = [colorCss, clip.filter].filter(Boolean).join(' ');
+    ctx.globalAlpha = opacity * share;
+    ctx.drawImage(source, -fit.w / 2, -fit.h / 2, fit.w, fit.h);
+  }
   ctx.restore();
+}
+
+type Scratch = { current: HTMLCanvasElement | null };
+
+/**
+ * Draws a clip as the export does: on a picture of its own, warmed and
+ * sharpened there, then onto the canvas. Sharpening reads every pixel, so
+ * it shows on a still frame only.
+ */
+function drawPicture(
+  target: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  clip: MediaClip,
+  sources: {
+    video: HTMLVideoElement | undefined;
+    image: HTMLImageElement | undefined;
+  },
+  scratch: { picture: Scratch; copy: Scratch; sharp: SharpCache },
+  still: boolean,
+  at: number,
+) {
+  const color = activeColor(clip.color);
+  const amounts = color ? colorAmounts(color) : null;
+  if (
+    !amounts ||
+    (amounts.lift === 0 &&
+      amounts.warmth === 0 &&
+      (amounts.sharpen === 0 || !still))
+  ) {
+    drawMediaClip(target, canvas, clip, sources.video, sources.image);
+    return;
+  }
+  // A still frame is sharpened once, not on every redraw while it stays,
+  // and only once its picture is there: a video still seeking or a photo
+  // still loading is drawn without it, and sharpened when it settles.
+  const source = clip.type === 'video' ? sources.video : sources.image;
+  const settled =
+    source instanceof HTMLVideoElement
+      ? !source.seeking && source.readyState >= 2
+      : Boolean(source?.complete && source.naturalWidth > 0);
+  const sharpen = still && settled && amounts.sharpen > 0;
+  if (still && !settled && amounts.lift === 0 && amounts.warmth === 0) {
+    drawMediaClip(target, canvas, clip, sources.video, sources.image);
+    return;
+  }
+  const key = sharpen
+    ? `${clip.id}|${at}|${JSON.stringify(clip)}|${canvas.width}`
+    : '';
+  const cached = scratch.sharp.get(key);
+  if (cached) {
+    target.drawImage(cached, 0, 0);
+    return;
+  }
+  const picture = sharpen
+    ? document.createElement('canvas')
+    : scratchCanvas(scratch.picture, canvas.width, canvas.height);
+  picture.width = canvas.width;
+  picture.height = canvas.height;
+  const pctx = picture.getContext('2d');
+  if (!pctx) return;
+  pctx.clearRect(0, 0, picture.width, picture.height);
+  drawMediaClip(pctx, picture, clip, sources.video, sources.image);
+  const copy = scratchCanvas(scratch.copy, canvas.width, canvas.height);
+  liftPicture(picture, copy, amounts.lift);
+  warmPicture(picture, copy, amounts.warmth);
+  if (sharpen) {
+    sharpenPicture(picture, amounts.sharpen);
+    scratch.sharp.set(key, picture);
+  }
+  target.drawImage(picture, 0, 0);
+}
+
+/** The sharpened still frames, the last few kept. */
+class SharpCache {
+  private readonly frames = new Map<string, HTMLCanvasElement>();
+  get(key: string) {
+    return key ? this.frames.get(key) : undefined;
+  }
+  set(key: string, frame: HTMLCanvasElement) {
+    this.frames.set(key, frame);
+    // Two clips of a transition can be still at once; keep a few.
+    while (this.frames.size > 4) {
+      const oldest = this.frames.keys().next().value as string;
+      this.frames.delete(oldest);
+    }
+  }
 }
 
 export default function StudioPlayer() {
@@ -59,6 +182,15 @@ export default function StudioPlayer() {
   const audioElementsRef = useRef<Record<string, HTMLAudioElement>>({});
   const videoElementsRef = useRef<Record<string, HTMLVideoElement>>({});
   const imageCacheRef = useRef<Record<string, HTMLImageElement>>({});
+  // Canvases kept to draw transitions, adjustments and effects on.
+  const scratchRef = useRef({
+    picture: { current: null } as Scratch,
+    copy: { current: null } as Scratch,
+    from: { current: null } as Scratch,
+    to: { current: null } as Scratch,
+    effect: { current: null } as Scratch,
+    sharp: new SharpCache(),
+  });
 
   const aspect: AspectRatioType = project?.aspectRatio || '9:16';
   const dims = resolutionForAspect(aspect);
@@ -101,6 +233,9 @@ export default function StudioPlayer() {
           videoEl = document.createElement('video');
           videoEl.playsInline = true;
           videoEl.preload = 'auto';
+          // Read like the thumbnails are, so the preview can work on its
+          // pixels (sharpening) without the canvas being shut to it.
+          videoEl.crossOrigin = 'anonymous';
           videoEl.src = clip.fileUrl;
           videoEl.style.display = 'none';
           document.body.appendChild(videoEl);
@@ -136,6 +271,7 @@ export default function StudioPlayer() {
       } else if (clip.type === 'image') {
         if (!imageCacheRef.current[clip.fileUrl]) {
           const img = new Image();
+          img.crossOrigin = 'anonymous';
           img.src = clip.fileUrl;
           imageCacheRef.current[clip.fileUrl] = img;
         }
@@ -236,6 +372,13 @@ export default function StudioPlayer() {
           const videoTracks = proj.tracks.filter(
             (tr) => tr.type === 'video' && !tr.hidden,
           );
+          const scratch = scratchRef.current;
+          const still = !useStudioStore.getState().isPlaying;
+          const sourcesOf = (clip: MediaClip) => ({
+            video: videoElementsRef.current[clip.id],
+            image: imageCacheRef.current[clip.fileUrl],
+          });
+          const main = mainTrackOf(proj);
 
           for (const track of videoTracks) {
             const layers = track.clips
@@ -248,15 +391,66 @@ export default function StudioPlayer() {
               .slice()
               .sort((a, b) => a.startAt - b.startAt);
 
+            // Two clips of the main track at once: a transition between them.
+            const [from, to] = layers;
+            const transition = track === main ? transitionOf(from) : undefined;
+            if (to && transition) {
+              const pictures = [from, to].map((clip, i) => {
+                const pic = scratchCanvas(
+                  i === 0 ? scratch.from : scratch.to,
+                  canvas.width,
+                  canvas.height,
+                );
+                const pctx = pic.getContext('2d');
+                if (pctx) {
+                  pctx.fillStyle = '#000';
+                  pctx.fillRect(0, 0, pic.width, pic.height);
+                  drawPicture(
+                    pctx,
+                    pic,
+                    clip,
+                    sourcesOf(clip),
+                    scratch,
+                    still,
+                    ph,
+                  );
+                }
+                return pic;
+              });
+              drawTransition(
+                ctx,
+                pictures[0],
+                pictures[1],
+                transition.kind,
+                transitionProgress(transition, to.startAt, ph),
+                canvas.width,
+                canvas.height,
+              );
+              continue;
+            }
+
             for (const clip of layers) {
-              drawMediaClip(
+              drawPicture(
                 ctx,
                 canvas,
                 clip,
-                videoElementsRef.current[clip.id],
-                imageCacheRef.current[clip.fileUrl],
+                sourcesOf(clip),
+                scratch,
+                still,
+                ph,
               );
             }
+          }
+
+          // Effects change the picture, never the texts drawn after them.
+          const copy = scratchCanvas(
+            scratch.effect,
+            canvas.width,
+            canvas.height,
+          );
+          for (const fx of effectClipsOf(proj) as EffectClip[]) {
+            if (ph < fx.startAt || ph >= fx.startAt + fx.duration) continue;
+            drawEffect(canvas, copy, fx, ph - fx.startAt);
           }
 
           proj.tracks
