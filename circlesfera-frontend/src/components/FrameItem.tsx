@@ -212,6 +212,11 @@ export default function FrameItem({
   const [templateOffered, setTemplateOffered] = useState(
     Boolean(ownTemplate?.isPublic),
   );
+  // Follows the server's value whenever the Frame's data is fetched again.
+  const serverOffered = Boolean(ownTemplate?.isPublic);
+  useEffect(() => {
+    setTemplateOffered(serverOffered);
+  }, [serverOffered]);
   const toggleTemplate = useCallback(() => {
     if (!ownTemplate) return;
     const next = !templateOffered;
@@ -219,6 +224,9 @@ export default function FrameItem({
       .update(ownTemplate.id, { isPublic: next })
       .then(() => {
         setTemplateOffered(next);
+        // The Frame's cached data learns the change too.
+        queryClient.invalidateQueries({ queryKey: ['frames'] });
+        queryClient.invalidateQueries({ queryKey: ['post', post.id] });
         toast.success(
           next
             ? t('post.menu.template_offered')
@@ -226,7 +234,7 @@ export default function FrameItem({
         );
       })
       .catch(() => toast.error(t('post.menu.template_error')));
-  }, [ownTemplate, templateOffered, t]);
+  }, [ownTemplate, templateOffered, t, queryClient, post.id]);
 
   useEffect(() => {
     if (!isActive || !onRegisterMenuActions) return;

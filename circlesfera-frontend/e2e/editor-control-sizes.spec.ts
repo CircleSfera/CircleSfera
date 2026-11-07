@@ -291,6 +291,9 @@ test.describe('Edits studio', () => {
     await page.route('**/api/v1/edits', (route) =>
       route.fulfill({ status: 200, json: [] }),
     );
+    await page.route('**/api/v1/studio-templates/mine', (route) =>
+      route.fulfill({ status: 200, json: [] }),
+    );
     await page.goto('/edits');
     await expect(
       page.getByRole('button', { name: 'Nuevo proyecto' }),
