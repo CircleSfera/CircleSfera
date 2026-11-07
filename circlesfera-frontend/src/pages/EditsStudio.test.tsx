@@ -931,6 +931,27 @@ describe('EditsStudio', () => {
       expect(seen.navigate).toHaveBeenCalledWith('/create?mode=frame');
     });
 
+    it('hands over its template, and the community template it was made with', async () => {
+      vi.mocked(exportStudioProject).mockResolvedValue(
+        new File(['mp4'], 'e.mp4'),
+      );
+      await open({
+        ...project([clip('a')]),
+        name: 'Trip',
+        templateId: 'tpl-9',
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await act(async () => seen.exportModal.onStartExport('balanced'));
+      await act(async () => seen.exportModal.onPublish(''));
+      const handoff = useUIStore.getState().editedMediaForPost;
+      expect(handoff?.studioTemplate).toMatchObject({
+        name: 'Trip',
+        usedId: 'tpl-9',
+        structure: { version: 1, name: 'Trip', slots: [{ duration: 10 }] },
+      });
+      expect(JSON.stringify(handoff?.studioTemplate)).not.toContain('blob:');
+    });
+
     it('names the library song the video carries, so publishing it counts as a use', async () => {
       vi.mocked(exportStudioProject).mockResolvedValue(
         new File(['mp4'], 'e.mp4'),

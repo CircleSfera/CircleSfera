@@ -15,6 +15,8 @@ import {
   MAX_UPLOAD_MB,
 } from '../constants/uploadLimits';
 import { interactiveApi, postsApi, storiesApi } from '../services';
+import { studioTemplatesApi } from '../services/studioTemplates.service';
+import type { StudioTemplateHandoff } from '../stores/uiStore';
 import type {
   Audio as AudioTrack,
   CreatePostDto,
@@ -88,6 +90,9 @@ interface MutationDeps {
   audioStartMs: number;
   /** A song already mixed into the video (from the Edits Studio). */
   songInVideo?: { id: string; startMs: number } | null;
+  /** The Studio template of the video, and whether to offer it from the Frame. */
+  studioTemplate?: StudioTemplateHandoff | null;
+  offerTemplate?: boolean;
   isCloseFriendsOnly: boolean;
   isPremium: boolean;
   price: number;
@@ -371,9 +376,31 @@ export function useCreatePostMutation(deps: MutationDeps) {
           scheduledAt: deps.scheduledAt
             ? new Date(deps.scheduledAt).toISOString()
             : undefined,
+          // A Frame made with someone's template credits it.
+          ...(deps.mode === 'FRAME' && deps.studioTemplate?.usedId
+            ? { templateId: deps.studioTemplate.usedId }
+            : {}),
         };
         const created = await createPostMutation.mutateAsync(payload);
         const postId = created?.id;
+        // Its own template, offered from it when its author turned that on.
+        if (
+          postId &&
+          deps.mode === 'FRAME' &&
+          deps.offerTemplate &&
+          deps.studioTemplate
+        ) {
+          try {
+            await studioTemplatesApi.create({
+              name: deps.studioTemplate.name,
+              structure: deps.studioTemplate.structure,
+              postId,
+              isPublic: true,
+            });
+          } catch (templateError) {
+            logger.error('Failed to offer the Frame template:', templateError);
+          }
+        }
         if (postId && deps.interactiveDraft?.kind === 'poll') {
           try {
             await interactiveApi.createPoll({

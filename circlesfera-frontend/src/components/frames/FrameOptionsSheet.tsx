@@ -6,6 +6,7 @@ import {
   Heart,
   HeartOff,
   Info,
+  LayoutTemplate,
   Megaphone,
   MessageCircle,
   MessageCircleOff,
@@ -34,6 +35,9 @@ export interface FrameMenuActions {
   commentsOff?: boolean;
   onToggleLikes?: () => void;
   likesHidden?: boolean;
+  // The author's: whether others may use the Frame's Studio template.
+  onToggleTemplate?: () => void;
+  templateOffered?: boolean;
 }
 
 interface FrameOptionsSheetProps extends FrameMenuActions {
@@ -57,6 +61,8 @@ function OptionsBody({
   commentsOff = false,
   onToggleLikes,
   likesHidden = false,
+  onToggleTemplate,
+  templateOffered = false,
   onClose,
 }: FrameMenuActions & { isOwner: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -111,6 +117,17 @@ function OptionsBody({
                   : t('post.menu.hide_like_count')
               }
               onClick={() => run(onToggleLikes)}
+            />
+          )}
+          {onToggleTemplate && (
+            <OptionRow
+              icon={LayoutTemplate}
+              label={
+                templateOffered
+                  ? t('post.menu.stop_offering_template')
+                  : t('post.menu.offer_template')
+              }
+              onClick={() => run(onToggleTemplate)}
             />
           )}
           <OptionRow
@@ -170,6 +187,8 @@ export default function FrameOptionsSheet({
   commentsOff,
   onToggleLikes,
   likesHidden,
+  onToggleTemplate,
+  templateOffered,
 }: FrameOptionsSheetProps) {
   const { t } = useTranslation();
   const isFrame = presentation === 'frame';
@@ -203,6 +222,8 @@ export default function FrameOptionsSheet({
     commentsOff,
     onToggleLikes,
     likesHidden,
+    onToggleTemplate,
+    templateOffered,
     onClose,
   };
 

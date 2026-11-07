@@ -191,4 +191,22 @@ describe('FrameOptionsSheet', () => {
     expect(props.onAddToStory).toHaveBeenCalledTimes(1);
     expect(order).toEqual(['close', 'story']);
   });
+
+  it('lets the author offer the Frame’s template, or stop offering it', () => {
+    const { props, unmount } = show({
+      isOwner: true,
+      onToggleTemplate: vi.fn(),
+      templateOffered: false,
+    });
+    fireEvent.click(screen.getByText('Let others use its template'));
+    expect(props.onToggleTemplate).toHaveBeenCalled();
+    unmount();
+    show({ isOwner: true, onToggleTemplate: vi.fn(), templateOffered: true });
+    expect(screen.getByText('Stop offering its template')).toBeInTheDocument();
+  });
+
+  it('has no template option for a Frame without one', () => {
+    show({ isOwner: true });
+    expect(screen.queryByText(/its template/)).not.toBeInTheDocument();
+  });
 });

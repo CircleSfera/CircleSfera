@@ -13,7 +13,6 @@ import {
   type StudioTemplate,
   templateLength,
   templateOf,
-  templateOfState,
 } from './studioTemplates';
 import { mainClips } from './studioTimeline';
 
@@ -142,17 +141,15 @@ describe('a template of a project', () => {
     expect(templateLength(templateOf(source(), 'Mine'))).toBe(4.5);
   });
 
-  it('is read back only from a saved template', () => {
+  it('credits the community template a project was made with', () => {
     const template = templateOf(source(), 'Mine');
-    expect(templateOfState({ kind: 'template', template })).toBe(template);
-    expect(templateOfState({ version: 3, studio: {} })).toBeNull();
-    expect(templateOfState(null)).toBeNull();
+    const pick = [{ file: null, url: 'blob:1', type: 'image' as const }];
     expect(
-      templateOfState({
-        kind: 'template',
-        template: { version: 2, slots: [] },
-      }),
-    ).toBeNull();
+      projectFromTemplate(template, pick, 'P', t, 'tpl-1').templateId,
+    ).toBe('tpl-1');
+    expect(projectFromTemplate(template, pick, 'P', t)).not.toHaveProperty(
+      'templateId',
+    );
   });
 });
 

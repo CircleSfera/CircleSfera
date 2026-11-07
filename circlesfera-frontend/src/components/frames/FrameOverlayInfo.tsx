@@ -1,4 +1,4 @@
-import { MapPin, Music } from 'lucide-react';
+import { LayoutTemplate, MapPin, Music } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
@@ -124,6 +124,30 @@ export default function FrameOverlayInfo({
           </div>
         </div>
       </Link>
+
+      {(post.studioTemplate || post.madeWithTemplate) && (
+        <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+          {post.studioTemplate && (
+            <Link
+              to={`/edits?template=${post.id}`}
+              className="pointer-events-auto inline-flex min-h-11 items-center gap-1.5 rounded-full bg-white/15 px-3 text-xs font-semibold text-white backdrop-blur-md hover:bg-white/25"
+            >
+              <LayoutTemplate size={14} aria-hidden />
+              {t('frames.template.use', { count: post.studioTemplate.uses })}
+            </Link>
+          )}
+          {post.madeWithTemplate && (
+            <Link
+              to={`/p/${post.madeWithTemplate.postId}`}
+              className="pointer-events-auto inline-flex min-h-11 items-center gap-1 text-xs text-white/85 drop-shadow-md hover:text-white"
+            >
+              {t('frames.template.by', {
+                username: post.madeWithTemplate.username,
+              })}
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   );
 }

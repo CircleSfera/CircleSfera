@@ -25,6 +25,14 @@ vi.mock('../components/common/SEO', () => ({ default: () => null }));
 vi.mock('../services/edits.service', () => ({
   editsService: { getProjects: vi.fn(), deleteProject: vi.fn() },
 }));
+// The templates section asks for the person's templates: answered here,
+// so no request leaves the test.
+vi.mock('../services/studioTemplates.service', () => ({
+  studioTemplatesApi: {
+    mine: vi.fn().mockResolvedValue({ data: [] }),
+    ofPost: vi.fn().mockRejectedValue(new Error('none')),
+  },
+}));
 vi.mock('../utils/studioLocalDraft', () => ({
   loadLocalStudioDraft: vi.fn(),
   clearLocalStudioDraft: vi.fn(),

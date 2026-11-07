@@ -63,22 +63,6 @@ export interface StudioTemplate {
   song?: TemplateSong;
 }
 
-/** What a template saved among a person's projects carries in its state. */
-export interface TemplateState {
-  kind: 'template';
-  template: StudioTemplate;
-}
-
-/** The template a saved state holds, if it holds one. */
-export function templateOfState(state: unknown): StudioTemplate | null {
-  const s = state as Partial<TemplateState> | null;
-  return s?.kind === 'template' &&
-    s.template?.version === 1 &&
-    Array.isArray(s.template.slots)
-    ? s.template
-    : null;
-}
-
 /** How long a template's video lasts, its transitions overlapping. */
 export function templateLength(template: StudioTemplate): number {
   return template.slots.reduce(
@@ -168,6 +152,8 @@ export function projectFromTemplate(
   picks: TemplatePick[],
   name: string,
   t: (key: string) => string,
+  /** A community template's id, for its credit when the video is published. */
+  templateId?: string,
 ): StudioProject {
   const blank = newBlankProject(name, t);
   const main = blank.tracks[0];
@@ -266,7 +252,7 @@ export function projectFromTemplate(
       tracks: [...project.tracks, { ...track, clips: [clip] }],
     };
   }
-  return withLengthOfClips(project);
+  return withLengthOfClips(templateId ? { ...project, templateId } : project);
 }
 
 /** A template made by CircleSfera, named in the person's language. */

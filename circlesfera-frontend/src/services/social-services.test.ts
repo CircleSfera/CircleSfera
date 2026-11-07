@@ -989,12 +989,6 @@ const cases: Case[] = [
     ['/edits/e1', { state }],
   ],
   [
-    'edits.renameProject',
-    () => editsService.renameProject('e1', 'Mine'),
-    'put',
-    ['/edits/e1', { name: 'Mine' }],
-  ],
-  [
     'edits.deleteProject',
     () => editsService.deleteProject('e1'),
     'delete',

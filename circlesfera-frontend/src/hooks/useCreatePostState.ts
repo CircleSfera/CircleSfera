@@ -10,6 +10,7 @@ import type { CropData, VideoData } from '../components/PhotoEditor';
 import type { PhotoEditorSavedState } from '../components/photo-editor/photoEditor.types';
 import type { StoryCanvasSize } from '../components/story/storyComposer.export';
 import type { StoryPhotoEdit } from '../components/story/storyPhoto';
+import type { StudioTemplateHandoff } from '../stores/uiStore';
 import type { Audio as AudioTrack, StoryElement } from '../types';
 
 export type CreateMode = 'POST' | 'STORY' | 'FRAME';
@@ -117,6 +118,11 @@ export function useCreatePostState() {
     id: string;
     startMs: number;
   } | null>(null);
+  // The Studio template of a video brought from the Edits Studio, and
+  // whether others may use it from the Frame (off unless turned on).
+  const [studioTemplate, setStudioTemplate] =
+    useState<StudioTemplateHandoff | null>(null);
+  const [offerTemplate, setOfferTemplate] = useState(false);
   const [isCloseFriendsOnly, setIsCloseFriendsOnly] = useState(
     modeParam === 'circle' || searchParams.get('circle') === '1',
   );
@@ -187,6 +193,10 @@ export function useCreatePostState() {
     setAudioStartMs,
     songInVideo,
     setSongInVideo,
+    studioTemplate,
+    setStudioTemplate,
+    offerTemplate,
+    setOfferTemplate,
     isCloseFriendsOnly,
     setIsCloseFriendsOnly,
     isPremium,

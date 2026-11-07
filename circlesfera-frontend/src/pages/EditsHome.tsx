@@ -3,7 +3,7 @@ import { Clapperboard, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import { formatClock } from '../components/studio/editor/EditorTimeline';
@@ -56,6 +56,7 @@ function Thumbnail({ url, type }: { url: string; type: string }) {
 export default function EditsHome() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const setProject = useStudioStore((s) => s.setProject);
   const setCloudProjectId = useStudioStore((s) => s.setCloudProjectId);
@@ -154,7 +155,10 @@ export default function EditsHome() {
         {t('studio.home.new')}
       </button>
 
-      <TemplatesSection drafts={data} onOpen={(studio) => open(studio, null)} />
+      <TemplatesSection
+        fromPostId={searchParams.get('template')}
+        onOpen={(studio) => open(studio, null)}
+      />
 
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
         {t('studio.home.projects')}

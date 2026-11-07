@@ -9,7 +9,7 @@ import {
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { editsService } from '../../../services/edits.service';
+import { studioTemplatesApi } from '../../../services/studioTemplates.service';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { AspectRatioType } from '../../../types/studio';
 import { ducksUnderVoice } from '../../../utils/studioAudio';
@@ -38,16 +38,14 @@ export default function ProjectSettingsPanel() {
     mutationFn: (name: string) => {
       const current = useStudioStore.getState().project;
       if (!current) throw new Error('no project');
-      return editsService.createProject(
-        '',
-        'template',
-        { kind: 'template', template: templateOf(current, name) },
+      return studioTemplatesApi.create({
         name,
-      );
+        structure: templateOf(current, name),
+      });
     },
     onSuccess: () => {
       setTemplateName(null);
-      void queryClient.invalidateQueries({ queryKey: ['studioDrafts'] });
+      void queryClient.invalidateQueries({ queryKey: ['studioTemplates'] });
       toast.success(t('studio.templates.saved'));
     },
     onError: () => toast.error(t('studio.templates.error')),

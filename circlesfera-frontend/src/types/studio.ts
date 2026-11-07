@@ -232,6 +232,8 @@ export interface StudioProject {
   aspectRatio: AspectRatioType;
   /** Whether other sound drops while a voice speaks; on unless false. */
   duckUnderVoice?: boolean;
+  /** The community template it was made with, credited when published. */
+  templateId?: string;
   resolution: {
     width: number;
     height: number;

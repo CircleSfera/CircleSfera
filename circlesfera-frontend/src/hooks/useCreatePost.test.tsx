@@ -5,7 +5,7 @@ import {
   FRAME_MIN_DURATION_SEC,
   probeVideoDuration,
 } from '../constants/uploadLimits';
-import { useUIStore } from '../stores/uiStore';
+import { type EditedMediaHandoff, useUIStore } from '../stores/uiStore';
 import { renderWithProviders } from '../test/test-utils';
 import { useCreatePost } from './useCreatePost';
 
@@ -87,12 +87,14 @@ describe('useCreatePost', () => {
       seconds: number,
       scheduledAt?: string,
       songInVideo?: { id: string; startMs: number },
+      studioTemplate?: EditedMediaHandoff['studioTemplate'],
     ) {
       vi.mocked(probeVideoDuration).mockResolvedValue(seconds);
       useUIStore.getState().setEditedMediaForPost({
         file: new File(['v'], 'export.mp4', { type: 'video/mp4' }),
         scheduledAt,
         songInVideo,
+        studioTemplate,
       });
       let c = {} as Composer;
       renderWithProviders(<Probe onRender={(v) => (c = v)} />);
@@ -141,6 +143,35 @@ describe('useCreatePost', () => {
         ]),
       );
       await vi.waitFor(() => expect(c().songInVideo).toBeNull());
+    });
+
+    it('carries its template, not offered until its author says so, and forgets it with another video', async () => {
+      const seconds = FRAME_MIN_DURATION_SEC + 1;
+      const studioTemplate = {
+        name: 'Trip',
+        structure: {
+          version: 1 as const,
+          name: 'Trip',
+          aspectRatio: '9:16' as const,
+          slots: [{ duration: 2, speed: 1 }],
+          effects: [],
+        },
+      };
+      const c = await handOver(seconds, undefined, undefined, studioTemplate);
+      expect(c().studioTemplate).toEqual(studioTemplate);
+      expect(c().offerTemplate).toBe(false);
+      act(() => c().setOfferTemplate(true));
+      act(() =>
+        c().setMediaFiles([
+          {
+            file: new File(['o'], 'other.mp4', { type: 'video/mp4' }),
+            url: 'blob:other',
+            type: 'video',
+          },
+        ]),
+      );
+      await vi.waitFor(() => expect(c().studioTemplate).toBeNull());
+      expect(c().offerTemplate).toBe(false);
     });
 
     it('longer than a Frame, it opens the trim at the longest window', async () => {

@@ -1367,7 +1367,12 @@
       "comments_turned_on": "Comentarios activados",
       "like_count_hidden": "Número de me gusta oculto",
       "like_count_shown": "Número de me gusta visible",
-      "interactions_error": "No se pudo guardar el cambio. Inténtalo de nuevo."
+      "interactions_error": "No se pudo guardar el cambio. Inténtalo de nuevo.",
+      "offer_template": "Permitir usar su plantilla",
+      "stop_offering_template": "Dejar de ofrecer su plantilla",
+      "template_offered": "Ahora otros pueden usar su plantilla",
+      "template_stopped": "Su plantilla ya no se ofrece",
+      "template_error": "No se pudo cambiar. Inténtalo de nuevo."
     },
     "modals": {
       "delete_title": "¿Eliminar publicación?",
@@ -1769,7 +1774,9 @@
       "share_to_story_desc": "Al publicar se abre tu historia con la tarjeta del post, lista para compartir.",
       "suggestions": "Sugerencias",
       "tag_posts_one": "{{count}} publicación",
-      "tag_posts_other": "{{count}} publicaciones"
+      "tag_posts_other": "{{count}} publicaciones",
+      "offer_template": "Permitir que otros lo usen como plantilla",
+      "offer_template_desc": "Se llevan su ritmo, transiciones, color y canción, nunca tus vídeos, voz ni textos. Los Frames hechos con ella te dan crédito."
     },
     "edit": {
       "edit_media": "Editar Medio",
@@ -5349,7 +5356,10 @@
         "soft_story": "Historia suave",
         "before_after": "Antes y después",
         "trip": "Viaje"
-      }
+      },
+      "by": "Plantilla de @{{username}}",
+      "from_frame": "Del Frame del que vienes",
+      "unavailable": "La plantilla de ese Frame ya no está disponible."
     }
   },
   "live": {
@@ -5781,6 +5791,11 @@
       "assembling": "Montando tu Frame…",
       "hint": "Puede tardar un par de minutos. No cierres esta pantalla.",
       "failed": "No se pudo montar el Frame. Inténtalo de nuevo."
+    },
+    "template": {
+      "use_one": "Usar plantilla · {{count}} uso",
+      "use_other": "Usar plantilla · {{count}} usos",
+      "by": "Plantilla de @{{username}}"
     }
   },
   "landing": {

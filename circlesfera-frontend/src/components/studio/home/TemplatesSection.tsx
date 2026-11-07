@@ -1,12 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LayoutTemplate, Pencil, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import {
-  type EditProject,
-  editsService,
-} from '../../../services/edits.service';
+import { studioTemplatesApi } from '../../../services/studioTemplates.service';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { StudioProject } from '../../../types/studio';
 import { readMediaDuration } from '../../../utils/mediaDuration';
@@ -16,7 +13,6 @@ import {
   type StudioTemplate,
   type TemplatePick,
   templateLength,
-  templateOfState,
 } from '../../../utils/studioTemplates';
 import ConfirmModal from '../../modals/ConfirmModal';
 import { Input } from '../../ui';
@@ -28,6 +24,8 @@ interface Listed {
   template: StudioTemplate;
   /** Saved by the person, so it can be renamed and deleted. */
   own: boolean;
+  /** Offered from someone's Frame: its use is counted and credited. */
+  community?: { author: string };
 }
 
 /** The slots of a template as a strip, each as wide as it lasts. */
@@ -50,16 +48,20 @@ function SlotStrip({ template }: { template: StudioTemplate }) {
 }
 
 interface TemplatesSectionProps {
-  drafts: EditProject[] | undefined;
+  /** The Frame the person came from to use its template. */
+  fromPostId?: string | null;
   onOpen: (project: StudioProject) => void;
 }
 
+export const TEMPLATES_KEY = ['studioTemplates'] as const;
+
 /**
- * The templates: CircleSfera's and the person's own. Using one asks for
- * as many videos or photos as it has slots and opens the project made.
+ * The templates: one offered from the Frame the person came from, their
+ * own, and CircleSfera's. Using one asks for as many videos or photos as
+ * it has slots and opens the project made.
  */
 export default function TemplatesSection({
-  drafts,
+  fromPostId,
   onOpen,
 }: TemplatesSectionProps) {
   const { t } = useTranslation();
@@ -67,23 +69,38 @@ export default function TemplatesSection({
   const input = useRef<HTMLInputElement>(null);
   const [using, setUsing] = useState<Listed | null>(null);
   const [toDelete, setToDelete] = useState<string | null>(null);
-  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(
-    null,
-  );
+  const [renaming, setRenaming] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const own: Listed[] = (drafts ?? []).flatMap((draft) => {
-    const template = templateOfState(draft.state);
-    return template
-      ? [
-          {
-            id: draft.id,
-            name: draft.name || template.name,
-            template,
-            own: true,
-          },
-        ]
-      : [];
+  const mine = useQuery({
+    queryKey: [...TEMPLATES_KEY, 'mine'],
+    queryFn: () => studioTemplatesApi.mine().then((r) => r.data),
   });
+  const offered = useQuery({
+    queryKey: [...TEMPLATES_KEY, 'of-post', fromPostId],
+    queryFn: () =>
+      studioTemplatesApi.ofPost(fromPostId as string).then((r) => r.data),
+    enabled: Boolean(fromPostId),
+    retry: false,
+  });
+
+  const own: Listed[] = (mine.data ?? []).map((saved) => ({
+    id: saved.id,
+    name: saved.name,
+    template: saved.structure,
+    own: true,
+  }));
+  const fromFrame: Listed | null = offered.data
+    ? {
+        id: offered.data.id,
+        name: offered.data.name,
+        template: offered.data.structure,
+        own: false,
+        community: { author: offered.data.author.username },
+      }
+    : null;
   const builtIn: Listed[] = BUILT_IN_TEMPLATES.map((b) => ({
     id: b.id,
     name: t(b.nameKey),
@@ -92,9 +109,9 @@ export default function TemplatesSection({
   }));
 
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: ['studioDrafts'] });
+    queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
   const remove = useMutation({
-    mutationFn: (id: string) => editsService.deleteProject(id),
+    mutationFn: (id: string) => studioTemplatesApi.remove(id),
     onSuccess: () => {
       void refresh();
       toast.success(t('studio.templates.deleted'));
@@ -103,7 +120,7 @@ export default function TemplatesSection({
   });
   const rename = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
-      editsService.renameProject(id, name),
+      studioTemplatesApi.update(id, { name }),
     onSuccess: () => {
       setRenaming(null);
       void refresh();
@@ -128,7 +145,17 @@ export default function TemplatesSection({
         sourceDuration,
       });
     }
-    const project = projectFromTemplate(using.template, picks, using.name, t);
+    // Someone's template counts this use, and the video credits it.
+    if (using.community) {
+      studioTemplatesApi.use(using.id).catch(() => {});
+    }
+    const project = projectFromTemplate(
+      using.template,
+      picks,
+      using.name,
+      t,
+      using.community ? using.id : undefined,
+    );
     useStudioStore
       .getState()
       .setPendingUploads(
@@ -175,6 +202,13 @@ export default function TemplatesSection({
             <p className="truncate text-sm font-semibold text-white">
               {item.name}
             </p>
+            {item.community && (
+              <p className="truncate text-xs text-brand-primary-text">
+                {t('studio.templates.by', {
+                  username: item.community.author,
+                })}
+              </p>
+            )}
             <p className="text-xs text-white/50">
               {t('studio.templates.summary', {
                 count: item.template.slots.length,
@@ -231,6 +265,19 @@ export default function TemplatesSection({
         {t('studio.templates.title')}
       </h2>
       <p className="mb-3 text-sm text-white/60">{t('studio.templates.hint')}</p>
+      {fromFrame && (
+        <>
+          <h3 className="mb-2 text-xs font-bold text-white/50">
+            {t('studio.templates.from_frame')}
+          </h3>
+          <ul className="mb-4 grid gap-3 md:grid-cols-2">{row(fromFrame)}</ul>
+        </>
+      )}
+      {fromPostId && offered.isError && (
+        <p className="mb-4 text-sm text-white/60">
+          {t('studio.templates.unavailable')}
+        </p>
+      )}
       {own.length > 0 && (
         <>
           <h3 className="mb-2 text-xs font-bold text-white/50">

@@ -27,9 +27,11 @@ import {
 import { loadLocalStudioDraft } from '../utils/studioLocalDraft';
 import { getPrimaryMediaUrl, projectContentEnd } from '../utils/studioProject';
 import { newBlankProject } from '../utils/studioProjects';
+import { templateOf } from '../utils/studioTemplates';
 import {
   emptyTrack,
   locateClip,
+  mainClips,
   mainTrackEnd,
   mainTrackOf,
   newStudioId,
@@ -421,6 +423,16 @@ export default function EditsStudio() {
       file: new File([exportedBlob], 'export.mp4', { type: 'video/mp4' }),
       scheduledAt: scheduledAt || undefined,
       songInVideo: project ? (librarySongOf(project) ?? undefined) : undefined,
+      // Its template, which the author may offer from the Frame, and the
+      // community template it was made with, credited.
+      studioTemplate:
+        project && mainClips(project).length
+          ? {
+              name: project.name,
+              structure: templateOf(project, project.name),
+              ...(project.templateId ? { usedId: project.templateId } : {}),
+            }
+          : undefined,
     });
     navigate('/create?mode=frame');
   };

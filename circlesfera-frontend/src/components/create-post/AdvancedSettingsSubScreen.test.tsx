@@ -81,4 +81,33 @@ describe('AdvancedSettingsSubScreen', () => {
       }),
     ).not.toBeInTheDocument();
   });
+
+  it('offers a Frame made in the Studio as a template, off unless turned on', () => {
+    const setOfferTemplate = vi.fn();
+    renderWithProviders(
+      <AdvancedSettingsSubScreen
+        {...baseProps}
+        showSensitiveToggle
+        offerTemplate={false}
+        setOfferTemplate={setOfferTemplate}
+      />,
+    );
+    const offer = screen.getByRole('switch', {
+      name: 'Let others use this as a template',
+    });
+    expect(offer).not.toBeChecked();
+    fireEvent.click(offer);
+    expect(setOfferTemplate).toHaveBeenCalledWith(true);
+  });
+
+  it('does not offer a template when there is none', () => {
+    renderWithProviders(
+      <AdvancedSettingsSubScreen {...baseProps} showSensitiveToggle />,
+    );
+    expect(
+      screen.queryByRole('switch', {
+        name: 'Let others use this as a template',
+      }),
+    ).not.toBeInTheDocument();
+  });
 });
