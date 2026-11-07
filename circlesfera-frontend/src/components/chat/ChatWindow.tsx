@@ -42,6 +42,7 @@ import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
+import { BUTTON_PAIR, BUTTON_ROW } from '../ui/buttonWidth';
 import ChatDetailsModal from './ChatDetailsModal';
 import ChooseAdminSheet from './ChooseAdminSheet';
 import GroupDetailsModal from './GroupDetailsModal';
@@ -1560,18 +1561,18 @@ export default function ChatWindow() {
                   {t('chat.request_description')}
                 </p>
               </div>
-              <div className="flex items-center gap-3 w-full max-w-xs justify-center">
+              <div className={`${BUTTON_ROW} flex-wrap items-center gap-3`}>
                 <button
                   type="button"
                   onClick={handleDeclineRequest}
-                  className="flex-1 py-2 px-4 rounded-xl text-sm font-semibold bg-white/10 text-rose-400 hover:bg-rose-500/20 transition-all border border-rose-500/20 cursor-pointer"
+                  className="min-h-11 py-2 px-4 rounded-xl text-sm font-semibold bg-white/10 text-rose-400 hover:bg-rose-500/20 transition-all border border-rose-500/20 cursor-pointer"
                 >
                   {t('chat.decline', 'Rechazar')}
                 </button>
                 <button
                   type="button"
                   onClick={handleAcceptRequest}
-                  className="flex-1 py-2 px-4 rounded-xl text-sm font-semibold bg-linear-to-tr from-brand-primary to-brand-secondary text-white hover:opacity-90 shadow-md shadow-brand-primary/20 transition-all cursor-pointer"
+                  className="min-h-11 py-2 px-4 rounded-xl text-sm font-semibold bg-linear-to-tr from-brand-primary to-brand-secondary text-white hover:opacity-90 shadow-md shadow-brand-primary/20 transition-all cursor-pointer"
                 >
                   {t('chat.accept', 'Aceptar')}
                 </button>
@@ -1682,7 +1683,7 @@ export default function ChatWindow() {
                       <p className="text-xs text-white/45">
                         {t('chat.lock_message_hint')}
                       </p>
-                      <div className="flex items-center gap-2 pt-1">
+                      <div className={`pt-1 ${BUTTON_PAIR}`}>
                         <button
                           type="button"
                           onClick={() => {
@@ -1690,7 +1691,7 @@ export default function ChatWindow() {
                             setLockPriceInvalid(false);
                             setIsLockPopoverOpen(false);
                           }}
-                          className="flex-1 min-h-10 h-10 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                          className="min-h-11 px-4 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
                         >
                           {t('chat.lock_message_cancel')}
                         </button>
@@ -1710,7 +1711,7 @@ export default function ChatWindow() {
                             setLockedPrice(Math.round(euros * 100));
                             setIsLockPopoverOpen(false);
                           }}
-                          className="flex-1 min-h-10 h-10 rounded-lg text-sm font-semibold bg-linear-to-tr from-brand-primary to-brand-secondary text-white hover:opacity-90 transition-colors"
+                          className="min-h-11 px-4 rounded-lg text-sm font-semibold bg-linear-to-tr from-brand-primary to-brand-secondary text-white hover:opacity-90 transition-colors"
                         >
                           {t('chat.lock_message_confirm')}
                         </button>

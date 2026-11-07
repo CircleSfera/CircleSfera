@@ -99,6 +99,7 @@ export default function PropertiesPanel() {
         <button
           type="button"
           onClick={() => setTab('transform')}
+          aria-pressed={tab === 'transform'}
           className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-full text-xs font-semibold leading-tight transition-all flex items-center justify-center gap-1 ${
             tab === 'transform'
               ? 'bg-brand-primary text-white shadow-sm'
@@ -113,6 +114,7 @@ export default function PropertiesPanel() {
           <button
             type="button"
             onClick={() => setTab('style')}
+            aria-pressed={tab === 'style'}
             className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-full text-xs font-semibold leading-tight transition-all flex items-center justify-center gap-1 ${
               tab === 'style'
                 ? 'bg-brand-primary text-white shadow-sm'
@@ -132,6 +134,7 @@ export default function PropertiesPanel() {
           <button
             type="button"
             onClick={() => setTab('audio')}
+            aria-pressed={tab === 'audio'}
             className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-full text-xs font-semibold leading-tight transition-all flex items-center justify-center gap-1 ${
               tab === 'audio'
                 ? 'bg-brand-primary text-white shadow-sm'

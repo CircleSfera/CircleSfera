@@ -15,6 +15,14 @@ export const BUTTON_FIT = 'w-fit min-w-44 max-w-full';
 export const BUTTON_ROW = 'flex justify-center';
 
 /**
+ * A pair of actions side by side (Cancel and Confirm, Decline and Accept,
+ * Back and Next): each as wide as its own label, at the end of the row, and
+ * they wrap under each other when the row is too narrow. Never stretched
+ * with `flex-1` to fill the row.
+ */
+export const BUTTON_PAIR = 'flex flex-wrap justify-end gap-3';
+
+/**
  * Two or more buttons of one form that are not next to each other in the
  * page (a line or a field sits between them): the same floor for each, wide
  * enough for the longest of them, so they still line up.

@@ -9,6 +9,7 @@ import { formatDay } from '../../utils/format';
 import MediaThumb from '../common/MediaThumb';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
@@ -391,12 +392,12 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                   />
                 </div>
 
-                <div className="pt-4 flex gap-3">
+                <div className={`pt-4 ${BUTTON_PAIR}`}>
                   <Button
                     type="button"
                     onClick={closeForm}
                     variant="secondary"
-                    className="flex-1 py-3 font-semibold bg-white/5 border-transparent text-white/70"
+                    className="py-3 font-semibold bg-white/5 border-transparent text-white/70"
                   >
                     {t('admin.shared.cancel')}
                   </Button>
@@ -404,7 +405,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     type="submit"
                     isLoading={isSaving}
                     variant="primary"
-                    className="flex-1 py-3 font-semibold shadow-lg shadow-brand-primary/20"
+                    className="py-3 font-semibold shadow-lg shadow-brand-primary/20"
                   >
                     {editingTrack
                       ? t('admin.audio.save_changes')

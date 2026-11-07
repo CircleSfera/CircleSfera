@@ -23,6 +23,7 @@ import type { PaginatedResponse } from '../../types';
 import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select, Switch, Textarea } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
@@ -907,17 +908,17 @@ function FeatureFlagForm({
         onChange={(e) => setIsEnabled(e.target.checked)}
         label={t('admin.experiments.enabled')}
       />
-      <div className="flex gap-3 pt-2">
+      <div className={`pt-2 ${BUTTON_PAIR}`}>
         <Button
           type="button"
           onClick={onCancel}
           variant="secondary"
-          className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
+          className="min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
         >
           {t('admin.shared.cancel')}
         </Button>
         <Button
-          className="flex-1 min-h-11"
+          className="min-h-11"
           onClick={() =>
             onSubmit({
               key,
@@ -1015,17 +1016,17 @@ function ExperimentForm({
         </Select>
       </div>
 
-      <div className="flex gap-3 pt-2">
+      <div className={`pt-2 ${BUTTON_PAIR}`}>
         <Button
           type="button"
           onClick={onCancel}
           variant="secondary"
-          className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
+          className="min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
         >
           {t('admin.shared.cancel')}
         </Button>
         <Button
-          className="flex-1 min-h-11"
+          className="min-h-11"
           onClick={() => onSubmit({ userId, experimentKey, variant })}
           disabled={!userId || !experimentKey || !variant || isSubmitting}
           isLoading={isSubmitting}

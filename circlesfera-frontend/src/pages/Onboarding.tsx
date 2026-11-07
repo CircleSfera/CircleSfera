@@ -10,7 +10,11 @@ import { ErrorState } from '../components/ErrorEmptyStates';
 import { LoadingSpinner } from '../components/LoadingStates';
 import UserAvatar from '../components/UserAvatar';
 import { Button, Textarea } from '../components/ui';
-import { BUTTON_FIT, BUTTON_ROW } from '../components/ui/buttonWidth';
+import {
+  BUTTON_FIT,
+  BUTTON_PAIR,
+  BUTTON_ROW,
+} from '../components/ui/buttonWidth';
 import VerificationBadge from '../components/VerificationBadge';
 import { followsApi, profileApi, uploadApi, usersApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -414,7 +418,7 @@ export default function Onboarding() {
                 )}
               </div>
 
-              <div className="flex gap-3">
+              <div className={`${BUTTON_PAIR}`}>
                 <Button
                   type="button"
                   variant="outline"
@@ -430,7 +434,7 @@ export default function Onboarding() {
                   onClick={handleFinish}
                   isLoading={updateProfileMutation.isPending}
                   data-testid="onboarding-enter"
-                  className="flex-1 font-bold"
+                  className="font-bold"
                 >
                   {t('onboarding.enter', 'Enter CircleSfera')}
                 </Button>

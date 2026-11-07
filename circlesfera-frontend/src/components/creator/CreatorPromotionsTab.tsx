@@ -23,6 +23,7 @@ import { formatCents } from '../../utils/money';
 import { sellsInApp } from '../../utils/sellsInApp';
 import { postThumbShape } from '../common/MediaThumb';
 import { Button, Dialog } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import CreatorEmpty from './CreatorEmpty';
 import { CreatorBadge, CreatorPager, CreatorRow } from './CreatorPieces';
 import PromoteModal from './PromoteModal';
@@ -287,10 +288,10 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                     })}
                   </p>
                 )}
-                <div className="flex gap-2">
+                <div className={`${BUTTON_PAIR}`}>
                   <Button
                     variant="danger"
-                    className="min-h-11 flex-1"
+                    className="min-h-11 "
                     onClick={() => cancelMutation.mutate(promo.id)}
                     isLoading={cancelMutation.isPending}
                   >

@@ -9,6 +9,7 @@ import MediaThumb from '../common/MediaThumb';
 import FrameBottomSheet from '../frames/FrameBottomSheet';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { Dialog } from '../ui/Dialog';
 
 interface AddToCollectionModalProps {
@@ -109,12 +110,12 @@ function CollectionPickerBody({
               placeholder={t('collections.collection_name')}
               className="w-full h-11 bg-white/5 border border-white/10 rounded-xl px-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary/50"
             />
-            <div className="flex gap-2">
+            <div className={`${BUTTON_PAIR}`}>
               <Button
                 type="button"
                 onClick={() => setIsCreating(false)}
                 variant="secondary"
-                className="flex-1 h-11 font-semibold"
+                className="h-11 font-semibold"
               >
                 {t('common.cancel')}
               </Button>
@@ -123,7 +124,7 @@ function CollectionPickerBody({
                 disabled={!newCollectionName.trim()}
                 isLoading={createAndAddMutation.isPending}
                 variant="primary"
-                className="flex-1 h-11 font-semibold"
+                className="h-11 font-semibold"
               >
                 {t('collections.create')}
               </Button>

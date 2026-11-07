@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { followsApi, type MuteDuration } from '../../services';
 import { Button } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { Dialog } from '../ui/Dialog';
 
 const DURATIONS: MuteDuration[] = ['24h', '7d', '30d', 'forever'];
@@ -78,11 +79,11 @@ export default function MuteDurationModal({
             </li>
           ))}
         </ul>
-        <div className="flex gap-3 pt-1">
+        <div className={`pt-1 ${BUTTON_PAIR}`}>
           <Button
             type="button"
             variant="outline"
-            className="flex-1 min-h-12"
+            className="min-h-12"
             onClick={onClose}
             disabled={isLoading}
           >
@@ -90,7 +91,7 @@ export default function MuteDurationModal({
           </Button>
           <Button
             type="button"
-            className="flex-1 min-h-12"
+            className="min-h-12"
             onClick={handleConfirm}
             isLoading={isLoading}
           >

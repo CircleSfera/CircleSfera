@@ -115,7 +115,6 @@ export function MonetizationSettings() {
                 type="button"
                 variant="primary"
                 size="md"
-                className="max-sm:w-full"
                 onClick={() => connectMutation.mutate()}
                 isLoading={connectMutation.isPending}
               >

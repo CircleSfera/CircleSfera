@@ -3,6 +3,7 @@ import { Ban } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { followsApi } from '../../services';
 import { Button } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { Dialog } from '../ui/Dialog';
 
 interface BlockModalProps {
@@ -44,11 +45,11 @@ export default function BlockModal({
         </p>
       </div>
 
-      <div className="pt-4 flex gap-3">
+      <div className={`pt-4 ${BUTTON_PAIR}`}>
         <Button
           onClick={onClose}
           variant="secondary"
-          className="flex-1 min-h-11"
+          className="min-h-11"
           disabled={blockMutation.isPending}
         >
           {t('modals.block.cancel')}
@@ -57,7 +58,7 @@ export default function BlockModal({
           onClick={() => blockMutation.mutate()}
           isLoading={blockMutation.isPending}
           variant="danger"
-          className="flex-1 min-h-11"
+          className="min-h-11"
         >
           {t('modals.block.confirm')}
         </Button>
