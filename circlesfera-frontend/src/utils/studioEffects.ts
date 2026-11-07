@@ -203,7 +203,8 @@ export function colorAmounts(color: ColorAdjustments) {
     saturation: round(1 + at('saturation')),
     warmth: round(at('warmth') * WARMTH_ALPHA),
     sharpen: round(Math.max(0, at('sharpness')) * SHARPEN_AMOUNT),
-    soften: round(Math.max(0, -at('sharpness')) * 3),
+    // The share of the softened picture: all of it at the lowest.
+    soften: round(Math.max(0, -at('sharpness'))),
   };
 }
 
@@ -212,63 +213,15 @@ export const WARM_COLOR = '#ff9a3c';
 export const COOL_COLOR = '#3c8cff';
 
 /**
- * The ffmpeg filters of the adjustments the preview draws with its CSS
- * filter, before the colour filter: exposure and the dimming of
- * brightness, contrast and saturation, and softening.
+ * The CSS filter the preview draws a clip's adjustments with: exposure and
+ * dimming, contrast and saturation. Lift, warmth, sharpening and softening
+ * are laid on separately.
  */
-export function colorFilterBefore(
-  color: ColorAdjustments,
-  width: number,
-): string {
+export function colorCssFilter(color: ColorAdjustments): string {
   const a = colorAmounts(color);
-  const px = width / EFFECT_BASE_WIDTH;
-  const parts: string[] = [];
-  if (a.scale !== 1) parts.push(lut(`clip(val*${a.scale}\\,0\\,255)`));
-  if (a.contrast !== 1 || a.saturation !== 1) {
-    parts.push(`eq=contrast=${a.contrast}:saturation=${a.saturation}`);
-  }
-  if (a.soften > 0) parts.push(`gblur=sigma=${round(a.soften * px)}`);
-  return parts.join(',');
-}
-
-/**
- * The ffmpeg filters of the adjustments the preview lays on after the
- * colour filter: the lift of brightness, warmth and sharpening. They work
- * in RGB and keep the clip's see-through parts as they are.
- */
-export function colorFilterAfter(color: ColorAdjustments, tag: string): string {
-  const a = colorAmounts(color);
-  const parts: string[] = [];
-  if (a.lift > 0) {
-    parts.push(lut(`clip(val+${Math.round(a.lift * 255)}\\,0\\,255)`));
-  }
-  if (a.warmth !== 0) {
-    const hex = (a.warmth > 0 ? WARM_COLOR : COOL_COLOR).replace('#', '0x');
-    parts.push(
-      `split[${tag}w][${tag}x];[${tag}x]drawbox=c=${hex}@1:t=fill[${tag}y];[${tag}w][${tag}y]blend=all_mode=softlight:all_opacity=${Math.abs(a.warmth)}`,
-    );
-  }
-  if (a.sharpen > 0) {
-    // The same 3×3 kernel the preview sharpens a still frame with.
-    const n = round(a.sharpen * 0.25);
-    const m = `0 -${n} 0 -${n} ${round(1 + 4 * n)} -${n} 0 -${n} 0`;
-    parts.push(`convolution=0m='${m}':1m='${m}':2m='${m}'`);
-  }
-  if (!parts.length) return '';
-  // Worked on in RGB without the alpha, which is put back after.
-  return `format=rgba,split[${tag}a][${tag}b];[${tag}b]alphaextract[${tag}c];[${tag}a]format=gbrp,${parts.join(',')},format=rgba[${tag}d];[${tag}d][${tag}c]alphamerge`;
-}
-
-const lut = (value: string) => `lutrgb=r='${value}':g='${value}':b='${value}'`;
-
-/** The CSS filter the preview draws a clip's adjustments with, but warmth and sharpening. */
-export function colorCssFilter(color: ColorAdjustments, width: number): string {
-  const a = colorAmounts(color);
-  const px = width / EFFECT_BASE_WIDTH;
   const parts: string[] = [];
   if (a.scale !== 1) parts.push(`brightness(${a.scale})`);
   if (a.contrast !== 1) parts.push(`contrast(${a.contrast})`);
   if (a.saturation !== 1) parts.push(`saturate(${a.saturation})`);
-  if (a.soften > 0) parts.push(`blur(${round(a.soften * px)}px)`);
   return parts.join(' ');
 }

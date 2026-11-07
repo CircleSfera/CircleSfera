@@ -6,6 +6,7 @@ import {
   COLOR_LIMIT,
   NO_COLOR,
 } from '../../../utils/studioEffects';
+import { clipAt } from '../../../utils/studioKeyframes';
 import { locateClip } from '../../../utils/studioTimeline';
 import StudioSlider from './StudioSlider';
 
@@ -17,7 +18,9 @@ export default function ColorPanel() {
   const updateClip = useStudioStore((s) => s.updateClip);
   const found =
     project && selectedClipId ? locateClip(project, selectedClipId) : null;
-  const clip = found?.clip;
+  const playhead = useStudioStore((s) => s.playhead);
+  // As it shows at the playhead, keyframes and all.
+  const clip = found ? clipAt(found.clip, playhead - found.clip.startAt) : null;
   if (!clip || (clip.type !== 'video' && clip.type !== 'image')) return null;
   const color = (clip as MediaClip).color ?? NO_COLOR;
   const set = (next: ColorAdjustments, history = false) =>

@@ -10,8 +10,6 @@ import {
   activeColor,
   colorAmounts,
   colorCssFilter,
-  colorFilterAfter,
-  colorFilterBefore,
   EFFECT_KINDS,
   effectAmounts,
   effectClipsOf,
@@ -118,69 +116,20 @@ describe('picture adjustments', () => {
     });
     expect(colorAmounts({ ...NO_COLOR, sharpness: -400 })).toMatchObject({
       sharpen: 0,
-      soften: 3,
+      soften: 1,
     });
   });
 
-  it('writes before the colour filter what the preview’s CSS draws', () => {
-    expect(colorFilterBefore(NO_COLOR, 1080)).toBe('');
-    expect(
-      colorFilterBefore(
-        {
-          ...NO_COLOR,
-          exposure: 100,
-          contrast: 20,
-          saturation: -50,
-          sharpness: -50,
-        },
-        540,
-      ),
-    ).toBe(
-      [
-        "lutrgb=r='clip(val*2\\,0\\,255)':g='clip(val*2\\,0\\,255)':b='clip(val*2\\,0\\,255)'",
-        'eq=contrast=1.2:saturation=0.5',
-        'gblur=sigma=0.75',
-      ].join(','),
-    );
-    // The lift of brightness is laid on after, not here.
-    expect(colorFilterBefore({ ...NO_COLOR, brightness: 40 }, 1080)).toBe('');
-  });
-
-  it('writes after the colour filter the lift, warmth and sharpening, keeping the alpha', () => {
-    expect(colorFilterAfter(NO_COLOR, 'c0')).toBe('');
-    const m = '0 -0.15 0 -0.15 1.6 -0.15 0 -0.15 0';
-    expect(
-      colorFilterAfter(
-        { ...NO_COLOR, brightness: 40, warmth: 50, sharpness: 40 },
-        'c0',
-      ),
-    ).toBe(
-      [
-        'format=rgba,split[c0a][c0b];[c0b]alphaextract[c0c];[c0a]format=gbrp',
-        "lutrgb=r='clip(val+51\\,0\\,255)':g='clip(val+51\\,0\\,255)':b='clip(val+51\\,0\\,255)'",
-        'split[c0w][c0x];[c0x]drawbox=c=0xff9a3c@1:t=fill[c0y];[c0w][c0y]blend=all_mode=softlight:all_opacity=0.175',
-        `convolution=0m='${m}':1m='${m}':2m='${m}'`,
-        'format=rgba[c0d];[c0d][c0c]alphamerge',
-      ].join(','),
-    );
-    expect(colorFilterAfter({ ...NO_COLOR, warmth: -20 }, 'c1')).toContain(
-      'drawbox=c=0x3c8cff@1',
-    );
-  });
-
   it('writes the preview’s CSS filter for what CSS can draw', () => {
-    expect(colorCssFilter(NO_COLOR, 1080)).toBe('');
+    expect(colorCssFilter(NO_COLOR)).toBe('');
     expect(
-      colorCssFilter(
-        {
-          ...NO_COLOR,
-          exposure: 100,
-          contrast: 20,
-          saturation: 10,
-          sharpness: -100,
-        },
-        1080,
-      ),
-    ).toBe('brightness(2) contrast(1.2) saturate(1.1) blur(3px)');
+      colorCssFilter({
+        ...NO_COLOR,
+        exposure: 100,
+        contrast: 20,
+        saturation: 10,
+        sharpness: -100,
+      }),
+    ).toBe('brightness(2) contrast(1.2) saturate(1.1)');
   });
 });

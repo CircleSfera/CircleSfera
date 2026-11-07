@@ -5321,6 +5321,10 @@
       "pick_hint": "Tap the colour to remove in the video",
       "strength": "Strength",
       "softness": "Edge softness"
+    },
+    "keyframes": {
+      "add": "Add keyframe",
+      "remove": "Remove keyframe"
     }
   },
   "live": {

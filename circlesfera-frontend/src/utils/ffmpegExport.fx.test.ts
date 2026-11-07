@@ -69,7 +69,7 @@ describe('exporting transitions, effects and adjustments', () => {
     const g = graph();
     // Each main clip laid on black the size of the video, as long as it.
     expect(g).toContain(
-      'color=c=black:s=1080x1920:r=30:d=4[bg0];[bg0][seg0]overlay=x=(W-w)/2+0:y=(H-h)/2+0,format=yuv420p,setsar=1,fps=30,settb=AVTB[m0]',
+      "color=c=black:s=1080x1920:r=30:d=4[bg0];[bg0][seg0]overlay=x='(W-w)/2+0':y='(H-h)/2+0',format=yuv420p,setsar=1,fps=30,settb=AVTB[m0]",
     );
     expect(g).toContain(
       '[m0][m1]xfade=transition=slideleft:duration=0.5:offset=3.5[j0]',
@@ -237,5 +237,100 @@ describe('exporting transitions, effects and adjustments', () => {
     );
     expect(graph()).not.toContain('blend=all_mode=normal,format=rgba[b');
     expect(graph()).toContain('[ov0][seg1]overlay=');
+  });
+
+  it('sends animated values frame by frame, in each clip’s own time', async () => {
+    const k = (pairs: [number, number][]) => pairs.map(([t, v]) => ({ t, v }));
+    await exported(
+      studioProject([
+        studioTrack('v1', 'video', [
+          mediaClip('a', {
+            startAt: 0,
+            duration: 2,
+            keyframes: {
+              warmth: k([
+                [0, 0],
+                [2, 100],
+              ]),
+              volume: k([
+                [0, 0],
+                [2, 1],
+              ]),
+            },
+          }),
+        ]),
+        studioTrack('v2', 'video', [
+          mediaClip('over', {
+            trackId: 'v2',
+            startAt: 1,
+            duration: 1,
+            muted: true,
+            keyframes: {
+              x: k([
+                [0, 0],
+                [1, 100],
+              ]),
+              opacity: k([
+                [0, 1],
+                [1, 0],
+              ]),
+            },
+          }),
+        ]),
+      ]),
+    );
+    const g = graph();
+    const first = g.split(';').find((p) => p.startsWith('[0:v]')) ?? '';
+    // The script goes in after the trim, before the clip is resized.
+    expect(first).toMatch(/setpts=PTS-STARTPTS,sendcmd=f=cmd_0\.txt,scale=/);
+    expect(written).toEqual(expect.arrayContaining(['cmd_0.txt', 'cmd_1.txt']));
+    expect(g).toContain("volume='max(0\\,");
+    expect(g).toContain(':eval=frame,adelay=0|0');
+    // A layer's move counts from its own start.
+    expect(g).toMatch(/overlay=x='\(W-w\)\/2\+\(0\+100\*clip\(\(\(t-1\)-0\)/);
+    expect(g).toContain('colorchannelmixer@o1=aa=1');
+  });
+
+  it('draws a growing text at its largest on a clear layer that grows', async () => {
+    await exported(
+      studioProject([
+        studioTrack('v1', 'video', [
+          mediaClip('a', { startAt: 0, duration: 3 }),
+        ]),
+        studioTrack('t1', 'text', [
+          {
+            id: 'w',
+            type: 'text',
+            trackId: 't1',
+            startAt: 0,
+            duration: 3,
+            content: 'Hi',
+            style: {
+              fontFamily: 'Roboto',
+              fontSize: 40,
+              color: '#ffffff',
+              backgroundColor: 'transparent',
+              textAlign: 'center',
+            },
+            transform: { scale: 1, rotation: 0, x: 0, y: 0 },
+            keyframes: {
+              scale: [
+                { t: 0, v: 1 },
+                { t: 3, v: 2 },
+              ],
+            },
+          },
+        ]),
+      ]),
+    );
+    const g = graph();
+    expect(g).toContain(
+      'color=c=black@0:s=1080x1920:r=30:d=3,format=rgba,drawtext=',
+    );
+    expect(g).toContain(':fontsize=80:');
+    expect(g).toContain(
+      "pad=w=1080:h=1920:x='(ow-iw)/2':y='(oh-ih)/2':color=black@0:eval=frame[txt0g]",
+    );
+    expect(g).toContain('[ov0][txt0g]overlay=');
   });
 });

@@ -376,6 +376,11 @@ describe('StudioPlayer', () => {
     });
   });
 
+  const sizedVideo = (el: HTMLVideoElement) => {
+    Object.defineProperty(el, 'videoWidth', { value: 1080 });
+    Object.defineProperty(el, 'videoHeight', { value: 1920 });
+  };
+
   describe('what is drawn', () => {
     const sized = (el: HTMLVideoElement, width: number, height: number) => {
       Object.defineProperty(el, 'videoWidth', { value: width });
@@ -453,6 +458,70 @@ describe('StudioPlayer', () => {
 
       expect(drawn).toContain('text Hello 540,1160');
       expect(drawn.some((line) => line.startsWith('box'))).toBe(false);
+    });
+
+    it('moves a text by its keyframes, and draws it at its size and opacity there', () => {
+      const fonts: string[] = [];
+      const alphas: number[] = [];
+      const ctx = document
+        .createElement('canvas')
+        .getContext('2d') as unknown as Record<string, unknown>;
+      const fill = ctx.fillText as (c: string, x: number, y: number) => void;
+      ctx.fillText = (c: string, x: number, y: number) => {
+        fonts.push(ctx.font as string);
+        alphas.push(ctx.globalAlpha as number);
+        fill(c, x, y);
+      };
+      open(
+        project([
+          track('text', [
+            text('t1', {
+              keyframes: {
+                x: [
+                  { t: 0, v: 0 },
+                  { t: 2, v: 100 },
+                ],
+                scale: [
+                  { t: 0, v: 1 },
+                  { t: 2, v: 2 },
+                ],
+                opacity: [
+                  { t: 0, v: 1 },
+                  { t: 2, v: 0 },
+                ],
+              },
+            }),
+          ]),
+        ]),
+        { playhead: 1 },
+      );
+      act(() => frame());
+      // Halfway: half the move, one and a half times the size, half seen.
+      expect(drawn).toContain('text Hello 590,960');
+      expect(fonts.at(-1)).toMatch(/^bold 75px /);
+      expect(alphas.at(-1)).toBe(0.5);
+      ctx.fillText = fill;
+    });
+
+    it('draws a layer where its keyframes put it at the moment', () => {
+      open(
+        project([
+          track('video', [
+            media('v1', 'video', {
+              keyframes: {
+                x: [
+                  { t: 0, v: 0 },
+                  { t: 4, v: 200 },
+                ],
+              },
+            }),
+          ]),
+        ]),
+        { playhead: 2 },
+      );
+      sizedVideo(video('v1'));
+      act(() => frame());
+      expect(drawn).toContain('at 640,960');
     });
 
     it('puts a box behind a text that has a background, and outlines one that has a stroke', () => {

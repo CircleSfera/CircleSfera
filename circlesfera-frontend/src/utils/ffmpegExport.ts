@@ -8,14 +8,7 @@ import {
   voiceSpans,
 } from './studioAudio';
 import { vignetteMaskPng } from './studioCanvasFx';
-import {
-  activeColor,
-  colorFilterAfter,
-  colorFilterBefore,
-  effectAmounts,
-  effectClipsOf,
-  effectFilter,
-} from './studioEffects';
+import { effectAmounts, effectClipsOf, effectFilter } from './studioEffects';
 import {
   audioClipsOnTracks,
   cssColorToFfmpeg,
@@ -30,6 +23,23 @@ import {
   textClipsOnTracks,
   visualClipsOnVideoTracks,
 } from './studioExportHelpers';
+import {
+  type Animated,
+  animatedOpacity,
+  animatedRotation,
+  animatedScale,
+  colorAfter,
+  colorBefore,
+  commandScript,
+  filterAt,
+  placeExpr,
+} from './studioKeyframeExport';
+import {
+  baseValue,
+  isAnimated,
+  keyframeExpr,
+  rangeOf,
+} from './studioKeyframes';
 import { chromaFilter, shapeFilter } from './studioOverlay';
 import { projectContentEnd } from './studioProject';
 import { mainClips, mainTrackOf } from './studioTimeline';
@@ -255,6 +265,8 @@ export async function exportStudioProject(
     );
     const mainIds = new Set(joined ? ordered.map((c) => c.id) : []);
 
+    // The frame-by-frame values of animated clips, written before each run.
+    const scripts = new Map<string, string>();
     const buildFilter = (includeVideoAudio: boolean): string => {
       const parts: string[] = [];
       parts.push(`color=c=black:s=${w}x${h}:d=${duration}:r=${fps}[basev]`);
@@ -281,14 +293,13 @@ export async function exportStudioProject(
         const opacity = clip.opacity ?? 1;
         const scale = clip.transform?.scale ?? 1;
         const rot = clip.transform?.rotation ?? 0;
-        // Moves are in the editor's pixels: the export's are fewer when it
-        // is made smaller.
-        const tx = round2((clip.transform?.x ?? 0) * k);
-        const ty = round2((clip.transform?.y ?? 0) * k);
         const cssFx = cssFilterToFfmpeg(clip.filter || '');
-        const color = activeColor(clip.color);
-        const filterShare =
-          Math.max(0, Math.min(100, clip.filterIntensity ?? 100)) / 100;
+        const sized = isAnimated(clip, 'scale');
+        // Where it is placed: the overlay's time is the timeline's, except
+        // for clips joined through transitions, which start at 0.
+        const placeTime = mainIds.has(clip.id) ? 't' : `(t-${clip.startAt})`;
+        const tx = placeExpr(clip, 'x', placeTime, k);
+        const ty = placeExpr(clip, 'y', placeTime, k);
 
         const vChain: string[] = [];
         if (isImage) {
@@ -304,28 +315,23 @@ export async function exportStudioProject(
           );
           if (speed !== 1) vChain.push(`setpts=${1 / speed}*PTS`);
         }
+        // A size that changes is grown later, from the fitted picture.
+        const fixed = sized ? 1 : scale;
         vChain.push(
-          `scale=${Math.round(w * scale)}:${Math.round(h * scale)}:force_original_aspect_ratio=decrease`,
+          `scale=${Math.round(w * fixed)}:${Math.round(h * fixed)}:force_original_aspect_ratio=decrease`,
         );
         if (clip.flipX) vChain.push('hflip');
         if (clip.flipY) vChain.push('vflip');
         // The order the preview draws in: the adjustments its CSS filter
-        // makes, the colour filter, then lift, warmth and sharpening.
-        if (color) {
-          const before = colorFilterBefore(color, w);
-          if (before) vChain.push(before);
-        }
-        if (cssFx && filterShare >= 1) vChain.push(cssFx);
-        else if (cssFx && filterShare > 0) {
-          // Part of the filter: the filtered picture over the plain one. In
-          // ffmpeg's normal blend the opacity is the share of the top input.
-          vChain.push(
-            `format=rgba,split[f${idx}a][f${idx}b];[f${idx}b]${cssFx},format=rgba[f${idx}c];[f${idx}c][f${idx}a]blend=all_mode=normal:all_opacity=${filterShare}`,
-          );
-        }
-        if (color) {
-          const after = colorFilterAfter(color, `c${idx}`);
-          if (after) vChain.push(after);
+        // makes, the colour filter, then lift, warmth and sharpening, each
+        // following its keyframes.
+        const animated: Animated[] = [
+          colorBefore(clip, w, `c${idx}`),
+          filterAt(clip, cssFx, `f${idx}`),
+          colorAfter(clip, `c${idx}`),
+        ];
+        for (const part of animated) {
+          if (part.filter) vChain.push(part.filter);
         }
         // A green screen takes its colour out after the colour changes, as
         // the preview does; a shape cuts the clip before it is turned.
@@ -333,17 +339,35 @@ export async function exportStudioProject(
         if (clip.shape && clip.shape !== 'none') {
           vChain.push(shapeFilter(clip.shape, `s${idx}`));
         }
-        if (rot !== 0) {
+        if (sized) vChain.push(animatedScale(clip, w, h));
+        if (isAnimated(clip, 'rotation')) vChain.push(animatedRotation(clip));
+        else if (rot !== 0) {
           vChain.push(`rotate=${rot}*PI/180:c=none:ow=rotw(iw):oh=roth(ih)`);
         }
-        if (opacity < 1) {
+        if (isAnimated(clip, 'opacity')) {
+          const fade = animatedOpacity(clip, `o${idx}`);
+          animated.push(fade);
+          vChain.push(fade.filter);
+        } else if (opacity < 1) {
           vChain.push('format=rgba', `colorchannelmixer=aa=${opacity}`);
+        }
+        // Values that change are sent to their filters frame by frame, in
+        // the clip's own time: the script goes in right after its trim.
+        const script = commandScript(
+          animated.flatMap((a) => a.commands),
+          clip.duration,
+          fps,
+        );
+        if (script) {
+          const file = `cmd_${idx}.txt`;
+          scripts.set(file, script);
+          const at = vChain.findIndex((f) => f.startsWith('scale='));
+          vChain.splice(at, 0, `sendcmd=f=${file}`);
         }
         vChain.push(`fps=${fps}`);
         // The clip's first frame belongs where it starts on the timeline:
-        // the overlay matches frames by time, so a clip left at 0 would show
-        // the wrong moment of itself, or its last frame held.
-        // Clips joined through transitions are placed by the join instead.
+        // the overlay matches frames by time. Clips joined through
+        // transitions are placed by the join instead.
         if (!mainIds.has(clip.id) && clip.startAt > 0) {
           vChain.push(`setpts=PTS+${clip.startAt}/TB`);
         }
@@ -355,12 +379,12 @@ export async function exportStudioProject(
           // joined to the others.
           parts.push(
             `color=c=black:s=${w}x${h}:r=${fps}:d=${clip.duration}[bg${idx}]`,
-            `[bg${idx}][${seg}]overlay=x=(W-w)/2+${tx}:y=(H-h)/2+${ty},format=yuv420p,setsar=1,fps=${fps},settb=AVTB[m${idx}]`,
+            `[bg${idx}][${seg}]overlay=x='(W-w)/2+${tx}':y='(H-h)/2+${ty}',format=yuv420p,setsar=1,fps=${fps},settb=AVTB[m${idx}]`,
           );
         } else {
           const next = `ov${idx}`;
           const enable = `between(t\\,${clip.startAt}\\,${clip.startAt + clip.duration})`;
-          const at = `x=(W-w)/2+${tx}:y=(H-h)/2+${ty}`;
+          const at = `x='(W-w)/2+${tx}':y='(H-h)/2+${ty}'`;
           if (clip.blend && clip.blend !== 'normal') {
             // Mixed with what is under it: the clip laid on a clear frame
             // the size of the video, mixed in RGB, then laid back with its
@@ -444,7 +468,14 @@ export async function exportStudioProject(
       textClipsOnTracks(project).forEach((tClip, i) => {
         const prev = videoOut;
         videoOut = `txt${i}`;
-        parts.push(buildDrawTextFilter(prev, videoOut, tClip, w, k));
+        parts.push(
+          buildDrawTextFilter(prev, videoOut, tClip, w, k, {
+            w,
+            h,
+            fps,
+            duration,
+          }),
+        );
       });
 
       if (mixLabels.length === 1) {
@@ -462,6 +493,9 @@ export async function exportStudioProject(
     const outputFileName = 'output.mp4';
     const run = async (filter: string) => {
       throwIfAborted(signal);
+      for (const [file, script] of scripts) {
+        await ffmpeg.writeFile(file, new TextEncoder().encode(script));
+      }
       await ffmpeg.exec([
         ...cliInputs,
         '-filter_complex',
@@ -525,8 +559,16 @@ export function buildAudioChain(
   if (speed !== 1) {
     parts.push(`atempo=${Math.min(2, Math.max(0.5, speed))}`);
   }
-  const vol = clip.muted ? 0 : (clip.volume ?? 1);
-  if (vol !== 1) parts.push(`volume=${vol}`);
+  // Its volume follows its keyframes, in its own time, before it is moved
+  // to where it starts.
+  if (!clip.muted && isAnimated(clip, 'volume')) {
+    parts.push(
+      `volume='max(0\\,${keyframeExpr(clip, 'volume', 't')})':eval=frame`,
+    );
+  } else {
+    const vol = clip.muted ? 0 : (clip.volume ?? 1);
+    if (vol !== 1) parts.push(`volume=${vol}`);
+  }
   parts.push(...fadeFilters(clip));
   const delayMs = Math.round(clip.startAt * 1000);
   parts.push(`adelay=${delayMs}|${delayMs}`);
@@ -541,14 +583,26 @@ export function buildDrawTextFilter(
   canvasWidth: number,
   /** Export pixels per editor pixel. */
   k = 1,
+  /** The video's size, frame rate and length, for a text that grows. */
+  frame?: { w: number; h: number; fps: number; duration: number },
 ): string {
+  // A text whose size changes is drawn at its largest on a clear layer,
+  // which grows and shrinks frame by frame: drawtext cannot change its own
+  // size as it plays.
+  if (isAnimated(tClip, 'scale') && frame) {
+    return growingText(prevNode, outNode, tClip, k, frame);
+  }
   const textStr = escapeDrawText(tClip.content);
-  const fontSize = round2((tClip.style.fontSize || 32) * k);
   const color = cssColorToFfmpeg(tClip.style.color || '#ffffff');
-  const tx = round2((tClip.transform?.x ?? 0) * k);
-  const ty = round2((tClip.transform?.y ?? 0) * k);
   const align = tClip.style.textAlign || 'center';
   const font = resolveStudioFontFile(tClip.style.fontFamily, true);
+  // drawtext's time is the timeline's: keyframes count from the text's start.
+  const time = `(t-${tClip.startAt})`;
+  const tx = placeExpr(tClip, 'x', time, k);
+  const ty = placeExpr(tClip, 'y', time, k);
+  // Its size grows every part of it, as the preview draws it.
+  const size = baseValue(tClip, 'scale');
+  const fontSize = round2((tClip.style.fontSize || 32) * k * size);
 
   let xExpr = `(w-text_w)/2+${tx}`;
   if (align === 'left') xExpr = `${Math.round(canvasWidth / 2)}+${tx}`;
@@ -562,17 +616,69 @@ export function buildDrawTextFilter(
     tClip.style.backgroundColor !== 'transparent' &&
     tClip.style.backgroundColor !== 'rgba(0,0,0,0)';
   const box = hasBox
-    ? `:box=1:boxcolor=${cssColorToFfmpeg(tClip.style.backgroundColor!)}:boxborderw=${round2((tClip.style.padding ?? 8) * k)}`
+    ? `:box=1:boxcolor=${cssColorToFfmpeg(tClip.style.backgroundColor!)}:boxborderw=${round2((tClip.style.padding ?? 8) * k * size)}`
     : '';
 
   const stroke =
     tClip.style.strokeColor && tClip.style.strokeWidth
-      ? `:borderw=${round2(tClip.style.strokeWidth * k)}:bordercolor=${cssColorToFfmpeg(tClip.style.strokeColor)}`
+      ? `:borderw=${round2(tClip.style.strokeWidth * k * size)}:bordercolor=${cssColorToFfmpeg(tClip.style.strokeColor)}`
       : '';
 
   const shadow = tClip.style.shadowColor
     ? `:shadowx=${round2(2 * k)}:shadowy=${round2(2 * k)}:shadowcolor=${cssColorToFfmpeg(tClip.style.shadowColor)}`
     : '';
 
-  return `[${prevNode}]drawtext=fontfile=${font.ffmpegFileName}:text='${textStr}':fontsize=${fontSize}:fontcolor=${color}:x=${xExpr}:y=${yExpr}${box}${stroke}${shadow}:enable='${enable}'[${outNode}]`;
+  const alpha = isAnimated(tClip, 'opacity')
+    ? `:alpha='clip(${keyframeExpr(tClip, 'opacity', time)}\\,0\\,1)'`
+    : (tClip.style.opacity ?? 1) < 1
+      ? `:alpha=${tClip.style.opacity}`
+      : '';
+
+  return `[${prevNode}]drawtext=fontfile=${font.ffmpegFileName}:text='${textStr}':fontsize=${fontSize}:fontcolor=${color}:x='${xExpr}':y='${yExpr}'${box}${stroke}${shadow}${alpha}:enable='${enable}'[${outNode}]`;
+}
+
+/**
+ * A text whose size follows keyframes: drawn at its largest, centred on a
+ * clear layer the size of the video, grown frame by frame around its
+ * centre, and laid where its keyframes place it.
+ */
+function growingText(
+  prevNode: string,
+  outNode: string,
+  tClip: TextClip,
+  k: number,
+  frame: { w: number; h: number; fps: number; duration: number },
+): string {
+  const { w, h, fps, duration } = frame;
+  const [, most] = rangeOf(tClip, 'scale');
+  const at = (n: number) => round2(n * k * most);
+  const style = tClip.style;
+  const time = `(t-${tClip.startAt})`;
+  const tag = `${outNode}g`;
+  const hasBox =
+    style.backgroundColor &&
+    style.backgroundColor !== 'transparent' &&
+    style.backgroundColor !== 'rgba(0,0,0,0)';
+  const box = hasBox
+    ? `:box=1:boxcolor=${cssColorToFfmpeg(style.backgroundColor!)}:boxborderw=${at(style.padding ?? 8)}`
+    : '';
+  const stroke =
+    style.strokeColor && style.strokeWidth
+      ? `:borderw=${at(style.strokeWidth)}:bordercolor=${cssColorToFfmpeg(style.strokeColor)}`
+      : '';
+  const shadow = style.shadowColor
+    ? `:shadowx=${round2(2 * k)}:shadowy=${round2(2 * k)}:shadowcolor=${cssColorToFfmpeg(style.shadowColor)}`
+    : '';
+  const alpha = isAnimated(tClip, 'opacity')
+    ? `:alpha='clip(${keyframeExpr(tClip, 'opacity', time)}\\,0\\,1)'`
+    : (style.opacity ?? 1) < 1
+      ? `:alpha=${style.opacity}`
+      : '';
+  const font = resolveStudioFontFile(style.fontFamily, true);
+  const grow = `(${keyframeExpr(tClip, 'scale', time)})/${most}`;
+  const enable = `between(t\\,${tClip.startAt}\\,${tClip.startAt + tClip.duration})`;
+  return [
+    `color=c=black@0:s=${w}x${h}:r=${fps}:d=${duration},format=rgba,drawtext=fontfile=${font.ffmpegFileName}:text='${escapeDrawText(tClip.content)}':fontsize=${at(style.fontSize || 32)}:fontcolor=${cssColorToFfmpeg(style.color || '#ffffff')}:x='(w-text_w)/2':y='(h-text_h)/2'${box}${stroke}${shadow}${alpha},scale=w='max(2\\,iw*${grow})':h='max(2\\,ih*${grow})':eval=frame,pad=w=${w}:h=${h}:x='(ow-iw)/2':y='(oh-ih)/2':color=black@0:eval=frame[${tag}]`,
+    `[${prevNode}][${tag}]overlay=x='${placeExpr(tClip, 'x', time, k)}':y='${placeExpr(tClip, 'y', time, k)}':enable='${enable}'[${outNode}]`,
+  ].join(';');
 }

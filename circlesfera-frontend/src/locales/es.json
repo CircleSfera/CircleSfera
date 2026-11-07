@@ -5321,6 +5321,10 @@
       "pick_hint": "Toca en el vídeo el color que quieres quitar",
       "strength": "Intensidad",
       "softness": "Suavizado del borde"
+    },
+    "keyframes": {
+      "add": "Añadir fotograma clave",
+      "remove": "Quitar fotograma clave"
     }
   },
   "live": {
