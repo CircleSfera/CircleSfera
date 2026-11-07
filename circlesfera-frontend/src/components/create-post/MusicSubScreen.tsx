@@ -7,6 +7,7 @@ import { audioApi } from '../../services/audio.service';
 import type { Audio } from '../../types';
 import AudioClipWaveform from '../audio/AudioClipWaveform';
 import { MEDIA_THUMB, thumbRatio } from '../common/MediaThumb';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
 import { SearchError, SearchMessage } from './SearchState';
 import SubScreenHeader from './SubScreenHeader';
@@ -310,7 +311,7 @@ export default function MusicSubScreen({
                   />
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className={`items-center pt-2 ${BUTTON_PAIR}`}>
                   <button
                     type="button"
                     onClick={handleTrimPreview}
@@ -334,7 +335,7 @@ export default function MusicSubScreen({
                   <button
                     type="button"
                     onClick={handleConfirmTrim}
-                    className="min-h-12 h-12 flex-1 px-5 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-sm font-bold inline-flex items-center justify-center gap-1.5 shadow-lg shadow-brand-primary/25 transition-transform active:scale-95"
+                    className="min-h-12 h-12 px-5 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-sm font-bold inline-flex items-center justify-center gap-1.5 shadow-lg shadow-brand-primary/25 transition-transform active:scale-95"
                   >
                     <Check className="w-4 h-4" strokeWidth={2.5} aria-hidden />
                     {t('modals.audio.confirm_clip')}

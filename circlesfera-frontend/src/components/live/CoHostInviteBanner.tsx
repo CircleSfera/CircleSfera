@@ -3,6 +3,7 @@ import { Radio, UserPlus, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { liveApi } from '../../services/live';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 
 interface CoHostInvite {
   streamId: string;
@@ -110,11 +111,11 @@ export default function CoHostInviteBanner({
               </button>
             </div>
 
-            <div className="flex gap-2">
+            <div className={`${BUTTON_PAIR}`}>
               <button
                 type="button"
                 onClick={handleAccept}
-                className="flex-1 flex items-center justify-center gap-2 min-h-12 px-4 bg-linear-to-r from-brand-primary to-brand-blue hover:opacity-95 text-white text-sm font-semibold rounded-full transition-all shadow-lg shadow-brand-primary/20 active:scale-95"
+                className="flex items-center justify-center gap-2 min-h-12 px-4 bg-linear-to-r from-brand-primary to-brand-blue hover:opacity-95 text-white text-sm font-semibold rounded-full transition-all shadow-lg shadow-brand-primary/20 active:scale-95"
               >
                 <UserPlus size={16} />
                 {t('live.cohost_invite.join')}

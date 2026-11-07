@@ -54,6 +54,7 @@ export default function PhotoCropPanel({
               key={opt.key}
               type="button"
               onClick={() => setAspect(opt.aspect)}
+              aria-pressed={isActive}
               className={`flex-1 min-h-11 h-11 text-sm font-semibold rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
                 isActive
                   ? 'bg-brand-primary/20 text-brand-primary-text'

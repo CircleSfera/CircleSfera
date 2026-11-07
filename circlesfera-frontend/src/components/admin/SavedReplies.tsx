@@ -97,7 +97,7 @@ export function SavedReplies({ leadsTeam, onInsert, onToast }: Props) {
       )}
       <Button
         variant="secondary"
-        className="min-h-11 text-sm max-sm:w-full"
+        className="min-h-11 text-sm"
         onClick={() => setManaging(true)}
       >
         {t('admin.support.saved_replies.manage')}

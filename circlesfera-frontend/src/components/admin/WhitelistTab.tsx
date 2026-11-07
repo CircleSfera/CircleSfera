@@ -9,6 +9,7 @@ import type { PaginatedResponse } from '../../types';
 import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
@@ -238,12 +239,12 @@ export default function WhitelistTab() {
                   </Select>
                 </div>
 
-                <div className="pt-4 flex gap-3">
+                <div className={`pt-4 ${BUTTON_PAIR}`}>
                   <Button
                     type="button"
                     onClick={() => setSelectedId(null)}
                     variant="secondary"
-                    className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
+                    className="min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
                   >
                     {t('admin.shared.cancel')}
                   </Button>
@@ -251,7 +252,7 @@ export default function WhitelistTab() {
                     type="submit"
                     isLoading={updateMutation.isPending}
                     variant="primary"
-                    className="flex-1 min-h-11 font-semibold shadow-lg shadow-brand-primary/20"
+                    className="min-h-11 font-semibold shadow-lg shadow-brand-primary/20"
                   >
                     <Save size={18} className="mr-2" />{' '}
                     {t('admin.whitelist.save')}

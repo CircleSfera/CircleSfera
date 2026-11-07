@@ -84,6 +84,7 @@ export default function InteractiveSubScreen({
               key={item.id}
               type="button"
               onClick={() => setKind(item.id)}
+              aria-pressed={kind === item.id}
               className={`flex-1 min-h-11 px-2 py-1.5 rounded-full text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                 kind === item.id
                   ? 'bg-white/12 text-white'

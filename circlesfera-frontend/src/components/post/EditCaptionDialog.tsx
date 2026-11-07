@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Button, Textarea } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { Dialog } from '../ui/Dialog';
 
 /** The longest caption the composer accepts. */
@@ -43,11 +44,11 @@ export default function EditCaptionDialog({
           maxLength={CAPTION_MAX_LENGTH}
         />
         {children}
-        <div className="flex gap-3">
+        <div className={`${BUTTON_PAIR}`}>
           <Button
             type="button"
             variant="secondary"
-            className="flex-1 min-h-11"
+            className="min-h-11"
             onClick={onClose}
             disabled={isSaving}
           >
@@ -56,7 +57,7 @@ export default function EditCaptionDialog({
           <Button
             type="submit"
             variant="primary"
-            className="flex-1 min-h-11"
+            className="min-h-11"
             isLoading={isSaving}
             disabled={isSaving}
           >

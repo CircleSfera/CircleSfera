@@ -86,7 +86,7 @@ export default function AudioPage() {
 
       <Button
         variant="primary"
-        className="w-full md:w-auto min-h-12 mb-6 gap-2"
+        className="min-h-12 mb-6 gap-2"
         onClick={() => {
           const route = frameWithAudioRoute(track);
           navigate(route.to, route.options);

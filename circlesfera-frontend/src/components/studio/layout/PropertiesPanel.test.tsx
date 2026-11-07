@@ -262,7 +262,20 @@ describe('PropertiesPanel', () => {
         'aria-pressed',
         'true',
       );
-      expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1);
+      const alignments = screen
+        .getAllByRole('button', { pressed: true })
+        .filter((b) => /^Align /.test(b.getAttribute('aria-label') ?? ''));
+      expect(alignments).toHaveLength(1);
+    });
+
+    it('says which of its tabs is open', () => {
+      openText();
+
+      const tab = screen.getByRole('button', {
+        name: /studio\.properties\.tabs\.text|Text/,
+        pressed: true,
+      });
+      expect(tab).toBeInTheDocument();
     });
 
     it('changes size and colours without touching the rest of the style', () => {

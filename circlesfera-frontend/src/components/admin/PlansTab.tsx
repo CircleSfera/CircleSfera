@@ -14,6 +14,7 @@ import {
 } from '../../utils/apiErrorMessage';
 import { formatCents } from '../../utils/money';
 import { Button, Input, Switch } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
@@ -238,11 +239,11 @@ export default function PlansTab({ onToast }: Props) {
                     className="font-mono tracking-widest text-center"
                     maxLength={6}
                   />
-                  <div className="flex gap-2">
+                  <div className={`${BUTTON_PAIR}`}>
                     <Button
                       type="button"
                       variant="primary"
-                      className="flex-1"
+                      className=""
                       disabled={code.length < 6 || confirmMutation.isPending}
                       isLoading={confirmMutation.isPending}
                       onClick={() => confirmMutation.mutate()}

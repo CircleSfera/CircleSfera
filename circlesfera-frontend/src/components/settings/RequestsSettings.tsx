@@ -7,6 +7,7 @@ import type { ProfileWithUser } from '../../types';
 import { EmptyState } from '../ErrorEmptyStates';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import SettingsSection from './SettingsSection';
 
 export default function RequestsSettings() {
@@ -76,7 +77,7 @@ export default function RequestsSettings() {
                     </p>
                   </div>
                 </Link>
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className={BUTTON_PAIR}>
                   <Button
                     onClick={() =>
                       user.username &&
@@ -88,7 +89,7 @@ export default function RequestsSettings() {
                     }
                     disabled={answering}
                     variant="primary"
-                    className="flex-1 sm:flex-none min-h-11 text-sm font-semibold px-4"
+                    className="min-h-11 text-sm font-semibold px-4"
                   >
                     {t('settings.requests.accept')}
                   </Button>
@@ -103,7 +104,7 @@ export default function RequestsSettings() {
                     }
                     disabled={answering}
                     variant="outline"
-                    className="flex-1 sm:flex-none min-h-11 text-sm font-semibold px-4"
+                    className="min-h-11 text-sm font-semibold px-4"
                   >
                     {t('settings.requests.reject')}
                   </Button>

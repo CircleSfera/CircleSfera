@@ -19,6 +19,7 @@ import {
 } from '../../../constants/uploadLimits';
 import BrandAmbientBackground from '../../common/BrandAmbientBackground';
 import { CREATE_FULL_SCREEN } from '../../create-post/createStyles';
+import { BUTTON_STACK } from '../../ui/buttonWidth';
 import { STORY_RECORD_MAX_SEC, useStoryCamera } from './useStoryCamera';
 
 /** How long the shutter is held before it records instead of taking a photo. */
@@ -211,12 +212,12 @@ export default function StoryCapture({
                   ? t('story.capture.refused')
                   : t('story.capture.none')}
               </p>
-              <div className="flex w-full max-w-sm flex-col gap-3">
+              <div className={`${BUTTON_STACK}`}>
                 {isLive ? (
                   <button
                     type="button"
                     onClick={onGoLive}
-                    className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 text-sm font-semibold hover:bg-white/15"
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 text-sm font-semibold hover:bg-white/15"
                   >
                     <Radio size={18} aria-hidden />
                     {t('story.capture.go_live')}
@@ -225,7 +226,7 @@ export default function StoryCapture({
                   <button
                     type="button"
                     onClick={onOpenGallery}
-                    className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 text-sm font-semibold hover:bg-white/15"
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 text-sm font-semibold hover:bg-white/15"
                   >
                     <Images size={18} aria-hidden />
                     {t('story.capture.gallery')}
@@ -235,7 +236,7 @@ export default function StoryCapture({
                   <button
                     type="button"
                     onClick={onCreate}
-                    className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 text-sm font-semibold hover:bg-white/15"
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 text-sm font-semibold hover:bg-white/15"
                   >
                     <Sparkles size={18} aria-hidden />
                     {t('createPost.upload.create_text_story')}

@@ -11,6 +11,7 @@ import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { formatLiveStart } from '../../utils/liveSchedule';
 import { CREATE_PRIMARY, CREATE_SECONDARY } from '../create-post/createStyles';
 import ConfirmModal from '../modals/ConfirmModal';
+import { BUTTON_PAIR } from '../ui/buttonWidth';
 import { LiveSheet } from './LivePieces';
 
 /**
@@ -99,12 +100,12 @@ export default function LiveUpcomingLives({
                   </p>
                 ) : null}
               </div>
-              <div className="flex gap-2">
+              <div className={BUTTON_PAIR}>
                 <button
                   type="button"
                   onClick={() => onStart(live)}
                   disabled={startingId !== null}
-                  className={`${CREATE_PRIMARY} flex-1 px-4`}
+                  className={`${CREATE_PRIMARY} px-4`}
                 >
                   {startingId === live.id
                     ? t('live.starting')
@@ -114,7 +115,7 @@ export default function LiveUpcomingLives({
                   type="button"
                   onClick={() => setToCancel(live)}
                   disabled={startingId !== null}
-                  className={`${CREATE_SECONDARY} flex-1 px-4`}
+                  className={`${CREATE_SECONDARY} px-4`}
                 >
                   {t('live.schedule.cancel')}
                 </button>
