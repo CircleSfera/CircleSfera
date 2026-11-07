@@ -5,7 +5,9 @@ import type { Audio } from '../../../types';
 import type { StudioPanel } from '../../../types/studio';
 import PropertiesPanel from '../layout/PropertiesPanel';
 import AudioPanel from '../panels/AudioPanel';
+import BlendPanel from '../panels/BlendPanel';
 import CaptionsPanel from '../panels/CaptionsPanel';
+import ChromaPanel from '../panels/ChromaPanel';
 import ClipFadesPanel from '../panels/ClipFadesPanel';
 import ClipSpeedPanel from '../panels/ClipSpeedPanel';
 import ClipVolumePanel from '../panels/ClipVolumePanel';
@@ -32,6 +34,8 @@ const TITLES: Record<StudioPanel, string> = {
   effects: 'studio.tools.effects',
   effect: 'studio.tools.effect',
   transition: 'studio.tools.transition',
+  blend: 'studio.tools.blend',
+  chroma: 'studio.tools.chroma',
   settings: 'studio.settings.title',
 };
 
@@ -84,6 +88,10 @@ function PanelBody({
       return <EffectsPanel />;
     case 'transition':
       return <TransitionPanel />;
+    case 'blend':
+      return <BlendPanel />;
+    case 'chroma':
+      return <ChromaPanel />;
     case 'settings':
       return <ProjectSettingsPanel />;
     default:

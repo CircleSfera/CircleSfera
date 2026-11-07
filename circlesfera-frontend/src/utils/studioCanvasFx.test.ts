@@ -5,6 +5,7 @@ import {
   drawEffect,
   drawTransition,
   drawVignette,
+  keyPicture,
   liftPicture,
   sampled,
   scratchCanvas,
@@ -304,5 +305,65 @@ describe('drawing an effect', () => {
       .filter((c) => c.op === 'drawImage')
       .map((c) => c.args[1]);
     expect(shifts).toEqual([-22, 0, 22]);
+  });
+});
+
+describe('keying a green screen', () => {
+  it('takes the colour out of the stretch the clip covers, leaving clear pixels', () => {
+    const picture = canvas(4, 4);
+    const rec = recOf(picture);
+    const data = new Uint8ClampedArray([
+      0,
+      255,
+      0,
+      255, // green: taken out
+      200,
+      0,
+      0,
+      255, // red: kept
+      0,
+      255,
+      0,
+      0, // already clear
+      64,
+      192,
+      64,
+      200, // near: partly kept
+    ]);
+    let read: number[] = [];
+    Object.assign(rec.ctx as unknown as Record<string, unknown>, {
+      getImageData: (...args: number[]) => {
+        read = args;
+        return { data };
+      },
+    });
+    keyPicture(picture, { x: -2.5, y: 1, w: 3.1, h: 1 }, [0, 255, 0], {
+      similarity: 0.2,
+      edge: 0.1,
+    });
+    expect(read).toEqual([0, 1, 1, 1]);
+    expect([data[3], data[7], data[11], data[15]]).toEqual([0, 255, 0, 99]);
+    expect(
+      rec.calls.find((c) => c.op === 'putImageData')?.args.slice(1),
+    ).toEqual([0, 1]);
+  });
+
+  it('leaves a picture it may not read, or an empty stretch, as it is', () => {
+    const picture = canvas(4, 4);
+    const rec = recOf(picture);
+    Object.assign(rec.ctx as unknown as Record<string, unknown>, {
+      getImageData: () => {
+        throw new DOMException('tainted', 'SecurityError');
+      },
+    });
+    keyPicture(picture, { x: 0, y: 0, w: 4, h: 4 }, [0, 255, 0], {
+      similarity: 0.2,
+      edge: 0,
+    });
+    keyPicture(picture, { x: 10, y: 10, w: 4, h: 4 }, [0, 255, 0], {
+      similarity: 0.2,
+      edge: 0,
+    });
+    expect(rec.calls.filter((c) => c.op === 'putImageData')).toHaveLength(0);
   });
 });

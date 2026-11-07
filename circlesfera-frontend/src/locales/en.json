@@ -5073,7 +5073,9 @@
       "color": "Color",
       "effects": "Effects",
       "effect": "Effect",
-      "transition": "Transition"
+      "transition": "Transition",
+      "blend": "Blend",
+      "chroma": "Green screen"
     },
     "properties": {
       "title": "Properties",
@@ -5291,6 +5293,34 @@
       "exposure": "Exposure",
       "sharpness": "Sharpness",
       "reset": "Reset"
+    },
+    "blend": {
+      "mode": "Blend mode",
+      "shape": "Shape",
+      "modes": {
+        "normal": "Normal",
+        "screen": "Screen",
+        "multiply": "Multiply",
+        "overlay": "Overlay",
+        "lighten": "Lighten",
+        "darken": "Darken"
+      },
+      "shapes": {
+        "none": "None",
+        "circle": "Circle",
+        "rounded": "Rounded",
+        "heart": "Heart"
+      }
+    },
+    "chroma": {
+      "color": "Colour to remove",
+      "off": "Off",
+      "green": "Green",
+      "blue": "Blue",
+      "pick": "Pick colour",
+      "pick_hint": "Tap the colour to remove in the video",
+      "strength": "Strength",
+      "softness": "Edge softness"
     }
   },
   "live": {

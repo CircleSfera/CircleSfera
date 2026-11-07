@@ -30,6 +30,8 @@ export type StudioPanel =
   | 'color'
   | 'effect'
   | 'transition'
+  | 'blend'
+  | 'chroma'
   | 'settings';
 
 export interface BaseClip {
@@ -73,6 +75,12 @@ export interface MediaClip extends BaseClip {
   color?: ColorAdjustments;
   /** On a clip of the main video track: how it passes to the next one. */
   transitionOut?: ClipTransition;
+  /** On a layer: how it mixes with what is under it. */
+  blend?: BlendMode;
+  /** On a layer: the shape it is cut to. */
+  shape?: ClipShape;
+  /** On a layer: the colour taken out of it, as a green screen. */
+  chroma?: ChromaKey;
   opacity?: number; // 0 to 1
   flipX?: boolean;
   flipY?: boolean;
@@ -109,6 +117,26 @@ export interface TextClip extends BaseClip {
     x: number;
     y: number;
   };
+}
+
+export type BlendMode =
+  | 'normal'
+  | 'screen'
+  | 'multiply'
+  | 'overlay'
+  | 'lighten'
+  | 'darken';
+
+export type ClipShape = 'none' | 'circle' | 'rounded' | 'heart';
+
+/** A colour taken out of a clip, and how much around it. */
+export interface ChromaKey {
+  /** #rrggbb */
+  color: string;
+  /** 0 to 100: how far from the colour is still taken out. */
+  strength: number;
+  /** 0 to 100: how softly the edge fades. */
+  softness: number;
 }
 
 /** The picture adjustments of a clip, each from -100 to 100, 0 being none. */

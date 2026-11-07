@@ -11,6 +11,7 @@ import type {
 import {
   drawEffect,
   drawTransition,
+  keyPicture,
   liftPicture,
   sharpenPicture,
   warmPicture,
@@ -21,6 +22,7 @@ vi.mock('../../utils/studioCanvasFx', async (original) => ({
   ...(await original<typeof import('../../utils/studioCanvasFx')>()),
   drawEffect: vi.fn(),
   drawTransition: vi.fn(),
+  keyPicture: vi.fn(),
   liftPicture: vi.fn(),
   warmPicture: vi.fn(),
   sharpenPicture: vi.fn(),
@@ -562,6 +564,7 @@ describe('StudioPlayer', () => {
       for (const fn of [
         drawTransition,
         drawEffect,
+        keyPicture,
         liftPicture,
         warmPicture,
         sharpenPicture,
@@ -754,6 +757,69 @@ describe('StudioPlayer', () => {
       });
       act(() => frame());
       expect(sharpenPicture).toHaveBeenCalledTimes(1);
+    });
+
+    const layered = (over: Partial<MediaClip>) =>
+      project([
+        track('video', [media('base', 'video')]),
+        track('video', [media('top', 'video', over)], { id: 'layer' }),
+      ]);
+    const chroma = { color: '#00ff00', strength: 40, softness: 20 };
+
+    it('keys a layer’s green screen on the stretch it covers, and lays it with its blend', () => {
+      open(layered({ chroma, blend: 'multiply' }));
+      sized(video('base'));
+      sized(video('top'));
+      act(() => frame());
+      // A full-frame clip: a square around the centre as wide as its diagonal.
+      const half = Math.hypot(1080, 1920) / 2;
+      expect(keyPicture).toHaveBeenCalledWith(
+        expect.any(HTMLCanvasElement),
+        { x: 540 - half, y: 960 - half, w: half * 2, h: half * 2 },
+        [0, 255, 0],
+        { similarity: 0.2, edge: 0.06 },
+      );
+    });
+
+    it('shows a layer with its colour while that colour is being picked', () => {
+      useStudioStore.setState({ pickingColor: true });
+      open(layered({ chroma }));
+      sized(video('top'));
+      act(() => frame());
+      expect(keyPicture).not.toHaveBeenCalled();
+      useStudioStore.setState({ pickingColor: false });
+    });
+
+    it('takes the colour under a tap as the chosen layer’s green screen', () => {
+      open(layered({}));
+      change({ selectedClipId: 'top', pickingColor: true });
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+      const context = canvas.getContext('2d') as unknown as Record<
+        string,
+        unknown
+      >;
+      let read: number[] = [];
+      context.getImageData = (...at: number[]) => {
+        read = at;
+        return { data: new Uint8ClampedArray([10, 200, 30, 255]) };
+      };
+      canvas.getBoundingClientRect = () =>
+        ({ left: 0, top: 0, width: 108, height: 192 }) as DOMRect;
+      act(() => {
+        canvas.dispatchEvent(
+          new MouseEvent('click', { bubbles: true, clientX: 54, clientY: 48 }),
+        );
+      });
+      expect(read).toEqual([540, 480, 1, 1]);
+      const top = useStudioStore.getState().project?.tracks[1]
+        .clips[0] as MediaClip;
+      expect(top.chroma).toEqual({
+        color: '#0ac81e',
+        strength: 40,
+        softness: 20,
+      });
+      expect(useStudioStore.getState().pickingColor).toBe(false);
+      delete context.getImageData;
     });
 
     it('lays the effects under way over the picture, at their own time', () => {

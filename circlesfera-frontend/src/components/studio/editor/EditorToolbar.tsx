@@ -5,11 +5,13 @@ import {
   Copy,
   Film,
   Gauge,
+  Layers,
   type LucideIcon,
   Mic,
   Move,
   Music,
   Palette,
+  Pipette,
   Replace,
   Scissors,
   Sparkles,
@@ -22,6 +24,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { Clip, MediaClip, StudioPanel } from '../../../types/studio';
+import { isOverlayClip } from '../../../utils/studioOverlay';
 import { locateClip } from '../../../utils/studioTimeline';
 
 interface Tool {
@@ -160,6 +163,24 @@ export default function EditorToolbar({
               icon: Palette,
               labelKey: 'studio.tools.color',
               panel: 'color' as const,
+            },
+          ]
+        : []),
+      // A layer above the main track mixes with it, is cut to a shape, and
+      // can lose its green screen.
+      ...(visual && project && isOverlayClip(project, clip.id)
+        ? [
+            {
+              id: 'blend',
+              icon: Layers,
+              labelKey: 'studio.tools.blend',
+              panel: 'blend' as const,
+            },
+            {
+              id: 'chroma',
+              icon: Pipette,
+              labelKey: 'studio.tools.chroma',
+              panel: 'chroma' as const,
             },
           ]
         : []),
