@@ -38,7 +38,7 @@ export class EditsService {
     // Only the sending Profile's own stored files can be attached.
     await this.storedFiles.assertOwnedBy(profileId, [
       createEditDto.mediaUrl,
-      ...this.collectStudioMediaUrls(createEditDto.state),
+      ...(await this.ownFilesOf(createEditDto.state)),
     ]);
     try {
       if (!this.prisma.editProject) {
@@ -96,7 +96,7 @@ export class EditsService {
     const kept = new Set(this.collectStudioMediaUrls(edit.state));
     await this.storedFiles.assertOwnedBy(
       profileId,
-      this.collectStudioMediaUrls(updateEditDto.state).filter(
+      (await this.ownFilesOf(updateEditDto.state)).filter(
         (url) => !kept.has(url),
       ),
     );
@@ -111,6 +111,70 @@ export class EditsService {
             : (edit.state as object),
       },
     });
+  }
+
+  /**
+   * The files of a project that must be the Profile's own: every file it
+   * shows except a song of the audio library, which a clip names by its id
+   * and which is accepted only at that song's own address. A clip naming a
+   * song with any other address is checked as the Profile's file.
+   */
+  private async ownFilesOf(state: unknown): Promise<string[]> {
+    const urls = this.collectStudioMediaUrls(state);
+    const songs = this.collectLibrarySongs(state);
+    if (!songs.length) return urls;
+    const library = await this.prisma.audio.findMany({
+      where: { id: { in: [...new Set(songs.map((s) => s.audioId))] } },
+      select: { id: true, url: true },
+    });
+    const addressOf = new Map(library.map((audio) => [audio.id, audio.url]));
+    const libraryUrls = new Set(
+      songs
+        .filter((song) => addressOf.get(song.audioId) === song.fileUrl)
+        .map((song) => song.fileUrl),
+    );
+    // A file both a library song and an own clip shows stays checked.
+    const ownClips = new Set(
+      this.studioClips(state)
+        .filter((clip) => !clip.audioId && clip.fileUrl)
+        .map((clip) => clip.fileUrl as string),
+    );
+    return urls.filter((url) => !libraryUrls.has(url) || ownClips.has(url));
+  }
+
+  /** The clips of a studio project that name a song of the audio library. */
+  private collectLibrarySongs(
+    state: unknown,
+  ): { audioId: string; fileUrl: string }[] {
+    return this.studioClips(state).flatMap((clip) =>
+      clip.type === 'audio' &&
+      typeof clip.audioId === 'string' &&
+      typeof clip.fileUrl === 'string'
+        ? [{ audioId: clip.audioId, fileUrl: clip.fileUrl }]
+        : [],
+    );
+  }
+
+  private studioClips(
+    state: unknown,
+  ): { type?: string; fileUrl?: string; audioId?: unknown }[] {
+    if (
+      !state ||
+      typeof state !== 'object' ||
+      (state as { version?: number }).version !== 3
+    ) {
+      return [];
+    }
+    const tracks = (
+      state as {
+        studio?: {
+          tracks?: {
+            clips?: { type?: string; fileUrl?: string; audioId?: unknown }[];
+          }[];
+        };
+      }
+    ).studio?.tracks;
+    return (tracks ?? []).flatMap((track) => track.clips ?? []);
   }
 
   private collectStudioMediaUrls(state: unknown): string[] {
@@ -155,7 +219,7 @@ export class EditsService {
     await this.prisma.$transaction(async (tx) => {
       await tx.editProject.delete({ where: { id: edit.id } });
       await this.uploadsService.releaseContentFiles(
-        [edit.mediaUrl, ...this.collectStudioMediaUrls(edit.state)],
+        [edit.mediaUrl, ...(await this.ownFilesOf(edit.state))],
         tx,
       );
     }, DELETION_TRANSACTION);

@@ -30,6 +30,9 @@ describe('EditsService', () => {
     featureFlag: {
       findUnique: vi.fn(),
     },
+    audio: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   };
 
   const mockUploadsService = {
@@ -271,6 +274,116 @@ describe('EditsService', () => {
         where: { profileId: 'p-1' },
         orderBy: { updatedAt: 'desc' },
       });
+    });
+  });
+
+  describe('songs of the audio library', () => {
+    const song = { id: 'song-1', url: '/uploads/library/song.mp3' };
+    const project = (...clips: object[]) => ({
+      version: 3,
+      studio: { tracks: [{ clips }] },
+    });
+    const own = { type: 'video', fileUrl: '/uploads/mine.mp4' };
+    beforeEach(() => {
+      mockPrismaService.audio.findMany.mockResolvedValue([song]);
+      mockPrismaService.editProject.create.mockResolvedValue({ id: 'e-1' });
+    });
+
+    it('takes a library song at its own address without asking that it be the Profile’s', async () => {
+      await service.create('p-1', {
+        mediaUrl: '',
+        state: project(own, {
+          type: 'audio',
+          audioId: song.id,
+          fileUrl: song.url,
+        }),
+      } as never);
+      expect(mockPrismaService.audio.findMany).toHaveBeenCalledWith({
+        where: { id: { in: [song.id] } },
+        select: { id: true, url: true },
+      });
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('p-1', [
+        '',
+        '/uploads/mine.mp4',
+      ]);
+    });
+
+    it('checks as the Profile’s own a file that names a song at another address', async () => {
+      await service.create('p-1', {
+        mediaUrl: '',
+        state: project(
+          {
+            type: 'audio',
+            audioId: song.id,
+            fileUrl: '/uploads/someone-else.mp4',
+          },
+          {
+            type: 'audio',
+            audioId: 'no-such-song',
+            fileUrl: '/uploads/other.mp4',
+          },
+          { type: 'video', audioId: song.id, fileUrl: song.url },
+        ),
+      } as never);
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('p-1', [
+        '',
+        '/uploads/someone-else.mp4',
+        '/uploads/other.mp4',
+        song.url,
+      ]);
+    });
+
+    it('keeps checking a song’s address when an own clip shows it too', async () => {
+      await service.create('p-1', {
+        mediaUrl: '',
+        state: project(
+          { type: 'audio', audioId: song.id, fileUrl: song.url },
+          { type: 'video', fileUrl: song.url },
+        ),
+      } as never);
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('p-1', [
+        '',
+        song.url,
+      ]);
+    });
+
+    it('takes a song added to a saved project, and never lets go of it when the project goes', async () => {
+      mockPrismaService.editProject.findFirst.mockResolvedValue({
+        id: 'e-1',
+        mediaUrl: '/uploads/mine.mp4',
+        state: project(own),
+      });
+      await service.update('p-1', 'e-1', {
+        state: project(own, {
+          type: 'audio',
+          audioId: song.id,
+          fileUrl: song.url,
+        }),
+      } as never);
+      expect(mockStoredFiles.assertOwnedBy).toHaveBeenCalledWith('p-1', []);
+
+      mockPrismaService.editProject.findFirst.mockResolvedValue({
+        id: 'e-1',
+        mediaUrl: '/uploads/mine.mp4',
+        state: project(own, {
+          type: 'audio',
+          audioId: song.id,
+          fileUrl: song.url,
+        }),
+      });
+      await service.remove('p-1', 'e-1');
+      expect(mockUploadsService.releaseContentFiles).toHaveBeenCalledWith(
+        ['/uploads/mine.mp4', '/uploads/mine.mp4'],
+        expect.anything(),
+      );
+    });
+
+    it('asks the library nothing when no clip names a song', async () => {
+      await service.create('p-1', {
+        mediaUrl: '',
+        state: project(own),
+      } as never);
+      expect(mockPrismaService.audio.findMany).not.toHaveBeenCalled();
     });
   });
 
