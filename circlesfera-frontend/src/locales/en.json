@@ -4982,10 +4982,6 @@
   "studio": {
     "seo_title": "Studio | CircleSfera",
     "default_project_name": "New Project",
-    "default_track_name": "Main Track",
-    "default_text": "New Text",
-    "select_clip_hint": "Select a clip to view its properties",
-    "split_title": "Split at playhead",
     "split": "Split",
     "delete": "Delete",
     "export_error": "Error exporting the video. Please try again.",
@@ -5009,19 +5005,10 @@
       "veryfast": "Balanced",
       "fast": "Higher quality"
     },
-    "exit": "Exit Studio",
-    "project_name": "Project name",
     "undo": "Undo",
     "redo": "Redo",
-    "open": "Open",
-    "open_drafts": "Open drafts",
     "save": "Save",
-    "saving": "Saving…",
-    "saved": "Saved",
     "save_error": "Could not save draft",
-    "save_error_short": "Save failed",
-    "zoom": "Timeline zoom",
-    "playhead": "Playhead",
     "clip_types": {
       "video": "Video",
       "image": "Image",
@@ -5030,12 +5017,6 @@
     },
     "trim_start": "Trim start",
     "trim_end": "Trim end",
-    "mute": "Mute track",
-    "unmute": "Unmute track",
-    "hide": "Hide track",
-    "show": "Show track",
-    "lock": "Lock track",
-    "unlock": "Unlock track",
     "tracks": {
       "video": "Video",
       "text": "Text",
@@ -5078,8 +5059,6 @@
       "chroma": "Green screen"
     },
     "properties": {
-      "title": "Properties",
-      "close": "Close properties",
       "tabs": {
         "transform": "Transform",
         "text": "Text",
@@ -5110,19 +5089,10 @@
       "empty": "Add media to start editing"
     },
     "media": {
-      "import": "Import video or image",
-      "formats": "MP4, MOV, WEBM, PNG, JPG (up to 4K)",
-      "samples": "Quick samples",
-      "sample_neon": "Neon abstraction",
-      "sample_gradient": "Studio gradient",
-      "sample_added": "{{name}} added",
-      "video_added": "Video added to timeline",
-      "image_added": "Image added to timeline",
       "upload_error": "Could not upload media"
     },
     "text": {
       "templates": "Text templates",
-      "added": "Text added to canvas",
       "preset_title": "Bold title",
       "preset_subtitle": "Highlighted subtitle",
       "preset_badge": "Neon badge",
@@ -5133,7 +5103,6 @@
       "preset_story_content": "@creator_handle"
     },
     "audio": {
-      "title": "Audio tracks & SFX",
       "upload": "Upload audio from device",
       "added": "Audio track added",
       "search": "Search songs",
@@ -5178,10 +5147,7 @@
       "disabled": "AI captions are temporarily unavailable"
     },
     "drafts": {
-      "title": "My drafts",
-      "empty": "No saved drafts yet",
       "error": "Could not load drafts",
-      "updated": "Updated: {{date}}",
       "delete": "Delete draft",
       "delete_confirm": "Delete this draft permanently?",
       "deleted": "Draft deleted",
@@ -5193,15 +5159,6 @@
     "export_success": "Your project has been rendered successfully.",
     "export_publish": "Publish to CircleSfera",
     "export_download": "Download to device",
-    "playback": {
-      "start": "Go to start",
-      "end": "Go to end",
-      "play": "Play",
-      "pause": "Pause",
-      "fullscreen": "Fullscreen",
-      "frame_back": "Previous frame",
-      "frame_forward": "Next frame"
-    },
     "add_media": "Add clips",
     "play": "Play",
     "pause": "Pause",

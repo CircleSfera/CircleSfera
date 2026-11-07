@@ -4982,10 +4982,6 @@
   "studio": {
     "seo_title": "Studio | CircleSfera",
     "default_project_name": "Nuevo Proyecto",
-    "default_track_name": "Pista Principal",
-    "default_text": "Nuevo Texto",
-    "select_clip_hint": "Selecciona un clip para ver sus propiedades",
-    "split_title": "Dividir en la posición actual",
     "split": "Dividir",
     "delete": "Borrar",
     "export_error": "Error exportando el video. Inténtalo de nuevo.",
@@ -5009,19 +5005,10 @@
       "veryfast": "Equilibrado",
       "fast": "Mayor calidad"
     },
-    "exit": "Salir del Studio",
-    "project_name": "Nombre del proyecto",
     "undo": "Deshacer",
     "redo": "Rehacer",
-    "open": "Abrir",
-    "open_drafts": "Abrir borradores",
     "save": "Guardar",
-    "saving": "Guardando…",
-    "saved": "Guardado",
     "save_error": "No se pudo guardar el borrador",
-    "save_error_short": "Error al guardar",
-    "zoom": "Zoom de la línea de tiempo",
-    "playhead": "Cabezal de reproducción",
     "clip_types": {
       "video": "Vídeo",
       "image": "Imagen",
@@ -5030,12 +5017,6 @@
     },
     "trim_start": "Recortar inicio",
     "trim_end": "Recortar final",
-    "mute": "Silenciar pista",
-    "unmute": "Activar sonido",
-    "hide": "Ocultar pista",
-    "show": "Mostrar pista",
-    "lock": "Bloquear pista",
-    "unlock": "Desbloquear pista",
     "tracks": {
       "video": "Vídeo",
       "text": "Texto",
@@ -5078,8 +5059,6 @@
       "chroma": "Pantalla verde"
     },
     "properties": {
-      "title": "Propiedades",
-      "close": "Cerrar propiedades",
       "tabs": {
         "transform": "Transformar",
         "text": "Texto",
@@ -5110,19 +5089,10 @@
       "empty": "Añade medios para empezar a editar"
     },
     "media": {
-      "import": "Importar vídeo o imagen",
-      "formats": "MP4, MOV, WEBM, PNG, JPG (hasta 4K)",
-      "samples": "Muestras rápidas",
-      "sample_neon": "Abstracción neón",
-      "sample_gradient": "Gradiente studio",
-      "sample_added": "{{name}} añadido",
-      "video_added": "Vídeo añadido a la línea de tiempo",
-      "image_added": "Imagen añadida a la línea de tiempo",
       "upload_error": "No se pudo subir el archivo"
     },
     "text": {
       "templates": "Plantillas de texto",
-      "added": "Texto añadido al lienzo",
       "preset_title": "Título principal en negrita",
       "preset_subtitle": "Subtítulo destacado",
       "preset_badge": "Etiqueta neón",
@@ -5133,7 +5103,6 @@
       "preset_story_content": "@usuario_creador"
     },
     "audio": {
-      "title": "Pistas de audio y efectos de sonido",
       "upload": "Cargar audio del dispositivo",
       "added": "Pista de audio añadida",
       "search": "Buscar canciones",
@@ -5178,10 +5147,7 @@
       "disabled": "Los subtítulos IA no están disponibles temporalmente"
     },
     "drafts": {
-      "title": "Mis borradores",
-      "empty": "Aún no tienes borradores guardados",
       "error": "No se pudieron cargar los borradores",
-      "updated": "Actualizado: {{date}}",
       "delete": "Eliminar borrador",
       "delete_confirm": "¿Eliminar este borrador de forma permanente?",
       "deleted": "Borrador eliminado",
@@ -5193,15 +5159,6 @@
     "export_success": "Tu proyecto se ha renderizado correctamente.",
     "export_publish": "Publicar en CircleSfera",
     "export_download": "Descargar al dispositivo",
-    "playback": {
-      "start": "Ir al inicio",
-      "end": "Ir al final",
-      "play": "Reproducir",
-      "pause": "Pausar",
-      "fullscreen": "Pantalla completa",
-      "frame_back": "Fotograma anterior",
-      "frame_forward": "Fotograma siguiente"
-    },
     "add_media": "Añadir clips",
     "play": "Reproducir",
     "pause": "Pausar",
