@@ -22,6 +22,15 @@ import { HOLD_TO_MOVE_MS } from './TimelineClip';
 // such thing.
 Element.prototype.setPointerCapture = vi.fn();
 
+// The music panel asks the library for songs as it opens: answered here,
+// so no request leaves the test and nothing is logged after it ends.
+vi.mock('../../../services/audio.service', () => ({
+  audioApi: {
+    getTrending: vi.fn().mockResolvedValue({ data: [] }),
+    search: vi.fn().mockResolvedValue({ data: [] }),
+  },
+}));
+
 vi.mock('../layout/PropertiesPanel', () => ({
   default: () => <p>properties</p>,
 }));

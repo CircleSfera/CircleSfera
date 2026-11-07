@@ -17,6 +17,14 @@ import TextPanel from './TextPanel';
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ toast }));
+// The music panel asks the library for songs as it opens: answered here,
+// so no request leaves the test and nothing is logged after it ends.
+vi.mock('../../../services/audio.service', () => ({
+  audioApi: {
+    getTrending: vi.fn().mockResolvedValue({ data: [] }),
+    search: vi.fn().mockResolvedValue({ data: [] }),
+  },
+}));
 
 /** Chooses a file in the hidden file field of a panel. */
 function choose(container: HTMLElement, file: File | null) {
