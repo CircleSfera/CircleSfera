@@ -60,6 +60,8 @@ export interface CreatePostDto {
   audioStartMs?: number;
   /** The song is mixed into the video (made in the Edits Studio). */
   audioInVideo?: boolean;
+  /** The Edits Studio template the post was made with, for its credit. */
+  templateId?: string;
   tags?: Array<{ profileId: string; x: number; y: number }>;
   isPremium?: boolean;
   priceCents?: number;

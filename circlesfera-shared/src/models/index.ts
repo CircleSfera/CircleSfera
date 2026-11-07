@@ -149,6 +149,13 @@ export interface Post {
   audioStartMs?: number | null;
   /** The song is mixed into the video: play the video's own sound, not the song. */
   audioInVideo?: boolean;
+  /**
+   * The template others may use, offered from this Frame. Its author also
+   * sees whether it is on.
+   */
+  studioTemplate?: { id: string; uses: number; isPublic?: boolean } | null;
+  /** The credit of the template this post was made with. */
+  madeWithTemplate?: { postId: string; username: string } | null;
   audio?: Audio | null;
   placeId?: string | null;
   place?: Place | null;

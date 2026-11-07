@@ -13,6 +13,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -256,6 +257,15 @@ export class CreatePostDto {
   @IsOptional()
   @IsBoolean()
   audioInVideo?: boolean;
+
+  /**
+   * The Edits Studio template the post was made with, for its credit: one
+   * the author may use.
+   */
+  @ApiProperty({ required: false, type: () => String })
+  @IsOptional()
+  @IsUUID()
+  templateId?: string;
 
   @ApiProperty({ required: false, enum: ['PUBLIC', 'FOLLOWERS', 'PRIVATE'] })
   @IsOptional()
