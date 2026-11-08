@@ -224,4 +224,53 @@ describe('EditsHome', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Kept')).not.toBeInTheDocument();
   });
+
+  describe('which comes first, projects or templates', () => {
+    const titles = () =>
+      screen
+        .getAllByRole('region')
+        .map((r) => r.getAttribute('aria-labelledby'));
+
+    it('puts templates first for someone with no projects', async () => {
+      renderWithProviders(<EditsHome />);
+      await screen.findByText('You have no projects yet.');
+      expect(titles()).toEqual([
+        'studio-templates-title',
+        'studio-projects-title',
+      ]);
+    });
+
+    it('puts the projects first once there are some', async () => {
+      vi.mocked(editsService.getProjects).mockResolvedValue([
+        saved('p1', 'Beach', 'https://cdn/trip.mp4'),
+      ] as never);
+      renderWithProviders(<EditsHome />);
+      await screen.findByText('Beach');
+      expect(titles()).toEqual([
+        'studio-projects-title',
+        'studio-templates-title',
+      ]);
+    });
+
+    it('counts a project only on this device', async () => {
+      vi.mocked(loadLocalStudioDraft).mockResolvedValue({
+        project: studio('Unsaved'),
+        cloudProjectId: null,
+      } as never);
+      renderWithProviders(<EditsHome />);
+      await screen.findByText('Unsaved');
+      expect(titles()[0]).toBe('studio-projects-title');
+    });
+
+    it("puts templates first when coming from a Frame's template", async () => {
+      vi.mocked(editsService.getProjects).mockResolvedValue([
+        saved('p1', 'Beach', 'https://cdn/trip.mp4'),
+      ] as never);
+      renderWithProviders(<EditsHome />, {
+        routerProps: { initialEntries: ['/edits?template=post-1'] },
+      });
+      await screen.findByText('Beach');
+      expect(titles()[0]).toBe('studio-templates-title');
+    });
+  });
 });

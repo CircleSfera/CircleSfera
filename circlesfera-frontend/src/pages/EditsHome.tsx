@@ -52,7 +52,10 @@ function Thumbnail({ url, type }: { url: string; type: string }) {
   );
 }
 
-/** The Edits Studio's first screen: a new project, and the projects kept. */
+/**
+ * The Edits Studio's first screen: a new project, the projects kept and the
+ * templates to start from, the projects first once there are some.
+ */
 export default function EditsHome() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -133,6 +136,19 @@ export default function EditsHome() {
     open(newBlankProject(t('studio.default_project_name'), t), null);
   };
 
+  // Someone with projects mostly comes back to one of them: their projects
+  // come first. Someone with none starts from a template, and so does
+  // someone who came from a Frame's "Use template".
+  const fromPostId = searchParams.get('template');
+  const projectsFirst =
+    !fromPostId && (projects.length > 0 || unsaved !== null);
+  const templates = (
+    <TemplatesSection
+      fromPostId={fromPostId}
+      onOpen={(studio) => open(studio, null)}
+    />
+  );
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-4 md:px-8 md:pt-8">
       <SEO title={t('studio.seo_title')} />
@@ -155,112 +171,124 @@ export default function EditsHome() {
         {t('studio.home.new')}
       </button>
 
-      <TemplatesSection
-        fromPostId={searchParams.get('template')}
-        onOpen={(studio) => open(studio, null)}
-      />
+      {!projectsFirst && templates}
 
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50">
-        {t('studio.home.projects')}
-      </h2>
-
-      {isLoading && (
-        <div
-          className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
-          aria-hidden
+      <section aria-labelledby="studio-projects-title" className="mb-8">
+        <h2
+          id="studio-projects-title"
+          className="mb-3 text-sm font-bold uppercase tracking-wider text-white/50"
         >
-          {[0, 1, 2, 3].map((n) => (
-            <div
-              key={n}
-              className="aspect-9/16 animate-pulse rounded-2xl bg-white/5"
-            />
-          ))}
-        </div>
-      )}
-      {isError && (
-        <p className="text-sm text-brand-secondary">
-          {t('studio.drafts.error')}
-        </p>
-      )}
+          {t('studio.home.projects')}
+        </h2>
 
-      {!isLoading && !isError && projects.length === 0 && !unsaved && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 py-12 text-center">
-          <Clapperboard size={32} className="text-white/30" aria-hidden />
-          <p className="text-sm text-white/60">{t('studio.home.empty')}</p>
-        </div>
-      )}
-
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {unsaved && (
-          <li className="relative">
-            <button
-              type="button"
-              onClick={() => open(unsaved, null)}
-              className="block w-full text-left"
-            >
-              <span className="flex aspect-9/16 w-full items-center justify-center rounded-2xl bg-white/5 ring-1 ring-brand-primary/40">
-                <Clapperboard size={28} className="text-white/40" aria-hidden />
-              </span>
-              <span className="mt-2 block truncate text-sm font-semibold text-white">
-                {unsaved.name}
-              </span>
-              <span className="block text-xs text-brand-primary-text">
-                {t('studio.home.on_this_device')}
-              </span>
-            </button>
-          </li>
+        {isLoading && (
+          <div
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+            aria-hidden
+          >
+            {[0, 1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="aspect-9/16 animate-pulse rounded-2xl bg-white/5"
+              />
+            ))}
+          </div>
         )}
-        {projects.map(({ draft, studio }) => (
-          <li key={draft.id} className="relative">
-            <button
-              type="button"
-              onClick={() => open(studio, draft.id)}
-              className="block w-full text-left"
-            >
-              <span className="relative block aspect-9/16 w-full overflow-hidden rounded-2xl bg-white/5">
-                {draft.mediaUrl && (
-                  <Thumbnail url={draft.mediaUrl} type={draft.mediaType} />
-                )}
-                <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-xs font-mono text-white">
-                  {formatClock(projectContentEnd(studio))}
+        {isError && (
+          <p className="text-sm text-brand-secondary">
+            {t('studio.drafts.error')}
+          </p>
+        )}
+
+        {!isLoading && !isError && projects.length === 0 && !unsaved && (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 py-12 text-center">
+            <Clapperboard size={32} className="text-white/30" aria-hidden />
+            <p className="text-sm text-white/60">{t('studio.home.empty')}</p>
+          </div>
+        )}
+
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {unsaved && (
+            <li className="relative">
+              <button
+                type="button"
+                onClick={() => open(unsaved, null)}
+                className="block w-full text-left"
+              >
+                <span className="flex aspect-9/16 w-full items-center justify-center rounded-2xl bg-white/5 ring-1 ring-brand-primary/40">
+                  <Clapperboard
+                    size={28}
+                    className="text-white/40"
+                    aria-hidden
+                  />
                 </span>
-              </span>
-              <span className="mt-2 block truncate text-sm font-semibold text-white">
-                {draft.name || studio.name || t('studio.default_project_name')}
-              </span>
-              <span className="block text-xs text-white/50">
-                {formatDate(draft.updatedAt, i18n.language)}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMenuFor(menuFor === draft.id ? null : draft.id)}
-              aria-label={t('studio.home.options', {
-                name: draft.name || studio.name,
-              })}
-              aria-expanded={menuFor === draft.id}
-              className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white"
-            >
-              <MoreHorizontal size={18} aria-hidden />
-            </button>
-            {menuFor === draft.id && (
-              <div className="absolute right-1 top-13 z-10 rounded-xl border border-white/10 bg-surface-elevated p-1 shadow-xl">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuFor(null);
-                    setToDelete(draft.id);
-                  }}
-                  className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-brand-secondary hover:bg-white/5"
-                >
-                  <Trash2 size={16} aria-hidden />
-                  {t('studio.drafts.delete')}
-                </button>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+                <span className="mt-2 block truncate text-sm font-semibold text-white">
+                  {unsaved.name}
+                </span>
+                <span className="block text-xs text-brand-primary-text">
+                  {t('studio.home.on_this_device')}
+                </span>
+              </button>
+            </li>
+          )}
+          {projects.map(({ draft, studio }) => (
+            <li key={draft.id} className="relative">
+              <button
+                type="button"
+                onClick={() => open(studio, draft.id)}
+                className="block w-full text-left"
+              >
+                <span className="relative block aspect-9/16 w-full overflow-hidden rounded-2xl bg-white/5">
+                  {draft.mediaUrl && (
+                    <Thumbnail url={draft.mediaUrl} type={draft.mediaType} />
+                  )}
+                  <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-xs font-mono text-white">
+                    {formatClock(projectContentEnd(studio))}
+                  </span>
+                </span>
+                <span className="mt-2 block truncate text-sm font-semibold text-white">
+                  {draft.name ||
+                    studio.name ||
+                    t('studio.default_project_name')}
+                </span>
+                <span className="block text-xs text-white/50">
+                  {formatDate(draft.updatedAt, i18n.language)}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setMenuFor(menuFor === draft.id ? null : draft.id)
+                }
+                aria-label={t('studio.home.options', {
+                  name: draft.name || studio.name,
+                })}
+                aria-expanded={menuFor === draft.id}
+                className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white"
+              >
+                <MoreHorizontal size={18} aria-hidden />
+              </button>
+              {menuFor === draft.id && (
+                <div className="absolute right-1 top-13 z-10 rounded-xl border border-white/10 bg-surface-elevated p-1 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuFor(null);
+                      setToDelete(draft.id);
+                    }}
+                    className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-brand-secondary hover:bg-white/5"
+                  >
+                    <Trash2 size={16} aria-hidden />
+                    {t('studio.drafts.delete')}
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {projectsFirst && templates}
 
       <ConfirmModal
         isOpen={toDelete !== null}
