@@ -508,6 +508,23 @@
         "error": "No se pudieron cargar los datos fiscales.",
         "retry": "Reintentar",
         "on_web": "Abre circlesfera.com en tu navegador para editar tus datos fiscales."
+      },
+      "programme": {
+        "title": "Programa de monetización",
+        "desc": "Para cobrar por tu contenido, propinas o regalos en directo, el equipo de CircleSfera revisa y aprueba antes tu perfil.",
+        "status": {
+          "NONE": "Todavía no lo has solicitado.",
+          "PENDING": "Tu solicitud está en revisión desde el {{date}}.",
+          "APPROVED": "Aprobado: puedes cobrar.",
+          "REJECTED": "Tu solicitud no se ha aprobado. Puedes volver a solicitarlo.",
+          "REVOKED": "Se ha retirado tu aprobación para cobrar. Puedes volver a solicitarlo."
+        },
+        "reason": "Motivo: {{reason}}",
+        "pitch_label": "¿Qué vas a ofrecer?",
+        "pitch_placeholder": "Por ejemplo: tutoriales semanales de fotografía y el detrás de cámaras de mis sesiones.",
+        "pitch_hint": "Entre {{min}} y {{max}} caracteres (llevas {{count}}).",
+        "apply": "Solicitar",
+        "error": "No se ha podido enviar tu solicitud. Inténtalo de nuevo."
       }
     },
     "back_to_profile": "← Volver al perfil",
@@ -3218,6 +3235,39 @@
         "DIRECT_STORY_UNLOCK": "Historia desbloqueada",
         "DIRECT_MESSAGE_UNLOCK": "Mensaje desbloqueado",
         "PROMOTION_PAYMENT": "Pago de una promoción"
+      },
+      "programme": {
+        "title": "Solicitudes de monetización",
+        "subtitle": "Un perfil Creator o Business solo cobra cuando se aprueba aquí. Primero las más antiguas.",
+        "filter": "Solicitudes por estado",
+        "status": {
+          "PENDING": "Pendientes",
+          "APPROVED": "Aprobadas",
+          "REJECTED": "Rechazadas",
+          "REVOKED": "Retiradas"
+        },
+        "type": {
+          "CREATOR": "Creador",
+          "BUSINESS": "Empresa"
+        },
+        "counts": "{{followers}} seguidores · {{posts}} publicaciones",
+        "applied": "Solicitado el {{date}}",
+        "approve": "Aprobar",
+        "reject": "Rechazar",
+        "revoke": "Retirar",
+        "empty": "No hay solicitudes aquí.",
+        "ask": {
+          "reject": "Rechazar a @{{username}}",
+          "revoke": "Retirar a @{{username}}"
+        },
+        "reason": "Motivo",
+        "reason_hint": "El creador lee este motivo.",
+        "done": {
+          "approve": "Aprobado: el perfil ya puede cobrar.",
+          "reject": "Solicitud rechazada.",
+          "revoke": "Aprobación retirada: el perfil ya no puede cobrar."
+        },
+        "error": "No se ha podido guardar la decisión. Inténtalo de nuevo."
       }
     },
     "appeals": {
@@ -6255,7 +6305,10 @@
       "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
       "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
       "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
-      "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles."
+      "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
+      "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
+      "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
+      "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

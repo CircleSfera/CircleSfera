@@ -1,6 +1,7 @@
 import { ErrorCode, MONETIZATION_MIN_AGE } from '@circlesfera/shared';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  assertMonetizationApproved,
   assertOfChargingAge,
   isOfChargingAge,
   payoutAccountOf,
@@ -220,6 +221,7 @@ describe('payoutDestinationFor', () => {
   const standing = (over: object = {}, user: object = {}) => ({
     isAccountBanned: false,
     suspendedUntil: null,
+    monetizationStatus: 'APPROVED',
     ...over,
     user: {
       isActive: true,
@@ -269,6 +271,14 @@ describe('payoutDestinationFor', () => {
     [
       'its person has no verified identity',
       standing({}, { identityVerifiedAt: null }),
+    ],
+    [
+      'the Profile is not approved in the monetization programme',
+      standing({ monetizationStatus: 'PENDING' }),
+    ],
+    [
+      'the Profile’s approval was revoked',
+      standing({ monetizationStatus: 'REVOKED' }),
     ],
     [
       'its date of birth was only typed at sign-up',
@@ -367,4 +377,31 @@ describe('assertOfChargingAge', () => {
       errorCode: ErrorCode.MONETIZATION_UNDER_AGE,
     });
   });
+});
+
+describe('assertMonetizationApproved', () => {
+  const db = (profile: object | null) =>
+    ({ profile: { findUnique: vi.fn().mockResolvedValue(profile) } }) as any;
+
+  it('lets an approved Profile through', async () => {
+    await expect(
+      assertMonetizationApproved(db({ monetizationStatus: 'APPROVED' }), 'p1'),
+    ).resolves.toBeUndefined();
+  });
+
+  it.each([
+    ['pending', { monetizationStatus: 'PENDING' }, 'PENDING'],
+    ['refused', { monetizationStatus: 'REJECTED' }, 'REJECTED'],
+    ['gone', null, 'NONE'],
+  ])(
+    'refuses a Profile %s, saying where it stands',
+    async (_c, profile, status) => {
+      await expect(
+        assertMonetizationApproved(db(profile), 'p1'),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.MONETIZATION_NOT_APPROVED,
+        response: expect.objectContaining({ details: { status } }),
+      });
+    },
+  );
 });
