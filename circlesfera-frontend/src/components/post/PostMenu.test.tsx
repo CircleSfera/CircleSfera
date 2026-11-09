@@ -54,6 +54,22 @@ describe('PostMenu', () => {
     expect(screen.queryByText('Hide like count')).not.toBeInTheDocument();
   });
 
+  it('offers the author to pin the post to their profile, and to unpin it', () => {
+    const onTogglePin = vi.fn();
+    show({ onTogglePin });
+    fireEvent.click(screen.getByText('Pin to your profile'));
+    expect(onTogglePin).toHaveBeenCalledTimes(1);
+    cleanup();
+
+    show({ onTogglePin, pinned: true });
+    expect(screen.getByText('Unpin from your profile')).toBeInTheDocument();
+  });
+
+  it('offers no pin to someone else', () => {
+    show({ isOwner: false, onTogglePin: vi.fn() });
+    expect(screen.queryByText('Pin to your profile')).not.toBeInTheDocument();
+  });
+
   it('offers the author to archive their post', () => {
     const onArchive = vi.fn();
     show({ onArchive });

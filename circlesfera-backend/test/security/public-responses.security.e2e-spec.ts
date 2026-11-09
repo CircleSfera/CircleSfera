@@ -172,8 +172,16 @@ describe('Public responses never carry account-level User columns (e2e)', () => 
         signupIp: sentinels.signupIp,
         lastIp: sentinels.signupIp,
         stripeCustomerId: sentinels.stripeCustomerId,
+      },
+    });
+    // The payout account is kept on the person's payout row.
+    await prisma.monetization.upsert({
+      where: { userId: author.user.id },
+      create: {
+        userId: author.user.id,
         stripeConnectAccountId: sentinels.stripeConnectAccountId,
       },
+      update: { stripeConnectAccountId: sentinels.stripeConnectAccountId },
     });
 
     const post = await createPost(prisma, author.profile.id, {

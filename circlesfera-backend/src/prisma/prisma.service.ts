@@ -28,14 +28,6 @@ export const SIGN_IN_SECRET_OMIT = {
   verificationToken: true,
 } as const;
 
-// Columns of the account left in the database until a later release drops
-// them. No query names them meanwhile, so the version running before the
-// drop never reads or writes one that is gone. The payout account is kept on
-// the payout rows (monetization), one per person or Profile.
-export const USER_RETIRED_OMIT = {
-  stripeConnectAccountId: true,
-} as const;
-
 // What a member of a chat chose for themselves (muted, pinned). Every read of
 // a chat lists its members, and nobody else may learn these; the readers
 // that need them select them by name, for the member's own row.
@@ -45,7 +37,7 @@ export const PARTICIPANT_PRIVATE_OMIT = {
 } as const;
 
 const clientOmit = {
-  user: { ...USER_SECRET_OMIT, ...USER_RETIRED_OMIT },
+  user: USER_SECRET_OMIT,
   signIn: SIGN_IN_SECRET_OMIT,
   participant: PARTICIPANT_PRIVATE_OMIT,
 } as const;
