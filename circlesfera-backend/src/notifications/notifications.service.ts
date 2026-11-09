@@ -3,13 +3,16 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { $Enums, type Locale, Prisma } from '@prisma/client';
 import { appealDeadline } from '../appeals/appeal-window.js';
 import { DEFAULT_LOCALE } from '../common/constants/locale.constants.js';
-import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
 import { pushGroupOf } from '../push/push-groups.js';
+import type {
+  NotificationKind,
+  NotificationsQueryDto,
+} from './dto/notifications-query.dto.js';
 import { type Notice, renderNotice } from './notice-copy.js';
 import { REMOVAL_TARGET_TYPES } from './removal-notice.js';
 
@@ -38,6 +41,21 @@ export function shownInInbox(profileId: string): Prisma.NotificationWhereInput {
     ],
   };
 }
+
+// The notification types each filter of the activity page shows; "all"
+// leaves the type free.
+export const KIND_TYPES: Record<
+  Exclude<NotificationKind, 'all'>,
+  NotificationType[]
+> = {
+  comments: [$Enums.NotificationType.COMMENT, $Enums.NotificationType.MENTION],
+  follows: [
+    $Enums.NotificationType.FOLLOW,
+    $Enums.NotificationType.FOLLOW_REQUEST,
+    $Enums.NotificationType.FOLLOW_ACCEPTED,
+  ],
+  likes: [$Enums.NotificationType.LIKE, $Enums.NotificationType.COMMENT_LIKE],
+};
 
 // A notification about a post or story that moderation removed, or that its
 // author deleted, leads to nothing anybody may see, and is left out. The ones
@@ -69,16 +87,19 @@ export class NotificationsService {
 
   private readonly logger = new Logger(NotificationsService.name);
 
-  // List all notifications for a user, paginated, newest first.
-  // Param profileId: The recipient user's ID
-  // Param pagination: Page and limit
-  async findAll(profileId: string, pagination: PaginationDto) {
-    const { page = 1, limit = 10 } = pagination;
+  // The notifications of a Profile, newest first, a page at a time, of one
+  // kind (comments, follows, likes) or all of them.
+  async findAll(profileId: string, query: NotificationsQueryDto) {
+    const { page = 1, limit = 10, kind = 'all' } = query;
     const skip = (page - 1) * limit;
+    const where: Prisma.NotificationWhereInput =
+      kind === 'all'
+        ? shownInInbox(profileId)
+        : { ...shownInInbox(profileId), type: { in: KIND_TYPES[kind] } };
 
     const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where: shownInInbox(profileId),
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -86,9 +107,7 @@ export class NotificationsService {
           sender: { select: PUBLIC_PROFILE_SELECT },
         },
       }),
-      this.prisma.notification.count({
-        where: shownInInbox(profileId),
-      }),
+      this.prisma.notification.count({ where }),
     ]);
 
     return createPaginatedResult(

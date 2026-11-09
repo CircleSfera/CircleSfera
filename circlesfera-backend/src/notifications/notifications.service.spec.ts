@@ -135,6 +135,42 @@ describe('NotificationsService', () => {
       expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
     });
 
+    it.each([
+      ['comments', ['COMMENT', 'MENTION']],
+      ['follows', ['FOLLOW', 'FOLLOW_REQUEST', 'FOLLOW_ACCEPTED']],
+      ['likes', ['LIKE', 'COMMENT_LIKE']],
+    ] as const)(
+      'lists only the %s kind, and counts only it',
+      async (kind, types) => {
+        mockPrismaService.notification.findMany.mockResolvedValue([]);
+        mockPrismaService.notification.count.mockResolvedValue(0);
+
+        await service.findAll('user-1', { page: 2, limit: 20, kind });
+
+        const expected = {
+          ...shownInInbox('user-1'),
+          type: { in: [...types] },
+        };
+        expect(mockPrismaService.notification.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: expected, skip: 20, take: 20 }),
+        );
+        expect(mockPrismaService.notification.count).toHaveBeenCalledWith({
+          where: expected,
+        });
+      },
+    );
+
+    it('leaves the type free for all', async () => {
+      mockPrismaService.notification.findMany.mockResolvedValue([]);
+      mockPrismaService.notification.count.mockResolvedValue(0);
+
+      await service.findAll('user-1', { page: 1, limit: 20, kind: 'all' });
+
+      expect(mockPrismaService.notification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: shownInInbox('user-1') }),
+      );
+    });
+
     it('says which removed posts can still be appealed from their notice', async () => {
       vi.useFakeTimers({ now: new Date('2026-10-27T12:00:00.000Z') });
       const removedAt = new Date('2026-10-01T00:00:00.000Z');
