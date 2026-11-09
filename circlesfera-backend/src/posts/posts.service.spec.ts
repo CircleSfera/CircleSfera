@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { POST_SHAPES, PROFILE_PINS_MAX } from '@circlesfera/shared';
+import { ErrorCode, POST_SHAPES, PROFILE_PINS_MAX } from '@circlesfera/shared';
 import {
   BadRequestException,
   ForbiddenException,
@@ -74,6 +74,9 @@ describe('PostsService', () => {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
+    },
+    postCollaborator: {
+      findUnique: vi.fn(),
     },
     follow: {
       findMany: vi.fn(),
@@ -1523,23 +1526,125 @@ describe('PostsService', () => {
       });
     });
 
-    it('lists the pinned posts of a profile first, then the rest newest first', async () => {
+    it('lists its own pins first, the latest pin first, then the rest newest first', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValueOnce({
         id: 'user-1',
         privacyLevel: Visibility.PUBLIC,
       });
-      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
-      mockPrismaService.post.count.mockResolvedValueOnce(0);
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([{ id: 'pin-b' }, { id: 'pin-a' }])
+        .mockResolvedValueOnce([{ id: 'new' }, { id: 'old' }]);
+      mockPrismaService.post.count.mockResolvedValueOnce(4);
 
-      await service.findByUser('user', { page: 1, limit: 10 });
+      const result = await service.findByUser('user', { page: 1, limit: 10 });
 
-      expect(
-        mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].orderBy,
-      ).toEqual([
-        { pinnedToProfileAt: { sort: 'desc', nulls: 'last' } },
+      const [pinsQuery, restQuery] = mockPrismaService.post.findMany.mock.calls
+        .slice(-2)
+        .map((call) => call[0]);
+      // Only its own pins: a post it co-authors is pinned by its author only.
+      expect(pinsQuery.where.AND[0]).toEqual({
+        profileId: 'user-1',
+        pinnedToProfileAt: { not: null },
+      });
+      expect(pinsQuery.orderBy).toEqual([
+        { pinnedToProfileAt: 'desc' },
+        { id: 'desc' },
+      ]);
+      expect(pinsQuery.take).toBe(3);
+      expect(restQuery.where.AND[1]).toEqual({ NOT: pinsQuery.where });
+      expect(restQuery.orderBy).toEqual([
         { createdAt: 'desc' },
         { id: 'desc' },
       ]);
+      expect(restQuery.take).toBe(8);
+      expect(result.data.map((post: { id: string }) => post.id)).toEqual([
+        'pin-b',
+        'pin-a',
+        'new',
+        'old',
+      ]);
+    });
+
+    it('starts a later page after the pins', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        id: 'user-1',
+        privacyLevel: Visibility.PUBLIC,
+      });
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([{ id: 'pin-a' }, { id: 'pin-b' }])
+        .mockResolvedValueOnce([]);
+      mockPrismaService.post.count.mockResolvedValueOnce(30);
+
+      await service.findByUser('user', { page: 2, limit: 10 });
+
+      const restQuery = mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      // Page 2 starts at the 11th: the 2 pins and 8 others came before.
+      expect(restQuery.skip).toBe(8);
+      expect(restQuery.take).toBe(10);
+    });
+
+    it('goes on from the cursor, inside the pins or after them', async () => {
+      const pins = [{ id: 'pin-a' }, { id: 'pin-b' }];
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'user-1',
+        privacyLevel: Visibility.PUBLIC,
+      });
+      mockPrismaService.post.count.mockResolvedValue(5);
+
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce(pins)
+        .mockResolvedValueOnce([{ id: 'p1' }]);
+      const inside = await service.findByUser('user', {
+        limit: 2,
+        cursor: 'pin-a',
+      });
+      expect(inside.data.map((post: { id: string }) => post.id)).toEqual([
+        'pin-b',
+        'p1',
+      ]);
+      const afterFirstPin =
+        mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      expect(afterFirstPin.skip).toBe(0);
+      expect(afterFirstPin.cursor).toBeUndefined();
+
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce(pins)
+        .mockResolvedValueOnce([{ id: 'p2' }]);
+      await service.findByUser('user', { limit: 2, cursor: 'p1' });
+      const afterPins = mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      expect(afterPins.cursor).toEqual({ id: 'p1' });
+      expect(afterPins.skip).toBe(1);
+      expect(afterPins.take).toBe(2);
+      mockPrismaService.profile.findFirst.mockReset();
+      mockPrismaService.post.count.mockReset();
+    });
+
+    it('lists the posts it accepted to author too, with their co-author', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        id: 'user-1',
+        privacyLevel: Visibility.PUBLIC,
+      });
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: 'collab',
+            profileId: 'author',
+            collaborator: { status: 'ACCEPTED', profile: { id: 'user-1' } },
+          },
+        ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(1);
+
+      const result = await service.findByUser('user', { page: 1, limit: 10 });
+
+      const restQuery = mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      expect(restQuery.where.AND[0].AND[0]).toEqual({
+        OR: [
+          { profileId: 'user-1' },
+          { collaborator: { profileId: 'user-1', status: 'ACCEPTED' } },
+        ],
+      });
+      expect(result.data[0].collaborator).toEqual({ id: 'user-1' });
     });
   });
 
@@ -1580,9 +1685,11 @@ describe('PostsService', () => {
         privacyLevel: Visibility.PUBLIC,
         user: {},
       });
-      mockPrismaService.post.findMany.mockResolvedValueOnce([
-        { id: 'post-1', profileId: 'user-1', likes: [{ id: 'l1' }] },
-      ]);
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { id: 'post-1', profileId: 'user-1', likes: [{ id: 'l1' }] },
+        ]);
       mockPrismaService.post.count.mockResolvedValueOnce(1);
 
       const result = await service.findByUser(
@@ -1592,18 +1699,16 @@ describe('PostsService', () => {
         'user-1',
       );
       expect(result.data).toHaveLength(1);
-      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            profileId: 'user-1',
-            type: 'FRAME',
-            // Their own grid leaves out what moderation removed.
-            moderationStatus: { not: 'REMOVED' },
-          }),
-          skip: 1,
-          cursor: { id: 'c-user' },
-        }),
+      const query = mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      const [own, visibility, type] = query.where.AND[0].AND;
+      expect(own.OR[0]).toEqual({ profileId: 'user-1' });
+      expect(type).toEqual({ type: 'FRAME' });
+      // Their own grid leaves out what moderation removed.
+      expect(visibility).toEqual(
+        expect.objectContaining({ moderationStatus: { not: 'REMOVED' } }),
       );
+      expect(query.skip).toBe(1);
+      expect(query.cursor).toEqual({ id: 'c-user' });
     });
 
     it('constructs follower filter when viewer is logged in and not author', async () => {
@@ -1612,7 +1717,9 @@ describe('PostsService', () => {
         privacyLevel: Visibility.PUBLIC,
         user: {},
       });
-      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
       mockPrismaService.post.count.mockResolvedValueOnce(0);
 
       const result = await service.findByUser(
@@ -1622,12 +1729,12 @@ describe('PostsService', () => {
         'viewer-2',
       );
       expect(result.data).toHaveLength(0);
-      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+      const query = mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      const [own, visibility] = query.where.AND[0].AND;
+      expect(own.OR[0]).toEqual({ profileId: 'user-author' });
+      expect(visibility).toEqual(
         expect.objectContaining({
-          where: expect.objectContaining({
-            profileId: 'user-author',
-            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
-          }),
+          moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
         }),
       );
     });
@@ -1638,18 +1745,19 @@ describe('PostsService', () => {
         privacyLevel: Visibility.PUBLIC,
         user: {},
       });
-      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
       mockPrismaService.post.count.mockResolvedValueOnce(0);
 
       await service.findByUser('username', { page: 1, limit: 10 });
 
-      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+      const query = mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      expect(query.where.AND[0].AND[1]).toEqual(
         expect.objectContaining({
-          where: expect.objectContaining({
-            visibility: Visibility.PUBLIC,
-            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
-            contentRating: 'GENERAL',
-          }),
+          visibility: Visibility.PUBLIC,
+          moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          contentRating: 'GENERAL',
         }),
       );
     });
@@ -1667,15 +1775,17 @@ describe('PostsService', () => {
         contentPreference: 'MATURE',
         blurSensitiveContent: true,
       });
-      mockPrismaService.post.findMany.mockResolvedValueOnce([
-        {
-          id: 'p-m',
-          profileId: 'user-author',
-          contentRating: 'MATURE',
-          likes: [],
-          media: [],
-        },
-      ]);
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: 'p-m',
+            profileId: 'user-author',
+            contentRating: 'MATURE',
+            likes: [],
+            media: [],
+          },
+        ]);
       mockPrismaService.post.count.mockResolvedValueOnce(1);
 
       const result = await service.findByUser(
@@ -1687,7 +1797,7 @@ describe('PostsService', () => {
 
       const where =
         mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].where;
-      expect(where.contentRating).toBeUndefined();
+      expect(where.AND[0].AND[1].contentRating).toBeUndefined();
       expect((result.data[0] as any).shouldBlurSensitive).toBe(true);
     });
 
@@ -1697,7 +1807,9 @@ describe('PostsService', () => {
         privacyLevel: Visibility.PUBLIC,
         user: {},
       });
-      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
       mockPrismaService.post.count.mockResolvedValueOnce(0);
 
       const result = await service.findByUser('username', {
@@ -1706,13 +1818,11 @@ describe('PostsService', () => {
       });
       expect(result.data).toHaveLength(0);
       expect(result.meta.nextCursor).toBeUndefined();
-      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            profileId: 'user-public',
-            visibility: Visibility.PUBLIC,
-          }),
-        }),
+      const query = mockPrismaService.post.findMany.mock.calls.at(-1)?.[0];
+      const [own, visibility] = query.where.AND[0].AND;
+      expect(own.OR[0]).toEqual({ profileId: 'user-public' });
+      expect(visibility).toEqual(
+        expect.objectContaining({ visibility: Visibility.PUBLIC }),
       );
     });
   });
@@ -1904,6 +2014,26 @@ describe('PostsService', () => {
   });
 
   describe('update', () => {
+    it('keeps a post with a collaborator public', async () => {
+      mockPrismaService.postCollaborator.findUnique.mockResolvedValueOnce({
+        postId: 'post-1',
+      });
+      await expect(
+        service.update('post-1', { visibility: Visibility.FOLLOWERS }),
+      ).rejects.toMatchObject({ errorCode: ErrorCode.COLLAB_REQUIRES_PUBLIC });
+      expect(mockPrismaService.post.update).not.toHaveBeenCalled();
+    });
+
+    it('lets a post without a collaborator be shown to followers only', async () => {
+      mockPrismaService.postCollaborator.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        media: [],
+      });
+      await service.update('post-1', { visibility: Visibility.FOLLOWERS });
+      expect(mockPrismaService.post.update).toHaveBeenCalled();
+    });
+
     it('should update post caption and visibility', async () => {
       mockPrismaService.post.update.mockResolvedValue({
         id: 'post-1',

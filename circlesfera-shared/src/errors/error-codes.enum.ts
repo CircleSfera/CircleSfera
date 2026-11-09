@@ -63,6 +63,15 @@ export enum ErrorCode {
   HIDDEN_WORDS_FULL = 'HIDDEN_WORDS_FULL',
   // A Profile already has the most posts it can pin to its profile.
   PROFILE_PINS_FULL = 'PROFILE_PINS_FULL',
+  // Only a public, unpaid post that is shown can carry a collaborator, and
+  // never its own author.
+  COLLAB_NOT_ALLOWED = 'COLLAB_NOT_ALLOWED',
+  // A post already has its one collaborator, invited or accepted.
+  COLLABORATOR_EXISTS = 'COLLABORATOR_EXISTS',
+  // There is no invitation, or collaboration, of this Profile on the post.
+  COLLAB_NOT_FOUND = 'COLLAB_NOT_FOUND',
+  // A post with a collaborator stays public.
+  COLLAB_REQUIRES_PUBLIC = 'COLLAB_REQUIRES_PUBLIC',
   MESSAGE_NOT_FOUND = 'MESSAGE_NOT_FOUND',
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.

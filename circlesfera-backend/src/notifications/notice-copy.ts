@@ -13,6 +13,8 @@ export type Notice =
   | { key: 'comment_replied' }
   | { key: 'mentioned_in_comment' }
   | { key: 'mentioned_in_post' }
+  | { key: 'collab_invited' }
+  | { key: 'collab_accepted' }
   | { key: 'mentioned_in_story' }
   | { key: 'countdown_ended'; title: string }
   | { key: 'followed' }
@@ -282,6 +284,10 @@ function renderEn(n: Notice): string {
       return 'mentioned you in a comment';
     case 'mentioned_in_post':
       return 'mentioned you in a post';
+    case 'collab_invited':
+      return 'invited you to be a collaborator on a post';
+    case 'collab_accepted':
+      return 'accepted to be a collaborator on your post';
     case 'mentioned_in_story':
       return 'mentioned you in their story';
     case 'countdown_ended':
@@ -416,6 +422,10 @@ function renderEs(n: Notice): string {
       return 'te ha mencionado en un comentario';
     case 'mentioned_in_post':
       return 'te ha mencionado en una publicación';
+    case 'collab_invited':
+      return 'te ha invitado a colaborar en una publicación';
+    case 'collab_accepted':
+      return 'ha aceptado colaborar en tu publicación';
     case 'mentioned_in_story':
       return 'te ha mencionado en su historia';
     case 'countdown_ended':
