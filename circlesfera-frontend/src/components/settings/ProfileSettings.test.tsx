@@ -537,4 +537,89 @@ describe('ProfileSettings', () => {
     await show();
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
   });
+
+  describe('business details', () => {
+    const shop = (over: object = {}) =>
+      mine({
+        accountType: 'BUSINESS',
+        businessCategory: 'CAFE_BAKERY',
+        contactEmail: 'hola@shop.es',
+        contactPhone: '+34600111222',
+        businessPlace: {
+          id: 'place-1',
+          name: 'Calle Mayor 1',
+          fullName: 'Calle Mayor 1, Madrid',
+          latitude: 40.41,
+          longitude: -3.7,
+        },
+        ...over,
+      });
+
+    it('are offered only to a Business profile', async () => {
+      await show();
+      expect(screen.queryByText('Business details')).not.toBeInTheDocument();
+    });
+
+    it('fill in from the profile, with nothing to save yet', async () => {
+      await show(shop());
+
+      expect(screen.getByLabelText('Category')).toHaveValue('CAFE_BAKERY');
+      expect(screen.getByLabelText('Contact email')).toHaveValue(
+        'hola@shop.es',
+      );
+      expect(screen.getByLabelText('Contact phone')).toHaveValue(
+        '+34600111222',
+      );
+      expect(screen.getByText('Calle Mayor 1, Madrid')).toBeInTheDocument();
+      expect(save()).toBeDisabled();
+    });
+
+    it('save only what changed, the phone without spaces', async () => {
+      await show(shop());
+
+      fireEvent.change(screen.getByLabelText('Category'), {
+        target: { value: 'SHOP' },
+      });
+      type('Contact phone', '+34 611 222 333');
+      fireEvent.click(save());
+
+      await waitFor(() => expect(api.profile.updateProfile).toHaveBeenCalled());
+      const sent = api.profile.updateProfile.mock.calls[0][0] as object;
+      expect(sent).toMatchObject({
+        businessCategory: 'SHOP',
+        contactPhone: '+34611222333',
+      });
+      expect(sent).not.toHaveProperty('contactEmail');
+      expect(sent).not.toHaveProperty('businessPlace');
+    });
+
+    it('will not save a phone without the country code', async () => {
+      await show(shop());
+
+      type('Contact phone', '611 222 333');
+
+      expect(save()).toBeDisabled();
+    });
+
+    it('remove each one with an empty value, and the address with its button', async () => {
+      await show(shop());
+
+      fireEvent.change(screen.getByLabelText('Category'), {
+        target: { value: '' },
+      });
+      type('Contact email', ' ');
+      fireEvent.click(screen.getByRole('button', { name: 'Remove address' }));
+      fireEvent.click(save());
+
+      await waitFor(() =>
+        expect(api.profile.updateProfile).toHaveBeenCalledWith(
+          expect.objectContaining({
+            businessCategory: null,
+            contactEmail: null,
+            businessPlace: null,
+          }),
+        ),
+      );
+    });
+  });
 });

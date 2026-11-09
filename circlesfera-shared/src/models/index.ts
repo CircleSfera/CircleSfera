@@ -23,6 +23,21 @@ export interface Profile {
   updatedAt: Date | string;
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
+  // How a Business Profile presents itself. Others receive them only while
+  // the Profile is a Business; empty otherwise.
+  businessCategory?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  businessPlace?: BusinessPlace | null;
+}
+
+/** The place of a Business Profile's address; it opens the place's page. */
+export interface BusinessPlace {
+  id: string;
+  name: string;
+  fullName?: string | null;
+  latitude: number;
+  longitude: number;
 }
 
 export interface ProfileWithUser extends Profile {

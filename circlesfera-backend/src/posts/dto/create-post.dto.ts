@@ -22,6 +22,7 @@ import {
 } from 'class-validator';
 import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
 import { POST_MAX_MEDIA_ITEMS } from '../../common/constants/post-media.constants.js';
+import { PlaceInputDto } from '../../common/dto/place-input.dto.js';
 
 /** The longest caption of a post or frame; the composer shows the same limit. */
 export const POST_CAPTION_MAX_LENGTH = 2200;
@@ -91,95 +92,6 @@ class MediaItemDto {
   @IsString()
   @IsOptional()
   altText?: string;
-}
-
-class PlaceTranslationDto {
-  @ApiProperty({ required: true, enum: ['en', 'es'] })
-  @IsIn(['en', 'es'])
-  locale!: 'en' | 'es';
-
-  @ApiProperty({ required: true, type: () => String, maxLength: 200 })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  name!: string;
-
-  @ApiProperty({ required: false, type: () => String, maxLength: 300 })
-  @IsString()
-  @IsOptional()
-  @MaxLength(300)
-  fullName?: string;
-
-  @ApiProperty({ required: false, type: () => String, maxLength: 120 })
-  @IsString()
-  @IsOptional()
-  @MaxLength(120)
-  country?: string;
-
-  @ApiProperty({ required: false, type: () => String, maxLength: 120 })
-  @IsString()
-  @IsOptional()
-  @MaxLength(120)
-  region?: string;
-
-  @ApiProperty({ required: false, type: () => String, maxLength: 120 })
-  @IsString()
-  @IsOptional()
-  @MaxLength(120)
-  locality?: string;
-}
-
-class PlaceInputDto {
-  @ApiProperty({ required: true, type: () => String })
-  @IsString()
-  @IsNotEmpty()
-  mapboxId!: string;
-
-  @ApiProperty({ required: true, type: () => String })
-  @IsString()
-  @IsNotEmpty()
-  name!: string;
-
-  @ApiProperty({ required: false, type: () => String })
-  @IsString()
-  @IsOptional()
-  fullName?: string;
-
-  @ApiProperty({ required: true, type: () => Number })
-  @IsNumber()
-  latitude!: number;
-
-  @ApiProperty({ required: true, type: () => Number })
-  @IsNumber()
-  longitude!: number;
-
-  @ApiProperty({ required: false, type: () => String })
-  @IsString()
-  @IsOptional()
-  country?: string;
-
-  @ApiProperty({ required: false, type: () => String })
-  @IsString()
-  @IsOptional()
-  region?: string;
-
-  @ApiProperty({ required: false, type: () => String })
-  @IsString()
-  @IsOptional()
-  locality?: string;
-
-  // The same names per language, as the map provider gave them.
-  @ApiProperty({
-    required: false,
-    type: () => [PlaceTranslationDto],
-    maxItems: 2,
-  })
-  @IsOptional()
-  @IsArray()
-  @ArrayMaxSize(2)
-  @ValidateNested({ each: true })
-  @Type(() => PlaceTranslationDto)
-  translations?: PlaceTranslationDto[];
 }
 
 export class CreatePostDto {

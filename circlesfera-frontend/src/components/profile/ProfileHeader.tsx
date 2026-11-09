@@ -34,6 +34,7 @@ import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
 import AboutAccountDialog from './AboutAccountDialog';
+import BusinessDetails from './BusinessDetails';
 
 function AnimatedCounter({ value, label }: { value: number; label: string }) {
   const [count, setCount] = useState(0);
@@ -528,6 +529,13 @@ export default function ProfileHeader({
                 {profile.data.bio}
               </p>
             )}
+
+            <BusinessDetails
+              category={profile.data.businessCategory}
+              email={profile.data.contactEmail}
+              phone={profile.data.contactPhone}
+              place={profile.data.businessPlace}
+            />
 
             {(profile.data.website || profile.data.location) && (
               <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 mt-4 text-xs md:text-sm font-medium">

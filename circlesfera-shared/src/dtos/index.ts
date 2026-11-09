@@ -1,3 +1,6 @@
+import type { BusinessCategory } from '../constants/business-profile.js';
+import type { PlaceInput } from '../models/index.js';
+
 export interface RegisterDto {
   email: string;
   password: string;
@@ -31,6 +34,11 @@ export interface UpdateProfileDto {
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
   // Colour of the Profile page, from the closed list; null = the default.
   accentColor?: string | null;
+  // How a Business Profile presents itself; null removes each one.
+  businessCategory?: BusinessCategory | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  businessPlace?: PlaceInput | null;
 }
 
 export interface CreatePostDto {
