@@ -9,6 +9,8 @@ import {
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { StudioTemplatesModule } from '../studio-templates/studio-templates.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
+import { CollaborationsController } from './collaborations.controller.js';
+import { PostCollaboratorsService } from './post-collaborators.service.js';
 import { PostWhyService } from './post-why.service.js';
 import { PostsController } from './posts.controller.js';
 import { PostsService } from './posts.service.js';
@@ -29,10 +31,11 @@ import { PostPaywallService } from './services/post-paywall.service.js';
     UploadsModule,
     StudioTemplatesModule,
   ],
-  controllers: [PostsController],
+  controllers: [PostsController, CollaborationsController],
   providers: [
     PostsService,
     PostWhyService,
+    PostCollaboratorsService,
     PostPaywallService,
     PostDistributionService,
     FrameCoverService,

@@ -33,6 +33,10 @@ import {
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
+import {
+  ACCEPTED_COLLABORATOR_INCLUDE,
+  shownCollaborator,
+} from '../posts/post-collaborators.service.js';
 import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
@@ -63,6 +67,7 @@ export class FeedService {
       media: { include: { media: true } },
       poll: { select: { id: true } },
       qnaBox: { select: { id: true } },
+      collaborator: ACCEPTED_COLLABORATOR_INCLUDE,
       _count: { select: { likes: true, comments: SHOWN_COMMENTS_COUNT } },
       likes: profileId ? { where: { profileId }, take: 1 } : false,
     };
@@ -382,6 +387,7 @@ export class FeedService {
       const formattedPosts = sortedPosts.map((post: any) => {
         const { likes, ...rest } = post;
         rest.media = rest.media?.map(resolveMediaFields);
+        rest.collaborator = shownCollaborator(rest.collaborator);
         const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
 
         // Attach algorithm reasoning score for debugging
@@ -558,10 +564,22 @@ export class FeedService {
           ? { id: { notIn: prefs.hiddenPostIds } }
           : {};
 
+      // Posts of those it follows, and those they accepted to author too.
+      const followedAuthors = {
+        OR: [
+          { profileId: { in: followingIds } },
+          {
+            collaborator: {
+              status: 'ACCEPTED' as const,
+              profileId: { in: followingIds },
+            },
+          },
+        ],
+      };
+
       const [fallbackPosts, fallbackTotal] = await Promise.all([
         this.prisma.post.findMany({
           where: {
-            profileId: { in: followingIds },
             profile: await viewerAudienceWhere(this.prisma, profileId),
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
@@ -569,7 +587,10 @@ export class FeedService {
             archivedAt: null,
             scheduledStatus: 'PUBLISHED',
             ...preferenceFilter,
-            AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
+            AND: [
+              { OR: [matureWhere(viewerSettings), { profileId }] },
+              followedAuthors,
+            ],
             OR: [
               { visibility: Visibility.PUBLIC },
               { visibility: Visibility.FOLLOWERS },
@@ -583,14 +604,16 @@ export class FeedService {
         }),
         this.prisma.post.count({
           where: {
-            profileId: { in: followingIds },
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             deletedAt: null,
             archivedAt: null,
             scheduledStatus: 'PUBLISHED',
             ...preferenceFilter,
-            AND: [{ OR: [matureWhere(viewerSettings), { profileId }] }],
+            AND: [
+              { OR: [matureWhere(viewerSettings), { profileId }] },
+              followedAuthors,
+            ],
           },
         }),
       ]);
@@ -630,6 +653,7 @@ export class FeedService {
     const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
       rest.media = rest.media?.map(resolveMediaFields);
+      rest.collaborator = shownCollaborator(rest.collaborator);
       const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
       const recommendationMeta = this.buildRecommendationMeta(
         null,
@@ -767,6 +791,7 @@ export class FeedService {
     const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
       rest.media = rest.media?.map(resolveMediaFields);
+      rest.collaborator = shownCollaborator(rest.collaborator);
       const isLiked =
         currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
       const recommendationMeta = this.buildRecommendationMeta(
@@ -926,6 +951,7 @@ export class FeedService {
           profileId && Array.isArray(likes) ? likes.length > 0 : false;
         return {
           ...rest,
+          collaborator: shownCollaborator(rest.collaborator),
           media: media.map(resolveMediaFields),
           isLiked,
           isPromoted: true,

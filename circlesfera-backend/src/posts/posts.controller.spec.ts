@@ -21,6 +21,7 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
+import { PostCollaboratorsService } from './post-collaborators.service.js';
 import { PostWhyService } from './post-why.service.js';
 import { PostsController } from './posts.controller.js';
 import { PostsService } from './posts.service.js';
@@ -43,6 +44,11 @@ describe('PostsController', () => {
     unpinFromProfile: vi.fn(),
   };
   const mockWhy = { why: vi.fn() };
+  const mockCollaborators = {
+    get: vi.fn(),
+    invite: vi.fn(),
+    remove: vi.fn(),
+  };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -50,6 +56,7 @@ describe('PostsController', () => {
       providers: [
         { provide: PostsService, useValue: mockService },
         { provide: PostWhyService, useValue: mockWhy },
+        { provide: PostCollaboratorsService, useValue: mockCollaborators },
       ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
@@ -300,6 +307,43 @@ describe('PostsController', () => {
     expect(mockService.pinToProfile).toHaveBeenCalledTimes(1);
     expect(mockService.pinToProfile).toHaveBeenCalledWith('post-1');
     expect(mockService.unpinFromProfile).toHaveBeenCalledWith('post-1');
+  });
+
+  it('lets the author see, invite and remove the collaborator of a post', async () => {
+    mockCollaborators.get.mockResolvedValue(null);
+    mockCollaborators.invite.mockResolvedValue({ status: 'PENDING' });
+    mockCollaborators.remove.mockResolvedValue({ postId: 'post-1' });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/post-1/collaborator')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/collaborator')
+      .send({ username: 'ana' })
+      .set(BEARER)
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete('/api/v1/posts/post-1/collaborator')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockCollaborators.get).toHaveBeenCalledWith('post-1');
+    expect(mockCollaborators.invite).toHaveBeenCalledWith('post-1', 'ana');
+    expect(mockCollaborators.remove).toHaveBeenCalledWith('post-1');
+  });
+
+  it('refuses an invitation without a session or without a username', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/collaborator')
+      .send({ username: 'ana' })
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/collaborator')
+      .send({})
+      .set(BEARER)
+      .expect(400);
+    expect(mockCollaborators.invite).not.toHaveBeenCalled();
   });
 
   it('rejects admin delete with a user session', async () => {

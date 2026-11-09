@@ -343,6 +343,16 @@ export class UsersService {
                   },
                 },
               },
+              // The posts it was invited to author too, and its answer.
+              collaborations: {
+                orderBy: { invitedAt: 'asc' },
+                select: {
+                  postId: true,
+                  status: true,
+                  invitedAt: true,
+                  respondedAt: true,
+                },
+              },
               comments: true,
               bookmarks: { include: { post: { select: { caption: true } } } },
               messages: {

@@ -492,6 +492,8 @@ model Profile {
   storyViews              StoryView[]
   storyReactions          StoryReaction[]
   taggedPosts             PostTag[]
+  // Posts it was invited to author too, accepted or not yet.
+  collaborations          PostCollaborator[]
   reports                 Report[]                @relation("ReportReporter")
   strikes                 ProfileStrike[]
   riskCases               RiskCase[]
@@ -543,7 +545,10 @@ model Post {
 
   sharedInMessages Message[] @relation("SharedPosts")
 
-  tags PostTag[] // New: Tagged users
+  tags         PostTag[] // New: Tagged users
+  // The one other Profile invited to author it too; shown as a co-author
+  // only once it accepts.
+  collaborator PostCollaborator?
 
   location        String?
   placeId         String?
@@ -662,6 +667,23 @@ model PostTag {
   @@unique([postId, profileId])
   @@index([profileId])
   @@map("post_tags")
+}
+
+// The one collaborator of a post or Frame: invited by its author, a co-author
+// once it accepts. Only a public, unpaid post carries one; the author keeps
+// every control over the post.
+model PostCollaborator {
+  postId      String              @id
+  profileId   String
+  status      CollaborationStatus @default(PENDING)
+  invitedAt   DateTime            @default(now())
+  respondedAt DateTime?
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, status])
+  @@map("post_collaborators")
 }
 
 model PostHashtag {
@@ -3025,6 +3047,15 @@ enum NotificationType {
   LIVE_STARTED
   // A scheduled live the recipient asked to be reminded of starts soon.
   LIVE_STARTING_SOON
+  // The recipient was invited to author a post too.
+  COLLAB_INVITE
+  // The Profile the recipient invited accepted to author its post too.
+  COLLAB_ACCEPTED
+}
+
+enum CollaborationStatus {
+  PENDING
+  ACCEPTED
 }
 
 enum PostType {

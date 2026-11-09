@@ -38,7 +38,9 @@ import { RecordsActivity } from '../team/records-activity.decorator.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { FindPostsQueryDto } from './dto/find-posts-query.dto.js';
 import { GetPostsDto } from './dto/get-posts.dto.js';
+import { InviteCollaboratorDto } from './dto/invite-collaborator.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
+import { PostCollaboratorsService } from './post-collaborators.service.js';
 import { PostWhyService } from './post-why.service.js';
 import { PostsService } from './posts.service.js';
 
@@ -49,6 +51,8 @@ export class PostsController {
   constructor(
     @Inject(PostsService) private readonly postsService: PostsService,
     @Inject(PostWhyService) private readonly postWhyService: PostWhyService,
+    @Inject(PostCollaboratorsService)
+    private readonly collaborators: PostCollaboratorsService,
   ) {}
 
   // Create a new post (requires authentication).
@@ -205,6 +209,41 @@ export class PostsController {
   @ApiResponse({ status: 200 })
   async unpinFromProfile(@Param('id') id: string) {
     return this.postsService.unpinFromProfile(id);
+  }
+
+  // The author's view of its collaborator, invited or accepted.
+  @Get(':id/collaborator')
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Post' })
+  @MemberAllowed('content.manage')
+  @ApiResponse({ status: 200 })
+  async getCollaborator(@Param('id') id: string) {
+    return this.collaborators.get(id);
+  }
+
+  // The author invites one Profile to author the post too.
+  @Post(':id/collaborator')
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Post' })
+  @MemberAllowed('content.manage')
+  @RecordsActivity('POST_EDITED')
+  @ApiResponse({ status: 201 })
+  async inviteCollaborator(
+    @Param('id') id: string,
+    @Body() dto: InviteCollaboratorDto,
+  ) {
+    return this.collaborators.invite(id, dto.username);
+  }
+
+  // The author withdraws the invitation or removes the collaborator.
+  @Delete(':id/collaborator')
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Post' })
+  @MemberAllowed('content.manage')
+  @RecordsActivity('POST_EDITED')
+  @ApiResponse({ status: 200 })
+  async removeCollaborator(@Param('id') id: string) {
+    return this.collaborators.remove(id);
   }
 
   // Admin-only post deletion (bypasses ownership check).

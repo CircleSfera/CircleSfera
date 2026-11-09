@@ -25,6 +25,9 @@ const GROUP_OF_TYPE: Record<string, PushGroup> = {
   COMMENT_LIKE: 'likes',
   COMMENT: 'comments',
   MENTION: 'comments',
+  // Being asked to co-author a post, and the answer, go with mentions.
+  COLLAB_INVITE: 'comments',
+  COLLAB_ACCEPTED: 'comments',
   FOLLOW: 'follows',
   FOLLOW_REQUEST: 'follows',
   FOLLOW_ACCEPTED: 'follows',
