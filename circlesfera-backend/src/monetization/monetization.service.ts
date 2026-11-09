@@ -5,9 +5,7 @@ import {
 } from '@circlesfera/shared';
 import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import {
-  canMonetize,
-} from '../common/constants/monetization.constants.js';
+import { canMonetize } from '../common/constants/monetization.constants.js';
 import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
