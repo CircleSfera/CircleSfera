@@ -1,4 +1,4 @@
-import { Clapperboard, EyeOff, Heart, MessageCircle } from 'lucide-react';
+import { Clapperboard, EyeOff, Heart, MessageCircle, Pin } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -20,6 +20,8 @@ interface PostGridProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
+  /** A profile's own posts and Frames mark the ones pinned to its top. */
+  showPins?: boolean;
 }
 
 const ASPECT_CLASS = {
@@ -57,6 +59,7 @@ export default function PostGrid({
   onLoadMore,
   hasMore = false,
   isLoadingMore = false,
+  showPins = false,
 }: PostGridProps) {
   const { t } = useTranslation();
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -107,12 +110,24 @@ export default function PostGrid({
               to={getPostPath(post)}
               className={`${ASPECT_CLASS[aspectRatio]} relative group overflow-hidden bg-white/5`}
             >
-              {post.type === 'FRAME' && (
-                <div className="absolute top-1.5 right-1.5 z-10">
-                  <Clapperboard
-                    size={isFramesGrid || isExploreGrid ? 12 : 16}
-                    className="text-white drop-shadow-md"
-                  />
+              {((showPins && post.pinnedToProfileAt) ||
+                post.type === 'FRAME') && (
+                <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1">
+                  {showPins && post.pinnedToProfileAt && (
+                    <Pin
+                      size={isFramesGrid || isExploreGrid ? 12 : 16}
+                      className="text-white drop-shadow-md"
+                      fill="white"
+                      role="img"
+                      aria-label={t('post.menu.pinned_mark')}
+                    />
+                  )}
+                  {post.type === 'FRAME' && (
+                    <Clapperboard
+                      size={isFramesGrid || isExploreGrid ? 12 : 16}
+                      className="text-white drop-shadow-md"
+                    />
+                  )}
                 </div>
               )}
               {post.media?.[0]?.type === 'video' || post.type === 'FRAME' ? (

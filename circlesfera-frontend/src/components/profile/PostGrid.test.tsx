@@ -30,6 +30,36 @@ describe('PostGrid', () => {
     expect(screen.getByText('Share something')).toBeInTheDocument();
   });
 
+  it('marks the pinned ones on a profile, and nowhere else', () => {
+    const items = [
+      post({ id: 'pinned', pinnedToProfileAt: '2026-11-09T10:00:00Z' }),
+      post({ id: 'plain' }),
+    ];
+    const { unmount } = renderWithProviders(
+      <PostGrid
+        items={items}
+        emptyMessage="Empty"
+        emptySubtext=""
+        icon={null}
+        showPins
+      />,
+    );
+    expect(screen.getAllByRole('img', { name: 'Pinned' })).toHaveLength(1);
+    unmount();
+
+    renderWithProviders(
+      <PostGrid
+        items={items}
+        emptyMessage="Empty"
+        emptySubtext=""
+        icon={null}
+      />,
+    );
+    expect(
+      screen.queryByRole('img', { name: 'Pinned' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('links FRAME items to the Frames viewer and posts to detail', () => {
     renderWithProviders(
       <PostGrid

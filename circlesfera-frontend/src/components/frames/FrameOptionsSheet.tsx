@@ -11,6 +11,8 @@ import {
   MessageCircle,
   MessageCircleOff,
   Pencil,
+  Pin,
+  PinOff,
   Trash2,
 } from 'lucide-react';
 import { useEffect } from 'react';
@@ -26,6 +28,9 @@ export interface FrameMenuActions {
   onPromote?: () => void;
   // The author's: takes the frame off the profile, into their archive.
   onArchive?: () => void;
+  // The author's: pin it to the top of their profile, or unpin it.
+  onTogglePin?: () => void;
+  pinned?: boolean;
   // Share it to one's story as a card of the original.
   onAddToStory?: () => void;
   // Why the Frame is shown to the viewer.
@@ -55,6 +60,8 @@ function OptionsBody({
   onSave,
   onPromote,
   onArchive,
+  onTogglePin,
+  pinned = false,
   onAddToStory,
   onWhy,
   onToggleComments,
@@ -90,6 +97,17 @@ function OptionsBody({
             label={t('post.menu.edit')}
             onClick={() => run(onEdit)}
           />
+          {onTogglePin && (
+            <OptionRow
+              icon={pinned ? PinOff : Pin}
+              label={
+                pinned
+                  ? t('post.menu.unpin_from_profile')
+                  : t('post.menu.pin_to_profile')
+              }
+              onClick={() => run(onTogglePin)}
+            />
+          )}
           {onArchive && (
             <OptionRow
               icon={Archive}
@@ -181,6 +199,8 @@ export default function FrameOptionsSheet({
   onSave,
   onPromote,
   onArchive,
+  onTogglePin,
+  pinned,
   onAddToStory,
   onWhy,
   onToggleComments,
@@ -216,6 +236,8 @@ export default function FrameOptionsSheet({
     onSave,
     onPromote,
     onArchive,
+    onTogglePin,
+    pinned,
     onAddToStory,
     onWhy,
     onToggleComments,
