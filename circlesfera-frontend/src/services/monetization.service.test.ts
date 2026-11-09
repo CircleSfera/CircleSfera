@@ -86,6 +86,17 @@ describe('monetizationApi', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/monetization/tax-status');
   });
 
+  it('reads the instant payout offer and takes one with the amount shown and its key', async () => {
+    await monetizationApi.getInstantPayoutOffer();
+    expect(apiClient.get).toHaveBeenCalledWith('/monetization/instant-payout');
+
+    await monetizationApi.createInstantPayout(9850, 'confirm-1');
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/monetization/instant-payout',
+      { netCents: 9850, idempotencyKey: 'confirm-1' },
+    );
+  });
+
   it('reads status, earnings, transactions, analytics and payouts', async () => {
     await monetizationApi.getStatus();
     await monetizationApi.getMonetization();
