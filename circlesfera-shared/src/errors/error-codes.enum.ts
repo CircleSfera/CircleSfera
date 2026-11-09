@@ -49,6 +49,8 @@ export enum ErrorCode {
   STRIPE_CUSTOMER_MISSING = 'STRIPE_CUSTOMER_MISSING',
   PROMOTION_ID_MISSING = 'PROMOTION_ID_MISSING',
   ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION = 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+  // Staff paused new payments (the payments_enabled setting is off).
+  PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
   // Charging for anything needs a verified identity of someone 18 or older.
   MONETIZATION_UNDER_AGE = 'MONETIZATION_UNDER_AGE',
   // Messages are no longer sold: none can be sent with a price, and none
