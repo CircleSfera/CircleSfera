@@ -1,3 +1,4 @@
+import type { ChatMuteDuration } from '@circlesfera/shared';
 import type { Conversation, Message } from '../types';
 import { apiClient } from './api';
 
@@ -74,6 +75,20 @@ export const chatApi = {
 
   createGroup: (data: { participantIds: string[]; name?: string }) =>
     apiClient.post<Conversation>('/chat/conversations', data),
+
+  // Muting and pinning are the viewer's own; nobody else in the chat sees
+  // them. A mute lasts 1h, 8h, a week, or until it is turned off.
+  muteConversation: (id: string, duration: ChatMuteDuration) =>
+    apiClient.put<{ mutedUntil: string | null }>(
+      `/chat/conversations/${id}/mute`,
+      { for: duration },
+    ),
+  unmuteConversation: (id: string) =>
+    apiClient.delete<{ mutedUntil: null }>(`/chat/conversations/${id}/mute`),
+  pinConversation: (id: string) =>
+    apiClient.put<{ pinnedAt: string | null }>(`/chat/conversations/${id}/pin`),
+  unpinConversation: (id: string) =>
+    apiClient.delete<{ pinnedAt: null }>(`/chat/conversations/${id}/pin`),
 
   // In a group it is leaving it; an admin may name who becomes admin after.
   deleteConversation: (id: string, mode: 'me' = 'me', successorId?: string) =>

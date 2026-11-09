@@ -2418,7 +2418,25 @@
     "hidden_requests": "Hidden requests",
     "hidden_requests_desc": "Message requests that contain one of your hidden words. You are not notified about them.",
     "no_hidden_requests": "No hidden requests",
-    "encrypted_on_servers": "Messages are stored encrypted on our servers."
+    "encrypted_on_servers": "Messages are stored encrypted on our servers.",
+    "preferences": {
+      "mute": "Mute messages",
+      "mute_hint": "No notifications from this chat",
+      "muted_always": "Muted until you turn it off",
+      "muted_until": "Muted until {{time}}",
+      "mute_for": "Mute for",
+      "durations": {
+        "1h": "1 hour",
+        "8h": "8 hours",
+        "1w": "1 week",
+        "always": "Until I turn it off"
+      },
+      "pin": "Pin chat",
+      "pin_hint": "Keep it at the top of your inbox, up to 3",
+      "muted": "Muted",
+      "pinned": "Pinned",
+      "error": "Couldn't save that. Try again."
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -6191,7 +6209,8 @@
       "PREMIUM_PRICE_OUT_OF_RANGE": "The price of premium content is outside the allowed range.",
       "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published.",
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
-      "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another."
+      "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
+      "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

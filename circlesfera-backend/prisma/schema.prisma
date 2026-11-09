@@ -1520,6 +1520,10 @@ model Participant {
   createdAt            DateTime  @default(now())
   deletedAt            DateTime? // Allows "Delete for me" functionality
   clearedAt            DateTime? // Hides messages before this time
+  // Until when this member gets no push for the chat; null when not muted.
+  mutedUntil           DateTime?
+  // When this member pinned the chat at the top of their inbox; null if not.
+  pinnedAt             DateTime?
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)

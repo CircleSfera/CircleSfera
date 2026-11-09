@@ -420,8 +420,23 @@ export class SendMessageUseCase {
       this.eventEmitter.emit('chat.message.sent', event);
 
       // Each recipient reads the push in the language of their account.
+      // A member who muted the chat gets no push for it until it ends.
+      const muted = new Set(
+        (
+          await this.prisma.participant.findMany({
+            where: {
+              conversationId: conversation.id,
+              mutedUntil: { gt: new Date() },
+            },
+            select: { profileId: true },
+          })
+        ).map((p) => p.profileId),
+      );
       const recipients = conversation.participants.filter(
-        (p: any) => p.profileId !== senderId && p.hasAccepted !== false,
+        (p: any) =>
+          p.profileId !== senderId &&
+          p.hasAccepted !== false &&
+          !muted.has(p.profileId),
       );
       const locales = new Map(
         (recipients.length

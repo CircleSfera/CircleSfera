@@ -2418,7 +2418,25 @@
     "hidden_requests": "Solicitudes ocultas",
     "hidden_requests_desc": "Solicitudes de mensaje que contienen alguna de tus palabras ocultas. No te avisamos de ellas.",
     "no_hidden_requests": "No hay solicitudes ocultas",
-    "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores."
+    "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores.",
+    "preferences": {
+      "mute": "Silenciar mensajes",
+      "mute_hint": "Sin notificaciones de este chat",
+      "muted_always": "Silenciado hasta que lo actives",
+      "muted_until": "Silenciado hasta {{time}}",
+      "mute_for": "Silenciar durante",
+      "durations": {
+        "1h": "1 hora",
+        "8h": "8 horas",
+        "1w": "1 semana",
+        "always": "Hasta que lo active"
+      },
+      "pin": "Fijar chat",
+      "pin_hint": "Mantenlo arriba en tu bandeja, hasta 3",
+      "muted": "Silenciado",
+      "pinned": "Fijado",
+      "error": "No se ha podido guardar. Inténtalo de nuevo."
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -6191,7 +6209,8 @@
       "PREMIUM_PRICE_OUT_OF_RANGE": "El precio del contenido premium está fuera del rango permitido.",
       "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado.",
       "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
-      "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra."
+      "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
+      "CHAT_PINS_FULL": "Ya tienes 3 chats fijados. Quita uno para fijar otro."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

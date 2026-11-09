@@ -90,7 +90,12 @@ describe('DeleteConversationUseCase', () => {
     expect(result).toEqual({ success: true });
     expect(mockPrisma.participant.update).toHaveBeenCalledWith({
       where: { id: 'part-1' },
-      data: { deletedAt: expect.any(Date), clearedAt: expect.any(Date) },
+      data: {
+        deletedAt: expect.any(Date),
+        clearedAt: expect.any(Date),
+        // A chat that comes back starts unpinned.
+        pinnedAt: null,
+      },
     });
     expect(mockEventEmitter.emit).toHaveBeenCalledWith(
       'chat.conversation.deleted',

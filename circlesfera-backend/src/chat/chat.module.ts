@@ -42,6 +42,7 @@ import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.
 // Request Commands
 import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
 import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
+import { ChatSettingsUseCase } from './use-cases/settings/chat-settings.use-case.js';
 // System Commands
 import { CleanupExpiredMessagesUseCase } from './use-cases/system/cleanup-expired-messages.use-case.js';
 
@@ -63,6 +64,7 @@ const useCases = [
   AcceptMessageRequestUseCase,
   DeclineMessageRequestUseCase,
   CleanupExpiredMessagesUseCase,
+  ChatSettingsUseCase,
 ];
 
 @Module({

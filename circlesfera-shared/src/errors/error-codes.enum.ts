@@ -62,6 +62,8 @@ export enum ErrorCode {
   HIDDEN_WORDS_FULL = 'HIDDEN_WORDS_FULL',
   // A Profile already has the most posts it can pin to its profile.
   PROFILE_PINS_FULL = 'PROFILE_PINS_FULL',
+  // A Profile already has the most chats it can pin at the top of its inbox.
+  CHAT_PINS_FULL = 'CHAT_PINS_FULL',
   MESSAGE_NOT_FOUND = 'MESSAGE_NOT_FOUND',
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.

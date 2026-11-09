@@ -7,6 +7,7 @@ import {
 } from '../create-post/createStyles';
 import UserAvatar from '../UserAvatar';
 import { Dialog } from '../ui/Dialog';
+import ChatPreferences, { type ChatPreferenceValues } from './ChatPreferences';
 
 interface ChatDetailsModalProps {
   isOpen: boolean;
@@ -24,6 +25,12 @@ interface ChatDetailsModalProps {
   isEncrypted: boolean;
   onViewProfile?: () => void;
   onDeleteForMe: () => void;
+  // The viewer's own mute and pin for this chat, changed from here.
+  preferences?: ChatPreferenceValues & {
+    conversationId: string;
+    canPin: boolean;
+    onChange: (values: ChatPreferenceValues) => void;
+  };
 }
 
 /**
@@ -38,6 +45,7 @@ export default function ChatDetailsModal({
   isEncrypted,
   onViewProfile,
   onDeleteForMe,
+  preferences,
 }: ChatDetailsModalProps) {
   const { t } = useTranslation();
 
@@ -104,7 +112,8 @@ export default function ChatDetailsModal({
       </div>
 
       {/* What can be done with the conversation. */}
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 flex flex-col gap-3">
+        {preferences && <ChatPreferences {...preferences} />}
         <div className={`${CREATE_PANEL} overflow-hidden`}>
           {deletions.map(({ label, hint, onClick }, index) => (
             <button

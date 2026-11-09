@@ -81,6 +81,10 @@ describe('SendMessageUseCase', () => {
         findUnique: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
       },
+      // Members who muted the chat: none unless a test says so.
+      participant: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     };
 
     mockCryptoService = {
@@ -396,6 +400,47 @@ describe('SendMessageUseCase', () => {
       );
     });
   });
+  it('sends no push to a member who muted the chat, and still to the others', async () => {
+    const participants = [
+      { profileId: 'sender-1', deletedAt: null, profile: { id: 'sender-1' } },
+      { profileId: 'muted-1', deletedAt: null, profile: { id: 'muted-1' } },
+      { profileId: 'open-1', deletedAt: null, profile: { id: 'open-1' } },
+    ];
+    mockTx.conversation.findUnique.mockResolvedValue({
+      id: 'conv-g',
+      isGroup: true,
+      participants,
+    });
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-g',
+      content: 'encrypted_Hi',
+      senderId: 'sender-1',
+      conversationId: 'conv-g',
+      sender: { id: 'sender-1', username: 'sender_user' },
+    });
+    mockPrisma.participant.findMany.mockResolvedValue([
+      { profileId: 'muted-1' },
+    ]);
+
+    await useCase.execute(
+      'sender-1',
+      undefined,
+      'Hi',
+      undefined,
+      undefined,
+      'conv-g',
+    );
+
+    expect(mockPrisma.participant.findMany).toHaveBeenCalledWith({
+      where: { conversationId: 'conv-g', mutedUntil: { gt: expect.any(Date) } },
+      select: { profileId: true },
+    });
+    const pushed = mockPushService.sendNotification.mock.calls.map(
+      (call: unknown[]) => call[0],
+    );
+    expect(pushed).toEqual(['open-1']);
+  });
+
   it('sends message to existing conversation with push notification to recipient', async () => {
     const participants = [
       { profileId: 'sender-1', profile: { id: 'sender-1' } },
