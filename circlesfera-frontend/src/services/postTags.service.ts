@@ -5,6 +5,9 @@ export type PostTagStatus = 'SHOWN' | 'PENDING';
 export interface MyPostTag {
   createdAt: string;
   status: PostTagStatus;
+  // False for a post the Profile cannot open: the row then carries only
+  // what removing the tag needs.
+  canOpen: boolean;
   post: {
     id: string;
     caption: string | null;
@@ -17,7 +20,7 @@ export interface MyPostTag {
       avatar?: string | null;
       thumbnailUrl?: string | null;
       standardUrl?: string | null;
-    };
+    } | null;
   };
 }
 

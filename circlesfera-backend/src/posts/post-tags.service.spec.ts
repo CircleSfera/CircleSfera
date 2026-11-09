@@ -7,6 +7,7 @@ describe('PostTagsService', () => {
     block: { findMany: vi.fn() },
     profile: { findUnique: vi.fn() },
     userSettings: { findUnique: vi.fn() },
+    follow: { findMany: vi.fn() },
     postTag: {
       findMany: vi.fn(),
       updateMany: vi.fn(),
@@ -22,32 +23,36 @@ describe('PostTagsService', () => {
     prisma.userSettings.findUnique.mockResolvedValue({
       contentPreference: 'GENERAL',
     });
+    prisma.follow.findMany.mockResolvedValue([]);
     service = new PostTagsService(prisma as unknown as PrismaService);
   });
 
-  it('lists only posts the Profile may open: public, or for followers when it follows the author', async () => {
-    prisma.postTag.findMany.mockResolvedValue([]);
-
-    await service.list('me', 'SHOWN');
-
-    const { post } = prisma.postTag.findMany.mock.calls[0][0].where;
-    expect(post).toMatchObject({
-      deletedAt: null,
-      archivedAt: null,
-      moderationStatus: { notIn: ['REMOVED', 'HIDDEN'] },
-    });
-    expect(post.OR).toEqual([
-      { visibility: 'PUBLIC', profile: { privacyLevel: 'PUBLIC' } },
-      {
-        visibility: { in: ['PUBLIC', 'FOLLOWERS'] },
-        profile: {
-          followers: { some: { followerId: 'me', status: 'ACCEPTED' } },
-        },
-      },
-    ]);
+  const row = (id: string, over: Record<string, unknown> = {}) => ({
+    createdAt: new Date('2026-11-01T00:00:00Z'),
+    status: 'SHOWN',
+    post: {
+      id,
+      profileId: `author-${id}`,
+      caption: `caption ${id}`,
+      isPremium: false,
+      contentRating: 'GENERAL',
+      visibility: 'PUBLIC',
+      moderationStatus: 'VISIBLE',
+      createdAt: new Date('2026-11-01T00:00:00Z'),
+      profile: { username: `author_${id}`, privacyLevel: 'PUBLIC' },
+      media: [
+        { thumbnailUrl: null, url: `https://cdn/${id}.jpg`, type: 'image' },
+      ],
+      ...over,
+    },
   });
+  const settings = (contentPreference: string, blurSensitiveContent = true) =>
+    prisma.userSettings.findUnique.mockResolvedValue({
+      contentPreference,
+      blurSensitiveContent,
+    });
 
-  it('lists the waiting tags of the Profile, leaving out authors across a block', async () => {
+  it('lists the tags of the Profile on posts still up, leaving out authors across a block', async () => {
     prisma.block.findMany.mockResolvedValue([
       { blockerId: 'me', blockedId: 'bad' },
     ]);
@@ -57,85 +62,124 @@ describe('PostTagsService', () => {
 
     expect(prisma.postTag.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
+        where: {
           profileId: 'me',
           status: 'PENDING',
-          post: expect.objectContaining({ profileId: { notIn: ['bad'] } }),
-        }),
+          post: {
+            moderationStatus: { not: 'REMOVED' },
+            deletedAt: null,
+            archivedAt: null,
+            profileId: { notIn: ['bad'] },
+          },
+        },
         orderBy: { createdAt: 'desc' },
       }),
     );
   });
 
-  it('shows no picture of a mature post to a Profile that does not allow them, but lists it', async () => {
+  it('shows the details of a post only when the Profile may open it, and keeps the rest removable', async () => {
     prisma.postTag.findMany.mockResolvedValue([
-      {
-        createdAt: new Date(),
-        status: 'SHOWN',
-        post: {
-          id: 'p-mature',
-          caption: null,
-          isPremium: false,
-          contentRating: 'MATURE',
-          createdAt: new Date(),
-          profile: { username: 'ana' },
-          media: [
-            { thumbnailUrl: 'https://cdn/m.jpg', url: 'x', type: 'image' },
-          ],
-        },
-      },
+      row('public'),
+      row('for-fans', { visibility: 'FOLLOWERS' }),
+      row('fan-private', {
+        profile: { username: 'x', privacyLevel: 'PRIVATE' },
+      }),
+      row('closed', { profile: { username: 'y', privacyLevel: 'PRIVATE' } }),
+      row('stranger-fans', { visibility: 'FOLLOWERS' }),
+      row('reviewed', { moderationStatus: 'HIDDEN' }),
+    ]);
+    prisma.follow.findMany.mockResolvedValue([
+      { followingId: 'author-for-fans' },
+      { followingId: 'author-fan-private' },
     ]);
 
     const { data } = await service.list('me', 'SHOWN');
 
-    expect(data).toHaveLength(1);
-    expect(data[0].post.thumbnailUrl).toBeNull();
-    expect(data[0].post).not.toHaveProperty('contentRating');
+    expect(prisma.follow.findMany).toHaveBeenCalledWith({
+      where: {
+        followerId: 'me',
+        followingId: {
+          in: [
+            'author-public',
+            'author-for-fans',
+            'author-fan-private',
+            'author-closed',
+            'author-stranger-fans',
+            'author-reviewed',
+          ],
+        },
+        status: 'ACCEPTED',
+      },
+      select: { followingId: true },
+    });
+    expect(data.map((t) => [t.post.id, t.canOpen])).toEqual([
+      ['public', true],
+      ['for-fans', true],
+      ['fan-private', true],
+      ['closed', false],
+      ['stranger-fans', false],
+      ['reviewed', false],
+    ]);
+    // Of a post it cannot open, nothing but what removing the tag needs.
+    expect(data[3].post).toEqual({
+      id: 'closed',
+      caption: null,
+      createdAt: expect.any(Date),
+      thumbnailUrl: null,
+      profile: null,
+    });
+    expect(data[0].post).toEqual({
+      id: 'public',
+      caption: 'caption public',
+      createdAt: expect.any(Date),
+      thumbnailUrl: 'https://cdn/public.jpg',
+      profile: { username: 'author_public', privacyLevel: 'PUBLIC' },
+    });
   });
 
-  it('shows a picture of the post, never of a paid one', async () => {
-    const createdAt = new Date('2026-11-01T00:00:00Z');
+  it("follows the Profile's content preferences on a mature post", async () => {
     prisma.postTag.findMany.mockResolvedValue([
-      {
-        createdAt,
-        status: 'SHOWN',
-        post: {
-          id: 'p-free',
-          caption: 'hi',
-          isPremium: false,
-          contentRating: 'GENERAL',
-          createdAt,
-          profile: { username: 'ana' },
-          media: [
-            { thumbnailUrl: null, url: 'https://cdn/a.jpg', type: 'image' },
-          ],
-        },
-      },
-      {
-        createdAt,
-        status: 'SHOWN',
-        post: {
-          id: 'p-paid',
-          caption: 'paid',
-          isPremium: true,
-          contentRating: 'GENERAL',
-          createdAt,
-          profile: { username: 'bea' },
-          media: [
-            { thumbnailUrl: 'https://cdn/t.jpg', url: 'x', type: 'image' },
-          ],
-        },
-      },
+      row('m', { contentRating: 'MATURE' }),
+    ]);
+
+    // Mature not allowed: no picture and no caption, still listed.
+    settings('GENERAL');
+    let { data } = await service.list('me', 'SHOWN');
+    expect(data[0]).toMatchObject({
+      canOpen: true,
+      post: { id: 'm', caption: null, thumbnailUrl: null },
+    });
+
+    // Allowed but blurred: the caption, no picture.
+    settings('MATURE', true);
+    ({ data } = await service.list('me', 'SHOWN'));
+    expect(data[0].post).toMatchObject({
+      caption: 'caption m',
+      thumbnailUrl: null,
+    });
+
+    // Allowed and not blurred: both.
+    settings('MATURE', false);
+    ({ data } = await service.list('me', 'SHOWN'));
+    expect(data[0].post).toMatchObject({
+      caption: 'caption m',
+      thumbnailUrl: 'https://cdn/m.jpg',
+    });
+  });
+
+  it('never shows a picture of a paid post', async () => {
+    prisma.postTag.findMany.mockResolvedValue([
+      row('paid', {
+        isPremium: true,
+        media: [{ thumbnailUrl: 'https://cdn/t.jpg', url: 'x', type: 'image' }],
+      }),
     ]);
 
     const { data } = await service.list('me', 'SHOWN');
 
-    expect(data.map((t) => t.post.thumbnailUrl)).toEqual([
-      'https://cdn/a.jpg',
-      null,
-    ]);
-    expect(data[1].post).not.toHaveProperty('media');
-    expect(data[1].post).not.toHaveProperty('isPremium');
+    expect(data[0].post.thumbnailUrl).toBeNull();
+    expect(data[0].post).not.toHaveProperty('isPremium');
+    expect(data[0].post).not.toHaveProperty('media');
   });
 
   it('approves only a tag of its own that is waiting', async () => {

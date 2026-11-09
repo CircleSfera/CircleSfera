@@ -884,7 +884,9 @@
       "remove": "Quitarme",
       "remove_label": "Quitarme de la publicación de {{username}}",
       "error": "No se ha podido actualizar la etiqueta",
-      "load_error": "No se han podido cargar tus etiquetas."
+      "load_error": "No se han podido cargar tus etiquetas.",
+      "unavailable": "Una publicación que no puedes ver",
+      "remove_unavailable_label": "Quitarme de una publicación que no puedes ver"
     }
   },
   "auth": {

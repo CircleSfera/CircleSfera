@@ -23,6 +23,7 @@ const bea = () => ({
 const tag = (id: string, status: 'SHOWN' | 'PENDING') => ({
   createdAt: new Date().toISOString(),
   status,
+  canOpen: true,
   post: {
     id,
     caption: `Una tarde en ${id}`,

@@ -884,7 +884,9 @@
       "remove": "Remove me",
       "remove_label": "Remove me from the post by {{username}}",
       "error": "Couldn't update the tag",
-      "load_error": "Couldn't load your tags."
+      "load_error": "Couldn't load your tags.",
+      "unavailable": "A post you can't see",
+      "remove_unavailable_label": "Remove me from a post you can't see"
     }
   },
   "auth": {

@@ -17,6 +17,7 @@ const api = vi.mocked(postTagsApi);
 const tag = (id: string, status: 'SHOWN' | 'PENDING', over: object = {}) => ({
   createdAt: '2026-11-01T10:00:00Z',
   status,
+  canOpen: true,
   post: {
     id,
     caption: `caption ${id}`,
@@ -123,6 +124,39 @@ describe('TagsSettings', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('No tags waiting')).not.toBeInTheDocument();
     expect(await screen.findByText('Post by author_s1')).toBeInTheDocument();
+  });
+
+  it('lets the Profile take itself off a post it cannot open, showing nothing of it', async () => {
+    lists.PENDING = [
+      {
+        createdAt: '2026-11-01T10:00:00Z',
+        status: 'PENDING',
+        canOpen: false,
+        post: {
+          id: 'hidden-1',
+          caption: null,
+          createdAt: '2026-11-01T10:00:00Z',
+          thumbnailUrl: null,
+          profile: null,
+        },
+      } as never,
+    ];
+    renderWithProviders(<TagsSettings />);
+
+    const row = (await screen.findByText("A post you can't see")).closest(
+      'li',
+    ) as HTMLElement;
+    expect(within(row).queryByRole('link')).not.toBeInTheDocument();
+    expect(
+      within(row).queryByRole('button', { name: 'Approve' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(row).getByRole('button', {
+        name: "Remove me from a post you can't see",
+      }),
+    );
+    await waitFor(() => expect(api.remove).toHaveBeenCalledWith('hidden-1'));
   });
 
   it('says so when a tag cannot be changed', async () => {
