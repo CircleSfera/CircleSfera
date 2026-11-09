@@ -16,6 +16,11 @@ import { LoadingSpinner } from '../components/LoadingStates';
 import AddToCollectionModal from '../components/modals/AddToCollectionModal';
 import FrameCommentsModal from '../components/modals/FrameCommentsModal';
 import SharePostModal from '../components/modals/SharePostModal';
+import CollaboratorDialog from '../components/post/CollaboratorDialog';
+import {
+  canHaveCollaborator,
+  useCollaboration,
+} from '../hooks/useCollaboration';
 import { usePostInteractionSettings } from '../hooks/usePostInteractionSettings';
 import { postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -34,6 +39,7 @@ export default function Frames() {
   const [shareOpen, setShareOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collaboratorOpen, setCollaboratorOpen] = useState(false);
   const [menuActions, setMenuActions] = useState<FrameMenuActions | null>(null);
   const profile = useAuthStore((state) => state.profile);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -204,6 +210,8 @@ export default function Frames() {
   const frameInteractionSettings = usePostInteractionSettings(
     displayFrames[activeFrameIndex],
   );
+  // Its author manages the collaborator; the collaborator can leave.
+  const frameCollaboration = useCollaboration(displayFrames[activeFrameIndex]);
 
   if (isLoading) {
     return (
@@ -387,6 +395,13 @@ export default function Frames() {
                     onClose={() => setSaveOpen(false)}
                   />
                 )}
+                {collaboratorOpen && (
+                  <CollaboratorDialog
+                    postId={activeFrame.id}
+                    isOpen
+                    onClose={() => setCollaboratorOpen(false)}
+                  />
+                )}
                 {menuOpen && menuActions && (
                   <FrameOptionsSheet
                     presentation="frame"
@@ -416,6 +431,16 @@ export default function Frames() {
                       isFrameOwner ? menuActions.onToggleTemplate : undefined
                     }
                     templateOffered={menuActions.templateOffered}
+                    onCollaborator={
+                      isFrameOwner && canHaveCollaborator(activeFrame)
+                        ? () => setCollaboratorOpen(true)
+                        : undefined
+                    }
+                    onLeaveCollaboration={
+                      frameCollaboration.isCollaborator
+                        ? frameCollaboration.leave
+                        : undefined
+                    }
                     onPromote={
                       canPromoteFrame ? menuActions.onPromote : undefined
                     }

@@ -132,6 +132,10 @@
       "hidden_words": {
         "label": "Hidden words",
         "desc": "Comments"
+      },
+      "collaborations": {
+        "label": "Collaborations",
+        "desc": "Invitations"
       }
     },
     "profile": {
@@ -812,6 +816,18 @@
       "delete_error": "It could not be deleted. Try again.",
       "archived": "Archived. Only you see it, in your archive.",
       "archive_error": "It could not be archived. Try again."
+    },
+    "collaborations": {
+      "title": "Collaboration invitations",
+      "subtitle": "Posts others invited you to co-author. Once you accept, the post shows on your profile and reaches your followers too.",
+      "empty": "No invitations at the moment",
+      "invited_by": "{{username}} invited you to collaborate",
+      "view_post": "View {{username}}'s post",
+      "accept": "Accept",
+      "decline": "Decline",
+      "accepted": "You're now a collaborator on this post",
+      "accept_error": "Couldn't accept the invitation",
+      "decline_error": "Couldn't decline the invitation"
     }
   },
   "auth": {
@@ -1372,7 +1388,9 @@
       "stop_offering_template": "Stop offering its template",
       "template_offered": "Others can now use its template",
       "template_stopped": "Its template is no longer offered",
-      "template_error": "Could not change it. Try again."
+      "template_error": "Could not change it. Try again.",
+      "collaborator": "Collaborator",
+      "leave_collaboration": "Stop collaborating"
     },
     "modals": {
       "delete_title": "Delete post?",
@@ -1419,6 +1437,24 @@
       "load_failed": "It could not be loaded. Please try again.",
       "retry": "Try again",
       "how_link": "How your feed works"
+    },
+    "collab": {
+      "and": "and",
+      "title": "Collaborator",
+      "explain": "Invite one person to be a co-author. Once they accept, the post shows on both profiles and reaches the followers of both. You keep every control over it.",
+      "username_label": "Username",
+      "username_placeholder": "@username",
+      "invite": "Invite",
+      "invited": "Invitation sent",
+      "invite_error": "Couldn't send the invitation",
+      "status_pending": "Invited, hasn't answered yet",
+      "status_accepted": "Co-author",
+      "remove": "Remove",
+      "withdraw": "Withdraw",
+      "removed": "Collaborator removed",
+      "remove_error": "Couldn't remove the collaborator",
+      "left": "You're no longer a collaborator on this post",
+      "leave_error": "Couldn't stop collaborating"
     }
   },
   "story": {
@@ -2260,7 +2296,8 @@
     "strike_details_cta": "See details and appeal",
     "removal_appeal_cta": "Appeal",
     "just_now": "now",
-    "view_live": "Watch the live"
+    "view_live": "Watch the live",
+    "collab_invitations_cta": "See invitations"
   },
   "chat": {
     "loading": "Loading chats...",
@@ -6191,7 +6228,11 @@
       "PREMIUM_PRICE_OUT_OF_RANGE": "The price of premium content is outside the allowed range.",
       "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published.",
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
-      "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another."
+      "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
+      "COLLAB_NOT_ALLOWED": "Only a public post that is not paid can have a collaborator, and never its author.",
+      "COLLABORATOR_EXISTS": "This post already has a collaborator.",
+      "COLLAB_NOT_FOUND": "This invitation is no longer available.",
+      "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

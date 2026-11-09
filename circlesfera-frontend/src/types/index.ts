@@ -36,6 +36,7 @@ export type Post = IPost & {
   shape?: PostShape | null;
   // Set when its author archived it: shown in their archive only.
   archivedAt?: string | null;
+  visibility?: 'PUBLIC' | 'FOLLOWERS' | 'PRIVATE';
   isPromoted?: boolean;
   promotionId?: string;
   // The countries a promoted post is aimed at; empty for everywhere.

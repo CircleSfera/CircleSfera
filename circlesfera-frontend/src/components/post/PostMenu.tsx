@@ -15,6 +15,8 @@ import {
   MessageCircleOff,
   Pencil,
   Trash2,
+  UserMinus,
+  UsersRound,
   UserX,
   VolumeX,
 } from 'lucide-react';
@@ -50,6 +52,10 @@ interface PostMenuProps {
   commentsOff?: boolean;
   onToggleLikes?: () => void;
   likesHidden?: boolean;
+  // The author's: invite, see or remove the post's collaborator.
+  onCollaborator?: () => void;
+  // The collaborator's: stop co-authoring someone else's post.
+  onLeaveCollaboration?: () => void;
 }
 
 interface MenuItemProps {
@@ -146,6 +152,8 @@ export default function PostMenu({
   commentsOff = false,
   onToggleLikes,
   likesHidden = false,
+  onCollaborator,
+  onLeaveCollaboration,
 }: PostMenuProps) {
   const { t } = useTranslation();
   const wide = useWideScreen();
@@ -164,6 +172,13 @@ export default function PostMenu({
             }
           : undefined,
         { icon: Pencil, label: t('post.menu.edit'), onClick: onEdit },
+        onCollaborator
+          ? {
+              icon: UsersRound,
+              label: t('post.menu.collaborator'),
+              onClick: onCollaborator,
+            }
+          : undefined,
         onArchive
           ? {
               icon: isArchived ? ArchiveRestore : Archive,
@@ -200,6 +215,13 @@ export default function PostMenu({
         },
       ].filter((item) => item !== undefined) as Array<MenuItemProps | null>)
     : ([
+        onLeaveCollaboration
+          ? {
+              icon: UserMinus,
+              label: t('post.menu.leave_collaboration'),
+              onClick: onLeaveCollaboration,
+            }
+          : undefined,
         onHidePost
           ? {
               icon: EyeOff,

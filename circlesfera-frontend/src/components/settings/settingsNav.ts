@@ -5,6 +5,7 @@ import {
   DollarSign,
   EyeOff,
   Flag,
+  Handshake,
   Key,
   type LucideIcon,
   MessageSquareOff,
@@ -31,6 +32,7 @@ export type SettingsSectionId =
   | 'billing'
   | 'monetization'
   | 'requests'
+  | 'collaborations'
   | 'close_friends'
   | 'mutes'
   | 'hidden_words'
@@ -70,6 +72,7 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'billing',
   'monetization',
   'requests',
+  'collaborations',
   'close_friends',
   'mutes',
   'hidden_words',
@@ -121,6 +124,11 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'archive',
         labelKey: 'settings.tabs.archive.label',
         icon: Archive,
+      },
+      {
+        id: 'collaborations',
+        labelKey: 'settings.tabs.collaborations.label',
+        icon: Handshake,
       },
       {
         id: 'recently_deleted',

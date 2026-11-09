@@ -14,6 +14,7 @@ export * from './auth.service';
 export * from './bookmarks.service';
 export * from './chat.service';
 export * from './closeFriends.service';
+export * from './collaborations.service';
 export * from './collections.service';
 export * from './comments.service';
 export * from './creator.service';

@@ -132,6 +132,10 @@
       "hidden_words": {
         "label": "Palabras ocultas",
         "desc": "Comentarios"
+      },
+      "collaborations": {
+        "label": "Colaboraciones",
+        "desc": "Invitaciones"
       }
     },
     "profile": {
@@ -812,6 +816,18 @@
       "delete_error": "No se pudo eliminar. Inténtalo de nuevo.",
       "archived": "Archivado. Solo tú lo ves, en tu archivo.",
       "archive_error": "No se pudo archivar. Inténtalo de nuevo."
+    },
+    "collaborations": {
+      "title": "Invitaciones para colaborar",
+      "subtitle": "Publicaciones de otras personas en las que te han invitado a ser coautor. Cuando aceptas, la publicación aparece en tu perfil y llega también a tus seguidores.",
+      "empty": "No tienes invitaciones por ahora",
+      "invited_by": "{{username}} te ha invitado a colaborar",
+      "view_post": "Ver la publicación de {{username}}",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "accepted": "Ahora colaboras en esta publicación",
+      "accept_error": "No se ha podido aceptar la invitación",
+      "decline_error": "No se ha podido rechazar la invitación"
     }
   },
   "auth": {
@@ -1372,7 +1388,9 @@
       "stop_offering_template": "Dejar de ofrecer su plantilla",
       "template_offered": "Ahora otros pueden usar su plantilla",
       "template_stopped": "Su plantilla ya no se ofrece",
-      "template_error": "No se pudo cambiar. Inténtalo de nuevo."
+      "template_error": "No se pudo cambiar. Inténtalo de nuevo.",
+      "collaborator": "Colaborador",
+      "leave_collaboration": "Dejar de colaborar"
     },
     "modals": {
       "delete_title": "¿Eliminar publicación?",
@@ -1419,6 +1437,24 @@
       "load_failed": "No se pudo cargar. Inténtalo de nuevo.",
       "retry": "Reintentar",
       "how_link": "Cómo funciona tu feed"
+    },
+    "collab": {
+      "and": "y",
+      "title": "Colaborador",
+      "explain": "Invita a una persona a ser coautora. Cuando acepte, la publicación se mostrará en los dos perfiles y llegará a los seguidores de ambos. Tú mantienes todo el control sobre ella.",
+      "username_label": "Nombre de usuario",
+      "username_placeholder": "@usuario",
+      "invite": "Invitar",
+      "invited": "Invitación enviada",
+      "invite_error": "No se ha podido enviar la invitación",
+      "status_pending": "Invitado, aún no ha respondido",
+      "status_accepted": "Coautor",
+      "remove": "Quitar",
+      "withdraw": "Retirar",
+      "removed": "Colaborador quitado",
+      "remove_error": "No se ha podido quitar al colaborador",
+      "left": "Ya no colaboras en esta publicación",
+      "leave_error": "No se ha podido dejar de colaborar"
     }
   },
   "story": {
@@ -2260,7 +2296,8 @@
     "strike_details_cta": "Ver detalles y apelar",
     "removal_appeal_cta": "Apelar",
     "just_now": "ahora",
-    "view_live": "Ver el directo"
+    "view_live": "Ver el directo",
+    "collab_invitations_cta": "Ver invitaciones"
   },
   "chat": {
     "loading": "Cargando chats...",
@@ -6191,7 +6228,11 @@
       "PREMIUM_PRICE_OUT_OF_RANGE": "El precio del contenido premium está fuera del rango permitido.",
       "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado.",
       "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
-      "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra."
+      "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
+      "COLLAB_NOT_ALLOWED": "Solo una publicación pública y no de pago puede tener un colaborador, y nunca su autor.",
+      "COLLABORATOR_EXISTS": "Esta publicación ya tiene un colaborador.",
+      "COLLAB_NOT_FOUND": "Esta invitación ya no está disponible.",
+      "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

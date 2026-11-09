@@ -48,6 +48,22 @@ describe('PostMenu', () => {
     expect(screen.getByText('Show like count')).toBeInTheDocument();
   });
 
+  it('offers the author the collaborator, and the collaborator a way to leave', () => {
+    const onCollaborator = vi.fn();
+    show({ onCollaborator, onLeaveCollaboration: vi.fn() });
+    fireEvent.click(screen.getByText('Collaborator'));
+    expect(onCollaborator).toHaveBeenCalledTimes(1);
+    // Leaving is for the collaborator, never the author.
+    expect(screen.queryByText('Stop collaborating')).not.toBeInTheDocument();
+    cleanup();
+
+    const onLeaveCollaboration = vi.fn();
+    show({ isOwner: false, onCollaborator: vi.fn(), onLeaveCollaboration });
+    expect(screen.queryByText('Collaborator')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Stop collaborating'));
+    expect(onLeaveCollaboration).toHaveBeenCalledTimes(1);
+  });
+
   it('offers no such switch to someone else', () => {
     show({ isOwner: false, onToggleComments: vi.fn(), onToggleLikes: vi.fn() });
     expect(screen.queryByText('Turn off commenting')).not.toBeInTheDocument();
