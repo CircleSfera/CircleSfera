@@ -91,7 +91,6 @@ export default function ChatPreferences({
           </span>
           <Switch
             className="flex-1 min-w-0"
-            compact
             label={t('chat.preferences.mute')}
             description={mutedHint}
             checked={isMuted || choosingMute}
@@ -136,7 +135,6 @@ export default function ChatPreferences({
           </span>
           <Switch
             className="flex-1 min-w-0"
-            compact
             label={t('chat.preferences.pin')}
             description={t('chat.preferences.pin_hint')}
             checked={Boolean(pinnedAt)}
