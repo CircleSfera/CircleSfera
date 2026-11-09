@@ -404,6 +404,19 @@ model Profile {
   // Colour of the Profile page, from the closed list of the app; empty = default.
   accentColor       String?
 
+  // How a Business Profile presents itself: the kind of business, how to
+  // reach it and where it is. Each is optional, public like the website,
+  // and shown only while the Profile is a Business; a Profile of another
+  // kind keeps them, hidden.
+  businessCategory BusinessCategory?
+  // Shown as an "Email" button; nothing is sent through CircleSfera.
+  contactEmail     String?
+  // International format (+ and digits), shown as a "Call" button.
+  contactPhone     String?
+  // The business's address: a place of the map, linked to its place page.
+  businessPlaceId  String?
+  businessPlace    Place?            @relation("BusinessPlace", fields: [businessPlaceId], references: [id], onDelete: SetNull)
+
   // Account Ban Flags
 
   isAccountBanned      Boolean    @default(false)
@@ -519,6 +532,7 @@ model Profile {
   @@index([signInId])
   @@index([privacyLevel])
   @@index([saveStoriesToArchive])
+  @@index([businessPlaceId])
   @@map("profiles")
 }
 
@@ -723,6 +737,8 @@ model Place {
   posts        Post[]
   stories      Story[]
   translations PlaceTranslation[]
+  // Business Profiles whose address this place is.
+  businesses   Profile[]          @relation("BusinessPlace")
 
   @@index([name])
   @@index([latitude, longitude])
@@ -2801,6 +2817,32 @@ enum AccountType {
   PERSONAL
   CREATOR
   BUSINESS
+}
+
+// The kinds of business a Business Profile can say it is; the same list as
+// BUSINESS_CATEGORIES in circlesfera-shared.
+enum BusinessCategory {
+  RESTAURANT_BAR
+  CAFE_BAKERY
+  SHOP
+  FASHION_ACCESSORIES
+  BEAUTY_WELLNESS
+  HEALTH
+  SPORT_FITNESS
+  HOTEL_LODGING
+  TRAVEL_TOURISM
+  EDUCATION
+  PROFESSIONAL_SERVICES
+  HOME_CONSTRUCTION
+  MOTORING
+  TECHNOLOGY
+  MEDIA_ENTERTAINMENT
+  ART_CULTURE
+  EVENTS
+  REAL_ESTATE
+  FINANCE_INSURANCE
+  NON_PROFIT
+  OTHER
 }
 
 enum AdminAction {
