@@ -29,6 +29,7 @@ import {
   toKeysetPage,
 } from '../common/pagination/keyset.util.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { allowedTargets } from '../common/policies/interaction.policy.js';
 import { NOT_REMOVED } from '../common/policies/removed-content.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
@@ -372,7 +373,15 @@ export class StoriesService {
     authorProfileId: string,
     mentioned: string[],
   ): Promise<void> {
+    // Only those who let the author mention them are told.
+    const allowed = await allowedTargets(
+      this.prisma,
+      authorProfileId,
+      mentioned,
+      'mention',
+    );
     for (const recipientId of mentioned) {
+      if (!allowed.has(recipientId)) continue;
       const canSee = await assertCanAccessStory(
         this.prisma,
         storyId,

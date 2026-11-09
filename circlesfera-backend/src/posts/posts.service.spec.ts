@@ -841,7 +841,11 @@ describe('PostsService', () => {
       const dto = {
         caption: 'Hello #world #alpha @user2',
         type: 'POST' as const,
-        tags: [{ profileId: 'tagged-user', x: 0.1, y: 0.2 }],
+        tags: [
+          { profileId: 'tagged-user', x: 0.1, y: 0.2 },
+          { profileId: 'approving-user', x: 0.3, y: 0.4 },
+          { profileId: 'closed-user', x: 0.5, y: 0.6 },
+        ],
         isPremium: true,
         priceCents: 500,
         contentRating: ContentRating.GENERAL,
@@ -878,6 +882,12 @@ describe('PostsService', () => {
         accountType: 'CREATOR',
         monetizationStatus: 'APPROVED',
       });
+      // Who lets the author tag them, and who approves tags by hand.
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { id: 'tagged-user', tagsFrom: 'EVERYONE', manualTagApproval: false },
+        { id: 'approving-user', tagsFrom: 'EVERYONE', manualTagApproval: true },
+        { id: 'closed-user', tagsFrom: 'NOBODY', manualTagApproval: false },
+      ]);
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'post-1',
         caption: 'Hello #world #alpha @user2',
@@ -891,8 +901,18 @@ describe('PostsService', () => {
       expect(mockTx.post.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
+            // The tag the Profile did not allow is left out; the one it
+            // approves by hand waits for it.
             tags: {
-              create: [{ profileId: 'tagged-user', x: 0.1, y: 0.2 }],
+              create: [
+                { profileId: 'tagged-user', x: 0.1, y: 0.2, status: 'SHOWN' },
+                {
+                  profileId: 'approving-user',
+                  x: 0.3,
+                  y: 0.4,
+                  status: 'PENDING',
+                },
+              ],
             },
           }),
         }),
@@ -1992,6 +2012,16 @@ describe('PostsService', () => {
 
       expect(result.data).toHaveLength(0);
       expect(result.meta.nextCursor).toBeUndefined();
+      // A tag still waiting for the Profile's approval is not listed.
+      const shownTag = {
+        tags: { some: { profileId: 'prof-tagged', status: 'SHOWN' } },
+      };
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining(shownTag) }),
+      );
+      expect(mockPrismaService.post.count).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining(shownTag) }),
+      );
     });
 
     it('returns paginated tagged posts with cursor and injects isLiked', async () => {

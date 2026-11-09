@@ -22,6 +22,7 @@ import {
   isSettingsSectionId,
   type SettingsSectionId,
 } from '../components/settings/settingsNav';
+import TagsSettings from '../components/settings/TagsSettings';
 import TeamSettings from '../components/settings/TeamSettings';
 
 function SectionPanel({ section }: { section: SettingsSectionId }) {
@@ -48,6 +49,8 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <CloseFriendsSettings />;
     case 'mutes':
       return <MutesSettings />;
+    case 'tags':
+      return <TagsSettings />;
     case 'hidden_words':
       return <HiddenWordsSettings />;
     case 'feed_prefs':
