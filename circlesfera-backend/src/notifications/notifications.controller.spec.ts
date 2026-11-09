@@ -65,6 +65,31 @@ describe('NotificationsController', () => {
     );
   });
 
+  it('passes the kind asked for', async () => {
+    mockService.findAll.mockResolvedValue({ data: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/notifications')
+      .query({ page: 2, limit: 20, kind: 'likes' })
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.findAll).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      expect.objectContaining({ page: 2, limit: 20, kind: 'likes' }),
+    );
+  });
+
+  it('refuses a kind it does not know', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/notifications')
+      .query({ kind: 'payments' })
+      .set(BEARER)
+      .expect(400);
+
+    expect(mockService.findAll).not.toHaveBeenCalled();
+  });
+
   it('reads unread count as the session profile', async () => {
     mockService.getUnreadCount.mockResolvedValue({ count: 3 });
 

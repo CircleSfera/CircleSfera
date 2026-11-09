@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import {
   AtSign,
   Bell,
@@ -12,7 +12,7 @@ import {
   Shield,
   UserPlus,
 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
@@ -20,9 +20,30 @@ import { EmptyState, ErrorState } from '../components/ErrorEmptyStates';
 import { LoadingSpinner } from '../components/LoadingStates';
 import PendingFollowRequests from '../components/notifications/PendingFollowRequests';
 import UserAvatar from '../components/UserAvatar';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { notificationsApi } from '../services';
+import type { NotificationKind } from '../services/notifications.service';
 import { useNotificationsStore } from '../stores/notificationsStore';
 import type { Notification } from '../types';
+
+const PAGE_SIZE = 20;
+
+// The filters of the page, as Instagram's, and the types each one shows;
+// the server filters the same way, and a notice that arrives live is shown
+// only under a filter it belongs to.
+const KINDS: readonly NotificationKind[] = [
+  'all',
+  'comments',
+  'follows',
+  'likes',
+];
+const KIND_TYPES: Record<Exclude<NotificationKind, 'all'>, string[]> = {
+  comments: ['COMMENT', 'MENTION'],
+  follows: ['FOLLOW', 'FOLLOW_REQUEST', 'FOLLOW_ACCEPTED'],
+  likes: ['LIKE', 'COMMENT_LIKE'],
+};
+const isOfKind = (n: Notification, kind: NotificationKind) =>
+  kind === 'all' || KIND_TYPES[kind].includes(n.type);
 
 // Moderation notices about a warning or strike carry a target type; the
 // message is shown in the reader's language instead of the stored text.
@@ -95,17 +116,38 @@ const targetLabelKey = (notif: { targetType?: string | null }) =>
     ? 'notifications.view_request'
     : 'notifications.view_live';
 
+/** How many people a grouped row of likes or followers stands for. */
+const othersOf = (notif: Notification) => notif.othersCount ?? 0;
+
 export default function Notifications() {
   const { t, i18n } = useTranslation();
+  const [kind, setKind] = useState<NotificationKind>('all');
   const {
     data: notifications,
     isLoading,
     isError,
     refetch,
-  } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => notificationsApi.getAll(),
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['notifications', kind],
+    queryFn: ({ pageParam }) =>
+      notificationsApi
+        .getAll(pageParam, PAGE_SIZE, kind)
+        .then((res) => res.data),
+    initialPageParam: 1,
+    // Twenty at a time, until the last page the server counted.
+    getNextPageParam: (last) =>
+      last?.meta && last.meta.page < last.meta.totalPages
+        ? last.meta.page + 1
+        : undefined,
   });
+  const loadMoreRef = useInfiniteScroll(
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  );
 
   const liveNotifications = useNotificationsStore(
     (state) => state.liveNotifications,
@@ -142,43 +184,46 @@ export default function Notifications() {
   }
 
   // Merge API data and live notifications
-  const apiNotifs: Notification[] = notifications?.data?.data || [];
+  const apiNotifs: Notification[] =
+    notifications?.pages.flatMap((page) => page?.data ?? []) ?? [];
 
   // Create a map to deduplicate by content fingerprint (type + sender + post)
   // We want to group certain notifications (like Follow/Like) to avoid duplicates
   const notifMap = new Map<string, Notification>();
   const fingerprints = new Set<string>();
 
-  [...liveNotifications, ...apiNotifs].forEach((n) => {
-    // First check ID (standard dedupe)
-    if (notifMap.has(n.id)) return;
+  [...liveNotifications.filter((n) => isOfKind(n, kind)), ...apiNotifs].forEach(
+    (n) => {
+      // First check ID (standard dedupe)
+      if (notifMap.has(n.id)) return;
 
-    // Grouping rules:
-    // For LIKE and FOLLOW, we only ever want to see one (the latest)
-    // For COMMENT and MENTION, we might want to see each interaction if they are different
-    let fingerprint = n.id; // Default: no grouping, use unique ID
+      // Grouping rules:
+      // For LIKE and FOLLOW, we only ever want to see one (the latest)
+      // For COMMENT and MENTION, we might want to see each interaction if they are different
+      let fingerprint = n.id; // Default: no grouping, use unique ID
 
-    if (
-      [
-        'LIKE',
-        'COMMENT_LIKE',
-        'FOLLOW',
-        'FOLLOW_REQUEST',
-        'FOLLOW_ACCEPTED',
-      ].includes(n.type)
-    ) {
-      fingerprint = `${n.type}-${n.senderId}-${n.postId || 'none'}`;
-    } else if (n.type === 'COMMENT' || n.type === 'MENTION') {
-      // Group comments/mentions only if they are identical (content, post or
-      // story, and sender).
-      fingerprint = `${n.type}-${n.senderId}-${n.postId || 'none'}-${n.targetId || 'none'}-${n.content}`;
-    }
+      if (
+        [
+          'LIKE',
+          'COMMENT_LIKE',
+          'FOLLOW',
+          'FOLLOW_REQUEST',
+          'FOLLOW_ACCEPTED',
+        ].includes(n.type)
+      ) {
+        fingerprint = `${n.type}-${n.senderId}-${n.postId || 'none'}`;
+      } else if (n.type === 'COMMENT' || n.type === 'MENTION') {
+        // Group comments/mentions only if they are identical (content, post or
+        // story, and sender).
+        fingerprint = `${n.type}-${n.senderId}-${n.postId || 'none'}-${n.targetId || 'none'}-${n.content}`;
+      }
 
-    if (!fingerprints.has(fingerprint)) {
-      notifMap.set(n.id, n);
-      fingerprints.add(fingerprint);
-    }
-  });
+      if (!fingerprints.has(fingerprint)) {
+        notifMap.set(n.id, n);
+        fingerprints.add(fingerprint);
+      }
+    },
+  );
 
   const notifs = Array.from(notifMap.values()).sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -339,8 +384,33 @@ export default function Notifications() {
         </h1>
       </div>
 
+      {/* The filters, in a row that scrolls sideways on a narrow screen. */}
+      <div
+        role="toolbar"
+        aria-label={t('notifications.filters.label')}
+        className="flex gap-2 overflow-x-auto px-4 pb-2 no-scrollbar"
+      >
+        {KINDS.map((k) => (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={kind === k}
+            onClick={() => setKind(k)}
+            className={`shrink-0 min-h-11 rounded-full border px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 ${
+              kind === k
+                ? 'border-white/25 bg-white/15 text-white'
+                : 'border-white/10 bg-white/5 text-white/60 hover:text-white'
+            }`}
+          >
+            {t(`notifications.filters.${k}`)}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col gap-2 px-2 pt-1">
-        <PendingFollowRequests />
+        {kind === 'all' || kind === 'follows' ? (
+          <PendingFollowRequests />
+        ) : null}
         {notifs.length === 0 ? (
           <div className="mt-10 px-4">
             <EmptyState
@@ -391,18 +461,45 @@ export default function Notifications() {
                         })
                   }
                 >
-                  <UserAvatar
-                    src={notif.sender?.avatar || ''}
-                    thumbnailUrl={notif.sender?.thumbnailUrl}
-                    standardUrl={notif.sender?.standardUrl}
-                    alt={
-                      isSupportNotice(notif)
-                        ? t('notifications.from_support')
-                        : notif.sender?.username ||
-                          t('notifications.unknown_user')
-                    }
-                    size="md"
-                  />
+                  {othersOf(notif) > 0 && notif.previousSender ? (
+                    // A grouped row: the latest two, one over the other.
+                    <span className="relative block w-11 h-11">
+                      <span className="absolute left-0 top-0">
+                        <UserAvatar
+                          src={notif.previousSender.avatar || ''}
+                          thumbnailUrl={notif.previousSender.thumbnailUrl}
+                          standardUrl={notif.previousSender.standardUrl}
+                          alt={notif.previousSender.username}
+                          size="sm"
+                        />
+                      </span>
+                      <span className="absolute right-0 bottom-0 rounded-full ring-2 ring-black">
+                        <UserAvatar
+                          src={notif.sender?.avatar || ''}
+                          thumbnailUrl={notif.sender?.thumbnailUrl}
+                          standardUrl={notif.sender?.standardUrl}
+                          alt={
+                            notif.sender?.username ||
+                            t('notifications.unknown_user')
+                          }
+                          size="sm"
+                        />
+                      </span>
+                    </span>
+                  ) : (
+                    <UserAvatar
+                      src={notif.sender?.avatar || ''}
+                      thumbnailUrl={notif.sender?.thumbnailUrl}
+                      standardUrl={notif.sender?.standardUrl}
+                      alt={
+                        isSupportNotice(notif)
+                          ? t('notifications.from_support')
+                          : notif.sender?.username ||
+                            t('notifications.unknown_user')
+                      }
+                      size="md"
+                    />
+                  )}
                   <div
                     className="absolute -right-0.5 -bottom-0.5 w-5 h-5 rounded-full border-2 border-black flex items-center justify-center text-white"
                     style={getIconStyle(notif.type)}
@@ -424,11 +521,46 @@ export default function Notifications() {
                       : notif.sender?.username ||
                         t('notifications.unknown_user')}
                   </Link>
+                  {othersOf(notif) > 0 && notif.previousSender && (
+                    <>
+                      {othersOf(notif) === 1
+                        ? ` ${t('notifications.grouped.and')} `
+                        : ', '}
+                      <Link
+                        to={`/${notif.previousSender.username}`}
+                        className="font-bold text-white hover:opacity-80 transition-opacity"
+                      >
+                        {notif.previousSender.username}
+                      </Link>
+                    </>
+                  )}
+                  {othersOf(notif) > (notif.previousSender ? 1 : 0) && (
+                    <span className="text-white">
+                      {' '}
+                      {t('notifications.grouped.and_others', {
+                        count: othersOf(notif) - (notif.previousSender ? 1 : 0),
+                      })}
+                    </span>
+                  )}
                   <span className="text-white/70 ml-1">
-                    {notif.type === 'LIKE' && t('notifications.types.like')}
+                    {notif.type === 'LIKE' &&
+                      t(
+                        othersOf(notif) > 0
+                          ? 'notifications.types.like_many'
+                          : 'notifications.types.like',
+                      )}
                     {notif.type === 'COMMENT_LIKE' &&
-                      t('notifications.types.comment_like')}
-                    {notif.type === 'FOLLOW' && t('notifications.types.follow')}
+                      t(
+                        othersOf(notif) > 0
+                          ? 'notifications.types.comment_like_many'
+                          : 'notifications.types.comment_like',
+                      )}
+                    {notif.type === 'FOLLOW' &&
+                      t(
+                        othersOf(notif) > 0
+                          ? 'notifications.types.follow_many'
+                          : 'notifications.types.follow',
+                      )}
                     {notif.type === 'COMMENT' &&
                       t('notifications.types.comment')}
                     {notif.type === 'MENTION' &&
@@ -525,6 +657,12 @@ export default function Notifications() {
                 )}
             </article>
           ))
+        )}
+        {/* Seen near the end of the list, it asks for the next page. */}
+        {hasNextPage && (
+          <div ref={loadMoreRef} className="flex justify-center py-4">
+            {isFetchingNextPage && <LoadingSpinner size="sm" />}
+          </div>
         )}
       </div>
     </div>

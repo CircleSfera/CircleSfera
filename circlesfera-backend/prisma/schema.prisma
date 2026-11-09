@@ -476,6 +476,7 @@ model Profile {
   following               Follow[]                @relation("UserFollowers")
   notifications           Notification[]          @relation("NotificationRecipient")
   sentNotifications       Notification[]          @relation("NotificationSender")
+  groupedNotifications    Notification[]          @relation("NotificationPreviousSender")
   participants            Participant[]
   messages                Message[]
   messageReactions        MessageReaction[] // New: User reactions to messages
@@ -1654,10 +1655,18 @@ model Notification {
   recipient Profile  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   sender    Profile? @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
 
+  // A row that groups likes of one post (or comment likes on it) or new
+  // followers: the sender is the latest, previousSender the one before, and
+  // othersCount how many besides the latest. Empty and 0 for a single one.
+  previousSenderId String?
+  othersCount      Int      @default(0)
+  previousSender   Profile? @relation("NotificationPreviousSender", fields: [previousSenderId], references: [id], onDelete: SetNull)
+
   @@index([recipientId, type, createdAt])
   @@index([recipientId, read, createdAt])
   @@index([createdAt])
   @@index([targetType, targetId])
+  @@index([previousSenderId])
   @@map("notifications")
 }
 
