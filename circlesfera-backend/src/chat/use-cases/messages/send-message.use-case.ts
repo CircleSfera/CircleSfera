@@ -92,6 +92,8 @@ export class SendMessageUseCase {
     voiceWaveform?: number[],
     isLocked?: boolean,
     priceCents?: number,
+    // A copy forwarded from another chat (ForwardMessageUseCase): marked so.
+    options: { forwarded?: boolean } = {},
   ): Promise<Message> {
     // Only the sending Profile's own stored files can be attached.
     await this.storedFiles.assertOwnedBy(senderId, [url, voiceUrl]);
@@ -306,6 +308,7 @@ export class SendMessageUseCase {
               ? JSON.parse(JSON.stringify(voiceWaveform))
               : undefined,
             ...(isLocked ? { isLocked: true, priceCents } : {}),
+            ...(options.forwarded ? { isForwarded: true } : {}),
           },
           include: {
             sender: {

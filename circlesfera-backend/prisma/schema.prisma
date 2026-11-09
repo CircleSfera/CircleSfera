@@ -1583,8 +1583,10 @@ model Message {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  isEdited  Boolean @default(false)
-  isDeleted Boolean @default(false)
+  isEdited    Boolean @default(false)
+  isDeleted   Boolean @default(false)
+  // A copy a member forwarded from another chat. It names no one behind it.
+  isForwarded Boolean @default(false)
 
   // New: Reply support
 

@@ -26,6 +26,7 @@ import { RemoveParticipantUseCase } from './use-cases/groups/remove-participant.
 import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js';
 import { DeleteMessageUseCase } from './use-cases/messages/delete-message.use-case.js';
 import { EditMessageUseCase } from './use-cases/messages/edit-message.use-case.js';
+import { ForwardMessageUseCase } from './use-cases/messages/forward-message.use-case.js';
 import { MarkAsReadUseCase } from './use-cases/messages/mark-as-read.use-case.js';
 import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.js';
 import { GetConversationsQuery } from './use-cases/queries/get-conversations.query.js';
@@ -63,6 +64,7 @@ describe('ChatController', () => {
     pin: vi.fn(),
     unpin: vi.fn(),
   };
+  const mockForwardMessageUseCase = { execute: vi.fn() };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -99,6 +101,10 @@ describe('ChatController', () => {
           useValue: mockDeclineMessageRequestUseCase,
         },
         { provide: ChatSettingsUseCase, useValue: mockChatSettings },
+        {
+          provide: ForwardMessageUseCase,
+          useValue: mockForwardMessageUseCase,
+        },
       ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
@@ -845,6 +851,47 @@ describe('ChatController', () => {
         .put('/api/v1/chat/conversations/c-1/pin')
         .expect(401);
       expect(mockChatSettings.pin).not.toHaveBeenCalled();
+    });
+  });
+  describe('forwarding a message', () => {
+    it('forwards as the session profile to the chats picked', async () => {
+      mockForwardMessageUseCase.execute.mockResolvedValue({
+        sent: ['c-a'],
+        failed: [],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/chat/messages/m-1/forward')
+        .send({ conversationIds: ['c-a'] })
+        .set(BEARER)
+        .expect(201);
+      expect(res.body).toEqual({ sent: ['c-a'], failed: [] });
+      expect(mockForwardMessageUseCase.execute).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        'm-1',
+        ['c-a'],
+      );
+    });
+
+    it('refuses no chats and more than five', async () => {
+      for (const conversationIds of [
+        [],
+        ['a', 'b', 'c', 'd', 'e', 'f'],
+        'c-a',
+      ]) {
+        await request(app.getHttpServer())
+          .post('/api/v1/chat/messages/m-1/forward')
+          .send({ conversationIds })
+          .set(BEARER)
+          .expect(400);
+      }
+      expect(mockForwardMessageUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('is closed without a session', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/chat/messages/m-1/forward')
+        .send({ conversationIds: ['c-a'] })
+        .expect(401);
     });
   });
 });

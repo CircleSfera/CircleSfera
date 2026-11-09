@@ -33,6 +33,7 @@ import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js'
 import { AddReactionUseCase } from './use-cases/messages/add-reaction.use-case.js';
 import { DeleteMessageUseCase } from './use-cases/messages/delete-message.use-case.js';
 import { EditMessageUseCase } from './use-cases/messages/edit-message.use-case.js';
+import { ForwardMessageUseCase } from './use-cases/messages/forward-message.use-case.js';
 import { MarkAsReadUseCase } from './use-cases/messages/mark-as-read.use-case.js';
 import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.js';
 // Queries
@@ -65,6 +66,7 @@ const useCases = [
   DeclineMessageRequestUseCase,
   CleanupExpiredMessagesUseCase,
   ChatSettingsUseCase,
+  ForwardMessageUseCase,
 ];
 
 @Module({
