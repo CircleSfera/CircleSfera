@@ -108,7 +108,6 @@ vi.mock('./MessageBubble', () => ({
     onReact,
     onEdit,
     onDelete,
-    onUnlock,
   }: {
     msg: Message;
     isMe: boolean;
@@ -117,7 +116,6 @@ vi.mock('./MessageBubble', () => ({
     onReact: (id: string, emoji: string) => void;
     onEdit: (msg: Message, text: string) => void;
     onDelete: (id: string) => void;
-    onUnlock: (id: string) => void;
   }) => (
     <div
       data-testid={`message-${msg.id}`}
@@ -142,9 +140,6 @@ vi.mock('./MessageBubble', () => ({
       </button>
       <button type="button" onClick={() => onDelete(msg.id!)}>
         delete {msg.id}
-      </button>
-      <button type="button" onClick={() => onUnlock(msg.id!)}>
-        unlock {msg.id}
       </button>
     </div>
   ),

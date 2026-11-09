@@ -16,12 +16,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import {
-  Link,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { chatApi, uploadApi } from '../../services/index';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
@@ -90,7 +85,6 @@ export default function ChatWindow() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const {
     socket,
@@ -379,33 +373,6 @@ export default function ChatWindow() {
       cancelled = true;
     };
   }, [id, currentProfileId, markRead, queryClient]);
-
-  useEffect(() => {
-    if (!id) return;
-    const success = searchParams.get('success') === 'true';
-    const canceled = searchParams.get('canceled') === 'true';
-    if (!success && !canceled) return;
-
-    if (success) {
-      toast.success(t('chat.unlock_success'));
-      chatApi
-        .getMessages(id)
-        .then((res) => {
-          setMessages((prev) =>
-            mergeServerMessagesWithOptimistic(res.data, prev),
-          );
-        })
-        .catch((err) => logger.error('Failed to refresh messages', err));
-    } else {
-      toast.error(t('chat.unlock_canceled'));
-    }
-
-    const next = new URLSearchParams(searchParams);
-    next.delete('success');
-    next.delete('canceled');
-    next.delete('session_id');
-    setSearchParams(next, { replace: true });
-  }, [id, searchParams, setSearchParams, t]);
 
   useEffect(() => {
     if (!socket || !id) return;
