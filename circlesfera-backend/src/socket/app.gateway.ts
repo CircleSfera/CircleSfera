@@ -499,6 +499,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
       return;
     }
+    // A Profile that restricts the other reads its messages unseen.
+    if (
+      await this.chatRealtimeService.restricts(
+        client.data.user.profileId,
+        payload.recipientId,
+      )
+    ) {
+      return;
+    }
 
     this.server.to(`user:${payload.recipientId}`).emit('messages_read', {
       conversationId: payload.conversationId,

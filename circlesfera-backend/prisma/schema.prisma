@@ -484,6 +484,8 @@ model Profile {
   blocking                Block[]                 @relation("Blocking")
   mutedBy                 Mute[]                  @relation("MutedBy")
   muting                  Mute[]                  @relation("Muting")
+  restrictedBy            Restriction[]           @relation("RestrictedBy")
+  restricting             Restriction[]           @relation("Restricting")
   bookmarks               Bookmark[]
   collections             Collection[]
   highlights              Highlight[]
@@ -907,6 +909,9 @@ model Comment {
   // It contains one of the hidden words of the post's author: shown only to
   // whoever wrote it, until the author shows it.
   hiddenByWords Boolean   @default(false)
+  // Written by a Profile the post's author restricts: shown only to whoever
+  // wrote it, until the author approves it.
+  awaitingApproval Boolean @default(false)
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?
@@ -1022,6 +1027,24 @@ model Mute {
   @@index([mutedId])
   @@index([muterId, expiresAt])
   @@map("mutes")
+}
+
+// A Profile restricts another: the other's new comments on its posts wait
+// for its approval, seen only by their writer; a chat with the other goes to
+// its requests; the other no longer sees when it is active or has read their
+// messages. The restricted Profile is never told.
+model Restriction {
+  id           String   @id @default(uuid())
+  restricterId String
+  restrictedId String
+  createdAt    DateTime @default(now())
+
+  restricter Profile @relation("Restricting", fields: [restricterId], references: [id], onDelete: Cascade)
+  restricted Profile @relation("RestrictedBy", fields: [restrictedId], references: [id], onDelete: Cascade)
+
+  @@unique([restricterId, restrictedId])
+  @@index([restrictedId])
+  @@map("restrictions")
 }
 
 model CloseFriend {

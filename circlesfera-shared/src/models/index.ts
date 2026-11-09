@@ -185,6 +185,9 @@ export interface Comment {
   isEdited?: boolean;
   // When the author of the post pinned it; it is then shown first.
   pinnedAt?: Date | string | null;
+  // Only on the post author's list of hidden comments: why each is hidden.
+  hiddenByWords?: boolean;
+  awaitingApproval?: boolean;
   profile: ProfileWithUser;
   parentId?: string | null;
   replies?: Comment[];

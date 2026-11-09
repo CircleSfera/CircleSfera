@@ -5,13 +5,14 @@ import {
   Pin,
   PinOff,
   Send,
+  ShieldMinus,
   Trash2,
   X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { commentsApi, uploadApi } from '../services';
+import { commentsApi, followsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Comment, CreateCommentDto } from '../types';
 import { apiErrorMessage } from '../utils/apiErrorMessage';
@@ -47,6 +48,8 @@ interface CommentItemProps {
   onLike: (commentId: string, isLiked: boolean) => void;
   // Given to the author of the post, for comments (not replies).
   onPin?: (comment: Comment) => void;
+  // Given to the author of the post: restricts whoever wrote a comment.
+  onRestrict?: (comment: Comment) => void;
   depth?: number;
 }
 
@@ -59,6 +62,7 @@ const CommentItem = ({
   deletingId,
   onLike,
   onPin,
+  onRestrict,
   depth = 0,
 }: CommentItemProps) => {
   const { t, i18n } = useTranslation();
@@ -163,6 +167,23 @@ const CommentItem = ({
                 </Button>
               )}
 
+              {onRestrict && !isOwner && (
+                <Button
+                  onClick={() => onRestrict(comment)}
+                  variant="ghost"
+                  size="icon"
+                  className="w-11 h-11 p-0 text-gray-300 hover:text-white transition-colors"
+                  title={t('restrict.restrict_user', {
+                    username: comment.profile.username,
+                  })}
+                  aria-label={t('restrict.restrict_user', {
+                    username: comment.profile.username,
+                  })}
+                >
+                  <ShieldMinus size={16} />
+                </Button>
+              )}
+
               {isOwner && (
                 <Button
                   onClick={() => onDelete(comment.id)}
@@ -216,6 +237,7 @@ const CommentItem = ({
               onDelete={onDelete}
               deletingId={deletingId}
               onLike={onLike}
+              onRestrict={onRestrict}
               depth={depth + 1}
             />
           ))}
@@ -306,6 +328,23 @@ export default function CommentList({
       toast.error(apiErrorMessage(error, t, 'comments.pin_error')),
   });
   const canPin = Boolean(profile?.id) && profile?.id === postAuthorId;
+
+  // The author restricts whoever wrote a comment: their new comments then
+  // wait for approval. They are not told.
+  const restrictMutation = useMutation({
+    mutationFn: (comment: Comment) =>
+      followsApi.restrict(comment.profile.username),
+    onSuccess: (_res, comment) => {
+      toast.success(
+        t('restrict.restricted_toast', { username: comment.profile.username }),
+      );
+      queryClient.invalidateQueries({
+        queryKey: ['restriction', comment.profile.username],
+      });
+      queryClient.invalidateQueries({ queryKey: ['restrictedUsers'] });
+    },
+    onError: () => toast.error(t('restrict.error')),
+  });
 
   // The author's: comments hidden by their hidden words, to look at and show.
   const [hiddenOpen, setHiddenOpen] = useState(false);
@@ -563,6 +602,9 @@ export default function CommentList({
                 deletingId={deletingId}
                 onLike={handleLike}
                 onPin={canPin ? (c) => pinMutation.mutate(c) : undefined}
+                onRestrict={
+                  canPin ? (c) => restrictMutation.mutate(c) : undefined
+                }
               />
             ))}
           </div>
@@ -589,19 +631,28 @@ export default function CommentList({
                     key={c.id}
                     className="flex items-center justify-between gap-2 rounded-lg bg-white/5 pl-3"
                   >
-                    <p className="min-w-0 text-sm text-gray-300 wrap-break-word py-2">
-                      <span className="font-semibold text-white mr-1">
-                        {c.profile.username}
-                      </span>
-                      {c.content}
-                    </p>
+                    <div className="min-w-0 py-2">
+                      {c.awaitingApproval && (
+                        <p className="text-xs text-gray-400">
+                          {t('comments.hidden_restricted')}
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-300 wrap-break-word">
+                        <span className="font-semibold text-white mr-1">
+                          {c.profile.username}
+                        </span>
+                        {c.content}
+                      </p>
+                    </div>
                     <Button
                       type="button"
                       variant="ghost"
                       onClick={() => showHiddenMutation.mutate(c.id)}
                       className="min-h-11 shrink-0 text-xs font-semibold text-brand-primary-text"
                     >
-                      {t('comments.hidden_show')}
+                      {c.awaitingApproval
+                        ? t('comments.hidden_approve')
+                        : t('comments.hidden_show')}
                     </Button>
                   </div>
                 ))}

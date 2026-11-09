@@ -26,7 +26,10 @@ describe('SocketPresenceService', () => {
     const rooms = await service.getFollowPresenceRooms('p-1');
 
     expect(prisma.follow.findMany).toHaveBeenCalledWith({
-      where: { followerId: 'p-1' },
+      where: {
+        followerId: 'p-1',
+        following: { restricting: { none: { restrictedId: 'p-1' } } },
+      },
       select: { followingId: true },
     });
     expect(rooms).toEqual(['presence:p-2', 'presence:p-3']);
