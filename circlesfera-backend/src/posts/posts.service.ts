@@ -68,6 +68,10 @@ import {
 import { captionMentions } from './caption-mentions.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
+import {
+  ACCEPTED_COLLABORATOR_INCLUDE,
+  shownCollaborator,
+} from './post-collaborators.service.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
 import {
@@ -621,6 +625,7 @@ export class PostsService {
         place: true,
         poll: { select: { id: true } },
         qnaBox: { select: { id: true } },
+        collaborator: ACCEPTED_COLLABORATOR_INCLUDE,
         ...TEMPLATE_INCLUDE,
       },
     });
@@ -672,7 +677,6 @@ export class PostsService {
     currentProfileId?: string,
   ) {
     const { page = 1, limit = 10, cursor } = pagination;
-    const skip = cursor ? 1 : (page - 1) * limit;
 
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
@@ -706,47 +710,95 @@ export class PostsService {
     }
 
     const content = await loadViewerContent(this.prisma, currentProfileId);
+    const visibility = this.getUserProfileVisibilityFilter(
+      profile.id,
+      currentProfileId,
+      content,
+    );
+    const typeFilter: Prisma.PostWhereInput = type ? { type } : {};
+    // Its own posts, and those it accepted to author too.
     const whereClause: Prisma.PostWhereInput = {
-      profileId: profile.id,
-      ...this.getUserProfileVisibilityFilter(
-        profile.id,
-        currentProfileId,
-        content,
-      ),
-    };
-
-    if (type) {
-      whereClause.type = type;
-    }
-
-    const [posts, total] = await Promise.all([
-      this.prisma.post.findMany({
-        where: whereClause,
-        skip,
-        take: limit,
-        ...(cursor && { cursor: { id: cursor } }),
-        // Pinned first, the latest pin first; then the rest, newest first.
-        orderBy: [
-          { pinnedToProfileAt: { sort: 'desc', nulls: 'last' } },
-          { createdAt: 'desc' },
-          { id: 'desc' },
-        ],
-        include: {
-          profile: { select: PUBLIC_PROFILE_SELECT },
-          media: { include: { media: true } },
-          _count: {
-            select: {
-              likes: true,
-              comments: SHOWN_COMMENTS_COUNT,
-            },
-          },
-          likes: currentProfileId
-            ? { where: { profileId: currentProfileId }, take: 1 }
-            : false,
+      AND: [
+        {
+          OR: [
+            { profileId: profile.id },
+            { collaborator: { profileId: profile.id, status: 'ACCEPTED' } },
+          ],
         },
+        visibility,
+        typeFilter,
+      ],
+    };
+    // Its own pinned ones come first, the latest pin first; a post it only
+    // co-authors is never pinned on its profile, as only the author pins.
+    const pinnedWhere: Prisma.PostWhereInput = {
+      AND: [
+        { profileId: profile.id, pinnedToProfileAt: { not: null } },
+        visibility,
+        typeFilter,
+      ],
+    };
+    const restWhere: Prisma.PostWhereInput = {
+      AND: [whereClause, { NOT: pinnedWhere }],
+    };
+    const include = {
+      profile: { select: PUBLIC_PROFILE_SELECT },
+      media: { include: { media: true } },
+      collaborator: ACCEPTED_COLLABORATOR_INCLUDE,
+      _count: {
+        select: {
+          likes: true,
+          comments: SHOWN_COMMENTS_COUNT,
+        },
+      },
+      likes: currentProfileId
+        ? { where: { profileId: currentProfileId }, take: 1 }
+        : false,
+    } satisfies Prisma.PostInclude;
+
+    const [pinned, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where: pinnedWhere,
+        orderBy: [{ pinnedToProfileAt: 'desc' }, { id: 'desc' }],
+        take: PROFILE_PINS_MAX,
+        include,
       }),
       this.prisma.post.count({ where: whereClause }),
     ]);
+
+    // One list: the pins, then the rest newest first. A page, or the cursor
+    // of the last one shown, says where in it to start.
+    let pinsShown = pinned;
+    let restSkip = 0;
+    let restCursor: string | undefined;
+    if (cursor) {
+      const at = pinned.findIndex((post) => post.id === cursor);
+      if (at >= 0) {
+        pinsShown = pinned.slice(at + 1);
+      } else {
+        pinsShown = [];
+        restCursor = cursor;
+        restSkip = 1;
+      }
+    } else {
+      const offset = (page - 1) * limit;
+      pinsShown = pinned.slice(offset, offset + limit);
+      restSkip = Math.max(0, offset - pinned.length);
+    }
+    pinsShown = pinsShown.slice(0, limit);
+    const restTake = limit - pinsShown.length;
+    const rest =
+      restTake > 0
+        ? await this.prisma.post.findMany({
+            where: restWhere,
+            skip: restSkip,
+            take: restTake,
+            ...(restCursor && { cursor: { id: restCursor } }),
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            include,
+          })
+        : [];
+    const posts = [...pinsShown, ...rest];
 
     const postsWithLikes = posts.map((post) =>
       this.injectIsLiked(post, currentProfileId, content),
@@ -854,6 +906,21 @@ export class PostsService {
   // Throws ForbiddenException if user is not the author
   async update(id: string, dto: UpdatePostDto) {
     // The OwnershipGuard ensures the post exists and belongs to the user
+
+    // A post with a collaborator, invited or accepted, stays public: its
+    // collaborator's followers were shown it as such.
+    if (dto.visibility !== undefined && dto.visibility !== Visibility.PUBLIC) {
+      const collaborator = await this.prisma.postCollaborator.findUnique({
+        where: { postId: id },
+        select: { postId: true },
+      });
+      if (collaborator) {
+        throw AppException.BadRequest(
+          ErrorCode.COLLAB_REQUIRES_PUBLIC,
+          'A post with a collaborator stays public',
+        );
+      }
+    }
 
     // The cover is chosen first: a post with no cover to choose is refused
     // before its caption changes.
@@ -1121,6 +1188,14 @@ export class PostsService {
       ...(count ? { _count: count } : {}),
       ...(Array.isArray(rest.media)
         ? { media: rest.media.map(resolveMediaFields) }
+        : {}),
+      // Its co-author, once it accepted; nothing while only invited.
+      ...('collaborator' in rest
+        ? {
+            collaborator: shownCollaborator(
+              rest.collaborator as Parameters<typeof shownCollaborator>[0],
+            ),
+          }
         : {}),
       isLiked,
       ...(content && {

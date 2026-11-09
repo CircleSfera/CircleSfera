@@ -337,6 +337,15 @@ export class FollowsService {
           ],
         },
       }),
+      // A block ends any collaboration between the two, invited or not.
+      this.prisma.postCollaborator.deleteMany({
+        where: {
+          OR: [
+            { profileId: blockedId, post: { profileId: blockerId } },
+            { profileId: blockerId, post: { profileId: blockedId } },
+          ],
+        },
+      }),
     ]);
     // A live where one of the two is a guest on air is hidden from the
     // other at once. Not waited for, and never fails the block.

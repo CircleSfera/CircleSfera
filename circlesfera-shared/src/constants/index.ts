@@ -1,3 +1,4 @@
+export * from './business-profile.js';
 export * from './comments.js';
 export * from './favorites.js';
 export * from './frame-look.js';

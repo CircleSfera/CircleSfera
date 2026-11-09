@@ -67,6 +67,15 @@ export enum ErrorCode {
   FAVORITES_FULL = 'FAVORITES_FULL',
   // Only a Profile one follows can be a Favorite.
   FAVORITE_NOT_FOLLOWED = 'FAVORITE_NOT_FOLLOWED',
+  // Only a public, unpaid post that is shown can carry a collaborator, and
+  // never its own author.
+  COLLAB_NOT_ALLOWED = 'COLLAB_NOT_ALLOWED',
+  // A post already has its one collaborator, invited or accepted.
+  COLLABORATOR_EXISTS = 'COLLABORATOR_EXISTS',
+  // There is no invitation, or collaboration, of this Profile on the post.
+  COLLAB_NOT_FOUND = 'COLLAB_NOT_FOUND',
+  // A post with a collaborator stays public.
+  COLLAB_REQUIRES_PUBLIC = 'COLLAB_REQUIRES_PUBLIC',
   MESSAGE_NOT_FOUND = 'MESSAGE_NOT_FOUND',
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.

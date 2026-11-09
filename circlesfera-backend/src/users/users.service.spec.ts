@@ -743,6 +743,13 @@ describe('UsersService', () => {
         favorite: { select: { username: true } },
       });
       expect(profilesArgs.favoriteOf).toBeUndefined();
+      // The posts each Profile was invited to author too, and its answer.
+      expect(profilesArgs.collaborations.select).toEqual({
+        postId: true,
+        status: true,
+        invitedAt: true,
+        respondedAt: true,
+      });
       // What the person did on Business Profiles, as a member or owner.
       expect(res.teamActivity).toEqual([
         {

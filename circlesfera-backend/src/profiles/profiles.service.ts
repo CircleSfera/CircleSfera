@@ -27,6 +27,7 @@ import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js'
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
+import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { payoutRowForProfile } from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
@@ -59,6 +60,10 @@ const PUBLIC_PROFILE_FIELDS = [
   'verificationLevel',
   'accountType',
   'accentColor',
+  'businessCategory',
+  'contactEmail',
+  'contactPhone',
+  'businessPlace',
   'privacyLevel',
   'isPrivate',
   'isVerified',
@@ -73,6 +78,37 @@ const PUBLIC_PROFILE_FIELDS = [
   'accountStanding',
   '_count',
 ] as const;
+
+// The place of a Business Profile's address, as a place page shows it; the
+// shape lets the place be named in the viewer's language.
+export const BUSINESS_PLACE_SELECT = {
+  id: true,
+  name: true,
+  fullName: true,
+  latitude: true,
+  longitude: true,
+} as const;
+
+type BusinessPresentationSource = {
+  accountType: AccountType | string;
+  businessCategory?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  businessPlace?: unknown;
+};
+
+// How a Profile presents itself as a business, as others see it: only while
+// it is a Business Profile. A Profile of another kind keeps the details
+// stored, hidden, and shows them again if it becomes a Business.
+export function businessPresentation(profile: BusinessPresentationSource) {
+  const isBusiness = profile.accountType === 'BUSINESS';
+  return {
+    businessCategory: isBusiness ? (profile.businessCategory ?? null) : null,
+    contactEmail: isBusiness ? (profile.contactEmail ?? null) : null,
+    contactPhone: isBusiness ? (profile.contactPhone ?? null) : null,
+    businessPlace: isBusiness ? (profile.businessPlace ?? null) : null,
+  };
+}
 
 export function publicProfileView<T extends object>(profile: T) {
   const source = profile as Record<string, unknown>;
@@ -199,6 +235,7 @@ export class ProfilesService {
         },
         // Whether the Profile's email is confirmed is its sign-in's.
         signIn: { select: { emailVerified: true } },
+        businessPlace: { select: BUSINESS_PLACE_SELECT },
         _count: {
           select: {
             posts: { where: LISTED_POST },
@@ -253,6 +290,7 @@ export class ProfilesService {
       accentColor: canPersonalizeProfile(profile.verificationLevel)
         ? profile.accentColor
         : null,
+      ...businessPresentation(profile),
       identityVerified: !!user?.identityVerifiedAt,
       emailConfirmed: !!signIn?.emailVerified,
       // When this Profile was created: the person's own sign-up date is the
@@ -378,7 +416,27 @@ export class ProfilesService {
       );
     }
 
-    const { isPrivate, ...profileData } = dto;
+    const { isPrivate, businessPlace, ...profileData } = dto;
+
+    // Only a Business Profile presents itself as a business; removing a
+    // detail is always allowed. A Profile becoming a Business in this same
+    // change may set them.
+    const becomesBusiness =
+      (profileData.accountType ?? profile.accountType) === 'BUSINESS';
+    const setsBusinessDetail =
+      !!profileData.businessCategory ||
+      !!profileData.contactEmail ||
+      !!profileData.contactPhone ||
+      !!businessPlace;
+    if (setsBusinessDetail && !becomesBusiness) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Only a Business Profile shows a category, contact buttons or a business address',
+      );
+    }
+    if (profileData.contactEmail) {
+      profileData.contactEmail = profileData.contactEmail.trim();
+    }
 
     // Private or public is this Profile's own choice.
     if (isPrivate !== undefined) {
@@ -405,6 +463,15 @@ export class ProfilesService {
     // transaction with the profile update so a failure partway through
     // can't leave an orphaned Media row.
     const updated = await this.prisma.$transaction(async (tx) => {
+      // The address is a place of the map, saved like a post's location so
+      // the place page it links to is the same one.
+      const businessPlaceId =
+        businessPlace === undefined
+          ? undefined
+          : businessPlace === null
+            ? null
+            : (await resolvePlaceAttachment(tx, { place: businessPlace }))
+                .placeId;
       const avatarMedia =
         profileData.avatar !== undefined && profileData.avatar !== null
           ? await tx.media.create({
@@ -429,8 +496,10 @@ export class ProfilesService {
             : profileData.avatar === null
               ? { avatarMediaId: null }
               : {}),
+          ...(businessPlaceId !== undefined ? { businessPlaceId } : {}),
         },
         include: {
+          businessPlace: { select: BUSINESS_PLACE_SELECT },
           user: {
             select: {
               id: true,
@@ -505,6 +574,7 @@ export class ProfilesService {
             },
           },
         },
+        businessPlace: { select: BUSINESS_PLACE_SELECT },
         _count: {
           select: {
             followers: { where: { status: 'ACCEPTED' } },

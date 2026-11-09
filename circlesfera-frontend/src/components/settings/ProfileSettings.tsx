@@ -28,8 +28,13 @@ import { keepSavedOwnProfile } from '../../utils/ownProfileCache';
 import { hasElitePlan } from '../../utils/plans';
 import { PROFILE_COLOR_KEYS, PROFILE_COLORS } from '../../utils/profileColors';
 import { sellsInApp } from '../../utils/sellsInApp';
+import type { PlaceSelection } from '../create-post/LocationSubScreen';
 import UserAvatar from '../UserAvatar';
 import { Button, Input, Textarea } from '../ui';
+import BusinessPresentationFields, {
+  isValidContactPhone,
+  normalizeContactPhone,
+} from './BusinessPresentationFields';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
 
@@ -75,6 +80,14 @@ export default function ProfileSettings() {
   >('PERSONAL');
   // Colour of the profile page; null is the colour of the app.
   const [accentColor, setAccentColor] = useState<string | null>(null);
+  // How a Business Profile presents itself. The address is changed only
+  // when a place is chosen (a selection) or removed (null).
+  const [businessCategory, setBusinessCategory] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [placeChange, setPlaceChange] = useState<
+    PlaceSelection | null | undefined
+  >(undefined);
   const [initialized, setInitialized] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<{
     checking: boolean;
@@ -94,6 +107,10 @@ export default function ProfileSettings() {
       setUsername(response.data.username || '');
       setBio(response.data.bio || '');
       setWebsite(response.data.website || '');
+      setBusinessCategory(response.data.businessCategory || '');
+      setContactEmail(response.data.contactEmail || '');
+      setContactPhone(response.data.contactPhone || '');
+      setPlaceChange(undefined);
       if (response.data.username !== profile?.username) {
         navigate(`/${response.data.username}`);
       }
@@ -108,6 +125,9 @@ export default function ProfileSettings() {
       setWebsite(profile.website || '');
       setAccountType(profile.accountType || 'PERSONAL');
       setAccentColor(profile.accentColor ?? null);
+      setBusinessCategory(profile.businessCategory || '');
+      setContactEmail(profile.contactEmail || '');
+      setContactPhone(profile.contactPhone || '');
       setInitialized(true);
     }
   }, [profile, initialized]);
@@ -200,6 +220,26 @@ export default function ProfileSettings() {
 
   const canChooseColour = hasElitePlan(profile?.verificationLevel);
 
+  const isBusiness = accountType === 'BUSINESS';
+  const savedPlaceLabel =
+    profile?.businessPlace?.fullName || profile?.businessPlace?.name || '';
+  const placeLabel =
+    placeChange === undefined
+      ? savedPlaceLabel
+      : placeChange === null
+        ? ''
+        : placeChange.location;
+  const businessDirty =
+    isBusiness &&
+    (businessCategory !== (profile?.businessCategory || '') ||
+      contactEmail.trim() !== (profile?.contactEmail || '') ||
+      normalizeContactPhone(contactPhone) !== (profile?.contactPhone || '') ||
+      placeChange !== undefined);
+  const contactPhoneValid =
+    !isBusiness ||
+    contactPhone.trim() === '' ||
+    isValidContactPhone(contactPhone);
+
   const isDirty =
     initialized &&
     (fullName !== (profile?.fullName || '') ||
@@ -207,10 +247,12 @@ export default function ProfileSettings() {
       bio !== (profile?.bio || '') ||
       website !== (profile?.website || '') ||
       accountType !== (profile?.accountType || 'PERSONAL') ||
-      accentColor !== (profile?.accentColor ?? null));
+      accentColor !== (profile?.accentColor ?? null) ||
+      businessDirty);
 
   const canSubmit =
     isDirty &&
+    contactPhoneValid &&
     profile?.emailConfirmed !== false &&
     (username === profile?.username || usernameStatus.available === true);
 
@@ -236,6 +278,24 @@ export default function ProfileSettings() {
     // profile without one must still be able to save everything else.
     if (accentColor !== (profile?.accentColor ?? null)) {
       data.accentColor = accentColor;
+    }
+    // Only a Business Profile sends them, and only what changed.
+    if (isBusiness) {
+      if (businessCategory !== (profile?.businessCategory || '')) {
+        data.businessCategory = (businessCategory ||
+          null) as UpdateProfileDto['businessCategory'];
+      }
+      const email = contactEmail.trim();
+      if (email !== (profile?.contactEmail || '')) {
+        data.contactEmail = email || null;
+      }
+      const phone = normalizeContactPhone(contactPhone);
+      if (phone !== (profile?.contactPhone || '')) {
+        data.contactPhone = phone || null;
+      }
+      if (placeChange !== undefined) {
+        data.businessPlace = placeChange ? placeChange.place : null;
+      }
     }
     updateProfileMutation.mutate(data);
   };
@@ -478,6 +538,22 @@ export default function ProfileSettings() {
           />
         </div>
       </SettingsSection>
+
+      {isBusiness && (
+        <SettingsSection title={t('settings.profile.business.title')}>
+          <BusinessPresentationFields
+            category={businessCategory}
+            onCategoryChange={setBusinessCategory}
+            email={contactEmail}
+            onEmailChange={setContactEmail}
+            phone={contactPhone}
+            onPhoneChange={setContactPhone}
+            placeLabel={placeLabel}
+            onPlaceSelect={setPlaceChange}
+            onPlaceClear={() => setPlaceChange(null)}
+          />
+        </SettingsSection>
+      )}
 
       <SettingsSection title={t('settings.profile.colour.title')}>
         <div className="p-4">

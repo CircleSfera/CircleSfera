@@ -46,6 +46,9 @@ describe('FollowsService', () => {
     favoriteProfile: {
       deleteMany: vi.fn(),
     },
+    postCollaborator: {
+      deleteMany: vi.fn(),
+    },
     mute: {
       upsert: vi.fn(),
       delete: vi.fn(),
@@ -390,6 +393,17 @@ describe('FollowsService', () => {
           },
         },
       );
+      // Any collaboration between the two ends with the block.
+      expect(
+        mockPrismaService.postCollaborator.deleteMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { profileId: 'blocked-id', post: { profileId: 'blocker-id' } },
+            { profileId: 'blocker-id', post: { profileId: 'blocked-id' } },
+          ],
+        },
+      });
       // A live where one of the two is a guest on air is hidden from the
       // other, once the block is written.
       expect(mockLive.hideOnBlock).toHaveBeenCalledWith(

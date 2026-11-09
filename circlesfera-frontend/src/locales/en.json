@@ -200,7 +200,20 @@
       "error_saving": "Could not save changes",
       "resend_email": "Resend email",
       "username_check_error": "Error checking username",
-      "username_min": "Username must be at least 3 characters"
+      "username_min": "Username must be at least 3 characters",
+      "business": {
+        "title": "Business details",
+        "hint": "Shown on your profile while it is a Business profile. Each one is optional.",
+        "category": "Category",
+        "no_category": "No category",
+        "email": "Contact email",
+        "email_placeholder": "hello@yourbusiness.com",
+        "phone": "Contact phone",
+        "phone_hint": "With the country code, for example +34 600 000 000.",
+        "address": "Address",
+        "add_address": "Add address",
+        "remove_address": "Remove address"
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1716,6 +1729,35 @@
     "company_verified": "Verified company",
     "upcoming_lives": {
       "title": "Upcoming lives"
+    },
+    "business": {
+      "categories": {
+        "RESTAURANT_BAR": "Restaurant or bar",
+        "CAFE_BAKERY": "Café or bakery",
+        "SHOP": "Shop",
+        "FASHION_ACCESSORIES": "Fashion and accessories",
+        "BEAUTY_WELLNESS": "Beauty and wellness",
+        "HEALTH": "Health",
+        "SPORT_FITNESS": "Sport and fitness",
+        "HOTEL_LODGING": "Hotel and lodging",
+        "TRAVEL_TOURISM": "Travel and tourism",
+        "EDUCATION": "Education",
+        "PROFESSIONAL_SERVICES": "Professional services",
+        "HOME_CONSTRUCTION": "Home and construction",
+        "MOTORING": "Motoring",
+        "TECHNOLOGY": "Technology",
+        "MEDIA_ENTERTAINMENT": "Media and entertainment",
+        "ART_CULTURE": "Art and culture",
+        "EVENTS": "Events",
+        "REAL_ESTATE": "Real estate",
+        "FINANCE_INSURANCE": "Finance and insurance",
+        "NON_PROFIT": "Non-profit",
+        "OTHER": "Other"
+      },
+      "call": "Call",
+      "email": "Email",
+      "call_aria": "Call {{phone}}",
+      "email_aria": "Email {{email}}"
     }
   },
   "suggestions": {

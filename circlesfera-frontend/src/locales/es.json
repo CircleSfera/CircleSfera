@@ -200,7 +200,20 @@
       "error_saving": "Error al guardar los cambios",
       "resend_email": "Reenviar correo",
       "username_check_error": "Error al comprobar el usuario",
-      "username_min": "El usuario debe tener al menos 3 caracteres"
+      "username_min": "El usuario debe tener al menos 3 caracteres",
+      "business": {
+        "title": "Datos del negocio",
+        "hint": "Se muestran en tu perfil mientras sea un perfil de Negocio. Todos son opcionales.",
+        "category": "Categoría",
+        "no_category": "Sin categoría",
+        "email": "Correo de contacto",
+        "email_placeholder": "hola@tunegocio.com",
+        "phone": "Teléfono de contacto",
+        "phone_hint": "Con el prefijo del país, por ejemplo +34 600 000 000.",
+        "address": "Dirección",
+        "add_address": "Añadir dirección",
+        "remove_address": "Quitar dirección"
+      }
     },
     "privacy": {
       "title": "Privacidad",
@@ -1716,6 +1729,35 @@
     "company_verified": "Empresa verificada",
     "upcoming_lives": {
       "title": "Próximos directos"
+    },
+    "business": {
+      "categories": {
+        "RESTAURANT_BAR": "Restaurante o bar",
+        "CAFE_BAKERY": "Cafetería o panadería",
+        "SHOP": "Tienda",
+        "FASHION_ACCESSORIES": "Moda y complementos",
+        "BEAUTY_WELLNESS": "Belleza y bienestar",
+        "HEALTH": "Salud",
+        "SPORT_FITNESS": "Deporte y fitness",
+        "HOTEL_LODGING": "Hotel y alojamiento",
+        "TRAVEL_TOURISM": "Viajes y turismo",
+        "EDUCATION": "Educación",
+        "PROFESSIONAL_SERVICES": "Servicios profesionales",
+        "HOME_CONSTRUCTION": "Hogar y reformas",
+        "MOTORING": "Motor",
+        "TECHNOLOGY": "Tecnología",
+        "MEDIA_ENTERTAINMENT": "Medios y entretenimiento",
+        "ART_CULTURE": "Arte y cultura",
+        "EVENTS": "Eventos",
+        "REAL_ESTATE": "Inmobiliaria",
+        "FINANCE_INSURANCE": "Finanzas y seguros",
+        "NON_PROFIT": "Sin ánimo de lucro",
+        "OTHER": "Otro"
+      },
+      "call": "Llamar",
+      "email": "Correo",
+      "call_aria": "Llamar al {{phone}}",
+      "email_aria": "Escribir a {{email}}"
     }
   },
   "suggestions": {
