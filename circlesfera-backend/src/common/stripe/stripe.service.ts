@@ -1,7 +1,18 @@
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import {
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+import { SYSTEM_SETTING_KEYS } from '../../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../../system-settings/system-settings.service.js';
 import { CREATOR_PAYOUT_SCHEDULE } from '../constants/monetization.constants.js';
+import { AppException } from '../errors/app.exception.js';
 import { stripeWebhookSecrets } from './stripe-webhook-secrets.js';
 
 // A Stripe Payment Method Configuration id (pmc_...).
@@ -24,7 +35,13 @@ export class StripeService implements OnModuleInit {
   public readonly stripe: Stripe;
   private readonly logger = new Logger(StripeService.name);
 
-  constructor(@Inject(ConfigService) private configService: ConfigService) {
+  constructor(
+    @Inject(ConfigService) private configService: ConfigService,
+    // Read on every new checkout: staff can pause new payments.
+    @Optional()
+    @Inject(SystemSettingsService)
+    private readonly systemSettings?: SystemSettingsService,
+  ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
     this.stripe = new Stripe(secretKey, {
       apiVersion: STRIPE_API_VERSION as Stripe.LatestApiVersion,
@@ -100,6 +117,20 @@ export class StripeService implements OnModuleInit {
     params: Stripe.Checkout.SessionCreateParams,
     options?: Stripe.RequestOptions,
   ): Promise<Stripe.Checkout.Session> {
+    // Every new payment starts here, so pausing payments stops them all:
+    // plans, paid content, tips, live gifts and promotions.
+    if (
+      this.systemSettings &&
+      !(await this.systemSettings.isEnabled(
+        SYSTEM_SETTING_KEYS.PAYMENTS_ENABLED,
+      ))
+    ) {
+      throw new AppException(
+        ErrorCode.PAYMENTS_PAUSED,
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'Payments are paused for now.',
+      );
+    }
     return this.stripe.checkout.sessions.create(params, options);
   }
 
