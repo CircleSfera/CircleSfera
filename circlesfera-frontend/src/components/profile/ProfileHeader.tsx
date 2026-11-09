@@ -14,6 +14,7 @@ import {
   Plus,
   Settings,
   ShieldCheck,
+  ShieldMinus,
   Star,
   VolumeX,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
+import { useRestriction } from '../../hooks/useRestriction';
 import type { ProfileWithUser } from '../../types';
 import { hasCreatorTools } from '../../utils/creatorTools';
 import { sellsInApp } from '../../utils/sellsInApp';
@@ -83,7 +85,7 @@ interface ProfileOtherUserMenuProps {
 }
 
 function ProfileOtherUserMenu({
-  username: _username,
+  username,
   isOpen,
   onToggle,
   onClose,
@@ -95,6 +97,8 @@ function ProfileOtherUserMenu({
   buttonClassName = 'p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center',
 }: ProfileOtherUserMenuProps) {
   const { t } = useTranslation();
+  // Asked only once the menu is open.
+  const restriction = useRestriction(username, isOpen);
 
   return (
     <div className="relative shrink-0">
@@ -133,6 +137,20 @@ function ProfileOtherUserMenu({
           >
             {t('profile.actions.mute')}
             <VolumeX size={14} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            disabled={!restriction.isKnown || restriction.isPending}
+            onClick={() => {
+              onClose();
+              restriction.toggle();
+            }}
+            className="w-full text-left min-h-11 px-4 text-gray-200 hover:bg-white/5 flex items-center justify-between font-medium text-sm border-t border-white/5 disabled:opacity-50"
+          >
+            {restriction.restricted
+              ? t('restrict.unrestrict')
+              : t('restrict.restrict')}
+            <ShieldMinus size={14} aria-hidden="true" />
           </button>
           <button
             type="button"

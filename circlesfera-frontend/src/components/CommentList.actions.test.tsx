@@ -7,7 +7,7 @@ import {
 } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { commentsApi, uploadApi } from '../services';
+import { commentsApi, followsApi, uploadApi } from '../services';
 import { renderWithProviders } from '../test/test-utils';
 import type { Comment } from '../types';
 import CommentList from './CommentList';
@@ -33,6 +33,7 @@ vi.mock('../services', () => ({
     showHidden: vi.fn(),
   },
   uploadApi: { upload: vi.fn() },
+  followsApi: { restrict: vi.fn() },
 }));
 vi.mock('../utils/nativeFilePicker', () => ({ pickNativeImage: native.pick }));
 vi.mock('../utils/logger', () => ({ logger: { error: vi.fn() } }));
@@ -155,6 +156,71 @@ describe('CommentList actions', () => {
       expect(
         screen.queryByRole('button', { name: /Hidden comments/ }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('restricting whoever wrote a comment', () => {
+    it('lets the author of the post restrict the writer of a comment or reply, never themselves', async () => {
+      vi.mocked(followsApi.restrict).mockResolvedValue({
+        data: { restricted: true },
+      } as never);
+      show(
+        [
+          comment('c1', {
+            replies: [
+              comment('r1', {
+                parentId: 'c1',
+                profileId: 'me',
+                profile: { id: 'me', username: 'me' } as never,
+              }),
+            ],
+          }),
+        ],
+        { postAuthorId: 'me' },
+      );
+
+      const restrict = screen.getAllByRole('button', {
+        name: 'Restrict alice',
+      });
+      expect(restrict).toHaveLength(1);
+      expect(
+        screen.queryByRole('button', { name: 'Restrict me' }),
+      ).not.toBeInTheDocument();
+      fireEvent.click(restrict[0]);
+
+      await waitFor(() =>
+        expect(followsApi.restrict).toHaveBeenCalledWith('alice'),
+      );
+      expect(toast.success).toHaveBeenCalledWith(
+        "alice is restricted. They won't be told.",
+      );
+    });
+
+    it('offers no restriction to someone who did not write the post', () => {
+      show([comment('c1')], { postAuthorId: 'someone-else' });
+      expect(
+        screen.queryByRole('button', { name: /^Restrict/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('lists a comment by a restricted account among the hidden ones, to approve', async () => {
+      vi.mocked(commentsApi.hidden).mockResolvedValue({
+        data: {
+          data: [comment('w1', { content: 'hola', awaitingApproval: true })],
+        },
+      } as never);
+      vi.mocked(commentsApi.showHidden).mockResolvedValue({} as never);
+      show([comment('c1')], { postAuthorId: 'me' });
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Hidden comments (1)' }),
+      );
+      expect(screen.getByText('Restricted account')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+
+      await waitFor(() =>
+        expect(commentsApi.showHidden).toHaveBeenCalledWith('post-1', 'w1'),
+      );
     });
   });
 

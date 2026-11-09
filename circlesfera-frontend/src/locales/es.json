@@ -237,7 +237,12 @@
       "expires_on": "Hasta {{date}}",
       "unblock_error": "No se pudo desbloquear la cuenta. Inténtalo de nuevo.",
       "unmute_error": "No se pudo dejar de silenciar la cuenta. Inténtalo de nuevo.",
-      "change_duration": "Duración"
+      "change_duration": "Duración",
+      "restricted_title": "Cuentas restringidas",
+      "restricted_desc": "Sus nuevos comentarios en tus publicaciones esperan tu aprobación, sus chats están en tus solicitudes y no ven cuándo estás activo ni si has leído sus mensajes. No se les avisa.",
+      "restricted_empty": "No has restringido a nadie.",
+      "unrestrict": "Dejar de restringir",
+      "unrestrict_error": "No se pudo dejar de restringir la cuenta. Inténtalo de nuevo."
     },
     "account": {
       "title": "Cuenta",
@@ -1553,11 +1558,13 @@
     "pin_error": "No se pudo fijar el comentario.",
     "hidden_open": "Comentarios ocultos",
     "hidden_title": "Comentarios ocultos",
-    "hidden_desc": "Contienen alguna de tus palabras ocultas. Solo los ve quien los escribió.",
+    "hidden_desc": "Contienen alguna de tus palabras ocultas o son de una cuenta que restringes. Solo los ve quien los escribió.",
     "hidden_none": "No hay comentarios ocultos.",
     "hidden_show": "Mostrar",
     "hidden_shown": "Comentario visible para todos",
-    "hidden_error": "No se pudo mostrar el comentario."
+    "hidden_error": "No se pudo mostrar el comentario.",
+    "hidden_restricted": "Cuenta restringida",
+    "hidden_approve": "Aprobar"
   },
   "profile": {
     "tabs": {
@@ -6117,6 +6124,7 @@
       "CANNOT_FOLLOW_SELF": "No puedes seguirte a ti mismo.",
       "CANNOT_BLOCK_SELF": "No puedes bloquearte a ti mismo.",
       "CANNOT_MUTE_SELF": "No puedes silenciarte a ti mismo.",
+      "CANNOT_RESTRICT_SELF": "No puedes restringirte a ti mismo.",
       "FOLLOW_REQUEST_NOT_FOUND": "Esa solicitud de seguimiento ya no existe.",
       "ACTION_LIMIT_REACHED": "Has hecho esto demasiadas veces por ahora. Inténtalo más tarde.",
       "INSUFFICIENT_FUNDS": "No hay fondos suficientes para este pago.",
@@ -6290,5 +6298,14 @@
     "empty_sub": "Las publicaciones con este lugar aparecerán aquí.",
     "error_title": "No se pudo abrir este lugar",
     "error_message": "Puede que ya no esté disponible. Inténtalo de nuevo."
+  },
+  "restrict": {
+    "restrict": "Restringir",
+    "unrestrict": "Dejar de restringir",
+    "hint": "Sus nuevos comentarios esperan tu aprobación y su chat va a tus solicitudes. No se le avisará.",
+    "restricted_toast": "Has restringido a {{username}}. No se le avisará.",
+    "unrestricted_toast": "Ya no restringes a {{username}}.",
+    "error": "No se pudo cambiar la restricción. Inténtalo de nuevo.",
+    "restrict_user": "Restringir a {{username}}"
   }
 }
