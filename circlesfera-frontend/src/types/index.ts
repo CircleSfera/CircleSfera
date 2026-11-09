@@ -37,6 +37,8 @@ export type Post = IPost & {
   // Set when its author archived it: shown in their archive only.
   archivedAt?: string | null;
   visibility?: 'PUBLIC' | 'FOLLOWERS' | 'PRIVATE';
+  // Set when its author pinned it to the top of their profile.
+  pinnedToProfileAt?: string | null;
   isPromoted?: boolean;
   promotionId?: string;
   // The countries a promoted post is aimed at; empty for everywhere.

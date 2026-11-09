@@ -310,6 +310,12 @@ export interface Notification {
   // post can be; the appeal is checked again when it is filed.
   appealable?: boolean;
   sender: ProfileWithUser | null;
+  // A row that groups likes of a post (or comment likes on it) or new
+  // followers: the sender before the latest (left out across a block), and
+  // how many besides the latest. Absent or 0 for a single notice.
+  previousSenderId?: string | null;
+  previousSender?: ProfileWithUser | null;
+  othersCount?: number;
 }
 
 export interface SearchResult {

@@ -662,6 +662,7 @@ export default function Profile() {
                     </svg>
                   }
                   onLoadMore={() => fetchNextPosts()}
+                  showPins
                   hasMore={!!hasNextPosts}
                   isLoadingMore={isFetchingNextPosts}
                 />
@@ -676,6 +677,7 @@ export default function Profile() {
                   aspectRatio="3/4"
                   variant="frames"
                   onLoadMore={() => fetchNextFrames()}
+                  showPins
                   hasMore={!!hasNextFrames}
                   isLoadingMore={isFetchingNextFrames}
                 />

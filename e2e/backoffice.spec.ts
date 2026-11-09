@@ -53,6 +53,18 @@ async function signIn(page: Page, staff: Staff) {
 }
 
 /**
+ * Asks the staff API from inside the page, as the Backoffice itself does:
+ * with the session cookies of its own host. Node's resolver does not know
+ * `backoffice.localhost`, so the test's own request context cannot reach it.
+ */
+async function statusFromPage(page: Page, path: string): Promise<number> {
+  return page.evaluate(
+    async (url) => (await fetch(url, { credentials: 'include' })).status,
+    path,
+  );
+}
+
+/**
  * Opens a section and checks it shows its real data or its empty state: the
  * page stays on it, nothing in the staff API it called failed, and no error
  * screen shows.
@@ -123,11 +135,9 @@ test.describe('Backoffice', () => {
         '/api/v1/admin/support/tickets',
         '/api/v1/admin/plans',
       ]) {
-        const response = await page.request.get(path);
-        expect(response.status(), path).toBe(403);
+        expect(await statusFromPage(page, path), path).toBe(403);
       }
-      const allowed = await page.request.get('/api/v1/admin/disputes');
-      expect(allowed.status()).toBe(200);
+      expect(await statusFromPage(page, '/api/v1/admin/disputes')).toBe(200);
     } finally {
       await staff.remove();
     }

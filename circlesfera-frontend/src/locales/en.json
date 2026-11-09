@@ -1384,6 +1384,13 @@
       "like_count_hidden": "Like count hidden",
       "like_count_shown": "Like count shown",
       "interactions_error": "Could not save the change. Try again.",
+      "pin_to_profile": "Pin to your profile",
+      "unpin_from_profile": "Unpin from your profile",
+      "pinned_to_profile": "Pinned to your profile",
+      "unpinned": "Unpinned from your profile",
+      "pins_full": "You can pin up to {{max}}. Unpin one first.",
+      "pin_error": "Could not change the pin. Try again.",
+      "pinned_mark": "Pinned",
       "offer_template": "Let others use its template",
       "stop_offering_template": "Stop offering its template",
       "template_offered": "Others can now use its template",
@@ -2290,14 +2297,29 @@
       "moderation_suspension": "You received a strike and this profile is suspended for 7 days.",
       "moderation_ban": "This profile was banned for breaking the community guidelines. Your other profiles are not affected.",
       "moderation_restriction": "An automated system detected unusual activity on this profile (for example, many actions in a short time or repeated messages). Until a person on our team reviews it, for at most 72 hours, you can follow 20 accounts and send 5 message requests a day. Nothing is hidden or removed. You can appeal this decision.",
-      "moderation_restriction_review": "After a review by our team, for 7 days this profile can follow 20 accounts and send 5 message requests a day, because of unusual activity (for example, many actions in a short time or repeated messages). Nothing is hidden or removed. You can appeal this decision."
+      "moderation_restriction_review": "After a review by our team, for 7 days this profile can follow 20 accounts and send 5 message requests a day, because of unusual activity (for example, many actions in a short time or repeated messages). Nothing is hidden or removed. You can appeal this decision.",
+      "like_many": "liked your post.",
+      "comment_like_many": "liked your comment.",
+      "follow_many": "started following you."
     },
     "appeal_cta": "Appeal this decision",
     "strike_details_cta": "See details and appeal",
     "removal_appeal_cta": "Appeal",
     "just_now": "now",
     "view_live": "Watch the live",
-    "collab_invitations_cta": "See invitations"
+    "collab_invitations_cta": "See invitations",
+    "filters": {
+      "label": "Filter activity",
+      "all": "All",
+      "comments": "Comments",
+      "follows": "Follows",
+      "likes": "Likes"
+    },
+    "grouped": {
+      "and": "and",
+      "and_others_one": "and {{count}} other",
+      "and_others_other": "and {{count}} others"
+    }
   },
   "chat": {
     "loading": "Loading chats...",

@@ -3,13 +3,16 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { $Enums, type Locale, Prisma } from '@prisma/client';
 import { appealDeadline } from '../appeals/appeal-window.js';
 import { DEFAULT_LOCALE } from '../common/constants/locale.constants.js';
-import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
 import { pushGroupOf } from '../push/push-groups.js';
+import type {
+  NotificationKind,
+  NotificationsQueryDto,
+} from './dto/notifications-query.dto.js';
 import { type Notice, renderNotice } from './notice-copy.js';
 import { REMOVAL_TARGET_TYPES } from './removal-notice.js';
 
@@ -38,6 +41,31 @@ export function shownInInbox(profileId: string): Prisma.NotificationWhereInput {
     ],
   };
 }
+
+// How long a row of likes or new followers keeps taking more.
+export const GROUPING_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// Who a notification is from, as the app shows it: the latest sender and,
+// for a grouped row, the one before.
+const NOTIFICATION_INCLUDE = {
+  sender: { select: PUBLIC_PROFILE_SELECT },
+  previousSender: { select: PUBLIC_PROFILE_SELECT },
+} satisfies Prisma.NotificationInclude;
+
+// The notification types each filter of the activity page shows; "all"
+// leaves the type free.
+export const KIND_TYPES: Record<
+  Exclude<NotificationKind, 'all'>,
+  NotificationType[]
+> = {
+  comments: [$Enums.NotificationType.COMMENT, $Enums.NotificationType.MENTION],
+  follows: [
+    $Enums.NotificationType.FOLLOW,
+    $Enums.NotificationType.FOLLOW_REQUEST,
+    $Enums.NotificationType.FOLLOW_ACCEPTED,
+  ],
+  likes: [$Enums.NotificationType.LIKE, $Enums.NotificationType.COMMENT_LIKE],
+};
 
 // A notification about a post or story that moderation removed, or that its
 // author deleted, leads to nothing anybody may see, and is left out. The ones
@@ -69,33 +97,69 @@ export class NotificationsService {
 
   private readonly logger = new Logger(NotificationsService.name);
 
-  // List all notifications for a user, paginated, newest first.
-  // Param profileId: The recipient user's ID
-  // Param pagination: Page and limit
-  async findAll(profileId: string, pagination: PaginationDto) {
-    const { page = 1, limit = 10 } = pagination;
+  // The notifications of a Profile, newest first, a page at a time, of one
+  // kind (comments, follows, likes) or all of them.
+  async findAll(profileId: string, query: NotificationsQueryDto) {
+    const { page = 1, limit = 10, kind = 'all' } = query;
     const skip = (page - 1) * limit;
+    const where: Prisma.NotificationWhereInput =
+      kind === 'all'
+        ? shownInInbox(profileId)
+        : { ...shownInInbox(profileId), type: { in: KIND_TYPES[kind] } };
 
     const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where: shownInInbox(profileId),
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          sender: { select: PUBLIC_PROFILE_SELECT },
-        },
+        include: NOTIFICATION_INCLUDE,
       }),
-      this.prisma.notification.count({
-        where: shownInInbox(profileId),
-      }),
+      this.prisma.notification.count({ where }),
     ]);
 
     return createPaginatedResult(
-      await this.withAppealable(notifications),
+      await this.withAppealable(
+        await this.withoutBlockedPrevious(profileId, notifications),
+      ),
       total,
       page,
       limit,
+    );
+  }
+
+  // A grouped row names the sender before the latest; one in a block with
+  // the reader, either way, is left out of it (the count stays).
+  private async withoutBlockedPrevious<
+    T extends { previousSenderId?: string | null },
+  >(profileId: string, notifications: T[]): Promise<T[]> {
+    const ids = [
+      ...new Set(
+        notifications
+          .map((n) => n.previousSenderId)
+          .filter((id): id is string => !!id),
+      ),
+    ];
+    if (ids.length === 0) return notifications;
+    const blocks = await this.prisma.block.findMany({
+      where: {
+        OR: [
+          { blockerId: profileId, blockedId: { in: ids } },
+          { blockedId: profileId, blockerId: { in: ids } },
+        ],
+      },
+      select: { blockerId: true, blockedId: true },
+    });
+    if (blocks.length === 0) return notifications;
+    const hidden = new Set(
+      blocks.map((b) =>
+        b.blockerId === profileId ? b.blockedId : b.blockerId,
+      ),
+    );
+    return notifications.map((n) =>
+      n.previousSenderId && hidden.has(n.previousSenderId)
+        ? { ...n, previousSenderId: null, previousSender: null }
+        : n,
     );
   }
 
@@ -228,59 +292,67 @@ export class NotificationsService {
         return null;
       }
 
-      // Option A: In-Line Aggregation for engagement metrics
+      // Likes of one post (or comment likes on it) and new followers group
+      // into one unread row from the last day: the latest sender, the one
+      // before, and how many besides the latest. Their push waits for the
+      // digest (likes) or is not sent again for the same row (follows).
       const isBatchableType = ['LIKE', 'COMMENT_LIKE'].includes(data.type);
+      const isGroupable =
+        (isBatchableType && !!data.postId) ||
+        data.type === $Enums.NotificationType.FOLLOW;
 
-      if (isBatchableType && data.postId) {
-        // Find an existing unread notification for this exact post and type
+      if (isGroupable && data.senderId) {
         const existingUnread = await this.prisma.notification.findFirst({
           where: {
             recipientId: data.recipientId,
             type: data.type,
-            postId: data.postId,
+            postId: data.postId ?? null,
             read: false,
+            createdAt: { gte: new Date(Date.now() - GROUPING_WINDOW_MS) },
           },
           orderBy: { createdAt: 'desc' },
         });
 
         if (existingUnread) {
-          // Prevent exact duplicates from the same sender
-          if (existingUnread.senderId === data.senderId) {
+          // Someone already in the row changes nothing.
+          if (
+            existingUnread.senderId === data.senderId ||
+            existingUnread.previousSenderId === data.senderId
+          ) {
             return existingUnread;
           }
 
-          // "B and others liked your post", with the latest sender's name.
-          const sender = data.senderId
-            ? await this.prisma.profile.findUnique({
-                where: { id: data.senderId },
-                select: { username: true },
-              })
-            : null;
-          const newContent = renderNotice(locale, {
-            key: 'likes_aggregated',
-            name: sender?.username ?? '',
-            target: data.type === 'LIKE' ? 'post' : 'comment',
-          });
+          let newContent = content;
+          if (isBatchableType) {
+            // "B and others liked your post", with the latest sender's name.
+            const sender = await this.prisma.profile.findUnique({
+              where: { id: data.senderId },
+              select: { username: true },
+            });
+            newContent = renderNotice(locale, {
+              key: 'likes_aggregated',
+              name: sender?.username ?? '',
+              target: data.type === 'LIKE' ? 'post' : 'comment',
+            });
+          }
 
           const updated = await this.prisma.notification.update({
             where: { id: existingUnread.id },
             data: {
-              senderId: data.senderId, // Update to the latest sender
+              senderId: data.senderId,
+              previousSenderId: existingUnread.senderId,
+              othersCount: { increment: 1 },
               content: newContent,
               createdAt: new Date(), // Bump to top
             },
-            include: {
-              sender: { select: PUBLIC_PROFILE_SELECT },
-            },
+            include: NOTIFICATION_INCLUDE,
           });
 
-          // Emit real-time notification update via domain event
           this.eventEmitter.emit('notification.dispatched', {
             recipientId: data.recipientId,
             notification: updated,
           });
 
-          // We DO NOT send an immediate push here. The Cron job handles it.
           return updated;
         }
       }
@@ -313,9 +385,7 @@ export class NotificationsService {
           targetType: data.targetType,
           targetId: data.targetId,
         } as Prisma.NotificationUncheckedCreateInput,
-        include: {
-          sender: { select: PUBLIC_PROFILE_SELECT },
-        },
+        include: NOTIFICATION_INCLUDE,
       });
 
       // Emit real-time notification via domain event

@@ -10,6 +10,7 @@ import {
 } from '../../hooks/useCollaboration';
 import { usePostInteractionSettings } from '../../hooks/usePostInteractionSettings';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
+import { useProfilePin } from '../../hooks/useProfilePin';
 import { api, archiveApi } from '../../services';
 import type { Post } from '../../types';
 import { canOfferStoryShare, postStoryCard } from '../../utils/storyShare';
@@ -110,6 +111,7 @@ export default function PostOverlays({
   });
 
   const interactionSettings = usePostInteractionSettings(post);
+  const profilePin = useProfilePin(post);
 
   const hidePost = async () => {
     setShowMenu(false);
@@ -177,6 +179,15 @@ export default function PostOverlays({
                 : undefined
             }
             isArchived={isArchived}
+            onTogglePin={
+              isOwner && !isArchived
+                ? () => {
+                    setShowMenu(false);
+                    profilePin.togglePin();
+                  }
+                : undefined
+            }
+            pinned={profilePin.pinned}
             onToggleComments={
               isOwner
                 ? () => {
