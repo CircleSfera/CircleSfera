@@ -34,7 +34,21 @@ describe('MonetizationService', () => {
 
   const mockPrismaService = {
     $queryRaw: vi.fn(),
-    $transaction: vi.fn(async (writes: unknown[]) => Promise.all(writes)),
+    $transaction: vi.fn(async (arg: unknown) =>
+      typeof arg === 'function'
+        ? (arg as (tx: unknown) => unknown)(mockPrismaService)
+        : Promise.all(arg as unknown[]),
+    ),
+    $executeRaw: vi.fn().mockResolvedValue(1),
+    // A tip holds its amount while its checkout is open.
+    tipReservation: {
+      create: vi.fn().mockResolvedValue({ id: 'hold-1' }),
+      delete: vi.fn().mockResolvedValue({}),
+      aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
+    },
+    liveGift: {
+      aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
+    },
     monetization: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -942,10 +956,54 @@ describe('MonetizationService', () => {
             profileId: '',
             senderProfileId: '',
             postId: 'post-123',
+            // The hold on the weekly limit, let go once it is paid.
+            tipReservationId: 'hold-1',
           },
+          // Open no longer than the hold lasts.
+          expires_at: expect.any(Number),
         }),
         { stripeAccount: expect.any(String), idempotencyKey: 'idemp-tip' },
       );
+      expect(mockPrismaService.tipReservation.create).toHaveBeenCalledWith({
+        data: {
+          senderId: 'fan-1',
+          amountCents: tipCents,
+          expiresAt: expect.any(Date),
+        },
+      });
+      const { expires_at } =
+        mockStripeService.createCheckoutSession.mock.calls[0][0];
+      const { expiresAt } =
+        mockPrismaService.tipReservation.create.mock.calls[0][0].data;
+      expect(expires_at).toBe(Math.floor(expiresAt.getTime() / 1000));
+      expect(mockPrismaService.$executeRaw).toHaveBeenCalled();
+    });
+
+    it('lets the hold go when the checkout cannot be opened', async () => {
+      accounts.set('creator-1', 'acct_1');
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
+      mockStripeService.createCheckoutSession.mockRejectedValueOnce(
+        new Error('stripe down'),
+      );
+      mockPrismaService.tipReservation.delete.mockRejectedValueOnce(
+        new Error('already gone'),
+      );
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'creator-1',
+          tipCents,
+          'http://localhost/return',
+          'post-1',
+        ),
+      ).rejects.toThrow('stripe down');
+      expect(mockPrismaService.tipReservation.delete).toHaveBeenCalledWith({
+        where: { id: 'hold-1' },
+      });
     });
 
     it('pays the person behind the Profile tipped, and shows who pays the Profile, never an email', async () => {

@@ -1389,6 +1389,22 @@ model LiveRecordingPart {
 }
 
 /// Paid virtual gift sent during a live stream (Stripe Checkout + webhook).
+// A tip being paid: its amount counts towards what its payer may give in a
+// week from the moment its checkout opens until it is paid (then the
+// payment counts) or its checkout expires.
+model TipReservation {
+  id          String   @id @default(uuid())
+  // The paying person (User.id); kept without a relation, as the row lives
+  // only as long as its checkout.
+  senderId    String
+  amountCents Int
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([senderId, expiresAt])
+  @@map("tip_reservations")
+}
+
 model LiveGift {
   id                      String            @id @default(uuid())
   // Null once the stream is erased with its host: the gift is a

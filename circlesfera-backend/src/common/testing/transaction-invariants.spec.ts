@@ -54,6 +54,16 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
             },
           })),
         },
+        $executeRaw: vi.fn().mockResolvedValue(1),
+        // A tip holds its amount while its checkout is open.
+        tipReservation: {
+          create: vi.fn().mockResolvedValue({ id: 'hold-1' }),
+          delete: vi.fn().mockResolvedValue({}),
+          aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
+        },
+        liveGift: {
+          aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
+        },
         // Nothing given yet this week.
         transaction: {
           aggregate: vi

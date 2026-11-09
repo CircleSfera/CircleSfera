@@ -17,7 +17,10 @@ import {
   payoutAccountPlacement,
   payoutDestinationFor,
 } from '../monetization/payout-account.js';
-import { assertWeeklySupportRoom } from '../monetization/support-limit.js';
+import {
+  SUPPORT_CHECKOUT_LIFETIME_SECONDS,
+  withWeeklySupportRoom,
+} from '../monetization/support-limit.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import {
@@ -104,9 +107,6 @@ export class LiveGiftService {
       );
     }
 
-    // Gifts count with tips towards what one person gives in a week.
-    await assertWeeklySupportRoom(this.prisma, senderId, amountCents);
-
     // A host who may not be paid gets no gift.
     const destination = accountTakingPayments(
       await payoutDestinationFor(this.prisma, stream.host),
@@ -169,17 +169,25 @@ export class LiveGiftService {
         }
 
         if (!pendingGift) {
-          pendingGift = await this.prisma.liveGift.create({
-            data: {
-              streamId,
-              senderId,
-              receiverId: stream.host.userId,
-              giftId,
-              amountCents,
-              currency: 'EUR',
-              status: 'PENDING',
-            },
-          });
+          // Gifts count with tips towards what one person gives in a week:
+          // the pending gift holds its amount while its checkout is open.
+          pendingGift = await withWeeklySupportRoom(
+            this.prisma,
+            senderId,
+            amountCents,
+            (tx) =>
+              tx.liveGift.create({
+                data: {
+                  streamId,
+                  senderId,
+                  receiverId: stream.host.userId,
+                  giftId,
+                  amountCents,
+                  currency: 'EUR',
+                  status: 'PENDING',
+                },
+              }),
+          );
         }
 
         const taxActive =
@@ -218,6 +226,9 @@ export class LiveGiftService {
               'gift_success=true&session_id={CHECKOUT_SESSION_ID}',
             ),
             cancel_url: appendCheckoutQuery(returnUrl, 'gift_canceled=true'),
+            // Open only as long as the gift holds its amount.
+            expires_at:
+              Math.floor(Date.now() / 1000) + SUPPORT_CHECKOUT_LIFETIME_SECONDS,
           },
           { stripeAccount: destination, idempotencyKey },
         );

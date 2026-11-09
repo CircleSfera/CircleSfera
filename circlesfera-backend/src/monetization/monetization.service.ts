@@ -38,7 +38,10 @@ import {
   payoutDestinationFor,
   payoutRowForProfile,
 } from './payout-account.js';
-import { assertWeeklySupportRoom } from './support-limit.js';
+import {
+  SUPPORT_CHECKOUT_LIFETIME_SECONDS,
+  withWeeklySupportRoom,
+} from './support-limit.js';
 
 function appendCheckoutQuery(returnUrl: string, query: string): string {
   const sep = returnUrl.includes('?') ? '&' : '?';
@@ -478,28 +481,53 @@ export class MonetizationService {
         ErrorCode.SENDER_NOT_FOUND,
         'Sender not found',
       );
-    await assertWeeklySupportRoom(this.prisma, senderId, amountCents);
+    // The amount is held against the weekly limit while the checkout is
+    // open; paid, the payment counts instead (the webhook drops the hold).
+    const expiresAtMs = Date.now() + SUPPORT_CHECKOUT_LIFETIME_SECONDS * 1000;
+    const reservation = await withWeeklySupportRoom(
+      this.prisma,
+      senderId,
+      amountCents,
+      (tx) =>
+        tx.tipReservation.create({
+          data: {
+            senderId,
+            amountCents,
+            expiresAt: new Date(expiresAtMs),
+          },
+        }),
+    );
 
-    return this.createCreatorCheckout({
-      buyerId: senderId,
-      buyerEmail: sender.email,
-      priceCents: amountCents,
-      productName: 'Creator Tip',
-      // Who pays sees the Profile they tip, never the creator's email.
-      description: named ? `Tip for @${named.username}` : 'Creator Tip',
-      creatorStripeAccountId: creatorAccount,
-      metadata: {
-        type: 'DIRECT_TIP',
-        creatorId: receiverUserId,
-        // The Profile tipped, kept with the tip; none when a person is named.
-        profileId: named?.id ?? '',
-        // Who tips, as the Profile they tipped from, for the notice.
-        senderProfileId: senderProfileId ?? '',
-        postId,
-      },
-      returnUrl,
-      idempotencyKey,
-    });
+    try {
+      return await this.createCreatorCheckout({
+        buyerId: senderId,
+        buyerEmail: sender.email,
+        priceCents: amountCents,
+        productName: 'Creator Tip',
+        // Who pays sees the Profile they tip, never the creator's email.
+        description: named ? `Tip for @${named.username}` : 'Creator Tip',
+        creatorStripeAccountId: creatorAccount,
+        metadata: {
+          type: 'DIRECT_TIP',
+          creatorId: receiverUserId,
+          // The Profile tipped, kept with the tip; none when a person is named.
+          profileId: named?.id ?? '',
+          // Who tips, as the Profile they tipped from, for the notice.
+          senderProfileId: senderProfileId ?? '',
+          postId,
+          tipReservationId: reservation.id,
+        },
+        returnUrl,
+        idempotencyKey,
+        expiresAt: Math.floor(expiresAtMs / 1000),
+      });
+    } catch (error) {
+      // No checkout: nothing to hold.
+      await this.prisma.tipReservation
+        .delete({ where: { id: reservation.id } })
+        .catch(() => undefined);
+      throw error;
+    }
   }
 
   async onboardConnectAccount(

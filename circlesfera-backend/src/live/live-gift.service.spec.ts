@@ -43,7 +43,12 @@ describe('LiveGiftService', () => {
     liveGuest: { findMany: vi.fn().mockResolvedValue([]) },
     block: { findFirst: vi.fn().mockResolvedValue(null) },
     user: { findMany: vi.fn().mockResolvedValue([]), findUnique: vi.fn() },
+    $executeRaw: vi.fn().mockResolvedValue(1),
+    tipReservation: {
+      aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
+    },
     liveGift: {
+      aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
       create: vi.fn(),
       update: vi.fn(),
       findFirst: vi.fn(),
@@ -177,7 +182,18 @@ describe('LiveGiftService', () => {
     });
 
     it('takes no gift that would go over what one person gives in a week, tips included', async () => {
+      mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+        userId: null,
+        stripeConnectAccountId: 'acct_1',
+        transfersEnabled: true,
+        chargesEnabled: true,
+      });
       mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'fan-1',
+        email: 'fan@example.com',
+        profiles: [{ username: 'fan' }],
+      });
       // 495 € given this week: a 10 € crown does not fit.
       mockPrismaService.transaction.aggregate.mockResolvedValueOnce({
         _sum: { amount: 49500, refundedCents: 0 },
@@ -227,6 +243,12 @@ describe('LiveGiftService', () => {
 
       expect(result.amountCents).toBe(amountCents);
       expect(result.url).toBe('https://checkout.stripe.test/gift');
+      // The checkout closes when the gift stops holding its amount.
+      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
+        expect.objectContaining({ expires_at: expect.any(Number) }),
+        expect.anything(),
+      );
+      expect(mockPrismaService.$executeRaw).toHaveBeenCalled();
       expect(mockPrismaService.liveGift.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
