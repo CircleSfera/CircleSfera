@@ -51,6 +51,9 @@ export enum ErrorCode {
   ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION = 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
   // Charging for anything needs a verified identity of someone 18 or older.
   MONETIZATION_UNDER_AGE = 'MONETIZATION_UNDER_AGE',
+  // Messages are no longer sold: none can be sent with a price, and none
+  // sent before can be bought now.
+  PAID_MESSAGES_UNAVAILABLE = 'PAID_MESSAGES_UNAVAILABLE',
 
   // Posts & Media
   POST_NOT_FOUND = 'POST_NOT_FOUND',

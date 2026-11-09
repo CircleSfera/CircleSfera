@@ -713,208 +713,32 @@ describe('MonetizationService', () => {
   });
 
   describe('createMessageUnlockSession', () => {
+    // Messages are no longer sold: none is offered to buy, and the provider
+    // is never asked.
     it.each([
-      ['is gone', null],
+      ['gone', null, ErrorCode.MESSAGE_NOT_FOUND],
       [
-        'was deleted by its sender',
-        { id: 'm-1', isLocked: true, priceCents: 500, isDeleted: true },
+        'deleted by its sender',
+        { isDeleted: true, isLocked: true, priceCents: 500 },
+        ErrorCode.MESSAGE_NOT_FOUND,
       ],
-    ])(
-      'answers not found, and starts no checkout, when the message %s',
-      async (_case, message) => {
-        mockPrismaService.message.findUnique.mockResolvedValueOnce(message);
-
-        await expect(
-          service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-        ).rejects.toMatchObject({
-          errorCode: ErrorCode.MESSAGE_NOT_FOUND,
-          status: 404,
-        });
-        expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-      },
-    );
-
-    it('should throw if message is not locked or has no price', async () => {
-      mockPrismaService.message.findUnique.mockResolvedValueOnce({
-        id: 'm-1',
-        isLocked: false,
-        priceCents: 500,
-      });
-      await expect(
-        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow('This message is not locked or has no price');
-    });
-
-    it('should throw if the stored price is outside the €3.00-€500.00 bounds (defense-in-depth)', async () => {
-      mockPrismaService.message.findUnique.mockResolvedValueOnce({
-        id: 'm-1',
-        isLocked: true,
-        priceCents: 100,
-        senderId: 'creator-profile-1',
-      });
-      await expect(
-        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toMatchObject({
-        status: 400,
-        response: expect.objectContaining({
-          errorCode: 'NOT_PREMIUM_OR_NO_PRICE',
-        }),
-      });
-
-      mockPrismaService.message.findUnique.mockResolvedValueOnce({
-        id: 'm-1',
-        isLocked: true,
-        priceCents: 100_000,
-        senderId: 'creator-profile-1',
-      });
-      await expect(
-        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toMatchObject({
-        status: 400,
-        response: expect.objectContaining({
-          errorCode: 'NOT_PREMIUM_OR_NO_PRICE',
-        }),
-      });
-    });
-
-    it('should throw if sender (by User.id, not Profile.id) is unlocking own message', async () => {
-      // Regression test (CodeRabbit finding): message.senderId is a
-      // Profile.id, but the caller passes a User.id — comparing them
-      // directly never fires. Must compare against sender.user.id instead.
-      mockPrismaService.message.findUnique.mockResolvedValue({
-        id: 'm-1',
-        isLocked: true,
-        priceCents: 500,
-        senderId: 'creator-profile-1',
-        sender: { id: 'creator-profile-1', user: { id: 'creator-user-1' } },
-      });
-      await expect(
-        service.createMessageUnlockSession(
-          'creator-user-1',
-          'm-1',
-          'http://return',
-        ),
-      ).rejects.toThrow('You cannot unlock your own message');
-    });
-
-    it('should throw if message is already unlocked', async () => {
-      mockPrismaService.message.findUnique.mockResolvedValue({
-        id: 'm-1',
-        isLocked: true,
-        priceCents: 500,
-        senderId: 'creator-profile-1',
-        sender: { id: 'creator-profile-1', user: { id: 'creator-user-1' } },
-      });
-      mockPrismaService.messageUnlock.findUnique.mockResolvedValue({
-        id: 'mu-1',
-      });
+      [
+        'without a price',
+        { isDeleted: false, isLocked: false, priceCents: null },
+        ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
+      ],
+      [
+        'sent with a price before paid messages ended',
+        { isDeleted: false, isLocked: true, priceCents: 500 },
+        ErrorCode.PAID_MESSAGES_UNAVAILABLE,
+      ],
+    ])('sells no message %s', async (_case, message, errorCode) => {
+      mockPrismaService.message.findUnique.mockResolvedValue(message);
 
       await expect(
-        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow('Message already unlocked');
-    });
-
-    it('should throw if creator has no stripe account', async () => {
-      // Regression test (CodeRabbit finding): stripeConnectAccountId lives
-      // on User, not Profile — message.sender (Profile) never has it.
-      mockPrismaService.message.findUnique.mockResolvedValue({
-        id: 'm-1',
-        isLocked: true,
-        priceCents: 500,
-        senderId: 'creator-profile-1',
-        sender: {
-          id: 'creator-profile-1',
-          user: { id: 'creator-user-1', stripeConnectAccountId: null },
-        },
-      });
-      mockPrismaService.messageUnlock.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow('Creator cannot take payments yet');
-    });
-
-    it('should throw if buyer is not found', async () => {
-      accounts.set('creator-user-1', 'acct_1');
-      mockPrismaService.message.findUnique.mockResolvedValue({
-        id: 'm-1',
-        isLocked: true,
-        priceCents: 500,
-        senderId: 'creator-profile-1',
-        sender: {
-          id: 'creator-profile-1',
-          user: { id: 'creator-user-1', stripeConnectAccountId: 'acct_1' },
-        },
-      });
-      mockPrismaService.messageUnlock.findUnique.mockResolvedValue(null);
-      mockPrismaService.user.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.createMessageUnlockSession(
-          'user-not-found',
-          'm-1',
-          'http://return',
-        ),
-      ).rejects.toThrow('Buyer not found');
-    });
-
-    it('creates Checkout for locked message with 20% platform fee, using the creator User.id', async () => {
-      accounts.set('creator-user-1', 'acct_1');
-      mockPrismaService.message.findUnique.mockResolvedValue({
-        id: 'm-1',
-        isLocked: true,
-        priceCents: 500,
-        senderId: 'creator-profile-1',
-        sender: {
-          id: 'creator-profile-1',
-          user: {
-            id: 'creator-user-1',
-            email: 'c@c.com',
-            stripeConnectAccountId: 'acct_1',
-          },
-        },
-      });
-      mockPrismaService.messageUnlock.findUnique.mockResolvedValue(null);
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        email: 'u@u.com',
-      });
-      mockStripeService.createCheckoutSession.mockResolvedValue({
-        url: 'https://checkout.stripe.test/message',
-      });
-
-      const before = Math.floor(Date.now() / 1000);
-      const res = await service.createMessageUnlockSession(
-        'u-1',
-        'm-1',
-        'http://return',
-      );
-      const after = Math.floor(Date.now() / 1000);
-
-      expect(res.url).toBe('https://checkout.stripe.test/message');
-      // The checkout closes after about 30 minutes, the shortest Stripe
-      // allows, instead of its default of a day.
-      const [session] = mockStripeService.createCheckoutSession.mock.calls[0];
-      expect(session.expires_at).toBeGreaterThanOrEqual(before + 30 * 60);
-      expect(session.expires_at).toBeLessThanOrEqual(after + 31 * 60);
-      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
-        expect.objectContaining({
-          // Charged on the creator's account, VAT included and worked out
-          // there; CircleSfera's fee is asked on the whole price and
-          // settled once the VAT is known.
-          automatic_tax: { enabled: true, liability: { type: 'self' } },
-          payment_intent_data: { application_fee_amount: 100 },
-          metadata: {
-            type: 'DIRECT_MESSAGE_UNLOCK',
-            messageId: 'm-1',
-            creatorId: 'creator-user-1',
-            // The buyer's consent, kept with the payment.
-            withdrawal_consent: 'accepted',
-            withdrawal_consent_version: '2026-1',
-          },
-        }),
-        { stripeAccount: 'acct_1', idempotencyKey: undefined },
-      );
+        service.createMessageUnlockSession('msg-1'),
+      ).rejects.toMatchObject({ errorCode });
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
   });
 
@@ -2549,21 +2373,6 @@ describe('MonetizationService', () => {
           's-1',
           'http://return',
         ),
-      ).rejects.toThrow('Creator not found');
-      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-    });
-
-    it('sells none of their messages', async () => {
-      mockPrismaService.message.findUnique.mockResolvedValue({
-        id: 'm-1',
-        isLocked: true,
-        priceCents: 500,
-        senderId: 'profile-creator',
-        sender: { username: 'ana', user: { id: 'creator-1' } },
-      });
-
-      await expect(
-        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
       ).rejects.toThrow('Creator not found');
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
