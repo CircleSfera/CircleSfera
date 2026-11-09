@@ -69,7 +69,7 @@ export interface StripeDisputePayload {
 }
 
 // States in which the provider expects nothing more from us.
-const CLOSED_DISPUTE_STATUSES: ReadonlySet<string> = new Set([
+export const CLOSED_DISPUTE_STATUSES: ReadonlySet<string> = new Set([
   'won',
   'lost',
   'warning_closed',

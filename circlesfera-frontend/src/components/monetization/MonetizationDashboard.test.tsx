@@ -11,6 +11,8 @@ vi.mock('../../services/monetization.service', () => ({
     getTransactions: vi.fn(),
     getPayouts: vi.fn(),
     getPersonTotal: vi.fn(),
+    getInstantPayoutOffer: vi.fn(),
+    createInstantPayout: vi.fn(),
   },
 }));
 
@@ -40,6 +42,12 @@ describe('MonetizationDashboard', () => {
     vi.mocked(monetizationApi.getPayouts).mockResolvedValue({
       available: [],
       pending: [],
+    });
+    vi.mocked(monetizationApi.getInstantPayoutOffer).mockResolvedValue({
+      available: false,
+      reason: 'NO_ACCOUNT',
+      trackRecord: null,
+      quote: null,
     });
     vi.mocked(monetizationApi.getPersonTotal).mockResolvedValue({
       totalEarningsCents: 0,
@@ -125,6 +133,33 @@ describe('MonetizationDashboard', () => {
       screen.getByText(i18n!.t('creator.income.pending')),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Connect with Stripe/i)).not.toBeInTheDocument();
+  });
+
+  it('offers to cash out now beside the balance when the server allows it', async () => {
+    signInAs('acct_123');
+    vi.mocked(monetizationApi.getInstantPayoutOffer).mockResolvedValue({
+      available: true,
+      reason: null,
+      trackRecord: null,
+      quote: {
+        currency: 'EUR',
+        amountCents: 10000,
+        feeCents: 150,
+        netCents: 9850,
+      },
+    });
+    const { i18n } = renderDashboard();
+    expect(
+      await screen.findByRole('button', {
+        name: i18n!.t('creator.income.instant.action'),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('asks for no instant payout offer without a payout account', async () => {
+    const { i18n } = renderDashboard();
+    await screen.findByText(i18n!.t('creator.income.transactions'));
+    expect(monetizationApi.getInstantPayoutOffer).not.toHaveBeenCalled();
   });
 
   it('renders transactions returned by the transactions query', async () => {

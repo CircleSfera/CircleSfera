@@ -19,6 +19,40 @@ export interface PersonMoneyTotal {
   }[];
 }
 
+// Whether the active Profile may take an instant payout now. Amounts are
+// integer cents.
+export interface InstantPayoutOffer {
+  available: boolean;
+  reason:
+    | 'NO_ACCOUNT'
+    | 'TRACK_RECORD'
+    | 'RESTRICTED'
+    | 'DISPUTE_OPEN'
+    | 'NO_BALANCE'
+    | 'UNAVAILABLE'
+    | null;
+  trackRecord: {
+    minDaysSinceFirstSale: number;
+    daysSinceFirstSale: number | null;
+    minSales: number;
+    sales: number;
+    disputeFreeDays: number;
+    disputedRecently: boolean;
+  } | null;
+  quote: {
+    currency: string;
+    amountCents: number;
+    feeCents: number;
+    netCents: number;
+  } | null;
+}
+
+export interface InstantPayoutResult {
+  currency: string;
+  netCents: number;
+  arrivalDate: string | null;
+}
+
 // What the tax details of the active Profile's own payout account hold.
 export interface TaxDetailsStatus {
   headOffice: { city: string | null; country: string | null } | null;
@@ -142,6 +176,23 @@ export const monetizationApi = {
   getPersonTotal: async () => {
     const { data } = await api.get<PersonMoneyTotal>(
       '/monetization/analytics/total',
+    );
+    return data;
+  },
+  // Whether the active Profile may take its balance out at once now, and
+  // what that would bring: the amount, the fee and what reaches the bank.
+  getInstantPayoutOffer: async () => {
+    const { data } = await api.get<InstantPayoutOffer>(
+      '/monetization/instant-payout',
+    );
+    return data;
+  },
+  // Takes it out, as the offer showed it. One key per confirmation, so a
+  // repeated request pays out once.
+  createInstantPayout: async (netCents: number, idempotencyKey: string) => {
+    const { data } = await api.post<InstantPayoutResult>(
+      '/monetization/instant-payout',
+      { netCents, idempotencyKey },
     );
     return data;
   },

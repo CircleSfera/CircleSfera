@@ -16,6 +16,7 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
+import { InstantPayoutService } from './instant-payout.service.js';
 import { MonetizationController } from './monetization.controller.js';
 import { MonetizationService } from './monetization.service.js';
 
@@ -39,11 +40,18 @@ describe('MonetizationController', () => {
     getFinancialSummary: vi.fn(),
     getPersonTotal: vi.fn(),
   };
+  const instantPayouts = {
+    getOffer: vi.fn(),
+    payOut: vi.fn(),
+  };
 
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [MonetizationController],
-      providers: [{ provide: MonetizationService, useValue: mockService }],
+      providers: [
+        { provide: MonetizationService, useValue: mockService },
+        { provide: InstantPayoutService, useValue: instantPayouts },
+      ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: IdentityVerifiedGuard, mode: 'session' },
@@ -350,5 +358,71 @@ describe('MonetizationController', () => {
     expect(mockService.createPostUnlockSession).not.toHaveBeenCalled();
     expect(mockService.createStoryUnlockSession).not.toHaveBeenCalled();
     expect(mockService.createMessageUnlockSession).not.toHaveBeenCalled();
+  });
+
+  it('reads the instant payout offer of the active Profile of the session', async () => {
+    instantPayouts.getOffer.mockResolvedValue({
+      available: false,
+      reason: 'NO_ACCOUNT',
+      trackRecord: null,
+      quote: null,
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/monetization/instant-payout')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body.reason).toBe('NO_ACCOUNT');
+    expect(instantPayouts.getOffer).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
+  });
+
+  it('takes an instant payout for the active Profile of the session', async () => {
+    instantPayouts.payOut.mockResolvedValue({
+      currency: 'EUR',
+      netCents: 9850,
+      arrivalDate: null,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/monetization/instant-payout')
+      .set(BEARER)
+      .send({ netCents: 9850, idempotencyKey: 'confirm-1' })
+      .expect(201);
+
+    expect(instantPayouts.payOut).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+      { netCents: 9850, idempotencyKey: 'confirm-1' },
+    );
+  });
+
+  it('refuses an instant payout without the amount shown or a key', async () => {
+    for (const body of [
+      { idempotencyKey: 'confirm-1' },
+      { netCents: 0, idempotencyKey: 'confirm-1' },
+      { netCents: 12.5, idempotencyKey: 'confirm-1' },
+      { netCents: 9850 },
+      { netCents: 9850, idempotencyKey: 'not a key!' },
+      { netCents: 9850, idempotencyKey: 'confirm-1', amountCents: 1 },
+    ]) {
+      await request(app.getHttpServer())
+        .post('/api/v1/monetization/instant-payout')
+        .set(BEARER)
+        .send(body)
+        .expect(400);
+    }
+    expect(instantPayouts.payOut).not.toHaveBeenCalled();
+  });
+
+  it('takes no instant payout without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/monetization/instant-payout')
+      .send({ netCents: 9850, idempotencyKey: 'confirm-1' })
+      .expect(401);
+    expect(instantPayouts.payOut).not.toHaveBeenCalled();
   });
 });

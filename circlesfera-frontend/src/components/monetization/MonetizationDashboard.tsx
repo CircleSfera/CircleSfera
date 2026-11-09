@@ -12,6 +12,11 @@ import {
   CreatorRow,
   CreatorSection,
 } from '../creator/CreatorPieces';
+import {
+  InstantPayoutButton,
+  InstantPayoutRequirements,
+  useInstantPayoutOffer,
+} from './InstantPayout';
 import PersonMoneyTotalSection from './PersonMoneyTotalSection';
 
 interface Transaction {
@@ -73,6 +78,8 @@ export default function MonetizationDashboard() {
     retry: false,
   });
 
+  const { data: instantOffer } = useInstantPayoutOffer(hasConnect);
+
   const breakdown = summary?.breakdown;
 
   return (
@@ -106,6 +113,9 @@ export default function MonetizationDashboard() {
         <CreatorSection
           title={t('creator.income.stripe_balances')}
           hint={t('creator.income.stripe_balances_hint')}
+          action={
+            instantOffer ? <InstantPayoutButton offer={instantOffer} /> : null
+          }
         >
           <CreatorFigures>
             <CreatorFigure
@@ -125,6 +135,9 @@ export default function MonetizationDashboard() {
               )}
             />
           </CreatorFigures>
+          {instantOffer ? (
+            <InstantPayoutRequirements offer={instantOffer} />
+          ) : null}
         </CreatorSection>
       ) : null}
 

@@ -510,6 +510,52 @@ export class StripeService implements OnModuleInit {
     return this.stripe.balance.retrieve({}, { stripeAccount: accountId });
   }
 
+  // What a creator's account can take out instantly now, per bank account or
+  // card: the gross amount and what reaches it once the platform's fee for
+  // instant payouts is taken.
+  async getInstantPayoutBalance(accountId: string): Promise<
+    {
+      currency: string;
+      amountCents: number;
+      net: { destination: string; amountCents: number }[];
+    }[]
+  > {
+    const balance = await this.stripe.balance.retrieve(
+      { expand: ['instant_available.net_available'] },
+      { stripeAccount: accountId },
+    );
+    return (balance.instant_available ?? []).map((entry) => ({
+      currency: entry.currency,
+      amountCents: entry.amount,
+      net: (entry.net_available ?? []).map((net) => ({
+        destination: net.destination,
+        amountCents: net.amount,
+      })),
+    }));
+  }
+
+  // Pays out of a creator's account at once, to one of its bank accounts or
+  // cards. A repeated request with the same key answers the first payout.
+  async createInstantPayout(
+    accountId: string,
+    payout: {
+      amountCents: number;
+      currency: string;
+      destination: string;
+      idempotencyKey: string;
+    },
+  ): Promise<Stripe.Payout> {
+    return this.stripe.payouts.create(
+      {
+        amount: payout.amountCents,
+        currency: payout.currency,
+        destination: payout.destination,
+        method: 'instant',
+      },
+      { stripeAccount: accountId, idempotencyKey: payout.idempotencyKey },
+    );
+  }
+
   // Recent payouts for a connected Express account (read-only).
   async listConnectPayouts(
     accountId: string,

@@ -8,11 +8,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { ConnectStripeDto } from './dto/connect-stripe.dto.js';
+import {
+  CreateInstantPayoutDto,
+  InstantPayoutOfferDto,
+  InstantPayoutResultDto,
+} from './dto/instant-payout.dto.js';
 import { SendTipDto } from './dto/send-tip.dto.js';
 import {
   TaxDetailsSessionDto,
@@ -21,6 +27,7 @@ import {
 import { UnlockMessageDto } from './dto/unlock-message.dto.js';
 import { UnlockPostDto } from './dto/unlock-post.dto.js';
 import { UnlockStoryDto } from './dto/unlock-story.dto.js';
+import { InstantPayoutService } from './instant-payout.service.js';
 import { MonetizationService } from './monetization.service.js';
 
 interface AuthRequest extends Request {
@@ -31,7 +38,10 @@ interface AuthRequest extends Request {
 @Controller('monetization')
 @UseGuards(JwtAuthGuard)
 export class MonetizationController {
-  constructor(private readonly monetizationService: MonetizationService) {}
+  constructor(
+    private readonly monetizationService: MonetizationService,
+    private readonly instantPayoutService: InstantPayoutService,
+  ) {}
 
   @Get()
   @ApiResponse({ status: 200 })
@@ -171,6 +181,35 @@ export class MonetizationController {
     return this.monetizationService.getConnectPayoutsSummary(
       req.user.userId,
       req.user.profileId,
+    );
+  }
+
+  // Whether the active Profile may take its balance out at once now, and
+  // what that would bring: the amount, the fee and what reaches the bank.
+  @Get('instant-payout')
+  @ApiResponse({ status: 200, type: InstantPayoutOfferDto })
+  async getInstantPayoutOffer(
+    @Req() req: AuthRequest,
+  ): Promise<InstantPayoutOfferDto> {
+    return this.instantPayoutService.getOffer(
+      req.user.userId,
+      req.user.profileId,
+    );
+  }
+
+  // Takes the active Profile's balance out at once, as the offer showed it.
+  @Post('instant-payout')
+  @UseGuards(IdentityVerifiedGuard)
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
+  @ApiResponse({ status: 201, type: InstantPayoutResultDto })
+  async createInstantPayout(
+    @Req() req: AuthRequest,
+    @Body() body: CreateInstantPayoutDto,
+  ): Promise<InstantPayoutResultDto> {
+    return this.instantPayoutService.payOut(
+      req.user.userId,
+      req.user.profileId,
+      body,
     );
   }
 

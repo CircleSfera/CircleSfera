@@ -38,6 +38,12 @@ export enum ErrorCode {
   STRIPE_CONNECT_NOT_SETUP = 'STRIPE_CONNECT_NOT_SETUP',
   CREATOR_STRIPE_NOT_SETUP = 'CREATOR_STRIPE_NOT_SETUP',
   STRIPE_ONBOARDING_FAILED = 'STRIPE_ONBOARDING_FAILED',
+  // The active Profile may not take an instant payout now: it has no track
+  // record yet, it or its person is banned or suspended, a dispute is open,
+  // or the provider offers none.
+  INSTANT_PAYOUT_NOT_AVAILABLE = 'INSTANT_PAYOUT_NOT_AVAILABLE',
+  // What an instant payout would bring changed since it was shown.
+  INSTANT_PAYOUT_AMOUNT_CHANGED = 'INSTANT_PAYOUT_AMOUNT_CHANGED',
   PLAN_NOT_FOUND = 'PLAN_NOT_FOUND',
   // The Profile in use has no plan the person pays.
   SUBSCRIPTION_NOT_FOUND = 'SUBSCRIPTION_NOT_FOUND',
