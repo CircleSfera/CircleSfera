@@ -1,4 +1,4 @@
-import { ErrorCode } from '@circlesfera/shared';
+import { ageOn, ErrorCode, MONETIZATION_MIN_AGE } from '@circlesfera/shared';
 import type { Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 
@@ -92,24 +92,77 @@ export async function payoutRowForProfile(
 export const PAYABLE_PROFILE_SELECT = {
   isAccountBanned: true,
   suspendedUntil: true,
-  user: { select: { isActive: true, isRootBanned: true, deletedAt: true } },
+  user: {
+    select: {
+      isActive: true,
+      isRootBanned: true,
+      deletedAt: true,
+      identityVerifiedAt: true,
+      dateOfBirth: true,
+    },
+  },
 } as const;
 
 /**
+ * Whether a person may charge: their identity is verified and they are
+ * MONETIZATION_MIN_AGE or older by the date of birth on file, which the
+ * verified document sets. A person with no date of birth may not charge.
+ */
+export function isOfChargingAge(user: {
+  identityVerifiedAt: Date | null;
+  dateOfBirth: Date | null;
+}): boolean {
+  return (
+    !!user.identityVerifiedAt &&
+    !!user.dateOfBirth &&
+    ageOn(user.dateOfBirth) >= MONETIZATION_MIN_AGE
+  );
+}
+
+/**
+ * Refuses, with a reason the app explains, a person who may not charge
+ * because of their age or an identity not verified: asked when they set up
+ * payouts or put a price on something.
+ */
+export async function assertOfChargingAge(
+  db: Pick<Prisma.TransactionClient, 'user'>,
+  userId: string,
+): Promise<void> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { identityVerifiedAt: true, dateOfBirth: true },
+  });
+  if (!user || !isOfChargingAge(user)) {
+    throw AppException.Forbidden(
+      ErrorCode.MONETIZATION_UNDER_AGE,
+      `Only people ${MONETIZATION_MIN_AGE} or older, with a verified identity, can charge.`,
+      { minAge: MONETIZATION_MIN_AGE },
+    );
+  }
+}
+
+/**
  * Whether a Profile may be paid: neither it nor its person is banned or
- * suspended, and its person is still here.
+ * suspended, its person is still here, and its person is of charging age.
  */
 export function canBePaid(profile: {
   isAccountBanned: boolean;
   suspendedUntil: Date | null;
-  user: { isActive: boolean; isRootBanned: boolean; deletedAt: Date | null };
+  user: {
+    isActive: boolean;
+    isRootBanned: boolean;
+    deletedAt: Date | null;
+    identityVerifiedAt: Date | null;
+    dateOfBirth: Date | null;
+  };
 }): boolean {
   return (
     !profile.isAccountBanned &&
     !(profile.suspendedUntil && profile.suspendedUntil > new Date()) &&
     profile.user.isActive &&
     !profile.user.isRootBanned &&
-    !profile.user.deletedAt
+    !profile.user.deletedAt &&
+    isOfChargingAge(profile.user)
   );
 }
 

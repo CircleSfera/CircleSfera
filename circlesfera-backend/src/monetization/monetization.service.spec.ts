@@ -13,6 +13,12 @@ import { SHARE_SQL } from './earnings-sql.js';
 import { MonetizationService } from './monetization.service.js';
 
 // The SQL text and the values of a raw query the service ran.
+// A person verified as an adult, who may charge.
+const ADULT = {
+  identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+  dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+};
+
 function rawQuery(call: unknown[]) {
   const [strings, ...values] = call as [TemplateStringsArray, ...unknown[]];
   const query = Prisma.sql(strings, ...values);
@@ -112,7 +118,7 @@ describe('MonetizationService', () => {
     mockPrismaService.profile.findUnique.mockResolvedValue({
       isAccountBanned: false,
       suspendedUntil: null,
-      user: { isActive: true, isRootBanned: false, deletedAt: null },
+      user: { isActive: true, isRootBanned: false, deletedAt: null, ...ADULT },
     });
     // The rows of earnings: which person holds which payout account.
     accounts.clear();
@@ -923,7 +929,7 @@ describe('MonetizationService', () => {
       username: `${userId}_name`,
       isAccountBanned: false,
       suspendedUntil: null,
-      user: { isActive: true, isRootBanned: false, deletedAt: null },
+      user: { isActive: true, isRootBanned: false, deletedAt: null, ...ADULT },
       ...over,
     });
 
@@ -1361,6 +1367,7 @@ describe('MonetizationService', () => {
       id: 'u-1',
       email: 'u1@test.com',
       stripeConnectAccountId,
+      ...ADULT,
     });
     const acting = (accountType = 'CREATOR', id = 'prof-2') =>
       mockPrismaService.profile.findFirst.mockResolvedValue({
@@ -1384,6 +1391,21 @@ describe('MonetizationService', () => {
       mockStripeService.getAccount.mockResolvedValue({
         capabilities: { card_payments: 'inactive', transfers: 'inactive' },
       });
+    });
+
+    it('opens no payout account for someone under 18, saying why', async () => {
+      withRows();
+      acting();
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        ...person(),
+        dateOfBirth: new Date(new Date().getFullYear() - 17, 0, 1),
+      });
+
+      await expect(onboard()).rejects.toMatchObject({
+        errorCode: ErrorCode.MONETIZATION_UNDER_AGE,
+      });
+      expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
+      expect(mockStripeService.createAccountLink).not.toHaveBeenCalled();
     });
 
     describe('an account opened before creators sold on their own account', () => {
