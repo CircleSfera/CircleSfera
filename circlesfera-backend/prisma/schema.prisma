@@ -52,6 +52,9 @@ model User {
   // Identity & KYC
   identityVerifiedAt      DateTime?
   dateOfBirth             DateTime?
+  // The date of birth was read from the document an identity check verified,
+  // not typed at sign-up. Only such a date lets a person charge.
+  dateOfBirthVerified     Boolean   @default(false)
   stripeIdentitySessionId String?   @unique
 
   // The credentials live on SignIn. The passkey challenge slot

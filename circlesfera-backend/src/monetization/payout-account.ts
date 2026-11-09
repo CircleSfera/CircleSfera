@@ -99,21 +99,24 @@ export const PAYABLE_PROFILE_SELECT = {
       deletedAt: true,
       identityVerifiedAt: true,
       dateOfBirth: true,
+      dateOfBirthVerified: true,
     },
   },
 } as const;
 
 /**
  * Whether a person may charge: their identity is verified and they are
- * MONETIZATION_MIN_AGE or older by the date of birth on file, which the
- * verified document sets. A person with no date of birth may not charge.
+ * MONETIZATION_MIN_AGE or older by the date of birth read from the verified
+ * document. A date only typed at sign-up, or none, does not let them charge.
  */
 export function isOfChargingAge(user: {
   identityVerifiedAt: Date | null;
   dateOfBirth: Date | null;
+  dateOfBirthVerified: boolean;
 }): boolean {
   return (
     !!user.identityVerifiedAt &&
+    user.dateOfBirthVerified &&
     !!user.dateOfBirth &&
     ageOn(user.dateOfBirth) >= MONETIZATION_MIN_AGE
   );
@@ -130,7 +133,11 @@ export async function assertOfChargingAge(
 ): Promise<void> {
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { identityVerifiedAt: true, dateOfBirth: true },
+    select: {
+      identityVerifiedAt: true,
+      dateOfBirth: true,
+      dateOfBirthVerified: true,
+    },
   });
   if (!user || !isOfChargingAge(user)) {
     throw AppException.Forbidden(
@@ -154,6 +161,7 @@ export function canBePaid(profile: {
     deletedAt: Date | null;
     identityVerifiedAt: Date | null;
     dateOfBirth: Date | null;
+    dateOfBirthVerified: boolean;
   };
 }): boolean {
   return (

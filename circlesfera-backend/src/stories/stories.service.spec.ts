@@ -47,6 +47,7 @@ describe('StoriesService', () => {
       findUnique: vi.fn().mockResolvedValue({
         identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
         dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+        dateOfBirthVerified: true,
       }),
     },
     $transaction: vi.fn((cb) => cb(mockPrismaService)),

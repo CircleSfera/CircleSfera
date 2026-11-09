@@ -227,6 +227,7 @@ describe('payoutDestinationFor', () => {
       deletedAt: null,
       identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
       dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+      dateOfBirthVerified: true,
       ...user,
     },
   });
@@ -269,6 +270,10 @@ describe('payoutDestinationFor', () => {
       'its person has no verified identity',
       standing({}, { identityVerifiedAt: null }),
     ],
+    [
+      'its date of birth was only typed at sign-up',
+      standing({}, { dateOfBirthVerified: false }),
+    ],
   ])('pays nothing when %s', async (_case, seller) => {
     const tx = db(seller);
     await expect(payoutDestinationFor(tx, profile)).rejects.toThrow(
@@ -296,12 +301,20 @@ describe('isOfChargingAge', () => {
       today.getDate(),
     );
     expect(
-      isOfChargingAge({ identityVerifiedAt: verified, dateOfBirth: birthday }),
+      isOfChargingAge({
+        identityVerifiedAt: verified,
+        dateOfBirth: birthday,
+        dateOfBirthVerified: true,
+      }),
     ).toBe(true);
     const dayBefore = new Date(birthday);
     dayBefore.setDate(dayBefore.getDate() + 1);
     expect(
-      isOfChargingAge({ identityVerifiedAt: verified, dateOfBirth: dayBefore }),
+      isOfChargingAge({
+        identityVerifiedAt: verified,
+        dateOfBirth: dayBefore,
+        dateOfBirthVerified: true,
+      }),
     ).toBe(false);
   });
 });
@@ -316,6 +329,7 @@ describe('assertOfChargingAge', () => {
         db({
           identityVerifiedAt: new Date(),
           dateOfBirth: yearsAgo(30),
+          dateOfBirthVerified: true,
         }),
         'u1',
       ),
@@ -323,8 +337,30 @@ describe('assertOfChargingAge', () => {
   });
 
   it.each([
-    ['under 18', { identityVerifiedAt: new Date(), dateOfBirth: yearsAgo(17) }],
-    ['not verified', { identityVerifiedAt: null, dateOfBirth: yearsAgo(30) }],
+    [
+      'under 18',
+      {
+        identityVerifiedAt: new Date(),
+        dateOfBirth: yearsAgo(17),
+        dateOfBirthVerified: true,
+      },
+    ],
+    [
+      'not verified',
+      {
+        identityVerifiedAt: null,
+        dateOfBirth: yearsAgo(30),
+        dateOfBirthVerified: false,
+      },
+    ],
+    [
+      'whose date of birth was only typed at sign-up',
+      {
+        identityVerifiedAt: new Date(),
+        dateOfBirth: yearsAgo(30),
+        dateOfBirthVerified: false,
+      },
+    ],
     ['gone', null],
   ])('refuses a person %s, saying the age', async (_case, user) => {
     await expect(assertOfChargingAge(db(user), 'u1')).rejects.toMatchObject({
