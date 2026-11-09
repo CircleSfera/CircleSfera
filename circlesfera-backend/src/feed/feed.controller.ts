@@ -47,4 +47,16 @@ export class FeedController {
     }
     return this.feedService.getFollowingFeed(user.profileId, pagination);
   }
+
+  // Posts of the Profiles the viewer keeps as Favorites, newest first.
+  @Get('favorites')
+  @MemberAllowed('browse')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200 })
+  async getFavorites(
+    @CurrentUser() user: CurrentUserData,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.feedService.getFavoritesFeed(user.profileId, pagination);
+  }
 }

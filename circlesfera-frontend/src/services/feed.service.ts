@@ -14,4 +14,10 @@ export const feedApi = {
     apiClient.get<PaginatedResponse<Post>>('feed/following', {
       params: { page, limit },
     }),
+
+  // Posts of the Profiles one keeps as Favorites, newest first.
+  getFavorites: (page = 1, limit = 10) =>
+    apiClient.get<PaginatedResponse<Post>>('feed/favorites', {
+      params: { page, limit },
+    }),
 };

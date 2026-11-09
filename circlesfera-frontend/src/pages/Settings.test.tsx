@@ -16,6 +16,9 @@ vi.mock('../components/settings/BillingSettings', () => ({
 vi.mock('../components/settings/CloseFriendsSettings', () => ({
   default: () => <div>panel:close_friends</div>,
 }));
+vi.mock('../components/settings/FavoritesSettings', () => ({
+  default: () => <div>panel:favorites</div>,
+}));
 vi.mock('../components/settings/FeedPreferencesSettings', () => ({
   default: () => <div>panel:feed_prefs</div>,
 }));

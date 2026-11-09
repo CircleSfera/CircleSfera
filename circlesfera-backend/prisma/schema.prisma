@@ -489,6 +489,9 @@ model Profile {
   highlights              Highlight[]
   closeFriends            CloseFriend[]           @relation("CloseFriendOwner")
   closeFriendOf           CloseFriend[]           @relation("CloseFriendTarget")
+  // The Profiles this one reads in its Favorites feed, and who has it there.
+  favorites               FavoriteProfile[]       @relation("FavoriteOwner")
+  favoriteOf              FavoriteProfile[]       @relation("FavoriteTarget")
   storyViews              StoryView[]
   storyReactions          StoryReaction[]
   taggedPosts             PostTag[]
@@ -1037,6 +1040,21 @@ model CloseFriend {
   @@index([profileId])
   @@index([friendId])
   @@map("close_friends")
+}
+
+// A Profile the owner follows and chose as a Favorite: its posts make the
+// owner's Favorites feed. Private to the owner; at most FAVORITES_MAX each.
+model FavoriteProfile {
+  profileId  String
+  favoriteId String
+  createdAt  DateTime @default(now())
+
+  profile  Profile @relation("FavoriteOwner", fields: [profileId], references: [id], onDelete: Cascade)
+  favorite Profile @relation("FavoriteTarget", fields: [favoriteId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, favoriteId])
+  @@index([favoriteId])
+  @@map("favorite_profiles")
 }
 
 model Bookmark {

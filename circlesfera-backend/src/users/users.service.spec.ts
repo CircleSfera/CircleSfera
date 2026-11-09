@@ -737,6 +737,12 @@ describe('UsersService', () => {
           },
         },
       });
+      // Each Profile's own Favorites go with it; who chose it does not.
+      expect(profilesArgs.favorites.select).toEqual({
+        createdAt: true,
+        favorite: { select: { username: true } },
+      });
+      expect(profilesArgs.favoriteOf).toBeUndefined();
       // What the person did on Business Profiles, as a member or owner.
       expect(res.teamActivity).toEqual([
         {

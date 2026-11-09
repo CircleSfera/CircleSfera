@@ -609,6 +609,115 @@ export class FeedService {
     }
 
     // 3. Hydrate Subscriptions and Unlocks (Common Path)
+    const formattedPosts = await this.presentFollowedPosts(
+      posts,
+      profileId,
+      viewerSettings,
+      'following',
+    );
+
+    const feedWithPromotions = await this.injectPromotions(
+      formattedPosts,
+      profileId,
+    );
+
+    return createPaginatedResult(feedWithPromotions, total, page, limit);
+  }
+
+  // The Favorites feed: posts of the Profiles the viewer chose as Favorites
+  // and still follows, newest first, with the Following feed's filters
+  // (audience, mutes, hidden posts and authors, muted words, mature content,
+  // moderation). No promotions, and no ranking: only their posts, in order.
+  async getFavoritesFeed(profileId: string, pagination: PaginationDto) {
+    const { page = 1, limit = 10 } = pagination;
+    const skip = (page - 1) * limit;
+    const viewerSettings = await this.getViewerContentSettings(profileId);
+
+    const [favorites, mutes, prefs] = await Promise.all([
+      this.prisma.favoriteProfile.findMany({
+        where: {
+          profileId,
+          favorite: {
+            followers: { some: { followerId: profileId, status: 'ACCEPTED' } },
+          },
+        },
+        select: { favoriteId: true },
+      }),
+      this.prisma.mute.findMany({
+        where: {
+          muterId: profileId,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+        select: { mutedId: true },
+      }),
+      this.feedPreferences.getFilterSets(profileId),
+    ]);
+
+    const mutedIds = new Set([
+      ...mutes.map((m) => m.mutedId),
+      ...prefs.hiddenAuthorIds,
+    ]);
+    const authorIds = favorites
+      .map((f) => f.favoriteId)
+      .filter((id) => !mutedIds.has(id));
+    if (authorIds.length === 0) {
+      return createPaginatedResult([], 0, page, limit);
+    }
+
+    const where = {
+      profileId: { in: authorIds },
+      profile: await viewerAudienceWhere(this.prisma, profileId),
+      type: 'POST' as const,
+      moderationStatus: { in: ['VISIBLE' as const, 'FLAGGED' as const] },
+      deletedAt: null,
+      archivedAt: null,
+      scheduledStatus: 'PUBLISHED' as const,
+      ...(prefs.hiddenPostIds.length > 0
+        ? { id: { notIn: prefs.hiddenPostIds } }
+        : {}),
+      AND: [matureWhere(viewerSettings)],
+      visibility: { in: [Visibility.PUBLIC, Visibility.FOLLOWERS] },
+    };
+
+    const [rawPosts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        include: this.postHydrationInclude(profileId),
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    const posts =
+      prefs.mutedKeywords.length > 0
+        ? rawPosts.filter((p) => {
+            const caption = (p.caption || '').toLowerCase();
+            return !prefs.mutedKeywords.some((kw) => caption.includes(kw));
+          })
+        : rawPosts;
+
+    const formatted = await this.presentFollowedPosts(
+      posts,
+      profileId,
+      viewerSettings,
+      'favorite',
+    );
+    return createPaginatedResult(formatted, total, page, limit);
+  }
+
+  // Shapes posts of Profiles the viewer chose to read (Following, Favorites):
+  // whether the viewer liked each, why it is shown, the sensitive blur, and a
+  // paid post locked until it is unlocked.
+  private async presentFollowedPosts(
+    posts: any[],
+    profileId: string,
+    viewerSettings: Awaited<
+      ReturnType<FeedService['getViewerContentSettings']>
+    >,
+    reason: 'following' | 'favorite',
+  ) {
     let subscribedCreatorIds = new Set<string>();
     let unlockedPostIds = new Set<string>();
 
@@ -627,14 +736,14 @@ export class FeedService {
       unlockedPostIds = new Set(unlocks.map((u) => u.postId));
     }
 
-    const formattedPosts = posts.map((post: any) => {
+    return posts.map((post: any) => {
       const { likes, ...rest } = post;
       rest.media = rest.media?.map(resolveMediaFields);
       const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
       const recommendationMeta = this.buildRecommendationMeta(
         null,
         post.performanceScore || 0,
-        'following',
+        reason,
       );
 
       let finalPost = {
@@ -663,13 +772,6 @@ export class FeedService {
 
       return finalPost;
     });
-
-    const feedWithPromotions = await this.injectPromotions(
-      formattedPosts,
-      profileId,
-    );
-
-    return createPaginatedResult(feedWithPromotions, total, page, limit);
   }
 
   // Fallback / Trending feed logic

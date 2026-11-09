@@ -97,8 +97,13 @@ export class FollowsService {
     });
 
     if (existingFollow) {
-      // Unfollow (or cancel request)
-      await this.prisma.follow.delete({ where: { id: existingFollow.id } });
+      // Unfollow (or cancel request); it stops being a Favorite too.
+      await this.prisma.$transaction([
+        this.prisma.follow.delete({ where: { id: existingFollow.id } }),
+        this.prisma.favoriteProfile.deleteMany({
+          where: { profileId: followerId, favoriteId: followingId },
+        }),
+      ]);
       return { following: false, status: 'NONE' };
     } else {
       await assertEmailVerifiedForWrite(
@@ -300,7 +305,8 @@ export class FollowsService {
       );
 
     // Idempotent and atomic: repeating a block is a no-op, and the
-    // block, the follow removal and the close-friends removal happen together.
+    // block, the follow removal and the close-friends and Favorites removal
+    // happen together.
     await this.prisma.$transaction([
       this.prisma.block.upsert({
         where: { blockerId_blockedId: { blockerId, blockedId } },
@@ -320,6 +326,14 @@ export class FollowsService {
           OR: [
             { profileId: blockerId, friendId: blockedId },
             { profileId: blockedId, friendId: blockerId },
+          ],
+        },
+      }),
+      this.prisma.favoriteProfile.deleteMany({
+        where: {
+          OR: [
+            { profileId: blockerId, favoriteId: blockedId },
+            { profileId: blockedId, favoriteId: blockerId },
           ],
         },
       }),

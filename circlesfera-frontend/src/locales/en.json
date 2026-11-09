@@ -97,6 +97,10 @@
         "label": "Close Friends",
         "desc": "Inner circle"
       },
+      "favorites": {
+        "label": "Favorites",
+        "desc": "Your own feed"
+      },
       "notifications": {
         "label": "Notifications",
         "desc": "Alerts"
@@ -1036,6 +1040,7 @@
     "brand_name": "CircleSfera",
     "for_you": "For You",
     "following": "Following",
+    "favorites": "Favorites",
     "no_posts": "No posts yet. Explore to find creators!",
     "no_posts_title": "No recent posts",
     "login_required_title": "Sign in",
@@ -1043,6 +1048,9 @@
     "no_following_posts_title": "No following posts yet",
     "no_following_posts_desc": "Explore suggested creators or switch to For You to discover trending content.",
     "switch_to_foryou": "Go to For You",
+    "no_favorites_posts_title": "No posts from your Favorites yet",
+    "no_favorites_posts_desc": "Choose up to 50 Profiles you follow and read only them here, newest first.",
+    "manage_favorites": "Choose Favorites",
     "error_title": "Couldn't load feed",
     "error_message": "Something went wrong while loading posts. Please try again."
   },
@@ -1076,6 +1084,24 @@
     "post_hide_error": "Could not hide post",
     "author_hidden": "Author hidden from your feed",
     "author_hide_error": "Could not hide author"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "desc": "Up to {{max}} Profiles you follow. Their posts make your Favorites feed, newest first. Nobody is told who is on your list.",
+    "count": "{{count}} of {{max}}",
+    "loading": "Loading…",
+    "empty": "You have no Favorites yet.",
+    "add_label": "Add {{username}} to Favorites",
+    "remove_label": "Remove {{username}} from Favorites",
+    "add": "Add to Favorites",
+    "remove": "Remove from Favorites",
+    "added": "Added to Favorites",
+    "removed": "Removed from Favorites",
+    "full": "You can have up to {{max}} Favorites. Remove one first.",
+    "not_followed": "Only Profiles you follow can be Favorites.",
+    "error": "Could not change your Favorites. Try again.",
+    "following": "People you follow",
+    "load_more": "Show more"
   },
   "explore": {
     "page_title": "Explore the Universe",
@@ -1392,6 +1418,7 @@
       "why": "Why?",
       "close_friends": "Close Friends",
       "following": "Following",
+      "favorite": "Favorites",
       "signals_desc": {
         "ranked_for_you": "Our ranking marked this as highly relevant based on your interests and activity.",
         "popular": "This post is getting a lot of engagement on the platform right now.",
