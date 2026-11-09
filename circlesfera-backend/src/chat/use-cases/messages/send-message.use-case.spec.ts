@@ -81,6 +81,8 @@ describe('SendMessageUseCase', () => {
         findUnique: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
       },
+      // Nobody restricts anyone unless a test says so.
+      restriction: { findMany: vi.fn().mockResolvedValue([]) },
     };
 
     mockCryptoService = {
@@ -396,6 +398,50 @@ describe('SendMessageUseCase', () => {
       );
     });
   });
+  it('sends no push to a recipient who restricts the sender, but still delivers the message', async () => {
+    const participants = [
+      { profileId: 'sender-1', profile: { id: 'sender-1' } },
+      { profileId: 'recipient-1', profile: { id: 'recipient-1' } },
+    ];
+    mockTx.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      isGroup: false,
+      participants,
+    });
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-1',
+      content: 'encrypted_Hello',
+      senderId: 'sender-1',
+      conversationId: 'conv-1',
+      sender: { id: 'sender-1', username: 'sender_user' },
+    });
+    mockPrisma.restriction.findMany.mockResolvedValue([
+      { restricterId: 'recipient-1' },
+    ]);
+
+    await useCase.execute(
+      'sender-1',
+      undefined,
+      'Hello',
+      undefined,
+      undefined,
+      'conv-1',
+    );
+
+    expect(mockPrisma.restriction.findMany).toHaveBeenCalledWith({
+      where: {
+        restrictedId: 'sender-1',
+        restricterId: { in: ['recipient-1'] },
+      },
+      select: { restricterId: true },
+    });
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      'chat.message.sent',
+      expect.objectContaining({ participants }),
+    );
+    expect(mockPushService.sendNotification).not.toHaveBeenCalled();
+  });
+
   it('sends message to existing conversation with push notification to recipient', async () => {
     const participants = [
       { profileId: 'sender-1', profile: { id: 'sender-1' } },

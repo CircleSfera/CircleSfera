@@ -17,6 +17,7 @@ import AddToCollectionModal from '../components/modals/AddToCollectionModal';
 import FrameCommentsModal from '../components/modals/FrameCommentsModal';
 import SharePostModal from '../components/modals/SharePostModal';
 import { usePostInteractionSettings } from '../hooks/usePostInteractionSettings';
+import { useProfilePin } from '../hooks/useProfilePin';
 import { postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { PaginatedResponse, Post } from '../types';
@@ -204,6 +205,8 @@ export default function Frames() {
   const frameInteractionSettings = usePostInteractionSettings(
     displayFrames[activeFrameIndex],
   );
+  // The author pins the active Frame to the top of their profile.
+  const frameProfilePin = useProfilePin(displayFrames[activeFrameIndex]);
 
   if (isLoading) {
     return (
@@ -398,6 +401,10 @@ export default function Frames() {
                     onReport={menuActions.onReport}
                     onSave={menuActions.onSave}
                     onArchive={menuActions.onArchive}
+                    onTogglePin={
+                      isFrameOwner ? frameProfilePin.togglePin : undefined
+                    }
+                    pinned={frameProfilePin.pinned}
                     onAddToStory={menuActions.onAddToStory}
                     onWhy={menuActions.onWhy}
                     onToggleComments={

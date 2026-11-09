@@ -15,6 +15,7 @@ slice, not the repo-root `e2e/` suite (that one hits Postgres).
 | `search.spec.ts` | Explore grid pin + people search (`es` placeholder). |
 | `messages.spec.ts` | Inbox thread → send text. |
 | `stripe.spec.ts` | Creator `/creator/monetization` → `Conectar Stripe` → Connect URL. |
+| `restrict.spec.ts` | Restrict from a profile's menu, restrict from a comment, approve a comment waiting for approval, unrestrict in Settings, at 390×844 and 1280×800 (`RESTRICT_SHOTS=dir` saves captures). |
 
 Locale is `es` (`i18nextLng`). Viewport for feed/composer is **390×844**; other specs use the
 Playwright project default (Desktop Chrome).

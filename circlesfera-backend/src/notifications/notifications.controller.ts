@@ -5,7 +5,7 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { PaginationDto } from '../common/dto/pagination.dto.js';
+import { NotificationsQueryDto } from './dto/notifications-query.dto.js';
 import { NotificationsService } from './notifications.service.js';
 
 // REST controller for notifications. All endpoints require authentication.
@@ -15,14 +15,15 @@ import { NotificationsService } from './notifications.service.js';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
-  // List all notifications (paginated).
+  // The notifications of the session's Profile, a page at a time, of one
+  // kind or all.
   @Get()
   @ApiResponse({ status: 200 })
   async findAll(
     @CurrentUser() user: CurrentUserData,
-    @Query() pagination: PaginationDto,
+    @Query() query: NotificationsQueryDto,
   ) {
-    return this.notificationsService.findAll(user.profileId, pagination);
+    return this.notificationsService.findAll(user.profileId, query);
   }
 
   // Get the count of unread notifications.

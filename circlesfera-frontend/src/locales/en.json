@@ -241,7 +241,12 @@
       "expires_on": "Until {{date}}",
       "unblock_error": "The account could not be unblocked. Try again.",
       "unmute_error": "The account could not be unmuted. Try again.",
-      "change_duration": "Duration"
+      "change_duration": "Duration",
+      "restricted_title": "Restricted accounts",
+      "restricted_desc": "Their new comments on your posts wait for your approval, their chats are in your requests and they don't see when you're active or have read their messages. They aren't told.",
+      "restricted_empty": "You haven't restricted anyone.",
+      "unrestrict": "Unrestrict",
+      "unrestrict_error": "The account could not be unrestricted. Try again."
     },
     "account": {
       "title": "Account",
@@ -1394,6 +1399,13 @@
       "like_count_hidden": "Like count hidden",
       "like_count_shown": "Like count shown",
       "interactions_error": "Could not save the change. Try again.",
+      "pin_to_profile": "Pin to your profile",
+      "unpin_from_profile": "Unpin from your profile",
+      "pinned_to_profile": "Pinned to your profile",
+      "unpinned": "Unpinned from your profile",
+      "pins_full": "You can pin up to {{max}}. Unpin one first.",
+      "pin_error": "Could not change the pin. Try again.",
+      "pinned_mark": "Pinned",
       "offer_template": "Let others use its template",
       "stop_offering_template": "Stop offering its template",
       "template_offered": "Others can now use its template",
@@ -1573,11 +1585,13 @@
     "pin_error": "Could not pin the comment.",
     "hidden_open": "Hidden comments",
     "hidden_title": "Hidden comments",
-    "hidden_desc": "They contain one of your hidden words. Only whoever wrote them sees them.",
+    "hidden_desc": "They contain one of your hidden words, or come from an account you restrict. Only whoever wrote them sees them.",
     "hidden_none": "No hidden comments.",
     "hidden_show": "Show",
     "hidden_shown": "Comment shown to everyone",
-    "hidden_error": "Could not show the comment."
+    "hidden_error": "Could not show the comment.",
+    "hidden_restricted": "Restricted account",
+    "hidden_approve": "Approve"
   },
   "profile": {
     "tabs": {
@@ -2281,13 +2295,28 @@
       "moderation_suspension": "You received a strike and this profile is suspended for 7 days.",
       "moderation_ban": "This profile was banned for breaking the community guidelines. Your other profiles are not affected.",
       "moderation_restriction": "An automated system detected unusual activity on this profile (for example, many actions in a short time or repeated messages). Until a person on our team reviews it, for at most 72 hours, you can follow 20 accounts and send 5 message requests a day. Nothing is hidden or removed. You can appeal this decision.",
-      "moderation_restriction_review": "After a review by our team, for 7 days this profile can follow 20 accounts and send 5 message requests a day, because of unusual activity (for example, many actions in a short time or repeated messages). Nothing is hidden or removed. You can appeal this decision."
+      "moderation_restriction_review": "After a review by our team, for 7 days this profile can follow 20 accounts and send 5 message requests a day, because of unusual activity (for example, many actions in a short time or repeated messages). Nothing is hidden or removed. You can appeal this decision.",
+      "like_many": "liked your post.",
+      "comment_like_many": "liked your comment.",
+      "follow_many": "started following you."
     },
     "appeal_cta": "Appeal this decision",
     "strike_details_cta": "See details and appeal",
     "removal_appeal_cta": "Appeal",
     "just_now": "now",
-    "view_live": "Watch the live"
+    "view_live": "Watch the live",
+    "filters": {
+      "label": "Filter activity",
+      "all": "All",
+      "comments": "Comments",
+      "follows": "Follows",
+      "likes": "Likes"
+    },
+    "grouped": {
+      "and": "and",
+      "and_others_one": "and {{count}} other",
+      "and_others_other": "and {{count}} others"
+    }
   },
   "chat": {
     "loading": "Loading chats...",
@@ -6122,6 +6151,7 @@
       "CANNOT_FOLLOW_SELF": "You can't follow yourself.",
       "CANNOT_BLOCK_SELF": "You can't block yourself.",
       "CANNOT_MUTE_SELF": "You can't mute yourself.",
+      "CANNOT_RESTRICT_SELF": "You can't restrict yourself.",
       "FOLLOW_REQUEST_NOT_FOUND": "That follow request no longer exists.",
       "ACTION_LIMIT_REACHED": "You've done this too many times for now. Try again later.",
       "INSUFFICIENT_FUNDS": "There aren't enough funds for this payment.",
@@ -6295,5 +6325,14 @@
     "empty_sub": "Posts with this place will show here.",
     "error_title": "Could not open this place",
     "error_message": "It may no longer be available. Try again."
+  },
+  "restrict": {
+    "restrict": "Restrict",
+    "unrestrict": "Unrestrict",
+    "hint": "Their new comments wait for your approval and their chat goes to your requests. They won't be told.",
+    "restricted_toast": "{{username}} is restricted. They won't be told.",
+    "unrestricted_toast": "{{username}} is no longer restricted.",
+    "error": "The restriction could not be changed. Try again.",
+    "restrict_user": "Restrict {{username}}"
   }
 }

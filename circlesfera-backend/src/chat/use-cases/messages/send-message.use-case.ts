@@ -10,6 +10,7 @@ import {
 } from '../../../common/constants/monetization.constants.js';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { assertCanAccessPost } from '../../../common/policies/post-access.policy.js';
+import { restrictersOf } from '../../../common/policies/restrict.policy.js';
 import { assertCanAccessStory } from '../../../common/policies/story-access.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../../../common/selects/public-profile.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
@@ -419,9 +420,19 @@ export class SendMessageUseCase {
       };
       this.eventEmitter.emit('chat.message.sent', event);
 
-      // Each recipient reads the push in the language of their account.
+      // Each recipient reads the push in the language of their account. A
+      // recipient who restricts the sender gets the message in requests,
+      // without a push.
+      const restricting = await restrictersOf(
+        this.prisma,
+        senderId,
+        conversation.participants.map((p: any) => p.profileId),
+      );
       const recipients = conversation.participants.filter(
-        (p: any) => p.profileId !== senderId && p.hasAccepted !== false,
+        (p: any) =>
+          p.profileId !== senderId &&
+          p.hasAccepted !== false &&
+          !(restricting.has(p.profileId) && !conversation.isGroup),
       );
       const locales = new Map(
         (recipients.length

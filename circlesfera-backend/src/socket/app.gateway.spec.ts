@@ -31,6 +31,7 @@ interface ServiceOverrides {
     membersOf?: ReturnType<typeof vi.fn>;
     blocksAmong?: ReturnType<typeof vi.fn>;
     sharedPostAsSeenBy?: ReturnType<typeof vi.fn>;
+    restricts?: ReturnType<typeof vi.fn>;
   };
   webrtcSignalingService?: {
     authorizeSignal: ReturnType<typeof vi.fn>;
@@ -73,6 +74,8 @@ function gatewayWithServer(
       ),
       // No blocks among them unless a test says so.
       blocksAmong: vi.fn(async () => new Map()),
+      // Nobody restricts anyone unless a test says so.
+      restricts: vi.fn(async () => false),
     },
     (overrides.webrtcSignalingService as any) ?? {
       authorizeSignal: vi.fn(),
@@ -1089,6 +1092,31 @@ describe('AppGateway payload bounds and authorization', () => {
         { conversationId: 'c-other', recipientId: 'prof-rec' } as any,
         socket,
       );
+      expect(mockTo).not.toHaveBeenCalled();
+    });
+
+    it('tells nobody a Profile it restricts that it read their messages', async () => {
+      const mockTo = vi.fn().mockReturnValue({ emit: vi.fn() });
+      const restricts = vi.fn().mockResolvedValue(true);
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        {
+          chatRealtimeService: {
+            addReaction: vi.fn(),
+            membersOf: vi.fn(async (_c: string, ids: string[]) => new Set(ids)),
+            restricts,
+          },
+        },
+      );
+      const socket = mockSocket('prof-reader');
+      socket.data.conversationIds = new Set(['c-1']);
+
+      await gateway.handleMarkRead(
+        { conversationId: 'c-1', recipientId: 'prof-rec' } as any,
+        socket,
+      );
+
+      expect(restricts).toHaveBeenCalledWith('prof-reader', 'prof-rec');
       expect(mockTo).not.toHaveBeenCalled();
     });
 

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,7 @@ function formatMuteExpiry(
 export default function MutesSettings() {
   const { t, i18n } = useTranslation();
   const [durationUsername, setDurationUsername] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: blockedUsersData, refetch: refetchBlocked } = useQuery({
     queryKey: ['blockedUsers'],
@@ -42,6 +43,22 @@ export default function MutesSettings() {
     queryFn: () => followsApi.getMuted(),
   });
   const mutedEntries = mutedUsersData?.data || [];
+
+  const { data: restrictedData, refetch: refetchRestricted } = useQuery({
+    queryKey: ['restrictedUsers'],
+    queryFn: () => followsApi.getRestricted(),
+  });
+  const restrictedUsers = restrictedData?.data || [];
+
+  const unrestrictMutation = useMutation({
+    mutationFn: (targetUsername: string) =>
+      followsApi.unrestrict(targetUsername),
+    onSuccess: (_res, targetUsername) => {
+      void refetchRestricted();
+      queryClient.removeQueries({ queryKey: ['restriction', targetUsername] });
+    },
+    onError: () => toast.error(t('settings.mutes.unrestrict_error')),
+  });
 
   const unblockMutation = useMutation({
     mutationFn: (targetUsername: string) => followsApi.unblock(targetUsername),
@@ -89,6 +106,46 @@ export default function MutesSettings() {
         className="min-h-11 text-sm font-semibold px-4 shrink-0"
       >
         {t('settings.mutes.unblock')}
+      </Button>
+    </li>
+  );
+
+  const renderRestrictedRow = (user: ProfileWithUser) => (
+    <li
+      key={user.id}
+      className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/2 p-3"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <UserAvatar
+          src={user.avatar || undefined}
+          thumbnailUrl={user.thumbnailUrl}
+          standardUrl={user.standardUrl}
+          alt={user.username || ''}
+          size="md"
+          className="w-10 h-10 rounded-full object-cover shrink-0"
+        />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-white truncate">
+            {user.username || t('settings.mutes.unknown')}
+          </p>
+          {user.fullName ? (
+            <p className="text-xs text-white/50 truncate">{user.fullName}</p>
+          ) : null}
+        </div>
+      </div>
+      <Button
+        onClick={() =>
+          user.username && unrestrictMutation.mutate(user.username)
+        }
+        variant="outline"
+        isLoading={
+          unrestrictMutation.isPending &&
+          unrestrictMutation.variables === user.username
+        }
+        disabled={unrestrictMutation.isPending}
+        className="min-h-11 text-sm font-semibold px-4 shrink-0"
+      >
+        {t('settings.mutes.unrestrict')}
       </Button>
     </li>
   );
@@ -163,6 +220,23 @@ export default function MutesSettings() {
             {blockedUsers.map((user: ProfileWithUser) =>
               renderBlockedRow(user),
             )}
+          </ul>
+        )}
+      </SettingsSection>
+
+      <SettingsSection
+        title={t('settings.mutes.restricted_title')}
+        description={t('settings.mutes.restricted_desc')}
+        card={false}
+      >
+        {restrictedUsers.length === 0 ? (
+          <EmptyState
+            icon="followers"
+            title={t('settings.mutes.restricted_empty')}
+          />
+        ) : (
+          <ul className="space-y-2">
+            {restrictedUsers.map(renderRestrictedRow)}
           </ul>
         )}
       </SettingsSection>

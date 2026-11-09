@@ -1,6 +1,7 @@
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { blocksAmong } from '../../chat/blocked-participants.js';
 import { AddReactionUseCase } from '../../chat/use-cases/messages/add-reaction.use-case.js';
+import { restricts } from '../../common/policies/restrict.policy.js';
 import {
   type PaywallPost,
   PostPaywallService,
@@ -71,6 +72,12 @@ export class ChatRealtimeService {
       select: { profileId: true },
     });
     return new Set(rows.map((row) => row.profileId));
+  }
+
+  // Whether `restricterId` restricts `restrictedId`: then the restricted
+  // Profile is not told that the restricter read its messages.
+  async restricts(restricterId: string, restrictedId: string) {
+    return restricts(this.prisma, restricterId, restrictedId);
   }
 
   /**

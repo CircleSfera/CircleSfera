@@ -14,6 +14,8 @@ import {
   MessageCircle,
   MessageCircleOff,
   Pencil,
+  Pin,
+  PinOff,
   Trash2,
   UserX,
   VolumeX,
@@ -38,6 +40,9 @@ interface PostMenuProps {
   // The author's: archive it, or show an archived one on the profile again.
   onArchive?: () => void;
   isArchived?: boolean;
+  // The author's: pin it to the top of their profile, or unpin it.
+  onTogglePin?: () => void;
+  pinned?: boolean;
   onMute?: () => void;
   onHidePost?: () => void;
   onHideAuthor?: () => void;
@@ -137,6 +142,8 @@ export default function PostMenu({
   onPromote,
   onArchive,
   isArchived = false,
+  onTogglePin,
+  pinned = false,
   onMute,
   onHidePost,
   onHideAuthor,
@@ -164,6 +171,15 @@ export default function PostMenu({
             }
           : undefined,
         { icon: Pencil, label: t('post.menu.edit'), onClick: onEdit },
+        onTogglePin
+          ? {
+              icon: pinned ? PinOff : Pin,
+              label: pinned
+                ? t('post.menu.unpin_from_profile')
+                : t('post.menu.pin_to_profile'),
+              onClick: onTogglePin,
+            }
+          : undefined,
         onArchive
           ? {
               icon: isArchived ? ArchiveRestore : Archive,

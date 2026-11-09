@@ -16,6 +16,18 @@ vi.mock('../../hooks/useCloseFriendsList', () => ({
   }),
 }));
 
+const restriction = vi.hoisted(() => ({
+  state: { restricted: false, isKnown: true, isPending: false },
+  toggle: vi.fn(),
+  enabledWith: [] as boolean[],
+}));
+vi.mock('../../hooks/useRestriction', () => ({
+  useRestriction: (_username: string, enabled: boolean) => {
+    restriction.enabledWith.push(enabled);
+    return { ...restriction.state, toggle: restriction.toggle };
+  },
+}));
+
 vi.mock('../FollowButton', () => ({
   default: () => <button type="button">Follow stub</button>,
 }));
@@ -203,5 +215,24 @@ describe('ProfileHeader', () => {
       screen.queryByRole('button', { name: tipName }),
     ).not.toBeInTheDocument();
     sells.value = true;
+  });
+
+  it('offers to restrict or unrestrict another profile from its menu, asking only once it is open', () => {
+    const other = { ...headerProps, isMe: false, showMenu: true };
+    restriction.enabledWith.length = 0;
+    const { unmount } = renderWithProviders(<ProfileHeader {...other} />);
+
+    expect(restriction.enabledWith).toContain(true);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Restrict' })[0]);
+    expect(restriction.toggle).toHaveBeenCalledTimes(1);
+    expect(other.setShowMenu).toHaveBeenCalled();
+    unmount();
+
+    restriction.state = { restricted: true, isKnown: true, isPending: false };
+    renderWithProviders(<ProfileHeader {...other} />);
+    expect(
+      screen.getAllByRole('button', { name: 'Unrestrict' }).length,
+    ).toBeGreaterThan(0);
+    restriction.state = { restricted: false, isKnown: true, isPending: false };
   });
 });
