@@ -54,3 +54,13 @@ export function getMessageDisplayText(
   }
   return decryptedText;
 }
+
+// What the server forwards: a member's sent text or shared post. Never a
+// notice, a deleted or paid message, a file, a voice note or a story.
+export function canForwardMessage(msg: Message): boolean {
+  if (!msg.id || msg.tempId === msg.id) return false;
+  if (msg.kind && msg.kind !== 'USER') return false;
+  if (msg.isDeleted || msg.isLocked) return false;
+  if (msg.url || msg.voiceUrl || msg.storyId) return false;
+  return Boolean(msg.content || msg.postId);
+}
