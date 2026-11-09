@@ -289,6 +289,8 @@ export interface Message {
   updatedAt: Date | string;
   isDeleted?: boolean;
   isEdited?: boolean;
+  // A copy someone forwarded from another chat; it names no one behind it.
+  isForwarded?: boolean;
   isLocked?: boolean;
   priceCents?: number;
   sender?: ProfileWithUser;
