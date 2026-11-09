@@ -19,7 +19,6 @@ export function creatorShareCents(priceCents: number): number {
 export const MIN_PPV_PRICE_CENTS = 300; // €3.00
 export const MAX_PPV_PRICE_CENTS = 50000; // €500.00
 
-
 // When the provider pays a creator's balance out to their bank: on its own,
 // once a week, on Monday (owner decision). Each payout and each account paid
 // out in a month cost the platform a fee, so a daily schedule could cost more
