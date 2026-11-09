@@ -160,6 +160,44 @@ describe('NotificationsService', () => {
       },
     );
 
+    it('leaves out of a grouped row the one before when a block stands between them', async () => {
+      mockPrismaService.notification.findMany.mockResolvedValue([
+        {
+          id: 'row-1',
+          type: 'LIKE',
+          senderId: 'bea',
+          previousSenderId: 'blocked',
+          previousSender: { id: 'blocked', username: 'blocked' },
+          othersCount: 3,
+        },
+        {
+          id: 'row-2',
+          type: 'FOLLOW',
+          senderId: 'cai',
+          previousSenderId: 'dan',
+          previousSender: { id: 'dan', username: 'dan' },
+          othersCount: 1,
+        },
+      ]);
+      mockPrismaService.notification.count.mockResolvedValue(2);
+      (mockPrismaService.block as Record<string, unknown>).findMany = vi
+        .fn()
+        .mockResolvedValue([{ blockerId: 'blocked', blockedId: 'user-1' }]);
+
+      const result = await service.findAll('user-1', { page: 1, limit: 20 });
+
+      expect(result.data[0]).toEqual(
+        expect.objectContaining({
+          previousSenderId: null,
+          previousSender: null,
+          othersCount: 3,
+        }),
+      );
+      expect(result.data[1]).toEqual(
+        expect.objectContaining({ previousSenderId: 'dan' }),
+      );
+    });
+
     it('leaves the type free for all', async () => {
       mockPrismaService.notification.findMany.mockResolvedValue([]);
       mockPrismaService.notification.count.mockResolvedValue(0);
@@ -524,6 +562,113 @@ describe('NotificationsService', () => {
       });
 
       expect(res).toEqual(existingUnread);
+      expect(mockPrismaService.notification.update).not.toHaveBeenCalled();
+    });
+
+    it('groups a like with the row it joins: the one before, and one more', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-09T12:00:00.000Z') });
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce({
+        id: 'row-1',
+        recipientId: 'user-1',
+        senderId: 'ana',
+        previousSenderId: null,
+        type: 'LIKE',
+        postId: 'post-1',
+        read: false,
+      });
+      mockPrismaService.notification.update.mockResolvedValueOnce({
+        id: 'row-1',
+      });
+
+      await service.create({
+        recipientId: 'user-1',
+        senderId: 'bea',
+        type: 'LIKE' as never,
+        postId: 'post-1',
+      });
+
+      expect(mockPrismaService.notification.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            type: 'LIKE',
+            postId: 'post-1',
+            read: false,
+            createdAt: { gte: new Date('2026-11-08T12:00:00.000Z') },
+          }),
+        }),
+      );
+      expect(mockPrismaService.notification.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            senderId: 'bea',
+            previousSenderId: 'ana',
+            othersCount: { increment: 1 },
+          }),
+        }),
+      );
+      expect(mockPushService.sendNotification).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('groups new followers of the last day in one row, with no second push', async () => {
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce({
+        id: 'row-f',
+        recipientId: 'user-1',
+        senderId: 'ana',
+        previousSenderId: null,
+        type: 'FOLLOW',
+        postId: null,
+        read: false,
+      });
+      mockPrismaService.notification.update.mockResolvedValueOnce({
+        id: 'row-f',
+      });
+
+      await service.create({
+        recipientId: 'user-1',
+        senderId: 'bea',
+        type: 'FOLLOW' as never,
+        notice: { key: 'followed' },
+      });
+
+      expect(mockPrismaService.notification.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ type: 'FOLLOW', postId: null }),
+        }),
+      );
+      expect(mockPrismaService.notification.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            senderId: 'bea',
+            previousSenderId: 'ana',
+            othersCount: { increment: 1 },
+          }),
+        }),
+      );
+      expect(mockPrismaService.notification.create).not.toHaveBeenCalled();
+      expect(mockPushService.sendNotification).not.toHaveBeenCalled();
+    });
+
+    it('changes nothing when the one before in the row comes again', async () => {
+      const row = {
+        id: 'row-2',
+        recipientId: 'user-1',
+        senderId: 'bea',
+        previousSenderId: 'ana',
+        type: 'FOLLOW',
+        postId: null,
+        read: false,
+      };
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce(row);
+
+      const res = await service.create({
+        recipientId: 'user-1',
+        senderId: 'ana',
+        type: 'FOLLOW' as never,
+        notice: { key: 'followed' },
+      });
+
+      expect(res).toEqual(row);
       expect(mockPrismaService.notification.update).not.toHaveBeenCalled();
     });
 

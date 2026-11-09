@@ -116,6 +116,9 @@ const targetLabelKey = (notif: { targetType?: string | null }) =>
     ? 'notifications.view_request'
     : 'notifications.view_live';
 
+/** How many people a grouped row of likes or followers stands for. */
+const othersOf = (notif: Notification) => notif.othersCount ?? 0;
+
 export default function Notifications() {
   const { t, i18n } = useTranslation();
   const [kind, setKind] = useState<NotificationKind>('all');
@@ -458,18 +461,45 @@ export default function Notifications() {
                         })
                   }
                 >
-                  <UserAvatar
-                    src={notif.sender?.avatar || ''}
-                    thumbnailUrl={notif.sender?.thumbnailUrl}
-                    standardUrl={notif.sender?.standardUrl}
-                    alt={
-                      isSupportNotice(notif)
-                        ? t('notifications.from_support')
-                        : notif.sender?.username ||
-                          t('notifications.unknown_user')
-                    }
-                    size="md"
-                  />
+                  {othersOf(notif) > 0 && notif.previousSender ? (
+                    // A grouped row: the latest two, one over the other.
+                    <span className="relative block w-11 h-11">
+                      <span className="absolute left-0 top-0">
+                        <UserAvatar
+                          src={notif.previousSender.avatar || ''}
+                          thumbnailUrl={notif.previousSender.thumbnailUrl}
+                          standardUrl={notif.previousSender.standardUrl}
+                          alt={notif.previousSender.username}
+                          size="sm"
+                        />
+                      </span>
+                      <span className="absolute right-0 bottom-0 rounded-full ring-2 ring-black">
+                        <UserAvatar
+                          src={notif.sender?.avatar || ''}
+                          thumbnailUrl={notif.sender?.thumbnailUrl}
+                          standardUrl={notif.sender?.standardUrl}
+                          alt={
+                            notif.sender?.username ||
+                            t('notifications.unknown_user')
+                          }
+                          size="sm"
+                        />
+                      </span>
+                    </span>
+                  ) : (
+                    <UserAvatar
+                      src={notif.sender?.avatar || ''}
+                      thumbnailUrl={notif.sender?.thumbnailUrl}
+                      standardUrl={notif.sender?.standardUrl}
+                      alt={
+                        isSupportNotice(notif)
+                          ? t('notifications.from_support')
+                          : notif.sender?.username ||
+                            t('notifications.unknown_user')
+                      }
+                      size="md"
+                    />
+                  )}
                   <div
                     className="absolute -right-0.5 -bottom-0.5 w-5 h-5 rounded-full border-2 border-black flex items-center justify-center text-white"
                     style={getIconStyle(notif.type)}
@@ -491,11 +521,46 @@ export default function Notifications() {
                       : notif.sender?.username ||
                         t('notifications.unknown_user')}
                   </Link>
+                  {othersOf(notif) > 0 && notif.previousSender && (
+                    <>
+                      {othersOf(notif) === 1
+                        ? ` ${t('notifications.grouped.and')} `
+                        : ', '}
+                      <Link
+                        to={`/${notif.previousSender.username}`}
+                        className="font-bold text-white hover:opacity-80 transition-opacity"
+                      >
+                        {notif.previousSender.username}
+                      </Link>
+                    </>
+                  )}
+                  {othersOf(notif) > (notif.previousSender ? 1 : 0) && (
+                    <span className="text-white">
+                      {' '}
+                      {t('notifications.grouped.and_others', {
+                        count: othersOf(notif) - (notif.previousSender ? 1 : 0),
+                      })}
+                    </span>
+                  )}
                   <span className="text-white/70 ml-1">
-                    {notif.type === 'LIKE' && t('notifications.types.like')}
+                    {notif.type === 'LIKE' &&
+                      t(
+                        othersOf(notif) > 0
+                          ? 'notifications.types.like_many'
+                          : 'notifications.types.like',
+                      )}
                     {notif.type === 'COMMENT_LIKE' &&
-                      t('notifications.types.comment_like')}
-                    {notif.type === 'FOLLOW' && t('notifications.types.follow')}
+                      t(
+                        othersOf(notif) > 0
+                          ? 'notifications.types.comment_like_many'
+                          : 'notifications.types.comment_like',
+                      )}
+                    {notif.type === 'FOLLOW' &&
+                      t(
+                        othersOf(notif) > 0
+                          ? 'notifications.types.follow_many'
+                          : 'notifications.types.follow',
+                      )}
                     {notif.type === 'COMMENT' &&
                       t('notifications.types.comment')}
                     {notif.type === 'MENTION' &&

@@ -114,3 +114,66 @@ describe('Notifications, a page at a time and by kind', () => {
     expect(screen.queryByText('pending requests')).not.toBeInTheDocument();
   });
 });
+
+describe('Notifications grouped in one row', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const grouped = (others: number, previous: boolean) => ({
+    ...follow(1),
+    type: 'LIKE',
+    postId: 'post-1',
+    sender: { username: 'bea', avatar: null },
+    previousSenderId: previous ? 'p-ana' : null,
+    previousSender: previous ? { username: 'ana', avatar: null } : null,
+    othersCount: others,
+  });
+
+  it('names the latest two and how many more', async () => {
+    vi.mocked(notificationsApi.getAll).mockResolvedValue(
+      page([grouped(4, true)], 1, 1) as never,
+    );
+    const { container } = renderWithProviders(<Notifications />);
+
+    expect(await screen.findByRole('link', { name: 'ana' })).toBeVisible();
+    const row = container.querySelector('article');
+    expect(row?.textContent).toContain('bea, ana and 3 others');
+    // The verb of many, the same in English, not the one of one in Spanish.
+    expect(row?.textContent).toContain('liked your post.');
+  });
+
+  it('says "and" between two people', async () => {
+    vi.mocked(notificationsApi.getAll).mockResolvedValue(
+      page([grouped(1, true)], 1, 1) as never,
+    );
+    const { container } = renderWithProviders(<Notifications />);
+
+    await screen.findByRole('link', { name: 'ana' });
+    expect(container.querySelector('article')?.textContent).toContain(
+      'bea and ana',
+    );
+  });
+
+  it('counts the one before when it cannot be named', async () => {
+    vi.mocked(notificationsApi.getAll).mockResolvedValue(
+      page([grouped(2, false)], 1, 1) as never,
+    );
+    const { container } = renderWithProviders(<Notifications />);
+
+    await screen.findByText('bea');
+    expect(container.querySelector('article')?.textContent).toContain(
+      'bea and 2 others',
+    );
+  });
+});
