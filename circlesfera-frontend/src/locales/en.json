@@ -2260,7 +2260,14 @@
     "strike_details_cta": "See details and appeal",
     "removal_appeal_cta": "Appeal",
     "just_now": "now",
-    "view_live": "Watch the live"
+    "view_live": "Watch the live",
+    "filters": {
+      "label": "Filter activity",
+      "all": "All",
+      "comments": "Comments",
+      "follows": "Follows",
+      "likes": "Likes"
+    }
   },
   "chat": {
     "loading": "Loading chats...",
