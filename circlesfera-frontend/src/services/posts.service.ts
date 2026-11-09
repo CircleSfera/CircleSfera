@@ -57,6 +57,17 @@ export const postsApi = {
     changes: { turnOffComments?: boolean; hideLikes?: boolean },
   ) => apiClient.put<Post>(`/posts/${id}`, changes),
 
+  // The author pins a post or Frame to the top of their profile, or unpins it.
+  pinToProfile: (id: string) =>
+    apiClient.post<{ id: string; pinnedToProfileAt: string | null }>(
+      `/posts/${id}/profile-pin`,
+    ),
+
+  unpinFromProfile: (id: string) =>
+    apiClient.delete<{ id: string; pinnedToProfileAt: string | null }>(
+      `/posts/${id}/profile-pin`,
+    ),
+
   delete: (id: string) => apiClient.delete(`/posts/${id}`),
 
   adminDelete: (id: string) => apiClient.delete(`/posts/${id}/admin`),
