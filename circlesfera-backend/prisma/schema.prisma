@@ -71,8 +71,7 @@ model User {
   botLabelReason String?
 
   // Stripe Connect / platform billing
-  stripeCustomerId       String? @unique
-  stripeConnectAccountId String? @unique
+  stripeCustomerId String? @unique
 
   // Relations (account-scoped; social content lives on Profile)
   profiles              Profile[]
