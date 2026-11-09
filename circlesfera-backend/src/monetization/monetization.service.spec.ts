@@ -743,8 +743,7 @@ describe('MonetizationService', () => {
   });
 
   describe('createTipSession', () => {
-    // Tip minimum is MIN_TIP_CENTS (€2.00), independent of
-    // MIN_PPV_PRICE_CENTS (the pay-per-view price floor).
+    // A tip is one of TIP_AMOUNTS_CENTS, always for a post.
     const tipCents = 500;
 
     // A Profile that may receive a tip, of the person given.
@@ -770,18 +769,91 @@ describe('MonetizationService', () => {
       mockPrismaService.block.findFirst.mockReset().mockResolvedValue(null);
       // Both sides are real accounts, of one audience.
       mockPrismaService.user.findMany.mockReset().mockResolvedValue([]);
-      mockPrismaService.post.findUnique.mockReset();
+      // By default the post tipped is one of the person named.
+      // The post tipped is one of the Profile named, or of the person named.
+      mockPrismaService.post.findUnique
+        .mockReset()
+        .mockImplementation(async () => {
+          const named =
+            await mockPrismaService.profile.findUnique.mock.results.at(-1)
+              ?.value;
+          return named
+            ? { profileId: named.id, profile: named }
+            : {
+                profileId: 'creator-1-profile',
+                profile: tippable('creator-1'),
+              };
+        });
+      // Nothing given yet this week.
+      mockPrismaService.transaction.aggregate
+        .mockReset()
+        .mockResolvedValue({ _sum: { amount: null, refundedCents: null } });
     });
 
-    it('should throw if amount is below the €2.00 minimum, in euros', async () => {
+    it.each([199, 300, 10000])(
+      'refuses a tip of %i cents, not one of the fixed amounts',
+      async (amount) => {
+        await expect(
+          service.createTipSession(
+            'user-1',
+            'creator-1',
+            amount,
+            'http://localhost/return',
+            'post-1',
+          ),
+        ).rejects.toMatchObject({
+          errorCode: ErrorCode.TIP_AMOUNT_NOT_ALLOWED,
+        });
+        expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+      },
+    );
+
+    it('refuses a tip for no post', async () => {
       await expect(
         service.createTipSession(
           'user-1',
           'creator-1',
-          199,
+          tipCents,
           'http://localhost/return',
         ),
-      ).rejects.toThrow('Minimum tip is €2.00');
+      ).rejects.toMatchObject({ errorCode: ErrorCode.TIP_TARGET_REQUIRED });
+      expect(mockPrismaService.profile.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('refuses a tip that would go over what one person gives in a week', async () => {
+      accounts.set('creator-1', 'acct_1');
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
+      // 480 € given, 10 € of it refunded: 30 € left.
+      mockPrismaService.transaction.aggregate.mockResolvedValueOnce({
+        _sum: { amount: 48000, refundedCents: 1000 },
+      });
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'creator-1',
+          5000,
+          'http://localhost/return',
+          'post-1',
+        ),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.WEEKLY_SUPPORT_LIMIT_REACHED,
+        response: expect.objectContaining({
+          details: { limitCents: 50000, remainingCents: 3000 },
+        }),
+      });
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+      expect(mockPrismaService.transaction.aggregate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            senderId: 'fan-1',
+            type: { in: ['DIRECT_TIP', 'DIRECT_LIVE_GIFT'] },
+          }),
+        }),
+      );
     });
 
     it('should throw if tipping yourself', async () => {
@@ -791,6 +863,7 @@ describe('MonetizationService', () => {
           'user-1',
           tipCents,
           'http://localhost/return',
+          'post-1',
         ),
       ).rejects.toThrow();
     });
@@ -803,6 +876,7 @@ describe('MonetizationService', () => {
           'creator-1',
           tipCents,
           'http://localhost/return',
+          'post-1',
         ),
       ).rejects.toThrow('Creator cannot take payments yet');
     });
@@ -817,6 +891,7 @@ describe('MonetizationService', () => {
           'creator-1',
           tipCents,
           'http://localhost/return',
+          'post-1',
         ),
       ).rejects.toThrow('Sender not found');
     });
@@ -891,6 +966,7 @@ describe('MonetizationService', () => {
         'hobby-profile',
         tipCents,
         'http://localhost/return',
+        'post-1',
       );
 
       // The account is the one of the person's row: the Profile tipped holds
@@ -917,6 +993,7 @@ describe('MonetizationService', () => {
           'my-other-profile',
           tipCents,
           'http://localhost/return',
+          'post-1',
         ),
       ).rejects.toThrow('Cannot tip yourself');
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
@@ -945,7 +1022,13 @@ describe('MonetizationService', () => {
       );
 
       await expect(
-        service.createTipSession('fan-1', 'p-tipped', tipCents, 'http://r'),
+        service.createTipSession(
+          'fan-1',
+          'p-tipped',
+          tipCents,
+          'http://r',
+          'post-1',
+        ),
       ).rejects.toThrow('Creator not found');
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
@@ -964,7 +1047,13 @@ describe('MonetizationService', () => {
       });
       mockStripeService.createCheckoutSession.mockResolvedValue({ url: 'u' });
 
-      await service.createTipSession('fan-1', 'p-tipped', tipCents, 'http://r');
+      await service.createTipSession(
+        'fan-1',
+        'p-tipped',
+        tipCents,
+        'http://r',
+        'post-1',
+      );
 
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalled();
     });
@@ -981,7 +1070,7 @@ describe('MonetizationService', () => {
           'p-tipped',
           tipCents,
           'http://r',
-          undefined,
+          'post-1',
           undefined,
           'fan-profile',
         ),
@@ -1096,31 +1185,6 @@ describe('MonetizationService', () => {
         ),
       ).rejects.toThrow('Creator not found');
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-    });
-
-    it('creates Checkout with omitted postId defaulting to empty string in metadata', async () => {
-      accounts.set('creator-1', 'acct_1');
-      mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        id: 'fan-1',
-        email: 'fan@example.com',
-      });
-      mockStripeService.createCheckoutSession.mockResolvedValue({
-        url: 'https://checkout.stripe.test/tip',
-      });
-
-      await service.createTipSession(
-        'fan-1',
-        'creator-1',
-        tipCents,
-        'http://localhost/return',
-      );
-
-      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
-        expect.objectContaining({
-          metadata: expect.objectContaining({ postId: '' }),
-        }),
-        expect.anything(),
-      );
     });
   });
 

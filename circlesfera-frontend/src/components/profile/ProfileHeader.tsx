@@ -5,7 +5,6 @@ import {
   Building2,
   ExternalLink,
   Flag,
-  Gift,
   Info,
   Link as LinkIcon,
   Lock,
@@ -25,7 +24,6 @@ import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
 import { useRestriction } from '../../hooks/useRestriction';
 import type { ProfileWithUser } from '../../types';
 import { hasCreatorTools } from '../../utils/creatorTools';
-import { sellsInApp } from '../../utils/sellsInApp';
 import FollowButton from '../FollowButton';
 import MuteDurationModal from '../modals/MuteDurationModal';
 import ProfileSwitcher from '../profiles/ProfileSwitcher';
@@ -194,7 +192,6 @@ interface ProfileHeaderProps {
   setShowFollowsModal: (modal: 'followers' | 'following' | null) => void;
   setShowReportModal: (show: boolean) => void;
   setShowBlockModal: (show: boolean) => void;
-  setShowTipModal: (show: boolean) => void;
   onOpenCloseFriends?: () => void;
 
   onOpenStories: () => void;
@@ -215,7 +212,6 @@ export default function ProfileHeader({
   setShowFollowsModal,
   setShowReportModal,
   setShowBlockModal,
-  setShowTipModal,
   onOpenCloseFriends,
   onOpenStories,
   showMenu,
@@ -437,19 +433,6 @@ export default function ProfileHeader({
                 <>
                   <FollowButton username={profile.data.username} />
 
-                  {/* Tips are bought on the web only: not in the apps. */}
-                  {sellsInApp() && (
-                    <button
-                      type="button"
-                      onClick={() => setShowTipModal(true)}
-                      className="h-11 w-11 flex items-center justify-center bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
-                      title={t('profile.actions.send_tip')}
-                      aria-label={t('profile.actions.send_tip')}
-                    >
-                      <Gift size={18} aria-hidden="true" />
-                    </button>
-                  )}
-
                   <button
                     type="button"
                     onClick={handleMessageClick}
@@ -663,17 +646,6 @@ export default function ProfileHeader({
                     ? t('profile.actions.opening')
                     : t('profile.actions.message')}
                 </button>
-                {sellsInApp() && (
-                  <button
-                    type="button"
-                    onClick={() => setShowTipModal(true)}
-                    className="h-11 w-11 shrink-0 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/20 transition-all flex items-center justify-center"
-                    title={t('profile.actions.send_tip')}
-                    aria-label={t('profile.actions.send_tip')}
-                  >
-                    <Gift size={18} aria-hidden="true" />
-                  </button>
-                )}
                 <ProfileOtherUserMenu
                   username={profile.data.username}
                   isOpen={showMenu}

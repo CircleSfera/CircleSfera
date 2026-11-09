@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
@@ -50,6 +51,10 @@ describe('LiveGiftService', () => {
     },
     transaction: {
       create: vi.fn(),
+      // Nothing given yet this week, unless a test says otherwise.
+      aggregate: vi
+        .fn()
+        .mockResolvedValue({ _sum: { amount: null, refundedCents: null } }),
     },
     monetization: {
       upsert: vi.fn(),
@@ -169,6 +174,22 @@ describe('LiveGiftService', () => {
         service.sendGift('stream-1', 'fan-1', 'crown', 'http://localhost/live'),
       ).rejects.toThrow('Creator cannot take payments yet');
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('takes no gift that would go over what one person gives in a week, tips included', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
+      // 495 € given this week: a 10 € crown does not fit.
+      mockPrismaService.transaction.aggregate.mockResolvedValueOnce({
+        _sum: { amount: 49500, refundedCents: 0 },
+      });
+
+      await expect(
+        service.sendGift('stream-1', 'fan-1', 'crown', 'http://localhost/live'),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.WEEKLY_SUPPORT_LIMIT_REACHED,
+      });
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+      expect(mockPrismaService.liveGift.create).not.toHaveBeenCalled();
     });
 
     it('charges the catalog price and the platform application fee', async () => {

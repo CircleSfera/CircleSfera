@@ -2777,7 +2777,8 @@
     "support_with_money": "Apoya a {{name}} con una propina",
     "processing": "Procesando...",
     "send_tip": "Enviar Propina",
-    "error_send_tip": "Error al enviar la propina"
+    "error_send_tip": "Error al enviar la propina",
+    "weekly_limit": "Puedes dar hasta {{limit}} a la semana, entre propinas y regalos en directo."
   },
   "monetization": {
     "available_balance": "Saldo Disponible",
@@ -6255,7 +6256,10 @@
       "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
       "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
       "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
-      "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles."
+      "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
+      "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
+      "TIP_AMOUNT_NOT_ALLOWED": "Elige uno de los importes que se muestran.",
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "Has llegado al máximo que puedes dar en una semana, entre propinas y regalos."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

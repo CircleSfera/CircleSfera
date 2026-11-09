@@ -2777,7 +2777,8 @@
     "support_with_money": "Support {{name}} with a tip",
     "processing": "Processing...",
     "send_tip": "Send Tip",
-    "error_send_tip": "Error sending tip"
+    "error_send_tip": "Error sending tip",
+    "weekly_limit": "You can give up to {{limit}} a week, tips and live gifts together."
   },
   "monetization": {
     "available_balance": "Available Balance",
@@ -6255,7 +6256,10 @@
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
       "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
       "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
-      "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available."
+      "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
+      "TIP_TARGET_REQUIRED": "A tip is always for a post.",
+      "TIP_AMOUNT_NOT_ALLOWED": "Choose one of the amounts shown.",
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "You have reached the most you can give in a week, tips and gifts together."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

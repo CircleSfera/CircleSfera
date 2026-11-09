@@ -17,6 +17,7 @@ import {
   payoutAccountPlacement,
   payoutDestinationFor,
 } from '../monetization/payout-account.js';
+import { assertWeeklySupportRoom } from '../monetization/support-limit.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import {
@@ -102,6 +103,9 @@ export class LiveGiftService {
         'You cannot gift yourself',
       );
     }
+
+    // Gifts count with tips towards what one person gives in a week.
+    await assertWeeklySupportRoom(this.prisma, senderId, amountCents);
 
     // A host who may not be paid gets no gift.
     const destination = accountTakingPayments(
