@@ -168,74 +168,15 @@ describe('MessageBubble', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows locked message chrome from the catalog, not English fallbacks', () => {
-    const onUnlock = vi.fn();
-    const { i18n } = renderBubble(
-      {
-        content: 'ciphertext-or-placeholder',
-        isLocked: true,
-        priceCents: 199,
-      },
-      { onUnlock },
-    );
+  it('shows a paid message nobody bought as no longer for sale, with nothing to buy', () => {
+    renderBubble({ isLocked: true, priceCents: 199, content: 'secret' });
 
-    expect(i18n!.t('chat.locked_title')).toBe('Exclusive message');
-    expect(screen.getByText(i18n!.t('chat.locked_title'))).toBeInTheDocument();
+    expect(screen.getByText('Exclusive message')).toBeInTheDocument();
     expect(
-      screen.getByText(i18n!.t('chat.locked_subtitle')),
+      screen.getByText('This paid message is no longer for sale.'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Mensaje exclusivo')).not.toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: i18n!.t('chat.unlock_for', { price: '€1.99' }),
-      }),
-    );
-    expect(onUnlock).toHaveBeenCalledWith('msg-1');
-  });
-
-  it('in the apps keeps a paid message locked, with nothing to buy', () => {
-    sells.value = false;
-    const onUnlock = vi.fn();
-    const { i18n } = renderBubble(
-      { content: 'x', isLocked: true, priceCents: 199 },
-      { onUnlock },
-    );
-
-    expect(screen.getByText(i18n!.t('chat.locked_title'))).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {
-        name: i18n!.t('chat.unlock_for', { price: '€1.99' }),
-      }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(i18n!.t('monetization.not_in_app')),
-    ).toBeInTheDocument();
-    sells.value = true;
-  });
-
-  it('prices a locked message in the reader language', () => {
-    const { i18n } = renderBubble(
-      { content: 'x', isLocked: true, priceCents: 1250 },
-      { onUnlock: vi.fn() },
-      'es',
-    );
-
-    expect(
-      screen.getByRole('button', {
-        name: i18n!.t('chat.unlock_for', { price: '12,50\u00a0€' }),
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it('says under the unlock button that the price includes VAT', () => {
-    renderBubble(
-      { content: 'x', isLocked: true, priceCents: 1250 },
-      { onUnlock: vi.fn() },
-      'es',
-    );
-
-    expect(screen.getByText('IVA incluido')).toBeInTheDocument();
+    expect(screen.queryByText('secret')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /€/ })).not.toBeInTheDocument();
   });
 
   it('labels edited and delivery state from the catalog for own messages', () => {

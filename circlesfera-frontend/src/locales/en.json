@@ -2428,8 +2428,6 @@
       "make_admin_confirm": "Make @{{username}} an admin? They will be able to edit the group and manage its members."
     },
     "locked_title": "Exclusive message",
-    "locked_subtitle": "Unlock to view this content",
-    "unlock_for": "Unlock for {{price}}",
     "voice_note": "🎤 Voice note",
     "decrypting": "Decrypting…",
     "edited": "edited",
@@ -2439,15 +2437,8 @@
     "editing_message": "Editing message",
     "read": "Read",
     "delivered": "Delivered",
-    "lock_message": "Paid message",
-    "lock_message_price_label": "Price (€3.00 – €500.00)",
-    "lock_message_hint": "Only Creator/Business accounts can send paid messages.",
-    "lock_message_confirm": "Lock message",
-    "lock_message_cancel": "Remove lock",
-    "locked_chip_label": "Paid message · {{price}}",
     "add_emoji": "Add an emoji",
     "emoji_panel": "Emojis",
-    "lock_message_range_error": "Enter a price between {{min}} and {{max}}.",
     "back_to_inbox": "Back to inbox",
     "audio_call": "Audio call",
     "video_call": "Video call",
@@ -2489,7 +2480,8 @@
     "hidden_requests": "Hidden requests",
     "hidden_requests_desc": "Message requests that contain one of your hidden words. You are not notified about them.",
     "no_hidden_requests": "No hidden requests",
-    "encrypted_on_servers": "Messages are stored encrypted on our servers."
+    "encrypted_on_servers": "Messages are stored encrypted on our servers.",
+    "locked_not_for_sale": "This paid message is no longer for sale."
   },
   "creator": {
     "title": "Creator Studio",
@@ -6264,7 +6256,8 @@
       "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published.",
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
       "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
-      "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified."
+      "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
+      "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

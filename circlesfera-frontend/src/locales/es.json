@@ -2428,8 +2428,6 @@
       "make_admin_confirm": "¿Hacer admin a @{{username}}? Podrá editar el grupo y gestionar a sus miembros."
     },
     "locked_title": "Mensaje exclusivo",
-    "locked_subtitle": "Desbloquea para ver el contenido",
-    "unlock_for": "Desbloquear por {{price}}",
     "voice_note": "🎤 Nota de voz",
     "decrypting": "Descifrando…",
     "edited": "editado",
@@ -2439,15 +2437,8 @@
     "editing_message": "Editando mensaje",
     "read": "Leído",
     "delivered": "Entregado",
-    "lock_message": "Mensaje de pago",
-    "lock_message_price_label": "Precio (€3.00 – €500.00)",
-    "lock_message_hint": "Solo las cuentas Creator o Business pueden enviar mensajes de pago.",
-    "lock_message_confirm": "Bloquear mensaje",
-    "lock_message_cancel": "Quitar bloqueo",
-    "locked_chip_label": "Mensaje de pago · {{price}}",
     "add_emoji": "Añadir un emoji",
     "emoji_panel": "Emojis",
-    "lock_message_range_error": "Introduce un precio entre {{min}} y {{max}}.",
     "back_to_inbox": "Volver a la bandeja",
     "audio_call": "Llamada de audio",
     "video_call": "Videollamada",
@@ -2489,7 +2480,8 @@
     "hidden_requests": "Solicitudes ocultas",
     "hidden_requests_desc": "Solicitudes de mensaje que contienen alguna de tus palabras ocultas. No te avisamos de ellas.",
     "no_hidden_requests": "No hay solicitudes ocultas",
-    "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores."
+    "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores.",
+    "locked_not_for_sale": "Este mensaje de pago ya no está a la venta."
   },
   "creator": {
     "title": "Creator Studio",
@@ -6264,7 +6256,8 @@
       "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado.",
       "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
       "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
-      "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada."
+      "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
+      "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

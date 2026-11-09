@@ -121,12 +121,8 @@ export class MonetizationController {
   @Post('unlock-message')
   @UseGuards(IdentityVerifiedGuard)
   @ApiResponse({ status: 201 })
-  async unlockMessage(@Req() req: AuthRequest, @Body() body: UnlockMessageDto) {
-    return this.monetizationService.createMessageUnlockSession(
-      req.user.userId,
-      body.messageId,
-      body.returnUrl,
-    );
+  async unlockMessage(@Body() body: UnlockMessageDto) {
+    return this.monetizationService.createMessageUnlockSession(body.messageId);
   }
 
   @Get('dashboard')

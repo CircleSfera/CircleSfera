@@ -3,11 +3,6 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Message, Prisma } from '@prisma/client';
 import { DEFAULT_LOCALE } from '../../../common/constants/locale.constants.js';
-import {
-  canMonetize,
-  MAX_PPV_PRICE_CENTS,
-  MIN_PPV_PRICE_CENTS,
-} from '../../../common/constants/monetization.constants.js';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { assertCanAccessPost } from '../../../common/policies/post-access.policy.js';
 import { restrictersOf } from '../../../common/policies/restrict.policy.js';
@@ -97,28 +92,13 @@ export class SendMessageUseCase {
     // Only the sending Profile's own stored files can be attached.
     await this.storedFiles.assertOwnedBy(senderId, [url, voiceUrl]);
 
-    if (isLocked) {
-      const senderProfile = await this.prisma.profile.findUnique({
-        where: { id: senderId },
-        select: { accountType: true },
-      });
-      if (!canMonetize(senderProfile?.accountType)) {
-        throw AppException.Forbidden(
-          ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
-          'Only Creator or Business accounts can send paid messages.',
-        );
-      }
-      if (
-        !priceCents ||
-        priceCents < MIN_PPV_PRICE_CENTS ||
-        priceCents > MAX_PPV_PRICE_CENTS
-      ) {
-        throw AppException.BadRequest(
-          ErrorCode.PREMIUM_PRICE_OUT_OF_RANGE,
-          'The price of a paid message is out of range.',
-          { minCents: MIN_PPV_PRICE_CENTS, maxCents: MAX_PPV_PRICE_CENTS },
-        );
-      }
+    // Messages are no longer sold: a private message cannot carry a price,
+    // as the payment provider does not take pay-per-view in private chats.
+    if (isLocked || priceCents) {
+      throw AppException.BadRequest(
+        ErrorCode.PAID_MESSAGES_UNAVAILABLE,
+        'Paid messages are no longer available.',
+      );
     }
 
     const encryptedContent = this.cryptoService.encrypt(content);

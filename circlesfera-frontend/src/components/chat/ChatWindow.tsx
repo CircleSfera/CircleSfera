@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
   Image as ImageIcon,
-  Lock,
   Mic,
   MoreVertical,
   Phone,
@@ -23,26 +22,20 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
-import {
-  MAX_PPV_PRICE_EUR,
-  MIN_PPV_PRICE_EUR,
-} from '../../constants/monetization';
-import { apiClient, chatApi, uploadApi } from '../../services/index';
+import { chatApi, uploadApi } from '../../services/index';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
-import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
-import { formatCents } from '../../utils/money';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
 import { VoiceRecorder } from '../audio/VoiceRecorder';
 import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
-import { BUTTON_PAIR, BUTTON_ROW } from '../ui/buttonWidth';
+import { BUTTON_ROW } from '../ui/buttonWidth';
 import ChatDetailsModal from './ChatDetailsModal';
 import ChooseAdminSheet from './ChooseAdminSheet';
 import GroupDetailsModal from './GroupDetailsModal';
@@ -94,7 +87,7 @@ const MESSAGE_EMOJIS = [
 ];
 
 export default function ChatWindow() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -139,10 +132,6 @@ export default function ChatWindow() {
   const [showChooseAdmin, setShowChooseAdmin] = useState(false);
   const [isLeavingGroup, setIsLeavingGroup] = useState(false);
   const [isDeletingConversation, setIsDeletingConversation] = useState(false);
-  const [isLockPopoverOpen, setIsLockPopoverOpen] = useState(false);
-  const [lockedPrice, setLockedPrice] = useState<number | null>(null);
-  const [lockPriceDraft, setLockPriceDraft] = useState('5.00');
-  const [lockPriceInvalid, setLockPriceInvalid] = useState(false);
   const [isEmojiPanelOpen, setIsEmojiPanelOpen] = useState(false);
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -191,9 +180,6 @@ export default function ChatWindow() {
         voiceDuration: voiceData.voiceDuration,
         voiceWaveform: voiceData.voiceWaveform,
         tempId,
-        ...(lockedPrice !== null
-          ? { isLocked: true, priceCents: lockedPrice }
-          : {}),
       });
       setMessages((prev) =>
         upsertSentMessage(prev, {
@@ -206,8 +192,6 @@ export default function ChatWindow() {
         }),
       );
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      setLockedPrice(null);
-      setLockPriceDraft('5.00');
     } catch (err) {
       logger.error('Failed to send voice message:', err);
       setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
@@ -312,24 +296,6 @@ export default function ChatWindow() {
       } catch (err) {
         logger.error('Failed to delete message', err);
         toast.error(t('chat.delete_message_error'));
-      }
-    },
-    [t],
-  );
-
-  const handleUnlockMessage = useCallback(
-    async (messageId: string) => {
-      try {
-        const res = await apiClient.post('/monetization/unlock-message', {
-          messageId,
-          returnUrl: window.location.href,
-        });
-        if (res.data?.url) {
-          window.location.href = res.data.url;
-        }
-      } catch (err) {
-        logger.error('Failed to unlock message', err);
-        reportPaymentError(err, t, 'monetization.failed_to_unlock');
       }
     },
     [t],
@@ -840,9 +806,6 @@ export default function ChatWindow() {
         mediaUrl: uploadRes.data.url,
         mediaType: 'image',
         tempId,
-        ...(lockedPrice !== null
-          ? { isLocked: true, priceCents: lockedPrice }
-          : {}),
       });
       setMessages((prev) =>
         upsertSentMessage(prev, {
@@ -854,8 +817,6 @@ export default function ChatWindow() {
         }),
       );
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      setLockedPrice(null);
-      setLockPriceDraft('5.00');
     } catch (err) {
       logger.error('Upload failed', err);
       setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
@@ -885,12 +846,9 @@ export default function ChatWindow() {
       replyToId: replyTo?.id,
       replyTo: replyTo ?? undefined,
       tempId,
-      isLocked: lockedPrice !== null,
-      priceCents: lockedPrice ?? undefined,
     };
 
     const plaintext = input;
-    const priceCentsToSend = lockedPrice;
 
     if (!editingMessage) {
       setMessages((prev) => [...prev, tempMsg]);
@@ -914,9 +872,6 @@ export default function ChatWindow() {
             content: plaintext,
             replyToId: replyTo?.id,
             tempId,
-            ...(priceCentsToSend !== null
-              ? { isLocked: true, priceCents: priceCentsToSend }
-              : {}),
           });
           setMessages((prev) =>
             upsertSentMessage(prev, {
@@ -942,8 +897,6 @@ export default function ChatWindow() {
     setInput('');
     setReplyTo(null);
     setEditingMessage(null);
-    setLockedPrice(null);
-    setLockPriceDraft('5.00');
     setIsEmojiPanelOpen(false);
     setIsTyping(false);
     if (!chatInfo.isGroup && chatInfo.otherProfileId) {
@@ -1413,7 +1366,6 @@ export default function ChatWindow() {
                     onReact={sendReaction}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
-                    onUnlock={handleUnlockMessage}
                     isRead={isRead}
                     currentUserId={currentProfileId}
                   />
@@ -1509,31 +1461,6 @@ export default function ChatWindow() {
               </button>
             </motion.div>
           )}
-          {lockedPrice !== null && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: 10, height: 0 }}
-              className="flex items-center justify-between bg-brand-primary/10 p-3 rounded-t-[20px] border-x border-t border-brand-primary/25 -mb-4 pb-5 pt-3 px-4 mx-2 backdrop-blur-md relative z-0"
-            >
-              <div className="flex items-center gap-2 text-sm border-l-2 border-brand-primary pl-3">
-                <Lock size={14} className="text-brand-primary-text shrink-0" />
-                <span className="text-brand-primary-text font-semibold text-xs">
-                  {t('chat.locked_chip_label', {
-                    price: formatCents(lockedPrice, i18n.language),
-                  })}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setLockedPrice(null)}
-                aria-label={t('chat.lock_message_cancel')}
-                className="p-1 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
-              >
-                <X size={14} strokeWidth={2.5} />
-              </button>
-            </motion.div>
-          )}
         </AnimatePresence>
 
         <div className="relative z-10">
@@ -1605,121 +1532,6 @@ export default function ChatWindow() {
               >
                 <ImageIcon size={22} strokeWidth={1.5} />
               </button>
-
-              <div className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsLockPopoverOpen((v) => !v)}
-                  aria-label={t('chat.lock_message')}
-                  aria-expanded={isLockPopoverOpen}
-                  className={`p-3 rounded-full transition-colors mb-0.5 ${
-                    lockedPrice !== null
-                      ? 'text-brand-primary-text bg-brand-primary/15'
-                      : 'text-white/50 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <Lock size={22} strokeWidth={1.5} />
-                </button>
-
-                <AnimatePresence>
-                  {isLockPopoverOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                      className="absolute bottom-full left-0 mb-2 w-64 glass-panel rounded-2xl border border-white/10 shadow-2xl shadow-black/50 p-3 space-y-2 z-20"
-                    >
-                      <label
-                        htmlFor="lock-message-price"
-                        className="block text-[13px] font-medium text-white"
-                      >
-                        {t('chat.lock_message_price_label')}
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <span className="text-white/40 text-sm font-medium">
-                            €
-                          </span>
-                        </div>
-                        <input
-                          id="lock-message-price"
-                          type="number"
-                          min={MIN_PPV_PRICE_EUR}
-                          max={MAX_PPV_PRICE_EUR}
-                          step="0.50"
-                          value={lockPriceDraft}
-                          onChange={(e) => {
-                            setLockPriceDraft(e.target.value);
-                            setLockPriceInvalid(false);
-                          }}
-                          aria-invalid={lockPriceInvalid}
-                          aria-describedby={
-                            lockPriceInvalid
-                              ? 'lock-message-price-error'
-                              : undefined
-                          }
-                          placeholder="5.00"
-                          className="w-full min-h-11 h-11 bg-surface-raised border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white text-sm focus:ring-2 focus:ring-brand-primary/40 outline-none"
-                        />
-                      </div>
-                      {lockPriceInvalid && (
-                        <p
-                          id="lock-message-price-error"
-                          role="alert"
-                          className="text-xs text-red-400"
-                        >
-                          {t('chat.lock_message_range_error', {
-                            min: formatCents(
-                              MIN_PPV_PRICE_EUR * 100,
-                              i18n.language,
-                            ),
-                            max: formatCents(
-                              MAX_PPV_PRICE_EUR * 100,
-                              i18n.language,
-                            ),
-                          })}
-                        </p>
-                      )}
-                      <p className="text-xs text-white/45">
-                        {t('chat.lock_message_hint')}
-                      </p>
-                      <div className={`pt-1 ${BUTTON_PAIR}`}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setLockedPrice(null);
-                            setLockPriceInvalid(false);
-                            setIsLockPopoverOpen(false);
-                          }}
-                          className="min-h-11 px-4 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-                        >
-                          {t('chat.lock_message_cancel')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const euros = Number.parseFloat(lockPriceDraft);
-                            if (
-                              !Number.isFinite(euros) ||
-                              euros < MIN_PPV_PRICE_EUR ||
-                              euros > MAX_PPV_PRICE_EUR
-                            ) {
-                              setLockPriceInvalid(true);
-                              return;
-                            }
-                            setLockPriceInvalid(false);
-                            setLockedPrice(Math.round(euros * 100));
-                            setIsLockPopoverOpen(false);
-                          }}
-                          className="min-h-11 px-4 rounded-lg text-sm font-semibold bg-linear-to-tr from-brand-primary to-brand-secondary text-white hover:opacity-90 transition-colors"
-                        >
-                          {t('chat.lock_message_confirm')}
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
 
               <textarea
                 ref={inputRef}
