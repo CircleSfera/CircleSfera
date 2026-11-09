@@ -266,6 +266,36 @@ describe('InstantPayoutService', () => {
       );
     });
 
+    it('offers nothing when the instant balance cannot be read', async () => {
+      stripe.getInstantPayoutBalance.mockRejectedValue(new Error('down'));
+      expect((await service.getOffer(USER, PROFILE)).reason).toBe(
+        'UNAVAILABLE',
+      );
+    });
+
+    it("takes the first balance when none is in the account's currency", async () => {
+      stripe.getAccount.mockResolvedValue({
+        payouts_enabled: true,
+        default_currency: null,
+        settings: { payouts: { schedule: { interval: 'weekly' } } },
+      });
+      stripe.getInstantPayoutBalance.mockResolvedValue([
+        {
+          currency: 'usd',
+          amountCents: 10_000,
+          net: [{ destination: 'ba_1', amountCents: 9_850 }],
+        },
+      ]);
+      expect((await service.getOffer(USER, PROFILE)).quote?.currency).toBe(
+        'USD',
+      );
+    });
+
+    it('offers nothing when the provider has no instant balance at all', async () => {
+      stripe.getInstantPayoutBalance.mockResolvedValue([]);
+      expect((await service.getOffer(USER, PROFILE)).reason).toBe('NO_BALANCE');
+    });
+
     it('pays to the bank account or card that receives the most', async () => {
       stripe.getInstantPayoutBalance.mockResolvedValue([
         {

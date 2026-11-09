@@ -29,7 +29,7 @@ const client = {
   accountSessions: { create: vi.fn() },
   balance: { retrieve: vi.fn() },
   events: { list: vi.fn() },
-  payouts: { list: vi.fn() },
+  payouts: { list: vi.fn(), create: vi.fn() },
   identity: { verificationSessions: { create: vi.fn(), retrieve: vi.fn() } },
 };
 
@@ -772,6 +772,58 @@ describe('StripeService creator accounts and identity', () => {
       2,
       { limit: 3 },
       { stripeAccount: 'acct_1' },
+    );
+  });
+
+  it('reads the instant balance of a creator account net of the platform fee, per bank account', async () => {
+    client.balance.retrieve.mockResolvedValueOnce({
+      instant_available: [
+        {
+          currency: 'eur',
+          amount: 10_000,
+          net_available: [{ destination: 'ba_1', amount: 9_850 }],
+        },
+        { currency: 'usd', amount: 0 },
+      ],
+    });
+
+    const balances = await service.getInstantPayoutBalance('acct_1');
+
+    expect(client.balance.retrieve).toHaveBeenCalledWith(
+      { expand: ['instant_available.net_available'] },
+      { stripeAccount: 'acct_1' },
+    );
+    expect(balances).toEqual([
+      {
+        currency: 'eur',
+        amountCents: 10_000,
+        net: [{ destination: 'ba_1', amountCents: 9_850 }],
+      },
+      { currency: 'usd', amountCents: 0, net: [] },
+    ]);
+
+    client.balance.retrieve.mockResolvedValueOnce({});
+    expect(await service.getInstantPayoutBalance('acct_1')).toEqual([]);
+  });
+
+  it('pays out instantly from the creator account, once per key', async () => {
+    client.payouts.create.mockResolvedValueOnce({ id: 'po_1' });
+
+    await service.createInstantPayout('acct_1', {
+      amountCents: 9_850,
+      currency: 'eur',
+      destination: 'ba_1',
+      idempotencyKey: 'instant-payout:acct_1:k1',
+    });
+
+    expect(client.payouts.create).toHaveBeenCalledWith(
+      {
+        amount: 9_850,
+        currency: 'eur',
+        destination: 'ba_1',
+        method: 'instant',
+      },
+      { stripeAccount: 'acct_1', idempotencyKey: 'instant-payout:acct_1:k1' },
     );
   });
 
