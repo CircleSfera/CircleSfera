@@ -56,6 +56,14 @@ describe('withWeeklySupportRoom', () => {
     ).resolves.toEqual({ id: 'r-1' });
 
     expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
+    // Payments are read after the open checkouts, so a payment completing
+    // between the reads is never missed.
+    expect(
+      tx.transaction.aggregate.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(tx.tipReservation.aggregate.mock.invocationCallOrder[0]);
+    expect(
+      tx.transaction.aggregate.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(tx.liveGift.aggregate.mock.invocationCallOrder[0]);
     expect(hold).toHaveBeenCalledWith(tx);
     // Payments of the week, by this person, of tips and gifts.
     expect(tx.transaction.aggregate).toHaveBeenCalledWith(

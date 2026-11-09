@@ -31,17 +31,9 @@ async function givenThisWeek(
   senderUserId: string,
   now: Date,
 ): Promise<number> {
-  const paid = await db.transaction.aggregate({
-    where: {
-      senderId: senderUserId,
-      type: { in: ['DIRECT_TIP', 'DIRECT_LIVE_GIFT'] },
-      status: { in: ['COMPLETED', 'DISPUTED'] },
-      createdAt: {
-        gte: new Date(now.getTime() - WEEKLY_SUPPORT_WINDOW_DAYS * DAY_MS),
-      },
-    },
-    _sum: { amount: true, refundedCents: true },
-  });
+  // Open checkouts first, payments last: a payment that completes between
+  // the reads (its hold dropped, its row written) is then counted twice,
+  // which only makes the check stricter, and never not at all.
   const tipsOpen = await db.tipReservation.aggregate({
     where: { senderId: senderUserId, expiresAt: { gt: now } },
     _sum: { amountCents: true },
@@ -55,6 +47,17 @@ async function givenThisWeek(
       },
     },
     _sum: { amountCents: true },
+  });
+  const paid = await db.transaction.aggregate({
+    where: {
+      senderId: senderUserId,
+      type: { in: ['DIRECT_TIP', 'DIRECT_LIVE_GIFT'] },
+      status: { in: ['COMPLETED', 'DISPUTED'] },
+      createdAt: {
+        gte: new Date(now.getTime() - WEEKLY_SUPPORT_WINDOW_DAYS * DAY_MS),
+      },
+    },
+    _sum: { amount: true, refundedCents: true },
   });
   return (
     (paid._sum.amount ?? 0) -
