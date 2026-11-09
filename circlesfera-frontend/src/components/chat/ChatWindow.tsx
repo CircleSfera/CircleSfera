@@ -46,6 +46,7 @@ import { BUTTON_PAIR, BUTTON_ROW } from '../ui/buttonWidth';
 import ChatDetailsModal from './ChatDetailsModal';
 import type { ChatPreferenceValues } from './ChatPreferences';
 import ChooseAdminSheet from './ChooseAdminSheet';
+import ForwardMessageSheet from './ForwardMessageSheet';
 import GroupDetailsModal from './GroupDetailsModal';
 import { adminCandidates, isNotice, needsSuccessor } from './groupAdmins';
 import MessageBubble from './MessageBubble';
@@ -141,6 +142,7 @@ export default function ChatWindow() {
   const [showMenu, setShowMenu] = useState(false);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [showChatDetails, setShowChatDetails] = useState(false);
+  const [forwarding, setForwarding] = useState<Message | null>(null);
   const [pendingDelete, setPendingDelete] = useState<'me' | null>(null);
   // The only admin leaving a group first chooses who becomes admin.
   const [showChooseAdmin, setShowChooseAdmin] = useState(false);
@@ -1421,6 +1423,7 @@ export default function ChatWindow() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onUnlock={handleUnlockMessage}
+                    onForward={setForwarding}
                     isRead={isRead}
                     currentUserId={currentProfileId}
                   />
@@ -1810,6 +1813,14 @@ export default function ChatWindow() {
         </div>
       </div>
 
+      {forwarding?.id && (
+        <ForwardMessageSheet
+          messageId={forwarding.id}
+          currentProfileId={currentProfileId}
+          fromConversationId={conversation?.id}
+          onClose={() => setForwarding(null)}
+        />
+      )}
       {/* Modal deleted, options moved directly to dropdown menu */}
       {showChatDetails && conversation && !chatInfo.isGroup && (
         <ChatDetailsModal

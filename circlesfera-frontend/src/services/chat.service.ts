@@ -85,6 +85,14 @@ export const chatApi = {
     ),
   unmuteConversation: (id: string) =>
     apiClient.delete<{ mutedUntil: null }>(`/chat/conversations/${id}/mute`),
+  // A copy of a member's text or shared post, to up to CHAT_FORWARD_MAX
+  // chats; each chat answers on its own.
+  forwardMessage: (id: string, conversationIds: string[]) =>
+    apiClient.post<{
+      sent: string[];
+      failed: Array<{ conversationId: string; errorCode: string }>;
+    }>(`/chat/messages/${id}/forward`, { conversationIds }),
+
   pinConversation: (id: string) =>
     apiClient.put<{ pinnedAt: string | null }>(`/chat/conversations/${id}/pin`),
   unpinConversation: (id: string) =>

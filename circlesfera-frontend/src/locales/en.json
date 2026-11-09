@@ -2436,6 +2436,21 @@
       "muted": "Muted",
       "pinned": "Pinned",
       "error": "Couldn't save that. Try again."
+    },
+    "forward": "Forward",
+    "forwarded": "Forwarded",
+    "forward_sheet": {
+      "title": "Forward to",
+      "search": "Search chats",
+      "limit": "Pick up to {{count}} chats",
+      "send_one": "Send to {{count}} chat",
+      "send_other": "Send to {{count}} chats",
+      "none": "No chats to forward to",
+      "sent_one": "Forwarded to {{count}} chat",
+      "sent_other": "Forwarded to {{count}} chats",
+      "partly_one": "{{count}} chat could not receive it",
+      "partly_other": "{{count}} chats could not receive it",
+      "error": "The message could not be forwarded"
     }
   },
   "creator": {
@@ -6210,7 +6225,8 @@
       "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published.",
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
       "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
-      "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another."
+      "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another.",
+      "MESSAGE_NOT_FORWARDABLE": "This message cannot be forwarded."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
