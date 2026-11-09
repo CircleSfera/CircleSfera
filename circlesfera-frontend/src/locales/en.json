@@ -6263,7 +6263,8 @@
       "PREMIUM_PRICE_OUT_OF_RANGE": "The price of premium content is outside the allowed range.",
       "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published.",
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
-      "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another."
+      "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
+      "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

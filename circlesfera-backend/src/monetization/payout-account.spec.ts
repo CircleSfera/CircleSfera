@@ -1,5 +1,8 @@
+import { ErrorCode, MONETIZATION_MIN_AGE } from '@circlesfera/shared';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  assertOfChargingAge,
+  isOfChargingAge,
   payoutAccountOf,
   payoutAccountPlacement,
   payoutDestinationFor,
@@ -205,12 +208,28 @@ describe('payoutRowForProfile', () => {
   });
 });
 
+// A date of birth this many years ago, a little past the birthday.
+const yearsAgo = (years: number) => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - years);
+  d.setDate(d.getDate() - 2);
+  return d;
+};
+
 describe('payoutDestinationFor', () => {
   const standing = (over: object = {}, user: object = {}) => ({
     isAccountBanned: false,
     suspendedUntil: null,
     ...over,
-    user: { isActive: true, isRootBanned: false, deletedAt: null, ...user },
+    user: {
+      isActive: true,
+      isRootBanned: false,
+      deletedAt: null,
+      identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+      dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+      dateOfBirthVerified: true,
+      ...user,
+    },
   });
   const db = (seller: object | null) =>
     ({
@@ -242,6 +261,19 @@ describe('payoutDestinationFor', () => {
       standing({ suspendedUntil: new Date(Date.now() + 60_000) }),
     ],
     ['the Profile is gone', null],
+    [
+      'its person is under 18',
+      standing({}, { dateOfBirth: yearsAgo(MONETIZATION_MIN_AGE - 1) }),
+    ],
+    ['its person has no date of birth', standing({}, { dateOfBirth: null })],
+    [
+      'its person has no verified identity',
+      standing({}, { identityVerifiedAt: null }),
+    ],
+    [
+      'its date of birth was only typed at sign-up',
+      standing({}, { dateOfBirthVerified: false }),
+    ],
   ])('pays nothing when %s', async (_case, seller) => {
     const tx = db(seller);
     await expect(payoutDestinationFor(tx, profile)).rejects.toThrow(
@@ -255,5 +287,84 @@ describe('payoutDestinationFor', () => {
     await expect(
       payoutDestinationFor(db(seller), profile),
     ).resolves.toBeTruthy();
+  });
+});
+
+describe('isOfChargingAge', () => {
+  const verified = new Date('2026-01-01T00:00:00.000Z');
+
+  it('lets a verified person charge from the day they turn 18', () => {
+    const today = new Date();
+    const birthday = new Date(
+      today.getFullYear() - MONETIZATION_MIN_AGE,
+      today.getMonth(),
+      today.getDate(),
+    );
+    expect(
+      isOfChargingAge({
+        identityVerifiedAt: verified,
+        dateOfBirth: birthday,
+        dateOfBirthVerified: true,
+      }),
+    ).toBe(true);
+    const dayBefore = new Date(birthday);
+    dayBefore.setDate(dayBefore.getDate() + 1);
+    expect(
+      isOfChargingAge({
+        identityVerifiedAt: verified,
+        dateOfBirth: dayBefore,
+        dateOfBirthVerified: true,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('assertOfChargingAge', () => {
+  const db = (user: object | null) =>
+    ({ user: { findUnique: vi.fn().mockResolvedValue(user) } }) as any;
+
+  it('lets an adult with a verified identity through', async () => {
+    await expect(
+      assertOfChargingAge(
+        db({
+          identityVerifiedAt: new Date(),
+          dateOfBirth: yearsAgo(30),
+          dateOfBirthVerified: true,
+        }),
+        'u1',
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it.each([
+    [
+      'under 18',
+      {
+        identityVerifiedAt: new Date(),
+        dateOfBirth: yearsAgo(17),
+        dateOfBirthVerified: true,
+      },
+    ],
+    [
+      'not verified',
+      {
+        identityVerifiedAt: null,
+        dateOfBirth: yearsAgo(30),
+        dateOfBirthVerified: false,
+      },
+    ],
+    [
+      'whose date of birth was only typed at sign-up',
+      {
+        identityVerifiedAt: new Date(),
+        dateOfBirth: yearsAgo(30),
+        dateOfBirthVerified: false,
+      },
+    ],
+    ['gone', null],
+  ])('refuses a person %s, saying the age', async (_case, user) => {
+    await expect(assertOfChargingAge(db(user), 'u1')).rejects.toMatchObject({
+      errorCode: ErrorCode.MONETIZATION_UNDER_AGE,
+    });
   });
 });

@@ -30,6 +30,7 @@ import { INCOME_ROWS_SQL, INCOME_TYPES, SHARE_SQL } from './earnings-sql.js';
 import { creatorEarnings } from './paid-amounts.js';
 import {
   accountTakingPayments,
+  assertOfChargingAge,
   canBePaid,
   PAYABLE_PROFILE_SELECT,
   payoutAccountPlacement,
@@ -591,6 +592,7 @@ export class MonetizationService {
         'Only Creator or Business accounts can enable payments with Stripe.',
       );
     }
+    await assertOfChargingAge(this.prisma, userId);
 
     try {
       const accountId = await this.accountTakingCardPayments(
