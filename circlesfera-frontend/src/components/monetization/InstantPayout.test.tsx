@@ -121,13 +121,15 @@ describe('InstantPayoutRequirements', () => {
         }}
       />,
     );
+    const progress = i18n!.t('creator.income.instant.progress', {
+      days: 30,
+      count: 4,
+    });
     expect(
-      screen.getByText(
-        new RegExp(
-          i18n!
-            .t('creator.income.instant.progress', { days: 30, count: 4 })
-            .replace(/[.]/g, '\\.'),
-        ),
+      screen.getByText((_, element) =>
+        element?.tagName === 'P'
+          ? (element.textContent ?? '').includes(progress)
+          : false,
       ),
     ).toBeInTheDocument();
   });
