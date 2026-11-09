@@ -111,6 +111,20 @@ describe('TagsSettings', () => {
     ).toBeInTheDocument();
   });
 
+  it('says a list could not be read, instead of calling it empty', async () => {
+    api.list.mockImplementation(async (status) => {
+      if (status === 'PENDING') throw new Error('offline');
+      return { data: { data: lists[status] } } as never;
+    });
+    renderWithProviders(<TagsSettings />);
+
+    expect(
+      await screen.findByText("Couldn't load your tags."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No tags waiting')).not.toBeInTheDocument();
+    expect(await screen.findByText('Post by author_s1')).toBeInTheDocument();
+  });
+
   it('says so when a tag cannot be changed', async () => {
     api.remove.mockRejectedValueOnce(new Error('offline'));
     renderWithProviders(<TagsSettings />);

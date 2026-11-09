@@ -69,6 +69,27 @@ describe('InteractionSettings', () => {
     expect(requests()).not.toBeChecked();
   });
 
+  it('never guesses the choices when they cannot be read, and reads them again on retry', async () => {
+    api.getSettings
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({ data: { mentionsFrom: 'NOBODY' } } as never);
+    renderWithProviders(<InteractionSettings />);
+
+    expect(
+      await screen.findByText(
+        "Couldn't load who can mention, tag or message you.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Who can mention you' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /try again|retry/i }));
+
+    await waitFor(() => expect(mentions()).toHaveValue('NOBODY'));
+    expect(api.updateSettings).not.toHaveBeenCalled();
+  });
+
   it('puts the choice back and says so when it cannot be saved', async () => {
     api.getSettings.mockResolvedValue({ data: {} } as never);
     api.updateSettings.mockRejectedValueOnce(new Error('offline'));

@@ -1,8 +1,10 @@
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { type InteractionAudience, usersApi } from '../../services';
+import { ErrorState } from '../ErrorEmptyStates';
 import { Select, Switch } from '../ui';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
@@ -32,29 +34,26 @@ const AUDIENCES: Audience[] = ['EVERYONE', 'FOLLOWING', 'NOBODY'];
 export default function InteractionSettings() {
   const { t } = useTranslation();
   const [choices, setChoices] = useState<Choices | null>(null);
+  // Unread, the choices are never guessed: a guess could show a stricter
+  // choice as open, and saving over it would loosen it.
+  const settings = useQuery({
+    queryKey: ['settings', 'interactions'],
+    queryFn: () => usersApi.getSettings().then((res) => res.data ?? {}),
+    // Read afresh each time: changes are saved one by one, not into this.
+    gcTime: 0,
+  });
 
   useEffect(() => {
-    let live = true;
-    usersApi
-      .getSettings()
-      .then((res) => {
-        const s = (res.data ?? {}) as Partial<Choices>;
-        if (live) {
-          setChoices({
-            mentionsFrom: s.mentionsFrom ?? OPEN.mentionsFrom,
-            tagsFrom: s.tagsFrom ?? OPEN.tagsFrom,
-            manualTagApproval: s.manualTagApproval ?? OPEN.manualTagApproval,
-            messageRequests: s.messageRequests ?? OPEN.messageRequests,
-          });
-        }
-      })
-      .catch(() => {
-        if (live) setChoices(OPEN);
-      });
-    return () => {
-      live = false;
-    };
-  }, []);
+    if (!settings.data) return;
+    const s = settings.data as Partial<Choices>;
+    setChoices({
+      mentionsFrom: s.mentionsFrom ?? OPEN.mentionsFrom,
+      tagsFrom: s.tagsFrom ?? OPEN.tagsFrom,
+      manualTagApproval: s.manualTagApproval ?? OPEN.manualTagApproval,
+      messageRequests: s.messageRequests ?? OPEN.messageRequests,
+    });
+  }, [settings.data]);
+  const failed = settings.isError && choices === null;
 
   const change = <K extends keyof Choices>(key: K, value: Choices[K]) => {
     if (!choices) return;
@@ -85,6 +84,20 @@ export default function InteractionSettings() {
       ))}
     </Select>
   );
+
+  if (failed) {
+    return (
+      <SettingsSection
+        title={t('settings.interactions.title')}
+        description={t('settings.interactions.subtitle')}
+      >
+        <ErrorState
+          message={t('settings.interactions.load_error')}
+          onRetry={() => void settings.refetch()}
+        />
+      </SettingsSection>
+    );
+  }
 
   return (
     <SettingsSection

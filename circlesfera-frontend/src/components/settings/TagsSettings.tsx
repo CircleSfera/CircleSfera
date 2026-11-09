@@ -8,7 +8,8 @@ import {
   type PostTagStatus,
   postTagsApi,
 } from '../../services';
-import { EmptyState } from '../ErrorEmptyStates';
+import { EmptyState, ErrorState } from '../ErrorEmptyStates';
+import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
 
@@ -110,12 +111,26 @@ export default function TagsSettings() {
     );
   };
 
-  const list = (items: MyPostTag[] | undefined, empty: string) =>
-    !items || items.length === 0 ? (
+  // Empty is said only once the list has arrived; a failed read says so.
+  const list = (query: typeof pending, empty: string) => {
+    if (query.isLoading) {
+      return <LoadingSpinner size="sm" className="py-6" />;
+    }
+    if (query.isError) {
+      return (
+        <ErrorState
+          message={t('settings.tags.load_error')}
+          onRetry={() => void query.refetch()}
+        />
+      );
+    }
+    const items = query.data ?? [];
+    return items.length === 0 ? (
       <EmptyState icon="posts" title={empty} />
     ) : (
       <ul className="space-y-2">{items.map(row)}</ul>
     );
+  };
 
   return (
     <div className="max-w-xl space-y-8">
@@ -124,18 +139,14 @@ export default function TagsSettings() {
         description={t('settings.tags.pending_desc')}
         card={false}
       >
-        {pending.isLoading
-          ? null
-          : list(pending.data, t('settings.tags.pending_empty'))}
+        {list(pending, t('settings.tags.pending_empty'))}
       </SettingsSection>
       <SettingsSection
         title={t('settings.tags.shown_title')}
         description={t('settings.tags.shown_desc')}
         card={false}
       >
-        {shown.isLoading
-          ? null
-          : list(shown.data, t('settings.tags.shown_empty'))}
+        {list(shown, t('settings.tags.shown_empty'))}
       </SettingsSection>
     </div>
   );

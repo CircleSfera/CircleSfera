@@ -869,7 +869,8 @@
       "review_tags": "Revisar tus etiquetas",
       "message_requests": "Permitir solicitudes de mensajes",
       "message_requests_desc": "Si lo desactivas, solo las personas a las que sigues pueden empezar un chat contigo.",
-      "save_error": "No se ha podido guardar el cambio"
+      "save_error": "No se ha podido guardar el cambio",
+      "load_error": "No se ha podido cargar quién puede mencionarte, etiquetarte o escribirte."
     },
     "tags": {
       "pending_title": "Pendientes de aprobar",
@@ -882,7 +883,8 @@
       "approve": "Aprobar",
       "remove": "Quitarme",
       "remove_label": "Quitarme de la publicación de {{username}}",
-      "error": "No se ha podido actualizar la etiqueta"
+      "error": "No se ha podido actualizar la etiqueta",
+      "load_error": "No se han podido cargar tus etiquetas."
     }
   },
   "auth": {

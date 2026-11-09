@@ -869,7 +869,8 @@
       "review_tags": "Review your tags",
       "message_requests": "Allow message requests",
       "message_requests_desc": "When off, only people you follow can start a chat with you.",
-      "save_error": "Couldn't save the change"
+      "save_error": "Couldn't save the change",
+      "load_error": "Couldn't load who can mention, tag or message you."
     },
     "tags": {
       "pending_title": "Waiting for approval",
@@ -882,7 +883,8 @@
       "approve": "Approve",
       "remove": "Remove me",
       "remove_label": "Remove me from the post by {{username}}",
-      "error": "Couldn't update the tag"
+      "error": "Couldn't update the tag",
+      "load_error": "Couldn't load your tags."
     }
   },
   "auth": {
