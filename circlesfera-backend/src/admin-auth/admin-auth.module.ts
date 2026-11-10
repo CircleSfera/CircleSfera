@@ -7,11 +7,18 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { AdminAuthController } from './admin-auth.controller.js';
 import { AdminAuthService } from './admin-auth.service.js';
 import { EnrolmentProofService } from './enrolment-proof.service.js';
+import { StaffPasskeyController } from './staff-passkey.controller.js';
+import { StaffPasskeyService } from './staff-passkey.service.js';
 
 @Module({
   imports: [PrismaModule, EmailModule, PassportModule, JwtModule.register({})],
-  controllers: [AdminAuthController],
-  providers: [AdminAuthService, AdminJwtStrategy, EnrolmentProofService],
+  controllers: [AdminAuthController, StaffPasskeyController],
+  providers: [
+    AdminAuthService,
+    AdminJwtStrategy,
+    EnrolmentProofService,
+    StaffPasskeyService,
+  ],
   exports: [AdminAuthService, AdminJwtStrategy, EnrolmentProofService],
 })
 export class AdminAuthModule {}

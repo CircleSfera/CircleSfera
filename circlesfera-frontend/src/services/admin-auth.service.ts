@@ -8,6 +8,9 @@ export type AdminMe = {
   // False while the identity still signs in the old way, with the password
   // of its CircleSfera account: the staff sites ask it to set its own.
   ownPassword?: boolean;
+  // How many staff passkeys the identity has; the staff sites ask a member
+  // of staff with none to add one.
+  passkeyCount?: number;
   roles: string[];
   permissions: string[];
   lastLoginAt?: string | null;
@@ -40,6 +43,14 @@ export type AdminEnrolResult = {
 // or, for an external reviewer, a session already in its cookies.
 export type AdminAccessResult = AdminEnrolResult | { status: 'SIGNED_IN' };
 
+// A staff passkey as listed: never its key.
+export type AdminPasskey = {
+  id: string;
+  name: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+
 export const adminAuthApi = {
   login: (email: string, password: string) =>
     apiClient.post<AdminLoginResult>('/admin-auth/login', { email, password }),
@@ -63,6 +74,29 @@ export const adminAuthApi = {
     newPassword: string;
     totpCode?: string;
   }) => apiClient.post<{ status: string }>('/admin-auth/password', body),
+
+  // Staff passkeys: sign-in (any staff passkey of the device), and the
+  // identity's own list. Adding or removing one asks for a fresh code.
+  passkeyLoginOptions: () =>
+    apiClient.post<Record<string, unknown>>(
+      '/admin-auth/passkeys/login/options',
+    ),
+  passkeyLogin: (response: Record<string, unknown>) =>
+    apiClient.post<{ status: 'SIGNED_IN' }>('/admin-auth/passkeys/login', {
+      response,
+    }),
+  listPasskeys: () => apiClient.get<AdminPasskey[]>('/admin-auth/passkeys'),
+  passkeyRegisterOptions: () =>
+    apiClient.post<Record<string, unknown>>(
+      '/admin-auth/passkeys/register/options',
+    ),
+  registerPasskey: (response: Record<string, unknown>, name?: string) =>
+    apiClient.post<{ id: string }>('/admin-auth/passkeys/register', {
+      response,
+      ...(name ? { name } : {}),
+    }),
+  removePasskey: (id: string) =>
+    apiClient.delete(`/admin-auth/passkeys/${encodeURIComponent(id)}`),
 
   verifyMfa: (mfaToken: string, code: string) =>
     apiClient.post<{ status: string }>('/admin-auth/mfa/verify', {

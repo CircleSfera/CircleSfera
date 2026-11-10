@@ -5,6 +5,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -130,4 +131,23 @@ export class AdminChangePasswordDto {
   @IsString()
   @MaxLength(20)
   totpCode?: string;
+}
+
+// The browser's answer to a staff passkey ceremony, checked by WebAuthn.
+export class AdminPasskeyLoginDto {
+  @ApiProperty({ required: true, type: () => Object })
+  @IsObject()
+  response!: Record<string, unknown>;
+}
+
+export class AdminPasskeyRegisterDto {
+  @ApiProperty({ required: true, type: () => Object })
+  @IsObject()
+  response!: Record<string, unknown>;
+
+  @ApiProperty({ required: false, type: () => String, maxLength: 60 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  name?: string;
 }

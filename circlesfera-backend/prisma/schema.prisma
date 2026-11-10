@@ -2209,12 +2209,13 @@ model AdminIdentity {
   createdAt                  DateTime            @default(now())
   updatedAt                  DateTime            @updatedAt
 
-  linkedUser            User?                  @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+  linkedUser            User?                   @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
   roles                 AdminIdentityRole[]
   refreshTokens         AdminRefreshToken[]
   passkeys              AdminPasskey[]
+  passkeyChallenges     AdminPasskeyChallenge[]
   auditLogs             AdminAuditLog[]
-  assignedReports       Report[]               @relation("ReportAssignedAdmin")
+  assignedReports       Report[]                @relation("ReportAssignedAdmin")
   issuedStrikes         ProfileStrike[]
   reviewedRiskCases     RiskCase[]
   staffNotes            StaffNote[]
@@ -2287,18 +2288,39 @@ model AdminRefreshToken {
 }
 
 model AdminPasskey {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   adminId      String
-  credentialID String   @unique
+  credentialID String    @unique
   publicKey    Bytes
   counter      BigInt
-  transports   String[] @default([])
-  createdAt    DateTime @default(now())
+  transports   String[]  @default([])
+  /// What the member of staff called it, to tell their passkeys apart.
+  name         String?
+  lastUsedAt   DateTime?
+  createdAt    DateTime  @default(now())
 
   admin AdminIdentity @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([adminId])
   @@map("admin_passkeys")
+}
+
+/// A WebAuthn challenge of a staff passkey ceremony: single use, short-lived.
+/// A sign-in challenge names no identity (the passkey says whose it is); a
+/// registration challenge belongs to the identity adding the passkey.
+model AdminPasskeyChallenge {
+  id        String   @id @default(uuid())
+  adminId   String?
+  /// "REGISTRATION" or "AUTHENTICATION"
+  scope     String
+  challenge String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  admin AdminIdentity? @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("admin_passkey_challenges")
 }
 
 // A line a staff member leaves on an account for the rest of the staff. It is
@@ -3063,6 +3085,8 @@ enum AdminAction {
   ADMIN_STEP_UP
   ADMIN_ACCESS_EXPIRY_SET
   ADMIN_PASSWORD_SET
+  ADMIN_PASSKEY_ADDED
+  ADMIN_PASSKEY_REMOVED
   // A page of the review area opened by an external reviewer.
   REVIEW_VIEWED
 

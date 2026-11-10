@@ -1,6 +1,7 @@
 import {
   Command,
   ExternalLink,
+  Fingerprint,
   KeyRound,
   LogOut,
   Menu,
@@ -21,6 +22,7 @@ import AdminSidebar from './AdminSidebar';
 import type { AdminTab } from './adminNav';
 import { currentStaffSite, findAdminNavItem } from './adminNav';
 import { CommandPalette } from './CommandPalette';
+import { StaffPasskeyNotice, StaffPasskeysDialog } from './StaffPasskeys';
 import { StaffPasswordDialog, StaffPasswordNotice } from './StaffPassword';
 
 interface AdminShellProps {
@@ -174,6 +176,7 @@ export default function AdminShell({
           className="flex-1 w-full min-w-0 space-y-1 focus:outline-none"
         >
           <StaffPasswordNotice />
+          <StaffPasskeyNotice />
           {children}
         </main>
       </div>
@@ -192,6 +195,7 @@ function AdminAccountMenu() {
   const logout = useAdminAuthStore((state) => state.logout);
   const [open, setOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passkeysOpen, setPasskeysOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -286,6 +290,21 @@ function AdminAccountMenu() {
           <button
             type="button"
             role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              setPasskeysOpen(true);
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white text-left"
+          >
+            <Fingerprint
+              size={14}
+              className="text-brand-primary-text shrink-0"
+            />
+            {t('adminPanel.passkeys.title')}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
             onClick={() =>
               void logout().then(() => {
                 window.location.href = '/login';
@@ -301,6 +320,10 @@ function AdminAccountMenu() {
       <StaffPasswordDialog
         isOpen={passwordOpen}
         onClose={() => setPasswordOpen(false)}
+      />
+      <StaffPasskeysDialog
+        isOpen={passkeysOpen}
+        onClose={() => setPasskeysOpen(false)}
       />
     </div>
   );

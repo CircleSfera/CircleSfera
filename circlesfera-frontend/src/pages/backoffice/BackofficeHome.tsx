@@ -1,6 +1,11 @@
-import { Briefcase, ExternalLink, LogOut } from 'lucide-react';
+import { Briefcase, ExternalLink, Fingerprint, LogOut } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import logoSrc from '../../assets/logo.png';
+import {
+  StaffPasskeyNotice,
+  StaffPasskeysDialog,
+} from '../../components/admin/StaffPasskeys';
 import { StaffPasswordNotice } from '../../components/admin/StaffPassword';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { adminPanelOrigin } from '../../utils/adminPanel';
@@ -13,6 +18,7 @@ export default function BackofficeHome() {
   const { t } = useTranslation();
   const admin = useAdminAuthStore((state) => state.admin);
   const logout = useAdminAuthStore((state) => state.logout);
+  const [passkeysOpen, setPasskeysOpen] = useState(false);
 
   return (
     <div className="mx-auto min-h-dvh max-w-4xl px-4 pb-8 pt-4 sm:px-6">
@@ -38,6 +44,14 @@ export default function BackofficeHome() {
           </a>
           <button
             type="button"
+            onClick={() => setPasskeysOpen(true)}
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/8 bg-white/10 px-4 text-sm font-semibold text-white transition-colors hover:bg-white/18 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+          >
+            <Fingerprint size={16} aria-hidden />
+            {t('adminPanel.passkeys.title')}
+          </button>
+          <button
+            type="button"
             onClick={() => {
               void logout();
             }}
@@ -51,6 +65,7 @@ export default function BackofficeHome() {
 
       <div className="mt-4">
         <StaffPasswordNotice />
+        <StaffPasskeyNotice />
       </div>
 
       <main className="glass-panel mt-4 rounded-3xl p-6 sm:p-8">
@@ -67,6 +82,10 @@ export default function BackofficeHome() {
           {t('backoffice.home.sections_note')}
         </p>
       </main>
+      <StaffPasskeysDialog
+        isOpen={passkeysOpen}
+        onClose={() => setPasskeysOpen(false)}
+      />
     </div>
   );
 }

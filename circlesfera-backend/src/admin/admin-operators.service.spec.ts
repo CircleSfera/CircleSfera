@@ -22,6 +22,7 @@ describe('AdminOperatorsService', () => {
       signIn: { findUnique: vi.fn() },
       adminAuditLog: { create: vi.fn().mockResolvedValue({}) },
       adminRefreshToken: { deleteMany: vi.fn().mockResolvedValue({}) },
+      adminPasskey: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     };
     proof = {
       sendLink: vi.fn().mockResolvedValue(undefined),
@@ -106,6 +107,17 @@ describe('AdminOperatorsService', () => {
       status: 'ACTIVE',
       roles: [],
     };
+
+    it('resetting the access removes every passkey, so none added by an intruder outlives it', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue({ id: 'op-1' });
+      prisma.adminIdentity.update.mockResolvedValue({ ...awaiting, roles: [] });
+
+      await service.resetMfa('actor-1', 'op-1');
+
+      expect(prisma.adminPasskey.deleteMany).toHaveBeenCalledWith({
+        where: { adminId: 'op-1' },
+      });
+    });
 
     it('resetting the authenticator forgets the old proof and sends a new link', async () => {
       prisma.adminIdentity.findUnique.mockResolvedValue({ id: 'op-1' });

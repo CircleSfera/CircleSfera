@@ -560,6 +560,9 @@ export class AdminAuthService {
       this.prisma.adminRefreshToken.deleteMany({
         where: { adminId: admin.id },
       }),
+      // Setting up the access again starts from nothing: no passkey added
+      // before (perhaps by whoever took the access) still opens it.
+      this.prisma.adminPasskey.deleteMany({ where: { adminId: admin.id } }),
       this.prisma.adminAuditLog.create({
         data: {
           adminId: admin.id,
@@ -659,6 +662,69 @@ export class AdminAuthService {
     ]);
   }
 
+  /**
+   * Opens a session for the identity whose staff passkey was just verified:
+   * the same checks as any sign-in (active, access not over, not locked),
+   * and for a member of staff an authenticator still enrolled, since a
+   * passkey adds to the second factor and never replaces enrolling one. An
+   * external reviewer's session is capped as at any reviewer sign-in.
+   */
+  async signInWithPasskey(
+    adminId: string,
+    meta: ClientMeta,
+  ): Promise<AdminTokenPair> {
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id: adminId },
+      include: { roles: { select: { role: { select: { name: true } } } } },
+    });
+    // A refusal of a known identity is written down; it never counts
+    // towards the lockout, which is there against guessing a password.
+    const refused = async (): Promise<never> => {
+      if (admin) {
+        await this.prisma.adminAuditLog.create({
+          data: {
+            adminId: admin.id,
+            action: 'ADMIN_LOGIN_FAILED',
+            targetType: 'admin',
+            targetId: admin.id,
+            details: 'Passkey refused',
+            ipAddress: meta.ip,
+            userAgent: meta.userAgent,
+          },
+        });
+      }
+      throw new UnauthorizedException('Passkey not accepted');
+    };
+    // A lockout after wrong passwords does not stop a passkey, which cannot
+    // be guessed: anyone who knows a staff email could otherwise lock its
+    // holder out of the one factor that is safe.
+    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
+      return refused();
+    }
+    const reviewer = isExternalReviewer(admin.roles.map((r) => r.role.name));
+    if (reviewer) {
+      if (!reviewerAccessIsValid(admin.accessExpiresAt)) return refused();
+    } else if (!admin.totpEnabled) {
+      return refused();
+    }
+    await this.prisma.adminIdentity.update({
+      where: { id: admin.id },
+      data: { failedLoginCount: 0, lockedUntil: null },
+    });
+    return this.issueSession(
+      admin.id,
+      admin.email,
+      meta,
+      reviewer
+        ? {
+            startedAt: Date.now(),
+            accessExpiresAt: admin.accessExpiresAt as Date,
+          }
+        : undefined,
+      'Signed in with a passkey',
+    );
+  }
+
   async me(adminId: string) {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
@@ -672,6 +738,7 @@ export class AdminAuthService {
             },
           },
         },
+        _count: { select: { passkeys: true } },
       },
     });
     if (admin?.status !== 'ACTIVE') {
@@ -686,6 +753,8 @@ export class AdminAuthService {
       // False while the identity still signs in the old way, with its
       // linked account's password: the staff sites ask it to set its own.
       ownPassword: hasOwnStaffPassword(admin),
+      // The staff sites ask a member of staff with none to add one.
+      passkeyCount: admin._count.passkeys,
       roles,
       permissions,
       lastLoginAt: admin.lastLoginAt,
@@ -903,6 +972,7 @@ export class AdminAuthService {
     email: string,
     meta: { ip?: string; userAgent?: string },
     reviewer?: ReviewerSession,
+    details?: string,
   ): Promise<AdminTokenPair> {
     const now = Date.now();
     const mark = reviewer
@@ -947,6 +1017,7 @@ export class AdminAuthService {
         action: 'ADMIN_LOGIN',
         targetType: 'admin',
         targetId: adminId,
+        details,
         ipAddress: meta.ip,
         userAgent: meta.userAgent,
       },

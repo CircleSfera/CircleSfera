@@ -1,6 +1,7 @@
 import { STAFF_PASSWORD_MIN_LENGTH } from '@circlesfera/shared';
+import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation } from '@tanstack/react-query';
-import { Copy, ShieldCheck } from 'lucide-react';
+import { Copy, Fingerprint, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -93,6 +94,37 @@ export default function AdminPanelLogin() {
       toast.error(t('adminPanel.login.secret_copy_failed'));
     }
   };
+
+  // Signs in with a staff passkey of this device: no email or code typed,
+  // the passkey says whose it is.
+  const passkeyMutation = useMutation({
+    mutationFn: async () => {
+      const { data: options } = await adminAuthApi.passkeyLoginOptions();
+      const answer = await startAuthentication({
+        optionsJSON: options as never,
+      });
+      await adminAuthApi.passkeyLogin(
+        answer as unknown as Record<string, unknown>,
+      );
+    },
+    onSuccess: () => {
+      setError(null);
+      void finishLogin().catch((err: unknown) =>
+        setError(
+          apiErrorMessage(err, t, 'errors.generic.server', { signIn: true }),
+        ),
+      );
+    },
+    onError: (err: unknown) => {
+      setError(
+        err instanceof Error && err.name === 'NotAllowedError'
+          ? t('adminPanel.passkeys.cancelled')
+          : apiErrorMessage(err, t, 'adminPanel.login.passkey_failed', {
+              signIn: true,
+            }),
+      );
+    },
+  });
 
   const loginMutation = useMutation({
     mutationFn: () => adminAuthApi.login(email.trim(), password),
@@ -316,6 +348,23 @@ export default function AdminPanelLogin() {
                 className="button-alone font-black text-sm tracking-wide"
               >
                 {t('adminPanel.login.continue')}
+              </Button>
+            </div>
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                isLoading={passkeyMutation.isPending}
+                disabled={passkeyMutation.isPending}
+                onClick={() => {
+                  setError(null);
+                  passkeyMutation.mutate();
+                }}
+                className="gap-2 min-h-11 px-5 font-bold text-sm bg-white/5 text-white"
+              >
+                <Fingerprint size={16} aria-hidden />
+                {t('adminPanel.login.passkey')}
               </Button>
             </div>
             <div className="flex justify-center">
