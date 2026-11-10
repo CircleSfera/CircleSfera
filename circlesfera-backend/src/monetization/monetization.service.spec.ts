@@ -19,6 +19,19 @@ const adultPayer = vi.hoisted(() => ({
 }));
 vi.mock('../common/policies/adult-payer.policy.js', () => adultPayer);
 
+// Whoever pays may see the content, unless a test says otherwise; the rules
+// are tested on their own (post-access and story-access policy specs).
+const contentAccess = vi.hoisted(() => ({
+  assertCanAccessPost: vi.fn().mockResolvedValue(undefined),
+  assertCanAccessStory: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../common/policies/post-access.policy.js', () => ({
+  assertCanAccessPost: contentAccess.assertCanAccessPost,
+}));
+vi.mock('../common/policies/story-access.policy.js', () => ({
+  assertCanAccessStory: contentAccess.assertCanAccessStory,
+}));
+
 // The SQL text and the values of a raw query the service ran.
 // A person verified as an adult, who may charge.
 const ADULT = {
@@ -2609,6 +2622,214 @@ describe('MonetizationService', () => {
         ),
       ).rejects.toThrow('Creator not found');
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('paying only for what you can see', () => {
+    const hidden = Object.assign(new Error('Post not found'), {
+      status: 404,
+    });
+
+    beforeEach(() => {
+      accounts.set('creator-1', 'acct_1');
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
+      mockPrismaService.storyUnlock.findUnique.mockResolvedValue(null);
+    });
+
+    it('asks the rule for viewing a post before selling it, and sells nothing when it says no', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post-1',
+        isPremium: true,
+        priceCents: 1000,
+        profileId: 'creator-profile',
+        profile: { username: 'ana', user: { id: 'creator-1', email: 'c@x' } },
+      });
+      contentAccess.assertCanAccessPost.mockRejectedValueOnce(hidden);
+
+      await expect(
+        service.createPostUnlockSession(
+          'fan-1',
+          'fan-profile',
+          'post-1',
+          'http://localhost/return',
+        ),
+      ).rejects.toBe(hidden);
+      expect(contentAccess.assertCanAccessPost).toHaveBeenCalledWith(
+        mockPrismaService,
+        'post-1',
+        'fan-profile',
+      );
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('tells someone who may not see a post nothing about it, not even whether it is for sale', async () => {
+      // Not premium: a viewer allowed to see it would hear so.
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post-2',
+        isPremium: false,
+        priceCents: 0,
+        profileId: 'creator-profile',
+        profile: { username: 'ana', user: { id: 'creator-1', email: 'c@x' } },
+      });
+      contentAccess.assertCanAccessPost.mockRejectedValueOnce(hidden);
+
+      await expect(
+        service.createPostUnlockSession(
+          'fan-1',
+          'fan-profile',
+          'post-2',
+          'http://localhost/return',
+        ),
+      ).rejects.toBe(hidden);
+
+      // And never sold before it is published.
+      expect(mockPrismaService.post.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'post-2',
+            scheduledStatus: 'PUBLISHED',
+          }),
+        }),
+      );
+    });
+
+    it('tells someone who may not see a story nothing about it, and sells none before it is published', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        id: 's-2',
+        isPremium: false,
+        priceCents: 0,
+        profileId: 'creator-profile',
+        profile: { user: { id: 'creator-1', email: 'c@x' } },
+      });
+      contentAccess.assertCanAccessStory.mockRejectedValueOnce(hidden);
+
+      await expect(
+        service.createStoryUnlockSession(
+          'fan-1',
+          'fan-profile',
+          's-2',
+          'http://localhost/return',
+        ),
+      ).rejects.toBe(hidden);
+      // Past its 24 hours, only while it is in a highlight.
+      expect(mockPrismaService.story.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            scheduledStatus: 'PUBLISHED',
+            OR: [
+              { expiresAt: { gt: expect.any(Date) } },
+              { highlightStories: { some: {} } },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('asks the rule for viewing a story before selling it, and sells nothing when it says no', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        id: 's-1',
+        isPremium: true,
+        priceCents: 600,
+        profileId: 'creator-profile',
+        profile: { user: { id: 'creator-1', email: 'c@x' } },
+      });
+      contentAccess.assertCanAccessStory.mockRejectedValueOnce(hidden);
+
+      await expect(
+        service.createStoryUnlockSession(
+          'fan-1',
+          'fan-profile',
+          's-1',
+          'http://localhost/return',
+        ),
+      ).rejects.toBe(hidden);
+      expect(contentAccess.assertCanAccessStory).toHaveBeenCalledWith(
+        mockPrismaService,
+        's-1',
+        'fan-profile',
+      );
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('asks the rule for viewing the post before a tip, and holds nothing when it says no', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        profileId: 'creator-1-profile',
+        profile: {
+          id: 'creator-1-profile',
+          userId: 'creator-1',
+          username: 'ana',
+          isAccountBanned: false,
+          suspendedUntil: null,
+          monetizationStatus: 'APPROVED',
+          user: {
+            isActive: true,
+            isRootBanned: false,
+            deletedAt: null,
+            ...ADULT,
+          },
+        },
+      });
+      contentAccess.assertCanAccessPost.mockRejectedValueOnce(hidden);
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'creator-1',
+          500,
+          'http://localhost/return',
+          'post-1',
+          undefined,
+          'fan-profile',
+        ),
+      ).rejects.toBe(hidden);
+      expect(contentAccess.assertCanAccessPost).toHaveBeenCalledWith(
+        mockPrismaService,
+        'post-1',
+        'fan-profile',
+      );
+      expect(mockPrismaService.tipReservation.create).not.toHaveBeenCalled();
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('checks a tip with no Profile named as anyone not signed in', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        profileId: 'creator-1-profile',
+        profile: {
+          id: 'creator-1-profile',
+          userId: 'creator-1',
+          username: 'ana',
+          isAccountBanned: false,
+          suspendedUntil: null,
+          monetizationStatus: 'APPROVED',
+          user: {
+            isActive: true,
+            isRootBanned: false,
+            deletedAt: null,
+            ...ADULT,
+          },
+        },
+      });
+      contentAccess.assertCanAccessPost.mockRejectedValueOnce(hidden);
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'creator-1',
+          500,
+          'http://localhost/return',
+          'post-1',
+        ),
+      ).rejects.toBe(hidden);
+      expect(contentAccess.assertCanAccessPost).toHaveBeenCalledWith(
+        mockPrismaService,
+        'post-1',
+        null,
+      );
     });
   });
 });

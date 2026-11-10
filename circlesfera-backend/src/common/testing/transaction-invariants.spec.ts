@@ -11,6 +11,15 @@ const adultPayer = vi.hoisted(() => ({
 }));
 vi.mock('../policies/adult-payer.policy.js', () => adultPayer);
 
+// Whoever pays may see the content; the viewing rules are tested on their
+// own (post-access and story-access policy specs).
+vi.mock('../policies/post-access.policy.js', () => ({
+  assertCanAccessPost: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../policies/story-access.policy.js', () => ({
+  assertCanAccessStory: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe('Transaction Boundaries and Concurrency Invariants', () => {
   describe('Monetization & Financial Ledger Invariants', () => {
     let monetizationService: MonetizationService;

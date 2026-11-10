@@ -10,6 +10,7 @@ import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent
 import { AppException } from '../common/errors/app.exception.js';
 import { assertAdultPayer } from '../common/policies/adult-payer.policy.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
   AWAITING_MODERATION,
   LISTED_POST,
@@ -17,6 +18,7 @@ import {
   SELLABLE_POST,
   SELLABLE_STORY,
 } from '../common/policies/removed-content.policy.js';
+import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
   CREATOR_PAYMENT_METHODS,
@@ -292,12 +294,18 @@ export class MonetizationService {
     returnUrl: string,
     idempotencyKey?: string,
   ) {
-    // A post moderation hid or removed is sold to nobody.
+    // A post moderation hid or removed, or one not published yet, is sold
+    // to nobody.
     const post = await this.prisma.post.findUnique({
-      where: { id: postId, ...SELLABLE_POST },
+      where: { id: postId, ...SELLABLE_POST, scheduledStatus: 'PUBLISHED' },
       include: { profile: { include: { user: true } } },
     });
     if (!post) await this.assertNotAwaitingModeration('post', postId);
+    // Nobody pays for a post they may not see: the same rule as viewing it
+    // (blocks, private accounts and posts, followers only, archived). Asked
+    // before anything about the post is answered, so paying tells nothing
+    // that viewing does not (not even whether it is for sale).
+    await assertCanAccessPost(this.prisma, postId, profileId);
 
     if (!post?.isPremium || !post.priceCents) {
       throw AppException.BadRequest(
@@ -349,12 +357,26 @@ export class MonetizationService {
     returnUrl: string,
     idempotencyKey?: string,
   ) {
-    // A story moderation hid or removed is sold to nobody.
+    // A story moderation hid or removed, or one not published yet, is sold
+    // to nobody. Past its 24 hours it is sold only while it is in one of
+    // its author's highlights, where it is still shown (owner decision).
     const story = await this.prisma.story.findUnique({
-      where: { id: storyId, ...SELLABLE_STORY },
+      where: {
+        id: storyId,
+        ...SELLABLE_STORY,
+        scheduledStatus: 'PUBLISHED',
+        OR: [
+          { expiresAt: { gt: new Date() } },
+          { highlightStories: { some: {} } },
+        ],
+      },
       include: { profile: { include: { user: true } } },
     });
     if (!story) await this.assertNotAwaitingModeration('story', storyId);
+    // Nobody pays for a story they may not see: the same rule as viewing it
+    // (blocks, private accounts, close friends). Asked before anything about
+    // the story is answered, so paying tells nothing viewing does not.
+    await assertCanAccessStory(this.prisma, storyId, profileId);
 
     if (!story?.isPremium || !story.priceCents) {
       throw AppException.BadRequest(
@@ -470,7 +492,7 @@ export class MonetizationService {
     // named; the Profile tipped is the one the post belongs to, so every
     // check below is about it. No tip for a post moderation hid or removed.
     const post = await this.prisma.post.findUnique({
-      where: { id: postId, ...SELLABLE_POST },
+      where: { id: postId, ...SELLABLE_POST, scheduledStatus: 'PUBLISHED' },
       select: { profileId: true, profile: { select: TIPPED_PROFILE_SELECT } },
     });
     const ofTipped = named
@@ -486,6 +508,9 @@ export class MonetizationService {
         ErrorCode.CANNOT_TIP_SELF,
         'Cannot tip yourself',
       );
+    // Nobody tips a post they may not see: the same rule as viewing it
+    // (blocks, private accounts and posts, followers only, archived).
+    await assertCanAccessPost(this.prisma, postId, senderProfileId ?? null);
 
     // A Profile that is banned or suspended, of a person no longer here, or
     // across a block with who tips, is not found, as everywhere else.
