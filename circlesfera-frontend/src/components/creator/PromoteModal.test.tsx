@@ -239,6 +239,29 @@ describe('PromoteModal', () => {
     );
   });
 
+  it('says why when the server gives a reason, as content still being checked', async () => {
+    const user = userEvent.setup();
+    vi.mocked(creatorApi.createPromotion).mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 400, data: { errorCode: 'CONTENT_UNDER_REVIEW' } },
+    });
+    open(post);
+
+    await user.click(
+      screen.getByRole('checkbox', { name: /14-day right of withdrawal/ }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Pay €35 and promote' }),
+    );
+
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(
+        expect.stringMatching(/still being checked/),
+        'error',
+      ),
+    );
+  });
+
   it('is written in Spanish for a Spanish reader', () => {
     open(post, 'es');
 

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse, Post } from '../../types';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { formatWholeEuros } from '../../utils/money';
 import MediaThumb, { postThumbShape } from '../common/MediaThumb';
 import { WithdrawalConsentBox } from '../payments/WithdrawalConsent';
@@ -79,7 +80,13 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
       onToast(t('creator.promotions.redirecting'), 'success');
       window.location.href = url;
     },
-    onError: () => onToast(t('creator.promotions.error_create'), 'error'),
+    // The reason when the server gives one (content still being checked,
+    // not found), else the general message.
+    onError: (err: unknown) =>
+      onToast(
+        apiErrorMessage(err, t, 'creator.promotions.error_create'),
+        'error',
+      ),
   });
 
   const total = formatWholeEuros(dailyBudget * durationDays, language);

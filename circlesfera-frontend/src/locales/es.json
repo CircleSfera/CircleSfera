@@ -6493,7 +6493,7 @@
       "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",
       "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes.",
-      "CONTENT_UNDER_REVIEW": "Este contenido se pone a la venta en cuanto se revisa. Vuelve a intentarlo en unos minutos.",
+      "CONTENT_UNDER_REVIEW": "Este contenido todavía se está revisando. Podrás venderlo o promocionarlo en cuanto termine: vuelve a intentarlo en unos minutos.",
       "WEEKLY_SUPPORT_LIMIT_REACHED": "Has llegado al máximo que puedes dar en una semana, entre propinas y regalos.",
       "COLLAB_NOT_ALLOWED": "Solo una publicación pública y no de pago puede tener un colaborador, y nunca su autor.",
       "COLLABORATOR_EXISTS": "Esta publicación ya tiene un colaborador.",
