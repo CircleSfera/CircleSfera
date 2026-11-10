@@ -25,6 +25,7 @@ describe('FeedController', () => {
   const mockService = {
     getHybridFeed: vi.fn(),
     getFollowingFeed: vi.fn(),
+    getFavoritesFeed: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -53,6 +54,28 @@ describe('FeedController', () => {
       .expect(401);
 
     expect(mockService.getFollowingFeed).not.toHaveBeenCalled();
+  });
+
+  it('rejects the Favorites feed without a session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/feed/favorites')
+      .expect(401);
+    expect(mockService.getFavoritesFeed).not.toHaveBeenCalled();
+  });
+
+  it('loads the Favorites feed of the viewer profile', async () => {
+    mockService.getFavoritesFeed.mockResolvedValue({ data: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/feed/favorites')
+      .query({ page: 2, limit: 10 })
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.getFavoritesFeed).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      expect.objectContaining({ page: 2, limit: 10 }),
+    );
   });
 
   it('loads For You with the viewer profile and userId', async () => {

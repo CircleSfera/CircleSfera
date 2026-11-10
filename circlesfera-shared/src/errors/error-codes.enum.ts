@@ -77,6 +77,10 @@ export enum ErrorCode {
   HIDDEN_WORDS_FULL = 'HIDDEN_WORDS_FULL',
   // A Profile already has the most posts it can pin to its profile.
   PROFILE_PINS_FULL = 'PROFILE_PINS_FULL',
+  // A Profile already has the most Favorites it can keep.
+  FAVORITES_FULL = 'FAVORITES_FULL',
+  // Only a Profile one follows can be a Favorite.
+  FAVORITE_NOT_FOLLOWED = 'FAVORITE_NOT_FOLLOWED',
   // Only a public, unpaid post that is shown can carry a collaborator, and
   // never its own author.
   COLLAB_NOT_ALLOWED = 'COLLAB_NOT_ALLOWED',

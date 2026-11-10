@@ -6,6 +6,7 @@ import {
   ExternalLink,
   Flag,
   Gift,
+  Heart,
   Info,
   Link as LinkIcon,
   Lock,
@@ -22,6 +23,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
+import { useFavorites } from '../../hooks/useFavorites';
 import { useRestriction } from '../../hooks/useRestriction';
 import type { ProfileWithUser } from '../../types';
 import { hasCreatorTools } from '../../utils/creatorTools';
@@ -81,6 +83,9 @@ interface ProfileOtherUserMenuProps {
   onReport: () => void;
   onBlock: () => void;
   onMute: () => void;
+  // Only for a Profile one follows: keep it as a Favorite, or stop.
+  onToggleFavorite?: () => void;
+  isFavorite?: boolean;
   align?: 'left' | 'right';
   buttonClassName?: string;
 }
@@ -94,6 +99,8 @@ function ProfileOtherUserMenu({
   onReport,
   onBlock,
   onMute,
+  onToggleFavorite,
+  isFavorite = false,
   align = 'right',
   buttonClassName = 'p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center',
 }: ProfileOtherUserMenuProps) {
@@ -128,6 +135,23 @@ function ProfileOtherUserMenu({
             {t('profile.about.title')}
             <Info size={14} aria-hidden="true" />
           </button>
+          {onToggleFavorite && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onToggleFavorite();
+              }}
+              className="w-full text-left min-h-11 px-4 text-gray-200 hover:bg-white/5 flex items-center justify-between font-medium text-sm border-t border-white/5"
+            >
+              {isFavorite ? t('favorites.remove') : t('favorites.add')}
+              <Heart
+                size={14}
+                aria-hidden="true"
+                className={isFavorite ? 'fill-current' : ''}
+              />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -196,6 +220,8 @@ interface ProfileHeaderProps {
   setShowBlockModal: (show: boolean) => void;
   setShowTipModal: (show: boolean) => void;
   onOpenCloseFriends?: () => void;
+  // Whether the viewer follows this Profile (accepted): it may be a Favorite.
+  isFollowing?: boolean;
 
   onOpenStories: () => void;
   showMenu: boolean;
@@ -217,6 +243,7 @@ export default function ProfileHeader({
   setShowBlockModal,
   setShowTipModal,
   onOpenCloseFriends,
+  isFollowing = false,
   onOpenStories,
   showMenu,
   setShowMenu,
@@ -225,6 +252,14 @@ export default function ProfileHeader({
   const [showAbout, setShowAbout] = useState(false);
   const [showMuteModal, setShowMuteModal] = useState(false);
   const { closeFriendsCount } = useCloseFriendsList(isMe);
+  const canFavorite = !isMe && isFollowing;
+  const favorites = useFavorites(canFavorite);
+  const favoriteProps = canFavorite
+    ? {
+        onToggleFavorite: () => favorites.toggle(profile.data.id),
+        isFavorite: favorites.isFavorite(profile.data.id),
+      }
+    : {};
   const data = profile.data as ProfileWithUser & {
     identityVerified?: boolean;
     emailConfirmed?: boolean;
@@ -470,6 +505,7 @@ export default function ProfileHeader({
                       onReport={() => setShowReportModal(true)}
                       onBlock={() => setShowBlockModal(true)}
                       onMute={() => setShowMuteModal(true)}
+                      {...favoriteProps}
                     />
                   </div>
                 </>
@@ -683,6 +719,7 @@ export default function ProfileHeader({
                   onReport={() => setShowReportModal(true)}
                   onBlock={() => setShowBlockModal(true)}
                   onMute={() => setShowMuteModal(true)}
+                  {...favoriteProps}
                   buttonClassName="h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 transition-all flex items-center justify-center"
                 />
               </div>

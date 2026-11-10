@@ -5,6 +5,7 @@ import {
   DollarSign,
   EyeOff,
   Flag,
+  Heart,
   Key,
   type LucideIcon,
   MessageSquareOff,
@@ -32,6 +33,7 @@ export type SettingsSectionId =
   | 'monetization'
   | 'requests'
   | 'close_friends'
+  | 'favorites'
   | 'mutes'
   | 'hidden_words'
   | 'feed_prefs'
@@ -71,6 +73,7 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'monetization',
   'requests',
   'close_friends',
+  'favorites',
   'mutes',
   'hidden_words',
   'feed_prefs',
@@ -147,6 +150,11 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'close_friends',
         labelKey: 'settings.tabs.close_friends.label',
         icon: Star,
+      },
+      {
+        id: 'favorites',
+        labelKey: 'settings.tabs.favorites.label',
+        icon: Heart,
       },
       {
         id: 'requests',

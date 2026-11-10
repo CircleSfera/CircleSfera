@@ -1,5 +1,6 @@
 export * from './business-profile.js';
 export * from './comments.js';
+export * from './favorites.js';
 export * from './first-paid-review.js';
 export * from './frame-look.js';
 export * from './hidden-words.js';

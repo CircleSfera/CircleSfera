@@ -745,6 +745,12 @@ describe('UsersService', () => {
           },
         },
       });
+      // Each Profile's own Favorites go with it; who chose it does not.
+      expect(profilesArgs.favorites.select).toEqual({
+        createdAt: true,
+        favorite: { select: { username: true } },
+      });
+      expect(profilesArgs.favoriteOf).toBeUndefined();
       // The posts each Profile was invited to author too, and its answer.
       expect(profilesArgs.collaborations.select).toEqual({
         postId: true,
