@@ -4522,7 +4522,8 @@
         "content_posting_enabled": "Content posting enabled",
         "live_streams_enabled": "Live streams enabled",
         "turnstile_required": "Bot check required",
-        "email_verification_required": "Verified email required"
+        "email_verification_required": "Verified email required",
+        "payments_enabled": "Payments enabled"
       },
       "descriptions": {
         "maintenance_mode": "When on, the consumer API returns 503 except health, CSRF, webhooks and Admin Panel.",
@@ -4530,7 +4531,8 @@
         "content_posting_enabled": "Allow creating posts and stories.",
         "live_streams_enabled": "Allow starting live streams.",
         "turnstile_required": "Asks for the bot check when signing up and signing in.",
-        "email_verification_required": "Requires a verified email to post, follow, message, like, upload and edit the profile."
+        "email_verification_required": "Requires a verified email to post, follow, message, like, upload and edit the profile.",
+        "payments_enabled": "Allow new payments: plans, paid content, tips, live gifts and promotions. While off nothing new is charged; money already earned keeps being paid out."
       }
     },
     "payouts": {
@@ -6308,7 +6310,8 @@
       "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
       "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
-      "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided."
+      "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",
+      "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

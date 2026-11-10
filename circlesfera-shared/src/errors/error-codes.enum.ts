@@ -53,6 +53,8 @@ export enum ErrorCode {
   MONETIZATION_NOT_APPROVED = 'MONETIZATION_NOT_APPROVED',
   MONETIZATION_APPLICATION_NOT_OPEN = 'MONETIZATION_APPLICATION_NOT_OPEN',
   MONETIZATION_REVIEW_NOT_ALLOWED = 'MONETIZATION_REVIEW_NOT_ALLOWED',
+  // Staff paused new payments (the payments_enabled setting is off).
+  PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
   // Charging for anything needs a verified identity of someone 18 or older.
   MONETIZATION_UNDER_AGE = 'MONETIZATION_UNDER_AGE',
   // Messages are no longer sold: none can be sent with a price, and none
