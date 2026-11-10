@@ -8,6 +8,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { canMonetize } from '../common/constants/monetization.constants.js';
 import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { assertAdultPayer } from '../common/policies/adult-payer.policy.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import {
   AWAITING_MODERATION,
@@ -215,6 +216,7 @@ export class MonetizationService {
     expiresAt?: number;
   }): Promise<{ url: string | null }> {
     await assertRealMoneyAllowed(this.prisma, params.buyerId);
+    await assertAdultPayer(this.prisma, params.buyerId);
     const taxActive = await this.stripeService.creatorTaxActive(
       params.creatorStripeAccountId,
     );

@@ -5,6 +5,7 @@ import {
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { AppException } from '../common/errors/app.exception.js';
+import { assertAdultPayer } from '../common/policies/adult-payer.policy.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
@@ -62,6 +63,7 @@ export class LiveGiftService {
     senderProfileId?: string,
   ) {
     await assertRealMoneyAllowed(this.prisma, senderId);
+    await assertAdultPayer(this.prisma, senderId);
     const amountCents = resolveGiftAmountCents(giftId);
     if (amountCents === null) {
       throw new BadRequestException(

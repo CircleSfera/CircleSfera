@@ -130,6 +130,9 @@ export interface ProfileWithUser extends IProfile {
   isPrivate?: boolean;
   banner?: string | null;
   identityVerifiedAt?: Date | string | null;
+  // False when the identity was verified before its date of birth was read
+  // from the document: verifying again confirms it.
+  dateOfBirthVerified?: boolean;
   emailConfirmed?: boolean;
 }
 

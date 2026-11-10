@@ -1,10 +1,13 @@
 import { motion } from 'framer-motion';
-import { Lock, Reply, Smile, Trash2 } from 'lucide-react';
+import { Forward, Lock, Reply, Smile, Trash2 } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
 import type { Message } from '../../types';
-import { getMessageDisplayText } from '../../utils/chatMessageDisplay';
+import {
+  canForwardMessage,
+  getMessageDisplayText,
+} from '../../utils/chatMessageDisplay';
 import { VoicePlayer } from '../audio/VoicePlayer';
 import MediaThumb from '../common/MediaThumb';
 import UserAvatar from '../UserAvatar';
@@ -21,6 +24,7 @@ interface MessageBubbleProps {
   onReact: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
   onEdit?: (msg: Message, decryptedText: string) => void;
+  onForward?: (msg: Message) => void;
   isRead?: boolean;
   currentUserId?: string;
 }
@@ -36,6 +40,7 @@ export default memo(function MessageBubble({
   onReact,
   onDelete,
   onEdit,
+  onForward,
   isRead,
   currentUserId,
 }: MessageBubbleProps) {
@@ -98,6 +103,13 @@ export default memo(function MessageBubble({
       <div
         className={`flex flex-col max-w-[82%] md:max-w-[72%] lg:max-w-[68%] ${isMe ? 'items-end' : 'items-start'}`}
       >
+        {msg.isForwarded && !msg.isDeleted && (
+          <div className="mb-0.5 px-2 flex items-center gap-1 text-xs italic text-gray-400">
+            <Forward size={12} aria-hidden />
+            {t('chat.forwarded')}
+          </div>
+        )}
+
         {/* Reply Context */}
         {msg.replyTo && (
           <div
@@ -373,6 +385,17 @@ export default memo(function MessageBubble({
                 </div>
               </div>
 
+              {onForward && canForwardMessage(msg) && (
+                <button
+                  type="button"
+                  onClick={() => onForward(msg)}
+                  className="w-11 h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
+                  title={t('chat.forward')}
+                  aria-label={t('chat.forward')}
+                >
+                  <Forward size={18} />
+                </button>
+              )}
               {isMe && !msg.isDeleted && onEdit && (
                 <button
                   type="button"

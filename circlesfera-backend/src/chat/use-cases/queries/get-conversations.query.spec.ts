@@ -55,6 +55,7 @@ describe('GetConversationsQuery', () => {
       findFirst?: ReturnType<typeof vi.fn>;
     };
     block: { findMany: ReturnType<typeof vi.fn> };
+    participant: { findMany: ReturnType<typeof vi.fn> };
     restriction: { findMany: ReturnType<typeof vi.fn> };
   };
   let mockCryptoService: {
@@ -67,6 +68,8 @@ describe('GetConversationsQuery', () => {
         findMany: vi.fn(),
       },
       block: { findMany: vi.fn().mockResolvedValue([]) },
+      // The viewer's own rows: nothing muted or pinned unless a test says so.
+      participant: { findMany: vi.fn().mockResolvedValue([]) },
       restriction: { findMany: vi.fn().mockResolvedValue([]) },
     };
     mockCryptoService = {
@@ -236,7 +239,9 @@ describe('GetConversationsQuery', () => {
     });
 
     it('reads one more than the page to know whether another follows, and names where the next one starts', async () => {
-      mockPrisma.conversation.findMany.mockResolvedValue([
+      // The first read is of the pinned chats: none here.
+      mockPrisma.conversation.findMany.mockResolvedValueOnce([]);
+      mockPrisma.conversation.findMany.mockResolvedValueOnce([
         conv('c3', '2026-10-18T10:00:00.000Z'),
         conv('c2', '2026-10-18T09:00:00.000Z'),
         conv('c1', '2026-10-18T08:00:00.000Z'),
@@ -245,7 +250,16 @@ describe('GetConversationsQuery', () => {
       const page = await query.executePage('prof-1', 'inbox', undefined, 2);
 
       expect(mockPrisma.conversation.findMany).toHaveBeenCalledWith({
-        where: { AND: [INBOX] },
+        where: {
+          AND: [
+            INBOX,
+            {
+              participants: {
+                some: { profileId: 'prof-1', deletedAt: null, pinnedAt: null },
+              },
+            },
+          ],
+        },
         take: 3,
         include: expect.any(Object),
         orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
@@ -284,7 +298,8 @@ describe('GetConversationsQuery', () => {
     });
 
     it('says there is no next page on the last one', async () => {
-      mockPrisma.conversation.findMany.mockResolvedValue([
+      mockPrisma.conversation.findMany.mockResolvedValueOnce([]);
+      mockPrisma.conversation.findMany.mockResolvedValueOnce([
         conv('c1', '2026-10-18T08:00:00.000Z'),
       ]);
 
@@ -309,9 +324,90 @@ describe('GetConversationsQuery', () => {
 
       await query.executePage('prof-1', 'inbox', undefined, 1000);
 
-      expect(mockPrisma.conversation.findMany.mock.calls[0][0].take).toBe(
+      // The second read: the first is of the pinned chats.
+      expect(mockPrisma.conversation.findMany.mock.calls[1][0].take).toBe(
         CONVERSATION_PAGE_MAX + 1,
       );
+    });
+
+    it('puts the pinned chats first on the first page, newest pin first, and never on the next', async () => {
+      mockPrisma.conversation.findMany.mockResolvedValueOnce([
+        conv('p-old', '2026-10-01T00:00:00.000Z'),
+        conv('p-new', '2026-10-02T00:00:00.000Z'),
+      ]);
+      mockPrisma.conversation.findMany.mockResolvedValueOnce([
+        conv('c1', '2026-10-18T08:00:00.000Z'),
+      ]);
+      mockPrisma.participant.findMany.mockResolvedValue([
+        {
+          conversationId: 'p-old',
+          pinnedAt: new Date('2026-11-01T00:00:00.000Z'),
+          mutedUntil: null,
+        },
+        {
+          conversationId: 'p-new',
+          pinnedAt: new Date('2026-11-05T00:00:00.000Z'),
+          mutedUntil: new Date('9999-12-31T00:00:00.000Z'),
+        },
+      ]);
+
+      const page = await query.executePage('prof-1', 'inbox');
+
+      // A pinned chat with someone the viewer restricts stays in requests.
+      expect(mockPrisma.conversation.findMany.mock.calls[0][0].where).toEqual({
+        AND: [
+          INBOX,
+          {
+            participants: {
+              some: {
+                profileId: 'prof-1',
+                deletedAt: null,
+                pinnedAt: { not: null },
+              },
+            },
+          },
+        ],
+      });
+      expect(page.items.map((c) => c.id)).toEqual(['p-new', 'p-old', 'c1']);
+      expect(page.items[0].mutedUntil).toEqual(
+        new Date('9999-12-31T00:00:00.000Z'),
+      );
+      expect(page.items[2]).toEqual(
+        expect.objectContaining({ pinnedAt: null, mutedUntil: null }),
+      );
+      // The viewer's own rows only.
+      expect(mockPrisma.participant.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ profileId: 'prof-1' }),
+        }),
+      );
+
+      mockPrisma.conversation.findMany.mockClear();
+      mockPrisma.conversation.findMany.mockResolvedValue([]);
+      const cursor = encodeKeysetCursor({
+        createdAt: new Date('2026-10-18T08:00:00.000Z'),
+        id: 'c1',
+      });
+      await query.executePage('prof-1', 'inbox', cursor);
+      expect(mockPrisma.conversation.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows a mute that has ended as not muted', async () => {
+      mockPrisma.conversation.findMany.mockResolvedValueOnce([]);
+      mockPrisma.conversation.findMany.mockResolvedValueOnce([
+        conv('c1', '2026-10-18T08:00:00.000Z'),
+      ]);
+      mockPrisma.participant.findMany.mockResolvedValue([
+        {
+          conversationId: 'c1',
+          pinnedAt: null,
+          mutedUntil: new Date('2020-01-01T00:00:00.000Z'),
+        },
+      ]);
+
+      const page = await query.executePage('prof-1', 'inbox');
+
+      expect(page.items[0].mutedUntil).toBeNull();
     });
   });
 

@@ -1289,6 +1289,7 @@ export class UsersService {
       select: {
         stripeIdentitySessionId: true,
         identityVerifiedAt: true,
+        dateOfBirthVerified: true,
       },
     });
 
@@ -1296,7 +1297,9 @@ export class UsersService {
       return { status: 'no_session' };
     }
 
-    if (user.identityVerifiedAt) {
+    // Verified before the date of birth was read from the document: a new
+    // session may still confirm it.
+    if (user.identityVerifiedAt && user.dateOfBirthVerified) {
       return { status: 'already_verified' };
     }
 

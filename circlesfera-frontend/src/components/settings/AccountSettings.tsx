@@ -48,8 +48,14 @@ export default function AccountSettings() {
     retry: false,
   });
 
+  // Verified before the date of birth was read from the document: it is
+  // verified again to pay or to charge.
+  const reverify =
+    !!profile?.identityVerifiedAt && profile?.dateOfBirthVerified === false;
+  const verified = !!profile?.identityVerifiedAt && !reverify;
+
   useEffect(() => {
-    if (!profile || profile.identityVerifiedAt) return;
+    if (!profile || (profile.identityVerifiedAt && !reverify)) return;
     usersApi
       .syncIdentitySession()
       .then((res) => {
@@ -61,7 +67,7 @@ export default function AccountSettings() {
       .catch((err) => {
         logger.error('Failed to sync identity session:', err);
       });
-  }, [profile, queryClient, t]);
+  }, [profile, reverify, queryClient, t]);
 
   const deactivateMutation = useMutation({
     mutationFn: () => profileApi.deactivateAccount(),
@@ -231,27 +237,27 @@ export default function AccountSettings() {
 
           <div
             className={`rounded-xl border p-4 ${
-              profile?.identityVerifiedAt
+              verified
                 ? 'border-green-500/20 bg-green-500/5'
                 : 'border-brand-primary/20 bg-brand-primary/5'
             }`}
           >
             <h3
               className={`text-sm font-semibold flex items-center gap-2 mb-2 ${
-                profile?.identityVerifiedAt
-                  ? 'text-green-400'
-                  : 'text-brand-primary-text'
+                verified ? 'text-green-400' : 'text-brand-primary-text'
               }`}
             >
               <BadgeCheck size={16} aria-hidden />
               {t('settings.account.verification.title')}
             </h3>
             <p className="text-xs text-white/50 leading-relaxed mb-3">
-              {profile?.identityVerifiedAt
+              {verified
                 ? t('settings.account.verification.verified_desc')
-                : t('settings.account.verification.unverified_desc')}
+                : reverify
+                  ? t('settings.account.verification.reverify_desc')
+                  : t('settings.account.verification.unverified_desc')}
             </p>
-            {profile?.identityVerifiedAt ? (
+            {verified ? (
               <div className="inline-flex items-center gap-2 text-green-400 font-medium text-xs px-2 py-1 bg-green-500/10 rounded-lg">
                 <Check size={14} strokeWidth={3} />
                 {t('settings.account.verification.verified')}
@@ -263,7 +269,9 @@ export default function AccountSettings() {
                 variant="outline"
                 className="min-h-11 text-sm font-semibold"
               >
-                {t('settings.account.verification.btn')}
+                {reverify
+                  ? t('settings.account.verification.reverify_btn')
+                  : t('settings.account.verification.btn')}
               </Button>
             )}
           </div>

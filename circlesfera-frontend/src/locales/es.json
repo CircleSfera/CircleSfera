@@ -97,10 +97,6 @@
         "label": "Mejores Amigos",
         "desc": "Círculo íntimo"
       },
-      "favorites": {
-        "label": "Favoritos",
-        "desc": "Tu propio feed"
-      },
       "notifications": {
         "label": "Notificaciones",
         "desc": "Alertas"
@@ -137,13 +133,17 @@
         "label": "Palabras ocultas",
         "desc": "Comentarios"
       },
-      "collaborations": {
-        "label": "Colaboraciones",
-        "desc": "Invitaciones"
+      "favorites": {
+        "label": "Favoritos",
+        "desc": "Tu propio feed"
       },
       "tags": {
         "label": "Etiquetas",
         "desc": "Publicaciones en las que apareces"
+      },
+      "collaborations": {
+        "label": "Colaboraciones",
+        "desc": "Invitaciones"
       }
     },
     "profile": {
@@ -315,7 +315,9 @@
         "unverified_desc": "Verifica tu identidad para obtener la insignia. Necesitarás un DNI o pasaporte válido.",
         "btn": "Verificar identidad",
         "verified": "Verificado",
-        "error": "No se pudo iniciar la sesión de verificación"
+        "error": "No se pudo iniciar la sesión de verificación",
+        "reverify_desc": "Tu identidad está verificada, pero entonces no se leyó la fecha de nacimiento de tu documento. Verifícala de nuevo para pagar o cobrar en CircleSfera.",
+        "reverify_btn": "Verificar de nuevo"
       },
       "ledger": {
         "button": "Descargar libro",
@@ -860,17 +862,21 @@
       "archived": "Archivado. Solo tú lo ves, en tu archivo.",
       "archive_error": "No se pudo archivar. Inténtalo de nuevo."
     },
-    "collaborations": {
-      "title": "Invitaciones para colaborar",
-      "subtitle": "Publicaciones de otras personas en las que te han invitado a ser coautor. Cuando aceptas, la publicación aparece en tu perfil y llega también a tus seguidores.",
-      "empty": "No tienes invitaciones por ahora",
-      "invited_by": "{{username}} te ha invitado a colaborar",
-      "view_post": "Ver la publicación de {{username}}",
-      "accept": "Aceptar",
-      "decline": "Rechazar",
-      "accepted": "Ahora colaboras en esta publicación",
-      "accept_error": "No se ha podido aceptar la invitación",
-      "decline_error": "No se ha podido rechazar la invitación"
+    "tags": {
+      "pending_title": "Pendientes de aprobar",
+      "pending_desc": "Aprueba una etiqueta para mostrar la publicación en tu perfil, o quítate de ella.",
+      "pending_empty": "No hay etiquetas pendientes",
+      "shown_title": "En tu perfil",
+      "shown_desc": "Publicaciones en las que te han etiquetado. Si te quitas, desapareces de la publicación; su autor no se entera.",
+      "shown_empty": "No te han etiquetado en ninguna publicación",
+      "by": "Publicación de {{username}}",
+      "approve": "Aprobar",
+      "remove": "Quitarme",
+      "remove_label": "Quitarme de la publicación de {{username}}",
+      "error": "No se ha podido actualizar la etiqueta",
+      "load_error": "No se han podido cargar tus etiquetas.",
+      "unavailable": "Una publicación que no puedes ver",
+      "remove_unavailable_label": "Quitarme de una publicación que no puedes ver"
     },
     "interactions": {
       "title": "Menciones, etiquetas y mensajes",
@@ -892,21 +898,17 @@
       "save_error": "No se ha podido guardar el cambio",
       "load_error": "No se ha podido cargar quién puede mencionarte, etiquetarte o escribirte."
     },
-    "tags": {
-      "pending_title": "Pendientes de aprobar",
-      "pending_desc": "Aprueba una etiqueta para mostrar la publicación en tu perfil, o quítate de ella.",
-      "pending_empty": "No hay etiquetas pendientes",
-      "shown_title": "En tu perfil",
-      "shown_desc": "Publicaciones en las que te han etiquetado. Si te quitas, desapareces de la publicación; su autor no se entera.",
-      "shown_empty": "No te han etiquetado en ninguna publicación",
-      "by": "Publicación de {{username}}",
-      "approve": "Aprobar",
-      "remove": "Quitarme",
-      "remove_label": "Quitarme de la publicación de {{username}}",
-      "error": "No se ha podido actualizar la etiqueta",
-      "load_error": "No se han podido cargar tus etiquetas.",
-      "unavailable": "Una publicación que no puedes ver",
-      "remove_unavailable_label": "Quitarme de una publicación que no puedes ver"
+    "collaborations": {
+      "title": "Invitaciones para colaborar",
+      "subtitle": "Publicaciones de otras personas en las que te han invitado a ser coautor. Cuando aceptas, la publicación aparece en tu perfil y llega también a tus seguidores.",
+      "empty": "No tienes invitaciones por ahora",
+      "invited_by": "{{username}} te ha invitado a colaborar",
+      "view_post": "Ver la publicación de {{username}}",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "accepted": "Ahora colaboras en esta publicación",
+      "accept_error": "No se ha podido aceptar la invitación",
+      "decline_error": "No se ha podido rechazar la invitación"
     }
   },
   "auth": {
@@ -1131,7 +1133,6 @@
     "brand_name": "CircleSfera",
     "for_you": "Para ti",
     "following": "Siguiendo",
-    "favorites": "Favoritos",
     "no_posts": "Todavía no hay publicaciones. ¡Explora para encontrar creadores!",
     "no_posts_title": "Sin publicaciones recientes",
     "login_required_title": "Inicia sesión",
@@ -1139,11 +1140,12 @@
     "no_following_posts_title": "Aún no sigues a nadie o no hay publicaciones",
     "no_following_posts_desc": "Explora creadores sugeridos o pasa a Para ti para descubrir contenido trending.",
     "switch_to_foryou": "Ir a Para ti",
-    "no_favorites_posts_title": "Aún no hay publicaciones de tus Favoritos",
-    "no_favorites_posts_desc": "Elige hasta 50 perfiles que sigues y lee solo los suyos aquí, de más reciente a más antiguo.",
-    "manage_favorites": "Elegir Favoritos",
     "error_title": "No se pudo cargar el feed",
-    "error_message": "Algo salió mal al cargar las publicaciones. Inténtalo de nuevo."
+    "error_message": "Algo salió mal al cargar las publicaciones. Inténtalo de nuevo.",
+    "no_favorites_posts_desc": "Elige hasta 50 perfiles que sigues y lee solo los suyos aquí, de más reciente a más antiguo.",
+    "favorites": "Favoritos",
+    "no_favorites_posts_title": "Aún no hay publicaciones de tus Favoritos",
+    "manage_favorites": "Elegir Favoritos"
   },
   "feedPrefs": {
     "content_title": "Preferencias de contenido",
@@ -1175,24 +1177,6 @@
     "post_hide_error": "No se pudo ocultar la publicación",
     "author_hidden": "Autor ocultado de tu feed",
     "author_hide_error": "No se pudo ocultar al autor"
-  },
-  "favorites": {
-    "title": "Favoritos",
-    "desc": "Hasta {{max}} perfiles que sigues. Sus publicaciones forman tu feed de Favoritos, de más reciente a más antiguo. Nadie sabe quién está en tu lista.",
-    "count": "{{count}} de {{max}}",
-    "loading": "Cargando…",
-    "empty": "Aún no tienes Favoritos.",
-    "add_label": "Añadir a {{username}} a Favoritos",
-    "remove_label": "Quitar a {{username}} de Favoritos",
-    "add": "Añadir a Favoritos",
-    "remove": "Quitar de Favoritos",
-    "added": "Añadido a Favoritos",
-    "removed": "Quitado de Favoritos",
-    "full": "Puedes tener hasta {{max}} Favoritos. Quita uno antes.",
-    "not_followed": "Solo los perfiles que sigues pueden ser Favoritos.",
-    "error": "No se pudieron cambiar tus Favoritos. Inténtalo de nuevo.",
-    "following": "Personas que sigues",
-    "load_more": "Ver más"
   },
   "explore": {
     "page_title": "Explora el Universo",
@@ -1518,14 +1502,14 @@
       "why": "¿Por qué?",
       "close_friends": "Mejores Amigos",
       "following": "Siguiendo",
-      "favorite": "Favoritos",
       "signals_desc": {
         "ranked_for_you": "Nuestro algoritmo ha clasificado este contenido como altamente relevante para ti basándose en tus intereses y actividad.",
         "popular": "Esta publicación está recibiendo mucha interacción en la plataforma en este momento.",
         "network": "Personas de tu red o a las que sigues están interactuando con esta publicación.",
         "close_friend": "El autor de esta publicación está en tu lista de Mejores Amigos.",
         "generic": "Te recomendamos esto por: {{signal}}"
-      }
+      },
+      "favorite": "Favoritos"
     },
     "checkout_canceled": "El pago se canceló.",
     "checkout_success": "Pago correcto. El contenido se desbloqueará en breve.",
@@ -2443,7 +2427,6 @@
     "removal_appeal_cta": "Apelar",
     "just_now": "ahora",
     "view_live": "Ver el directo",
-    "collab_invitations_cta": "Ver invitaciones",
     "filters": {
       "label": "Filtrar actividad",
       "all": "Todo",
@@ -2455,7 +2438,8 @@
       "and": "y",
       "and_others_one": "y {{count}} más",
       "and_others_other": "y {{count}} más"
-    }
+    },
+    "collab_invitations_cta": "Ver invitaciones"
   },
   "chat": {
     "loading": "Cargando chats...",
@@ -2603,7 +2587,40 @@
     "hidden_requests_desc": "Solicitudes de mensaje que contienen alguna de tus palabras ocultas. No te avisamos de ellas.",
     "no_hidden_requests": "No hay solicitudes ocultas",
     "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores.",
-    "locked_not_for_sale": "Este mensaje de pago ya no está a la venta."
+    "locked_not_for_sale": "Este mensaje de pago ya no está a la venta.",
+    "preferences": {
+      "mute": "Silenciar mensajes",
+      "mute_hint": "Sin notificaciones de este chat",
+      "muted_always": "Silenciado hasta que lo actives",
+      "muted_until": "Silenciado hasta {{time}}",
+      "mute_for": "Silenciar durante",
+      "durations": {
+        "1h": "1 hora",
+        "8h": "8 horas",
+        "1w": "1 semana",
+        "always": "Hasta que lo active"
+      },
+      "pin": "Fijar chat",
+      "pin_hint": "Mantenlo arriba en tu bandeja, hasta 3",
+      "muted": "Silenciado",
+      "pinned": "Fijado",
+      "error": "No se ha podido guardar. Inténtalo de nuevo."
+    },
+    "forward": "Reenviar",
+    "forwarded": "Reenviado",
+    "forward_sheet": {
+      "title": "Reenviar a",
+      "search": "Buscar chats",
+      "limit": "Elige hasta {{count}} chats",
+      "send_one": "Enviar a {{count}} chat",
+      "send_other": "Enviar a {{count}} chats",
+      "none": "No hay chats a los que reenviar",
+      "sent_one": "Reenviado a {{count}} chat",
+      "sent_other": "Reenviado a {{count}} chats",
+      "partly_one": "{{count}} chat no ha podido recibirlo",
+      "partly_other": "{{count}} chats no han podido recibirlo",
+      "error": "No se ha podido reenviar el mensaje"
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -6353,7 +6370,6 @@
       "STRIPE_CUSTOMER_MISSING": "No hemos encontrado tus datos de facturación. Contacta con soporte.",
       "PROMOTION_ID_MISSING": "Falta la promoción. Inténtalo de nuevo.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Cambia a un perfil de Creador o Negocio para ganar dinero.",
-      "CONTENT_CHANGED_SINCE_REVIEW": "Su autor lo ha cambiado después de que lo abrieras. Vuelve a mirarlo.",
       "POST_NOT_FOUND": "Esta publicación ya no está disponible.",
       "STORY_NOT_FOUND": "Esta historia ya no está disponible.",
       "MEDIA_NOT_FOUND": "No hemos encontrado ese archivo.",
@@ -6432,21 +6448,25 @@
       "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado.",
       "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
       "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
-      "COLLAB_NOT_ALLOWED": "Solo una publicación pública y no de pago puede tener un colaborador, y nunca su autor.",
-      "COLLABORATOR_EXISTS": "Esta publicación ya tiene un colaborador.",
-      "COLLAB_NOT_FOUND": "Esta invitación ya no está disponible.",
-      "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
       "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
       "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
-      "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
-      "TIP_AMOUNT_NOT_ALLOWED": "Elige uno de los importes que se muestran.",
-      "WEEKLY_SUPPORT_LIMIT_REACHED": "Has llegado al máximo que puedes dar en una semana, entre propinas y regalos.",
-      "CONTENT_UNDER_REVIEW": "Este contenido se pone a la venta en cuanto se revisa. Vuelve a intentarlo en unos minutos.",
-      "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
-      "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
-      "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",
       "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
-      "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes."
+      "PAYER_UNDER_AGE": "Puedes pagar a partir de los {{minAge}} años, con tu identidad y tu fecha de nacimiento verificadas. Si ya te verificaste antes, vuelve a hacerlo en Ajustes → Cuenta.",
+      "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
+      "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
+      "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",
+      "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes.",
+      "CONTENT_UNDER_REVIEW": "Este contenido se pone a la venta en cuanto se revisa. Vuelve a intentarlo en unos minutos.",
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "Has llegado al máximo que puedes dar en una semana, entre propinas y regalos.",
+      "COLLAB_NOT_ALLOWED": "Solo una publicación pública y no de pago puede tener un colaborador, y nunca su autor.",
+      "COLLABORATOR_EXISTS": "Esta publicación ya tiene un colaborador.",
+      "TIP_AMOUNT_NOT_ALLOWED": "Elige uno de los importes que se muestran.",
+      "CONTENT_CHANGED_SINCE_REVIEW": "Su autor lo ha cambiado después de que lo abrieras. Vuelve a mirarlo.",
+      "COLLAB_NOT_FOUND": "Esta invitación ya no está disponible.",
+      "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
+      "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
+      "CHAT_PINS_FULL": "Ya tienes 3 chats fijados. Quita uno para fijar otro.",
+      "MESSAGE_NOT_FORWARDABLE": "Este mensaje no se puede reenviar."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",
@@ -6532,5 +6552,23 @@
     "unrestricted_toast": "Ya no restringes a {{username}}.",
     "error": "No se pudo cambiar la restricción. Inténtalo de nuevo.",
     "restrict_user": "Restringir a {{username}}"
+  },
+  "favorites": {
+    "title": "Favoritos",
+    "desc": "Hasta {{max}} perfiles que sigues. Sus publicaciones forman tu feed de Favoritos, de más reciente a más antiguo. Nadie sabe quién está en tu lista.",
+    "count": "{{count}} de {{max}}",
+    "loading": "Cargando…",
+    "empty": "Aún no tienes Favoritos.",
+    "add_label": "Añadir a {{username}} a Favoritos",
+    "remove_label": "Quitar a {{username}} de Favoritos",
+    "add": "Añadir a Favoritos",
+    "remove": "Quitar de Favoritos",
+    "added": "Añadido a Favoritos",
+    "removed": "Quitado de Favoritos",
+    "full": "Puedes tener hasta {{max}} Favoritos. Quita uno antes.",
+    "not_followed": "Solo los perfiles que sigues pueden ser Favoritos.",
+    "error": "No se pudieron cambiar tus Favoritos. Inténtalo de nuevo.",
+    "following": "Personas que sigues",
+    "load_more": "Ver más"
   }
 }

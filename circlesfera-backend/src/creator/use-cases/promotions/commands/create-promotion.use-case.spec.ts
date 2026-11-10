@@ -5,6 +5,13 @@ import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { CreatePromotionUseCase } from './create-promotion.use-case.js';
 
+// Whoever pays here is an adult, unless a test says otherwise; the rule is
+// tested on its own (adult-payer.policy.spec.ts).
+const adultPayer = vi.hoisted(() => ({
+  assertAdultPayer: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../../../../common/policies/adult-payer.policy.js', () => adultPayer);
+
 describe('CreatePromotionUseCase', () => {
   let useCase: CreatePromotionUseCase;
 
@@ -115,6 +122,22 @@ describe('CreatePromotionUseCase', () => {
         }),
       }),
     );
+    // Whoever pays is an adult with a verified identity.
+    expect(adultPayer.assertAdultPayer).toHaveBeenCalledWith(
+      expect.anything(),
+      'u-1',
+    );
+  });
+
+  it('creates no promotion when whoever pays is not an adult', async () => {
+    adultPayer.assertAdultPayer.mockRejectedValueOnce(
+      Object.assign(new Error('under age'), { errorCode: 'PAYER_UNDER_AGE' }),
+    );
+    await expect(
+      useCase.execute('u-1', 'post', 'post-100', 7, 50),
+    ).rejects.toMatchObject({ errorCode: 'PAYER_UNDER_AGE' });
+    expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
+    expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
   });
 
   it('rejects promotion when target post is not owned by user', async () => {
