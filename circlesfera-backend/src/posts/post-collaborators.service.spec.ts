@@ -1,4 +1,4 @@
-import { ErrorCode } from '@circlesfera/shared';
+import { ErrorCode, PROFILE_PINS_MAX } from '@circlesfera/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   PostCollaboratorsService,
@@ -282,5 +282,82 @@ describe('PostCollaboratorsService', () => {
       shownCollaborator({ status: 'PENDING', profile: { id: 'ana' } }),
     ).toBeNull();
     expect(shownCollaborator(null)).toBeNull();
+  });
+  describe("pin on the collaborator's own profile", () => {
+    let tx: any;
+    beforeEach(() => {
+      tx = {
+        postCollaborator: {
+          findFirst: vi.fn().mockResolvedValue({ pinnedAt: null }),
+          count: vi.fn().mockResolvedValue(0),
+          update: vi.fn(),
+        },
+        post: { count: vi.fn().mockResolvedValue(0) },
+        $queryRaw: vi.fn().mockResolvedValue([]),
+      };
+      (prisma as any).$transaction = vi.fn((cb: any) => cb(tx));
+    });
+
+    it('pins an accepted collaboration of a listed post, under the Profile lock', async () => {
+      const result = await service.pin('ana', 'post-1');
+
+      expect(tx.postCollaborator.findFirst).toHaveBeenCalledWith({
+        where: {
+          postId: 'post-1',
+          profileId: 'ana',
+          status: 'ACCEPTED',
+          post: expect.objectContaining({ deletedAt: null, archivedAt: null }),
+        },
+        select: { pinnedAt: true },
+      });
+      expect(tx.$queryRaw).toHaveBeenCalled();
+      expect(tx.postCollaborator.update).toHaveBeenCalledWith({
+        where: { postId: 'post-1' },
+        data: { pinnedAt: expect.any(Date) },
+      });
+      expect(result).toEqual({ postId: 'post-1', pinnedAt: expect.any(Date) });
+    });
+
+    it('counts its own pins and its pins as collaborator toward one limit', async () => {
+      tx.post.count.mockResolvedValue(PROFILE_PINS_MAX - 1);
+      tx.postCollaborator.count.mockResolvedValue(1);
+
+      await expect(service.pin('ana', 'post-1')).rejects.toMatchObject({
+        response: { errorCode: ErrorCode.PROFILE_PINS_FULL },
+      });
+      expect(tx.postCollaborator.update).not.toHaveBeenCalled();
+    });
+
+    it('changes nothing when already pinned, and refuses one it does not co-author', async () => {
+      const at = new Date('2026-11-01T00:00:00Z');
+      tx.postCollaborator.findFirst.mockResolvedValueOnce({ pinnedAt: at });
+      await expect(service.pin('ana', 'post-1')).resolves.toEqual({
+        postId: 'post-1',
+        pinnedAt: at,
+      });
+
+      tx.postCollaborator.findFirst.mockResolvedValueOnce(null);
+      await expect(service.pin('leo', 'post-1')).rejects.toMatchObject({
+        response: { errorCode: ErrorCode.COLLAB_NOT_FOUND },
+      });
+      expect(tx.postCollaborator.update).not.toHaveBeenCalled();
+    });
+
+    it('unpins only its own accepted collaboration', async () => {
+      prisma.postCollaborator.updateMany.mockResolvedValueOnce({ count: 1 });
+      await expect(service.unpin('ana', 'post-1')).resolves.toEqual({
+        postId: 'post-1',
+        pinnedAt: null,
+      });
+      expect(prisma.postCollaborator.updateMany).toHaveBeenCalledWith({
+        where: { postId: 'post-1', profileId: 'ana', status: 'ACCEPTED' },
+        data: { pinnedAt: null },
+      });
+
+      prisma.postCollaborator.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(service.unpin('leo', 'post-1')).rejects.toMatchObject({
+        response: { errorCode: ErrorCode.COLLAB_NOT_FOUND },
+      });
+    });
   });
 });

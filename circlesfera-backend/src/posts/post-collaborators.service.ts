@@ -1,5 +1,5 @@
 import type { NotificationCreateEvent } from '@circlesfera/shared';
-import { ErrorCode } from '@circlesfera/shared';
+import { ErrorCode, PROFILE_PINS_MAX } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -10,6 +10,7 @@ import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { countProfilePins } from './profile-pins.js';
 
 const NotificationType = $Enums.NotificationType;
 
@@ -243,6 +244,44 @@ export class PostCollaboratorsService {
       });
     }
     return { postId, status: 'ACCEPTED' as const };
+  }
+
+  // The collaborator pins the post on its own profile. The author's pin is
+  // apart and stays the author's. It counts toward the collaborator's
+  // PROFILE_PINS_MAX; pinning one already pinned changes nothing.
+  async pin(profileId: string, postId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.postCollaborator.findFirst({
+        where: { postId, profileId, status: 'ACCEPTED', post: LISTED_POST },
+        select: { pinnedAt: true },
+      });
+      if (!row) throw notFound();
+      if (row.pinnedAt) return { postId, pinnedAt: row.pinnedAt };
+      // The Profile is locked so two pins at once cannot pass the limit.
+      await tx.$queryRaw`SELECT id FROM "profiles" WHERE id = ${profileId} FOR UPDATE`;
+      if ((await countProfilePins(tx, profileId)) >= PROFILE_PINS_MAX) {
+        throw AppException.Conflict(
+          ErrorCode.PROFILE_PINS_FULL,
+          `A Profile pins at most ${PROFILE_PINS_MAX} posts`,
+        );
+      }
+      const pinnedAt = new Date();
+      await tx.postCollaborator.update({
+        where: { postId },
+        data: { pinnedAt },
+      });
+      return { postId, pinnedAt };
+    });
+  }
+
+  // The collaborator unpins it from its own profile.
+  async unpin(profileId: string, postId: string) {
+    const updated = await this.prisma.postCollaborator.updateMany({
+      where: { postId, profileId, status: 'ACCEPTED' },
+      data: { pinnedAt: null },
+    });
+    if (updated.count === 0) throw notFound();
+    return { postId, pinnedAt: null };
   }
 
   // The invited Profile declines, or the collaborator leaves: the post is
