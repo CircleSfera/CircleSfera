@@ -53,6 +53,8 @@ export enum ErrorCode {
   PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
   // Charging for anything needs a verified identity of someone 18 or older.
   MONETIZATION_UNDER_AGE = 'MONETIZATION_UNDER_AGE',
+  // Paying for anything needs a verified identity of someone 18 or older.
+  PAYER_UNDER_AGE = 'PAYER_UNDER_AGE',
   // Messages are no longer sold: none can be sent with a price, and none
   // sent before can be bought now.
   PAID_MESSAGES_UNAVAILABLE = 'PAID_MESSAGES_UNAVAILABLE',

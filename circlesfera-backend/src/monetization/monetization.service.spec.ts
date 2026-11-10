@@ -12,6 +12,13 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SHARE_SQL } from './earnings-sql.js';
 import { MonetizationService } from './monetization.service.js';
 
+// Whoever pays here is an adult, unless a test says otherwise; the rule is
+// tested on its own (adult-payer.policy.spec.ts).
+const adultPayer = vi.hoisted(() => ({
+  assertAdultPayer: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../common/policies/adult-payer.policy.js', () => adultPayer);
+
 // The SQL text and the values of a raw query the service ran.
 // A person verified as an adult, who may charge.
 const ADULT = {
@@ -821,6 +828,32 @@ describe('MonetizationService', () => {
       ).rejects.toThrow('Sender not found');
     });
 
+    it('opens no checkout when whoever pays is not an adult', async () => {
+      accounts.set('creator-1', 'acct_1');
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        profileId: 'creator-1-profile',
+        profile: tippable('creator-1'),
+      });
+      adultPayer.assertAdultPayer.mockRejectedValueOnce(
+        Object.assign(new Error('under age'), { errorCode: 'PAYER_UNDER_AGE' }),
+      );
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'creator-1',
+          tipCents,
+          'http://localhost/return',
+          'post-123',
+        ),
+      ).rejects.toMatchObject({ errorCode: 'PAYER_UNDER_AGE' });
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
     it('creates Checkout with the requested amount and the platform fee', async () => {
       accounts.set('creator-1', 'acct_1');
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
@@ -870,6 +903,11 @@ describe('MonetizationService', () => {
           },
         }),
         { stripeAccount: expect.any(String), idempotencyKey: 'idemp-tip' },
+      );
+      // Whoever pays is an adult with a verified identity.
+      expect(adultPayer.assertAdultPayer).toHaveBeenCalledWith(
+        expect.anything(),
+        'fan-1',
       );
     });
 

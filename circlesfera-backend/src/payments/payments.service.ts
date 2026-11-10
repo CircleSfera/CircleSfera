@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
 import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { assertAdultPayer } from '../common/policies/adult-payer.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
   type ConnectAccountCompanyFields,
@@ -186,6 +187,7 @@ export class PaymentsService {
     profileId?: string,
   ): Promise<Stripe.Checkout.Session | { url: string }> {
     await assertRealMoneyAllowed(this.prisma, userId);
+    await assertAdultPayer(this.prisma, userId);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { platformSubscriptions: true },

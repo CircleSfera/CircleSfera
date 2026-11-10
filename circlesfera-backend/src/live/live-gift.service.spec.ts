@@ -8,6 +8,13 @@ import type { AppGateway } from '../socket/app.gateway.js';
 import { LIVE_GIFT_CATALOG } from './gift-catalog.js';
 import { LiveGiftService } from './live-gift.service.js';
 
+// Whoever pays here is an adult, unless a test says otherwise; the rule is
+// tested on its own (adult-payer.policy.spec.ts).
+const adultPayer = vi.hoisted(() => ({
+  assertAdultPayer: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../common/policies/adult-payer.policy.js', () => adultPayer);
+
 // A person verified as an adult, who may charge.
 const ADULT = {
   identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -232,6 +239,11 @@ describe('LiveGiftService', () => {
           payment_intent_data: { application_fee_amount: platformFee },
         }),
         expect.objectContaining({ stripeAccount: 'acct_1' }),
+      );
+      // Whoever pays is an adult with a verified identity.
+      expect(adultPayer.assertAdultPayer).toHaveBeenCalledWith(
+        expect.anything(),
+        'fan-1',
       );
     });
   });

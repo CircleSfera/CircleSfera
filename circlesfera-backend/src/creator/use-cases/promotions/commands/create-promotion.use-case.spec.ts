@@ -5,6 +5,13 @@ import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { CreatePromotionUseCase } from './create-promotion.use-case.js';
 
+// Whoever pays here is an adult, unless a test says otherwise; the rule is
+// tested on its own (adult-payer.policy.spec.ts).
+const adultPayer = vi.hoisted(() => ({
+  assertAdultPayer: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../../../../common/policies/adult-payer.policy.js', () => adultPayer);
+
 describe('CreatePromotionUseCase', () => {
   let useCase: CreatePromotionUseCase;
 
@@ -114,6 +121,11 @@ describe('CreatePromotionUseCase', () => {
           dailyBudgetCents: 5000,
         }),
       }),
+    );
+    // Whoever pays is an adult with a verified identity.
+    expect(adultPayer.assertAdultPayer).toHaveBeenCalledWith(
+      expect.anything(),
+      'u-1',
     );
   });
 

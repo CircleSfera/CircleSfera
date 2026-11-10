@@ -11,6 +11,13 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { PaymentsService, planAccountType } from './payments.service.js';
 
+// Whoever pays here is an adult, unless a test says otherwise; the rule is
+// tested on its own (adult-payer.policy.spec.ts).
+const adultPayer = vi.hoisted(() => ({
+  assertAdultPayer: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../common/policies/adult-payer.policy.js', () => adultPayer);
+
 const asEvent = (event: unknown) => event as unknown as Stripe.Event;
 
 describe('PaymentsService', () => {
@@ -583,6 +590,11 @@ describe('PaymentsService', () => {
         expect.objectContaining({
           idempotencyKey: 'checkout_sub_tax_u_year:prof_1:plan_1:YEARLY',
         }),
+      );
+      // Whoever pays is an adult with a verified identity.
+      expect(adultPayer.assertAdultPayer).toHaveBeenCalledWith(
+        expect.anything(),
+        'u_year',
       );
     });
 
