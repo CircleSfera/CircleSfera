@@ -50,6 +50,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
               username: 'creator',
               isAccountBanned: false,
               suspendedUntil: null,
+              monetizationStatus: 'APPROVED',
               user: {
                 isActive: true,
                 isRootBanned: false,
