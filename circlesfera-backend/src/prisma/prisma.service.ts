@@ -28,6 +28,14 @@ export const SIGN_IN_SECRET_OMIT = {
   verificationToken: true,
 } as const;
 
+// What a member of a chat chose for themselves (muted, pinned). Every read of
+// a chat lists its members, and nobody else may learn these; the readers
+// that need them select them by name, for the member's own row.
+export const PARTICIPANT_PRIVATE_OMIT = {
+  mutedUntil: true,
+  pinnedAt: true,
+} as const;
+
 // A Profile's place in the monetization programme is between it and staff:
 // whether it applied, was refused or revoked, why, and who decided.
 export const PROFILE_PRIVATE_OMIT = {
@@ -42,6 +50,7 @@ export const PROFILE_PRIVATE_OMIT = {
 const clientOmit = {
   user: USER_SECRET_OMIT,
   signIn: SIGN_IN_SECRET_OMIT,
+  participant: PARTICIPANT_PRIVATE_OMIT,
   profile: PROFILE_PRIVATE_OMIT,
 } as const;
 

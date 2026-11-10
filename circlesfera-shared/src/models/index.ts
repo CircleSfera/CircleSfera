@@ -310,6 +310,11 @@ export interface Conversation {
   name?: string | null;
   participants: Participant[];
   messages: Message[];
+  // The viewer's own choices for the chat, never another member's: until
+  // when it is muted (no push; far in the future for "always", null when
+  // not muted) and when they pinned it at the top of their inbox.
+  mutedUntil?: Date | string | null;
+  pinnedAt?: Date | string | null;
 }
 
 export interface Notification {

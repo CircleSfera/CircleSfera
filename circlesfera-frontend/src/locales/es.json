@@ -2602,6 +2602,24 @@
     "hidden_requests_desc": "Solicitudes de mensaje que contienen alguna de tus palabras ocultas. No te avisamos de ellas.",
     "no_hidden_requests": "No hay solicitudes ocultas",
     "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores.",
+    "preferences": {
+      "mute": "Silenciar mensajes",
+      "mute_hint": "Sin notificaciones de este chat",
+      "muted_always": "Silenciado hasta que lo actives",
+      "muted_until": "Silenciado hasta {{time}}",
+      "mute_for": "Silenciar durante",
+      "durations": {
+        "1h": "1 hora",
+        "8h": "8 horas",
+        "1w": "1 semana",
+        "always": "Hasta que lo active"
+      },
+      "pin": "Fijar chat",
+      "pin_hint": "Mantenlo arriba en tu bandeja, hasta 3",
+      "muted": "Silenciado",
+      "pinned": "Fijado",
+      "error": "No se ha podido guardar. Inténtalo de nuevo."
+    },
     "locked_not_for_sale": "Este mensaje de pago ya no está a la venta."
   },
   "creator": {
@@ -6431,6 +6449,7 @@
       "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado.",
       "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
       "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
+      "CHAT_PINS_FULL": "Ya tienes 3 chats fijados. Quita uno para fijar otro.",
       "COLLAB_NOT_ALLOWED": "Solo una publicación pública y no de pago puede tener un colaborador, y nunca su autor.",
       "COLLABORATOR_EXISTS": "Esta publicación ya tiene un colaborador.",
       "COLLAB_NOT_FOUND": "Esta invitación ya no está disponible.",
