@@ -81,7 +81,7 @@ describe('DeletePostUseCase', () => {
       [
         {
           recipientId: 'profile-1',
-          senderId: 'staff-profile',
+          senderId: undefined,
           type: 'MODERATION',
           notice: {
             key: 'content_moderated',

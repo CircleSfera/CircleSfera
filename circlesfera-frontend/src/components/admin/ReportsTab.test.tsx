@@ -71,6 +71,26 @@ describe('ReportsTab', () => {
     );
   });
 
+  it('names who filed a report, and CircleSfera when no Profile did', async () => {
+    vi.mocked(adminApi.getReports).mockResolvedValue(
+      page([
+        report({ reporter: { profile: { username: 'luis' } } }),
+        report({
+          id: 'r2',
+          reporter: null,
+          targetContent: { author: 'bea', text: 'x' },
+        }),
+      ]) as never,
+    );
+    const { i18n } = await openReport();
+    expect(await screen.findByText('@luis')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('@bea'));
+    expect(
+      await screen.findByText(i18n!.t('admin.reports.ai_reporter')),
+    ).toBeInTheDocument();
+  });
+
   it('claims a pending report', async () => {
     vi.mocked(adminApi.claimReport).mockResolvedValue({} as never);
     const { i18n } = await openReport();

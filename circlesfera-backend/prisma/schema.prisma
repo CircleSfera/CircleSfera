@@ -421,17 +421,17 @@ model Profile {
 
   // Account Ban Flags
 
-  isAccountBanned        Boolean            @default(false)
+  isAccountBanned        Boolean             @default(false)
   // The monetization programme: a Profile charges only once staff approve
   // its application (MonetizationStatus). The note is the reason given to
   // the creator for a refusal or a revocation.
-  monetizationStatus     MonetizationStatus @default(NONE)
+  monetizationStatus     MonetizationStatus  @default(NONE)
   monetizationAppliedAt  DateTime?
-  monetizationPitch      String?            @db.VarChar(500)
+  monetizationPitch      String?             @db.VarChar(500)
   monetizationReviewedAt DateTime?
   monetizationReviewedBy String?
-  monetizationNote       String?            @db.VarChar(500)
-  accountBanReason       String?            @db.Text
+  monetizationNote       String?             @db.VarChar(500)
+  accountBanReason       String?             @db.Text
   suspendedUntil         DateTime?
   // The strike that caused the current ban or suspension, if any. An appeal
   // about that strike lifts only a restriction it caused; staff restrictions
@@ -443,34 +443,34 @@ model Profile {
   sanctionedAt           DateTime?
   // Who may see this Profile's content: each Profile of a person chooses for
   // itself. PRIVATE asks for an accepted follow.
-  privacyLevel           Visibility         @default(PUBLIC)
+  privacyLevel           Visibility          @default(PUBLIC)
   // Whether others may share this Profile's posts and Frames to their
   // stories, as a card of the original. Off stops new shares only.
-  allowStoryShares       Boolean            @default(true)
+  allowStoryShares       Boolean             @default(true)
   // Who may mention this Profile and who may tag it. A mention or tag from
   // someone not allowed is kept out silently: no notice, no tag; nobody is
   // told. FOLLOWING means Profiles this one follows.
   mentionsFrom           InteractionAudience @default(EVERYONE)
   tagsFrom               InteractionAudience @default(EVERYONE)
   // Tags wait for this Profile's approval before they show on its profile.
-  manualTagApproval      Boolean            @default(false)
+  manualTagApproval      Boolean             @default(false)
   // Whether Profiles it does not follow may start a chat with it (a message
   // request). Profiles it follows always reach its inbox.
-  messageRequests        Boolean            @default(true)
+  messageRequests        Boolean             @default(true)
   // Push notifications of this Profile; the person's other Profiles keep
   // their own choice. Off pauses every push of the Profile.
-  pushNotifications      Boolean            @default(true)
+  pushNotifications      Boolean             @default(true)
   // Push by group, each on its own. Moderation, plan and payment notices
   // have no group: only the pause stops their push.
-  pushLikes              Boolean            @default(true)
-  pushComments           Boolean            @default(true) // comments and mentions
-  pushFollows            Boolean            @default(true) // new followers and requests
-  pushMessages           Boolean            @default(true)
-  pushLive               Boolean            @default(true) // live broadcasts
+  pushLikes              Boolean             @default(true)
+  pushComments           Boolean             @default(true) // comments and mentions
+  pushFollows            Boolean             @default(true) // new followers and requests
+  pushMessages           Boolean             @default(true)
+  pushLive               Boolean             @default(true) // live broadcasts
   // Whether a story is kept in the archive when its 24 hours end. Off, a
   // story that ends while it is off is erased, unless it is in a highlight;
   // storyArchiveOffAt is when it was turned off.
-  saveStoriesToArchive   Boolean            @default(true)
+  saveStoriesToArchive   Boolean             @default(true)
   storyArchiveOffAt      DateTime?
 
   // Why staff suspended this Profile directly; empty for a suspension that
@@ -2723,7 +2723,9 @@ enum IllegalNoticeStatus {
 
 model Report {
   id         String       @id @default(uuid())
-  reporterId String
+  /// Who filed it; none when CircleSfera filed it itself (automatic
+  /// moderation, a moderation rule).
+  reporterId String?
   reason     ReportReason @default(OTHER)
   details    String?
   status     ReportStatus @default(PENDING)
@@ -2747,7 +2749,7 @@ model Report {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reporter      Profile         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporter      Profile?        @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   notifications Notification[]
   strikes       ProfileStrike[]
   // Set when the report came from a support ticket handed to moderation

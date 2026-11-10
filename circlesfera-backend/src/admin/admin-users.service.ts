@@ -35,7 +35,6 @@ import {
   STAFF_LIST_PAGE_MAX,
 } from './dto/staff-list-page.dto.js';
 import type { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
-import { resolveAdminNotificationSenderId } from './utils/resolve-admin-notification-sender.js';
 import { userListRoleWhere } from './utils/user-list-role-filter.js';
 
 type VLevel = 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
@@ -594,10 +593,6 @@ export class AdminUsersService {
       await this.notificationsService
         .create({
           recipientId: recipientProfileId,
-          senderId: await resolveAdminNotificationSenderId(
-            this.prisma,
-            adminId,
-          ),
           type: NotificationType.MODERATION,
           notice: { key: 'account_suspended', until, reason },
         })
@@ -641,10 +636,6 @@ export class AdminUsersService {
       await this.notificationsService
         .create({
           recipientId: recipientProfileId,
-          senderId: await resolveAdminNotificationSenderId(
-            this.prisma,
-            adminId,
-          ),
           type: NotificationType.MODERATION,
           notice: { key: 'account_warned', reason },
         })
@@ -1029,10 +1020,6 @@ export class AdminUsersService {
       await this.notificationsService
         .create({
           recipientId: recipientProfileId,
-          senderId: await resolveAdminNotificationSenderId(
-            this.prisma,
-            adminId,
-          ),
           type: NotificationType.MODERATION,
           notice: { key: 'bot_labeled' },
           targetType: 'account_bot_label',

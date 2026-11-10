@@ -70,17 +70,12 @@ export class DeletePostUseCase {
       reason,
     );
 
-    await tellAuthorOfRemoval(
-      this.prisma,
-      (notice) => this.notifications.create(notice),
-      adminId,
-      {
-        kind: 'POST',
-        id: postId,
-        authorProfileId: post.profileId,
-        note: reason,
-      },
-    );
+    await tellAuthorOfRemoval((notice) => this.notifications.create(notice), {
+      kind: 'POST',
+      id: postId,
+      authorProfileId: post.profileId,
+      note: reason,
+    });
 
     // About a Profile: to the email that Profile signs in with.
     const email = await emailForProfile(this.prisma, post.profileId);

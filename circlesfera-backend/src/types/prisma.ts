@@ -1,6 +1,6 @@
 export interface Report {
   id: string;
-  reporterId: string;
+  reporterId: string | null;
   reason: string;
   details: string | null;
   status: string;

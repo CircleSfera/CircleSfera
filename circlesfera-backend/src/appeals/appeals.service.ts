@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationType, type Prisma } from '@prisma/client';
-import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { resolvedAtOnStatusChange } from '../common/utils/resolved-at.util.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
@@ -577,16 +576,11 @@ export class AppealsService {
     };
     this.eventEmitter.emit('moderation.report_filed', statusEvent);
 
-    const senderId = await resolveAdminNotificationSenderId(
-      this.prisma,
-      adminId,
-    );
     const appealProfile = await this.appealedProfile(appeal);
     if (appealProfile) {
       await this.notificationsService
         .create({
           recipientId: appealProfile.id,
-          senderId,
           type: NotificationType.MODERATION,
           notice: {
             key: 'appeal_decided',

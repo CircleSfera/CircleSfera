@@ -4,14 +4,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ModerationStatus, NotificationType } from '@prisma/client';
 import { Job, UnrecoverableError } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveSystemModeratorActor } from '../../admin/utils/resolve-admin-notification-sender.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService } from '../ai.service.js';
 import { AIProcessor, ruleMatches } from './ai.processor.js';
-
-vi.mock('../../admin/utils/resolve-admin-notification-sender.js', () => ({
-  resolveSystemModeratorActor: vi.fn(),
-}));
 
 describe('AIProcessor', () => {
   let processor: AIProcessor;
@@ -570,10 +565,6 @@ describe('AIProcessor', () => {
         category_scores: {},
       });
       prisma.report.findFirst.mockResolvedValue(null);
-      (resolveSystemModeratorActor as any).mockResolvedValue({
-        userId: 'admin-user-1',
-        profileId: 'admin-prof-1',
-      });
     });
 
     it.each([
@@ -596,7 +587,6 @@ describe('AIProcessor', () => {
         });
         expect(prisma.report.create).toHaveBeenCalledWith({
           data: {
-            reporterId: 'admin-prof-1',
             targetType: type,
             targetId: 't-1',
             reason: 'OTHER',
@@ -638,13 +628,13 @@ describe('AIProcessor', () => {
       expect(prisma.report.create).not.toHaveBeenCalled();
     });
 
-    it('files nothing without a staff profile to file it', async () => {
+    it('files the report as CircleSfera, naming no Profile as its reporter', async () => {
       prisma.moderationRule.findMany.mockResolvedValue([{ keyword: 'estafa' }]);
-      (resolveSystemModeratorActor as any).mockResolvedValue(null);
 
       await processor.process(ruleJob('POST', 'una estafa'));
 
-      expect(prisma.report.create).not.toHaveBeenCalled();
+      const { data } = prisma.report.create.mock.calls[0][0];
+      expect(data).not.toHaveProperty('reporterId');
     });
 
     it('a failure of the rules is logged and the automatic checks still run', async () => {
@@ -783,10 +773,6 @@ describe('AIProcessor', () => {
       ]);
 
       prisma.post.update.mockResolvedValue({ profileId: 'author-prof-1' });
-      (resolveSystemModeratorActor as any).mockResolvedValue({
-        userId: 'admin-user-1',
-        profileId: 'admin-prof-1',
-      });
 
       await processor.process(job);
 
@@ -802,7 +788,6 @@ describe('AIProcessor', () => {
 
       expect(prisma.report.create).toHaveBeenCalledWith({
         data: {
-          reporterId: 'admin-prof-1',
           targetType: 'POST',
           targetId: 'p-bad',
           reason: 'OTHER',
@@ -817,7 +802,6 @@ describe('AIProcessor', () => {
 
       expect(eventEmitter.emit).toHaveBeenCalledWith('notification.create', {
         recipientId: 'author-prof-1',
-        senderId: 'admin-prof-1',
         type: NotificationType.MODERATION,
         notice: expect.objectContaining({
           key: 'content_moderated',
@@ -837,7 +821,7 @@ describe('AIProcessor', () => {
       expect(aiService.moderateContent).not.toHaveBeenCalled();
     });
 
-    it('handles Vector Firewall trigger when no system operator actor exists', async () => {
+    it('files and tells as CircleSfera when the Vector Firewall hides a story', async () => {
       const job = {
         name: 'moderate-content',
         data: {
@@ -852,13 +836,22 @@ describe('AIProcessor', () => {
         { id: 'sig-1', category: 'hate', similarity: 0.92 },
       ]);
       prisma.story.update.mockResolvedValue({ profileId: 'author-prof-2' });
-      (resolveSystemModeratorActor as any).mockResolvedValue(null);
 
       await processor.process(job);
 
+      // Filed and told by CircleSfera, whether or not any member of staff
+      // has a Profile: no reporter, no sender.
       expect(prisma.story.update).toHaveBeenCalled();
-      expect(prisma.report.create).not.toHaveBeenCalled();
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
+      const { data } = prisma.report.create.mock.calls[0][0];
+      expect(data).not.toHaveProperty('reporterId');
+      const [, payload] = vi
+        .mocked(eventEmitter.emit)
+        .mock.calls.find(([name]) => name === 'notification.create') as [
+        string,
+        Record<string, unknown>,
+      ];
+      expect(payload).toMatchObject({ recipientId: 'author-prof-2' });
+      expect(payload).not.toHaveProperty('senderId');
     });
 
     it('handles Vector Firewall trigger for COMMENT with non-existent author profile', async () => {
@@ -872,10 +865,6 @@ describe('AIProcessor', () => {
         { id: 'sig-1', category: 'violence', similarity: 0.99 },
       ]);
       prisma.comment.update.mockResolvedValue({ profileId: null });
-      (resolveSystemModeratorActor as any).mockResolvedValue({
-        userId: 'admin-u-1',
-        profileId: 'admin-prof-1',
-      });
 
       await processor.process(job);
 
@@ -905,10 +894,6 @@ describe('AIProcessor', () => {
       });
 
       prisma.post.update.mockResolvedValue({ profileId: 'author-prof-3' });
-      (resolveSystemModeratorActor as any).mockResolvedValue({
-        userId: 'admin-1',
-        profileId: 'admin-prof-1',
-      });
 
       await processor.process(job);
 
@@ -929,7 +914,6 @@ describe('AIProcessor', () => {
 
       expect(eventEmitter.emit).toHaveBeenCalledWith('notification.create', {
         recipientId: 'author-prof-3',
-        senderId: 'admin-prof-1',
         type: NotificationType.MODERATION,
         notice: expect.objectContaining({ status: 'flagged' }),
         postId: 'p-flagged',
@@ -965,10 +949,6 @@ describe('AIProcessor', () => {
       );
 
       prisma.post.update.mockResolvedValue({ profileId: 'author-prof-4' });
-      (resolveSystemModeratorActor as any).mockResolvedValue({
-        userId: 'admin-1',
-        profileId: 'admin-prof-1',
-      });
 
       // Should not throw, should continue to hide and notify
       await processor.process(job);
@@ -1014,10 +994,6 @@ describe('AIProcessor', () => {
         });
 
         prisma.story.update.mockResolvedValue({ profileId: 'author-prof-5' });
-        (resolveSystemModeratorActor as any).mockResolvedValue({
-          userId: 'admin-1',
-          profileId: 'admin-prof-1',
-        });
 
         await processor.process(job);
 

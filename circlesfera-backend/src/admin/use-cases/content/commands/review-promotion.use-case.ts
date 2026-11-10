@@ -8,7 +8,6 @@ import { AdminAction, NotificationType, PromotionStatus } from '@prisma/client';
 import { RefundPromotionUseCase } from '../../../../creator/use-cases/promotions/commands/refund-promotion.use-case.js';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
-import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
 
 @Injectable()
@@ -81,10 +80,6 @@ export class ReviewPromotionUseCase {
       `Status changed to ${status}${note ? `: ${note}` : ''}`,
     );
 
-    const senderId = await resolveAdminNotificationSenderId(
-      this.prisma,
-      adminId,
-    );
     const recipientProfile = await this.prisma.profile.findFirst({
       where: { userId: promo.userId },
       select: { id: true },
@@ -93,7 +88,6 @@ export class ReviewPromotionUseCase {
     if (recipientProfile) {
       await this.notificationsService.create({
         recipientId: recipientProfile.id,
-        senderId,
         type: NotificationType.MODERATION,
         notice:
           status === PromotionStatus.ACTIVE

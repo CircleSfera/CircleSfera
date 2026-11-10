@@ -12,7 +12,6 @@ import {
   type SuspensionCause,
 } from '@prisma/client';
 import type { Cache } from 'cache-manager';
-import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -204,7 +203,6 @@ export class ProfileStrikesService {
       );
     }
     await this.notify(
-      violation.adminId,
       violation.profileId,
       this.notice(result),
       this.notificationTarget(result.strike),
@@ -240,7 +238,6 @@ export class ProfileStrikesService {
       'Profile banned after a report review',
     );
     await this.notify(
-      params.adminId,
       params.profileId,
       { key: 'profile_banned' },
       STRIKE_NOTIFICATION_TARGET.BANNED,
@@ -288,7 +285,6 @@ export class ProfileStrikesService {
       'Profile suspended after a review',
     );
     await this.notify(
-      params.adminId,
       params.profileId,
       params.cause
         ? {
@@ -443,20 +439,15 @@ export class ProfileStrikesService {
   }
 
   private async notify(
-    adminId: string,
     recipientId: string,
     notice: Notice,
     targetType: string,
     targetId: string,
   ): Promise<void> {
-    const senderId = await resolveAdminNotificationSenderId(
-      this.prisma,
-      adminId,
-    );
+    // From CircleSfera: no member of staff is shown to the person.
     await this.notificationsService
       .create({
         recipientId,
-        senderId,
         type: NotificationType.MODERATION,
         notice,
         targetType,

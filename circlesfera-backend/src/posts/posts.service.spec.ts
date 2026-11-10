@@ -2477,7 +2477,7 @@ describe('PostsService', () => {
   describe('adminRemove', () => {
     it('throws NotFoundException when post does not exist', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce(null);
-      await expect(service.adminRemove('not-found', 'admin-1')).rejects.toThrow(
+      await expect(service.adminRemove('not-found')).rejects.toThrow(
         'Post not found',
       );
       expect(mockEventEmitter.emit).not.toHaveBeenCalled();
@@ -2493,7 +2493,7 @@ describe('PostsService', () => {
         moderationStatus: 'REMOVED',
       });
 
-      await service.adminRemove('p-admin', 'admin-1');
+      await service.adminRemove('p-admin');
       expect(mockPrismaService.post.update).toHaveBeenCalledWith({
         where: { id: 'p-admin' },
         data: {

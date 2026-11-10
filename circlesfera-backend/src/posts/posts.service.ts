@@ -1130,7 +1130,7 @@ export class PostsService {
   // included, for the six months its author has to appeal, and erased after.
   // The author is told in the app, with a way to appeal.
   // Throws NotFoundException if post not found
-  async adminRemove(id: string, adminId: string) {
+  async adminRemove(id: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
       select: { id: true },
@@ -1146,9 +1146,7 @@ export class PostsService {
       'REMOVED',
     );
     await tellAuthorOfRemoval(
-      this.prisma,
       (notice) => this.eventEmitter.emit('notification.create', notice),
-      adminId,
       { kind: 'POST', id, authorProfileId: removed.profileId },
     );
   }

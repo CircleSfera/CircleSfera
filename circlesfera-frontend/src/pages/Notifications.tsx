@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import logoSrc from '../assets/logo.png';
 import SEO from '../components/common/SEO';
 import { EmptyState, ErrorState } from '../components/ErrorEmptyStates';
 import { LoadingSpinner } from '../components/LoadingStates';
@@ -115,6 +116,26 @@ function targetPath(notif: {
 const isSupportNotice = (notif: { targetType?: string | null }) =>
   notif.targetType === 'support_ticket';
 
+/**
+ * A notice with no sender comes from CircleSfera itself: a moderation
+ * decision, a report's outcome, help. No member of staff is ever named.
+ */
+const isFromCircleSfera = (notif: Notification) =>
+  !notif.sender && !isSupportNotice(notif);
+
+/** Who a notice is from, as its row names it. */
+const senderName = (notif: Notification, t: (key: string) => string): string =>
+  isSupportNotice(notif)
+    ? t('notifications.from_support')
+    : isFromCircleSfera(notif)
+      ? t('notifications.from_circlesfera')
+      : notif.sender?.username || t('notifications.unknown_user');
+
+/** Where a row leads: its target, else its sender's profile, else nowhere. */
+const rowPath = (notif: Notification): string | null =>
+  targetPath(notif) ??
+  (notif.sender?.username ? `/${notif.sender.username}` : null);
+
 /** What the link to a notice's target is called. */
 const targetLabelKey = (notif: { targetType?: string | null }) =>
   isSupportNotice(notif)
@@ -123,6 +144,27 @@ const targetLabelKey = (notif: { targetType?: string | null }) =>
 
 /** How many people a grouped row of likes or followers stands for. */
 const othersOf = (notif: Notification) => notif.othersCount ?? 0;
+
+/** A link where the row leads somewhere, plain text where it does not. */
+function RowLink({
+  to,
+  className,
+  ariaLabel,
+  children,
+}: {
+  to: string | null;
+  className: string;
+  ariaLabel?: string;
+  children: React.ReactNode;
+}) {
+  return to ? (
+    <Link to={to} className={className} aria-label={ariaLabel}>
+      {children}
+    </Link>
+  ) : (
+    <span className={className}>{children}</span>
+  );
+}
 
 export default function Notifications() {
   const { t, i18n } = useTranslation();
@@ -458,16 +500,14 @@ export default function Notifications() {
 
               {/* Avatar with gradient icon badge */}
               <div className="relative shrink-0 ml-2">
-                <Link
-                  to={targetPath(notif) ?? `/${notif.sender?.username}`}
+                <RowLink
+                  to={rowPath(notif)}
                   className="block p-0.5 transition-transform active:scale-95"
-                  aria-label={
+                  ariaLabel={
                     targetPath(notif)
                       ? t(targetLabelKey(notif))
                       : t('common.view_profile', {
-                          username:
-                            notif.sender?.username ||
-                            t('notifications.unknown_user'),
+                          username: senderName(notif, t),
                         })
                   }
                 >
@@ -496,17 +536,20 @@ export default function Notifications() {
                         />
                       </span>
                     </span>
+                  ) : isFromCircleSfera(notif) ? (
+                    <span className="flex w-10 h-10 items-center justify-center rounded-full bg-white/10 border border-white/10">
+                      <img
+                        src={logoSrc}
+                        alt={senderName(notif, t)}
+                        className="w-6 h-auto"
+                      />
+                    </span>
                   ) : (
                     <UserAvatar
                       src={notif.sender?.avatar || ''}
                       thumbnailUrl={notif.sender?.thumbnailUrl}
                       standardUrl={notif.sender?.standardUrl}
-                      alt={
-                        isSupportNotice(notif)
-                          ? t('notifications.from_support')
-                          : notif.sender?.username ||
-                            t('notifications.unknown_user')
-                      }
+                      alt={senderName(notif, t)}
                       size="md"
                     />
                   )}
@@ -516,21 +559,18 @@ export default function Notifications() {
                   >
                     {getIcon(notif.type)}
                   </div>
-                </Link>
+                </RowLink>
               </div>
 
               {/* Text content */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm leading-snug">
-                  <Link
-                    to={targetPath(notif) ?? `/${notif.sender?.username}`}
+                  <RowLink
+                    to={rowPath(notif)}
                     className="font-bold text-white hover:opacity-80 transition-opacity"
                   >
-                    {isSupportNotice(notif)
-                      ? t('notifications.from_support')
-                      : notif.sender?.username ||
-                        t('notifications.unknown_user')}
-                  </Link>
+                    {senderName(notif, t)}
+                  </RowLink>
                   {othersOf(notif) > 0 && notif.previousSender && (
                     <>
                       {othersOf(notif) === 1
