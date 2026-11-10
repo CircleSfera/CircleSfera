@@ -69,6 +69,8 @@ export default memo(function MessageBubble({
 
   const decryptedText = parsedText;
   const displayText = getMessageDisplayText(msg, decryptedText, t);
+  // A message that is only a GIF: nothing else to show with it.
+  const gifOnly = Boolean(msg.gif) && !displayText && !msg.isDeleted;
 
   const isDecrypting = false;
 
@@ -134,10 +136,13 @@ export default memo(function MessageBubble({
 
         <div className="relative group/msg">
           <div
-            className={`px-5 py-2 text-[15px] leading-relaxed relative transition-all duration-300 ${
-              isMe
-                ? `bg-linear-to-br from-brand-primary to-brand-secondary text-white shadow-xl shadow-brand-primary/20 ${isSeq ? 'rounded-3xl' : 'rounded-3xl rounded-tr-sm'}`
-                : `glass-panel border border-white/10 text-white shadow-xl shadow-black/40 ${isSeq ? 'rounded-3xl' : 'rounded-3xl rounded-tl-sm'}`
+            className={`text-[15px] leading-relaxed relative transition-all duration-300 ${
+              gifOnly
+                ? // A GIF stands alone, as on Instagram: no bubble around it.
+                  'text-white'
+                : isMe
+                  ? `px-5 py-2 bg-linear-to-br from-brand-primary to-brand-secondary text-white shadow-xl shadow-brand-primary/20 ${isSeq ? 'rounded-3xl' : 'rounded-3xl rounded-tr-sm'}`
+                  : `px-5 py-2 glass-panel border border-white/10 text-white shadow-xl shadow-black/40 ${isSeq ? 'rounded-3xl' : 'rounded-3xl rounded-tl-sm'}`
             } ${isSeq ? 'mt-1' : 'mt-3'}`}
           >
             {/* Story Reply Preview */}
@@ -178,7 +183,24 @@ export default memo(function MessageBubble({
             )}
 
             {/* Media Content */}
-            {msg.voiceUrl ? (
+            {msg.gif ? (
+              <div
+                className={`overflow-hidden rounded-[18px] ${gifOnly ? 'mb-1' : 'mb-1 -mx-2 -mt-2'}`}
+              >
+                <img
+                  src={msg.gif.url}
+                  alt={
+                    msg.gif.title
+                      ? t('chat.gif_named', { title: msg.gif.title })
+                      : t('chat.gif_alt')
+                  }
+                  width={msg.gif.width}
+                  height={msg.gif.height}
+                  className="block max-w-60 w-full h-auto"
+                  loading="lazy"
+                />
+              </div>
+            ) : msg.voiceUrl ? (
               <VoicePlayer
                 voiceUrl={msg.voiceUrl}
                 durationSeconds={msg.voiceDuration || 0}

@@ -44,6 +44,68 @@ describe('mergeServerMessagesWithOptimistic', () => {
       ),
     ).toEqual(['real-1']);
   });
+
+  it('keeps a GIF received during the fetch, though an older GIF has the same empty text', () => {
+    const gif = (id: string) => ({
+      id,
+      title: '',
+      url: `https://media.giphy.com/media/${id}/200.webp`,
+      width: 200,
+      height: 150,
+    });
+    const older = msg({
+      id: 'real-1',
+      senderId: 'ana',
+      content: '',
+      gif: gif('g-1'),
+    });
+    const received = msg({
+      id: 'real-2',
+      tempId: 'temp-ana',
+      senderId: 'ana',
+      content: '',
+      gif: gif('g-2'),
+    });
+
+    expect(
+      mergeServerMessagesWithOptimistic([older], [received]).map((m) => m.id),
+    ).toEqual(['real-1', 'real-2']);
+    expect(
+      mergeServerMessagesWithOptimistic([older, received], [received]).map(
+        (m) => m.id,
+      ),
+    ).toEqual(['real-1', 'real-2']);
+  });
+
+  it('keeps a GIF still sending when an older GIF of the sender is in the list', () => {
+    const older = msg({
+      id: 'real-1',
+      content: '',
+      gif: {
+        id: 'g-1',
+        title: '',
+        url: 'https://media.giphy.com/a.webp',
+        width: 1,
+        height: 1,
+      },
+    });
+    const sending = msg({
+      id: 'temp-2',
+      tempId: 'temp-2',
+      content: '',
+      gif: {
+        id: 'g-2',
+        title: '',
+        url: 'https://media.giphy.com/b.webp',
+        width: 1,
+        height: 1,
+      },
+    });
+
+    expect(
+      mergeServerMessagesWithOptimistic([older], [sending]).map((m) => m.id),
+    ).toEqual(['real-1', 'temp-2']);
+  });
 });
 
 describe('upsertSentMessage', () => {

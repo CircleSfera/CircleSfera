@@ -26,6 +26,7 @@ import type {
   PostShape,
   StoryStickerInput,
 } from '@circlesfera/shared';
+import type { ChatGif } from '../services/gifs.service';
 import type { FeedSticker, StoryStickerRef } from '../utils/storySticker';
 import type { StoryElement } from './story-element.types';
 
@@ -262,6 +263,8 @@ export type Message = Omit<
   voiceUrl?: string | null;
   voiceDuration?: number | null;
   voiceWaveform?: unknown;
+  // A GIF from GIPHY, as the server kept it.
+  gif?: ChatGif | null;
 };
 
 export interface UserWithProfile {

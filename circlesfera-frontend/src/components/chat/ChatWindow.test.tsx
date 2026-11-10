@@ -177,6 +177,40 @@ vi.mock('../audio/VoiceRecorder', () => ({
   ),
 }));
 
+const gifsStatus = vi.hoisted(() => vi.fn());
+vi.mock('../../services/gifs.service', () => ({
+  gifsApi: { status: gifsStatus },
+}));
+
+const PICKED_GIF = {
+  id: 'abc123',
+  title: 'Party',
+  url: 'https://media.giphy.com/media/abc123/200.webp',
+  width: 200,
+  height: 150,
+};
+vi.mock('./GifPicker', () => ({
+  GifPicker: ({
+    isOpen,
+    onPick,
+    onClose,
+  }: {
+    isOpen: boolean;
+    onPick: (gif: typeof PICKED_GIF) => void;
+    onClose: () => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="gif-picker">
+        <button type="button" onClick={() => onPick(PICKED_GIF)}>
+          pick a gif
+        </button>
+        <button type="button" onClick={onClose}>
+          close gifs
+        </button>
+      </div>
+    ) : null,
+}));
+
 vi.mock('./GroupDetailsModal', () => ({
   default: ({
     onClose,
@@ -337,6 +371,7 @@ describe('ChatWindow', () => {
         }) as never,
     );
     vi.mocked(pickNativeImage).mockResolvedValue(false);
+    gifsStatus.mockResolvedValue({ data: { available: true } });
   });
 
   afterEach(() => {
@@ -1370,6 +1405,64 @@ describe('ChatWindow', () => {
       expect(
         screen.getByPlaceholderText(i18n.t('chat.type_message')),
       ).toBeInTheDocument();
+      expect(chatApi.sendMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GIFs', () => {
+    it('offers no GIF button when the server offers no GIFs', async () => {
+      gifsStatus.mockResolvedValue({ data: { available: false } });
+      const i18n = await renderLoadedChat();
+      await waitFor(() => expect(gifsStatus).toHaveBeenCalled());
+
+      expect(
+        screen.queryByRole('button', { name: i18n.t('chat.send_gif') }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('sends the picked GIF on its own, by its id', async () => {
+      const i18n = await renderLoadedChat();
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: i18n.t('chat.send_gif') }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'pick a gif' }));
+
+      await waitFor(() =>
+        expect(chatApi.sendMessage).toHaveBeenCalledWith({
+          conversationId: 'c1',
+          content: '',
+          gifId: 'abc123',
+          tempId: expect.any(String),
+        }),
+      );
+      expect(screen.queryByTestId('gif-picker')).not.toBeInTheDocument();
+    });
+
+    it('takes the GIF back out and says so when it cannot be sent', async () => {
+      vi.mocked(chatApi.sendMessage).mockRejectedValue(new Error('down'));
+      const i18n = await renderLoadedChat();
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: i18n.t('chat.send_gif') }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'pick a gif' }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(i18n.t('chat.send_error')),
+      );
+      expect(screen.getAllByTestId(/^message-/)).toHaveLength(2);
+    });
+
+    it('closes the picker without sending', async () => {
+      const i18n = await renderLoadedChat();
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: i18n.t('chat.send_gif') }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'close gifs' }));
+
+      expect(screen.queryByTestId('gif-picker')).not.toBeInTheDocument();
       expect(chatApi.sendMessage).not.toHaveBeenCalled();
     });
   });
