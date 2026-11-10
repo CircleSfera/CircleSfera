@@ -3152,7 +3152,23 @@
       "note_batch_approved": "Batch approved",
       "note_batch_hidden": "Batch hidden",
       "note_false_positive": "Approved (false positive)",
-      "select_item": "Select this item"
+      "select_item": "Select this item",
+      "first_paid": {
+        "title": "First paid content",
+        "subtitle_one": "The first paid post or story of each creator is checked by a person before it goes on sale.",
+        "subtitle_other": "The first {{count}} paid posts and stories of each creator are checked by a person before they go on sale.",
+        "progress_one": "{{passed}} of {{count}} checked",
+        "progress_other": "{{passed}} of {{count}} checked",
+        "approve": "Approve for sale",
+        "remove": "Remove",
+        "ask_remove": "Remove the paid content of @{{username}}?",
+        "reason": "Reason the creator reads",
+        "approved": "On sale now",
+        "removed": "Removed",
+        "error": "That could not be done. Try again.",
+        "view": "View",
+        "view_title": "Paid content of @{{username}}"
+      }
     },
     "reports": {
       "title": "Reports",
@@ -3833,7 +3849,8 @@
         "UPDATE_SETTINGS": "Changed the settings",
         "BLOCK": "Blocked content",
         "IGNORE": "Dismissed a case",
-        "STRIKE": "Issued a strike"
+        "STRIKE": "Issued a strike",
+        "PAID_CONTENT_APPROVED": "Paid content approved for sale"
       },
       "targets": {
         "USER": "Account",
@@ -6295,6 +6312,7 @@
       "STRIPE_CUSTOMER_MISSING": "We couldn't find your billing details. Contact support.",
       "PROMOTION_ID_MISSING": "That promotion is missing. Try again.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Switch to a Creator or Business profile to earn money.",
+      "CONTENT_CHANGED_SINCE_REVIEW": "Its author changed it after you opened it. Look at it again.",
       "POST_NOT_FOUND": "This post is no longer available.",
       "STORY_NOT_FOUND": "This story is no longer available.",
       "MEDIA_NOT_FOUND": "We couldn't find that file.",

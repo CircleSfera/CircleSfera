@@ -779,6 +779,21 @@ const cases: Case[] = [
     ],
   ],
   [
+    'getFirstPaidReview',
+    () => adminApi.getFirstPaidReview(),
+    'get',
+    ['admin/moderation/first-paid'],
+  ],
+  [
+    'approveFirstPaid',
+    () => adminApi.approveFirstPaid('POST', 'p1', '2026-11-05T10:00:00Z'),
+    'post',
+    [
+      'admin/moderation/first-paid/POST/p1/approve',
+      { editedAt: '2026-11-05T10:00:00Z' },
+    ],
+  ],
+  [
     'updateModerationStatus',
     () => adminApi.updateModerationStatus('STORY', 's1', 'HIDDEN', 'graphic'),
     'patch',

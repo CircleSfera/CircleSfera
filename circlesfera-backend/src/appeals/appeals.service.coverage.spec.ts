@@ -603,6 +603,7 @@ describe('AppealsService.update — effects and notices', () => {
         moderationStatus: 'VISIBLE',
         // Restored after a person looked at it: on sale again.
         moderationPassedAt: expect.any(Date),
+        moderationPassedByStaff: true,
       },
     });
     expect(t.notifications.create).toHaveBeenCalledWith(
