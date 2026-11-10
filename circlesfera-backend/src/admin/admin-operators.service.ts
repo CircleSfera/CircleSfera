@@ -33,6 +33,17 @@ const KNOWN_ROLE_IDS = new Set([
   EXTERNAL_REVIEWER_ROLE_ID,
 ]);
 
+// Whether an identity has had access before: it set its own password or has
+// signed in. Its access is then recovered only with a code an administrator
+// hands over, never with a link to its email: a mailbox alone never opens
+// the staff sites of someone who already used them.
+function hadAccess(admin: {
+  passwordSetAt?: Date | null;
+  lastLoginAt?: Date | null;
+}): boolean {
+  return !!admin.passwordSetAt || !!admin.lastLoginAt;
+}
+
 // Whether a set of roles makes an external reviewer: that role alone.
 function isReviewerRoleSet(roleIds: readonly string[]): boolean {
   return roleIds.length === 1 && roleIds[0] === EXTERNAL_REVIEWER_ROLE_ID;
@@ -96,8 +107,14 @@ export class AdminOperatorsService {
   }
 
   // Sends a new enrolment link; the previous link or code stops working.
+  // Only to an identity that never had access: one that had is given a code.
   async sendEnrolmentLinkAgain(actorAdminId: string, id: string) {
     const admin = await this.awaitingEnrolment(id);
+    if (hadAccess(admin)) {
+      throw new ConflictException(
+        'This operator has had access before: give them a code in person',
+      );
+    }
     await this.enrolmentProof.sendLink(admin);
     await this.logAction(
       actorAdminId,
@@ -436,8 +453,14 @@ export class AdminOperatorsService {
       id,
       `Roles: ${roleIds.join(',')}`,
     );
-    // No longer a reviewer: a member of staff enrols an authenticator.
-    if (wasReviewer && !reviewer && !updated.totpEnabled) {
+    // No longer a reviewer: a member of staff enrols an authenticator, from
+    // a link only if it never had access (otherwise from a code).
+    if (
+      wasReviewer &&
+      !reviewer &&
+      !updated.totpEnabled &&
+      !hadAccess(updated)
+    ) {
       await this.sendEnrolmentLink(actorAdminId, updated);
     }
 
@@ -507,8 +530,11 @@ export class AdminOperatorsService {
       id,
       'MFA reset — re-enrollment required',
     );
-    // Enrolling again needs a new proof: the link goes to the staff email.
-    await this.sendEnrolmentLink(actorAdminId, updated);
+    // Enrolling again needs a new proof. An identity that had access gets it
+    // from a code an administrator hands over; one that never had, by link.
+    if (!hadAccess(updated)) {
+      await this.sendEnrolmentLink(actorAdminId, updated);
+    }
 
     return this.serialize(updated);
   }

@@ -59,6 +59,16 @@ function isStepUpRequired(err: unknown): boolean {
   );
 }
 
+// Whether an operator has had access before (its own password, or a
+// sign-in): its access is then recovered only with a code given in person,
+// never with a link to its email.
+function hadAccess(operator: {
+  ownPassword?: boolean;
+  lastLoginAt: string | null;
+}): boolean {
+  return !!operator.ownPassword || !!operator.lastLoginAt;
+}
+
 export default function RolesTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -277,7 +287,15 @@ export default function RolesTab({ onToast }: Props) {
       runWithStepUp(async () => {
         if (!selectedId) return;
         await adminApi.resetOperatorMfa(selectedId);
-        onToast(t('admin.operators.mfa_reset'), 'success');
+        // Someone who had access recovers it only with a code in person.
+        onToast(
+          t(
+            selected && hadAccess(selected)
+              ? 'admin.operators.mfa_reset_code'
+              : 'admin.operators.mfa_reset',
+          ),
+          'success',
+        );
         await invalidate();
       }),
     onError: (err: any) => {
@@ -729,20 +747,26 @@ export default function RolesTab({ onToast }: Props) {
                         {t('admin.operators.enrolment_title')}
                       </h4>
                       <p className="text-xs text-white/60 leading-relaxed">
-                        {t('admin.operators.enrolment_hint')}
+                        {t(
+                          hadAccess(selected)
+                            ? 'admin.operators.enrolment_hint_code'
+                            : 'admin.operators.enrolment_hint',
+                        )}
                       </p>
                       <div className="flex flex-col sm:flex-row gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          className="min-h-11 gap-2"
-                          isLoading={sendLinkMutation.isPending}
-                          onClick={() => sendLinkMutation.mutate()}
-                        >
-                          <Mail size={14} />
-                          {t('admin.operators.send_link')}
-                        </Button>
+                        {!hadAccess(selected) && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="min-h-11 gap-2"
+                            isLoading={sendLinkMutation.isPending}
+                            onClick={() => sendLinkMutation.mutate()}
+                          >
+                            <Mail size={14} />
+                            {t('admin.operators.send_link')}
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           variant="secondary"

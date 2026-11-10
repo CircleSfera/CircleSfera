@@ -129,6 +129,41 @@ describe('AdminOperatorsService', () => {
       );
     });
 
+    it('resetting someone who had access sends no link: they are given a code in person', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue({ id: 'op-1' });
+      for (const had of [
+        { lastLoginAt: new Date() },
+        { passwordSetAt: new Date() },
+      ]) {
+        prisma.adminIdentity.update.mockResolvedValueOnce({
+          ...awaiting,
+          ...had,
+          roles: [],
+        });
+        await service.resetMfa('actor-1', 'op-1');
+      }
+      expect(proof.sendLink).not.toHaveBeenCalled();
+    });
+
+    it('never sends a link to someone who had access, but gives a code', async () => {
+      for (const had of [
+        { lastLoginAt: new Date() },
+        { passwordSetAt: new Date() },
+      ]) {
+        prisma.adminIdentity.findUnique.mockResolvedValue({
+          ...awaiting,
+          ...had,
+        });
+        await expect(
+          service.sendEnrolmentLinkAgain('actor-1', 'op-1'),
+        ).rejects.toThrow(ConflictException);
+        await expect(
+          service.issueEnrolmentCode('actor-1', 'op-1'),
+        ).resolves.toMatchObject({ code: 'ABCD-EFGH-JKLM' });
+      }
+      expect(proof.sendLink).not.toHaveBeenCalled();
+    });
+
     it('sends the link again, and audits it', async () => {
       prisma.adminIdentity.findUnique.mockResolvedValue(awaiting);
 
@@ -492,6 +527,25 @@ describe('AdminOperatorsService', () => {
         expect(proof.sendLink).toHaveBeenCalledWith(
           expect.objectContaining({ id: 'op-1' }),
         );
+      });
+
+      it('a reviewer who signed in before and becomes staff gets no link: a code instead', async () => {
+        prisma.adminIdentity.findUnique.mockResolvedValue({
+          id: 'op-1',
+          accessExpiresAt: new Date(Date.now() + DAY),
+          roles: [{ roleId: 'arole_external_reviewer' }],
+        });
+        prisma.adminIdentity.findUniqueOrThrow.mockResolvedValue({
+          id: 'op-1',
+          email: 'p@example.com',
+          totpEnabled: false,
+          lastLoginAt: new Date(),
+          roles: [{ role: { id: 'arole_support', name: 'X' } }],
+        });
+
+        await service.replaceRoles('actor-1', 'op-1', ['arole_support']);
+
+        expect(proof.sendLink).not.toHaveBeenCalled();
       });
 
       it('a member of staff with an authenticator changing roles gets no link', async () => {

@@ -514,24 +514,33 @@ export class AdminAuthService {
   ): Promise<
     AuthenticatorSetup | { status: 'SIGNED_IN'; tokens: AdminTokenPair }
   > {
+    // Every refusal before the proof is accepted is the same 401, so this
+    // tells nobody whether an email is staff, and nothing about any password
+    // is looked at until the proof is right.
+    const refused = () => new UnauthorizedException('Invalid access link');
     const admin = await this.loadAdminByEmail(email);
-    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
-      throw new UnauthorizedException('Invalid access link');
-    }
-    if (admin.lockedUntil && admin.lockedUntil > new Date()) {
-      throw new ForbiddenException('Account temporarily locked');
+    if (
+      admin?.status !== 'ACTIVE' ||
+      accessHasExpired(admin.accessExpiresAt) ||
+      (admin.lockedUntil && admin.lockedUntil > new Date())
+    ) {
+      throw refused();
     }
     const reviewer = isExternalReviewer(this.permissionsOf(admin).roles);
     if (reviewer && !reviewerAccessIsValid(admin.accessExpiresAt)) {
-      throw new UnauthorizedException('Invalid access link');
+      throw refused();
     }
-    // Checked before the proof is spent, so a refused password leaves the
-    // link usable.
-    await this.assertUsableStaffPassword(admin.email, password);
 
-    if (!(await this.enrolmentProof.consume(admin.id, proof))) {
+    const match = await this.enrolmentProof.check(admin.id, proof);
+    if (!match) {
       await this.recordFailure(admin.id, meta, 'Invalid access link');
-      throw new UnauthorizedException('Invalid access link');
+      throw refused();
+    }
+    // Only with the right proof: a refused password leaves it unspent, so
+    // the person tries another with the same link or code.
+    await this.assertUsableStaffPassword(admin.email, password);
+    if (!(await this.enrolmentProof.spend(admin.id, match))) {
+      throw refused();
     }
 
     const passwordHash = await argon2.hash(password);

@@ -4,3 +4,12 @@ ALTER TYPE "AdminAction" ADD VALUE IF NOT EXISTS 'ADMIN_PASSWORD_SET';
 -- When the identity set its own staff password. Existing identities have
 -- none yet and keep signing in with their linked account's password.
 ALTER TABLE "admin_identities" ADD COLUMN "passwordSetAt" TIMESTAMP(3);
+
+-- Links and codes issued before this release meant "enrol an authenticator
+-- after the password". Now a link sets the password itself, so none issued
+-- under the old meaning stays usable: administrators issue new ones.
+UPDATE "admin_identities"
+SET "enrolmentProofHash" = NULL,
+    "enrolmentProofExpiresAt" = NULL,
+    "enrolmentProofPasswordMark" = NULL
+WHERE "enrolmentProofHash" IS NOT NULL;

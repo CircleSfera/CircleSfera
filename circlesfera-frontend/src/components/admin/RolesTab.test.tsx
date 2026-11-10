@@ -372,6 +372,50 @@ describe('RolesTab', () => {
     ).toBeInTheDocument();
   });
 
+  it('offers someone who had access only a code, never a link to their email', async () => {
+    api.getOperators.mockResolvedValue(
+      list([
+        operator('a', {
+          totpEnabled: false,
+          lastLoginAt: '2026-11-01T10:00:00.000Z',
+        }),
+        operator('b', { totpEnabled: false, ownPassword: true }),
+      ]) as never,
+    );
+    show();
+
+    for (const name of ['Operator a', 'Operator b']) {
+      const pane = await open(name);
+      expect(
+        within(pane).queryByRole('button', { name: 'Send the link again' }),
+      ).toBeNull();
+      expect(
+        within(pane).getByRole('button', { name: 'Create a code' }),
+      ).toBeInTheDocument();
+      expect(within(pane).getByText(/give it in person/)).toBeInTheDocument();
+    }
+  });
+
+  it('after resetting someone who had access, says to give them a code', async () => {
+    api.getOperators.mockResolvedValue(
+      list([
+        operator('a', { lastLoginAt: '2026-11-01T10:00:00.000Z' }),
+      ]) as never,
+    );
+    api.resetOperatorMfa.mockResolvedValue({} as never);
+    show();
+    const pane = await open('Operator a');
+
+    fireEvent.click(within(pane).getByRole('button', { name: 'Reset access' }));
+
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(
+        expect.stringMatching(/^Access reset\. Create a code/),
+        'success',
+      ),
+    );
+  });
+
   it('sends the set-up link again', async () => {
     api.getOperators.mockResolvedValue(
       list([operator('b', { totpEnabled: false })]) as never,

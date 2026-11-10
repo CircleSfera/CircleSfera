@@ -4785,7 +4785,9 @@
       "access_error": "The access end could not be saved",
       "reviewer_hint": "An external reviewer, such as the payment provider, needs no CircleSfera account: they choose their password from the link we send and sign in without an authenticator. They only read the Review section of the Admin Panel and the Backoffice, and every page they open is recorded.",
       "reviewer_no_mfa": "External reviewer: signs in without an authenticator, read only",
-      "no_own_password": "No password of their own: they sign in with their CircleSfera account's, or have not used their link yet"
+      "no_own_password": "No password of their own: they sign in with their CircleSfera account's, or have not used their link yet",
+      "mfa_reset_code": "Access reset. Create a code and give it in person: someone who had access does not recover it with a link to their email.",
+      "enrolment_hint_code": "This person had access before, so no link goes to their email: create a code and give it in person. With it they choose their password and, if they are staff, their authenticator."
     },
     "split": {
       "list_region": "List",

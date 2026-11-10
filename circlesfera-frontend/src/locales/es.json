@@ -4785,7 +4785,9 @@
       "access_error": "No se ha podido guardar la fecha de fin",
       "reviewer_hint": "Un revisor externo, como el proveedor de pagos, no necesita cuenta de CircleSfera: elige su contraseña con el enlace que le enviamos y entra sin autenticador. Solo lee la sección Revisión del Admin Panel y del Backoffice, y cada página que abre queda registrada.",
       "reviewer_no_mfa": "Revisor externo: entra sin autenticador, solo lectura",
-      "no_own_password": "Sin contraseña propia: entra con la de su cuenta de CircleSfera o aún no ha usado su enlace"
+      "no_own_password": "Sin contraseña propia: entra con la de su cuenta de CircleSfera o aún no ha usado su enlace",
+      "mfa_reset_code": "Acceso restablecido. Crea un código y dáselo en persona: quien ya tuvo acceso no lo recupera con un enlace al email.",
+      "enrolment_hint_code": "Esta persona ya tuvo acceso, así que no se le envía enlace al email: crea un código y dáselo en persona. Con él elige su contraseña y, si es del equipo, su autenticador."
     },
     "split": {
       "list_region": "Lista",

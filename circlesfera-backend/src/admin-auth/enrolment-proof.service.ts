@@ -143,13 +143,13 @@ export class EnrolmentProofService {
   }
 
   /**
-   * Uses the proof given, a link token or a code. True only once, while it
-   * has not expired; it is spent by the same write that checks it, so two
-   * attempts at once cannot both pass.
+   * Checks the proof given, a link token or a code, without spending it:
+   * what it matches while it has not expired, or null. A link sent before
+   * the password changed matches nothing.
    */
-  async consume(adminId: string, proof: string): Promise<boolean> {
+  async check(adminId: string, proof: string): Promise<string | null> {
     const given = proof.trim();
-    if (!given || given.length > 200) return false;
+    if (!given || given.length > 200) return null;
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
       select: {
@@ -163,19 +163,27 @@ export class EnrolmentProofService {
       },
     });
     const kept = admin?.enrolmentProofHash;
-    if (!kept || !admin.enrolmentProofExpiresAt) return false;
-    if (admin.enrolmentProofExpiresAt <= new Date()) return false;
+    if (!kept || !admin.enrolmentProofExpiresAt) return null;
+    if (admin.enrolmentProofExpiresAt <= new Date()) return null;
     const match = [sha256(given), sha256(normaliseCode(given))].find((h) =>
       timingSafeEqual(Buffer.from(h), Buffer.from(kept)),
     );
-    if (!match) return false;
-    // A link sent before the password changed no longer works.
+    if (!match) return null;
     if (
       admin.enrolmentProofPasswordMark &&
       !(await this.passwordUnchanged(admin, admin.enrolmentProofPasswordMark))
     ) {
-      return false;
+      return null;
     }
+    return match;
+  }
+
+  /**
+   * Spends a proof that check matched. True only for the one attempt whose
+   * write finds it still kept and unexpired, so two attempts at once cannot
+   * both pass.
+   */
+  async spend(adminId: string, match: string): Promise<boolean> {
     const spent = await this.prisma.adminIdentity.updateMany({
       where: {
         id: adminId,
@@ -189,5 +197,11 @@ export class EnrolmentProofService {
       },
     });
     return spent.count === 1;
+  }
+
+  /** Checks the proof given and spends it: true only once. */
+  async consume(adminId: string, proof: string): Promise<boolean> {
+    const match = await this.check(adminId, proof);
+    return match ? this.spend(adminId, match) : false;
   }
 }

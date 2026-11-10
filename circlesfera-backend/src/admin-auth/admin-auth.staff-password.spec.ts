@@ -29,7 +29,7 @@ const LEAKED_PASSWORD = '123456789zxcvbnm';
 describe('AdminAuthService — a staff password of its own', () => {
   let service: AdminAuthService;
   let prisma: any;
-  const proof = { consume: vi.fn() };
+  const proof = { check: vi.fn(), spend: vi.fn() };
   const crypto = {
     encrypt: vi.fn((v: string) => `enc:${v}`),
     decrypt: vi.fn((v: string) => (v.startsWith('enc:') ? v.slice(4) : v)),
@@ -163,11 +163,17 @@ describe('AdminAuthService — a staff password of its own', () => {
   });
 
   describe('setting up the access from a link', () => {
+    // The proof is right: check matches it, spend takes it once.
+    const rightProof = () => {
+      proof.check.mockResolvedValueOnce('matched-hash');
+      proof.spend.mockResolvedValueOnce(true);
+    };
+
     it('makes the password its own, ends every session and starts a new authenticator', async () => {
       prisma.adminIdentity.findUnique.mockResolvedValue(
         identity({ totpEnabled: false, totpSecret: null }),
       );
-      proof.consume.mockResolvedValueOnce(true);
+      rightProof();
 
       const result = await service.setUpAccess(
         'Staff@Example.com',
@@ -176,7 +182,8 @@ describe('AdminAuthService — a staff password of its own', () => {
         { ip: '203.0.113.1' },
       );
 
-      expect(proof.consume).toHaveBeenCalledWith('admin-1', 'link-token');
+      expect(proof.check).toHaveBeenCalledWith('admin-1', 'link-token');
+      expect(proof.spend).toHaveBeenCalledWith('admin-1', 'matched-hash');
       const set = prisma.adminIdentity.update.mock.calls[0][0];
       expect(set.where).toEqual({ id: 'admin-1' });
       expect(set.data).toMatchObject({
@@ -209,7 +216,7 @@ describe('AdminAuthService — a staff password of its own', () => {
 
     it('signs an external reviewer in at once, with no authenticator', async () => {
       prisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
-      proof.consume.mockResolvedValueOnce(true);
+      rightProof();
 
       const result = await service.setUpAccess(
         'staff@example.com',
@@ -224,85 +231,37 @@ describe('AdminAuthService — a staff password of its own', () => {
       expect(prisma.adminRefreshToken.create).toHaveBeenCalledTimes(1);
     });
 
-    it('refuses a reviewer whose access has no valid end', async () => {
-      prisma.adminIdentity.findUnique.mockResolvedValue(
-        reviewer({ accessExpiresAt: null }),
-      );
-
-      await expect(
-        service.setUpAccess('staff@example.com', 'tok', STAFF_PASSWORD, {}),
-      ).rejects.toThrow(UnauthorizedException);
-      expect(proof.consume).not.toHaveBeenCalled();
-    });
-
-    it('refuses an unknown, disabled or expired identity before looking at the proof', async () => {
+    it('gives the same refusal for an unknown, disabled, expired, locked or reviewer-without-end identity, before looking at the proof', async () => {
       for (const found of [
         null,
         identity({ status: 'DISABLED' }),
         identity({ accessExpiresAt: new Date(Date.now() - 1000) }),
+        identity({ lockedUntil: new Date(Date.now() + 60_000) }),
+        reviewer({ accessExpiresAt: null }),
       ]) {
         prisma.adminIdentity.findUnique.mockResolvedValueOnce(found);
         await expect(
           service.setUpAccess('staff@example.com', 'tok', STAFF_PASSWORD, {}),
-        ).rejects.toThrow(UnauthorizedException);
+        ).rejects.toThrow(new UnauthorizedException('Invalid access link'));
       }
-      expect(proof.consume).not.toHaveBeenCalled();
+      expect(proof.check).not.toHaveBeenCalled();
+      expect(prisma.signIn.findUnique).not.toHaveBeenCalled();
     });
 
-    it('refuses a locked identity', async () => {
-      prisma.adminIdentity.findUnique.mockResolvedValue(
-        identity({ lockedUntil: new Date(Date.now() + 60_000) }),
-      );
-
-      await expect(
-        service.setUpAccess('staff@example.com', 'tok', STAFF_PASSWORD, {}),
-      ).rejects.toThrow(ForbiddenException);
-      expect(proof.consume).not.toHaveBeenCalled();
-    });
-
-    it('refuses a leaked password and leaves the link usable', async () => {
-      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
-
-      await expect(
-        service.setUpAccess('staff@example.com', 'tok', LEAKED_PASSWORD, {}),
-      ).rejects.toMatchObject({ errorCode: ErrorCode.PASSWORD_LEAKED });
-      expect(proof.consume).not.toHaveBeenCalled();
-    });
-
-    it('refuses the password of the CircleSfera account with the staff email', async () => {
-      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
-
-      await expect(
-        service.setUpAccess('staff@example.com', 'tok', ACCOUNT_PASSWORD, {}),
-      ).rejects.toMatchObject({
-        errorCode: ErrorCode.STAFF_PASSWORD_IS_ACCOUNT_PASSWORD,
-      });
-      expect(proof.consume).not.toHaveBeenCalled();
-      expect(prisma.adminIdentity.update).not.toHaveBeenCalled();
-    });
-
-    it('takes any password when no account has the staff email', async () => {
-      prisma.adminIdentity.findUnique.mockResolvedValue(
-        identity({ linkedUserId: null }),
-      );
-      prisma.signIn.findUnique.mockResolvedValue(null);
-      proof.consume.mockResolvedValueOnce(true);
-
-      await expect(
-        service.setUpAccess('staff@example.com', 'tok', ACCOUNT_PASSWORD, {}),
-      ).resolves.toMatchObject({ status: 'MFA_SETUP_REQUIRED' });
-    });
-
-    it('counts a wrong proof towards the lockout and changes nothing', async () => {
+    it('with a wrong proof says nothing about the password, counts the attempt and changes nothing', async () => {
       prisma.adminIdentity.findUnique.mockResolvedValue(identity());
       prisma.adminIdentity.update.mockResolvedValueOnce({
         failedLoginCount: 5,
       });
-      proof.consume.mockResolvedValueOnce(false);
+      proof.check.mockResolvedValue(null);
 
-      await expect(
-        service.setUpAccess('staff@example.com', 'bad', STAFF_PASSWORD, {}),
-      ).rejects.toThrow(UnauthorizedException);
+      // The account password, a leaked one and any other: the same 401.
+      for (const password of [ACCOUNT_PASSWORD, LEAKED_PASSWORD]) {
+        await expect(
+          service.setUpAccess('staff@example.com', 'bad', password, {}),
+        ).rejects.toThrow(new UnauthorizedException('Invalid access link'));
+      }
+      expect(prisma.signIn.findUnique).not.toHaveBeenCalled();
       expect(prisma.adminIdentity.update).toHaveBeenNthCalledWith(1, {
         where: { id: 'admin-1' },
         data: { failedLoginCount: { increment: 1 } },
@@ -311,10 +270,58 @@ describe('AdminAuthService — a staff password of its own', () => {
         where: { id: 'admin-1' },
         data: { lockedUntil: expect.any(Date) },
       });
-      expect(failuresWritten()).toEqual([
-        expect.objectContaining({ details: 'Invalid access link' }),
-      ]);
+      expect(failuresWritten()).toHaveLength(2);
+      expect(failuresWritten()[0]).toMatchObject({
+        details: 'Invalid access link',
+      });
+      expect(proof.spend).not.toHaveBeenCalled();
       expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('with a right proof refuses a leaked password and leaves the proof unspent', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+      proof.check.mockResolvedValueOnce('matched-hash');
+
+      await expect(
+        service.setUpAccess('staff@example.com', 'tok', LEAKED_PASSWORD, {}),
+      ).rejects.toMatchObject({ errorCode: ErrorCode.PASSWORD_LEAKED });
+      expect(proof.spend).not.toHaveBeenCalled();
+    });
+
+    it('with a right proof refuses the password of the account with the staff email', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+      proof.check.mockResolvedValueOnce('matched-hash');
+
+      await expect(
+        service.setUpAccess('staff@example.com', 'tok', ACCOUNT_PASSWORD, {}),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.STAFF_PASSWORD_IS_ACCOUNT_PASSWORD,
+      });
+      expect(proof.spend).not.toHaveBeenCalled();
+      expect(prisma.adminIdentity.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses when another attempt spent the proof first', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+      proof.check.mockResolvedValueOnce('matched-hash');
+      proof.spend.mockResolvedValueOnce(false);
+
+      await expect(
+        service.setUpAccess('staff@example.com', 'tok', STAFF_PASSWORD, {}),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('takes any password when no account has the staff email', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(
+        identity({ linkedUserId: null }),
+      );
+      prisma.signIn.findUnique.mockResolvedValue(null);
+      rightProof();
+
+      await expect(
+        service.setUpAccess('staff@example.com', 'tok', ACCOUNT_PASSWORD, {}),
+      ).resolves.toMatchObject({ status: 'MFA_SETUP_REQUIRED' });
     });
   });
 

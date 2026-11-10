@@ -140,6 +140,38 @@ describe('EnrolmentProofService', () => {
   });
 
   describe('using a proof', () => {
+    it('checks a proof without spending it, then spends it once', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue({
+        email: 'p@example.com',
+        enrolmentProofHash: sha256('Tok_en'),
+        enrolmentProofExpiresAt: new Date(Date.now() + 60_000),
+        enrolmentProofPasswordMark: null,
+      });
+
+      const match = await service.check('op-1', 'Tok_en');
+      expect(match).toBe(sha256('Tok_en'));
+      expect(prisma.adminIdentity.updateMany).not.toHaveBeenCalled();
+
+      prisma.adminIdentity.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+      await expect(service.spend('op-1', match as string)).resolves.toBe(true);
+      // A second attempt at the same moment finds it already spent.
+      await expect(service.spend('op-1', match as string)).resolves.toBe(false);
+      expect(prisma.adminIdentity.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'op-1',
+          enrolmentProofHash: match,
+          enrolmentProofExpiresAt: { gt: expect.any(Date) },
+        },
+        data: {
+          enrolmentProofHash: null,
+          enrolmentProofExpiresAt: null,
+          enrolmentProofPasswordMark: null,
+        },
+      });
+    });
+
     const keepProof = (
       raw: string,
       expiresAt = new Date(Date.now() + 60_000),

@@ -36,9 +36,13 @@ and no CircleSfera account is needed or used.
   the password of the CircleSfera account with the staff email. Stored with argon2 in
   `AdminIdentity.passwordHash`. It is changed while signed in, with the current password and,
   for a member of staff, an authenticator code. Changing it ends every other session.
-- **No reset by email alone.** A forgotten password or a lost authenticator is recovered with a
-  new link or code from an administrator, and that step is audited. A mailbox alone never opens the
-  staff sites.
+- **No recovery by email alone.** The emailed link only invites an identity that has never had
+  access (no password of its own set, never signed in). Anyone who had access recovers a forgotten
+  password or a lost authenticator only with a code an administrator hands over in person, and
+  that step is audited. A mailbox alone never opens the staff sites of someone who used them.
+- **Nothing told before the proof.** Setting up the access gives the same refusal for an unknown
+  email, a disabled, expired or locked identity and a wrong proof, and looks at no password until
+  the proof is right; a wrong proof counts towards the lockout.
 - **Passkeys.** Staff passkeys (`admin_passkeys`) become the main way in for members of staff,
   required for them. The relying party is `circlesfera.com` and only the staff hosts are accepted
   origins. The staff password with the authenticator code remains the backup. This is delivered in
