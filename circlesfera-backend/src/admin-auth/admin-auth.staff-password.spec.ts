@@ -51,6 +51,7 @@ describe('AdminAuthService — a staff password of its own', () => {
     lockedUntil: null,
     accessExpiresAt: null,
     roles: [role('SUPPORT')],
+    _count: { passkeys: 0 },
     ...over,
   });
   const reviewer = (over: Record<string, unknown> = {}) =>
@@ -468,6 +469,63 @@ describe('AdminAuthService — a staff password of its own', () => {
     );
     await expect(service.me('admin-1')).resolves.toMatchObject({
       ownPassword: true,
+    });
+  });
+
+  describe('signing in with a passkey', () => {
+    it('opens a staff session for an active member of staff with an authenticator', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+
+      const tokens = await service.signInWithPasskey('admin-1', {
+        ip: '203.0.113.1',
+      });
+
+      expect(tokens).toEqual({
+        accessToken: expect.any(String),
+        refreshToken: expect.any(String),
+      });
+      expect(prisma.adminIdentity.update).toHaveBeenCalledWith({
+        where: { id: 'admin-1' },
+        data: { failedLoginCount: 0, lockedUntil: null },
+      });
+      expect(prisma.adminAuditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: 'ADMIN_LOGIN' }),
+      });
+    });
+
+    it('opens a capped session for an external reviewer', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
+
+      await expect(
+        service.signInWithPasskey('admin-1', {}),
+      ).resolves.toMatchObject({ accessToken: expect.any(String) });
+    });
+
+    it('refuses an identity that is unknown, disabled, expired, locked, without an authenticator, or a reviewer with no end', async () => {
+      for (const found of [
+        null,
+        identity({ status: 'DISABLED' }),
+        identity({ accessExpiresAt: new Date(Date.now() - 1000) }),
+        identity({ lockedUntil: new Date(Date.now() + 60_000) }),
+        identity({ totpEnabled: false }),
+        reviewer({ accessExpiresAt: null }),
+      ]) {
+        prisma.adminIdentity.findUnique.mockResolvedValueOnce(found);
+        await expect(service.signInWithPasskey('admin-1', {})).rejects.toThrow(
+          new UnauthorizedException('Passkey not accepted'),
+        );
+      }
+      expect(prisma.adminRefreshToken.create).not.toHaveBeenCalled();
+    });
+  });
+
+  it('me counts the identity’s passkeys', async () => {
+    prisma.adminIdentity.findUnique.mockResolvedValueOnce({
+      ...identity(),
+      _count: { passkeys: 2 },
+    });
+    await expect(service.me('admin-1')).resolves.toMatchObject({
+      passkeyCount: 2,
     });
   });
 });

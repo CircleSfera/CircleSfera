@@ -923,6 +923,7 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         totpEnabled: true,
         lastLoginAt: new Date('2026-01-01'),
+        _count: { passkeys: 0 },
         roles: [
           {
             role: {
@@ -1441,9 +1442,10 @@ describe('AdminAuthService', () => {
 
     it('me tells the panel the identity is a reviewer, and until when', async () => {
       const ends = new Date(Date.now() + HOUR);
-      mockPrisma.adminIdentity.findUnique.mockResolvedValue(
-        reviewer({ accessExpiresAt: ends }),
-      );
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        ...reviewer({ accessExpiresAt: ends }),
+        _count: { passkeys: 0 },
+      });
       await expect(service.me('rev-1')).resolves.toMatchObject({
         externalReviewer: true,
         accessExpiresAt: ends,

@@ -1141,6 +1141,48 @@ const cases: Case[] = [
     ],
   ],
   [
+    'adminAuth.passkeyLoginOptions',
+    () => adminAuthApi.passkeyLoginOptions(),
+    'post',
+    ['/admin-auth/passkeys/login/options'],
+  ],
+  [
+    'adminAuth.passkeyLogin',
+    () => adminAuthApi.passkeyLogin({ id: 'c' }),
+    'post',
+    ['/admin-auth/passkeys/login', { response: { id: 'c' } }],
+  ],
+  [
+    'adminAuth.listPasskeys',
+    () => adminAuthApi.listPasskeys(),
+    'get',
+    ['/admin-auth/passkeys'],
+  ],
+  [
+    'adminAuth.passkeyRegisterOptions',
+    () => adminAuthApi.passkeyRegisterOptions(),
+    'post',
+    ['/admin-auth/passkeys/register/options'],
+  ],
+  [
+    'adminAuth.registerPasskey',
+    () => adminAuthApi.registerPasskey({ id: 'c' }, 'Phone'),
+    'post',
+    ['/admin-auth/passkeys/register', { response: { id: 'c' }, name: 'Phone' }],
+  ],
+  [
+    'adminAuth.registerPasskey without a name',
+    () => adminAuthApi.registerPasskey({ id: 'c' }),
+    'post',
+    ['/admin-auth/passkeys/register', { response: { id: 'c' } }],
+  ],
+  [
+    'adminAuth.removePasskey',
+    () => adminAuthApi.removePasskey('pk 1'),
+    'delete',
+    ['/admin-auth/passkeys/pk%201'],
+  ],
+  [
     'adminAuth.stepUp',
     () => adminAuthApi.stepUp({ totpCode: '123456' }),
     'post',

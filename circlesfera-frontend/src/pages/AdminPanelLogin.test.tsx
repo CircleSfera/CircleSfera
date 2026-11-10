@@ -1,3 +1,4 @@
+import { startAuthentication } from '@simplewebauthn/browser';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { i18n as I18nInstance } from 'i18next';
 import { toast } from 'react-hot-toast';
@@ -22,8 +23,12 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('@simplewebauthn/browser', () => ({ startAuthentication: vi.fn() }));
+
 vi.mock('../services/admin-auth.service', () => ({
   adminAuthApi: {
+    passkeyLoginOptions: vi.fn(),
+    passkeyLogin: vi.fn(),
     login: vi.fn(),
     enrol: vi.fn(),
     setUpAccess: vi.fn(),
@@ -750,6 +755,79 @@ describe('Admin Panel sign-in', () => {
         LONG,
       );
       expect(adminAuthApi.verifyMfa).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('signing in with a passkey', () => {
+    const passkeyButton = (i18n: I18nInstance) =>
+      screen.getByRole('button', { name: i18n.t('adminPanel.login.passkey') });
+
+    it('signs in with a passkey of this device, typing nothing', async () => {
+      vi.mocked(adminAuthApi.passkeyLoginOptions).mockResolvedValue({
+        data: { challenge: 'c' },
+      } as never);
+      vi.mocked(startAuthentication).mockResolvedValue({ id: 'cred' } as never);
+      vi.mocked(adminAuthApi.passkeyLogin).mockResolvedValue({
+        data: { status: 'SIGNED_IN' },
+      } as never);
+      vi.mocked(adminAuthApi.me).mockResolvedValue({
+        data: SUPER_ADMIN,
+      } as never);
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+
+      fireEvent.click(passkeyButton(i18n!));
+
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+      expect(startAuthentication).toHaveBeenCalledWith({
+        optionsJSON: { challenge: 'c' },
+      });
+      expect(adminAuthApi.passkeyLogin).toHaveBeenCalledWith({ id: 'cred' });
+      expect(adminAuthApi.login).not.toHaveBeenCalled();
+    });
+
+    it('says so when the prompt is closed, or the passkey is not accepted', async () => {
+      vi.mocked(adminAuthApi.passkeyLoginOptions).mockResolvedValue({
+        data: {},
+      } as never);
+      vi.mocked(startAuthentication).mockRejectedValueOnce(
+        Object.assign(new Error('closed'), { name: 'NotAllowedError' }),
+      );
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+
+      fireEvent.click(passkeyButton(i18n!));
+      expect(
+        await screen.findByText(i18n!.t('adminPanel.passkeys.cancelled')),
+      ).toBeInTheDocument();
+
+      vi.mocked(startAuthentication).mockResolvedValueOnce({} as never);
+      vi.mocked(adminAuthApi.passkeyLogin).mockRejectedValueOnce({
+        isAxiosError: true,
+        response: { status: 401, data: {} },
+      });
+      fireEvent.click(passkeyButton(i18n!));
+      expect(
+        await screen.findByText(i18n!.t('adminPanel.login.passkey_failed')),
+      ).toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('says the server failed when signed in but who it is cannot be loaded', async () => {
+      vi.mocked(adminAuthApi.passkeyLoginOptions).mockResolvedValue({
+        data: {},
+      } as never);
+      vi.mocked(startAuthentication).mockResolvedValue({} as never);
+      vi.mocked(adminAuthApi.passkeyLogin).mockResolvedValue({
+        data: { status: 'SIGNED_IN' },
+      } as never);
+      vi.mocked(adminAuthApi.me).mockRejectedValue(new Error('down'));
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+
+      fireEvent.click(passkeyButton(i18n!));
+
+      expect(
+        await screen.findByText(i18n!.t('errors.generic.server')),
+      ).toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 });

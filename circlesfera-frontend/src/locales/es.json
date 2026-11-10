@@ -6224,7 +6224,9 @@
       "new_password_rule": "Al menos {{min}} caracteres y distinta de la de tu cuenta de CircleSfera, si tienes una.",
       "repeat_password": "Repite la contraseña",
       "passwords_differ": "Las contraseñas no coinciden.",
-      "access_continue": "Guardar y continuar"
+      "access_continue": "Guardar y continuar",
+      "passkey": "Entrar con passkey",
+      "passkey_failed": "No se ha podido entrar con esa passkey. Usa tu contraseña y tu código."
     },
     "password": {
       "title": "Cambiar contraseña",
@@ -6239,6 +6241,27 @@
       "notice_title": "Pon tu propia contraseña de equipo",
       "notice_body": "El acceso de equipo ya no usa la contraseña de tu cuenta de CircleSfera. Elige una propia; después, la de tu cuenta dejará de servir aquí.",
       "notice_action": "Poner mi contraseña"
+    },
+    "passkeys": {
+      "title": "Passkeys",
+      "hint": "Una passkey te deja entrar con la huella, la cara o el PIN de tu dispositivo, o con una llave de seguridad, sin escribir contraseña ni código. Funciona en el Admin Panel y en el Backoffice. Para añadir o quitar una te pediremos el código del autenticador.",
+      "loading": "Cargando passkeys…",
+      "none": "Todavía no tienes ninguna passkey.",
+      "unnamed": "Passkey sin nombre",
+      "used_on": "Usada por última vez el {{date}}",
+      "added_on": "Añadida el {{date}}",
+      "remove": "Quitar {{name}}",
+      "full": "Ya tienes {{max}} passkeys, el máximo. Quita una para añadir otra.",
+      "name": "Nombre (opcional)",
+      "name_placeholder": "Por ejemplo: portátil del trabajo",
+      "add": "Añadir passkey",
+      "added": "Passkey añadida",
+      "removed": "Passkey quitada",
+      "cancelled": "Se canceló la passkey.",
+      "error": "No se ha podido hacer. Inténtalo de nuevo.",
+      "notice_title": "Añade una passkey",
+      "notice_body": "Entrar con una passkey es más seguro que la contraseña y el código, y pronto será obligatorio para el equipo. Añade una en este dispositivo.",
+      "notice_action": "Añadir passkey"
     }
   },
   "interactive": {

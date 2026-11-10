@@ -1,6 +1,7 @@
 import { Briefcase, ExternalLink, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import logoSrc from '../../assets/logo.png';
+import { StaffPasskeyNotice } from '../../components/admin/StaffPasskeys';
 import { StaffPasswordNotice } from '../../components/admin/StaffPassword';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { adminPanelOrigin } from '../../utils/adminPanel';
@@ -51,6 +52,7 @@ export default function BackofficeHome() {
 
       <div className="mt-4">
         <StaffPasswordNotice />
+        <StaffPasskeyNotice />
       </div>
 
       <main className="glass-panel mt-4 rounded-3xl p-6 sm:p-8">

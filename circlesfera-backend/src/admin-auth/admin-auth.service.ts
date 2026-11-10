@@ -659,6 +659,52 @@ export class AdminAuthService {
     ]);
   }
 
+  /**
+   * Opens a session for the identity whose staff passkey was just verified:
+   * the same checks as any sign-in (active, access not over, not locked),
+   * and for a member of staff an authenticator still enrolled, since a
+   * passkey adds to the second factor and never replaces enrolling one. An
+   * external reviewer's session is capped as at any reviewer sign-in.
+   */
+  async signInWithPasskey(
+    adminId: string,
+    meta: ClientMeta,
+  ): Promise<AdminTokenPair> {
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id: adminId },
+      include: { roles: { select: { role: { select: { name: true } } } } },
+    });
+    const refused = () => new UnauthorizedException('Passkey not accepted');
+    if (
+      admin?.status !== 'ACTIVE' ||
+      accessHasExpired(admin.accessExpiresAt) ||
+      (admin.lockedUntil && admin.lockedUntil > new Date())
+    ) {
+      throw refused();
+    }
+    const reviewer = isExternalReviewer(admin.roles.map((r) => r.role.name));
+    if (reviewer) {
+      if (!reviewerAccessIsValid(admin.accessExpiresAt)) throw refused();
+    } else if (!admin.totpEnabled) {
+      throw refused();
+    }
+    await this.prisma.adminIdentity.update({
+      where: { id: admin.id },
+      data: { failedLoginCount: 0, lockedUntil: null },
+    });
+    return this.issueSession(
+      admin.id,
+      admin.email,
+      meta,
+      reviewer
+        ? {
+            startedAt: Date.now(),
+            accessExpiresAt: admin.accessExpiresAt as Date,
+          }
+        : undefined,
+    );
+  }
+
   async me(adminId: string) {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
@@ -672,6 +718,7 @@ export class AdminAuthService {
             },
           },
         },
+        _count: { select: { passkeys: true } },
       },
     });
     if (admin?.status !== 'ACTIVE') {
@@ -686,6 +733,8 @@ export class AdminAuthService {
       // False while the identity still signs in the old way, with its
       // linked account's password: the staff sites ask it to set its own.
       ownPassword: hasOwnStaffPassword(admin),
+      // The staff sites ask a member of staff with none to add one.
+      passkeyCount: admin._count.passkeys,
       roles,
       permissions,
       lastLoginAt: admin.lastLoginAt,

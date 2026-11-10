@@ -6224,7 +6224,9 @@
       "new_password_rule": "At least {{min}} characters, and different from your CircleSfera account's, if you have one.",
       "repeat_password": "Repeat the password",
       "passwords_differ": "The passwords do not match.",
-      "access_continue": "Save and continue"
+      "access_continue": "Save and continue",
+      "passkey": "Sign in with a passkey",
+      "passkey_failed": "That passkey could not sign you in. Use your password and your code."
     },
     "password": {
       "title": "Change password",
@@ -6239,6 +6241,27 @@
       "notice_title": "Set your own staff password",
       "notice_body": "Staff access no longer uses your CircleSfera account's password. Choose one of your own; then your account's password stops working here.",
       "notice_action": "Set my password"
+    },
+    "passkeys": {
+      "title": "Passkeys",
+      "hint": "A passkey lets you sign in with your device's fingerprint, face or PIN, or with a security key, without typing a password or a code. It works on the Admin Panel and the Backoffice. To add or remove one we ask for your authenticator code.",
+      "loading": "Loading passkeys…",
+      "none": "You have no passkey yet.",
+      "unnamed": "Unnamed passkey",
+      "used_on": "Last used on {{date}}",
+      "added_on": "Added on {{date}}",
+      "remove": "Remove {{name}}",
+      "full": "You have {{max}} passkeys, the most allowed. Remove one to add another.",
+      "name": "Name (optional)",
+      "name_placeholder": "For example: work laptop",
+      "add": "Add passkey",
+      "added": "Passkey added",
+      "removed": "Passkey removed",
+      "cancelled": "The passkey was cancelled.",
+      "error": "That did not work. Try again.",
+      "notice_title": "Add a passkey",
+      "notice_body": "Signing in with a passkey is safer than a password and a code, and it will soon be required for staff. Add one on this device.",
+      "notice_action": "Add passkey"
     }
   },
   "interactive": {

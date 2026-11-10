@@ -7,3 +7,6 @@ export const STAFF_PASSWORD_MIN_LENGTH = 12;
 
 /** The longest password accepted anywhere a staff password is typed. */
 export const STAFF_PASSWORD_MAX_LENGTH = 200;
+
+/** The most passkeys one staff identity may keep. */
+export const STAFF_PASSKEYS_MAX = 5;
