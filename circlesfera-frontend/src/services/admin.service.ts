@@ -112,6 +112,10 @@ export interface AdminOperator {
   lastLoginAt: string | null;
   lastActivityAt: string | null;
   linkedUserId: string | null;
+  // Whether the identity has set a staff password of its own; one that has
+  // not still signs in with its CircleSfera account's, or has not yet used
+  // its access link.
+  ownPassword?: boolean;
   // When the identity stops working, if it does; an external reviewer
   // always has one.
   accessExpiresAt: string | null;

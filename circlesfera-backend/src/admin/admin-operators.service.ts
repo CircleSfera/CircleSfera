@@ -16,7 +16,10 @@ import {
   reviewerAccessLatestEnd,
 } from '../admin-auth/external-reviewer.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { UNUSED_STAFF_PASSWORD_HASH } from './staff-password.constants.js';
+import {
+  hasOwnStaffPassword,
+  UNUSED_STAFF_PASSWORD_HASH,
+} from './staff-password.constants.js';
 
 const KNOWN_ROLE_IDS = new Set([
   'arole_super',
@@ -29,6 +32,17 @@ const KNOWN_ROLE_IDS = new Set([
   'arole_analytics',
   EXTERNAL_REVIEWER_ROLE_ID,
 ]);
+
+// Whether an identity has had access before: it set its own password or has
+// signed in. Its access is then recovered only with a code an administrator
+// hands over, never with a link to its email: a mailbox alone never opens
+// the staff sites of someone who already used them.
+function hadAccess(admin: {
+  passwordSetAt?: Date | null;
+  lastLoginAt?: Date | null;
+}): boolean {
+  return !!admin.passwordSetAt || !!admin.lastLoginAt;
+}
 
 // Whether a set of roles makes an external reviewer: that role alone.
 function isReviewerRoleSet(roleIds: readonly string[]): boolean {
@@ -45,7 +59,8 @@ export class AdminOperatorsService {
     private readonly enrolmentProof: EnrolmentProofService,
   ) {}
 
-  // Sends the link that lets the identity enrol its authenticator. A failure
+  // Sends the link that lets the identity set up its access: a password of
+  // its own, and for a member of staff an authenticator. A failure
   // to send never undoes what was done: the link can be sent again.
   private async sendEnrolmentLink(
     actorAdminId: string,
@@ -67,20 +82,20 @@ export class AdminOperatorsService {
     }
   }
 
-  // An identity that already has its authenticator has nothing to enrol, nor
-  // has an external reviewer, who signs in without one.
+  // An identity a proof may be issued for: a member of staff with no
+  // authenticator yet (its access reset, or never set up), or any external
+  // reviewer, who has no authenticator to reset and recovers a forgotten
+  // password with a proof. Whether it may go by email is decided apart.
   private async awaitingEnrolment(id: string) {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id },
       include: { roles: { select: { roleId: true } } },
     });
     if (!admin) throw new NotFoundException('Operator not found');
-    if (isReviewerRoleSet(admin.roles.map((r) => r.roleId))) {
-      throw new ConflictException(
-        'An external reviewer signs in without an authenticator',
-      );
-    }
-    if (admin.totpEnabled) {
+    if (
+      !isReviewerRoleSet(admin.roles.map((r) => r.roleId)) &&
+      admin.totpEnabled
+    ) {
       throw new ConflictException('This operator already has an authenticator');
     }
     if (admin.status !== 'ACTIVE') {
@@ -90,8 +105,14 @@ export class AdminOperatorsService {
   }
 
   // Sends a new enrolment link; the previous link or code stops working.
+  // Only to an identity that never had access: one that had is given a code.
   async sendEnrolmentLinkAgain(actorAdminId: string, id: string) {
     const admin = await this.awaitingEnrolment(id);
+    if (hadAccess(admin)) {
+      throw new ConflictException(
+        'This operator has had access before: give them a code in person',
+      );
+    }
     await this.enrolmentProof.sendLink(admin);
     await this.logAction(
       actorAdminId,
@@ -145,6 +166,7 @@ export class AdminOperatorsService {
     lastLoginAt: Date | null;
     lastActivityAt: Date | null;
     linkedUserId: string | null;
+    passwordSetAt?: Date | null;
     accessExpiresAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
@@ -161,6 +183,9 @@ export class AdminOperatorsService {
       lastLoginAt: admin.lastLoginAt,
       lastActivityAt: admin.lastActivityAt,
       linkedUserId: admin.linkedUserId,
+      // Whether the identity has set a password of its own; one that has not
+      // still signs in the old way, with its linked account's password.
+      ownPassword: hasOwnStaffPassword(admin),
       accessExpiresAt: admin.accessExpiresAt,
       externalReviewer: isReviewerRoleSet(admin.roles.map((r) => r.role.id)),
       createdAt: admin.createdAt,
@@ -301,18 +326,8 @@ export class AdminOperatorsService {
       throw new ConflictException('An operator with this email already exists');
     }
 
-    // A staff member signs in with the password of their CircleSfera account,
-    // so the account has to exist: the one whose sign-in has this email.
-    const signIn = await this.prisma.signIn.findUnique({
-      where: { email },
-      select: { userId: true },
-    });
-    if (!signIn) {
-      throw new BadRequestException(
-        'No CircleSfera account has this email: the person has to sign up first',
-      );
-    }
-
+    // No CircleSfera account is needed, nor linked: the person sets a
+    // password of their own from the link sent to this email.
     const created = await this.prisma.adminIdentity.create({
       data: {
         email,
@@ -320,7 +335,6 @@ export class AdminOperatorsService {
         displayName: dto.displayName.trim() || email.split('@')[0],
         status: 'ACTIVE',
         totpEnabled: false,
-        linkedUserId: signIn.userId,
         accessExpiresAt,
         roles: {
           create: dto.roleIds.map((roleId) => ({ roleId })),
@@ -338,10 +352,9 @@ export class AdminOperatorsService {
         ? `Created external reviewer ${email} until ${accessExpiresAt?.toISOString()}`
         : `Created operator ${email}`,
     );
-    // A reviewer has no authenticator to enrol.
-    if (!reviewer) {
-      await this.sendEnrolmentLink(actorAdminId, created);
-    }
+    // Everyone sets up their access from the link: a password, and for a
+    // member of staff an authenticator too.
+    await this.sendEnrolmentLink(actorAdminId, created);
 
     return this.serialize(created);
   }
@@ -438,8 +451,14 @@ export class AdminOperatorsService {
       id,
       `Roles: ${roleIds.join(',')}`,
     );
-    // No longer a reviewer: a member of staff enrols an authenticator.
-    if (wasReviewer && !reviewer && !updated.totpEnabled) {
+    // No longer a reviewer: a member of staff enrols an authenticator, from
+    // a link only if it never had access (otherwise from a code).
+    if (
+      wasReviewer &&
+      !reviewer &&
+      !updated.totpEnabled &&
+      !hadAccess(updated)
+    ) {
       await this.sendEnrolmentLink(actorAdminId, updated);
     }
 
@@ -509,14 +528,17 @@ export class AdminOperatorsService {
       id,
       'MFA reset — re-enrollment required',
     );
-    // Enrolling again needs a new proof: the link goes to the staff email.
-    await this.sendEnrolmentLink(actorAdminId, updated);
+    // Enrolling again needs a new proof. An identity that had access gets it
+    // from a code an administrator hands over; one that never had, by link.
+    if (!hadAccess(updated)) {
+      await this.sendEnrolmentLink(actorAdminId, updated);
+    }
 
     return this.serialize(updated);
   }
 
   // Clears a lockout after too many failed sign-ins. The password is not
-  // touched: it is the one of the person's CircleSfera account.
+  // touched: a forgotten one is replaced from a new access link.
   async unlock(actorAdminId: string, id: string) {
     const admin = await this.prisma.adminIdentity.findUnique({ where: { id } });
     if (!admin) throw new NotFoundException('Operator not found');

@@ -2182,6 +2182,9 @@ model AdminIdentity {
   id                         String              @id @default(uuid())
   email                      String              @unique
   passwordHash               String
+  /// When the identity set its own staff password. Until then it signs in
+  /// the old way, with the password of its linked CircleSfera account.
+  passwordSetAt              DateTime?
   displayName                String
   status                     AdminIdentityStatus @default(ACTIVE)
   totpSecret                 String?
@@ -3059,6 +3062,7 @@ enum AdminAction {
   ADMIN_IDENTITY_DISABLED
   ADMIN_STEP_UP
   ADMIN_ACCESS_EXPIRY_SET
+  ADMIN_PASSWORD_SET
   // A page of the review area opened by an external reviewer.
   REVIEW_VIEWED
 

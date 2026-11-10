@@ -1,6 +1,7 @@
 import {
   Command,
   ExternalLink,
+  KeyRound,
   LogOut,
   Menu,
   Search,
@@ -20,6 +21,7 @@ import AdminSidebar from './AdminSidebar';
 import type { AdminTab } from './adminNav';
 import { currentStaffSite, findAdminNavItem } from './adminNav';
 import { CommandPalette } from './CommandPalette';
+import { StaffPasswordDialog, StaffPasswordNotice } from './StaffPassword';
 
 interface AdminShellProps {
   activeTab: AdminTab;
@@ -171,6 +173,7 @@ export default function AdminShell({
           tabIndex={-1}
           className="flex-1 w-full min-w-0 space-y-1 focus:outline-none"
         >
+          <StaffPasswordNotice />
           {children}
         </main>
       </div>
@@ -188,6 +191,7 @@ function AdminAccountMenu() {
   const admin = useAdminAuthStore((state) => state.admin);
   const logout = useAdminAuthStore((state) => state.logout);
   const [open, setOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -270,6 +274,18 @@ function AdminAccountMenu() {
           <button
             type="button"
             role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              setPasswordOpen(true);
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white text-left"
+          >
+            <KeyRound size={14} className="text-brand-primary-text shrink-0" />
+            {t('adminPanel.password.title')}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
             onClick={() =>
               void logout().then(() => {
                 window.location.href = '/login';
@@ -282,6 +298,10 @@ function AdminAccountMenu() {
           </button>
         </div>
       )}
+      <StaffPasswordDialog
+        isOpen={passwordOpen}
+        onClose={() => setPasswordOpen(false)}
+      />
     </div>
   );
 }

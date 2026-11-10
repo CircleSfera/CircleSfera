@@ -59,6 +59,16 @@ function isStepUpRequired(err: unknown): boolean {
   );
 }
 
+// Whether an operator has had access before (its own password, or a
+// sign-in): its access is then recovered only with a code given in person,
+// never with a link to its email.
+function hadAccess(operator: {
+  ownPassword?: boolean;
+  lastLoginAt: string | null;
+}): boolean {
+  return !!operator.ownPassword || !!operator.lastLoginAt;
+}
+
 export default function RolesTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -277,7 +287,15 @@ export default function RolesTab({ onToast }: Props) {
       runWithStepUp(async () => {
         if (!selectedId) return;
         await adminApi.resetOperatorMfa(selectedId);
-        onToast(t('admin.operators.mfa_reset'), 'success');
+        // Someone who had access recovers it only with a code in person.
+        onToast(
+          t(
+            selected && hadAccess(selected)
+              ? 'admin.operators.mfa_reset_code'
+              : 'admin.operators.mfa_reset',
+          ),
+          'success',
+        );
         await invalidate();
       }),
     onError: (err: any) => {
@@ -605,6 +623,12 @@ export default function RolesTab({ onToast }: Props) {
                       </>
                     )}
                   </p>
+                  {selected.ownPassword === false && (
+                    <p className="text-xs text-white/50 flex items-center gap-1.5">
+                      <KeyRound size={14} className="text-amber-400" />
+                      {t('admin.operators.no_own_password')}
+                    </p>
+                  )}
                 </div>
 
                 <div className="py-4 space-y-2.5">
@@ -714,28 +738,36 @@ export default function RolesTab({ onToast }: Props) {
                     </Button>
                   </div>
                 </div>
-                {!selected.totpEnabled &&
-                  !selected.externalReviewer &&
-                  selected.status === 'ACTIVE' && (
+                {/* A reviewer always may be given a proof: it has no
+                    authenticator to reset, and recovers a forgotten
+                    password with a code. */}
+                {selected.status === 'ACTIVE' &&
+                  (selected.externalReviewer || !selected.totpEnabled) && (
                     <section className="py-4 space-y-2.5">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
                         {t('admin.operators.enrolment_title')}
                       </h4>
                       <p className="text-xs text-white/60 leading-relaxed">
-                        {t('admin.operators.enrolment_hint')}
+                        {t(
+                          hadAccess(selected)
+                            ? 'admin.operators.enrolment_hint_code'
+                            : 'admin.operators.enrolment_hint',
+                        )}
                       </p>
                       <div className="flex flex-col sm:flex-row gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          className="min-h-11 gap-2"
-                          isLoading={sendLinkMutation.isPending}
-                          onClick={() => sendLinkMutation.mutate()}
-                        >
-                          <Mail size={14} />
-                          {t('admin.operators.send_link')}
-                        </Button>
+                        {!hadAccess(selected) && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="min-h-11 gap-2"
+                            isLoading={sendLinkMutation.isPending}
+                            onClick={() => sendLinkMutation.mutate()}
+                          >
+                            <Mail size={14} />
+                            {t('admin.operators.send_link')}
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           variant="secondary"

@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { ErrorCode } from '@circlesfera/shared';
 import {
   ForbiddenException,
   Inject,
@@ -7,11 +8,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
+import * as argon2 from 'argon2';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrcode from 'qrcode';
+import { hasOwnStaffPassword } from '../admin/staff-password.constants.js';
+import { assertNotLeakedPassword } from '../auth/leaked-passwords/leaked-password.js';
 import { passwordMatches } from '../auth/password.util.js';
 import { ADMIN_JWT_AUDIENCE } from '../auth/strategies/admin-jwt.strategy.js';
 import { getAdminJwtSecret } from '../common/config/admin-jwt.config.js';
+import { AppException } from '../common/errors/app.exception.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EnrolmentProofService } from './enrolment-proof.service.js';
@@ -39,6 +44,18 @@ export type AdminTokenPair = {
   refreshToken: string;
 };
 
+type ClientMeta = { ip?: string; userAgent?: string };
+
+// A new authenticator, shown this once, to be confirmed with its first code
+// at the MFA step.
+export type AuthenticatorSetup = {
+  status: 'MFA_SETUP_REQUIRED';
+  mfaToken: string;
+  otpauthUrl: string;
+  secret: string;
+  qrCodeDataUrl: string;
+};
+
 // An external reviewer's session: when it began, carried through every
 // renewal, and when the reviewer's access ends.
 type ReviewerSession = { startedAt: number; accessExpiresAt: Date };
@@ -62,14 +79,25 @@ export class AdminAuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  // The staff password is the password of the CircleSfera sign-in that has the
-  // staff account's email and belongs to its linked User: one password for the
-  // person, never a copy. A staff account without that sign-in, or whose
-  // sign-in must set a new password first, is refused like a wrong password.
+  // A staff identity with a password of its own signs in with that one alone.
+  // One that has not set it yet (identities made when staff signed in with
+  // their CircleSfera account) still signs in the old way: with the password
+  // of the sign-in that has the staff email and belongs to its linked User,
+  // until it sets its own; from then on that password opens nothing here.
+  // In the old way, no such sign-in, or one that must set a new password
+  // first, is refused like a wrong password.
   private async passwordIsValid(
-    admin: { email: string; linkedUserId: string | null },
+    admin: {
+      email: string;
+      linkedUserId: string | null;
+      passwordHash: string;
+      passwordSetAt: Date | null;
+    },
     password: string,
   ): Promise<boolean> {
+    if (hasOwnStaffPassword(admin)) {
+      return passwordMatches(admin.passwordHash, password);
+    }
     if (!admin.linkedUserId) return false;
     const signIn = await this.prisma.signIn.findUnique({
       where: { email: admin.email },
@@ -83,6 +111,57 @@ export class AdminAuthService {
       return false;
     }
     return passwordMatches(signIn.password, password);
+  }
+
+  // A failed attempt: counted towards the lockout and written down.
+  private async recordFailure(
+    adminId: string,
+    meta: ClientMeta,
+    details: string,
+  ): Promise<void> {
+    const updated = await this.prisma.adminIdentity.update({
+      where: { id: adminId },
+      data: { failedLoginCount: { increment: 1 } },
+    });
+    if (updated.failedLoginCount >= LOCKOUT_THRESHOLD) {
+      await this.prisma.adminIdentity.update({
+        where: { id: adminId },
+        data: {
+          lockedUntil: new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000),
+        },
+      });
+    }
+    await this.prisma.adminAuditLog.create({
+      data: {
+        adminId,
+        action: 'ADMIN_LOGIN_FAILED',
+        targetType: 'admin',
+        targetId: adminId,
+        details,
+        ipAddress: meta.ip,
+        userAgent: meta.userAgent,
+      },
+    });
+  }
+
+  // A new staff password: long enough (checked where it is received), not a
+  // known leaked one, and never the password of a CircleSfera account with
+  // the staff email, which would join the two again.
+  private async assertUsableStaffPassword(
+    email: string,
+    password: string,
+  ): Promise<void> {
+    assertNotLeakedPassword(password);
+    const signIn = await this.prisma.signIn.findUnique({
+      where: { email },
+      select: { password: true },
+    });
+    if (signIn && (await passwordMatches(signIn.password, password))) {
+      throw AppException.BadRequest(
+        ErrorCode.STAFF_PASSWORD_IS_ACCOUNT_PASSWORD,
+        'Choose a password different from the one of your CircleSfera account',
+      );
+    }
   }
 
   // Safe TOTP check — otplib throws on malformed secrets.
@@ -158,29 +237,7 @@ export class AdminAuthService {
 
     const fail = async (adminId?: string): Promise<never> => {
       if (adminId) {
-        const updated = await this.prisma.adminIdentity.update({
-          where: { id: adminId },
-          data: { failedLoginCount: { increment: 1 } },
-        });
-        if (updated.failedLoginCount >= LOCKOUT_THRESHOLD) {
-          await this.prisma.adminIdentity.update({
-            where: { id: adminId },
-            data: {
-              lockedUntil: new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000),
-            },
-          });
-        }
-        await this.prisma.adminAuditLog.create({
-          data: {
-            adminId,
-            action: 'ADMIN_LOGIN_FAILED',
-            targetType: 'admin',
-            targetId: adminId,
-            details: 'Invalid credentials',
-            ipAddress: meta.ip,
-            userAgent: meta.userAgent,
-          },
-        });
+        await this.recordFailure(adminId, meta, 'Invalid credentials');
       }
       throw new UnauthorizedException('Invalid credentials');
     };
@@ -256,13 +313,7 @@ export class AdminAuthService {
     mfaToken: string,
     proof: string,
     meta: { ip?: string; userAgent?: string },
-  ): Promise<{
-    status: 'MFA_SETUP_REQUIRED';
-    mfaToken: string;
-    otpauthUrl: string;
-    secret: string;
-    qrCodeDataUrl: string;
-  }> {
+  ): Promise<AuthenticatorSetup> {
     let payload: { sub: string; email: string; purpose?: string };
     try {
       payload = this.jwtService.verify(mfaToken, {
@@ -287,42 +338,10 @@ export class AdminAuthService {
     }
 
     if (!(await this.enrolmentProof.consume(admin.id, proof))) {
-      const updated = await this.prisma.adminIdentity.update({
-        where: { id: admin.id },
-        data: { failedLoginCount: { increment: 1 } },
-      });
-      if (updated.failedLoginCount >= LOCKOUT_THRESHOLD) {
-        await this.prisma.adminIdentity.update({
-          where: { id: admin.id },
-          data: {
-            lockedUntil: new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000),
-          },
-        });
-      }
-      await this.prisma.adminAuditLog.create({
-        data: {
-          adminId: admin.id,
-          action: 'ADMIN_LOGIN_FAILED',
-          targetType: 'admin',
-          targetId: admin.id,
-          details: 'Invalid enrolment proof',
-          ipAddress: meta.ip,
-          userAgent: meta.userAgent,
-        },
-      });
+      await this.recordFailure(admin.id, meta, 'Invalid enrolment proof');
       throw new UnauthorizedException('Invalid enrolment proof');
     }
 
-    // A fresh secret for each proof: one shown before is never shown again.
-    const secret = generateSecret();
-    await this.prisma.adminIdentity.update({
-      where: { id: admin.id },
-      data: {
-        totpSecret: this.cryptoService.encrypt(secret),
-        failedLoginCount: 0,
-        lockedUntil: null,
-      },
-    });
     await this.prisma.adminAuditLog.create({
       data: {
         adminId: admin.id,
@@ -331,6 +350,26 @@ export class AdminAuthService {
         targetId: admin.id,
         ipAddress: meta.ip,
         userAgent: meta.userAgent,
+      },
+    });
+    return this.startAuthenticatorSetup(admin);
+  }
+
+  // A fresh authenticator secret, kept encrypted and shown this once: one
+  // shown before is never shown again. Confirmed with its first code at the
+  // MFA step, which turns it on.
+  private async startAuthenticatorSetup(admin: {
+    id: string;
+    email: string;
+  }): Promise<AuthenticatorSetup> {
+    const secret = generateSecret();
+    await this.prisma.adminIdentity.update({
+      where: { id: admin.id },
+      data: {
+        totpSecret: this.cryptoService.encrypt(secret),
+        totpEnabled: false,
+        failedLoginCount: 0,
+        lockedUntil: null,
       },
     });
     const otpauthUrl = generateURI({
@@ -458,6 +497,168 @@ export class AdminAuthService {
     return this.issueSession(admin.id, admin.email, meta);
   }
 
+  /**
+   * Sets up a staff identity's access from the link sent to its email, or a
+   * code from an administrator: no CircleSfera account and no earlier
+   * password are needed. The proof is spent, the password given becomes the
+   * identity's own, and every session it had ends. A member of staff then
+   * gets a new authenticator to confirm at the MFA step, which opens the
+   * session; an external reviewer, who signs in without one, is signed in.
+   * A wrong proof counts like a wrong password towards the lockout.
+   */
+  async setUpAccess(
+    email: string,
+    proof: string,
+    password: string,
+    meta: ClientMeta,
+  ): Promise<
+    AuthenticatorSetup | { status: 'SIGNED_IN'; tokens: AdminTokenPair }
+  > {
+    // Every refusal before the proof is accepted is the same 401, so this
+    // tells nobody whether an email is staff, and nothing about any password
+    // is looked at until the proof is right.
+    const refused = () => new UnauthorizedException('Invalid access link');
+    const admin = await this.loadAdminByEmail(email);
+    if (
+      admin?.status !== 'ACTIVE' ||
+      accessHasExpired(admin.accessExpiresAt) ||
+      (admin.lockedUntil && admin.lockedUntil > new Date())
+    ) {
+      throw refused();
+    }
+    const reviewer = isExternalReviewer(this.permissionsOf(admin).roles);
+    if (reviewer && !reviewerAccessIsValid(admin.accessExpiresAt)) {
+      throw refused();
+    }
+
+    const match = await this.enrolmentProof.check(admin.id, proof);
+    if (!match) {
+      await this.recordFailure(admin.id, meta, 'Invalid access link');
+      throw refused();
+    }
+    // Only with the right proof: a refused password leaves it unspent, so
+    // the person tries another with the same link or code.
+    await this.assertUsableStaffPassword(admin.email, password);
+    if (!(await this.enrolmentProof.spend(admin.id, match))) {
+      throw refused();
+    }
+
+    const passwordHash = await argon2.hash(password);
+    await this.prisma.$transaction([
+      this.prisma.adminIdentity.update({
+        where: { id: admin.id },
+        data: {
+          passwordHash,
+          passwordSetAt: new Date(),
+          failedLoginCount: 0,
+          lockedUntil: null,
+          // A member of staff sets up a new authenticator next; until it is
+          // confirmed the identity has none.
+          ...(reviewer ? {} : { totpSecret: null, totpEnabled: false }),
+        },
+      }),
+      this.prisma.adminRefreshToken.deleteMany({
+        where: { adminId: admin.id },
+      }),
+      this.prisma.adminAuditLog.create({
+        data: {
+          adminId: admin.id,
+          action: 'ADMIN_PASSWORD_SET',
+          targetType: 'admin',
+          targetId: admin.id,
+          details: 'Password set from an access link',
+          ipAddress: meta.ip,
+          userAgent: meta.userAgent,
+        },
+      }),
+    ]);
+
+    if (reviewer) {
+      const tokens = await this.issueSession(admin.id, admin.email, meta, {
+        startedAt: Date.now(),
+        accessExpiresAt: admin.accessExpiresAt as Date,
+      });
+      return { status: 'SIGNED_IN', tokens };
+    }
+    return this.startAuthenticatorSetup(admin);
+  }
+
+  /**
+   * Changes the password of the identity signed in, or sets its own for the
+   * first time (one that still signs in the old way). It takes the password
+   * it signs in with now and, for a member of staff, a code of its
+   * authenticator. Every other session of the identity ends; a wrong answer
+   * counts towards the lockout.
+   */
+  async changePassword(
+    adminId: string,
+    dto: { currentPassword: string; newPassword: string; totpCode?: string },
+    meta: ClientMeta & { keepRefreshToken?: string },
+  ): Promise<void> {
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id: adminId },
+      include: { roles: { select: { role: { select: { name: true } } } } },
+    });
+    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
+      throw new UnauthorizedException();
+    }
+    if (admin.lockedUntil && admin.lockedUntil > new Date()) {
+      throw new ForbiddenException('Account temporarily locked');
+    }
+    const reviewer = isExternalReviewer(admin.roles.map((r) => r.role.name));
+
+    let ok = await this.passwordIsValid(admin, dto.currentPassword);
+    if (ok && !reviewer) {
+      ok =
+        admin.totpEnabled &&
+        !!admin.totpSecret &&
+        this.isTotpValid(
+          dto.totpCode ?? '',
+          this.cryptoService.decrypt(admin.totpSecret),
+        );
+    }
+    if (!ok) {
+      await this.recordFailure(admin.id, meta, 'Invalid password change');
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    await this.assertUsableStaffPassword(admin.email, dto.newPassword);
+
+    const passwordHash = await argon2.hash(dto.newPassword);
+    const kept = meta.keepRefreshToken
+      ? this.hashRefresh(meta.keepRefreshToken)
+      : undefined;
+    await this.prisma.$transaction([
+      this.prisma.adminIdentity.update({
+        where: { id: admin.id },
+        data: {
+          passwordHash,
+          passwordSetAt: new Date(),
+          failedLoginCount: 0,
+          lockedUntil: null,
+        },
+      }),
+      this.prisma.adminRefreshToken.deleteMany({
+        where: {
+          adminId: admin.id,
+          ...(kept ? { token: { not: kept } } : {}),
+        },
+      }),
+      this.prisma.adminAuditLog.create({
+        data: {
+          adminId: admin.id,
+          action: 'ADMIN_PASSWORD_SET',
+          targetType: 'admin',
+          targetId: admin.id,
+          details: hasOwnStaffPassword(admin)
+            ? 'Password changed by its holder'
+            : 'Own password set by its holder',
+          ipAddress: meta.ip,
+          userAgent: meta.userAgent,
+        },
+      }),
+    ]);
+  }
+
   async me(adminId: string) {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
@@ -482,6 +683,9 @@ export class AdminAuthService {
       email: admin.email,
       displayName: admin.displayName,
       totpEnabled: admin.totpEnabled,
+      // False while the identity still signs in the old way, with its
+      // linked account's password: the staff sites ask it to set its own.
+      ownPassword: hasOwnStaffPassword(admin),
       roles,
       permissions,
       lastLoginAt: admin.lastLoginAt,

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { AdminOperatorsService } from './admin-operators.service.js';
@@ -40,7 +40,8 @@ describe('AdminOperatorsService', () => {
       roleIds: ['arole_support'],
     };
 
-    it('links the CircleSfera account with that email and stores no password of its own', async () => {
+    it('needs no CircleSfera account, links none and stores no password until the person sets one', async () => {
+      // Even when an account has that email, it is not linked.
       prisma.signIn.findUnique.mockResolvedValue({ userId: 'user-9' });
       prisma.adminIdentity.create.mockResolvedValue({
         id: 'op-1',
@@ -48,22 +49,18 @@ describe('AdminOperatorsService', () => {
         roles: [],
       });
 
-      await service.createOperator('actor-1', dto);
+      await expect(
+        service.createOperator('actor-1', dto),
+      ).resolves.toMatchObject({ id: 'op-1', ownPassword: false });
 
-      expect(prisma.signIn.findUnique).toHaveBeenCalledWith({
-        where: { email: 'person@example.com' },
-        select: { userId: true },
+      expect(prisma.signIn.findUnique).not.toHaveBeenCalled();
+      const { data } = prisma.adminIdentity.create.mock.calls[0][0];
+      expect(data).toMatchObject({
+        email: 'person@example.com',
+        passwordHash: UNUSED_STAFF_PASSWORD_HASH,
       });
-      expect(prisma.adminIdentity.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            email: 'person@example.com',
-            linkedUserId: 'user-9',
-            passwordHash: UNUSED_STAFF_PASSWORD_HASH,
-          }),
-        }),
-      );
-      // The person enrols their authenticator with the link sent to them.
+      expect(data).not.toHaveProperty('linkedUserId');
+      // The person sets up their access with the link sent to them.
       expect(proof.sendLink).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'op-1', email: 'person@example.com' }),
       );
@@ -90,15 +87,6 @@ describe('AdminOperatorsService', () => {
       expect(prisma.adminAuditLog.create).not.toHaveBeenCalledWith({
         data: expect.objectContaining({ action: 'ADMIN_ENROLMENT_ISSUED' }),
       });
-    });
-
-    it('refuses an email with no CircleSfera account', async () => {
-      prisma.signIn.findUnique.mockResolvedValue(null);
-
-      await expect(service.createOperator('actor-1', dto)).rejects.toThrow(
-        BadRequestException,
-      );
-      expect(prisma.adminIdentity.create).not.toHaveBeenCalled();
     });
 
     it('refuses an email that already is an operator', async () => {
@@ -139,6 +127,41 @@ describe('AdminOperatorsService', () => {
       expect(proof.sendLink).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'op-1', email: 'p@example.com' }),
       );
+    });
+
+    it('resetting someone who had access sends no link: they are given a code in person', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue({ id: 'op-1' });
+      for (const had of [
+        { lastLoginAt: new Date() },
+        { passwordSetAt: new Date() },
+      ]) {
+        prisma.adminIdentity.update.mockResolvedValueOnce({
+          ...awaiting,
+          ...had,
+          roles: [],
+        });
+        await service.resetMfa('actor-1', 'op-1');
+      }
+      expect(proof.sendLink).not.toHaveBeenCalled();
+    });
+
+    it('never sends a link to someone who had access, but gives a code', async () => {
+      for (const had of [
+        { lastLoginAt: new Date() },
+        { passwordSetAt: new Date() },
+      ]) {
+        prisma.adminIdentity.findUnique.mockResolvedValue({
+          ...awaiting,
+          ...had,
+        });
+        await expect(
+          service.sendEnrolmentLinkAgain('actor-1', 'op-1'),
+        ).rejects.toThrow(ConflictException);
+        await expect(
+          service.issueEnrolmentCode('actor-1', 'op-1'),
+        ).resolves.toMatchObject({ code: 'ABCD-EFGH-JKLM' });
+      }
+      expect(proof.sendLink).not.toHaveBeenCalled();
     });
 
     it('sends the link again, and audits it', async () => {
@@ -250,7 +273,7 @@ describe('AdminOperatorsService', () => {
       prisma.adminIdentity.findUniqueOrThrow = vi.fn();
     });
 
-    it('is given 30 days by default, and no authenticator link', async () => {
+    it('is given 30 days by default, and a link to set its password', async () => {
       created();
       const result = await service.createOperator('actor-1', reviewerDto);
 
@@ -258,7 +281,7 @@ describe('AdminOperatorsService', () => {
       const days = (data.accessExpiresAt.getTime() - Date.now()) / DAY;
       expect(days).toBeGreaterThan(29.99);
       expect(days).toBeLessThanOrEqual(30);
-      expect(proof.sendLink).not.toHaveBeenCalled();
+      expect(proof.sendLink).toHaveBeenCalledTimes(1);
       expect(result).toMatchObject({ externalReviewer: true });
     });
 
@@ -312,18 +335,49 @@ describe('AdminOperatorsService', () => {
       ).toBeNull();
     });
 
-    it('has no authenticator to enrol', async () => {
+    it('is sent a link only until it has set its password, and a code at any time', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'rev-1',
+        email: 'rev@example.com',
+        totpEnabled: false,
+        status: 'ACTIVE',
+        passwordHash: UNUSED_STAFF_PASSWORD_HASH,
+        roles: [{ roleId: 'arole_external_reviewer' }],
+      });
+      await expect(
+        service.sendEnrolmentLinkAgain('actor-1', 'rev-1'),
+      ).resolves.toEqual({ sent: true });
+      await expect(
+        service.issueEnrolmentCode('actor-1', 'rev-1'),
+      ).resolves.toMatchObject({ expiresInHours: 24 });
+
       prisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'rev-1',
         totpEnabled: false,
         status: 'ACTIVE',
+        passwordHash: '$argon2id$own',
+        passwordSetAt: new Date(),
         roles: [{ roleId: 'arole_external_reviewer' }],
       });
+      // Once it has a password, a forgotten one is recovered with a code
+      // given in person, never with a link to its email.
       await expect(
         service.sendEnrolmentLinkAgain('actor-1', 'rev-1'),
       ).rejects.toThrow(ConflictException);
       await expect(
         service.issueEnrolmentCode('actor-1', 'rev-1'),
+      ).resolves.toMatchObject({ expiresInHours: 24 });
+    });
+
+    it('is refused a link while it is not active', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'rev-1',
+        status: 'DISABLED',
+        passwordHash: UNUSED_STAFF_PASSWORD_HASH,
+        roles: [{ roleId: 'arole_external_reviewer' }],
+      });
+      await expect(
+        service.sendEnrolmentLinkAgain('actor-1', 'rev-1'),
       ).rejects.toThrow(ConflictException);
     });
 
@@ -475,6 +529,25 @@ describe('AdminOperatorsService', () => {
         expect(proof.sendLink).toHaveBeenCalledWith(
           expect.objectContaining({ id: 'op-1' }),
         );
+      });
+
+      it('a reviewer who signed in before and becomes staff gets no link: a code instead', async () => {
+        prisma.adminIdentity.findUnique.mockResolvedValue({
+          id: 'op-1',
+          accessExpiresAt: new Date(Date.now() + DAY),
+          roles: [{ roleId: 'arole_external_reviewer' }],
+        });
+        prisma.adminIdentity.findUniqueOrThrow.mockResolvedValue({
+          id: 'op-1',
+          email: 'p@example.com',
+          totpEnabled: false,
+          lastLoginAt: new Date(),
+          roles: [{ role: { id: 'arole_support', name: 'X' } }],
+        });
+
+        await service.replaceRoles('actor-1', 'op-1', ['arole_support']);
+
+        expect(proof.sendLink).not.toHaveBeenCalled();
       });
 
       it('a member of staff with an authenticator changing roles gets no link', async () => {

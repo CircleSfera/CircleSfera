@@ -5,6 +5,9 @@ export type AdminMe = {
   email: string;
   displayName: string;
   totpEnabled: boolean;
+  // False while the identity still signs in the old way, with the password
+  // of its CircleSfera account: the staff sites ask it to set its own.
+  ownPassword?: boolean;
   roles: string[];
   permissions: string[];
   lastLoginAt?: string | null;
@@ -33,12 +36,33 @@ export type AdminEnrolResult = {
   qrCodeDataUrl?: string;
 };
 
+// What setting up the access answers: a member of staff's new authenticator,
+// or, for an external reviewer, a session already in its cookies.
+export type AdminAccessResult = AdminEnrolResult | { status: 'SIGNED_IN' };
+
 export const adminAuthApi = {
   login: (email: string, password: string) =>
     apiClient.post<AdminLoginResult>('/admin-auth/login', { email, password }),
 
   enrol: (mfaToken: string, proof: string) =>
     apiClient.post<AdminEnrolResult>('/admin-auth/enrol', { mfaToken, proof }),
+
+  // Sets up the access from the link sent to the staff email, or a code from
+  // an administrator, with a password of one's own.
+  setUpAccess: (email: string, proof: string, password: string) =>
+    apiClient.post<AdminAccessResult>('/admin-auth/access', {
+      email,
+      proof,
+      password,
+    }),
+
+  // Changes the password of the identity signed in, or sets its own for the
+  // first time; a member of staff also gives a code of its authenticator.
+  changePassword: (body: {
+    currentPassword: string;
+    newPassword: string;
+    totpCode?: string;
+  }) => apiClient.post<{ status: string }>('/admin-auth/password', body),
 
   verifyMfa: (mfaToken: string, code: string) =>
     apiClient.post<{ status: string }>('/admin-auth/mfa/verify', {

@@ -1,3 +1,4 @@
+import { STAFF_PASSWORD_MIN_LENGTH } from '@circlesfera/shared';
 import { useMutation } from '@tanstack/react-query';
 import { Copy, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -12,7 +13,7 @@ import { useAdminAuthStore } from '../stores/adminAuthStore';
 import { isBackofficeHost } from '../utils/adminPanel';
 import { apiErrorMessage, apiErrorStatus } from '../utils/apiErrorMessage';
 
-type Step = 'credentials' | 'enrol' | 'mfa' | 'mfa-setup';
+type Step = 'credentials' | 'access' | 'enrol' | 'mfa' | 'mfa-setup';
 
 // Admin Panel login — same visual language as platform Login (modal-glass),
 // Distinct copy/flow for staff auth.
@@ -20,12 +21,18 @@ export default function AdminPanelLogin() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const setAdmin = useAdminAuthStore((s) => s.setAdmin);
-  // The token of the set-up link sent to the staff email. It comes after a
-  // #, so it never reaches a server; it is kept in memory and taken off the
-  // address so it stays out of the history.
-  const [linkProof] = useState(
-    () => new URLSearchParams(window.location.hash.slice(1)).get('enrol') ?? '',
-  );
+  // The token of the access link sent to the staff email, and that email.
+  // They come after a #, so they never reach a server; they are kept in
+  // memory and taken off the address so they stay out of the history.
+  const [fromLink] = useState(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    return {
+      proof: params.get('enrol') ?? '',
+      email: params.get('email') ?? '',
+    };
+  });
+  // Cleared when the link is refused, so a code can be typed instead.
+  const [linkProof, setLinkProof] = useState(fromLink.proof);
   useEffect(() => {
     if (window.location.hash.includes('enrol=')) {
       window.history.replaceState(
@@ -37,10 +44,14 @@ export default function AdminPanelLogin() {
   }, []);
   const [proof, setProof] = useState('');
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(fromLink.email);
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [repeatPassword, setRepeatPassword] = useState('');
   const [code, setCode] = useState('');
-  const [step, setStep] = useState<Step>('credentials');
+  // A link opens the step that sets up the access with a password of one's
+  // own; no CircleSfera account is needed.
+  const [step, setStep] = useState<Step>(linkProof ? 'access' : 'credentials');
   const [mfaToken, setMfaToken] = useState('');
   const [secret, setSecret] = useState('');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
@@ -102,11 +113,9 @@ export default function AdminPanelLogin() {
         setStep('mfa');
         return;
       }
-      // No authenticator yet: the link's proof goes at once; without one,
-      // the set-up code is asked for.
+      // No authenticator yet: the set-up code is asked for.
       setMfaToken(data.mfaToken);
       setStep('enrol');
-      if (linkProof) enrolMutation.mutate({ token: data.mfaToken, linkProof });
     },
     onError: (err: unknown) => {
       // A refused sign-in is wrong credentials, except 403: the account is
@@ -119,9 +128,57 @@ export default function AdminPanelLogin() {
     },
   });
 
+  // Sets up the access from the link or a code: a password of one's own,
+  // then, for a member of staff, a new authenticator.
+  const accessMutation = useMutation({
+    mutationFn: () =>
+      adminAuthApi.setUpAccess(
+        email.trim(),
+        (linkProof || proof).trim(),
+        newPassword,
+      ),
+    onSuccess: ({ data }) => {
+      setError(null);
+      setNewPassword('');
+      setRepeatPassword('');
+      if (data.status === 'SIGNED_IN') {
+        void finishLogin().catch((err: unknown) =>
+          setError(
+            apiErrorMessage(err, t, 'errors.generic.server', { signIn: true }),
+          ),
+        );
+        return;
+      }
+      setMfaToken(data.mfaToken);
+      setSecret(data.secret);
+      setQrCodeDataUrl(data.qrCodeDataUrl || '');
+      setStep('mfa-setup');
+    },
+    onError: (err: unknown) => {
+      const status = apiErrorStatus(err);
+      // A refused link cannot work again: the code field takes its place.
+      if (status === 401) setLinkProof('');
+      setError(
+        status === 403
+          ? t('adminPanel.login.locked')
+          : status === 401
+            ? t('adminPanel.login.enrol_invalid')
+            : apiErrorMessage(err, t, 'errors.generic.server'),
+      );
+    },
+  });
+
+  const passwordsDiffer =
+    repeatPassword.length > 0 && newPassword !== repeatPassword;
+  const canSetUpAccess =
+    !!email.trim() &&
+    (linkProof || proof.trim()).length >= 8 &&
+    newPassword.length >= STAFF_PASSWORD_MIN_LENGTH &&
+    newPassword === repeatPassword;
+
   const enrolMutation = useMutation({
-    mutationFn: (args: { token: string; linkProof?: string }) =>
-      adminAuthApi.enrol(args.token, (args.linkProof ?? proof).trim()),
+    mutationFn: (args: { token: string }) =>
+      adminAuthApi.enrol(args.token, proof.trim()),
     onSuccess: ({ data }) => {
       setError(null);
       setMfaToken(data.mfaToken);
@@ -157,6 +214,12 @@ export default function AdminPanelLogin() {
     e.preventDefault();
     setError(null);
     loginMutation.mutate();
+  };
+
+  const handleAccessSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    accessMutation.mutate();
   };
 
   const handleEnrolSubmit = (e: React.FormEvent) => {
@@ -255,6 +318,160 @@ export default function AdminPanelLogin() {
                 {t('adminPanel.login.continue')}
               </Button>
             </div>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('access');
+                  setError(null);
+                }}
+                className="min-h-11 px-3 text-xs text-gray-400 hover:text-white transition-colors font-bold"
+              >
+                {t('adminPanel.login.access_open')}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {step === 'access' && (
+          <form
+            onSubmit={handleAccessSubmit}
+            className="space-y-3 sm:space-y-4 relative z-10"
+          >
+            <div className="p-3 bg-white/5 border border-white/10 rounded-lg space-y-1.5">
+              <h2 className="text-sm font-bold text-white">
+                {t('adminPanel.login.access_title')}
+              </h2>
+              <p className="text-xs text-white/70 leading-relaxed">
+                {t('adminPanel.login.access_hint', {
+                  min: STAFF_PASSWORD_MIN_LENGTH,
+                })}
+              </p>
+            </div>
+            <div>
+              <label
+                htmlFor="admin-access-email"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+              >
+                {t('adminPanel.login.email')}
+              </label>
+              <input
+                id="admin-access-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="username"
+                className="input-glass w-full px-4 rounded-xl text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
+                placeholder={t('adminPanel.login.email_placeholder')}
+              />
+            </div>
+            {!linkProof && (
+              <div>
+                <label
+                  htmlFor="admin-access-code"
+                  className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+                >
+                  {t('adminPanel.login.enrol_code')}
+                </label>
+                <input
+                  id="admin-access-code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  value={proof}
+                  onChange={(e) => setProof(e.target.value.slice(0, 20))}
+                  className="input-glass w-full px-4 rounded-xl text-white placeholder-gray-600 text-base tracking-widest font-mono text-center uppercase"
+                  style={{ height: 'var(--input-height-standard, 48px)' }}
+                  placeholder={t('adminPanel.login.enrol_code_placeholder')}
+                />
+              </div>
+            )}
+            <div>
+              <label
+                htmlFor="admin-access-password"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+              >
+                {t('adminPanel.login.new_password')}
+              </label>
+              <input
+                id="admin-access-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={STAFF_PASSWORD_MIN_LENGTH}
+                autoComplete="new-password"
+                aria-describedby="admin-access-password-rule"
+                className="input-glass w-full px-4 rounded-xl text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
+              />
+              <p
+                id="admin-access-password-rule"
+                className="text-xs text-gray-500 mt-1 px-1"
+              >
+                {t('adminPanel.login.new_password_rule', {
+                  min: STAFF_PASSWORD_MIN_LENGTH,
+                })}
+              </p>
+            </div>
+            <div>
+              <label
+                htmlFor="admin-access-repeat"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
+              >
+                {t('adminPanel.login.repeat_password')}
+              </label>
+              <input
+                id="admin-access-repeat"
+                type="password"
+                value={repeatPassword}
+                onChange={(e) => setRepeatPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                aria-invalid={passwordsDiffer}
+                className="input-glass w-full px-4 rounded-xl text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
+              />
+              {passwordsDiffer && (
+                <p className="text-xs text-red-400 mt-1 px-1" role="alert">
+                  {t('adminPanel.login.passwords_differ')}
+                </p>
+              )}
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+                {error}
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Button
+                type="submit"
+                variant="white"
+                size="lg"
+                isLoading={accessMutation.isPending}
+                disabled={accessMutation.isPending || !canSetUpAccess}
+                className="button-alone font-black text-sm tracking-wide"
+              >
+                {t('adminPanel.login.access_continue')}
+              </Button>
+            </div>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('credentials');
+                  setError(null);
+                }}
+                className="min-h-11 px-3 text-xs text-gray-400 hover:text-white transition-colors uppercase tracking-wide font-bold"
+              >
+                {t('adminPanel.login.back')}
+              </button>
+            </div>
           </form>
         )}
 
@@ -271,31 +488,25 @@ export default function AdminPanelLogin() {
                 {t('adminPanel.login.enrol_hint')}
               </p>
             </div>
-            {enrolMutation.isPending && linkProof ? (
-              <p className="text-sm text-gray-400 text-center" role="status">
-                {t('adminPanel.login.enrol_from_link')}
-              </p>
-            ) : (
-              <div>
-                <label
-                  htmlFor="admin-enrol-code"
-                  className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 px-1"
-                >
-                  {t('adminPanel.login.enrol_code')}
-                </label>
-                <input
-                  id="admin-enrol-code"
-                  type="text"
-                  autoComplete="one-time-code"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  value={proof}
-                  onChange={(e) => setProof(e.target.value.slice(0, 20))}
-                  className="w-full min-h-12 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-500 outline-none text-base tracking-widest font-mono text-center uppercase"
-                  placeholder={t('adminPanel.login.enrol_code_placeholder')}
-                />
-              </div>
-            )}
+            <div>
+              <label
+                htmlFor="admin-enrol-code"
+                className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 px-1"
+              >
+                {t('adminPanel.login.enrol_code')}
+              </label>
+              <input
+                id="admin-enrol-code"
+                type="text"
+                autoComplete="one-time-code"
+                autoCapitalize="characters"
+                spellCheck={false}
+                value={proof}
+                onChange={(e) => setProof(e.target.value.slice(0, 20))}
+                className="w-full min-h-12 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-500 outline-none text-base tracking-widest font-mono text-center uppercase"
+                placeholder={t('adminPanel.login.enrol_code_placeholder')}
+              />
+            </div>
 
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">

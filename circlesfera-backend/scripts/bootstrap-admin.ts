@@ -73,6 +73,8 @@ async function main() {
         id: randomBytes(16).toString('hex'),
         email,
         passwordHash,
+        // The password given here is the identity's own staff password.
+        passwordSetAt: new Date(),
         displayName,
         status: 'ACTIVE',
         totpEnabled: false,
@@ -81,6 +83,7 @@ async function main() {
       },
       update: {
         passwordHash,
+        passwordSetAt: new Date(),
         displayName,
         status: 'ACTIVE',
         failedLoginCount: 0,

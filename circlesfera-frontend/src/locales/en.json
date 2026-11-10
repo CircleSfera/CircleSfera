@@ -4728,13 +4728,13 @@
       "load_error": "Could not load operators",
       "email_label": "Email",
       "display_name": "Display name",
-      "create_hint": "The person needs a CircleSfera account with this email. They sign in to the staff sites with that account's password.",
+      "create_hint": "No CircleSfera account is needed. We send a link to this email so the person chooses their own staff password and, unless they are an external reviewer, sets up their authenticator.",
       "save": "Create",
       "roles": "Roles",
       "actions": "Actions",
       "disable": "Disable",
       "enable": "Enable",
-      "reset_mfa": "Reset two-step verification",
+      "reset_mfa": "Reset access",
       "unlock": "Unlock account",
       "mfa_on": "Two-step verification set up",
       "mfa_off": "Two-step verification not set up yet",
@@ -4751,7 +4751,7 @@
       "status_error": "Could not update status",
       "roles_updated": "Roles updated",
       "roles_error": "Could not update roles",
-      "mfa_reset": "Two-step verification reset",
+      "mfa_reset": "Access reset: we sent a link to choose a new password and authenticator",
       "mfa_error": "Could not reset two-step verification",
       "unlocked": "Lockout cleared",
       "unlock_error": "Could not clear the lockout",
@@ -4766,8 +4766,8 @@
         "ANALYTICS_ADMIN": "Analytics",
         "EXTERNAL_REVIEWER": "External reviewer"
       },
-      "enrolment_title": "Authenticator set-up",
-      "enrolment_hint": "This person has no authenticator yet. They set it up with the link sent to their email or with a code you give them in person.",
+      "enrolment_title": "Access set-up",
+      "enrolment_hint": "This person has not finished setting up their access. They do it with the link sent to their email or with a code you give them in person: they choose their password and, if they are staff, their authenticator.",
       "send_link": "Send the link again",
       "link_sent": "Link sent to their email",
       "issue_code": "Create a code",
@@ -4784,8 +4784,11 @@
       "access_clear": "Remove end date",
       "access_updated": "Access end saved",
       "access_error": "The access end could not be saved",
-      "reviewer_hint": "An external reviewer, such as the payment provider, signs in with the password of their CircleSfera account and no authenticator. They only read the Review section of the Admin Panel and the Backoffice, and every page they open is recorded.",
-      "reviewer_no_mfa": "External reviewer: signs in without an authenticator, read only"
+      "reviewer_hint": "An external reviewer, such as the payment provider, needs no CircleSfera account: they choose their password from the link we send and sign in without an authenticator. They only read the Review section of the Admin Panel and the Backoffice, and every page they open is recorded.",
+      "reviewer_no_mfa": "External reviewer: signs in without an authenticator, read only",
+      "no_own_password": "No password of their own: they sign in with their CircleSfera account's, or have not used their link yet",
+      "mfa_reset_code": "Access reset. Create a code and give it in person: someone who had access does not recover it with a link to their email.",
+      "enrolment_hint_code": "This person had access before, so no link goes to their email: create a code and give it in person. With it they choose their password and, if they are staff, their authenticator."
     },
     "split": {
       "list_region": "List",
@@ -6213,8 +6216,29 @@
       "enrol_code": "Set-up code",
       "enrol_code_placeholder": "XXXX-XXXX-XXXX",
       "enrol_continue": "Continue",
-      "enrol_from_link": "Checking your set-up link…",
-      "enrol_invalid": "This link or code does not work: it may have been used or have expired. Ask an administrator for a new one."
+      "enrol_invalid": "This link or code does not work: it may have been used or have expired. Ask an administrator for a new one.",
+      "access_open": "I have an access link or code",
+      "access_title": "Set up your staff access",
+      "access_hint": "Choose a password for staff access, at least {{min}} characters long. It is not the password of any CircleSfera account, and you do not need one. You will then set up your authenticator app.",
+      "new_password": "New password",
+      "new_password_rule": "At least {{min}} characters, and different from your CircleSfera account's, if you have one.",
+      "repeat_password": "Repeat the password",
+      "passwords_differ": "The passwords do not match.",
+      "access_continue": "Save and continue"
+    },
+    "password": {
+      "title": "Change password",
+      "set_title": "Set your staff password",
+      "hint": "Type your current password and choose a new one of at least {{min}} characters. Your other sessions will end.",
+      "set_hint": "You now sign in with your CircleSfera account's password. Choose one of your own for staff access, at least {{min}} characters long: from then on, your account's password no longer opens the staff sites.",
+      "current": "Current password",
+      "current_account": "Your CircleSfera account's password",
+      "save": "Save password",
+      "saved": "Password saved",
+      "wrong": "The current password or the code is not right.",
+      "notice_title": "Set your own staff password",
+      "notice_body": "Staff access no longer uses your CircleSfera account's password. Choose one of your own; then your account's password stops working here.",
+      "notice_action": "Set my password"
     }
   },
   "interactive": {
@@ -6479,7 +6503,8 @@
       "TIP_TARGET_REQUIRED": "A tip is always for a post.",
       "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first.",
       "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another.",
-      "MESSAGE_NOT_FORWARDABLE": "This message cannot be forwarded."
+      "MESSAGE_NOT_FORWARDABLE": "This message cannot be forwarded.",
+      "STAFF_PASSWORD_IS_ACCOUNT_PASSWORD": "Choose a password different from your CircleSfera account's: staff access shares no password with any account."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

@@ -193,6 +193,8 @@ export enum ErrorCode {
   SIGN_IN_NOT_FOUND = 'SIGN_IN_NOT_FOUND',
   // The new password is in the list of known leaked passwords.
   PASSWORD_LEAKED = 'PASSWORD_LEAKED',
+  // A staff password that is the password of a CircleSfera account.
+  STAFF_PASSWORD_IS_ACCOUNT_PASSWORD = 'STAFF_PASSWORD_IS_ACCOUNT_PASSWORD',
   // Too many new sign-ins in a short time; details carry when to try again.
   SIGN_IN_LIMIT_REACHED = 'SIGN_IN_LIMIT_REACHED',
 

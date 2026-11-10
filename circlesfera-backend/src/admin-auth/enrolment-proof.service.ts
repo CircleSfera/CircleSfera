@@ -7,6 +7,7 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
+import { hasOwnStaffPassword } from '../admin/staff-password.constants.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -18,6 +19,14 @@ export const ENROLMENT_PROOF_TTL_MS = 24 * 60 * 60 * 1000;
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 12;
 
+// What tells whether the password an identity signs in with has changed.
+type StaffCredential = {
+  email: string;
+  passwordHash?: string | null;
+  passwordSetAt?: Date | null;
+  linkedUserId?: string | null;
+};
+
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
 }
@@ -28,9 +37,10 @@ function normaliseCode(value: string): string {
 }
 
 /**
- * The one proof, beyond the password, that lets a staff identity enrol its
- * authenticator: a link sent to the staff email, or a code an administrator
- * hands over. Only its hash is kept; it works once and for 24 hours, and a
+ * The one proof that lets a staff identity set up its access (a password of
+ * its own, and for a member of staff an authenticator), or enrol an
+ * authenticator after signing in: a link sent to the staff email, or a code
+ * an administrator hands over. Only its hash is kept; it works once and for 24 hours, and a
  * new proof replaces the previous one.
  */
 @Injectable()
@@ -56,24 +66,32 @@ export class EnrolmentProofService {
     });
   }
 
-  // The stored password of the sign-in behind the staff email, or null.
-  private async storedPassword(email: string): Promise<string | null> {
+  // The stored password the identity signs in with, or null: its own staff
+  // password, or, until it sets one, the one of the sign-in behind the staff
+  // email when that sign-in belongs to its linked account (the old way).
+  private async storedPassword(admin: StaffCredential): Promise<string | null> {
+    if (hasOwnStaffPassword(admin)) {
+      return admin.passwordHash ?? null;
+    }
+    if (!admin.linkedUserId) return null;
     const signIn = await this.prisma.signIn.findUnique({
-      where: { email },
-      select: { password: true },
+      where: { email: admin.email },
+      select: { userId: true, password: true },
     });
-    return signIn?.password || null;
+    return signIn?.userId === admin.linkedUserId
+      ? signIn.password || null
+      : null;
   }
 
   // A fingerprint of that stored password, made with argon2 like a password:
   // it tells whether the password changed, never what it is.
-  private async passwordMark(email: string): Promise<string | null> {
-    const stored = await this.storedPassword(email);
+  private async passwordMark(admin: StaffCredential): Promise<string | null> {
+    const stored = await this.storedPassword(admin);
     return stored ? argon2.hash(stored) : null;
   }
 
-  private async passwordUnchanged(email: string, mark: string) {
-    const stored = await this.storedPassword(email);
+  private async passwordUnchanged(admin: StaffCredential, mark: string) {
+    const stored = await this.storedPassword(admin);
     if (!stored) return false;
     try {
       return await argon2.verify(mark, stored);
@@ -89,10 +107,19 @@ export class EnrolmentProofService {
    */
   async sendLink(admin: { id: string; email: string }): Promise<void> {
     const token = randomBytes(32).toString('base64url');
+    const current = await this.prisma.adminIdentity.findUnique({
+      where: { id: admin.id },
+      select: { passwordHash: true, passwordSetAt: true, linkedUserId: true },
+    });
     await this.keep(
       admin.id,
       sha256(token),
-      await this.passwordMark(admin.email),
+      await this.passwordMark({
+        email: admin.email,
+        passwordHash: current?.passwordHash,
+        passwordSetAt: current?.passwordSetAt,
+        linkedUserId: current?.linkedUserId,
+      }),
     );
     const base = (
       this.config.get<string>('ADMIN_BASE_URL') ||
@@ -100,7 +127,8 @@ export class EnrolmentProofService {
     ).replace(/\/$/, '');
     await this.email.sendStaffEnrolmentEmail(
       admin.email,
-      `${base}/login#enrol=${token}`,
+      // The email fills in the form the link opens; it is the person's own.
+      `${base}/login#${new URLSearchParams({ enrol: token, email: admin.email })}`,
     );
   }
 
@@ -115,39 +143,47 @@ export class EnrolmentProofService {
   }
 
   /**
-   * Uses the proof given, a link token or a code. True only once, while it
-   * has not expired; it is spent by the same write that checks it, so two
-   * attempts at once cannot both pass.
+   * Checks the proof given, a link token or a code, without spending it:
+   * what it matches while it has not expired, or null. A link sent before
+   * the password changed matches nothing.
    */
-  async consume(adminId: string, proof: string): Promise<boolean> {
+  async check(adminId: string, proof: string): Promise<string | null> {
     const given = proof.trim();
-    if (!given || given.length > 200) return false;
+    if (!given || given.length > 200) return null;
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
       select: {
         email: true,
+        passwordHash: true,
+        passwordSetAt: true,
+        linkedUserId: true,
         enrolmentProofHash: true,
         enrolmentProofExpiresAt: true,
         enrolmentProofPasswordMark: true,
       },
     });
     const kept = admin?.enrolmentProofHash;
-    if (!kept || !admin.enrolmentProofExpiresAt) return false;
-    if (admin.enrolmentProofExpiresAt <= new Date()) return false;
+    if (!kept || !admin.enrolmentProofExpiresAt) return null;
+    if (admin.enrolmentProofExpiresAt <= new Date()) return null;
     const match = [sha256(given), sha256(normaliseCode(given))].find((h) =>
       timingSafeEqual(Buffer.from(h), Buffer.from(kept)),
     );
-    if (!match) return false;
-    // A link sent before the password changed no longer works.
+    if (!match) return null;
     if (
       admin.enrolmentProofPasswordMark &&
-      !(await this.passwordUnchanged(
-        admin.email,
-        admin.enrolmentProofPasswordMark,
-      ))
+      !(await this.passwordUnchanged(admin, admin.enrolmentProofPasswordMark))
     ) {
-      return false;
+      return null;
     }
+    return match;
+  }
+
+  /**
+   * Spends a proof that check matched. True only for the one attempt whose
+   * write finds it still kept and unexpired, so two attempts at once cannot
+   * both pass.
+   */
+  async spend(adminId: string, match: string): Promise<boolean> {
     const spent = await this.prisma.adminIdentity.updateMany({
       where: {
         id: adminId,
@@ -161,5 +197,11 @@ export class EnrolmentProofService {
       },
     });
     return spent.count === 1;
+  }
+
+  /** Checks the proof given and spends it: true only once. */
+  async consume(adminId: string, proof: string): Promise<boolean> {
+    const match = await this.check(adminId, proof);
+    return match ? this.spend(adminId, match) : false;
   }
 }

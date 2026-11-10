@@ -26,6 +26,7 @@ vi.mock('../services/admin-auth.service', () => ({
   adminAuthApi: {
     login: vi.fn(),
     enrol: vi.fn(),
+    setUpAccess: vi.fn(),
     verifyMfa: vi.fn(),
     me: vi.fn(),
   },
@@ -390,24 +391,6 @@ describe('Admin Panel sign-in', () => {
       );
     });
 
-    it('uses the set-up link at once, and takes it off the address', async () => {
-      vi.mocked(adminAuthApi.enrol).mockResolvedValue(setupAnswer() as never);
-      window.history.replaceState(null, '', '/login#enrol=link-token-123');
-      const { i18n } = renderWithProviders(<AdminPanelLogin />);
-      // Taken off the address at once.
-      expect(window.location.hash).toBe('');
-
-      submitCredentials(i18n!);
-
-      expect(
-        await screen.findByText(i18n!.t('adminPanel.login.mfa_setup')),
-      ).toBeInTheDocument();
-      expect(adminAuthApi.enrol).toHaveBeenCalledWith(
-        'proof-token',
-        'link-token-123',
-      );
-    });
-
     it('says a used or expired link or code does not work, and lets another be typed', async () => {
       vi.mocked(adminAuthApi.enrol).mockRejectedValue({
         isAxiosError: true,
@@ -533,6 +516,240 @@ describe('Admin Panel sign-in', () => {
           i18n!.t('adminPanel.login.secret_copy_failed'),
         ),
       );
+    });
+  });
+
+  describe('setting up the access from a link or a code', () => {
+    const LONG = 'a long staff password';
+    const setupAnswer = {
+      data: {
+        status: 'MFA_SETUP_REQUIRED',
+        mfaToken: 'setup-token',
+        secret: 'JBSWY3DPEHPK3PXP',
+      },
+    };
+    const typePasswords = (
+      i18n: I18nInstance,
+      first: string,
+      again = first,
+    ) => {
+      fireEvent.change(
+        screen.getByLabelText(i18n.t('adminPanel.login.new_password')),
+        { target: { value: first } },
+      );
+      fireEvent.change(
+        screen.getByLabelText(i18n.t('adminPanel.login.repeat_password')),
+        { target: { value: again } },
+      );
+    };
+    const saveButton = (i18n: I18nInstance) =>
+      screen.getByRole('button', {
+        name: i18n.t('adminPanel.login.access_continue'),
+      });
+
+    it('opens from the link with the email filled in, takes both off the address, and sets up the authenticator next', async () => {
+      vi.mocked(adminAuthApi.setUpAccess).mockResolvedValue(
+        setupAnswer as never,
+      );
+      window.history.replaceState(
+        null,
+        '',
+        '/login#enrol=link-token-123&email=staff%40example.com',
+      );
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      expect(window.location.hash).toBe('');
+
+      expect(
+        screen.getByText(i18n!.t('adminPanel.login.access_title')),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(i18n!.t('adminPanel.login.email')),
+      ).toHaveValue('staff@example.com');
+      // The link is the proof: no code is asked for.
+      expect(
+        screen.queryByLabelText(i18n!.t('adminPanel.login.enrol_code')),
+      ).not.toBeInTheDocument();
+      typePasswords(i18n!, LONG);
+      fireEvent.click(saveButton(i18n!));
+
+      expect(
+        await screen.findByText(i18n!.t('adminPanel.login.mfa_setup')),
+      ).toBeInTheDocument();
+      expect(adminAuthApi.setUpAccess).toHaveBeenCalledWith(
+        'staff@example.com',
+        'link-token-123',
+        LONG,
+      );
+      expect(adminAuthApi.login).not.toHaveBeenCalled();
+    });
+
+    it('takes a code from an administrator, reached from the sign-in', async () => {
+      vi.mocked(adminAuthApi.setUpAccess).mockResolvedValue(
+        setupAnswer as never,
+      );
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n!.t('adminPanel.login.access_open'),
+        }),
+      );
+      fireEvent.change(
+        screen.getByLabelText(i18n!.t('adminPanel.login.email')),
+        {
+          target: { value: ' staff@example.com ' },
+        },
+      );
+      fireEvent.change(
+        screen.getByLabelText(i18n!.t('adminPanel.login.enrol_code')),
+        { target: { value: 'ABCD-EFGH-JKLM' } },
+      );
+      typePasswords(i18n!, LONG);
+      fireEvent.click(saveButton(i18n!));
+
+      await waitFor(() =>
+        expect(adminAuthApi.setUpAccess).toHaveBeenCalledWith(
+          'staff@example.com',
+          'ABCD-EFGH-JKLM',
+          LONG,
+        ),
+      );
+    });
+
+    it('waits for a long enough password typed twice the same', () => {
+      window.history.replaceState(
+        null,
+        '',
+        '/login#enrol=tok-12345678&email=s%40e.com',
+      );
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+
+      typePasswords(i18n!, 'short pass');
+      expect(saveButton(i18n!)).toBeDisabled();
+      typePasswords(i18n!, LONG, `${LONG}!`);
+      expect(saveButton(i18n!)).toBeDisabled();
+      expect(
+        screen.getByText(i18n!.t('adminPanel.login.passwords_differ')),
+      ).toBeInTheDocument();
+      typePasswords(i18n!, LONG);
+      expect(saveButton(i18n!)).toBeEnabled();
+    });
+
+    it('signs an external reviewer in at once', async () => {
+      vi.mocked(adminAuthApi.setUpAccess).mockResolvedValue({
+        data: { status: 'SIGNED_IN' },
+      } as never);
+      vi.mocked(adminAuthApi.me).mockResolvedValue({
+        data: SUPER_ADMIN,
+      } as never);
+      window.history.replaceState(
+        null,
+        '',
+        '/login#enrol=tok-12345678&email=s%40e.com',
+      );
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+
+      typePasswords(i18n!, LONG);
+      fireEvent.click(saveButton(i18n!));
+
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+      expect(useAdminAuthStore.getState().admin).toMatchObject({
+        id: 'admin-1',
+      });
+    });
+
+    it('says so when the reviewer is signed in but who it is cannot be loaded', async () => {
+      vi.mocked(adminAuthApi.setUpAccess).mockResolvedValue({
+        data: { status: 'SIGNED_IN' },
+      } as never);
+      vi.mocked(adminAuthApi.me).mockRejectedValue(new Error('down'));
+      window.history.replaceState(
+        null,
+        '',
+        '/login#enrol=tok-12345678&email=s%40e.com',
+      );
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+
+      typePasswords(i18n!, LONG);
+      fireEvent.click(saveButton(i18n!));
+
+      expect(
+        await screen.findByText(i18n!.t('errors.generic.server')),
+      ).toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('goes back to the sign-in, the error cleared', async () => {
+      vi.mocked(adminAuthApi.setUpAccess).mockRejectedValue({
+        isAxiosError: true,
+        response: { status: 403, data: {} },
+      });
+      window.history.replaceState(
+        null,
+        '',
+        '/login#enrol=tok-12345678&email=s%40e.com',
+      );
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      typePasswords(i18n!, LONG);
+      fireEvent.click(saveButton(i18n!));
+      expect(
+        await screen.findByText(i18n!.t('adminPanel.login.locked')),
+      ).toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n!.t('adminPanel.login.back') }),
+      );
+
+      expect(
+        screen.getByLabelText(i18n!.t('adminPanel.login.password')),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(i18n!.t('adminPanel.login.locked')),
+      ).not.toBeInTheDocument();
+    });
+
+    it('says a used link does not work, and why a password is refused', async () => {
+      vi.mocked(adminAuthApi.setUpAccess)
+        .mockRejectedValueOnce({
+          isAxiosError: true,
+          response: { status: 401, data: {} },
+        })
+        .mockRejectedValueOnce({
+          isAxiosError: true,
+          response: {
+            status: 400,
+            data: { errorCode: 'STAFF_PASSWORD_IS_ACCOUNT_PASSWORD' },
+          },
+        });
+      window.history.replaceState(
+        null,
+        '',
+        '/login#enrol=tok-12345678&email=s%40e.com',
+      );
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+      typePasswords(i18n!, LONG);
+
+      fireEvent.click(saveButton(i18n!));
+      expect(
+        await screen.findByText(i18n!.t('adminPanel.login.enrol_invalid')),
+      ).toBeInTheDocument();
+
+      // The refused link gives way to a code from an administrator.
+      fireEvent.change(
+        screen.getByLabelText(i18n!.t('adminPanel.login.enrol_code')),
+        { target: { value: 'ABCD-EFGH-JKLM' } },
+      );
+      fireEvent.click(saveButton(i18n!));
+      expect(
+        await screen.findByText(
+          i18n!.t('errors.codes.STAFF_PASSWORD_IS_ACCOUNT_PASSWORD'),
+        ),
+      ).toBeInTheDocument();
+      expect(adminAuthApi.setUpAccess).toHaveBeenLastCalledWith(
+        's@e.com',
+        'ABCD-EFGH-JKLM',
+        LONG,
+      );
+      expect(adminAuthApi.verifyMfa).not.toHaveBeenCalled();
     });
   });
 });

@@ -29,9 +29,11 @@ import {
 } from '../common/config/cookie.config.js';
 import { AdminAuthService } from './admin-auth.service.js';
 import {
+  AdminChangePasswordDto,
   AdminEnrolDto,
   AdminLoginDto,
   AdminMfaVerifyDto,
+  AdminSetUpAccessDto,
   AdminStepUpDto,
 } from './dto/admin-auth.dto.js';
 
@@ -113,6 +115,49 @@ export class AdminAuthController {
       dto.proof,
       this.clientMeta(req),
     );
+  }
+
+  // Sets up the access from the link or a code, with a password of its own.
+  // A member of staff gets a new authenticator to confirm at mfa/verify; an
+  // external reviewer is signed in, the tokens only in the cookies.
+  @Post('access')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  @ApiResponse({ status: HttpStatus.OK })
+  async setUpAccess(
+    @Body() dto: AdminSetUpAccessDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.adminAuthService.setUpAccess(
+      dto.email,
+      dto.proof,
+      dto.password,
+      this.clientMeta(req),
+    );
+    if (result.status === 'SIGNED_IN') {
+      this.setSessionCookies(res, result.tokens);
+      return { status: result.status };
+    }
+    return result;
+  }
+
+  // Changes the password of the identity signed in; this session stays.
+  @Post('password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminJwtAuthGuard)
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  @ApiResponse({ status: HttpStatus.OK })
+  async changePassword(
+    @CurrentAdmin() admin: CurrentAdminData,
+    @Body() dto: AdminChangePasswordDto,
+    @Req() req: Request,
+  ) {
+    await this.adminAuthService.changePassword(admin.adminId, dto, {
+      ...this.clientMeta(req),
+      keepRefreshToken: this.getRefreshToken(req) || undefined,
+    });
+    return { status: 'OK' };
   }
 
   @Post('mfa/verify')

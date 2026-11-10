@@ -43,6 +43,8 @@ describe('AdminAuthController', () => {
     login: vi.fn(),
     verifyMfa: vi.fn(),
     enrol: vi.fn(),
+    setUpAccess: vi.fn(),
+    changePassword: vi.fn(),
     refresh: vi.fn(),
     logout: vi.fn(),
     me: vi.fn(),
@@ -357,5 +359,120 @@ describe('AdminAuthController', () => {
     );
     expect(cookies[0]).not.toContain(ADMIN_REFRESH_TOKEN_COOKIE);
     expect(mockService.stepUp).toHaveBeenCalledWith(TEST_ADMIN.adminId, dto);
+  });
+
+  describe('setting up the access from a link', () => {
+    const body = {
+      email: 'staff@example.com',
+      proof: 'link-token-1234',
+      password: 'a long staff password',
+    };
+
+    it('answers the new authenticator to a member of staff, without cookies', async () => {
+      mockService.setUpAccess.mockResolvedValue({
+        status: 'MFA_SETUP_REQUIRED',
+        mfaToken: 'setup-token',
+        otpauthUrl: 'otpauth://x',
+        secret: 'S',
+        qrCodeDataUrl: 'data:x',
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/admin-auth/access')
+        .set('User-Agent', 'Vitest')
+        .send(body)
+        .expect(200);
+
+      expect(res.body).toMatchObject({
+        status: 'MFA_SETUP_REQUIRED',
+        mfaToken: 'setup-token',
+      });
+      expect(setCookies(res)).toHaveLength(0);
+      expect(mockService.setUpAccess).toHaveBeenCalledWith(
+        body.email,
+        body.proof,
+        body.password,
+        expect.objectContaining({ userAgent: 'Vitest' }),
+      );
+    });
+
+    it('signs an external reviewer in, the tokens only in cookies', async () => {
+      mockService.setUpAccess.mockResolvedValue({
+        status: 'SIGNED_IN',
+        tokens,
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/admin-auth/access')
+        .send(body)
+        .expect(200);
+
+      expect(res.body).toEqual({ status: 'SIGNED_IN' });
+      const cookies = setCookies(res).join(';');
+      expect(cookies).toContain(
+        `${ADMIN_ACCESS_TOKEN_COOKIE}=admin-access-test`,
+      );
+      expect(cookies).toContain(
+        `${ADMIN_REFRESH_TOKEN_COOKIE}=admin-refresh-test`,
+      );
+    });
+
+    it('refuses a short password, a missing proof or an extra field', async () => {
+      for (const sent of [
+        { ...body, password: 'short pass' },
+        { email: body.email, password: body.password },
+        { ...body, passwordHash: 'x' },
+      ]) {
+        await request(app.getHttpServer())
+          .post('/api/v1/admin-auth/access')
+          .send(sent)
+          .expect(400);
+      }
+      expect(mockService.setUpAccess).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('changing the password', () => {
+    const body = {
+      currentPassword: 'old password',
+      newPassword: 'a long staff password',
+      totpCode: '123456',
+    };
+
+    it('changes it as adminId, keeping the session of the refresh cookie', async () => {
+      mockService.changePassword.mockResolvedValue(undefined);
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/admin-auth/password')
+        .set(ADMIN_BEARER)
+        .set('Cookie', `${ADMIN_REFRESH_TOKEN_COOKIE}=admin-refresh-cookie`)
+        .send(body)
+        .expect(200);
+
+      expect(res.body).toEqual({ status: 'OK' });
+      expect(mockService.changePassword).toHaveBeenCalledWith(
+        TEST_ADMIN.adminId,
+        body,
+        expect.objectContaining({ keepRefreshToken: 'admin-refresh-cookie' }),
+      );
+    });
+
+    it('needs a staff session and a long enough new password', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/admin-auth/password')
+        .send(body)
+        .expect(401);
+      await request(app.getHttpServer())
+        .post('/api/v1/admin-auth/password')
+        .set(BEARER)
+        .send(body)
+        .expect(401);
+      await request(app.getHttpServer())
+        .post('/api/v1/admin-auth/password')
+        .set(ADMIN_BEARER)
+        .send({ ...body, newPassword: 'short pass' })
+        .expect(400);
+      expect(mockService.changePassword).not.toHaveBeenCalled();
+    });
   });
 });

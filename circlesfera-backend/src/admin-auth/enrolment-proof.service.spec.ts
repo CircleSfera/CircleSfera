@@ -32,7 +32,9 @@ describe('EnrolmentProofService', () => {
       },
       // The password of the sign-in behind the staff email.
       signIn: {
-        findUnique: vi.fn().mockResolvedValue({ password: 'hash-v1' }),
+        findUnique: vi
+          .fn()
+          .mockResolvedValue({ userId: 'user-1', password: 'hash-v1' }),
       },
     };
     email = { sendStaffEnrolmentEmail: vi.fn().mockResolvedValue(undefined) };
@@ -48,14 +50,22 @@ describe('EnrolmentProofService', () => {
 
   it('sends a link to the staff email and keeps only the hash of its token, for 24 hours', async () => {
     env.ADMIN_BASE_URL = 'https://admin.example.test/';
+    // Still signing in the old way, with its linked account's password.
+    prisma.adminIdentity.findUnique.mockResolvedValueOnce({
+      passwordHash: null,
+      linkedUserId: 'user-1',
+    });
     const before = Date.now();
 
     await service.sendLink({ id: 'op-1', email: 'p@example.com' });
 
     const [to, url] = email.sendStaffEnrolmentEmail.mock.calls[0];
     expect(to).toBe('p@example.com');
-    // After a #: never sent to a server, so never in its logs.
-    const token = new URL(url).hash.replace('#enrol=', '');
+    // After a #: never sent to a server, so never in its logs. The email
+    // fills in the form the link opens.
+    const fragment = new URLSearchParams(new URL(url).hash.slice(1));
+    const token = fragment.get('enrol') ?? '';
+    expect(fragment.get('email')).toBe('p@example.com');
     expect(url.startsWith('https://admin.example.test/login#enrol=')).toBe(
       true,
     );
@@ -69,6 +79,45 @@ describe('EnrolmentProofService', () => {
     expect(JSON.stringify(kept())).not.toContain(token);
     const expires = kept().enrolmentProofExpiresAt.getTime();
     expect(expires).toBeGreaterThanOrEqual(before + ENROLMENT_PROOF_TTL_MS);
+  });
+
+  it('marks the staff password when the identity has its own, not the account one', async () => {
+    const own = await argon2.hash('staff-password');
+    prisma.adminIdentity.findUnique.mockResolvedValueOnce({
+      passwordHash: own,
+      passwordSetAt: new Date(),
+    });
+
+    await service.sendLink({ id: 'op-1', email: 'p@example.com' });
+
+    const mark = kept().enrolmentProofPasswordMark;
+    await expect(argon2.verify(mark, own)).resolves.toBe(true);
+    await expect(argon2.verify(mark, 'hash-v1')).resolves.toBe(false);
+    expect(prisma.signIn.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('marks nothing for an identity with no password yet and no linked account', async () => {
+    prisma.adminIdentity.findUnique.mockResolvedValueOnce({
+      passwordHash: null,
+      linkedUserId: null,
+    });
+
+    await service.sendLink({ id: 'op-1', email: 'p@example.com' });
+
+    expect(kept().enrolmentProofPasswordMark).toBeNull();
+    // An account with the staff email that is not linked plays no part.
+    expect(prisma.signIn.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('marks nothing when the sign-in with the staff email belongs to another account', async () => {
+    prisma.adminIdentity.findUnique.mockResolvedValueOnce({
+      passwordHash: null,
+      linkedUserId: 'user-2',
+    });
+
+    await service.sendLink({ id: 'op-1', email: 'p@example.com' });
+
+    expect(kept().enrolmentProofPasswordMark).toBeNull();
   });
 
   it('links to the Admin Panel when no address is set', async () => {
@@ -91,6 +140,38 @@ describe('EnrolmentProofService', () => {
   });
 
   describe('using a proof', () => {
+    it('checks a proof without spending it, then spends it once', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue({
+        email: 'p@example.com',
+        enrolmentProofHash: sha256('Tok_en'),
+        enrolmentProofExpiresAt: new Date(Date.now() + 60_000),
+        enrolmentProofPasswordMark: null,
+      });
+
+      const match = await service.check('op-1', 'Tok_en');
+      expect(match).toBe(sha256('Tok_en'));
+      expect(prisma.adminIdentity.updateMany).not.toHaveBeenCalled();
+
+      prisma.adminIdentity.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+      await expect(service.spend('op-1', match as string)).resolves.toBe(true);
+      // A second attempt at the same moment finds it already spent.
+      await expect(service.spend('op-1', match as string)).resolves.toBe(false);
+      expect(prisma.adminIdentity.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'op-1',
+          enrolmentProofHash: match,
+          enrolmentProofExpiresAt: { gt: expect.any(Date) },
+        },
+        data: {
+          enrolmentProofHash: null,
+          enrolmentProofExpiresAt: null,
+          enrolmentProofPasswordMark: null,
+        },
+      });
+    });
+
     const keepProof = (
       raw: string,
       expiresAt = new Date(Date.now() + 60_000),
@@ -98,6 +179,7 @@ describe('EnrolmentProofService', () => {
     ) =>
       prisma.adminIdentity.findUnique.mockResolvedValue({
         email: 'p@example.com',
+        linkedUserId: 'user-1',
         enrolmentProofHash: sha256(raw),
         enrolmentProofExpiresAt: expiresAt,
         enrolmentProofPasswordMark: passwordMark,
@@ -119,9 +201,40 @@ describe('EnrolmentProofService', () => {
       expect(prisma.adminIdentity.updateMany).not.toHaveBeenCalled();
     });
 
+    it('checks the mark against the staff password once the identity has its own', async () => {
+      const own = await argon2.hash('staff-password');
+      prisma.adminIdentity.findUnique.mockResolvedValue({
+        email: 'p@example.com',
+        passwordHash: own,
+        passwordSetAt: new Date(),
+        enrolmentProofHash: sha256('Tok_en'),
+        enrolmentProofExpiresAt: new Date(Date.now() + 60_000),
+        enrolmentProofPasswordMark: await argon2.hash(own),
+      });
+
+      await expect(service.consume('op-1', 'Tok_en')).resolves.toBe(true);
+      expect(prisma.signIn.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('refuses a link sent before the staff password changed', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue({
+        email: 'p@example.com',
+        passwordHash: await argon2.hash('new-staff-password'),
+        passwordSetAt: new Date(),
+        enrolmentProofHash: sha256('Tok_en'),
+        enrolmentProofExpiresAt: new Date(Date.now() + 60_000),
+        enrolmentProofPasswordMark: await argon2.hash('$argon2id$old'),
+      });
+
+      await expect(service.consume('op-1', 'Tok_en')).resolves.toBe(false);
+    });
+
     it('refuses a link sent before the password changed', async () => {
       keepProof('Tok_en', undefined, await argon2.hash('hash-v1'));
-      prisma.signIn.findUnique.mockResolvedValue({ password: 'hash-v2' });
+      prisma.signIn.findUnique.mockResolvedValue({
+        userId: 'user-1',
+        password: 'hash-v2',
+      });
 
       await expect(service.consume('op-1', 'Tok_en')).resolves.toBe(false);
       expect(prisma.adminIdentity.updateMany).not.toHaveBeenCalled();
