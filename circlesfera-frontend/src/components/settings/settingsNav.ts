@@ -13,6 +13,7 @@ import {
   Scale,
   Shield,
   Star,
+  Tag,
   Trash2,
   User,
   UserCog,
@@ -37,6 +38,7 @@ export type SettingsSectionId =
   | 'close_friends'
   | 'favorites'
   | 'mutes'
+  | 'tags'
   | 'hidden_words'
   | 'feed_prefs'
   | 'appeals'
@@ -78,6 +80,7 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'close_friends',
   'favorites',
   'mutes',
+  'tags',
   'hidden_words',
   'feed_prefs',
   'appeals',
@@ -173,6 +176,11 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'mutes',
         labelKey: 'settings.tabs.mutes.label',
         icon: UserX,
+      },
+      {
+        id: 'tags',
+        labelKey: 'settings.tabs.tags.label',
+        icon: Tag,
       },
       {
         id: 'hidden_words',

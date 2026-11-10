@@ -34,6 +34,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useStoryStore } from '../stores/storyStore';
 import { useUIStore } from '../stores/uiStore';
 import type { Collection, ProfileWithUser } from '../types';
+import { apiErrorCode } from '../utils/apiErrorMessage';
 import { asList } from '../utils/asList';
 import { profileColor, profileColorStyle } from '../utils/profileColors';
 
@@ -173,9 +174,10 @@ export default function Profile() {
     } catch (err) {
       console.error(err);
       // A reached message-request cap already shows its own notice.
-      const errorCode = (err as { data?: { errorCode?: string } }).data
-        ?.errorCode;
-      if (errorCode !== 'ACTION_LIMIT_REACHED') {
+      const errorCode = apiErrorCode(err);
+      if (errorCode === 'MESSAGE_REQUESTS_OFF') {
+        toast.error(t('errors.codes.MESSAGE_REQUESTS_OFF'));
+      } else if (errorCode !== 'ACTION_LIMIT_REACHED') {
         toast.error(t('profile.messages.chat_error'));
       }
     } finally {

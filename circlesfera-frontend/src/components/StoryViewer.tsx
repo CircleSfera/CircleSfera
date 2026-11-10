@@ -22,6 +22,7 @@ import { chatApi, storiesApi } from '../services';
 import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
 import type { Story, UserWithProfile } from '../types';
+import { apiErrorCode } from '../utils/apiErrorMessage';
 import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
 import { placementOf, placementOfSticker } from '../utils/storySticker';
@@ -312,6 +313,10 @@ export default function StoryViewer({
       setTimeout(() => setMessageSent(false), 3000);
     } catch (error) {
       logger.error('Failed to send story reply', error);
+      // Someone who takes no message requests cannot get a first reply.
+      if (apiErrorCode(error) === 'MESSAGE_REQUESTS_OFF') {
+        toast.error(t('errors.codes.MESSAGE_REQUESTS_OFF'));
+      }
     } finally {
       setIsSendingReply(false);
     }

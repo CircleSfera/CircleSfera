@@ -140,6 +140,10 @@
       "collaborations": {
         "label": "Collaborations",
         "desc": "Invitations"
+      },
+      "tags": {
+        "label": "Tags",
+        "desc": "Posts you're tagged in"
       }
     },
     "profile": {
@@ -867,6 +871,42 @@
       "accepted": "You're now a collaborator on this post",
       "accept_error": "Couldn't accept the invitation",
       "decline_error": "Couldn't decline the invitation"
+    },
+    "interactions": {
+      "title": "Mentions, tags and messages",
+      "subtitle": "Choose who can mention you, tag you or message you. Nobody is told when you leave them out.",
+      "audience": {
+        "EVERYONE": "Everyone",
+        "FOLLOWING": "People you follow",
+        "NOBODY": "No one"
+      },
+      "mentions": "Who can mention you",
+      "mentions_desc": "A mention from someone else stays in their text but doesn't notify you.",
+      "tags": "Who can tag you",
+      "tags_desc": "Others can't add you to their posts.",
+      "manual_tags": "Approve tags manually",
+      "manual_tags_desc": "New tags wait for your approval before they show on your profile.",
+      "review_tags": "Review your tags",
+      "message_requests": "Allow message requests",
+      "message_requests_desc": "When off, only people you follow can start a chat with you.",
+      "save_error": "Couldn't save the change",
+      "load_error": "Couldn't load who can mention, tag or message you."
+    },
+    "tags": {
+      "pending_title": "Waiting for approval",
+      "pending_desc": "Approve a tag to show the post on your profile, or remove yourself from it.",
+      "pending_empty": "No tags waiting",
+      "shown_title": "On your profile",
+      "shown_desc": "Posts you're tagged in. Removing yourself takes you off the post; its author isn't told.",
+      "shown_empty": "You're not tagged in any posts",
+      "by": "Post by {{username}}",
+      "approve": "Approve",
+      "remove": "Remove me",
+      "remove_label": "Remove me from the post by {{username}}",
+      "error": "Couldn't update the tag",
+      "load_error": "Couldn't load your tags.",
+      "unavailable": "A post you can't see",
+      "remove_unavailable_label": "Remove me from a post you can't see"
     }
   },
   "auth": {
@@ -6380,7 +6420,8 @@
       "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",
-      "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later."
+      "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",
+      "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

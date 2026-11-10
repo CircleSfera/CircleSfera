@@ -39,6 +39,7 @@ import {
   isBlockedEitherWay,
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
+import { allowedTargets } from '../common/policies/interaction.policy.js';
 import { setModerationStatus } from '../common/policies/moderation-decision.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
@@ -157,9 +158,25 @@ export class PostsService {
     const blockedForAuthor = dto.tags?.length
       ? new Set(await getBlockedProfileIds(this.prisma, profileId))
       : new Set<string>();
-    const taggable = (dto.tags ?? []).filter(
+    const notBlocked = (dto.tags ?? []).filter(
       (t) => !blockedForAuthor.has(t.profileId),
     );
+    // A Profile that does not let the author tag it is left out silently;
+    // one that approves tags by hand gets the tag waiting for it.
+    const tagRules = await allowedTargets(
+      this.prisma,
+      profileId,
+      notBlocked.map((t) => t.profileId),
+      'tag',
+    );
+    const taggable = notBlocked
+      .filter((t) => tagRules.has(t.profileId))
+      .map((t) => ({
+        ...t,
+        status: tagRules.get(t.profileId)?.manualTagApproval
+          ? ('PENDING' as const)
+          : ('SHOWN' as const),
+      }));
 
     // Automatic moderation before the post is saved. When the service does
     // not answer, the post is published all the same and checked in the
@@ -298,6 +315,7 @@ export class PostsService {
                       profileId: t.profileId,
                       x: t.x,
                       y: t.y,
+                      status: t.status,
                     })),
                   }
                 : undefined,
@@ -855,6 +873,7 @@ export class PostsService {
           tags: {
             some: {
               profileId: profile.id,
+              status: 'SHOWN',
             },
           },
           ...(await this.getGlobalVisibilityFilter(currentProfileId)),
@@ -879,6 +898,7 @@ export class PostsService {
           tags: {
             some: {
               profileId: profile.id,
+              status: 'SHOWN',
             },
           },
           ...(await this.getGlobalVisibilityFilter(currentProfileId)),

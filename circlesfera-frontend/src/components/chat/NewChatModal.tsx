@@ -3,12 +3,14 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Search, Users, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { chatApi, followsApi, searchApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import type { Profile } from '../../types';
+import { apiErrorCode } from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
 import UserAvatar from '../UserAvatar';
 import { Dialog } from '../ui/Dialog';
@@ -88,6 +90,9 @@ export default function NewChatModal({ isOpen, onClose }: NewChatModalProps) {
       onClose();
     } catch (error) {
       logger.error('Failed to start chat', error);
+      if (apiErrorCode(error) === 'MESSAGE_REQUESTS_OFF') {
+        toast.error(t('errors.codes.MESSAGE_REQUESTS_OFF'));
+      }
     } finally {
       setIsCreating(false);
     }
