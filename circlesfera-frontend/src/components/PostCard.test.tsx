@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../stores/authStore';
 import { renderWithProviders } from '../test/test-utils';
@@ -157,11 +157,14 @@ describe('PostCard', () => {
       screen.getByText(i18n!.t('post.recommendation.new')),
     ).toBeInTheDocument();
     expect(i18n!.t('post.recommendation.why')).toBe('Why?');
-    expect(
-      screen.getByRole('button', {
-        name: new RegExp(i18n!.t('post.recommendation.why')),
-      }),
-    ).toBeInTheDocument();
+    const why = screen.getByRole('button', {
+      name: new RegExp(i18n!.t('post.recommendation.why')),
+    });
+    // A control at the agreed height, saying whether its reasons are open.
+    expect(why).toHaveClass('min-h-11');
+    expect(why).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(why);
+    expect(why).toHaveAttribute('aria-expanded', 'true');
     expect(screen.queryByText('Nuevo para ti')).not.toBeInTheDocument();
   });
 });

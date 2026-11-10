@@ -112,6 +112,7 @@ export class CreateGroupUseCase {
       // A conversation with someone who does not follow the creator is a
       // message request, which has its own per-Profile cap.
       if (!recipientFollows) {
+        await this.assertTakesRequests([recipientId]);
         await this.actionLimits.consume(profileId, 'message_request');
       }
 
@@ -155,6 +156,9 @@ export class CreateGroupUseCase {
       select: { followerId: true },
     });
     const followerIdSet = new Set(follows.map((f) => f.followerId));
+    await this.assertTakesRequests(
+      nonCreatorIds.filter((id) => !followerIdSet.has(id)),
+    );
     // Each participant who does not follow the creator receives a request;
     // they are counted together, so a refused group counts nothing.
     await this.actionLimits.consume(
@@ -199,5 +203,20 @@ export class CreateGroupUseCase {
     this.eventEmitter.emit('chat.conversation.created', event);
 
     return conversation;
+  }
+
+  // Profiles that take no message requests are reached only by the Profiles
+  // they follow: a chat or group asking them is refused.
+  private async assertTakesRequests(profileIds: string[]) {
+    if (profileIds.length === 0) return;
+    const closed = await this.prisma.profile.count({
+      where: { id: { in: profileIds }, messageRequests: false },
+    });
+    if (closed > 0) {
+      throw AppException.Forbidden(
+        ErrorCode.MESSAGE_REQUESTS_OFF,
+        'Someone here does not take message requests',
+      );
+    }
   }
 }

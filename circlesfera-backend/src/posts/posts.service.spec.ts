@@ -841,7 +841,11 @@ describe('PostsService', () => {
       const dto = {
         caption: 'Hello #world #alpha @user2',
         type: 'POST' as const,
-        tags: [{ profileId: 'tagged-user', x: 0.1, y: 0.2 }],
+        tags: [
+          { profileId: 'tagged-user', x: 0.1, y: 0.2 },
+          { profileId: 'approving-user', x: 0.3, y: 0.4 },
+          { profileId: 'closed-user', x: 0.5, y: 0.6 },
+        ],
         isPremium: true,
         priceCents: 500,
         contentRating: ContentRating.GENERAL,
@@ -878,6 +882,12 @@ describe('PostsService', () => {
         accountType: 'CREATOR',
         monetizationStatus: 'APPROVED',
       });
+      // Who lets the author tag them, and who approves tags by hand.
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { id: 'tagged-user', tagsFrom: 'EVERYONE', manualTagApproval: false },
+        { id: 'approving-user', tagsFrom: 'EVERYONE', manualTagApproval: true },
+        { id: 'closed-user', tagsFrom: 'NOBODY', manualTagApproval: false },
+      ]);
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'post-1',
         caption: 'Hello #world #alpha @user2',
@@ -891,8 +901,18 @@ describe('PostsService', () => {
       expect(mockTx.post.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
+            // The tag the Profile did not allow is left out; the one it
+            // approves by hand waits for it.
             tags: {
-              create: [{ profileId: 'tagged-user', x: 0.1, y: 0.2 }],
+              create: [
+                { profileId: 'tagged-user', x: 0.1, y: 0.2, status: 'SHOWN' },
+                {
+                  profileId: 'approving-user',
+                  x: 0.3,
+                  y: 0.4,
+                  status: 'PENDING',
+                },
+              ],
             },
           }),
         }),
@@ -1992,6 +2012,16 @@ describe('PostsService', () => {
 
       expect(result.data).toHaveLength(0);
       expect(result.meta.nextCursor).toBeUndefined();
+      // A tag still waiting for the Profile's approval is not listed.
+      const shownTag = {
+        tags: { some: { profileId: 'prof-tagged', status: 'SHOWN' } },
+      };
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining(shownTag) }),
+      );
+      expect(mockPrismaService.post.count).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining(shownTag) }),
+      );
     });
 
     it('returns paginated tagged posts with cursor and injects isLiked', async () => {
@@ -2083,6 +2113,60 @@ describe('PostsService', () => {
       expect(mockPrismaService.post.update).toHaveBeenCalled();
     });
 
+    it('takes a Frame whose cover changed off sale and checks it again with its caption', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        caption: 'stored caption',
+        media: [],
+      });
+
+      await service.update('post-1', { coverImageUrl: '/uploads/cover.webp' });
+
+      expect(mockFrameCover.chooseImage).toHaveBeenCalledWith(
+        'post-1',
+        '/uploads/cover.webp',
+      );
+      expect(mockPrismaService.post.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ moderationPassedAt: null }),
+        }),
+      );
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).toHaveBeenCalledWith('post-1', 'stored caption');
+    });
+
+    it('keeps a post on sale when only who sees it changes', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        caption: null,
+        media: [],
+      });
+
+      await service.update('post-1', { hideLikes: true });
+
+      expect(
+        mockPrismaService.post.update.mock.calls.at(-1)?.[0].data,
+      ).not.toHaveProperty('moderationPassedAt');
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('checks a moment chosen as the cover again, with no caption as empty', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        caption: null,
+        media: [],
+      });
+
+      await service.update('post-1', { coverTimeMs: 1200 });
+
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).toHaveBeenCalledWith('post-1', '');
+    });
+
     it('should update post caption and visibility', async () => {
       mockPrismaService.post.update.mockResolvedValue({
         id: 'post-1',
@@ -2101,6 +2185,8 @@ describe('PostsService', () => {
         data: {
           caption: 'new caption',
           visibility: Visibility.PUBLIC,
+          // Off sale until the new caption is checked.
+          moderationPassedAt: null,
         },
         include: expect.any(Object),
       });

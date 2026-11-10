@@ -4,6 +4,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums, Visibility } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { allowedTargets } from '../../common/policies/interaction.policy.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { captionMentions } from '../caption-mentions.js';
 
@@ -149,13 +150,21 @@ export class PostDistributionService {
     // Mention notifications
     const mentions = options.uniqueMentions ?? [];
     if (mentions.length > 0) {
-      const mentionedProfiles = await this.prisma.profile.findMany({
+      const found = await this.prisma.profile.findMany({
         where: {
           username: { in: mentions },
           id: { not: post.profileId },
         },
         select: { id: true },
       });
+      // Only those who let the author mention them are told.
+      const allowed = await allowedTargets(
+        this.prisma,
+        post.profileId,
+        found.map((p) => p.id),
+        'mention',
+      );
+      const mentionedProfiles = found.filter((p) => allowed.has(p.id));
 
       await Promise.all(
         mentionedProfiles.map((profile) =>

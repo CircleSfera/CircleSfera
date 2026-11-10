@@ -343,6 +343,14 @@ export class UsersService {
                   },
                 },
               },
+              // The Profiles it chose as Favorites; who chose it is theirs.
+              favorites: {
+                orderBy: { createdAt: 'asc' },
+                select: {
+                  createdAt: true,
+                  favorite: { select: { username: true } },
+                },
+              },
               // The posts it was invited to author too, and its answer.
               collaborations: {
                 orderBy: { invitedAt: 'asc' },
@@ -973,6 +981,10 @@ export class UsersService {
         privacyLevel: true,
         saveStoriesToArchive: true,
         allowStoryShares: true,
+        mentionsFrom: true,
+        tagsFrom: true,
+        manualTagApproval: true,
+        messageRequests: true,
         ...PROFILE_PUSH_SELECT,
       },
     });
@@ -987,6 +999,10 @@ export class UsersService {
       pushLive: profile?.pushLive ?? true,
       saveStoriesToArchive: profile?.saveStoriesToArchive ?? true,
       allowStoryShares: profile?.allowStoryShares ?? true,
+      mentionsFrom: profile?.mentionsFrom ?? 'EVERYONE',
+      tagsFrom: profile?.tagsFrom ?? 'EVERYONE',
+      manualTagApproval: profile?.manualTagApproval ?? false,
+      messageRequests: profile?.messageRequests ?? true,
     };
   }
 
@@ -1056,6 +1072,25 @@ export class UsersService {
         await tx.profile.update({
           where: { id: profileId },
           data: { allowStoryShares: dto.allowStoryShares },
+        });
+      }
+      // Who may mention, tag or message this Profile.
+      const interactions = {
+        ...(dto.mentionsFrom !== undefined && {
+          mentionsFrom: dto.mentionsFrom,
+        }),
+        ...(dto.tagsFrom !== undefined && { tagsFrom: dto.tagsFrom }),
+        ...(dto.manualTagApproval !== undefined && {
+          manualTagApproval: dto.manualTagApproval,
+        }),
+        ...(dto.messageRequests !== undefined && {
+          messageRequests: dto.messageRequests,
+        }),
+      };
+      if (Object.keys(interactions).length > 0) {
+        await tx.profile.update({
+          where: { id: profileId },
+          data: interactions,
         });
       }
       if (dto.privacyLevel !== undefined) {

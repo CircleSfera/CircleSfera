@@ -745,6 +745,12 @@ describe('UsersService', () => {
           },
         },
       });
+      // Each Profile's own Favorites go with it; who chose it does not.
+      expect(profilesArgs.favorites.select).toEqual({
+        createdAt: true,
+        favorite: { select: { username: true } },
+      });
+      expect(profilesArgs.favoriteOf).toBeUndefined();
       // The posts each Profile was invited to author too, and its answer.
       expect(profilesArgs.collaborations.select).toEqual({
         postId: true,
@@ -1265,6 +1271,10 @@ describe('UsersService', () => {
           pushFollows: true,
           pushMessages: true,
           pushLive: true,
+          mentionsFrom: true,
+          tagsFrom: true,
+          manualTagApproval: true,
+          messageRequests: true,
         },
       });
       expect(res.privacyLevel).toBe('PRIVATE');
@@ -1429,6 +1439,46 @@ describe('UsersService', () => {
       expect(tx.profile.update).toHaveBeenCalledWith({
         where: { id: 'p-1' },
         data: { allowStoryShares: false },
+      });
+    });
+
+    it('answers who may mention, tag or message the Profile, open to all until chosen', async () => {
+      await expect(service.getSettings('u-1', 'p-1')).resolves.toMatchObject({
+        mentionsFrom: 'EVERYONE',
+        tagsFrom: 'EVERYONE',
+        manualTagApproval: false,
+        messageRequests: true,
+      });
+
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        id: 'p-1',
+        mentionsFrom: 'FOLLOWING',
+        tagsFrom: 'NOBODY',
+        manualTagApproval: true,
+        messageRequests: false,
+      });
+      await expect(service.getSettings('u-1', 'p-1')).resolves.toMatchObject({
+        mentionsFrom: 'FOLLOWING',
+        tagsFrom: 'NOBODY',
+        manualTagApproval: true,
+        messageRequests: false,
+      });
+    });
+
+    it('saves who may mention, tag or message the Profile the session acts as, and only what was sent', async () => {
+      await service.updateSettings('u-1', 'p-1', {
+        mentionsFrom: 'FOLLOWING',
+        manualTagApproval: true,
+        messageRequests: false,
+      });
+
+      expect(tx.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p-1' },
+        data: {
+          mentionsFrom: 'FOLLOWING',
+          manualTagApproval: true,
+          messageRequests: false,
+        },
       });
     });
 

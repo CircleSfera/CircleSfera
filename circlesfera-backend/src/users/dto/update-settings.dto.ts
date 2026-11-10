@@ -91,6 +91,30 @@ export class UpdateSettingsDto {
   @IsOptional()
   allowStoryShares?: boolean;
 
+  // Who may mention this Profile, and who may tag it: everyone, the
+  // Profiles it follows, or nobody.
+  @ApiProperty({ required: false, enum: ['EVERYONE', 'FOLLOWING', 'NOBODY'] })
+  @IsIn(['EVERYONE', 'FOLLOWING', 'NOBODY'])
+  @IsOptional()
+  mentionsFrom?: 'EVERYONE' | 'FOLLOWING' | 'NOBODY';
+
+  @ApiProperty({ required: false, enum: ['EVERYONE', 'FOLLOWING', 'NOBODY'] })
+  @IsIn(['EVERYONE', 'FOLLOWING', 'NOBODY'])
+  @IsOptional()
+  tagsFrom?: 'EVERYONE' | 'FOLLOWING' | 'NOBODY';
+
+  // Tags wait for the Profile's approval before they show on its profile.
+  @ApiProperty({ required: false, type: () => Boolean })
+  @IsBoolean()
+  @IsOptional()
+  manualTagApproval?: boolean;
+
+  // Whether Profiles it does not follow may start a chat with it.
+  @ApiProperty({ required: false, type: () => Boolean })
+  @IsBoolean()
+  @IsOptional()
+  messageRequests?: boolean;
+
   // The newsletter about CircleSfera, apart from the email notices.
   @ApiProperty({ required: false, type: () => Boolean })
   @IsBoolean()

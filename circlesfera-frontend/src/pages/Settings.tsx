@@ -4,6 +4,7 @@ import AppealsSettings from '../components/settings/AppealsSettings';
 import ArchiveSettings from '../components/settings/ArchiveSettings';
 import BillingSettings from '../components/settings/BillingSettings';
 import CloseFriendsSettings from '../components/settings/CloseFriendsSettings';
+import FavoritesSettings from '../components/settings/FavoritesSettings';
 import FeedPreferencesSettings from '../components/settings/FeedPreferencesSettings';
 import HiddenWordsSettings from '../components/settings/HiddenWordsSettings';
 import { MonetizationSettings } from '../components/settings/MonetizationSettings';
@@ -22,6 +23,7 @@ import {
   isSettingsSectionId,
   type SettingsSectionId,
 } from '../components/settings/settingsNav';
+import TagsSettings from '../components/settings/TagsSettings';
 import TeamSettings from '../components/settings/TeamSettings';
 
 function SectionPanel({ section }: { section: SettingsSectionId }) {
@@ -46,8 +48,12 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <RequestsSettings />;
     case 'close_friends':
       return <CloseFriendsSettings />;
+    case 'favorites':
+      return <FavoritesSettings />;
     case 'mutes':
       return <MutesSettings />;
+    case 'tags':
+      return <TagsSettings />;
     case 'hidden_words':
       return <HiddenWordsSettings />;
     case 'feed_prefs':

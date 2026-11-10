@@ -39,6 +39,7 @@ import {
   isBlockedEitherWay,
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
+import { allowedTargets } from '../common/policies/interaction.policy.js';
 import { setModerationStatus } from '../common/policies/moderation-decision.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
@@ -157,9 +158,25 @@ export class PostsService {
     const blockedForAuthor = dto.tags?.length
       ? new Set(await getBlockedProfileIds(this.prisma, profileId))
       : new Set<string>();
-    const taggable = (dto.tags ?? []).filter(
+    const notBlocked = (dto.tags ?? []).filter(
       (t) => !blockedForAuthor.has(t.profileId),
     );
+    // A Profile that does not let the author tag it is left out silently;
+    // one that approves tags by hand gets the tag waiting for it.
+    const tagRules = await allowedTargets(
+      this.prisma,
+      profileId,
+      notBlocked.map((t) => t.profileId),
+      'tag',
+    );
+    const taggable = notBlocked
+      .filter((t) => tagRules.has(t.profileId))
+      .map((t) => ({
+        ...t,
+        status: tagRules.get(t.profileId)?.manualTagApproval
+          ? ('PENDING' as const)
+          : ('SHOWN' as const),
+      }));
 
     // Automatic moderation before the post is saved. When the service does
     // not answer, the post is published all the same and checked in the
@@ -298,6 +315,7 @@ export class PostsService {
                       profileId: t.profileId,
                       x: t.x,
                       y: t.y,
+                      status: t.status,
                     })),
                   }
                 : undefined,
@@ -855,6 +873,7 @@ export class PostsService {
           tags: {
             some: {
               profileId: profile.id,
+              status: 'SHOWN',
             },
           },
           ...(await this.getGlobalVisibilityFilter(currentProfileId)),
@@ -879,6 +898,7 @@ export class PostsService {
           tags: {
             some: {
               profileId: profile.id,
+              status: 'SHOWN',
             },
           },
           ...(await this.getGlobalVisibilityFilter(currentProfileId)),
@@ -938,6 +958,12 @@ export class PostsService {
       await this.frameCover.chooseImage(id, dto.coverImageUrl);
     }
 
+    // A new caption or cover is checked again before the post is sold or
+    // tipped again: until then it is off sale.
+    const recheck =
+      dto.caption !== undefined ||
+      dto.coverTimeMs !== undefined ||
+      dto.coverImageUrl !== undefined;
     const post = await this.prisma.post.update({
       where: { id },
       data: {
@@ -945,6 +971,7 @@ export class PostsService {
         visibility: dto.visibility as Visibility,
         turnOffComments: dto.turnOffComments,
         hideLikes: dto.hideLikes,
+        ...(recheck ? { moderationPassedAt: null } : {}),
       },
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },
@@ -957,11 +984,11 @@ export class PostsService {
         media: { include: { media: true } },
       },
     });
-    // A changed caption is checked again, as a new post is.
-    if (dto.caption !== undefined) {
+    // A changed caption or cover is checked again, as a new post is.
+    if (recheck) {
       await this.postDistributionService.moderateEditedCaption(
         id,
-        dto.caption ?? '',
+        post.caption ?? '',
       );
     }
     return { ...post, media: post.media.map(resolveMediaFields) };

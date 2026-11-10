@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { ChevronRight } from 'lucide-react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -86,6 +87,12 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                   <span>{t('post.recommendation.following')}</span>
                 </>
               )}
+              {post.recommendationReason === 'favorite' && (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary" />
+                  <span>{t('post.recommendation.favorite')}</span>
+                </>
+              )}
               {post.recommendationReason === 'interest' && (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
@@ -112,14 +119,18 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
             {post.recommendationSignals &&
               post.recommendationSignals.length > 0 && (
                 <div className="mt-1 text-xs text-gray-400">
+                  {/* A control like any other: 44 px tall, as wide as its
+                      words, and it says whether the reasons are open. */}
                   <button
                     type="button"
                     onClick={() => setShowWhy(!showWhy)}
-                    className="cursor-pointer hover:text-gray-300 font-medium flex items-center gap-1 focus:outline-none"
+                    aria-expanded={showWhy}
+                    className="cursor-pointer hover:text-gray-300 font-medium inline-flex items-center gap-1 min-h-11 -ml-1 px-1 rounded-lg focus-visible:outline-2 focus-visible:outline-white/60"
                   >
-                    <span className="text-xs opacity-70">
-                      {showWhy ? '▼' : '▶'}
-                    </span>
+                    <ChevronRight
+                      aria-hidden="true"
+                      className={`w-3.5 h-3.5 opacity-70 transition-transform ${showWhy ? 'rotate-90' : ''}`}
+                    />
                     {t('post.recommendation.why')}
                   </button>
                   {showWhy && (

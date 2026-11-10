@@ -44,6 +44,7 @@ describe('CommentsService', () => {
     },
     follow: {
       findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     comment: {
       create: vi.fn(),
@@ -1201,7 +1202,7 @@ describe('CommentsService', () => {
       expect(result.isEdited).toBe(true);
     });
 
-    it('notifies profiles mentioned in an edited comment, except across a block', async () => {
+    it('notifies profiles mentioned in an edited comment, except across a block or to those who take no mention from the writer', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValueOnce({
         id: 'c-1',
         postId: 'post-1',
@@ -1211,13 +1212,21 @@ describe('CommentsService', () => {
         id: 'c-1',
         postId: 'post-1',
         profileId: 'commenter-1',
-        content: 'hey @alice and @bob, also @alice',
+        content: 'hey @alice and @bob, also @alice and @carol',
         isEdited: true,
       });
-      mockPrismaService.profile.findMany.mockResolvedValueOnce([
-        { id: 'alice-p' },
-        { id: 'bob-p' },
-      ]);
+      mockPrismaService.profile.findMany
+        .mockResolvedValueOnce([
+          { id: 'alice-p' },
+          { id: 'bob-p' },
+          { id: 'carol-p' },
+        ])
+        // carol takes mentions only from those she follows.
+        .mockResolvedValueOnce([
+          { id: 'alice-p', mentionsFrom: 'EVERYONE' },
+          { id: 'bob-p', mentionsFrom: 'EVERYONE' },
+          { id: 'carol-p', mentionsFrom: 'FOLLOWING' },
+        ]);
       // Only bob is across a block from the commenter.
       mockPrismaService.block.findFirst.mockImplementation(
         async (args: unknown) =>
@@ -1225,16 +1234,24 @@ describe('CommentsService', () => {
       );
 
       await service.update('post-1', 'c-1', 'commenter-1', {
-        content: 'hey @alice and @bob, also @alice',
+        content: 'hey @alice and @bob, also @alice and @carol',
       });
       mockPrismaService.block.findFirst.mockReset().mockResolvedValue(null);
 
       expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
         where: {
-          username: { in: ['alice', 'bob'] },
+          username: { in: ['alice', 'bob', 'carol'] },
           id: { notIn: ['commenter-1', 'author-1'] },
         },
         select: { id: true },
+      });
+      expect(mockPrismaService.follow.findMany).toHaveBeenCalledWith({
+        where: {
+          followerId: { in: ['carol-p'] },
+          followingId: 'commenter-1',
+          status: 'ACCEPTED',
+        },
+        select: { followerId: true },
       });
       expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(

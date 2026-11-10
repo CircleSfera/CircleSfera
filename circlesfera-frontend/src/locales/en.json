@@ -132,6 +132,14 @@
       "hidden_words": {
         "label": "Hidden words",
         "desc": "Comments"
+      },
+      "favorites": {
+        "label": "Favorites",
+        "desc": "Your own feed"
+      },
+      "tags": {
+        "label": "Tags",
+        "desc": "Posts you're tagged in"
       }
     },
     "profile": {
@@ -847,6 +855,42 @@
       "delete_error": "It could not be deleted. Try again.",
       "archived": "Archived. Only you see it, in your archive.",
       "archive_error": "It could not be archived. Try again."
+    },
+    "tags": {
+      "pending_title": "Waiting for approval",
+      "pending_desc": "Approve a tag to show the post on your profile, or remove yourself from it.",
+      "pending_empty": "No tags waiting",
+      "shown_title": "On your profile",
+      "shown_desc": "Posts you're tagged in. Removing yourself takes you off the post; its author isn't told.",
+      "shown_empty": "You're not tagged in any posts",
+      "by": "Post by {{username}}",
+      "approve": "Approve",
+      "remove": "Remove me",
+      "remove_label": "Remove me from the post by {{username}}",
+      "error": "Couldn't update the tag",
+      "load_error": "Couldn't load your tags.",
+      "unavailable": "A post you can't see",
+      "remove_unavailable_label": "Remove me from a post you can't see"
+    },
+    "interactions": {
+      "title": "Mentions, tags and messages",
+      "subtitle": "Choose who can mention you, tag you or message you. Nobody is told when you leave them out.",
+      "audience": {
+        "EVERYONE": "Everyone",
+        "FOLLOWING": "People you follow",
+        "NOBODY": "No one"
+      },
+      "mentions": "Who can mention you",
+      "mentions_desc": "A mention from someone else stays in their text but doesn't notify you.",
+      "tags": "Who can tag you",
+      "tags_desc": "Others can't add you to their posts.",
+      "manual_tags": "Approve tags manually",
+      "manual_tags_desc": "New tags wait for your approval before they show on your profile.",
+      "review_tags": "Review your tags",
+      "message_requests": "Allow message requests",
+      "message_requests_desc": "When off, only people you follow can start a chat with you.",
+      "save_error": "Couldn't save the change",
+      "load_error": "Couldn't load who can mention, tag or message you."
     }
   },
   "auth": {
@@ -1079,7 +1123,11 @@
     "no_following_posts_desc": "Explore suggested creators or switch to For You to discover trending content.",
     "switch_to_foryou": "Go to For You",
     "error_title": "Couldn't load feed",
-    "error_message": "Something went wrong while loading posts. Please try again."
+    "error_message": "Something went wrong while loading posts. Please try again.",
+    "no_favorites_posts_desc": "Choose up to 50 Profiles you follow and read only them here, newest first.",
+    "favorites": "Favorites",
+    "no_favorites_posts_title": "No posts from your Favorites yet",
+    "manage_favorites": "Choose Favorites"
   },
   "feedPrefs": {
     "content_title": "Content preferences",
@@ -1440,7 +1488,8 @@
         "network": "People in your network or that you follow are engaging with this post.",
         "close_friend": "The author of this post is on your Close Friends list.",
         "generic": "We recommend this because of: {{signal}}"
-      }
+      },
+      "favorite": "Favorites"
     },
     "checkout_canceled": "Checkout was canceled.",
     "checkout_success": "Payment successful. Content will unlock shortly.",
@@ -6312,7 +6361,9 @@
       "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, once your identity is verified.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
       "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
-      "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided."
+      "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",
+      "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests.",
+      "CONTENT_UNDER_REVIEW": "This content goes on sale once it has been checked. Try again in a few minutes."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
@@ -6398,5 +6449,23 @@
     "unrestricted_toast": "{{username}} is no longer restricted.",
     "error": "The restriction could not be changed. Try again.",
     "restrict_user": "Restrict {{username}}"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "desc": "Up to {{max}} Profiles you follow. Their posts make your Favorites feed, newest first. Nobody is told who is on your list.",
+    "count": "{{count}} of {{max}}",
+    "loading": "Loading…",
+    "empty": "You have no Favorites yet.",
+    "add_label": "Add {{username}} to Favorites",
+    "remove_label": "Remove {{username}} from Favorites",
+    "add": "Add to Favorites",
+    "remove": "Remove from Favorites",
+    "added": "Added to Favorites",
+    "removed": "Removed from Favorites",
+    "full": "You can have up to {{max}} Favorites. Remove one first.",
+    "not_followed": "Only Profiles you follow can be Favorites.",
+    "error": "Could not change your Favorites. Try again.",
+    "following": "People you follow",
+    "load_more": "Show more"
   }
 }
