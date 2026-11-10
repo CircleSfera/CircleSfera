@@ -190,48 +190,69 @@ export class LiveGiftService {
           );
         }
 
-        const taxActive =
-          await this.stripeService.creatorTaxActive(destination);
-        const session = await this.stripeService.createCheckoutSession(
-          {
-            ...CREATOR_PAYMENT_METHODS,
-            mode: 'payment',
-            customer_email: sender.email,
-            client_reference_id: senderId,
-            line_items: [
-              {
-                price_data: {
-                  currency: 'eur',
-                  product_data: {
-                    name: `Live Gift: ${giftName}`,
-                    description: `Gift for @${stream.host.username || 'creator'}`,
-                  },
-                  unit_amount: amountCents,
-                  tax_behavior: 'inclusive',
-                },
-                quantity: 1,
+        // No checkout opened: the gift fails and holds nothing of the
+        // weekly limit, as a tip lets its hold go.
+        const heldGiftId = pendingGift.id;
+        const releaseHold = async (error: unknown): Promise<never> => {
+          await this.prisma.liveGift
+            .updateMany({
+              where: {
+                id: heldGiftId,
+                status: 'PENDING',
+                stripeCheckoutSessionId: null,
               },
-            ],
-            ...creatorPaymentTax({ priceCents: amountCents, taxActive }),
-            metadata: {
-              type: 'DIRECT_LIVE_GIFT',
-              liveGiftId: pendingGift.id,
-              streamId,
-              giftId,
-              // The person paid: the host's Profile is the broadcast's host.
-              creatorId: stream.host.userId,
+              data: { status: 'FAILED' },
+            })
+            .catch(() => undefined);
+          throw error;
+        };
+
+        const taxActive = await this.stripeService
+          .creatorTaxActive(destination)
+          .catch(releaseHold);
+        const session = await this.stripeService
+          .createCheckoutSession(
+            {
+              ...CREATOR_PAYMENT_METHODS,
+              mode: 'payment',
+              customer_email: sender.email,
+              client_reference_id: senderId,
+              line_items: [
+                {
+                  price_data: {
+                    currency: 'eur',
+                    product_data: {
+                      name: `Live Gift: ${giftName}`,
+                      description: `Gift for @${stream.host.username || 'creator'}`,
+                    },
+                    unit_amount: amountCents,
+                    tax_behavior: 'inclusive',
+                  },
+                  quantity: 1,
+                },
+              ],
+              ...creatorPaymentTax({ priceCents: amountCents, taxActive }),
+              metadata: {
+                type: 'DIRECT_LIVE_GIFT',
+                liveGiftId: pendingGift.id,
+                streamId,
+                giftId,
+                // The person paid: the host's Profile is the broadcast's host.
+                creatorId: stream.host.userId,
+              },
+              success_url: appendCheckoutQuery(
+                returnUrl,
+                'gift_success=true&session_id={CHECKOUT_SESSION_ID}',
+              ),
+              cancel_url: appendCheckoutQuery(returnUrl, 'gift_canceled=true'),
+              // Open only as long as the gift holds its amount.
+              expires_at:
+                Math.floor(Date.now() / 1000) +
+                SUPPORT_CHECKOUT_LIFETIME_SECONDS,
             },
-            success_url: appendCheckoutQuery(
-              returnUrl,
-              'gift_success=true&session_id={CHECKOUT_SESSION_ID}',
-            ),
-            cancel_url: appendCheckoutQuery(returnUrl, 'gift_canceled=true'),
-            // Open only as long as the gift holds its amount.
-            expires_at:
-              Math.floor(Date.now() / 1000) + SUPPORT_CHECKOUT_LIFETIME_SECONDS,
-          },
-          { stripeAccount: destination, idempotencyKey },
-        );
+            { stripeAccount: destination, idempotencyKey },
+          )
+          .catch(releaseHold);
 
         await this.prisma.liveGift.update({
           where: { id: pendingGift.id },

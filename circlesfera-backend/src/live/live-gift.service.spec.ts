@@ -51,6 +51,7 @@ describe('LiveGiftService', () => {
       aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
@@ -276,6 +277,38 @@ describe('LiveGiftService', () => {
         }),
         expect.objectContaining({ stripeAccount: 'acct_1' }),
       );
+    });
+    it('lets the gift go, holding nothing of the weekly limit, when no checkout opens', async () => {
+      mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+        userId: null,
+        stripeConnectAccountId: 'acct_1',
+        transfersEnabled: true,
+        chargesEnabled: true,
+      });
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'fan-1',
+        email: 'fan@example.com',
+        profiles: [{ username: 'fan' }],
+      });
+      mockPrismaService.liveGift.create.mockResolvedValue({ id: 'gift-1' });
+      // For example, staff paused new payments.
+      const paused = new Error('payments paused');
+      mockStripeService.createCheckoutSession.mockRejectedValueOnce(paused);
+
+      await expect(
+        service.sendGift('stream-1', 'fan-1', 'crown', 'http://localhost/live'),
+      ).rejects.toBe(paused);
+
+      expect(mockPrismaService.liveGift.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'gift-1',
+          status: 'PENDING',
+          stripeCheckoutSessionId: null,
+        },
+        data: { status: 'FAILED' },
+      });
+      expect(mockPrismaService.liveGift.update).not.toHaveBeenCalled();
     });
   });
 
