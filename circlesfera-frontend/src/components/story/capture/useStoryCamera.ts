@@ -24,11 +24,13 @@ export function recordingType(): string {
 type TorchCapabilities = MediaTrackCapabilities & { torch?: boolean };
 
 /**
- * The camera of the story capture screen: the preview, switching cameras,
- * the light where the camera has one, a photo as seen and a video with sound.
- * The camera stops when the screen is left or hidden.
+ * The camera of the capture screens (stories, and the live before going on
+ * air): the preview, switching cameras, the light where the camera has one,
+ * a photo as seen and a video with sound. The camera stops when the screen
+ * is left or hidden, or when `stop` lets it go for good (a live takes the
+ * camera for its broadcast).
  */
-export function useStoryCamera() {
+export function useStoryCamera(options: { initialFacing?: CameraFacing } = {}) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -39,7 +41,13 @@ export function useStoryCamera() {
   const limitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Grows each time the camera stops: a recording started before is dropped.
   const sessionRef = useRef(0);
-  const [facing, setFacing] = useState<CameraFacing>('environment');
+  const [facing, setFacing] = useState<CameraFacing>(
+    options.initialFacing ?? 'environment',
+  );
+  // Let go of for good: nothing opens the camera again, and a camera that
+  // answers afterwards is released at once.
+  const heldRef = useRef(false);
+  const [held, setHeld] = useState(false);
   const [state, setState] = useState<CameraState>('starting');
   const [hasTorch, setHasTorch] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
@@ -82,7 +90,7 @@ export function useStoryCamera() {
   }, []);
 
   useEffect(() => {
-    if (!visible) {
+    if (!visible || held) {
       stopStream();
       return;
     }
@@ -103,7 +111,7 @@ export function useStoryCamera() {
         audio: false,
       })
       .then((stream) => {
-        if (gone) {
+        if (gone || heldRef.current) {
           for (const track of stream.getTracks()) track.stop();
           return;
         }
@@ -130,7 +138,14 @@ export function useStoryCamera() {
       gone = true;
       stopStream();
     };
-  }, [facing, visible, stopStream]);
+  }, [facing, visible, held, stopStream]);
+
+  // Lets the camera go now, and keeps it closed.
+  const stop = useCallback(() => {
+    heldRef.current = true;
+    stopStream();
+    setHeld(true);
+  }, [stopStream]);
 
   const switchCamera = () =>
     setFacing((f) => (f === 'user' ? 'environment' : 'user'));
@@ -262,6 +277,7 @@ export function useStoryCamera() {
     videoRef,
     facing,
     state,
+    stop,
     hasTorch,
     torchOn,
     recording,
