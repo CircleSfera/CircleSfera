@@ -946,7 +946,7 @@
       "appeal_error": "Failed to submit appeal",
       "back_to_login": "Back",
       "2fa_code": "Authentication Code",
-      "2fa_hint": "Enter the 6-digit code from your authenticator app.",
+      "2fa_hint": "Enter the 6-digit code from your authenticator app. Each code works once: if it is refused, wait for the next one.",
       "suspended_compromised": "This profile is paused to protect it, because someone else may have got into it. Write to support to get it back."
     },
     "register": {

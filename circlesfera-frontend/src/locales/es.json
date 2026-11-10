@@ -946,7 +946,7 @@
       "appeal_error": "No se pudo enviar la apelación",
       "back_to_login": "Volver",
       "2fa_code": "Código de autenticación",
-      "2fa_hint": "Introduce el código de 6 dígitos de tu app de autenticación.",
+      "2fa_hint": "Introduce el código de 6 dígitos de tu app de autenticación. Cada código sirve una vez: si no entra, espera al siguiente.",
       "suspended_compromised": "Este perfil está en pausa para protegerlo, porque otra persona puede haber entrado en él. Escribe a soporte para recuperarlo."
     },
     "register": {

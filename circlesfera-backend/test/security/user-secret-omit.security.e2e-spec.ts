@@ -125,17 +125,24 @@ describe('Secret columns are omitted by default (e2e)', () => {
       .send({ identifier: email, password });
     expect(missingCode.status).toBe(401);
 
+    const now = Math.floor(Date.now() / 1000);
+    const firstCode = generateSync({ secret: totpSecret, epoch: now });
     const ok = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .set('Cookie', [csrfCookie])
       .set('x-csrf-token', csrf)
-      .send({
-        identifier: email,
-        password,
-        twoFactorCode: generateSync({ secret: totpSecret }),
-      });
+      .send({ identifier: email, password, twoFactorCode: firstCode });
     expect(ok.status).toBe(200);
 
+    // Each code is accepted once: the same one again is refused.
+    const reused = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .set('Cookie', [csrfCookie])
+      .set('x-csrf-token', csrf)
+      .send({ identifier: email, password, twoFactorCode: firstCode });
+    expect(reused.status).toBe(401);
+
+    // The next code (its step comes later) is accepted.
     const byUsername = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .set('Cookie', [csrfCookie])
@@ -143,7 +150,7 @@ describe('Secret columns are omitted by default (e2e)', () => {
       .send({
         identifier: username,
         password,
-        twoFactorCode: generateSync({ secret: totpSecret }),
+        twoFactorCode: generateSync({ secret: totpSecret, epoch: now + 30 }),
       });
     expect(byUsername.status).toBe(200);
 

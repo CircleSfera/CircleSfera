@@ -24,6 +24,7 @@ import { AccountStateService } from './services/account-state.service.js';
 vi.mock('otplib', () => ({
   verifySync: vi.fn(({ token, secret }: { token: string; secret: string }) => ({
     valid: token === '123456' && secret === 'totp-base32-secret',
+    timeStep: 59_000_000,
   })),
 }));
 
@@ -60,6 +61,8 @@ describe('AuthService', () => {
     signIn: {
       create: vi.fn().mockResolvedValue({ id: 'sign-in-new' }),
       update: vi.fn().mockResolvedValue({}),
+      // A two-step code is taken once: its step is later than the last.
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       findUnique: vi.fn(async (args?: unknown) => {
         // Signing up asks only whether a sign-in holds the email. No test
         // account has a sign-in with an email of its own, so none does.
@@ -1896,9 +1899,59 @@ describe('AuthService', () => {
           password: 'Password123!',
           twoFactorCode: '123456',
         }),
+        // otplib failing reads as a wrong code.
+      ).rejects.toThrow(new UnauthorizedException('Invalid 2FA code'));
+    });
+
+    it('says the configuration failed when the stored 2FA secret cannot be read', async () => {
+      const hashedPassword = await argon2.hash('Password123!');
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u-2fa-unreadable',
+        email: '2fa-unreadable@example.com',
+        password: hashedPassword,
+        isActive: true,
+        isRootBanned: false,
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'enc:secret',
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      mockCryptoService.decrypt.mockImplementationOnce(() => {
+        throw new Error('bad key');
+      });
+
+      await expect(
+        service.login({
+          identifier: '2fa-unreadable@example.com',
+          password: 'Password123!',
+          twoFactorCode: '123456',
+        }),
       ).rejects.toThrow(
         new UnauthorizedException('Invalid 2FA code or configuration'),
       );
+    });
+
+    it('refuses a right 2FA code already used, at sign-in', async () => {
+      const hashedPassword = await argon2.hash('Password123!');
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u-2fa-reuse',
+        email: '2fa-reuse@example.com',
+        password: hashedPassword,
+        isActive: true,
+        isRootBanned: false,
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'enc:totp-base32-secret',
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      // Its step was taken already: nothing matched.
+      mockPrismaService.signIn.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.login({
+          identifier: '2fa-reuse@example.com',
+          password: 'Password123!',
+          twoFactorCode: '123456',
+        }),
+      ).rejects.toThrow(new UnauthorizedException('Invalid 2FA code'));
     });
   });
 
