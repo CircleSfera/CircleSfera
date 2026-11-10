@@ -76,6 +76,7 @@ import {
   ACCEPTED_COLLABORATOR_INCLUDE,
   shownCollaborator,
 } from './post-collaborators.service.js';
+import { countProfilePins } from './profile-pins.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
 import {
@@ -736,18 +737,49 @@ export class PostsService {
         typeFilter,
       ],
     };
-    // Its own pinned ones come first, the latest pin first; a post it only
-    // co-authors is never pinned on its profile, as only the author pins.
-    const pinnedWhere: Prisma.PostWhereInput = {
-      AND: [
+    // Its pinned ones come first, the latest pin first: its own posts it
+    // pinned, and those it co-authors and pinned as collaborator. The
+    // author's pin of a post it only co-authors does not count here.
+    const collaboratorPins = await this.prisma.postCollaborator.findMany({
+      where: {
+        profileId: profile.id,
+        status: 'ACCEPTED',
+        pinnedAt: { not: null },
+      },
+      select: { postId: true, pinnedAt: true },
+    });
+    const collaboratorPinAt = new Map(
+      collaboratorPins.map((pin) => [pin.postId, pin.pinnedAt as Date]),
+    );
+    const pinnedHere: Prisma.PostWhereInput = {
+      OR: [
         { profileId: profile.id, pinnedToProfileAt: { not: null } },
-        visibility,
-        typeFilter,
+        ...(collaboratorPins.length > 0
+          ? [
+              {
+                id: { in: collaboratorPins.map((pin) => pin.postId) },
+                collaborator: { profileId: profile.id, status: 'ACCEPTED' },
+              } satisfies Prisma.PostWhereInput,
+            ]
+          : []),
       ],
     };
-    const restWhere: Prisma.PostWhereInput = {
-      AND: [whereClause, { NOT: pinnedWhere }],
+    const pinnedWhere: Prisma.PostWhereInput = {
+      AND: [pinnedHere, visibility, typeFilter],
     };
+    const restWhere: Prisma.PostWhereInput = {
+      AND: [whereClause, { NOT: pinnedHere }],
+    };
+    // When this profile pinned a post: its own pin of its own post, its pin
+    // as collaborator of a post it co-authors.
+    const pinnedHereAt = (post: {
+      id: string;
+      profileId: string;
+      pinnedToProfileAt: Date | null;
+    }) =>
+      post.profileId === profile.id
+        ? post.pinnedToProfileAt
+        : (collaboratorPinAt.get(post.id) ?? null);
     const include = {
       profile: { select: PUBLIC_PROFILE_SELECT },
       media: { include: { media: true } },
@@ -763,15 +795,21 @@ export class PostsService {
         : false,
     } satisfies Prisma.PostInclude;
 
-    const [pinned, total] = await Promise.all([
+    const [pinnedRows, total] = await Promise.all([
       this.prisma.post.findMany({
         where: pinnedWhere,
         orderBy: [{ pinnedToProfileAt: 'desc' }, { id: 'desc' }],
-        take: PROFILE_PINS_MAX,
         include,
       }),
       this.prisma.post.count({ where: whereClause }),
     ]);
+    // Its own pins come in pin order from the query; a pin as collaborator
+    // takes its place among them by when it was made.
+    const pinned = pinnedRows
+      .map((post) => ({ post, at: pinnedHereAt(post)?.getTime() ?? 0 }))
+      .sort((a, b) => b.at - a.at)
+      .slice(0, PROFILE_PINS_MAX)
+      .map(({ post }) => post);
 
     // One list: the pins, then the rest newest first. A page, or the cursor
     // of the last one shown, says where in it to start.
@@ -805,7 +843,12 @@ export class PostsService {
             include,
           })
         : [];
-    const posts = [...pinsShown, ...rest];
+    // Each post says whether it is pinned on this profile, not on its
+    // co-author's.
+    const posts = [...pinsShown, ...rest].map((post) => ({
+      ...post,
+      pinnedToProfileAt: pinnedHereAt(post),
+    }));
 
     const postsWithLikes = posts.map((post) =>
       this.injectIsLiked(post, currentProfileId, content),
@@ -976,7 +1019,8 @@ export class PostsService {
 
   // Pin a post or Frame to the top of its author's profile. Ownership is
   // checked by OwnershipGuard. A Profile pins at most PROFILE_PINS_MAX of the
-  // posts it shows; pinning one already pinned changes nothing.
+  // posts it shows, counting those it pinned as collaborator; pinning one
+  // already pinned changes nothing.
   async pinToProfile(id: string) {
     return this.prisma.$transaction(async (tx) => {
       const post = await tx.post.findUnique({
@@ -998,13 +1042,7 @@ export class PostsService {
       }
       // The Profile is locked so two pins at once cannot pass the limit.
       await tx.$queryRaw`SELECT id FROM "profiles" WHERE id = ${post.profileId} FOR UPDATE`;
-      const pins = await tx.post.count({
-        where: {
-          profileId: post.profileId,
-          pinnedToProfileAt: { not: null },
-          ...LISTED_POST,
-        },
-      });
+      const pins = await countProfilePins(tx, post.profileId);
       if (pins >= PROFILE_PINS_MAX) {
         throw AppException.Conflict(
           ErrorCode.PROFILE_PINS_FULL,

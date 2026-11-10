@@ -712,11 +712,15 @@ model PostCollaborator {
   status      CollaborationStatus @default(PENDING)
   invitedAt   DateTime            @default(now())
   respondedAt DateTime?
+  // When the collaborator pinned the post on its own profile; the author's
+  // pin is Post.pinnedToProfileAt. Ends with the collaboration.
+  pinnedAt    DateTime?
 
   post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId, status])
+  @@index([profileId, pinnedAt])
   @@map("post_collaborators")
 }
 

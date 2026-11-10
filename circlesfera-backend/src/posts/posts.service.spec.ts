@@ -86,6 +86,8 @@ describe('PostsService', () => {
     },
     postCollaborator: {
       findUnique: vi.fn(),
+      // No pin as collaborator unless a test says so.
+      findMany: vi.fn().mockResolvedValue([]),
     },
     follow: {
       findMany: vi.fn(),
@@ -1504,6 +1506,7 @@ describe('PostsService', () => {
           count: vi.fn().mockResolvedValue(0),
           update: vi.fn(async ({ data }) => ({ id: 'post-1', ...data })),
         },
+        postCollaborator: { count: vi.fn().mockResolvedValue(0) },
         $queryRaw: vi.fn().mockResolvedValue([]),
       };
       (mockPrismaService as any).$transaction = vi.fn((cb: any) => cb(tx));
@@ -1524,6 +1527,23 @@ describe('PostsService', () => {
           archivedAt: null,
         }),
       });
+    });
+
+    it('counts the pins it made as collaborator toward the most it can pin', async () => {
+      tx.post.count.mockResolvedValue(PROFILE_PINS_MAX - 1);
+      tx.postCollaborator.count.mockResolvedValue(1);
+
+      await expect(service.pinToProfile('post-1')).rejects.toMatchObject({
+        response: { errorCode: 'PROFILE_PINS_FULL' },
+      });
+      expect(tx.postCollaborator.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          profileId: 'author-1',
+          status: 'ACCEPTED',
+          pinnedAt: { not: null },
+        }),
+      });
+      expect(tx.post.update).not.toHaveBeenCalled();
     });
 
     it('refuses a pin past the most a Profile can pin', async () => {
@@ -1590,17 +1610,15 @@ describe('PostsService', () => {
       const [pinsQuery, restQuery] = mockPrismaService.post.findMany.mock.calls
         .slice(-2)
         .map((call) => call[0]);
-      // Only its own pins: a post it co-authors is pinned by its author only.
+      // Its own pins (no pin as collaborator here).
       expect(pinsQuery.where.AND[0]).toEqual({
-        profileId: 'user-1',
-        pinnedToProfileAt: { not: null },
+        OR: [{ profileId: 'user-1', pinnedToProfileAt: { not: null } }],
       });
       expect(pinsQuery.orderBy).toEqual([
         { pinnedToProfileAt: 'desc' },
         { id: 'desc' },
       ]);
-      expect(pinsQuery.take).toBe(3);
-      expect(restQuery.where.AND[1]).toEqual({ NOT: pinsQuery.where });
+      expect(restQuery.where.AND[1]).toEqual({ NOT: pinsQuery.where.AND[0] });
       expect(restQuery.orderBy).toEqual([
         { createdAt: 'desc' },
         { id: 'desc' },
@@ -1611,6 +1629,70 @@ describe('PostsService', () => {
         'pin-a',
         'new',
         'old',
+      ]);
+    });
+
+    it("mixes in its pins as collaborator by when they were made, and marks only this profile's pins", async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        id: 'user-1',
+        privacyLevel: Visibility.PUBLIC,
+      });
+      mockPrismaService.postCollaborator.findMany.mockResolvedValueOnce([
+        { postId: 'co-pinned', pinnedAt: new Date('2026-11-05T00:00:00Z') },
+      ]);
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'own-pin',
+            profileId: 'user-1',
+            pinnedToProfileAt: new Date('2026-11-01T00:00:00Z'),
+          },
+          {
+            id: 'co-pinned',
+            profileId: 'author-2',
+            // The author's own pin, on the author's profile.
+            pinnedToProfileAt: new Date('2026-10-01T00:00:00Z'),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 'co-not-pinned',
+            profileId: 'author-3',
+            pinnedToProfileAt: new Date('2026-10-02T00:00:00Z'),
+          },
+        ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(3);
+
+      const result = await service.findByUser('user', { page: 1, limit: 10 });
+
+      expect(mockPrismaService.postCollaborator.findMany).toHaveBeenCalledWith({
+        where: {
+          profileId: 'user-1',
+          status: 'ACCEPTED',
+          pinnedAt: { not: null },
+        },
+        select: { postId: true, pinnedAt: true },
+      });
+      const [pinsQuery] = mockPrismaService.post.findMany.mock.calls
+        .slice(-2)
+        .map((call) => call[0]);
+      expect(pinsQuery.where.AND[0].OR[1]).toEqual({
+        id: { in: ['co-pinned'] },
+        collaborator: { profileId: 'user-1', status: 'ACCEPTED' },
+      });
+      // The newer pin as collaborator comes first.
+      expect(
+        result.data.map(
+          (post: { id: string; pinnedToProfileAt: Date | null }) => [
+            post.id,
+            post.pinnedToProfileAt?.toISOString() ?? null,
+          ],
+        ),
+      ).toEqual([
+        ['co-pinned', '2026-11-05T00:00:00.000Z'],
+        ['own-pin', '2026-11-01T00:00:00.000Z'],
+        // Pinned by its author on the author's profile, not here.
+        ['co-not-pinned', null],
       ]);
     });
 
