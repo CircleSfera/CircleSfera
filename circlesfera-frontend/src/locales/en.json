@@ -6448,6 +6448,8 @@
       "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published.",
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
       "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
+      "GIFS_UNAVAILABLE": "GIFs aren't available right now.",
+      "GIF_NOT_FOUND": "That GIF isn't available. Pick another one.",
       "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
       "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
       "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",

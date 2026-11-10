@@ -5,7 +5,7 @@ import type { PrismaService } from '../../../prisma/prisma.service.js';
 import { ForwardMessageUseCase } from './forward-message.use-case.js';
 import type { SendMessageUseCase } from './send-message.use-case.js';
 
-// Forwarding: a copy of a member's text or shared post goes to up to
+// Forwarding: a copy of a member's text, shared post or GIF goes to up to
 // CHAT_FORWARD_MAX of the forwarder's chats, each through the normal send.
 
 const sentAt = new Date('2026-11-09T10:00:00.000Z');
@@ -22,6 +22,7 @@ function textMessage(overrides: Record<string, unknown> = {}) {
     voiceUrl: null,
     storyId: null,
     postId: null,
+    gif: null,
     createdAt: sentAt,
     ...overrides,
   };
@@ -77,6 +78,34 @@ describe('ForwardMessageUseCase', () => {
     const args = send.execute.mock.calls[0];
     expect(args[2]).toBe('');
     expect(args[7]).toBe('p-1');
+  });
+
+  it('forwards a GIF by its GIPHY id, for the send to ask GIPHY again', async () => {
+    prisma.message.findUnique.mockResolvedValue(
+      textMessage({ content: null, gif: { id: 'g-1', url: 'https://x' } }),
+    );
+
+    await useCase.execute('me', 'm-1', ['c-a']);
+
+    const args = send.execute.mock.calls[0];
+    expect(args[2]).toBe('');
+    expect(args[15]).toEqual({ forwarded: true, gifId: 'g-1' });
+  });
+
+  it.each([
+    ['without an id', { url: 'https://x' }],
+    ['as a list', ['g-1']],
+  ])('passes no GIF id for a stored GIF %s', async (_name, gif) => {
+    prisma.message.findUnique.mockResolvedValue(
+      textMessage({ content: null, gif }),
+    );
+
+    await useCase.execute('me', 'm-1', ['c-a']);
+
+    expect(send.execute.mock.calls[0][15]).toStrictEqual({
+      forwarded: true,
+      gifId: undefined,
+    });
   });
 
   it('refuses no chats and more than the limit', async () => {

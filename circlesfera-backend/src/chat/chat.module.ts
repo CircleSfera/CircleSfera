@@ -10,6 +10,7 @@ import {
 } from '../common/constants/queue-policy.constants.js';
 import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
 import { CryptoService } from '../common/services/crypto.service.js';
+import { GifsModule } from '../gifs/gifs.module.js';
 import { HiddenWordsModule } from '../hidden-words/hidden-words.module.js';
 import { PostsModule } from '../posts/posts.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
@@ -71,6 +72,7 @@ const useCases = [
 
 @Module({
   imports: [
+    GifsModule,
     UploadsModule,
     HiddenWordsModule,
     PrismaModule,

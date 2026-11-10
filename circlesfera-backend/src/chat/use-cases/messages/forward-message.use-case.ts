@@ -1,5 +1,6 @@
 import { CHAT_FORWARD_MAX, ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
@@ -50,6 +51,7 @@ export class ForwardMessageUseCase {
         voiceUrl: true,
         storyId: true,
         postId: true,
+        gif: true,
         createdAt: true,
       },
     });
@@ -82,7 +84,7 @@ export class ForwardMessageUseCase {
       message.url ||
       message.voiceUrl ||
       message.storyId ||
-      (!message.content && !message.postId)
+      (!message.content && !message.postId && !message.gif)
     ) {
       throw AppException.BadRequest(
         ErrorCode.MESSAGE_NOT_FORWARDABLE,
@@ -112,7 +114,7 @@ export class ForwardMessageUseCase {
           undefined,
           undefined,
           undefined,
-          { forwarded: true },
+          { forwarded: true, gifId: gifIdOf(message.gif) },
         );
         result.sent.push(conversationId);
       } catch (error: unknown) {
@@ -126,4 +128,15 @@ export class ForwardMessageUseCase {
     }
     return result;
   }
+}
+
+// The GIPHY id a stored GIF was sent by: the copy asks GIPHY for it again,
+// so a GIF no longer shown at the app's rating is not forwarded.
+function gifIdOf(gif: Prisma.JsonValue | null): string | undefined {
+  return gif &&
+    typeof gif === 'object' &&
+    !Array.isArray(gif) &&
+    typeof gif.id === 'string'
+    ? gif.id
+    : undefined;
 }

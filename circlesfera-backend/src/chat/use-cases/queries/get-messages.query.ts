@@ -160,6 +160,7 @@ export class GetMessagesQuery {
         m.replyTo.voiceUrl = null;
         m.replyTo.voiceDuration = null;
         m.replyTo.voiceWaveform = null;
+        m.replyTo.gif = null;
       }
 
       // A deleted message shows no file, whatever a row may still name.
@@ -171,6 +172,7 @@ export class GetMessagesQuery {
         m.voiceUrl = null;
         m.voiceDuration = null;
         m.voiceWaveform = null;
+        m.gif = null;
       }
 
       if (m.isLocked) {

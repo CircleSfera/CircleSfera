@@ -79,6 +79,7 @@ export class OldDeletedMessagesService {
                 voiceDuration: null,
                 voiceWaveform: Prisma.DbNull,
                 voiceMediaId: null,
+                gif: Prisma.DbNull,
               },
             });
             await this.uploadsService.releaseContentFiles(

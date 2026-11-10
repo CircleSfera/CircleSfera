@@ -59,6 +59,8 @@ export class DeleteMessageUseCase {
           voiceDuration: null,
           voiceWaveform: Prisma.DbNull,
           voiceMediaId: null,
+          // Nor a GIF.
+          gif: Prisma.DbNull,
         },
         include: {
           sender: {

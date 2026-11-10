@@ -253,6 +253,7 @@ describe('GetMessagesQuery', () => {
         voiceUrl: '/uploads/voice.webm',
         voiceDuration: 3,
         voiceWaveform: [0.5],
+        gif: { id: 'abc123' },
         media: {
           url: '/uploads/v.mp4',
           standardUrl: '/uploads/v/master.m3u8',
@@ -273,6 +274,7 @@ describe('GetMessagesQuery', () => {
       voiceUrl: null,
       voiceDuration: null,
       voiceWaveform: null,
+      gif: null,
     });
   });
 
@@ -289,6 +291,7 @@ describe('GetMessagesQuery', () => {
       voiceUrl: '/uploads/voice.webm',
       voiceDuration: 3,
       voiceWaveform: [0.5],
+      gif: { id: 'abc123' },
     };
     const live = { ...quoted, id: 'msg-0', isDeleted: false };
     mockPrisma.message.findMany.mockResolvedValue([
@@ -309,6 +312,7 @@ describe('GetMessagesQuery', () => {
       voiceUrl: null,
       voiceDuration: null,
       voiceWaveform: null,
+      gif: null,
     });
     // A reply to a message still there quotes it as it is.
     expect(toLive.replyTo.url).toBe('/uploads/a.jpg');

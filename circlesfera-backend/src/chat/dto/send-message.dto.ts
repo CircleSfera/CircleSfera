@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -27,11 +28,20 @@ export class SendMessageDto {
   @IsOptional()
   conversationId?: string;
 
+  // The text. A GIF needs none.
   @ApiProperty({ required: true, type: () => String, maxLength: 5000 })
   @IsString()
+  @ValidateIf((dto: SendMessageDto) => !dto.gifId || dto.content !== '')
   @IsNotEmpty()
   @MaxLength(5000)
   content!: string;
+
+  // A GIF from GIPHY, by its id: the server asks GIPHY for the rest.
+  @ApiProperty({ required: false, type: () => String, maxLength: 64 })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9]{1,64}$/)
+  gifId?: string;
 
   @ApiProperty({ required: false, type: () => String })
   @IsString()

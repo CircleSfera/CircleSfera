@@ -111,6 +111,7 @@ describe('DeleteMessageUseCase', () => {
         voiceDuration: null,
         voiceWaveform: Prisma.DbNull,
         voiceMediaId: null,
+        gif: Prisma.DbNull,
       },
       include: expect.any(Object),
     });

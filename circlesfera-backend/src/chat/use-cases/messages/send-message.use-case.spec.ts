@@ -30,6 +30,15 @@ vi.mock('../../../common/policies/story-access.policy.js', () => ({
 
 describe('SendMessageUseCase', () => {
   let useCase: SendMessageUseCase;
+  // GIPHY as the server sees it: on, and knowing one GIF.
+  const GIF = {
+    id: 'abc123',
+    title: 'Party',
+    url: 'https://media.giphy.com/media/abc123/200.webp',
+    width: 200,
+    height: 150,
+  };
+  const giphy = { available: vi.fn(), byId: vi.fn() };
   let mockPrisma: any;
   let mockTx: any;
   // Every file here is the sender's own unless a test says so.
@@ -115,8 +124,11 @@ describe('SendMessageUseCase', () => {
       storedFiles as never,
       realPaywall(),
       hiddenWords as never,
+      giphy as never,
     );
     hiddenWords.hides.mockReset().mockResolvedValue(false);
+    giphy.available.mockReset().mockReturnValue(true);
+    giphy.byId.mockReset().mockResolvedValue(GIF);
   });
 
   it("refuses another Profile's stored file before anything else", async () => {
@@ -749,6 +761,95 @@ describe('SendMessageUseCase', () => {
     expect(result.content).toBe('Direct');
     // Push notification must NOT be sent to recipient if hasAccepted is false
     expect(mockPushService.sendNotification).not.toHaveBeenCalled();
+  });
+
+  describe('a GIF', () => {
+    const direct = () => {
+      mockTx.conversation.findFirst.mockResolvedValue({
+        id: 'conv-1',
+        isGroup: false,
+        participants: [
+          { profileId: 'sender-1', hasAccepted: true },
+          { profileId: 'recipient-2', hasAccepted: true },
+        ],
+      });
+      mockTx.message.create.mockResolvedValue({
+        id: 'msg-gif',
+        content: 'encrypted_',
+        senderId: 'sender-1',
+        conversationId: 'conv-1',
+        sender: { id: 'sender-1', username: 'sender_user' },
+      });
+    };
+    const sendGif = (over: { url?: string; postId?: string } = {}) =>
+      useCase.execute(
+        'sender-1',
+        'recipient-2',
+        '',
+        over.url,
+        undefined,
+        undefined,
+        undefined,
+        over.postId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { gifId: 'abc123' },
+      );
+
+    it('keeps the GIF as GIPHY describes it, asked by its id', async () => {
+      direct();
+
+      await sendGif();
+
+      expect(giphy.byId).toHaveBeenCalledWith('abc123');
+      expect(mockTx.message.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ gif: GIF, url: undefined }),
+        }),
+      );
+    });
+
+    it('is sent on its own, never with a photo, video or shared post', async () => {
+      direct();
+
+      await expect(sendGif({ postId: 'post-1' })).rejects.toMatchObject({
+        response: { errorCode: 'BAD_REQUEST' },
+      });
+      expect(giphy.byId).not.toHaveBeenCalled();
+      expect(mockTx.message.create).not.toHaveBeenCalled();
+    });
+
+    it('is refused when GIFs are off, or GIPHY does not know it', async () => {
+      direct();
+      giphy.available.mockReturnValueOnce(false);
+      await expect(sendGif()).rejects.toMatchObject({
+        response: { errorCode: 'GIFS_UNAVAILABLE' },
+      });
+
+      giphy.byId.mockResolvedValueOnce(null);
+      await expect(sendGif()).rejects.toMatchObject({
+        response: { errorCode: 'GIF_NOT_FOUND' },
+      });
+      expect(mockTx.message.create).not.toHaveBeenCalled();
+    });
+
+    it('asks GIPHY nothing for a message without a GIF', async () => {
+      direct();
+
+      await useCase.execute('sender-1', 'recipient-2', 'Hello');
+
+      expect(giphy.byId).not.toHaveBeenCalled();
+      expect(mockTx.message.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.not.objectContaining({ gif: expect.anything() }),
+        }),
+      );
+    });
   });
 
   describe('a request with one of the recipient hidden words', () => {

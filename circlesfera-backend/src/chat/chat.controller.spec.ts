@@ -312,6 +312,20 @@ describe('ChatController', () => {
     );
   });
 
+  it('passes a GIF on by its id, with no text needed', async () => {
+    mockSendMessageUseCase.execute.mockResolvedValue({ id: 'msg-gif' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/chat/messages')
+      .set(BEARER)
+      .send({ recipientId: 'profile-2', content: '', gifId: 'abc123' })
+      .expect(201);
+
+    expect(mockSendMessageUseCase.execute.mock.calls[0][15]).toEqual({
+      gifId: 'abc123',
+    });
+  });
+
   it('sends a message as the session profileId', async () => {
     const message = { id: 'msg-1', content: 'Hello' };
     mockSendMessageUseCase.execute.mockResolvedValue(message);
@@ -344,6 +358,7 @@ describe('ChatController', () => {
       undefined,
       undefined,
       undefined,
+      { gifId: undefined },
     );
   });
 
@@ -378,6 +393,7 @@ describe('ChatController', () => {
       [0.15, 0.5, 1],
       undefined,
       undefined,
+      { gifId: undefined },
     );
   });
 
@@ -462,6 +478,7 @@ describe('ChatController', () => {
       undefined,
       true,
       999,
+      { gifId: undefined },
     );
   });
 
