@@ -177,7 +177,12 @@ describe('staff removal of content', () => {
     await useCase.execute('admin-1', 'POST', 'p-1', 'VISIBLE');
     expect(prisma.post.update).toHaveBeenLastCalledWith({
       where: { id: 'p-1' },
-      data: { moderationStatus: 'VISIBLE', moderationNote: undefined },
+      // A person looked at it: it may be sold or tipped again.
+      data: {
+        moderationStatus: 'VISIBLE',
+        moderationNote: undefined,
+        moderationPassedAt: expect.any(Date),
+      },
       select,
     });
     expect(notifications.create).toHaveBeenLastCalledWith(

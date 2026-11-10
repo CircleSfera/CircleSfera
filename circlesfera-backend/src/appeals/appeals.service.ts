@@ -535,9 +535,14 @@ export class AppealsService {
         }
         if (appeal.targetType === 'POST_REMOVAL' && appeal.targetId) {
           await this.lockAppealedPost(tx, appeal.targetId);
+          // Restored by staff, after a person looked at it: it may be sold
+          // or tipped again.
           await tx.post.update({
             where: { id: appeal.targetId },
-            data: { moderationStatus: 'VISIBLE' },
+            data: {
+              moderationStatus: 'VISIBLE',
+              moderationPassedAt: new Date(),
+            },
           });
         }
       }

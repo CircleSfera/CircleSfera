@@ -934,6 +934,12 @@ export class PostsService {
       await this.frameCover.chooseImage(id, dto.coverImageUrl);
     }
 
+    // A new caption or cover is checked again before the post is sold or
+    // tipped again: until then it is off sale.
+    const recheck =
+      dto.caption !== undefined ||
+      dto.coverTimeMs !== undefined ||
+      dto.coverImageUrl !== undefined;
     const post = await this.prisma.post.update({
       where: { id },
       data: {
@@ -941,6 +947,7 @@ export class PostsService {
         visibility: dto.visibility as Visibility,
         turnOffComments: dto.turnOffComments,
         hideLikes: dto.hideLikes,
+        ...(recheck ? { moderationPassedAt: null } : {}),
       },
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },
@@ -953,11 +960,11 @@ export class PostsService {
         media: { include: { media: true } },
       },
     });
-    // A changed caption is checked again, as a new post is.
-    if (dto.caption !== undefined) {
+    // A changed caption or cover is checked again, as a new post is.
+    if (recheck) {
       await this.postDistributionService.moderateEditedCaption(
         id,
-        dto.caption ?? '',
+        post.caption ?? '',
       );
     }
     return { ...post, media: post.media.map(resolveMediaFields) };
