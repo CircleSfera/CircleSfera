@@ -2420,6 +2420,7 @@
       "comment": "commented on your post.",
       "mention": "mentioned you in a comment.",
       "mention_story": "mentioned you in their story.",
+      "mention_post": "mentioned you in a post.",
       "follow_request": "requested to follow you.",
       "follow_accepted": "accepted your follow request.",
       "moderation": "Moderation update: {{content}}",

@@ -573,7 +573,9 @@ export default function Notifications() {
                       t(
                         notif.targetType === 'story'
                           ? 'notifications.types.mention_story'
-                          : 'notifications.types.mention',
+                          : notif.targetType === 'post'
+                            ? 'notifications.types.mention_post'
+                            : 'notifications.types.mention',
                       )}
                     {notif.type === 'FOLLOW_REQUEST' &&
                       t('notifications.types.follow_request')}

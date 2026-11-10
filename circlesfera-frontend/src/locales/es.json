@@ -2420,6 +2420,7 @@
       "comment": "ha comentado en tu publicación.",
       "mention": "te ha mencionado en un comentario.",
       "mention_story": "te ha mencionado en su historia.",
+      "mention_post": "te ha mencionado en una publicación.",
       "follow_request": "ha solicitado seguirte.",
       "follow_accepted": "ha aceptado tu solicitud de seguimiento.",
       "moderation": "Actualización de moderación: {{content}}",

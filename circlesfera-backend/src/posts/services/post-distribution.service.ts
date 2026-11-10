@@ -172,7 +172,11 @@ export class PostDistributionService {
             recipientId: profile.id,
             senderId: post.profileId,
             type: NotificationType.MENTION,
+            postId: post.id,
             notice: { key: 'mentioned_in_post' },
+            // Tells the app it is a mention in a post, not in a comment.
+            targetType: 'post',
+            targetId: post.id,
           } satisfies NotificationCreateEvent['payload']),
         ),
       );

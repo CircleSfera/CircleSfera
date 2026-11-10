@@ -70,6 +70,28 @@ describe('Notifications written for the reader', () => {
     ).toBeInTheDocument();
   });
 
+  it('says a mention was in a post when it points at one', async () => {
+    show([
+      notice({
+        id: 'n-4',
+        type: 'MENTION',
+        content: 'te ha mencionado en una publicación',
+        postId: 'p-1',
+        targetType: 'post',
+        targetId: 'p-1',
+      }),
+    ]);
+
+    renderWithProviders(<Notifications />, { lng: 'es' });
+
+    expect(
+      await screen.findByText('te ha mencionado en una publicación.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('te ha mencionado en un comentario.'),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows payment notices, which the server writes in the reader language', async () => {
     show([
       notice({
