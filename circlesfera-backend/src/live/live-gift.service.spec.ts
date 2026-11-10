@@ -141,6 +141,17 @@ describe('LiveGiftService', () => {
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
+    it('opens no gift checkout when whoever pays is not an adult', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
+      adultPayer.assertAdultPayer.mockRejectedValueOnce(
+        Object.assign(new Error('under age'), { errorCode: 'PAYER_UNDER_AGE' }),
+      );
+      await expect(
+        service.sendGift('stream-1', 'fan-1', 'crown', 'http://localhost'),
+      ).rejects.toMatchObject({ errorCode: 'PAYER_UNDER_AGE' });
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
     it('rejects gifting yourself', async () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
       await expect(

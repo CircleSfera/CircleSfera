@@ -521,6 +521,9 @@ export class PaymentsService {
           'This plan has ended and cannot be resumed',
         );
       }
+      // Resuming means the plan is charged again on its date: whoever pays
+      // must be an adult, as for a new plan.
+      await assertAdultPayer(this.prisma, userId);
       await this.stripeService
         .resumeSubscription(subscription.stripeSubscriptionId)
         .catch((err: unknown) =>

@@ -129,6 +129,17 @@ describe('CreatePromotionUseCase', () => {
     );
   });
 
+  it('creates no promotion when whoever pays is not an adult', async () => {
+    adultPayer.assertAdultPayer.mockRejectedValueOnce(
+      Object.assign(new Error('under age'), { errorCode: 'PAYER_UNDER_AGE' }),
+    );
+    await expect(
+      useCase.execute('u-1', 'post', 'post-100', 7, 50),
+    ).rejects.toMatchObject({ errorCode: 'PAYER_UNDER_AGE' });
+    expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
+    expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+  });
+
   it('rejects promotion when target post is not owned by user', async () => {
     mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'p-1' }]);
     mockPrismaService.post.findFirst.mockResolvedValue(null);
