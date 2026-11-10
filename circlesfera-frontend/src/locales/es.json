@@ -2404,6 +2404,9 @@
       "comment": "ha comentado en tu publicación.",
       "mention": "te ha mencionado en un comentario.",
       "mention_story": "te ha mencionado en su historia.",
+      "mention_post": "te ha mencionado en una publicación.",
+      "tag": "te ha etiquetado en una publicación.",
+      "tag_pending": "quiere etiquetarte en una publicación. Apruébalo en Ajustes, Etiquetas.",
       "follow_request": "ha solicitado seguirte.",
       "follow_accepted": "ha aceptado tu solicitud de seguimiento.",
       "moderation": "Actualización de moderación: {{content}}",
@@ -2417,9 +2420,7 @@
       "moderation_restriction_review": "Tras una revisión de nuestro equipo, durante 7 días este perfil podrá seguir a 20 cuentas y enviar 5 solicitudes de mensaje al día, por actividad inusual (por ejemplo, muchas acciones en poco tiempo o mensajes repetidos). No se oculta ni se elimina nada. Puedes apelar esta decisión.",
       "like_many": "les ha gustado tu publicación.",
       "comment_like_many": "les ha gustado tu comentario.",
-      "follow_many": "han empezado a seguirte.",
-      "tag": "te ha etiquetado en una publicación.",
-      "tag_pending": "quiere etiquetarte en una publicación. Apruébalo en Ajustes, Etiquetas."
+      "follow_many": "han empezado a seguirte."
     },
     "appeal_cta": "Apelar esta decisión",
     "strike_details_cta": "Ver detalles y apelar",

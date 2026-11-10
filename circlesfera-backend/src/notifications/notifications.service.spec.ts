@@ -460,6 +460,32 @@ describe('NotificationsService', () => {
       );
     });
 
+    it('keeps a mention and a tag of the same post apart when checking for a repeat', async () => {
+      mockPrismaService.notification.findFirst.mockResolvedValue(null);
+      mockPrismaService.notification.create.mockResolvedValue({ id: 'n' });
+
+      await service.create({
+        recipientId: 'user-1',
+        senderId: 'user-2',
+        type: 'MENTION' as any,
+        content: 'wants to tag you in a post',
+        postId: 'post-1',
+        targetType: 'tag_pending',
+        targetId: 'post-1',
+      });
+
+      expect(mockPrismaService.notification.findFirst).toHaveBeenLastCalledWith(
+        {
+          where: expect.objectContaining({
+            type: 'MENTION',
+            postId: 'post-1',
+            targetType: 'tag_pending',
+            targetId: 'post-1',
+          }),
+        },
+      );
+    });
+
     it('aggregates unread LIKE notifications from multiple senders on same post', async () => {
       const existingUnread = {
         id: 'notif-like-1',
