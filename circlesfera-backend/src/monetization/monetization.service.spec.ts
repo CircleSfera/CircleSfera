@@ -80,9 +80,13 @@ describe('MonetizationService', () => {
       groupBy: vi.fn(),
     },
     post: {
+      // Not waiting for moderation, unless a test says otherwise.
+      findFirst: vi.fn().mockResolvedValue(null),
       findUnique: vi.fn(),
     },
     story: {
+      // Not waiting for moderation, unless a test says otherwise.
+      findFirst: vi.fn().mockResolvedValue(null),
       findUnique: vi.fn(),
     },
     storyUnlock: {
@@ -383,10 +387,36 @@ describe('MonetizationService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             id: 'post-1',
-            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            // On sale only once automatic moderation passed it.
+            moderationStatus: 'VISIBLE',
+            moderationPassedAt: { not: null },
           }),
         }),
       );
+    });
+
+    it('says a post waiting for automatic moderation is not on sale yet', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.post.findFirst.mockResolvedValueOnce({ id: 'post-1' });
+
+      await expect(
+        service.createPostUnlockSession(
+          'user-1',
+          'profile-1',
+          'post-1',
+          'http://localhost/return',
+        ),
+      ).rejects.toMatchObject({ errorCode: ErrorCode.CONTENT_UNDER_REVIEW });
+      expect(mockPrismaService.post.findFirst).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'post-1',
+          moderationStatus: 'VISIBLE',
+          moderationPassedAt: null,
+          archivedAt: null,
+        }),
+        select: { id: true },
+      });
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
     it('should throw if buyer is buying own post', async () => {
@@ -558,7 +588,9 @@ describe('MonetizationService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             id: 's-1',
-            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            // On sale only once automatic moderation passed it.
+            moderationStatus: 'VISIBLE',
+            moderationPassedAt: { not: null },
           }),
         }),
       );
@@ -588,6 +620,29 @@ describe('MonetizationService', () => {
           'http://return',
         ),
       ).rejects.toThrow('This story is not premium or has no price');
+    });
+
+    it('says a story waiting for automatic moderation is not on sale yet', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.story.findFirst.mockResolvedValueOnce({
+        id: 'story-1',
+      });
+
+      await expect(
+        service.createStoryUnlockSession(
+          'user-1',
+          'profile-1',
+          'story-1',
+          'http://localhost/return',
+        ),
+      ).rejects.toMatchObject({ errorCode: ErrorCode.CONTENT_UNDER_REVIEW });
+      expect(mockPrismaService.story.findFirst).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'story-1',
+          moderationPassedAt: null,
+        }),
+        select: { id: true },
+      });
     });
 
     it('should throw if buyer is buying own story', async () => {
@@ -1176,7 +1231,9 @@ describe('MonetizationService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             id: 'x',
-            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            // On sale only once automatic moderation passed it.
+            moderationStatus: 'VISIBLE',
+            moderationPassedAt: { not: null },
           }),
         }),
       );

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setModerationStatus } from './moderation-decision.js';
 import { assertCanAccessPost } from './post-access.policy.js';
 import {
+  AWAITING_MODERATION,
   isGone,
   isRemoved,
   isUnlisted,
@@ -198,16 +199,21 @@ describe('setModerationStatus', () => {
       select,
     });
   });
-  it('sells and lets tip only what is shown: never what moderation hid or removed', () => {
-    const shown = { in: ['VISIBLE', 'FLAGGED'] };
+
+  it('sells and lets tip only what automatic moderation passed: never what it is still to check, flagged, hid or removed', () => {
+    const passed = {
+      moderationStatus: 'VISIBLE',
+      moderationPassedAt: { not: null },
+    };
     expect(SELLABLE_POST).toEqual({
-      moderationStatus: shown,
+      ...passed,
       deletedAt: null,
       archivedAt: null,
     });
-    expect(SELLABLE_STORY).toEqual({
-      moderationStatus: shown,
-      deletedAt: null,
+    expect(SELLABLE_STORY).toEqual({ ...passed, deletedAt: null });
+    expect(AWAITING_MODERATION).toEqual({
+      moderationStatus: 'VISIBLE',
+      moderationPassedAt: null,
     });
   });
 });

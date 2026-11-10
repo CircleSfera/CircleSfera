@@ -17,19 +17,21 @@ export const NOT_REMOVED = {
 // archive once its 24 hours end.
 export const LISTED_POST = { ...NOT_REMOVED, archivedAt: null };
 
-// What may be sold or tipped: a post or story shown to everyone it is for.
-// Not one moderation hid while it is reviewed, nor one removed or deleted
-// (and a post, not one archived).
-const SHOWN_STATUSES = {
-  in: ['VISIBLE', 'FLAGGED'] as Array<'VISIBLE' | 'FLAGGED'>,
+// What may be sold or tipped: a post or story automatic moderation checked
+// and found nothing in, shown to everyone it is for. Not one waiting for
+// that check, nor one flagged or hidden while it is reviewed, nor one
+// removed or deleted (and a post, not one archived).
+const PASSED_MODERATION = {
+  moderationStatus: 'VISIBLE' as const,
+  moderationPassedAt: { not: null },
 };
-export const SELLABLE_POST = {
-  ...LISTED_POST,
-  moderationStatus: SHOWN_STATUSES,
-};
-export const SELLABLE_STORY = {
-  ...NOT_REMOVED,
-  moderationStatus: SHOWN_STATUSES,
+export const SELLABLE_POST = { ...LISTED_POST, ...PASSED_MODERATION };
+export const SELLABLE_STORY = { ...NOT_REMOVED, ...PASSED_MODERATION };
+
+// Shown, but not checked by automatic moderation yet: on sale once it is.
+export const AWAITING_MODERATION = {
+  moderationStatus: 'VISIBLE' as const,
+  moderationPassedAt: null,
 };
 
 // The moderation states a comment is listed in, for everyone.
