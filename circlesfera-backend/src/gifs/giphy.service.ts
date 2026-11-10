@@ -1,7 +1,8 @@
-import { GIF_PAGE_SIZE } from '@circlesfera/shared';
+import { ErrorCode, GIF_PAGE_SIZE } from '@circlesfera/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { AppException } from '../common/errors/app.exception.js';
 
 // A GIF as CircleSfera keeps and shows it: GIPHY's id, its title, and the
 // address and size of the image the app draws. Never a file of CircleSfera's
@@ -19,6 +20,12 @@ const GIPHY_API = 'https://api.giphy.com/v1/gifs';
 const GIPHY_RATING = 'pg-13';
 const GIPHY_TIMEOUT_MS = 5_000;
 const GIPHY_ID = /^[A-Za-z0-9]{1,64}$/;
+// The ratings shown: GIPHY's lookup by id ignores the rating asked, so each
+// GIF's own rating is checked too.
+const SHOWN_RATINGS = new Set(['g', 'pg', 'pg-13']);
+// Trending changes slowly: one answer per page is kept this long, so opening
+// the picker does not spend GIPHY's quota each time.
+const TRENDING_TTL_MS = 10 * 60 * 1000;
 
 type GiphyImage = {
   url?: string;
@@ -29,6 +36,7 @@ type GiphyImage = {
 type GiphyItem = {
   id?: string;
   title?: string;
+  rating?: string;
   images?: { fixed_height?: GiphyImage };
 };
 
@@ -55,6 +63,7 @@ export function toGif(item: GiphyItem): Gif | null {
   if (
     !item.id ||
     !GIPHY_ID.test(item.id) ||
+    !SHOWN_RATINGS.has(item.rating ?? '') ||
     !isGiphyImage(url) ||
     !(width > 0) ||
     !(height > 0)
@@ -70,6 +79,10 @@ export function toGif(item: GiphyItem): Gif | null {
 @Injectable()
 export class GiphyService {
   private readonly logger = new Logger(GiphyService.name);
+  private readonly trendingCache = new Map<
+    number,
+    { at: number; gifs: Gif[] }
+  >();
 
   constructor(private readonly config: ConfigService) {}
 
@@ -86,7 +99,11 @@ export class GiphyService {
   }
 
   async trending(offset: number): Promise<Gif[]> {
-    return this.list('trending', { offset });
+    const kept = this.trendingCache.get(offset);
+    if (kept && Date.now() - kept.at < TRENDING_TTL_MS) return kept.gifs;
+    const gifs = await this.list('trending', { offset });
+    this.trendingCache.set(offset, { at: Date.now(), gifs });
+    return gifs;
   }
 
   // One GIF by its id, as GIPHY describes it now; null when GIPHY does not
@@ -112,15 +129,26 @@ export class GiphyService {
   ): Promise<Gif[]> {
     const key = this.key;
     if (!key) return [];
-    const { data } = await axios.get(`${GIPHY_API}/${kind}`, {
-      params: {
-        ...params,
-        api_key: key,
-        rating: GIPHY_RATING,
-        limit: GIF_PAGE_SIZE,
-      },
-      timeout: GIPHY_TIMEOUT_MS,
-    });
+    let data: { data?: unknown } | undefined;
+    try {
+      ({ data } = await axios.get(`${GIPHY_API}/${kind}`, {
+        params: {
+          ...params,
+          api_key: key,
+          rating: GIPHY_RATING,
+          limit: GIF_PAGE_SIZE,
+        },
+        timeout: GIPHY_TIMEOUT_MS,
+      }));
+    } catch (error) {
+      // GIPHY down, slow or out of quota: the picker says GIFs are not
+      // available now, as without a key.
+      this.logger.warn(`GIPHY did not answer a ${kind}: ${String(error)}`);
+      throw AppException.NotFound(
+        ErrorCode.GIFS_UNAVAILABLE,
+        'GIFs are not available',
+      );
+    }
     const items: GiphyItem[] = Array.isArray(data?.data) ? data.data : [];
     return items.map(toGif).filter((gif): gif is Gif => gif !== null);
   }

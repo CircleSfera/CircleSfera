@@ -8,6 +8,7 @@ vi.mock('axios', () => ({ default: { get: axiosGet } }));
 const item = (over: Record<string, unknown> = {}) => ({
   id: 'abc123',
   title: 'Party',
+  rating: 'pg',
   images: {
     fixed_height: {
       url: 'https://media2.giphy.com/media/abc123/200.gif',
@@ -43,6 +44,14 @@ describe('toGif', () => {
     ).toBeNull();
     expect(toGif(item({ id: '../x' }))).toBeNull();
     expect(toGif(item({ images: undefined }))).toBeNull();
+  });
+
+  it('leaves out a GIF rated above pg-13, or with no rating', () => {
+    expect(toGif(item({ rating: 'r' }))).toBeNull();
+    expect(toGif(item({ rating: undefined }))).toBeNull();
+    for (const rating of ['g', 'pg', 'pg-13']) {
+      expect(toGif(item({ rating }))).not.toBeNull();
+    }
   });
 
   it('uses the gif image when there is no webp, and an empty title when none', () => {
@@ -93,15 +102,39 @@ describe('GiphyService', () => {
     expect(gifs.map((gif) => gif.id)).toEqual(['abc123']);
   });
 
-  it('lists trending GIFs, and nothing when GIPHY answers no list', async () => {
+  it('lists trending GIFs and keeps each page for a while', async () => {
     axiosGet.mockResolvedValueOnce({ data: { data: [item()] } });
     await expect(service.trending(0)).resolves.toHaveLength(1);
     expect(axiosGet.mock.calls[0][0]).toBe(
       'https://api.giphy.com/v1/gifs/trending',
     );
+    // The same page again: GIPHY is not asked.
+    await expect(service.trending(0)).resolves.toHaveLength(1);
+    expect(axiosGet).toHaveBeenCalledTimes(1);
 
     axiosGet.mockResolvedValueOnce({ data: {} });
-    await expect(service.trending(0)).resolves.toEqual([]);
+    await expect(service.trending(24)).resolves.toEqual([]);
+  });
+
+  it('asks GIPHY again for trending once the kept page is old', async () => {
+    vi.useFakeTimers();
+    try {
+      axiosGet.mockResolvedValue({ data: { data: [item()] } });
+      await service.trending(0);
+      vi.advanceTimersByTime(10 * 60 * 1000 + 1);
+      await service.trending(0);
+      expect(axiosGet).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('says GIFs are not available when GIPHY fails a search', async () => {
+    axiosGet.mockRejectedValue(new Error('429'));
+
+    await expect(service.search('cats', 0, 'en')).rejects.toMatchObject({
+      response: { errorCode: 'GIFS_UNAVAILABLE' },
+    });
   });
 
   it('finds one GIF by its id at the app rating', async () => {
