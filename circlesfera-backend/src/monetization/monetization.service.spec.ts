@@ -126,6 +126,7 @@ describe('MonetizationService', () => {
     mockPrismaService.profile.findUnique.mockResolvedValue({
       isAccountBanned: false,
       suspendedUntil: null,
+      monetizationStatus: 'APPROVED',
       user: { isActive: true, isRootBanned: false, deletedAt: null, ...ADULT },
     });
     // The rows of earnings: which person holds which payout account.
@@ -761,6 +762,7 @@ describe('MonetizationService', () => {
       username: `${userId}_name`,
       isAccountBanned: false,
       suspendedUntil: null,
+      monetizationStatus: 'APPROVED',
       user: { isActive: true, isRootBanned: false, deletedAt: null, ...ADULT },
       ...over,
     });
@@ -1269,6 +1271,20 @@ describe('MonetizationService', () => {
       });
       expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
       expect(mockStripeService.createAccountLink).not.toHaveBeenCalled();
+    });
+
+    it('opens no payout account for a Profile staff have not approved', async () => {
+      withRows();
+      acting();
+      mockPrismaService.user.findUnique.mockResolvedValue(person());
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        monetizationStatus: 'PENDING',
+      });
+
+      await expect(onboard()).rejects.toMatchObject({
+        errorCode: ErrorCode.MONETIZATION_NOT_APPROVED,
+      });
+      expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
     });
 
     describe('an account opened before creators sold on their own account', () => {
@@ -2371,6 +2387,7 @@ describe('MonetizationService', () => {
       mockPrismaService.profile.findUnique.mockResolvedValue({
         isAccountBanned: false,
         suspendedUntil: null,
+        monetizationStatus: 'APPROVED',
         user: { isActive: false, isRootBanned: true, deletedAt: null },
       });
     });

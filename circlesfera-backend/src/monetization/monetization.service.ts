@@ -29,6 +29,7 @@ import { INCOME_ROWS_SQL, INCOME_TYPES, SHARE_SQL } from './earnings-sql.js';
 import { creatorEarnings } from './paid-amounts.js';
 import {
   accountTakingPayments,
+  assertMonetizationApproved,
   assertOfChargingAge,
   canBePaid,
   PAYABLE_PROFILE_SELECT,
@@ -524,6 +525,7 @@ export class MonetizationService {
       );
     }
     await assertOfChargingAge(this.prisma, userId);
+    await assertMonetizationApproved(this.prisma, profile.id);
 
     try {
       const accountId = await this.accountTakingCardPayments(

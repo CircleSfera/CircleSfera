@@ -40,7 +40,10 @@ import {
   resolveMediaFields,
 } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
-import { assertOfChargingAge } from '../monetization/payout-account.js';
+import {
+  assertMonetizationApproved,
+  assertOfChargingAge,
+} from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   FEED_STICKER_SELECT,
@@ -175,6 +178,7 @@ export class StoriesService {
       }
       // A price is only for someone who may charge.
       await assertOfChargingAge(this.prisma, authorProfile.userId);
+      await assertMonetizationApproved(this.prisma, profileId);
       if (
         !dto.priceCents ||
         dto.priceCents < MIN_PPV_PRICE_CENTS ||

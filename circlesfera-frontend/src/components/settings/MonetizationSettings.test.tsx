@@ -7,7 +7,11 @@ import { formatCents } from '../../utils/money';
 import { MonetizationSettings } from './MonetizationSettings';
 
 vi.mock('../../services/monetization.service', () => ({
+  MONETIZATION_PITCH_MIN: 20,
+  MONETIZATION_PITCH_MAX: 500,
   monetizationApi: {
+    getProgramme: vi.fn(),
+    applyToProgramme: vi.fn(),
     getStatus: vi.fn(),
     getMonetization: vi.fn(),
     connectAccount: vi.fn(),
@@ -34,6 +38,56 @@ describe('MonetizationSettings', () => {
     vi.mocked(monetizationApi.getMonetization).mockResolvedValue({
       lifetimeEarningsCents: 123456,
     });
+    // Approved in the monetization programme, unless a test says otherwise.
+    vi.mocked(monetizationApi.getProgramme).mockResolvedValue({
+      status: 'APPROVED',
+      appliedAt: '2026-11-01T10:00:00.000Z',
+      reviewedAt: '2026-11-02T10:00:00.000Z',
+      note: null,
+    });
+  });
+
+  it('shows no payouts until the Profile is approved, only the programme to apply to', async () => {
+    vi.mocked(monetizationApi.getProgramme).mockResolvedValue({
+      status: 'NONE',
+      appliedAt: null,
+      reviewedAt: null,
+      note: null,
+    });
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: false,
+    });
+    const { i18n } = renderWithProviders(<MonetizationSettings />);
+
+    expect(
+      await screen.findByText(
+        i18n!.t('settings.monetization.programme.status.NONE'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n!.t('settings.monetization.stripeConnect')),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the payouts of a Profile connected before the programme', async () => {
+    vi.mocked(monetizationApi.getProgramme).mockResolvedValue({
+      status: 'PENDING',
+      appliedAt: '2026-11-09T10:00:00.000Z',
+      reviewedAt: null,
+      note: null,
+    });
+    vi.mocked(monetizationApi.getStatus).mockResolvedValue({
+      connected: true,
+      ownAccount: true,
+      transfersEnabled: true,
+      chargesEnabled: true,
+      detailsSubmitted: true,
+    });
+    const { i18n } = renderWithProviders(<MonetizationSettings />);
+
+    expect(
+      await screen.findByText(i18n!.t('settings.monetization.stripeConnect')),
+    ).toBeInTheDocument();
   });
   afterEach(() => {
     Object.defineProperty(window, 'location', {

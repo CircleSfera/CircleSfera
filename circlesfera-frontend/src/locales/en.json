@@ -508,6 +508,23 @@
         "error": "Tax details could not be loaded.",
         "retry": "Try again",
         "on_web": "Open circlesfera.com in your browser to edit your tax details."
+      },
+      "programme": {
+        "title": "Monetization programme",
+        "desc": "To charge for your content, tips or live gifts, the CircleSfera team reviews and approves your Profile first.",
+        "status": {
+          "NONE": "You have not applied yet.",
+          "PENDING": "Your application is under review since {{date}}.",
+          "APPROVED": "Approved: you can charge.",
+          "REJECTED": "Your application was not approved. You can apply again.",
+          "REVOKED": "Your approval to charge was withdrawn. You can apply again."
+        },
+        "reason": "Reason: {{reason}}",
+        "pitch_label": "What will you offer?",
+        "pitch_placeholder": "For example: weekly photography tutorials and behind the scenes of my shoots.",
+        "pitch_hint": "Between {{min}} and {{max}} characters ({{count}} so far).",
+        "apply": "Apply",
+        "error": "Your application could not be sent. Try again."
       }
     },
     "back_to_profile": "← Back to profile",
@@ -3218,6 +3235,39 @@
         "DIRECT_STORY_UNLOCK": "Unlocked story",
         "DIRECT_MESSAGE_UNLOCK": "Unlocked message",
         "PROMOTION_PAYMENT": "Promotion payment"
+      },
+      "programme": {
+        "title": "Monetization applications",
+        "subtitle": "A Creator or Business Profile charges only once approved here. Oldest first.",
+        "filter": "Applications by status",
+        "status": {
+          "PENDING": "Pending",
+          "APPROVED": "Approved",
+          "REJECTED": "Refused",
+          "REVOKED": "Revoked"
+        },
+        "type": {
+          "CREATOR": "Creator",
+          "BUSINESS": "Business"
+        },
+        "counts": "{{followers}} followers · {{posts}} posts",
+        "applied": "Applied {{date}}",
+        "approve": "Approve",
+        "reject": "Refuse",
+        "revoke": "Revoke",
+        "empty": "No applications here.",
+        "ask": {
+          "reject": "Refuse @{{username}}",
+          "revoke": "Revoke @{{username}}"
+        },
+        "reason": "Reason",
+        "reason_hint": "The creator reads this reason.",
+        "done": {
+          "approve": "Approved: the Profile can charge.",
+          "reject": "Application refused.",
+          "revoke": "Approval revoked: the Profile can no longer charge."
+        },
+        "error": "The decision could not be saved. Try again."
       }
     },
     "appeals": {
@@ -6259,7 +6309,10 @@
       "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
       "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
       "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",
-      "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, once your identity is verified."
+      "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, once your identity is verified.",
+      "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
+      "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
+      "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
