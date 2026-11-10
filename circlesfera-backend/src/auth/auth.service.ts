@@ -48,6 +48,7 @@ import {
   SESSION_PROFILE_ORDER,
   SESSION_PROFILE_SELECT,
 } from './services/session-profile.util.js';
+import { takeTotpCodeOnce } from './two-factor/totp-once.js';
 
 // Service responsible for authentication, registration, and session management.
 // Handles password hashing (Argon2), JWT token generation/rotation, email verification,
@@ -532,14 +533,15 @@ export class AuthService {
       }
 
       try {
-        const { verifySync } = await import('otplib');
         const rawSecret = user.twoFactorSecret;
         const secret = this.cryptoService.decrypt(rawSecret);
-        const isTwoFactorCodeValid = verifySync({
-          token: dto.twoFactorCode,
+        // Each code is accepted once.
+        const isTwoFactorCodeValid = await takeTotpCodeOnce(
+          this.prisma,
+          signIn.id,
+          dto.twoFactorCode,
           secret,
-          epochTolerance: 120,
-        })?.valid;
+        );
 
         if (!isTwoFactorCodeValid) {
           throw new UnauthorizedException('Invalid 2FA code');

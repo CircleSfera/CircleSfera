@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { generateSecret, generateURI, verifySync } from 'otplib';
+import { generateSecret, generateURI } from 'otplib';
 import * as qrcode from 'qrcode';
 import {
   FIRST_SIGN_IN_ORDER,
@@ -8,6 +8,7 @@ import {
 } from '../../common/auth/sign-in-lookup.js';
 import { CryptoService } from '../../common/services/crypto.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { takeTotpCodeOnce } from './totp-once.js';
 
 @Injectable()
 export class TwoFactorService {
@@ -46,7 +47,11 @@ export class TwoFactorService {
     }
     await this.prisma.signIn.update({
       where: { id: signIn.id },
-      data: { twoFactorSecret: this.cryptoService.encrypt(secret) },
+      // A step belongs to the secret it was taken with.
+      data: {
+        twoFactorSecret: this.cryptoService.encrypt(secret),
+        twoFactorLastTimeStep: null,
+      },
     });
 
     return { secret, otpauthUrl };
@@ -69,11 +74,13 @@ export class TwoFactorService {
     const rawSecret = userData.twoFactorSecret;
     const decryptedSecret = this.cryptoService.decrypt(rawSecret);
 
-    const valid = verifySync({
-      token: twoFactorAuthenticationCode,
-      secret: decryptedSecret,
-      epochTolerance: 120,
-    }).valid;
+    // Each code is accepted once.
+    const valid = await takeTotpCodeOnce(
+      this.prisma,
+      userData.id,
+      twoFactorAuthenticationCode,
+      decryptedSecret,
+    );
 
     // Opportunistic rolling migration for legacy plaintext secrets
     if (valid && !rawSecret.includes(':')) {

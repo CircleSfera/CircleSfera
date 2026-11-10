@@ -34,6 +34,8 @@ describe('TwoFactorService', () => {
     },
     signIn: {
       update: vi.fn().mockResolvedValue({}),
+      // A code is taken once: its step is later than the last.
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       findFirst: vi.fn(async (args?: unknown) => {
         const account = await mockPrismaService.user.findUnique(args);
         return account ? { id: 'sign-in-1', ...account } : account;
@@ -84,6 +86,8 @@ describe('TwoFactorService', () => {
           twoFactorSecret: expect.stringMatching(
             /^[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/,
           ),
+          // The last code's step belonged to the old secret.
+          twoFactorLastTimeStep: null,
         },
       });
       // The client receives plaintext for display in QR / authenticator setup
@@ -132,7 +136,11 @@ describe('TwoFactorService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         twoFactorSecret: encryptedSecret,
       });
-      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({
+        valid: true,
+        delta: 0,
+        timeStep: 59_000_000,
+      } as never);
 
       const isValid = await service.isTwoFactorAuthenticationCodeValid(
         '123456',
@@ -154,7 +162,11 @@ describe('TwoFactorService', () => {
       mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
         twoFactorSecret: cryptoService.encrypt('SECRET_OF_THE_SIGN_IN'),
       });
-      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({
+        valid: true,
+        delta: 0,
+        timeStep: 59_000_000,
+      } as never);
 
       await service.isTwoFactorAuthenticationCodeValid('123456', {
         id: 'user-1',
@@ -176,7 +188,11 @@ describe('TwoFactorService', () => {
         id: 'sign-in-own',
         twoFactorSecret: cryptoService.encrypt('SECRET_OF_ITS_OWN'),
       } as never);
-      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({
+        valid: true,
+        delta: 0,
+        timeStep: 59_000_000,
+      } as never);
 
       await service.turnOnTwoFactorAuthentication(
         'user-1',
@@ -227,7 +243,11 @@ describe('TwoFactorService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         twoFactorSecret: 'LEGACY_PLAINTEXT_SECRET',
       });
-      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({
+        valid: true,
+        delta: 0,
+        timeStep: 59_000_000,
+      } as never);
 
       const isValid = await service.isTwoFactorAuthenticationCodeValid(
         '123456',
@@ -260,7 +280,11 @@ describe('TwoFactorService', () => {
       mockPrismaService.signIn.update.mockRejectedValueOnce(
         new Error('DB failure'),
       );
-      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({
+        valid: true,
+        delta: 0,
+        timeStep: 59_000_000,
+      } as never);
 
       const isValid = await service.isTwoFactorAuthenticationCodeValid(
         '123456',
@@ -292,7 +316,11 @@ describe('TwoFactorService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         twoFactorSecret: encryptedSecret,
       });
-      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({
+        valid: true,
+        delta: 0,
+        timeStep: 59_000_000,
+      } as never);
 
       await service.turnOnTwoFactorAuthentication('user-1', '123456');
 
@@ -321,7 +349,11 @@ describe('TwoFactorService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         twoFactorSecret: encryptedSecret,
       });
-      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({
+        valid: true,
+        delta: 0,
+        timeStep: 59_000_000,
+      } as never);
 
       await service.turnOffTwoFactorAuthentication('user-1', '123456');
 

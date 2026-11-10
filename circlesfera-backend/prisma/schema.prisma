@@ -144,6 +144,9 @@ model SignIn {
   passwordResetRequiredAt DateTime?
   isTwoFactorEnabled      Boolean   @default(false)
   twoFactorSecret         String?
+  /// The time step of the last two-step code accepted: a code is accepted
+  /// once, never again within its window.
+  twoFactorLastTimeStep   Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
