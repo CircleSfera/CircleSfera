@@ -2384,6 +2384,8 @@
       "comment": "ha comentado en tu publicación.",
       "mention": "te ha mencionado en un comentario.",
       "mention_story": "te ha mencionado en su historia.",
+      "tag": "te ha etiquetado en una publicación.",
+      "tag_pending": "quiere etiquetarte en una publicación. Apruébalo en Ajustes, Etiquetas.",
       "follow_request": "ha solicitado seguirte.",
       "follow_accepted": "ha aceptado tu solicitud de seguimiento.",
       "moderation": "Actualización de moderación: {{content}}",
