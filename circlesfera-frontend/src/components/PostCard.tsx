@@ -86,6 +86,12 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                   <span>{t('post.recommendation.following')}</span>
                 </>
               )}
+              {post.recommendationReason === 'favorite' && (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary" />
+                  <span>{t('post.recommendation.favorite')}</span>
+                </>
+              )}
               {post.recommendationReason === 'interest' && (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />

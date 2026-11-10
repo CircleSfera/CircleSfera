@@ -38,6 +38,9 @@ describe('FeedService', () => {
     follow: {
       findMany: vi.fn(),
     },
+    favoriteProfile: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     mute: {
       findMany: vi.fn().mockResolvedValue([]),
     },
@@ -280,6 +283,106 @@ describe('FeedService', () => {
           (v: unknown) => v instanceof Date && v.toISOString() === fixedAsOf,
         ),
       ).toBe(true);
+    });
+  });
+
+  describe('getFavoritesFeed', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockFeedPreferences.getFilterSets.mockResolvedValue({
+        hiddenPostIds: [],
+        hiddenAuthorIds: [],
+        mutedKeywords: [],
+      });
+      mockPrismaService.mute.findMany.mockResolvedValue([]);
+      mockPrismaService.postUnlock.findMany.mockResolvedValue([]);
+      mockPrismaService.userSettings.findUnique.mockResolvedValue({
+        contentPreference: 'GENERAL',
+        blurSensitiveContent: true,
+      });
+    });
+
+    it('lists only the Favorites one still follows, newest first, marked as such', async () => {
+      mockPrismaService.favoriteProfile.findMany.mockResolvedValue([
+        { favoriteId: 'fav-1' },
+        { favoriteId: 'fav-2' },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: 'p1', profileId: 'fav-1', likes: [] },
+      ]);
+      mockPrismaService.post.count.mockResolvedValue(1);
+
+      const result = await service.getFavoritesFeed('viewer', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(mockPrismaService.favoriteProfile.findMany).toHaveBeenCalledWith({
+        where: {
+          profileId: 'viewer',
+          favorite: {
+            followers: { some: { followerId: 'viewer', status: 'ACCEPTED' } },
+          },
+        },
+        select: { favoriteId: true },
+      });
+      const query = mockPrismaService.post.findMany.mock.calls[0][0];
+      expect(query.where.profileId).toEqual({ in: ['fav-1', 'fav-2'] });
+      expect(query.where.visibility).toEqual({ in: ['PUBLIC', 'FOLLOWERS'] });
+      expect(query.where.deletedAt).toBeNull();
+      expect(query.where.archivedAt).toBeNull();
+      expect(query.orderBy).toEqual([{ createdAt: 'desc' }, { id: 'desc' }]);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].recommendationReason).toBe('favorite');
+      // Only their posts: no promotion is mixed in.
+      expect(mockPrismaService.promotion.findMany).not.toHaveBeenCalled();
+    });
+
+    it('leaves out muted and hidden authors, and is empty without Favorites', async () => {
+      mockPrismaService.favoriteProfile.findMany.mockResolvedValue([
+        { favoriteId: 'muted' },
+        { favoriteId: 'hidden' },
+      ]);
+      mockPrismaService.mute.findMany.mockResolvedValue([{ mutedId: 'muted' }]);
+      mockFeedPreferences.getFilterSets.mockResolvedValue({
+        hiddenPostIds: [],
+        hiddenAuthorIds: ['hidden'],
+        mutedKeywords: [],
+      });
+
+      const result = await service.getFavoritesFeed('viewer', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
+    });
+
+    it('leaves out hidden posts and posts with a muted word', async () => {
+      mockPrismaService.favoriteProfile.findMany.mockResolvedValue([
+        { favoriteId: 'fav-1' },
+      ]);
+      mockFeedPreferences.getFilterSets.mockResolvedValue({
+        hiddenPostIds: ['gone'],
+        hiddenAuthorIds: [],
+        mutedKeywords: ['spoiler'],
+      });
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: 'p1', caption: 'A SPOILER here', likes: [] },
+        { id: 'p2', caption: 'fine', likes: [] },
+      ]);
+      mockPrismaService.post.count.mockResolvedValue(2);
+
+      const result = await service.getFavoritesFeed('viewer', {
+        page: 1,
+        limit: 10,
+      });
+
+      const query = mockPrismaService.post.findMany.mock.calls[0][0];
+      expect(query.where.id).toEqual({ notIn: ['gone'] });
+      expect(result.data.map((p: { id: string }) => p.id)).toEqual(['p2']);
     });
   });
 
