@@ -2083,6 +2083,60 @@ describe('PostsService', () => {
       expect(mockPrismaService.post.update).toHaveBeenCalled();
     });
 
+    it('takes a Frame whose cover changed off sale and checks it again with its caption', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        caption: 'stored caption',
+        media: [],
+      });
+
+      await service.update('post-1', { coverImageUrl: '/uploads/cover.webp' });
+
+      expect(mockFrameCover.chooseImage).toHaveBeenCalledWith(
+        'post-1',
+        '/uploads/cover.webp',
+      );
+      expect(mockPrismaService.post.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ moderationPassedAt: null }),
+        }),
+      );
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).toHaveBeenCalledWith('post-1', 'stored caption');
+    });
+
+    it('keeps a post on sale when only who sees it changes', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        caption: null,
+        media: [],
+      });
+
+      await service.update('post-1', { hideLikes: true });
+
+      expect(
+        mockPrismaService.post.update.mock.calls.at(-1)?.[0].data,
+      ).not.toHaveProperty('moderationPassedAt');
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('checks a moment chosen as the cover again, with no caption as empty', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        caption: null,
+        media: [],
+      });
+
+      await service.update('post-1', { coverTimeMs: 1200 });
+
+      expect(
+        mockPostDistributionService.moderateEditedCaption,
+      ).toHaveBeenCalledWith('post-1', '');
+    });
+
     it('should update post caption and visibility', async () => {
       mockPrismaService.post.update.mockResolvedValue({
         id: 'post-1',
@@ -2101,6 +2155,8 @@ describe('PostsService', () => {
         data: {
           caption: 'new caption',
           visibility: Visibility.PUBLIC,
+          // Off sale until the new caption is checked.
+          moderationPassedAt: null,
         },
         include: expect.any(Object),
       });

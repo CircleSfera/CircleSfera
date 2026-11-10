@@ -1,6 +1,7 @@
 export * from './business-profile.js';
 export * from './chat-pins.js';
 export * from './comments.js';
+export * from './favorites.js';
 export * from './frame-look.js';
 export * from './hidden-words.js';
 export * from './live-schedule.js';

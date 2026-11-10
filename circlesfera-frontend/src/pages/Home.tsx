@@ -2,7 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoSrc from '../assets/logo.png';
 import SEO from '../components/common/SEO';
 import { EmptyState, ErrorState } from '../components/ErrorEmptyStates';
@@ -26,14 +26,18 @@ export const FEED_COLUMN_MAX_PX = 400;
 
 // Mobile: single column, full-width
 // Desktop: feed column (FEED_COLUMN_MAX_PX) + right sidebar
-// Feed tabs: For You / Following (catalog: feed.for_you / feed.following)
+// Feed tabs: For You / Following / Favorites (catalog: feed.for_you,
+// feed.following, feed.favorites); Favorites only when signed in
 // Stories strip above feed
 // High information density: spacing between posts 12–16px
 export default function Home() {
   const { t } = useTranslation();
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const [activeTab, setActiveTab] = useState<'foryou' | 'following'>('foryou');
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<
+    'foryou' | 'following' | 'favorites'
+  >('foryou');
 
   const {
     data,
@@ -50,7 +54,9 @@ export default function Home() {
       const res =
         activeTab === 'foryou'
           ? await feedApi.getForYou(page, undefined, asOf)
-          : await feedApi.getFollowing(page);
+          : activeTab === 'favorites'
+            ? await feedApi.getFavorites(page)
+            : await feedApi.getFollowing(page);
       return res.data;
     },
     getNextPageParam: (lastPage) => {
@@ -134,6 +140,14 @@ export default function Home() {
                 items={[
                   { value: 'foryou', label: t('feed.for_you') },
                   { value: 'following', label: t('feed.following') },
+                  ...(isAuthenticated
+                    ? [
+                        {
+                          value: 'favorites' as const,
+                          label: t('feed.favorites'),
+                        },
+                      ]
+                    : []),
                 ]}
               />
             </div>
@@ -175,6 +189,18 @@ export default function Home() {
                     title={t('feed.error_title')}
                     message={t('feed.error_message')}
                     onRetry={() => refetch()}
+                  />
+                </div>
+              ) : posts.length === 0 && activeTab === 'favorites' ? (
+                <div className="px-3 pt-3">
+                  <EmptyState
+                    icon="followers"
+                    title={t('feed.no_favorites_posts_title')}
+                    message={t('feed.no_favorites_posts_desc')}
+                    action={{
+                      label: t('feed.manage_favorites'),
+                      onClick: () => navigate('/accounts/favorites'),
+                    }}
                   />
                 </div>
               ) : posts.length === 0 ? (

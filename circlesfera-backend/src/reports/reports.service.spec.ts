@@ -310,12 +310,13 @@ describe('ReportsService', () => {
       );
     });
 
-    it('a report of self-harm is marked urgent, and no other reason is', async () => {
+    it('a report of self-harm or of child sexual abuse material is marked urgent, and no other reason is', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
       mockPrismaService.report.create.mockResolvedValue({ id: '1' });
 
       for (const [reason, urgent] of [
         ['SELF_HARM', true],
+        ['CSAM', true],
         ['INTELLECTUAL_PROPERTY', false],
         ['SEXUAL_CONTENT', false],
         ['SPAM', false],
