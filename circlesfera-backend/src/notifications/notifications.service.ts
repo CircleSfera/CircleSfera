@@ -366,6 +366,8 @@ export class NotificationsService {
           senderId: data.senderId,
           type: data.type,
           postId: data.postId,
+          // A mention and a tag of the same post are two notices.
+          targetType: data.targetType ?? null,
           targetId: data.targetId ?? null,
           createdAt: { gte: oneMinuteAgo },
         },
