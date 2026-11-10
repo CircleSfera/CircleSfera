@@ -566,6 +566,7 @@ export class ProfilesService {
             lastSeenAt: true,
             isActive: true,
             identityVerifiedAt: true,
+            dateOfBirthVerified: true,
             signupCountry: true,
             botLabeledAt: true,
             locale: true,
@@ -627,6 +628,9 @@ export class ProfilesService {
       verificationLevel: profile.verificationLevel,
       identityVerifiedAt: profile.user?.identityVerifiedAt,
       identityVerified: !!profile.user?.identityVerifiedAt,
+      // A verification made before the date of birth was read from the
+      // document: the person verifies again before paying or charging.
+      dateOfBirthVerified: !!profile.user?.dateOfBirthVerified,
       emailConfirmed: !!signedInWith?.emailVerified,
       emailVerified: signedInWith?.emailVerified,
       joinedAt: profile.createdAt,

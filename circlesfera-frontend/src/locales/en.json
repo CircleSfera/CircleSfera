@@ -315,7 +315,9 @@
         "unverified_desc": "Verify your identity to get the verified badge. You will need a valid ID or Passport.",
         "btn": "Verify identity",
         "verified": "Verified",
-        "error": "Failed to initialize verification session"
+        "error": "Failed to initialize verification session",
+        "reverify_desc": "Your identity is verified, but your date of birth was not read from your document then. Verify again to pay or to charge on CircleSfera.",
+        "reverify_btn": "Verify again"
       },
       "ledger": {
         "button": "Download Ledger",
@@ -6448,7 +6450,7 @@
       "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
       "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
       "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",
-      "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, once your identity is verified.",
+      "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, with your identity and date of birth verified. If you verified before, verify again in Settings → Account.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
       "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",

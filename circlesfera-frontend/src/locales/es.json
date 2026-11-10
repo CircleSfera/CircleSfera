@@ -315,7 +315,9 @@
         "unverified_desc": "Verifica tu identidad para obtener la insignia. Necesitarás un DNI o pasaporte válido.",
         "btn": "Verificar identidad",
         "verified": "Verificado",
-        "error": "No se pudo iniciar la sesión de verificación"
+        "error": "No se pudo iniciar la sesión de verificación",
+        "reverify_desc": "Tu identidad está verificada, pero entonces no se leyó la fecha de nacimiento de tu documento. Verifícala de nuevo para pagar o cobrar en CircleSfera.",
+        "reverify_btn": "Verificar de nuevo"
       },
       "ledger": {
         "button": "Descargar libro",
@@ -6448,7 +6450,7 @@
       "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
       "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
       "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
-      "PAYER_UNDER_AGE": "Puedes pagar a partir de los {{minAge}} años, con tu identidad verificada.",
+      "PAYER_UNDER_AGE": "Puedes pagar a partir de los {{minAge}} años, con tu identidad y tu fecha de nacimiento verificadas. Si ya te verificaste antes, vuelve a hacerlo en Ajustes → Cuenta.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
       "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",
