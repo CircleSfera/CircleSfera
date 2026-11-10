@@ -178,8 +178,11 @@ export interface Post {
   createdAt: Date | string;
   updatedAt: Date | string;
   profile: ProfileWithUser;
-  /** The Profile that co-authors it, once it accepted the invitation. */
-  collaborator?: ProfileWithUser | null;
+  /**
+   * The Profile that co-authors it, once it accepted the invitation, with
+   * when it pinned the post on its own profile (null if it did not).
+   */
+  collaborator?: (ProfileWithUser & { pinnedAt?: Date | string | null }) | null;
   _count: {
     // null when its author hid the like count from everyone else.
     likes: number | null;
@@ -286,6 +289,8 @@ export interface Message {
   updatedAt: Date | string;
   isDeleted?: boolean;
   isEdited?: boolean;
+  // A copy someone forwarded from another chat; it names no one behind it.
+  isForwarded?: boolean;
   isLocked?: boolean;
   priceCents?: number;
   sender?: ProfileWithUser;
@@ -307,6 +312,11 @@ export interface Conversation {
   name?: string | null;
   participants: Participant[];
   messages: Message[];
+  // The viewer's own choices for the chat, never another member's: until
+  // when it is muted (no push; far in the future for "always", null when
+  // not muted) and when they pinned it at the top of their inbox.
+  mutedUntil?: Date | string | null;
+  pinnedAt?: Date | string | null;
 }
 
 export interface Notification {

@@ -26,6 +26,7 @@ import { RemoveParticipantUseCase } from './use-cases/groups/remove-participant.
 import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js';
 import { DeleteMessageUseCase } from './use-cases/messages/delete-message.use-case.js';
 import { EditMessageUseCase } from './use-cases/messages/edit-message.use-case.js';
+import { ForwardMessageUseCase } from './use-cases/messages/forward-message.use-case.js';
 import { MarkAsReadUseCase } from './use-cases/messages/mark-as-read.use-case.js';
 import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.js';
 import { GetConversationsQuery } from './use-cases/queries/get-conversations.query.js';
@@ -33,6 +34,7 @@ import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
 import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
 import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
+import { ChatSettingsUseCase } from './use-cases/settings/chat-settings.use-case.js';
 
 describe('ChatController', () => {
   let app: INestApplication;
@@ -56,6 +58,13 @@ describe('ChatController', () => {
   const mockDeleteConversationUseCase = { execute: vi.fn() };
   const mockAcceptMessageRequestUseCase = { execute: vi.fn() };
   const mockDeclineMessageRequestUseCase = { execute: vi.fn() };
+  const mockChatSettings = {
+    mute: vi.fn(),
+    unmute: vi.fn(),
+    pin: vi.fn(),
+    unpin: vi.fn(),
+  };
+  const mockForwardMessageUseCase = { execute: vi.fn() };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -90,6 +99,11 @@ describe('ChatController', () => {
         {
           provide: DeclineMessageRequestUseCase,
           useValue: mockDeclineMessageRequestUseCase,
+        },
+        { provide: ChatSettingsUseCase, useValue: mockChatSettings },
+        {
+          provide: ForwardMessageUseCase,
+          useValue: mockForwardMessageUseCase,
         },
       ],
       guards: [
@@ -307,7 +321,9 @@ describe('ChatController', () => {
       .send({ recipientId: 'profile-2', content: '', gifId: 'abc123' })
       .expect(201);
 
-    expect(mockSendMessageUseCase.execute.mock.calls[0][15]).toBe('abc123');
+    expect(mockSendMessageUseCase.execute.mock.calls[0][15]).toEqual({
+      gifId: 'abc123',
+    });
   });
 
   it('sends a message as the session profileId', async () => {
@@ -342,7 +358,7 @@ describe('ChatController', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
+      { gifId: undefined },
     );
   });
 
@@ -377,7 +393,7 @@ describe('ChatController', () => {
       [0.15, 0.5, 1],
       undefined,
       undefined,
-      undefined,
+      { gifId: undefined },
     );
   });
 
@@ -462,7 +478,7 @@ describe('ChatController', () => {
       undefined,
       true,
       999,
-      undefined,
+      { gifId: undefined },
     );
   });
 
@@ -801,5 +817,98 @@ describe('ChatController', () => {
       TEST_USER.profileId,
       'conv-1',
     );
+  });
+  describe('muting and pinning a chat', () => {
+    it('mutes as the session profile for the time asked', async () => {
+      mockChatSettings.mute.mockResolvedValue({});
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/c-1/mute')
+        .send({ for: '8h' })
+        .set(BEARER)
+        .expect(200);
+      expect(mockChatSettings.mute).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        'c-1',
+        '8h',
+      );
+    });
+
+    it('refuses a length it does not know', async () => {
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/c-1/mute')
+        .send({ for: 'forever-and-ever' })
+        .set(BEARER)
+        .expect(400);
+      expect(mockChatSettings.mute).not.toHaveBeenCalled();
+    });
+
+    it('pins and unpins as the session profile', async () => {
+      mockChatSettings.pin.mockResolvedValue({});
+      mockChatSettings.unpin.mockResolvedValue({});
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/c-1/pin')
+        .set(BEARER)
+        .expect(200);
+      await request(app.getHttpServer())
+        .delete('/api/v1/chat/conversations/c-1/pin')
+        .set(BEARER)
+        .expect(200);
+      expect(mockChatSettings.pin).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        'c-1',
+      );
+      expect(mockChatSettings.unpin).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        'c-1',
+      );
+    });
+
+    it('is closed without a session', async () => {
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/c-1/pin')
+        .expect(401);
+      expect(mockChatSettings.pin).not.toHaveBeenCalled();
+    });
+  });
+  describe('forwarding a message', () => {
+    it('forwards as the session profile to the chats picked', async () => {
+      mockForwardMessageUseCase.execute.mockResolvedValue({
+        sent: ['c-a'],
+        failed: [],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/chat/messages/m-1/forward')
+        .send({ conversationIds: ['c-a'] })
+        .set(BEARER)
+        .expect(201);
+      expect(res.body).toEqual({ sent: ['c-a'], failed: [] });
+      expect(mockForwardMessageUseCase.execute).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        'm-1',
+        ['c-a'],
+      );
+    });
+
+    it('refuses no chats and more than five', async () => {
+      for (const conversationIds of [
+        [],
+        ['a', 'b', 'c', 'd', 'e', 'f'],
+        'c-a',
+      ]) {
+        await request(app.getHttpServer())
+          .post('/api/v1/chat/messages/m-1/forward')
+          .send({ conversationIds })
+          .set(BEARER)
+          .expect(400);
+      }
+      expect(mockForwardMessageUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('is closed without a session', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/chat/messages/m-1/forward')
+        .send({ conversationIds: ['c-a'] })
+        .expect(401);
+    });
   });
 });

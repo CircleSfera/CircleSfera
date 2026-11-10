@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PromotionStatus, PromotionTargetType } from '@prisma/client';
 import { eurosToCents } from '../../../../common/constants/monetization.constants.js';
 import { withdrawalConsentMetadata } from '../../../../common/consumer/withdrawal-consent.js';
+import { assertAdultPayer } from '../../../../common/policies/adult-payer.policy.js';
 import { assertRealMoneyAllowed } from '../../../../common/policies/test-account.policy.js';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
@@ -25,6 +26,7 @@ export class CreatePromotionUseCase {
     countries?: string[],
   ) {
     await assertRealMoneyAllowed(this.prisma, userId);
+    await assertAdultPayer(this.prisma, userId);
     const ownedProfiles = await this.prisma.profile.findMany({
       where: { userId },
       select: { id: true },

@@ -32,7 +32,9 @@ import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { BUTTON_ROW } from '../ui/buttonWidth';
 import ChatDetailsModal from './ChatDetailsModal';
+import type { ChatPreferenceValues } from './ChatPreferences';
 import ChooseAdminSheet from './ChooseAdminSheet';
+import ForwardMessageSheet from './ForwardMessageSheet';
 import GroupDetailsModal from './GroupDetailsModal';
 import { adminCandidates, isNotice, needsSuccessor } from './groupAdmins';
 import MessageBubble from './MessageBubble';
@@ -98,6 +100,12 @@ export default function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [conversation, setConversation] = useState<Conversation | null>(null);
+  // The viewer's own mute or pin changed: the chat keeps the server's answer.
+  const updateOwnPreferences = useCallback(
+    (values: ChatPreferenceValues) =>
+      setConversation((prev) => (prev ? { ...prev, ...values } : prev)),
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   // Older messages are read as the person scrolls up to the top.
   const [hasOlder, setHasOlder] = useState(false);
@@ -121,6 +129,7 @@ export default function ChatWindow() {
   const [showMenu, setShowMenu] = useState(false);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [showChatDetails, setShowChatDetails] = useState(false);
+  const [forwarding, setForwarding] = useState<Message | null>(null);
   const [pendingDelete, setPendingDelete] = useState<'me' | null>(null);
   // The only admin leaving a group first chooses who becomes admin.
   const [showChooseAdmin, setShowChooseAdmin] = useState(false);
@@ -1333,6 +1342,7 @@ export default function ChatWindow() {
                     onReact={sendReaction}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onForward={setForwarding}
                     isRead={isRead}
                     currentUserId={currentProfileId}
                   />
@@ -1582,6 +1592,14 @@ export default function ChatWindow() {
         </div>
       </div>
 
+      {forwarding?.id && (
+        <ForwardMessageSheet
+          messageId={forwarding.id}
+          currentProfileId={currentProfileId}
+          fromConversationId={conversation?.id}
+          onClose={() => setForwarding(null)}
+        />
+      )}
       {/* Modal deleted, options moved directly to dropdown menu */}
       {showChatDetails && conversation && !chatInfo.isGroup && (
         <ChatDetailsModal
@@ -1608,6 +1626,20 @@ export default function ChatWindow() {
             setShowChatDetails(false);
             setPendingDelete('me');
           }}
+          preferences={
+            conversation
+              ? {
+                  conversationId: conversation.id,
+                  mutedUntil: conversation.mutedUntil,
+                  pinnedAt: conversation.pinnedAt,
+                  canPin:
+                    conversation.participants?.find(
+                      (p: Participant) => p.profileId === currentProfileId,
+                    )?.hasAccepted !== false,
+                  onChange: updateOwnPreferences,
+                }
+              : undefined
+          }
         />
       )}
       <ConfirmModal
@@ -1641,6 +1673,7 @@ export default function ChatWindow() {
           onRemoveParticipant={handleRemoveParticipant}
           onMakeAdmin={handleMakeAdmin}
           onLeaveGroup={requestLeaveGroup}
+          onPreferencesChange={updateOwnPreferences}
         />
       )}
       {conversation?.isGroup && (

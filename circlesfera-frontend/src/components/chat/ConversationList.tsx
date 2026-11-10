@@ -5,7 +5,7 @@ import {
 } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { TFunction } from 'i18next';
-import { ChevronLeft, Edit, Search } from 'lucide-react';
+import { BellOff, ChevronLeft, Edit, Pin, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
@@ -438,13 +438,35 @@ export default function ConversationList() {
                           >
                             {conv.name || personName(otherProfile, t)}
                           </span>
-                          {lastMsg && (
-                            <span
-                              className={`text-xs font-semibold shrink-0 ml-2 ${isActive ? 'text-brand-primary-text drop-shadow-[0_0_5px_rgba(var(--brand-primary-rgb),0.5)]' : 'text-white/40'}`}
-                            >
-                              {getTimeString(lastMsg.createdAt, i18n.language)}
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1.5 shrink-0 ml-2 text-white/40">
+                            {/* The viewer's own: muted, and pinned on top. */}
+                            {conv.mutedUntil &&
+                              new Date(conv.mutedUntil).getTime() >
+                                Date.now() && (
+                                <BellOff
+                                  size={13}
+                                  aria-label={t('chat.preferences.muted')}
+                                  role="img"
+                                />
+                              )}
+                            {conv.pinnedAt && (
+                              <Pin
+                                size={13}
+                                aria-label={t('chat.preferences.pinned')}
+                                role="img"
+                              />
+                            )}
+                            {lastMsg && (
+                              <span
+                                className={`text-xs font-semibold ${isActive ? 'text-brand-primary-text drop-shadow-[0_0_5px_rgba(var(--brand-primary-rgb),0.5)]' : 'text-white/40'}`}
+                              >
+                                {getTimeString(
+                                  lastMsg.createdAt,
+                                  i18n.language,
+                                )}
+                              </span>
+                            )}
+                          </span>
                         </div>
                         <div className="flex items-center text-xs">
                           <p

@@ -1795,7 +1795,10 @@ describe('PostsService', () => {
           { collaborator: { profileId: 'user-1', status: 'ACCEPTED' } },
         ],
       });
-      expect(result.data[0].collaborator).toEqual({ id: 'user-1' });
+      expect(result.data[0].collaborator).toEqual({
+        id: 'user-1',
+        pinnedAt: null,
+      });
     });
   });
 

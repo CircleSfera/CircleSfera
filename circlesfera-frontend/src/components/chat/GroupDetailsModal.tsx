@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import type { Conversation } from '../../types';
 import UserAvatar from '../UserAvatar';
 import { Dialog } from '../ui/Dialog';
+import ChatPreferences, { type ChatPreferenceValues } from './ChatPreferences';
 import { adminCandidates, needsSuccessor } from './groupAdmins';
 import { personName } from './unavailable';
 
@@ -18,6 +19,8 @@ interface GroupDetailsModalProps {
   // Called without asking when the person is the only admin: leaving then
   // first asks who becomes admin.
   onLeaveGroup: () => void;
+  // The viewer's own mute and pin, changed from here.
+  onPreferencesChange?: (values: ChatPreferenceValues) => void;
 }
 
 export default function GroupDetailsModal({
@@ -28,6 +31,7 @@ export default function GroupDetailsModal({
   onRemoveParticipant,
   onMakeAdmin,
   onLeaveGroup,
+  onPreferencesChange,
 }: GroupDetailsModalProps) {
   const { t } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
@@ -240,7 +244,20 @@ export default function GroupDetailsModal({
           </div>
         </div>
 
-        <div className="p-4 border-t border-white/10 shrink-0">
+        <div className="p-4 border-t border-white/10 shrink-0 flex flex-col gap-3">
+          {onPreferencesChange && (
+            <ChatPreferences
+              conversationId={conversation.id}
+              mutedUntil={conversation.mutedUntil}
+              pinnedAt={conversation.pinnedAt}
+              canPin={
+                conversation.participants?.find(
+                  (p) => p.profileId === myProfileId,
+                )?.hasAccepted !== false
+              }
+              onChange={onPreferencesChange}
+            />
+          )}
           <button
             type="button"
             onClick={() => {

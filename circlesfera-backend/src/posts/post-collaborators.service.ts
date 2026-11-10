@@ -16,18 +16,32 @@ const NotificationType = $Enums.NotificationType;
 
 // The co-author of a post or Frame shown with it: only once it accepted.
 export const ACCEPTED_COLLABORATOR_INCLUDE = {
-  select: { status: true, profile: { select: PUBLIC_PROFILE_SELECT } },
+  select: {
+    status: true,
+    pinnedAt: true,
+    profile: { select: PUBLIC_PROFILE_SELECT },
+  },
 } as const;
 
 // What a post shows of its collaborator to anyone: the Profile once it
-// accepted, nothing while it is only invited.
+// accepted, with when it pinned the post on its own profile (null if it did
+// not), as anyone sees on that profile; nothing while it is only invited.
 export function shownCollaborator(
   collaborator:
-    | { status: $Enums.CollaborationStatus; profile: unknown }
+    | {
+        status: $Enums.CollaborationStatus;
+        profile: unknown;
+        pinnedAt?: Date | null;
+      }
     | null
     | undefined,
 ) {
-  return collaborator?.status === 'ACCEPTED' ? collaborator.profile : null;
+  return collaborator?.status === 'ACCEPTED'
+    ? {
+        ...(collaborator.profile as Record<string, unknown>),
+        pinnedAt: collaborator.pinnedAt ?? null,
+      }
+    : null;
 }
 
 const notFound = () =>

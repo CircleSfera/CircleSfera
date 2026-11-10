@@ -79,6 +79,7 @@ const mine = (over: object = {}) => ({
   username: 'ana',
   fullName: 'Ana Ruiz',
   identityVerifiedAt: '2026-01-10T10:00:00Z',
+  dateOfBirthVerified: true,
   ...over,
 });
 const exported = (over: object = {}) => ({
@@ -195,6 +196,26 @@ describe('AccountSettings', () => {
       screen.queryByRole('button', { name: 'Verify identity' }),
     ).not.toBeInTheDocument();
     expect(users.syncIdentitySession).not.toHaveBeenCalled();
+  });
+
+  it('offers to verify again when the date of birth was not read from the document', async () => {
+    const place = { origin: 'https://app.test', href: 'https://app.test/x' };
+    vi.stubGlobal('location', place);
+    await show(mine({ dateOfBirthVerified: false }));
+
+    expect(screen.queryByText('Verified')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/your date of birth was not read from your document/),
+    ).toBeInTheDocument();
+    // A session finished elsewhere is picked up for this person too.
+    await waitFor(() => expect(users.syncIdentitySession).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Verify again' }));
+    await waitFor(() =>
+      expect(users.createIdentitySession).toHaveBeenCalledWith(
+        'https://app.test/accounts/account',
+      ),
+    );
   });
 
   it('starts the identity check and goes to the provider', async () => {

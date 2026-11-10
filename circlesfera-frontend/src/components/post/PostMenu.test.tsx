@@ -81,9 +81,24 @@ describe('PostMenu', () => {
     expect(screen.getByText('Unpin from your profile')).toBeInTheDocument();
   });
 
-  it('offers no pin to someone else', () => {
-    show({ isOwner: false, onTogglePin: vi.fn() });
+  it('offers someone else no pin, and the collaborator its own', () => {
+    show({ isOwner: false });
     expect(screen.queryByText('Pin to your profile')).not.toBeInTheDocument();
+    cleanup();
+
+    const onTogglePin = vi.fn();
+    show({ isOwner: false, onTogglePin, onLeaveCollaboration: vi.fn() });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Pin to your profile' }),
+    );
+    expect(onTogglePin).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers the collaborator to unpin its pin', () => {
+    show({ isOwner: false, onTogglePin: vi.fn(), pinned: true });
+    expect(
+      screen.getByRole('button', { name: 'Unpin from your profile' }),
+    ).toBeInTheDocument();
   });
 
   it('offers the author to archive their post', () => {

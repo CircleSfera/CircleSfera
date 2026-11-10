@@ -22,8 +22,10 @@ import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { ConversationPageDto } from './dto/conversation-page.dto.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
 import { EditMessageDto } from './dto/edit-message.dto.js';
+import { ForwardMessageDto } from './dto/forward-message.dto.js';
 import { DeleteConversationDto, LeaveGroupDto } from './dto/leave-group.dto.js';
 import { MessagesBeforeDto } from './dto/messages-before.dto.js';
+import { MuteChatDto } from './dto/mute-chat.dto.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
 import { UpdateGroupDto } from './dto/update-group.dto.js';
 // Group Commands
@@ -36,6 +38,7 @@ import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js'
 // Message Commands
 import { DeleteMessageUseCase } from './use-cases/messages/delete-message.use-case.js';
 import { EditMessageUseCase } from './use-cases/messages/edit-message.use-case.js';
+import { ForwardMessageUseCase } from './use-cases/messages/forward-message.use-case.js';
 import { MarkAsReadUseCase } from './use-cases/messages/mark-as-read.use-case.js';
 import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.js';
 // Queries
@@ -49,9 +52,10 @@ import {
   MESSAGE_PAGE,
 } from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
-// Request Commands
 import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
 import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
+// Request Commands
+import { ChatSettingsUseCase } from './use-cases/settings/chat-settings.use-case.js';
 
 interface AuthRequest extends Request {
   user: CurrentUserData;
@@ -91,6 +95,10 @@ export class ChatController {
     private readonly acceptMessageRequestUseCase: AcceptMessageRequestUseCase,
     @Inject(DeclineMessageRequestUseCase)
     private readonly declineMessageRequestUseCase: DeclineMessageRequestUseCase,
+    @Inject(ChatSettingsUseCase)
+    private readonly chatSettings: ChatSettingsUseCase,
+    @Inject(ForwardMessageUseCase)
+    private readonly forwardMessageUseCase: ForwardMessageUseCase,
   ) {}
 
   @ApiQuery({ name: 'folder', required: false })
@@ -158,6 +166,35 @@ export class ChatController {
     return this.declineMessageRequestUseCase.execute(req.user.profileId, id);
   }
 
+  // Muting and pinning are each member's own: nobody else sees them.
+  @Put('conversations/:id/mute')
+  @ApiResponse({ status: 200 })
+  async muteChat(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: MuteChatDto,
+  ) {
+    return this.chatSettings.mute(req.user.profileId, id, body.for);
+  }
+
+  @Delete('conversations/:id/mute')
+  @ApiResponse({ status: 200 })
+  async unmuteChat(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.chatSettings.unmute(req.user.profileId, id);
+  }
+
+  @Put('conversations/:id/pin')
+  @ApiResponse({ status: 200 })
+  async pinChat(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.chatSettings.pin(req.user.profileId, id);
+  }
+
+  @Delete('conversations/:id/pin')
+  @ApiResponse({ status: 200 })
+  async unpinChat(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.chatSettings.unpin(req.user.profileId, id);
+  }
+
   @Get('conversations/:id/messages')
   @ApiResponse({ status: 200 })
   async getMessages(
@@ -212,7 +249,22 @@ export class ChatController {
       dto.voiceWaveform,
       dto.isLocked,
       dto.priceCents,
-      dto.gifId,
+      { gifId: dto.gifId },
+    );
+  }
+
+  @Post('messages/:id/forward')
+  @UseGuards(EmailVerifiedGuard)
+  @ApiResponse({ status: 201 })
+  async forwardMessage(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() dto: ForwardMessageDto,
+  ) {
+    return this.forwardMessageUseCase.execute(
+      req.user.profileId,
+      id,
+      dto.conversationIds,
     );
   }
 

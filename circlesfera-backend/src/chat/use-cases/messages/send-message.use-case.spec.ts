@@ -91,6 +91,10 @@ describe('SendMessageUseCase', () => {
         findUnique: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
       },
+      // Members who muted the chat: none unless a test says so.
+      participant: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       // Nobody restricts anyone unless a test says so.
       restriction: { findMany: vi.fn().mockResolvedValue([]) },
     };
@@ -411,48 +415,45 @@ describe('SendMessageUseCase', () => {
       );
     });
   });
-  it('sends no push to a recipient who restricts the sender, but still delivers the message', async () => {
+  it('sends no push to a member who muted the chat, and still to the others', async () => {
     const participants = [
-      { profileId: 'sender-1', profile: { id: 'sender-1' } },
-      { profileId: 'recipient-1', profile: { id: 'recipient-1' } },
+      { profileId: 'sender-1', deletedAt: null, profile: { id: 'sender-1' } },
+      { profileId: 'muted-1', deletedAt: null, profile: { id: 'muted-1' } },
+      { profileId: 'open-1', deletedAt: null, profile: { id: 'open-1' } },
     ];
     mockTx.conversation.findUnique.mockResolvedValue({
-      id: 'conv-1',
-      isGroup: false,
+      id: 'conv-g',
+      isGroup: true,
       participants,
     });
     mockTx.message.create.mockResolvedValue({
-      id: 'msg-1',
-      content: 'encrypted_Hello',
+      id: 'msg-g',
+      content: 'encrypted_Hi',
       senderId: 'sender-1',
-      conversationId: 'conv-1',
+      conversationId: 'conv-g',
       sender: { id: 'sender-1', username: 'sender_user' },
     });
-    mockPrisma.restriction.findMany.mockResolvedValue([
-      { restricterId: 'recipient-1' },
+    mockPrisma.participant.findMany.mockResolvedValue([
+      { profileId: 'muted-1' },
     ]);
 
     await useCase.execute(
       'sender-1',
       undefined,
-      'Hello',
+      'Hi',
       undefined,
       undefined,
-      'conv-1',
+      'conv-g',
     );
 
-    expect(mockPrisma.restriction.findMany).toHaveBeenCalledWith({
-      where: {
-        restrictedId: 'sender-1',
-        restricterId: { in: ['recipient-1'] },
-      },
-      select: { restricterId: true },
+    expect(mockPrisma.participant.findMany).toHaveBeenCalledWith({
+      where: { conversationId: 'conv-g', mutedUntil: { gt: expect.any(Date) } },
+      select: { profileId: true },
     });
-    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-      'chat.message.sent',
-      expect.objectContaining({ participants }),
+    const pushed = mockPushService.sendNotification.mock.calls.map(
+      (call: unknown[]) => call[0],
     );
-    expect(mockPushService.sendNotification).not.toHaveBeenCalled();
+    expect(pushed).toEqual(['open-1']);
   });
 
   it('sends message to existing conversation with push notification to recipient', async () => {
@@ -523,6 +524,50 @@ describe('SendMessageUseCase', () => {
       }),
       'messages',
     );
+  });
+
+  it('sends no push to a recipient who restricts the sender, but still delivers the message', async () => {
+    const participants = [
+      { profileId: 'sender-1', profile: { id: 'sender-1' } },
+      { profileId: 'recipient-1', profile: { id: 'recipient-1' } },
+    ];
+    mockTx.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      isGroup: false,
+      participants,
+    });
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-1',
+      content: 'encrypted_Hello',
+      senderId: 'sender-1',
+      conversationId: 'conv-1',
+      sender: { id: 'sender-1', username: 'sender_user' },
+    });
+    mockPrisma.restriction.findMany.mockResolvedValue([
+      { restricterId: 'recipient-1' },
+    ]);
+
+    await useCase.execute(
+      'sender-1',
+      undefined,
+      'Hello',
+      undefined,
+      undefined,
+      'conv-1',
+    );
+
+    expect(mockPrisma.restriction.findMany).toHaveBeenCalledWith({
+      where: {
+        restrictedId: 'sender-1',
+        restricterId: { in: ['recipient-1'] },
+      },
+      select: { restricterId: true },
+    });
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      'chat.message.sent',
+      expect.objectContaining({ participants }),
+    );
+    expect(mockPushService.sendNotification).not.toHaveBeenCalled();
   });
 
   it("writes the push in each recipient's language, naming the sender, never the message", async () => {
@@ -753,7 +798,7 @@ describe('SendMessageUseCase', () => {
         undefined,
         undefined,
         undefined,
-        'abc123',
+        { gifId: 'abc123' },
       );
 
     it('keeps the GIF as GIPHY describes it, asked by its id', async () => {

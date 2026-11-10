@@ -97,10 +97,6 @@
         "label": "Close Friends",
         "desc": "Inner circle"
       },
-      "favorites": {
-        "label": "Favorites",
-        "desc": "Your own feed"
-      },
       "notifications": {
         "label": "Notifications",
         "desc": "Alerts"
@@ -137,13 +133,17 @@
         "label": "Hidden words",
         "desc": "Comments"
       },
-      "collaborations": {
-        "label": "Collaborations",
-        "desc": "Invitations"
+      "favorites": {
+        "label": "Favorites",
+        "desc": "Your own feed"
       },
       "tags": {
         "label": "Tags",
         "desc": "Posts you're tagged in"
+      },
+      "collaborations": {
+        "label": "Collaborations",
+        "desc": "Invitations"
       }
     },
     "profile": {
@@ -315,7 +315,9 @@
         "unverified_desc": "Verify your identity to get the verified badge. You will need a valid ID or Passport.",
         "btn": "Verify identity",
         "verified": "Verified",
-        "error": "Failed to initialize verification session"
+        "error": "Failed to initialize verification session",
+        "reverify_desc": "Your identity is verified, but your date of birth was not read from your document then. Verify again to pay or to charge on CircleSfera.",
+        "reverify_btn": "Verify again"
       },
       "ledger": {
         "button": "Download Ledger",
@@ -860,17 +862,21 @@
       "archived": "Archived. Only you see it, in your archive.",
       "archive_error": "It could not be archived. Try again."
     },
-    "collaborations": {
-      "title": "Collaboration invitations",
-      "subtitle": "Posts others invited you to co-author. Once you accept, the post shows on your profile and reaches your followers too.",
-      "empty": "No invitations at the moment",
-      "invited_by": "{{username}} invited you to collaborate",
-      "view_post": "View {{username}}'s post",
-      "accept": "Accept",
-      "decline": "Decline",
-      "accepted": "You're now a collaborator on this post",
-      "accept_error": "Couldn't accept the invitation",
-      "decline_error": "Couldn't decline the invitation"
+    "tags": {
+      "pending_title": "Waiting for approval",
+      "pending_desc": "Approve a tag to show the post on your profile, or remove yourself from it.",
+      "pending_empty": "No tags waiting",
+      "shown_title": "On your profile",
+      "shown_desc": "Posts you're tagged in. Removing yourself takes you off the post; its author isn't told.",
+      "shown_empty": "You're not tagged in any posts",
+      "by": "Post by {{username}}",
+      "approve": "Approve",
+      "remove": "Remove me",
+      "remove_label": "Remove me from the post by {{username}}",
+      "error": "Couldn't update the tag",
+      "load_error": "Couldn't load your tags.",
+      "unavailable": "A post you can't see",
+      "remove_unavailable_label": "Remove me from a post you can't see"
     },
     "interactions": {
       "title": "Mentions, tags and messages",
@@ -892,21 +898,17 @@
       "save_error": "Couldn't save the change",
       "load_error": "Couldn't load who can mention, tag or message you."
     },
-    "tags": {
-      "pending_title": "Waiting for approval",
-      "pending_desc": "Approve a tag to show the post on your profile, or remove yourself from it.",
-      "pending_empty": "No tags waiting",
-      "shown_title": "On your profile",
-      "shown_desc": "Posts you're tagged in. Removing yourself takes you off the post; its author isn't told.",
-      "shown_empty": "You're not tagged in any posts",
-      "by": "Post by {{username}}",
-      "approve": "Approve",
-      "remove": "Remove me",
-      "remove_label": "Remove me from the post by {{username}}",
-      "error": "Couldn't update the tag",
-      "load_error": "Couldn't load your tags.",
-      "unavailable": "A post you can't see",
-      "remove_unavailable_label": "Remove me from a post you can't see"
+    "collaborations": {
+      "title": "Collaboration invitations",
+      "subtitle": "Posts others invited you to co-author. Once you accept, the post shows on your profile and reaches your followers too.",
+      "empty": "No invitations at the moment",
+      "invited_by": "{{username}} invited you to collaborate",
+      "view_post": "View {{username}}'s post",
+      "accept": "Accept",
+      "decline": "Decline",
+      "accepted": "You're now a collaborator on this post",
+      "accept_error": "Couldn't accept the invitation",
+      "decline_error": "Couldn't decline the invitation"
     }
   },
   "auth": {
@@ -1131,7 +1133,6 @@
     "brand_name": "CircleSfera",
     "for_you": "For You",
     "following": "Following",
-    "favorites": "Favorites",
     "no_posts": "No posts yet. Explore to find creators!",
     "no_posts_title": "No recent posts",
     "login_required_title": "Sign in",
@@ -1139,11 +1140,12 @@
     "no_following_posts_title": "No following posts yet",
     "no_following_posts_desc": "Explore suggested creators or switch to For You to discover trending content.",
     "switch_to_foryou": "Go to For You",
-    "no_favorites_posts_title": "No posts from your Favorites yet",
-    "no_favorites_posts_desc": "Choose up to 50 Profiles you follow and read only them here, newest first.",
-    "manage_favorites": "Choose Favorites",
     "error_title": "Couldn't load feed",
-    "error_message": "Something went wrong while loading posts. Please try again."
+    "error_message": "Something went wrong while loading posts. Please try again.",
+    "no_favorites_posts_desc": "Choose up to 50 Profiles you follow and read only them here, newest first.",
+    "favorites": "Favorites",
+    "no_favorites_posts_title": "No posts from your Favorites yet",
+    "manage_favorites": "Choose Favorites"
   },
   "feedPrefs": {
     "content_title": "Content preferences",
@@ -1175,24 +1177,6 @@
     "post_hide_error": "Could not hide post",
     "author_hidden": "Author hidden from your feed",
     "author_hide_error": "Could not hide author"
-  },
-  "favorites": {
-    "title": "Favorites",
-    "desc": "Up to {{max}} Profiles you follow. Their posts make your Favorites feed, newest first. Nobody is told who is on your list.",
-    "count": "{{count}} of {{max}}",
-    "loading": "Loading…",
-    "empty": "You have no Favorites yet.",
-    "add_label": "Add {{username}} to Favorites",
-    "remove_label": "Remove {{username}} from Favorites",
-    "add": "Add to Favorites",
-    "remove": "Remove from Favorites",
-    "added": "Added to Favorites",
-    "removed": "Removed from Favorites",
-    "full": "You can have up to {{max}} Favorites. Remove one first.",
-    "not_followed": "Only Profiles you follow can be Favorites.",
-    "error": "Could not change your Favorites. Try again.",
-    "following": "People you follow",
-    "load_more": "Show more"
   },
   "explore": {
     "page_title": "Explore the Universe",
@@ -1518,14 +1502,14 @@
       "why": "Why?",
       "close_friends": "Close Friends",
       "following": "Following",
-      "favorite": "Favorites",
       "signals_desc": {
         "ranked_for_you": "Our ranking marked this as highly relevant based on your interests and activity.",
         "popular": "This post is getting a lot of engagement on the platform right now.",
         "network": "People in your network or that you follow are engaging with this post.",
         "close_friend": "The author of this post is on your Close Friends list.",
         "generic": "We recommend this because of: {{signal}}"
-      }
+      },
+      "favorite": "Favorites"
     },
     "checkout_canceled": "Checkout was canceled.",
     "checkout_success": "Payment successful. Content will unlock shortly.",
@@ -2420,8 +2404,6 @@
       "comment": "commented on your post.",
       "mention": "mentioned you in a comment.",
       "mention_story": "mentioned you in their story.",
-      "tag": "tagged you in a post.",
-      "tag_pending": "wants to tag you in a post. Approve it in Settings, Tags.",
       "follow_request": "requested to follow you.",
       "follow_accepted": "accepted your follow request.",
       "moderation": "Moderation update: {{content}}",
@@ -2435,14 +2417,15 @@
       "moderation_restriction_review": "After a review by our team, for 7 days this profile can follow 20 accounts and send 5 message requests a day, because of unusual activity (for example, many actions in a short time or repeated messages). Nothing is hidden or removed. You can appeal this decision.",
       "like_many": "liked your post.",
       "comment_like_many": "liked your comment.",
-      "follow_many": "started following you."
+      "follow_many": "started following you.",
+      "tag": "tagged you in a post.",
+      "tag_pending": "wants to tag you in a post. Approve it in Settings, Tags."
     },
     "appeal_cta": "Appeal this decision",
     "strike_details_cta": "See details and appeal",
     "removal_appeal_cta": "Appeal",
     "just_now": "now",
     "view_live": "Watch the live",
-    "collab_invitations_cta": "See invitations",
     "filters": {
       "label": "Filter activity",
       "all": "All",
@@ -2454,7 +2437,8 @@
       "and": "and",
       "and_others_one": "and {{count}} other",
       "and_others_other": "and {{count}} others"
-    }
+    },
+    "collab_invitations_cta": "See invitations"
   },
   "chat": {
     "loading": "Loading chats...",
@@ -2602,7 +2586,40 @@
     "hidden_requests_desc": "Message requests that contain one of your hidden words. You are not notified about them.",
     "no_hidden_requests": "No hidden requests",
     "encrypted_on_servers": "Messages are stored encrypted on our servers.",
-    "locked_not_for_sale": "This paid message is no longer for sale."
+    "locked_not_for_sale": "This paid message is no longer for sale.",
+    "preferences": {
+      "mute": "Mute messages",
+      "mute_hint": "No notifications from this chat",
+      "muted_always": "Muted until you turn it off",
+      "muted_until": "Muted until {{time}}",
+      "mute_for": "Mute for",
+      "durations": {
+        "1h": "1 hour",
+        "8h": "8 hours",
+        "1w": "1 week",
+        "always": "Until I turn it off"
+      },
+      "pin": "Pin chat",
+      "pin_hint": "Keep it at the top of your inbox, up to 3",
+      "muted": "Muted",
+      "pinned": "Pinned",
+      "error": "Couldn't save that. Try again."
+    },
+    "forward": "Forward",
+    "forwarded": "Forwarded",
+    "forward_sheet": {
+      "title": "Forward to",
+      "search": "Search chats",
+      "limit": "Pick up to {{count}} chats",
+      "send_one": "Send to {{count}} chat",
+      "send_other": "Send to {{count}} chats",
+      "none": "No chats to forward to",
+      "sent_one": "Forwarded to {{count}} chat",
+      "sent_other": "Forwarded to {{count}} chats",
+      "partly_one": "{{count}} chat could not receive it",
+      "partly_other": "{{count}} chats could not receive it",
+      "error": "The message could not be forwarded"
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -6352,7 +6369,6 @@
       "STRIPE_CUSTOMER_MISSING": "We couldn't find your billing details. Contact support.",
       "PROMOTION_ID_MISSING": "That promotion is missing. Try again.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Switch to a Creator or Business profile to earn money.",
-      "CONTENT_CHANGED_SINCE_REVIEW": "Its author changed it after you opened it. Look at it again.",
       "POST_NOT_FOUND": "This post is no longer available.",
       "STORY_NOT_FOUND": "This story is no longer available.",
       "MEDIA_NOT_FOUND": "We couldn't find that file.",
@@ -6433,21 +6449,25 @@
       "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
       "GIFS_UNAVAILABLE": "GIFs aren't available right now.",
       "GIF_NOT_FOUND": "That GIF isn't available. Pick another one.",
-      "COLLAB_NOT_ALLOWED": "Only a public post that is not paid can have a collaborator, and never its author.",
-      "COLLABORATOR_EXISTS": "This post already has a collaborator.",
-      "COLLAB_NOT_FOUND": "This invitation is no longer available.",
-      "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first.",
       "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
       "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
-      "TIP_TARGET_REQUIRED": "A tip is always for a post.",
-      "TIP_AMOUNT_NOT_ALLOWED": "Choose one of the amounts shown.",
-      "WEEKLY_SUPPORT_LIMIT_REACHED": "You have reached the most you can give in a week, tips and gifts together.",
-      "CONTENT_UNDER_REVIEW": "This content goes on sale once it has been checked. Try again in a few minutes.",
-      "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
-      "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
-      "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",
       "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",
-      "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests."
+      "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, with your identity and date of birth verified. If you verified before, verify again in Settings → Account.",
+      "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
+      "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
+      "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",
+      "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests.",
+      "CONTENT_UNDER_REVIEW": "This content goes on sale once it has been checked. Try again in a few minutes.",
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "You have reached the most you can give in a week, tips and gifts together.",
+      "COLLAB_NOT_ALLOWED": "Only a public post that is not paid can have a collaborator, and never its author.",
+      "COLLABORATOR_EXISTS": "This post already has a collaborator.",
+      "TIP_AMOUNT_NOT_ALLOWED": "Choose one of the amounts shown.",
+      "CONTENT_CHANGED_SINCE_REVIEW": "Its author changed it after you opened it. Look at it again.",
+      "COLLAB_NOT_FOUND": "This invitation is no longer available.",
+      "TIP_TARGET_REQUIRED": "A tip is always for a post.",
+      "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first.",
+      "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another.",
+      "MESSAGE_NOT_FORWARDABLE": "This message cannot be forwarded."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
@@ -6533,5 +6553,23 @@
     "unrestricted_toast": "{{username}} is no longer restricted.",
     "error": "The restriction could not be changed. Try again.",
     "restrict_user": "Restrict {{username}}"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "desc": "Up to {{max}} Profiles you follow. Their posts make your Favorites feed, newest first. Nobody is told who is on your list.",
+    "count": "{{count}} of {{max}}",
+    "loading": "Loading…",
+    "empty": "You have no Favorites yet.",
+    "add_label": "Add {{username}} to Favorites",
+    "remove_label": "Remove {{username}} from Favorites",
+    "add": "Add to Favorites",
+    "remove": "Remove from Favorites",
+    "added": "Added to Favorites",
+    "removed": "Removed from Favorites",
+    "full": "You can have up to {{max}} Favorites. Remove one first.",
+    "not_followed": "Only Profiles you follow can be Favorites.",
+    "error": "Could not change your Favorites. Try again.",
+    "following": "People you follow",
+    "load_more": "Show more"
   }
 }

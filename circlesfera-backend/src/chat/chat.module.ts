@@ -34,6 +34,7 @@ import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js'
 import { AddReactionUseCase } from './use-cases/messages/add-reaction.use-case.js';
 import { DeleteMessageUseCase } from './use-cases/messages/delete-message.use-case.js';
 import { EditMessageUseCase } from './use-cases/messages/edit-message.use-case.js';
+import { ForwardMessageUseCase } from './use-cases/messages/forward-message.use-case.js';
 import { MarkAsReadUseCase } from './use-cases/messages/mark-as-read.use-case.js';
 import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.js';
 // Queries
@@ -43,6 +44,7 @@ import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.
 // Request Commands
 import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
 import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
+import { ChatSettingsUseCase } from './use-cases/settings/chat-settings.use-case.js';
 // System Commands
 import { CleanupExpiredMessagesUseCase } from './use-cases/system/cleanup-expired-messages.use-case.js';
 
@@ -64,6 +66,8 @@ const useCases = [
   AcceptMessageRequestUseCase,
   DeclineMessageRequestUseCase,
   CleanupExpiredMessagesUseCase,
+  ChatSettingsUseCase,
+  ForwardMessageUseCase,
 ];
 
 @Module({

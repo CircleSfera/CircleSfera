@@ -61,6 +61,8 @@ export enum ErrorCode {
   PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
   // Charging for anything needs a verified identity of someone 18 or older.
   MONETIZATION_UNDER_AGE = 'MONETIZATION_UNDER_AGE',
+  // Paying for anything needs a verified identity of someone 18 or older.
+  PAYER_UNDER_AGE = 'PAYER_UNDER_AGE',
   // Messages are no longer sold: none can be sent with a price, and none
   // sent before can be bought now.
   PAID_MESSAGES_UNAVAILABLE = 'PAID_MESSAGES_UNAVAILABLE',
@@ -88,6 +90,8 @@ export enum ErrorCode {
   GIFS_UNAVAILABLE = 'GIFS_UNAVAILABLE',
   // GIPHY does not know the GIF, or does not show it at the app's rating.
   GIF_NOT_FOUND = 'GIF_NOT_FOUND',
+  // A Profile already has the most chats it can pin at the top of its inbox.
+  CHAT_PINS_FULL = 'CHAT_PINS_FULL',
   // A Profile already has the most Favorites it can keep.
   FAVORITES_FULL = 'FAVORITES_FULL',
   // Only a Profile one follows can be a Favorite.
@@ -105,6 +109,9 @@ export enum ErrorCode {
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.
   MESSAGE_IS_NOTICE = 'MESSAGE_IS_NOTICE',
+  // Only a member's text or a shared post can be forwarded: never a paid
+  // message, a deleted one, a file, a voice note or a story.
+  MESSAGE_NOT_FORWARDABLE = 'MESSAGE_NOT_FORWARDABLE',
   // The member named to be a group admin may not be one: not in the group,
   // has not accepted it, or their account is not active.
   GROUP_ADMIN_NOT_ELIGIBLE = 'GROUP_ADMIN_NOT_ELIGIBLE',

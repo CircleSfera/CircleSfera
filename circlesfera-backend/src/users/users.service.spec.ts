@@ -1780,10 +1780,36 @@ describe('UsersService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         stripeIdentitySessionId: 'vs_done',
         identityVerifiedAt: new Date(),
+        dateOfBirthVerified: true,
       });
 
       const res = await service.syncIdentitySession('u_verified');
       expect(res).toEqual({ status: 'already_verified' });
+      expect(
+        mockStripeService.getIdentityVerificationSession,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('confirms the date of birth of an identity verified before it was read from the document', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        stripeIdentitySessionId: 'vs_again',
+        identityVerifiedAt: new Date('2026-06-01T00:00:00.000Z'),
+        dateOfBirthVerified: false,
+      });
+      mockStripeService.getIdentityVerificationSession.mockResolvedValue({
+        status: 'verified',
+        verified_outputs: { dob: { year: 1990, month: 1, day: 15 } },
+      });
+
+      const res = await service.syncIdentitySession('u_again');
+
+      expect(res).toEqual({ status: 'verified' });
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'u_again' },
+          data: expect.objectContaining({ dateOfBirthVerified: true }),
+        }),
+      );
     });
 
     it('syncs verified status from Stripe', async () => {

@@ -90,12 +90,14 @@ export class SendMessageUseCase {
     voiceWaveform?: number[],
     isLocked?: boolean,
     priceCents?: number,
-    gifId?: string,
+    // A copy forwarded from another chat (ForwardMessageUseCase): marked so.
+    // A GIF is named by its GIPHY id.
+    options: { forwarded?: boolean; gifId?: string } = {},
   ): Promise<Message> {
     // Only the sending Profile's own stored files can be attached.
     await this.storedFiles.assertOwnedBy(senderId, [url, voiceUrl]);
-    const gif = gifId
-      ? await this.gifFor(gifId, [url, voiceUrl, postId, storyId])
+    const gif = options.gifId
+      ? await this.gifFor(options.gifId, [url, voiceUrl, postId, storyId])
       : null;
 
     // Messages are no longer sold: a private message cannot carry a price,
@@ -308,6 +310,7 @@ export class SendMessageUseCase {
               : undefined,
             ...(isLocked ? { isLocked: true, priceCents } : {}),
             ...(gif ? { gif: gif as Prisma.InputJsonValue } : {}),
+            ...(options.forwarded ? { isForwarded: true } : {}),
           },
           include: {
             sender: {
@@ -423,7 +426,19 @@ export class SendMessageUseCase {
 
       // Each recipient reads the push in the language of their account. A
       // recipient who restricts the sender gets the message in requests,
-      // without a push.
+      // without a push. A member who muted the chat gets no push for it
+      // until the mute ends.
+      const muted = new Set(
+        (
+          await this.prisma.participant.findMany({
+            where: {
+              conversationId: conversation.id,
+              mutedUntil: { gt: new Date() },
+            },
+            select: { profileId: true },
+          })
+        ).map((p) => p.profileId),
+      );
       const restricting = await restrictersOf(
         this.prisma,
         senderId,
@@ -433,6 +448,7 @@ export class SendMessageUseCase {
         (p: any) =>
           p.profileId !== senderId &&
           p.hasAccepted !== false &&
+          !muted.has(p.profileId) &&
           !(restricting.has(p.profileId) && !conversation.isGroup),
       );
       const locales = new Map(
