@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -89,13 +90,18 @@ describe('CreatePromotionUseCase', () => {
       'EUR',
     );
 
+    // Only one's own post that passed moderation and is published.
     expect(mockPrismaService.post.findFirst).toHaveBeenCalledWith({
       where: {
         id: 'post-100',
         profileId: { in: ['p-1'] },
+        moderationStatus: 'VISIBLE',
+        moderationPassedAt: { not: null },
         deletedAt: null,
         archivedAt: null,
+        scheduledStatus: 'PUBLISHED',
       },
+      select: { id: true },
     });
     expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -146,9 +152,81 @@ describe('CreatePromotionUseCase', () => {
 
     await expect(
       useCase.execute('u-1', 'post', 'post-unowned', 7, 50),
-    ).rejects.toThrow('Post not found or not owned by user');
+    ).rejects.toMatchObject({ errorCode: ErrorCode.POST_NOT_FOUND });
 
     expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
+  });
+
+  it('promotes nothing of a Profile banned or suspended now', async () => {
+    // Only the account's Profiles in good standing come back.
+    mockPrismaService.profile.findMany.mockResolvedValue([]);
+    mockPrismaService.post.findFirst.mockResolvedValue(null);
+
+    await expect(
+      useCase.execute('u-1', 'post', 'post-of-suspended', 7, 50),
+    ).rejects.toMatchObject({ errorCode: ErrorCode.POST_NOT_FOUND });
+    expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'u-1',
+        isAccountBanned: false,
+        OR: [
+          { suspendedUntil: null },
+          { suspendedUntil: { lte: expect.any(Date) } },
+        ],
+      },
+      select: { id: true },
+    });
+    expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
+  });
+
+  it('says to wait for content still being checked, and promotes nothing', async () => {
+    mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'p-1' }]);
+    mockPrismaService.post.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'post-new' });
+
+    await expect(
+      useCase.execute('u-1', 'frame', 'post-new', 7, 50),
+    ).rejects.toMatchObject({ errorCode: ErrorCode.CONTENT_UNDER_REVIEW });
+    expect(mockPrismaService.post.findFirst).toHaveBeenLastCalledWith({
+      where: {
+        id: 'post-new',
+        profileId: { in: ['p-1'] },
+        moderationStatus: 'VISIBLE',
+        moderationPassedAt: null,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
+  });
+
+  it('promotes only a story of one’s own that passed moderation, and says when it is not found or still being checked', async () => {
+    mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'p-1' }]);
+    mockPrismaService.story.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 's-new' });
+
+    await expect(
+      useCase.execute('u-1', 'story', 's-gone', 1, 10),
+    ).rejects.toMatchObject({ errorCode: ErrorCode.STORY_NOT_FOUND });
+    await expect(
+      useCase.execute('u-1', 'story', 's-new', 1, 10),
+    ).rejects.toMatchObject({ errorCode: ErrorCode.CONTENT_UNDER_REVIEW });
+    expect(mockPrismaService.story.findFirst).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: 's-gone',
+        profileId: { in: ['p-1'] },
+        moderationStatus: 'VISIBLE',
+        moderationPassedAt: { not: null },
+        deletedAt: null,
+        scheduledStatus: 'PUBLISHED',
+      },
+      select: { id: true },
+    });
     expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
   });
 
@@ -157,7 +235,7 @@ describe('CreatePromotionUseCase', () => {
 
     await expect(
       useCase.execute('u-1', 'profile', 'p-other', 3, 20),
-    ).rejects.toThrow('Cannot promote other users profile');
+    ).rejects.toMatchObject({ errorCode: ErrorCode.PROFILE_NOT_FOUND });
 
     expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
   });

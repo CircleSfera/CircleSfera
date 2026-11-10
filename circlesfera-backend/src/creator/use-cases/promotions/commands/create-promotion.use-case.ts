@@ -1,9 +1,16 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PromotionStatus, PromotionTargetType } from '@prisma/client';
 import { eurosToCents } from '../../../../common/constants/monetization.constants.js';
 import { withdrawalConsentMetadata } from '../../../../common/consumer/withdrawal-consent.js';
+import { AppException } from '../../../../common/errors/app.exception.js';
 import { assertAdultPayer } from '../../../../common/policies/adult-payer.policy.js';
+import {
+  AWAITING_MODERATION,
+  SELLABLE_POST,
+  SELLABLE_STORY,
+} from '../../../../common/policies/removed-content.policy.js';
 import { assertRealMoneyAllowed } from '../../../../common/policies/test-account.policy.js';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
@@ -16,6 +23,25 @@ export class CreatePromotionUseCase {
     @Inject(ConfigService) private readonly configService: ConfigService,
   ) {}
 
+  // One's own content still waiting for automatic moderation: promoted once
+  // it is checked, so the person is told to wait rather than that it is gone.
+  private async assertNotAwaitingModeration(
+    kind: 'post' | 'story',
+    owned: { id: string; profileId: { in: string[] } },
+  ): Promise<void> {
+    const where = { ...owned, ...AWAITING_MODERATION, deletedAt: null };
+    const waiting =
+      kind === 'post'
+        ? await this.prisma.post.findFirst({ where, select: { id: true } })
+        : await this.prisma.story.findFirst({ where, select: { id: true } });
+    if (waiting) {
+      throw AppException.BadRequest(
+        ErrorCode.CONTENT_UNDER_REVIEW,
+        'This content can be promoted once it has been checked.',
+      );
+    }
+  }
+
   async execute(
     userId: string,
     targetType: string,
@@ -27,31 +53,50 @@ export class CreatePromotionUseCase {
   ) {
     await assertRealMoneyAllowed(this.prisma, userId);
     await assertAdultPayer(this.prisma, userId);
+    // Only Profiles in good standing promote: one banned, or suspended
+    // now, pays for nothing, even while another Profile of the account
+    // keeps it signed in.
     const ownedProfiles = await this.prisma.profile.findMany({
-      where: { userId },
+      where: {
+        userId,
+        isAccountBanned: false,
+        OR: [{ suspendedUntil: null }, { suspendedUntil: { lte: new Date() } }],
+      },
       select: { id: true },
     });
     const profileIds = ownedProfiles.map((p) => p.id);
 
+    // Only one's own content that automatic moderation checked and passed,
+    // published, and not removed, deleted or archived, is promoted: the same
+    // rule as what may be sold. Content waiting for that check is told so.
+    const owned = { id: targetId, profileId: { in: profileIds } };
     if (targetType === 'post' || targetType === 'frame') {
-      // Content in Recently deleted or in the archive cannot be promoted.
       const post = await this.prisma.post.findFirst({
-        where: {
-          id: targetId,
-          profileId: { in: profileIds },
-          deletedAt: null,
-          archivedAt: null,
-        },
+        where: { ...owned, ...SELLABLE_POST, scheduledStatus: 'PUBLISHED' },
+        select: { id: true },
       });
-      if (!post) throw new Error('Post not found or not owned by user');
+      if (!post) {
+        await this.assertNotAwaitingModeration('post', owned);
+        throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
+      }
     } else if (targetType === 'story') {
       const story = await this.prisma.story.findFirst({
-        where: { id: targetId, profileId: { in: profileIds }, deletedAt: null },
+        where: { ...owned, ...SELLABLE_STORY, scheduledStatus: 'PUBLISHED' },
+        select: { id: true },
       });
-      if (!story) throw new Error('Story not found or not owned by user');
+      if (!story) {
+        await this.assertNotAwaitingModeration('story', owned);
+        throw AppException.NotFound(
+          ErrorCode.STORY_NOT_FOUND,
+          'Story not found',
+        );
+      }
     } else if (targetType === 'profile') {
       if (!profileIds.includes(targetId)) {
-        throw new Error('Cannot promote other users profile');
+        throw AppException.NotFound(
+          ErrorCode.PROFILE_NOT_FOUND,
+          'Profile not found',
+        );
       }
     }
 
