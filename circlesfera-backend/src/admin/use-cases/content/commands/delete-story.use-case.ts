@@ -32,9 +32,10 @@ export class DeleteStoryUseCase {
       'story',
       storyId,
     );
-    await tellAuthorOfRemoval(
-      (notice) => this.notifications.create(notice),
-      { kind: 'STORY', id: storyId, authorProfileId: removed.profileId },
-    );
+    await tellAuthorOfRemoval((notice) => this.notifications.create(notice), {
+      kind: 'STORY',
+      id: storyId,
+      authorProfileId: removed.profileId,
+    });
   }
 }

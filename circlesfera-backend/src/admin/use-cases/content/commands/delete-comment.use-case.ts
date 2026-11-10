@@ -32,9 +32,10 @@ export class DeleteCommentUseCase {
       'comment',
       commentId,
     );
-    await tellAuthorOfRemoval(
-      (notice) => this.notifications.create(notice),
-      { kind: 'COMMENT', id: commentId, authorProfileId: removed.profileId },
-    );
+    await tellAuthorOfRemoval((notice) => this.notifications.create(notice), {
+      kind: 'COMMENT',
+      id: commentId,
+      authorProfileId: removed.profileId,
+    });
   }
 }
