@@ -29,10 +29,7 @@ import {
   CREATE_SECONDARY,
 } from '../../components/create-post/createStyles';
 import CinematicStage from '../../components/live/CinematicStage';
-import {
-  LiveCameraPreview,
-  useCameraPreview,
-} from '../../components/live/LiveCameraPreview';
+import { LiveCameraPreview } from '../../components/live/LiveCameraPreview';
 import LiveGoalBar, {
   type LiveGoalData,
 } from '../../components/live/LiveGoalBar';
@@ -62,6 +59,7 @@ import LiveScheduleSheet from '../../components/live/LiveScheduleSheet';
 import LiveUpcomingLives from '../../components/live/LiveUpcomingLives';
 import { MirrorOwnCamera } from '../../components/live/MirrorOwnCamera';
 import ConfirmModal from '../../components/modals/ConfirmModal';
+import { useStoryCamera } from '../../components/story/capture/useStoryCamera';
 import { LIVEKIT_URL } from '../../constants/livekit';
 import { useLiveGuests } from '../../hooks/useLiveGuests';
 import { apiClient as api } from '../../services/api';
@@ -100,7 +98,8 @@ export default function LiveBroadcaster() {
   const profile = useAuthStore((state) => state.profile);
   // The host sees themself before going live; the broadcast takes the
   // camera from the preview when it starts.
-  const preview = useCameraPreview();
+  // The camera of the capture screens, the front one first.
+  const preview = useStoryCamera({ initialFacing: 'user' });
   // The upcoming live being started, while the server answers.
   const [startingId, setStartingId] = useState<string | null>(null);
   const [endedAfter, setEndedAfter] = useState('00:00');
@@ -506,7 +505,7 @@ export default function LiveBroadcaster() {
             </LiveControl>
             <LiveControl
               label={t('live.turn_camera')}
-              onClick={preview.turn}
+              onClick={preview.switchCamera}
               disabled={preview.state !== 'on'}
             >
               <SwitchCamera className="h-5 w-5" aria-hidden />
