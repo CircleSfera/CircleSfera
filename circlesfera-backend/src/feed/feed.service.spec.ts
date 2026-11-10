@@ -439,6 +439,73 @@ describe('FeedService', () => {
       });
     });
 
+    it("applies the viewer's mutes, hidden authors and posts, and muted words to the inbox, keeping them in it", async () => {
+      mockFeedInboxService.getInbox.mockResolvedValue([
+        'shown',
+        'by-muted',
+        'by-hidden',
+        'not-interested',
+        'with-word',
+        'own',
+      ]);
+      mockFeedInboxService.getInboxCount.mockResolvedValue(6);
+      mockPrismaService.mute.findMany.mockResolvedValue([
+        { mutedId: 'muted' },
+        // A mute of oneself never hides one's own posts.
+        { mutedId: 'user-1' },
+      ]);
+      mockFeedPreferences.getFilterSets.mockResolvedValue({
+        hiddenPostIds: ['not-interested'],
+        hiddenAuthorIds: ['hidden'],
+        mutedKeywords: ['spoiler'],
+      });
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: 'shown', profileId: 'friend', likes: [] },
+        { id: 'by-muted', profileId: 'muted', likes: [] },
+        { id: 'by-hidden', profileId: 'hidden', likes: [] },
+        { id: 'not-interested', profileId: 'friend', likes: [] },
+        {
+          id: 'with-word',
+          profileId: 'friend',
+          caption: 'A SPOILER',
+          likes: [],
+        },
+        { id: 'own', profileId: 'user-1', likes: [] },
+      ]);
+
+      const result = await service.getFollowingFeed('user-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.data.map((p: { id: string }) => p.id)).toEqual([
+        'shown',
+        'own',
+      ]);
+      // Kept out, not removed: they come back when the filter ends.
+      expect(mockFeedInboxService.removePostsFromInbox).not.toHaveBeenCalled();
+    });
+
+    it('leaves out a post a followed Profile co-authors when the viewer muted its author', async () => {
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'friend' },
+      ]);
+      mockPrismaService.mute.findMany.mockResolvedValue([{ mutedId: 'muted' }]);
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      mockPrismaService.post.count.mockResolvedValue(0);
+
+      await service.getFollowingFeed('user-1', { page: 1, limit: 10 });
+
+      const where = mockPrismaService.post.findMany.mock.calls[0][0].where;
+      expect(where.AND[1].OR[1]).toEqual({
+        collaborator: {
+          status: 'ACCEPTED',
+          profileId: { in: ['friend', 'user-1'] },
+        },
+        profileId: { notIn: ['muted'] },
+      });
+    });
+
     it('should return chronological feed of following', async () => {
       mockPrismaService.follow.findMany.mockResolvedValue([
         { followingId: 'user-2' },
