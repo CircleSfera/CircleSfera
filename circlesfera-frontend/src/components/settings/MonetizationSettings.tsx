@@ -12,6 +12,7 @@ import {
 } from '../../utils/pendingTab';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
+import MonetizationProgrammeSettings from './MonetizationProgrammeSettings';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
 import TaxDetailsSettings from './TaxDetailsSettings';
@@ -22,6 +23,11 @@ export function MonetizationSettings() {
   const { data: status, isLoading: statusLoading } = useQuery({
     queryKey: ['monetization', 'status'],
     queryFn: () => monetizationApi.getStatus(),
+  });
+
+  const { data: programme, isLoading: programmeLoading } = useQuery({
+    queryKey: ['monetization', 'programme'],
+    queryFn: () => monetizationApi.getProgramme(),
   });
 
   const { data: monetization, isLoading: monetizationLoading } = useQuery({
@@ -55,7 +61,7 @@ export function MonetizationSettings() {
     },
   });
 
-  if (statusLoading || monetizationLoading) {
+  if (statusLoading || monetizationLoading || programmeLoading) {
     return (
       <div className="flex justify-center py-12">
         <LoadingSpinner size="sm" />
@@ -86,56 +92,67 @@ export function MonetizationSettings() {
           ? t('settings.monetization.status.incomplete')
           : t('settings.monetization.status.unconnected');
 
+  // Payouts are set up once staff approve the Profile; one set up before
+  // the programme still shows, so its panel and earnings stay at hand.
+  const approved = programme?.status === 'APPROVED';
+  const showsPayouts = approved || !!status?.connected;
+
   return (
     <div className="max-w-xl space-y-5">
-      <SettingsSection
-        title={t('settings.monetization.title')}
-        description={t('settings.monetization.desc')}
-      >
-        <SettingsRow
-          label={t('settings.monetization.stripeConnect')}
-          description={statusCopy}
-          // A step to take in Stripe goes under its reason on a phone, the
-          // width of the card; the panel's button stays beside the status.
-          className={showsPanel ? '' : 'max-sm:flex-col max-sm:items-stretch'}
-          control={
-            showsPanel ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                onClick={() => dashboardMutation.mutate(openPendingTab())}
-                isLoading={dashboardMutation.isPending}
-              >
-                {t('settings.monetization.dashboard')}
-                <ExternalLink size={14} aria-hidden />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="primary"
-                size="md"
-                onClick={() => connectMutation.mutate()}
-                isLoading={connectMutation.isPending}
-              >
-                {sharesAccount
-                  ? t('settings.monetization.connect_own')
-                  : needsUpdate
-                    ? t('settings.monetization.update')
-                    : isConnected
-                      ? t('settings.monetization.complete')
-                      : t('settings.monetization.connect')}
-              </Button>
-            )
-          }
+      {programme ? (
+        <MonetizationProgrammeSettings programme={programme} />
+      ) : null}
+
+      {showsPayouts ? (
+        <SettingsSection
+          title={t('settings.monetization.title')}
+          description={t('settings.monetization.desc')}
         >
-          {sharesAccount ? (
-            <p className="text-xs text-white/50 leading-relaxed mt-2">
-              {t('settings.monetization.own_account_note')}
-            </p>
-          ) : null}
-        </SettingsRow>
-      </SettingsSection>
+          <SettingsRow
+            label={t('settings.monetization.stripeConnect')}
+            description={statusCopy}
+            // A step to take in Stripe goes under its reason on a phone, the
+            // width of the card; the panel's button stays beside the status.
+            className={showsPanel ? '' : 'max-sm:flex-col max-sm:items-stretch'}
+            control={
+              showsPanel ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={() => dashboardMutation.mutate(openPendingTab())}
+                  isLoading={dashboardMutation.isPending}
+                >
+                  {t('settings.monetization.dashboard')}
+                  <ExternalLink size={14} aria-hidden />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  onClick={() => connectMutation.mutate()}
+                  isLoading={connectMutation.isPending}
+                >
+                  {sharesAccount
+                    ? t('settings.monetization.connect_own')
+                    : needsUpdate
+                      ? t('settings.monetization.update')
+                      : isConnected
+                        ? t('settings.monetization.complete')
+                        : t('settings.monetization.connect')}
+                </Button>
+              )
+            }
+          >
+            {sharesAccount ? (
+              <p className="text-xs text-white/50 leading-relaxed mt-2">
+                {t('settings.monetization.own_account_note')}
+              </p>
+            ) : null}
+          </SettingsRow>
+        </SettingsSection>
+      ) : null}
 
       {/* An account that cannot sell is replaced when it is updated, and
           what was set on it would go with it: its tax details wait. */}

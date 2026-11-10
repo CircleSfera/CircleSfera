@@ -51,7 +51,16 @@ describe('PostsService', () => {
   let service: PostsService;
 
   const mockPrismaService = {
-    user: { findMany: vi.fn().mockResolvedValue([]) },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+      // The author of a priced post or story is an adult with a verified
+      // identity, unless a test says otherwise.
+      findUnique: vi.fn().mockResolvedValue({
+        identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+        dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+        dateOfBirthVerified: true,
+      }),
+    },
     adminIdentity: { findUnique: vi.fn().mockResolvedValue(null) },
     block: {
       findFirst: vi.fn().mockResolvedValue(null),
@@ -247,9 +256,48 @@ describe('PostsService', () => {
       expect(mockFrameCover.chooseImage).not.toHaveBeenCalled();
     });
 
+    it('takes no price from an author under 18, saying why', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
+        userId: 'user-1',
+      });
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        identityVerifiedAt: new Date(),
+        dateOfBirth: new Date(new Date().getFullYear() - 17, 0, 1),
+      });
+
+      await expect(
+        service.create('user-1', { isPremium: true, priceCents: 500 }),
+      ).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'MONETIZATION_UNDER_AGE',
+        }),
+      });
+    });
+
+    it('takes no price from a Profile staff have not approved', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        accountType: 'CREATOR',
+        monetizationStatus: 'PENDING',
+        userId: 'user-1',
+      });
+
+      await expect(
+        service.create('user-1', { isPremium: true, priceCents: 500 }),
+      ).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'MONETIZATION_NOT_APPROVED',
+        }),
+      });
+    });
+
     it('validates premium price bounds when isPremium is true', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValue({
         accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
       });
 
       await expect(
@@ -828,6 +876,7 @@ describe('PostsService', () => {
 
       mockPrismaService.profile.findUnique.mockResolvedValueOnce({
         accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
       });
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'post-1',

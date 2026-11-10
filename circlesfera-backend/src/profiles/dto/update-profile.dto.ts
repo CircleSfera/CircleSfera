@@ -1,6 +1,14 @@
+import {
+  BUSINESS_CATEGORIES,
+  BUSINESS_CONTACT_EMAIL_MAX,
+  BUSINESS_CONTACT_PHONE_PATTERN,
+  type BusinessCategory,
+} from '@circlesfera/shared';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsEmail,
   IsIn,
   IsOptional,
   IsString,
@@ -9,11 +17,13 @@ import {
   MaxLength,
   MinLength,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
 import {
   PROFILE_ACCENT_COLORS,
   type ProfileAccentColor,
 } from '../../common/constants/profile-personalization.constants.js';
+import { PlaceInputDto } from '../../common/dto/place-input.dto.js';
 
 export class UpdateProfileDto {
   @ApiProperty({
@@ -79,4 +89,48 @@ export class UpdateProfileDto {
   @ValidateIf((o: UpdateProfileDto) => o.accentColor !== null)
   @IsIn(PROFILE_ACCENT_COLORS)
   accentColor?: ProfileAccentColor | null;
+
+  // How a Business Profile presents itself. Each is optional; null removes
+  // it. Only a Business Profile can set one (the service checks).
+  @ApiProperty({ required: false, nullable: true, enum: BUSINESS_CATEGORIES })
+  @IsOptional()
+  @ValidateIf((o: UpdateProfileDto) => o.businessCategory !== null)
+  @IsIn(BUSINESS_CATEGORIES)
+  businessCategory?: BusinessCategory | null;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: () => String,
+    format: 'email',
+    maxLength: BUSINESS_CONTACT_EMAIL_MAX,
+  })
+  @IsOptional()
+  @ValidateIf((o: UpdateProfileDto) => o.contactEmail !== null)
+  @IsString()
+  @MaxLength(BUSINESS_CONTACT_EMAIL_MAX)
+  @IsEmail()
+  contactEmail?: string | null;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: () => String,
+    pattern: BUSINESS_CONTACT_PHONE_PATTERN.source,
+  })
+  @IsOptional()
+  @ValidateIf((o: UpdateProfileDto) => o.contactPhone !== null)
+  @IsString()
+  @Matches(BUSINESS_CONTACT_PHONE_PATTERN, {
+    message: 'contactPhone must be a + followed by 8 to 15 digits',
+  })
+  contactPhone?: string | null;
+
+  // The business's address, chosen with the place search; null removes it.
+  @ApiProperty({ required: false, nullable: true, type: () => PlaceInputDto })
+  @IsOptional()
+  @ValidateIf((o: UpdateProfileDto) => o.businessPlace !== null)
+  @ValidateNested()
+  @Type(() => PlaceInputDto)
+  businessPlace?: PlaceInputDto | null;
 }

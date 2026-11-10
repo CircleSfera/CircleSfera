@@ -40,7 +40,16 @@ describe('StoriesService', () => {
   };
 
   const mockPrismaService = {
-    user: { findMany: vi.fn().mockResolvedValue([]) },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+      // The author of a priced post or story is an adult with a verified
+      // identity, unless a test says otherwise.
+      findUnique: vi.fn().mockResolvedValue({
+        identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+        dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+        dateOfBirthVerified: true,
+      }),
+    },
     $transaction: vi.fn((cb) => cb(mockPrismaService)),
     block: { findFirst: vi.fn().mockResolvedValue(null) },
     story: {
@@ -259,6 +268,11 @@ describe('StoriesService', () => {
     it('should throw BadRequestException if isPremium is true but price is invalid', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValueOnce({
         accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
+      });
+      // The approval check reads the Profile again.
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        monetizationStatus: 'APPROVED',
       });
       const dto: CreateStoryDto = {
         url: 'test.jpg',
@@ -270,6 +284,48 @@ describe('StoriesService', () => {
         status: 400,
         response: expect.objectContaining({
           errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
+        }),
+      });
+    });
+
+    it('takes no price for a story from an author under 18', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
+        userId: 'user-1',
+      });
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        identityVerifiedAt: new Date(),
+        dateOfBirth: new Date(new Date().getFullYear() - 17, 0, 1),
+      });
+      const dto: CreateStoryDto = {
+        url: 'test.jpg',
+        isPremium: true,
+        priceCents: 500,
+      };
+
+      await expect(service.create('user-1', dto)).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'MONETIZATION_UNDER_AGE',
+        }),
+      });
+    });
+
+    it('takes no price for a story from a Profile staff have not approved', async () => {
+      mockPrismaService.profile.findUnique
+        .mockResolvedValueOnce({ accountType: 'CREATOR', userId: 'user-1' })
+        .mockResolvedValueOnce({ monetizationStatus: 'REJECTED' });
+      const dto: CreateStoryDto = {
+        url: 'test.jpg',
+        isPremium: true,
+        priceCents: 500,
+      };
+
+      await expect(service.create('user-1', dto)).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'MONETIZATION_NOT_APPROVED',
         }),
       });
     });

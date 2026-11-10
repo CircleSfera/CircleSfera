@@ -17,6 +17,7 @@ import {
 } from '../common/testing/http-controller.js';
 import { FollowsController } from './follows.controller.js';
 import { FollowsService } from './follows.service.js';
+import { RestrictionsService } from './restrictions.service.js';
 
 describe('FollowsController', () => {
   let app: INestApplication;
@@ -36,11 +37,20 @@ describe('FollowsController', () => {
     acceptFollowRequest: vi.fn(),
     rejectFollowRequest: vi.fn(),
   };
+  const mockRestrictions = {
+    restrict: vi.fn(),
+    unrestrict: vi.fn(),
+    status: vi.fn(),
+    list: vi.fn(),
+  };
 
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [FollowsController],
-      providers: [{ provide: FollowsService, useValue: mockService }],
+      providers: [
+        { provide: FollowsService, useValue: mockService },
+        { provide: RestrictionsService, useValue: mockRestrictions },
+      ],
       guards: [{ guard: JwtAuthGuard, mode: 'session' }],
     });
   });
@@ -155,6 +165,42 @@ describe('FollowsController', () => {
       TEST_USER.profileId,
       'alice',
     );
+  });
+
+  it('restricts, unrestricts, tells and lists as the session profile only', async () => {
+    mockRestrictions.restrict.mockResolvedValue({ restricted: true });
+    mockRestrictions.unrestrict.mockResolvedValue({ restricted: false });
+    mockRestrictions.status.mockResolvedValue({ restricted: true });
+    mockRestrictions.list.mockResolvedValue([{ id: 'p-2' }]);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/users/alice/follow/restrict')
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/users/alice/follow/restrict')
+      .set(BEARER)
+      .expect(201, { restricted: true });
+    await request(app.getHttpServer())
+      .post('/api/v1/users/alice/follow/unrestrict')
+      .set(BEARER)
+      .expect(201, { restricted: false });
+    await request(app.getHttpServer())
+      .get('/api/v1/users/alice/follow/restriction')
+      .set(BEARER)
+      .expect(200, { restricted: true });
+    await request(app.getHttpServer())
+      .get('/api/v1/users/me/follow/restricted')
+      .set(BEARER)
+      .expect(200, [{ id: 'p-2' }]);
+
+    for (const fn of [
+      mockRestrictions.restrict,
+      mockRestrictions.unrestrict,
+      mockRestrictions.status,
+    ]) {
+      expect(fn).toHaveBeenCalledWith(TEST_USER.profileId, 'alice');
+    }
+    expect(mockRestrictions.list).toHaveBeenCalledWith(TEST_USER.profileId);
   });
 
   it('rejects mute with a non-whitelisted body field', async () => {

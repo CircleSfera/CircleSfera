@@ -53,6 +53,10 @@ import {
   resolveMediaFields,
 } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
+import {
+  assertMonetizationApproved,
+  assertOfChargingAge,
+} from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StudioTemplatesService } from '../studio-templates/studio-templates.service.js';
 import {
@@ -176,14 +180,17 @@ export class PostsService {
     if (dto.isPremium) {
       const authorProfile = await this.prisma.profile.findUnique({
         where: { id: profileId },
-        select: { accountType: true },
+        select: { accountType: true, userId: true },
       });
-      if (!canMonetize(authorProfile?.accountType)) {
+      if (!authorProfile || !canMonetize(authorProfile.accountType)) {
         throw AppException.Forbidden(
           ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
           'Only Creator or Business accounts can publish premium content.',
         );
       }
+      // A price is only for someone who may charge.
+      await assertOfChargingAge(this.prisma, authorProfile.userId);
+      await assertMonetizationApproved(this.prisma, profileId);
       if (
         !dto.priceCents ||
         dto.priceCents < MIN_PPV_PRICE_CENTS ||

@@ -48,6 +48,8 @@ describe('ProfilesService', () => {
       create: vi.fn().mockResolvedValue({ id: 'media-1' }),
     },
     monetization: { findUnique: vi.fn().mockResolvedValue(null) },
+    place: { upsert: vi.fn(), findUnique: vi.fn() },
+    placeTranslation: { upsert: vi.fn() },
   };
   const mockStripe = {
     setCreatorWebsite: vi.fn().mockResolvedValue(undefined),
@@ -250,6 +252,72 @@ describe('ProfilesService', () => {
       expect(result.joinedAt).toBe('2026-02-03T00:00:00.000Z');
       // What is cached is the same closed view.
       expect(mockCacheManager.set.mock.calls[0][1]).toEqual(result);
+    });
+
+    describe('business presentation', () => {
+      const row = (accountType: string) => ({
+        id: 'p-shop',
+        userId: 'u-shop',
+        username: 'shop',
+        verificationLevel: 'BASIC',
+        accountType,
+        privacyLevel: 'PUBLIC',
+        businessCategory: 'CAFE_BAKERY',
+        contactEmail: 'hola@shop.es',
+        contactPhone: '+34600111222',
+        businessPlace: {
+          id: 'place-1',
+          name: 'Calle Mayor 1',
+          fullName: 'Calle Mayor 1, Madrid',
+          latitude: 40.41,
+          longitude: -3.7,
+        },
+        createdAt: new Date(),
+        user: { id: 'u-shop', isActive: true },
+        signIn: { emailVerified: null },
+        _count: { posts: 0, followers: 0, following: 0, strikes: 0 },
+      });
+
+      it('shows the category, contact and address of a Business Profile', async () => {
+        mockCacheManager.get.mockResolvedValue(null);
+        mockPrismaService.block.findFirst.mockResolvedValue(null);
+        mockPrismaService.platformSubscription.findFirst.mockResolvedValue(
+          null,
+        );
+        mockPrismaService.profile.findFirst.mockResolvedValue(row('BUSINESS'));
+
+        const result = await service.getProfile('shop');
+
+        expect(result).toMatchObject({
+          businessCategory: 'CAFE_BAKERY',
+          contactEmail: 'hola@shop.es',
+          contactPhone: '+34600111222',
+          businessPlace: { id: 'place-1', name: 'Calle Mayor 1' },
+        });
+      });
+
+      it.each(['PERSONAL', 'CREATOR'])(
+        'hides them while the Profile is %s',
+        async (accountType) => {
+          mockCacheManager.get.mockResolvedValue(null);
+          mockPrismaService.block.findFirst.mockResolvedValue(null);
+          mockPrismaService.platformSubscription.findFirst.mockResolvedValue(
+            null,
+          );
+          mockPrismaService.profile.findFirst.mockResolvedValue(
+            row(accountType),
+          );
+
+          const result = await service.getProfile('shop');
+
+          expect(result).toMatchObject({
+            businessCategory: null,
+            contactEmail: null,
+            contactPhone: null,
+            businessPlace: null,
+          });
+        },
+      );
     });
 
     it('cuts a view cached before the list of fields was closed', async () => {
@@ -473,6 +541,138 @@ describe('ProfilesService', () => {
             data: expect.objectContaining({ accentColor: null }),
           }),
         );
+      });
+    });
+
+    describe('business presentation', () => {
+      const stored = (accountType: string) => ({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'shop',
+        verificationLevel: 'BASIC',
+        accountType,
+      });
+      const saved = {
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'shop',
+        privacyLevel: 'PUBLIC',
+        user: {},
+        _count: { followers: 0, following: 0 },
+      };
+      const place = {
+        mapboxId: 'mb-1',
+        name: 'Calle Mayor 1',
+        fullName: 'Calle Mayor 1, Madrid',
+        latitude: 40.41,
+        longitude: -3.7,
+      };
+
+      it.each([
+        { businessCategory: 'CAFE_BAKERY' as const },
+        { contactEmail: 'hola@shop.es' },
+        { contactPhone: '+34600111222' },
+        { businessPlace: place },
+      ])('refuses %o on a Profile that is not a Business', async (dto) => {
+        mockPrismaService.profile.findUnique.mockResolvedValue(
+          stored('CREATOR'),
+        );
+        mockPrismaService.profile.update.mockClear();
+
+        await expect(service.updateProfile('p-1', dto)).rejects.toMatchObject({
+          status: 403,
+        });
+        expect(mockPrismaService.profile.update).not.toHaveBeenCalled();
+      });
+
+      it('lets any Profile remove them', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue(
+          stored('PERSONAL'),
+        );
+        mockPrismaService.profile.update.mockResolvedValue(saved);
+
+        await service.updateProfile('p-1', {
+          businessCategory: null,
+          contactEmail: null,
+          contactPhone: null,
+          businessPlace: null,
+        });
+
+        expect(mockPrismaService.profile.update).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              businessCategory: null,
+              contactEmail: null,
+              contactPhone: null,
+              businessPlaceId: null,
+            }),
+          }),
+        );
+      });
+
+      it('saves them on a Profile becoming a Business in the same change', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue(
+          stored('CREATOR'),
+        );
+        mockPrismaService.profile.update.mockResolvedValue(saved);
+        mockPrismaService.profileMember.updateMany.mockResolvedValue({
+          count: 0,
+        });
+
+        await service.updateProfile('p-1', {
+          accountType: 'BUSINESS',
+          businessCategory: 'SHOP',
+        });
+
+        expect(mockPrismaService.profile.update).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              accountType: 'BUSINESS',
+              businessCategory: 'SHOP',
+            }),
+          }),
+        );
+      });
+
+      it('saves the address as a place of the map and links the Profile to it', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue(
+          stored('BUSINESS'),
+        );
+        mockPrismaService.place.upsert.mockResolvedValue({
+          id: 'place-1',
+          name: place.name,
+          fullName: place.fullName,
+        });
+        mockPrismaService.profile.update.mockResolvedValue(saved);
+
+        await service.updateProfile('p-1', {
+          contactEmail: '  hola@shop.es ',
+          businessPlace: place,
+        });
+
+        expect(mockPrismaService.place.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { mapboxId: 'mb-1' } }),
+        );
+        const { data } = mockPrismaService.profile.update.mock.lastCall[0];
+        expect(data).toMatchObject({
+          contactEmail: 'hola@shop.es',
+          businessPlaceId: 'place-1',
+        });
+        expect(data).not.toHaveProperty('businessPlace');
+      });
+
+      it('leaves the address alone when the change does not name it', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue(
+          stored('BUSINESS'),
+        );
+        mockPrismaService.place.upsert.mockClear();
+        mockPrismaService.profile.update.mockResolvedValue(saved);
+
+        await service.updateProfile('p-1', { bio: 'New' });
+
+        expect(mockPrismaService.place.upsert).not.toHaveBeenCalled();
+        const { data } = mockPrismaService.profile.update.mock.lastCall[0];
+        expect(data).not.toHaveProperty('businessPlaceId');
       });
     });
 

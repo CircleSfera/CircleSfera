@@ -20,6 +20,7 @@ import {
   isRemoved,
   SHOWN_COMMENT_STATUSES,
 } from '../common/policies/removed-content.policy.js';
+import { restricts } from '../common/policies/restrict.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import {
   buildMediaCreateInput,
@@ -94,6 +95,13 @@ export class CommentsService {
     const hiddenByWords =
       profileId !== post.profileId &&
       (await this.hiddenWords.hides(post.profileId, dto.content));
+    // A comment by a Profile the post's author restricts waits for the
+    // author's approval, seen only by whoever wrote it. Nobody is told.
+    const awaitingApproval = await restricts(
+      this.prisma,
+      post.profileId,
+      profileId,
+    );
 
     // Media rows are created separately (not via a nested `media: { create
     // }`) because mixing raw FK scalars (postId, profileId, ...) with a
@@ -122,6 +130,7 @@ export class CommentsService {
             profileId,
             content: dto.content,
             hiddenByWords,
+            awaitingApproval,
             url: dto.url,
             mediaType: dto.mediaType,
             mediaId: media?.id,
@@ -167,7 +176,7 @@ export class CommentsService {
       });
     }
 
-    if (hiddenByWords) {
+    if (hiddenByWords || awaitingApproval) {
       await this.analyticsQueue.add('update-performance-score', { postId });
       return comment;
     }
@@ -304,10 +313,12 @@ export class CommentsService {
     // Comments by the other audience are left out, replies included.
     const audience = await viewerAudienceWhere(this.prisma, currentProfileId);
     const shown = SHOWN_COMMENT_STATUSES;
-    // A comment hidden by the author's words is shown only to its writer.
+    // A comment hidden by the author's words, or waiting for the author's
+    // approval, is shown only to its writer.
+    const shownToAll = { hiddenByWords: false, awaitingApproval: false };
     const notHidden = currentProfileId
-      ? { OR: [{ hiddenByWords: false }, { profileId: currentProfileId }] }
-      : { hiddenByWords: false };
+      ? { OR: [shownToAll, { profileId: currentProfileId }] }
+      : shownToAll;
     const shownTopLevel = {
       postId,
       parentId: null,
@@ -464,6 +475,7 @@ export class CommentsService {
           // Nor does one edited since to carry a hidden word: nobody else
           // sees it.
           hiddenByWords: false,
+          awaitingApproval: false,
         },
       });
       if (pins >= COMMENT_PINS_MAX) {
@@ -491,14 +503,15 @@ export class CommentsService {
     });
   }
 
-  // The comments of one's own post hidden by one's hidden words, newest
-  // first, so the author can look at them and show one.
+  // The comments of one's own post hidden by one's hidden words, or waiting
+  // for approval because their writer is restricted, newest first, so the
+  // author can look at them and show one. Each says why with its flags.
   async hiddenByWordsOf(postId: string, profileId: string) {
     await this.assertPostAuthor(postId, profileId);
     const data = await this.prisma.comment.findMany({
       where: {
         postId,
-        hiddenByWords: true,
+        OR: [{ hiddenByWords: true }, { awaitingApproval: true }],
         moderationStatus: SHOWN_COMMENT_STATUSES,
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -520,12 +533,16 @@ export class CommentsService {
   }
 
   // Shows to everyone a comment of one's own post that one's hidden words
-  // had hidden.
+  // had hidden, or approves one by a restricted Profile.
   async showHidden(postId: string, commentId: string, profileId: string) {
     await this.assertPostAuthor(postId, profileId);
     const shownNow = await this.prisma.comment.updateMany({
-      where: { id: commentId, postId, hiddenByWords: true },
-      data: { hiddenByWords: false },
+      where: {
+        id: commentId,
+        postId,
+        OR: [{ hiddenByWords: true }, { awaitingApproval: true }],
+      },
+      data: { hiddenByWords: false, awaitingApproval: false },
     });
     if (shownNow.count === 0) {
       throw AppException.NotFound(
@@ -533,7 +550,7 @@ export class CommentsService {
         'Comment not found',
       );
     }
-    return { id: commentId, hiddenByWords: false };
+    return { id: commentId, hiddenByWords: false, awaitingApproval: false };
   }
 
   private async assertPostAuthor(postId: string, profileId: string) {
@@ -564,6 +581,7 @@ export class CommentsService {
         pinnedAt: true,
         moderationStatus: true,
         hiddenByWords: true,
+        awaitingApproval: true,
       },
     });
     if (
@@ -571,6 +589,7 @@ export class CommentsService {
       comment.postId !== postId ||
       comment.parentId !== null ||
       comment.hiddenByWords ||
+      comment.awaitingApproval ||
       !(SHOWN_COMMENT_STATUSES.in as string[]).includes(
         comment.moderationStatus,
       )
@@ -700,8 +719,9 @@ export class CommentsService {
       });
     }
 
-    // Handle mentions in edited comment
-    if (dto.content && !hiddenByWords) {
+    // Handle mentions in edited comment. One still waiting for approval, or
+    // hidden by words, tells nobody.
+    if (dto.content && !hiddenByWords && !comment.awaitingApproval) {
       const mentions = dto.content.match(/@[\w.]+/g);
       if (mentions) {
         const uniqueMentions = [...new Set(mentions.map((m) => m.slice(1)))];

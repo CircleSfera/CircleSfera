@@ -3,8 +3,6 @@ import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   canMonetize,
-  MAX_PPV_PRICE_CENTS,
-  MIN_PPV_PRICE_CENTS,
   MIN_TIP_CENTS,
 } from '../common/constants/monetization.constants.js';
 import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent.js';
@@ -30,6 +28,8 @@ import { INCOME_ROWS_SQL, INCOME_TYPES, SHARE_SQL } from './earnings-sql.js';
 import { creatorEarnings } from './paid-amounts.js';
 import {
   accountTakingPayments,
+  assertMonetizationApproved,
+  assertOfChargingAge,
   canBePaid,
   PAYABLE_PROFILE_SELECT,
   payoutAccountPlacement,
@@ -41,12 +41,6 @@ function appendCheckoutQuery(returnUrl: string, query: string): string {
   const sep = returnUrl.includes('?') ? '&' : '?';
   return `${returnUrl}${sep}${query}`;
 }
-
-// How long the checkout of a paid message stays open, in seconds. The message
-// can be erased meanwhile, so the window is kept short: Stripe's shortest is
-// 30 minutes after it creates the session, and the extra minute covers the
-// time the request takes and any difference between the two clocks.
-const MESSAGE_CHECKOUT_LIFETIME_SECONDS = 31 * 60;
 
 // What a tip reads of the Profile tipped, to pay its person and to know
 // whether it may receive one.
@@ -378,16 +372,14 @@ export class MonetizationService {
     });
   }
 
-  async createMessageUnlockSession(
-    userId: string,
-    messageId: string,
-    returnUrl: string,
-    idempotencyKey?: string,
-  ) {
-    const message = (await this.prisma.message.findUnique({
+  // Messages are no longer sold. Asking to buy one still answers why: one
+  // gone or without a price as before, and one with a price as no longer
+  // for sale. Who bought one already keeps it open.
+  async createMessageUnlockSession(messageId: string): Promise<never> {
+    const message = await this.prisma.message.findUnique({
       where: { id: messageId },
-      include: { sender: { include: { user: true } } },
-    })) as any;
+      select: { isDeleted: true, isLocked: true, priceCents: true },
+    });
 
     // A message its sender deleted cannot be bought, as one that is gone.
     if (!message || message.isDeleted) {
@@ -402,71 +394,10 @@ export class MonetizationService {
         'This message is not locked or has no price',
       );
     }
-    // Defense-in-depth: the price should already be bounded at message
-    // creation time (send-message.use-case.ts), but never trust a stored
-    // price to build a Checkout Session without re-checking the range.
-    if (
-      message.priceCents < MIN_PPV_PRICE_CENTS ||
-      message.priceCents > MAX_PPV_PRICE_CENTS
-    ) {
-      throw AppException.BadRequest(
-        ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
-        'The price of a paid message is out of range.',
-      );
-    }
-    // message.senderId is a Profile.id; userId here is a User.id (per the
-    // unlock-message controller) — compare against the sender's User.id,
-    // not the mismatched Profile.id, or this check never actually fires.
-    if (message.sender.user?.id === userId) {
-      throw AppException.BadRequest(
-        ErrorCode.CANNOT_BUY_OWN_CONTENT,
-        'You cannot unlock your own message',
-      );
-    }
-
-    const existing = await (this.prisma as any).messageUnlock.findUnique({
-      where: { userId_messageId: { userId, messageId } },
-    });
-    if (existing) {
-      throw AppException.BadRequest(
-        ErrorCode.CONTENT_ALREADY_UNLOCKED,
-        'Message already unlocked',
-      );
-    }
-
-    // message.sender is a Profile; Stripe Connect fields (and the User.id
-    // that Transaction.receiverId/Monetization.userId expect) live on User.
-    const creator = message.sender.user;
-    const payout = creator
-      ? await payoutDestinationFor(this.prisma, {
-          id: message.senderId,
-          userId: creator.id,
-        })
-      : null;
-    const creatorAccount = accountTakingPayments(payout);
-
-    const buyer = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!buyer)
-      throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
-
-    return this.createCreatorCheckout({
-      buyerId: userId,
-      buyerEmail: buyer.email,
-      priceCents: message.priceCents,
-      productName: 'Locked Message Unlock',
-      description: `Unlock exclusive message from @${message.sender.username}`,
-      creatorStripeAccountId: creatorAccount,
-      metadata: {
-        type: 'DIRECT_MESSAGE_UNLOCK',
-        ...withdrawalConsentMetadata(),
-        messageId,
-        creatorId: creator.id,
-      },
-      returnUrl,
-      idempotencyKey,
-      expiresAt:
-        Math.floor(Date.now() / 1000) + MESSAGE_CHECKOUT_LIFETIME_SECONDS,
-    });
+    throw AppException.BadRequest(
+      ErrorCode.PAID_MESSAGES_UNAVAILABLE,
+      'Paid messages are no longer available.',
+    );
   }
 
   async createTipSession(
@@ -591,6 +522,8 @@ export class MonetizationService {
         'Only Creator or Business accounts can enable payments with Stripe.',
       );
     }
+    await assertOfChargingAge(this.prisma, userId);
+    await assertMonetizationApproved(this.prisma, profile.id);
 
     try {
       const accountId = await this.accountTakingCardPayments(

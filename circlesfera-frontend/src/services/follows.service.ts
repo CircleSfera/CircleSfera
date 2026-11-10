@@ -57,6 +57,27 @@ export const followsApi = {
 
   getMuted: () => apiClient.get<MutedUserEntry[]>('users/me/follow/muted'),
 
+  // Restrict: their new comments on your posts wait for your approval, their
+  // chat goes to your requests, and they stop seeing when you are active or
+  // have read their messages. They are never told.
+  restrict: (username: string) =>
+    apiClient.post<{ restricted: boolean }>(
+      `users/${username}/follow/restrict`,
+    ),
+
+  unrestrict: (username: string) =>
+    apiClient.post<{ restricted: boolean }>(
+      `users/${username}/follow/unrestrict`,
+    ),
+
+  restriction: (username: string) =>
+    apiClient.get<{ restricted: boolean }>(
+      `users/${username}/follow/restriction`,
+    ),
+
+  getRestricted: () =>
+    apiClient.get<ProfileWithUser[]>('users/me/follow/restricted'),
+
   // Pending follow requests
   getPending: () => apiClient.get<ProfileWithUser[]>('users/me/follow/pending'),
 

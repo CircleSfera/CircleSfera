@@ -168,6 +168,8 @@ describe('GetMessagesQuery', () => {
     expect(result[0].thumbnailUrl).toBeNull();
     expect(result[0].mediaType).toBeNull();
     expect(result[0].voiceUrl).toBeNull();
+    // Still locked for this reader.
+    expect(result[0].isLocked).toBe(true);
   });
 
   it('does not mask locked message if viewer is the sender or has unlocked it', async () => {
@@ -200,6 +202,9 @@ describe('GetMessagesQuery', () => {
     expect(result[0].url).toBe('https://cdn/media.jpg');
     expect(result[1].content).toBe('decrypted_enc_my_locked_msg');
     expect(result[1].url).toBe('https://cdn/media2.jpg');
+    // Neither is locked for this reader, so the app shows them as read.
+    expect(result[0].isLocked).toBe(false);
+    expect(result[1].isLocked).toBe(false);
   });
 
   it('prefers the linked Media rows over the inline columns, and exposes status', async () => {

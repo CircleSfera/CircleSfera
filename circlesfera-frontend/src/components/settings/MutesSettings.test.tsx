@@ -11,6 +11,8 @@ vi.mock('../../services', () => ({
     getMuted: vi.fn(),
     unblock: vi.fn(),
     unmute: vi.fn(),
+    getRestricted: vi.fn(),
+    unrestrict: vi.fn(),
   },
 }));
 vi.mock('react-hot-toast', () => {
@@ -55,6 +57,10 @@ const muted = (username: string | null, expiresAt: string | null) => ({
 const rowOf = (name: string) =>
   screen.getByText(name).closest('li') as HTMLElement;
 const show = () => renderWithProviders(<MutesSettings />);
+const screenRow = async (name: string) => {
+  await screen.findByText(name);
+  return rowOf(name);
+};
 
 describe('MutesSettings', () => {
   beforeEach(() => {
@@ -63,6 +69,49 @@ describe('MutesSettings', () => {
     api.getMuted.mockResolvedValue({ data: [] } as never);
     api.unblock.mockResolvedValue({} as never);
     api.unmute.mockResolvedValue({} as never);
+    api.getRestricted.mockResolvedValue({ data: [] } as never);
+    api.unrestrict.mockResolvedValue({} as never);
+  });
+
+  it('lists restricted accounts, says what restricting does, and unrestricts one', async () => {
+    api.getRestricted
+      .mockResolvedValueOnce({ data: [person('eva'), person('leo')] } as never)
+      .mockResolvedValue({ data: [person('leo')] } as never);
+    show();
+
+    expect(await screen.findByText('Restricted accounts')).toBeInTheDocument();
+    expect(
+      screen.getByText(/wait for your approval.*They aren't told\./),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(await screenRow('eva')).getByRole('button', {
+        name: 'Unrestrict',
+      }),
+    );
+
+    await waitFor(() => expect(api.unrestrict).toHaveBeenCalledWith('eva'));
+    await waitFor(() => expect(screen.queryByText('eva')).toBeNull());
+  });
+
+  it('says when nobody is restricted, and when unrestricting fails', async () => {
+    show();
+    expect(
+      await screen.findByText("You haven't restricted anyone."),
+    ).toBeInTheDocument();
+
+    api.getRestricted.mockResolvedValue({ data: [person('ana')] } as never);
+    api.unrestrict.mockRejectedValue(new Error('down'));
+    show();
+    fireEvent.click(
+      within(await screenRow('ana')).getByRole('button', {
+        name: 'Unrestrict',
+      }),
+    );
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'The account could not be unrestricted. Try again.',
+      ),
+    );
   });
 
   it('says when nobody is blocked or muted', async () => {

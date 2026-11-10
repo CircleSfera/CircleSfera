@@ -20,13 +20,17 @@ import {
   type MutedUserEntry,
   type ProfileWithUser,
 } from './follows.service.js';
+import { RestrictionsService } from './restrictions.service.js';
 
 // REST controller for follow management, blocking, and follow requests. All endpoints require authentication.
 @ApiTags('Relationship Management')
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class FollowsController {
-  constructor(private readonly followsService: FollowsService) {}
+  constructor(
+    private readonly followsService: FollowsService,
+    private readonly restrictions: RestrictionsService,
+  ) {}
 
   // Toggle follow/unfollow for a user.
   @Post(':username/follow/toggle')
@@ -126,6 +130,46 @@ export class FollowsController {
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.followsService.unmuteUser(user.profileId, username);
+  }
+
+  // Restrict a Profile: its new comments on your posts wait for your
+  // approval, its chat goes to your requests and it no longer sees when you
+  // are active or have read its messages. It is never told.
+  @Post(':username/follow/restrict')
+  @ApiResponse({ status: 201, type: Object })
+  async restrict(
+    @Param('username') username: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.restrictions.restrict(user.profileId, username);
+  }
+
+  @Post(':username/follow/unrestrict')
+  @ApiResponse({ status: 201, type: Object })
+  async unrestrict(
+    @Param('username') username: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.restrictions.unrestrict(user.profileId, username);
+  }
+
+  // Whether the active Profile restricts this one.
+  @Get(':username/follow/restriction')
+  @ApiResponse({ status: 200, type: Object })
+  async restriction(
+    @Param('username') username: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.restrictions.status(user.profileId, username);
+  }
+
+  // The Profiles the active Profile restricts.
+  @Get('me/follow/restricted')
+  @ApiResponse({ status: 200 })
+  async getRestricted(
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<ProfileWithUser[]> {
+    return this.restrictions.list(user.profileId);
   }
 
   // List currently muted users (includes expiresAt).

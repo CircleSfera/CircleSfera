@@ -39,6 +39,9 @@ describe('CommentsService', () => {
     block: {
       findFirst: vi.fn().mockResolvedValue(null),
     },
+    restriction: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
     follow: {
       findUnique: vi.fn().mockResolvedValue(null),
     },
@@ -219,6 +222,44 @@ describe('CommentsService', () => {
       expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
 
+    it('keeps a comment by a Profile the post author restricts waiting for approval, and tells nobody', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: postId,
+        profileId: 'owner-1',
+      });
+      mockPrismaService.comment.create.mockResolvedValue({
+        id: 'comment-1',
+        content: dto.content,
+      });
+      mockPrismaService.restriction.findUnique.mockResolvedValueOnce({
+        id: 'r-1',
+      });
+
+      await service.create(postId, profileId, {
+        ...dto,
+        content: 'Hi @someone',
+      });
+
+      expect(mockPrismaService.restriction.findUnique).toHaveBeenCalledWith({
+        where: {
+          restricterId_restrictedId: {
+            restricterId: 'owner-1',
+            restrictedId: profileId,
+          },
+        },
+        select: { id: true },
+      });
+      expect(mockPrismaService.comment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ awaitingApproval: true }),
+        }),
+      );
+      // No notice to the post's author, to anyone mentioned or to anyone
+      // replied to.
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+      expect(mockPrismaService.profile.findMany).not.toHaveBeenCalled();
+    });
+
     it("never hides the post author's own comment", async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: postId,
@@ -393,7 +434,10 @@ describe('CommentsService', () => {
         mockPrismaService.comment.findMany.mock.calls.at(-1) as any
       )[0];
       const notHidden = {
-        OR: [{ hiddenByWords: false }, { profileId: 'viewer-1' }],
+        OR: [
+          { hiddenByWords: false, awaitingApproval: false },
+          { profileId: 'viewer-1' },
+        ],
       };
       expect(viewerWhere.where.AND).toEqual([notHidden]);
       expect(viewerWhere.include.replies.where.AND).toEqual([notHidden]);
@@ -407,7 +451,9 @@ describe('CommentsService', () => {
       const guestWhere = (
         mockPrismaService.comment.findMany.mock.calls.at(-1) as any
       )[0];
-      expect(guestWhere.where.AND).toEqual([{ hiddenByWords: false }]);
+      expect(guestWhere.where.AND).toEqual([
+        { hiddenByWords: false, awaitingApproval: false },
+      ]);
     });
 
     it('lists the hidden comments of a post to its author only', async () => {
@@ -420,7 +466,7 @@ describe('CommentsService', () => {
         (mockPrismaService.comment.findMany.mock.calls.at(-1) as any)[0].where,
       ).toEqual({
         postId: 'post-1',
-        hiddenByWords: true,
+        OR: [{ hiddenByWords: true }, { awaitingApproval: true }],
         moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
       });
 
@@ -437,12 +483,20 @@ describe('CommentsService', () => {
 
       await expect(
         service.showHidden('post-1', 'c-1', 'author-1'),
-      ).resolves.toEqual({ id: 'c-1', hiddenByWords: false });
+      ).resolves.toEqual({
+        id: 'c-1',
+        hiddenByWords: false,
+        awaitingApproval: false,
+      });
       expect(
         (mockPrismaService.comment as any).updateMany,
       ).toHaveBeenCalledWith({
-        where: { id: 'c-1', postId: 'post-1', hiddenByWords: true },
-        data: { hiddenByWords: false },
+        where: {
+          id: 'c-1',
+          postId: 'post-1',
+          OR: [{ hiddenByWords: true }, { awaitingApproval: true }],
+        },
+        data: { hiddenByWords: false, awaitingApproval: false },
       });
       await expect(
         service.showHidden('post-1', 'c-2', 'author-1'),
@@ -524,8 +578,8 @@ describe('CommentsService', () => {
 
       expect(result.pinnedAt).toBeInstanceOf(Date);
       expect((mockPrismaService as any).$queryRaw).toHaveBeenCalled();
-      // A pin moderation took down, or one a hidden word hides, does not
-      // hold a place.
+      // A pin moderation took down, or one a hidden word hides, or one
+      // waiting for approval, does not hold a place.
       expect(mockPrismaService.comment.count).toHaveBeenCalledWith({
         where: {
           postId: 'post-1',
@@ -533,6 +587,7 @@ describe('CommentsService', () => {
           pinnedAt: { not: null },
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
           hiddenByWords: false,
+          awaitingApproval: false,
         },
       });
     });
@@ -724,7 +779,10 @@ describe('CommentsService', () => {
         // Comments hidden by the author's words are left out too, but the
         // viewer's own.
         const notHidden = {
-          OR: [{ hiddenByWords: false }, { profileId: 'viewer-1' }],
+          OR: [
+            { hiddenByWords: false, awaitingApproval: false },
+            { profileId: 'viewer-1' },
+          ],
         };
         expect(mockPrismaService.comment.count).toHaveBeenLastCalledWith({
           where: {

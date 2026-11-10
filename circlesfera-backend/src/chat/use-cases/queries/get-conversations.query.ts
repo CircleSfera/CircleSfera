@@ -7,6 +7,7 @@ import {
   encodeKeysetCursor,
 } from '../../../common/pagination/keyset.util.js';
 import { isUnlisted } from '../../../common/policies/removed-content.policy.js';
+import { restrictersOf } from '../../../common/policies/restrict.policy.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import {
   type PaywallPost,
@@ -81,11 +82,39 @@ export const CHAT_FOLDERS: ChatFolder[] = [
   'hidden_requests',
 ];
 
-function folderWhere(folder: ChatFolder) {
-  if (folder === 'inbox') return { hasAccepted: true };
+// A one-to-one chat with a Profile the viewer restricts: it is kept in the
+// viewer's requests, whether or not the viewer had accepted it.
+function withRestricted(profileId: string): Prisma.ConversationWhereInput {
   return {
-    hasAccepted: false,
-    requestHiddenByWords: folder === 'hidden_requests',
+    isGroup: false,
+    participants: {
+      some: {
+        profileId: { not: profileId },
+        profile: { restrictedBy: { some: { restricterId: profileId } } },
+      },
+    },
+  };
+}
+
+// Which conversations of the Profile a folder lists.
+function folderWhere(
+  profileId: string,
+  folder: ChatFolder,
+): Prisma.ConversationWhereInput {
+  const mine = (where: Prisma.ParticipantWhereInput) => ({
+    participants: { some: { profileId, deletedAt: null, ...where } },
+  });
+  if (folder === 'inbox') {
+    return { ...mine({ hasAccepted: true }), NOT: withRestricted(profileId) };
+  }
+  if (folder === 'hidden_requests') {
+    return mine({ hasAccepted: false, requestHiddenByWords: true });
+  }
+  return {
+    OR: [
+      mine({ hasAccepted: false, requestHiddenByWords: false }),
+      { AND: [mine({ hasAccepted: true }), withRestricted(profileId)] },
+    ],
   };
 }
 
@@ -99,15 +128,7 @@ export class GetConversationsQuery {
 
   async execute(profileId: string, folder: ChatFolder = 'inbox') {
     const conversations = await this.prisma.conversation.findMany({
-      where: {
-        participants: {
-          some: {
-            profileId,
-            deletedAt: null,
-            ...folderWhere(folder),
-          },
-        },
-      },
+      where: folderWhere(profileId, folder),
       take: MAX_CONVERSATIONS,
       include: CONVERSATION_INCLUDE,
       orderBy: {
@@ -137,13 +158,7 @@ export class GetConversationsQuery {
     const after = cursor ? decodeKeysetCursor(cursor) : null;
     const rows = await this.prisma.conversation.findMany({
       where: {
-        participants: {
-          some: {
-            profileId,
-            deletedAt: null,
-            ...folderWhere(folder),
-          },
-        },
+        AND: [folderWhere(profileId, folder)],
         ...(after && {
           OR: [
             { updatedAt: { lt: after.createdAt } },
@@ -220,27 +235,37 @@ export class GetConversationsQuery {
 
   // A participant in a block with the viewer, either way, stays in the
   // conversation but shows as unavailable: no name, handle or picture. In a
-  // group only those members do.
+  // group only those members do. A participant who restricts the viewer
+  // shows no read receipt: the viewer cannot tell they read anything.
   private async withUnavailable<
     T extends {
-      participants: { profileId: string; profile: object | null }[];
+      participants: {
+        profileId: string;
+        profile: object | null;
+        lastReadAt?: Date | null;
+      }[];
     },
   >(viewerProfileId: string, conversations: T[]): Promise<T[]> {
-    const blocked = await blockedWithViewer(
-      this.prisma,
-      viewerProfileId,
-      conversations.flatMap((conv) =>
-        (conv.participants ?? []).map((p) => p.profileId),
-      ),
+    const ids = conversations.flatMap((conv) =>
+      (conv.participants ?? []).map((p) => p.profileId),
     );
-    if (blocked.size === 0) return conversations;
+    const [blocked, restricting] = await Promise.all([
+      blockedWithViewer(this.prisma, viewerProfileId, ids),
+      restrictersOf(this.prisma, viewerProfileId, ids),
+    ]);
+    if (blocked.size === 0 && restricting.size === 0) return conversations;
     return conversations.map((conv) => ({
       ...conv,
-      participants: (conv.participants ?? []).map((p) =>
-        blocked.has(p.profileId) && p.profile
-          ? { ...p, profile: unavailableProfile(p.profile) }
-          : p,
-      ),
+      participants: (conv.participants ?? []).map((p) => {
+        let shown = p;
+        if (blocked.has(p.profileId) && p.profile) {
+          shown = { ...shown, profile: unavailableProfile(p.profile) };
+        }
+        if (restricting.has(p.profileId)) {
+          shown = { ...shown, lastReadAt: null };
+        }
+        return shown;
+      }),
     }));
   }
 

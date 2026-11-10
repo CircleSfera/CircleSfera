@@ -86,6 +86,27 @@ describe('monetizationApi', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/monetization/tax-status');
   });
 
+  it('reads the programme and applies to it with what will be offered', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: { status: 'NONE' },
+    } as never);
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      data: { status: 'PENDING' },
+    } as never);
+
+    await expect(monetizationApi.getProgramme()).resolves.toEqual({
+      status: 'NONE',
+    });
+    await expect(
+      monetizationApi.applyToProgramme('Weekly cooking classes'),
+    ).resolves.toEqual({ status: 'PENDING' });
+    expect(apiClient.get).toHaveBeenCalledWith('/monetization/programme');
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/monetization/programme/apply',
+      { pitch: 'Weekly cooking classes' },
+    );
+  });
+
   it('reads status, earnings, transactions, analytics and payouts', async () => {
     await monetizationApi.getStatus();
     await monetizationApi.getMonetization();

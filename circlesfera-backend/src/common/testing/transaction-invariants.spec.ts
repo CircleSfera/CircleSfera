@@ -29,7 +29,16 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
               username: 'creator',
               isAccountBanned: false,
               suspendedUntil: null,
-              user: { isActive: true, isRootBanned: false, deletedAt: null },
+              monetizationStatus: 'APPROVED',
+              user: {
+                isActive: true,
+                isRootBanned: false,
+                deletedAt: null,
+                // An adult with a verified identity, who may charge.
+                identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+                dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+                dateOfBirthVerified: true,
+              },
             }),
           ),
         },
@@ -169,7 +178,16 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       mockPrisma.profile.findUnique.mockResolvedValueOnce({
         isAccountBanned: false,
         suspendedUntil: null,
-        user: { isActive: true, isRootBanned: false, deletedAt: null },
+        monetizationStatus: 'APPROVED',
+        user: {
+          isActive: true,
+          isRootBanned: false,
+          deletedAt: null,
+          // An adult with a verified identity, who may charge.
+          identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+          dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+          dateOfBirthVerified: true,
+        },
       });
       mockPrisma.post.findUnique.mockResolvedValue({
         id: 'post-1',
