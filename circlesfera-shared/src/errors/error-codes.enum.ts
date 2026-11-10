@@ -49,6 +49,10 @@ export enum ErrorCode {
   STRIPE_CUSTOMER_MISSING = 'STRIPE_CUSTOMER_MISSING',
   PROMOTION_ID_MISSING = 'PROMOTION_ID_MISSING',
   ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION = 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+  // The monetization programme: a Profile charges only once staff approve it.
+  MONETIZATION_NOT_APPROVED = 'MONETIZATION_NOT_APPROVED',
+  MONETIZATION_APPLICATION_NOT_OPEN = 'MONETIZATION_APPLICATION_NOT_OPEN',
+  MONETIZATION_REVIEW_NOT_ALLOWED = 'MONETIZATION_REVIEW_NOT_ALLOWED',
   // Staff paused new payments (the payments_enabled setting is off).
   PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
   // Charging for anything needs a verified identity of someone 18 or older.
