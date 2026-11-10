@@ -53,8 +53,15 @@ export class CreatePromotionUseCase {
   ) {
     await assertRealMoneyAllowed(this.prisma, userId);
     await assertAdultPayer(this.prisma, userId);
+    // Only Profiles in good standing promote: one banned, or suspended
+    // now, pays for nothing, even while another Profile of the account
+    // keeps it signed in.
     const ownedProfiles = await this.prisma.profile.findMany({
-      where: { userId },
+      where: {
+        userId,
+        isAccountBanned: false,
+        OR: [{ suspendedUntil: null }, { suspendedUntil: { lte: new Date() } }],
+      },
       select: { id: true },
     });
     const profileIds = ownedProfiles.map((p) => p.id);

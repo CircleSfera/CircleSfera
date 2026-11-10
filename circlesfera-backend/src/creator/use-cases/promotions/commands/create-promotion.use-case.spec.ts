@@ -158,6 +158,28 @@ describe('CreatePromotionUseCase', () => {
     expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
   });
 
+  it('promotes nothing of a Profile banned or suspended now', async () => {
+    // Only the account's Profiles in good standing come back.
+    mockPrismaService.profile.findMany.mockResolvedValue([]);
+    mockPrismaService.post.findFirst.mockResolvedValue(null);
+
+    await expect(
+      useCase.execute('u-1', 'post', 'post-of-suspended', 7, 50),
+    ).rejects.toMatchObject({ errorCode: ErrorCode.POST_NOT_FOUND });
+    expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'u-1',
+        isAccountBanned: false,
+        OR: [
+          { suspendedUntil: null },
+          { suspendedUntil: { lte: expect.any(Date) } },
+        ],
+      },
+      select: { id: true },
+    });
+    expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
+  });
+
   it('says to wait for content still being checked, and promotes nothing', async () => {
     mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'p-1' }]);
     mockPrismaService.post.findFirst
