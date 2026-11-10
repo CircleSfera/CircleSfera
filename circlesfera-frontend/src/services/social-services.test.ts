@@ -1114,6 +1114,33 @@ const cases: Case[] = [
     ['/admin-auth/refresh'],
   ],
   [
+    'adminAuth.setUpAccess',
+    () => adminAuthApi.setUpAccess('a@b.c', 'tok-12345678', 'a long password'),
+    'post',
+    [
+      '/admin-auth/access',
+      { email: 'a@b.c', proof: 'tok-12345678', password: 'a long password' },
+    ],
+  ],
+  [
+    'adminAuth.changePassword',
+    () =>
+      adminAuthApi.changePassword({
+        currentPassword: 'old',
+        newPassword: 'a long password',
+        totpCode: '123456',
+      }),
+    'post',
+    [
+      '/admin-auth/password',
+      {
+        currentPassword: 'old',
+        newPassword: 'a long password',
+        totpCode: '123456',
+      },
+    ],
+  ],
+  [
     'adminAuth.stepUp',
     () => adminAuthApi.stepUp({ totpCode: '123456' }),
     'post',

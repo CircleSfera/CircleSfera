@@ -11,4 +11,5 @@ export * from './media-limits.js';
 export * from './monetization-age.js';
 export * from './profile-pins.js';
 export * from './review-access.js';
+export * from './staff-access.js';
 export * from './support-limits.js';

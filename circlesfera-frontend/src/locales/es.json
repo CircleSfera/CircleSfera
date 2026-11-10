@@ -4727,13 +4727,13 @@
       "load_error": "No se pudieron cargar operadores",
       "email_label": "Correo electrónico",
       "display_name": "Nombre visible",
-      "create_hint": "La persona necesita una cuenta de CircleSfera con este correo. Entra a los sitios de personal con la contraseña de esa cuenta.",
+      "create_hint": "No necesita cuenta de CircleSfera. Le enviamos un enlace a este correo para que elija su propia contraseña de equipo y, si no es revisor externo, configure su autenticador.",
       "save": "Crear",
       "roles": "Roles",
       "actions": "Acciones",
       "disable": "Desactivar",
       "enable": "Activar",
-      "reset_mfa": "Restablecer la verificación en dos pasos",
+      "reset_mfa": "Restablecer el acceso",
       "unlock": "Desbloquear cuenta",
       "mfa_on": "Verificación en dos pasos configurada",
       "mfa_off": "Verificación en dos pasos sin configurar",
@@ -4750,7 +4750,7 @@
       "status_error": "No se pudo actualizar el estado",
       "roles_updated": "Roles actualizados",
       "roles_error": "No se pudieron actualizar los roles",
-      "mfa_reset": "Verificación en dos pasos restablecida",
+      "mfa_reset": "Acceso restablecido: le hemos enviado un enlace para elegir contraseña y autenticador nuevos",
       "mfa_error": "No se pudo restablecer la verificación en dos pasos",
       "unlocked": "Bloqueo quitado",
       "unlock_error": "No se pudo quitar el bloqueo",
@@ -4765,8 +4765,8 @@
         "ANALYTICS_ADMIN": "Analítica",
         "EXTERNAL_REVIEWER": "Revisor externo"
       },
-      "enrolment_title": "Alta del autenticador",
-      "enrolment_hint": "Esta persona aún no tiene autenticador. Lo configura con el enlace enviado a su email o con un código que le des en persona.",
+      "enrolment_title": "Configuración del acceso",
+      "enrolment_hint": "Esta persona aún no ha terminado de configurar su acceso. Lo hace con el enlace enviado a su email o con un código que le des en persona: elige su contraseña y, si es del equipo, su autenticador.",
       "send_link": "Enviar el enlace de nuevo",
       "link_sent": "Enlace enviado a su email",
       "issue_code": "Crear un código",
@@ -4783,8 +4783,9 @@
       "access_clear": "Quitar fecha de fin",
       "access_updated": "Fecha de fin guardada",
       "access_error": "No se ha podido guardar la fecha de fin",
-      "reviewer_hint": "Un revisor externo, como el proveedor de pagos, entra con la contraseña de su cuenta de CircleSfera y sin autenticador. Solo lee la sección Revisión del Admin Panel y del Backoffice, y cada página que abre queda registrada.",
-      "reviewer_no_mfa": "Revisor externo: entra sin autenticador, solo lectura"
+      "reviewer_hint": "Un revisor externo, como el proveedor de pagos, no necesita cuenta de CircleSfera: elige su contraseña con el enlace que le enviamos y entra sin autenticador. Solo lee la sección Revisión del Admin Panel y del Backoffice, y cada página que abre queda registrada.",
+      "reviewer_no_mfa": "Revisor externo: entra sin autenticador, solo lectura",
+      "no_own_password": "Sin contraseña propia: entra con la de su cuenta de CircleSfera o aún no ha usado su enlace"
     },
     "split": {
       "list_region": "Lista",
@@ -6212,8 +6213,29 @@
       "enrol_code": "Código de alta",
       "enrol_code_placeholder": "XXXX-XXXX-XXXX",
       "enrol_continue": "Continuar",
-      "enrol_from_link": "Comprobando tu enlace de alta…",
-      "enrol_invalid": "Este enlace o código no funciona: puede que ya se haya usado o que haya caducado. Pide uno nuevo a un administrador."
+      "enrol_invalid": "Este enlace o código no funciona: puede que ya se haya usado o que haya caducado. Pide uno nuevo a un administrador.",
+      "access_open": "Tengo un enlace o un código de acceso",
+      "access_title": "Configura tu acceso de equipo",
+      "access_hint": "Elige una contraseña para el acceso de equipo, de al menos {{min}} caracteres. No es la contraseña de ninguna cuenta de CircleSfera y no necesitas tener una. Después configurarás tu app de autenticación.",
+      "new_password": "Nueva contraseña",
+      "new_password_rule": "Al menos {{min}} caracteres y distinta de la de tu cuenta de CircleSfera, si tienes una.",
+      "repeat_password": "Repite la contraseña",
+      "passwords_differ": "Las contraseñas no coinciden.",
+      "access_continue": "Guardar y continuar"
+    },
+    "password": {
+      "title": "Cambiar contraseña",
+      "set_title": "Pon tu contraseña de equipo",
+      "hint": "Escribe tu contraseña actual y elige una nueva de al menos {{min}} caracteres. Las demás sesiones se cerrarán.",
+      "set_hint": "Ahora entras con la contraseña de tu cuenta de CircleSfera. Elige una propia para el acceso de equipo, de al menos {{min}} caracteres: desde ese momento, la de tu cuenta dejará de abrir los sitios del equipo.",
+      "current": "Contraseña actual",
+      "current_account": "Contraseña de tu cuenta de CircleSfera",
+      "save": "Guardar contraseña",
+      "saved": "Contraseña guardada",
+      "wrong": "La contraseña actual o el código no son correctos.",
+      "notice_title": "Pon tu propia contraseña de equipo",
+      "notice_body": "El acceso de equipo ya no usa la contraseña de tu cuenta de CircleSfera. Elige una propia; después, la de tu cuenta dejará de servir aquí.",
+      "notice_action": "Poner mi contraseña"
     }
   },
   "interactive": {
@@ -6478,7 +6500,8 @@
       "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
       "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
       "CHAT_PINS_FULL": "Ya tienes 3 chats fijados. Quita uno para fijar otro.",
-      "MESSAGE_NOT_FORWARDABLE": "Este mensaje no se puede reenviar."
+      "MESSAGE_NOT_FORWARDABLE": "Este mensaje no se puede reenviar.",
+      "STAFF_PASSWORD_IS_ACCOUNT_PASSWORD": "Elige una contraseña distinta de la de tu cuenta de CircleSfera: el acceso de equipo no comparte contraseña con ninguna cuenta."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

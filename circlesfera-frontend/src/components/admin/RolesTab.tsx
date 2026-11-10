@@ -605,6 +605,12 @@ export default function RolesTab({ onToast }: Props) {
                       </>
                     )}
                   </p>
+                  {selected.ownPassword === false && (
+                    <p className="text-xs text-white/50 flex items-center gap-1.5">
+                      <KeyRound size={14} className="text-amber-400" />
+                      {t('admin.operators.no_own_password')}
+                    </p>
+                  )}
                 </div>
 
                 <div className="py-4 space-y-2.5">
@@ -714,9 +720,10 @@ export default function RolesTab({ onToast }: Props) {
                     </Button>
                   </div>
                 </div>
-                {!selected.totpEnabled &&
-                  !selected.externalReviewer &&
-                  selected.status === 'ACTIVE' && (
+                {selected.status === 'ACTIVE' &&
+                  (selected.externalReviewer
+                    ? selected.ownPassword === false
+                    : !selected.totpEnabled) && (
                     <section className="py-4 space-y-2.5">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
                         {t('admin.operators.enrolment_title')}

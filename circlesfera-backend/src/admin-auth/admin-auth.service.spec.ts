@@ -245,6 +245,7 @@ describe('AdminAuthService', () => {
           where: { id: 'admin-1' },
           data: {
             totpSecret: 'enc:NEW_GENERATED_BASE32_SECRET',
+            totpEnabled: false,
             failedLoginCount: 0,
             lockedUntil: null,
           },

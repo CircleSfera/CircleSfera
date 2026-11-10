@@ -1,6 +1,6 @@
 # ADR-0013: Admin Panel — separate Admin Identity
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0031](./0031-staff-identity-own-credentials.md): staff credentials are their own, never a CircleSfera account's)
 - **Date:** 2026-08-12
 - **Deciders:** CircleSfera engineering
 - **Scope:** backend | frontend | data | infra | trust & safety

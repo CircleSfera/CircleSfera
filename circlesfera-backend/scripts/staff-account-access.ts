@@ -27,9 +27,10 @@ const PRINTABLE_DETAILS = new Set([
 ]);
 
 // For when nobody can get into the staff sites. It changes nothing: for every
-// staff account it reports why a sign-in would be refused. A staff member signs
-// in with the password of their CircleSfera account, so a refusal that is
-// neither a disabled account nor a lockout comes from that account: missing,
+// staff account it reports why a sign-in would be refused. A staff account
+// signs in with a password of its own; one that has not set it yet signs in
+// the old way, with the password of its CircleSfera account, so a refusal that
+// is neither a disabled account nor a lockout comes from that account: missing,
 // not linked, or with a password that must be reset first.
 //
 // Accounts are told apart by their reference, the first eight characters of
@@ -56,6 +57,8 @@ async function main() {
         updatedAt: true,
         email: true,
         linkedUserId: true,
+        passwordHash: true,
+        passwordSetAt: true,
         totpEnabled: true,
         roles: { select: { role: { select: { name: true } } } },
         _count: { select: { passkeys: true } },
@@ -79,8 +82,10 @@ async function main() {
       const lockMinutes = locked
         ? Math.ceil(((account.lockedUntil?.getTime() ?? now) - now) / 60000)
         : 0;
-      // Staff sign in with the password of the CircleSfera sign-in that has
-      // their email and belongs to their linked user.
+      // Until it sets its own, a staff account signs in with the password of
+      // the CircleSfera sign-in that has its email and belongs to its linked
+      // user.
+      const ownPassword = !!account.passwordSetAt;
       const signIn = await prisma.signIn.findUnique({
         where: { email: account.email },
         select: {
@@ -147,7 +152,11 @@ async function main() {
         `  Last sign-in: ${account.lastLoginAt ? daysAgo(account.lastLoginAt) : 'never'}`,
       );
       console.log(`  Record last changed: ${daysAgo(account.updatedAt)}`);
-      console.log(`  Password comes from the user sign-in: ${signInState}`);
+      console.log(
+        ownPassword
+          ? `  Password: its own (${hashFormat(account.passwordHash)})`
+          : `  Password: not its own yet; the user sign-in's works: ${signInState}`,
+      );
       console.log(
         `  Second factor: ${account.totpEnabled ? 'set up' : 'not set up'} (always required)`,
       );

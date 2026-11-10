@@ -310,19 +310,19 @@ describe('RolesTab', () => {
     );
   });
 
-  it('resets the second factor of an operator', async () => {
+  it('resets the access of an operator', async () => {
     api.getOperators.mockResolvedValue(list([operator('a')]) as never);
     show();
 
     fireEvent.click(
       within(await open('Operator a')).getByRole('button', {
-        name: 'Reset two-step verification',
+        name: 'Reset access',
       }),
     );
     await waitFor(() => expect(api.resetOperatorMfa).toHaveBeenCalledWith('a'));
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(
-        'Two-step verification reset',
+        'Access reset: we sent a link to choose a new password and authenticator',
         'success',
       ),
     );
@@ -352,6 +352,23 @@ describe('RolesTab', () => {
       within(await open('Operator b')).getByRole('button', {
         name: 'Send the link again',
       }),
+    ).toBeInTheDocument();
+  });
+
+  it('says when an operator still has no password of its own', async () => {
+    api.getOperators.mockResolvedValue(
+      list([
+        operator('a', { ownPassword: true }),
+        operator('b', { ownPassword: false }),
+      ]) as never,
+    );
+    show();
+
+    expect(
+      within(await open('Operator a')).queryByText(/No password of their own/),
+    ).toBeNull();
+    expect(
+      within(await open('Operator b')).getByText(/No password of their own/),
     ).toBeInTheDocument();
   });
 
@@ -446,9 +463,7 @@ describe('RolesTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Could not update roles', 'error'),
     );
-    fireEvent.click(
-      within(pane).getByRole('button', { name: 'Reset two-step verification' }),
-    );
+    fireEvent.click(within(pane).getByRole('button', { name: 'Reset access' }));
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(
         'Could not reset two-step verification',
@@ -584,9 +599,7 @@ describe('RolesTab', () => {
     show();
     const pane = await open('Operator a');
 
-    fireEvent.click(
-      within(pane).getByRole('button', { name: 'Reset two-step verification' }),
-    );
+    fireEvent.click(within(pane).getByRole('button', { name: 'Reset access' }));
     const code = await screen.findByPlaceholderText('000000');
     fireEvent.change(code, { target: { value: '000000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
@@ -627,7 +640,7 @@ describe('RolesTab', () => {
       const day = within(panel).getByLabelText('Access ends on');
       expect(day).toHaveAttribute('type', 'date');
       expect(
-        within(panel).getByText(/signs in with the password/),
+        within(panel).getByText(/needs no CircleSfera account/),
       ).toBeInTheDocument();
       fireEvent.change(day, { target: { value: '2026-12-20' } });
       fireEvent.click(within(panel).getByRole('button', { name: 'Create' }));
@@ -672,7 +685,7 @@ describe('RolesTab', () => {
       expect(within(pane).getByText(/Access ends on .+\./)).toBeInTheDocument();
       expect(
         within(pane).queryByRole('button', {
-          name: 'Reset two-step verification',
+          name: 'Reset access',
         }),
       ).toBeNull();
       expect(
@@ -697,6 +710,34 @@ describe('RolesTab', () => {
       await waitFor(() =>
         expect(onToast).toHaveBeenCalledWith('Access end saved', 'success'),
       );
+    });
+
+    it('offers the access link to a reviewer only until it has set its password', async () => {
+      api.getOperators.mockResolvedValue(
+        list([
+          reviewer(),
+          operator('fresh', {
+            ...reviewer(),
+            id: 'fresh',
+            displayName: 'Operator fresh',
+            ownPassword: false,
+          }),
+        ]) as never,
+      );
+      show();
+
+      expect(
+        within(await open('Operator rev')).queryByRole('button', {
+          name: 'Send the link again',
+        }),
+      ).toBeNull();
+      const pane = await open('Operator fresh');
+      expect(
+        within(pane).getByRole('button', { name: 'Send the link again' }),
+      ).toBeInTheDocument();
+      expect(
+        within(pane).getByText(/No password of their own/),
+      ).toBeInTheDocument();
     });
 
     it('never carries a day typed for one operator over to the next', async () => {
