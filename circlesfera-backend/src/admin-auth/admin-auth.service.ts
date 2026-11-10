@@ -164,17 +164,49 @@ export class AdminAuthService {
     }
   }
 
-  // Safe TOTP check — otplib throws on malformed secrets.
-  private isTotpValid(token: string, secret: string): boolean {
+  // Takes an authenticator code for an identity, once: a right code is
+  // accepted only if its time step is later than that of the last code the
+  // identity used, and that step is kept by the same write that checks it,
+  // so a code seen over a shoulder, or sent twice at once, works only once.
+  // The same write also requires the stored secret the code was checked
+  // against: if the authenticator is reset or replaced meanwhile, the code
+  // of the old secret is refused. otplib throws on malformed secrets: that
+  // is a wrong code.
+  private async useTotpCode(
+    adminId: string,
+    token: string,
+    storedSecret: string,
+  ): Promise<boolean> {
     const code = token.replace(/\s+/g, '').trim();
     if (!/^\d{6}$/.test(code)) return false;
+    let timeStep: number;
     try {
-      return (
-        verifySync({ token: code, secret, epochTolerance: 120 })?.valid === true
-      );
+      const secret = this.cryptoService.decrypt(storedSecret);
+      const result = verifySync({ token: code, secret, epochTolerance: 120 });
+      // A TOTP result names its time step; anything else is no code here.
+      if (
+        result?.valid !== true ||
+        !('timeStep' in result) ||
+        typeof result.timeStep !== 'number'
+      ) {
+        return false;
+      }
+      timeStep = result.timeStep;
     } catch {
       return false;
     }
+    const taken = await this.prisma.adminIdentity.updateMany({
+      where: {
+        id: adminId,
+        totpSecret: storedSecret,
+        OR: [
+          { totpLastTimeStep: null },
+          { totpLastTimeStep: { lt: timeStep } },
+        ],
+      },
+      data: { totpLastTimeStep: timeStep },
+    });
+    return taken.count === 1;
   }
 
   private signAdminToken(
@@ -368,6 +400,8 @@ export class AdminAuthService {
       data: {
         totpSecret: this.cryptoService.encrypt(secret),
         totpEnabled: false,
+        // A step belongs to the secret it was taken with.
+        totpLastTimeStep: null,
         failedLoginCount: 0,
         lockedUntil: null,
       },
@@ -452,7 +486,7 @@ export class AdminAuthService {
       throw new UnauthorizedException('Invalid or expired MFA token');
     }
 
-    if (!this.isTotpValid(code, decryptedSecret)) {
+    if (!(await this.useTotpCode(admin.id, code, rawSecret))) {
       await this.prisma.adminAuditLog.create({
         data: {
           adminId: admin.id,
@@ -554,7 +588,9 @@ export class AdminAuthService {
           lockedUntil: null,
           // A member of staff sets up a new authenticator next; until it is
           // confirmed the identity has none.
-          ...(reviewer ? {} : { totpSecret: null, totpEnabled: false }),
+          ...(reviewer
+            ? {}
+            : { totpSecret: null, totpEnabled: false, totpLastTimeStep: null }),
         },
       }),
       this.prisma.adminRefreshToken.deleteMany({
@@ -611,20 +647,23 @@ export class AdminAuthService {
     const reviewer = isExternalReviewer(admin.roles.map((r) => r.role.name));
 
     let ok = await this.passwordIsValid(admin, dto.currentPassword);
+    // The new password is checked before the code is spent, so a refused
+    // one is tried again with the same code.
+    if (ok) await this.assertUsableStaffPassword(admin.email, dto.newPassword);
     if (ok && !reviewer) {
       ok =
         admin.totpEnabled &&
         !!admin.totpSecret &&
-        this.isTotpValid(
+        (await this.useTotpCode(
+          admin.id,
           dto.totpCode ?? '',
-          this.cryptoService.decrypt(admin.totpSecret),
-        );
+          admin.totpSecret,
+        ));
     }
     if (!ok) {
       await this.recordFailure(admin.id, meta, 'Invalid password change');
       throw new UnauthorizedException('Invalid credentials');
     }
-    await this.assertUsableStaffPassword(admin.email, dto.newPassword);
 
     const passwordHash = await argon2.hash(dto.newPassword);
     const kept = meta.keepRefreshToken
@@ -923,7 +962,7 @@ export class AdminAuthService {
     if (dto.totpCode && admin.totpSecret) {
       const rawSecret = admin.totpSecret;
       const decryptedSecret = this.cryptoService.decrypt(rawSecret);
-      ok = this.isTotpValid(dto.totpCode, decryptedSecret);
+      ok = await this.useTotpCode(admin.id, dto.totpCode, rawSecret);
 
       // Opportunistic rolling migration for legacy plaintext secrets
       if (ok && !rawSecret.includes(':')) {

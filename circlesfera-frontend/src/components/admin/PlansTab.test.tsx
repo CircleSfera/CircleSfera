@@ -143,7 +143,10 @@ describe('PlansTab', () => {
     fireEvent.click(plan.getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('That code is not right', 'error'),
+      expect(onToast).toHaveBeenCalledWith(
+        'That code is not right or was already used. Wait for the next one in your app.',
+        'error',
+      ),
     );
     expect(adminApi.updatePlan).toHaveBeenCalledTimes(1);
   });
@@ -165,7 +168,10 @@ describe('PlansTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(expect.any(String), 'error'),
     );
-    expect(onToast).not.toHaveBeenCalledWith('That code is not right', 'error');
+    expect(onToast).not.toHaveBeenCalledWith(
+      'That code is not right or was already used. Wait for the next one in your app.',
+      'error',
+    );
     expect(adminApi.updatePlan).toHaveBeenCalledTimes(1);
   });
 
@@ -192,6 +198,9 @@ describe('PlansTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(expect.any(String), 'error'),
     );
-    expect(onToast).not.toHaveBeenCalledWith('That code is not right', 'error');
+    expect(onToast).not.toHaveBeenCalledWith(
+      'That code is not right or was already used. Wait for the next one in your app.',
+      'error',
+    );
   });
 });

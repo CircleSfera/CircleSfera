@@ -512,6 +512,7 @@ export class AdminOperatorsService {
       data: {
         totpSecret: null,
         totpEnabled: false,
+        totpLastTimeStep: null,
         enrolmentProofHash: null,
         enrolmentProofExpiresAt: null,
         enrolmentProofPasswordMark: null,

@@ -649,7 +649,10 @@ describe('RolesTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('That code is not right', 'error'),
+      expect(onToast).toHaveBeenCalledWith(
+        'That code is not right or was already used. Wait for the next one in your app.',
+        'error',
+      ),
     );
     expect(api.resetOperatorMfa).toHaveBeenCalledTimes(1);
     expect(screen.getByPlaceholderText('000000')).toBeInTheDocument();

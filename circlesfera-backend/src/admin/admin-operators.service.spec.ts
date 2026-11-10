@@ -130,6 +130,8 @@ describe('AdminOperatorsService', () => {
           data: {
             totpSecret: null,
             totpEnabled: false,
+            // The last code's step belonged to the old secret.
+            totpLastTimeStep: null,
             enrolmentProofHash: null,
             enrolmentProofExpiresAt: null,
             enrolmentProofPasswordMark: null,

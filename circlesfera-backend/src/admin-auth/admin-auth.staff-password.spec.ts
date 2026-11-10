@@ -14,6 +14,7 @@ vi.mock('otplib', () => ({
   generateURI: vi.fn(() => 'otpauth://totp/x'),
   verifySync: vi.fn(({ token, secret }: { token: string; secret: string }) => ({
     valid: token === '123456' && secret === 'base32-admin-secret',
+    timeStep: 59_000_000,
   })),
 }));
 
@@ -76,6 +77,8 @@ describe('AdminAuthService — a staff password of its own', () => {
     vi.clearAllMocks();
     prisma = {
       adminIdentity: {
+        // A code is taken once: its time step is later than the last one.
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         findUnique: vi.fn(),
         update: vi.fn().mockResolvedValue({ failedLoginCount: 1 }),
       },
@@ -192,6 +195,7 @@ describe('AdminAuthService — a staff password of its own', () => {
         passwordSetAt: expect.any(Date),
         totpSecret: null,
         totpEnabled: false,
+        totpLastTimeStep: null,
         failedLoginCount: 0,
         lockedUntil: null,
       });
@@ -552,6 +556,114 @@ describe('AdminAuthService — a staff password of its own', () => {
     });
     await expect(service.me('admin-1')).resolves.toMatchObject({
       passkeyCount: 2,
+    });
+  });
+
+  describe('an authenticator code is taken once', () => {
+    it('refuses the code when the authenticator was reset or replaced after it was read', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+      // The stored secret no longer matches the one the code was checked
+      // against, so the write that takes the code matches no row.
+      prisma.adminIdentity.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.changePassword(
+          'admin-1',
+          {
+            currentPassword: ACCOUNT_PASSWORD,
+            newPassword: STAFF_PASSWORD,
+            totpCode: '123456',
+          },
+          {},
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(prisma.adminIdentity.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            totpSecret: 'enc:base32-admin-secret',
+          }),
+        }),
+      );
+    });
+
+    it('keeps the time step of the code with the same write that checks it', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+
+      await service.changePassword(
+        'admin-1',
+        {
+          currentPassword: ACCOUNT_PASSWORD,
+          newPassword: STAFF_PASSWORD,
+          totpCode: '123456',
+        },
+        {},
+      );
+
+      expect(prisma.adminIdentity.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'admin-1',
+          totpSecret: 'enc:base32-admin-secret',
+          OR: [
+            { totpLastTimeStep: null },
+            { totpLastTimeStep: { lt: 59_000_000 } },
+          ],
+        },
+        data: { totpLastTimeStep: 59_000_000 },
+      });
+    });
+
+    it('refuses a right code already used, and counts it', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+      // The step was already taken: nothing matched.
+      prisma.adminIdentity.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.changePassword(
+          'admin-1',
+          {
+            currentPassword: ACCOUNT_PASSWORD,
+            newPassword: STAFF_PASSWORD,
+            totpCode: '123456',
+          },
+          {},
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(failuresWritten()).toHaveLength(1);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('spends no code when the new password is refused, so the same code can be tried again', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+
+      await expect(
+        service.changePassword(
+          'admin-1',
+          {
+            currentPassword: ACCOUNT_PASSWORD,
+            newPassword: LEAKED_PASSWORD,
+            totpCode: '123456',
+          },
+          {},
+        ),
+      ).rejects.toMatchObject({ errorCode: ErrorCode.PASSWORD_LEAKED });
+      expect(prisma.adminIdentity.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('takes nothing for a wrong code', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+
+      await expect(
+        service.changePassword(
+          'admin-1',
+          {
+            currentPassword: ACCOUNT_PASSWORD,
+            newPassword: STAFF_PASSWORD,
+            totpCode: '000000',
+          },
+          {},
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(prisma.adminIdentity.updateMany).not.toHaveBeenCalled();
     });
   });
 });
