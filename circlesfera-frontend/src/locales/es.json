@@ -2898,7 +2898,8 @@
     "support_with_money": "Apoya a {{name}} con una propina",
     "processing": "Procesando...",
     "send_tip": "Enviar Propina",
-    "error_send_tip": "Error al enviar la propina"
+    "error_send_tip": "Error al enviar la propina",
+    "weekly_limit": "Puedes dar hasta {{limit}} a la semana, entre propinas y regalos en directo."
   },
   "monetization": {
     "available_balance": "Saldo Disponible",
@@ -6434,6 +6435,9 @@
       "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
       "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
       "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
+      "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
+      "TIP_AMOUNT_NOT_ALLOWED": "Elige uno de los importes que se muestran.",
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "Has llegado al máximo que puedes dar en una semana, entre propinas y regalos.",
       "CONTENT_UNDER_REVIEW": "Este contenido se pone a la venta en cuanto se revisa. Vuelve a intentarlo en unos minutos.",
       "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",

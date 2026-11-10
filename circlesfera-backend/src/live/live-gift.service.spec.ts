@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
@@ -43,14 +44,24 @@ describe('LiveGiftService', () => {
     liveGuest: { findMany: vi.fn().mockResolvedValue([]) },
     block: { findFirst: vi.fn().mockResolvedValue(null) },
     user: { findMany: vi.fn().mockResolvedValue([]), findUnique: vi.fn() },
+    $executeRaw: vi.fn().mockResolvedValue(1),
+    tipReservation: {
+      aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
+    },
     liveGift: {
+      aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
     transaction: {
       create: vi.fn(),
+      // Nothing given yet this week, unless a test says otherwise.
+      aggregate: vi
+        .fn()
+        .mockResolvedValue({ _sum: { amount: null, refundedCents: null } }),
     },
     monetization: {
       upsert: vi.fn(),
@@ -172,6 +183,33 @@ describe('LiveGiftService', () => {
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
+    it('takes no gift that would go over what one person gives in a week, tips included', async () => {
+      mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+        userId: null,
+        stripeConnectAccountId: 'acct_1',
+        transfersEnabled: true,
+        chargesEnabled: true,
+      });
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'fan-1',
+        email: 'fan@example.com',
+        profiles: [{ username: 'fan' }],
+      });
+      // 495 € given this week: a 10 € crown does not fit.
+      mockPrismaService.transaction.aggregate.mockResolvedValueOnce({
+        _sum: { amount: 49500, refundedCents: 0 },
+      });
+
+      await expect(
+        service.sendGift('stream-1', 'fan-1', 'crown', 'http://localhost/live'),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.WEEKLY_SUPPORT_LIMIT_REACHED,
+      });
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+      expect(mockPrismaService.liveGift.create).not.toHaveBeenCalled();
+    });
+
     it('charges the catalog price and the platform application fee', async () => {
       // The host's Profile holds the account the gift is paid into, ready
       // to receive transfers.
@@ -207,6 +245,12 @@ describe('LiveGiftService', () => {
 
       expect(result.amountCents).toBe(amountCents);
       expect(result.url).toBe('https://checkout.stripe.test/gift');
+      // The checkout closes when the gift stops holding its amount.
+      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
+        expect.objectContaining({ expires_at: expect.any(Number) }),
+        expect.anything(),
+      );
+      expect(mockPrismaService.$executeRaw).toHaveBeenCalled();
       expect(mockPrismaService.liveGift.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -234,6 +278,38 @@ describe('LiveGiftService', () => {
         }),
         expect.objectContaining({ stripeAccount: 'acct_1' }),
       );
+    });
+    it('lets the gift go, holding nothing of the weekly limit, when no checkout opens', async () => {
+      mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+        userId: null,
+        stripeConnectAccountId: 'acct_1',
+        transfersEnabled: true,
+        chargesEnabled: true,
+      });
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'fan-1',
+        email: 'fan@example.com',
+        profiles: [{ username: 'fan' }],
+      });
+      mockPrismaService.liveGift.create.mockResolvedValue({ id: 'gift-1' });
+      // For example, staff paused new payments.
+      const paused = new Error('payments paused');
+      mockStripeService.createCheckoutSession.mockRejectedValueOnce(paused);
+
+      await expect(
+        service.sendGift('stream-1', 'fan-1', 'crown', 'http://localhost/live'),
+      ).rejects.toBe(paused);
+
+      expect(mockPrismaService.liveGift.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'gift-1',
+          status: 'PENDING',
+          stripeCheckoutSessionId: null,
+        },
+        data: { status: 'FAILED' },
+      });
+      expect(mockPrismaService.liveGift.update).not.toHaveBeenCalled();
     });
   });
 

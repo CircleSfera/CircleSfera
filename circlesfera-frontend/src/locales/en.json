@@ -2898,7 +2898,8 @@
     "support_with_money": "Support {{name}} with a tip",
     "processing": "Processing...",
     "send_tip": "Send Tip",
-    "error_send_tip": "Error sending tip"
+    "error_send_tip": "Error sending tip",
+    "weekly_limit": "You can give up to {{limit}} a week, tips and live gifts together."
   },
   "monetization": {
     "available_balance": "Available Balance",
@@ -6434,6 +6435,9 @@
       "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first.",
       "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
       "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
+      "TIP_TARGET_REQUIRED": "A tip is always for a post.",
+      "TIP_AMOUNT_NOT_ALLOWED": "Choose one of the amounts shown.",
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "You have reached the most you can give in a week, tips and gifts together.",
       "CONTENT_UNDER_REVIEW": "This content goes on sale once it has been checked. Try again in a few minutes.",
       "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
