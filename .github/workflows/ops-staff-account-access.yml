@@ -2,10 +2,11 @@ name: Ops — staff account access
 
 # For when nobody can get into the staff sites. It changes nothing: it reports
 # the state of every staff account, told apart by the reference the Operators
-# screen shows, never by their address. A staff member signs in with the password of their CircleSfera
-# account, so a forgotten password is recovered the way any CircleSfera
-# password is, and a lockout is cleared from the Operators screen by another
-# staff member.
+# screen shows, never by their address. A staff account signs in with a
+# password of its own (or, until it sets one, its CircleSfera account's). A
+# forgotten password or a lost authenticator is recovered with a code from
+# another administrator, or, when none can sign in, with "Ops — staff access
+# recovery". A lockout is cleared from the Operators screen.
 on:
   workflow_dispatch:
 

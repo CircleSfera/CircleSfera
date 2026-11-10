@@ -1,0 +1,79 @@
+name: Ops — staff access recovery
+
+# Break-glass: for when no administrator can sign in to give a staff account
+# a code, for example after losing the phone with the authenticator and every
+# passkey. It resets the access of one staff account (authenticator, passkeys
+# and sessions go) and sends an access link to its staff email, with which
+# the person sets a new password and a new authenticator.
+#
+# Running it needs this repository's Actions; using the link needs the staff
+# mailbox. Together they stand for the administrator who would otherwise hand
+# over a code in person. Every run is in the audit log of the account.
+#
+# The account is named by its reference: the first 8 characters of its id,
+# shown on the Operators screen and by "Ops — staff account access". Neither
+# the address nor the link is ever printed: this log is public.
+on:
+  workflow_dispatch:
+    inputs:
+      reference:
+        description: 'Reference of the staff account (8 characters)'
+        required: true
+        type: string
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: if a deploy is triggered (merge to
+# main) while this run waits, the newer deploy replaces it and this run is
+# cancelled. Re-run it if it was cancelled.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  staff-access-recovery:
+    name: Staff access recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Check the reference
+        env:
+          REFERENCE: ${{ inputs.reference }}
+        run: |
+          if ! printf '%s' "$REFERENCE" | grep -Eq '^[0-9a-fA-F]{8}$'; then
+            echo "The reference is the first 8 characters of the account id (0-9, a-f)."
+            exit 1
+          fi
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Reset the access and send the link
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          REFERENCE: ${{ inputs.reference }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: REFERENCE
+          script: |
+            set -euo pipefail
+            case "$REFERENCE" in
+              [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]) ;;
+              *) echo "Invalid reference"; exit 1 ;;
+            esac
+            cd /srv/circlesfera
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+              backend node scripts/staff-access-recovery.ts "$REFERENCE"
