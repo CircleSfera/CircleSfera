@@ -8,6 +8,8 @@ vi.mock('../../services/admin.service', () => ({
   adminApi: {
     getModerationQueue: vi.fn(),
     updateModerationStatus: vi.fn(),
+    getFirstPaidReview: vi.fn(),
+    approveFirstPaid: vi.fn(),
   },
 }));
 vi.mock('../../hooks/useDebouncedValue', () => ({
@@ -56,6 +58,9 @@ describe('ModerationTab', () => {
     vi.clearAllMocks();
     api.getModerationQueue.mockResolvedValue(list([]) as never);
     api.updateModerationStatus.mockResolvedValue({} as never);
+    api.getFirstPaidReview.mockResolvedValue({
+      data: { items: [], needed: 3 },
+    } as never);
   });
 
   it('says when nothing is waiting', async () => {

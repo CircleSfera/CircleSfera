@@ -608,23 +608,26 @@ model Post {
   /// The template others may use, offered from this Frame.
   studioTemplate   StudioTemplate? @relation("TemplateOfPost")
 
-  moderationStatus   ModerationStatus @default(VISIBLE)
-  moderationNote     String?          @db.Text
+  moderationStatus        ModerationStatus @default(VISIBLE)
+  moderationNote          String?          @db.Text
   // When it was last hidden or removed by moderation: the six months to
   // appeal it count from then.
-  moderatedAt        DateTime?
+  moderatedAt             DateTime?
   // When automatic moderation checked it and found nothing: only then is it
   // sold or tipped. Null until checked, or while the check cannot run.
-  moderationPassedAt DateTime?
+  moderationPassedAt      DateTime?
+  // Whether that pass was given by a person on staff. The first priced items
+  // of a Profile are passed by a person before automatic passes count.
+  moderationPassedByStaff Boolean          @default(false)
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt          DateTime?
+  deletedAt               DateTime?
   // When its author archived it: shown in their archive only, with its likes
   // and comments, until they show it on their profile again.
-  archivedAt         DateTime?
+  archivedAt              DateTime?
   // When its author pinned it to the top of their profile; null when not
   // pinned. A Profile pins at most PROFILE_PINS_MAX.
-  pinnedToProfileAt  DateTime?
+  pinnedToProfileAt       DateTime?
 
   // Premium Content
 
@@ -836,17 +839,20 @@ model Story {
   placeId  String?
   place    Place?  @relation(fields: [placeId], references: [id], onDelete: SetNull)
 
-  moderationStatus   ModerationStatus @default(VISIBLE)
-  moderationNote     String?
+  moderationStatus        ModerationStatus @default(VISIBLE)
+  moderationNote          String?
   // When it was last hidden or removed by moderation. Removed content is
   // kept for the six months its author has to appeal, then erased.
-  moderatedAt        DateTime?
+  moderatedAt             DateTime?
   // When automatic moderation checked it and found nothing: only then is it
   // sold or tipped. Null until checked, or while the check cannot run.
-  moderationPassedAt DateTime?
+  moderationPassedAt      DateTime?
+  // Whether that pass was given by a person on staff. The first priced items
+  // of a Profile are passed by a person before automatic passes count.
+  moderationPassedByStaff Boolean          @default(false)
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt          DateTime?
+  deletedAt               DateTime?
 
   // Relation to highlights
 
@@ -2943,6 +2949,7 @@ enum AdminAction {
   CONTENT_REMOVED
   CONTENT_RESTRICTED
   CONTENT_RESTORED
+  PAID_CONTENT_APPROVED
   CONTENT_LABELED
 
   // Report Management

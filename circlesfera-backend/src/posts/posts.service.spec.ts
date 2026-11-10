@@ -2098,7 +2098,11 @@ describe('PostsService', () => {
       );
       expect(mockPrismaService.post.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ moderationPassedAt: null }),
+          // Off sale until checked again, and no longer a pass by a person.
+          data: expect.objectContaining({
+            moderationPassedAt: null,
+            moderationPassedByStaff: false,
+          }),
         }),
       );
       expect(
@@ -2157,6 +2161,7 @@ describe('PostsService', () => {
           visibility: Visibility.PUBLIC,
           // Off sale until the new caption is checked.
           moderationPassedAt: null,
+          moderationPassedByStaff: false,
         },
         include: expect.any(Object),
       });

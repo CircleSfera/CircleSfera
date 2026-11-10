@@ -3085,7 +3085,21 @@
       "note_batch_approved": "Aprobado en lote",
       "note_batch_hidden": "Ocultado en lote",
       "note_false_positive": "Aprobado (falso positivo)",
-      "select_item": "Seleccionar este elemento"
+      "select_item": "Seleccionar este elemento",
+      "first_paid": {
+        "title": "Primer contenido de pago",
+        "subtitle_one": "Una persona revisa la primera publicación o historia de pago de cada creador antes de ponerla a la venta.",
+        "subtitle_other": "Una persona revisa las primeras {{count}} publicaciones e historias de pago de cada creador antes de ponerlas a la venta.",
+        "progress_one": "{{passed}} de {{count}} revisada",
+        "progress_other": "{{passed}} de {{count}} revisadas",
+        "approve": "Aprobar para la venta",
+        "remove": "Retirar",
+        "ask_remove": "¿Retirar el contenido de pago de @{{username}}?",
+        "reason": "Motivo que lee el creador",
+        "approved": "Ya está a la venta",
+        "removed": "Retirado",
+        "error": "No se ha podido hacer. Inténtalo de nuevo."
+      }
     },
     "reports": {
       "title": "Reportes",
@@ -3766,7 +3780,8 @@
         "UPDATE_SETTINGS": "Cambió la configuración",
         "BLOCK": "Bloqueó contenido",
         "IGNORE": "Descartó un caso",
-        "STRIKE": "Puso un aviso"
+        "STRIKE": "Puso un aviso",
+        "PAID_CONTENT_APPROVED": "Contenido de pago aprobado para la venta"
       },
       "targets": {
         "USER": "Cuenta",

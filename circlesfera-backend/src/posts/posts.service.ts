@@ -951,7 +951,9 @@ export class PostsService {
         visibility: dto.visibility as Visibility,
         turnOffComments: dto.turnOffComments,
         hideLikes: dto.hideLikes,
-        ...(recheck ? { moderationPassedAt: null } : {}),
+        ...(recheck
+          ? { moderationPassedAt: null, moderationPassedByStaff: false }
+          : {}),
       },
       include: {
         profile: { select: PUBLIC_PROFILE_SELECT },

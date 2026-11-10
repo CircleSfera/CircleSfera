@@ -149,6 +149,19 @@ export interface AdminPost {
 }
 
 // Unified moderation queue item (posts, stories, comments).
+// A priced post or story waiting for a person on staff to pass it before
+// sale: the first paid items of each creator.
+export interface FirstPaidItem {
+  type: 'POST' | 'STORY';
+  id: string;
+  caption: string | null;
+  priceCents: number;
+  createdAt: string;
+  profile: { id: string; username: string; avatar: string | null };
+  media: { url?: string; thumbnailUrl?: string | null; type?: string | null }[];
+  passedByStaff: number;
+}
+
 export interface AdminModerationItem {
   id: string;
   entityType: 'POST' | 'STORY' | 'COMMENT';
@@ -1402,6 +1415,14 @@ export const adminApi = {
         params: { page, limit, type, search },
       },
     ),
+
+  getFirstPaidReview: () =>
+    apiClient.get<{ items: FirstPaidItem[]; needed: number }>(
+      'admin/moderation/first-paid',
+    ),
+
+  approveFirstPaid: (type: 'POST' | 'STORY', id: string) =>
+    apiClient.post(`admin/moderation/first-paid/${type}/${id}/approve`),
 
   updateModerationStatus: (
     type: 'POST' | 'STORY' | 'COMMENT',
