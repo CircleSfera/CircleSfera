@@ -36,6 +36,10 @@ export function StaffPasskeysDialog({
   const { run, dialog: stepUpDialog } = useAdminStepUp();
   const [name, setName] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  // The options of a passkey about to be created. Getting them may ask for
+  // the authenticator code; creating it is then a click of its own, since
+  // a browser shows its passkey prompt only right after a click.
+  const [ready, setReady] = useState<Record<string, unknown> | null>(null);
 
   const { data: passkeys = [], isLoading } = useQuery({
     queryKey: PASSKEYS_KEY,
@@ -64,25 +68,37 @@ export function StaffPasskeysDialog({
     );
   };
 
-  const add = async () => {
+  const prepare = async () => {
     setBusy('add');
     try {
-      await run(async () => {
-        const { data: options } = await adminAuthApi.passkeyRegisterOptions();
-        const answer = await startRegistration({
-          optionsJSON: options as never,
-        });
-        await adminAuthApi.registerPasskey(
-          answer as unknown as Record<string, unknown>,
-          name.trim() || undefined,
-        );
-      });
+      const { data: options } = await run(() =>
+        adminAuthApi.passkeyRegisterOptions(),
+      );
+      setReady(options);
+    } catch (err) {
+      report(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const create = async () => {
+    if (!ready) return;
+    setBusy('create');
+    try {
+      const answer = await startRegistration({ optionsJSON: ready as never });
+      await adminAuthApi.registerPasskey(
+        answer as unknown as Record<string, unknown>,
+        name.trim() || undefined,
+      );
       setName('');
       toast.success(t('adminPanel.passkeys.added'));
       await refresh();
     } catch (err) {
       report(err);
     } finally {
+      // Options are used once: another try asks for new ones.
+      setReady(null);
       setBusy(null);
     }
   };
@@ -177,7 +193,7 @@ export function StaffPasskeysDialog({
               className="space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                void add();
+                void (ready ? create() : prepare());
               }}
             >
               <div>
@@ -200,10 +216,19 @@ export function StaffPasskeysDialog({
                 variant="primary"
                 className="button-alone min-h-11 font-semibold"
                 disabled={busy !== null}
-                isLoading={busy === 'add'}
+                isLoading={busy === 'add' || busy === 'create'}
               >
-                {t('adminPanel.passkeys.add')}
+                {t(
+                  ready
+                    ? 'adminPanel.passkeys.create'
+                    : 'adminPanel.passkeys.add',
+                )}
               </Button>
+              {ready && (
+                <p className="text-xs text-white/50 text-center" role="status">
+                  {t('adminPanel.passkeys.create_hint')}
+                </p>
+              )}
             </form>
           )}
         </div>

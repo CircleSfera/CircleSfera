@@ -92,6 +92,7 @@ describe('AdminAuthService — a staff password of its own', () => {
         create: vi.fn().mockResolvedValue({}),
         deleteMany: vi.fn().mockResolvedValue({}),
       },
+      adminPasskey: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
       $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
     };
     const env: Record<string, string> = {
@@ -198,6 +199,10 @@ describe('AdminAuthService — a staff password of its own', () => {
         argon2.verify(set.data.passwordHash, STAFF_PASSWORD),
       ).resolves.toBe(true);
       expect(prisma.adminRefreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { adminId: 'admin-1' },
+      });
+      // Starting again from nothing: no earlier passkey still opens it.
+      expect(prisma.adminPasskey.deleteMany).toHaveBeenCalledWith({
         where: { adminId: 'admin-1' },
       });
       expect(prisma.adminAuditLog.create).toHaveBeenCalledWith({
@@ -501,12 +506,11 @@ describe('AdminAuthService — a staff password of its own', () => {
       ).resolves.toMatchObject({ accessToken: expect.any(String) });
     });
 
-    it('refuses an identity that is unknown, disabled, expired, locked, without an authenticator, or a reviewer with no end', async () => {
+    it('refuses an identity that is unknown, disabled, expired, without an authenticator, or a reviewer with no end, writing it down', async () => {
       for (const found of [
         null,
         identity({ status: 'DISABLED' }),
         identity({ accessExpiresAt: new Date(Date.now() - 1000) }),
-        identity({ lockedUntil: new Date(Date.now() + 60_000) }),
         identity({ totpEnabled: false }),
         reviewer({ accessExpiresAt: null }),
       ]) {
@@ -516,6 +520,28 @@ describe('AdminAuthService — a staff password of its own', () => {
         );
       }
       expect(prisma.adminRefreshToken.create).not.toHaveBeenCalled();
+      // The four known identities are written down, and never counted.
+      expect(failuresWritten()).toHaveLength(4);
+      expect(failuresWritten()[0]).toMatchObject({
+        details: 'Passkey refused',
+      });
+      expect(prisma.adminIdentity.update).not.toHaveBeenCalled();
+    });
+
+    it('lets a passkey in while wrong passwords keep the identity locked', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(
+        identity({ lockedUntil: new Date(Date.now() + 60_000) }),
+      );
+
+      await expect(
+        service.signInWithPasskey('admin-1', {}),
+      ).resolves.toMatchObject({ accessToken: expect.any(String) });
+      expect(prisma.adminAuditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'ADMIN_LOGIN',
+          details: 'Signed in with a passkey',
+        }),
+      });
     });
   });
 

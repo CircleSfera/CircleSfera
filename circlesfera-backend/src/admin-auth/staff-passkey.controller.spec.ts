@@ -32,6 +32,7 @@ describe('StaffPasskeyController', () => {
   const passkeys = {
     authenticationOptions: vi.fn(),
     authenticate: vi.fn(),
+    markUsed: vi.fn(),
     list: vi.fn(),
     registrationOptions: vi.fn(),
     register: vi.fn(),
@@ -77,7 +78,10 @@ describe('StaffPasskeyController', () => {
   });
 
   it('signs in with a passkey, the tokens only in cookies', async () => {
-    passkeys.authenticate.mockResolvedValue('admin-9');
+    passkeys.authenticate.mockResolvedValue({
+      adminId: 'admin-9',
+      passkeyId: 'pk-9',
+    });
     auth.signInWithPasskey.mockResolvedValue({
       accessToken: 'acc',
       refreshToken: 'ref',
@@ -97,6 +101,23 @@ describe('StaffPasskeyController', () => {
       'admin-9',
       expect.objectContaining({ userAgent: 'Vitest' }),
     );
+    expect(passkeys.markUsed).toHaveBeenCalledWith('pk-9');
+  });
+
+  it('keeps no use of a passkey whose sign-in is refused', async () => {
+    passkeys.authenticate.mockResolvedValue({
+      adminId: 'admin-9',
+      passkeyId: 'pk-9',
+    });
+    auth.signInWithPasskey.mockRejectedValue(
+      new (await import('@nestjs/common')).UnauthorizedException(),
+    );
+
+    await http()
+      .post('/api/v1/admin-auth/passkeys/login')
+      .send({ response: { id: 'cred-1' } })
+      .expect(401);
+    expect(passkeys.markUsed).not.toHaveBeenCalled();
   });
 
   it('refuses a sign-in without an answer, or with extra fields', async () => {

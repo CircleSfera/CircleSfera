@@ -37,6 +37,21 @@ describe('staffWebAuthnOrigins', () => {
     ).toEqual(['https://a.test', 'https://b.test']);
   });
 
+  it('takes only https staff origins in production', () => {
+    for (const origin of [
+      'http://admin.circlesfera.com',
+      'https://admin.localhost',
+      'https://127.0.0.1',
+    ]) {
+      expect(() =>
+        staffWebAuthnOrigins(
+          env({ NODE_ENV: 'production', STAFF_WEBAUTHN_ORIGIN: origin }),
+          'circlesfera.com',
+        ),
+      ).toThrow(/forbidden in production/);
+    }
+  });
+
   it('otherwise uses the staff hosts under the relying party, never the participants app', () => {
     expect(
       staffWebAuthnOrigins(env({ NODE_ENV: 'production' }), 'circlesfera.com'),
@@ -72,7 +87,11 @@ describe('StaffPasskeyService', () => {
         deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       adminAuditLog: { create: vi.fn().mockResolvedValue({}) },
+      adminIdentity: { update: vi.fn().mockResolvedValue({}) },
     };
+    prisma.$transaction = vi.fn(async (fn: (tx: unknown) => unknown) =>
+      fn(prisma),
+    );
     service = new StaffPasskeyService(
       prisma,
       env({ NODE_ENV: 'test' }) as never,
@@ -82,7 +101,10 @@ describe('StaffPasskeyService', () => {
   describe('adding a passkey', () => {
     const answer = {
       id: 'cred-1',
-      response: { clientDataJSON: clientData('reg-ch'), transports: ['usb'] },
+      response: {
+        clientDataJSON: clientData('reg-ch'),
+        transports: ['usb', 'made-up', 7],
+      },
     };
 
     it('asks for a discoverable passkey with user verification, never one the identity has', async () => {
@@ -208,6 +230,18 @@ describe('StaffPasskeyService', () => {
       expect(prisma.adminPasskey.create).not.toHaveBeenCalled();
     });
 
+    it('refuses an answer whose id is not text, before anything else', async () => {
+      await expect(
+        service.register(
+          'admin-1',
+          { ...answer, id: { not: 'text' } } as never,
+          undefined,
+          meta,
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(prisma.adminPasskeyChallenge.deleteMany).not.toHaveBeenCalled();
+    });
+
     it('refuses an answer that does not verify, or throws', async () => {
       vi.mocked(verifyRegistrationResponse)
         .mockResolvedValueOnce({ verified: false } as never)
@@ -267,16 +301,17 @@ describe('StaffPasskeyService', () => {
       });
     });
 
-    it('answers whose passkey it is, and keeps its new counter and when it was used', async () => {
+    it('answers which passkey and whose, moves its counter on, and keeps when it was used only on request', async () => {
       prisma.adminPasskey.findUnique.mockResolvedValue(kept);
       vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
         verified: true,
         authenticationInfo: { newCounter: 5 },
       } as never);
 
-      await expect(service.authenticate(answer as never)).resolves.toBe(
-        'admin-1',
-      );
+      await expect(service.authenticate(answer as never)).resolves.toEqual({
+        adminId: 'admin-1',
+        passkeyId: 'pk-1',
+      });
       expect(verifyAuthenticationResponse).toHaveBeenCalledWith(
         expect.objectContaining({
           expectedChallenge: 'auth-ch',
@@ -286,11 +321,22 @@ describe('StaffPasskeyService', () => {
       );
       expect(prisma.adminPasskey.update).toHaveBeenCalledWith({
         where: { id: 'pk-1' },
-        data: { counter: 5n, lastUsedAt: expect.any(Date) },
+        data: { counter: 5n },
+      });
+
+      // When it was used is kept only once the sign-in is accepted.
+      await service.markUsed('pk-1');
+      expect(prisma.adminPasskey.update).toHaveBeenLastCalledWith({
+        where: { id: 'pk-1' },
+        data: { lastUsedAt: expect.any(Date) },
       });
     });
 
     it('gives the same refusal for a used challenge, an unknown passkey, or one that does not verify', async () => {
+      await expect(
+        service.authenticate({ ...answer, id: 42 } as never),
+      ).rejects.toThrow(new UnauthorizedException('Passkey not accepted'));
+
       prisma.adminPasskeyChallenge.deleteMany.mockResolvedValueOnce({
         count: 0,
       });

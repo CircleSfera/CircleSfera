@@ -6261,7 +6261,9 @@
       "error": "No se ha podido hacer. Inténtalo de nuevo.",
       "notice_title": "Añade una passkey",
       "notice_body": "Entrar con una passkey es más seguro que la contraseña y el código, y pronto será obligatorio para el equipo. Añade una en este dispositivo.",
-      "notice_action": "Añadir passkey"
+      "notice_action": "Añadir passkey",
+      "create": "Crear la passkey",
+      "create_hint": "Pulsa «Crear la passkey» y sigue los pasos de tu dispositivo."
     }
   },
   "interactive": {

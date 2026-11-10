@@ -560,6 +560,9 @@ export class AdminAuthService {
       this.prisma.adminRefreshToken.deleteMany({
         where: { adminId: admin.id },
       }),
+      // Setting up the access again starts from nothing: no passkey added
+      // before (perhaps by whoever took the access) still opens it.
+      this.prisma.adminPasskey.deleteMany({ where: { adminId: admin.id } }),
       this.prisma.adminAuditLog.create({
         data: {
           adminId: admin.id,
@@ -674,19 +677,35 @@ export class AdminAuthService {
       where: { id: adminId },
       include: { roles: { select: { role: { select: { name: true } } } } },
     });
-    const refused = () => new UnauthorizedException('Passkey not accepted');
-    if (
-      admin?.status !== 'ACTIVE' ||
-      accessHasExpired(admin.accessExpiresAt) ||
-      (admin.lockedUntil && admin.lockedUntil > new Date())
-    ) {
-      throw refused();
+    // A refusal of a known identity is written down; it never counts
+    // towards the lockout, which is there against guessing a password.
+    const refused = async (): Promise<never> => {
+      if (admin) {
+        await this.prisma.adminAuditLog.create({
+          data: {
+            adminId: admin.id,
+            action: 'ADMIN_LOGIN_FAILED',
+            targetType: 'admin',
+            targetId: admin.id,
+            details: 'Passkey refused',
+            ipAddress: meta.ip,
+            userAgent: meta.userAgent,
+          },
+        });
+      }
+      throw new UnauthorizedException('Passkey not accepted');
+    };
+    // A lockout after wrong passwords does not stop a passkey, which cannot
+    // be guessed: anyone who knows a staff email could otherwise lock its
+    // holder out of the one factor that is safe.
+    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
+      return refused();
     }
     const reviewer = isExternalReviewer(admin.roles.map((r) => r.role.name));
     if (reviewer) {
-      if (!reviewerAccessIsValid(admin.accessExpiresAt)) throw refused();
+      if (!reviewerAccessIsValid(admin.accessExpiresAt)) return refused();
     } else if (!admin.totpEnabled) {
-      throw refused();
+      return refused();
     }
     await this.prisma.adminIdentity.update({
       where: { id: admin.id },
@@ -702,6 +721,7 @@ export class AdminAuthService {
             accessExpiresAt: admin.accessExpiresAt as Date,
           }
         : undefined,
+      'Signed in with a passkey',
     );
   }
 
@@ -952,6 +972,7 @@ export class AdminAuthService {
     email: string,
     meta: { ip?: string; userAgent?: string },
     reviewer?: ReviewerSession,
+    details?: string,
   ): Promise<AdminTokenPair> {
     const now = Date.now();
     const mark = reviewer
@@ -996,6 +1017,7 @@ export class AdminAuthService {
         action: 'ADMIN_LOGIN',
         targetType: 'admin',
         targetId: adminId,
+        details,
         ipAddress: meta.ip,
         userAgent: meta.userAgent,
       },

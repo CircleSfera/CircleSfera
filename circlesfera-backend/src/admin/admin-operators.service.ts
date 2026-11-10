@@ -520,6 +520,9 @@ export class AdminOperatorsService {
     });
 
     await this.prisma.adminRefreshToken.deleteMany({ where: { adminId: id } });
+    // Resetting the access removes every passkey too: one added by whoever
+    // took the access must not outlive its recovery.
+    await this.prisma.adminPasskey.deleteMany({ where: { adminId: id } });
 
     await this.logAction(
       actorAdminId,

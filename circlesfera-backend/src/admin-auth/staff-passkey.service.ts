@@ -25,6 +25,17 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export const STAFF_PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 type Scope = 'REGISTRATION' | 'AUTHENTICATION';
+
+// The transports a browser may name; anything else is not kept.
+const KNOWN_TRANSPORTS = new Set<string>([
+  'ble',
+  'cable',
+  'hybrid',
+  'internal',
+  'nfc',
+  'smart-card',
+  'usb',
+]);
 type ClientMeta = { ip?: string; userAgent?: string };
 
 /**
@@ -41,8 +52,24 @@ export function staffWebAuthnOrigins(
     ?.split(',')
     .map((o) => o.trim())
     .filter(Boolean);
-  if (configured?.length) return configured;
-  if (config.get<string>('NODE_ENV') === 'production') {
+  const production = config.get<string>('NODE_ENV') === 'production';
+  if (configured?.length) {
+    // As for participants' passkeys: production takes https staff hosts only.
+    for (const origin of configured) {
+      if (
+        production &&
+        (!origin.startsWith('https://') ||
+          origin.includes('localhost') ||
+          origin.includes('127.0.0.1'))
+      ) {
+        throw new Error(
+          `Insecure staff WebAuthn origin '${origin}' is forbidden in production; HTTPS required`,
+        );
+      }
+    }
+    return configured;
+  }
+  if (production) {
     return [`https://admin.${rpID}`, `https://backoffice.${rpID}`];
   }
   return [`http://admin.${rpID}:5173`, `http://backoffice.${rpID}:5173`];
@@ -171,6 +198,7 @@ export class StaffPasskeyService {
   ): Promise<{ id: string }> {
     const challenge = StaffPasskeyService.challengeOf(response);
     if (
+      typeof response.id !== 'string' ||
       !challenge ||
       !(await this.takeChallenge(challenge, 'REGISTRATION', adminId))
     ) {
@@ -192,25 +220,40 @@ export class StaffPasskeyService {
       throw new UnauthorizedException('Passkey not verified');
     }
     const { credential } = verification.registrationInfo;
-    const count = await this.prisma.adminPasskey.count({ where: { adminId } });
-    if (count >= STAFF_PASSKEYS_MAX) {
-      throw AppException.Conflict(
-        ErrorCode.PASSKEY_LIMIT_REACHED,
-        'Passkey limit reached',
-        { max: STAFF_PASSKEYS_MAX },
-      );
-    }
-    const created = await this.prisma.adminPasskey.create({
-      data: {
-        adminId,
-        credentialID: credential.id,
-        publicKey: Buffer.from(credential.publicKey),
-        counter: BigInt(credential.counter),
-        transports: (response.response.transports ??
-          []) as AuthenticatorTransport[],
-        name: name?.trim() || null,
-      },
-      select: { id: true },
+    const transports = (
+      Array.isArray(response.response?.transports)
+        ? response.response.transports
+        : []
+    ).filter(
+      (t): t is AuthenticatorTransport =>
+        typeof t === 'string' && KNOWN_TRANSPORTS.has(t),
+    );
+    // The identity's row is written first, which locks it until the end:
+    // two additions at once are counted in turn, never past the limit.
+    const created = await this.prisma.$transaction(async (tx) => {
+      await tx.adminIdentity.update({
+        where: { id: adminId },
+        data: { updatedAt: new Date() },
+      });
+      const count = await tx.adminPasskey.count({ where: { adminId } });
+      if (count >= STAFF_PASSKEYS_MAX) {
+        throw AppException.Conflict(
+          ErrorCode.PASSKEY_LIMIT_REACHED,
+          'Passkey limit reached',
+          { max: STAFF_PASSKEYS_MAX },
+        );
+      }
+      return tx.adminPasskey.create({
+        data: {
+          adminId,
+          credentialID: credential.id,
+          publicKey: Buffer.from(credential.publicKey),
+          counter: BigInt(credential.counter),
+          transports,
+          name: name?.trim() || null,
+        },
+        select: { id: true },
+      });
     });
     await this.audit(adminId, 'ADMIN_PASSKEY_ADDED', created.id, meta);
     return created;
@@ -227,13 +270,18 @@ export class StaffPasskeyService {
   }
 
   /**
-   * Verifies a sign-in with a staff passkey and answers whose it is. Any
-   * failure is the same refusal, telling nothing about the passkey.
+   * Verifies a sign-in with a staff passkey and answers which one it is and
+   * whose. Any failure is the same refusal, telling nothing about the
+   * passkey. Its counter moves on here; when it was used is kept only once
+   * the sign-in is accepted (markUsed).
    */
-  async authenticate(response: AuthenticationResponseJSON): Promise<string> {
+  async authenticate(
+    response: AuthenticationResponseJSON,
+  ): Promise<{ adminId: string; passkeyId: string }> {
     const refused = () => new UnauthorizedException('Passkey not accepted');
     const challenge = StaffPasskeyService.challengeOf(response);
     if (
+      typeof response.id !== 'string' ||
       !challenge ||
       !(await this.takeChallenge(challenge, 'AUTHENTICATION', null))
     ) {
@@ -264,12 +312,17 @@ export class StaffPasskeyService {
     if (!verification.verified) throw refused();
     await this.prisma.adminPasskey.update({
       where: { id: passkey.id },
-      data: {
-        counter: BigInt(verification.authenticationInfo.newCounter),
-        lastUsedAt: new Date(),
-      },
+      data: { counter: BigInt(verification.authenticationInfo.newCounter) },
     });
-    return passkey.adminId;
+    return { adminId: passkey.adminId, passkeyId: passkey.id };
+  }
+
+  /** Keeps when a passkey last opened a session. */
+  async markUsed(passkeyId: string): Promise<void> {
+    await this.prisma.adminPasskey.update({
+      where: { id: passkeyId },
+      data: { lastUsedAt: new Date() },
+    });
   }
 
   /** Removes one of the identity's own passkeys. */

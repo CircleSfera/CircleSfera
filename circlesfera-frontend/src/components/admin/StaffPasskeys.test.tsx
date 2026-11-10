@@ -141,13 +141,19 @@ describe('StaffPasskeysDialog', () => {
     fireEvent.click(
       screen.getByRole('button', { name: i18n!.t('adminPanel.passkeys.add') }),
     );
-    // The step-up dialog asks for the code; the add goes on by itself.
+    // The step-up dialog asks for the code; then the passkey is created
+    // with a click of its own, which the browser needs for its prompt.
     fireEvent.change(await screen.findByPlaceholderText('000000'), {
       target: { value: '123456' },
     });
     fireEvent.click(
       screen.getByRole('button', { name: i18n!.t('admin.operators.confirm') }),
     );
+    const createButton = await screen.findByRole('button', {
+      name: i18n!.t('adminPanel.passkeys.create'),
+    });
+    expect(startRegistration).not.toHaveBeenCalled();
+    fireEvent.click(createButton);
 
     await waitFor(() =>
       expect(adminAuthApi.registerPasskey).toHaveBeenCalledWith(
@@ -183,22 +189,32 @@ describe('StaffPasskeysDialog', () => {
       <StaffPasskeysDialog isOpen onClose={onClose} />,
     );
     await screen.findByText(i18n!.t('adminPanel.passkeys.none'));
-    const add = screen.getByRole('button', {
-      name: i18n!.t('adminPanel.passkeys.add'),
-    });
-
-    fireEvent.click(add);
+    const tryOnce = async () => {
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n!.t('adminPanel.passkeys.add'),
+        }),
+      );
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: i18n!.t('adminPanel.passkeys.create'),
+        }),
+      );
+    };
+    await tryOnce();
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
         i18n!.t('adminPanel.passkeys.cancelled'),
       ),
     );
-    fireEvent.click(add);
+    // Options are used once: another try starts with new ones.
+    await tryOnce();
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
         i18n!.t('adminPanel.passkeys.error'),
       ),
     );
+    expect(adminAuthApi.passkeyRegisterOptions).toHaveBeenCalledTimes(2);
     expect(adminAuthApi.registerPasskey).not.toHaveBeenCalled();
   });
 

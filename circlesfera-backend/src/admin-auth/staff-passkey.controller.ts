@@ -87,13 +87,14 @@ export class StaffPasskeyController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const adminId = await this.passkeys.authenticate(
+    const { adminId, passkeyId } = await this.passkeys.authenticate(
       dto.response as unknown as AuthenticationResponseJSON,
     );
     const tokens = await this.adminAuthService.signInWithPasskey(
       adminId,
       this.clientMeta(req),
     );
+    await this.passkeys.markUsed(passkeyId);
     res.cookie(
       ADMIN_ACCESS_TOKEN_COOKIE,
       tokens.accessToken,
