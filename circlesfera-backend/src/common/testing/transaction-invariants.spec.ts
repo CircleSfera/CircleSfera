@@ -4,6 +4,13 @@ import { FollowsService } from '../../follows/follows.service.js';
 import { MonetizationService } from '../../monetization/monetization.service.js';
 import { PaymentsService } from '../../payments/payments.service.js';
 
+// Whoever pays here is an adult, unless a test says otherwise; the rule is
+// tested on its own (adult-payer.policy.spec.ts).
+const adultPayer = vi.hoisted(() => ({
+  assertAdultPayer: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../policies/adult-payer.policy.js', () => adultPayer);
+
 describe('Transaction Boundaries and Concurrency Invariants', () => {
   describe('Monetization & Financial Ledger Invariants', () => {
     let monetizationService: MonetizationService;

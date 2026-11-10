@@ -11,6 +11,13 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { PaymentsService, planAccountType } from './payments.service.js';
 
+// Whoever pays here is an adult, unless a test says otherwise; the rule is
+// tested on its own (adult-payer.policy.spec.ts).
+const adultPayer = vi.hoisted(() => ({
+  assertAdultPayer: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../common/policies/adult-payer.policy.js', () => adultPayer);
+
 const asEvent = (event: unknown) => event as unknown as Stripe.Event;
 
 describe('PaymentsService', () => {
@@ -305,6 +312,16 @@ describe('PaymentsService', () => {
   });
 
   describe('createCheckout and ensureStripeCustomer', () => {
+    it('opens no plan checkout when whoever pays is not an adult', async () => {
+      adultPayer.assertAdultPayer.mockRejectedValueOnce(
+        Object.assign(new Error('under age'), { errorCode: 'PAYER_UNDER_AGE' }),
+      );
+      await expect(
+        service.createCheckout('u_1', 'plan_1', 'MONTHLY', 'prof_1'),
+      ).rejects.toMatchObject({ errorCode: 'PAYER_UNDER_AGE' });
+      expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
     it('throws USER_NOT_FOUND when user does not exist', async () => {
       prisma.user.findUnique = vi.fn().mockResolvedValue(null);
       await expect(
@@ -583,6 +600,11 @@ describe('PaymentsService', () => {
         expect.objectContaining({
           idempotencyKey: 'checkout_sub_tax_u_year:prof_1:plan_1:YEARLY',
         }),
+      );
+      // Whoever pays is an adult with a verified identity.
+      expect(adultPayer.assertAdultPayer).toHaveBeenCalledWith(
+        expect.anything(),
+        'u_year',
       );
     });
 
@@ -908,6 +930,18 @@ describe('PaymentsService', () => {
       prisma.platformSubscription.updateMany = vi
         .fn()
         .mockResolvedValue({ count: 1 });
+    });
+
+    it('does not resume a plan for someone who is not an adult', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      adultPayer.assertAdultPayer.mockRejectedValueOnce(
+        Object.assign(new Error('under age'), { errorCode: 'PAYER_UNDER_AGE' }),
+      );
+      await expect(service.resumePlan('u_1', 'prof_1')).rejects.toMatchObject({
+        errorCode: 'PAYER_UNDER_AGE',
+      });
+      expect(stripeService.resumeSubscription).not.toHaveBeenCalled();
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
     });
 
     it('takes back the cancellation, unmarks it, and emails the payer', async () => {
