@@ -330,6 +330,25 @@ describe('TwoFactorService', () => {
       });
     });
 
+    it('refuses a right code already used, and changes nothing', async () => {
+      const encryptedSecret = cryptoService.encrypt('GENERATED_SECRET');
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        twoFactorSecret: encryptedSecret,
+      });
+      vi.mocked(verifySync).mockReturnValue({
+        valid: true,
+        delta: 0,
+        timeStep: 59_000_000,
+      } as never);
+      // Its step was taken already: nothing matched.
+      mockPrismaService.signIn.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.turnOnTwoFactorAuthentication('user-1', '123456'),
+      ).rejects.toThrow();
+      expect(mockPrismaService.signIn.update).not.toHaveBeenCalled();
+    });
+
     it('throws BadRequestException when the code is invalid', async () => {
       const encryptedSecret = cryptoService.encrypt('GENERATED_SECRET');
       mockPrismaService.user.findUnique.mockResolvedValue({
