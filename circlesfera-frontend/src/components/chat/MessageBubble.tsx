@@ -5,8 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
 import type { Message } from '../../types';
 import { getMessageDisplayText } from '../../utils/chatMessageDisplay';
-import { formatCents } from '../../utils/money';
-import { sellsInApp } from '../../utils/sellsInApp';
 import { VoicePlayer } from '../audio/VoicePlayer';
 import MediaThumb from '../common/MediaThumb';
 import UserAvatar from '../UserAvatar';
@@ -23,7 +21,6 @@ interface MessageBubbleProps {
   onReact: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
   onEdit?: (msg: Message, decryptedText: string) => void;
-  onUnlock?: (messageId: string) => void;
   isRead?: boolean;
   currentUserId?: string;
 }
@@ -39,7 +36,6 @@ export default memo(function MessageBubble({
   onReact,
   onDelete,
   onEdit,
-  onUnlock,
   isRead,
   currentUserId,
 }: MessageBubbleProps) {
@@ -218,33 +214,12 @@ export default memo(function MessageBubble({
                       <p className="font-semibold text-white">
                         {t('chat.locked_title')}
                       </p>
+                      {/* Paid messages are no longer sold; who already
+                          bought one sees it open. */}
                       <p className="text-xs text-white/70 mt-1">
-                        {t('chat.locked_subtitle')}
+                        {t('chat.locked_not_for_sale')}
                       </p>
                     </div>
-                    {!sellsInApp() ? (
-                      <p className="mt-2 text-sm text-white/70">
-                        {t('monetization.not_in_app')}
-                      </p>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => onUnlock && msg.id && onUnlock(msg.id)}
-                          className="mt-2 button-alone py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
-                        >
-                          {t('chat.unlock_for', {
-                            price: formatCents(
-                              msg.priceCents || 0,
-                              i18n.language,
-                            ),
-                          })}
-                        </button>
-                        <p className="mt-1 text-xs text-white/60">
-                          {t('vat.included')}
-                        </p>
-                      </>
-                    )}
                   </div>
                 ) : (
                   <span

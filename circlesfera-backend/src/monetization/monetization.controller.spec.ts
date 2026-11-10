@@ -306,7 +306,7 @@ describe('MonetizationController', () => {
     );
   });
 
-  it('starts a message unlock as the session userId', async () => {
+  it('passes a message unlock on, by its message', async () => {
     mockService.createMessageUnlockSession.mockResolvedValue({
       url: 'https://example.com',
     });
@@ -322,9 +322,7 @@ describe('MonetizationController', () => {
       .expect(201);
 
     expect(mockService.createMessageUnlockSession).toHaveBeenCalledWith(
-      TEST_USER.userId,
       'msg-1',
-      'https://example.com/return',
     );
   });
 

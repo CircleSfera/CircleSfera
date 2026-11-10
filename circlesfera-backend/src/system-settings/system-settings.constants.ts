@@ -6,6 +6,7 @@ export const SYSTEM_SETTING_KEYS = {
   LIVE_STREAMS_ENABLED: 'live_streams_enabled',
   TURNSTILE_REQUIRED: 'turnstile_required',
   EMAIL_VERIFICATION_REQUIRED: 'email_verification_required',
+  PAYMENTS_ENABLED: 'payments_enabled',
 } as const;
 
 export type SystemSettingKey =
@@ -50,6 +51,12 @@ export const SYSTEM_SETTING_DEFAULTS: readonly SystemSettingDefault[] = [
     value: 'true',
     description:
       'Require a verified email before posts, follows, messages, likes, uploads and profile edits.',
+  },
+  {
+    key: SYSTEM_SETTING_KEYS.PAYMENTS_ENABLED,
+    value: 'true',
+    description:
+      'Allow new payments: plans, paid content, tips, live gifts and promotions. While off nothing new is charged; money already earned keeps being paid out.',
   },
 ] as const;
 

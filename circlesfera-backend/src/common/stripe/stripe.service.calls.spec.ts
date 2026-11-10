@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import type { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StripeService } from './stripe.service.js';
@@ -136,6 +137,44 @@ describe('StripeService checkout, customers and subscriptions', () => {
       params,
       options,
     );
+  });
+
+  describe('while staff pause payments', () => {
+    const withPayments = (enabled: boolean) => {
+      const isEnabled = vi.fn().mockResolvedValue(enabled);
+      const paused = new StripeService(
+        {
+          get: vi.fn((key: string) =>
+            key === 'STRIPE_SECRET_KEY' ? 'sk_test_dummy' : undefined,
+          ),
+        } as unknown as ConfigService,
+        { isEnabled } as never,
+      );
+      (paused as unknown as { stripe: unknown }).stripe = client;
+      return { paused, isEnabled };
+    };
+
+    it('opens no checkout and says payments are paused', async () => {
+      const { paused, isEnabled } = withPayments(false);
+
+      await expect(
+        paused.createCheckoutSession({ mode: 'payment' } as never),
+      ).rejects.toMatchObject({
+        errorCode: ErrorCode.PAYMENTS_PAUSED,
+        status: 503,
+      });
+      expect(isEnabled).toHaveBeenCalledWith('payments_enabled');
+      expect(client.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it('opens the checkout once payments are on', async () => {
+      const { paused } = withPayments(true);
+      client.checkout.sessions.create.mockResolvedValue({ id: 'cs_2' });
+
+      await expect(
+        paused.createCheckoutSession({ mode: 'payment' } as never),
+      ).resolves.toEqual({ id: 'cs_2' });
+    });
   });
 
   it('reads and expires a checkout by its id', async () => {

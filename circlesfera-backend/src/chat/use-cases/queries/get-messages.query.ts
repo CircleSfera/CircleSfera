@@ -173,9 +173,16 @@ export class GetMessagesQuery {
         m.voiceWaveform = null;
       }
 
-      if (m.isLocked && profileId && m.senderId !== profileId) {
+      if (m.isLocked) {
+        // Locked says whether this reader may read it: its sender and who
+        // bought it read it as any other message; anyone else gets nothing
+        // of it.
         const isUnlocked = m.messageUnlocks && m.messageUnlocks.length > 0;
-        if (!isUnlocked) {
+        const canRead =
+          (!!profileId && m.senderId === profileId) || !!isUnlocked;
+        if (canRead) {
+          m.isLocked = false;
+        } else {
           m.content = 'This message is locked. Pay to unlock.';
           m.url = null;
           m.standardUrl = null;

@@ -81,7 +81,14 @@ export function apiErrorMessage(
   // applies.
   const useCode = code && !(options.signIn && code === 'UNAUTHORIZED');
   if (useCode) {
-    const text = t(`errors.codes.${code}`, { defaultValue: '' });
+    // A number or a word the error carries (the age it asks for, a price
+    // range) can go into its text.
+    const values = Object.fromEntries(
+      Object.entries(apiErrorDetails(error) ?? {}).filter(
+        ([, value]) => typeof value === 'number' || typeof value === 'string',
+      ),
+    );
+    const text = t(`errors.codes.${code}`, { ...values, defaultValue: '' });
     if (text) return text;
   }
 
