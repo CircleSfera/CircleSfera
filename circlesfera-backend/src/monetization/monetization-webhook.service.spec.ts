@@ -54,6 +54,7 @@ describe('MonetizationWebhookService', () => {
               findUnique: vi.fn(),
               update: vi.fn(),
             },
+            tipReservation: { deleteMany: vi.fn() },
             monetization: {
               upsert: vi.fn(),
               update: vi.fn(),
@@ -400,6 +401,34 @@ describe('MonetizationWebhookService', () => {
           }),
         }),
       );
+      // A checkout opened before tips held their amount has nothing to let go.
+      expect(prisma.tipReservation.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('lets the hold on the weekly limit go once the tip is paid', async () => {
+      prisma.profile.findFirst = vi
+        .fn()
+        .mockResolvedValueOnce({ id: 'creator-profile-2' })
+        .mockResolvedValueOnce({ id: 'tipper-profile-1' });
+
+      await service.handleCheckoutSessionCompleted({
+        id: 'cs_tip_held',
+        client_reference_id: 'tipper1',
+        amount_total: 500,
+        currency: 'eur',
+        payment_intent: 'pi_tip_held',
+        metadata: {
+          type: 'DIRECT_TIP',
+          creatorId: 'creator2',
+          postId: 'post2',
+          tipReservationId: 'hold-1',
+        },
+      } as any);
+
+      expect(prisma.tipReservation.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'hold-1' },
+      });
+      expect(prisma.transaction.create).toHaveBeenCalled();
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'notification.create',
         expect.objectContaining({

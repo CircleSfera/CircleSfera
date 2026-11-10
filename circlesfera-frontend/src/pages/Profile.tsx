@@ -34,6 +34,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useStoryStore } from '../stores/storyStore';
 import { useUIStore } from '../stores/uiStore';
 import type { Collection, ProfileWithUser } from '../types';
+import { apiErrorCode } from '../utils/apiErrorMessage';
 import { asList } from '../utils/asList';
 import { profileColor, profileColorStyle } from '../utils/profileColors';
 
@@ -49,7 +50,6 @@ const CloseFriendsModal = lazy(
   () => import('../components/modals/CloseFriendsModal'),
 );
 const ReportModal = lazy(() => import('../components/modals/ReportModal'));
-const TipModal = lazy(() => import('../components/monetization/TipModal'));
 
 const PROFILE_PAGE_SIZE = 18;
 
@@ -62,7 +62,6 @@ export default function Profile() {
   const [isHighlightModalOpen, setIsHighlightModalOpen] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showTipModal, setShowTipModal] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -173,9 +172,10 @@ export default function Profile() {
     } catch (err) {
       console.error(err);
       // A reached message-request cap already shows its own notice.
-      const errorCode = (err as { data?: { errorCode?: string } }).data
-        ?.errorCode;
-      if (errorCode !== 'ACTION_LIMIT_REACHED') {
+      const errorCode = apiErrorCode(err);
+      if (errorCode === 'MESSAGE_REQUESTS_OFF') {
+        toast.error(t('errors.codes.MESSAGE_REQUESTS_OFF'));
+      } else if (errorCode !== 'ACTION_LIMIT_REACHED') {
         toast.error(t('profile.messages.chat_error'));
       }
     } finally {
@@ -551,7 +551,6 @@ export default function Profile() {
           setShowFollowsModal={setShowFollowsModal}
           setShowReportModal={setShowReportModal}
           setShowBlockModal={setShowBlockModal}
-          setShowTipModal={setShowTipModal}
           onOpenCloseFriends={
             isMe ? () => setShowCloseFriendsModal(true) : undefined
           }
@@ -749,15 +748,6 @@ export default function Profile() {
           <CloseFriendsModal
             isOpen={showCloseFriendsModal}
             onClose={() => setShowCloseFriendsModal(false)}
-          />
-        )}
-
-        {showTipModal && profile?.data && (
-          <TipModal
-            isOpen={showTipModal}
-            onClose={() => setShowTipModal(false)}
-            receiverId={profile.data.id}
-            receiverName={profile.data.username}
           />
         )}
       </Suspense>

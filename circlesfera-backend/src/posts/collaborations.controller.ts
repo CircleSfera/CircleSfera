@@ -44,6 +44,27 @@ export class CollaborationsController {
     return this.collaborators.accept(user.profileId, postId);
   }
 
+  // The collaborator pins or unpins the post on its own profile.
+  @Post(':postId/pin')
+  @MemberAllowed('content.manage')
+  @ApiResponse({ status: 201 })
+  async pin(
+    @CurrentUser() user: CurrentUserData,
+    @Param('postId') postId: string,
+  ) {
+    return this.collaborators.pin(user.profileId, postId);
+  }
+
+  @Delete(':postId/pin')
+  @MemberAllowed('content.manage')
+  @ApiResponse({ status: 200 })
+  async unpin(
+    @CurrentUser() user: CurrentUserData,
+    @Param('postId') postId: string,
+  ) {
+    return this.collaborators.unpin(user.profileId, postId);
+  }
+
   // Declining an invitation and leaving an accepted collaboration are the
   // same: the post is its author's alone again.
   @Delete(':postId')

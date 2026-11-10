@@ -86,11 +86,12 @@ export const monetizationApi = {
     const { data } = await api.get('/monetization/tax-status');
     return data;
   },
+  // A tip is always for a post, at one of TIP_AMOUNTS_CENTS.
   sendTip: async (
     receiverId: string,
     amountCents: number,
     returnUrl: string,
-    postId?: string,
+    postId: string,
   ) => {
     const { data } = await api.post('/monetization/tip', {
       receiverId,

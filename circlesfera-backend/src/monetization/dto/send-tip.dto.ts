@@ -1,6 +1,6 @@
+import { TIP_AMOUNTS_CENTS } from '@circlesfera/shared';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
-import { MIN_TIP_CENTS } from '../../common/constants/monetization.constants.js';
+import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SendTipDto {
   @ApiProperty({ required: true, type: () => String })
@@ -8,11 +8,9 @@ export class SendTipDto {
   @IsNotEmpty()
   receiverId!: string;
 
-  @ApiProperty({ required: true, type: () => Number, minimum: MIN_TIP_CENTS })
+  // One of the fixed amounts; any other is refused with TIP_AMOUNT_NOT_ALLOWED.
+  @ApiProperty({ required: true, type: () => Number, enum: TIP_AMOUNTS_CENTS })
   @IsInt()
-  @Min(MIN_TIP_CENTS, {
-    message: `Minimum tip is €${(MIN_TIP_CENTS / 100).toFixed(2)}`,
-  })
   amountCents!: number;
 
   @ApiProperty({ required: true, type: () => String })
@@ -20,7 +18,9 @@ export class SendTipDto {
   @IsNotEmpty()
   returnUrl!: string;
 
-  @ApiProperty({ required: false, type: () => String })
+  // The post the tip is for; a tip without one is refused with
+  // TIP_TARGET_REQUIRED, which apps that leave it out can read.
+  @ApiProperty({ required: true, type: () => String })
   @IsString()
   @IsOptional()
   postId?: string;

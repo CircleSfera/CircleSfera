@@ -447,6 +447,16 @@ model Profile {
   // Whether others may share this Profile's posts and Frames to their
   // stories, as a card of the original. Off stops new shares only.
   allowStoryShares       Boolean            @default(true)
+  // Who may mention this Profile and who may tag it. A mention or tag from
+  // someone not allowed is kept out silently: no notice, no tag; nobody is
+  // told. FOLLOWING means Profiles this one follows.
+  mentionsFrom           InteractionAudience @default(EVERYONE)
+  tagsFrom               InteractionAudience @default(EVERYONE)
+  // Tags wait for this Profile's approval before they show on its profile.
+  manualTagApproval      Boolean            @default(false)
+  // Whether Profiles it does not follow may start a chat with it (a message
+  // request). Profiles it follows always reach its inbox.
+  messageRequests        Boolean            @default(true)
   // Push notifications of this Profile; the person's other Profiles keep
   // their own choice. Off pauses every push of the Profile.
   pushNotifications      Boolean            @default(true)
@@ -611,23 +621,29 @@ model Post {
   /// The template others may use, offered from this Frame.
   studioTemplate   StudioTemplate? @relation("TemplateOfPost")
 
-  moderationStatus   ModerationStatus @default(VISIBLE)
-  moderationNote     String?          @db.Text
+  moderationStatus        ModerationStatus @default(VISIBLE)
+  moderationNote          String?          @db.Text
   // When it was last hidden or removed by moderation: the six months to
   // appeal it count from then.
-  moderatedAt        DateTime?
+  moderatedAt             DateTime?
   // When automatic moderation checked it and found nothing: only then is it
   // sold or tipped. Null until checked, or while the check cannot run.
-  moderationPassedAt DateTime?
+  moderationPassedAt      DateTime?
+  // Whether that pass was given by a person on staff. The first priced items
+  // of a Profile are passed by a person before automatic passes count.
+  moderationPassedByStaff Boolean          @default(false)
+  // When its author last changed its caption or cover: a person passing it
+  // passes it only as it was when they looked at it.
+  contentEditedAt         DateTime?
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt          DateTime?
+  deletedAt               DateTime?
   // When its author archived it: shown in their archive only, with its likes
   // and comments, until they show it on their profile again.
-  archivedAt         DateTime?
+  archivedAt              DateTime?
   // When its author pinned it to the top of their profile; null when not
   // pinned. A Profile pins at most PROFILE_PINS_MAX.
-  pinnedToProfileAt  DateTime?
+  pinnedToProfileAt       DateTime?
 
   // Premium Content
 
@@ -693,7 +709,10 @@ model PostTag {
   profileId String
   x         Float? // Optional: X coordinate (0-1)
   y         Float? // Optional: Y coordinate (0-1)
-  createdAt DateTime @default(now())
+  // PENDING until the tagged Profile approves it, when it asks to approve
+  // tags by hand; only SHOWN tags are on its profile.
+  status    PostTagStatus @default(SHOWN)
+  createdAt DateTime      @default(now())
 
   post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -712,11 +731,15 @@ model PostCollaborator {
   status      CollaborationStatus @default(PENDING)
   invitedAt   DateTime            @default(now())
   respondedAt DateTime?
+  // When the collaborator pinned the post on its own profile; the author's
+  // pin is Post.pinnedToProfileAt. Ends with the collaboration.
+  pinnedAt    DateTime?
 
   post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId, status])
+  @@index([profileId, pinnedAt])
   @@map("post_collaborators")
 }
 
@@ -839,17 +862,20 @@ model Story {
   placeId  String?
   place    Place?  @relation(fields: [placeId], references: [id], onDelete: SetNull)
 
-  moderationStatus   ModerationStatus @default(VISIBLE)
-  moderationNote     String?
+  moderationStatus        ModerationStatus @default(VISIBLE)
+  moderationNote          String?
   // When it was last hidden or removed by moderation. Removed content is
   // kept for the six months its author has to appeal, then erased.
-  moderatedAt        DateTime?
+  moderatedAt             DateTime?
   // When automatic moderation checked it and found nothing: only then is it
   // sold or tipped. Null until checked, or while the check cannot run.
-  moderationPassedAt DateTime?
+  moderationPassedAt      DateTime?
+  // Whether that pass was given by a person on staff. The first priced items
+  // of a Profile are passed by a person before automatic passes count.
+  moderationPassedByStaff Boolean          @default(false)
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt          DateTime?
+  deletedAt               DateTime?
 
   // Relation to highlights
 
@@ -1422,6 +1448,22 @@ model LiveRecordingPart {
 }
 
 /// Paid virtual gift sent during a live stream (Stripe Checkout + webhook).
+// A tip being paid: its amount counts towards what its payer may give in a
+// week from the moment its checkout opens until it is paid (then the
+// payment counts) or its checkout expires.
+model TipReservation {
+  id          String   @id @default(uuid())
+  // The paying person (User.id); kept without a relation, as the row lives
+  // only as long as its checkout.
+  senderId    String
+  amountCents Int
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([senderId, expiresAt])
+  @@map("tip_reservations")
+}
+
 model LiveGift {
   id                      String            @id @default(uuid())
   // Null once the stream is erased with its host: the gift is a
@@ -2965,6 +3007,7 @@ enum AdminAction {
   CONTENT_REMOVED
   CONTENT_RESTRICTED
   CONTENT_RESTORED
+  PAID_CONTENT_APPROVED
   CONTENT_LABELED
 
   // Report Management
@@ -3144,6 +3187,18 @@ enum MediaStatus {
 }
 
 /// The shape of a post: 1:1, 4:5 or 1.91:1.
+// Who may mention or tag a Profile.
+enum InteractionAudience {
+  EVERYONE
+  FOLLOWING
+  NOBODY
+}
+
+enum PostTagStatus {
+  SHOWN
+  PENDING
+}
+
 enum PostShape {
   SQUARE
   PORTRAIT

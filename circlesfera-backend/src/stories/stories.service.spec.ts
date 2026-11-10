@@ -69,6 +69,16 @@ describe('StoriesService', () => {
     profile: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
+      // Everyone lets anyone mention them unless a test says otherwise.
+      findMany: vi.fn(({ where }: { where: { id: { in: string[] } } }) =>
+        Promise.resolve(
+          where.id.in.map((id) => ({
+            id,
+            mentionsFrom: 'EVERYONE',
+            manualTagApproval: false,
+          })),
+        ),
+      ),
     },
     closeFriend: {
       findUnique: vi.fn(),
@@ -498,6 +508,48 @@ describe('StoriesService', () => {
           targetType: 'story',
           targetId: 'story-1',
         });
+      });
+
+      it('tells no one who takes mentions only from those they follow, or from nobody', async () => {
+        const stickers = module.get(StoryStickersService);
+        vi.mocked(stickers.createForStory).mockResolvedValueOnce([
+          'p-shy',
+          'p-closed',
+        ]);
+        mockPrismaService.profile.findMany.mockResolvedValueOnce([
+          { id: 'p-shy', mentionsFrom: 'FOLLOWING', manualTagApproval: false },
+          { id: 'p-closed', mentionsFrom: 'NOBODY', manualTagApproval: false },
+        ]);
+        // p-shy does not follow the author.
+        mockPrismaService.follow.findMany.mockResolvedValueOnce([]);
+        // Both could see the story.
+        const visible = {
+          profileId: 'user-1',
+          expiresAt: new Date(Date.now() + 3_600_000),
+          isCloseFriendsOnly: false,
+          profile: { privacyLevel: 'PUBLIC' },
+        };
+        mockPrismaService.story.findUnique.mockResolvedValue(visible);
+
+        await service
+          .create('user-1', {
+            url: 'https://cdn.example.com/story.png',
+            stickers: [mentionOf('p-shy'), mentionOf('p-closed')],
+          })
+          .finally(() => mockPrismaService.story.findUnique.mockReset());
+
+        expect(mockPrismaService.follow.findMany).toHaveBeenCalledWith({
+          where: {
+            followerId: { in: ['p-shy'] },
+            followingId: 'user-1',
+            status: 'ACCEPTED',
+          },
+          select: { followerId: true },
+        });
+        expect(eventEmitter.emit).not.toHaveBeenCalledWith(
+          'notification.create',
+          expect.anything(),
+        );
       });
 
       it('tells no one who cannot see the story', async () => {

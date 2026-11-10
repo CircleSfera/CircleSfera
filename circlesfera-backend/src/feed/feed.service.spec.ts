@@ -327,7 +327,15 @@ describe('FeedService', () => {
         select: { favoriteId: true },
       });
       const query = mockPrismaService.post.findMany.mock.calls[0][0];
-      expect(query.where.profileId).toEqual({ in: ['fav-1', 'fav-2'] });
+      expect(query.where.OR).toEqual([
+        { profileId: { in: ['fav-1', 'fav-2'] } },
+        {
+          collaborator: {
+            status: 'ACCEPTED',
+            profileId: { in: ['fav-1', 'fav-2'] },
+          },
+        },
+      ]);
       expect(query.where.visibility).toEqual({ in: ['PUBLIC', 'FOLLOWERS'] });
       expect(query.where.deletedAt).toBeNull();
       expect(query.where.archivedAt).toBeNull();
@@ -358,6 +366,32 @@ describe('FeedService', () => {
       expect(result.data).toEqual([]);
       expect(result.meta.total).toBe(0);
       expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
+    });
+
+    it('includes a post a Favorite co-authors, but not one whose author the viewer muted or hid', async () => {
+      mockPrismaService.favoriteProfile.findMany.mockResolvedValue([
+        { favoriteId: 'fav-1' },
+      ]);
+      mockPrismaService.mute.findMany.mockResolvedValue([
+        { mutedId: 'muted-author' },
+      ]);
+      mockFeedPreferences.getFilterSets.mockResolvedValue({
+        hiddenPostIds: [],
+        hiddenAuthorIds: ['hidden-author'],
+        mutedKeywords: [],
+      });
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      mockPrismaService.post.count.mockResolvedValue(0);
+
+      await service.getFavoritesFeed('viewer', { page: 1, limit: 10 });
+
+      const query = mockPrismaService.post.findMany.mock.calls[0][0];
+      expect(query.where.OR[1]).toEqual({
+        collaborator: { status: 'ACCEPTED', profileId: { in: ['fav-1'] } },
+        profileId: { notIn: ['muted-author', 'hidden-author'] },
+      });
+      // Only the Favorite's accepted collaborations count.
+      expect(query.where.OR[1].collaborator.status).toBe('ACCEPTED');
     });
 
     it('leaves out hidden posts and posts with a muted word', async () => {
@@ -402,6 +436,73 @@ describe('FeedService', () => {
       mockPrismaService.userSettings.findUnique.mockResolvedValue({
         contentPreference: 'GENERAL',
         blurSensitiveContent: true,
+      });
+    });
+
+    it("applies the viewer's mutes, hidden authors and posts, and muted words to the inbox, keeping them in it", async () => {
+      mockFeedInboxService.getInbox.mockResolvedValue([
+        'shown',
+        'by-muted',
+        'by-hidden',
+        'not-interested',
+        'with-word',
+        'own',
+      ]);
+      mockFeedInboxService.getInboxCount.mockResolvedValue(6);
+      mockPrismaService.mute.findMany.mockResolvedValue([
+        { mutedId: 'muted' },
+        // A mute of oneself never hides one's own posts.
+        { mutedId: 'user-1' },
+      ]);
+      mockFeedPreferences.getFilterSets.mockResolvedValue({
+        hiddenPostIds: ['not-interested'],
+        hiddenAuthorIds: ['hidden'],
+        mutedKeywords: ['spoiler'],
+      });
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: 'shown', profileId: 'friend', likes: [] },
+        { id: 'by-muted', profileId: 'muted', likes: [] },
+        { id: 'by-hidden', profileId: 'hidden', likes: [] },
+        { id: 'not-interested', profileId: 'friend', likes: [] },
+        {
+          id: 'with-word',
+          profileId: 'friend',
+          caption: 'A SPOILER',
+          likes: [],
+        },
+        { id: 'own', profileId: 'user-1', likes: [] },
+      ]);
+
+      const result = await service.getFollowingFeed('user-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.data.map((p: { id: string }) => p.id)).toEqual([
+        'shown',
+        'own',
+      ]);
+      // Kept out, not removed: they come back when the filter ends.
+      expect(mockFeedInboxService.removePostsFromInbox).not.toHaveBeenCalled();
+    });
+
+    it('leaves out a post a followed Profile co-authors when the viewer muted its author', async () => {
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'friend' },
+      ]);
+      mockPrismaService.mute.findMany.mockResolvedValue([{ mutedId: 'muted' }]);
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      mockPrismaService.post.count.mockResolvedValue(0);
+
+      await service.getFollowingFeed('user-1', { page: 1, limit: 10 });
+
+      const where = mockPrismaService.post.findMany.mock.calls[0][0].where;
+      expect(where.AND[1].OR[1]).toEqual({
+        collaborator: {
+          status: 'ACCEPTED',
+          profileId: { in: ['friend', 'user-1'] },
+        },
+        profileId: { notIn: ['muted'] },
       });
     });
 

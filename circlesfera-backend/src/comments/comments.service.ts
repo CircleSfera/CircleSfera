@@ -15,6 +15,7 @@ import { $Enums, type Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { allowedTargets } from '../common/policies/interaction.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
   isRemoved,
@@ -205,13 +206,21 @@ export class CommentsService {
         const uniqueMentions = [...new Set(mentions.map((m) => m.slice(1)))];
 
         // Find users mentioned
-        const profiles = await this.prisma.profile.findMany({
+        const found = await this.prisma.profile.findMany({
           where: {
             username: { in: uniqueMentions },
             id: { notIn: [profileId, post.profileId] }, // Don't notify self or post owner (already notified)
           },
           select: { id: true },
         });
+        // Only those who let this Profile mention them are told.
+        const allowed = await allowedTargets(
+          this.prisma,
+          profileId,
+          found.map((p) => p.id),
+          'mention',
+        );
+        const profiles = found.filter((p) => allowed.has(p.id));
 
         await Promise.all(
           profiles.map((profile) =>
@@ -725,13 +734,20 @@ export class CommentsService {
       const mentions = dto.content.match(/@[\w.]+/g);
       if (mentions) {
         const uniqueMentions = [...new Set(mentions.map((m) => m.slice(1)))];
-        const profiles = await this.prisma.profile.findMany({
+        const found = await this.prisma.profile.findMany({
           where: {
             username: { in: uniqueMentions },
             id: { notIn: [profileId, post.profileId] },
           },
           select: { id: true },
         });
+        const allowed = await allowedTargets(
+          this.prisma,
+          profileId,
+          found.map((p) => p.id),
+          'mention',
+        );
+        const profiles = found.filter((p) => allowed.has(p.id));
 
         await Promise.all(
           profiles.map(async (p) => {

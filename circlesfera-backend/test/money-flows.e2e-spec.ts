@@ -1,3 +1,4 @@
+import { TIP_AMOUNTS_CENTS } from '@circlesfera/shared';
 import type { INestApplication } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
@@ -5,10 +6,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from './../src/app.module.js';
 import { useBodyParsers } from '../src/common/config/body-parsers.config.js';
-import {
-  MIN_PPV_PRICE_CENTS,
-  MIN_TIP_CENTS,
-} from '../src/common/constants/monetization.constants.js';
+import { MIN_PPV_PRICE_CENTS } from '../src/common/constants/monetization.constants.js';
 import { LIVE_GIFT_CATALOG } from '../src/live/gift-catalog.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { uniqueSuffix } from './utils/unique-id.js';
@@ -323,21 +321,22 @@ describe('Money flows (e2e)', () => {
       );
     });
 
-    it('rejects a tip below the €2.00 minimum', async () => {
+    it('rejects a tip that is not one of the fixed amounts', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/monetization/tip')
         .set('Cookie', [`access_token=${accessToken}`, csrfCookie])
         .set('x-csrf-token', csrfToken)
         .send({
           receiverId: userId,
-          // Tip minimum is MIN_TIP_CENTS (€2.00), independent of
+          postId: 'any-post',
+          // Tips are one of TIP_AMOUNTS_CENTS, independent of
           // MIN_PPV_PRICE_CENTS (the pay-per-view price floor).
-          amountCents: MIN_TIP_CENTS - 1,
+          amountCents: TIP_AMOUNTS_CENTS[0] - 1,
           returnUrl: 'http://localhost:5173/',
         })
         .expect(400);
 
-      expect(String(res.body.message)).toContain('Minimum tip is €2.00');
+      expect(res.body.errorCode).toBe('TIP_AMOUNT_NOT_ALLOWED');
     });
 
     it('rejects unlock payloads that include a client price', async () => {

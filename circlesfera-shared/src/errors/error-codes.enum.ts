@@ -15,6 +15,8 @@ export enum ErrorCode {
   CANNOT_BLOCK_SELF = 'CANNOT_BLOCK_SELF',
   CANNOT_MUTE_SELF = 'CANNOT_MUTE_SELF',
   CANNOT_RESTRICT_SELF = 'CANNOT_RESTRICT_SELF',
+  // The recipient takes message requests only from Profiles it follows.
+  MESSAGE_REQUESTS_OFF = 'MESSAGE_REQUESTS_OFF',
   FOLLOW_REQUEST_NOT_FOUND = 'FOLLOW_REQUEST_NOT_FOUND',
   // Staff: another admin already claimed the report; details carry who.
   REPORT_ALREADY_CLAIMED = 'REPORT_ALREADY_CLAIMED',
@@ -62,10 +64,16 @@ export enum ErrorCode {
   // Messages are no longer sold: none can be sent with a price, and none
   // sent before can be bought now.
   PAID_MESSAGES_UNAVAILABLE = 'PAID_MESSAGES_UNAVAILABLE',
+  // A tip is always for a post, at one of TIP_AMOUNTS_CENTS.
+  TIP_TARGET_REQUIRED = 'TIP_TARGET_REQUIRED',
+  TIP_AMOUNT_NOT_ALLOWED = 'TIP_AMOUNT_NOT_ALLOWED',
+  // Tips and live gifts of one person in seven days reached the limit.
+  WEEKLY_SUPPORT_LIMIT_REACHED = 'WEEKLY_SUPPORT_LIMIT_REACHED',
 
   // Posts & Media
   POST_NOT_FOUND = 'POST_NOT_FOUND',
   STORY_NOT_FOUND = 'STORY_NOT_FOUND',
+  CONTENT_CHANGED_SINCE_REVIEW = 'CONTENT_CHANGED_SINCE_REVIEW',
   MEDIA_NOT_FOUND = 'MEDIA_NOT_FOUND',
   COMMENT_NOT_FOUND = 'COMMENT_NOT_FOUND',
   // A post already has the most pinned comments it can have.

@@ -136,6 +136,14 @@
       "hidden_words": {
         "label": "Palabras ocultas",
         "desc": "Comentarios"
+      },
+      "collaborations": {
+        "label": "Colaboraciones",
+        "desc": "Invitaciones"
+      },
+      "tags": {
+        "label": "Etiquetas",
+        "desc": "Publicaciones en las que apareces"
       }
     },
     "profile": {
@@ -851,6 +859,54 @@
       "delete_error": "No se pudo eliminar. Inténtalo de nuevo.",
       "archived": "Archivado. Solo tú lo ves, en tu archivo.",
       "archive_error": "No se pudo archivar. Inténtalo de nuevo."
+    },
+    "collaborations": {
+      "title": "Invitaciones para colaborar",
+      "subtitle": "Publicaciones de otras personas en las que te han invitado a ser coautor. Cuando aceptas, la publicación aparece en tu perfil y llega también a tus seguidores.",
+      "empty": "No tienes invitaciones por ahora",
+      "invited_by": "{{username}} te ha invitado a colaborar",
+      "view_post": "Ver la publicación de {{username}}",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "accepted": "Ahora colaboras en esta publicación",
+      "accept_error": "No se ha podido aceptar la invitación",
+      "decline_error": "No se ha podido rechazar la invitación"
+    },
+    "interactions": {
+      "title": "Menciones, etiquetas y mensajes",
+      "subtitle": "Elige quién puede mencionarte, etiquetarte o escribirte. Nadie se entera si lo dejas fuera.",
+      "audience": {
+        "EVERYONE": "Todos",
+        "FOLLOWING": "Personas a las que sigues",
+        "NOBODY": "Nadie"
+      },
+      "mentions": "Quién puede mencionarte",
+      "mentions_desc": "La mención de otra persona se queda en su texto, pero no te avisa.",
+      "tags": "Quién puede etiquetarte",
+      "tags_desc": "Los demás no pueden añadirte a sus publicaciones.",
+      "manual_tags": "Aprobar etiquetas manualmente",
+      "manual_tags_desc": "Las etiquetas nuevas esperan tu aprobación antes de mostrarse en tu perfil.",
+      "review_tags": "Revisar tus etiquetas",
+      "message_requests": "Permitir solicitudes de mensajes",
+      "message_requests_desc": "Si lo desactivas, solo las personas a las que sigues pueden empezar un chat contigo.",
+      "save_error": "No se ha podido guardar el cambio",
+      "load_error": "No se ha podido cargar quién puede mencionarte, etiquetarte o escribirte."
+    },
+    "tags": {
+      "pending_title": "Pendientes de aprobar",
+      "pending_desc": "Aprueba una etiqueta para mostrar la publicación en tu perfil, o quítate de ella.",
+      "pending_empty": "No hay etiquetas pendientes",
+      "shown_title": "En tu perfil",
+      "shown_desc": "Publicaciones en las que te han etiquetado. Si te quitas, desapareces de la publicación; su autor no se entera.",
+      "shown_empty": "No te han etiquetado en ninguna publicación",
+      "by": "Publicación de {{username}}",
+      "approve": "Aprobar",
+      "remove": "Quitarme",
+      "remove_label": "Quitarme de la publicación de {{username}}",
+      "error": "No se ha podido actualizar la etiqueta",
+      "load_error": "No se han podido cargar tus etiquetas.",
+      "unavailable": "Una publicación que no puedes ver",
+      "remove_unavailable_label": "Quitarme de una publicación que no puedes ver"
     }
   },
   "auth": {
@@ -1440,7 +1496,9 @@
       "stop_offering_template": "Dejar de ofrecer su plantilla",
       "template_offered": "Ahora otros pueden usar su plantilla",
       "template_stopped": "Su plantilla ya no se ofrece",
-      "template_error": "No se pudo cambiar. Inténtalo de nuevo."
+      "template_error": "No se pudo cambiar. Inténtalo de nuevo.",
+      "collaborator": "Colaborador",
+      "leave_collaboration": "Dejar de colaborar"
     },
     "modals": {
       "delete_title": "¿Eliminar publicación?",
@@ -1488,6 +1546,24 @@
       "load_failed": "No se pudo cargar. Inténtalo de nuevo.",
       "retry": "Reintentar",
       "how_link": "Cómo funciona tu feed"
+    },
+    "collab": {
+      "and": "y",
+      "title": "Colaborador",
+      "explain": "Invita a una persona a ser coautora. Cuando acepte, la publicación se mostrará en los dos perfiles y llegará a los seguidores de ambos. Tú mantienes todo el control sobre ella.",
+      "username_label": "Nombre de usuario",
+      "username_placeholder": "@usuario",
+      "invite": "Invitar",
+      "invited": "Invitación enviada",
+      "invite_error": "No se ha podido enviar la invitación",
+      "status_pending": "Invitado, aún no ha respondido",
+      "status_accepted": "Coautor",
+      "remove": "Quitar",
+      "withdraw": "Retirar",
+      "removed": "Colaborador quitado",
+      "remove_error": "No se ha podido quitar al colaborador",
+      "left": "Ya no colaboras en esta publicación",
+      "leave_error": "No se ha podido dejar de colaborar"
     }
   },
   "story": {
@@ -2344,6 +2420,8 @@
       "comment": "ha comentado en tu publicación.",
       "mention": "te ha mencionado en un comentario.",
       "mention_story": "te ha mencionado en su historia.",
+      "tag": "te ha etiquetado en una publicación.",
+      "tag_pending": "quiere etiquetarte en una publicación. Apruébalo en Ajustes, Etiquetas.",
       "follow_request": "ha solicitado seguirte.",
       "follow_accepted": "ha aceptado tu solicitud de seguimiento.",
       "moderation": "Actualización de moderación: {{content}}",
@@ -2364,6 +2442,7 @@
     "removal_appeal_cta": "Apelar",
     "just_now": "ahora",
     "view_live": "Ver el directo",
+    "collab_invitations_cta": "Ver invitaciones",
     "filters": {
       "label": "Filtrar actividad",
       "all": "Todo",
@@ -2821,7 +2900,8 @@
     "support_with_money": "Apoya a {{name}} con una propina",
     "processing": "Procesando...",
     "send_tip": "Enviar Propina",
-    "error_send_tip": "Error al enviar la propina"
+    "error_send_tip": "Error al enviar la propina",
+    "weekly_limit": "Puedes dar hasta {{limit}} a la semana, entre propinas y regalos en directo."
   },
   "monetization": {
     "available_balance": "Saldo Disponible",
@@ -3112,7 +3192,23 @@
       "note_batch_approved": "Aprobado en lote",
       "note_batch_hidden": "Ocultado en lote",
       "note_false_positive": "Aprobado (falso positivo)",
-      "select_item": "Seleccionar este elemento"
+      "select_item": "Seleccionar este elemento",
+      "first_paid": {
+        "title": "Primer contenido de pago",
+        "subtitle_one": "Una persona revisa la primera publicación o historia de pago de cada creador antes de ponerla a la venta.",
+        "subtitle_other": "Una persona revisa las primeras {{count}} publicaciones e historias de pago de cada creador antes de ponerlas a la venta.",
+        "progress_one": "{{passed}} de {{count}} revisada",
+        "progress_other": "{{passed}} de {{count}} revisadas",
+        "approve": "Aprobar para la venta",
+        "remove": "Retirar",
+        "ask_remove": "¿Retirar el contenido de pago de @{{username}}?",
+        "reason": "Motivo que lee el creador",
+        "approved": "Ya está a la venta",
+        "removed": "Retirado",
+        "error": "No se ha podido hacer. Inténtalo de nuevo.",
+        "view": "Ver",
+        "view_title": "Contenido de pago de @{{username}}"
+      }
     },
     "reports": {
       "title": "Reportes",
@@ -3793,7 +3889,8 @@
         "UPDATE_SETTINGS": "Cambió la configuración",
         "BLOCK": "Bloqueó contenido",
         "IGNORE": "Descartó un caso",
-        "STRIKE": "Puso un aviso"
+        "STRIKE": "Puso un aviso",
+        "PAID_CONTENT_APPROVED": "Contenido de pago aprobado para la venta"
       },
       "targets": {
         "USER": "Cuenta",
@@ -6255,6 +6352,7 @@
       "STRIPE_CUSTOMER_MISSING": "No hemos encontrado tus datos de facturación. Contacta con soporte.",
       "PROMOTION_ID_MISSING": "Falta la promoción. Inténtalo de nuevo.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Cambia a un perfil de Creador o Negocio para ganar dinero.",
+      "CONTENT_CHANGED_SINCE_REVIEW": "Su autor lo ha cambiado después de que lo abrieras. Vuelve a mirarlo.",
       "POST_NOT_FOUND": "Esta publicación ya no está disponible.",
       "STORY_NOT_FOUND": "Esta historia ya no está disponible.",
       "MEDIA_NOT_FOUND": "No hemos encontrado ese archivo.",
@@ -6335,13 +6433,21 @@
       "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
       "GIFS_UNAVAILABLE": "Los GIF no están disponibles ahora mismo.",
       "GIF_NOT_FOUND": "Ese GIF no está disponible. Elige otro.",
+      "COLLAB_NOT_ALLOWED": "Solo una publicación pública y no de pago puede tener un colaborador, y nunca su autor.",
+      "COLLABORATOR_EXISTS": "Esta publicación ya tiene un colaborador.",
+      "COLLAB_NOT_FOUND": "Esta invitación ya no está disponible.",
+      "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
       "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
       "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
+      "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
+      "TIP_AMOUNT_NOT_ALLOWED": "Elige uno de los importes que se muestran.",
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "Has llegado al máximo que puedes dar en una semana, entre propinas y regalos.",
       "CONTENT_UNDER_REVIEW": "Este contenido se pone a la venta en cuanto se revisa. Vuelve a intentarlo en unos minutos.",
       "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",
-      "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde."
+      "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
+      "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

@@ -12,7 +12,9 @@ describe('PostDistributionService', () => {
   let service: PostDistributionService;
   let mockPrisma: {
     profile: { findMany: ReturnType<typeof vi.fn> };
+    follow: { findMany: ReturnType<typeof vi.fn> };
     post: { findUnique: ReturnType<typeof vi.fn> };
+    postTag: { findMany: ReturnType<typeof vi.fn> };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
   let mockAiQueue: { add: ReturnType<typeof vi.fn> };
@@ -21,7 +23,10 @@ describe('PostDistributionService', () => {
   beforeEach(() => {
     mockPrisma = {
       profile: { findMany: vi.fn() },
+      follow: { findMany: vi.fn().mockResolvedValue([]) },
       post: { findUnique: vi.fn() },
+      // No tags unless a test says so.
+      postTag: { findMany: vi.fn().mockResolvedValue([]) },
     };
     mockEventEmitter = { emit: vi.fn() };
     mockAiQueue = { add: vi.fn().mockResolvedValue({}) };
@@ -108,6 +113,42 @@ describe('PostDistributionService', () => {
     expect(mockAiQueue.add).toHaveBeenCalledTimes(3);
   });
 
+  it('tells each tagged Profile, and where to approve a tag waiting for it', async () => {
+    mockPrisma.postTag.findMany.mockResolvedValue([
+      { profileId: 'shown-1', status: 'SHOWN' },
+      { profileId: 'waits-1', status: 'PENDING' },
+    ]);
+
+    await service.dispatchPostPublished({
+      id: 'post-9',
+      profileId: 'author-1',
+      visibility: Visibility.PUBLIC,
+    });
+
+    expect(mockPrisma.postTag.findMany).toHaveBeenCalledWith({
+      where: { postId: 'post-9', profileId: { not: 'author-1' } },
+      select: { profileId: true, status: true },
+    });
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith('notification.create', {
+      recipientId: 'shown-1',
+      senderId: 'author-1',
+      type: 'MENTION',
+      postId: 'post-9',
+      notice: { key: 'tagged_in_post' },
+      targetType: 'tag',
+      targetId: 'post-9',
+    });
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith('notification.create', {
+      recipientId: 'waits-1',
+      senderId: 'author-1',
+      type: 'MENTION',
+      postId: 'post-9',
+      notice: { key: 'tag_pending' },
+      targetType: 'tag_pending',
+      targetId: 'post-9',
+    });
+  });
+
   it('resolves mentions and emits notification events excluding self', async () => {
     mockPrisma.profile.findMany.mockResolvedValue([
       { id: 'user-2' },
@@ -140,6 +181,38 @@ describe('PostDistributionService', () => {
       type: 'MENTION',
       notice: { key: 'mentioned_in_post' },
     });
+  });
+
+  it('tells no one who takes mentions only from those they follow, or from nobody', async () => {
+    mockPrisma.profile.findMany
+      .mockResolvedValueOnce([
+        { id: 'user-2' },
+        { id: 'user-3' },
+        { id: 'user-4' },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'user-2', mentionsFrom: 'FOLLOWING' },
+        { id: 'user-3', mentionsFrom: 'NOBODY' },
+        { id: 'user-4', mentionsFrom: 'FOLLOWING' },
+      ]);
+    // user-4 follows the author; user-2 does not.
+    mockPrisma.follow.findMany.mockResolvedValueOnce([
+      { followerId: 'user-4' },
+    ]);
+
+    await service.dispatchPostPublished(
+      { id: 'post-5', profileId: 'user-1', visibility: Visibility.PUBLIC },
+      {
+        caption: 'Hi @user2 @user3 @user4',
+        uniqueMentions: ['user2', 'user3', 'user4'],
+      },
+    );
+
+    expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      'notification.create',
+      expect.objectContaining({ recipientId: 'user-4' }),
+    );
   });
 
   describe('a scheduled post, once it goes out', () => {

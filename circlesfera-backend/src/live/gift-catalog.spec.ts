@@ -1,5 +1,5 @@
+import { TIP_AMOUNTS_CENTS } from '@circlesfera/shared';
 import { describe, expect, it } from 'vitest';
-import { MIN_TIP_CENTS } from '../common/constants/monetization.constants.js';
 import {
   LIVE_GIFT_CATALOG,
   resolveGiftAmountCents,
@@ -37,7 +37,7 @@ describe('LIVE_GIFT_CATALOG', () => {
 
   it('never prices a gift below the minimum tip', () => {
     for (const entry of Object.values(LIVE_GIFT_CATALOG)) {
-      expect(entry.amountCents).toBeGreaterThanOrEqual(MIN_TIP_CENTS);
+      expect(entry.amountCents).toBeGreaterThanOrEqual(TIP_AMOUNTS_CENTS[0]);
     }
     expect(resolveGiftAmountCents('star')).toBe(200);
   });

@@ -16,6 +16,7 @@ slice, not the repo-root `e2e/` suite (that one hits Postgres).
 | `messages.spec.ts` | Inbox thread → send text. |
 | `stripe.spec.ts` | Creator `/creator/monetization` → `Conectar Stripe` → Connect URL. |
 | `restrict.spec.ts` | Restrict from a profile's menu, restrict from a comment, approve a comment waiting for approval, unrestrict in Settings, at 390×844 and 1280×800 (`RESTRICT_SHOTS=dir` saves captures). |
+| `mention-tag-message-controls.spec.ts` | Choose who can mention, tag or message you in Settings → Privacy, approve a waiting tag and remove yourself from a post in Settings → Tags, and the notice when an account takes no message requests, at 390×844 and 1280×800 (`MENTION_TAG_SHOTS=dir` saves captures). |
 
 Locale is `es` (`i18nextLng`). Viewport for feed/composer is **390×844**; other specs use the
 Playwright project default (Desktop Chrome).

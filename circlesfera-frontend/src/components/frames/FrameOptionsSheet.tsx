@@ -14,6 +14,8 @@ import {
   Pin,
   PinOff,
   Trash2,
+  UserMinus,
+  UsersRound,
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -43,6 +45,10 @@ export interface FrameMenuActions {
   // The author's: whether others may use the Frame's Studio template.
   onToggleTemplate?: () => void;
   templateOffered?: boolean;
+  // The author's: invite, see or remove the Frame's collaborator.
+  onCollaborator?: () => void;
+  // The collaborator's: stop co-authoring someone else's Frame.
+  onLeaveCollaboration?: () => void;
 }
 
 interface FrameOptionsSheetProps extends FrameMenuActions {
@@ -70,6 +76,8 @@ function OptionsBody({
   likesHidden = false,
   onToggleTemplate,
   templateOffered = false,
+  onCollaborator,
+  onLeaveCollaboration,
   onClose,
 }: FrameMenuActions & { isOwner: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -97,6 +105,13 @@ function OptionsBody({
             label={t('post.menu.edit')}
             onClick={() => run(onEdit)}
           />
+          {onCollaborator && (
+            <OptionRow
+              icon={UsersRound}
+              label={t('post.menu.collaborator')}
+              onClick={() => run(onCollaborator)}
+            />
+          )}
           {onTogglePin && (
             <OptionRow
               icon={pinned ? PinOff : Pin}
@@ -157,6 +172,13 @@ function OptionsBody({
         </>
       ) : (
         <>
+          {onLeaveCollaboration && (
+            <OptionRow
+              icon={UserMinus}
+              label={t('post.menu.leave_collaboration')}
+              onClick={() => run(onLeaveCollaboration)}
+            />
+          )}
           {onWhy && (
             <OptionRow
               icon={Info}
@@ -209,6 +231,8 @@ export default function FrameOptionsSheet({
   likesHidden,
   onToggleTemplate,
   templateOffered,
+  onCollaborator,
+  onLeaveCollaboration,
 }: FrameOptionsSheetProps) {
   const { t } = useTranslation();
   const isFrame = presentation === 'frame';
@@ -246,6 +270,8 @@ export default function FrameOptionsSheet({
     likesHidden,
     onToggleTemplate,
     templateOffered,
+    onCollaborator,
+    onLeaveCollaboration,
     onClose,
   };
 
