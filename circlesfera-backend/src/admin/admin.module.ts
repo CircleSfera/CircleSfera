@@ -25,6 +25,8 @@ import { AdminDisputesService } from './admin-disputes.service.js';
 import { AdminLinkDomainsController } from './admin-link-domains.controller.js';
 import { AdminLinkDomainsService } from './admin-link-domains.service.js';
 import { AdminMediaController } from './admin-media.controller.js';
+import { AdminMonetizationProgrammeController } from './admin-monetization-programme.controller.js';
+import { AdminMonetizationProgrammeService } from './admin-monetization-programme.service.js';
 import { AdminOperatorsController } from './admin-operators.controller.js';
 import { AdminOperatorsService } from './admin-operators.service.js';
 import { AdminOpsController } from './admin-ops.controller.js';
@@ -82,6 +84,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
   ],
   controllers: [
     AdminProfileSuspensionController,
+    AdminMonetizationProgrammeController,
     AdminContentController,
     AdminLinkDomainsController,
     AdminMediaController,
@@ -98,6 +101,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
   ],
   providers: [
     AdminProfileSuspensionService,
+    AdminMonetizationProgrammeService,
     AdminService,
     AdminLinkDomainsService,
     AdminOpsService,

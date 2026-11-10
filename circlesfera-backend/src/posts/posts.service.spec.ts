@@ -259,6 +259,7 @@ describe('PostsService', () => {
     it('takes no price from an author under 18, saying why', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValue({
         accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
         userId: 'user-1',
       });
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
@@ -276,9 +277,27 @@ describe('PostsService', () => {
       });
     });
 
+    it('takes no price from a Profile staff have not approved', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        accountType: 'CREATOR',
+        monetizationStatus: 'PENDING',
+        userId: 'user-1',
+      });
+
+      await expect(
+        service.create('user-1', { isPremium: true, priceCents: 500 }),
+      ).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'MONETIZATION_NOT_APPROVED',
+        }),
+      });
+    });
+
     it('validates premium price bounds when isPremium is true', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValue({
         accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
       });
 
       await expect(
@@ -857,6 +876,7 @@ describe('PostsService', () => {
 
       mockPrismaService.profile.findUnique.mockResolvedValueOnce({
         accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
       });
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'post-1',

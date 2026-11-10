@@ -421,38 +421,47 @@ model Profile {
 
   // Account Ban Flags
 
-  isAccountBanned      Boolean    @default(false)
-  accountBanReason     String?    @db.Text
-  suspendedUntil       DateTime?
+  isAccountBanned        Boolean            @default(false)
+  // The monetization programme: a Profile charges only once staff approve
+  // its application (MonetizationStatus). The note is the reason given to
+  // the creator for a refusal or a revocation.
+  monetizationStatus     MonetizationStatus @default(NONE)
+  monetizationAppliedAt  DateTime?
+  monetizationPitch      String?            @db.VarChar(500)
+  monetizationReviewedAt DateTime?
+  monetizationReviewedBy String?
+  monetizationNote       String?            @db.VarChar(500)
+  accountBanReason       String?            @db.Text
+  suspendedUntil         DateTime?
   // The strike that caused the current ban or suspension, if any. An appeal
   // about that strike lifts only a restriction it caused; staff restrictions
   // and direct bans clear these.
-  banStrikeId          String?
-  suspensionStrikeId   String?
+  banStrikeId            String?
+  suspensionStrikeId     String?
   // When the last ban or suspension was placed: the six months to appeal it
   // count from then.
-  sanctionedAt         DateTime?
+  sanctionedAt           DateTime?
   // Who may see this Profile's content: each Profile of a person chooses for
   // itself. PRIVATE asks for an accepted follow.
-  privacyLevel         Visibility @default(PUBLIC)
+  privacyLevel           Visibility         @default(PUBLIC)
   // Whether others may share this Profile's posts and Frames to their
   // stories, as a card of the original. Off stops new shares only.
-  allowStoryShares     Boolean    @default(true)
+  allowStoryShares       Boolean            @default(true)
   // Push notifications of this Profile; the person's other Profiles keep
   // their own choice. Off pauses every push of the Profile.
-  pushNotifications    Boolean    @default(true)
+  pushNotifications      Boolean            @default(true)
   // Push by group, each on its own. Moderation, plan and payment notices
   // have no group: only the pause stops their push.
-  pushLikes            Boolean    @default(true)
-  pushComments         Boolean    @default(true) // comments and mentions
-  pushFollows          Boolean    @default(true) // new followers and requests
-  pushMessages         Boolean    @default(true)
-  pushLive             Boolean    @default(true) // live broadcasts
+  pushLikes              Boolean            @default(true)
+  pushComments           Boolean            @default(true) // comments and mentions
+  pushFollows            Boolean            @default(true) // new followers and requests
+  pushMessages           Boolean            @default(true)
+  pushLive               Boolean            @default(true) // live broadcasts
   // Whether a story is kept in the archive when its 24 hours end. Off, a
   // story that ends while it is off is erased, unless it is in a highlight;
   // storyArchiveOffAt is when it was turned off.
-  saveStoriesToArchive Boolean    @default(true)
-  storyArchiveOffAt    DateTime?
+  saveStoriesToArchive   Boolean            @default(true)
+  storyArchiveOffAt      DateTime?
 
   // Why staff suspended this Profile directly; empty for a suspension that
   // comes from strikes or from the review of unusual activity.
@@ -2907,6 +2916,15 @@ enum BusinessCategory {
   OTHER
 }
 
+// Where a Profile stands in the monetization programme.
+enum MonetizationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+  REVOKED
+}
+
 enum AdminAction {
   // User Management
 
@@ -2974,6 +2992,12 @@ enum AdminAction {
   // Domains a link on a story cannot point to
   LINK_DOMAIN_BLOCKED
   LINK_DOMAIN_UNBLOCKED
+
+  // The monetization programme: a Profile's application approved,
+  // rejected, or its approval revoked.
+  MONETIZATION_APPROVED
+  MONETIZATION_REJECTED
+  MONETIZATION_REVOKED
 }
 
 enum AdminIdentityStatus {

@@ -268,6 +268,11 @@ describe('StoriesService', () => {
     it('should throw BadRequestException if isPremium is true but price is invalid', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValueOnce({
         accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
+      });
+      // The approval check reads the Profile again.
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        monetizationStatus: 'APPROVED',
       });
       const dto: CreateStoryDto = {
         url: 'test.jpg',
@@ -286,6 +291,7 @@ describe('StoriesService', () => {
     it('takes no price for a story from an author under 18', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValueOnce({
         accountType: 'CREATOR',
+        monetizationStatus: 'APPROVED',
         userId: 'user-1',
       });
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
@@ -302,6 +308,24 @@ describe('StoriesService', () => {
         status: 403,
         response: expect.objectContaining({
           errorCode: 'MONETIZATION_UNDER_AGE',
+        }),
+      });
+    });
+
+    it('takes no price for a story from a Profile staff have not approved', async () => {
+      mockPrismaService.profile.findUnique
+        .mockResolvedValueOnce({ accountType: 'CREATOR', userId: 'user-1' })
+        .mockResolvedValueOnce({ monetizationStatus: 'REJECTED' });
+      const dto: CreateStoryDto = {
+        url: 'test.jpg',
+        isPremium: true,
+        priceCents: 500,
+      };
+
+      await expect(service.create('user-1', dto)).rejects.toMatchObject({
+        status: 403,
+        response: expect.objectContaining({
+          errorCode: 'MONETIZATION_NOT_APPROVED',
         }),
       });
     });
