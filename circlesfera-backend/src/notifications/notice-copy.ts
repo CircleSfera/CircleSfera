@@ -13,6 +13,8 @@ export type Notice =
   | { key: 'comment_replied' }
   | { key: 'mentioned_in_comment' }
   | { key: 'mentioned_in_post' }
+  | { key: 'tagged_in_post' }
+  | { key: 'tag_pending' }
   | { key: 'collab_invited' }
   | { key: 'collab_accepted' }
   | { key: 'mentioned_in_story' }
@@ -284,6 +286,10 @@ function renderEn(n: Notice): string {
       return 'mentioned you in a comment';
     case 'mentioned_in_post':
       return 'mentioned you in a post';
+    case 'tagged_in_post':
+      return 'tagged you in a post';
+    case 'tag_pending':
+      return 'wants to tag you in a post. Review it in Settings, Tags';
     case 'collab_invited':
       return 'invited you to be a collaborator on a post';
     case 'collab_accepted':
@@ -422,6 +428,10 @@ function renderEs(n: Notice): string {
       return 'te ha mencionado en un comentario';
     case 'mentioned_in_post':
       return 'te ha mencionado en una publicación';
+    case 'tagged_in_post':
+      return 'te ha etiquetado en una publicación';
+    case 'tag_pending':
+      return 'quiere etiquetarte en una publicación. Revísalo en Ajustes, Etiquetas';
     case 'collab_invited':
       return 'te ha invitado a colaborar en una publicación';
     case 'collab_accepted':

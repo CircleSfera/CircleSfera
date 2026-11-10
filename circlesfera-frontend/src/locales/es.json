@@ -2415,7 +2415,9 @@
       "moderation_restriction_review": "Tras una revisión de nuestro equipo, durante 7 días este perfil podrá seguir a 20 cuentas y enviar 5 solicitudes de mensaje al día, por actividad inusual (por ejemplo, muchas acciones en poco tiempo o mensajes repetidos). No se oculta ni se elimina nada. Puedes apelar esta decisión.",
       "like_many": "les ha gustado tu publicación.",
       "comment_like_many": "les ha gustado tu comentario.",
-      "follow_many": "han empezado a seguirte."
+      "follow_many": "han empezado a seguirte.",
+      "tag": "te ha etiquetado en una publicación.",
+      "tag_pending": "quiere etiquetarte en una publicación. Apruébalo en Ajustes, Etiquetas."
     },
     "appeal_cta": "Apelar esta decisión",
     "strike_details_cta": "Ver detalles y apelar",
@@ -2582,7 +2584,25 @@
     "hidden_requests_desc": "Solicitudes de mensaje que contienen alguna de tus palabras ocultas. No te avisamos de ellas.",
     "no_hidden_requests": "No hay solicitudes ocultas",
     "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores.",
-    "locked_not_for_sale": "Este mensaje de pago ya no está a la venta."
+    "locked_not_for_sale": "Este mensaje de pago ya no está a la venta.",
+    "preferences": {
+      "mute": "Silenciar mensajes",
+      "mute_hint": "Sin notificaciones de este chat",
+      "muted_always": "Silenciado hasta que lo actives",
+      "muted_until": "Silenciado hasta {{time}}",
+      "mute_for": "Silenciar durante",
+      "durations": {
+        "1h": "1 hora",
+        "8h": "8 horas",
+        "1w": "1 semana",
+        "always": "Hasta que lo active"
+      },
+      "pin": "Fijar chat",
+      "pin_hint": "Mantenlo arriba en tu bandeja, hasta 3",
+      "muted": "Silenciado",
+      "pinned": "Fijado",
+      "error": "No se ha podido guardar. Inténtalo de nuevo."
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -6426,7 +6446,8 @@
       "CONTENT_CHANGED_SINCE_REVIEW": "Su autor lo ha cambiado después de que lo abrieras. Vuelve a mirarlo.",
       "COLLAB_NOT_FOUND": "Esta invitación ya no está disponible.",
       "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
-      "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador."
+      "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
+      "CHAT_PINS_FULL": "Ya tienes 3 chats fijados. Quita uno para fijar otro."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

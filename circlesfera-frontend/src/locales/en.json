@@ -2415,7 +2415,9 @@
       "moderation_restriction_review": "After a review by our team, for 7 days this profile can follow 20 accounts and send 5 message requests a day, because of unusual activity (for example, many actions in a short time or repeated messages). Nothing is hidden or removed. You can appeal this decision.",
       "like_many": "liked your post.",
       "comment_like_many": "liked your comment.",
-      "follow_many": "started following you."
+      "follow_many": "started following you.",
+      "tag": "tagged you in a post.",
+      "tag_pending": "wants to tag you in a post. Approve it in Settings, Tags."
     },
     "appeal_cta": "Appeal this decision",
     "strike_details_cta": "See details and appeal",
@@ -2582,7 +2584,25 @@
     "hidden_requests_desc": "Message requests that contain one of your hidden words. You are not notified about them.",
     "no_hidden_requests": "No hidden requests",
     "encrypted_on_servers": "Messages are stored encrypted on our servers.",
-    "locked_not_for_sale": "This paid message is no longer for sale."
+    "locked_not_for_sale": "This paid message is no longer for sale.",
+    "preferences": {
+      "mute": "Mute messages",
+      "mute_hint": "No notifications from this chat",
+      "muted_always": "Muted until you turn it off",
+      "muted_until": "Muted until {{time}}",
+      "mute_for": "Mute for",
+      "durations": {
+        "1h": "1 hour",
+        "8h": "8 hours",
+        "1w": "1 week",
+        "always": "Until I turn it off"
+      },
+      "pin": "Pin chat",
+      "pin_hint": "Keep it at the top of your inbox, up to 3",
+      "muted": "Muted",
+      "pinned": "Pinned",
+      "error": "Couldn't save that. Try again."
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -6426,7 +6446,8 @@
       "CONTENT_CHANGED_SINCE_REVIEW": "Its author changed it after you opened it. Look at it again.",
       "COLLAB_NOT_FOUND": "This invitation is no longer available.",
       "TIP_TARGET_REQUIRED": "A tip is always for a post.",
-      "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first."
+      "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first.",
+      "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

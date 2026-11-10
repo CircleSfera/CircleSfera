@@ -47,6 +47,8 @@ export class DeleteConversationUseCase {
       data: {
         deletedAt: new Date(),
         clearedAt: new Date(),
+        // A chat that comes back starts unpinned.
+        pinnedAt: null,
       },
     });
 

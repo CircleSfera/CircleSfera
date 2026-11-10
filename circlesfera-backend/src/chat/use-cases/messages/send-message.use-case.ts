@@ -416,7 +416,19 @@ export class SendMessageUseCase {
 
       // Each recipient reads the push in the language of their account. A
       // recipient who restricts the sender gets the message in requests,
-      // without a push.
+      // without a push. A member who muted the chat gets no push for it
+      // until the mute ends.
+      const muted = new Set(
+        (
+          await this.prisma.participant.findMany({
+            where: {
+              conversationId: conversation.id,
+              mutedUntil: { gt: new Date() },
+            },
+            select: { profileId: true },
+          })
+        ).map((p) => p.profileId),
+      );
       const restricting = await restrictersOf(
         this.prisma,
         senderId,
@@ -426,6 +438,7 @@ export class SendMessageUseCase {
         (p: any) =>
           p.profileId !== senderId &&
           p.hasAccepted !== false &&
+          !muted.has(p.profileId) &&
           !(restricting.has(p.profileId) && !conversation.isGroup),
       );
       const locales = new Map(

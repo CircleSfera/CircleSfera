@@ -118,6 +118,18 @@ function folderWhere(
   };
 }
 
+// Pinned chats first, newest pin first; the rest keep their order.
+export function pinnedFirst<T extends { pinnedAt: Date | null }>(
+  conversations: T[],
+): T[] {
+  const pinned = conversations
+    .filter((c) => c.pinnedAt)
+    .sort(
+      (a, b) => (b.pinnedAt as Date).getTime() - (a.pinnedAt as Date).getTime(),
+    );
+  return [...pinned, ...conversations.filter((c) => !c.pinnedAt)];
+}
+
 @Injectable()
 export class GetConversationsQuery {
   constructor(
@@ -137,10 +149,11 @@ export class GetConversationsQuery {
     });
 
     const shown = await this.withUnavailable(profileId, conversations);
-    return this.withSharedPostsAsSeenBy(
+    const readable = await this.withSharedPostsAsSeenBy(
       profileId,
       shown.map((conv) => this.withReadablePreview(conv)),
     );
+    return pinnedFirst(await this.withOwnSettings(profileId, readable));
   }
 
   // One page of the list, most recently active first. The cursor names the
@@ -156,9 +169,42 @@ export class GetConversationsQuery {
   ) {
     const take = Math.min(Math.max(limit, 1), CONVERSATION_PAGE_MAX);
     const after = cursor ? decodeKeysetCursor(cursor) : null;
+    // Pinned chats come on the first page, before the rest, newest pin
+    // first; the pages that follow never repeat them.
+    const pinned =
+      folder === 'inbox' && !cursor
+        ? await this.prisma.conversation.findMany({
+            where: {
+              AND: [
+                folderWhere(profileId, 'inbox'),
+                {
+                  participants: {
+                    some: {
+                      profileId,
+                      deletedAt: null,
+                      pinnedAt: { not: null },
+                    },
+                  },
+                },
+              ],
+            },
+            include: CONVERSATION_INCLUDE,
+          })
+        : [];
     const rows = await this.prisma.conversation.findMany({
       where: {
-        AND: [folderWhere(profileId, folder)],
+        AND: [
+          folderWhere(profileId, folder),
+          ...(folder === 'inbox'
+            ? [
+                {
+                  participants: {
+                    some: { profileId, deletedAt: null, pinnedAt: null },
+                  },
+                },
+              ]
+            : []),
+        ],
         ...(after && {
           OR: [
             { updatedAt: { lt: after.createdAt } },
@@ -173,12 +219,13 @@ export class GetConversationsQuery {
 
     const items = rows.slice(0, take);
     const last = items.at(-1);
-    const shown = await this.withUnavailable(profileId, items);
+    const shown = await this.withUnavailable(profileId, [...pinned, ...items]);
+    const readable = await this.withSharedPostsAsSeenBy(
+      profileId,
+      shown.map((conv) => this.withReadablePreview(conv)),
+    );
     return {
-      items: await this.withSharedPostsAsSeenBy(
-        profileId,
-        shown.map((conv) => this.withReadablePreview(conv)),
-      ),
+      items: pinnedFirst(await this.withOwnSettings(profileId, readable)),
       nextCursor:
         rows.length > take && last
           ? encodeKeysetCursor({ createdAt: last.updatedAt, id: last.id })
@@ -211,7 +258,32 @@ export class GetConversationsQuery {
     const [readable] = await this.withSharedPostsAsSeenBy(profileId, [
       this.withReadablePreview(shown),
     ]);
-    return readable;
+    const [own] = await this.withOwnSettings(profileId, [readable]);
+    return own;
+  }
+
+  // What the viewer chose for each chat, read from their own row only: when
+  // it is muted until, and when they pinned it. Nobody else's is shown.
+  private async withOwnSettings<T extends { id: string }>(
+    profileId: string,
+    conversations: T[],
+  ): Promise<Array<T & { mutedUntil: Date | null; pinnedAt: Date | null }>> {
+    if (conversations.length === 0) return [];
+    const rows = await this.prisma.participant.findMany({
+      where: {
+        profileId,
+        conversationId: { in: conversations.map((c) => c.id) },
+      },
+      select: { conversationId: true, mutedUntil: true, pinnedAt: true },
+    });
+    const byConversation = new Map(rows.map((r) => [r.conversationId, r]));
+    const now = new Date();
+    return conversations.map((conv) => {
+      const own = byConversation.get(conv.id);
+      const mutedUntil =
+        own?.mutedUntil && own.mutedUntil > now ? own.mutedUntil : null;
+      return { ...conv, mutedUntil, pinnedAt: own?.pinnedAt ?? null };
+    });
   }
 
   // A paid post the latest message shares shows closed to a viewer who has

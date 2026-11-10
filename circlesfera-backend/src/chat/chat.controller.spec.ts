@@ -33,6 +33,7 @@ import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
 import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
 import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
+import { ChatSettingsUseCase } from './use-cases/settings/chat-settings.use-case.js';
 
 describe('ChatController', () => {
   let app: INestApplication;
@@ -56,6 +57,12 @@ describe('ChatController', () => {
   const mockDeleteConversationUseCase = { execute: vi.fn() };
   const mockAcceptMessageRequestUseCase = { execute: vi.fn() };
   const mockDeclineMessageRequestUseCase = { execute: vi.fn() };
+  const mockChatSettings = {
+    mute: vi.fn(),
+    unmute: vi.fn(),
+    pin: vi.fn(),
+    unpin: vi.fn(),
+  };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -91,6 +98,7 @@ describe('ChatController', () => {
           provide: DeclineMessageRequestUseCase,
           useValue: mockDeclineMessageRequestUseCase,
         },
+        { provide: ChatSettingsUseCase, useValue: mockChatSettings },
       ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
@@ -786,5 +794,57 @@ describe('ChatController', () => {
       TEST_USER.profileId,
       'conv-1',
     );
+  });
+  describe('muting and pinning a chat', () => {
+    it('mutes as the session profile for the time asked', async () => {
+      mockChatSettings.mute.mockResolvedValue({});
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/c-1/mute')
+        .send({ for: '8h' })
+        .set(BEARER)
+        .expect(200);
+      expect(mockChatSettings.mute).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        'c-1',
+        '8h',
+      );
+    });
+
+    it('refuses a length it does not know', async () => {
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/c-1/mute')
+        .send({ for: 'forever-and-ever' })
+        .set(BEARER)
+        .expect(400);
+      expect(mockChatSettings.mute).not.toHaveBeenCalled();
+    });
+
+    it('pins and unpins as the session profile', async () => {
+      mockChatSettings.pin.mockResolvedValue({});
+      mockChatSettings.unpin.mockResolvedValue({});
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/c-1/pin')
+        .set(BEARER)
+        .expect(200);
+      await request(app.getHttpServer())
+        .delete('/api/v1/chat/conversations/c-1/pin')
+        .set(BEARER)
+        .expect(200);
+      expect(mockChatSettings.pin).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        'c-1',
+      );
+      expect(mockChatSettings.unpin).toHaveBeenCalledWith(
+        TEST_USER.profileId,
+        'c-1',
+      );
+    });
+
+    it('is closed without a session', async () => {
+      await request(app.getHttpServer())
+        .put('/api/v1/chat/conversations/c-1/pin')
+        .expect(401);
+      expect(mockChatSettings.pin).not.toHaveBeenCalled();
+    });
   });
 });
