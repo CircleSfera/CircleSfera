@@ -67,6 +67,7 @@ export const chatApi = {
     voiceWaveform?: number[];
     isLocked?: boolean;
     priceCents?: number;
+    gifId?: string;
   }) => apiClient.post<Message>('/chat/messages', data),
 
   markAsRead: (conversationId: string) =>

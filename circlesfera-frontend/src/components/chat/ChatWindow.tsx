@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { type ChatGif, gifsApi } from '../../services/gifs.service';
 import { chatApi, uploadApi } from '../../services/index';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
@@ -33,6 +34,7 @@ import UserAvatar from '../UserAvatar';
 import { BUTTON_ROW } from '../ui/buttonWidth';
 import ChatDetailsModal from './ChatDetailsModal';
 import ChooseAdminSheet from './ChooseAdminSheet';
+import { GifPicker } from './GifPicker';
 import GroupDetailsModal from './GroupDetailsModal';
 import { adminCandidates, isNotice, needsSuccessor } from './groupAdmins';
 import MessageBubble from './MessageBubble';
@@ -127,6 +129,13 @@ export default function ChatWindow() {
   const [isLeavingGroup, setIsLeavingGroup] = useState(false);
   const [isDeletingConversation, setIsDeletingConversation] = useState(false);
   const [isEmojiPanelOpen, setIsEmojiPanelOpen] = useState(false);
+  const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
+  // The GIF button shows only when the server offers GIFs.
+  const gifsOffered = useQuery({
+    queryKey: ['gifs-status'],
+    queryFn: async () => (await gifsApi.status()).data.available,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -141,6 +150,43 @@ export default function ChatWindow() {
     estimateSize: () => 80,
     overscan: 10,
   });
+
+  // A GIF goes on its own, with no text; the server keeps it as GIPHY
+  // describes it.
+  const handleGifSend = async (gif: ChatGif) => {
+    setIsGifPickerOpen(false);
+    if (!id) return;
+    const tempId =
+      Date.now().toString() + Math.random().toString(36).substring(2, 9);
+    const tempMsg: Message = {
+      id: tempId,
+      content: '',
+      conversationId: id,
+      senderId: profile?.id || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      gif,
+      reactions: [],
+      tempId,
+    };
+    setMessages((prev) => [...prev, tempMsg]);
+    try {
+      const res = await chatApi.sendMessage({
+        conversationId: id,
+        content: '',
+        gifId: gif.id,
+        tempId,
+      });
+      setMessages((prev) =>
+        upsertSentMessage(prev, { ...res.data, tempId, content: '' }),
+      );
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    } catch (err) {
+      logger.error('Failed to send GIF:', err);
+      setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
+      toast.error(t('chat.send_error'));
+    }
+  };
 
   const handleVoiceSend = async (voiceData: {
     voiceUrl: string;
@@ -1521,6 +1567,17 @@ export default function ChatWindow() {
                 placeholder={t('chat.type_message')}
               />
 
+              {gifsOffered.data && (
+                <button
+                  type="button"
+                  onClick={() => setIsGifPickerOpen(true)}
+                  aria-label={t('chat.send_gif')}
+                  className="min-h-11 min-w-11 px-2 rounded-full text-xs font-bold tracking-wide text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0 mb-0.5"
+                >
+                  GIF
+                </button>
+              )}
+
               <div className="relative shrink-0 mb-0.5">
                 <button
                   type="button"
@@ -1581,6 +1638,12 @@ export default function ChatWindow() {
           )}
         </div>
       </div>
+
+      <GifPicker
+        isOpen={isGifPickerOpen}
+        onClose={() => setIsGifPickerOpen(false)}
+        onPick={handleGifSend}
+      />
 
       {/* Modal deleted, options moved directly to dropdown menu */}
       {showChatDetails && conversation && !chatInfo.isGroup && (

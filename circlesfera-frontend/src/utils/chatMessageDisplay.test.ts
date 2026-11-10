@@ -7,6 +7,22 @@ import {
 } from './chatMessageDisplay';
 
 describe('chatMessageDisplay', () => {
+  it('shows a GIF as a GIF in the inbox list', () => {
+    const msg = {
+      content: '',
+      gif: {
+        id: 'a',
+        title: '',
+        url: 'https://giphy.com/a',
+        width: 1,
+        height: 1,
+      },
+    } as Message;
+    expect(getMessagePreviewText(msg, ((key: string) => key) as never)).toBe(
+      'chat.sent_gif',
+    );
+  });
+
   it('detects shared posts by postId or post relation', () => {
     expect(isSharedPostMessage({ postId: 'p1', content: 'x' })).toBe(true);
     expect(

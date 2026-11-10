@@ -72,6 +72,46 @@ describe('MessageBubble', () => {
       { lng },
     );
 
+  it('shows a GIF at its size, named by its title', () => {
+    const { i18n } = renderBubble({
+      content: '',
+      gif: {
+        id: 'abc123',
+        title: 'Party',
+        url: 'https://media.giphy.com/media/abc123/200.webp',
+        width: 200,
+        height: 150,
+      },
+    });
+    const img = screen.getByRole('img', {
+      name: i18n!.t('chat.gif_named', { title: 'Party' }),
+    });
+    expect(img).toHaveAttribute(
+      'src',
+      'https://media.giphy.com/media/abc123/200.webp',
+    );
+    expect(img).toHaveAttribute('width', '200');
+    expect(img).toHaveAttribute('height', '150');
+    // On its own, with no bubble around it.
+    expect(img.parentElement?.parentElement).not.toHaveClass('glass-panel');
+  });
+
+  it('names a GIF with no title as a GIF', () => {
+    const { i18n } = renderBubble({
+      content: '',
+      gif: {
+        id: 'abc123',
+        title: '',
+        url: 'https://media.giphy.com/media/abc123/200.webp',
+        width: 200,
+        height: 150,
+      },
+    });
+    expect(
+      screen.getByRole('img', { name: i18n!.t('chat.gif_alt') }),
+    ).toBeInTheDocument();
+  });
+
   it('renders plain text content', () => {
     renderBubble({ content: 'Hello there' });
     expect(screen.getByText('Hello there')).toBeInTheDocument();
