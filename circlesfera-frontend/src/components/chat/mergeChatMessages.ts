@@ -8,11 +8,17 @@ export function mergeServerMessagesWithOptimistic(
 ): Message[] {
   const pending = localMessages.filter((local) => {
     if (!local.tempId) return false;
+    // A message the server already gave an id to is matched by that id
+    // only: two GIFs from one sender both have empty text.
+    if (local.id && local.id !== local.tempId) {
+      return !serverMessages.some((server) => server.id === local.id);
+    }
     return !serverMessages.some(
       (server) =>
         server.id === local.id ||
         (server.senderId === local.senderId &&
-          server.content === local.content),
+          server.content === local.content &&
+          server.gif?.id === local.gif?.id),
     );
   });
   return pending.length > 0 ? [...serverMessages, ...pending] : serverMessages;
