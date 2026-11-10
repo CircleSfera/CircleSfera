@@ -58,7 +58,6 @@ const headerProps = {
   setShowFollowsModal: vi.fn(),
   setShowReportModal: vi.fn(),
   setShowBlockModal: vi.fn(),
-  setShowTipModal: vi.fn(),
   onOpenStories: vi.fn(),
   showMenu: false,
   setShowMenu: vi.fn(),
@@ -200,21 +199,14 @@ describe('ProfileHeader', () => {
     );
   });
 
-  it('offers a tip on another profile on the web, and not in the apps', () => {
+  it('offers no tip on a profile: a tip is always for a post', () => {
     const other = { ...headerProps, isMe: false };
-    const { i18n, unmount } = renderWithProviders(<ProfileHeader {...other} />);
-    const tipName = i18n!.t('profile.actions.send_tip');
+    const { i18n } = renderWithProviders(<ProfileHeader {...other} />);
     expect(
-      screen.getAllByRole('button', { name: tipName }).length,
-    ).toBeGreaterThan(0);
-    unmount();
-
-    sells.value = false;
-    renderWithProviders(<ProfileHeader {...other} />);
-    expect(
-      screen.queryByRole('button', { name: tipName }),
+      screen.queryByRole('button', {
+        name: i18n!.t('profile.actions.send_tip'),
+      }),
     ).not.toBeInTheDocument();
-    sells.value = true;
   });
 
   it('offers to restrict or unrestrict another profile from its menu, asking only once it is open', () => {

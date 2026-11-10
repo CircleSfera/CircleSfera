@@ -50,7 +50,6 @@ const CloseFriendsModal = lazy(
   () => import('../components/modals/CloseFriendsModal'),
 );
 const ReportModal = lazy(() => import('../components/modals/ReportModal'));
-const TipModal = lazy(() => import('../components/monetization/TipModal'));
 
 const PROFILE_PAGE_SIZE = 18;
 
@@ -63,7 +62,6 @@ export default function Profile() {
   const [isHighlightModalOpen, setIsHighlightModalOpen] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showTipModal, setShowTipModal] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -553,7 +551,6 @@ export default function Profile() {
           setShowFollowsModal={setShowFollowsModal}
           setShowReportModal={setShowReportModal}
           setShowBlockModal={setShowBlockModal}
-          setShowTipModal={setShowTipModal}
           onOpenCloseFriends={
             isMe ? () => setShowCloseFriendsModal(true) : undefined
           }
@@ -751,15 +748,6 @@ export default function Profile() {
           <CloseFriendsModal
             isOpen={showCloseFriendsModal}
             onClose={() => setShowCloseFriendsModal(false)}
-          />
-        )}
-
-        {showTipModal && profile?.data && (
-          <TipModal
-            isOpen={showTipModal}
-            onClose={() => setShowTipModal(false)}
-            receiverId={profile.data.id}
-            receiverName={profile.data.username}
           />
         )}
       </Suspense>

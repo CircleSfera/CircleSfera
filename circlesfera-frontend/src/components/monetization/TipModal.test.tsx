@@ -43,6 +43,7 @@ describe('TipModal', () => {
         isOpen={false}
         onClose={onClose}
         receiverId="creator-1"
+        postId="post-1"
         receiverName="alice"
       />,
     );
@@ -57,6 +58,7 @@ describe('TipModal', () => {
         isOpen
         onClose={onClose}
         receiverId="creator-1"
+        postId="post-1"
         receiverName="alice"
       />,
     );
@@ -98,6 +100,7 @@ describe('TipModal', () => {
         isOpen
         onClose={onClose}
         receiverId="creator-1"
+        postId="post-1"
         receiverName="alice"
       />,
     );
@@ -151,6 +154,7 @@ describe('TipModal', () => {
         isOpen
         onClose={onClose}
         receiverId="creator-1"
+        postId="post-1"
         receiverName="alice"
       />,
     );
@@ -163,7 +167,7 @@ describe('TipModal', () => {
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/monetization/tip', {
         receiverId: 'creator-1',
-        postId: undefined,
+        postId: 'post-1',
         amountCents: one * 100,
         returnUrl: 'http://localhost/p/post-1',
       });
@@ -181,6 +185,7 @@ describe('TipModal', () => {
         isOpen
         onClose={onClose}
         receiverId="creator-1"
+        postId="post-1"
         receiverName="alice"
       />,
     );
@@ -206,6 +211,7 @@ describe('TipModal', () => {
         isOpen
         onClose={onClose}
         receiverId="creator-1"
+        postId="post-1"
         receiverName="alice"
       />,
       { lng: 'es' },
@@ -229,6 +235,7 @@ describe('TipModal', () => {
         isOpen
         onClose={onClose}
         receiverId="creator-1"
+        postId="post-1"
         receiverName="alice"
       />,
     );
@@ -254,6 +261,7 @@ describe('TipModal', () => {
     const props = {
       onClose,
       receiverId: 'creator-1',
+      postId: 'post-1',
       receiverName: 'alice',
     };
     const view = renderWithProviders(<TipModal isOpen {...props} />);
@@ -270,5 +278,28 @@ describe('TipModal', () => {
       screen.getByRole('button', { name: view.i18n!.t('wallet.send_tip') }),
     ).toBeDisabled();
     expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('offers the fixed amounts, from 2 to 50 euros, and says the weekly limit', () => {
+    expect(TIP_AMOUNTS).toEqual([2, 5, 10, 20, 50]);
+    renderWithProviders(
+      <TipModal
+        isOpen
+        onClose={vi.fn()}
+        receiverId="creator-1"
+        postId="post-1"
+        receiverName="alice"
+      />,
+    );
+    for (const amount of TIP_AMOUNTS) {
+      expect(
+        screen.getByRole('button', { name: `€${amount}` }),
+      ).toBeInTheDocument();
+    }
+    expect(
+      screen.getByText(
+        'You can give up to €500.00 a week, tips and live gifts together.',
+      ),
+    ).toBeInTheDocument();
   });
 });

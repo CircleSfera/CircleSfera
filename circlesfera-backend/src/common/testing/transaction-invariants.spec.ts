@@ -1,9 +1,8 @@
-import { ErrorCode } from '@circlesfera/shared';
+import { ErrorCode, TIP_AMOUNTS_CENTS } from '@circlesfera/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FollowsService } from '../../follows/follows.service.js';
 import { MonetizationService } from '../../monetization/monetization.service.js';
 import { PaymentsService } from '../../payments/payments.service.js';
-import { MIN_TIP_CENTS } from '../constants/monetization.constants.js';
 
 describe('Transaction Boundaries and Concurrency Invariants', () => {
   describe('Monetization & Financial Ledger Invariants', () => {
@@ -42,8 +41,44 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
             }),
           ),
         },
+        // The post a tip is for is one of the person tipped.
         post: {
-          findUnique: vi.fn(),
+          findUnique: vi.fn(async () => ({
+            profileId: 'creator-1-profile',
+            profile: {
+              id: 'creator-1-profile',
+              userId: 'creator-1',
+              username: 'creator',
+              isAccountBanned: false,
+              suspendedUntil: null,
+              monetizationStatus: 'APPROVED',
+              user: {
+                isActive: true,
+                isRootBanned: false,
+                deletedAt: null,
+                // An adult with a verified identity, who may charge.
+                identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+                dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+                dateOfBirthVerified: true,
+              },
+            },
+          })),
+        },
+        $executeRaw: vi.fn().mockResolvedValue(1),
+        // A tip holds its amount while its checkout is open.
+        tipReservation: {
+          create: vi.fn().mockResolvedValue({ id: 'hold-1' }),
+          delete: vi.fn().mockResolvedValue({}),
+          aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
+        },
+        liveGift: {
+          aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
+        },
+        // Nothing given yet this week.
+        transaction: {
+          aggregate: vi
+            .fn()
+            .mockResolvedValue({ _sum: { amount: null, refundedCents: null } }),
         },
         postUnlock: {
           findUnique: vi.fn(),
@@ -84,12 +119,25 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
     });
 
     it('rejects self-tip attempt before touching payment provider', async () => {
+      // The post is one of the person tipping.
+      mockPrisma.post.findUnique.mockResolvedValueOnce({
+        profileId: 'user-1-profile',
+        profile: {
+          id: 'user-1-profile',
+          userId: 'user-1',
+          username: 'self',
+          isAccountBanned: false,
+          suspendedUntil: null,
+          user: { isActive: true, isRootBanned: false, deletedAt: null },
+        },
+      });
       await expect(
         monetizationService.createTipSession(
           'user-1',
           'user-1',
           500,
           'https://return',
+          'post-1',
         ),
       ).rejects.toThrow(
         expect.objectContaining({
@@ -100,17 +148,18 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
-    it('rejects a tip one cent below the €2.00 minimum', async () => {
+    it('rejects a tip one cent below the smallest fixed amount', async () => {
       await expect(
         monetizationService.createTipSession(
           'user-1',
           'user-2',
-          MIN_TIP_CENTS - 1,
+          TIP_AMOUNTS_CENTS[0] - 1,
           'https://return',
+          'post-1',
         ),
       ).rejects.toThrow(
         expect.objectContaining({
-          errorCode: ErrorCode.MINIMUM_TIP_NOT_MET,
+          errorCode: ErrorCode.TIP_AMOUNT_NOT_ALLOWED,
         }),
       );
 
@@ -129,6 +178,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
           'creator-1',
           1000,
           'https://return',
+          'post-1',
         ),
       ).rejects.toThrow(
         expect.objectContaining({
@@ -160,6 +210,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         'creator-1',
         tipAmountCents,
         'https://return.com',
+        'post-1',
       );
 
       expect(res.url).toBe('https://checkout.stripe.com/tip');

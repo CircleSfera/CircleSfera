@@ -104,6 +104,10 @@ function targetPath(notif: {
   if (notif.targetType === 'live') {
     return `/live/${encodeURIComponent(notif.targetId)}`;
   }
+  // A tag waiting for the Profile's approval opens where it is approved.
+  if (notif.targetType === 'tag_pending') {
+    return '/accounts/tags';
+  }
   return null;
 }
 
@@ -575,7 +579,11 @@ export default function Notifications() {
                           ? 'notifications.types.mention_story'
                           : notif.targetType === 'post'
                             ? 'notifications.types.mention_post'
-                            : 'notifications.types.mention',
+                            : notif.targetType === 'tag'
+                              ? 'notifications.types.tag'
+                              : notif.targetType === 'tag_pending'
+                                ? 'notifications.types.tag_pending'
+                                : 'notifications.types.mention',
                       )}
                     {notif.type === 'FOLLOW_REQUEST' &&
                       t('notifications.types.follow_request')}

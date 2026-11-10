@@ -14,6 +14,7 @@ describe('PostDistributionService', () => {
     profile: { findMany: ReturnType<typeof vi.fn> };
     follow: { findMany: ReturnType<typeof vi.fn> };
     post: { findUnique: ReturnType<typeof vi.fn> };
+    postTag: { findMany: ReturnType<typeof vi.fn> };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
   let mockAiQueue: { add: ReturnType<typeof vi.fn> };
@@ -24,6 +25,8 @@ describe('PostDistributionService', () => {
       profile: { findMany: vi.fn() },
       follow: { findMany: vi.fn().mockResolvedValue([]) },
       post: { findUnique: vi.fn() },
+      // No tags unless a test says so.
+      postTag: { findMany: vi.fn().mockResolvedValue([]) },
     };
     mockEventEmitter = { emit: vi.fn() };
     mockAiQueue = { add: vi.fn().mockResolvedValue({}) };
@@ -108,6 +111,42 @@ describe('PostDistributionService', () => {
 
     expect(mockFeedFanoutQueue.add).not.toHaveBeenCalled();
     expect(mockAiQueue.add).toHaveBeenCalledTimes(3);
+  });
+
+  it('tells each tagged Profile, and where to approve a tag waiting for it', async () => {
+    mockPrisma.postTag.findMany.mockResolvedValue([
+      { profileId: 'shown-1', status: 'SHOWN' },
+      { profileId: 'waits-1', status: 'PENDING' },
+    ]);
+
+    await service.dispatchPostPublished({
+      id: 'post-9',
+      profileId: 'author-1',
+      visibility: Visibility.PUBLIC,
+    });
+
+    expect(mockPrisma.postTag.findMany).toHaveBeenCalledWith({
+      where: { postId: 'post-9', profileId: { not: 'author-1' } },
+      select: { profileId: true, status: true },
+    });
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith('notification.create', {
+      recipientId: 'shown-1',
+      senderId: 'author-1',
+      type: 'MENTION',
+      postId: 'post-9',
+      notice: { key: 'tagged_in_post' },
+      targetType: 'tag',
+      targetId: 'post-9',
+    });
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith('notification.create', {
+      recipientId: 'waits-1',
+      senderId: 'author-1',
+      type: 'MENTION',
+      postId: 'post-9',
+      notice: { key: 'tag_pending' },
+      targetType: 'tag_pending',
+      targetId: 'post-9',
+    });
   });
 
   it('resolves mentions and emits notification events excluding self', async () => {

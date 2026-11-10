@@ -1,10 +1,14 @@
+import {
+  TIP_AMOUNTS_CENTS,
+  WEEKLY_SUPPORT_LIMIT_CENTS,
+} from '@circlesfera/shared';
 import { Gift } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
 import { reportPaymentError } from '../../utils/identityVerification';
-import { formatWholeEuros } from '../../utils/money';
+import { formatCents, formatWholeEuros } from '../../utils/money';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
 
@@ -12,11 +16,13 @@ interface TipModalProps {
   isOpen: boolean;
   onClose: () => void;
   receiverId: string;
-  postId?: string;
+  // A tip is always for a post (a Frame is one too).
+  postId: string;
   receiverName: string;
 }
 
-export const TIP_AMOUNTS = [2, 5, 10, 50];
+// The fixed amounts a tip can be, in euros.
+export const TIP_AMOUNTS = TIP_AMOUNTS_CENTS.map((cents) => cents / 100);
 
 export default function TipModal({
   isOpen,
@@ -76,20 +82,21 @@ export default function TipModal({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="flex flex-wrap justify-center gap-2 mb-4">
         {TIP_AMOUNTS.map((amount) => (
           <button
             key={amount}
             type="button"
             onClick={() => setSelectedAmount(amount)}
-            className={`flex flex-col items-center justify-center min-h-14 py-3 rounded-xl border transition-all ${
+            aria-pressed={selectedAmount === amount}
+            className={`min-h-12 px-5 rounded-full border transition-all ${
               selectedAmount === amount
                 ? 'border-brand-primary bg-brand-primary/15 shadow-[0_0_15px_rgba(var(--brand-primary-rgb),0.25)]'
                 : 'border-white/10 bg-white/5 hover:bg-white/10'
             }`}
           >
             <span
-              className={`font-bold text-xl ${selectedAmount === amount ? 'text-brand-primary-text' : 'text-white'}`}
+              className={`font-bold text-base ${selectedAmount === amount ? 'text-brand-primary-text' : 'text-white'}`}
             >
               {formatWholeEuros(amount, i18n.language)}
             </span>
@@ -97,8 +104,11 @@ export default function TipModal({
         ))}
       </div>
       {/* The amount is what is paid: the VAT is inside it. */}
-      <p className="mb-4 text-center text-xs text-white/50">
-        {t('vat.included')}
+      <p className="text-center text-xs text-white/50">{t('vat.included')}</p>
+      <p className="mb-4 mt-1 text-center text-xs text-white/50">
+        {t('wallet.weekly_limit', {
+          limit: formatCents(WEEKLY_SUPPORT_LIMIT_CENTS, i18n.language),
+        })}
       </p>
 
       <Button

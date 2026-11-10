@@ -100,7 +100,7 @@ export class PostDistributionService {
    * 2. Background content moderation
    * 3. Alt-text generation for accessibility
    * 4. Feed fan-out distribution to followers
-   * 5. Mention notification events
+   * 5. Mention and tag notification events
    */
   async dispatchPostPublished(
     post: DistributablePost,
@@ -180,6 +180,28 @@ export class PostDistributionService {
           } satisfies NotificationCreateEvent['payload']),
         ),
       );
+    }
+
+    // Tag notices. The tags kept are only those the tagged Profile allows
+    // (who may tag it, blocks): a refused tag was never stored and nobody is
+    // told. A tag shown on the profile says so; one waiting for approval
+    // says where to approve it.
+    const tags = await this.prisma.postTag.findMany({
+      where: { postId: post.id, profileId: { not: post.profileId } },
+      select: { profileId: true, status: true },
+    });
+    for (const tag of tags) {
+      const pending = tag.status === 'PENDING';
+      this.eventEmitter.emit('notification.create', {
+        recipientId: tag.profileId,
+        senderId: post.profileId,
+        type: NotificationType.MENTION,
+        postId: post.id,
+        notice: { key: pending ? 'tag_pending' : 'tagged_in_post' },
+        // Tells the app which tag notice it is: the app words it.
+        targetType: pending ? 'tag_pending' : 'tag',
+        targetId: post.id,
+      } satisfies NotificationCreateEvent['payload']);
     }
   }
 }
