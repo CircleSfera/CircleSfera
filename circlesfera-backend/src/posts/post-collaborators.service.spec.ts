@@ -277,7 +277,16 @@ describe('PostCollaboratorsService', () => {
   it('shows the co-author only once it accepted', () => {
     expect(
       shownCollaborator({ status: 'ACCEPTED', profile: { id: 'ana' } }),
-    ).toEqual({ id: 'ana' });
+    ).toEqual({ id: 'ana', pinnedAt: null });
+    // With when it pinned the post on its own profile.
+    const at = new Date('2026-11-05T00:00:00Z');
+    expect(
+      shownCollaborator({
+        status: 'ACCEPTED',
+        profile: { id: 'ana' },
+        pinnedAt: at,
+      }),
+    ).toEqual({ id: 'ana', pinnedAt: at });
     expect(
       shownCollaborator({ status: 'PENDING', profile: { id: 'ana' } }),
     ).toBeNull();

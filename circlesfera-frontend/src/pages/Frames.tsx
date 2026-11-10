@@ -417,7 +417,9 @@ export default function Frames() {
                     onSave={menuActions.onSave}
                     onArchive={menuActions.onArchive}
                     onTogglePin={
-                      isFrameOwner ? frameProfilePin.togglePin : undefined
+                      isFrameOwner || frameCollaboration.isCollaborator
+                        ? frameProfilePin.togglePin
+                        : undefined
                     }
                     pinned={frameProfilePin.pinned}
                     onAddToStory={menuActions.onAddToStory}

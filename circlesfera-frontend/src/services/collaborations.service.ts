@@ -47,6 +47,15 @@ export const collaborationsApi = {
     apiClient.post<{ postId: string; status: 'ACCEPTED' }>(
       `collaborations/${postId}/accept`,
     ),
+  // The collaborator pins the post on its own profile, or unpins it.
+  pin: (postId: string) =>
+    apiClient.post<{ postId: string; pinnedAt: string }>(
+      `collaborations/${postId}/pin`,
+    ),
+  unpin: (postId: string) =>
+    apiClient.delete<{ postId: string; pinnedAt: null }>(
+      `collaborations/${postId}/pin`,
+    ),
   // Declines an invitation, or stops co-authoring an accepted one.
   leave: (postId: string) =>
     apiClient.delete<{ postId: string; collaborator: null }>(

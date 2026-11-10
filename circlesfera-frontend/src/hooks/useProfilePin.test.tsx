@@ -3,13 +3,15 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { postsApi } from '../services';
+import { collaborationsApi, postsApi } from '../services';
+import { useAuthStore } from '../stores/authStore';
 import { createTestQueryClient } from '../test/test-utils';
 import type { Post } from '../types';
 import { useProfilePin } from './useProfilePin';
 
 vi.mock('../services', () => ({
   postsApi: { pinToProfile: vi.fn(), unpinFromProfile: vi.fn() },
+  collaborationsApi: { pin: vi.fn(), unpin: vi.fn() },
 }));
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn() },
@@ -31,7 +33,50 @@ function setup(target: Post | undefined) {
 }
 
 describe('useProfilePin', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthStore.setState({ profile: { id: 'author-1' } as never });
+  });
+
+  describe('as the collaborator', () => {
+    const coAuthored = (pinnedAt: string | null) =>
+      post({
+        // The author's own pin, on the author's profile.
+        pinnedToProfileAt: '2026-11-01',
+        collaborator: { id: 'me', pinnedAt } as never,
+      });
+
+    beforeEach(() => {
+      useAuthStore.setState({ profile: { id: 'me' } as never });
+    });
+
+    it('pins it on its own profile through the collaboration', async () => {
+      vi.mocked(collaborationsApi.pin).mockResolvedValue({} as never);
+      const { result } = setup(coAuthored(null));
+
+      // Not pinned here, whatever the author did.
+      expect(result.current.pinned).toBe(false);
+      act(() => result.current.togglePin());
+
+      await waitFor(() =>
+        expect(collaborationsApi.pin).toHaveBeenCalledWith('post-1'),
+      );
+      expect(postsApi.pinToProfile).not.toHaveBeenCalled();
+    });
+
+    it('unpins its own pin', async () => {
+      vi.mocked(collaborationsApi.unpin).mockResolvedValue({} as never);
+      const { result } = setup(coAuthored('2026-11-05'));
+
+      expect(result.current.pinned).toBe(true);
+      act(() => result.current.togglePin());
+
+      await waitFor(() =>
+        expect(collaborationsApi.unpin).toHaveBeenCalledWith('post-1'),
+      );
+      expect(postsApi.unpinFromProfile).not.toHaveBeenCalled();
+    });
+  });
 
   it('pins a post, says so and refreshes the profile lists', async () => {
     vi.mocked(postsApi.pinToProfile).mockResolvedValue({} as never);

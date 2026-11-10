@@ -178,8 +178,11 @@ export interface Post {
   createdAt: Date | string;
   updatedAt: Date | string;
   profile: ProfileWithUser;
-  /** The Profile that co-authors it, once it accepted the invitation. */
-  collaborator?: ProfileWithUser | null;
+  /**
+   * The Profile that co-authors it, once it accepted the invitation, with
+   * when it pinned the post on its own profile (null if it did not).
+   */
+  collaborator?: (ProfileWithUser & { pinnedAt?: Date | string | null }) | null;
   _count: {
     // null when its author hid the like count from everyone else.
     likes: number | null;

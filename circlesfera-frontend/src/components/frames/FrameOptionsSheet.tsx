@@ -172,6 +172,18 @@ function OptionsBody({
         </>
       ) : (
         <>
+          {/* The collaborator pins it on its own profile. */}
+          {onTogglePin && (
+            <OptionRow
+              icon={pinned ? PinOff : Pin}
+              label={
+                pinned
+                  ? t('post.menu.unpin_from_profile')
+                  : t('post.menu.pin_to_profile')
+              }
+              onClick={() => run(onTogglePin)}
+            />
+          )}
           {onLeaveCollaboration && (
             <OptionRow
               icon={UserMinus}

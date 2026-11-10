@@ -180,7 +180,7 @@ export default function PostOverlays({
             }
             isArchived={isArchived}
             onTogglePin={
-              isOwner && !isArchived
+              (isOwner || collaboration.isCollaborator) && !isArchived
                 ? () => {
                     setShowMenu(false);
                     profilePin.togglePin();
