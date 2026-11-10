@@ -358,9 +358,18 @@ export class MonetizationService {
     idempotencyKey?: string,
   ) {
     // A story moderation hid or removed, or one not published yet, is sold
-    // to nobody.
+    // to nobody. Past its 24 hours it is sold only while it is in one of
+    // its author's highlights, where it is still shown (owner decision).
     const story = await this.prisma.story.findUnique({
-      where: { id: storyId, ...SELLABLE_STORY, scheduledStatus: 'PUBLISHED' },
+      where: {
+        id: storyId,
+        ...SELLABLE_STORY,
+        scheduledStatus: 'PUBLISHED',
+        OR: [
+          { expiresAt: { gt: new Date() } },
+          { highlightStories: { some: {} } },
+        ],
+      },
       include: { profile: { include: { user: true } } },
     });
     if (!story) await this.assertNotAwaitingModeration('story', storyId);

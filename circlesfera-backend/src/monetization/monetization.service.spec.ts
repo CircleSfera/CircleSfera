@@ -2714,9 +2714,16 @@ describe('MonetizationService', () => {
           'http://localhost/return',
         ),
       ).rejects.toBe(hidden);
+      // Past its 24 hours, only while it is in a highlight.
       expect(mockPrismaService.story.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ scheduledStatus: 'PUBLISHED' }),
+          where: expect.objectContaining({
+            scheduledStatus: 'PUBLISHED',
+            OR: [
+              { expiresAt: { gt: expect.any(Date) } },
+              { highlightStories: { some: {} } },
+            ],
+          }),
         }),
       );
     });
