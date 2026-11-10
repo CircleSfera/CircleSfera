@@ -811,6 +811,25 @@ describe('Admin Panel sign-in', () => {
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
+    it('says why when the passkey sign-in is throttled', async () => {
+      vi.mocked(adminAuthApi.passkeyLoginOptions).mockRejectedValue({
+        isAxiosError: true,
+        response: { status: 429, data: {} },
+      });
+      const { i18n } = renderWithProviders(<AdminPanelLogin />);
+
+      fireEvent.click(passkeyButton(i18n!));
+
+      await waitFor(() =>
+        expect(
+          screen.queryByText(i18n!.t('adminPanel.login.passkey_failed')),
+        ).toBeNull(),
+      );
+      expect(
+        await screen.findByText(/.+/, { selector: '.text-red-400' }),
+      ).toBeInTheDocument();
+    });
+
     it('says the server failed when signed in but who it is cannot be loaded', async () => {
       vi.mocked(adminAuthApi.passkeyLoginOptions).mockResolvedValue({
         data: {},

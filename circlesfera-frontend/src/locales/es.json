@@ -6263,7 +6263,8 @@
       "notice_body": "Entrar con una passkey es más seguro que la contraseña y el código, y pronto será obligatorio para el equipo. Añade una en este dispositivo.",
       "notice_action": "Añadir passkey",
       "create": "Crear la passkey",
-      "create_hint": "Pulsa «Crear la passkey» y sigue los pasos de tu dispositivo."
+      "create_hint": "Pulsa «Crear la passkey» y sigue los pasos de tu dispositivo.",
+      "load_error": "No se han podido cargar tus passkeys."
     }
   },
   "interactive": {

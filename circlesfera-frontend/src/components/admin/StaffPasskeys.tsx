@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { adminAuthApi } from '../../services/admin-auth.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import { ErrorState } from '../ErrorEmptyStates';
+import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
 import { isStepUpCancelled, useAdminStepUp } from './useAdminStepUp';
@@ -41,7 +43,12 @@ export function StaffPasskeysDialog({
   // a browser shows its passkey prompt only right after a click.
   const [ready, setReady] = useState<Record<string, unknown> | null>(null);
 
-  const { data: passkeys = [], isLoading } = useQuery({
+  const {
+    data: passkeys = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: PASSKEYS_KEY,
     queryFn: () => adminAuthApi.listPasskeys().then((r) => r.data),
     enabled: isOpen,
@@ -87,9 +94,14 @@ export function StaffPasskeysDialog({
     setBusy('create');
     try {
       const answer = await startRegistration({ optionsJSON: ready as never });
-      await adminAuthApi.registerPasskey(
-        answer as unknown as Record<string, unknown>,
-        name.trim() || undefined,
+      // The code given for the options may have expired meanwhile: then it
+      // is asked again and the same answer is sent, while its challenge
+      // still holds, so the passkey just made is not left unregistered.
+      await run(() =>
+        adminAuthApi.registerPasskey(
+          answer as unknown as Record<string, unknown>,
+          name.trim() || undefined,
+        ),
       );
       setName('');
       toast.success(t('adminPanel.passkeys.added'));
@@ -136,9 +148,18 @@ export function StaffPasskeysDialog({
             {t('adminPanel.passkeys.hint')}
           </p>
           {isLoading ? (
-            <p className="text-sm text-white/50" role="status">
-              {t('adminPanel.passkeys.loading')}
-            </p>
+            <div
+              className="flex justify-center py-2"
+              role="status"
+              aria-label={t('adminPanel.passkeys.loading')}
+            >
+              <LoadingSpinner size="sm" />
+            </div>
+          ) : isError ? (
+            <ErrorState
+              message={t('adminPanel.passkeys.load_error')}
+              onRetry={() => void refetch()}
+            />
           ) : passkeys.length === 0 ? (
             <p className="text-sm text-white/50">
               {t('adminPanel.passkeys.none')}
@@ -184,7 +205,7 @@ export function StaffPasskeysDialog({
               ))}
             </ul>
           )}
-          {full ? (
+          {isLoading || isError ? null : full ? (
             <p className="text-xs text-white/50">
               {t('adminPanel.passkeys.full', { max: STAFF_PASSKEYS_MAX })}
             </p>
@@ -246,40 +267,44 @@ export function StaffPasskeyNotice() {
   const { t } = useTranslation();
   const admin = useAdminAuthStore((state) => state.admin);
   const [open, setOpen] = useState(false);
-  if (!admin || admin.externalReviewer || admin.passkeyCount !== 0) {
-    return null;
-  }
+  const show = !!admin && !admin.externalReviewer && admin.passkeyCount === 0;
 
+  // The dialog stays open after the first passkey is added, when the
+  // notice itself goes, so the person sees the passkey in the list.
   return (
-    <section
-      aria-labelledby="staff-passkey-notice"
-      className="glass-panel rounded-xl p-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center"
-    >
-      <Fingerprint
-        size={20}
-        className="text-brand-primary-text shrink-0"
-        aria-hidden
-      />
-      <div className="flex-1 min-w-0">
-        <h2
-          id="staff-passkey-notice"
-          className="text-sm font-semibold text-white"
+    <>
+      {show && (
+        <section
+          aria-labelledby="staff-passkey-notice"
+          className="glass-panel rounded-xl p-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center"
         >
-          {t('adminPanel.passkeys.notice_title')}
-        </h2>
-        <p className="text-xs text-white/60 mt-0.5">
-          {t('adminPanel.passkeys.notice_body')}
-        </p>
-      </div>
-      <Button
-        type="button"
-        variant="primary"
-        className="min-h-11 px-4 font-semibold self-start sm:self-center shrink-0"
-        onClick={() => setOpen(true)}
-      >
-        {t('adminPanel.passkeys.notice_action')}
-      </Button>
+          <Fingerprint
+            size={20}
+            className="text-brand-primary-text shrink-0"
+            aria-hidden
+          />
+          <div className="flex-1 min-w-0">
+            <h2
+              id="staff-passkey-notice"
+              className="text-sm font-semibold text-white"
+            >
+              {t('adminPanel.passkeys.notice_title')}
+            </h2>
+            <p className="text-xs text-white/60 mt-0.5">
+              {t('adminPanel.passkeys.notice_body')}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="primary"
+            className="min-h-11 px-4 font-semibold self-start sm:self-center shrink-0"
+            onClick={() => setOpen(true)}
+          >
+            {t('adminPanel.passkeys.notice_action')}
+          </Button>
+        </section>
+      )}
       <StaffPasskeysDialog isOpen={open} onClose={() => setOpen(false)} />
-    </section>
+    </>
   );
 }

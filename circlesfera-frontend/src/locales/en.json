@@ -6263,7 +6263,8 @@
       "notice_body": "Signing in with a passkey is safer than a password and a code, and it will soon be required for staff. Add one on this device.",
       "notice_action": "Add passkey",
       "create": "Create the passkey",
-      "create_hint": "Press “Create the passkey” and follow your device's steps."
+      "create_hint": "Press “Create the passkey” and follow your device's steps.",
+      "load_error": "Your passkeys could not be loaded."
     }
   },
   "interactive": {

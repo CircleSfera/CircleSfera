@@ -1,5 +1,5 @@
 import { startRegistration } from '@simplewebauthn/browser';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { type AdminMe, adminAuthApi } from '../../services/admin-auth.service';
@@ -54,6 +54,31 @@ describe('StaffPasskeyNotice', () => {
         name: i18n!.t('adminPanel.passkeys.notice_action'),
       }),
     );
+    expect(
+      screen.getByRole('dialog', {
+        name: i18n!.t('adminPanel.passkeys.title'),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the dialog open after the first passkey is added, when the notice goes', async () => {
+    signIn(staff());
+    vi.mocked(adminAuthApi.listPasskeys).mockResolvedValue({
+      data: [],
+    } as never);
+    const { i18n } = renderWithProviders(<StaffPasskeyNotice />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('adminPanel.passkeys.notice_action'),
+      }),
+    );
+
+    // The first passkey arrives: the notice goes, the dialog stays.
+    act(() => signIn(staff({ passkeyCount: 1 })));
+
+    expect(
+      screen.queryByText(i18n!.t('adminPanel.passkeys.notice_title')),
+    ).toBeNull();
     expect(
       screen.getByRole('dialog', {
         name: i18n!.t('adminPanel.passkeys.title'),
@@ -255,6 +280,74 @@ describe('StaffPasskeysDialog', () => {
     );
     await waitFor(() => expect(remove).toBeEnabled());
     expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('says the list could not be loaded, offers no new passkey meanwhile, and tries again', async () => {
+    vi.mocked(adminAuthApi.listPasskeys)
+      .mockRejectedValueOnce(new Error('down'))
+      .mockResolvedValue({ data: [] } as never);
+    const { i18n } = renderWithProviders(
+      <StaffPasskeysDialog isOpen onClose={onClose} />,
+    );
+
+    expect(
+      await screen.findByText(i18n!.t('adminPanel.passkeys.load_error')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('adminPanel.passkeys.add'),
+      }),
+    ).toBeNull();
+    expect(screen.queryByText(i18n!.t('adminPanel.passkeys.none'))).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('common.try_again') }),
+    );
+    expect(
+      await screen.findByText(i18n!.t('adminPanel.passkeys.none')),
+    ).toBeInTheDocument();
+  });
+
+  it('asks the code again when it expired before the passkey is registered, and sends the same answer', async () => {
+    vi.mocked(adminAuthApi.listPasskeys).mockResolvedValue({
+      data: [],
+    } as never);
+    vi.mocked(adminAuthApi.passkeyRegisterOptions).mockResolvedValue({
+      data: { challenge: 'c' },
+    } as never);
+    vi.mocked(startRegistration).mockResolvedValue({ id: 'cred' } as never);
+    vi.mocked(adminAuthApi.registerPasskey)
+      .mockRejectedValueOnce(stepUpNeeded)
+      .mockResolvedValue({ data: { id: 'pk-new' } } as never);
+    vi.mocked(adminAuthApi.stepUp).mockResolvedValue({} as never);
+    const { i18n } = renderWithProviders(
+      <StaffPasskeysDialog isOpen onClose={onClose} />,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: i18n!.t('adminPanel.passkeys.add'),
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: i18n!.t('adminPanel.passkeys.create'),
+      }),
+    );
+
+    fireEvent.change(await screen.findByPlaceholderText('000000'), {
+      target: { value: '123456' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('admin.operators.confirm') }),
+    );
+
+    await waitFor(() =>
+      expect(adminAuthApi.registerPasskey).toHaveBeenCalledTimes(2),
+    );
+    expect(startRegistration).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(adminAuthApi.registerPasskey).mock.calls[1][0]).toEqual({
+      id: 'cred',
+    });
   });
 
   it('offers no new passkey once the limit is reached', async () => {

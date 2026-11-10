@@ -119,7 +119,9 @@ export default function AdminPanelLogin() {
       setError(
         err instanceof Error && err.name === 'NotAllowedError'
           ? t('adminPanel.passkeys.cancelled')
-          : t('adminPanel.login.passkey_failed'),
+          : apiErrorMessage(err, t, 'adminPanel.login.passkey_failed', {
+              signIn: true,
+            }),
       );
     },
   });
