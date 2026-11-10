@@ -6255,7 +6255,8 @@
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
       "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
       "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
-      "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available."
+      "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
+      "CONTENT_UNDER_REVIEW": "This content goes on sale once it has been checked. Try again in a few minutes."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

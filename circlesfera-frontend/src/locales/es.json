@@ -6255,7 +6255,8 @@
       "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
       "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
       "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
-      "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles."
+      "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
+      "CONTENT_UNDER_REVIEW": "Este contenido se pone a la venta en cuanto se revisa. Vuelve a intentarlo en unos minutos."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",
