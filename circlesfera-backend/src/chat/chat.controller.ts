@@ -212,6 +212,7 @@ export class ChatController {
       dto.voiceWaveform,
       dto.isLocked,
       dto.priceCents,
+      dto.gifId,
     );
   }
 

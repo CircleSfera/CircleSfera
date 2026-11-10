@@ -1652,6 +1652,10 @@ model Message {
   voiceDuration Int?
   voiceWaveform Json?
 
+  // A GIF from GIPHY, as GIPHY described it when it was sent: its id, title,
+  // image address and size. Never a file of CircleSfera's storage.
+  gif Json?
+
   // Not read by application code yet, see Media model.
   mediaId      String?
   media        Media?  @relation("MessageMedia", fields: [mediaId], references: [id], onDelete: SetNull)

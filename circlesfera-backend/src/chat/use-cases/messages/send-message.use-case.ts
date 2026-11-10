@@ -14,6 +14,7 @@ import {
   buildVoiceMediaCreateInput,
   resolveMediaFields,
 } from '../../../common/utils/media-lifecycle.util.js';
+import { type Gif, GiphyService } from '../../../gifs/giphy.service.js';
 import { HiddenWordsService } from '../../../hidden-words/hidden-words.service.js';
 import { renderChatPush } from '../../../notifications/notice-copy.js';
 import {
@@ -43,6 +44,7 @@ export class SendMessageUseCase {
     private readonly postPaywall: PostPaywallService,
     @Inject(HiddenWordsService)
     private readonly hiddenWords: HiddenWordsService,
+    @Inject(GiphyService) private readonly giphy: GiphyService,
   ) {}
 
   private async assertShareable(
@@ -88,9 +90,13 @@ export class SendMessageUseCase {
     voiceWaveform?: number[],
     isLocked?: boolean,
     priceCents?: number,
+    gifId?: string,
   ): Promise<Message> {
     // Only the sending Profile's own stored files can be attached.
     await this.storedFiles.assertOwnedBy(senderId, [url, voiceUrl]);
+    const gif = gifId
+      ? await this.gifFor(gifId, [url, voiceUrl, postId, storyId])
+      : null;
 
     // Messages are no longer sold: a private message cannot carry a price,
     // as the payment provider does not take pay-per-view in private chats.
@@ -287,6 +293,7 @@ export class SendMessageUseCase {
               ? JSON.parse(JSON.stringify(voiceWaveform))
               : undefined,
             ...(isLocked ? { isLocked: true, priceCents } : {}),
+            ...(gif ? { gif: gif as Prisma.InputJsonValue } : {}),
           },
           include: {
             sender: {
@@ -461,5 +468,31 @@ export class SendMessageUseCase {
       return { ...payload, post } as typeof payload;
     }
     return payload;
+  }
+
+  // A GIF is sent alone: no photo, video, voice note, post or story with it.
+  // The server asks GIPHY for it by its id, so the image address it keeps is
+  // the one GIPHY gives at the app's rating, never one the sender chose.
+  private async gifFor(
+    gifId: string,
+    otherAttachments: Array<string | undefined>,
+  ): Promise<Gif> {
+    if (otherAttachments.some(Boolean)) {
+      throw AppException.BadRequest(
+        ErrorCode.BAD_REQUEST,
+        'A GIF is sent on its own',
+      );
+    }
+    if (!this.giphy.available()) {
+      throw AppException.NotFound(
+        ErrorCode.GIFS_UNAVAILABLE,
+        'GIFs are not available',
+      );
+    }
+    const gif = await this.giphy.byId(gifId);
+    if (!gif) {
+      throw AppException.BadRequest(ErrorCode.GIF_NOT_FOUND, 'GIF not found');
+    }
+    return gif;
   }
 }

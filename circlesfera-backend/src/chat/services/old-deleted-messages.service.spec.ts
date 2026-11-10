@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OldDeletedMessagesService } from './old-deleted-messages.service.js';
 
@@ -47,6 +48,7 @@ describe('OldDeletedMessagesService', () => {
         mediaId: null,
         voiceUrl: null,
         voiceMediaId: null,
+        gif: Prisma.DbNull,
       }),
     });
     expect(uploads.releaseContentFiles).toHaveBeenCalledWith(

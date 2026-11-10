@@ -2,6 +2,7 @@ export * from './business-profile.js';
 export * from './comments.js';
 export * from './favorites.js';
 export * from './frame-look.js';
+export * from './gifs.js';
 export * from './hidden-words.js';
 export * from './live-schedule.js';
 export * from './media-limits.js';

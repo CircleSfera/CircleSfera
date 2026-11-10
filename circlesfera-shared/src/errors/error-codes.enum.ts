@@ -76,6 +76,10 @@ export enum ErrorCode {
   HIDDEN_WORDS_FULL = 'HIDDEN_WORDS_FULL',
   // A Profile already has the most posts it can pin to its profile.
   PROFILE_PINS_FULL = 'PROFILE_PINS_FULL',
+  // GIFs are not offered: the server has no GIPHY key.
+  GIFS_UNAVAILABLE = 'GIFS_UNAVAILABLE',
+  // GIPHY does not know the GIF, or does not show it at the app's rating.
+  GIF_NOT_FOUND = 'GIF_NOT_FOUND',
   // A Profile already has the most Favorites it can keep.
   FAVORITES_FULL = 'FAVORITES_FULL',
   // Only a Profile one follows can be a Favorite.
