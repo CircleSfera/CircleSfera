@@ -51,6 +51,8 @@ export enum ErrorCode {
   ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION = 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
   // Paid content goes on sale once automatic moderation has checked it.
   CONTENT_UNDER_REVIEW = 'CONTENT_UNDER_REVIEW',
+  // Staff paused new payments (the payments_enabled setting is off).
+  PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
   // Charging for anything needs a verified identity of someone 18 or older.
   MONETIZATION_UNDER_AGE = 'MONETIZATION_UNDER_AGE',
   // Messages are no longer sold: none can be sent with a price, and none
