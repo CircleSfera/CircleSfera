@@ -10,6 +10,7 @@ import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent
 import { AppException } from '../common/errors/app.exception.js';
 import { assertAdultPayer } from '../common/policies/adult-payer.policy.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
   AWAITING_MODERATION,
   LISTED_POST,
@@ -17,6 +18,7 @@ import {
   SELLABLE_POST,
   SELLABLE_STORY,
 } from '../common/policies/removed-content.policy.js';
+import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
   CREATOR_PAYMENT_METHODS,
@@ -311,6 +313,9 @@ export class MonetizationService {
         'You cannot buy your own post',
       );
     }
+    // Nobody pays for a post they may not see: the same rule as viewing it
+    // (blocks, private accounts and posts, followers only, archived).
+    await assertCanAccessPost(this.prisma, postId, profileId);
 
     const creator = (post as any).profile.user;
     const payout = await payoutDestinationFor(this.prisma, {
@@ -368,6 +373,9 @@ export class MonetizationService {
         'You cannot buy your own story',
       );
     }
+    // Nobody pays for a story they may not see: the same rule as viewing it
+    // (blocks, private accounts, close friends).
+    await assertCanAccessStory(this.prisma, storyId, profileId);
 
     const existing = await this.prisma.storyUnlock.findUnique({
       where: { userId_storyId: { userId, storyId } },
@@ -486,6 +494,9 @@ export class MonetizationService {
         ErrorCode.CANNOT_TIP_SELF,
         'Cannot tip yourself',
       );
+    // Nobody tips a post they may not see: the same rule as viewing it
+    // (blocks, private accounts and posts, followers only, archived).
+    await assertCanAccessPost(this.prisma, postId, senderProfileId ?? null);
 
     // A Profile that is banned or suspended, of a person no longer here, or
     // across a block with who tips, is not found, as everywhere else.
