@@ -327,7 +327,15 @@ describe('FeedService', () => {
         select: { favoriteId: true },
       });
       const query = mockPrismaService.post.findMany.mock.calls[0][0];
-      expect(query.where.profileId).toEqual({ in: ['fav-1', 'fav-2'] });
+      expect(query.where.OR).toEqual([
+        { profileId: { in: ['fav-1', 'fav-2'] } },
+        {
+          collaborator: {
+            status: 'ACCEPTED',
+            profileId: { in: ['fav-1', 'fav-2'] },
+          },
+        },
+      ]);
       expect(query.where.visibility).toEqual({ in: ['PUBLIC', 'FOLLOWERS'] });
       expect(query.where.deletedAt).toBeNull();
       expect(query.where.archivedAt).toBeNull();
@@ -358,6 +366,32 @@ describe('FeedService', () => {
       expect(result.data).toEqual([]);
       expect(result.meta.total).toBe(0);
       expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
+    });
+
+    it('includes a post a Favorite co-authors, but not one whose author the viewer muted or hid', async () => {
+      mockPrismaService.favoriteProfile.findMany.mockResolvedValue([
+        { favoriteId: 'fav-1' },
+      ]);
+      mockPrismaService.mute.findMany.mockResolvedValue([
+        { mutedId: 'muted-author' },
+      ]);
+      mockFeedPreferences.getFilterSets.mockResolvedValue({
+        hiddenPostIds: [],
+        hiddenAuthorIds: ['hidden-author'],
+        mutedKeywords: [],
+      });
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      mockPrismaService.post.count.mockResolvedValue(0);
+
+      await service.getFavoritesFeed('viewer', { page: 1, limit: 10 });
+
+      const query = mockPrismaService.post.findMany.mock.calls[0][0];
+      expect(query.where.OR[1]).toEqual({
+        collaborator: { status: 'ACCEPTED', profileId: { in: ['fav-1'] } },
+        profileId: { notIn: ['muted-author', 'hidden-author'] },
+      });
+      // Only the Favorite's accepted collaborations count.
+      expect(query.where.OR[1].collaborator.status).toBe('ACCEPTED');
     });
 
     it('leaves out hidden posts and posts with a muted word', async () => {
