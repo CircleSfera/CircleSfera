@@ -41,7 +41,14 @@ export function setModerationStatus(
   // it may be sold or tipped as if automatic moderation had passed it.
   const cleared =
     status === 'VISIBLE'
-      ? { ...args, data: { ...data, moderationPassedAt: new Date() } }
+      ? {
+          ...args,
+          data: {
+            ...data,
+            moderationPassedAt: new Date(),
+            moderationPassedByStaff: true,
+          },
+        }
       : args;
   if (type === 'POST') return db.post.update(cleared);
   if (type === 'STORY') return db.story.update(cleared);

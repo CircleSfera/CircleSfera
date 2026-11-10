@@ -1,3 +1,4 @@
+import { FIRST_PAID_ITEMS_REVIEWED_BY_STAFF } from '@circlesfera/shared';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ModerationStatus, NotificationType } from '@prisma/client';
@@ -25,11 +26,13 @@ describe('AIProcessor', () => {
       findUnique: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
+      count: ReturnType<typeof vi.fn>;
     };
     story: {
       findUnique: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
+      count: ReturnType<typeof vi.fn>;
     };
     comment: {
       findUnique: ReturnType<typeof vi.fn>;
@@ -60,8 +63,18 @@ describe('AIProcessor', () => {
     };
 
     prisma = {
-      post: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-      story: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+      post: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+        count: vi.fn().mockResolvedValue(0),
+      },
+      story: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+        count: vi.fn().mockResolvedValue(0),
+      },
       comment: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
       moderationRule: { findMany: vi.fn().mockResolvedValue([]) },
       postMedia: { update: vi.fn() },
@@ -433,6 +446,67 @@ describe('AIProcessor', () => {
         });
       },
     );
+
+    it.each([
+      ['POST', 'post'],
+      ['STORY', 'story'],
+    ] as const)(
+      'keeps a priced %s off sale until a person passes the first paid items of its Profile',
+      async (type, model) => {
+        prisma[model].findUnique.mockResolvedValue({
+          priceCents: 500,
+          profileId: 'creator-1',
+        });
+        prisma.post.count.mockResolvedValue(1);
+        prisma.story.count.mockResolvedValue(1);
+
+        await processor.process(job(type));
+
+        expect(prisma[model].updateMany).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: { moderationPassedAt: expect.any(Date) },
+          }),
+        );
+        // Counted among that Profile's priced items a person passed.
+        expect(prisma.post.count).toHaveBeenCalledWith({
+          where: {
+            profileId: 'creator-1',
+            priceCents: { gt: 0 },
+            moderationPassedByStaff: true,
+          },
+        });
+      },
+    );
+
+    it('puts a priced post on sale once a person has passed enough of its Profile', async () => {
+      prisma.post.findUnique.mockResolvedValue({
+        priceCents: 500,
+        profileId: 'creator-1',
+      });
+      prisma.post.count.mockResolvedValue(
+        FIRST_PAID_ITEMS_REVIEWED_BY_STAFF - 1,
+      );
+      prisma.story.count.mockResolvedValue(1);
+
+      await processor.process(job('POST'));
+
+      expect(prisma.post.updateMany).toHaveBeenCalledWith({
+        where: { id: 't-1', moderationStatus: 'VISIBLE' },
+        data: { moderationPassedAt: expect.any(Date) },
+      });
+    });
+
+    it('puts a free post on sale without waiting for a person', async () => {
+      prisma.post.findUnique.mockResolvedValue({
+        priceCents: 0,
+        profileId: 'creator-1',
+      });
+
+      await processor.process(job('POST'));
+
+      expect(prisma.post.count).not.toHaveBeenCalled();
+      expect(prisma.post.updateMany).toHaveBeenCalled();
+    });
 
     it('marks nothing on a comment, which is never sold', async () => {
       await processor.process(job('COMMENT'));

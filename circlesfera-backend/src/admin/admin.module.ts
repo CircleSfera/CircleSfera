@@ -22,6 +22,8 @@ import { AdminCompaniesService } from './admin-companies.service.js';
 import { AdminContentController } from './admin-content.controller.js';
 import { AdminDisputesController } from './admin-disputes.controller.js';
 import { AdminDisputesService } from './admin-disputes.service.js';
+import { AdminFirstPaidReviewController } from './admin-first-paid-review.controller.js';
+import { AdminFirstPaidReviewService } from './admin-first-paid-review.service.js';
 import { AdminLinkDomainsController } from './admin-link-domains.controller.js';
 import { AdminLinkDomainsService } from './admin-link-domains.service.js';
 import { AdminMediaController } from './admin-media.controller.js';
@@ -86,6 +88,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminProfileSuspensionController,
     AdminMonetizationProgrammeController,
     AdminContentController,
+    AdminFirstPaidReviewController,
     AdminLinkDomainsController,
     AdminMediaController,
     AdminOpsController,
@@ -124,6 +127,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     WarnLiveHostUseCase,
     LogAdminActionUseCase,
     ModerateContentUseCase,
+    AdminFirstPaidReviewService,
     ReviewPromotionUseCase,
     ReviewReportUseCase,
     GetContentQuery,

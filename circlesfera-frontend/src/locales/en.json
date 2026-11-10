@@ -140,6 +140,10 @@
       "tags": {
         "label": "Tags",
         "desc": "Posts you're tagged in"
+      },
+      "collaborations": {
+        "label": "Collaborations",
+        "desc": "Invitations"
       }
     },
     "profile": {
@@ -891,6 +895,18 @@
       "message_requests_desc": "When off, only people you follow can start a chat with you.",
       "save_error": "Couldn't save the change",
       "load_error": "Couldn't load who can mention, tag or message you."
+    },
+    "collaborations": {
+      "title": "Collaboration invitations",
+      "subtitle": "Posts others invited you to co-author. Once you accept, the post shows on your profile and reaches your followers too.",
+      "empty": "No invitations at the moment",
+      "invited_by": "{{username}} invited you to collaborate",
+      "view_post": "View {{username}}'s post",
+      "accept": "Accept",
+      "decline": "Decline",
+      "accepted": "You're now a collaborator on this post",
+      "accept_error": "Couldn't accept the invitation",
+      "decline_error": "Couldn't decline the invitation"
     }
   },
   "auth": {
@@ -1462,7 +1478,9 @@
       "stop_offering_template": "Stop offering its template",
       "template_offered": "Others can now use its template",
       "template_stopped": "Its template is no longer offered",
-      "template_error": "Could not change it. Try again."
+      "template_error": "Could not change it. Try again.",
+      "collaborator": "Collaborator",
+      "leave_collaboration": "Stop collaborating"
     },
     "modals": {
       "delete_title": "Delete post?",
@@ -1510,6 +1528,24 @@
       "load_failed": "It could not be loaded. Please try again.",
       "retry": "Try again",
       "how_link": "How your feed works"
+    },
+    "collab": {
+      "and": "and",
+      "title": "Collaborator",
+      "explain": "Invite one person to be a co-author. Once they accept, the post shows on both profiles and reaches the followers of both. You keep every control over it.",
+      "username_label": "Username",
+      "username_placeholder": "@username",
+      "invite": "Invite",
+      "invited": "Invitation sent",
+      "invite_error": "Couldn't send the invitation",
+      "status_pending": "Invited, hasn't answered yet",
+      "status_accepted": "Co-author",
+      "remove": "Remove",
+      "withdraw": "Withdraw",
+      "removed": "Collaborator removed",
+      "remove_error": "Couldn't remove the collaborator",
+      "left": "You're no longer a collaborator on this post",
+      "leave_error": "Couldn't stop collaborating"
     }
   },
   "story": {
@@ -2397,7 +2433,8 @@
       "and": "and",
       "and_others_one": "and {{count}} other",
       "and_others_other": "and {{count}} others"
-    }
+    },
+    "collab_invitations_cta": "See invitations"
   },
   "chat": {
     "loading": "Loading chats...",
@@ -2843,7 +2880,8 @@
     "support_with_money": "Support {{name}} with a tip",
     "processing": "Processing...",
     "send_tip": "Send Tip",
-    "error_send_tip": "Error sending tip"
+    "error_send_tip": "Error sending tip",
+    "weekly_limit": "You can give up to {{limit}} a week, tips and live gifts together."
   },
   "monetization": {
     "available_balance": "Available Balance",
@@ -3134,7 +3172,23 @@
       "note_batch_approved": "Batch approved",
       "note_batch_hidden": "Batch hidden",
       "note_false_positive": "Approved (false positive)",
-      "select_item": "Select this item"
+      "select_item": "Select this item",
+      "first_paid": {
+        "title": "First paid content",
+        "subtitle_one": "The first paid post or story of each creator is checked by a person before it goes on sale.",
+        "subtitle_other": "The first {{count}} paid posts and stories of each creator are checked by a person before they go on sale.",
+        "progress_one": "{{passed}} of {{count}} checked",
+        "progress_other": "{{passed}} of {{count}} checked",
+        "approve": "Approve for sale",
+        "remove": "Remove",
+        "ask_remove": "Remove the paid content of @{{username}}?",
+        "reason": "Reason the creator reads",
+        "approved": "On sale now",
+        "removed": "Removed",
+        "error": "That could not be done. Try again.",
+        "view": "View",
+        "view_title": "Paid content of @{{username}}"
+      }
     },
     "reports": {
       "title": "Reports",
@@ -3815,7 +3869,8 @@
         "UPDATE_SETTINGS": "Changed the settings",
         "BLOCK": "Blocked content",
         "IGNORE": "Dismissed a case",
-        "STRIKE": "Issued a strike"
+        "STRIKE": "Issued a strike",
+        "PAID_CONTENT_APPROVED": "Paid content approved for sale"
       },
       "targets": {
         "USER": "Account",
@@ -6363,7 +6418,15 @@
       "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",
       "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests.",
-      "CONTENT_UNDER_REVIEW": "This content goes on sale once it has been checked. Try again in a few minutes."
+      "CONTENT_UNDER_REVIEW": "This content goes on sale once it has been checked. Try again in a few minutes.",
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "You have reached the most you can give in a week, tips and gifts together.",
+      "COLLAB_NOT_ALLOWED": "Only a public post that is not paid can have a collaborator, and never its author.",
+      "COLLABORATOR_EXISTS": "This post already has a collaborator.",
+      "TIP_AMOUNT_NOT_ALLOWED": "Choose one of the amounts shown.",
+      "CONTENT_CHANGED_SINCE_REVIEW": "Its author changed it after you opened it. Look at it again.",
+      "COLLAB_NOT_FOUND": "This invitation is no longer available.",
+      "TIP_TARGET_REQUIRED": "A tip is always for a post.",
+      "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

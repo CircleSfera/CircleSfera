@@ -8,6 +8,7 @@ import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
 import type { VerificationLevel } from '../VerificationBadge';
 import VerificationBadge from '../VerificationBadge';
+import CollaboratorName from './CollaboratorName';
 import WhyPromotedDialog from './WhyPromotedDialog';
 
 interface PostHeaderProps {
@@ -123,19 +124,26 @@ export default function PostHeader({
 
       {/* Author info */}
       <div className="flex-1 min-w-0 min-h-11 flex flex-col justify-center">
-        <Link
-          to={`/${post.profile.username}`}
-          className="flex items-center gap-1 truncate hover:opacity-80 transition-opacity"
-          onClick={handleProfileClick}
-        >
-          {/* Display name + verification */}
-          <span className="text-sm font-bold text-white truncate leading-tight">
-            {post.profile.fullName || post.profile.username}
-          </span>
-          <VerificationBadge
-            level={post.profile.verificationLevel as VerificationLevel}
+        <div className="flex items-center gap-1 min-w-0">
+          <Link
+            to={`/${post.profile.username}`}
+            className="flex items-center gap-1 truncate hover:opacity-80 transition-opacity"
+            onClick={handleProfileClick}
+          >
+            {/* Display name + verification */}
+            <span className="text-sm font-bold text-white truncate leading-tight">
+              {post.profile.fullName || post.profile.username}
+            </span>
+            <VerificationBadge
+              level={post.profile.verificationLevel as VerificationLevel}
+            />
+          </Link>
+          {/* The co-author, on a post made together */}
+          <CollaboratorName
+            post={post}
+            className="text-sm font-bold text-white leading-tight"
           />
-        </Link>
+        </div>
 
         {/* Username + timestamp + visibility, and "Promoted", which opens
             why the post is shown */}

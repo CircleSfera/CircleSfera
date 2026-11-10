@@ -400,7 +400,13 @@ export class MonetizationWebhookService {
       }
     } else if (metadata?.type === 'DIRECT_TIP') {
       const clientReferenceId = session.client_reference_id;
-      const { creatorId, postId, profileId, senderProfileId } = metadata;
+      const {
+        creatorId,
+        postId,
+        profileId,
+        senderProfileId,
+        tipReservationId,
+      } = metadata;
       const amount = amountPaid(session);
       const vat = vatPaid(session);
       const paymentIntentId =
@@ -419,6 +425,13 @@ export class MonetizationWebhookService {
             })
           : null;
         await this.prisma.$transaction(async (tx) => {
+          // Paid: the payment counts towards the weekly limit from now, so
+          // the amount held while the checkout was open is let go.
+          if (tipReservationId) {
+            await tx.tipReservation.deleteMany({
+              where: { id: tipReservationId },
+            });
+          }
           await tx.transaction.create({
             data: {
               type: 'DIRECT_TIP',

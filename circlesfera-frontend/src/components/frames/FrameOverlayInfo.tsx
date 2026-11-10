@@ -2,6 +2,7 @@ import { LayoutTemplate, MapPin, Music } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
+import CollaboratorName from '../post/CollaboratorName';
 import RichText from '../RichText';
 import UserAvatar from '../UserAvatar';
 
@@ -47,6 +48,10 @@ export default function FrameOverlayInfo({
             >
               {post.profile.username}
             </Link>
+            <CollaboratorName
+              post={post}
+              className="font-bold text-sm text-white drop-shadow-md min-h-11"
+            />
             {!isOwner && (
               <button
                 type="button"

@@ -13,6 +13,9 @@ vi.mock('../components/settings/AppealsSettings', () => ({
 vi.mock('../components/settings/BillingSettings', () => ({
   default: () => <div>panel:billing</div>,
 }));
+vi.mock('../components/settings/CollaborationsSettings', () => ({
+  default: () => <div>panel:collaborations</div>,
+}));
 vi.mock('../components/settings/CloseFriendsSettings', () => ({
   default: () => <div>panel:close_friends</div>,
 }));
