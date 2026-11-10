@@ -74,6 +74,21 @@ export default function MonetizationDashboard() {
   });
 
   const breakdown = summary?.breakdown;
+  // Paid messages are no longer sold: the kind shows only to a creator who
+  // earned from it before, so that past income still adds up.
+  const incomeKinds = breakdown
+    ? (
+        [
+          ['creator.income.posts_ppv', breakdown.postUnlocks],
+          ['creator.income.stories_ppv', breakdown.storyUnlocks],
+          ['creator.income.messages_ppv', breakdown.messageUnlocks],
+          ['creator.income.tips', breakdown.tips],
+          ['creator.income.live_gifts', breakdown.liveGifts],
+        ] as const
+      ).filter(
+        ([key, cents]) => key !== 'creator.income.messages_ppv' || cents > 0,
+      )
+    : [];
 
   return (
     <div className="space-y-8">
@@ -82,16 +97,8 @@ export default function MonetizationDashboard() {
           title={t('creator.income.breakdown')}
           hint={t('creator.income.breakdown_hint')}
         >
-          <CreatorFigures five>
-            {(
-              [
-                ['creator.income.posts_ppv', breakdown.postUnlocks],
-                ['creator.income.stories_ppv', breakdown.storyUnlocks],
-                ['creator.income.messages_ppv', breakdown.messageUnlocks],
-                ['creator.income.tips', breakdown.tips],
-                ['creator.income.live_gifts', breakdown.liveGifts],
-              ] as const
-            ).map(([key, cents]) => (
+          <CreatorFigures five={incomeKinds.length === 5}>
+            {incomeKinds.map(([key, cents]) => (
               <CreatorFigure
                 key={key}
                 label={t(key)}

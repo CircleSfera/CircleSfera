@@ -100,6 +100,35 @@ describe('MonetizationDashboard', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('€8.00')).toBeInTheDocument();
     expect(screen.getByText('€2.00')).toBeInTheDocument();
+    // Paid messages are no longer sold: a creator who never earned from them
+    // is not shown the kind.
+    expect(
+      screen.queryByText(i18n!.t('creator.income.messages_ppv')),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('creator.income.tips')),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps paid messages in the breakdown for a creator who earned from them before', async () => {
+    vi.mocked(monetizationApi.getFinancialSummary).mockResolvedValue({
+      currentMonthIncome: 0,
+      totalTips: 0,
+      breakdown: {
+        postUnlocks: 0,
+        storyUnlocks: 0,
+        messageUnlocks: 1234,
+        tips: 0,
+        liveGifts: 0,
+      },
+    });
+
+    const { i18n } = renderDashboard();
+
+    expect(
+      await screen.findByText(i18n!.t('creator.income.messages_ppv')),
+    ).toBeInTheDocument();
+    expect(screen.getByText('€12.34')).toBeInTheDocument();
   });
 
   it('shows Stripe available/pending when Connect is linked', async () => {
