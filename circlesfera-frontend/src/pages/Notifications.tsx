@@ -5,6 +5,7 @@ import {
   CalendarClock,
   ChevronRight,
   Coins,
+  Handshake,
   Heart,
   MessageCircle,
   Radio,
@@ -242,6 +243,9 @@ export default function Notifications() {
         return <MessageCircle size={13} />;
       case 'MENTION':
         return <AtSign size={13} />;
+      case 'COLLAB_INVITE':
+      case 'COLLAB_ACCEPTED':
+        return <Handshake size={13} />;
       case 'LIVE_STARTED':
         return <Radio size={13} />;
       case 'LIVE_STARTING_SOON':
@@ -276,6 +280,8 @@ export default function Notifications() {
           background: 'var(--brand-blue)',
         };
       case 'COMMENT':
+      case 'COLLAB_INVITE':
+      case 'COLLAB_ACCEPTED':
         return {
           background: 'var(--brand-primary)',
         };
@@ -590,11 +596,21 @@ export default function Notifications() {
                     {/* Written by the server in the reader's language. */}
                     {(notif.type === 'PAYMENT' ||
                       notif.type === 'SYSTEM' ||
+                      notif.type === 'COLLAB_INVITE' ||
+                      notif.type === 'COLLAB_ACCEPTED' ||
                       notif.type === 'LIVE_STARTED' ||
                       notif.type === 'LIVE_STARTING_SOON') &&
                       notif.content}
                   </span>
                 </p>
+                {notif.type === 'COLLAB_INVITE' && (
+                  <Link
+                    to="/accounts/collaborations"
+                    className="inline-flex mt-2 min-h-11 items-center rounded-full border border-white/15 bg-white/5 px-3 text-xs font-semibold text-white/85 hover:bg-white/10 transition-colors"
+                  >
+                    {t('notifications.collab_invitations_cta')}
+                  </Link>
+                )}
                 {offersAppeal(notif) && (
                   <Link
                     to={moderationAppealPath(notif)}

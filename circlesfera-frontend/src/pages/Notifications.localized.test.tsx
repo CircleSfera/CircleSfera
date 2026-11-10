@@ -85,6 +85,38 @@ describe('Notifications written for the reader', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows a collaboration invitation in the reader language, with a way to answer it', async () => {
+    show([
+      notice({
+        type: 'COLLAB_INVITE',
+        content: 'te ha invitado a colaborar en una publicación',
+        postId: 'post-1',
+      }),
+      notice({
+        id: 'n-2',
+        type: 'COLLAB_ACCEPTED',
+        content: 'ha aceptado colaborar en tu publicación',
+        postId: 'post-2',
+      }),
+    ]);
+
+    renderWithProviders(<Notifications />, { lng: 'es' });
+
+    expect(
+      await screen.findByText('te ha invitado a colaborar en una publicación'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('ha aceptado colaborar en tu publicación'),
+    ).toBeInTheDocument();
+    // Only the invitation asks for an answer.
+    expect(
+      screen.getByRole('link', { name: 'Ver invitaciones' }),
+    ).toHaveAttribute('href', '/accounts/collaborations');
+    expect(
+      screen.getAllByRole('link', { name: 'Ver invitaciones' }),
+    ).toHaveLength(1);
+  });
+
   it.each([
     ['en', 'now'],
     ['es', 'ahora'],

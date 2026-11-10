@@ -4,6 +4,7 @@ import AppealsSettings from '../components/settings/AppealsSettings';
 import ArchiveSettings from '../components/settings/ArchiveSettings';
 import BillingSettings from '../components/settings/BillingSettings';
 import CloseFriendsSettings from '../components/settings/CloseFriendsSettings';
+import CollaborationsSettings from '../components/settings/CollaborationsSettings';
 import FavoritesSettings from '../components/settings/FavoritesSettings';
 import FeedPreferencesSettings from '../components/settings/FeedPreferencesSettings';
 import HiddenWordsSettings from '../components/settings/HiddenWordsSettings';
@@ -46,6 +47,8 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <MonetizationSettings />;
     case 'requests':
       return <RequestsSettings />;
+    case 'collaborations':
+      return <CollaborationsSettings />;
     case 'close_friends':
       return <CloseFriendsSettings />;
     case 'favorites':
