@@ -294,12 +294,18 @@ export class MonetizationService {
     returnUrl: string,
     idempotencyKey?: string,
   ) {
-    // A post moderation hid or removed is sold to nobody.
+    // A post moderation hid or removed, or one not published yet, is sold
+    // to nobody.
     const post = await this.prisma.post.findUnique({
-      where: { id: postId, ...SELLABLE_POST },
+      where: { id: postId, ...SELLABLE_POST, scheduledStatus: 'PUBLISHED' },
       include: { profile: { include: { user: true } } },
     });
     if (!post) await this.assertNotAwaitingModeration('post', postId);
+    // Nobody pays for a post they may not see: the same rule as viewing it
+    // (blocks, private accounts and posts, followers only, archived). Asked
+    // before anything about the post is answered, so paying tells nothing
+    // that viewing does not (not even whether it is for sale).
+    await assertCanAccessPost(this.prisma, postId, profileId);
 
     if (!post?.isPremium || !post.priceCents) {
       throw AppException.BadRequest(
@@ -313,9 +319,6 @@ export class MonetizationService {
         'You cannot buy your own post',
       );
     }
-    // Nobody pays for a post they may not see: the same rule as viewing it
-    // (blocks, private accounts and posts, followers only, archived).
-    await assertCanAccessPost(this.prisma, postId, profileId);
 
     const creator = (post as any).profile.user;
     const payout = await payoutDestinationFor(this.prisma, {
@@ -354,12 +357,17 @@ export class MonetizationService {
     returnUrl: string,
     idempotencyKey?: string,
   ) {
-    // A story moderation hid or removed is sold to nobody.
+    // A story moderation hid or removed, or one not published yet, is sold
+    // to nobody.
     const story = await this.prisma.story.findUnique({
-      where: { id: storyId, ...SELLABLE_STORY },
+      where: { id: storyId, ...SELLABLE_STORY, scheduledStatus: 'PUBLISHED' },
       include: { profile: { include: { user: true } } },
     });
     if (!story) await this.assertNotAwaitingModeration('story', storyId);
+    // Nobody pays for a story they may not see: the same rule as viewing it
+    // (blocks, private accounts, close friends). Asked before anything about
+    // the story is answered, so paying tells nothing viewing does not.
+    await assertCanAccessStory(this.prisma, storyId, profileId);
 
     if (!story?.isPremium || !story.priceCents) {
       throw AppException.BadRequest(
@@ -373,9 +381,6 @@ export class MonetizationService {
         'You cannot buy your own story',
       );
     }
-    // Nobody pays for a story they may not see: the same rule as viewing it
-    // (blocks, private accounts, close friends).
-    await assertCanAccessStory(this.prisma, storyId, profileId);
 
     const existing = await this.prisma.storyUnlock.findUnique({
       where: { userId_storyId: { userId, storyId } },
@@ -478,7 +483,7 @@ export class MonetizationService {
     // named; the Profile tipped is the one the post belongs to, so every
     // check below is about it. No tip for a post moderation hid or removed.
     const post = await this.prisma.post.findUnique({
-      where: { id: postId, ...SELLABLE_POST },
+      where: { id: postId, ...SELLABLE_POST, scheduledStatus: 'PUBLISHED' },
       select: { profileId: true, profile: { select: TIPPED_PROFILE_SELECT } },
     });
     const ofTipped = named

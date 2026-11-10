@@ -2665,6 +2665,62 @@ describe('MonetizationService', () => {
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
+    it('tells someone who may not see a post nothing about it, not even whether it is for sale', async () => {
+      // Not premium: a viewer allowed to see it would hear so.
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post-2',
+        isPremium: false,
+        priceCents: 0,
+        profileId: 'creator-profile',
+        profile: { username: 'ana', user: { id: 'creator-1', email: 'c@x' } },
+      });
+      contentAccess.assertCanAccessPost.mockRejectedValueOnce(hidden);
+
+      await expect(
+        service.createPostUnlockSession(
+          'fan-1',
+          'fan-profile',
+          'post-2',
+          'http://localhost/return',
+        ),
+      ).rejects.toBe(hidden);
+
+      // And never sold before it is published.
+      expect(mockPrismaService.post.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'post-2',
+            scheduledStatus: 'PUBLISHED',
+          }),
+        }),
+      );
+    });
+
+    it('tells someone who may not see a story nothing about it, and sells none before it is published', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        id: 's-2',
+        isPremium: false,
+        priceCents: 0,
+        profileId: 'creator-profile',
+        profile: { user: { id: 'creator-1', email: 'c@x' } },
+      });
+      contentAccess.assertCanAccessStory.mockRejectedValueOnce(hidden);
+
+      await expect(
+        service.createStoryUnlockSession(
+          'fan-1',
+          'fan-profile',
+          's-2',
+          'http://localhost/return',
+        ),
+      ).rejects.toBe(hidden);
+      expect(mockPrismaService.story.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ scheduledStatus: 'PUBLISHED' }),
+        }),
+      );
+    });
+
     it('asks the rule for viewing a story before selling it, and sells nothing when it says no', async () => {
       mockPrismaService.story.findUnique.mockResolvedValue({
         id: 's-1',
