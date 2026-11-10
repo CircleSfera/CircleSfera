@@ -619,6 +619,9 @@ model Post {
   // Whether that pass was given by a person on staff. The first priced items
   // of a Profile are passed by a person before automatic passes count.
   moderationPassedByStaff Boolean          @default(false)
+  // When its author last changed its caption or cover: a person passing it
+  // passes it only as it was when they looked at it.
+  contentEditedAt         DateTime?
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
   deletedAt               DateTime?

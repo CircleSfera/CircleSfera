@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -23,6 +24,7 @@ import {
   AdminFirstPaidReviewService,
   type FirstPaidItemType,
 } from './admin-first-paid-review.service.js';
+import { ApproveFirstPaidDto } from './dto/approve-first-paid.dto.js';
 
 const ITEM_TYPES = { POST: 'POST', STORY: 'STORY' } as const;
 
@@ -51,8 +53,14 @@ export class AdminFirstPaidReviewController {
   approve(
     @Param('type', new ParseEnumPipe(ITEM_TYPES)) type: FirstPaidItemType,
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ApproveFirstPaidDto,
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.firstPaidReview.approve(admin.adminId, type, id);
+    return this.firstPaidReview.approve(
+      admin.adminId,
+      type,
+      id,
+      body.editedAt ?? null,
+    );
   }
 }

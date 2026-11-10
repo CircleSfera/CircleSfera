@@ -5,6 +5,10 @@
 ALTER TABLE "posts" ADD COLUMN "moderationPassedByStaff" BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE "stories" ADD COLUMN "moderationPassedByStaff" BOOLEAN NOT NULL DEFAULT false;
 
+-- When the author of a post last changed its caption or cover: staff pass a
+-- post only as it was when they looked at it. Nullable, so no rewrite.
+ALTER TABLE "posts" ADD COLUMN "contentEditedAt" TIMESTAMP(3);
+
 -- No priced item has been passed by a person yet, so every Profile is under
 -- the threshold: its priced items go off sale until staff passes them, and
 -- they appear in the staff queue. Free items keep their pass.

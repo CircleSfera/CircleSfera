@@ -952,7 +952,11 @@ export class PostsService {
         turnOffComments: dto.turnOffComments,
         hideLikes: dto.hideLikes,
         ...(recheck
-          ? { moderationPassedAt: null, moderationPassedByStaff: false }
+          ? {
+              moderationPassedAt: null,
+              moderationPassedByStaff: false,
+              contentEditedAt: new Date(),
+            }
           : {}),
       },
       include: {

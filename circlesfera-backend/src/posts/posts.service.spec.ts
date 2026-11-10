@@ -2102,6 +2102,7 @@ describe('PostsService', () => {
           data: expect.objectContaining({
             moderationPassedAt: null,
             moderationPassedByStaff: false,
+            contentEditedAt: expect.any(Date),
           }),
         }),
       );
@@ -2162,6 +2163,7 @@ describe('PostsService', () => {
           // Off sale until the new caption is checked.
           moderationPassedAt: null,
           moderationPassedByStaff: false,
+          contentEditedAt: expect.any(Date),
         },
         include: expect.any(Object),
       });

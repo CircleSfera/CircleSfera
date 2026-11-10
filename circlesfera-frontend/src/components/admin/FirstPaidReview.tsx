@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { adminApi, type FirstPaidItem } from '../../services/admin.service';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { formatDay } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import MediaThumb from '../common/MediaThumb';
@@ -24,6 +25,7 @@ export default function FirstPaidReview({ onToast }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<FirstPaidItem | null>(null);
+  const [viewing, setViewing] = useState<FirstPaidItem | null>(null);
   const [reason, setReason] = useState('');
 
   const { data } = useQuery({
@@ -40,9 +42,19 @@ export default function FirstPaidReview({ onToast }: Props) {
 
   const approve = useMutation({
     mutationFn: (item: FirstPaidItem) =>
-      adminApi.approveFirstPaid(item.type, item.id),
-    onSuccess: () => done(t('admin.moderation.first_paid.approved')),
-    onError: () => onToast(t('admin.moderation.first_paid.error'), 'error'),
+      adminApi.approveFirstPaid(item.type, item.id, item.contentEditedAt),
+    onSuccess: () => {
+      setViewing(null);
+      done(t('admin.moderation.first_paid.approved'));
+    },
+    // Changed by its author since it was opened: shown again as it is now.
+    onError: (err) => {
+      onToast(
+        apiErrorMessage(err, t, 'admin.moderation.first_paid.error'),
+        'error',
+      );
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    },
   });
 
   const remove = useMutation({
@@ -104,6 +116,13 @@ export default function FirstPaidReview({ onToast }: Props) {
                     <Button
                       size="md"
                       variant="outline"
+                      onClick={() => setViewing(item)}
+                    >
+                      {t('admin.moderation.first_paid.view')}
+                    </Button>
+                    <Button
+                      size="md"
+                      variant="outline"
                       onClick={() => setRemoving(item)}
                     >
                       {t('admin.moderation.first_paid.remove')}
@@ -124,6 +143,60 @@ export default function FirstPaidReview({ onToast }: Props) {
           );
         })}
       </ul>
+
+      <Dialog
+        isOpen={viewing !== null}
+        onClose={() => setViewing(null)}
+        title={
+          viewing
+            ? t('admin.moderation.first_paid.view_title', {
+                username: viewing.profile.username,
+              })
+            : ''
+        }
+        maxWidth="md"
+      >
+        {viewing && (
+          <div className="space-y-3">
+            {viewing.caption && (
+              <p className="whitespace-pre-wrap text-sm text-white/80">
+                {viewing.caption}
+              </p>
+            )}
+            <ul className="space-y-3">
+              {viewing.media.map((m) => (
+                <li key={m.url}>
+                  {m.type === 'video' ? (
+                    <video
+                      src={m.url}
+                      poster={m.thumbnailUrl ?? undefined}
+                      controls
+                      muted
+                      playsInline
+                      className="max-h-[60vh] w-full rounded-xl bg-black object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={m.url}
+                      alt=""
+                      className="max-h-[60vh] w-full rounded-xl bg-black object-contain"
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className={BUTTON_PAIR}>
+              <Button
+                size="md"
+                onClick={() => approve.mutate(viewing)}
+                isLoading={approve.isPending}
+              >
+                {t('admin.moderation.first_paid.approve')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
 
       <Dialog
         isOpen={removing !== null}

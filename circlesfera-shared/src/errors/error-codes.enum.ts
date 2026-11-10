@@ -66,6 +66,7 @@ export enum ErrorCode {
   // Posts & Media
   POST_NOT_FOUND = 'POST_NOT_FOUND',
   STORY_NOT_FOUND = 'STORY_NOT_FOUND',
+  CONTENT_CHANGED_SINCE_REVIEW = 'CONTENT_CHANGED_SINCE_REVIEW',
   MEDIA_NOT_FOUND = 'MEDIA_NOT_FOUND',
   COMMENT_NOT_FOUND = 'COMMENT_NOT_FOUND',
   // A post already has the most pinned comments it can have.

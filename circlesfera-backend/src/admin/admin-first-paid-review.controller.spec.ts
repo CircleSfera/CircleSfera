@@ -86,7 +86,32 @@ describe('AdminFirstPaidReviewController', () => {
       TEST_ADMIN.adminId,
       'STORY',
       ID,
+      null,
     );
+  });
+
+  it('passes a post as it was when it was opened', async () => {
+    service.approve.mockResolvedValue({ approved: true });
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/moderation/first-paid/POST/${ID}/approve`)
+      .set(ADMIN_BEARER)
+      .send({ editedAt: '2026-11-05T10:00:00.000Z' })
+      .expect(200);
+    expect(service.approve).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'POST',
+      ID,
+      '2026-11-05T10:00:00.000Z',
+    );
+  });
+
+  it('refuses an edit time that is not one', async () => {
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/moderation/first-paid/POST/${ID}/approve`)
+      .set(ADMIN_BEARER)
+      .send({ editedAt: 'yesterday' })
+      .expect(400);
+    expect(service.approve).not.toHaveBeenCalled();
   });
 
   it.each([

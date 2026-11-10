@@ -786,9 +786,12 @@ const cases: Case[] = [
   ],
   [
     'approveFirstPaid',
-    () => adminApi.approveFirstPaid('STORY', 's1'),
+    () => adminApi.approveFirstPaid('POST', 'p1', '2026-11-05T10:00:00Z'),
     'post',
-    ['admin/moderation/first-paid/STORY/s1/approve'],
+    [
+      'admin/moderation/first-paid/POST/p1/approve',
+      { editedAt: '2026-11-05T10:00:00Z' },
+    ],
   ],
   [
     'updateModerationStatus',

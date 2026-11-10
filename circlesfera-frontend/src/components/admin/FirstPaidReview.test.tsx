@@ -23,6 +23,7 @@ const item = (over: object = {}) => ({
   createdAt: '2026-11-01T10:00:00Z',
   profile: { id: 'p-1', username: 'ana', avatar: null },
   media: [{ url: 'a.jpg', thumbnailUrl: 'a-t.jpg', type: 'image' }],
+  contentEditedAt: '2026-11-05T09:00:00Z',
   passedByStaff: 1,
   ...over,
 });
@@ -74,7 +75,11 @@ describe('FirstPaidReview', () => {
     );
 
     await waitFor(() =>
-      expect(api.approveFirstPaid).toHaveBeenCalledWith('POST', 'post-1'),
+      expect(api.approveFirstPaid).toHaveBeenCalledWith(
+        'POST',
+        'post-1',
+        '2026-11-05T09:00:00Z',
+      ),
     );
     expect(onToast).toHaveBeenCalledWith('On sale now', 'success');
   });
@@ -105,6 +110,62 @@ describe('FirstPaidReview', () => {
       ),
     );
     expect(onToast).toHaveBeenCalledWith('Removed', 'success');
+  });
+
+  it('shows every picture and video before approving from there', async () => {
+    api.getFirstPaidReview.mockResolvedValue(
+      waiting([
+        item({
+          media: [
+            { url: 'a.jpg', thumbnailUrl: null, type: 'image' },
+            { url: 'b.mp4', thumbnailUrl: 'b.jpg', type: 'video' },
+          ],
+        }),
+      ]),
+    );
+    show();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'View' }));
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Paid content of @ana',
+    });
+    expect(within(dialog).getByText('Recetas de otoño')).toBeInTheDocument();
+    expect(dialog.querySelector('img[src="a.jpg"]')).not.toBeNull();
+    expect(dialog.querySelector('video[src="b.mp4"]')).not.toBeNull();
+
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Approve for sale' }),
+    );
+    await waitFor(() => expect(api.approveFirstPaid).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+  });
+
+  it('says when its author changed it since it was opened, and shows it again', async () => {
+    api.getFirstPaidReview.mockResolvedValue(waiting([item()]));
+    api.approveFirstPaid.mockRejectedValue({
+      isAxiosError: true,
+      response: {
+        status: 409,
+        data: { errorCode: 'CONTENT_CHANGED_SINCE_REVIEW' },
+      },
+    });
+    show();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Approve for sale' }),
+    );
+
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(
+        'Its author changed it after you opened it. Look at it again.',
+        'error',
+      ),
+    );
+    await waitFor(() =>
+      expect(api.getFirstPaidReview).toHaveBeenCalledTimes(2),
+    );
   });
 
   it('says when a decision could not be made', async () => {

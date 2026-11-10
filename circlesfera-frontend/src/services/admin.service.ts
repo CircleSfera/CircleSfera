@@ -157,6 +157,8 @@ export interface FirstPaidItem {
   caption: string | null;
   priceCents: number;
   createdAt: string;
+  // When its author last edited it; sent back when passing it.
+  contentEditedAt: string | null;
   profile: { id: string; username: string; avatar: string | null };
   media: { url?: string; thumbnailUrl?: string | null; type?: string | null }[];
   passedByStaff: number;
@@ -1421,8 +1423,14 @@ export const adminApi = {
       'admin/moderation/first-paid',
     ),
 
-  approveFirstPaid: (type: 'POST' | 'STORY', id: string) =>
-    apiClient.post(`admin/moderation/first-paid/${type}/${id}/approve`),
+  approveFirstPaid: (
+    type: 'POST' | 'STORY',
+    id: string,
+    editedAt: string | null = null,
+  ) =>
+    apiClient.post(`admin/moderation/first-paid/${type}/${id}/approve`, {
+      editedAt,
+    }),
 
   updateModerationStatus: (
     type: 'POST' | 'STORY' | 'COMMENT',

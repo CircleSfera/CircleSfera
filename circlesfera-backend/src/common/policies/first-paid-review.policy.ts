@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client';
 type Reader = Pick<Prisma.TransactionClient, 'post' | 'story'>;
 
 /** Priced and passed by a person on staff. */
-const PASSED_BY_STAFF = {
+export const PASSED_BY_STAFF = {
   priceCents: { gt: 0 },
   moderationPassedByStaff: true,
 } as const;

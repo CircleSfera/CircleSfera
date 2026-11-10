@@ -3098,7 +3098,9 @@
         "reason": "Motivo que lee el creador",
         "approved": "Ya está a la venta",
         "removed": "Retirado",
-        "error": "No se ha podido hacer. Inténtalo de nuevo."
+        "error": "No se ha podido hacer. Inténtalo de nuevo.",
+        "view": "Ver",
+        "view_title": "Contenido de pago de @{{username}}"
       }
     },
     "reports": {
@@ -6243,6 +6245,7 @@
       "STRIPE_CUSTOMER_MISSING": "No hemos encontrado tus datos de facturación. Contacta con soporte.",
       "PROMOTION_ID_MISSING": "Falta la promoción. Inténtalo de nuevo.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Cambia a un perfil de Creador o Negocio para ganar dinero.",
+      "CONTENT_CHANGED_SINCE_REVIEW": "Su autor lo ha cambiado después de que lo abrieras. Vuelve a mirarlo.",
       "POST_NOT_FOUND": "Esta publicación ya no está disponible.",
       "STORY_NOT_FOUND": "Esta historia ya no está disponible.",
       "MEDIA_NOT_FOUND": "No hemos encontrado ese archivo.",
