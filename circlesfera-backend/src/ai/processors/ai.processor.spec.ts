@@ -401,6 +401,85 @@ describe('AIProcessor', () => {
     });
   });
 
+  describe('what automatic moderation lets go on sale', () => {
+    const job = (targetType: string, text = 'Recetas de temporada') =>
+      ({
+        name: 'moderate-content',
+        data: { targetId: 't-1', targetType, text, mediaUrls: ['m'] },
+      }) as Job;
+
+    beforeEach(() => {
+      aiService.generateEmbedding.mockResolvedValue([0.1]);
+      prisma.$queryRaw.mockResolvedValue([]);
+      prisma.moderationRule.findMany.mockResolvedValue([]);
+      aiService.moderateContent.mockResolvedValue({
+        flagged: false,
+        categories: {},
+        category_scores: {},
+      });
+    });
+
+    it.each([
+      ['POST', 'post'],
+      ['STORY', 'story'],
+    ] as const)(
+      'marks a %s it found nothing in as passed, while it is still shown',
+      async (type, model) => {
+        await processor.process(job(type));
+
+        expect(prisma[model].updateMany).toHaveBeenCalledWith({
+          where: { id: 't-1', moderationStatus: 'VISIBLE' },
+          data: { moderationPassedAt: expect.any(Date) },
+        });
+      },
+    );
+
+    it('marks nothing on a comment, which is never sold', async () => {
+      await processor.process(job('COMMENT'));
+      expect(prisma.comment.updateMany).not.toHaveBeenCalled();
+      expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('marks a post with no words as passed once its picture is clean', async () => {
+      await processor.process(job('POST', ''));
+      expect(prisma.post.updateMany).toHaveBeenCalled();
+    });
+
+    it('leaves a post a rule sent to review off sale', async () => {
+      prisma.moderationRule.findMany.mockResolvedValue([{ keyword: 'estafa' }]);
+      prisma.report.findFirst.mockResolvedValue({ id: 'open-report' });
+
+      await processor.process(job('POST', 'Una estafa'));
+
+      expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('leaves a post off sale when the rules cannot be read', async () => {
+      prisma.moderationRule.findMany.mockRejectedValue(new Error('db down'));
+
+      await processor.process(job('POST'));
+
+      expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('leaves a post the AI flagged off sale', async () => {
+      prisma.post.update.mockResolvedValue({ profileId: 'author-1' });
+      aiService.moderateContent.mockResolvedValue({
+        flagged: true,
+        categories: { spam: true },
+        category_scores: {},
+      });
+
+      await processor.process(job('POST'));
+
+      expect(prisma.post.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { moderationPassedAt: expect.any(Date) },
+        }),
+      );
+    });
+  });
+
   describe('moderation rules', () => {
     const ruleJob = (targetType: string, text: string) =>
       ({

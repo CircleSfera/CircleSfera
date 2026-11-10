@@ -516,6 +516,9 @@ model Profile {
   highlights              Highlight[]
   closeFriends            CloseFriend[]           @relation("CloseFriendOwner")
   closeFriendOf           CloseFriend[]           @relation("CloseFriendTarget")
+  // The Profiles this one reads in its Favorites feed, and who has it there.
+  favorites               FavoriteProfile[]       @relation("FavoriteOwner")
+  favoriteOf              FavoriteProfile[]       @relation("FavoriteTarget")
   storyViews              StoryView[]
   storyReactions          StoryReaction[]
   taggedPosts             PostTag[]
@@ -608,20 +611,23 @@ model Post {
   /// The template others may use, offered from this Frame.
   studioTemplate   StudioTemplate? @relation("TemplateOfPost")
 
-  moderationStatus  ModerationStatus @default(VISIBLE)
-  moderationNote    String?          @db.Text
+  moderationStatus   ModerationStatus @default(VISIBLE)
+  moderationNote     String?          @db.Text
   // When it was last hidden or removed by moderation: the six months to
   // appeal it count from then.
-  moderatedAt       DateTime?
+  moderatedAt        DateTime?
+  // When automatic moderation checked it and found nothing: only then is it
+  // sold or tipped. Null until checked, or while the check cannot run.
+  moderationPassedAt DateTime?
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt         DateTime?
+  deletedAt          DateTime?
   // When its author archived it: shown in their archive only, with its likes
   // and comments, until they show it on their profile again.
-  archivedAt        DateTime?
+  archivedAt         DateTime?
   // When its author pinned it to the top of their profile; null when not
   // pinned. A Profile pins at most PROFILE_PINS_MAX.
-  pinnedToProfileAt DateTime?
+  pinnedToProfileAt  DateTime?
 
   // Premium Content
 
@@ -833,14 +839,17 @@ model Story {
   placeId  String?
   place    Place?  @relation(fields: [placeId], references: [id], onDelete: SetNull)
 
-  moderationStatus ModerationStatus @default(VISIBLE)
-  moderationNote   String?
+  moderationStatus   ModerationStatus @default(VISIBLE)
+  moderationNote     String?
   // When it was last hidden or removed by moderation. Removed content is
   // kept for the six months its author has to appeal, then erased.
-  moderatedAt      DateTime?
+  moderatedAt        DateTime?
+  // When automatic moderation checked it and found nothing: only then is it
+  // sold or tipped. Null until checked, or while the check cannot run.
+  moderationPassedAt DateTime?
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt        DateTime?
+  deletedAt          DateTime?
 
   // Relation to highlights
 
@@ -1110,6 +1119,21 @@ model CloseFriend {
   @@index([profileId])
   @@index([friendId])
   @@map("close_friends")
+}
+
+// A Profile the owner follows and chose as a Favorite: its posts make the
+// owner's Favorites feed. Private to the owner; at most FAVORITES_MAX each.
+model FavoriteProfile {
+  profileId  String
+  favoriteId String
+  createdAt  DateTime @default(now())
+
+  profile  Profile @relation("FavoriteOwner", fields: [profileId], references: [id], onDelete: Cascade)
+  favorite Profile @relation("FavoriteTarget", fields: [favoriteId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, favoriteId])
+  @@index([favoriteId])
+  @@map("favorite_profiles")
 }
 
 model Bookmark {

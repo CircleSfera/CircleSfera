@@ -275,6 +275,22 @@ export class AIProcessor extends WorkerHost {
     } satisfies NotificationCreateEvent['payload']);
   }
 
+  // Automatic moderation checked a post or story and found nothing: from now
+  // it may be sold or tipped. Only while it is still shown as it was checked:
+  // a rule or staff that hid it meanwhile keep it off sale.
+  private async markModerationPassed(
+    targetType: 'POST' | 'STORY' | 'COMMENT',
+    targetId: string,
+  ) {
+    const where = { id: targetId, moderationStatus: ModerationStatus.VISIBLE };
+    const data = { moderationPassedAt: new Date() };
+    if (targetType === 'POST') {
+      await this.prisma.post.updateMany({ where, data });
+    } else if (targetType === 'STORY') {
+      await this.prisma.story.updateMany({ where, data });
+    }
+  }
+
   private async hideTargetAndGetAuthorProfileId(
     targetType: 'POST' | 'STORY' | 'COMMENT',
     targetId: string,
@@ -359,8 +375,8 @@ export class AIProcessor extends WorkerHost {
     targetType: 'POST' | 'STORY' | 'COMMENT',
     targetId: string,
     text: string | undefined,
-  ) {
-    if (!text?.trim()) return;
+  ): Promise<boolean> {
+    if (!text?.trim()) return false;
     try {
       const rules = await this.prisma.moderationRule.findMany({
         where: { isActive: true },
@@ -370,7 +386,7 @@ export class AIProcessor extends WorkerHost {
       const matched = rules
         .map((rule) => rule.keyword.trim().normalize('NFC'))
         .filter((keyword) => keyword && ruleMatches(normalised, keyword));
-      if (matched.length === 0) return;
+      if (matched.length === 0) return false;
 
       const open = await this.prisma.report.findFirst({
         where: {
@@ -381,14 +397,14 @@ export class AIProcessor extends WorkerHost {
         },
         select: { id: true },
       });
-      if (open) return;
+      if (open) return true;
 
       const actor = await resolveSystemModeratorActor(this.prisma);
       if (!actor) {
         this.logger.error(
           `Cannot file a rule report for ${targetId}: no ACTIVE operator with a profile.`,
         );
-        return;
+        return true;
       }
       await this.prisma.report.create({
         data: {
@@ -399,10 +415,13 @@ export class AIProcessor extends WorkerHost {
           details: `${RULE_REPORT_PREFIX} The text matches the rule${matched.length > 1 ? 's' : ''} ${matched.map((k) => `"${k}"`).join(', ')}.`,
         },
       });
+      return true;
     } catch (error: unknown) {
       this.logger.error(
         `Could not apply the moderation rules to ${targetType} ${targetId}: ${error instanceof Error ? error.message : String(error)}`,
       );
+      // Not known whether a rule matched: kept off sale until it is.
+      return true;
     }
   }
 
@@ -455,8 +474,13 @@ export class AIProcessor extends WorkerHost {
     }
 
     // The rules staff keep (words or phrases) are applied first and without
-    // the AI service, so they hold even when it is down.
-    await this.applyModerationRules(targetType, targetId, text);
+    // the AI service, so they hold even when it is down. Content a rule sent
+    // to review is not put on sale until staff have looked at it.
+    const sentToReview = await this.applyModerationRules(
+      targetType,
+      targetId,
+      text,
+    );
 
     try {
       // Vector Firewall: Pre-check using existing ModerationSignatures
@@ -562,6 +586,8 @@ export class AIProcessor extends WorkerHost {
         this.logger.warn(
           `AI automatically set ${targetType} ${targetId} to ${status} for ${flags.join(', ')}`,
         );
+      } else if (!sentToReview) {
+        await this.markModerationPassed(targetType, targetId);
       }
     } catch (error: unknown) {
       const errorMessage =

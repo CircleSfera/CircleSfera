@@ -9,6 +9,9 @@ import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import {
+  AWAITING_MODERATION,
+  LISTED_POST,
+  NOT_REMOVED,
   SELLABLE_POST,
   SELLABLE_STORY,
 } from '../common/policies/removed-content.policy.js';
@@ -251,6 +254,30 @@ export class MonetizationService {
     return { url: session.url };
   }
 
+  // A post or story not on sale only because automatic moderation has not
+  // checked it yet says so, rather than seeming not to exist.
+  private async assertNotAwaitingModeration(
+    kind: 'post' | 'story',
+    id: string,
+  ): Promise<void> {
+    const waiting =
+      kind === 'post'
+        ? await this.prisma.post.findFirst({
+            where: { id, ...LISTED_POST, ...AWAITING_MODERATION },
+            select: { id: true },
+          })
+        : await this.prisma.story.findFirst({
+            where: { id, ...NOT_REMOVED, ...AWAITING_MODERATION },
+            select: { id: true },
+          });
+    if (waiting) {
+      throw AppException.BadRequest(
+        ErrorCode.CONTENT_UNDER_REVIEW,
+        'This content goes on sale once it has been checked.',
+      );
+    }
+  }
+
   async createPostUnlockSession(
     userId: string,
     profileId: string,
@@ -263,6 +290,7 @@ export class MonetizationService {
       where: { id: postId, ...SELLABLE_POST },
       include: { profile: { include: { user: true } } },
     });
+    if (!post) await this.assertNotAwaitingModeration('post', postId);
 
     if (!post?.isPremium || !post.priceCents) {
       throw AppException.BadRequest(
@@ -319,6 +347,7 @@ export class MonetizationService {
       where: { id: storyId, ...SELLABLE_STORY },
       include: { profile: { include: { user: true } } },
     });
+    if (!story) await this.assertNotAwaitingModeration('story', storyId);
 
     if (!story?.isPremium || !story.priceCents) {
       throw AppException.BadRequest(

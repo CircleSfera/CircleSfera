@@ -97,6 +97,10 @@
         "label": "Mejores Amigos",
         "desc": "Círculo íntimo"
       },
+      "favorites": {
+        "label": "Favoritos",
+        "desc": "Tu propio feed"
+      },
       "notifications": {
         "label": "Notificaciones",
         "desc": "Alertas"
@@ -1087,6 +1091,7 @@
     "brand_name": "CircleSfera",
     "for_you": "Para ti",
     "following": "Siguiendo",
+    "favorites": "Favoritos",
     "no_posts": "Todavía no hay publicaciones. ¡Explora para encontrar creadores!",
     "no_posts_title": "Sin publicaciones recientes",
     "login_required_title": "Inicia sesión",
@@ -1094,6 +1099,9 @@
     "no_following_posts_title": "Aún no sigues a nadie o no hay publicaciones",
     "no_following_posts_desc": "Explora creadores sugeridos o pasa a Para ti para descubrir contenido trending.",
     "switch_to_foryou": "Ir a Para ti",
+    "no_favorites_posts_title": "Aún no hay publicaciones de tus Favoritos",
+    "no_favorites_posts_desc": "Elige hasta 50 perfiles que sigues y lee solo los suyos aquí, de más reciente a más antiguo.",
+    "manage_favorites": "Elegir Favoritos",
     "error_title": "No se pudo cargar el feed",
     "error_message": "Algo salió mal al cargar las publicaciones. Inténtalo de nuevo."
   },
@@ -1127,6 +1135,24 @@
     "post_hide_error": "No se pudo ocultar la publicación",
     "author_hidden": "Autor ocultado de tu feed",
     "author_hide_error": "No se pudo ocultar al autor"
+  },
+  "favorites": {
+    "title": "Favoritos",
+    "desc": "Hasta {{max}} perfiles que sigues. Sus publicaciones forman tu feed de Favoritos, de más reciente a más antiguo. Nadie sabe quién está en tu lista.",
+    "count": "{{count}} de {{max}}",
+    "loading": "Cargando…",
+    "empty": "Aún no tienes Favoritos.",
+    "add_label": "Añadir a {{username}} a Favoritos",
+    "remove_label": "Quitar a {{username}} de Favoritos",
+    "add": "Añadir a Favoritos",
+    "remove": "Quitar de Favoritos",
+    "added": "Añadido a Favoritos",
+    "removed": "Quitado de Favoritos",
+    "full": "Puedes tener hasta {{max}} Favoritos. Quita uno antes.",
+    "not_followed": "Solo los perfiles que sigues pueden ser Favoritos.",
+    "error": "No se pudieron cambiar tus Favoritos. Inténtalo de nuevo.",
+    "following": "Personas que sigues",
+    "load_more": "Ver más"
   },
   "explore": {
     "page_title": "Explora el Universo",
@@ -1452,6 +1478,7 @@
       "why": "¿Por qué?",
       "close_friends": "Mejores Amigos",
       "following": "Siguiendo",
+      "favorite": "Favoritos",
       "signals_desc": {
         "ranked_for_you": "Nuestro algoritmo ha clasificado este contenido como altamente relevante para ti basándose en tus intereses y actividad.",
         "popular": "Esta publicación está recibiendo mucha interacción en la plataforma en este momento.",
@@ -6349,6 +6376,7 @@
       "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
       "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
       "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
+      "CONTENT_UNDER_REVIEW": "Este contenido se pone a la venta en cuanto se revisa. Vuelve a intentarlo en unos minutos.",
       "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",

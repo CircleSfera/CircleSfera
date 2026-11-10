@@ -33,6 +33,13 @@ import {
 // Marks the notice with where to find help, to send it once a day at most.
 const SUPPORT_RESOURCES = 'support_resources';
 
+// Reasons staff see first: someone may hurt themselves, or a child is being
+// sexually abused.
+const URGENT_REPORT_REASONS: ReadonlySet<string> = new Set([
+  'SELF_HARM',
+  'CSAM',
+]);
+
 // Service for content/user reports: creation, listing, and status updates.
 @Injectable()
 export class ReportsService {
@@ -207,8 +214,7 @@ export class ReportsService {
         targetId,
         reason: dto.reason,
         details: finalDetails,
-        // Someone may hurt themselves: staff see it first.
-        urgent: dto.reason === 'SELF_HARM',
+        urgent: URGENT_REPORT_REASONS.has(dto.reason),
         ...(dto.reason === 'INTELLECTUAL_PROPERTY'
           ? {
               rightsHolder: dto.rightsHolder,

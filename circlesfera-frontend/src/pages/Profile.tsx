@@ -555,6 +555,7 @@ export default function Profile() {
           onOpenCloseFriends={
             isMe ? () => setShowCloseFriendsModal(true) : undefined
           }
+          isFollowing={!!isFollowing}
           onOpenStories={() => {
             if (hasActiveStories && activeStories?.length) {
               openStories(activeStories, 0);

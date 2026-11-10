@@ -19,6 +19,7 @@ export * from './collections.service';
 export * from './comments.service';
 export * from './creator.service';
 export * from './data-export.service';
+export * from './favorites.service';
 export * from './feed.service';
 export * from './follows.service';
 export * from './highlights.service';

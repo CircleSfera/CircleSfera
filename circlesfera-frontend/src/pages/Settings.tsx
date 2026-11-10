@@ -5,6 +5,7 @@ import ArchiveSettings from '../components/settings/ArchiveSettings';
 import BillingSettings from '../components/settings/BillingSettings';
 import CloseFriendsSettings from '../components/settings/CloseFriendsSettings';
 import CollaborationsSettings from '../components/settings/CollaborationsSettings';
+import FavoritesSettings from '../components/settings/FavoritesSettings';
 import FeedPreferencesSettings from '../components/settings/FeedPreferencesSettings';
 import HiddenWordsSettings from '../components/settings/HiddenWordsSettings';
 import { MonetizationSettings } from '../components/settings/MonetizationSettings';
@@ -49,6 +50,8 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <CollaborationsSettings />;
     case 'close_friends':
       return <CloseFriendsSettings />;
+    case 'favorites':
+      return <FavoritesSettings />;
     case 'mutes':
       return <MutesSettings />;
     case 'hidden_words':

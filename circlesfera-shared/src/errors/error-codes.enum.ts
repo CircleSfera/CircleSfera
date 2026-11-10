@@ -49,6 +49,8 @@ export enum ErrorCode {
   STRIPE_CUSTOMER_MISSING = 'STRIPE_CUSTOMER_MISSING',
   PROMOTION_ID_MISSING = 'PROMOTION_ID_MISSING',
   ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION = 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+  // Paid content goes on sale once automatic moderation has checked it.
+  CONTENT_UNDER_REVIEW = 'CONTENT_UNDER_REVIEW',
   // The monetization programme: a Profile charges only once staff approve it.
   MONETIZATION_NOT_APPROVED = 'MONETIZATION_NOT_APPROVED',
   MONETIZATION_APPLICATION_NOT_OPEN = 'MONETIZATION_APPLICATION_NOT_OPEN',
@@ -74,6 +76,10 @@ export enum ErrorCode {
   HIDDEN_WORDS_FULL = 'HIDDEN_WORDS_FULL',
   // A Profile already has the most posts it can pin to its profile.
   PROFILE_PINS_FULL = 'PROFILE_PINS_FULL',
+  // A Profile already has the most Favorites it can keep.
+  FAVORITES_FULL = 'FAVORITES_FULL',
+  // Only a Profile one follows can be a Favorite.
+  FAVORITE_NOT_FOLLOWED = 'FAVORITE_NOT_FOLLOWED',
   // Only a public, unpaid post that is shown can carry a collaborator, and
   // never its own author.
   COLLAB_NOT_ALLOWED = 'COLLAB_NOT_ALLOWED',

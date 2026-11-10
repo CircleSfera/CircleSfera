@@ -37,7 +37,13 @@ export function setModerationStatus(
     ...(status === 'VISIBLE' ? {} : { moderatedAt: new Date() }),
   };
   const args = { where: { id }, data, select: SELECT };
-  if (type === 'POST') return db.post.update(args);
-  if (type === 'STORY') return db.story.update(args);
+  // A post or story staff decide to show has been looked at by a person:
+  // it may be sold or tipped as if automatic moderation had passed it.
+  const cleared =
+    status === 'VISIBLE'
+      ? { ...args, data: { ...data, moderationPassedAt: new Date() } }
+      : args;
+  if (type === 'POST') return db.post.update(cleared);
+  if (type === 'STORY') return db.story.update(cleared);
   return db.comment.update(args);
 }
