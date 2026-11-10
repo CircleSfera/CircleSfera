@@ -209,6 +209,31 @@ describe('Profile', () => {
     consoleError.mockRestore();
   });
 
+  it('says when the account takes no message requests', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    vi.mocked(chatApi.createGroup).mockRejectedValueOnce(
+      Object.assign(new Error('off'), {
+        status: 403,
+        data: { errorCode: 'MESSAGE_REQUESTS_OFF' },
+      }),
+    );
+    const { i18n } = renderAt();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'message' }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('errors.codes.MESSAGE_REQUESTS_OFF'),
+      ),
+    );
+    expect(navigate).not.toHaveBeenCalledWith(
+      expect.stringContaining('/direct/inbox/t/'),
+    );
+    consoleError.mockRestore();
+  });
+
   it('confirms a creator subscription after checkout and cleans the address', async () => {
     const { i18n } = renderAt('/ana?success=true&session_id=cs_123');
 

@@ -447,6 +447,16 @@ model Profile {
   // Whether others may share this Profile's posts and Frames to their
   // stories, as a card of the original. Off stops new shares only.
   allowStoryShares       Boolean            @default(true)
+  // Who may mention this Profile and who may tag it. A mention or tag from
+  // someone not allowed is kept out silently: no notice, no tag; nobody is
+  // told. FOLLOWING means Profiles this one follows.
+  mentionsFrom           InteractionAudience @default(EVERYONE)
+  tagsFrom               InteractionAudience @default(EVERYONE)
+  // Tags wait for this Profile's approval before they show on its profile.
+  manualTagApproval      Boolean            @default(false)
+  // Whether Profiles it does not follow may start a chat with it (a message
+  // request). Profiles it follows always reach its inbox.
+  messageRequests        Boolean            @default(true)
   // Push notifications of this Profile; the person's other Profiles keep
   // their own choice. Off pauses every push of the Profile.
   pushNotifications      Boolean            @default(true)
@@ -693,7 +703,10 @@ model PostTag {
   profileId String
   x         Float? // Optional: X coordinate (0-1)
   y         Float? // Optional: Y coordinate (0-1)
-  createdAt DateTime @default(now())
+  // PENDING until the tagged Profile approves it, when it asks to approve
+  // tags by hand; only SHOWN tags are on its profile.
+  status    PostTagStatus @default(SHOWN)
+  createdAt DateTime      @default(now())
 
   post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -3156,6 +3169,18 @@ enum MediaStatus {
 }
 
 /// The shape of a post: 1:1, 4:5 or 1.91:1.
+// Who may mention or tag a Profile.
+enum InteractionAudience {
+  EVERYONE
+  FOLLOWING
+  NOBODY
+}
+
+enum PostTagStatus {
+  SHOWN
+  PENDING
+}
+
 enum PostShape {
   SQUARE
   PORTRAIT

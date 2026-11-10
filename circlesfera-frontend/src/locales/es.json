@@ -136,6 +136,10 @@
       "hidden_words": {
         "label": "Palabras ocultas",
         "desc": "Comentarios"
+      },
+      "tags": {
+        "label": "Etiquetas",
+        "desc": "Publicaciones en las que apareces"
       }
     },
     "profile": {
@@ -851,6 +855,42 @@
       "delete_error": "No se pudo eliminar. Inténtalo de nuevo.",
       "archived": "Archivado. Solo tú lo ves, en tu archivo.",
       "archive_error": "No se pudo archivar. Inténtalo de nuevo."
+    },
+    "interactions": {
+      "title": "Menciones, etiquetas y mensajes",
+      "subtitle": "Elige quién puede mencionarte, etiquetarte o escribirte. Nadie se entera si lo dejas fuera.",
+      "audience": {
+        "EVERYONE": "Todos",
+        "FOLLOWING": "Personas a las que sigues",
+        "NOBODY": "Nadie"
+      },
+      "mentions": "Quién puede mencionarte",
+      "mentions_desc": "La mención de otra persona se queda en su texto, pero no te avisa.",
+      "tags": "Quién puede etiquetarte",
+      "tags_desc": "Los demás no pueden añadirte a sus publicaciones.",
+      "manual_tags": "Aprobar etiquetas manualmente",
+      "manual_tags_desc": "Las etiquetas nuevas esperan tu aprobación antes de mostrarse en tu perfil.",
+      "review_tags": "Revisar tus etiquetas",
+      "message_requests": "Permitir solicitudes de mensajes",
+      "message_requests_desc": "Si lo desactivas, solo las personas a las que sigues pueden empezar un chat contigo.",
+      "save_error": "No se ha podido guardar el cambio",
+      "load_error": "No se ha podido cargar quién puede mencionarte, etiquetarte o escribirte."
+    },
+    "tags": {
+      "pending_title": "Pendientes de aprobar",
+      "pending_desc": "Aprueba una etiqueta para mostrar la publicación en tu perfil, o quítate de ella.",
+      "pending_empty": "No hay etiquetas pendientes",
+      "shown_title": "En tu perfil",
+      "shown_desc": "Publicaciones en las que te han etiquetado. Si te quitas, desapareces de la publicación; su autor no se entera.",
+      "shown_empty": "No te han etiquetado en ninguna publicación",
+      "by": "Publicación de {{username}}",
+      "approve": "Aprobar",
+      "remove": "Quitarme",
+      "remove_label": "Quitarme de la publicación de {{username}}",
+      "error": "No se ha podido actualizar la etiqueta",
+      "load_error": "No se han podido cargar tus etiquetas.",
+      "unavailable": "Una publicación que no puedes ver",
+      "remove_unavailable_label": "Quitarme de una publicación que no puedes ver"
     }
   },
   "auth": {
@@ -6343,7 +6383,8 @@
       "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",
-      "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde."
+      "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
+      "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

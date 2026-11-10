@@ -17,6 +17,7 @@ describe('CreateGroupUseCase', () => {
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
     };
+    profile: { count: ReturnType<typeof vi.fn> };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
   let tx: {
@@ -40,6 +41,8 @@ describe('CreateGroupUseCase', () => {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi.fn().mockResolvedValue([]),
       },
+      // Everyone takes message requests unless a test says otherwise.
+      profile: { count: vi.fn().mockResolvedValue(0) },
     };
     mockEventEmitter = { emit: vi.fn() };
     useCase = new CreateGroupUseCase(
@@ -147,6 +150,40 @@ describe('CreateGroupUseCase', () => {
       },
       include: expect.any(Object),
     });
+  });
+
+  it('refuses a chat or a group asking someone who takes no message requests, and counts nothing', async () => {
+    mockPrisma.conversation.findFirst.mockResolvedValue(null);
+    mockPrisma.profile.count.mockResolvedValue(1);
+
+    await expect(useCase.execute('prof-1', ['prof-2'])).rejects.toMatchObject({
+      response: { errorCode: 'MESSAGE_REQUESTS_OFF' },
+    });
+    expect(mockPrisma.profile.count).toHaveBeenCalledWith({
+      where: { id: { in: ['prof-2'] }, messageRequests: false },
+    });
+
+    // In a group, only those who do not follow the creator are asked.
+    mockPrisma.follow.findMany.mockResolvedValue([{ followerId: 'prof-2' }]);
+    await expect(
+      useCase.execute('prof-1', ['prof-2', 'prof-3'], 'Team'),
+    ).rejects.toMatchObject({
+      response: { errorCode: 'MESSAGE_REQUESTS_OFF' },
+    });
+    expect(mockPrisma.profile.count).toHaveBeenLastCalledWith({
+      where: { id: { in: ['prof-3'] }, messageRequests: false },
+    });
+    expect(mockPrisma.conversation.create).not.toHaveBeenCalled();
+  });
+
+  it('asks nothing of someone who follows the creator', async () => {
+    mockPrisma.conversation.findFirst.mockResolvedValue(null);
+    mockPrisma.follow.findFirst.mockResolvedValue({ id: 'follow-1' });
+    mockPrisma.conversation.create.mockResolvedValue({ id: 'c' });
+
+    await useCase.execute('prof-1', ['prof-2']);
+
+    expect(mockPrisma.profile.count).not.toHaveBeenCalled();
   });
 
   it('creates new 1-on-1 accepted conversation when recipient follows creator', async () => {

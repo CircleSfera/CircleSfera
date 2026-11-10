@@ -8,6 +8,7 @@ import type { UpdateProfileDto } from '../../types';
 import { logger } from '../../utils/logger';
 import { keepSavedOwnProfile } from '../../utils/ownProfileCache';
 import { Switch } from '../ui';
+import InteractionSettings from './InteractionSettings';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
 
@@ -73,6 +74,8 @@ export default function PrivacySettings() {
         />
         <StorySharesRow />
       </SettingsSection>
+
+      <InteractionSettings />
 
       <p className="text-xs text-white/50 px-1">
         {t('settings.privacy.export_link_hint')}{' '}

@@ -99,10 +99,9 @@ describe('PrivacySettings', () => {
   it('points to where the data export is', async () => {
     await show({ username: 'ana', isPrivate: false });
 
-    expect(screen.getByRole('link')).toHaveAttribute(
-      'href',
-      '/accounts/account',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Export from Account' }),
+    ).toHaveAttribute('href', '/accounts/account');
   });
 
   describe('sharing to stories', () => {
