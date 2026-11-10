@@ -6308,6 +6308,7 @@
       "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
       "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
       "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
+      "CONTENT_UNDER_REVIEW": "Este contenido se pone a la venta en cuanto se revisa. Vuelve a intentarlo en unos minutos.",
       "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",

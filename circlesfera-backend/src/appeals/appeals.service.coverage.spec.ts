@@ -599,7 +599,11 @@ describe('AppealsService.update — effects and notices', () => {
 
     expect(t.prisma.post.update).toHaveBeenCalledWith({
       where: { id: 'post-1' },
-      data: { moderationStatus: 'VISIBLE' },
+      data: {
+        moderationStatus: 'VISIBLE',
+        // Restored after a person looked at it: on sale again.
+        moderationPassedAt: expect.any(Date),
+      },
     });
     expect(t.notifications.create).toHaveBeenCalledWith(
       expect.objectContaining({ recipientId: 'p-first', postId: 'post-1' }),
