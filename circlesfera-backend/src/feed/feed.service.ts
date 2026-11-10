@@ -468,6 +468,41 @@ export class FeedService {
     let posts: any[] = [];
     let total = 0;
 
+    // The viewer's own filters, on both paths: Profiles it muted or hid, the
+    // posts it said it is not interested in, and its muted words. Its own
+    // posts are always shown.
+    const [mutes, prefs] = await Promise.all([
+      this.prisma.mute.findMany({
+        where: {
+          muterId: profileId,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+        select: { mutedId: true },
+      }),
+      this.feedPreferences.getFilterSets(profileId),
+    ]);
+    const mutedIds = new Set([
+      ...mutes.map((m) => m.mutedId),
+      ...prefs.hiddenAuthorIds,
+    ]);
+    mutedIds.delete(profileId);
+    const muted = [...mutedIds];
+    // A post whose author the viewer muted or hid stays out, even when
+    // someone it follows co-authors it.
+    const authorFilter =
+      muted.length > 0 ? { profileId: { notIn: muted } } : {};
+    const preferenceFilter =
+      prefs.hiddenPostIds.length > 0
+        ? { id: { notIn: prefs.hiddenPostIds } }
+        : {};
+    const withoutMutedWords = (list: any[]) =>
+      prefs.mutedKeywords.length > 0
+        ? list.filter((p) => {
+            const caption = (p.caption || '').toLowerCase();
+            return !prefs.mutedKeywords.some((kw) => caption.includes(kw));
+          })
+        : list;
+
     // 1. Try to read from Redis Inbox (Fast Path)
     const inboxPostIds = await this.feedInbox.getInbox(profileId, skip, limit);
 
@@ -490,10 +525,20 @@ export class FeedService {
         include: this.postHydrationInclude(profileId),
       });
 
-      // Maintain Redis order (chronological by push time)
-      posts = inboxPostIds
-        .map((id) => rawPosts.find((p) => p.id === id))
-        .filter(Boolean);
+      // Maintain Redis order (chronological by push time). The viewer's
+      // filters apply here, after the read, so a post kept out only by a
+      // mute comes back when the mute ends: it stays in the inbox.
+      const hiddenPostIds = new Set(prefs.hiddenPostIds);
+      posts = withoutMutedWords(
+        inboxPostIds
+          .map((id) => rawPosts.find((p) => p.id === id))
+          .filter(
+            (p) =>
+              p !== undefined &&
+              !mutedIds.has(p.profileId) &&
+              !hiddenPostIds.has(p.id),
+          ),
+      );
 
       // Prune stale or deleted post IDs from Redis inbox
       if (rawPosts.length < inboxPostIds.length) {
@@ -534,37 +579,18 @@ export class FeedService {
         }
       }
 
-      const [following, mutes, prefs] = await Promise.all([
-        this.prisma.follow.findMany({
-          where: { followerId: profileId, status: 'ACCEPTED' },
-          select: { followingId: true },
-        }),
-        this.prisma.mute.findMany({
-          where: {
-            muterId: profileId,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          },
-          select: { mutedId: true },
-        }),
-        this.feedPreferences.getFilterSets(profileId),
-      ]);
-
-      const mutedIds = new Set([
-        ...mutes.map((m) => m.mutedId),
-        ...prefs.hiddenAuthorIds,
-      ]);
+      const following = await this.prisma.follow.findMany({
+        where: { followerId: profileId, status: 'ACCEPTED' },
+        select: { followingId: true },
+      });
       const followingIds = following
         .map((f) => f.followingId)
         .filter((id) => !mutedIds.has(id));
 
       followingIds.push(profileId); // Include own posts
 
-      const preferenceFilter =
-        prefs.hiddenPostIds.length > 0
-          ? { id: { notIn: prefs.hiddenPostIds } }
-          : {};
-
-      // Posts of those it follows, and those they accepted to author too.
+      // Posts of those it follows, and those they accepted to author too,
+      // unless the viewer muted or hid that post's author.
       const followedAuthors = {
         OR: [
           { profileId: { in: followingIds } },
@@ -573,6 +599,7 @@ export class FeedService {
               status: 'ACCEPTED' as const,
               profileId: { in: followingIds },
             },
+            ...authorFilter,
           },
         ],
       };
@@ -618,13 +645,7 @@ export class FeedService {
         }),
       ]);
 
-      posts =
-        prefs.mutedKeywords.length > 0
-          ? fallbackPosts.filter((p) => {
-              const caption = (p.caption || '').toLowerCase();
-              return !prefs.mutedKeywords.some((kw) => caption.includes(kw));
-            })
-          : fallbackPosts;
+      posts = withoutMutedWords(fallbackPosts);
       total = fallbackTotal;
 
       // Optional: We could trigger a background job to rebuild their inbox here,
