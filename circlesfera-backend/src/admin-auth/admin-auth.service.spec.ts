@@ -24,6 +24,7 @@ vi.mock('otplib', () => ({
   ),
   verifySync: vi.fn(({ token, secret }: { token: string; secret: string }) => ({
     valid: token === '123456' && secret === 'base32-admin-secret',
+    timeStep: 59_000_000,
   })),
 }));
 
@@ -78,6 +79,8 @@ describe('AdminAuthService', () => {
 
     mockPrisma = {
       adminIdentity: {
+        // A code is taken once: its time step is later than the last one.
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         findUnique: vi.fn(),
         update: vi.fn().mockResolvedValue({}),
       },
@@ -1164,6 +1167,43 @@ describe('AdminAuthService', () => {
       expect(mockPrisma.adminRefreshToken.deleteMany).toHaveBeenCalledWith({
         where: { id: 'sess-1', adminId: 'admin-1' },
       });
+    });
+
+    it('stepUp refuses a code already used to sign in', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        status: 'ACTIVE',
+        totpEnabled: true,
+        totpSecret: 'enc:base32-admin-secret',
+        roles: [],
+      });
+      mockPrisma.adminIdentity.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.stepUp('admin-1', { totpCode: '123456' }),
+      ).rejects.toThrow('Step-up verification failed');
+    });
+
+    it('verifyMfa refuses a code already used', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        email: 'a@b.c',
+        status: 'ACTIVE',
+        totpEnabled: true,
+        totpSecret: 'enc:base32-admin-secret',
+        accessExpiresAt: null,
+        roles: [],
+      });
+      mockPrisma.adminIdentity.updateMany.mockResolvedValueOnce({ count: 0 });
+      const mfaToken = jwtService.sign(
+        { sub: 'admin-1', email: 'a@b.c', purpose: 'admin-mfa' },
+        { secret: adminSecret, audience: 'circlesfera-admin', expiresIn: '5m' },
+      );
+
+      await expect(service.verifyMfa(mfaToken, '123456', {})).rejects.toThrow(
+        'Invalid MFA code',
+      );
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
     });
 
     it('stepUp refuses a staff member with no second factor enrolled', async () => {

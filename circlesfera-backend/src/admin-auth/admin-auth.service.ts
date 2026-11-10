@@ -164,17 +164,44 @@ export class AdminAuthService {
     }
   }
 
-  // Safe TOTP check — otplib throws on malformed secrets.
-  private isTotpValid(token: string, secret: string): boolean {
+  // Takes an authenticator code for an identity, once: a right code is
+  // accepted only if its time step is later than that of the last code the
+  // identity used, and that step is kept by the same write that checks it,
+  // so a code seen over a shoulder, or sent twice at once, works only once.
+  // otplib throws on malformed secrets: that is a wrong code.
+  private async useTotpCode(
+    adminId: string,
+    token: string,
+    secret: string,
+  ): Promise<boolean> {
     const code = token.replace(/\s+/g, '').trim();
     if (!/^\d{6}$/.test(code)) return false;
+    let timeStep: number;
     try {
-      return (
-        verifySync({ token: code, secret, epochTolerance: 120 })?.valid === true
-      );
+      const result = verifySync({ token: code, secret, epochTolerance: 120 });
+      // A TOTP result names its time step; anything else is no code here.
+      if (
+        result?.valid !== true ||
+        !('timeStep' in result) ||
+        typeof result.timeStep !== 'number'
+      ) {
+        return false;
+      }
+      timeStep = result.timeStep;
     } catch {
       return false;
     }
+    const taken = await this.prisma.adminIdentity.updateMany({
+      where: {
+        id: adminId,
+        OR: [
+          { totpLastTimeStep: null },
+          { totpLastTimeStep: { lt: timeStep } },
+        ],
+      },
+      data: { totpLastTimeStep: timeStep },
+    });
+    return taken.count === 1;
   }
 
   private signAdminToken(
@@ -452,7 +479,7 @@ export class AdminAuthService {
       throw new UnauthorizedException('Invalid or expired MFA token');
     }
 
-    if (!this.isTotpValid(code, decryptedSecret)) {
+    if (!(await this.useTotpCode(admin.id, code, decryptedSecret))) {
       await this.prisma.adminAuditLog.create({
         data: {
           adminId: admin.id,
@@ -615,10 +642,11 @@ export class AdminAuthService {
       ok =
         admin.totpEnabled &&
         !!admin.totpSecret &&
-        this.isTotpValid(
+        (await this.useTotpCode(
+          admin.id,
           dto.totpCode ?? '',
           this.cryptoService.decrypt(admin.totpSecret),
-        );
+        ));
     }
     if (!ok) {
       await this.recordFailure(admin.id, meta, 'Invalid password change');
@@ -923,7 +951,7 @@ export class AdminAuthService {
     if (dto.totpCode && admin.totpSecret) {
       const rawSecret = admin.totpSecret;
       const decryptedSecret = this.cryptoService.decrypt(rawSecret);
-      ok = this.isTotpValid(dto.totpCode, decryptedSecret);
+      ok = await this.useTotpCode(admin.id, dto.totpCode, decryptedSecret);
 
       // Opportunistic rolling migration for legacy plaintext secrets
       if (ok && !rawSecret.includes(':')) {
