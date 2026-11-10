@@ -55,6 +55,7 @@ import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
 import { EmailModule } from './email/email.module.js';
 import { ExperimentsModule } from './experiments/experiments.module.js';
+import { FavoritesModule } from './favorites/favorites.module.js';
 import { FeedModule } from './feed/feed.module.js';
 import { FollowsModule } from './follows/follows.module.js';
 import { HealthModule } from './health/health.module.js';
@@ -199,6 +200,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     HighlightsModule,
     InteractiveModule,
     CloseFriendsModule,
+    FavoritesModule,
     ReportsModule,
     UsersModule,
     AppealsModule,

@@ -343,6 +343,14 @@ export class UsersService {
                   },
                 },
               },
+              // The Profiles it chose as Favorites; who chose it is theirs.
+              favorites: {
+                orderBy: { createdAt: 'asc' },
+                select: {
+                  createdAt: true,
+                  favorite: { select: { username: true } },
+                },
+              },
               // The posts it was invited to author too, and its answer.
               collaborations: {
                 orderBy: { invitedAt: 'asc' },

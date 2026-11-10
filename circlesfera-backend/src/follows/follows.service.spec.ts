@@ -43,6 +43,9 @@ describe('FollowsService', () => {
     closeFriend: {
       deleteMany: vi.fn(),
     },
+    favoriteProfile: {
+      deleteMany: vi.fn(),
+    },
     postCollaborator: {
       deleteMany: vi.fn(),
     },
@@ -170,6 +173,11 @@ describe('FollowsService', () => {
 
       expect(result.following).toBe(false);
       expect(mockPrismaService.follow.delete).toHaveBeenCalled();
+      // It stops being a Favorite in the same transaction.
+      expect(mockPrismaService.favoriteProfile.deleteMany).toHaveBeenCalledWith(
+        { where: { profileId: followerId, favoriteId: followingId } },
+      );
+      expect(mockPrismaService.$transaction).toHaveBeenCalledTimes(1);
     });
 
     it('should throw BadRequestException for self-follow', async () => {
@@ -375,6 +383,16 @@ describe('FollowsService', () => {
           ],
         },
       });
+      expect(mockPrismaService.favoriteProfile.deleteMany).toHaveBeenCalledWith(
+        {
+          where: {
+            OR: [
+              { profileId: 'blocker-id', favoriteId: 'blocked-id' },
+              { profileId: 'blocked-id', favoriteId: 'blocker-id' },
+            ],
+          },
+        },
+      );
       // Any collaboration between the two ends with the block.
       expect(
         mockPrismaService.postCollaborator.deleteMany,
