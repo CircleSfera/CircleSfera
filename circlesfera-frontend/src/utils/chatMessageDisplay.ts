@@ -22,6 +22,7 @@ export function getMessagePreviewText(
   if (msg.isDeleted) {
     return t('chat.message_deleted');
   }
+  if (msg.gif) return t('chat.sent_gif');
   if (msg.voiceUrl || msg.mediaType === 'audio') return t('chat.sent_voice');
   if (msg.mediaType === 'image') return t('chat.sent_image');
   if (msg.url) return t('chat.sent_attachment');
