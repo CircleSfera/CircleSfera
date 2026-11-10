@@ -21,6 +21,32 @@ import {
   GetConversationsQuery,
 } from './get-conversations.query.js';
 
+// The conversations each folder of prof-1 lists. A one-to-one chat with a
+// Profile prof-1 restricts is in its requests, accepted or not.
+const mine = (where: object) => ({
+  participants: { some: { profileId: 'prof-1', deletedAt: null, ...where } },
+});
+const RESTRICTED_CHAT = {
+  isGroup: false,
+  participants: {
+    some: {
+      profileId: { not: 'prof-1' },
+      profile: { restrictedBy: { some: { restricterId: 'prof-1' } } },
+    },
+  },
+};
+const INBOX = { ...mine({ hasAccepted: true }), NOT: RESTRICTED_CHAT };
+const REQUESTS = {
+  OR: [
+    mine({ hasAccepted: false, requestHiddenByWords: false }),
+    { AND: [mine({ hasAccepted: true }), RESTRICTED_CHAT] },
+  ],
+};
+const HIDDEN_REQUESTS = mine({
+  hasAccepted: false,
+  requestHiddenByWords: true,
+});
+
 describe('GetConversationsQuery', () => {
   let query: GetConversationsQuery;
   let mockPrisma: {
@@ -30,6 +56,7 @@ describe('GetConversationsQuery', () => {
     };
     block: { findMany: ReturnType<typeof vi.fn> };
     participant: { findMany: ReturnType<typeof vi.fn> };
+    restriction: { findMany: ReturnType<typeof vi.fn> };
   };
   let mockCryptoService: {
     decrypt: ReturnType<typeof vi.fn>;
@@ -43,6 +70,7 @@ describe('GetConversationsQuery', () => {
       block: { findMany: vi.fn().mockResolvedValue([]) },
       // The viewer's own rows: nothing muted or pinned unless a test says so.
       participant: { findMany: vi.fn().mockResolvedValue([]) },
+      restriction: { findMany: vi.fn().mockResolvedValue([]) },
     };
     mockCryptoService = {
       decrypt: vi.fn((c: string) => `decrypted_${c}`),
@@ -73,15 +101,7 @@ describe('GetConversationsQuery', () => {
     const result = await query.execute('prof-1');
 
     expect(mockPrisma.conversation.findMany).toHaveBeenCalledWith({
-      where: {
-        participants: {
-          some: {
-            profileId: 'prof-1',
-            deletedAt: null,
-            hasAccepted: true,
-          },
-        },
-      },
+      where: INBOX,
       take: 100,
       include: expect.any(Object),
       orderBy: { updatedAt: 'desc' },
@@ -194,14 +214,9 @@ describe('GetConversationsQuery', () => {
     await query.execute('prof-1', 'hidden_requests');
     await query.executePage('prof-1', 'hidden_requests');
 
-    for (const [args] of mockPrisma.conversation.findMany.mock.calls) {
-      expect(args.where.participants.some).toEqual({
-        profileId: 'prof-1',
-        deletedAt: null,
-        hasAccepted: false,
-        requestHiddenByWords: true,
-      });
-    }
+    const [[list], [page]] = mockPrisma.conversation.findMany.mock.calls;
+    expect(list.where).toEqual(HIDDEN_REQUESTS);
+    expect(page.where.AND).toEqual([HIDDEN_REQUESTS]);
   });
 
   it('fetches request conversations when folder is requests', async () => {
@@ -211,16 +226,7 @@ describe('GetConversationsQuery', () => {
 
     expect(mockPrisma.conversation.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          participants: {
-            some: {
-              profileId: 'prof-1',
-              deletedAt: null,
-              hasAccepted: false,
-              requestHiddenByWords: false,
-            },
-          },
-        },
+        where: REQUESTS,
       }),
     );
   });
@@ -245,14 +251,14 @@ describe('GetConversationsQuery', () => {
 
       expect(mockPrisma.conversation.findMany).toHaveBeenCalledWith({
         where: {
-          participants: {
-            some: {
-              profileId: 'prof-1',
-              deletedAt: null,
-              hasAccepted: true,
-              pinnedAt: null,
+          AND: [
+            INBOX,
+            {
+              participants: {
+                some: { profileId: 'prof-1', deletedAt: null, pinnedAt: null },
+              },
             },
-          },
+          ],
         },
         take: 3,
         include: expect.any(Object),
@@ -278,14 +284,7 @@ describe('GetConversationsQuery', () => {
       expect(mockPrisma.conversation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            participants: {
-              some: {
-                profileId: 'prof-1',
-                deletedAt: null,
-                hasAccepted: false,
-                requestHiddenByWords: false,
-              },
-            },
+            AND: [REQUESTS],
             OR: [
               { updatedAt: { lt: new Date('2026-10-18T09:00:00.000Z') } },
               {
@@ -354,6 +353,21 @@ describe('GetConversationsQuery', () => {
 
       const page = await query.executePage('prof-1', 'inbox');
 
+      // A pinned chat with someone the viewer restricts stays in requests.
+      expect(mockPrisma.conversation.findMany.mock.calls[0][0].where).toEqual({
+        AND: [
+          INBOX,
+          {
+            participants: {
+              some: {
+                profileId: 'prof-1',
+                deletedAt: null,
+                pinnedAt: { not: null },
+              },
+            },
+          },
+        ],
+      });
       expect(page.items.map((c) => c.id)).toEqual(['p-new', 'p-old', 'c1']);
       expect(page.items[0].mutedUntil).toEqual(
         new Date('9999-12-31T00:00:00.000Z'),
@@ -431,6 +445,38 @@ describe('GetConversationsQuery', () => {
       expect(dm.participants[0].profile.username).toBe('me');
       expect(group.participants[1].profile.unavailable).toBe(true);
       expect(group.participants[2].profile).toEqual(person('dan').profile);
+    });
+
+    it('shows no read receipt of a participant who restricts the viewer', async () => {
+      const read = new Date('2026-11-01T10:00:00.000Z');
+      mockPrisma.conversation.findMany.mockResolvedValue([
+        {
+          id: 'dm',
+          participants: [
+            { ...person('me'), lastReadAt: read },
+            { ...person('bob'), lastReadAt: read },
+            { ...person('cat'), lastReadAt: read },
+          ],
+          messages: [],
+        },
+      ]);
+      mockPrisma.restriction.findMany.mockResolvedValue([
+        { restricterId: 'bob' },
+      ]);
+
+      const [dm] = (await query.execute('me')) as any[];
+
+      expect(mockPrisma.restriction.findMany).toHaveBeenCalledWith({
+        where: { restrictedId: 'me', restricterId: { in: ['bob', 'cat'] } },
+        select: { restricterId: true },
+      });
+      expect(dm.participants.map((p: any) => p.lastReadAt)).toEqual([
+        read,
+        null,
+        read,
+      ]);
+      // Nothing else of them changes: they are not shown as unavailable.
+      expect(dm.participants[1].profile).toEqual(person('bob').profile);
     });
 
     it('does the same for a page of the list and for one conversation', async () => {

@@ -52,6 +52,9 @@ model User {
   // Identity & KYC
   identityVerifiedAt      DateTime?
   dateOfBirth             DateTime?
+  // The date of birth was read from the document an identity check verified,
+  // not typed at sign-up. Only such a date lets a person charge.
+  dateOfBirthVerified     Boolean   @default(false)
   stripeIdentitySessionId String?   @unique
 
   // The credentials live on SignIn. The passkey challenge slot
@@ -403,40 +406,62 @@ model Profile {
   // Colour of the Profile page, from the closed list of the app; empty = default.
   accentColor       String?
 
+  // How a Business Profile presents itself: the kind of business, how to
+  // reach it and where it is. Each is optional, public like the website,
+  // and shown only while the Profile is a Business; a Profile of another
+  // kind keeps them, hidden.
+  businessCategory BusinessCategory?
+  // Shown as an "Email" button; nothing is sent through CircleSfera.
+  contactEmail     String?
+  // International format (+ and digits), shown as a "Call" button.
+  contactPhone     String?
+  // The business's address: a place of the map, linked to its place page.
+  businessPlaceId  String?
+  businessPlace    Place?            @relation("BusinessPlace", fields: [businessPlaceId], references: [id], onDelete: SetNull)
+
   // Account Ban Flags
 
-  isAccountBanned      Boolean    @default(false)
-  accountBanReason     String?    @db.Text
-  suspendedUntil       DateTime?
+  isAccountBanned        Boolean            @default(false)
+  // The monetization programme: a Profile charges only once staff approve
+  // its application (MonetizationStatus). The note is the reason given to
+  // the creator for a refusal or a revocation.
+  monetizationStatus     MonetizationStatus @default(NONE)
+  monetizationAppliedAt  DateTime?
+  monetizationPitch      String?            @db.VarChar(500)
+  monetizationReviewedAt DateTime?
+  monetizationReviewedBy String?
+  monetizationNote       String?            @db.VarChar(500)
+  accountBanReason       String?            @db.Text
+  suspendedUntil         DateTime?
   // The strike that caused the current ban or suspension, if any. An appeal
   // about that strike lifts only a restriction it caused; staff restrictions
   // and direct bans clear these.
-  banStrikeId          String?
-  suspensionStrikeId   String?
+  banStrikeId            String?
+  suspensionStrikeId     String?
   // When the last ban or suspension was placed: the six months to appeal it
   // count from then.
-  sanctionedAt         DateTime?
+  sanctionedAt           DateTime?
   // Who may see this Profile's content: each Profile of a person chooses for
   // itself. PRIVATE asks for an accepted follow.
-  privacyLevel         Visibility @default(PUBLIC)
+  privacyLevel           Visibility         @default(PUBLIC)
   // Whether others may share this Profile's posts and Frames to their
   // stories, as a card of the original. Off stops new shares only.
-  allowStoryShares     Boolean    @default(true)
+  allowStoryShares       Boolean            @default(true)
   // Push notifications of this Profile; the person's other Profiles keep
   // their own choice. Off pauses every push of the Profile.
-  pushNotifications    Boolean    @default(true)
+  pushNotifications      Boolean            @default(true)
   // Push by group, each on its own. Moderation, plan and payment notices
   // have no group: only the pause stops their push.
-  pushLikes            Boolean    @default(true)
-  pushComments         Boolean    @default(true) // comments and mentions
-  pushFollows          Boolean    @default(true) // new followers and requests
-  pushMessages         Boolean    @default(true)
-  pushLive             Boolean    @default(true) // live broadcasts
+  pushLikes              Boolean            @default(true)
+  pushComments           Boolean            @default(true) // comments and mentions
+  pushFollows            Boolean            @default(true) // new followers and requests
+  pushMessages           Boolean            @default(true)
+  pushLive               Boolean            @default(true) // live broadcasts
   // Whether a story is kept in the archive when its 24 hours end. Off, a
   // story that ends while it is off is erased, unless it is in a highlight;
   // storyArchiveOffAt is when it was turned off.
-  saveStoriesToArchive Boolean    @default(true)
-  storyArchiveOffAt    DateTime?
+  saveStoriesToArchive   Boolean            @default(true)
+  storyArchiveOffAt      DateTime?
 
   // Why staff suspended this Profile directly; empty for a suspension that
   // comes from strikes or from the review of unusual activity.
@@ -484,6 +509,8 @@ model Profile {
   blocking                Block[]                 @relation("Blocking")
   mutedBy                 Mute[]                  @relation("MutedBy")
   muting                  Mute[]                  @relation("Muting")
+  restrictedBy            Restriction[]           @relation("RestrictedBy")
+  restricting             Restriction[]           @relation("Restricting")
   bookmarks               Bookmark[]
   collections             Collection[]
   highlights              Highlight[]
@@ -492,6 +519,8 @@ model Profile {
   storyViews              StoryView[]
   storyReactions          StoryReaction[]
   taggedPosts             PostTag[]
+  // Posts it was invited to author too, accepted or not yet.
+  collaborations          PostCollaborator[]
   reports                 Report[]                @relation("ReportReporter")
   strikes                 ProfileStrike[]
   riskCases               RiskCase[]
@@ -519,6 +548,7 @@ model Profile {
   @@index([signInId])
   @@index([privacyLevel])
   @@index([saveStoriesToArchive])
+  @@index([businessPlaceId])
   @@map("profiles")
 }
 
@@ -543,7 +573,10 @@ model Post {
 
   sharedInMessages Message[] @relation("SharedPosts")
 
-  tags PostTag[] // New: Tagged users
+  tags         PostTag[] // New: Tagged users
+  // The one other Profile invited to author it too; shown as a co-author
+  // only once it accepts.
+  collaborator PostCollaborator?
 
   location        String?
   placeId         String?
@@ -664,6 +697,23 @@ model PostTag {
   @@map("post_tags")
 }
 
+// The one collaborator of a post or Frame: invited by its author, a co-author
+// once it accepts. Only a public, unpaid post carries one; the author keeps
+// every control over the post.
+model PostCollaborator {
+  postId      String              @id
+  profileId   String
+  status      CollaborationStatus @default(PENDING)
+  invitedAt   DateTime            @default(now())
+  respondedAt DateTime?
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, status])
+  @@map("post_collaborators")
+}
+
 model PostHashtag {
   postId    String
   hashtagId String
@@ -723,6 +773,8 @@ model Place {
   posts        Post[]
   stories      Story[]
   translations PlaceTranslation[]
+  // Business Profiles whose address this place is.
+  businesses   Profile[]          @relation("BusinessPlace")
 
   @@index([name])
   @@index([latitude, longitude])
@@ -890,23 +942,26 @@ model HighlightStory {
 }
 
 model Comment {
-  id            String    @id @default(uuid())
-  postId        String
-  profileId     String
-  content       String
-  url           String?
-  standardUrl   String? // New: Optimized variant (HLS)
-  thumbnailUrl  String? // New: Optimized variant
-  mediaType     String? // "image", "video", "file"
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  isEdited      Boolean   @default(false)
+  id               String    @id @default(uuid())
+  postId           String
+  profileId        String
+  content          String
+  url              String?
+  standardUrl      String? // New: Optimized variant (HLS)
+  thumbnailUrl     String? // New: Optimized variant
+  mediaType        String? // "image", "video", "file"
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  isEdited         Boolean   @default(false)
   // When the author of the post pinned it; null when it is not pinned. A
   // pinned comment is shown first, and a post has at most COMMENT_PINS_MAX.
-  pinnedAt      DateTime?
+  pinnedAt         DateTime?
   // It contains one of the hidden words of the post's author: shown only to
   // whoever wrote it, until the author shows it.
-  hiddenByWords Boolean   @default(false)
+  hiddenByWords    Boolean   @default(false)
+  // Written by a Profile the post's author restricts: shown only to whoever
+  // wrote it, until the author approves it.
+  awaitingApproval Boolean   @default(false)
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?
@@ -1022,6 +1077,24 @@ model Mute {
   @@index([mutedId])
   @@index([muterId, expiresAt])
   @@map("mutes")
+}
+
+// A Profile restricts another: the other's new comments on its posts wait
+// for its approval, seen only by their writer; a chat with the other goes to
+// its requests; the other no longer sees when it is active or has read their
+// messages. The restricted Profile is never told.
+model Restriction {
+  id           String   @id @default(uuid())
+  restricterId String
+  restrictedId String
+  createdAt    DateTime @default(now())
+
+  restricter Profile @relation("Restricting", fields: [restricterId], references: [id], onDelete: Cascade)
+  restricted Profile @relation("RestrictedBy", fields: [restrictedId], references: [id], onDelete: Cascade)
+
+  @@unique([restricterId, restrictedId])
+  @@index([restrictedId])
+  @@map("restrictions")
 }
 
 model CloseFriend {
@@ -2815,6 +2888,41 @@ enum AccountType {
   BUSINESS
 }
 
+// The kinds of business a Business Profile can say it is; the same list as
+// BUSINESS_CATEGORIES in circlesfera-shared.
+enum BusinessCategory {
+  RESTAURANT_BAR
+  CAFE_BAKERY
+  SHOP
+  FASHION_ACCESSORIES
+  BEAUTY_WELLNESS
+  HEALTH
+  SPORT_FITNESS
+  HOTEL_LODGING
+  TRAVEL_TOURISM
+  EDUCATION
+  PROFESSIONAL_SERVICES
+  HOME_CONSTRUCTION
+  MOTORING
+  TECHNOLOGY
+  MEDIA_ENTERTAINMENT
+  ART_CULTURE
+  EVENTS
+  REAL_ESTATE
+  FINANCE_INSURANCE
+  NON_PROFIT
+  OTHER
+}
+
+// Where a Profile stands in the monetization programme.
+enum MonetizationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+  REVOKED
+}
+
 enum AdminAction {
   // User Management
 
@@ -2882,6 +2990,12 @@ enum AdminAction {
   // Domains a link on a story cannot point to
   LINK_DOMAIN_BLOCKED
   LINK_DOMAIN_UNBLOCKED
+
+  // The monetization programme: a Profile's application approved,
+  // rejected, or its approval revoked.
+  MONETIZATION_APPROVED
+  MONETIZATION_REJECTED
+  MONETIZATION_REVOKED
 }
 
 enum AdminIdentityStatus {
@@ -3037,6 +3151,15 @@ enum NotificationType {
   LIVE_STARTED
   // A scheduled live the recipient asked to be reminded of starts soon.
   LIVE_STARTING_SOON
+  // The recipient was invited to author a post too.
+  COLLAB_INVITE
+  // The Profile the recipient invited accepted to author its post too.
+  COLLAB_ACCEPTED
+}
+
+enum CollaborationStatus {
+  PENDING
+  ACCEPTED
 }
 
 enum PostType {

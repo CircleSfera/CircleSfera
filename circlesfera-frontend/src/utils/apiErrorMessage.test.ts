@@ -33,6 +33,16 @@ describe('apiErrorMessage', () => {
     );
   });
 
+  it('puts the values the error carries into its text', () => {
+    const error = clientError(403, {
+      errorCode: 'MONETIZATION_UNDER_AGE',
+      details: { minAge: 18, nested: { no: 1 } },
+    });
+    expect(apiErrorMessage(error, t)).toBe(
+      'Puedes cobrar a partir de los 18 años, con tu identidad verificada.',
+    );
+  });
+
   it('reads the raw Axios shape too', () => {
     const error = {
       response: { status: 403, data: { errorCode: 'EMAIL_NOT_VERIFIED' } },

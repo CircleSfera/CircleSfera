@@ -55,6 +55,9 @@ export class UserEntity implements User {
   @ApiProperty({ required: true, type: () => Date, nullable: true })
   dateOfBirth!: Date | null;
 
+  @ApiProperty({ default: false })
+  dateOfBirthVerified!: boolean;
+
   @ApiProperty({ required: true, type: () => String, nullable: true })
   @Exclude()
   stripeIdentitySessionId!: string | null;

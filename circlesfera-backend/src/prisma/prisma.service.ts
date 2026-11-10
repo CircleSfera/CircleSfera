@@ -36,10 +36,22 @@ export const PARTICIPANT_PRIVATE_OMIT = {
   pinnedAt: true,
 } as const;
 
+// A Profile's place in the monetization programme is between it and staff:
+// whether it applied, was refused or revoked, why, and who decided.
+export const PROFILE_PRIVATE_OMIT = {
+  monetizationStatus: true,
+  monetizationAppliedAt: true,
+  monetizationPitch: true,
+  monetizationReviewedAt: true,
+  monetizationReviewedBy: true,
+  monetizationNote: true,
+} as const;
+
 const clientOmit = {
   user: USER_SECRET_OMIT,
   signIn: SIGN_IN_SECRET_OMIT,
   participant: PARTICIPANT_PRIVATE_OMIT,
+  profile: PROFILE_PRIVATE_OMIT,
 } as const;
 
 @Injectable()

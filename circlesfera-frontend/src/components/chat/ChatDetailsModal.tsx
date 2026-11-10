@@ -1,5 +1,6 @@
-import { ShieldCheck, Trash2, UserRound } from 'lucide-react';
+import { ShieldCheck, ShieldMinus, Trash2, UserRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useRestriction } from '../../hooks/useRestriction';
 import {
   CREATE_GLASS_CHIP,
   CREATE_PANEL,
@@ -48,6 +49,10 @@ export default function ChatDetailsModal({
   preferences,
 }: ChatDetailsModalProps) {
   const { t } = useTranslation();
+  // Someone in a block with the viewer cannot be restricted from here: they
+  // have no name to act on.
+  const canRestrict = Boolean(person.username) && !person.unavailable;
+  const restriction = useRestriction(person.username, isOpen && canRestrict);
 
   const deletions = [
     {
@@ -115,6 +120,28 @@ export default function ChatDetailsModal({
       <div className="px-4 pb-4 flex flex-col gap-3">
         {preferences && <ChatPreferences {...preferences} />}
         <div className={`${CREATE_PANEL} overflow-hidden`}>
+          {canRestrict && (
+            <button
+              type="button"
+              disabled={!restriction.isKnown || restriction.isPending}
+              onClick={restriction.toggle}
+              className="w-full min-h-16 px-4 py-2.5 flex items-center gap-3 text-left transition-colors hover:bg-white/5 outline-none focus-visible:bg-white/8 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 border-b border-white/8 disabled:opacity-50"
+            >
+              <span className="w-10 h-10 shrink-0 rounded-full bg-white/8 text-white flex items-center justify-center">
+                <ShieldMinus size={18} aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-white">
+                  {restriction.restricted
+                    ? t('restrict.unrestrict')
+                    : t('restrict.restrict')}
+                </span>
+                <span className="block text-xs text-white/50">
+                  {t('restrict.hint')}
+                </span>
+              </span>
+            </button>
+          )}
           {deletions.map(({ label, hint, onClick }, index) => (
             <button
               key={label}

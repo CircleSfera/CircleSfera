@@ -14,6 +14,7 @@ export enum ErrorCode {
   CANNOT_FOLLOW_SELF = 'CANNOT_FOLLOW_SELF',
   CANNOT_BLOCK_SELF = 'CANNOT_BLOCK_SELF',
   CANNOT_MUTE_SELF = 'CANNOT_MUTE_SELF',
+  CANNOT_RESTRICT_SELF = 'CANNOT_RESTRICT_SELF',
   FOLLOW_REQUEST_NOT_FOUND = 'FOLLOW_REQUEST_NOT_FOUND',
   // Staff: another admin already claimed the report; details carry who.
   REPORT_ALREADY_CLAIMED = 'REPORT_ALREADY_CLAIMED',
@@ -48,6 +49,17 @@ export enum ErrorCode {
   STRIPE_CUSTOMER_MISSING = 'STRIPE_CUSTOMER_MISSING',
   PROMOTION_ID_MISSING = 'PROMOTION_ID_MISSING',
   ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION = 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
+  // The monetization programme: a Profile charges only once staff approve it.
+  MONETIZATION_NOT_APPROVED = 'MONETIZATION_NOT_APPROVED',
+  MONETIZATION_APPLICATION_NOT_OPEN = 'MONETIZATION_APPLICATION_NOT_OPEN',
+  MONETIZATION_REVIEW_NOT_ALLOWED = 'MONETIZATION_REVIEW_NOT_ALLOWED',
+  // Staff paused new payments (the payments_enabled setting is off).
+  PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
+  // Charging for anything needs a verified identity of someone 18 or older.
+  MONETIZATION_UNDER_AGE = 'MONETIZATION_UNDER_AGE',
+  // Messages are no longer sold: none can be sent with a price, and none
+  // sent before can be bought now.
+  PAID_MESSAGES_UNAVAILABLE = 'PAID_MESSAGES_UNAVAILABLE',
 
   // Posts & Media
   POST_NOT_FOUND = 'POST_NOT_FOUND',
@@ -64,6 +76,15 @@ export enum ErrorCode {
   PROFILE_PINS_FULL = 'PROFILE_PINS_FULL',
   // A Profile already has the most chats it can pin at the top of its inbox.
   CHAT_PINS_FULL = 'CHAT_PINS_FULL',
+  // Only a public, unpaid post that is shown can carry a collaborator, and
+  // never its own author.
+  COLLAB_NOT_ALLOWED = 'COLLAB_NOT_ALLOWED',
+  // A post already has its one collaborator, invited or accepted.
+  COLLABORATOR_EXISTS = 'COLLABORATOR_EXISTS',
+  // There is no invitation, or collaboration, of this Profile on the post.
+  COLLAB_NOT_FOUND = 'COLLAB_NOT_FOUND',
+  // A post with a collaborator stays public.
+  COLLAB_REQUIRES_PUBLIC = 'COLLAB_REQUIRES_PUBLIC',
   MESSAGE_NOT_FOUND = 'MESSAGE_NOT_FOUND',
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.

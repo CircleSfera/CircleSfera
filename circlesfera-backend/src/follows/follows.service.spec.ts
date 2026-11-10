@@ -43,6 +43,9 @@ describe('FollowsService', () => {
     closeFriend: {
       deleteMany: vi.fn(),
     },
+    postCollaborator: {
+      deleteMany: vi.fn(),
+    },
     mute: {
       upsert: vi.fn(),
       delete: vi.fn(),
@@ -369,6 +372,17 @@ describe('FollowsService', () => {
           OR: [
             { profileId: 'blocker-id', friendId: 'blocked-id' },
             { profileId: 'blocked-id', friendId: 'blocker-id' },
+          ],
+        },
+      });
+      // Any collaboration between the two ends with the block.
+      expect(
+        mockPrismaService.postCollaborator.deleteMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { profileId: 'blocked-id', post: { profileId: 'blocker-id' } },
+            { profileId: 'blocker-id', post: { profileId: 'blocked-id' } },
           ],
         },
       });

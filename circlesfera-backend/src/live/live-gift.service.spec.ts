@@ -8,10 +8,18 @@ import type { AppGateway } from '../socket/app.gateway.js';
 import { LIVE_GIFT_CATALOG } from './gift-catalog.js';
 import { LiveGiftService } from './live-gift.service.js';
 
+// A person verified as an adult, who may charge.
+const ADULT = {
+  identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+  dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
+  dateOfBirthVerified: true,
+};
+
 const PAYABLE = {
   isAccountBanned: false,
   suspendedUntil: null,
-  user: { isActive: true, isRootBanned: false, deletedAt: null },
+  monetizationStatus: 'APPROVED',
+  user: { isActive: true, isRootBanned: false, deletedAt: null, ...ADULT },
 };
 
 describe('LiveGiftService', () => {

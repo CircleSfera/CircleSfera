@@ -9,7 +9,15 @@ import {
   VerificationLevel,
   Visibility,
 } from '@prisma/client';
-import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
@@ -736,6 +744,13 @@ describe('UsersService', () => {
             host: { select: { username: true } },
           },
         },
+      });
+      // The posts each Profile was invited to author too, and its answer.
+      expect(profilesArgs.collaborations.select).toEqual({
+        postId: true,
+        status: true,
+        invitedAt: true,
+        respondedAt: true,
       });
       // What the person did on Business Profiles, as a member or owner.
       expect(res.teamActivity).toEqual([
@@ -1468,10 +1483,69 @@ describe('UsersService', () => {
   });
 
   describe('handleIdentityWebhook and resolveIdentityUserId', () => {
+    // The provider is asked for the session again, with what it verified;
+    // here it answers with the session the event named, unless a test says
+    // otherwise.
+    // Answers queued by one test never reach the next.
+    beforeEach(() =>
+      mockStripeService.getIdentityVerificationSession.mockReset(),
+    );
+    afterEach(() =>
+      mockStripeService.getIdentityVerificationSession.mockReset(),
+    );
+
+    const hook = (session: any) => {
+      if (session.status === 'verified') {
+        mockStripeService.getIdentityVerificationSession.mockResolvedValueOnce(
+          session,
+        );
+      }
+      return service.handleIdentityWebhook(session);
+    };
+
+    it('reads the date of birth from the session asked again, as an event carries none', async () => {
+      mockStripeService.getIdentityVerificationSession.mockResolvedValueOnce({
+        id: 'vs_full',
+        status: 'verified',
+        metadata: { userId: 'u_full' },
+        verified_outputs: { dob: { year: 1990, month: 5, day: 1 } },
+      });
+
+      await service.handleIdentityWebhook({
+        id: 'vs_full',
+        status: 'verified',
+        metadata: { userId: 'u_full' },
+      } as any);
+
+      expect(
+        mockStripeService.getIdentityVerificationSession,
+      ).toHaveBeenCalledWith('vs_full');
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'u_full' },
+          data: expect.objectContaining({
+            dateOfBirth: new Date(1990, 4, 1),
+            dateOfBirthVerified: true,
+          }),
+        }),
+      );
+    });
+
+    it('keeps a date of birth it could not read from the document as not verified', async () => {
+      await hook({
+        id: 'vs_no_dob',
+        status: 'verified',
+        metadata: { userId: 'u_no_dob' },
+      });
+
+      const data = mockPrismaService.user.update.mock.calls.at(-1)?.[0].data;
+      expect(data).toMatchObject({ dateOfBirthVerified: false });
+      expect(data).not.toHaveProperty('dateOfBirth');
+    });
     it('warns and exits early if user cannot be resolved from session', async () => {
       mockPrismaService.user.findFirst.mockResolvedValue(null);
 
-      await service.handleIdentityWebhook({
+      await hook({
         id: 'vs_unknown',
         status: 'verified',
       } as any);
@@ -1480,7 +1554,7 @@ describe('UsersService', () => {
     });
 
     it('returns null when session.id is empty and metadata.userId is absent', async () => {
-      await service.handleIdentityWebhook({
+      await hook({
         id: '',
         metadata: {},
         status: 'verified',
@@ -1492,7 +1566,7 @@ describe('UsersService', () => {
 
     it('accurately decrements age when birthday has not occurred yet this calendar year', async () => {
       const birthYear = new Date().getFullYear() - 17;
-      await service.handleIdentityWebhook({
+      await hook({
         id: 'vs_birthday_later',
         status: 'verified',
         metadata: { userId: 'u_later' },
@@ -1516,7 +1590,7 @@ describe('UsersService', () => {
         id: 'u_db_resolved',
       });
 
-      await service.handleIdentityWebhook({
+      await hook({
         id: 'vs_lookup',
         status: 'verified',
       } as any);
@@ -1533,7 +1607,7 @@ describe('UsersService', () => {
 
     describe('an identity check that shows an age under 16', () => {
       const under16 = () =>
-        service.handleIdentityWebhook({
+        hook({
           id: 'vs_under16',
           status: 'verified',
           metadata: { userId: 'u_child' },
@@ -1606,7 +1680,7 @@ describe('UsersService', () => {
 
     it('16 and over: verifies and never touches whether the account is active', async () => {
       const birthYear = new Date().getFullYear() - 17;
-      await service.handleIdentityWebhook({
+      await hook({
         id: 'vs_teen',
         status: 'verified',
         metadata: { userId: 'u_teen' },
@@ -1621,6 +1695,7 @@ describe('UsersService', () => {
         data: {
           identityVerifiedAt: expect.any(Date),
           dateOfBirth: expect.any(Date),
+          dateOfBirthVerified: true,
         },
       });
       expect(mockPrismaService.user.updateMany).not.toHaveBeenCalled();
@@ -1628,7 +1703,7 @@ describe('UsersService', () => {
     });
 
     it('clears stripeIdentitySessionId on canceled or requires_input status', async () => {
-      await service.handleIdentityWebhook({
+      await hook({
         id: 'vs_canceled',
         status: 'canceled',
         metadata: { userId: 'u_cancel' },

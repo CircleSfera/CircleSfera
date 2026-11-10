@@ -10,7 +10,7 @@ import { createElement, type ReactNode } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiClient, chatApi, uploadApi } from '../../services/index';
+import { chatApi, uploadApi } from '../../services/index';
 import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import type { Message } from '../../types';
@@ -108,7 +108,6 @@ vi.mock('./MessageBubble', () => ({
     onReact,
     onEdit,
     onDelete,
-    onUnlock,
   }: {
     msg: Message;
     isMe: boolean;
@@ -117,7 +116,6 @@ vi.mock('./MessageBubble', () => ({
     onReact: (id: string, emoji: string) => void;
     onEdit: (msg: Message, text: string) => void;
     onDelete: (id: string) => void;
-    onUnlock: (id: string) => void;
   }) => (
     <div
       data-testid={`message-${msg.id}`}
@@ -142,9 +140,6 @@ vi.mock('./MessageBubble', () => ({
       </button>
       <button type="button" onClick={() => onDelete(msg.id!)}>
         delete {msg.id}
-      </button>
-      <button type="button" onClick={() => onUnlock(msg.id!)}>
-        unlock {msg.id}
       </button>
     </div>
   ),
@@ -1164,196 +1159,11 @@ describe('ChatWindow', () => {
     });
   });
 
-  describe('paid messages', () => {
-    async function lockAt(i18n: I18nInstance, price: string) {
-      fireEvent.click(
-        screen.getByRole('button', { name: i18n.t('chat.lock_message') }),
-      );
-      fireEvent.change(
-        screen.getByLabelText(i18n.t('chat.lock_message_price_label')),
-        { target: { value: price } },
-      );
-      fireEvent.click(
-        screen.getByRole('button', {
-          name: i18n.t('chat.lock_message_confirm'),
-        }),
-      );
-    }
-
-    it('sends the next message locked at the chosen price, in cents', async () => {
-      const i18n = await renderLoadedChat();
-
-      await lockAt(i18n, '4.50');
-
-      expect(
-        screen.getByText(i18n.t('chat.locked_chip_label', { price: '€4.50' })),
-      ).toBeInTheDocument();
-
-      typeMessage(i18n, 'contenido exclusivo');
-      send(i18n);
-
-      await waitFor(() =>
-        expect(chatApi.sendMessage).toHaveBeenCalledWith(
-          expect.objectContaining({
-            content: 'contenido exclusivo',
-            isLocked: true,
-            priceCents: 450,
-          }),
-        ),
-      );
-      expect(
-        screen.queryByText(
-          i18n.t('chat.locked_chip_label', { price: '€4.50' }),
-        ),
-      ).not.toBeInTheDocument();
-    });
-
-    it.each(['2.99', '500.01', 'abc'])(
-      'does not lock at a price outside the allowed range (%s)',
-      async (price) => {
-        const i18n = await renderLoadedChat();
-
-        await lockAt(i18n, price);
-
-        expect(screen.getByRole('alert')).toHaveTextContent(
-          i18n.t('chat.lock_message_range_error', {
-            min: '€3.00',
-            max: '€500.00',
-          }),
-        );
-        const chipStart = i18n
-          .t('chat.locked_chip_label', { price: '' })
-          .trim();
-        expect(
-          screen.queryByText((text) => text.startsWith(chipStart)),
-        ).not.toBeInTheDocument();
-        expect(
-          screen.getByRole('button', {
-            name: i18n.t('chat.lock_message_confirm'),
-          }),
-        ).toBeInTheDocument();
-      },
-    );
-
-    it('clears the price warning once the price is changed', async () => {
-      const i18n = await renderLoadedChat();
-      await lockAt(i18n, '1');
-      expect(screen.getByRole('alert')).toBeInTheDocument();
-
-      fireEvent.change(
-        screen.getByLabelText(i18n.t('chat.lock_message_price_label')),
-        { target: { value: '10' } },
-      );
-
-      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    });
-
-    it('removes the lock from the chip or from the price box', async () => {
-      const i18n = await renderLoadedChat();
-      const chip = i18n.t('chat.locked_chip_label', { price: '€5.00' });
-
-      await lockAt(i18n, '5');
-      expect(screen.getByText(chip)).toBeInTheDocument();
-      fireEvent.click(
-        screen.getByRole('button', {
-          name: i18n.t('chat.lock_message_cancel'),
-        }),
-      );
-      expect(screen.queryByText(chip)).not.toBeInTheDocument();
-
-      await lockAt(i18n, '5');
-      fireEvent.click(
-        screen.getByRole('button', { name: i18n.t('chat.lock_message') }),
-      );
-      fireEvent.click(
-        screen
-          .getAllByRole('button', { name: i18n.t('chat.lock_message_cancel') })
-          .at(-1)!,
-      );
-      expect(screen.queryByText(chip)).not.toBeInTheDocument();
-    });
-
-    it('opens the checkout to unlock a message and says so when it fails', async () => {
-      vi.mocked(apiClient.post).mockResolvedValueOnce({
-        data: { url: `${window.location.href}#checkout` },
-      } as never);
-      const i18n = await renderLoadedChat();
-
-      fireEvent.click(screen.getByRole('button', { name: 'unlock m1' }));
-
-      await waitFor(() => expect(window.location.hash).toBe('#checkout'));
-      expect(apiClient.post).toHaveBeenCalledWith(
-        '/monetization/unlock-message',
-        { messageId: 'm1', returnUrl: expect.any(String) },
-      );
-      expect(vi.mocked(apiClient.post).mock.calls[0][1]).not.toHaveProperty(
-        'priceCents',
-      );
-
-      vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('down'));
-      fireEvent.click(screen.getByRole('button', { name: 'unlock m1' }));
-
-      await waitFor(() =>
-        expect(toast.error).toHaveBeenCalledWith(
-          i18n.t('monetization.failed_to_unlock'),
-        ),
-      );
-      window.location.hash = '';
-    });
-
-    it('offers the identity verification when unlocking needs it, instead of a plain failure', async () => {
-      vi.mocked(apiClient.post).mockRejectedValueOnce(
-        Object.assign(new Error('forbidden'), {
-          status: 403,
-          data: { errorCode: 'IDENTITY_VERIFICATION_REQUIRED' },
-        }),
-      );
-      const i18n = await renderLoadedChat();
-
-      fireEvent.click(screen.getByRole('button', { name: 'unlock m1' }));
-
-      await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
-      expect(toast.error).not.toHaveBeenCalled();
-
-      // The notice is a custom toast: show what it would put on screen and
-      // check it is the verification notice, with its button.
-      const notice = vi.mocked(toast).mock.calls[0][0] as (item: {
-        id: string;
-      }) => React.ReactElement;
-      renderWithProviders(notice({ id: 'notice' }));
-      expect(
-        screen.getByText(i18n.t('pricingPage.verification_required_title')),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {
-          name: i18n.t('pricingPage.verify_button'),
-        }),
-      ).toBeInTheDocument();
-    });
-
-    it('thanks and reloads the messages after a paid unlock', async () => {
-      const i18n = await renderLoadedChat(
-        '/direct/t/c1?success=true&session_id=cs_1',
-      );
-
-      await waitFor(() =>
-        expect(toast.success).toHaveBeenCalledWith(
-          i18n.t('chat.unlock_success'),
-        ),
-      );
-      await waitFor(() => expect(chatApi.getMessages).toHaveBeenCalledTimes(2));
-    });
-
-    it('says the unlock was cancelled when the checkout is abandoned', async () => {
-      const i18n = await renderLoadedChat('/direct/t/c1?canceled=true');
-
-      await waitFor(() =>
-        expect(toast.error).toHaveBeenCalledWith(
-          i18n.t('chat.unlock_canceled'),
-        ),
-      );
-      expect(chatApi.getMessages).toHaveBeenCalledTimes(1);
-    });
+  it('offers no way to put a price on a message', async () => {
+    await renderLoadedChat();
+    expect(
+      screen.queryByRole('button', { name: /mensaje de pago|paid message/i }),
+    ).not.toBeInTheDocument();
   });
 
   describe('emojis', () => {

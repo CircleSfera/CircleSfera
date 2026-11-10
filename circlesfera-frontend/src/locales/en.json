@@ -196,7 +196,20 @@
       "error_saving": "Could not save changes",
       "resend_email": "Resend email",
       "username_check_error": "Error checking username",
-      "username_min": "Username must be at least 3 characters"
+      "username_min": "Username must be at least 3 characters",
+      "business": {
+        "title": "Business details",
+        "hint": "Shown on your profile while it is a Business profile. Each one is optional.",
+        "category": "Category",
+        "no_category": "No category",
+        "email": "Contact email",
+        "email_placeholder": "hello@yourbusiness.com",
+        "phone": "Contact phone",
+        "phone_hint": "With the country code, for example +34 600 000 000.",
+        "address": "Address",
+        "add_address": "Add address",
+        "remove_address": "Remove address"
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -237,7 +250,12 @@
       "expires_on": "Until {{date}}",
       "unblock_error": "The account could not be unblocked. Try again.",
       "unmute_error": "The account could not be unmuted. Try again.",
-      "change_duration": "Duration"
+      "change_duration": "Duration",
+      "restricted_title": "Restricted accounts",
+      "restricted_desc": "Their new comments on your posts wait for your approval, their chats are in your requests and they don't see when you're active or have read their messages. They aren't told.",
+      "restricted_empty": "You haven't restricted anyone.",
+      "unrestrict": "Unrestrict",
+      "unrestrict_error": "The account could not be unrestricted. Try again."
     },
     "account": {
       "title": "Account",
@@ -490,6 +508,23 @@
         "error": "Tax details could not be loaded.",
         "retry": "Try again",
         "on_web": "Open circlesfera.com in your browser to edit your tax details."
+      },
+      "programme": {
+        "title": "Monetization programme",
+        "desc": "To charge for your content, tips or live gifts, the CircleSfera team reviews and approves your Profile first.",
+        "status": {
+          "NONE": "You have not applied yet.",
+          "PENDING": "Your application is under review since {{date}}.",
+          "APPROVED": "Approved: you can charge.",
+          "REJECTED": "Your application was not approved. You can apply again.",
+          "REVOKED": "Your approval to charge was withdrawn. You can apply again."
+        },
+        "reason": "Reason: {{reason}}",
+        "pitch_label": "What will you offer?",
+        "pitch_placeholder": "For example: weekly photography tutorials and behind the scenes of my shoots.",
+        "pitch_hint": "Between {{min}} and {{max}} characters ({{count}} so far).",
+        "apply": "Apply",
+        "error": "Your application could not be sent. Try again."
       }
     },
     "back_to_profile": "← Back to profile",
@@ -1553,11 +1588,13 @@
     "pin_error": "Could not pin the comment.",
     "hidden_open": "Hidden comments",
     "hidden_title": "Hidden comments",
-    "hidden_desc": "They contain one of your hidden words. Only whoever wrote them sees them.",
+    "hidden_desc": "They contain one of your hidden words, or come from an account you restrict. Only whoever wrote them sees them.",
     "hidden_none": "No hidden comments.",
     "hidden_show": "Show",
     "hidden_shown": "Comment shown to everyone",
-    "hidden_error": "Could not show the comment."
+    "hidden_error": "Could not show the comment.",
+    "hidden_restricted": "Restricted account",
+    "hidden_approve": "Approve"
   },
   "profile": {
     "tabs": {
@@ -1682,6 +1719,35 @@
     "company_verified": "Verified company",
     "upcoming_lives": {
       "title": "Upcoming lives"
+    },
+    "business": {
+      "categories": {
+        "RESTAURANT_BAR": "Restaurant or bar",
+        "CAFE_BAKERY": "Café or bakery",
+        "SHOP": "Shop",
+        "FASHION_ACCESSORIES": "Fashion and accessories",
+        "BEAUTY_WELLNESS": "Beauty and wellness",
+        "HEALTH": "Health",
+        "SPORT_FITNESS": "Sport and fitness",
+        "HOTEL_LODGING": "Hotel and lodging",
+        "TRAVEL_TOURISM": "Travel and tourism",
+        "EDUCATION": "Education",
+        "PROFESSIONAL_SERVICES": "Professional services",
+        "HOME_CONSTRUCTION": "Home and construction",
+        "MOTORING": "Motoring",
+        "TECHNOLOGY": "Technology",
+        "MEDIA_ENTERTAINMENT": "Media and entertainment",
+        "ART_CULTURE": "Art and culture",
+        "EVENTS": "Events",
+        "REAL_ESTATE": "Real estate",
+        "FINANCE_INSURANCE": "Finance and insurance",
+        "NON_PROFIT": "Non-profit",
+        "OTHER": "Other"
+      },
+      "call": "Call",
+      "email": "Email",
+      "call_aria": "Call {{phone}}",
+      "email_aria": "Email {{email}}"
     }
   },
   "suggestions": {
@@ -2379,26 +2445,15 @@
       "make_admin_confirm": "Make @{{username}} an admin? They will be able to edit the group and manage its members."
     },
     "locked_title": "Exclusive message",
-    "locked_subtitle": "Unlock to view this content",
-    "unlock_for": "Unlock for {{price}}",
     "voice_note": "🎤 Voice note",
     "decrypting": "Decrypting…",
     "edited": "edited",
-    "unlock_success": "Message unlocked. Thanks for your support!",
-    "unlock_canceled": "Unlock checkout was canceled.",
     "delete_for_me": "Delete for me",
     "editing_message": "Editing message",
     "read": "Read",
     "delivered": "Delivered",
-    "lock_message": "Paid message",
-    "lock_message_price_label": "Price (€3.00 – €500.00)",
-    "lock_message_hint": "Only Creator/Business accounts can send paid messages.",
-    "lock_message_confirm": "Lock message",
-    "lock_message_cancel": "Remove lock",
-    "locked_chip_label": "Paid message · {{price}}",
     "add_emoji": "Add an emoji",
     "emoji_panel": "Emojis",
-    "lock_message_range_error": "Enter a price between {{min}} and {{max}}.",
     "back_to_inbox": "Back to inbox",
     "audio_call": "Audio call",
     "video_call": "Video call",
@@ -2458,7 +2513,8 @@
       "muted": "Muted",
       "pinned": "Pinned",
       "error": "Couldn't save that. Try again."
-    }
+    },
+    "locked_not_for_sale": "This paid message is no longer for sale."
   },
   "creator": {
     "title": "Creator Studio",
@@ -3197,6 +3253,39 @@
         "DIRECT_STORY_UNLOCK": "Unlocked story",
         "DIRECT_MESSAGE_UNLOCK": "Unlocked message",
         "PROMOTION_PAYMENT": "Promotion payment"
+      },
+      "programme": {
+        "title": "Monetization applications",
+        "subtitle": "A Creator or Business Profile charges only once approved here. Oldest first.",
+        "filter": "Applications by status",
+        "status": {
+          "PENDING": "Pending",
+          "APPROVED": "Approved",
+          "REJECTED": "Refused",
+          "REVOKED": "Revoked"
+        },
+        "type": {
+          "CREATOR": "Creator",
+          "BUSINESS": "Business"
+        },
+        "counts": "{{followers}} followers · {{posts}} posts",
+        "applied": "Applied {{date}}",
+        "approve": "Approve",
+        "reject": "Refuse",
+        "revoke": "Revoke",
+        "empty": "No applications here.",
+        "ask": {
+          "reject": "Refuse @{{username}}",
+          "revoke": "Revoke @{{username}}"
+        },
+        "reason": "Reason",
+        "reason_hint": "The creator reads this reason.",
+        "done": {
+          "approve": "Approved: the Profile can charge.",
+          "reject": "Application refused.",
+          "revoke": "Approval revoked: the Profile can no longer charge."
+        },
+        "error": "The decision could not be saved. Try again."
       }
     },
     "appeals": {
@@ -4451,7 +4540,8 @@
         "content_posting_enabled": "Content posting enabled",
         "live_streams_enabled": "Live streams enabled",
         "turnstile_required": "Bot check required",
-        "email_verification_required": "Verified email required"
+        "email_verification_required": "Verified email required",
+        "payments_enabled": "Payments enabled"
       },
       "descriptions": {
         "maintenance_mode": "When on, the consumer API returns 503 except health, CSRF, webhooks and Admin Panel.",
@@ -4459,7 +4549,8 @@
         "content_posting_enabled": "Allow creating posts and stories.",
         "live_streams_enabled": "Allow starting live streams.",
         "turnstile_required": "Asks for the bot check when signing up and signing in.",
-        "email_verification_required": "Requires a verified email to post, follow, message, like, upload and edit the profile."
+        "email_verification_required": "Requires a verified email to post, follow, message, like, upload and edit the profile.",
+        "payments_enabled": "Allow new payments: plans, paid content, tips, live gifts and promotions. While off nothing new is charged; money already earned keeps being paid out."
       }
     },
     "payouts": {
@@ -6135,6 +6226,7 @@
       "CANNOT_FOLLOW_SELF": "You can't follow yourself.",
       "CANNOT_BLOCK_SELF": "You can't block yourself.",
       "CANNOT_MUTE_SELF": "You can't mute yourself.",
+      "CANNOT_RESTRICT_SELF": "You can't restrict yourself.",
       "FOLLOW_REQUEST_NOT_FOUND": "That follow request no longer exists.",
       "ACTION_LIMIT_REACHED": "You've done this too many times for now. Try again later.",
       "INSUFFICIENT_FUNDS": "There aren't enough funds for this payment.",
@@ -6232,7 +6324,13 @@
       "CONTENT_BLOCKED_BY_MODERATION": "This content doesn't meet the community guidelines and wasn't published.",
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
       "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
-      "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another."
+      "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another.",
+      "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
+      "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
+      "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
+      "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
+      "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",
+      "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
@@ -6309,5 +6407,14 @@
     "empty_sub": "Posts with this place will show here.",
     "error_title": "Could not open this place",
     "error_message": "It may no longer be available. Try again."
+  },
+  "restrict": {
+    "restrict": "Restrict",
+    "unrestrict": "Unrestrict",
+    "hint": "Their new comments wait for your approval and their chat goes to your requests. They won't be told.",
+    "restricted_toast": "{{username}} is restricted. They won't be told.",
+    "unrestricted_toast": "{{username}} is no longer restricted.",
+    "error": "The restriction could not be changed. Try again.",
+    "restrict_user": "Restrict {{username}}"
   }
 }

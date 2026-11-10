@@ -343,6 +343,16 @@ export class UsersService {
                   },
                 },
               },
+              // The posts it was invited to author too, and its answer.
+              collaborations: {
+                orderBy: { invitedAt: 'asc' },
+                select: {
+                  postId: true,
+                  status: true,
+                  invitedAt: true,
+                  respondedAt: true,
+                },
+              },
               comments: true,
               bookmarks: { include: { post: { select: { caption: true } } } },
               messages: {
@@ -1133,7 +1143,11 @@ export class UsersService {
       where: { id: userId },
       data: {
         identityVerifiedAt: new Date(),
-        ...(dateOfBirth && { dateOfBirth }),
+        // Only a date read from the document counts as verified; without one
+        // the date typed at sign-up stays, and does not let them charge.
+        ...(dateOfBirth
+          ? { dateOfBirth, dateOfBirthVerified: true }
+          : { dateOfBirthVerified: false }),
       },
     });
 
@@ -1215,7 +1229,13 @@ export class UsersService {
     }
 
     if (session.status === 'verified') {
-      await this.applyVerifiedIdentity(userId, session);
+      // A webhook carries no verified_outputs (it must be expanded), so the
+      // session is read again with them: without it the date of birth on the
+      // document would never be known.
+      const full = await this.stripeService.getIdentityVerificationSession(
+        session.id,
+      );
+      await this.applyVerifiedIdentity(userId, full);
       return;
     }
 

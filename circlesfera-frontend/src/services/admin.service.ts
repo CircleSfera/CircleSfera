@@ -1,5 +1,25 @@
 import type { PaginatedResponse } from '../types';
 import { apiClient } from './api';
+import type { MonetizationProgrammeStatus } from './monetization.service';
+
+// A Profile's application to the monetization programme, as staff read it.
+export interface MonetizationApplication {
+  id: string;
+  username: string;
+  fullName: string | null;
+  avatar: string | null;
+  accountType: string;
+  createdAt: string;
+  isAccountBanned: boolean;
+  suspendedUntil: string | null;
+  monetizationStatus: MonetizationProgrammeStatus;
+  monetizationAppliedAt: string | null;
+  monetizationPitch: string | null;
+  monetizationReviewedAt: string | null;
+  monetizationReviewedBy: string | null;
+  monetizationNote: string | null;
+  _count: { followers: number; posts: number };
+}
 
 export interface AdminStats {
   users: number;
@@ -1307,6 +1327,27 @@ export const adminApi = {
     apiClient.get<{ days: RecurringIncomeDay[] }>(
       'admin/analytics/monetization/history',
       { params: { days } },
+    ),
+
+  // The monetization programme: applications, and staff decisions on them.
+  getMonetizationApplications: (
+    status: MonetizationProgrammeStatus,
+    page = 1,
+  ) =>
+    apiClient.get<{
+      items: MonetizationApplication[];
+      total: number;
+      page: number;
+      totalPages: number;
+    }>('admin/monetization/applications', { params: { status, page } }),
+  decideMonetizationApplication: (
+    profileId: string,
+    decision: 'approve' | 'reject' | 'revoke',
+    note?: string,
+  ) =>
+    apiClient.patch(
+      `admin/monetization/applications/${profileId}/${decision}`,
+      note ? { note } : {},
     ),
 
   getMonetizationAnalytics: () =>

@@ -9,8 +9,12 @@ export class SocketPresenceService {
    * Retrieves presence room IDs for all profiles that the user follows.
    */
   async getFollowPresenceRooms(profileId: string): Promise<string[]> {
+    // A Profile that restricts this one keeps its active status from it.
     const following = await this.prisma.follow.findMany({
-      where: { followerId: profileId },
+      where: {
+        followerId: profileId,
+        following: { restricting: { none: { restrictedId: profileId } } },
+      },
       select: { followingId: true },
     });
     return following.map((f) => `presence:${f.followingId}`);

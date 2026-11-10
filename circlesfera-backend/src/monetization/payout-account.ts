@@ -1,5 +1,5 @@
-import { ErrorCode } from '@circlesfera/shared';
-import type { Prisma } from '@prisma/client';
+import { ageOn, ErrorCode, MONETIZATION_MIN_AGE } from '@circlesfera/shared';
+import type { MonetizationStatus, Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 
 type PayoutAccountReader = Pick<Prisma.TransactionClient, 'profile'>;
@@ -92,25 +92,112 @@ export async function payoutRowForProfile(
 export const PAYABLE_PROFILE_SELECT = {
   isAccountBanned: true,
   suspendedUntil: true,
-  user: { select: { isActive: true, isRootBanned: true, deletedAt: true } },
+  monetizationStatus: true,
+  user: {
+    select: {
+      isActive: true,
+      isRootBanned: true,
+      deletedAt: true,
+      identityVerifiedAt: true,
+      dateOfBirth: true,
+      dateOfBirthVerified: true,
+    },
+  },
 } as const;
 
 /**
+ * Whether a person may charge: their identity is verified and they are
+ * MONETIZATION_MIN_AGE or older by the date of birth read from the verified
+ * document. A date only typed at sign-up, or none, does not let them charge.
+ */
+export function isOfChargingAge(user: {
+  identityVerifiedAt: Date | null;
+  dateOfBirth: Date | null;
+  dateOfBirthVerified: boolean;
+}): boolean {
+  return (
+    !!user.identityVerifiedAt &&
+    user.dateOfBirthVerified &&
+    !!user.dateOfBirth &&
+    ageOn(user.dateOfBirth) >= MONETIZATION_MIN_AGE
+  );
+}
+
+/**
+ * Refuses, with a reason the app explains, a person who may not charge
+ * because of their age or an identity not verified: asked when they set up
+ * payouts or put a price on something.
+ */
+export async function assertOfChargingAge(
+  db: Pick<Prisma.TransactionClient, 'user'>,
+  userId: string,
+): Promise<void> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      identityVerifiedAt: true,
+      dateOfBirth: true,
+      dateOfBirthVerified: true,
+    },
+  });
+  if (!user || !isOfChargingAge(user)) {
+    throw AppException.Forbidden(
+      ErrorCode.MONETIZATION_UNDER_AGE,
+      `Only people ${MONETIZATION_MIN_AGE} or older, with a verified identity, can charge.`,
+      { minAge: MONETIZATION_MIN_AGE },
+    );
+  }
+}
+
+/**
  * Whether a Profile may be paid: neither it nor its person is banned or
- * suspended, and its person is still here.
+ * suspended, its person is still here, and its person is of charging age.
  */
 export function canBePaid(profile: {
   isAccountBanned: boolean;
   suspendedUntil: Date | null;
-  user: { isActive: boolean; isRootBanned: boolean; deletedAt: Date | null };
+  monetizationStatus: MonetizationStatus;
+  user: {
+    isActive: boolean;
+    isRootBanned: boolean;
+    deletedAt: Date | null;
+    identityVerifiedAt: Date | null;
+    dateOfBirth: Date | null;
+    dateOfBirthVerified: boolean;
+  };
 }): boolean {
   return (
     !profile.isAccountBanned &&
     !(profile.suspendedUntil && profile.suspendedUntil > new Date()) &&
     profile.user.isActive &&
     !profile.user.isRootBanned &&
-    !profile.user.deletedAt
+    !profile.user.deletedAt &&
+    isOfChargingAge(profile.user) &&
+    // The monetization programme: only a Profile staff approved charges.
+    profile.monetizationStatus === 'APPROVED'
   );
+}
+
+/**
+ * Refuses, with a reason the app explains, a Profile staff have not
+ * approved to charge: asked when it sets up payouts or puts a price on
+ * something.
+ */
+export async function assertMonetizationApproved(
+  db: Pick<Prisma.TransactionClient, 'profile'>,
+  profileId: string,
+): Promise<void> {
+  const profile = await db.profile.findUnique({
+    where: { id: profileId },
+    select: { monetizationStatus: true },
+  });
+  if (profile?.monetizationStatus !== 'APPROVED') {
+    throw AppException.Forbidden(
+      ErrorCode.MONETIZATION_NOT_APPROVED,
+      'This Profile is not approved to charge yet.',
+      { status: profile?.monetizationStatus ?? 'NONE' },
+    );
+  }
 }
 
 /**

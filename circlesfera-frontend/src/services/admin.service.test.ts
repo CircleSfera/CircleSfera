@@ -298,6 +298,36 @@ const cases: Case[] = [
     ['admin/analytics/monetization/history', q({ days: 31 })],
   ],
   [
+    'getMonetizationApplications',
+    () => adminApi.getMonetizationApplications('PENDING', 2),
+    'get',
+    [
+      'admin/monetization/applications',
+      { params: { status: 'PENDING', page: 2 } },
+    ],
+  ],
+  [
+    'getMonetizationApplications on the first page',
+    () => adminApi.getMonetizationApplications('APPROVED'),
+    'get',
+    [
+      'admin/monetization/applications',
+      { params: { status: 'APPROVED', page: 1 } },
+    ],
+  ],
+  [
+    'decideMonetizationApplication with a reason',
+    () => adminApi.decideMonetizationApplication('p1', 'reject', 'Too new'),
+    'patch',
+    ['admin/monetization/applications/p1/reject', { note: 'Too new' }],
+  ],
+  [
+    'decideMonetizationApplication with none',
+    () => adminApi.decideMonetizationApplication('p1', 'approve'),
+    'patch',
+    ['admin/monetization/applications/p1/approve', {}],
+  ],
+  [
     'getMonetizationAnalytics',
     () => adminApi.getMonetizationAnalytics(),
     'get',
