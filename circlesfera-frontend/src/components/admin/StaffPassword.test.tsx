@@ -116,6 +116,28 @@ describe('StaffPasswordDialog', () => {
     expect(useAdminAuthStore.getState().admin?.displayName).toBe('Reloaded');
   });
 
+  it('sends one request when Enter is pressed twice', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    vi.mocked(adminAuthApi.changePassword).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }) as never,
+    );
+    vi.mocked(adminAuthApi.me).mockResolvedValue({ data: staff() } as never);
+    const { i18n } = renderWithProviders(
+      <StaffPasswordDialog isOpen onClose={onClose} />,
+    );
+    fill(i18n!, { current: 'old', next: LONG, repeat: LONG, code: '123456' });
+
+    const form = saveButton(i18n!).closest('form') as HTMLFormElement;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    finish({});
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(adminAuthApi.changePassword).toHaveBeenCalledTimes(1);
+  });
+
   it('closes even when who is signed in cannot be reloaded: the password is saved', async () => {
     vi.mocked(adminAuthApi.changePassword).mockResolvedValue({} as never);
     vi.mocked(adminAuthApi.me).mockRejectedValue(new Error('offline'));

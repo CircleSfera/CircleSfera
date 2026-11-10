@@ -733,12 +733,22 @@ describe('Admin Panel sign-in', () => {
         await screen.findByText(i18n!.t('adminPanel.login.enrol_invalid')),
       ).toBeInTheDocument();
 
+      // The refused link gives way to a code from an administrator.
+      fireEvent.change(
+        screen.getByLabelText(i18n!.t('adminPanel.login.enrol_code')),
+        { target: { value: 'ABCD-EFGH-JKLM' } },
+      );
       fireEvent.click(saveButton(i18n!));
       expect(
         await screen.findByText(
           i18n!.t('errors.codes.STAFF_PASSWORD_IS_ACCOUNT_PASSWORD'),
         ),
       ).toBeInTheDocument();
+      expect(adminAuthApi.setUpAccess).toHaveBeenLastCalledWith(
+        's@e.com',
+        'ABCD-EFGH-JKLM',
+        LONG,
+      );
       expect(adminAuthApi.verifyMfa).not.toHaveBeenCalled();
     });
   });

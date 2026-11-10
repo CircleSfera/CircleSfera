@@ -756,10 +756,10 @@ describe('RolesTab', () => {
       );
     });
 
-    it('offers the access link to a reviewer only until it has set its password', async () => {
+    it('offers a reviewer the access link only until it has set its password, and a code always', async () => {
       api.getOperators.mockResolvedValue(
         list([
-          reviewer(),
+          reviewer({ ownPassword: true }),
           operator('fresh', {
             ...reviewer(),
             id: 'fresh',
@@ -770,11 +770,16 @@ describe('RolesTab', () => {
       );
       show();
 
+      const withPassword = await open('Operator rev');
       expect(
-        within(await open('Operator rev')).queryByRole('button', {
+        within(withPassword).queryByRole('button', {
           name: 'Send the link again',
         }),
       ).toBeNull();
+      // A forgotten password is recovered with a code given in person.
+      expect(
+        within(withPassword).getByRole('button', { name: 'Create a code' }),
+      ).toBeInTheDocument();
       const pane = await open('Operator fresh');
       expect(
         within(pane).getByRole('button', { name: 'Send the link again' }),

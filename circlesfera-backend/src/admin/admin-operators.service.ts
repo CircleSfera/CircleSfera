@@ -82,22 +82,20 @@ export class AdminOperatorsService {
     }
   }
 
-  // An identity still setting up its access: a member of staff with no
-  // authenticator yet, or an external reviewer (who signs in without one)
-  // with no password of its own yet.
+  // An identity a proof may be issued for: a member of staff with no
+  // authenticator yet (its access reset, or never set up), or any external
+  // reviewer, who has no authenticator to reset and recovers a forgotten
+  // password with a proof. Whether it may go by email is decided apart.
   private async awaitingEnrolment(id: string) {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id },
       include: { roles: { select: { roleId: true } } },
     });
     if (!admin) throw new NotFoundException('Operator not found');
-    if (isReviewerRoleSet(admin.roles.map((r) => r.roleId))) {
-      if (hasOwnStaffPassword(admin)) {
-        throw new ConflictException(
-          'This external reviewer already has a password',
-        );
-      }
-    } else if (admin.totpEnabled) {
+    if (
+      !isReviewerRoleSet(admin.roles.map((r) => r.roleId)) &&
+      admin.totpEnabled
+    ) {
       throw new ConflictException('This operator already has an authenticator');
     }
     if (admin.status !== 'ACTIVE') {

@@ -31,7 +31,8 @@ export default function AdminPanelLogin() {
       email: params.get('email') ?? '',
     };
   });
-  const linkProof = fromLink.proof;
+  // Cleared when the link is refused, so a code can be typed instead.
+  const [linkProof, setLinkProof] = useState(fromLink.proof);
   useEffect(() => {
     if (window.location.hash.includes('enrol=')) {
       window.history.replaceState(
@@ -155,6 +156,8 @@ export default function AdminPanelLogin() {
     },
     onError: (err: unknown) => {
       const status = apiErrorStatus(err);
+      // A refused link cannot work again: the code field takes its place.
+      if (status === 401) setLinkProof('');
       setError(
         status === 403
           ? t('adminPanel.login.locked')

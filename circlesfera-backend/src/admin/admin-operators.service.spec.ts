@@ -335,7 +335,7 @@ describe('AdminOperatorsService', () => {
       ).toBeNull();
     });
 
-    it('is sent a link or a code again only until it has set its password', async () => {
+    it('is sent a link only until it has set its password, and a code at any time', async () => {
       prisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'rev-1',
         email: 'rev@example.com',
@@ -359,12 +359,14 @@ describe('AdminOperatorsService', () => {
         passwordSetAt: new Date(),
         roles: [{ roleId: 'arole_external_reviewer' }],
       });
+      // Once it has a password, a forgotten one is recovered with a code
+      // given in person, never with a link to its email.
       await expect(
         service.sendEnrolmentLinkAgain('actor-1', 'rev-1'),
       ).rejects.toThrow(ConflictException);
       await expect(
         service.issueEnrolmentCode('actor-1', 'rev-1'),
-      ).rejects.toThrow(ConflictException);
+      ).resolves.toMatchObject({ expiresInHours: 24 });
     });
 
     it('is refused a link while it is not active', async () => {

@@ -738,10 +738,11 @@ export default function RolesTab({ onToast }: Props) {
                     </Button>
                   </div>
                 </div>
+                {/* A reviewer always may be given a proof: it has no
+                    authenticator to reset, and recovers a forgotten
+                    password with a code. */}
                 {selected.status === 'ACTIVE' &&
-                  (selected.externalReviewer
-                    ? selected.ownPassword === false
-                    : !selected.totpEnabled) && (
+                  (selected.externalReviewer || !selected.totpEnabled) && (
                     <section className="py-4 space-y-2.5">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
                         {t('admin.operators.enrolment_title')}

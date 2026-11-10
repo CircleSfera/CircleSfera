@@ -57,7 +57,8 @@ export function StaffPasswordDialog({
   };
 
   const save = async () => {
-    if (!ready) return;
+    // Enter pressed twice before the button turns off sends one request.
+    if (!ready || saving) return;
     setSaving(true);
     setError(null);
     try {
