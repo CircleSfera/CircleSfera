@@ -58,6 +58,12 @@ describe('CollaborationsSettings', () => {
     const row = rowOf('ana invited you to collaborate');
     expect(within(row).getByRole('link')).toHaveAttribute('href', '/p/post-1');
     expect(within(row).getByText('caption post-1')).toBeInTheDocument();
+    // On a wide screen the post takes the room and the two buttons stay side
+    // by side, at the width of their words.
+    expect(within(row).getByRole('link')).toHaveClass('flex-1');
+    expect(
+      within(row).getByRole('button', { name: 'Accept' }).parentElement,
+    ).toHaveClass('shrink-0');
   });
 
   it('accepts an invitation and asks for the list again', async () => {

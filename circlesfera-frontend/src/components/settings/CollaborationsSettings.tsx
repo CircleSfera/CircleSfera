@@ -119,7 +119,7 @@ function InvitationRow({
     <li className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
       <Link
         to={`/p/${post.id}`}
-        className="flex items-center gap-3 min-w-0"
+        className="flex items-center gap-3 min-w-0 flex-1"
         aria-label={t('settings.collaborations.view_post', {
           username: post.profile.username,
         })}
@@ -145,7 +145,7 @@ function InvitationRow({
           )}
         </div>
       </Link>
-      <div className={BUTTON_PAIR}>
+      <div className={`${BUTTON_PAIR} shrink-0`}>
         <Button
           onClick={onAccept}
           isLoading={accepting}
