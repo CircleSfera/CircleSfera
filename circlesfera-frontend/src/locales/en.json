@@ -2620,7 +2620,22 @@
       "pinned": "Pinned",
       "error": "Couldn't save that. Try again."
     },
-    "locked_not_for_sale": "This paid message is no longer for sale."
+    "locked_not_for_sale": "This paid message is no longer for sale.",
+    "forward": "Forward",
+    "forwarded": "Forwarded",
+    "forward_sheet": {
+      "title": "Forward to",
+      "search": "Search chats",
+      "limit": "Pick up to {{count}} chats",
+      "send_one": "Send to {{count}} chat",
+      "send_other": "Send to {{count}} chats",
+      "none": "No chats to forward to",
+      "sent_one": "Forwarded to {{count}} chat",
+      "sent_other": "Forwarded to {{count}} chats",
+      "partly_one": "{{count}} chat could not receive it",
+      "partly_other": "{{count}} chats could not receive it",
+      "error": "The message could not be forwarded"
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -6464,7 +6479,8 @@
       "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",
       "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",
-      "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests."
+      "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests.",
+      "MESSAGE_NOT_FORWARDABLE": "This message cannot be forwarded."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

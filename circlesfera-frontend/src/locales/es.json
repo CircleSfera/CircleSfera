@@ -2620,7 +2620,22 @@
       "pinned": "Fijado",
       "error": "No se ha podido guardar. Inténtalo de nuevo."
     },
-    "locked_not_for_sale": "Este mensaje de pago ya no está a la venta."
+    "locked_not_for_sale": "Este mensaje de pago ya no está a la venta.",
+    "forward": "Reenviar",
+    "forwarded": "Reenviado",
+    "forward_sheet": {
+      "title": "Reenviar a",
+      "search": "Buscar chats",
+      "limit": "Elige hasta {{count}} chats",
+      "send_one": "Enviar a {{count}} chat",
+      "send_other": "Enviar a {{count}} chats",
+      "none": "No hay chats a los que reenviar",
+      "sent_one": "Reenviado a {{count}} chat",
+      "sent_other": "Reenviado a {{count}} chats",
+      "partly_one": "{{count}} chat no ha podido recibirlo",
+      "partly_other": "{{count}} chats no han podido recibirlo",
+      "error": "No se ha podido reenviar el mensaje"
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -6464,7 +6479,8 @@
       "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",
       "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
-      "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes."
+      "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes.",
+      "MESSAGE_NOT_FORWARDABLE": "Este mensaje no se puede reenviar."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

@@ -22,6 +22,7 @@ import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { ConversationPageDto } from './dto/conversation-page.dto.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
 import { EditMessageDto } from './dto/edit-message.dto.js';
+import { ForwardMessageDto } from './dto/forward-message.dto.js';
 import { DeleteConversationDto, LeaveGroupDto } from './dto/leave-group.dto.js';
 import { MessagesBeforeDto } from './dto/messages-before.dto.js';
 import { MuteChatDto } from './dto/mute-chat.dto.js';
@@ -37,6 +38,7 @@ import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js'
 // Message Commands
 import { DeleteMessageUseCase } from './use-cases/messages/delete-message.use-case.js';
 import { EditMessageUseCase } from './use-cases/messages/edit-message.use-case.js';
+import { ForwardMessageUseCase } from './use-cases/messages/forward-message.use-case.js';
 import { MarkAsReadUseCase } from './use-cases/messages/mark-as-read.use-case.js';
 import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.js';
 // Queries
@@ -95,6 +97,8 @@ export class ChatController {
     private readonly declineMessageRequestUseCase: DeclineMessageRequestUseCase,
     @Inject(ChatSettingsUseCase)
     private readonly chatSettings: ChatSettingsUseCase,
+    @Inject(ForwardMessageUseCase)
+    private readonly forwardMessageUseCase: ForwardMessageUseCase,
   ) {}
 
   @ApiQuery({ name: 'folder', required: false })
@@ -245,6 +249,21 @@ export class ChatController {
       dto.voiceWaveform,
       dto.isLocked,
       dto.priceCents,
+    );
+  }
+
+  @Post('messages/:id/forward')
+  @UseGuards(EmailVerifiedGuard)
+  @ApiResponse({ status: 201 })
+  async forwardMessage(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() dto: ForwardMessageDto,
+  ) {
+    return this.forwardMessageUseCase.execute(
+      req.user.profileId,
+      id,
+      dto.conversationIds,
     );
   }
 
