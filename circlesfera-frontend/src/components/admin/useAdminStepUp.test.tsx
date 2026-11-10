@@ -113,7 +113,7 @@ describe('the second confirmation of a staff member', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'That code is not right',
+      'That code is not right or was already used. Wait for the next one in your app.',
     );
     expect(screen.getByRole('textbox')).toHaveValue('');
     expect(action).toHaveBeenCalledTimes(1);

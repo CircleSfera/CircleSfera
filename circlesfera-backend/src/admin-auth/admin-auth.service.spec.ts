@@ -249,6 +249,7 @@ describe('AdminAuthService', () => {
           data: {
             totpSecret: 'enc:NEW_GENERATED_BASE32_SECRET',
             totpEnabled: false,
+            totpLastTimeStep: null,
             failedLoginCount: 0,
             lockedUntil: null,
           },

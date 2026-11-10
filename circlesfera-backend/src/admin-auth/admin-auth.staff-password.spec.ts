@@ -195,6 +195,7 @@ describe('AdminAuthService — a staff password of its own', () => {
         passwordSetAt: expect.any(Date),
         totpSecret: null,
         totpEnabled: false,
+        totpLastTimeStep: null,
         failedLoginCount: 0,
         lockedUntil: null,
       });
@@ -602,6 +603,23 @@ describe('AdminAuthService — a staff password of its own', () => {
       ).rejects.toThrow(UnauthorizedException);
       expect(failuresWritten()).toHaveLength(1);
       expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('spends no code when the new password is refused, so the same code can be tried again', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+
+      await expect(
+        service.changePassword(
+          'admin-1',
+          {
+            currentPassword: ACCOUNT_PASSWORD,
+            newPassword: LEAKED_PASSWORD,
+            totpCode: '123456',
+          },
+          {},
+        ),
+      ).rejects.toMatchObject({ errorCode: ErrorCode.PASSWORD_LEAKED });
+      expect(prisma.adminIdentity.updateMany).not.toHaveBeenCalled();
     });
 
     it('takes nothing for a wrong code', async () => {

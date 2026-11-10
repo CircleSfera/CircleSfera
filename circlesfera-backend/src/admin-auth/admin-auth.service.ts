@@ -395,6 +395,8 @@ export class AdminAuthService {
       data: {
         totpSecret: this.cryptoService.encrypt(secret),
         totpEnabled: false,
+        // A step belongs to the secret it was taken with.
+        totpLastTimeStep: null,
         failedLoginCount: 0,
         lockedUntil: null,
       },
@@ -581,7 +583,9 @@ export class AdminAuthService {
           lockedUntil: null,
           // A member of staff sets up a new authenticator next; until it is
           // confirmed the identity has none.
-          ...(reviewer ? {} : { totpSecret: null, totpEnabled: false }),
+          ...(reviewer
+            ? {}
+            : { totpSecret: null, totpEnabled: false, totpLastTimeStep: null }),
         },
       }),
       this.prisma.adminRefreshToken.deleteMany({
@@ -638,6 +642,9 @@ export class AdminAuthService {
     const reviewer = isExternalReviewer(admin.roles.map((r) => r.role.name));
 
     let ok = await this.passwordIsValid(admin, dto.currentPassword);
+    // The new password is checked before the code is spent, so a refused
+    // one is tried again with the same code.
+    if (ok) await this.assertUsableStaffPassword(admin.email, dto.newPassword);
     if (ok && !reviewer) {
       ok =
         admin.totpEnabled &&
@@ -652,7 +659,6 @@ export class AdminAuthService {
       await this.recordFailure(admin.id, meta, 'Invalid password change');
       throw new UnauthorizedException('Invalid credentials');
     }
-    await this.assertUsableStaffPassword(admin.email, dto.newPassword);
 
     const passwordHash = await argon2.hash(dto.newPassword);
     const kept = meta.keepRefreshToken
