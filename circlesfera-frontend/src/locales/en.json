@@ -2420,6 +2420,8 @@
       "comment": "commented on your post.",
       "mention": "mentioned you in a comment.",
       "mention_story": "mentioned you in their story.",
+      "tag": "tagged you in a post.",
+      "tag_pending": "wants to tag you in a post. Approve it in Settings, Tags.",
       "follow_request": "requested to follow you.",
       "follow_accepted": "accepted your follow request.",
       "moderation": "Moderation update: {{content}}",
