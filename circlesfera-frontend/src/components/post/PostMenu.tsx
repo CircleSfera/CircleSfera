@@ -42,7 +42,7 @@ interface PostMenuProps {
   // The author's: archive it, or show an archived one on the profile again.
   onArchive?: () => void;
   isArchived?: boolean;
-  // The author's: pin it to the top of their profile, or unpin it.
+  // Each author's: pin it to the top of their own profile, or unpin it.
   onTogglePin?: () => void;
   pinned?: boolean;
   onMute?: () => void;
@@ -231,6 +231,16 @@ export default function PostMenu({
         },
       ].filter((item) => item !== undefined) as Array<MenuItemProps | null>)
     : ([
+        // The collaborator pins it on its own profile.
+        onTogglePin
+          ? {
+              icon: pinned ? PinOff : Pin,
+              label: pinned
+                ? t('post.menu.unpin_from_profile')
+                : t('post.menu.pin_to_profile'),
+              onClick: onTogglePin,
+            }
+          : undefined,
         onLeaveCollaboration
           ? {
               icon: UserMinus,

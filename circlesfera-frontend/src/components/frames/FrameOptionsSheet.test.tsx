@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
@@ -36,6 +36,22 @@ const options = () =>
 describe('FrameOptionsSheet', () => {
   beforeEach(() => {
     document.body.style.overflow = '';
+  });
+
+  it('offers the collaborator to pin the Frame on its own profile, closing first', () => {
+    const onTogglePin = vi.fn(() => order.push('pin'));
+    show({ onTogglePin, onLeaveCollaboration: vi.fn() });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Pin to your profile' }),
+    );
+    expect(order).toEqual(['close', 'pin']);
+    cleanup();
+
+    show({ onTogglePin, pinned: true });
+    expect(
+      screen.getByRole('button', { name: 'Unpin from your profile' }),
+    ).toBeInTheDocument();
   });
 
   it('is not there while closed', () => {
