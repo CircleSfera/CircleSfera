@@ -86,6 +86,8 @@ describe('PostsService', () => {
     },
     postCollaborator: {
       findUnique: vi.fn(),
+      // No pin as collaborator unless a test says so.
+      findMany: vi.fn().mockResolvedValue([]),
     },
     follow: {
       findMany: vi.fn(),
@@ -841,7 +843,11 @@ describe('PostsService', () => {
       const dto = {
         caption: 'Hello #world #alpha @user2',
         type: 'POST' as const,
-        tags: [{ profileId: 'tagged-user', x: 0.1, y: 0.2 }],
+        tags: [
+          { profileId: 'tagged-user', x: 0.1, y: 0.2 },
+          { profileId: 'approving-user', x: 0.3, y: 0.4 },
+          { profileId: 'closed-user', x: 0.5, y: 0.6 },
+        ],
         isPremium: true,
         priceCents: 500,
         contentRating: ContentRating.GENERAL,
@@ -878,6 +884,12 @@ describe('PostsService', () => {
         accountType: 'CREATOR',
         monetizationStatus: 'APPROVED',
       });
+      // Who lets the author tag them, and who approves tags by hand.
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { id: 'tagged-user', tagsFrom: 'EVERYONE', manualTagApproval: false },
+        { id: 'approving-user', tagsFrom: 'EVERYONE', manualTagApproval: true },
+        { id: 'closed-user', tagsFrom: 'NOBODY', manualTagApproval: false },
+      ]);
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'post-1',
         caption: 'Hello #world #alpha @user2',
@@ -891,8 +903,18 @@ describe('PostsService', () => {
       expect(mockTx.post.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
+            // The tag the Profile did not allow is left out; the one it
+            // approves by hand waits for it.
             tags: {
-              create: [{ profileId: 'tagged-user', x: 0.1, y: 0.2 }],
+              create: [
+                { profileId: 'tagged-user', x: 0.1, y: 0.2, status: 'SHOWN' },
+                {
+                  profileId: 'approving-user',
+                  x: 0.3,
+                  y: 0.4,
+                  status: 'PENDING',
+                },
+              ],
             },
           }),
         }),
@@ -1504,6 +1526,7 @@ describe('PostsService', () => {
           count: vi.fn().mockResolvedValue(0),
           update: vi.fn(async ({ data }) => ({ id: 'post-1', ...data })),
         },
+        postCollaborator: { count: vi.fn().mockResolvedValue(0) },
         $queryRaw: vi.fn().mockResolvedValue([]),
       };
       (mockPrismaService as any).$transaction = vi.fn((cb: any) => cb(tx));
@@ -1524,6 +1547,23 @@ describe('PostsService', () => {
           archivedAt: null,
         }),
       });
+    });
+
+    it('counts the pins it made as collaborator toward the most it can pin', async () => {
+      tx.post.count.mockResolvedValue(PROFILE_PINS_MAX - 1);
+      tx.postCollaborator.count.mockResolvedValue(1);
+
+      await expect(service.pinToProfile('post-1')).rejects.toMatchObject({
+        response: { errorCode: 'PROFILE_PINS_FULL' },
+      });
+      expect(tx.postCollaborator.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          profileId: 'author-1',
+          status: 'ACCEPTED',
+          pinnedAt: { not: null },
+        }),
+      });
+      expect(tx.post.update).not.toHaveBeenCalled();
     });
 
     it('refuses a pin past the most a Profile can pin', async () => {
@@ -1590,17 +1630,15 @@ describe('PostsService', () => {
       const [pinsQuery, restQuery] = mockPrismaService.post.findMany.mock.calls
         .slice(-2)
         .map((call) => call[0]);
-      // Only its own pins: a post it co-authors is pinned by its author only.
+      // Its own pins (no pin as collaborator here).
       expect(pinsQuery.where.AND[0]).toEqual({
-        profileId: 'user-1',
-        pinnedToProfileAt: { not: null },
+        OR: [{ profileId: 'user-1', pinnedToProfileAt: { not: null } }],
       });
       expect(pinsQuery.orderBy).toEqual([
         { pinnedToProfileAt: 'desc' },
         { id: 'desc' },
       ]);
-      expect(pinsQuery.take).toBe(3);
-      expect(restQuery.where.AND[1]).toEqual({ NOT: pinsQuery.where });
+      expect(restQuery.where.AND[1]).toEqual({ NOT: pinsQuery.where.AND[0] });
       expect(restQuery.orderBy).toEqual([
         { createdAt: 'desc' },
         { id: 'desc' },
@@ -1611,6 +1649,70 @@ describe('PostsService', () => {
         'pin-a',
         'new',
         'old',
+      ]);
+    });
+
+    it("mixes in its pins as collaborator by when they were made, and marks only this profile's pins", async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        id: 'user-1',
+        privacyLevel: Visibility.PUBLIC,
+      });
+      mockPrismaService.postCollaborator.findMany.mockResolvedValueOnce([
+        { postId: 'co-pinned', pinnedAt: new Date('2026-11-05T00:00:00Z') },
+      ]);
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'own-pin',
+            profileId: 'user-1',
+            pinnedToProfileAt: new Date('2026-11-01T00:00:00Z'),
+          },
+          {
+            id: 'co-pinned',
+            profileId: 'author-2',
+            // The author's own pin, on the author's profile.
+            pinnedToProfileAt: new Date('2026-10-01T00:00:00Z'),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 'co-not-pinned',
+            profileId: 'author-3',
+            pinnedToProfileAt: new Date('2026-10-02T00:00:00Z'),
+          },
+        ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(3);
+
+      const result = await service.findByUser('user', { page: 1, limit: 10 });
+
+      expect(mockPrismaService.postCollaborator.findMany).toHaveBeenCalledWith({
+        where: {
+          profileId: 'user-1',
+          status: 'ACCEPTED',
+          pinnedAt: { not: null },
+        },
+        select: { postId: true, pinnedAt: true },
+      });
+      const [pinsQuery] = mockPrismaService.post.findMany.mock.calls
+        .slice(-2)
+        .map((call) => call[0]);
+      expect(pinsQuery.where.AND[0].OR[1]).toEqual({
+        id: { in: ['co-pinned'] },
+        collaborator: { profileId: 'user-1', status: 'ACCEPTED' },
+      });
+      // The newer pin as collaborator comes first.
+      expect(
+        result.data.map(
+          (post: { id: string; pinnedToProfileAt: Date | null }) => [
+            post.id,
+            post.pinnedToProfileAt?.toISOString() ?? null,
+          ],
+        ),
+      ).toEqual([
+        ['co-pinned', '2026-11-05T00:00:00.000Z'],
+        ['own-pin', '2026-11-01T00:00:00.000Z'],
+        // Pinned by its author on the author's profile, not here.
+        ['co-not-pinned', null],
       ]);
     });
 
@@ -1992,6 +2094,16 @@ describe('PostsService', () => {
 
       expect(result.data).toHaveLength(0);
       expect(result.meta.nextCursor).toBeUndefined();
+      // A tag still waiting for the Profile's approval is not listed.
+      const shownTag = {
+        tags: { some: { profileId: 'prof-tagged', status: 'SHOWN' } },
+      };
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining(shownTag) }),
+      );
+      expect(mockPrismaService.post.count).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining(shownTag) }),
+      );
     });
 
     it('returns paginated tagged posts with cursor and injects isLiked', async () => {
@@ -2098,7 +2210,12 @@ describe('PostsService', () => {
       );
       expect(mockPrismaService.post.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ moderationPassedAt: null }),
+          // Off sale until checked again, and no longer a pass by a person.
+          data: expect.objectContaining({
+            moderationPassedAt: null,
+            moderationPassedByStaff: false,
+            contentEditedAt: expect.any(Date),
+          }),
         }),
       );
       expect(
@@ -2157,6 +2274,8 @@ describe('PostsService', () => {
           visibility: Visibility.PUBLIC,
           // Off sale until the new caption is checked.
           moderationPassedAt: null,
+          moderationPassedByStaff: false,
+          contentEditedAt: expect.any(Date),
         },
         include: expect.any(Object),
       });

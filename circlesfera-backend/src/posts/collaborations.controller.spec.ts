@@ -24,6 +24,8 @@ describe('CollaborationsController', () => {
     invitations: vi.fn(),
     accept: vi.fn(),
     leave: vi.fn(),
+    pin: vi.fn(),
+    unpin: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -46,11 +48,15 @@ describe('CollaborationsController', () => {
     ['get', '/api/v1/collaborations/invitations'],
     ['post', '/api/v1/collaborations/post-1/accept'],
     ['delete', '/api/v1/collaborations/post-1'],
+    ['post', '/api/v1/collaborations/post-1/pin'],
+    ['delete', '/api/v1/collaborations/post-1/pin'],
   ] as const)('rejects %s %s without a session', async (method, path) => {
     await request(app.getHttpServer())[method](path).expect(401);
     expect(mockService.invitations).not.toHaveBeenCalled();
     expect(mockService.accept).not.toHaveBeenCalled();
     expect(mockService.leave).not.toHaveBeenCalled();
+    expect(mockService.pin).not.toHaveBeenCalled();
+    expect(mockService.unpin).not.toHaveBeenCalled();
   });
 
   it('answers for the signed-in Profile only', async () => {
@@ -77,6 +83,26 @@ describe('CollaborationsController', () => {
       'post-1',
     );
     expect(mockService.leave).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'post-1',
+    );
+  });
+
+  it('pins and unpins on the signed-in Profile only', async () => {
+    mockService.pin.mockResolvedValue({ postId: 'post-1', pinnedAt: null });
+    mockService.unpin.mockResolvedValue({ postId: 'post-1', pinnedAt: null });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/collaborations/post-1/pin')
+      .set(BEARER)
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete('/api/v1/collaborations/post-1/pin')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.pin).toHaveBeenCalledWith(TEST_USER.profileId, 'post-1');
+    expect(mockService.unpin).toHaveBeenCalledWith(
       TEST_USER.profileId,
       'post-1',
     );

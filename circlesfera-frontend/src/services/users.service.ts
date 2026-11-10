@@ -1,6 +1,9 @@
 import type { SuggestedUser } from '../types';
 import { apiClient } from './api';
 
+// Who may mention or tag a Profile.
+export type InteractionAudience = 'EVERYONE' | 'FOLLOWING' | 'NOBODY';
+
 export const usersApi = {
   getSuggestions: (limit = 10) =>
     apiClient.get<SuggestedUser[]>('/users/suggestions', {
@@ -45,6 +48,13 @@ export const usersApi = {
     saveStoriesToArchive?: boolean;
     // Whether others may share the Profile's posts and Frames to their stories.
     allowStoryShares?: boolean;
+    // Who may mention or tag the Profile.
+    mentionsFrom?: InteractionAudience;
+    tagsFrom?: InteractionAudience;
+    // Tags wait for the Profile's approval before showing on it.
+    manualTagApproval?: boolean;
+    // Off: only Profiles it follows can start a chat with it.
+    messageRequests?: boolean;
     emailNotifications?: boolean;
     newsletter?: boolean;
     contentPreference?: 'GENERAL' | 'MATURE';

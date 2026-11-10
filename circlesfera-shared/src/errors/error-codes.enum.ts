@@ -15,6 +15,8 @@ export enum ErrorCode {
   CANNOT_BLOCK_SELF = 'CANNOT_BLOCK_SELF',
   CANNOT_MUTE_SELF = 'CANNOT_MUTE_SELF',
   CANNOT_RESTRICT_SELF = 'CANNOT_RESTRICT_SELF',
+  // The recipient takes message requests only from Profiles it follows.
+  MESSAGE_REQUESTS_OFF = 'MESSAGE_REQUESTS_OFF',
   FOLLOW_REQUEST_NOT_FOUND = 'FOLLOW_REQUEST_NOT_FOUND',
   // Staff: another admin already claimed the report; details carry who.
   REPORT_ALREADY_CLAIMED = 'REPORT_ALREADY_CLAIMED',
@@ -66,6 +68,7 @@ export enum ErrorCode {
   // Posts & Media
   POST_NOT_FOUND = 'POST_NOT_FOUND',
   STORY_NOT_FOUND = 'STORY_NOT_FOUND',
+  CONTENT_CHANGED_SINCE_REVIEW = 'CONTENT_CHANGED_SINCE_REVIEW',
   MEDIA_NOT_FOUND = 'MEDIA_NOT_FOUND',
   COMMENT_NOT_FOUND = 'COMMENT_NOT_FOUND',
   // A post already has the most pinned comments it can have.

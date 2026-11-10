@@ -542,6 +542,7 @@ export class AppealsService {
             data: {
               moderationStatus: 'VISIBLE',
               moderationPassedAt: new Date(),
+              moderationPassedByStaff: true,
             },
           });
         }

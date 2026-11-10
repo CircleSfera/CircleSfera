@@ -136,6 +136,14 @@
       "hidden_words": {
         "label": "Hidden words",
         "desc": "Comments"
+      },
+      "collaborations": {
+        "label": "Collaborations",
+        "desc": "Invitations"
+      },
+      "tags": {
+        "label": "Tags",
+        "desc": "Posts you're tagged in"
       }
     },
     "profile": {
@@ -851,6 +859,54 @@
       "delete_error": "It could not be deleted. Try again.",
       "archived": "Archived. Only you see it, in your archive.",
       "archive_error": "It could not be archived. Try again."
+    },
+    "collaborations": {
+      "title": "Collaboration invitations",
+      "subtitle": "Posts others invited you to co-author. Once you accept, the post shows on your profile and reaches your followers too.",
+      "empty": "No invitations at the moment",
+      "invited_by": "{{username}} invited you to collaborate",
+      "view_post": "View {{username}}'s post",
+      "accept": "Accept",
+      "decline": "Decline",
+      "accepted": "You're now a collaborator on this post",
+      "accept_error": "Couldn't accept the invitation",
+      "decline_error": "Couldn't decline the invitation"
+    },
+    "interactions": {
+      "title": "Mentions, tags and messages",
+      "subtitle": "Choose who can mention you, tag you or message you. Nobody is told when you leave them out.",
+      "audience": {
+        "EVERYONE": "Everyone",
+        "FOLLOWING": "People you follow",
+        "NOBODY": "No one"
+      },
+      "mentions": "Who can mention you",
+      "mentions_desc": "A mention from someone else stays in their text but doesn't notify you.",
+      "tags": "Who can tag you",
+      "tags_desc": "Others can't add you to their posts.",
+      "manual_tags": "Approve tags manually",
+      "manual_tags_desc": "New tags wait for your approval before they show on your profile.",
+      "review_tags": "Review your tags",
+      "message_requests": "Allow message requests",
+      "message_requests_desc": "When off, only people you follow can start a chat with you.",
+      "save_error": "Couldn't save the change",
+      "load_error": "Couldn't load who can mention, tag or message you."
+    },
+    "tags": {
+      "pending_title": "Waiting for approval",
+      "pending_desc": "Approve a tag to show the post on your profile, or remove yourself from it.",
+      "pending_empty": "No tags waiting",
+      "shown_title": "On your profile",
+      "shown_desc": "Posts you're tagged in. Removing yourself takes you off the post; its author isn't told.",
+      "shown_empty": "You're not tagged in any posts",
+      "by": "Post by {{username}}",
+      "approve": "Approve",
+      "remove": "Remove me",
+      "remove_label": "Remove me from the post by {{username}}",
+      "error": "Couldn't update the tag",
+      "load_error": "Couldn't load your tags.",
+      "unavailable": "A post you can't see",
+      "remove_unavailable_label": "Remove me from a post you can't see"
     }
   },
   "auth": {
@@ -1440,7 +1496,9 @@
       "stop_offering_template": "Stop offering its template",
       "template_offered": "Others can now use its template",
       "template_stopped": "Its template is no longer offered",
-      "template_error": "Could not change it. Try again."
+      "template_error": "Could not change it. Try again.",
+      "collaborator": "Collaborator",
+      "leave_collaboration": "Stop collaborating"
     },
     "modals": {
       "delete_title": "Delete post?",
@@ -1488,6 +1546,24 @@
       "load_failed": "It could not be loaded. Please try again.",
       "retry": "Try again",
       "how_link": "How your feed works"
+    },
+    "collab": {
+      "and": "and",
+      "title": "Collaborator",
+      "explain": "Invite one person to be a co-author. Once they accept, the post shows on both profiles and reaches the followers of both. You keep every control over it.",
+      "username_label": "Username",
+      "username_placeholder": "@username",
+      "invite": "Invite",
+      "invited": "Invitation sent",
+      "invite_error": "Couldn't send the invitation",
+      "status_pending": "Invited, hasn't answered yet",
+      "status_accepted": "Co-author",
+      "remove": "Remove",
+      "withdraw": "Withdraw",
+      "removed": "Collaborator removed",
+      "remove_error": "Couldn't remove the collaborator",
+      "left": "You're no longer a collaborator on this post",
+      "leave_error": "Couldn't stop collaborating"
     }
   },
   "story": {
@@ -2364,6 +2440,7 @@
     "removal_appeal_cta": "Appeal",
     "just_now": "now",
     "view_live": "Watch the live",
+    "collab_invitations_cta": "See invitations",
     "filters": {
       "label": "Filter activity",
       "all": "All",
@@ -3130,7 +3207,23 @@
       "note_batch_approved": "Batch approved",
       "note_batch_hidden": "Batch hidden",
       "note_false_positive": "Approved (false positive)",
-      "select_item": "Select this item"
+      "select_item": "Select this item",
+      "first_paid": {
+        "title": "First paid content",
+        "subtitle_one": "The first paid post or story of each creator is checked by a person before it goes on sale.",
+        "subtitle_other": "The first {{count}} paid posts and stories of each creator are checked by a person before they go on sale.",
+        "progress_one": "{{passed}} of {{count}} checked",
+        "progress_other": "{{passed}} of {{count}} checked",
+        "approve": "Approve for sale",
+        "remove": "Remove",
+        "ask_remove": "Remove the paid content of @{{username}}?",
+        "reason": "Reason the creator reads",
+        "approved": "On sale now",
+        "removed": "Removed",
+        "error": "That could not be done. Try again.",
+        "view": "View",
+        "view_title": "Paid content of @{{username}}"
+      }
     },
     "reports": {
       "title": "Reports",
@@ -3811,7 +3904,8 @@
         "UPDATE_SETTINGS": "Changed the settings",
         "BLOCK": "Blocked content",
         "IGNORE": "Dismissed a case",
-        "STRIKE": "Issued a strike"
+        "STRIKE": "Issued a strike",
+        "PAID_CONTENT_APPROVED": "Paid content approved for sale"
       },
       "targets": {
         "USER": "Account",
@@ -6273,6 +6367,7 @@
       "STRIPE_CUSTOMER_MISSING": "We couldn't find your billing details. Contact support.",
       "PROMOTION_ID_MISSING": "That promotion is missing. Try again.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Switch to a Creator or Business profile to earn money.",
+      "CONTENT_CHANGED_SINCE_REVIEW": "Its author changed it after you opened it. Look at it again.",
       "POST_NOT_FOUND": "This post is no longer available.",
       "STORY_NOT_FOUND": "This story is no longer available.",
       "MEDIA_NOT_FOUND": "We couldn't find that file.",
@@ -6352,13 +6447,18 @@
       "HIDDEN_WORD_INVALID": "Write between 1 and 64 characters.",
       "HIDDEN_WORDS_FULL": "You have hidden as many words as you can. Remove one to add another.",
       "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another.",
+      "COLLAB_NOT_ALLOWED": "Only a public post that is not paid can have a collaborator, and never its author.",
+      "COLLABORATOR_EXISTS": "This post already has a collaborator.",
+      "COLLAB_NOT_FOUND": "This invitation is no longer available.",
+      "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first.",
       "MONETIZATION_UNDER_AGE": "You can charge from age {{minAge}}, once your identity is verified.",
       "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
       "CONTENT_UNDER_REVIEW": "This content goes on sale once it has been checked. Try again in a few minutes.",
       "MONETIZATION_NOT_APPROVED": "Your Profile needs to be approved in the monetization programme to charge.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "You cannot apply right now.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "This application has already been decided.",
-      "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later."
+      "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",
+      "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

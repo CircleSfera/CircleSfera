@@ -166,6 +166,20 @@ export class SendMessageUseCase {
               },
             });
             isNewRequest = !recipientFollowsSender;
+            // A Profile that takes no message requests is reached only by
+            // the Profiles it follows.
+            if (isNewRequest) {
+              const recipient = await tx.profile.findUnique({
+                where: { id: recipientId },
+                select: { messageRequests: true },
+              });
+              if (recipient && !recipient.messageRequests) {
+                throw AppException.Forbidden(
+                  ErrorCode.MESSAGE_REQUESTS_OFF,
+                  'This account does not take message requests',
+                );
+              }
+            }
 
             conv = await tx.conversation.create({
               data: {

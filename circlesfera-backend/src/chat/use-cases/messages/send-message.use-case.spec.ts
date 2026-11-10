@@ -70,6 +70,10 @@ describe('SendMessageUseCase', () => {
       follow: {
         findFirst: vi.fn().mockResolvedValue(null),
       },
+      // Everyone takes message requests unless a test says otherwise.
+      profile: {
+        findUnique: vi.fn().mockResolvedValue({ messageRequests: true }),
+      },
     };
 
     mockPrisma = {
@@ -658,6 +662,49 @@ describe('SendMessageUseCase', () => {
         }),
       }),
     );
+  });
+
+  it('refuses a first message to someone who takes no message requests, and writes nothing', async () => {
+    mockTx.conversation.findFirst.mockResolvedValue(null);
+    mockTx.follow.findFirst.mockResolvedValue(null);
+    mockTx.profile.findUnique.mockResolvedValue({ messageRequests: false });
+
+    await expect(
+      useCase.execute('sender-1', 'recipient-2', 'Hola'),
+    ).rejects.toMatchObject({
+      response: { errorCode: 'MESSAGE_REQUESTS_OFF' },
+    });
+    expect(mockTx.profile.findUnique).toHaveBeenCalledWith({
+      where: { id: 'recipient-2' },
+      select: { messageRequests: true },
+    });
+    expect(mockTx.conversation.create).not.toHaveBeenCalled();
+    expect(mockTx.message.create).not.toHaveBeenCalled();
+  });
+
+  it('lets someone the recipient follows reach them with requests off', async () => {
+    mockTx.conversation.findFirst.mockResolvedValue(null);
+    mockTx.follow.findFirst.mockResolvedValue({ id: 'f-1' });
+    mockTx.profile.findUnique.mockResolvedValue({ messageRequests: false });
+    mockTx.conversation.create.mockResolvedValue({
+      id: 'conv-created',
+      participants: [
+        { profileId: 'sender-1', hasAccepted: true },
+        { profileId: 'recipient-2', hasAccepted: true },
+      ],
+    });
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-2',
+      content: 'encrypted_Hola',
+      senderId: 'sender-1',
+      conversationId: 'conv-created',
+      sender: { id: 'sender-1', username: 'direct_sender' },
+    });
+
+    await useCase.execute('sender-1', 'recipient-2', 'Hola');
+
+    expect(mockTx.profile.findUnique).not.toHaveBeenCalled();
+    expect(mockTx.message.create).toHaveBeenCalled();
   });
 
   it('sends message creating direct conversation when not found', async () => {

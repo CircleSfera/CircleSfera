@@ -4,6 +4,10 @@ import { lazy, Suspense, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import {
+  canHaveCollaborator,
+  useCollaboration,
+} from '../../hooks/useCollaboration';
 import { usePostInteractionSettings } from '../../hooks/usePostInteractionSettings';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
 import { useProfilePin } from '../../hooks/useProfilePin';
@@ -17,6 +21,7 @@ import SharePostModal from '../modals/SharePostModal';
 import TipModal from '../monetization/TipModal';
 import { buildPostElement } from '../story/storyComposer.append';
 import { storyStartRoute } from '../story/storyStart';
+import CollaboratorDialog from './CollaboratorDialog';
 import PostMenu from './PostMenu';
 import PostModals from './PostModals';
 import WhySeeingDialog from './WhySeeingDialog';
@@ -68,6 +73,8 @@ export default function PostOverlays({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [whyOpen, setWhyOpen] = useState(false);
+  const [collaboratorOpen, setCollaboratorOpen] = useState(false);
+  const collaboration = useCollaboration(post);
 
   // Archiving takes the post off the profile and every list, for everyone,
   // the author included; showing it again puts it back in its place.
@@ -199,6 +206,22 @@ export default function PostOverlays({
                 : undefined
             }
             likesHidden={interactionSettings.likesHidden}
+            onCollaborator={
+              isOwner && canHaveCollaborator(post)
+                ? () => {
+                    setShowMenu(false);
+                    setCollaboratorOpen(true);
+                  }
+                : undefined
+            }
+            onLeaveCollaboration={
+              collaboration.isCollaborator
+                ? () => {
+                    setShowMenu(false);
+                    collaboration.leave();
+                  }
+                : undefined
+            }
             onAddToCollection={() => {
               setShowMenu(false);
               setShowAddToCollectionModal(true);
@@ -241,6 +264,14 @@ export default function PostOverlays({
         onEdit={handleEdit}
         isEditing={updateMutation.isPending}
       />
+
+      {collaboratorOpen && (
+        <CollaboratorDialog
+          postId={post.id}
+          isOpen={collaboratorOpen}
+          onClose={() => setCollaboratorOpen(false)}
+        />
+      )}
 
       {whyOpen && (
         <WhySeeingDialog

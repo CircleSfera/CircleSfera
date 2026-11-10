@@ -648,7 +648,7 @@ export class FeedService {
   }
 
   // The Favorites feed: posts of the Profiles the viewer chose as Favorites
-  // and still follows, newest first, with the Following feed's filters
+  // and still follows, and posts they co-author, newest first, with the Following feed's filters
   // (audience, mutes, hidden posts and authors, muted words, mature content,
   // moderation). No promotions, and no ranking: only their posts, in order.
   async getFavoritesFeed(profileId: string, pagination: PaginationDto) {
@@ -687,8 +687,20 @@ export class FeedService {
       return createPaginatedResult([], 0, page, limit);
     }
 
+    // Their own posts, and those a Favorite accepted to author too, unless
+    // the viewer muted or hid that post's author.
+    const muted = [...mutedIds];
     const where = {
-      profileId: { in: authorIds },
+      OR: [
+        { profileId: { in: authorIds } },
+        {
+          collaborator: {
+            status: 'ACCEPTED' as const,
+            profileId: { in: authorIds },
+          },
+          ...(muted.length > 0 ? { profileId: { notIn: muted } } : {}),
+        },
+      ],
       profile: await viewerAudienceWhere(this.prisma, profileId),
       type: 'POST' as const,
       moderationStatus: { in: ['VISIBLE' as const, 'FLAGGED' as const] },

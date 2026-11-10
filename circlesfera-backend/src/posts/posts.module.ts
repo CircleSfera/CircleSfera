@@ -11,6 +11,8 @@ import { StudioTemplatesModule } from '../studio-templates/studio-templates.modu
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { CollaborationsController } from './collaborations.controller.js';
 import { PostCollaboratorsService } from './post-collaborators.service.js';
+import { PostTagsController } from './post-tags.controller.js';
+import { PostTagsService } from './post-tags.service.js';
 import { PostWhyService } from './post-why.service.js';
 import { PostsController } from './posts.controller.js';
 import { PostsService } from './posts.service.js';
@@ -31,11 +33,12 @@ import { PostPaywallService } from './services/post-paywall.service.js';
     UploadsModule,
     StudioTemplatesModule,
   ],
-  controllers: [PostsController, CollaborationsController],
+  controllers: [PostsController, CollaborationsController, PostTagsController],
   providers: [
     PostsService,
     PostWhyService,
     PostCollaboratorsService,
+    PostTagsService,
     PostPaywallService,
     PostDistributionService,
     FrameCoverService,

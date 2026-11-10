@@ -102,6 +102,10 @@ frontend as the web app (Notion → Governance → Decision Register, PD-009).
   only through the merge queue, with every required check green and no unresolved review thread.
   CI runs only on pull requests whose base is `main`: when restacking, retarget the base before
   pushing. A pull request that touches `.github/workflows/` is merged by the owner.
+- **No AI attribution:** commit messages and pull request bodies never carry a `Co-Authored-By`
+  line naming an AI, a `Claude-Session` line, a "Generated with/by Claude Code" line, or a link
+  to a claude.ai session or project thread, even when a tool's default adds one. Check the
+  message and the body for them before every commit and every `gh pr create` or `gh pr edit`.
 - **Before pushing:** `npx biome ci <changed files>` from the root (the packages' `npm run lint` does
   not check formatting or import order), plus the package's types, lint and tests.
 - **Stored files:** a column added for a stored file belongs in `MEDIA_COLUMNS`
