@@ -282,8 +282,35 @@ describe('Money flows (e2e)', () => {
     beforeAll(async () => {
       await prisma.user.update({
         where: { id: userId },
-        data: { identityVerifiedAt: new Date() },
+        // An adult whose date of birth came from the identity document:
+        // only such a person may pay.
+        data: {
+          identityVerifiedAt: new Date(),
+          dateOfBirth: new Date('1990-01-15T00:00:00.000Z'),
+          dateOfBirthVerified: true,
+        },
       });
+    });
+
+    it('refuses to open a payment for someone whose age is not verified', async () => {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { dateOfBirthVerified: false },
+      });
+      try {
+        const res = await request(app.getHttpServer())
+          .post('/api/v1/live/00000000-0000-4000-8000-000000000001/gift')
+          .set('Cookie', [`access_token=${accessToken}`, csrfCookie])
+          .set('x-csrf-token', csrfToken)
+          .send({ giftId: Object.keys(LIVE_GIFT_CATALOG)[0] })
+          .expect(403);
+        expect(res.body.errorCode).toBe('PAYER_UNDER_AGE');
+      } finally {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { dateOfBirthVerified: true },
+        });
+      }
     });
 
     it('rejects client-supplied gift and checkout prices (forbidNonWhitelisted)', async () => {
