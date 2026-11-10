@@ -63,5 +63,5 @@ export function canForwardMessage(msg: Message): boolean {
   if (msg.kind && msg.kind !== 'USER') return false;
   if (msg.isDeleted || msg.isLocked) return false;
   if (msg.url || msg.voiceUrl || msg.storyId) return false;
-  return Boolean(msg.content || msg.postId);
+  return Boolean(msg.content || msg.postId || msg.gif);
 }

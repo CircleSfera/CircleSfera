@@ -271,6 +271,25 @@ describe('MessageBubble', () => {
       );
     });
 
+    it('offers Forward on a GIF', () => {
+      const onForward = vi.fn();
+      renderBubble(
+        {
+          content: '',
+          gif: {
+            id: 'abc123',
+            title: 'Party',
+            url: 'https://media.giphy.com/media/abc123/200.webp',
+            width: 200,
+            height: 150,
+          },
+        },
+        { onForward },
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
+      expect(onForward).toHaveBeenCalledTimes(1);
+    });
+
     it.each([
       ['a file', { url: 'https://cdn/x.jpg' }],
       ['a voice note', { voiceUrl: 'https://cdn/x.m4a' }],
