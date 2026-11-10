@@ -105,6 +105,9 @@ export enum ErrorCode {
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.
   MESSAGE_IS_NOTICE = 'MESSAGE_IS_NOTICE',
+  // Only a member's text or a shared post can be forwarded: never a paid
+  // message, a deleted one, a file, a voice note or a story.
+  MESSAGE_NOT_FORWARDABLE = 'MESSAGE_NOT_FORWARDABLE',
   // The member named to be a group admin may not be one: not in the group,
   // has not accepted it, or their account is not active.
   GROUP_ADMIN_NOT_ELIGIBLE = 'GROUP_ADMIN_NOT_ELIGIBLE',

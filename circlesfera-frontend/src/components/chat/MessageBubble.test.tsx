@@ -220,4 +220,33 @@ describe('MessageBubble', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/bob/)).not.toBeInTheDocument();
   });
+
+  describe('forwarding', () => {
+    it('offers Forward on a text and passes the message on', () => {
+      const onForward = vi.fn();
+      renderBubble({ content: 'Hello there' }, { onForward });
+      fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
+      expect(onForward).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'msg-1' }),
+      );
+    });
+
+    it.each([
+      ['a file', { url: 'https://cdn/x.jpg' }],
+      ['a voice note', { voiceUrl: 'https://cdn/x.m4a' }],
+      ['a paid message', { isLocked: true }],
+      ['a deleted message', { isDeleted: true }],
+      ['a notice', { kind: 'ADMIN_GRANTED' }],
+    ])('does not offer it on %s', (_name, overrides) => {
+      renderBubble(overrides, { onForward: vi.fn() });
+      expect(
+        screen.queryByRole('button', { name: 'Forward' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('marks a forwarded copy', () => {
+      renderBubble({ isForwarded: true }, {}, 'es');
+      expect(screen.getByText('Reenviado')).toBeInTheDocument();
+    });
+  });
 });

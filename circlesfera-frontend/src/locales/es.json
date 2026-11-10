@@ -2602,6 +2602,21 @@
       "muted": "Silenciado",
       "pinned": "Fijado",
       "error": "No se ha podido guardar. Inténtalo de nuevo."
+    },
+    "forward": "Reenviar",
+    "forwarded": "Reenviado",
+    "forward_sheet": {
+      "title": "Reenviar a",
+      "search": "Buscar chats",
+      "limit": "Elige hasta {{count}} chats",
+      "send_one": "Enviar a {{count}} chat",
+      "send_other": "Enviar a {{count}} chats",
+      "none": "No hay chats a los que reenviar",
+      "sent_one": "Reenviado a {{count}} chat",
+      "sent_other": "Reenviado a {{count}} chats",
+      "partly_one": "{{count}} chat no ha podido recibirlo",
+      "partly_other": "{{count}} chats no han podido recibirlo",
+      "error": "No se ha podido reenviar el mensaje"
     }
   },
   "creator": {
@@ -6447,7 +6462,8 @@
       "COLLAB_NOT_FOUND": "Esta invitación ya no está disponible.",
       "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
       "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
-      "CHAT_PINS_FULL": "Ya tienes 3 chats fijados. Quita uno para fijar otro."
+      "CHAT_PINS_FULL": "Ya tienes 3 chats fijados. Quita uno para fijar otro.",
+      "MESSAGE_NOT_FORWARDABLE": "Este mensaje no se puede reenviar."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",
