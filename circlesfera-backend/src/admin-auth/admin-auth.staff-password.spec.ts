@@ -560,6 +560,32 @@ describe('AdminAuthService — a staff password of its own', () => {
   });
 
   describe('an authenticator code is taken once', () => {
+    it('refuses the code when the authenticator was reset or replaced after it was read', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(identity());
+      // The stored secret no longer matches the one the code was checked
+      // against, so the write that takes the code matches no row.
+      prisma.adminIdentity.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.changePassword(
+          'admin-1',
+          {
+            currentPassword: ACCOUNT_PASSWORD,
+            newPassword: STAFF_PASSWORD,
+            totpCode: '123456',
+          },
+          {},
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(prisma.adminIdentity.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            totpSecret: 'enc:base32-admin-secret',
+          }),
+        }),
+      );
+    });
+
     it('keeps the time step of the code with the same write that checks it', async () => {
       prisma.adminIdentity.findUnique.mockResolvedValue(identity());
 
@@ -576,6 +602,7 @@ describe('AdminAuthService — a staff password of its own', () => {
       expect(prisma.adminIdentity.updateMany).toHaveBeenCalledWith({
         where: {
           id: 'admin-1',
+          totpSecret: 'enc:base32-admin-secret',
           OR: [
             { totpLastTimeStep: null },
             { totpLastTimeStep: { lt: 59_000_000 } },
