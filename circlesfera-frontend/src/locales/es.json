@@ -4473,7 +4473,8 @@
         "content_posting_enabled": "Publicación de contenido habilitada",
         "live_streams_enabled": "Directos habilitados",
         "turnstile_required": "Comprobación anti-bots obligatoria",
-        "email_verification_required": "Correo verificado obligatorio"
+        "email_verification_required": "Correo verificado obligatorio",
+        "payments_enabled": "Pagos habilitados"
       },
       "descriptions": {
         "maintenance_mode": "Si está activo, la API de consumidores responde 503 salvo health, CSRF, webhooks y Admin Panel.",
@@ -4481,7 +4482,8 @@
         "content_posting_enabled": "Permite crear publicaciones e historias.",
         "live_streams_enabled": "Permite iniciar transmisiones en vivo.",
         "turnstile_required": "Pide la comprobación anti-bots al registrarse y al iniciar sesión.",
-        "email_verification_required": "Exige un correo verificado para publicar, seguir, escribir mensajes, dar me gusta, subir archivos y editar el perfil."
+        "email_verification_required": "Exige un correo verificado para publicar, seguir, escribir mensajes, dar me gusta, subir archivos y editar el perfil.",
+        "payments_enabled": "Permite pagos nuevos: planes, contenido de pago, propinas, regalos en directo y promociones. Desactivado, no se cobra nada nuevo; lo ya ganado se sigue pagando."
       }
     },
     "payouts": {
@@ -6259,7 +6261,8 @@
       "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
       "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
       "TIP_AMOUNT_NOT_ALLOWED": "Elige uno de los importes que se muestran.",
-      "WEEKLY_SUPPORT_LIMIT_REACHED": "Has llegado al máximo que puedes dar en una semana, entre propinas y regalos."
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "Has llegado al máximo que puedes dar en una semana, entre propinas y regalos.",
+      "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

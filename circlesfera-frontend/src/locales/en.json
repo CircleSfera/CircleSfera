@@ -4473,7 +4473,8 @@
         "content_posting_enabled": "Content posting enabled",
         "live_streams_enabled": "Live streams enabled",
         "turnstile_required": "Bot check required",
-        "email_verification_required": "Verified email required"
+        "email_verification_required": "Verified email required",
+        "payments_enabled": "Payments enabled"
       },
       "descriptions": {
         "maintenance_mode": "When on, the consumer API returns 503 except health, CSRF, webhooks and Admin Panel.",
@@ -4481,7 +4482,8 @@
         "content_posting_enabled": "Allow creating posts and stories.",
         "live_streams_enabled": "Allow starting live streams.",
         "turnstile_required": "Asks for the bot check when signing up and signing in.",
-        "email_verification_required": "Requires a verified email to post, follow, message, like, upload and edit the profile."
+        "email_verification_required": "Requires a verified email to post, follow, message, like, upload and edit the profile.",
+        "payments_enabled": "Allow new payments: plans, paid content, tips, live gifts and promotions. While off nothing new is charged; money already earned keeps being paid out."
       }
     },
     "payouts": {
@@ -6259,7 +6261,8 @@
       "PAID_MESSAGES_UNAVAILABLE": "Paid messages are no longer available.",
       "TIP_TARGET_REQUIRED": "A tip is always for a post.",
       "TIP_AMOUNT_NOT_ALLOWED": "Choose one of the amounts shown.",
-      "WEEKLY_SUPPORT_LIMIT_REACHED": "You have reached the most you can give in a week, tips and gifts together."
+      "WEEKLY_SUPPORT_LIMIT_REACHED": "You have reached the most you can give in a week, tips and gifts together.",
+      "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
