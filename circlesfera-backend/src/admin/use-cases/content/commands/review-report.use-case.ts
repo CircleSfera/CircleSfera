@@ -20,7 +20,6 @@ import type { Notice } from '../../../../notifications/notice-copy.js';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { ProfileStrikesService } from '../../../../strikes/profile-strikes.service.js';
-import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
 
 @Injectable()
@@ -37,20 +36,15 @@ export class ReviewReportUseCase {
     private readonly strikesService: ProfileStrikesService,
   ) {}
 
+  // From CircleSfera: no member of staff is shown to the person.
   private async notifyModeration(params: {
-    adminId: string;
     recipientId: string;
     notice: Notice;
     postId?: string;
   }) {
-    const senderId = await resolveAdminNotificationSenderId(
-      this.prisma,
-      params.adminId,
-    );
     await this.notificationsService
       .create({
         recipientId: params.recipientId,
-        senderId,
         type: NotificationType.MODERATION,
         notice: params.notice,
         postId: params.postId,
@@ -98,9 +92,9 @@ export class ReviewReportUseCase {
     }
     await this.logAdminAction.execute(adminId, action, 'report', reportId);
 
-    if (existing && existing.status !== status) {
+    // A report CircleSfera filed itself has nobody to tell.
+    if (existing && existing.status !== status && existing.reporterId) {
       await this.notifyModeration({
-        adminId,
         recipientId: existing.reporterId,
         notice: {
           key: 'report_updated',

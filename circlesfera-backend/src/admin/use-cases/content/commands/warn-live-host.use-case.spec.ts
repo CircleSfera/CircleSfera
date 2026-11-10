@@ -46,14 +46,12 @@ describe('WarnLiveHostUseCase', () => {
     );
     expect(notifications.create).toHaveBeenCalledWith({
       recipientId: 'host-profile',
-      senderId: 'staff-profile',
       type: 'MODERATION',
       notice: { key: 'live_host_warned', reason: 'Showing a phone number' },
     });
   });
 
-  it('sends the notice without a sender when the staff member has no profile', async () => {
-    prisma.adminIdentity.findUnique.mockResolvedValue(null);
+  it('never names the member of staff, even one with a Profile', async () => {
     prisma.liveStream.findUnique.mockResolvedValue({
       id: 'live-1',
       hostId: 'host-profile',
@@ -62,12 +60,9 @@ describe('WarnLiveHostUseCase', () => {
 
     await useCase.execute('admin-1', 'live-1', 'Too loud');
 
-    expect(notifications.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        recipientId: 'host-profile',
-        senderId: undefined,
-      }),
-    );
+    const [notice] = notifications.create.mock.calls[0];
+    expect(notice).toMatchObject({ recipientId: 'host-profile' });
+    expect(notice).not.toHaveProperty('senderId');
   });
 
   it('refuses a broadcast that does not exist', async () => {

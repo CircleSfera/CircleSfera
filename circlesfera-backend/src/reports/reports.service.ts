@@ -15,7 +15,6 @@ import {
   type Report,
   type ReportStatus,
 } from '@prisma/client';
-import { resolveSystemModeratorActor } from '../admin/utils/resolve-admin-notification-sender.js';
 import { isNotice } from '../chat/message-kind.js';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
@@ -279,11 +278,9 @@ export class ReportsService {
       select: { id: true },
     });
     if (recent) return;
-    const sender = await resolveSystemModeratorActor(this.prisma);
-    if (!sender) return;
+    // From CircleSfera, with no sender.
     this.eventEmitter.emit('notification.create', {
       recipientId: authorProfileId,
-      senderId: sender.profileId,
       type: NotificationType.SYSTEM,
       notice: { key: 'support_resources' },
       targetType: SUPPORT_RESOURCES,
@@ -346,11 +343,7 @@ export class ReportsService {
   }
 
   // Update a report's status (e.g. PENDING → RESOLVED).
-  async update(
-    id: string,
-    status: ReportStatus,
-    adminId?: string,
-  ): Promise<Report> {
+  async update(id: string, status: ReportStatus): Promise<Report> {
     const existing = await this.prisma.report.findUnique({ where: { id } });
     if (!existing) {
       throw AppException.NotFound(
@@ -364,14 +357,12 @@ export class ReportsService {
       data: { status },
     })) as Report;
 
+    // From CircleSfera, with no sender; a report CircleSfera filed itself
+    // has nobody to tell.
     if (existing && existing.status !== status) {
-      const senderId =
-        adminId || (await resolveSystemModeratorActor(this.prisma))?.profileId;
-
-      if (senderId) {
+      if (existing.reporterId) {
         this.eventEmitter.emit('notification.create', {
           recipientId: existing.reporterId,
-          senderId,
           type: NotificationType.MODERATION,
           notice: {
             key: 'report_updated',

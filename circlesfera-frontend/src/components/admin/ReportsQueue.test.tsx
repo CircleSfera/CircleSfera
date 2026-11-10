@@ -477,7 +477,9 @@ describe('ReportsTab, the rest of the queue', () => {
 
     await open('2');
     expect(
-      within(line('Reported by')).getByText('AI system (automatic moderation)'),
+      within(line('Reported by')).getByText(
+        'CircleSfera (automatic moderation)',
+      ),
     ).toBeTruthy();
     expect(within(detail()).getByText('Looks like spam')).toBeInTheDocument();
     expect(within(line('Current status')).getByText('In review')).toHaveClass(
@@ -486,7 +488,12 @@ describe('ReportsTab, the rest of the queue', () => {
     expect(within(line('Assigned to')).getByText('Eva')).toBeTruthy();
 
     await open('3');
-    expect(within(line('Reported by')).getByText('@Anonymous')).toBeTruthy();
+    // No reporter: CircleSfera filed it itself.
+    expect(
+      within(line('Reported by')).getByText(
+        'CircleSfera (automatic moderation)',
+      ),
+    ).toBeTruthy();
     expect(within(line('Current status')).getByText('Dismissed')).toHaveClass(
       'text-white/50',
     );

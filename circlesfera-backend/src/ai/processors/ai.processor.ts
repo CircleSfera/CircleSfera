@@ -4,7 +4,6 @@ import { Inject, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ModerationStatus, NotificationType } from '@prisma/client';
 import { type Job, UnrecoverableError } from 'bullmq';
-import { resolveSystemModeratorActor } from '../../admin/utils/resolve-admin-notification-sender.js';
 import {
   getWorkerOptions,
   QUEUE_NAMES,
@@ -243,12 +242,11 @@ export class AIProcessor extends WorkerHost {
 
   private async notifyAuthorOfModeration(params: {
     authorId: string | null;
-    senderProfileId: string;
     targetType: 'POST' | 'STORY' | 'COMMENT';
     targetId: string;
     status: ModerationStatus;
   }) {
-    const { authorId, senderProfileId, targetType, targetId, status } = params;
+    const { authorId, targetType, targetId, status } = params;
     if (!authorId) return;
 
     const statusLabel = (
@@ -261,8 +259,8 @@ export class AIProcessor extends WorkerHost {
     )[status];
 
     this.eventEmitter.emit('notification.create', {
+      // From CircleSfera, with no sender.
       recipientId: authorId,
-      senderId: senderProfileId,
       type: NotificationType.MODERATION,
       notice: {
         key: 'content_moderated',
@@ -346,17 +344,9 @@ export class AIProcessor extends WorkerHost {
     assessment: string;
     status: ModerationStatus;
   }) {
-    const actor = await resolveSystemModeratorActor(this.prisma);
-    if (!actor) {
-      this.logger.error(
-        `Cannot create AI report for ${params.targetId}: no ACTIVE operator with a profile.`,
-      );
-      return;
-    }
-
+    // Filed by CircleSfera itself: no Profile is its reporter.
     await this.prisma.report.create({
       data: {
-        reporterId: actor.profileId,
         targetType: params.targetType,
         targetId: params.targetId,
         reason: 'OTHER',
@@ -368,7 +358,6 @@ export class AIProcessor extends WorkerHost {
     // decide whether the author gets a warning or a strike.
     await this.notifyAuthorOfModeration({
       authorId: params.authorProfileId,
-      senderProfileId: actor.profileId,
       targetType: params.targetType,
       targetId: params.targetId,
       status: params.status,
@@ -409,16 +398,9 @@ export class AIProcessor extends WorkerHost {
       });
       if (open) return true;
 
-      const actor = await resolveSystemModeratorActor(this.prisma);
-      if (!actor) {
-        this.logger.error(
-          `Cannot file a rule report for ${targetId}: no ACTIVE operator with a profile.`,
-        );
-        return true;
-      }
+      // Filed by CircleSfera itself: no Profile is its reporter.
       await this.prisma.report.create({
         data: {
-          reporterId: actor.profileId,
           targetType,
           targetId,
           reason: 'OTHER',

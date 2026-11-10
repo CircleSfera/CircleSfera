@@ -106,7 +106,7 @@ describe('staff removal of content', () => {
   });
 
   it('keeps a story removed when its author cannot be told', async () => {
-    prisma.adminIdentity.findUnique.mockRejectedValue(new Error('down'));
+    notifications.create.mockRejectedValue(new Error('down'));
     await expect(
       new DeleteStoryUseCase(asPrisma, asLog, asNotifications).execute(
         'admin-1',
@@ -114,7 +114,6 @@ describe('staff removal of content', () => {
       ),
     ).resolves.toBeUndefined();
     expect(prisma.story.update).toHaveBeenCalledTimes(1);
-    expect(notifications.create).not.toHaveBeenCalled();
   });
 
   it('a moderation decision records when, for each kind of content, and tells the author', async () => {

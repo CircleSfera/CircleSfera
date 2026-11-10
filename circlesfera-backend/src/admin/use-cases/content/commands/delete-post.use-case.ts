@@ -71,9 +71,7 @@ export class DeletePostUseCase {
     );
 
     await tellAuthorOfRemoval(
-      this.prisma,
       (notice) => this.notifications.create(notice),
-      adminId,
       {
         kind: 'POST',
         id: postId,

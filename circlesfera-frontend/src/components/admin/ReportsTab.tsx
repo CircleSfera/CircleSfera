@@ -851,9 +851,8 @@ export default function ReportsTab({ onToast }: Props) {
                           {t('admin.reports.reported_by_label')}
                         </dt>
                         <dd className="text-white font-semibold text-right">
-                          {selectedReport.details?.includes(
-                            '[AI Automated Flag]',
-                          ) ? (
+                          {/* No reporter: CircleSfera filed it itself. */}
+                          {!selectedReport.reporter ? (
                             <span className="inline-flex items-center gap-1.5 text-brand-primary-text">
                               <Bot size={14} /> {t('admin.reports.ai_reporter')}
                             </span>

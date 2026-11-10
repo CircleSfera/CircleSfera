@@ -9,7 +9,6 @@ import { setModerationStatus } from '../../../../common/policies/moderation-deci
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { removalNotice } from '../../../../notifications/removal-notice.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
-import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
 
 @Injectable()
@@ -71,10 +70,6 @@ export class ModerateContentUseCase {
           : status === 'HIDDEN'
             ? 'hidden'
             : 'removed';
-      const senderId = await resolveAdminNotificationSenderId(
-        this.prisma,
-        adminId,
-      );
       await this.notificationsService
         .create(
           status === 'REMOVED'
@@ -82,12 +77,10 @@ export class ModerateContentUseCase {
                 kind: targetType,
                 id: targetId,
                 authorProfileId,
-                senderId,
                 note,
               })
             : {
                 recipientId: authorProfileId,
-                senderId,
                 type: $Enums.NotificationType.MODERATION,
                 notice: {
                   key: 'content_moderated',

@@ -2439,7 +2439,8 @@
       "and_others_one": "y {{count}} más",
       "and_others_other": "y {{count}} más"
     },
-    "collab_invitations_cta": "Ver invitaciones"
+    "collab_invitations_cta": "Ver invitaciones",
+    "from_circlesfera": "CircleSfera"
   },
   "chat": {
     "loading": "Cargando chats...",
@@ -3265,7 +3266,7 @@
       "no_preview": "Sin vista previa visual",
       "reason_label": "Motivo del reporte",
       "reported_by_label": "Reportado por",
-      "ai_reporter": "Sistema de IA (moderación automática)",
+      "ai_reporter": "CircleSfera (moderación automática)",
       "details_label": "Detalles adicionales",
       "status_label": "Estado actual",
       "assigned_label": "Asignado a",

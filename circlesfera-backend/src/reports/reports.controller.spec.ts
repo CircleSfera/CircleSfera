@@ -152,10 +152,6 @@ describe('ReportsController', () => {
       .send({ status: 'REVIEWING' })
       .expect(200);
 
-    expect(mockService.update).toHaveBeenCalledWith(
-      'report-1',
-      'REVIEWING',
-      undefined,
-    );
+    expect(mockService.update).toHaveBeenCalledWith('report-1', 'REVIEWING');
   });
 });

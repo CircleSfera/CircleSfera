@@ -33,9 +33,7 @@ export class DeleteCommentUseCase {
       commentId,
     );
     await tellAuthorOfRemoval(
-      this.prisma,
       (notice) => this.notifications.create(notice),
-      adminId,
       { kind: 'COMMENT', id: commentId, authorProfileId: removed.profileId },
     );
   }

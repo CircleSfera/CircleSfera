@@ -7,7 +7,6 @@ import {
 import { AdminAction, NotificationType } from '@prisma/client';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
-import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
 
 // The step before ending a broadcast: its host is told what is wrong and
@@ -41,7 +40,6 @@ export class WarnLiveHostUseCase {
     );
     await this.notificationsService.create({
       recipientId: stream.hostId,
-      senderId: await resolveAdminNotificationSenderId(this.prisma, adminId),
       type: NotificationType.MODERATION,
       notice: { key: 'live_host_warned', reason },
     });

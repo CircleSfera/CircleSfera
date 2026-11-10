@@ -33,9 +33,7 @@ export class DeleteStoryUseCase {
       storyId,
     );
     await tellAuthorOfRemoval(
-      this.prisma,
       (notice) => this.notifications.create(notice),
-      adminId,
       { kind: 'STORY', id: storyId, authorProfileId: removed.profileId },
     );
   }

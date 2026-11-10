@@ -370,7 +370,6 @@ describe('ReportsService', () => {
             'notification.create',
             {
               recipientId: 'author-1',
-              senderId: 'staff-profile',
               type: 'SYSTEM',
               notice: { key: 'support_resources' },
               targetType: 'support_resources',
@@ -431,7 +430,7 @@ describe('ReportsService', () => {
         ).toMatchObject({ targetType: 'USER', targetId: 'u-7' });
       });
 
-      it('sends it once a day at most, never for a report about oneself, and not without staff', async () => {
+      it('sends it once a day at most, and never for a report about oneself', async () => {
         mockPrismaService.post.findUnique.mockResolvedValue({
           profileId: 'author-1',
         });
@@ -444,12 +443,6 @@ describe('ReportsService', () => {
           profileId: 'reporter-1',
         });
         await report('POST', 'post-2');
-
-        mockPrismaService.post.findUnique.mockResolvedValue({
-          profileId: 'author-2',
-        });
-        mockPrismaService.user.findFirst.mockResolvedValue(null);
-        await report('POST', 'post-3');
 
         // An account with no Profile left has no one to tell.
         mockPrismaService.user.findUnique.mockResolvedValue({ id: 'u-0' });
@@ -680,7 +673,7 @@ describe('ReportsService', () => {
   });
 
   describe('update', () => {
-    it('should update report status and emit notification with adminId', async () => {
+    it('tells the reporter of a change, from CircleSfera with no sender', async () => {
       mockPrismaService.report.findUnique.mockResolvedValue({
         id: '1',
         status: 'PENDING',
@@ -692,51 +685,19 @@ describe('ReportsService', () => {
         id: '1',
         status: 'RESOLVED',
       });
-      const result = await service.update(
-        '1',
-        'RESOLVED' as any,
-        'custom-admin',
-      );
+      const result = await service.update('1', 'RESOLVED' as any);
       expect(result.status).toBe('RESOLVED');
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'notification.create',
-        expect.objectContaining({
-          recipientId: 'reporter-1',
-          senderId: 'custom-admin',
-          postId: 'post-1',
-        }),
-      );
+      const payload = (
+        mockEventEmitter.emit.mock.calls as [string, Record<string, unknown>][]
+      ).find(([name]) => name === 'notification.create')?.[1];
+      expect(payload).toMatchObject({
+        recipientId: 'reporter-1',
+        postId: 'post-1',
+      });
+      expect(payload).not.toHaveProperty('senderId');
     });
 
-    it('should update report status and resolve system moderator when adminId not passed', async () => {
-      mockPrismaService.report.findUnique.mockResolvedValue({
-        id: '2',
-        status: 'PENDING',
-        reporterId: 'reporter-2',
-        targetType: 'USER',
-        targetId: 'target-u2',
-      });
-      mockPrismaService.user.findFirst.mockResolvedValue({
-        id: 'admin-auto',
-        profiles: [{ id: 'admin-profile-auto' }],
-      });
-      mockPrismaService.report.update.mockResolvedValue({
-        id: '2',
-        status: 'DISMISSED',
-      });
-      const result = await service.update('2', 'DISMISSED' as any);
-      expect(result.status).toBe('DISMISSED');
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'notification.create',
-        expect.objectContaining({
-          recipientId: 'reporter-2',
-          senderId: 'admin-profile-auto',
-          postId: undefined,
-        }),
-      );
-    });
-
-    it('should not emit notification if status did not change or no senderId resolved', async () => {
+    it('tells nobody when the status did not change, or CircleSfera filed the report', async () => {
       mockPrismaService.report.findUnique.mockResolvedValue({
         id: '3',
         status: 'RESOLVED',
@@ -749,22 +710,17 @@ describe('ReportsService', () => {
         status: 'RESOLVED',
       });
       await service.update('3', 'RESOLVED' as any);
-      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
 
-      // Test when status changes but resolveSystemModeratorActor returns null
       mockPrismaService.report.findUnique.mockResolvedValue({
         id: '4',
         status: 'PENDING',
-        reporterId: 'reporter-4',
+        reporterId: null,
         targetType: 'POST',
         targetId: 'post-4',
       });
-      mockPrismaService.user.findFirst.mockResolvedValue(null);
-      mockPrismaService.report.update.mockResolvedValue({
-        id: '4',
-        status: 'RESOLVED',
-      });
       await service.update('4', 'RESOLVED' as any);
+
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('should throw AppException if report is not found', async () => {

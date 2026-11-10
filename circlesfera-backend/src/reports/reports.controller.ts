@@ -74,8 +74,7 @@ export class ReportsController {
   async update(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,
-    @CurrentUser() user: CurrentUserData,
   ): Promise<Report> {
-    return this.reportsService.update(id, status, user.profileId);
+    return this.reportsService.update(id, status);
   }
 }
