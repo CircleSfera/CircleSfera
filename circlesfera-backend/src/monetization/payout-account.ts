@@ -1,5 +1,5 @@
 import { ageOn, ErrorCode, MONETIZATION_MIN_AGE } from '@circlesfera/shared';
-import type { Prisma } from '@prisma/client';
+import type { MonetizationStatus, Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 
 type PayoutAccountReader = Pick<Prisma.TransactionClient, 'profile'>;
@@ -92,6 +92,7 @@ export async function payoutRowForProfile(
 export const PAYABLE_PROFILE_SELECT = {
   isAccountBanned: true,
   suspendedUntil: true,
+  monetizationStatus: true,
   user: {
     select: {
       isActive: true,
@@ -155,6 +156,7 @@ export async function assertOfChargingAge(
 export function canBePaid(profile: {
   isAccountBanned: boolean;
   suspendedUntil: Date | null;
+  monetizationStatus: MonetizationStatus;
   user: {
     isActive: boolean;
     isRootBanned: boolean;
@@ -170,8 +172,32 @@ export function canBePaid(profile: {
     profile.user.isActive &&
     !profile.user.isRootBanned &&
     !profile.user.deletedAt &&
-    isOfChargingAge(profile.user)
+    isOfChargingAge(profile.user) &&
+    // The monetization programme: only a Profile staff approved charges.
+    profile.monetizationStatus === 'APPROVED'
   );
+}
+
+/**
+ * Refuses, with a reason the app explains, a Profile staff have not
+ * approved to charge: asked when it sets up payouts or puts a price on
+ * something.
+ */
+export async function assertMonetizationApproved(
+  db: Pick<Prisma.TransactionClient, 'profile'>,
+  profileId: string,
+): Promise<void> {
+  const profile = await db.profile.findUnique({
+    where: { id: profileId },
+    select: { monetizationStatus: true },
+  });
+  if (profile?.monetizationStatus !== 'APPROVED') {
+    throw AppException.Forbidden(
+      ErrorCode.MONETIZATION_NOT_APPROVED,
+      'This Profile is not approved to charge yet.',
+      { status: profile?.monetizationStatus ?? 'NONE' },
+    );
+  }
 }
 
 /**

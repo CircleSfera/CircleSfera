@@ -1,6 +1,25 @@
 import type { WithdrawalConsentGiven } from '../components/payments/WithdrawalConsent';
 import { apiClient as api } from './api';
 
+export type MonetizationProgrammeStatus =
+  | 'NONE'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'REVOKED';
+
+export interface MonetizationProgramme {
+  status: MonetizationProgrammeStatus;
+  appliedAt: string | null;
+  reviewedAt: string | null;
+  // Why staff refused or revoked it.
+  note: string | null;
+}
+
+// What an application says of what the Profile will sell.
+export const MONETIZATION_PITCH_MIN = 20;
+export const MONETIZATION_PITCH_MAX = 500;
+
 export interface PersonMoneyTotal {
   totalEarningsCents: number;
   currentMonthEarningsCents: number;
@@ -27,6 +46,18 @@ export interface TaxDetailsStatus {
 }
 
 export const monetizationApi = {
+  // The active Profile's place in the monetization programme: it charges
+  // only once staff approve its application.
+  getProgramme: async (): Promise<MonetizationProgramme> => {
+    const { data } = await api.get('/monetization/programme');
+    return data;
+  },
+  applyToProgramme: async (pitch: string): Promise<MonetizationProgramme> => {
+    const { data } = await api.post('/monetization/programme/apply', {
+      pitch,
+    });
+    return data;
+  },
   getStatus: async () => {
     const { data } = await api.get('/monetization/status');
     return data;

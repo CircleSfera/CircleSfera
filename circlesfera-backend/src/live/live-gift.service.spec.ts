@@ -19,6 +19,7 @@ const ADULT = {
 const PAYABLE = {
   isAccountBanned: false,
   suspendedUntil: null,
+  monetizationStatus: 'APPROVED',
   user: { isActive: true, isRootBanned: false, deletedAt: null, ...ADULT },
 };
 

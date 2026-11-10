@@ -28,6 +28,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
               username: 'creator',
               isAccountBanned: false,
               suspendedUntil: null,
+              monetizationStatus: 'APPROVED',
               user: {
                 isActive: true,
                 isRootBanned: false,
@@ -228,6 +229,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       mockPrisma.profile.findUnique.mockResolvedValueOnce({
         isAccountBanned: false,
         suspendedUntil: null,
+        monetizationStatus: 'APPROVED',
         user: {
           isActive: true,
           isRootBanned: false,
