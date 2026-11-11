@@ -663,6 +663,31 @@ jobs:
             fi
             echo "✅ Post-deploy staff sites check passed."
 
+            # The services a deploy does not rebuild but the product needs:
+            # the live service answers (401 without a token is its healthy
+            # answer), the recorder runs, and the analytics warehouse is
+            # healthy. They are not the release's doing, so a failure alerts
+            # without a rollback.
+            services_ok=1
+            rtc=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 10 "http://127.0.0.1:7880/rtc/validate" || echo 000)
+            if [ "$rtc" = "401" ]; then echo "  OK  401  live service"; else echo "  FAIL $rtc  live service"; services_ok=0; fi
+            for svc in CircleSfera-LiveKit CircleSfera-Recorder CircleSfera-ClickHouse; do
+              # A service still starting (its healthcheck's start window) is
+              # waited for, up to about three minutes.
+              for attempt in $(seq 1 18); do
+                state=$(docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$svc" 2>/dev/null || echo "missing")
+                [ "$state" = "running starting" ] || break
+                sleep 10
+              done
+              case "$state" in
+                "running healthy"|"running none") echo "  OK  $svc ($state)" ;;
+                *) echo "  FAIL $svc ($state)"; services_ok=0 ;;
+              esac
+            done
+            if [ "$services_ok" != "1" ] && [ -n "$DEPLOY_WEBHOOK" ]; then
+              curl --connect-timeout 5 --max-time 10 -X POST -H 'Content-type: application/json' --data '{"text":"⚠️ *Deployment done, a service is down*: the live service, the recorder or the analytics warehouse does not answer as expected."}' "$DEPLOY_WEBHOOK" || true
+            fi
+
             # The signed-in checks (sign-in, what a person must not see or
             # reach, writing and deleting a post) run on staging before this
             # deploy, with staging's own accounts: production keeps none.
