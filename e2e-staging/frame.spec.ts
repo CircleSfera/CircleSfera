@@ -85,12 +85,12 @@ test('a Frame is recorded, edited, given a cover, shared, and plays on its profi
     // A cover chosen at a moment of the video.
     await page.getByRole('button', { name: /Choose cover/ }).click();
     const moment = page.getByRole('slider', { name: 'Moment of the video' });
-    await moment.focus();
-    await moment.press('ArrowRight');
-    await page
-      .getByRole('button', { name: 'Done', exact: true })
-      .last()
-      .click();
+    const max = Number((await moment.getAttribute('max')) ?? 0);
+    await moment.fill(String(Math.round(max / 2)));
+    await expect(
+      page.getByText(/^At 0:(0[1-9]|[1-5]\d) of the video$/),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(page.getByText('Cover chosen')).toBeVisible();
 
     await page.getByRole('button', { name: 'Share', exact: true }).click();
