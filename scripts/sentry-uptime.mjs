@@ -114,6 +114,20 @@ async function apply() {
     if (found) {
       console.log(`Uptime check present: ${target.url} (${found.id})`);
       ids.push(found.id);
+      // A check the provider turned off watches nothing: turn it on again,
+      // and show the provider's answer when it refuses (such as a plan limit).
+      if (found.enabled === false) {
+        const enabled = await call(
+          'PUT',
+          `/organizations/${ORG}/detectors/${found.id}/`,
+          { enabled: true },
+        );
+        console.log(`Uptime check ${found.id} turned on: ${enabled.status}`);
+        if (enabled.status >= 300) {
+          console.log(JSON.stringify(strip(enabled.data), null, 2));
+          throw new Error('Could not turn the uptime check on');
+        }
+      }
       continue;
     }
     // The same settings as the check that exists, for another address.
