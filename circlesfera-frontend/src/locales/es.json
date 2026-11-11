@@ -1396,7 +1396,8 @@
     "error_message": "Algo salió mal al cargar publicaciones. Inténtalo de nuevo.",
     "match": "Match",
     "smart_people": "Personas que encajan con tu idea",
-    "error_title": "No se pudo cargar Explorar"
+    "error_title": "No se pudo cargar Explorar",
+    "smart_people_how": "Perfiles cuya descripción coincide en significado con tu búsqueda."
   },
   "post": {
     "detail": {
@@ -1841,7 +1842,11 @@
     "title": "Sugerencias para ti",
     "see_all": "Ver Todo",
     "suggested": "Sugerido para ti",
-    "follow": "Seguir"
+    "follow": "Seguir",
+    "how_chosen": "Los perfiles más seguidos que aún no sigues.",
+    "reasons": {
+      "MOST_FOLLOWED": "De los más seguidos en CircleSfera"
+    }
   },
   "onboarding": {
     "creator": "Creador",

@@ -58,7 +58,7 @@ const suggestedUsers = [
     avatar: null,
     bio: null,
     followersCount: 12,
-    reason: 'New creator',
+    reason: 'MOST_FOLLOWED' as const,
     verificationLevel: 'BASIC' as const,
   },
   {
@@ -68,7 +68,7 @@ const suggestedUsers = [
     avatar: null,
     bio: null,
     followersCount: 40,
-    reason: 'New creator',
+    reason: 'MOST_FOLLOWED' as const,
     verificationLevel: 'BUSINESS' as const,
   },
 ];
@@ -110,6 +110,17 @@ describe('Onboarding follow state', () => {
       new RegExp(`^${i18n!.t('onboarding.follow')}$`, 'i'),
     );
     expect(followsApi.toggle).toHaveBeenCalledWith('ElenaTech');
+  });
+
+  it("says why each person is suggested, in the reader's language", async () => {
+    const { i18n } = renderOnboarding();
+
+    fireEvent.click(screen.getByTestId('onboarding-continue'));
+
+    await screen.findByTestId('onboarding-follow-ElenaTech');
+    expect(
+      screen.getAllByText(i18n!.t('suggestions.reasons.MOST_FOLLOWED')),
+    ).toHaveLength(2);
   });
 
   it('rolls the button back to Follow when the request fails', async () => {

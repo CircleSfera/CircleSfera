@@ -202,6 +202,8 @@ describe('UsersService', () => {
       expect(result).toHaveLength(1);
       expect(result[0].profileId).toBe('p1');
       expect(result[0].username).toBe('user_s1');
+      // The reason is the ranking's own, as a code the app words.
+      expect(result[0].reason).toBe('MOST_FOLLOWED');
 
       const suggestionCall = vi.mocked(mockPrismaService.profile.findMany).mock
         .calls[1][0] as any;

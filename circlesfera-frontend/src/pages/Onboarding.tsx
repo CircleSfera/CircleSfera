@@ -367,11 +367,15 @@ export default function Onboarding() {
                                 />
                               </div>
                               <div className="text-xs text-white/45 truncate">
-                                {user.reason ||
-                                  t('onboarding.followers_count', {
-                                    count: user.followersCount,
-                                    defaultValue: `${user.followersCount} followers`,
-                                  })}
+                                {t(`suggestions.reasons.${user.reason}`, {
+                                  defaultValue: t(
+                                    'onboarding.followers_count',
+                                    {
+                                      count: user.followersCount,
+                                      defaultValue: `${user.followersCount} followers`,
+                                    },
+                                  ),
+                                })}
                               </div>
                             </div>
                           </div>

@@ -97,6 +97,9 @@ Following shows the posts of the people you follow, newest first. Home ("For you
 ## Changing what you see
 From the same menu you can say you are not interested, hide the author or mute them. Muting, unfollowing or blocking also changes what you see. In Settings → Feed Preferences you choose whether sensitive content is shown in For you and Explore, and the words you never want to see.
 
+## Suggested people and search
+"Suggested for you" lists the most followed Profiles you do not follow yet, and each one says so. Hashtags are suggested by how many posts use them. Trending audio lists the newest first. The AI search of Profiles finds Profiles whose description matches your search by meaning, and shows how close each match is.
+
 ## Promotions
 A promoted post is marked as promoted. It reaches the countries its author chose, never with personal data such as your interests or your activity elsewhere.`,
       },
@@ -124,6 +127,9 @@ Siguiendo muestra las publicaciones de las personas que sigues, las más nuevas 
 
 ## Cambiar lo que ves
 Desde el mismo menú puedes marcar «No me interesa», ocultar al autor o silenciarlo. Silenciar, dejar de seguir o bloquear también cambia lo que ves. En Ajustes → Preferencias de Feed eliges si se muestra contenido sensible en Para ti y Explorar, y las palabras que no quieres ver.
+
+## Personas sugeridas y búsqueda
+«Sugerencias para ti» muestra los perfiles más seguidos que aún no sigues, y cada uno lo dice. Los hashtags se sugieren por cuántas publicaciones los usan. Los audios en tendencia muestran primero los más nuevos. La búsqueda de perfiles con IA encuentra perfiles cuya descripción coincide en significado con tu búsqueda, y muestra cuánto se parece cada uno.
 
 ## Promociones
 Una publicación promocionada aparece marcada como promocionada. Llega a los países que eligió su autor, nunca con datos personales como tus intereses o tu actividad fuera de CircleSfera.`,
