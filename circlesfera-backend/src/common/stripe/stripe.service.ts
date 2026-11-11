@@ -214,65 +214,23 @@ export class StripeService implements OnModuleInit {
     );
   }
 
-  // Refunds a payment made on a creator's own account, in full unless an
-  // amount is given. CircleSfera gives back its fee on what is refunded:
-  // the sale did not happen.
+  // Refunds a payment made on a creator's own account, in full. CircleSfera
+  // gives back its fee with it: the sale did not happen. A partial refund is
+  // never asked from here.
   async refundCreatorPayment(params: {
     account: string;
     paymentIntentId: string;
-    amountInCents?: number;
     idempotencyKey: string;
     metadata?: Stripe.MetadataParam;
   }): Promise<Stripe.Refund> {
-    const partial = params.amountInCents !== undefined;
-    const refund = await this.stripe.refunds.create(
+    return this.stripe.refunds.create(
       {
         payment_intent: params.paymentIntentId,
-        ...(partial && { amount: params.amountInCents }),
         reason: 'requested_by_customer',
-        // In full, the provider gives back all that is left of the fee. In
-        // part, it would give back a share of the fee as first asked, VAT
-        // included: CircleSfera gives back its share of what it kept instead.
-        refund_application_fee: !partial,
+        refund_application_fee: true,
         metadata: params.metadata,
       },
       { stripeAccount: params.account, idempotencyKey: params.idempotencyKey },
-    );
-    if (partial) {
-      await this.refundFeeShare(
-        params.account,
-        params.paymentIntentId,
-        refund.id,
-      );
-    }
-    return refund;
-  }
-
-  // CircleSfera's fee on a partly refunded payment goes back in proportion to
-  // what the buyer got back, of the fee it kept once the VAT part went back
-  // to the creator. Asked again after another refund, it gives back only
-  // what is still due.
-  private async refundFeeShare(
-    account: string,
-    paymentIntentId: string,
-    refundId: string,
-  ): Promise<void> {
-    const { charge, feeId } = await this.chargeAndFee(account, paymentIntentId);
-    if (!charge || !feeId || charge.amount <= 0) return;
-    const fee = await this.stripe.applicationFees.retrieve(feeId, {
-      expand: ['refunds'],
-    });
-    const vatBack = (fee.refunds?.data ?? [])
-      .filter((r) => r.metadata?.reason === 'vat')
-      .reduce((sum, r) => sum + r.amount, 0);
-    const kept = fee.amount - vatBack;
-    const due = Math.round((kept * charge.amount_refunded) / charge.amount);
-    const more = due - (fee.amount_refunded - vatBack);
-    if (more <= 0) return;
-    await this.stripe.applicationFees.createRefund(
-      feeId,
-      { amount: more, metadata: { reason: 'refund' } },
-      { idempotencyKey: `fee-refund-${refundId}` },
     );
   }
 

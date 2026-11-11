@@ -59,7 +59,7 @@ describe('MonetizationWebhookService', () => {
             paymentDispute: {
               findMany: vi.fn().mockResolvedValue([]),
               findUnique: vi.fn().mockResolvedValue(null),
-              update: vi.fn(),
+              updateMany: vi.fn(),
             },
             monetization: {
               upsert: vi.fn(),
@@ -211,8 +211,8 @@ describe('MonetizationWebhookService', () => {
             where: { stripePaymentIntentId: 'pi_disputed' },
           }),
         );
-        expect(prisma.paymentDispute.update).toHaveBeenCalledWith({
-          where: { id: 'pd-1' },
+        expect(prisma.paymentDispute.updateMany).toHaveBeenCalledWith({
+          where: { stripeDisputeId: 'du_early', transactionId: null },
           data: { transactionId: 'tx-new' },
         });
         // Lost: the payment is refunded and the buyer loses the post.
@@ -223,10 +223,48 @@ describe('MonetizationWebhookService', () => {
         expect(prisma.postUnlock.deleteMany).toHaveBeenCalled();
       });
 
+      it.each([
+        ['open', 'needs_response', 'DISPUTED'],
+        ['won', 'won', 'COMPLETED'],
+      ])(
+        'holds the payment when the earlier dispute is %s, as its notice would have',
+        async (_, status, expected) => {
+          (prisma.paymentDispute.findMany as any).mockResolvedValueOnce([
+            { stripeDisputeId: 'du_early', status },
+          ]);
+          (prisma.transaction.findUnique as any).mockResolvedValue({
+            ...recorded,
+            status: status === 'won' ? 'DISPUTED' : 'COMPLETED',
+          });
+          (prisma.transaction as any).updateMany = vi.fn();
+
+          await service.handleCheckoutSessionCompleted(session);
+
+          expect((prisma.transaction as any).updateMany).toHaveBeenCalledWith(
+            expect.objectContaining({ data: { status: expected } }),
+          );
+          expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
+        },
+      );
+
+      it('keeps the payment recorded when the earlier dispute cannot be applied', async () => {
+        (prisma.paymentDispute.findMany as any).mockResolvedValueOnce([
+          { stripeDisputeId: 'du_early', status: 'lost' },
+        ]);
+        (prisma.transaction.findUnique as any).mockRejectedValueOnce(
+          new Error('db down'),
+        );
+
+        await expect(
+          service.handleCheckoutSessionCompleted(session),
+        ).resolves.toBeUndefined();
+        expect(prisma.transaction.create).toHaveBeenCalled();
+      });
+
       it('changes nothing for a payment no dispute was reported about', async () => {
         await service.handleCheckoutSessionCompleted(session);
 
-        expect(prisma.paymentDispute.update).not.toHaveBeenCalled();
+        expect(prisma.paymentDispute.updateMany).not.toHaveBeenCalled();
         expect(prisma.transaction.update).not.toHaveBeenCalled();
       });
     });

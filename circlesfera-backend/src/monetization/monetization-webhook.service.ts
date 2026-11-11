@@ -547,28 +547,23 @@ export class MonetizationWebhookService {
     if (!paymentIntentId) return;
     const disputes = await this.prisma.paymentDispute.findMany({
       where: { stripePaymentIntentId: paymentIntentId },
-      select: {
-        id: true,
-        stripeDisputeId: true,
-        status: true,
-        transactionId: true,
-      },
+      select: { stripeDisputeId: true, status: true },
     });
-    if (disputes.length === 0) return;
-    const tx = await this.paymentOf(paymentIntentId);
-    if (!tx) return;
-    for (const dispute of disputes) {
-      if (!dispute.transactionId) {
-        await this.prisma.paymentDispute.update({
-          where: { id: dispute.id },
-          data: { transactionId: tx.id },
+    // The payment is recorded already: a failure here is logged, not
+    // thrown, since a replay of the notice could not record it again. The
+    // dispute's next notice applies it then.
+    try {
+      for (const dispute of disputes) {
+        await this.applyDisputeToPayment({
+          id: dispute.stripeDisputeId,
+          payment_intent: paymentIntentId,
+          status: dispute.status,
         });
       }
-      await this.applyDisputeToPayment({
-        id: dispute.stripeDisputeId,
-        payment_intent: paymentIntentId,
-        status: dispute.status,
-      });
+    } catch (err) {
+      this.logger.error(
+        `Could not apply the disputes reported before payment ${paymentIntentId}: ${String(err)}`,
+      );
     }
   }
 
@@ -829,6 +824,11 @@ export class MonetizationWebhookService {
     if (!tx) {
       return;
     }
+    // A dispute mirrored before its payment was recorded is tied to it now.
+    await this.prisma.paymentDispute.updateMany({
+      where: { stripeDisputeId: dispute.id, transactionId: null },
+      data: { transactionId: tx.id },
+    });
 
     if (status === 'won') {
       await this.prisma.transaction.updateMany({
