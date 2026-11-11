@@ -93,9 +93,11 @@ test('a live with a guest on air is recorded and its replay plays', async ({
     const replay = await host.page.request.get(recording.replayUrl as string);
     expect(replay.status()).toBe(200);
   } finally {
-    if (streamId) await host.delete(`/live-recordings/${streamId}`);
-    await host.post('/live/end');
-    await host.context.close();
-    await guest.context.close();
+    // Clean-up never hides why the check failed.
+    const quietly = (step: Promise<unknown>) => step.catch(() => undefined);
+    if (streamId) await quietly(host.delete(`/live-recordings/${streamId}`));
+    await quietly(host.post('/live/end'));
+    await quietly(host.context.close());
+    await quietly(guest.context.close());
   }
 });

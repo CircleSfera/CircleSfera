@@ -60,9 +60,19 @@ export async function signIn(
   await page.getByTestId('login-submit-button').click();
   await expect(page).not.toHaveURL(/\/accounts\/login/);
 
+  // While a deploy restarts the backend the proxy answers with a page, not
+  // the token: asked again for up to a minute.
   const csrf = async () => {
-    const res = await page.request.get('/api/v1/csrf-token');
-    return ((await res.json()) as { csrfToken: string }).csrfToken;
+    for (let attempt = 0; ; attempt++) {
+      const res = await page.request.get('/api/v1/csrf-token');
+      if (res.ok() && /json/.test(res.headers()['content-type'] ?? '')) {
+        return ((await res.json()) as { csrfToken: string }).csrfToken;
+      }
+      if (attempt >= 12) {
+        throw new Error(`No CSRF token from staging (${res.status()})`);
+      }
+      await page.waitForTimeout(5_000);
+    }
   };
   // A Test Account that never went through onboarding is sent to it after
   // each sign-in: it is marked done, as finishing it does, before any check.

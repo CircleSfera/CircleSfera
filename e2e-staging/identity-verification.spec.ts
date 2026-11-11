@@ -86,6 +86,6 @@ test('an identity verification is started from Settings, and its cancellation re
       'no_session',
     );
   } finally {
-    await viewer.context.close();
+    await viewer.context.close().catch(() => undefined);
   }
 });

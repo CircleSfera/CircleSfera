@@ -122,7 +122,9 @@ test('a Frame is recorded, edited, given a cover, shared, and plays on its profi
       )
       .toBeGreaterThan(0.5);
   } finally {
-    if (postId) await host.delete(`/posts/${postId}`);
-    await host.context.close();
+    // Clean-up never hides why the check failed.
+    const quietly = (step: Promise<unknown>) => step.catch(() => undefined);
+    if (postId) await quietly(host.delete(`/posts/${postId}`));
+    await quietly(host.context.close());
   }
 });
