@@ -12,7 +12,6 @@
 const TOKEN = process.env.SENTRY_WRITE_TOKEN;
 const API = 'https://de.sentry.io/api/0';
 const ORG = 'circlesfera';
-const PROJECT = 'circlesfera-frontend';
 // What is checked from outside the server. The plan allows one uptime check,
 // so it is the API's health: it fails when the server, its proxy, the API,
 // the database or the cache is down. The home page is static and answers
@@ -113,7 +112,8 @@ async function apply() {
   // A check of an address no longer listed is turned off, never deleted, so
   // it frees the plan's one check and can be turned on again.
   for (const d of uptime) {
-    if (TARGETS.some((t) => t.url === urlOf(d)) || d.enabled === false) continue;
+    if (TARGETS.some((t) => t.url === urlOf(d)) || d.enabled === false)
+      continue;
     const off = await call('PUT', `/organizations/${ORG}/detectors/${d.id}/`, {
       enabled: false,
     });
