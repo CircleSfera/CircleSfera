@@ -12,10 +12,10 @@ export function promptIdentityVerification(t: TFunction): void {
   toast(
     (toastItem) => (
       <div className="flex flex-col gap-2 p-1 text-left">
-        <span className="font-bold text-sm text-zinc-900">
+        <span className="font-bold text-sm">
           {t('pricingPage.verification_required_title')}
         </span>
-        <span className="text-xs text-zinc-600">
+        <span className="text-xs text-white/70">
           {t('pricingPage.verification_required_desc')}
         </span>
         <button
