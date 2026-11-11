@@ -112,8 +112,16 @@ describe('AudioClipWaveform', () => {
   it('marks the chosen part over the track', async () => {
     const { container } = await show();
     const window = container.querySelector('.border-x-2') as HTMLElement;
-    expect(window.style.left).toBe(`${(60 / 180) * 100}%`);
-    expect(window.style.width).toBe(`${(30 / 180) * 100}%`);
+    // A browser keeps a percentage to a few decimals, so the figure is compared.
+    expect(window.style.left).toMatch(/%$/);
+    expect(Number.parseFloat(window.style.left)).toBeCloseTo(
+      (60 / 180) * 100,
+      3,
+    );
+    expect(Number.parseFloat(window.style.width)).toBeCloseTo(
+      (30 / 180) * 100,
+      3,
+    );
     // Twelve of the 72 bars fall inside thirty of 180 seconds.
     expect(container.querySelectorAll('.bg-brand-primary.flex-1')).toHaveLength(
       12,
