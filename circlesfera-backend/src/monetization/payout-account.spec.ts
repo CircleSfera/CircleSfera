@@ -219,6 +219,7 @@ const yearsAgo = (years: number) => {
 
 describe('payoutDestinationFor', () => {
   const standing = (over: object = {}, user: object = {}) => ({
+    accountType: 'CREATOR',
     isAccountBanned: false,
     suspendedUntil: null,
     monetizationStatus: 'APPROVED',
@@ -258,6 +259,10 @@ describe('payoutDestinationFor', () => {
     ['its person is no longer active', standing({}, { isActive: false })],
     ['its person is being deleted', standing({}, { deletedAt: new Date() })],
     ['the Profile is banned', standing({ isAccountBanned: true })],
+    [
+      'the Profile was switched to Personal',
+      standing({ accountType: 'PERSONAL' }),
+    ],
     [
       'the Profile is suspended for now',
       standing({ suspendedUntil: new Date(Date.now() + 60_000) }),

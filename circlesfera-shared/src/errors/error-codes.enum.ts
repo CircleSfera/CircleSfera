@@ -57,6 +57,10 @@ export enum ErrorCode {
   MONETIZATION_NOT_APPROVED = 'MONETIZATION_NOT_APPROVED',
   MONETIZATION_APPLICATION_NOT_OPEN = 'MONETIZATION_APPLICATION_NOT_OPEN',
   MONETIZATION_REVIEW_NOT_ALLOWED = 'MONETIZATION_REVIEW_NOT_ALLOWED',
+  // An account is not deleted while one of its payout accounts holds money,
+  // nor while that cannot be known.
+  ACCOUNT_HOLDS_BALANCE = 'ACCOUNT_HOLDS_BALANCE',
+  PAYOUT_BALANCE_UNKNOWN = 'PAYOUT_BALANCE_UNKNOWN',
   // Staff paused new payments (the payments_enabled setting is off).
   PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
   // Charging for anything needs a verified identity of someone 18 or older.

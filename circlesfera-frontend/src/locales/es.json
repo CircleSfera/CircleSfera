@@ -6516,6 +6516,8 @@
       "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
       "PAYER_UNDER_AGE": "Puedes pagar a partir de los {{minAge}} años, con tu identidad y tu fecha de nacimiento verificadas. Si ya te verificaste antes, vuelve a hacerlo en Ajustes → Cuenta.",
       "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
+      "ACCOUNT_HOLDS_BALANCE": "Antes de borrar la cuenta tienen que pagarse tus ganancias. Consulta tu saldo en Monetización.",
+      "PAYOUT_BALANCE_UNKNOWN": "No hemos podido comprobar tus ganancias, así que la cuenta no se ha borrado. Inténtalo de nuevo en unos minutos.",
       "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
       "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",
       "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes.",

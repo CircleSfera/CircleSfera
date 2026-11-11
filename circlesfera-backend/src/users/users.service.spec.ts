@@ -129,6 +129,7 @@ describe('UsersService', () => {
     createIdentityVerificationSession: vi.fn(),
     getIdentityVerificationSession: vi.fn(),
     setPayoutsHeld: vi.fn(),
+    getConnectBalance: vi.fn(),
   };
 
   const mockUsersQueue = {
@@ -1078,6 +1079,108 @@ describe('UsersService', () => {
   });
 
   describe('scheduleDeletion and cancelScheduledDeletion', () => {
+    const noMoney = { available: [{ amount: 0 }], pending: [{ amount: 0 }] };
+    // The payout accounts of the person and of their Profiles.
+    const payoutRows = { findMany: vi.fn() };
+    beforeEach(() => {
+      mockStripeService.getConnectBalance.mockResolvedValue(noMoney);
+      payoutRows.findMany
+        .mockReset()
+        .mockResolvedValue([
+          { stripeConnectAccountId: 'acct_person' },
+          { stripeConnectAccountId: 'acct_profile' },
+        ]);
+      (mockPrismaService as Record<string, unknown>).monetization = payoutRows;
+    });
+
+    it('asks the balance of every payout account of the person and their Profiles', async () => {
+      mockPrismaService.user.update.mockResolvedValue({});
+
+      await service.scheduleDeletion('user-abc');
+
+      expect(payoutRows.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            stripeConnectAccountId: { not: null },
+            OR: [{ userId: 'user-abc' }, { profile: { userId: 'user-abc' } }],
+          },
+        }),
+      );
+      expect(mockStripeService.getConnectBalance).toHaveBeenCalledWith(
+        'acct_person',
+      );
+      expect(mockStripeService.getConnectBalance).toHaveBeenCalledWith(
+        'acct_profile',
+      );
+    });
+
+    it.each([
+      ['available', { available: [{ amount: 1200 }], pending: [] }],
+      ['on its way', { available: [], pending: [{ amount: 800 }] }],
+    ])(
+      'deletes nothing while a payout account holds money %s',
+      async (_, balance) => {
+        mockStripeService.getConnectBalance
+          .mockResolvedValueOnce(noMoney)
+          .mockResolvedValueOnce(balance);
+
+        await expect(
+          service.scheduleDeletion('user-abc'),
+        ).rejects.toMatchObject({
+          errorCode: 'ACCOUNT_HOLDS_BALANCE',
+          status: 409,
+        });
+        expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+        expect(mockOutboxService.enqueue).not.toHaveBeenCalled();
+      },
+    );
+
+    it('deletes nothing when the provider cannot say what an account holds', async () => {
+      mockStripeService.getConnectBalance.mockRejectedValueOnce(
+        new Error('provider down'),
+      );
+
+      await expect(service.scheduleDeletion('user-abc')).rejects.toMatchObject({
+        errorCode: 'PAYOUT_BALANCE_UNKNOWN',
+        status: 503,
+      });
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it('deletes an account whose payout account owes money rather than holds it', async () => {
+      mockStripeService.getConnectBalance.mockResolvedValue({
+        available: [{ amount: -1500 }],
+        pending: [],
+      });
+      mockPrismaService.user.update.mockResolvedValue({});
+
+      await expect(
+        service.scheduleDeletion('user-abc'),
+      ).resolves.toBeInstanceOf(Date);
+    });
+
+    it('asks once for an account found on two rows', async () => {
+      payoutRows.findMany.mockResolvedValueOnce([
+        { stripeConnectAccountId: 'acct_same' },
+        { stripeConnectAccountId: 'acct_same' },
+      ]);
+      mockPrismaService.user.update.mockResolvedValue({});
+
+      await service.scheduleDeletion('user-abc');
+
+      expect(mockStripeService.getConnectBalance).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks the provider nothing for a person with no payout account', async () => {
+      payoutRows.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.user.update.mockResolvedValue({});
+
+      await expect(
+        service.scheduleDeletion('user-abc'),
+      ).resolves.toBeInstanceOf(Date);
+      expect(mockStripeService.getConnectBalance).not.toHaveBeenCalled();
+    });
+
     it('scheduleDeletion atomically enqueues job and updates user', async () => {
       mockPrismaService.user.update.mockResolvedValue({});
 
