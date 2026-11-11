@@ -12,10 +12,11 @@
 const TOKEN = process.env.SENTRY_WRITE_TOKEN;
 const API = 'https://de.sentry.io/api/0';
 const ORG = 'circlesfera';
-const PROJECT = 'circlesfera-frontend';
-// What must be checked from outside the server: the site and its API.
+// What is checked from outside the server. The plan allows one uptime check,
+// so it is the API's health: it fails when the server, its proxy, the API,
+// the database or the cache is down. The home page is static and answers
+// even when the API is down, so it no longer takes the one check.
 const TARGETS = [
-  { name: 'circlesfera.com', url: 'https://circlesfera.com' },
   { name: 'API health', url: 'https://circlesfera.com/api/v1/health' },
 ];
 const ALERT_NAME = 'CircleSfera is down';
@@ -108,12 +109,41 @@ async function apply() {
   if (!model) throw new Error('No uptime check to copy the settings of');
   const query = model.dataSources[0].queryObj;
 
+  // A check of an address no longer listed is turned off, never deleted, so
+  // it frees the plan's one check and can be turned on again.
+  for (const d of uptime) {
+    if (TARGETS.some((t) => t.url === urlOf(d)) || d.enabled === false)
+      continue;
+    const off = await call('PUT', `/organizations/${ORG}/detectors/${d.id}/`, {
+      enabled: false,
+    });
+    console.log(`Uptime check ${urlOf(d)} (${d.id}) turned off: ${off.status}`);
+    if (off.status >= 300) {
+      console.log(JSON.stringify(strip(off.data), null, 2));
+      throw new Error('Could not turn the uptime check off');
+    }
+  }
+
   const ids = [];
   for (const target of TARGETS) {
     const found = uptime.find((d) => urlOf(d) === target.url);
     if (found) {
       console.log(`Uptime check present: ${target.url} (${found.id})`);
       ids.push(found.id);
+      // A check the provider turned off watches nothing: turn it on again,
+      // and show the provider's answer when it refuses (such as a plan limit).
+      if (found.enabled === false) {
+        const enabled = await call(
+          'PUT',
+          `/organizations/${ORG}/detectors/${found.id}/`,
+          { enabled: true },
+        );
+        console.log(`Uptime check ${found.id} turned on: ${enabled.status}`);
+        if (enabled.status >= 300) {
+          console.log(JSON.stringify(strip(enabled.data), null, 2));
+          throw new Error('Could not turn the uptime check on');
+        }
+      }
       continue;
     }
     // The same settings as the check that exists, for another address.
