@@ -1,0 +1,57 @@
+name: Production check
+
+# Checks production from outside every 30 minutes, without signing in and
+# without touching the server (QD-010): what a visitor and the apps reach.
+# - the home page and the app's link file answer;
+# - the API answers healthy, with its database, cache and storage up;
+# - the live service answers 401 to a request without a token (its healthy
+#   answer to a stranger).
+# Production holds no test accounts: what needs signing in is checked on
+# staging after every deploy. A failed run is a red run, which GitHub tells
+# the repository's watchers about.
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}
+
+# Its own queue: it never waits for a deploy, nor takes the place of one.
+concurrency:
+  group: production-check
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check production from outside
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check what a visitor and the apps reach
+        run: |
+          set -uo pipefail
+          ok=1
+          site=https://circlesfera.com
+          # expect <status> <url> [text the body must contain]
+          expect() {
+            code=000
+            for attempt in 1 2 3; do
+              code=$(curl -sS -o body -w '%{http_code}' --max-time 15 "$2") || code=000
+              [ "$code" = "$1" ] && break
+              sleep 5
+            done
+            if [ "$code" != "$1" ]; then
+              echo "FAIL $code (expected $1)  $2"; ok=0; return
+            fi
+            if [ -n "${3:-}" ] && ! grep -q "$3" body; then
+              echo "FAIL $code but the answer lacks \"$3\"  $2"; ok=0; return
+            fi
+            echo "OK   $code  $2"
+          }
+          expect 200 "$site/" '<div id="root">'
+          expect 200 "$site/api/v1/health" '"status":"ok"'
+          expect 200 "https://www.circlesfera.com/.well-known/assetlinks.json" 'package_name'
+          expect 401 "$site/rtc/validate"
+          [ "$ok" = 1 ] || { echo "Production check FAILED."; exit 1; }
+          echo "Production check passed."
