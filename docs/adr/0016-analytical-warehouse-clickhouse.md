@@ -1,7 +1,7 @@
 # ADR-0016: Analytical warehouse (ClickHouse) and ETL
 
-**Status:** Proposed  
-**Date:** August 2026
+**Status:** Accepted (owner)  
+**Date:** August 2026; accepted November 2026
 
 ## Context
 
@@ -27,13 +27,28 @@ CircleSfera needs analytical KPIs (Trust MTTR aggregates, monetization MRR, rete
 
 4. **Postgres remains source of truth** for operational queues and billing. ClickHouse is read-only analytics; no writes back to prod DB.
 
+## Deployment (accepted)
+
+- **Where:** ClickHouse runs on the production server, in its own container (`CircleSfera-ClickHouse`), image `clickhouse/clickhouse-server` on its long-term-support line (26.8), pinned by digest.
+  - It publishes no port: only the backend reaches it, on the internal Docker network, at `http://clickhouse:8123`.
+  - Its memory is capped at 2 GiB. When it was decided, the server had 23 GiB with about 19.7 GiB available, and the production containers used under 400 MiB.
+- **Access:** one user, `circlesfera`. Its password is a repository secret (`CLICKHOUSE_PASSWORD`) that the production deploy writes, with `CLICKHOUSE_URL`, into the server's environment. Default access management is off.
+- **Schema:** `scripts/etl/clickhouse-schema.sql`, applied by the container on its first start.
+- **What is loaded:** the nightly export only. That is reports, appeals and support tickets (ids, statuses, dates) and payments (ids, type, amounts, VAT, refunds, status, and the ids of the paying person, the paid person and Profile, and the item). No names, emails, texts or messages.
+- **How long:**
+  - Rows older than 24 months are dropped by a table TTL.
+  - The nightly CSVs are deleted 7 days after export (`ETL_RETENTION_DAYS`).
+  - When a person's account is erased, their rows are deleted from ClickHouse too.
+- **Backups:** none. ClickHouse holds a copy of what Postgres holds and is rebuilt from it.
+- **Dashboards:** not part of this step.
+
 ## Consequences
 
 - New infra: ClickHouse instance, ETL cron (BullMQ or host cron + script), secrets in `.env.production` (not in git).
 - New repo scripts under `scripts/etl/` — **v0 shipped:** `export-analytics-tables.sh` (plan B), `clickhouse-schema.sql`. **Primary:** BullMQ `WarehouseModule`.
 - Trust tab MTTR stays on Postgres (real-time, last 30 days); warehouse powers trends and executive views.
 - Ops runbook: `scripts/etl/README.md`
-- Update `00-status.md` when first ETL job ships — until then this ADR is design-only.
+- The first load runs the night after the deploy that adds ClickHouse.
 
 ## Alternatives considered
 

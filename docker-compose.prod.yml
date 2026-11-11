@@ -204,8 +204,42 @@ services:
     networks:
       - circlesfera-network
 
+  # Analytics warehouse (ADR-0016): the nightly export is loaded here. It
+  # publishes no port: only the backend reaches it, on the internal network,
+  # at http://clickhouse:8123 (CLICKHOUSE_URL, written by the deploy). A copy
+  # of what Postgres holds, rebuilt from it: no backup.
+  clickhouse:
+    <<: *default-logging
+    image: clickhouse/clickhouse-server:26.8.36.3@sha256:d426d2f612e1e189c90f9a3f8dcd85a03c6851273833817a296bb327e63aa7a7
+    container_name: CircleSfera-ClickHouse
+    environment:
+      - CLICKHOUSE_DB=circlesfera_analytics
+      - CLICKHOUSE_USER=circlesfera
+      # Written by the deploy into .env.production; required.
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:?}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=0
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      # The tables, created on the first start.
+      - ./scripts/etl/clickhouse-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping | grep -q Ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
 volumes:
   postgres_data:
+  clickhouse_data:
   redis_data:
   uploads_data:
   recordings_data:
