@@ -126,6 +126,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
 
       mockTurnstile = {
         assertValid: vi.fn().mockResolvedValue(undefined),
+        isTestAccountKey: vi.fn().mockReturnValue(false),
       };
 
       authService = new AuthService(

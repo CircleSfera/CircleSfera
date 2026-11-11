@@ -88,6 +88,32 @@ describe('TurnstileService', () => {
     });
   });
 
+  describe("isTestAccountKey — the production check's key", () => {
+    const KEY = 'z'.repeat(48);
+
+    it('is true only for the exact key', () => {
+      configValues.TEST_ACCOUNT_SIGNIN_KEY = KEY;
+      expect(service.isTestAccountKey(KEY)).toBe(true);
+      expect(service.isTestAccountKey('y'.repeat(48))).toBe(false);
+      expect(service.isTestAccountKey(KEY.slice(1))).toBe(false);
+      expect(service.isTestAccountKey(null)).toBe(false);
+    });
+
+    it('is false when no key is set, or one shorter than 32 characters', () => {
+      expect(service.isTestAccountKey(KEY)).toBe(false);
+      configValues.TEST_ACCOUNT_SIGNIN_KEY = 'short';
+      expect(service.isTestAccountKey('short')).toBe(false);
+    });
+
+    it('is not the smoke check bypass, nor the other way round', async () => {
+      configValues.TEST_ACCOUNT_SIGNIN_KEY = KEY;
+      // The Test Account key never skips Turnstile on its own.
+      await expect(
+        service.assertValid(undefined, '203.0.113.5', KEY),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
   describe('assertValid — pre-existing behavior unaffected', () => {
     it('returns immediately when Turnstile is not required', async () => {
       mockSystemSettings.isEnabled.mockResolvedValue(false);

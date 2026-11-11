@@ -9,10 +9,15 @@ export type AbuseRequestMeta = {
   country?: string | null;
   // Secret that lets the post-deploy smoke check skip Turnstile.
   turnstileBypassToken?: string | null;
+  // Secret that lets the production check sign a Test Account in without
+  // Turnstile, and nobody else.
+  testAccountKey?: string | null;
 };
 
 // Header carrying the post-deploy smoke check's Turnstile bypass token.
 export const TURNSTILE_BYPASS_HEADER = 'x-turnstile-bypass';
+// Carries the production check's key for signing in a Test Account.
+export const TEST_ACCOUNT_KEY_HEADER = 'x-test-account-key';
 
 // Normalize client IP for storage (IPv4 / IPv6). Rejects garbage; max 45 chars.
 export function normalizeIp(raw?: string | null): string | null {
@@ -112,11 +117,13 @@ export function requestAbuseMeta(req: {
 }): AbuseRequestMeta {
   const userAgent = req.headers['user-agent'];
   const bypass = req.headers[TURNSTILE_BYPASS_HEADER];
+  const testAccountKey = req.headers[TEST_ACCOUNT_KEY_HEADER];
   return {
     ip: clientIp(req),
     userAgent: typeof userAgent === 'string' ? userAgent : null,
     country: countryFromHeaders(req.headers),
     turnstileBypassToken: typeof bypass === 'string' ? bypass : null,
+    testAccountKey: typeof testAccountKey === 'string' ? testAccountKey : null,
   };
 }
 

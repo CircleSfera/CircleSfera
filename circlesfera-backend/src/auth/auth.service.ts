@@ -341,6 +341,23 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
+  // Whether the email or username belongs to a Test Account, found the way
+  // sign-in finds it.
+  private async signsInTestAccount(identifier: string): Promise<boolean> {
+    const byEmail = await this.prisma.signIn.findUnique({
+      where: { email: identifier },
+      select: { user: { select: { isTestAccount: true } } },
+    });
+    if (byEmail) return byEmail.user?.isTestAccount === true;
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: identifier, mode: 'insensitive' } },
+      select: {
+        signIn: { select: { user: { select: { isTestAccount: true } } } },
+      },
+    });
+    return profile?.signIn?.user?.isTestAccount === true;
+  }
+
   // Authenticate a user by email/username and password.
   // Supports both Argon2 (modern) and bcrypt (legacy) password verification.
   // Automatically migrates legacy bcrypt hashes to Argon2 on successful login.
@@ -351,11 +368,19 @@ export class AuthService {
     dto: LoginDto,
     meta: AbuseRequestMeta = {},
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    await this.turnstile.assertValid(
-      dto.captchaToken,
-      meta.ip,
-      meta.turnstileBypassToken,
-    );
+    // Only the production check's key, and only for a Test Account, skips
+    // Turnstile. The account is looked for only once the key is right, so
+    // any other sign-in is checked exactly as before.
+    const testAccountSignIn =
+      this.turnstile.isTestAccountKey(meta.testAccountKey) &&
+      (await this.signsInTestAccount(dto.identifier));
+    if (!testAccountSignIn) {
+      await this.turnstile.assertValid(
+        dto.captchaToken,
+        meta.ip,
+        meta.turnstileBypassToken,
+      );
+    }
     // Find user by email or username
     // Login is one of the few readers that needs the secrets the client omits
     // by default (see USER_SECRET_OMIT).

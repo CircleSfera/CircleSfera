@@ -58,7 +58,22 @@ export class TurnstileService {
   // header. It replaces an IP allowlist: client IPs come from a header that
   // a caller can spoof, a secret cannot be guessed. Unset means no bypass.
   private isBypassToken(candidate: string | null | undefined): boolean {
-    const expected = this.config.get<string>('TURNSTILE_BYPASS_TOKEN')?.trim();
+    return this.matchesSecret('TURNSTILE_BYPASS_TOKEN', candidate);
+  }
+
+  // The production check signs its Test Accounts in with TEST_ACCOUNT_SIGNIN_KEY
+  // (at least 32 characters, written by the production deploy). It lets only
+  // a Test Account past Turnstile: the caller asks for the account first.
+  // Unset means no Test Account skips it.
+  isTestAccountKey(candidate: string | null | undefined): boolean {
+    return this.matchesSecret('TEST_ACCOUNT_SIGNIN_KEY', candidate);
+  }
+
+  private matchesSecret(
+    setting: string,
+    candidate: string | null | undefined,
+  ): boolean {
+    const expected = this.config.get<string>(setting)?.trim();
     if (!expected || expected.length < 32 || !candidate) return false;
     const a = Buffer.from(expected);
     const b = Buffer.from(candidate.trim());

@@ -178,6 +178,7 @@ describe('AuthService', () => {
           provide: TurnstileService,
           useValue: {
             assertValid: vi.fn().mockResolvedValue(undefined),
+            isTestAccountKey: vi.fn().mockReturnValue(false),
             incrementEmailForbidden: vi.fn(),
           },
         },
@@ -363,6 +364,87 @@ describe('AuthService', () => {
         select: { id: true },
       });
       expect(mockPrismaService.user.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("login with the production check's Test Account key", () => {
+    const dto = { identifier: 'qa_host_test', password: 'whatever-it-is' };
+    let turnstile: { assertValid: any; isTestAccountKey: any };
+    const signIn = (meta: object) =>
+      service.login(dto as any, meta).catch(() => undefined);
+
+    beforeEach(() => {
+      turnstile = (service as any).turnstile;
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+    });
+
+    it('lets a Test Account past Turnstile with the right key', async () => {
+      turnstile.isTestAccountKey.mockReturnValue(true);
+      vi.spyOn(service as any, 'signsInTestAccount').mockResolvedValue(true);
+
+      await signIn({ testAccountKey: 'k'.repeat(40) });
+
+      expect(turnstile.isTestAccountKey).toHaveBeenCalledWith('k'.repeat(40));
+      expect(turnstile.assertValid).not.toHaveBeenCalled();
+    });
+
+    it('never lets a real account past Turnstile, even with the right key', async () => {
+      turnstile.isTestAccountKey.mockReturnValue(true);
+      vi.spyOn(service as any, 'signsInTestAccount').mockResolvedValue(false);
+
+      await signIn({ testAccountKey: 'k'.repeat(40), ip: '203.0.113.5' });
+
+      expect(turnstile.assertValid).toHaveBeenCalled();
+    });
+
+    it('does not even look for the account without the right key', async () => {
+      turnstile.isTestAccountKey.mockReturnValue(false);
+      const looked = vi.spyOn(service as any, 'signsInTestAccount');
+
+      await signIn({ testAccountKey: 'wrong' });
+
+      expect(looked).not.toHaveBeenCalled();
+      expect(turnstile.assertValid).toHaveBeenCalled();
+    });
+
+    describe('whether the identifier is a Test Account', () => {
+      const asks = (identifier: string) =>
+        (service as any).signsInTestAccount(identifier);
+
+      it('finds it by email', async () => {
+        mockPrismaService.signIn.findUnique.mockResolvedValueOnce({
+          user: { isTestAccount: true },
+        } as any);
+        await expect(asks('cs-qa-host@example.com')).resolves.toBe(true);
+      });
+
+      it('answers no for a real account found by email', async () => {
+        mockPrismaService.signIn.findUnique.mockResolvedValueOnce({
+          user: { isTestAccount: false },
+        } as any);
+        await expect(asks('person@example.com')).resolves.toBe(false);
+      });
+
+      it('finds it by username, as sign-in does', async () => {
+        mockPrismaService.signIn.findUnique.mockResolvedValueOnce(null);
+        mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+          signIn: { user: { isTestAccount: true } },
+        });
+        await expect(asks('QA_Host_Test')).resolves.toBe(true);
+        expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              username: { equals: 'QA_Host_Test', mode: 'insensitive' },
+            },
+          }),
+        );
+      });
+
+      it('answers no for an unknown identifier', async () => {
+        mockPrismaService.signIn.findUnique.mockResolvedValueOnce(null);
+        mockPrismaService.profile.findFirst.mockResolvedValueOnce(null);
+        await expect(asks('nobody')).resolves.toBe(false);
+      });
     });
   });
 

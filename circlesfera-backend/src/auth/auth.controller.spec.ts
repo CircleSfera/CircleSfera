@@ -32,6 +32,7 @@ const expectedAbuseMeta = {
   userAgent: 'Vitest',
   country: 'ES',
   turnstileBypassToken: null,
+  testAccountKey: null,
 };
 
 function cookieHeader(res: { headers: Record<string, unknown> }): string {

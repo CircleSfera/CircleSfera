@@ -34,6 +34,7 @@ describe('client IP and abuse request metadata', () => {
         'user-agent': 'Mozilla/5.0',
         'cf-ipcountry': 'es',
         'x-turnstile-bypass': 'secret-token',
+        'x-test-account-key': 'test-key',
       },
     });
 
@@ -42,6 +43,7 @@ describe('client IP and abuse request metadata', () => {
       userAgent: 'Mozilla/5.0',
       country: 'ES',
       turnstileBypassToken: 'secret-token',
+      testAccountKey: 'test-key',
     });
   });
 
@@ -53,6 +55,7 @@ describe('client IP and abuse request metadata', () => {
 
     expect(meta.userAgent).toBeNull();
     expect(meta.turnstileBypassToken).toBeNull();
+    expect(meta.testAccountKey).toBeNull();
   });
 
   it('validates IPv4 and IPv6 shapes', () => {
