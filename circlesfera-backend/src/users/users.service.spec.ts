@@ -1147,6 +1147,30 @@ describe('UsersService', () => {
       expect(mockPrismaService.user.update).not.toHaveBeenCalled();
     });
 
+    it('deletes an account whose payout account owes money rather than holds it', async () => {
+      mockStripeService.getConnectBalance.mockResolvedValue({
+        available: [{ amount: -1500 }],
+        pending: [],
+      });
+      mockPrismaService.user.update.mockResolvedValue({});
+
+      await expect(
+        service.scheduleDeletion('user-abc'),
+      ).resolves.toBeInstanceOf(Date);
+    });
+
+    it('asks once for an account found on two rows', async () => {
+      payoutRows.findMany.mockResolvedValueOnce([
+        { stripeConnectAccountId: 'acct_same' },
+        { stripeConnectAccountId: 'acct_same' },
+      ]);
+      mockPrismaService.user.update.mockResolvedValue({});
+
+      await service.scheduleDeletion('user-abc');
+
+      expect(mockStripeService.getConnectBalance).toHaveBeenCalledTimes(1);
+    });
+
     it('asks the provider nothing for a person with no payout account', async () => {
       payoutRows.findMany.mockResolvedValueOnce([]);
       mockPrismaService.user.update.mockResolvedValue({});
@@ -1570,7 +1594,7 @@ describe('UsersService', () => {
         }),
       ).rejects.toThrow('Profile not found');
 
-      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
     });
   });
 

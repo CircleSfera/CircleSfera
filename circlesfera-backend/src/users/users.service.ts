@@ -898,8 +898,11 @@ export class UsersService {
           'We could not check your earnings. Try again in a few minutes.',
         );
       }
+      // Only money owed to the person holds the deletion. A balance below
+      // zero (a lost dispute) is owed by them: it never makes their account
+      // impossible to delete.
       const held = [...balance.available, ...balance.pending].some(
-        (funds) => funds.amount !== 0,
+        (funds) => funds.amount > 0,
       );
       if (held) {
         throw AppException.Conflict(
