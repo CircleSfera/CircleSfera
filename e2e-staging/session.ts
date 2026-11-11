@@ -64,17 +64,15 @@ export async function signIn(
     const res = await page.request.get('/api/v1/csrf-token');
     return ((await res.json()) as { csrfToken: string }).csrfToken;
   };
-  // A Test Account that never went through onboarding is sent to it on every
-  // sign-in: it is marked done, as finishing it does.
-  if (new URL(page.url()).pathname.startsWith('/onboarding')) {
-    const done = await page.request.put('/api/v1/users/me/settings', {
-      headers: { 'x-csrf-token': await csrf() },
-      data: { isOnboarded: true },
-    });
-    expect(done.ok(), await done.text()).toBe(true);
-    await page.goto('/');
-    await expect(page).not.toHaveURL(/\/onboarding/);
-  }
+  // A Test Account that never went through onboarding is sent to it after
+  // each sign-in: it is marked done, as finishing it does, before any check.
+  const done = await page.request.put('/api/v1/users/me/settings', {
+    headers: { 'x-csrf-token': await csrf() },
+    data: { isOnboarded: true },
+  });
+  expect(done.ok(), await done.text()).toBe(true);
+  await page.goto('/');
+  await expect(page).not.toHaveURL(/\/(onboarding|accounts\/login)/);
   return {
     context,
     page,

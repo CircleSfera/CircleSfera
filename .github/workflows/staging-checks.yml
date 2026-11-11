@@ -64,6 +64,11 @@ jobs:
             echo "STAGING_SITE_PASSWORD, ENVIRONMENT_TEST_ACCOUNT_PASSWORD or STAGING_STRIPE_SECRET_KEY is not set."
             exit 1
           fi
+          # TEMPORARY while the new checks are proven on this pull request.
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            npx playwright test -c e2e-staging/playwright.config.ts --retries=0 e2e-staging/frame.spec.ts e2e-staging/live-guest.spec.ts e2e-staging/identity-verification.spec.ts
+            exit $?
+          fi
           if [ -n "${GREP:-}" ]; then
             npx playwright test -c e2e-staging/playwright.config.ts --grep "$GREP"
           else
