@@ -1,15 +1,21 @@
 import { renderHook } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { useStoryShareRowPlace } from './useStoryShareRowPlace';
 
 function band(height: number, safeBottom: number) {
   const el = document.createElement('div');
   el.style.paddingBottom = `${safeBottom}px`;
   Object.defineProperty(el, 'clientHeight', { value: height });
+  // In the page, as the band is: an element outside it has no computed style.
+  document.body.append(el);
   return { current: el };
 }
 
 describe('useStoryShareRowPlace', () => {
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
   it('stands the row in a band of 150 px under the story', () => {
     const { result } = renderHook(() =>
       useStoryShareRowPlace(band(150, 0), false),
