@@ -36,6 +36,7 @@ describe('CreatePromotionUseCase', () => {
   };
 
   const mockStripeService = {
+    assertPaymentsEnabled: vi.fn().mockResolvedValue(undefined),
     createCheckoutSession: vi.fn(),
     cardOnlyPaymentMethods: vi.fn(() => ({
       payment_method_configuration: 'pmc_cardonly',
@@ -142,6 +143,27 @@ describe('CreatePromotionUseCase', () => {
     await expect(
       useCase.execute('u-1', 'post', 'post-100', 7, 50),
     ).rejects.toMatchObject({ errorCode: 'PAYER_UNDER_AGE' });
+    expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
+    expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it('writes down no promotion while payments are paused', async () => {
+    mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'p-1' }]);
+    mockPrismaService.post.findFirst.mockResolvedValue({
+      id: 'post-100',
+      profileId: 'p-1',
+    });
+    mockPrismaService.user.findUnique.mockResolvedValue({
+      id: 'u-1',
+      email: 'creator@example.com',
+      stripeCustomerId: 'cus_123',
+    });
+    const paused = new Error('payments paused');
+    mockStripeService.assertPaymentsEnabled.mockRejectedValueOnce(paused);
+
+    await expect(
+      useCase.execute('u-1', 'post', 'post-100', 7, 50),
+    ).rejects.toBe(paused);
     expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
     expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
   });

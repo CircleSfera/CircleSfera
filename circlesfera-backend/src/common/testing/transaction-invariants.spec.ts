@@ -122,6 +122,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
 
       mockStripeService = {
         createCheckoutSession: vi.fn(),
+        assertPaymentsEnabled: vi.fn().mockResolvedValue(undefined),
         creatorTaxActive: vi.fn().mockResolvedValue(true),
         createAccountLink: vi.fn(),
         getAccountStatus: vi.fn(),

@@ -217,6 +217,8 @@ export class MonetizationService {
     // of 24 hours when not given.
     expiresAt?: number;
   }): Promise<{ url: string | null }> {
+    // Paused payments are refused before anything is asked of Stripe.
+    await this.stripeService.assertPaymentsEnabled();
     await assertRealMoneyAllowed(this.prisma, params.buyerId);
     await assertAdultPayer(this.prisma, params.buyerId);
     const taxActive = await this.stripeService.creatorTaxActive(
@@ -538,6 +540,8 @@ export class MonetizationService {
       );
     // The amount is held against the weekly limit while the checkout is
     // open; paid, the payment counts instead (the webhook drops the hold).
+    // Paused payments are refused before the tip holds anything of the week.
+    await this.stripeService.assertPaymentsEnabled();
     const expiresAtMs = Date.now() + SUPPORT_CHECKOUT_LIFETIME_SECONDS * 1000;
     const reservation = await withWeeklySupportRoom(
       this.prisma,

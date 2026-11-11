@@ -89,6 +89,7 @@ describe('LiveGiftService', () => {
 
   const mockStripeService = {
     createCheckoutSession: vi.fn(),
+    assertPaymentsEnabled: vi.fn().mockResolvedValue(undefined),
     creatorTaxActive: vi.fn().mockResolvedValue(true),
   };
 
@@ -302,6 +303,31 @@ describe('LiveGiftService', () => {
         'fan-1',
       );
     });
+    it('holds nothing of the weekly limit and asks Stripe nothing while payments are paused', async () => {
+      mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
+        userId: null,
+        stripeConnectAccountId: 'acct_1',
+        transfersEnabled: true,
+        chargesEnabled: true,
+      });
+      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'fan-1',
+        email: 'fan@example.com',
+        profiles: [{ username: 'fan' }],
+      });
+      const paused = new Error('payments paused');
+      mockStripeService.assertPaymentsEnabled.mockRejectedValueOnce(paused);
+
+      await expect(
+        service.sendGift('stream-1', 'fan-1', 'crown', 'http://localhost/live'),
+      ).rejects.toBe(paused);
+
+      expect(mockPrismaService.liveGift.create).not.toHaveBeenCalled();
+      expect(mockStripeService.creatorTaxActive).not.toHaveBeenCalled();
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
     it('lets the gift go, holding nothing of the weekly limit, when no checkout opens', async () => {
       mockPrismaService.monetization.findUnique.mockResolvedValueOnce({
         userId: null,
