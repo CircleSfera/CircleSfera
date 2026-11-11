@@ -254,6 +254,9 @@ export default function Explore() {
                           {t('explore.beta_ai')}
                         </span>
                       </h2>
+                      <p className="-mt-2 mb-4 text-xs text-gray-300">
+                        {t('explore.smart_people_how')}
+                      </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
                         {searchResults.semanticProfiles.map((profile: any) => (
                           <Link

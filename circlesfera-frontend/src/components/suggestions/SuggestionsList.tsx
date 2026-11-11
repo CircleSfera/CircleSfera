@@ -45,9 +45,12 @@ export const SuggestionsList: React.FC<{
   if (layout === 'vertical') {
     return (
       <div className="py-6 px-4 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-full">
-        <div className="flex justify-between items-center mb-4 px-1">
+        <div className="flex flex-col gap-1 mb-4 px-1">
           <span className="font-black text-zinc-400 text-xs uppercase tracking-wider">
             {t('suggestions.title')}
+          </span>
+          <span className="text-xs text-zinc-400">
+            {t('suggestions.how_chosen')}
           </span>
         </div>
         <div className="flex flex-col gap-3">
@@ -75,7 +78,7 @@ export const SuggestionsList: React.FC<{
 
   return (
     <div className="py-6 my-2">
-      <div className="flex justify-between items-center px-4 mb-4">
+      <div className="flex justify-between items-center px-4 mb-1">
         <span className="font-black text-zinc-400 text-xs uppercase tracking-wide">
           {t('suggestions.title')}
         </span>
@@ -86,6 +89,9 @@ export const SuggestionsList: React.FC<{
           {t('suggestions.see_all')}
         </button>
       </div>
+      <p className="px-4 mb-4 text-xs text-zinc-400">
+        {t('suggestions.how_chosen')}
+      </p>
       <div className="flex space-x-4 overflow-x-auto px-4 pb-4 no-scrollbar scroll-smooth">
         {loading
           ? ['s1', 's2', 's3', 's4', 's5'].map((id) => (

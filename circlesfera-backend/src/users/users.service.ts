@@ -1,4 +1,8 @@
-import { ErrorCode, type UserSessionTerminateEvent } from '@circlesfera/shared';
+import {
+  ErrorCode,
+  type SuggestionReason,
+  type UserSessionTerminateEvent,
+} from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
@@ -143,10 +147,8 @@ export class UsersService {
       bio: profile.bio,
       verificationLevel: profile.verificationLevel,
       followersCount: profile._count.followers,
-      reason:
-        profile._count.followers > 50
-          ? 'Popular en CircleSfera'
-          : 'Nuevo Creador',
+      // The one ranking above, said as it is: the app words it.
+      reason: 'MOST_FOLLOWED' satisfies SuggestionReason,
     }));
   }
 

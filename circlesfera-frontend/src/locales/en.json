@@ -1396,7 +1396,8 @@
     "error_message": "Something went wrong while loading posts. Please try again.",
     "match": "Match",
     "smart_people": "People matching your idea",
-    "error_title": "Couldn't load explore"
+    "error_title": "Couldn't load explore",
+    "smart_people_how": "Profiles whose description matches your search by meaning."
   },
   "post": {
     "detail": {
@@ -1841,7 +1842,11 @@
     "title": "Suggested for you",
     "see_all": "See All",
     "suggested": "Suggested for you",
-    "follow": "Follow"
+    "follow": "Follow",
+    "how_chosen": "The most followed Profiles you don't follow yet.",
+    "reasons": {
+      "MOST_FOLLOWED": "Among the most followed on CircleSfera"
+    }
   },
   "onboarding": {
     "creator": "Creator",

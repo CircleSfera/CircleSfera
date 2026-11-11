@@ -398,6 +398,13 @@ export interface Purchase {
   buyer?: ProfileWithUser;
 }
 
+/**
+ * Why a person is suggested, as a code the app translates. One ranking today:
+ * the most followed Profiles the viewer does not follow yet.
+ */
+export const SUGGESTION_REASONS = ['MOST_FOLLOWED'] as const;
+export type SuggestionReason = (typeof SUGGESTION_REASONS)[number];
+
 export interface SuggestedUser {
   id: string;
   username: string;
@@ -405,6 +412,6 @@ export interface SuggestedUser {
   avatar: string | null;
   bio: string | null;
   followersCount: number;
-  reason: string;
+  reason: SuggestionReason;
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
 }
