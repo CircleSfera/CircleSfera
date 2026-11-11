@@ -21,6 +21,8 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
     beforeEach(() => {
       mockPrisma = {
         $transaction: vi.fn(async (cb: any) => cb(mockPrisma)),
+        // No payout account: nothing holds the deletion.
+        monetization: { findMany: vi.fn().mockResolvedValue([]) },
         user: {
           findUnique: vi.fn(),
           update: vi.fn().mockResolvedValue({}),
