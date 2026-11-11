@@ -235,6 +235,8 @@ jobs:
           ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
           ABUSE_HASH_PEPPER: ${{ secrets.ABUSE_HASH_PEPPER }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          # The analytics warehouse's password (ADR-0016): hex, 32+ characters.
+          CLICKHOUSE_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
           STRIPE_PAYMENT_METHOD_CONFIGURATION: ${{ secrets.STRIPE_PAYMENT_METHOD_CONFIGURATION }}
           STRIPE_CONNECT_WEBHOOK_SECRET: ${{ secrets.STRIPE_CONNECT_WEBHOOK_SECRET }}
           STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
@@ -250,7 +252,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,STRIPE_PAYMENT_METHOD_CONFIGURATION,STRIPE_CONNECT_WEBHOOK_SECRET,STRIPE_PUBLISHABLE_KEY,VITE_TURNSTILE_SITE_KEY,GHCR_USER,GHCR_TOKEN,DEPLOY_SHA
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,CLICKHOUSE_PASSWORD,STRIPE_PAYMENT_METHOD_CONFIGURATION,STRIPE_CONNECT_WEBHOOK_SECRET,STRIPE_PUBLISHABLE_KEY,VITE_TURNSTILE_SITE_KEY,GHCR_USER,GHCR_TOKEN,DEPLOY_SHA
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -337,6 +339,19 @@ jobs:
             # that needed it runs on staging. A token or an allowlist left by
             # an earlier deploy is removed.
             sed -i '/^TURNSTILE_BYPASS_IPS=/d;/^TURNSTILE_BYPASS_TOKEN=/d' .env.production
+
+            # The analytics warehouse (ADR-0016): its password and the address
+            # the backend loads it at, written fresh from the repository secret.
+            # The ClickHouse container cannot start without it.
+            ch="${CLICKHOUSE_PASSWORD:-}"
+            if ! printf '%s' "$ch" | grep -qE '^[A-Za-z0-9]{32,}$'; then
+              echo "❌ The CLICKHOUSE_PASSWORD secret is missing or not 32+ letters and digits."
+              exit 1
+            fi
+            sed -i '/^CLICKHOUSE_PASSWORD=/d;/^CLICKHOUSE_URL=/d' .env.production
+            printf 'CLICKHOUSE_PASSWORD=%s\n' "$ch" >> .env.production
+            printf 'CLICKHOUSE_URL=http://circlesfera:%s@clickhouse:8123\n' "$ch" >> .env.production
+            echo "✅ ClickHouse settings merged from GitHub secret."
 
             if ! grep -q '^REDIS_PASSWORD=.\+' .env.production; then
               echo "❌ REDIS_PASSWORD is missing/empty in .env.production (required for compose interpolation)."
@@ -434,7 +449,7 @@ jobs:
             docker tag "${REGISTRY}/backend:${IMAGE_SHA}" "${REGISTRY}/backend:latest"
             docker tag "${REGISTRY}/frontend:${IMAGE_SHA}" "${REGISTRY}/frontend:latest"
 
-            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps --remove-orphans backend frontend nginx-proxy recordings-folder livekit egress
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps --remove-orphans clickhouse backend frontend nginx-proxy recordings-folder livekit egress
 
             # Every deploy leaves its SHA-tagged backend/frontend images on disk
             # forever — `docker system prune -f` alone never touches them (they're

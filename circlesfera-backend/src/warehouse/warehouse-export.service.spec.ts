@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConfigService } from '@nestjs/config';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClickHouseLoadService } from './clickhouse-load.service.js';
 import { WarehouseExportService } from './warehouse-export.service.js';
 
@@ -344,6 +344,66 @@ describe('ClickHouseLoadService', () => {
     );
 
     vi.unstubAllGlobals();
+  });
+
+  describe("erasing a person's rows", () => {
+    const withUrl = (url?: string) =>
+      new ClickHouseLoadService({
+        get: vi.fn((key: string) =>
+          key === 'CLICKHOUSE_URL' ? url : undefined,
+        ),
+      } as unknown as ConfigService);
+    const erased = {
+      userId: 'u-1',
+      profileIds: ['p-1', 'p-2'],
+      mediaUrls: [],
+    } as never;
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('deletes every payment naming the person or one of their Profiles', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+      vi.stubGlobal('fetch', fetchMock);
+
+      await withUrl('http://circlesfera:pw@clickhouse:8123').eraseUser(erased);
+
+      const [address, init] = fetchMock.mock.calls[0];
+      const url = new URL(address);
+      expect(url.searchParams.get('query')).toBe(
+        'ALTER TABLE transactions DELETE WHERE senderId IN {ids:Array(String)} OR receiverId IN {ids:Array(String)} OR receiverProfileId IN {ids:Array(String)}',
+      );
+      expect(url.searchParams.get('param_ids')).toBe("['u-1','p-1','p-2']");
+      expect(url.searchParams.get('database')).toBe('circlesfera_analytics');
+      // The password goes in a header, never in the address.
+      expect(url.password).toBe('');
+      expect(init.headers.Authorization).toBe(
+        `Basic ${Buffer.from('circlesfera:pw').toString('base64')}`,
+      );
+    });
+
+    it('asks nothing when the warehouse is not set up', async () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+
+      await withUrl(undefined).eraseUser(erased);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('never stops the erasure when the warehouse fails', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve('boom'),
+        }),
+      );
+
+      await expect(
+        withUrl('http://clickhouse:8123').eraseUser(erased),
+      ).resolves.toBeUndefined();
+    });
   });
 
   it('throws error when ClickHouse insert fails', async () => {

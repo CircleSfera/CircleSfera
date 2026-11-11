@@ -1,5 +1,6 @@
 -- ClickHouse schema for CircleSfera analytics (see docs/adr/0016-analytical-warehouse-clickhouse.md).
--- Run once after provisioning ClickHouse Cloud / self-hosted instance:
+-- Applied by the ClickHouse container on its first start (docker-compose.prod.yml
+-- mounts it in /docker-entrypoint-initdb.d). By hand, on another instance:
 --   clickhouse-client --host ... --secure --query "$(cat scripts/etl/clickhouse-schema.sql)"
 
 CREATE DATABASE IF NOT EXISTS circlesfera_analytics;
@@ -12,7 +13,9 @@ CREATE TABLE IF NOT EXISTS circlesfera_analytics.reports (
   updatedAt DateTime64(3),
   resolvedAt Nullable(DateTime64(3))
 ) ENGINE = MergeTree()
-ORDER BY (createdAt, id);
+ORDER BY (createdAt, id)
+-- Kept 24 months (ADR-0016).
+TTL toDateTime(createdAt) + INTERVAL 24 MONTH;
 
 CREATE TABLE IF NOT EXISTS circlesfera_analytics.appeals (
   id String,
@@ -22,7 +25,9 @@ CREATE TABLE IF NOT EXISTS circlesfera_analytics.appeals (
   updatedAt DateTime64(3),
   resolvedAt Nullable(DateTime64(3))
 ) ENGINE = MergeTree()
-ORDER BY (createdAt, id);
+ORDER BY (createdAt, id)
+-- Kept 24 months (ADR-0016).
+TTL toDateTime(createdAt) + INTERVAL 24 MONTH;
 
 CREATE TABLE IF NOT EXISTS circlesfera_analytics.support_tickets (
   id String,
@@ -31,7 +36,9 @@ CREATE TABLE IF NOT EXISTS circlesfera_analytics.support_tickets (
   updatedAt DateTime64(3),
   resolvedAt Nullable(DateTime64(3))
 ) ENGINE = MergeTree()
-ORDER BY (createdAt, id);
+ORDER BY (createdAt, id)
+-- Kept 24 months (ADR-0016).
+TTL toDateTime(createdAt) + INTERVAL 24 MONTH;
 
 CREATE TABLE IF NOT EXISTS circlesfera_analytics.transactions (
   id String,
@@ -51,7 +58,9 @@ CREATE TABLE IF NOT EXISTS circlesfera_analytics.transactions (
   createdAt DateTime64(3),
   updatedAt DateTime64(3) DEFAULT createdAt
 ) ENGINE = MergeTree()
-ORDER BY (createdAt, id);
+ORDER BY (createdAt, id)
+-- Kept 24 months (ADR-0016).
+TTL toDateTime(createdAt) + INTERVAL 24 MONTH;
 
 -- A table created before these columns gets them here; running the file again
 -- changes nothing. A payment is loaded again each time it changes (a refund,
