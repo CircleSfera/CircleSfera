@@ -495,7 +495,13 @@ jobs:
     needs: deploy
     if: inputs.environment == 'staging'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # A live is recorded and its replay made: up to about ten minutes.
+    timeout-minutes: 45
+    # The checks share the environment's Test Accounts with the checks run
+    # by hand (staging-checks.yml): one run at a time.
+    concurrency:
+      group: staging-browser-checks
+      cancel-in-progress: false
     # Reports only for now: a failure here is seen in the run, and does not
     # hold the production deploy back. It becomes blocking once it has run
     # green for a while.
@@ -524,9 +530,11 @@ jobs:
         env:
           STAGING_SITE_PASSWORD: ${{ secrets.STAGING_SITE_PASSWORD }}
           STAGING_TEST_ACCOUNT_PASSWORD: ${{ secrets.ENVIRONMENT_TEST_ACCOUNT_PASSWORD }}
+          # The environment's own test-mode key of the payment provider.
+          STAGING_STRIPE_SECRET_KEY: ${{ secrets.STAGING_STRIPE_SECRET_KEY }}
         run: |
-          if [ -z "$STAGING_SITE_PASSWORD" ] || [ -z "$STAGING_TEST_ACCOUNT_PASSWORD" ]; then
-            echo "STAGING_SITE_PASSWORD or ENVIRONMENT_TEST_ACCOUNT_PASSWORD is not set."
+          if [ -z "$STAGING_SITE_PASSWORD" ] || [ -z "$STAGING_TEST_ACCOUNT_PASSWORD" ] || [ -z "$STAGING_STRIPE_SECRET_KEY" ]; then
+            echo "STAGING_SITE_PASSWORD, ENVIRONMENT_TEST_ACCOUNT_PASSWORD or STAGING_STRIPE_SECRET_KEY is not set."
             exit 1
           fi
           npx playwright test -c e2e-staging/playwright.config.ts

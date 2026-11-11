@@ -26,13 +26,21 @@ const cookieConsent = JSON.stringify({
 });
 
 /** Signs a Test Account in through the sign-in form, as a person does. */
+/** A phone's screen, as the app is designed for first. */
+export const PHONE = { width: 390, height: 844 };
+
 export async function signIn(
   browser: Browser,
   username: string,
+  options: { phone?: boolean } = {},
 ): Promise<Session> {
   const password = process.env.STAGING_TEST_ACCOUNT_PASSWORD;
   if (!password) throw new Error('STAGING_TEST_ACCOUNT_PASSWORD is not set');
-  const context = await browser.newContext();
+  const context = await browser.newContext(
+    options.phone
+      ? { viewport: PHONE, permissions: ['camera', 'microphone'] }
+      : {},
+  );
   const page = await context.newPage();
   await page.addInitScript((consent: string) => {
     localStorage.setItem('cs_cookie_consent', consent);
