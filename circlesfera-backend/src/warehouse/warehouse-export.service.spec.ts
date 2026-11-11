@@ -192,12 +192,46 @@ describe('WarehouseExportService', () => {
 
     it('leaves a folder whose name only looks like a date', async () => {
       const dir = await mkdtemp(join(tmpdir(), 'csf-etl-keep4-'));
-      await mkdir(join(dir, '2020-13-45T99-99-99'), { recursive: true });
+      for (const name of ['2020-13-45T99-99-99', '2020-02-30T00-00-00']) {
+        await mkdir(join(dir, name), { recursive: true });
+      }
       withDir(dir);
 
       await service.runNightlyExport();
 
-      expect(await readdir(dir)).toContain('2020-13-45T99-99-99');
+      // 30 February would be read as 1 March.
+      expect(await readdir(dir)).toEqual(
+        expect.arrayContaining(['2020-13-45T99-99-99', '2020-02-30T00-00-00']),
+      );
+    });
+
+    it('removes old exports even when the ClickHouse load fails, and still reports that failure', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'csf-etl-keep5-'));
+      const old = exportAt(9);
+      await mkdir(join(dir, old), { recursive: true });
+      withDir(dir);
+      clickHouseLoad.loadExportDirectory.mockRejectedValueOnce(
+        new Error('ClickHouse down'),
+      );
+
+      await expect(service.runNightlyExport()).rejects.toThrow(
+        'ClickHouse down',
+      );
+
+      expect(await readdir(dir)).not.toContain(old);
+    });
+
+    it('never fails the export, so never loads it twice, when old exports cannot be removed', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'csf-etl-keep6-'));
+      withDir(dir);
+      const removing = vi
+        .spyOn(service as any, 'removeExportsOlderThanRetention')
+        .mockRejectedValueOnce(new Error('disk'));
+
+      await expect(service.runNightlyExport()).resolves.toMatchObject({
+        outputDir: expect.any(String),
+      });
+      expect(removing).toHaveBeenCalled();
     });
 
     it('follows ETL_RETENTION_DAYS', async () => {

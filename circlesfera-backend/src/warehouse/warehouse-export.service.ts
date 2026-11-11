@@ -201,12 +201,17 @@ export class WarehouseExportService {
       `Analytics export → ${outputDir} (${sinceDays}d window, ${durationMs}ms, rows=${JSON.stringify(rowCounts)})`,
     );
 
-    const clickhouseLoaded = await this.clickHouseLoad.loadExportDirectory(
-      outputDir,
-      rowCounts,
-    );
-
-    await this.pruneOldExports(etlRoot);
+    // Old exports are removed whether the load succeeds or not; a load error
+    // is still what the job reports.
+    let clickhouseLoaded: boolean;
+    try {
+      clickhouseLoaded = await this.clickHouseLoad.loadExportDirectory(
+        outputDir,
+        rowCounts,
+      );
+    } finally {
+      await this.pruneOldExports(etlRoot);
+    }
 
     return {
       outputDir,
@@ -219,7 +224,22 @@ export class WarehouseExportService {
   // The nightly CSVs hold reports, appeals, tickets and payments: none is
   // kept longer than ETL_RETENTION_DAYS (7 by default). Only folders named as
   // an export names them are removed; anything else in the folder is left.
+  // A failure here is logged, never thrown: the job must not be retried for
+  // it, which would load the same rows into ClickHouse again. The next night's
+  // export removes what this one could not.
   private async pruneOldExports(etlRoot: string): Promise<void> {
+    try {
+      await this.removeExportsOlderThanRetention(etlRoot);
+    } catch (err) {
+      this.logger.error(
+        `Old analytics exports could not be removed: ${String(err)}`,
+      );
+    }
+  }
+
+  private async removeExportsOlderThanRetention(
+    etlRoot: string,
+  ): Promise<void> {
     const keepDays = Number(
       this.config.get('ETL_RETENTION_DAYS') ?? ETL_RETENTION_DAYS_DEFAULT,
     );
@@ -232,7 +252,16 @@ export class WarehouseExportService {
       if (!entry.isDirectory() || !match) continue;
       const [, day, hh, mm, ss] = match;
       const madeAt = Date.parse(`${day}T${hh}:${mm}:${ss}Z`);
-      if (Number.isNaN(madeAt) || madeAt >= cutoff) continue;
+      // An impossible date (30 February) is parsed into another one: only a
+      // name that is exactly its own date is an export.
+      if (
+        Number.isNaN(madeAt) ||
+        new Date(madeAt).toISOString().slice(0, 19) !==
+          `${day}T${hh}:${mm}:${ss}` ||
+        madeAt >= cutoff
+      ) {
+        continue;
+      }
       await rm(join(etlRoot, entry.name), { recursive: true, force: true });
       this.logger.log(
         `Analytics export ${entry.name} removed (older than ${keepDays} days)`,
