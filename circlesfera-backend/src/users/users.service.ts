@@ -1,7 +1,13 @@
-import type { UserSessionTerminateEvent } from '@circlesfera/shared';
+import { ErrorCode, type UserSessionTerminateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AdminAction,
@@ -21,6 +27,7 @@ import {
   ensureGroupAdmin,
 } from '../chat/services/group-admin-succession.service.js';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
+import { AppException } from '../common/errors/app.exception.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { isTestViewer } from '../common/policies/test-account.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
@@ -854,6 +861,7 @@ export class UsersService {
   // Param userId: The user ID
   // Returns The scheduled hard-deletion date
   async scheduleDeletion(userId: string) {
+    await this.assertNoPayoutBalance(userId);
     const scheduledDeletionAt = new Date();
     scheduledDeletionAt.setDate(scheduledDeletionAt.getDate() + 30);
     await this.markForErasure(userId, scheduledDeletionAt, {
@@ -862,6 +870,44 @@ export class UsersService {
       reason: 'Account scheduled for deletion',
     });
     return scheduledDeletionAt;
+  }
+
+  // An account is not scheduled for deletion while one of its payout
+  // accounts holds money, available or still on its way: the person first
+  // receives it. Every payout account of the person counts, theirs and each
+  // of their Profiles'. When the provider cannot say, nothing is deleted.
+  private async assertNoPayoutBalance(userId: string) {
+    const rows = await this.prisma.monetization.findMany({
+      where: {
+        stripeConnectAccountId: { not: null },
+        OR: [{ userId }, { profile: { userId } }],
+      },
+      select: { stripeConnectAccountId: true },
+    });
+    const accounts = [
+      ...new Set(rows.map((row) => row.stripeConnectAccountId as string)),
+    ];
+    for (const account of accounts) {
+      let balance: Stripe.Balance;
+      try {
+        balance = await this.stripeService.getConnectBalance(account);
+      } catch {
+        throw new AppException(
+          ErrorCode.PAYOUT_BALANCE_UNKNOWN,
+          HttpStatus.SERVICE_UNAVAILABLE,
+          'We could not check your earnings. Try again in a few minutes.',
+        );
+      }
+      const held = [...balance.available, ...balance.pending].some(
+        (funds) => funds.amount !== 0,
+      );
+      if (held) {
+        throw AppException.Conflict(
+          ErrorCode.ACCOUNT_HOLDS_BALANCE,
+          'Your earnings must be paid out before the account can be deleted.',
+        );
+      }
+    }
   }
 
   // Erases an account now, through the same erasure as a scheduled one: its

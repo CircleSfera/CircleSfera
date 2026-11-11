@@ -1,5 +1,5 @@
 import { ageOn, ErrorCode, MONETIZATION_MIN_AGE } from '@circlesfera/shared';
-import type { MonetizationStatus, Prisma } from '@prisma/client';
+import type { AccountType, MonetizationStatus, Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 
 type PayoutAccountReader = Pick<Prisma.TransactionClient, 'profile'>;
@@ -90,6 +90,7 @@ export async function payoutRowForProfile(
 
 // What is read of a Profile to know whether it may be paid.
 export const PAYABLE_PROFILE_SELECT = {
+  accountType: true,
   isAccountBanned: true,
   suspendedUntil: true,
   monetizationStatus: true,
@@ -150,10 +151,13 @@ export async function assertOfChargingAge(
 }
 
 /**
- * Whether a Profile may be paid: neither it nor its person is banned or
- * suspended, its person is still here, and its person is of charging age.
+ * Whether a Profile may be paid: it is a Creator or Business Profile (one
+ * switched to Personal takes no new payment), neither it nor its person is
+ * banned or suspended, its person is still here, and its person is of
+ * charging age.
  */
 export function canBePaid(profile: {
+  accountType: AccountType;
   isAccountBanned: boolean;
   suspendedUntil: Date | null;
   monetizationStatus: MonetizationStatus;
@@ -167,6 +171,7 @@ export function canBePaid(profile: {
   };
 }): boolean {
   return (
+    profile.accountType !== 'PERSONAL' &&
     !profile.isAccountBanned &&
     !(profile.suspendedUntil && profile.suspendedUntil > new Date()) &&
     profile.user.isActive &&
