@@ -60,13 +60,21 @@ test('a Frame is recorded, edited, given a cover, shared, and plays on its profi
     await page.getByRole('button', { name: 'Text and drawing' }).click();
     await page.getByRole('button', { name: 'Text', exact: true }).click();
     await page.keyboard.type('Staging check');
-    await page
-      .getByRole('button', { name: 'Done', exact: true })
-      .first()
-      .click();
-    await expect(
-      page.getByRole('button', { name: 'Edit text and drawing' }),
-    ).toBeVisible({ timeout: 30_000 });
+    // The text, then the text-and-drawing editor, each closed with Done.
+    const paintDone = page.getByRole('button', { name: 'Done', exact: true });
+    const edited = page.getByRole('button', { name: 'Edit text and drawing' });
+    await expect
+      .poll(
+        async () => {
+          if (await edited.isVisible()) return true;
+          if (await paintDone.first().isVisible()) {
+            await paintDone.first().click();
+          }
+          return edited.isVisible();
+        },
+        { timeout: 30_000, intervals: [1_000] },
+      )
+      .toBe(true);
 
     // The server puts the clips together.
     await editor.getByRole('button', { name: 'Next', exact: true }).click();
