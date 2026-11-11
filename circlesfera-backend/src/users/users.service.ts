@@ -331,6 +331,7 @@ export class UsersService {
                 select: {
                   id: true,
                   name: true,
+                  description: true,
                   coverUrl: true,
                   createdAt: true,
                   updatedAt: true,

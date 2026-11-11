@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import {
   AUTHOR_ID,
   BUYER_ID,
@@ -340,6 +341,62 @@ describe('BookmarksService', () => {
       expect(res.total).toBe(1);
       expect(res.collectionName).toBe('Favorites');
     });
+  });
+
+  describe('a saved post the saver may no longer see', () => {
+    const lists = {
+      saved: () => service.getBookmarks('saver'),
+      collection: () => service.getByCollection('saver', 'col-1'),
+    };
+
+    for (const list of Object.keys(lists) as Array<keyof typeof lists>) {
+      it(`${list}: is listed and counted only by the rule that opens a post`, async () => {
+        if (list === 'collection') {
+          mockPrismaService.collection.findUnique.mockResolvedValueOnce({
+            id: 'col-1',
+            name: 'Saved',
+            profileId: 'saver',
+          });
+        }
+        mockPrismaService.bookmark.findMany.mockResolvedValueOnce([]);
+        mockPrismaService.bookmark.count.mockResolvedValueOnce(0);
+
+        await lists[list]();
+
+        const [{ where }] = mockPrismaService.bookmark.findMany.mock.calls.at(
+          -1,
+        ) as any[];
+        const [{ where: counted }] =
+          mockPrismaService.bookmark.count.mock.calls.at(-1) as any[];
+        expect(counted).toEqual(where);
+        const [listed, open] = where.post.AND;
+        expect(listed).toEqual(LISTED_POST);
+        // Its own posts, or another's it may still open.
+        expect(open.OR[0]).toEqual({ profileId: 'saver' });
+        const others = open.OR[1];
+        expect(others).toMatchObject({
+          archivedAt: null,
+          moderationStatus: { not: 'HIDDEN' },
+        });
+        // No block either way.
+        expect(others.profile.AND[0]).toMatchObject({
+          blocking: { none: { blockedId: 'saver' } },
+          blockedBy: { none: { blockerId: 'saver' } },
+        });
+        // A private account only for its followers.
+        const follows = {
+          followers: { some: { followerId: 'saver', status: 'ACCEPTED' } },
+        };
+        expect(others.profile.AND[1]).toEqual({
+          OR: [{ privacyLevel: { not: 'PRIVATE' } }, follows],
+        });
+        // Public posts, followers-only posts for followers, private posts never.
+        expect(others.OR).toEqual([
+          { visibility: 'PUBLIC' },
+          { visibility: 'FOLLOWERS', profile: follows },
+        ]);
+      });
+    }
   });
 
   describe('a saved paid post', () => {

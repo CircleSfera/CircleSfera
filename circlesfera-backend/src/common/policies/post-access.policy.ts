@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { type Prisma, Visibility } from '@prisma/client';
-import { isBlockedEitherWay } from './block.policy.js';
+import { isBlockedEitherWay, visibleToViewerWhere } from './block.policy.js';
 import { isGone } from './removed-content.policy.js';
 
 type PostAccessReader = Pick<
@@ -101,4 +101,43 @@ function loadPost(
       profile: { select: { privacyLevel: true } },
     },
   });
+}
+
+// The same rule as assertCanAccessPost, as a filter on many posts at once, for
+// a list a viewer reads again later (their saved posts): what they may no
+// longer see (a block since, an account gone private they do not follow, a
+// post now for followers or private, archived or hidden) leaves the list,
+// and comes back if access does. Removed and deleted posts are left to the
+// caller (LISTED_POST).
+export async function accessiblePostsWhere(
+  db: Parameters<typeof visibleToViewerWhere>[0],
+  viewerProfileId: string,
+): Promise<Prisma.PostWhereInput> {
+  const followsAuthor: Prisma.ProfileWhereInput = {
+    followers: { some: { followerId: viewerProfileId, status: 'ACCEPTED' } },
+  };
+  return {
+    OR: [
+      { profileId: viewerProfileId },
+      {
+        archivedAt: null,
+        moderationStatus: { not: 'HIDDEN' },
+        profile: {
+          AND: [
+            await visibleToViewerWhere(db, viewerProfileId),
+            {
+              OR: [
+                { privacyLevel: { not: Visibility.PRIVATE } },
+                followsAuthor,
+              ],
+            },
+          ],
+        },
+        OR: [
+          { visibility: Visibility.PUBLIC },
+          { visibility: Visibility.FOLLOWERS, profile: followsAuthor },
+        ],
+      },
+    ],
+  };
 }

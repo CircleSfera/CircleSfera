@@ -5,7 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import {
+  accessiblePostsWhere,
+  assertCanAccessPost,
+} from '../common/policies/post-access.policy.js';
 import {
   LISTED_POST,
   SHOWN_COMMENTS_COUNT,
@@ -40,6 +43,15 @@ export class BookmarksService {
   // collectionId. Prevents a caller from attaching bookmarks to,
   // or reading, a collection owned by another profile.
   // Throws NotFoundException if collection not found, ForbiddenException if not owner.
+  // The saved posts a Profile is shown: listed, and still open to it.
+  private async savedPostWhere(
+    profileId: string,
+  ): Promise<Prisma.PostWhereInput> {
+    return {
+      AND: [LISTED_POST, await accessiblePostsWhere(this.prisma, profileId)],
+    };
+  }
+
   private async verifyCollectionOwnership(
     profileId: string,
     collectionId: string,
@@ -184,8 +196,12 @@ export class BookmarksService {
     const skip = (page - 1) * limit;
 
     // A saved post that moderation removed is kept for its appeal, shown
-    // nowhere: not listed, not counted.
-    const where: Prisma.BookmarkWhereInput = { profileId, post: LISTED_POST };
+    // nowhere: not listed, not counted. One the viewer may no longer see is
+    // left out as well, by the rule that opens a post.
+    const where: Prisma.BookmarkWhereInput = {
+      profileId,
+      post: await this.savedPostWhere(profileId),
+    };
     if (collectionId) {
       where.collectionId = collectionId;
     }
@@ -274,9 +290,10 @@ export class BookmarksService {
       collectionId,
     );
 
+    const post = await this.savedPostWhere(profileId);
     const [bookmarks, total] = await Promise.all([
       this.prisma.bookmark.findMany({
-        where: { profileId, collectionId, post: LISTED_POST },
+        where: { profileId, collectionId, post },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -295,7 +312,7 @@ export class BookmarksService {
         },
       }),
       this.prisma.bookmark.count({
-        where: { profileId, collectionId, post: LISTED_POST },
+        where: { profileId, collectionId, post },
       }),
     ]);
 
