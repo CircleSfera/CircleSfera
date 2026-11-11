@@ -2,7 +2,7 @@ name: Ops — analytics warehouse report
 
 # Shows what the analytics warehouse (ADR-0016) holds: for each table, its
 # rows, its size, and the newest row, so a load can be seen to have
-# happened without reading any log. Read-only: it changes nothing. Actions
+# happened without reading any log (more rows, or a newer updatedAt). Read-only: it changes nothing. Actions
 # logs are public, so it prints only table names, counts, sizes and dates,
 # never a row, an id or a setting. The ClickHouse password is read inside
 # its own container and never leaves it.
@@ -48,14 +48,20 @@ jobs:
             set -euo pipefail
             echo "== Container"
             docker inspect -f '{{.Name}} {{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{end}}' CircleSfera-ClickHouse
-            echo "== Tables"
+            echo "== Tables (every table, empty ones included)"
+            # last_part_change moves with background merges too: it is not a
+            # sign of a load. A load shows as more rows, or a newer updatedAt.
             docker exec CircleSfera-ClickHouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database "$CLICKHOUSE_DB" --format PrettyCompactMonoBlock --query "
-              SELECT table, sum(rows) AS rows, formatReadableSize(sum(bytes_on_disk)) AS size, max(modification_time) AS last_written
-              FROM system.parts
-              WHERE database = currentDatabase() AND active
-              GROUP BY table ORDER BY table"'
+              SELECT t.name AS table, ifNull(p.rows, 0) AS rows, formatReadableSize(ifNull(p.bytes, 0)) AS size, p.last_change AS last_part_change
+              FROM system.tables AS t
+              LEFT JOIN (
+                SELECT table, sum(rows) AS rows, sum(bytes_on_disk) AS bytes, max(modification_time) AS last_change
+                FROM system.parts WHERE database = currentDatabase() AND active GROUP BY table
+              ) AS p ON p.table = t.name
+              WHERE t.database = currentDatabase()
+              ORDER BY t.name"'
             echo "== Newest row of each table"
-            for t in reports appeals support_tickets transactions; do
+            for t in reports appeals support_tickets transactions feature_flags; do
               printf '%s\t' "$t"
               docker exec -e T="$t" CircleSfera-ClickHouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database "$CLICKHOUSE_DB" --query "SELECT count(), max(updatedAt) FROM $T FORMAT TSV"'
             done
