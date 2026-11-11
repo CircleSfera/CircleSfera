@@ -101,7 +101,7 @@
     "@capacitor/assets": "4.0.0",
     "@capacitor/cli": "8.6.0",
     "@capacitor/ios": "8.6.0",
-    "@playwright/test": "1.64.1",
+    "@playwright/test": "1.65.0",
     "@swc/core": "1.16.21",
     "@tailwindcss/postcss": "4.3.3",
     "@testing-library/jest-dom": "7.0.1",
