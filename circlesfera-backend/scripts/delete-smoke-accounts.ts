@@ -7,7 +7,8 @@ const { Pool } = pkg;
 // Staff-only: production keeps no smoke accounts. The signed-in smoke check
 // runs on staging, with staging's own accounts (scripts/smoke-signed-in.sh),
 // so the accounts it used in production are deleted: the smoke account and
-// the three fixtures of scripts/create-smoke-fixtures.ts.
+// the three fixtures of scripts/create-smoke-fixtures.ts, and the two Test
+// Accounts of a first trial of production checks.
 //
 // Each one is made inactive and its deletion is asked for at once through
 // the outbox, the way a person's own deletion is, so the queue deletes it
@@ -21,6 +22,10 @@ const EMAILS = [
   'smoke-fixture-banned@example.invalid',
   'smoke-fixture-private@example.invalid',
   'smoke-fixture-public@example.invalid',
+  // The two Test Accounts of a first trial of checks in production, before
+  // the owner decided production holds no test accounts (QD-010).
+  'cs-qa-host@example.com',
+  'cs-qa-guest@example.com',
 ];
 
 async function main() {
