@@ -102,7 +102,12 @@ test('a Frame is recorded, edited, given a cover, shared, and plays on its profi
       media: Array<{ url: string; type: string }>;
     };
     expect(frame.type).toBe('FRAME');
-    await page.goto(`/frames/${postId}`);
+    // Listed among the profile's Frames, as its own profile shows them.
+    const listed = (await (
+      await host.get(`/posts/user/${HOST}?type=FRAME&page=1&limit=10`)
+    ).json()) as { data: Array<{ id: string }> };
+    expect(listed.data.map((p) => p.id)).toContain(postId);
+    await page.goto(`/p/${postId}`);
     const video = page.locator('video').first();
     await expect(video).toBeVisible({ timeout: 30_000 });
     await expect
