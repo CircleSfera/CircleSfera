@@ -260,6 +260,10 @@ export function createPinoRedactPaths(): string[] {
     'req.headers["x-access-token"]',
     'req.headers["x-refresh-token"]',
     'req.headers["set-cookie"]',
+    // The Turnstile bypass of the smoke check and the production check's
+    // Test Account key: secrets, never written to a log.
+    'req.headers["x-turnstile-bypass"]',
+    'req.headers["x-test-account-key"]',
 
     // HTTP Response Headers
     'res.headers["set-cookie"]',

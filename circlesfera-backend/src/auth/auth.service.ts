@@ -413,6 +413,11 @@ export class AuthService {
     if (!signIn?.user) {
       throw new UnauthorizedException('Invalid email, username or password');
     }
+    // Turnstile was skipped for a Test Account: the account signing in must
+    // be that one. Any other is asked for the check it skipped.
+    if (testAccountSignIn && signIn.user.isTestAccount !== true) {
+      throw new BadRequestException(ApiErrorCode.CAPTCHA_REQUIRED);
+    }
     const user = {
       ...signIn.user,
       email: signIn.email,

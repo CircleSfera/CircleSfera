@@ -220,6 +220,9 @@ describe('Logging & Telemetry Sensitive Data Redaction', () => {
       expect(paths).toContain('req.headers.authorization');
       expect(paths).toContain('req.headers["x-csrf-token"]');
       expect(paths).toContain('req.headers["set-cookie"]');
+      // The secrets that let a sign-in skip Turnstile.
+      expect(paths).toContain('req.headers["x-turnstile-bypass"]');
+      expect(paths).toContain('req.headers["x-test-account-key"]');
       expect(paths).toContain('res.headers["set-cookie"]');
       expect(paths).toContain('req.body.password');
       expect(paths).toContain('req.body.refreshToken');

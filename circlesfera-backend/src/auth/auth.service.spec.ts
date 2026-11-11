@@ -397,6 +397,24 @@ describe('AuthService', () => {
       expect(turnstile.assertValid).toHaveBeenCalled();
     });
 
+    it('asks for Turnstile when the account that signs in is not the Test Account found', async () => {
+      turnstile.isTestAccountKey.mockReturnValue(true);
+      vi.spyOn(service as any, 'signsInTestAccount').mockResolvedValue(true);
+      // The row sign-in finds is a real account (for example "Foo" and "foo").
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'real-1',
+        email: dto.identifier,
+        password: await argon2.hash(dto.password),
+        isActive: true,
+        isTestAccount: false,
+      });
+
+      await expect(
+        service.login(dto as any, { testAccountKey: 'k'.repeat(40) }),
+      ).rejects.toThrow(new BadRequestException(ApiErrorCode.CAPTCHA_REQUIRED));
+      expect(turnstile.assertValid).not.toHaveBeenCalled();
+    });
+
     it('does not even look for the account without the right key', async () => {
       turnstile.isTestAccountKey.mockReturnValue(false);
       const looked = vi.spyOn(service as any, 'signsInTestAccount');
