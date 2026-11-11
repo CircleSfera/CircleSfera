@@ -114,6 +114,7 @@ describe('AudioClipWaveform', () => {
     const window = container.querySelector('.border-x-2') as HTMLElement;
     // A browser keeps a percentage to a few decimals, so the figure is compared.
     expect(window.style.left).toMatch(/%$/);
+    expect(window.style.width).toMatch(/%$/);
     expect(Number.parseFloat(window.style.left)).toBeCloseTo(
       (60 / 180) * 100,
       3,
