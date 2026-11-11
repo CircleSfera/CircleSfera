@@ -727,6 +727,11 @@ describe('UsersService', () => {
       const profilesArgs =
         mockPrismaService.user.findUnique.mock.calls[1][0].select.profiles
           .include;
+      // A collection goes out with the description its owner wrote.
+      expect(profilesArgs.collections.select).toMatchObject({
+        name: true,
+        description: true,
+      });
       expect(profilesArgs.scheduledLives.select).toEqual({
         title: true,
         audience: true,
