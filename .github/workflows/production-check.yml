@@ -36,18 +36,22 @@ jobs:
           # expect <status> <url> [text the body must contain]
           expect() {
             code=000
+            good=0
             for attempt in 1 2 3; do
               code=$(curl -sS -o body -w '%{http_code}' --max-time 15 "$2") || code=000
-              [ "$code" = "$1" ] && break
+              if [ "$code" = "$1" ] && { [ -z "${3:-}" ] || grep -q "$3" body; }; then
+                good=1
+                break
+              fi
               sleep 5
             done
-            if [ "$code" != "$1" ]; then
-              echo "FAIL $code (expected $1)  $2"; ok=0; return
+            if [ "$good" = 1 ]; then
+              echo "OK   $code  $2"
+            elif [ "$code" != "$1" ]; then
+              echo "FAIL $code (expected $1)  $2"; ok=0
+            else
+              echo "FAIL $code but the answer lacks \"$3\"  $2"; ok=0
             fi
-            if [ -n "${3:-}" ] && ! grep -q "$3" body; then
-              echo "FAIL $code but the answer lacks \"$3\"  $2"; ok=0; return
-            fi
-            echo "OK   $code  $2"
           }
           expect 200 "$site/" '<div id="root">'
           expect 200 "$site/api/v1/health" '"status":"ok"'
