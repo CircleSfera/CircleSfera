@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConfigService } from '@nestjs/config';
@@ -155,6 +155,106 @@ describe('WarehouseExportService', () => {
       { createdAt: { gte: expect.any(Date) } },
       { updatedAt: { gte: expect.any(Date) } },
     ]);
+  });
+
+  describe('keeping the nightly CSVs no longer than the retention', () => {
+    const exportAt = (daysAgo: number) =>
+      new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .slice(0, 19);
+    const withDir = (dir: string, retention?: string) =>
+      config.get.mockImplementation((key: string): string | undefined => {
+        if (key === 'ETL_DIR') return dir;
+        if (key === 'ETL_RETENTION_DAYS') return retention;
+        return undefined;
+      });
+
+    it('removes exports older than seven days, and keeps recent ones and anything else', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'csf-etl-keep-'));
+      const old = exportAt(8);
+      const recent = exportAt(2);
+      for (const name of [old, recent, 'notes']) {
+        await mkdir(join(dir, name), { recursive: true });
+      }
+      await writeFile(join(dir, old, 'transactions.csv'), 'id\n');
+      await writeFile(join(dir, 'README.txt'), 'kept');
+      withDir(dir);
+
+      await service.runNightlyExport();
+
+      const left = await readdir(dir);
+      expect(left).not.toContain(old);
+      expect(left).toEqual(
+        expect.arrayContaining([recent, 'notes', 'README.txt']),
+      );
+    });
+
+    it('leaves a folder whose name only looks like a date', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'csf-etl-keep4-'));
+      for (const name of ['2020-13-45T99-99-99', '2020-02-30T00-00-00']) {
+        await mkdir(join(dir, name), { recursive: true });
+      }
+      withDir(dir);
+
+      await service.runNightlyExport();
+
+      // 30 February would be read as 1 March.
+      expect(await readdir(dir)).toEqual(
+        expect.arrayContaining(['2020-13-45T99-99-99', '2020-02-30T00-00-00']),
+      );
+    });
+
+    it('removes old exports even when the ClickHouse load fails, and still reports that failure', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'csf-etl-keep5-'));
+      const old = exportAt(9);
+      await mkdir(join(dir, old), { recursive: true });
+      withDir(dir);
+      clickHouseLoad.loadExportDirectory.mockRejectedValueOnce(
+        new Error('ClickHouse down'),
+      );
+
+      await expect(service.runNightlyExport()).rejects.toThrow(
+        'ClickHouse down',
+      );
+
+      expect(await readdir(dir)).not.toContain(old);
+    });
+
+    it('never fails the export, so never loads it twice, when old exports cannot be removed', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'csf-etl-keep6-'));
+      withDir(dir);
+      const removing = vi
+        .spyOn(service as any, 'removeExportsOlderThanRetention')
+        .mockRejectedValueOnce(new Error('disk'));
+
+      await expect(service.runNightlyExport()).resolves.toMatchObject({
+        outputDir: expect.any(String),
+      });
+      expect(removing).toHaveBeenCalled();
+    });
+
+    it('follows ETL_RETENTION_DAYS', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'csf-etl-keep2-'));
+      const threeDays = exportAt(3);
+      await mkdir(join(dir, threeDays), { recursive: true });
+      withDir(dir, '2');
+
+      await service.runNightlyExport();
+
+      expect(await readdir(dir)).not.toContain(threeDays);
+    });
+
+    it('removes nothing with a retention that is not a number of days', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'csf-etl-keep3-'));
+      const old = exportAt(30);
+      await mkdir(join(dir, old), { recursive: true });
+      withDir(dir, 'zero');
+
+      await service.runNightlyExport();
+
+      expect(await readdir(dir)).toContain(old);
+    });
   });
 
   it('handles default configuration values when ETL_DIR and ETL_SINCE_DAYS are omitted', async () => {

@@ -1,3 +1,4 @@
+import { readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -200,10 +201,17 @@ export class WarehouseExportService {
       `Analytics export → ${outputDir} (${sinceDays}d window, ${durationMs}ms, rows=${JSON.stringify(rowCounts)})`,
     );
 
-    const clickhouseLoaded = await this.clickHouseLoad.loadExportDirectory(
-      outputDir,
-      rowCounts,
-    );
+    // Old exports are removed whether the load succeeds or not; a load error
+    // is still what the job reports.
+    let clickhouseLoaded: boolean;
+    try {
+      clickhouseLoaded = await this.clickHouseLoad.loadExportDirectory(
+        outputDir,
+        rowCounts,
+      );
+    } finally {
+      await this.pruneOldExports(etlRoot);
+    }
 
     return {
       outputDir,
@@ -212,4 +220,57 @@ export class WarehouseExportService {
       clickhouseLoaded,
     };
   }
+
+  // The nightly CSVs hold reports, appeals, tickets and payments: none is
+  // kept longer than ETL_RETENTION_DAYS (7 by default). Only folders named as
+  // an export names them are removed; anything else in the folder is left.
+  // A failure here is logged, never thrown: the job must not be retried for
+  // it, which would load the same rows into ClickHouse again. The next night's
+  // export removes what this one could not.
+  private async pruneOldExports(etlRoot: string): Promise<void> {
+    try {
+      await this.removeExportsOlderThanRetention(etlRoot);
+    } catch (err) {
+      this.logger.error(
+        `Old analytics exports could not be removed: ${String(err)}`,
+      );
+    }
+  }
+
+  private async removeExportsOlderThanRetention(
+    etlRoot: string,
+  ): Promise<void> {
+    const keepDays = Number(
+      this.config.get('ETL_RETENTION_DAYS') ?? ETL_RETENTION_DAYS_DEFAULT,
+    );
+    if (!Number.isFinite(keepDays) || keepDays < 1) return;
+    const cutoff = Date.now() - keepDays * 24 * 60 * 60 * 1000;
+    // The export above has just written into etlRoot, so it exists.
+    const entries = await readdir(etlRoot, { withFileTypes: true });
+    for (const entry of entries) {
+      const match = EXPORT_FOLDER.exec(entry.name);
+      if (!entry.isDirectory() || !match) continue;
+      const [, day, hh, mm, ss] = match;
+      const madeAt = Date.parse(`${day}T${hh}:${mm}:${ss}Z`);
+      // An impossible date (30 February) is parsed into another one: only a
+      // name that is exactly its own date is an export.
+      if (
+        Number.isNaN(madeAt) ||
+        new Date(madeAt).toISOString().slice(0, 19) !==
+          `${day}T${hh}:${mm}:${ss}` ||
+        madeAt >= cutoff
+      ) {
+        continue;
+      }
+      await rm(join(etlRoot, entry.name), { recursive: true, force: true });
+      this.logger.log(
+        `Analytics export ${entry.name} removed (older than ${keepDays} days)`,
+      );
+    }
+  }
 }
+
+// How many days a nightly export is kept, unless ETL_RETENTION_DAYS says.
+const ETL_RETENTION_DAYS_DEFAULT = 7;
+// The folder name of one export: its UTC time, as runNightlyExport writes it.
+const EXPORT_FOLDER = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})$/;
