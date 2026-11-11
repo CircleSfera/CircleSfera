@@ -272,6 +272,8 @@ export class PaymentsService {
 
     const checkoutPromise = (async () => {
       try {
+        // Paused payments are refused before a customer is made in Stripe.
+        await this.stripeService.assertPaymentsEnabled();
         const customerId = await this.ensureStripeCustomer(user);
 
         return await this.stripeService.createCheckoutSession(

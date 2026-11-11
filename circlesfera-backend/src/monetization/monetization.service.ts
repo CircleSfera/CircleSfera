@@ -540,6 +540,8 @@ export class MonetizationService {
       );
     // The amount is held against the weekly limit while the checkout is
     // open; paid, the payment counts instead (the webhook drops the hold).
+    // Paused payments are refused before the tip holds anything of the week.
+    await this.stripeService.assertPaymentsEnabled();
     const expiresAtMs = Date.now() + SUPPORT_CHECKOUT_LIFETIME_SECONDS * 1000;
     const reservation = await withWeeklySupportRoom(
       this.prisma,

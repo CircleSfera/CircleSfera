@@ -122,6 +122,9 @@ export class CreatePromotionUseCase {
     const dailyBudgetCents = eurosToCents(dailyBudget);
     const budgetCents = dailyBudgetCents * durationDays;
 
+    // Paused payments are refused before a promotion waiting for payment is
+    // written down.
+    await this.stripeService.assertPaymentsEnabled();
     const promotion = await this.prisma.promotion.create({
       data: {
         userId,

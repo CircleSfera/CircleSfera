@@ -100,6 +100,7 @@ describe('PaymentsService', () => {
             cancelSubscription: vi.fn().mockResolvedValue(undefined),
             resumeSubscription: vi.fn().mockResolvedValue(undefined),
             createCustomer: vi.fn(),
+            assertPaymentsEnabled: vi.fn().mockResolvedValue(undefined),
             createCheckoutSession: vi.fn(),
             createPortalSession: vi.fn(),
             constructEvent: vi.fn(),
@@ -413,6 +414,27 @@ describe('PaymentsService', () => {
       await expect(
         service.createCheckout('u_1', 'plan_1', 'YEARLY', 'prof_1'),
       ).rejects.toThrow('Billing cycle YEARLY is not available for this plan');
+    });
+
+    it('makes no customer in Stripe while payments are paused', async () => {
+      prisma.user.findUnique = vi.fn().mockResolvedValue({
+        id: 'u_paused',
+        email: 'paused@test.com',
+        stripeCustomerId: null,
+        platformSubscriptions: [],
+      });
+      prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        id: 'plan_1',
+        stripePriceId: 'price_monthly',
+      });
+      const paused = new Error('payments paused');
+      stripeService.assertPaymentsEnabled.mockRejectedValueOnce(paused);
+
+      await expect(
+        service.createCheckout('u_paused', 'plan_1', 'MONTHLY', 'prof_1'),
+      ).rejects.toBe(paused);
+      expect(stripeService.createCustomer).not.toHaveBeenCalled();
+      expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
     it('deduplicates in-flight checkout requests for the same user, plan and cycle', async () => {

@@ -1173,8 +1173,7 @@ describe('MonetizationService', () => {
 
       expect(mockStripeService.creatorTaxActive).not.toHaveBeenCalled();
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-      // The hold taken for the checkout is let go.
-      expect(mockPrismaService.tipReservation.delete).toHaveBeenCalled();
+      expect(mockPrismaService.tipReservation.create).not.toHaveBeenCalled();
     });
 
     it('refuses a tip to another Profile of oneself', async () => {
