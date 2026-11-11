@@ -6,10 +6,17 @@ import { defineConfig, devices } from '@playwright/test';
  * media, the live service). They sign in with the environment's Test
  * Accounts, which see only other Test Accounts.
  *
- * Needs STAGING_SITE_PASSWORD (the site's password, user "circlesfera") and
+ * Needs STAGING_SITE_PASSWORD (the site's password, user "circlesfera"),
  * STAGING_TEST_ACCOUNT_PASSWORD (the password of the Test Accounts made by
- * "Ops — test account in an environment").
+ * "Ops — test account in an environment") and, for the identity check,
+ * STAGING_STRIPE_SECRET_KEY (the environment's test-mode key).
  */
+const baseURL = process.env.STAGING_URL ?? 'https://staging.circlesfera.com';
+// These checks write and delete with Test Accounts: never against production.
+if (!/^https:\/\/(staging|dev)\.circlesfera\.com\/?$/.test(baseURL)) {
+  throw new Error(`Refused: ${baseURL} is not staging or development.`);
+}
+
 export default defineConfig({
   testDir: '.',
   testMatch: /.*\.spec\.ts$/,
@@ -25,7 +32,7 @@ export default defineConfig({
     ? [['list'], ['html', { open: 'never', outputFolder: './report' }]]
     : 'list',
   use: {
-    baseURL: process.env.STAGING_URL ?? 'https://staging.circlesfera.com',
+    baseURL,
     httpCredentials: {
       username: 'circlesfera',
       password: process.env.STAGING_SITE_PASSWORD ?? '',

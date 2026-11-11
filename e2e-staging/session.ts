@@ -26,13 +26,21 @@ const cookieConsent = JSON.stringify({
 });
 
 /** Signs a Test Account in through the sign-in form, as a person does. */
+/** A phone's screen, as the app is designed for first. */
+export const PHONE = { width: 390, height: 844 };
+
 export async function signIn(
   browser: Browser,
   username: string,
+  options: { phone?: boolean } = {},
 ): Promise<Session> {
   const password = process.env.STAGING_TEST_ACCOUNT_PASSWORD;
   if (!password) throw new Error('STAGING_TEST_ACCOUNT_PASSWORD is not set');
-  const context = await browser.newContext();
+  const context = await browser.newContext(
+    options.phone
+      ? { viewport: PHONE, permissions: ['camera', 'microphone'] }
+      : {},
+  );
   const page = await context.newPage();
   await page.addInitScript((consent: string) => {
     localStorage.setItem('cs_cookie_consent', consent);
@@ -52,10 +60,29 @@ export async function signIn(
   await page.getByTestId('login-submit-button').click();
   await expect(page).not.toHaveURL(/\/accounts\/login/);
 
+  // While a deploy restarts the backend the proxy answers with a page, not
+  // the token: asked again for up to a minute.
   const csrf = async () => {
-    const res = await page.request.get('/api/v1/csrf-token');
-    return ((await res.json()) as { csrfToken: string }).csrfToken;
+    for (let attempt = 0; ; attempt++) {
+      const res = await page.request.get('/api/v1/csrf-token');
+      if (res.ok() && /json/.test(res.headers()['content-type'] ?? '')) {
+        return ((await res.json()) as { csrfToken: string }).csrfToken;
+      }
+      if (attempt >= 12) {
+        throw new Error(`No CSRF token from staging (${res.status()})`);
+      }
+      await page.waitForTimeout(5_000);
+    }
   };
+  // A Test Account that never went through onboarding is sent to it after
+  // each sign-in: it is marked done, as finishing it does, before any check.
+  const done = await page.request.put('/api/v1/users/me/settings', {
+    headers: { 'x-csrf-token': await csrf() },
+    data: { isOnboarded: true },
+  });
+  expect(done.ok(), await done.text()).toBe(true);
+  await page.goto('/');
+  await expect(page).not.toHaveURL(/\/(onboarding|accounts\/login)/);
   return {
     context,
     page,
