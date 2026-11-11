@@ -30,6 +30,12 @@ const STRIPE_API_VERSION = '2026-10-28.endive';
 const PAYOUT_ACCOUNT_API_VERSION: Stripe.LatestApiVersion =
   '2026-10-28.preview';
 
+// How many times, and how far apart, a payment's fee is looked for before
+// the payment notice is left to be tried again: the provider adds it about
+// two seconds after the notice.
+const FEE_LOOKS = 6;
+const FEE_LOOK_INTERVAL_MS = 1000;
+
 @Injectable()
 export class StripeService implements OnModuleInit {
   public readonly stripe: Stripe;
@@ -218,19 +224,85 @@ export class StripeService implements OnModuleInit {
     idempotencyKey: string;
     metadata?: Stripe.MetadataParam;
   }): Promise<Stripe.Refund> {
-    return this.stripe.refunds.create(
+    const partial = params.amountInCents !== undefined;
+    const refund = await this.stripe.refunds.create(
       {
         payment_intent: params.paymentIntentId,
-        ...(params.amountInCents !== undefined && {
-          amount: params.amountInCents,
-        }),
+        ...(partial && { amount: params.amountInCents }),
         reason: 'requested_by_customer',
-        refund_application_fee: true,
+        // In full, the provider gives back all that is left of the fee. In
+        // part, it would give back a share of the fee as first asked, VAT
+        // included: CircleSfera gives back its share of what it kept instead.
+        refund_application_fee: !partial,
         metadata: params.metadata,
       },
       { stripeAccount: params.account, idempotencyKey: params.idempotencyKey },
     );
+    if (partial) {
+      await this.refundFeeShare(
+        params.account,
+        params.paymentIntentId,
+        refund.id,
+      );
+    }
+    return refund;
   }
+
+  // CircleSfera's fee on a partly refunded payment goes back in proportion to
+  // what the buyer got back, of the fee it kept once the VAT part went back
+  // to the creator. Asked again after another refund, it gives back only
+  // what is still due.
+  private async refundFeeShare(
+    account: string,
+    paymentIntentId: string,
+    refundId: string,
+  ): Promise<void> {
+    const { charge, feeId } = await this.chargeAndFee(account, paymentIntentId);
+    if (!charge || !feeId || charge.amount <= 0) return;
+    const fee = await this.stripe.applicationFees.retrieve(feeId, {
+      expand: ['refunds'],
+    });
+    const vatBack = (fee.refunds?.data ?? [])
+      .filter((r) => r.metadata?.reason === 'vat')
+      .reduce((sum, r) => sum + r.amount, 0);
+    const kept = fee.amount - vatBack;
+    const due = Math.round((kept * charge.amount_refunded) / charge.amount);
+    const more = due - (fee.amount_refunded - vatBack);
+    if (more <= 0) return;
+    await this.stripe.applicationFees.createRefund(
+      feeId,
+      { amount: more, metadata: { reason: 'refund' } },
+      { idempotencyKey: `fee-refund-${refundId}` },
+    );
+  }
+
+  // The charge of a payment on a creator's account, and CircleSfera's fee on
+  // it once the provider has added it.
+  private async chargeAndFee(
+    account: string,
+    paymentIntentId: string,
+  ): Promise<{ charge: Stripe.Charge | null; feeId: string | undefined }> {
+    const paymentIntent = await this.stripe.paymentIntents.retrieve(
+      paymentIntentId,
+      { expand: ['latest_charge'] },
+      { stripeAccount: account },
+    );
+    const charge =
+      paymentIntent.latest_charge &&
+      typeof paymentIntent.latest_charge !== 'string'
+        ? paymentIntent.latest_charge
+        : null;
+    const feeId =
+      typeof charge?.application_fee === 'string'
+        ? charge.application_fee
+        : charge?.application_fee?.id;
+    return { charge, feeId };
+  }
+
+  // How long to wait between two looks for a fee the provider has not added
+  // yet; replaced in tests.
+  waitBeforeFeeLook = (ms: number) =>
+    new Promise<void>((resolve) => setTimeout(resolve, ms));
 
   // Brings CircleSfera's fee on a payment made on a creator's account down
   // to what is due. The fee is asked when the checkout opens, before the
@@ -242,20 +314,17 @@ export class StripeService implements OnModuleInit {
     paymentIntentId: string;
     feeDueCents: number;
   }): Promise<void> {
-    const paymentIntent = await this.stripe.paymentIntents.retrieve(
-      params.paymentIntentId,
-      { expand: ['latest_charge'] },
-      { stripeAccount: params.account },
-    );
-    const charge =
-      paymentIntent.latest_charge &&
-      typeof paymentIntent.latest_charge !== 'string'
-        ? paymentIntent.latest_charge
-        : null;
-    const feeId =
-      typeof charge?.application_fee === 'string'
-        ? charge.application_fee
-        : charge?.application_fee?.id;
+    // The provider adds the fee to the charge a moment after the payment
+    // notice is sent: it is looked for a few times before the notice is left
+    // to be tried again, so the buyer gets what they paid for at once.
+    let feeId: string | undefined;
+    for (let look = 0; look < FEE_LOOKS && !feeId; look++) {
+      if (look > 0) await this.waitBeforeFeeLook(FEE_LOOK_INTERVAL_MS);
+      ({ feeId } = await this.chargeAndFee(
+        params.account,
+        params.paymentIntentId,
+      ));
+    }
     if (!feeId) {
       throw new Error(
         `Payment ${params.paymentIntentId} has no fee to settle on account ${params.account}`,

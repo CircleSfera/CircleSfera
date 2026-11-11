@@ -390,20 +390,100 @@ describe('StripeService refund of a payment to a creator', () => {
     );
   });
 
-  it('refunds only the amount asked when one is given', async () => {
-    const { service } = serviceWith();
+  describe('in part', () => {
+    // 1000 paid; a fee of 200 asked, 35 of it given back on the VAT: 165 kept.
+    const paid = (refunded: number, feeRefunds: Array<[number, string]>) => {
+      client.paymentIntents.retrieve.mockReset().mockResolvedValue({
+        latest_charge: {
+          amount: 1000,
+          amount_refunded: refunded,
+          application_fee: 'fee_9',
+        },
+      });
+      client.applicationFees.retrieve.mockReset().mockResolvedValue({
+        id: 'fee_9',
+        amount: 200,
+        amount_refunded: feeRefunds.reduce((sum, [amount]) => sum + amount, 0),
+        refunds: {
+          data: feeRefunds.map(([amount, reason]) => ({
+            amount,
+            metadata: { reason },
+          })),
+        },
+      });
+      client.applicationFees.createRefund.mockReset();
+    };
+    const refund = (service: StripeService, amountInCents: number) =>
+      service.refundCreatorPayment({
+        account: 'acct_creator',
+        paymentIntentId: 'pi_9',
+        amountInCents,
+        idempotencyKey: 'key-9',
+      });
 
-    await service.refundCreatorPayment({
-      account: 'acct_creator',
-      paymentIntentId: 'pi_9',
-      amountInCents: 250,
-      idempotencyKey: 'key-9',
+    it('refunds only the amount asked, and gives back its share of the fee kept, not of the fee asked', async () => {
+      const { service } = serviceWith();
+      paid(300, [[35, 'vat']]);
+
+      await refund(service, 300);
+
+      expect(client.refunds.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 300, refund_application_fee: false }),
+        { stripeAccount: 'acct_creator', idempotencyKey: 'key-9' },
+      );
+      // 30% of the 165 kept, not 30% of the 200 asked (60).
+      expect(client.applicationFees.createRefund).toHaveBeenCalledWith(
+        'fee_9',
+        { amount: 50, metadata: { reason: 'refund' } },
+        { idempotencyKey: 'fee-refund-re_9' },
+      );
     });
 
-    expect(client.refunds.create).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 250, refund_application_fee: true }),
-      { stripeAccount: 'acct_creator', idempotencyKey: 'key-9' },
-    );
+    it('gives back only what is still due after an earlier part', async () => {
+      const { service } = serviceWith();
+      // 300 then 200 refunded: half of 165 is due, 50 went back already.
+      paid(500, [
+        [35, 'vat'],
+        [50, 'refund'],
+      ]);
+
+      await refund(service, 200);
+
+      expect(client.applicationFees.createRefund).toHaveBeenCalledWith(
+        'fee_9',
+        { amount: 33, metadata: { reason: 'refund' } },
+        { idempotencyKey: 'fee-refund-re_9' },
+      );
+    });
+
+    it('gives no fee back when the payment shows no fee', async () => {
+      const { service } = serviceWith();
+      paid(300, []);
+      client.paymentIntents.retrieve.mockResolvedValue({
+        latest_charge: {
+          amount: 1000,
+          amount_refunded: 300,
+          application_fee: null,
+        },
+      });
+
+      await refund(service, 300);
+
+      expect(client.applicationFees.retrieve).not.toHaveBeenCalled();
+      expect(client.applicationFees.createRefund).not.toHaveBeenCalled();
+    });
+
+    it('gives nothing back when nothing more is due', async () => {
+      const { service } = serviceWith();
+      paid(300, [
+        [35, 'vat'],
+        [50, 'refund'],
+      ]);
+
+      await refund(service, 300);
+
+      expect(client.applicationFees.createRefund).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -469,19 +549,60 @@ describe("StripeService settling CircleSfera's fee on a payment to a creator", (
     expect(client.applicationFees.createRefund).not.toHaveBeenCalled();
   });
 
+  it('waits the time it is given between two looks', async () => {
+    vi.useFakeTimers();
+    try {
+      const { service } = serviceWith();
+      let waited = false;
+      const wait = service.waitBeforeFeeLook(1000).then(() => {
+        waited = true;
+      });
+      await vi.advanceTimersByTimeAsync(999);
+      expect(waited).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await wait;
+      expect(waited).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('looks again for a fee the provider has not added yet, and settles it', async () => {
+    const { service } = serviceWith();
+    service.waitBeforeFeeLook = vi.fn().mockResolvedValue(undefined);
+    client.paymentIntents.retrieve
+      .mockResolvedValueOnce({ latest_charge: { application_fee: null } })
+      .mockResolvedValueOnce({ latest_charge: { application_fee: null } })
+      .mockResolvedValue({ latest_charge: { application_fee: 'fee_9' } });
+    feeOf({ amount: 200, amount_refunded: 0 });
+
+    await settle(service, 165);
+
+    expect(client.paymentIntents.retrieve).toHaveBeenCalledTimes(3);
+    expect(service.waitBeforeFeeLook).toHaveBeenCalledTimes(2);
+    expect(service.waitBeforeFeeLook).toHaveBeenCalledWith(1000);
+    expect(client.applicationFees.createRefund).toHaveBeenCalledWith(
+      'fee_9',
+      { amount: 35, metadata: { reason: 'vat' } },
+      { idempotencyKey: 'fee-settle-pi_9' },
+    );
+  });
+
   it.each([
     [{ latest_charge: 'ch_9' }],
     [{ latest_charge: null }],
     [{ latest_charge: { application_fee: null } }],
   ])(
-    'fails, so the notice is tried again, when the payment shows no fee yet (%j)',
+    'fails, so the notice is tried again, when the payment still shows no fee after six looks (%j)',
     async (intent) => {
       const { service } = serviceWith();
+      service.waitBeforeFeeLook = vi.fn().mockResolvedValue(undefined);
       client.paymentIntents.retrieve.mockResolvedValue(intent);
 
       await expect(settle(service, 165)).rejects.toThrow(
         'Payment pi_9 has no fee to settle on account acct_creator',
       );
+      expect(client.paymentIntents.retrieve).toHaveBeenCalledTimes(6);
       expect(client.applicationFees.createRefund).not.toHaveBeenCalled();
     },
   );

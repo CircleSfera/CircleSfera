@@ -55,6 +55,12 @@ describe('MonetizationWebhookService', () => {
               update: vi.fn(),
             },
             tipReservation: { deleteMany: vi.fn() },
+            // No dispute reported before its payment, unless a test says so.
+            paymentDispute: {
+              findMany: vi.fn().mockResolvedValue([]),
+              findUnique: vi.fn().mockResolvedValue(null),
+              update: vi.fn(),
+            },
             monetization: {
               upsert: vi.fn(),
               update: vi.fn(),
@@ -163,6 +169,66 @@ describe('MonetizationWebhookService', () => {
           update: {},
         }),
       );
+    });
+
+    describe('a dispute reported before its payment was recorded', () => {
+      const session = {
+        id: 'cs_unlock_2',
+        client_reference_id: 'buyer1',
+        amount_total: 1000,
+        currency: 'eur',
+        payment_intent: 'pi_disputed',
+        metadata: {
+          type: 'DIRECT_POST_UNLOCK',
+          postId: 'post1',
+          creatorId: 'creator1',
+        },
+      } as any;
+      const recorded = {
+        id: 'tx-new',
+        type: 'DIRECT_POST_UNLOCK',
+        status: 'COMPLETED',
+        amount: 1000,
+        senderId: 'buyer1',
+        postId: 'post1',
+      };
+
+      it('is tied to the payment and applied once the payment is recorded', async () => {
+        (prisma.paymentDispute.findMany as any).mockResolvedValueOnce([
+          {
+            id: 'pd-1',
+            stripeDisputeId: 'du_early',
+            status: 'lost',
+            transactionId: null,
+          },
+        ]);
+        (prisma.transaction.findUnique as any).mockResolvedValue(recorded);
+
+        await service.handleCheckoutSessionCompleted(session);
+
+        expect(prisma.paymentDispute.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { stripePaymentIntentId: 'pi_disputed' },
+          }),
+        );
+        expect(prisma.paymentDispute.update).toHaveBeenCalledWith({
+          where: { id: 'pd-1' },
+          data: { transactionId: 'tx-new' },
+        });
+        // Lost: the payment is refunded and the buyer loses the post.
+        expect(prisma.transaction.update).toHaveBeenCalledWith({
+          where: { id: 'tx-new' },
+          data: { status: 'REFUNDED' },
+        });
+        expect(prisma.postUnlock.deleteMany).toHaveBeenCalled();
+      });
+
+      it('changes nothing for a payment no dispute was reported about', async () => {
+        await service.handleCheckoutSessionCompleted(session);
+
+        expect(prisma.paymentDispute.update).not.toHaveBeenCalled();
+        expect(prisma.transaction.update).not.toHaveBeenCalled();
+      });
     });
 
     it('processes a DIRECT_POST_UNLOCK checkout', async () => {

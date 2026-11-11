@@ -532,6 +532,44 @@ export class MonetizationWebhookService {
       // VIP Subscriptions removed in Phase 11
       this.logger.debug('Legacy VIP Subscription event ignored.');
     }
+
+    await this.applyEarlierDisputes(session);
+  }
+
+  // A dispute can be reported before the payment it is about is recorded:
+  // its notice found no payment then and changed nothing. Once the payment
+  // is recorded, each dispute already mirrored for it is tied to it and
+  // applied, as its notice would have been.
+  private async applyEarlierDisputes(
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    const paymentIntentId = stripeId(session.payment_intent);
+    if (!paymentIntentId) return;
+    const disputes = await this.prisma.paymentDispute.findMany({
+      where: { stripePaymentIntentId: paymentIntentId },
+      select: {
+        id: true,
+        stripeDisputeId: true,
+        status: true,
+        transactionId: true,
+      },
+    });
+    if (disputes.length === 0) return;
+    const tx = await this.paymentOf(paymentIntentId);
+    if (!tx) return;
+    for (const dispute of disputes) {
+      if (!dispute.transactionId) {
+        await this.prisma.paymentDispute.update({
+          where: { id: dispute.id },
+          data: { transactionId: tx.id },
+        });
+      }
+      await this.applyDisputeToPayment({
+        id: dispute.stripeDisputeId,
+        payment_intent: paymentIntentId,
+        status: dispute.status,
+      });
+    }
   }
 
   // CircleSfera's fee was asked on the whole price when the checkout opened,
