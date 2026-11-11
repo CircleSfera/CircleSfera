@@ -141,6 +141,10 @@ export class LiveGiftService {
       }
     }
 
+    // Paused payments are refused before a gift holds anything of the weekly
+    // limit or Stripe is asked anything.
+    await this.stripeService.assertPaymentsEnabled();
+
     const giftPromise = (async () => {
       try {
         // On a retry with the same key, reuse an existing PENDING gift record

@@ -217,6 +217,8 @@ export class MonetizationService {
     // of 24 hours when not given.
     expiresAt?: number;
   }): Promise<{ url: string | null }> {
+    // Paused payments are refused before anything is asked of Stripe.
+    await this.stripeService.assertPaymentsEnabled();
     await assertRealMoneyAllowed(this.prisma, params.buyerId);
     await assertAdultPayer(this.prisma, params.buyerId);
     const taxActive = await this.stripeService.creatorTaxActive(

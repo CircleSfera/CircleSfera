@@ -167,6 +167,15 @@ describe('StripeService checkout, customers and subscriptions', () => {
       expect(client.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
+    it('lets a flow ask before it reaches Stripe, and answers when payments are on', async () => {
+      await expect(
+        withPayments(false).paused.assertPaymentsEnabled(),
+      ).rejects.toMatchObject({ errorCode: ErrorCode.PAYMENTS_PAUSED });
+      await expect(
+        withPayments(true).paused.assertPaymentsEnabled(),
+      ).resolves.toBeUndefined();
+    });
+
     it('opens the checkout once payments are on', async () => {
       const { paused } = withPayments(true);
       client.checkout.sessions.create.mockResolvedValue({ id: 'cs_2' });

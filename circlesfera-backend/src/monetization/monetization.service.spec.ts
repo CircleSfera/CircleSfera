@@ -127,6 +127,7 @@ describe('MonetizationService', () => {
     createCheckoutSession: vi.fn(),
     setCreatorWebsite: vi.fn().mockResolvedValue(undefined),
     // The creator's tax settings are complete unless a test says otherwise.
+    assertPaymentsEnabled: vi.fn().mockResolvedValue(undefined),
     creatorTaxActive: vi.fn().mockResolvedValue(true),
     createExpressAccount: vi.fn(),
     createAccountLink: vi.fn(),
@@ -1146,6 +1147,34 @@ describe('MonetizationService', () => {
       expect(session.metadata.profileId).toBe('hobby-profile');
       expect(JSON.stringify(session)).toContain('Tip for @ana_hobby');
       expect(JSON.stringify(session)).not.toContain('creator@example.com');
+    });
+
+    it('asks Stripe nothing while payments are paused, and holds nothing of the week', async () => {
+      accounts.set('creator-1', 'acct_1');
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce(
+        tippable('creator-1', { id: 'hobby-profile', username: 'ana_hobby' }),
+      );
+      mockPrismaService.user.findUnique.mockResolvedValueOnce({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
+      const paused = new Error('payments paused');
+      mockStripeService.assertPaymentsEnabled.mockRejectedValueOnce(paused);
+
+      await expect(
+        service.createTipSession(
+          'fan-1',
+          'hobby-profile',
+          tipCents,
+          'http://localhost/return',
+          'post-1',
+        ),
+      ).rejects.toBe(paused);
+
+      expect(mockStripeService.creatorTaxActive).not.toHaveBeenCalled();
+      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+      // The hold taken for the checkout is let go.
+      expect(mockPrismaService.tipReservation.delete).toHaveBeenCalled();
     });
 
     it('refuses a tip to another Profile of oneself', async () => {

@@ -119,6 +119,14 @@ export class StripeService implements OnModuleInit {
   ): Promise<Stripe.Checkout.Session> {
     // Every new payment starts here, so pausing payments stops them all:
     // plans, paid content, tips, live gifts and promotions.
+    await this.assertPaymentsEnabled();
+    return this.stripe.checkout.sessions.create(params, options);
+  }
+
+  // Refuses a new payment while staff have paused payments. A flow that asks
+  // Stripe something before its checkout (a creator's tax settings) calls it
+  // first, so a paused payment never reaches Stripe at all.
+  async assertPaymentsEnabled(): Promise<void> {
     if (
       this.systemSettings &&
       !(await this.systemSettings.isEnabled(
@@ -131,7 +139,6 @@ export class StripeService implements OnModuleInit {
         'Payments are paused for now.',
       );
     }
-    return this.stripe.checkout.sessions.create(params, options);
   }
 
   // Retrieve a Checkout Session (optionally expanded).
