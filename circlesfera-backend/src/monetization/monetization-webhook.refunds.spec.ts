@@ -22,7 +22,7 @@ describe('MonetizationWebhookService: refunds and disputes', () => {
       update: vi.fn(),
       updateMany: vi.fn(),
     },
-    paymentDispute: { findUnique: vi.fn() },
+    paymentDispute: { findUnique: vi.fn(), updateMany: vi.fn() },
     postUnlock: { deleteMany: vi.fn() },
     storyUnlock: { deleteMany: vi.fn() },
     messageUnlock: { deleteMany: vi.fn() },

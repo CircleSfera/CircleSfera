@@ -532,6 +532,39 @@ export class MonetizationWebhookService {
       // VIP Subscriptions removed in Phase 11
       this.logger.debug('Legacy VIP Subscription event ignored.');
     }
+
+    await this.applyEarlierDisputes(session);
+  }
+
+  // A dispute can be reported before the payment it is about is recorded:
+  // its notice found no payment then and changed nothing. Once the payment
+  // is recorded, each dispute already mirrored for it is tied to it and
+  // applied, as its notice would have been.
+  private async applyEarlierDisputes(
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    const paymentIntentId = stripeId(session.payment_intent);
+    if (!paymentIntentId) return;
+    const disputes = await this.prisma.paymentDispute.findMany({
+      where: { stripePaymentIntentId: paymentIntentId },
+      select: { stripeDisputeId: true, status: true },
+    });
+    // The payment is recorded already: a failure here is logged, not
+    // thrown, since a replay of the notice could not record it again. The
+    // dispute's next notice applies it then.
+    try {
+      for (const dispute of disputes) {
+        await this.applyDisputeToPayment({
+          id: dispute.stripeDisputeId,
+          payment_intent: paymentIntentId,
+          status: dispute.status,
+        });
+      }
+    } catch (err) {
+      this.logger.error(
+        `Could not apply the disputes reported before payment ${paymentIntentId}: ${String(err)}`,
+      );
+    }
   }
 
   // CircleSfera's fee was asked on the whole price when the checkout opened,
@@ -791,6 +824,11 @@ export class MonetizationWebhookService {
     if (!tx) {
       return;
     }
+    // A dispute mirrored before its payment was recorded is tied to it now.
+    await this.prisma.paymentDispute.updateMany({
+      where: { stripeDisputeId: dispute.id, transactionId: null },
+      data: { transactionId: tx.id },
+    });
 
     if (status === 'won') {
       await this.prisma.transaction.updateMany({

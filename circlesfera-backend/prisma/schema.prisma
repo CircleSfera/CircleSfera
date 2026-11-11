@@ -2131,6 +2131,8 @@ model PaymentDispute {
   @@index([evidenceDueBy])
   @@index([transactionId])
   @@index([userId])
+  // A payment just recorded finds the disputes reported before it.
+  @@index([stripePaymentIntentId])
   @@map("payment_disputes")
 }
 
