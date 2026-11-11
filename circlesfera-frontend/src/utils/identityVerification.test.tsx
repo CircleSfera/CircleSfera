@@ -50,6 +50,20 @@ describe('identity verification notice', () => {
     });
   });
 
+  it('writes in the light text of the dark notice, never in a dark grey', () => {
+    promptIdentityVerification(t);
+    openNotice();
+
+    const title = screen.getByText(
+      t('pricingPage.verification_required_title'),
+    );
+    const desc = screen.getByText(t('pricingPage.verification_required_desc'));
+    // The notice is dark in both themes and writes in white: the title takes
+    // that white, the description a softer white.
+    expect(title.className).not.toMatch(/text-(zinc|gray|neutral|black)/);
+    expect(desc).toHaveClass('text-white/70');
+  });
+
   it('explains what is missing and opens the verification, returning to this page', async () => {
     vi.mocked(usersApi.createIdentitySession).mockResolvedValue({
       url: 'https://verify.stripe.com/start',
