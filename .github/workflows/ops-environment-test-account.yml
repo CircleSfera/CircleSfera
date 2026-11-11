@@ -1,12 +1,17 @@
 name: Ops — test account in an environment
 
 # Creates a Test Account (circlesfera-backend/scripts/create-test-account.ts)
-# in staging or development, with its email already verified: those
-# environments send no email, so an account made from the sign-up form there
-# can never verify it, and can neither post nor go live. Never production.
+# with its email already verified. In staging or development, which send no
+# email, an account made from the sign-up form could never verify it, and
+# could neither post nor go live. In production (owner decision), Test
+# Accounts let the team check a feature end to end where it runs: they see
+# and are seen only by other Test Accounts, move no real money and are left
+# out of every metric.
 #
-# The password is the ENVIRONMENT_TEST_ACCOUNT_PASSWORD secret, set by the
-# person who will sign in with it; it is on no command line and in no log.
+# The password is a secret set by the person who will sign in with it:
+# ENVIRONMENT_TEST_ACCOUNT_PASSWORD for staging and development,
+# PRODUCTION_TEST_ACCOUNT_PASSWORD for production. It is on no command line
+# and in no log.
 # The script refuses an email or a username already in use.
 on:
   workflow_dispatch:
@@ -18,6 +23,7 @@ on:
         options:
           - staging
           - dev
+          - production
       email:
         description: Email of the account (it receives nothing)
         required: true
@@ -29,7 +35,7 @@ on:
 
 # Waits for a deploy of the same environment, and the next deploy waits for it.
 concurrency:
-  group: deploy-environment-${{ inputs.environment }}
+  group: ${{ inputs.environment == 'production' && 'deploy-production' || format('deploy-environment-{0}', inputs.environment) }}
   cancel-in-progress: false
 
 permissions:
@@ -46,12 +52,12 @@ jobs:
           ENV_NAME: ${{ inputs.environment }}
           ACCOUNT_EMAIL: ${{ inputs.email }}
           ACCOUNT_USERNAME: ${{ inputs.username }}
-          ACCOUNT_PASSWORD: ${{ secrets.ENVIRONMENT_TEST_ACCOUNT_PASSWORD }}
+          ACCOUNT_PASSWORD: ${{ inputs.environment == 'production' && secrets.PRODUCTION_TEST_ACCOUNT_PASSWORD || secrets.ENVIRONMENT_TEST_ACCOUNT_PASSWORD }}
           VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
         run: |
           case "$ENV_NAME" in
-            staging|dev) ;;
-            *) echo "Only staging or dev."; exit 1 ;;
+            staging|dev|production) ;;
+            *) echo "Only staging, dev or production."; exit 1 ;;
           esac
           if ! [[ "$ACCOUNT_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
             echo "The email is not valid."
@@ -62,7 +68,7 @@ jobs:
             exit 1
           fi
           if [ "${#ACCOUNT_PASSWORD}" -lt 12 ]; then
-            echo "The ENVIRONMENT_TEST_ACCOUNT_PASSWORD secret is not set (12 characters at least)."
+            echo "The password secret of this environment is not set (12 characters at least)."
             exit 1
           fi
           # Fail closed: without the fingerprint, the SSH step would not
@@ -78,7 +84,7 @@ jobs:
           ENV_NAME: ${{ inputs.environment }}
           ACCOUNT_EMAIL: ${{ inputs.email }}
           ACCOUNT_USERNAME: ${{ inputs.username }}
-          TEST_ACCOUNT_PASSWORD: ${{ secrets.ENVIRONMENT_TEST_ACCOUNT_PASSWORD }}
+          TEST_ACCOUNT_PASSWORD: ${{ inputs.environment == 'production' && secrets.PRODUCTION_TEST_ACCOUNT_PASSWORD || secrets.ENVIRONMENT_TEST_ACCOUNT_PASSWORD }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -89,8 +95,9 @@ jobs:
           script: |
             set -euo pipefail
             case "$ENV_NAME" in
-              staging|dev) ;;
-              *) echo "Only staging or dev."; exit 1 ;;
+              staging|dev) BACKEND="CircleSfera-${ENV_NAME}-Backend" ;;
+              production) BACKEND="CircleSfera-Backend" ;;
+              *) echo "Only staging, dev or production."; exit 1 ;;
             esac
-            docker exec -e TEST_ACCOUNT_PASSWORD "CircleSfera-${ENV_NAME}-Backend" \
+            docker exec -e TEST_ACCOUNT_PASSWORD "$BACKEND" \
               node scripts/create-test-account.ts "$ACCOUNT_EMAIL" "$ACCOUNT_USERNAME"
