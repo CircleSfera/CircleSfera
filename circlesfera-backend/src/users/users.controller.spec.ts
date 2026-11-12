@@ -104,6 +104,29 @@ describe('UsersController', () => {
     );
   });
 
+  it.each([
+    ['500', 30],
+    ['0', 1],
+    ['-4', 1],
+    ['many', 10],
+  ])(
+    'asks for between one and thirty people: %s gives %i',
+    async (limit, count) => {
+      mockUsersService.getSuggestions.mockResolvedValue([]);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/users/suggestions')
+        .query({ limit })
+        .set(BEARER)
+        .expect(200);
+
+      expect(mockUsersService.getSuggestions).toHaveBeenLastCalledWith(
+        TEST_USER.userId,
+        count,
+      );
+    },
+  );
+
   it('rejects ban with a user session', async () => {
     await request(app.getHttpServer())
       .patch('/api/v1/users/user-2/ban')

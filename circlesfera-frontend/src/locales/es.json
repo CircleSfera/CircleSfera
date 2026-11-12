@@ -1846,7 +1846,8 @@
     "how_chosen": "Los perfiles más seguidos que aún no sigues.",
     "reasons": {
       "MOST_FOLLOWED": "De los más seguidos en CircleSfera"
-    }
+    },
+    "empty": "Ahora no hay nadie que sugerirte."
   },
   "onboarding": {
     "creator": "Creador",

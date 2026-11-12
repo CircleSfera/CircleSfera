@@ -1,3 +1,4 @@
+import { SUGGESTIONS_MAX, SUGGESTIONS_SHORT } from '@circlesfera/shared';
 import {
   Body,
   Controller,
@@ -55,10 +56,12 @@ export class UsersController {
     @CurrentUser() user: CurrentUserData,
     @Query('limit') limit?: string,
   ): Promise<Record<string, unknown>[]> {
-    return this.usersService.getSuggestions(
-      user.userId,
-      limit ? Number.parseInt(limit, 10) : 10,
-    );
+    // As many as asked for, from one up to SUGGESTIONS_MAX.
+    const asked = Number.parseInt(limit ?? '', 10);
+    const count = Number.isFinite(asked)
+      ? Math.min(Math.max(asked, 1), SUGGESTIONS_MAX)
+      : SUGGESTIONS_SHORT;
+    return this.usersService.getSuggestions(user.userId, count);
   }
   // Ban a user (admin only).
   @Patch(':id/ban')

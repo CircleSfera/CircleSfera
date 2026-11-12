@@ -1846,7 +1846,8 @@
     "how_chosen": "The most followed Profiles you don't follow yet.",
     "reasons": {
       "MOST_FOLLOWED": "Among the most followed on CircleSfera"
-    }
+    },
+    "empty": "No one to suggest right now."
   },
   "onboarding": {
     "creator": "Creator",

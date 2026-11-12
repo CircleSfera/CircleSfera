@@ -56,6 +56,7 @@ const EditsStudio = lazy(() => import('./pages/EditsStudio'));
 const EditsHome = lazy(() => import('./pages/EditsHome'));
 const Explore = lazy(() => import('./pages/Explore'));
 const ExploreMapPage = lazy(() => import('./pages/explore-map/ExploreMapPage'));
+const SuggestedPeople = lazy(() => import('./pages/SuggestedPeople'));
 const HelpArticle = lazy(() => import('./pages/HelpArticle'));
 const HelpCentre = lazy(() => import('./pages/HelpCentre'));
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
@@ -365,6 +366,16 @@ function App() {
           element={
             <AuthGuard>
               <LiveViewer />
+            </AuthGuard>
+          }
+        />
+
+        {/* Every suggested person — before /explore/:feature */}
+        <Route
+          path="/explore/people"
+          element={
+            <AuthGuard>
+              <SuggestedPeople />
             </AuthGuard>
           }
         />

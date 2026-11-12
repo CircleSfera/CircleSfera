@@ -37,4 +37,14 @@ describe('SuggestionsList', () => {
       ).toBeInTheDocument();
     },
   );
+
+  it('opens every suggestion from See all', async () => {
+    const { i18n } = renderWithProviders(
+      <SuggestionsList layout="horizontal" />,
+    );
+
+    expect(
+      await screen.findByRole('link', { name: i18n!.t('suggestions.see_all') }),
+    ).toHaveAttribute('href', '/explore/people');
+  });
 });
