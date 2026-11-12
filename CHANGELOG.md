@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Changed
 
-- `docker-compose.prod.yml` bind-mounts `ETL_HOST_DIR` so nightly analytics CSV survives container recreates
+- `docker-compose.prod.yml` keeps the nightly analytics CSV in the `etl_data` volume, which the backend can write to; the host folder it mounted before was not writable by the `node` user, so every nightly export failed
 - Monetization doc (`10-roadmap-monetization.md`) now describes shipped Connect Express, 20% fee, Admin Retiros, and promotions. Removed future-tense payout schedule, Custom accounts, and subscriber badges presented as current (gap D3)
 
 ### Added

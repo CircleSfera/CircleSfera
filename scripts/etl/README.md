@@ -20,7 +20,7 @@ CircleSfera exports analytics **read-only** from PostgreSQL. Operational queues 
 | `CLICKHOUSE_URL` | — | Optional. e.g. `https://user:pass@host:8443` |
 | `CLICKHOUSE_DATABASE` | `circlesfera_analytics` | Target database |
 
-On OVH Docker, set `ETL_HOST_DIR=/srv/circlesfera/backups/etl` and `ETL_DIR=/app/circlesfera-backend/backups/etl` in `.env.production` (compose bind mount is shipped).
+On OVH Docker, `docker-compose.prod.yml` mounts the `etl_data` volume at `/app/circlesfera-backend/backups/etl` (the default `ETL_DIR` inside the image). The image makes that folder the `node` user's, and a new volume takes that owner, so the job can write to it. A folder of the host would keep the host's owner and the job would fail with EACCES.
 
 ### ClickHouse setup
 
