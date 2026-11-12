@@ -19,11 +19,13 @@ import {
 import { createControllerApp } from '../common/testing/http-controller.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { HealthController } from './health.controller.js';
+import { LiveKitHealthIndicator } from './livekit-health.indicator.js';
 import { RedisHealthIndicator } from './redis-health.indicator.js';
 
 describe('HealthController', () => {
   let app: INestApplication;
   let mockCheck: Mock;
+  const liveKit = { pingCheck: vi.fn() };
 
   beforeAll(async () => {
     mockCheck = vi.fn();
@@ -43,6 +45,7 @@ describe('HealthController', () => {
           provide: RedisHealthIndicator,
           useValue: { pingCheck: vi.fn() },
         },
+        { provide: LiveKitHealthIndicator, useValue: liveKit },
       ],
     });
   });
@@ -53,6 +56,7 @@ describe('HealthController', () => {
 
   beforeEach(() => {
     mockCheck.mockReset();
+    liveKit.pingCheck.mockReset();
     mockCheck.mockImplementation(async (indicators: Array<() => any>) => {
       for (const fn of indicators) {
         if (typeof fn === 'function') {
@@ -97,5 +101,25 @@ describe('HealthController', () => {
     const callArgs = mockCheck.mock.calls[0][0] as unknown[];
     expect(Array.isArray(callArgs)).toBe(true);
     expect(callArgs.length).toBe(3); // database, redis, storage
+  });
+
+  it('checks what a person uses, the live service included, on the services address', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/health/services')
+      .expect(200);
+
+    expect(res.body).toEqual({ status: 'ok' });
+    const callArgs = mockCheck.mock.calls[0][0] as unknown[];
+    expect(callArgs.length).toBe(4); // database, redis, storage, live
+    expect(liveKit.pingCheck).toHaveBeenCalledWith('live');
+  });
+
+  it('leaves the live service out of the address the container checks', async () => {
+    await request(app.getHttpServer()).get('/api/v1/health').expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/health/readiness')
+      .expect(200);
+
+    expect(liveKit.pingCheck).not.toHaveBeenCalled();
   });
 });

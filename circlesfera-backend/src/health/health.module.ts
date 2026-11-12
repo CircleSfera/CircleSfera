@@ -3,11 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { TerminusModule } from '@nestjs/terminus';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { HealthController } from './health.controller.js';
+import { LiveKitHealthIndicator } from './livekit-health.indicator.js';
 import { RedisHealthIndicator } from './redis-health.indicator.js';
 
 @Module({
   imports: [TerminusModule, PrismaModule, ConfigModule],
   controllers: [HealthController],
-  providers: [RedisHealthIndicator],
+  providers: [RedisHealthIndicator, LiveKitHealthIndicator],
 })
 export class HealthModule {}

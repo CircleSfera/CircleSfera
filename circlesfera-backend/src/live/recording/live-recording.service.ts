@@ -21,6 +21,7 @@ import {
 } from 'livekit-server-sdk';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { UploadsService } from '../../uploads/uploads.service.js';
+import { liveKitApiUrl } from '../livekit-api-url.js';
 import {
   COHOST_PARTS_MAX,
   guestFileName,
@@ -123,15 +124,8 @@ export class LiveRecordingService {
       : RECORDINGS_AT_ONCE_DEFAULT;
   }
 
-  // The live service's address for its API: LIVEKIT_API_URL, or the address
-  // browsers use, with http in place of ws.
   private apiUrl(): string {
-    const explicit = this.config.get<string>('LIVEKIT_API_URL');
-    if (explicit) return explicit;
-    return (this.config.get<string>('LIVEKIT_URL') ?? '').replace(
-      /^ws(s?):\/\//i,
-      'http$1://',
-    );
+    return liveKitApiUrl(this.config);
   }
 
   private credentials(): [string, string] {
