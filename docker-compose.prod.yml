@@ -89,8 +89,10 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     volumes:
       - uploads_data:/app/circlesfera-backend/uploads
-      # Analytics ETL CSV (BullMQ nightly job). Host path: ETL_HOST_DIR in .env.production.
-      - ${ETL_HOST_DIR:-./backups/etl}:/app/circlesfera-backend/backups/etl
+      # Analytics ETL CSV (BullMQ nightly job). A named volume, not a host
+      # folder: the image makes the folder the node user's, and a new volume
+      # takes that owner, so the job (running as node) can write to it.
+      - etl_data:/app/circlesfera-backend/backups/etl
       # Recordings of broadcasts, written by the recorder below.
       - recordings_data:/app/circlesfera-backend/recordings
     depends_on:
@@ -243,6 +245,7 @@ volumes:
   redis_data:
   uploads_data:
   recordings_data:
+  etl_data:
 
 networks:
   circlesfera-network:

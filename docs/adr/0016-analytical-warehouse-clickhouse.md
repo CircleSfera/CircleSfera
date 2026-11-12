@@ -38,6 +38,7 @@ CircleSfera needs analytical KPIs (Trust MTTR aggregates, monetization MRR, rete
 - **How long:**
   - Rows older than 24 months are dropped by a table TTL.
   - The nightly CSVs are deleted 7 days after export (`ETL_RETENTION_DAYS`).
+  - In production they live in the `etl_data` Docker volume, owned by the `node` user the backend runs as. They are a step on the way into the warehouse, not a backup: a lost folder is exported again.
   - When a person's account is erased, their rows are deleted from ClickHouse too.
 - **Backups:** none. ClickHouse holds a copy of what Postgres holds and is rebuilt from it.
 - **Dashboards:** not part of this step.

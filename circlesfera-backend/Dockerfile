@@ -53,8 +53,9 @@ COPY --chown=node:node circlesfera-backend/prisma ./prisma/
 # prisma.config.ts is required by Prisma 7 to resolve DATABASE_URL at migrate/runtime
 COPY --chown=node:node circlesfera-backend/prisma.config.ts ./
 
-# Create uploads directory and set permissions
-RUN mkdir -p uploads && chown -R node:node uploads
+# Folders the app writes to, owned by the node user it runs as. A named
+# volume mounted on one of them takes this owner when it is first created.
+RUN mkdir -p uploads backups/etl && chown -R node:node uploads backups
 
 # Install only production dependencies
 RUN apk add --no-cache ffmpeg
