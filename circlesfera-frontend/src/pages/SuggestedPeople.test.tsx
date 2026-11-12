@@ -1,7 +1,7 @@
 import { SUGGESTIONS_MAX } from '@circlesfera/shared';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { usersApi } from '../services';
+import { followsApi, usersApi } from '../services';
 import { renderWithProviders } from '../test/test-utils';
 import SuggestedPeople from './SuggestedPeople';
 
@@ -49,5 +49,26 @@ describe('SuggestedPeople', () => {
     expect(
       await screen.findByText(i18n!.t('suggestions.empty')),
     ).toBeInTheDocument();
+  });
+
+  it('takes someone followed off the list, and says so once nobody is left', async () => {
+    vi.mocked(usersApi.getSuggestions).mockResolvedValue({
+      data: [person(1)],
+    } as never);
+    vi.mocked(followsApi.toggle).mockResolvedValue({
+      data: { following: true, status: 'ACCEPTED' },
+    } as never);
+    const { i18n } = renderWithProviders(<SuggestedPeople />);
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: i18n!.t('suggestions.follow'),
+      }),
+    );
+
+    expect(
+      await screen.findByText(i18n!.t('suggestions.empty')),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 });

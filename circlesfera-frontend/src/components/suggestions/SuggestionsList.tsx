@@ -85,7 +85,7 @@ export const SuggestionsList: React.FC<{
         </span>
         <Link
           to="/explore/people"
-          className="text-xs font-black uppercase tracking-wider text-brand-primary-text hover:text-brand-secondary transition-colors"
+          className="inline-flex items-center min-h-11 px-2 -mr-2 text-xs font-black uppercase tracking-wider text-brand-primary-text hover:text-brand-secondary transition-colors"
         >
           {t('suggestions.see_all')}
         </Link>
