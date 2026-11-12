@@ -7,7 +7,9 @@ name: Ops — analytics warehouse report
 # never a row, an id or a setting. It also shows, from the backend, whether
 # the warehouse address is set (set or unset only) and how many rows each of
 # the last three nightly exports wrote, so an empty table can be told from a
-# load that did not happen. The ClickHouse password is read inside
+# load that did not happen. And whether the backend can write its export
+# folder, and the nightly job's counts in its queue with the first line of
+# the kind of its last failure (a fixed label, never the message). The ClickHouse password is read inside
 # its own container and never leaves it.
 on:
   workflow_dispatch: {}
@@ -82,3 +84,25 @@ jobs:
                 done
                 echo
               done'
+            echo "== The export folder, as the backend sees it"
+            docker exec CircleSfera-Backend sh -c '
+              root=/app/circlesfera-backend/backups/etl
+              if [ ! -d "$root" ]; then echo "missing"; elif [ -w "$root" ]; then echo "present, writable"; else echo "present, NOT writable by the backend"; fi'
+            echo "== The nightly job in its queue (counts, and the kind of the last failure)"
+            docker exec CircleSfera-Redis sh -c '
+              r() { redis-cli -a "$REDIS_PASSWORD" --no-auth-warning "$@"; }
+              echo "completed: $(r ZCARD bull:warehouse-export:completed)  failed: $(r ZCARD bull:warehouse-export:failed)  scheduled: $(r ZCARD bull:warehouse-export:delayed)"
+              last=$(r ZREVRANGE bull:warehouse-export:failed 0 0)
+              if [ -n "$last" ]; then
+                # A fixed kind, never the message: the message of a failed load can
+                # quote the data it was sending.
+                reason=$(r HGET "bull:warehouse-export:$last" failedReason)
+                case "$reason" in
+                  *EACCES*|*EPERM*) kind="cannot write the export folder" ;;
+                  *ENOENT*) kind="a path is missing" ;;
+                  *ClickHouse*) kind="the load into the warehouse failed" ;;
+                  *Prisma*|*database*|*Database*) kind="reading the database failed" ;;
+                  *) kind="another error" ;;
+                esac
+                echo "last failure: $kind"
+              fi'
