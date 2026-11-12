@@ -4,7 +4,10 @@ name: Ops — analytics warehouse report
 # rows, its size, and the newest row, so a load can be seen to have
 # happened without reading any log (more rows, or a newer updatedAt). Read-only: it changes nothing. Actions
 # logs are public, so it prints only table names, counts, sizes and dates,
-# never a row, an id or a setting. The ClickHouse password is read inside
+# never a row, an id or a setting. It also shows, from the backend, whether
+# the warehouse address is set (set or unset only) and how many rows each of
+# the last three nightly exports wrote, so an empty table can be told from a
+# load that did not happen. The ClickHouse password is read inside
 # its own container and never leaves it.
 on:
   workflow_dispatch: {}
@@ -65,3 +68,17 @@ jobs:
               printf '%s\t' "$t"
               docker exec -e T="$t" CircleSfera-ClickHouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database "$CLICKHOUSE_DB" --query "SELECT count(), max(updatedAt) FROM $T FORMAT TSV"'
             done
+            echo "== The backend's side"
+            # Only whether the address is set, never its value.
+            docker exec CircleSfera-Backend sh -c '[ -n "${CLICKHOUSE_URL:-}" ] && echo "CLICKHOUSE_URL: set" || echo "CLICKHOUSE_URL: unset"'
+            echo "== The last nightly exports (folder, then rows of each CSV, header left out)"
+            docker exec CircleSfera-Backend sh -c '
+              root=/app/circlesfera-backend/backups/etl
+              ls -1 "$root" 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}T" | sort | tail -3 | while read -r d; do
+                printf "%s" "$d"
+                for f in "$root/$d"/*.csv; do
+                  [ -e "$f" ] || continue
+                  printf "  %s=%s" "$(basename "$f" .csv)" "$(( $(wc -l < "$f") - 1 ))"
+                done
+                echo
+              done'
