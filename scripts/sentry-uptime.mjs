@@ -13,11 +13,15 @@ const TOKEN = process.env.SENTRY_WRITE_TOKEN;
 const API = 'https://de.sentry.io/api/0';
 const ORG = 'circlesfera';
 // What is checked from outside the server. The plan allows one uptime check,
-// so it is the API's health: it fails when the server, its proxy, the API,
-// the database or the cache is down. The home page is static and answers
-// even when the API is down, so it no longer takes the one check.
+// so it is the API's services address: it fails when the server, its proxy,
+// the API, the database, the cache, storage or the live service is down. The
+// home page is static and answers even when the API is down, so it does not
+// take the one check.
 const TARGETS = [
-  { name: 'API health', url: 'https://circlesfera.com/api/v1/health' },
+  {
+    name: 'API services',
+    url: 'https://circlesfera.com/api/v1/health/services',
+  },
 ];
 const ALERT_NAME = 'CircleSfera is down';
 // The projects whose checks are read, by id: the list for the whole
