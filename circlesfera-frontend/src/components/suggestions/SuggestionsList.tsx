@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { usersApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import type { SuggestedUser } from '../../types';
@@ -82,12 +83,12 @@ export const SuggestionsList: React.FC<{
         <span className="font-black text-zinc-400 text-xs uppercase tracking-wide">
           {t('suggestions.title')}
         </span>
-        <button
-          type="button"
+        <Link
+          to="/explore/people"
           className="text-xs font-black uppercase tracking-wider text-brand-primary-text hover:text-brand-secondary transition-colors"
         >
           {t('suggestions.see_all')}
-        </button>
+        </Link>
       </div>
       <p className="px-4 mb-4 text-xs text-zinc-400">
         {t('suggestions.how_chosen')}

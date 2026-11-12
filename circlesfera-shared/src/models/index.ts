@@ -403,6 +403,10 @@ export interface Purchase {
  * the most followed Profiles the viewer does not follow yet.
  */
 export const SUGGESTION_REASONS = ['MOST_FOLLOWED'] as const;
+/** How many people a list of suggestions asks for, at most. */
+export const SUGGESTIONS_MAX = 30;
+/** How many people a short list of suggestions shows. */
+export const SUGGESTIONS_SHORT = 10;
 export type SuggestionReason = (typeof SUGGESTION_REASONS)[number];
 
 export interface SuggestedUser {
