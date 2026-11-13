@@ -1,0 +1,67 @@
+name: Ops — creator payments report
+
+# Counts what production holds of the payments to creators, before that model
+# is removed (BD-026): payments by kind and state, unlocks, tips, gifts,
+# payout accounts, payouts, disputes, things on sale, the monetization
+# programme, and the Platform Plan subscriptions by state. Read-only: the
+# session is read-only, so it can change nothing. Actions logs are public, so
+# it prints only counts and totals in cents, never a row, an id or a name.
+on:
+  workflow_dispatch: {}
+
+# Its own queue: it never waits for a deploy, and never takes the place of
+# one in the deploy-production queue.
+concurrency:
+  group: creator-payments-report
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Count creator payments
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Counts and totals
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            # The queries come on standard input, so they need no quoting
+            # inside the shell; the database credentials stay in the
+            # database's own container.
+            docker exec -i CircleSfera-Postgres sh -c 'PGOPTIONS="-c default_transaction_read_only=on" psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" --pset=footer=off' <<'SQL'
+            \echo == Payments by kind, state and currency (count, total cents)
+            SELECT type, status, currency, count(*), sum(amount) FROM transactions GROUP BY type, status, currency ORDER BY type, status, currency;
+            \echo == Payments to creators: first and last month
+            SELECT to_char(min("createdAt"), 'YYYY-MM') AS first, to_char(max("createdAt"), 'YYYY-MM') AS last FROM transactions WHERE type::text LIKE 'DIRECT_%';
+            \echo == Unlocks, tips being paid, gifts
+            SELECT (SELECT count(*) FROM post_unlocks) AS post_unlocks, (SELECT count(*) FROM story_unlocks) AS story_unlocks, (SELECT count(*) FROM message_unlocks) AS message_unlocks, (SELECT count(*) FROM tip_reservations) AS tip_reservations, (SELECT count(*) FROM live_gifts) AS live_gifts;
+            \echo == Payout accounts, payouts, disputes
+            SELECT (SELECT count(*) FROM monetization) AS payout_rows, (SELECT count(*) FROM monetization WHERE "stripeConnectAccountId" IS NOT NULL) AS connected_accounts, (SELECT count(*) FROM stripe_payout_logs) AS payouts, (SELECT count(*) FROM payment_disputes) AS disputes;
+            \echo == On sale now
+            SELECT (SELECT count(*) FROM posts WHERE "priceCents" > 0) AS paid_posts, (SELECT count(*) FROM stories WHERE "priceCents" > 0) AS paid_stories, (SELECT count(*) FROM messages WHERE "isLocked") AS locked_messages;
+            \echo == Monetization programme
+            SELECT "monetizationStatus", count(*) FROM profiles GROUP BY 1 ORDER BY 1;
+            \echo == Platform Plan subscriptions by state
+            SELECT status, count(*) FROM platform_subscriptions GROUP BY 1 ORDER BY 1;
+            SQL
