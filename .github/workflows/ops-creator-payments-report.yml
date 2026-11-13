@@ -50,8 +50,8 @@ jobs:
             # inside the shell; the database credentials stay in the
             # database's own container.
             docker exec -i CircleSfera-Postgres sh -c 'PGOPTIONS="-c default_transaction_read_only=on" psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" --pset=footer=off' <<'SQL'
-            \echo == Payments by kind and state (count, total cents)
-            SELECT type, status, count(*), sum(amount) FROM transactions GROUP BY type, status ORDER BY type, status;
+            \echo == Payments by kind, state and currency (count, total cents)
+            SELECT type, status, currency, count(*), sum(amount) FROM transactions GROUP BY type, status, currency ORDER BY type, status, currency;
             \echo == Payments to creators: first and last month
             SELECT to_char(min("createdAt"), 'YYYY-MM') AS first, to_char(max("createdAt"), 'YYYY-MM') AS last FROM transactions WHERE type::text LIKE 'DIRECT_%';
             \echo == Unlocks, tips being paid, gifts
