@@ -234,6 +234,31 @@ describe('EmailService', () => {
       );
     });
 
+    it('sends the company decision in the person language, with the notice as its text', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ locale: 'en' });
+      await service.sendCompanyVerificationDecided('ana@example.com', {
+        key: 'company_rejected',
+        reason: 'DOCUMENTS_UNREADABLE',
+      });
+      expect(mockEmailQueue.add).toHaveBeenLastCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({
+          to: 'ana@example.com',
+          subject: 'Your CircleSfera company verification',
+          html: expect.stringContaining('The documents could not be read.'),
+        }),
+      );
+      await service.sendCompanyVerificationDecided('ana@example.com', {
+        key: 'company_verified',
+      });
+      expect(mockEmailQueue.add).toHaveBeenLastCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({
+          subject: 'Tu empresa está verificada en CircleSfera',
+        }),
+      );
+    });
+
     it('enqueues the link that enrols a staff authenticator, with the link as its button', async () => {
       await service.sendStaffEnrolmentEmail(
         'staff@example.com',

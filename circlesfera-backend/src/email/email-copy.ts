@@ -44,6 +44,13 @@ export interface EmailCopy {
     body: string;
     footer: string;
   };
+  // The body is the notice the person also reads in the app.
+  companyDecided: {
+    approvedSubject: string;
+    approvedTitle: string;
+    rejectedSubject: string;
+    rejectedTitle: string;
+  };
   accountBanned: { subject: string; title: string; body: string };
   // A notice of illegal content: its receipt, and the decision on it.
   noticeReceived: { subject: string; title: string; body: string };
@@ -126,6 +133,12 @@ const en: EmailCopy = {
     button: 'Verify email',
     footer:
       'If you did not create this account, you can safely ignore this email.',
+  },
+  companyDecided: {
+    approvedSubject: 'Your company is verified on CircleSfera',
+    approvedTitle: 'Company verified',
+    rejectedSubject: 'Your CircleSfera company verification',
+    rejectedTitle: 'Company verification not approved',
   },
   companyDomainCode: {
     subject: 'Your CircleSfera company verification code',
@@ -266,6 +279,12 @@ const es: EmailCopy = {
     button: 'Verificar email',
     footer:
       'Si no has creado esta cuenta, puedes ignorar este correo de forma segura.',
+  },
+  companyDecided: {
+    approvedSubject: 'Tu empresa está verificada en CircleSfera',
+    approvedTitle: 'Empresa verificada',
+    rejectedSubject: 'Tu verificación de empresa en CircleSfera',
+    rejectedTitle: 'Verificación de empresa no aprobada',
   },
   companyDomainCode: {
     subject: 'Tu código de verificación de empresa en CircleSfera',

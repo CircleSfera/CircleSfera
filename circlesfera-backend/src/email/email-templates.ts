@@ -201,6 +201,22 @@ export const EmailTemplates = {
     };
   },
 
+  // A decision on a company verification; the text is the notice, escaped.
+  companyDecided: (
+    ctx: EmailContext,
+    approved: boolean,
+    text: string,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale].companyDecided;
+    return {
+      subject: approved ? copy.approvedSubject : copy.rejectedSubject,
+      html: layout(ctx, EMAIL_COPY[ctx.locale], {
+        title: approved ? copy.approvedTitle : copy.rejectedTitle,
+        content: escapeHtml(text),
+      }),
+    };
+  },
+
   // A code of digits only, shown large.
   companyDomainCode: (ctx: EmailContext, code: string): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];

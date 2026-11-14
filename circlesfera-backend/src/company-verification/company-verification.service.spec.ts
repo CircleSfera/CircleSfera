@@ -57,7 +57,10 @@ describe('CompanyVerificationService', () => {
     vi.clearAllMocks();
     open = null;
     prisma = {
-      profile: { findFirst: vi.fn().mockResolvedValue(owner) },
+      profile: {
+        findFirst: vi.fn().mockResolvedValue(owner),
+        findUnique: vi.fn().mockResolvedValue({ username: 'acme' }),
+      },
       user: {
         findUnique: vi.fn().mockResolvedValue({ email: 'ana@example.com' }),
       },
@@ -647,6 +650,18 @@ describe('CompanyVerificationService', () => {
       ).toMatchObject({ status: 'PENDING' });
     });
 
+    it('sending leaves an earlier approval as it is', async () => {
+      open = application({
+        domainProvedAt: new Date(),
+        emailVerifiedAt: new Date(),
+        emailAddress: 'info@acme.es',
+      });
+      prisma.companyVerificationDocument.count.mockResolvedValue(1);
+      await service.submit('u-1', 'prof-1');
+      // Only the hold of the draft: no earlier approval is replaced.
+      expect(prisma.companyVerification.updateMany).toHaveBeenCalledTimes(1);
+    });
+
     it('a code confirmed on another domain does not count', async () => {
       open = application({
         domainProvedAt: new Date(),
@@ -702,11 +717,21 @@ describe('CompanyVerificationService', () => {
       expect(
         prisma.companyVerificationDocument.deleteMany,
       ).toHaveBeenCalledWith({ where: { verificationId: 'app-1' } });
-      expect(prisma.companyVerification.update).toHaveBeenCalledWith(
+      // Only while still open.
+      expect(prisma.companyVerification.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: { id: 'app-1', status: { in: ['DRAFT', 'PENDING'] } },
           data: expect.objectContaining({ status: 'WITHDRAWN' }),
         }),
       );
+    });
+
+    it('a decision made meanwhile stands: the withdrawal changes nothing', async () => {
+      open = application({ status: 'PENDING' });
+      prisma.companyVerification.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(service.withdraw('u-1', 'prof-1')).rejects.toMatchObject({
+        errorCode: 'COMPANY_VERIFICATION_LOCKED',
+      });
     });
 
     it('only the owner withdraws', async () => {

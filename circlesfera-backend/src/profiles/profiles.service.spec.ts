@@ -20,6 +20,7 @@ describe('ProfilesService', () => {
   const mockPrismaService: any = {
     $transaction: vi.fn((cb: any) => cb(mockPrismaService)),
     storedFile: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    companyVerification: { findFirst: vi.fn().mockResolvedValue(null) },
     profileMember: {
       findUnique: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn(),
@@ -91,7 +92,8 @@ describe('ProfilesService', () => {
 
       const result = await service.getProfile('cacheduser');
       expect(mockCacheManager.get).toHaveBeenCalledWith('profile:cacheduser');
-      expect(result).toEqual(cached);
+      // The company mark is read fresh, never from the cache.
+      expect(result).toEqual({ ...cached, verifiedCompany: false });
     });
 
     it('should throw NotFoundException if profile is not found in cache or DB', async () => {
@@ -244,8 +246,11 @@ describe('ProfilesService', () => {
       expect(result._count).not.toHaveProperty('strikes');
       // Dated by the Profile, not by the person's sign-up.
       expect(result.joinedAt).toBe('2026-02-03T00:00:00.000Z');
-      // What is cached is the same closed view.
-      expect(mockCacheManager.set.mock.calls[0][1]).toEqual(result);
+      // What is cached is the same closed view, without the company mark,
+      // which is read fresh on every view.
+      const { verifiedCompany, ...cachedView } = result;
+      expect(verifiedCompany).toBe(false);
+      expect(mockCacheManager.set.mock.calls[0][1]).toEqual(cachedView);
     });
 
     describe('business presentation', () => {
@@ -328,6 +333,7 @@ describe('ProfilesService', () => {
         id: 'p-target',
         username: 'cacheduser',
         _count: { posts: 1, followers: 2, following: 3 },
+        verifiedCompany: false,
       });
     });
 
@@ -337,7 +343,7 @@ describe('ProfilesService', () => {
       mockPrismaService.block.findFirst.mockResolvedValue(null);
 
       const result = await service.getProfile('cacheduser', 'p-viewer');
-      expect(result).toEqual(cached);
+      expect(result).toEqual({ ...cached, verifiedCompany: false });
     });
 
     it('skips the block check when the viewer is looking at their own profile', async () => {
@@ -345,7 +351,7 @@ describe('ProfilesService', () => {
       mockCacheManager.get.mockResolvedValue(cached);
 
       const result = await service.getProfile('cacheduser', 'p-self');
-      expect(result).toEqual(cached);
+      expect(result).toEqual({ ...cached, verifiedCompany: false });
       expect(mockPrismaService.block.findFirst).not.toHaveBeenCalled();
     });
 
@@ -354,7 +360,7 @@ describe('ProfilesService', () => {
       mockCacheManager.get.mockResolvedValue(cached);
 
       const result = await service.getProfile('cacheduser');
-      expect(result).toEqual(cached);
+      expect(result).toEqual({ ...cached, verifiedCompany: false });
       expect(mockPrismaService.block.findFirst).not.toHaveBeenCalled();
     });
   });
@@ -905,9 +911,9 @@ describe('ProfilesService', () => {
       },
     );
 
-    it('shows no verified company mark, even on the Business plan', async () => {
+    it('shows the verified company mark only on the Business plan with an approved verification, hidden while other details wait', async () => {
       mockCacheManager.get.mockResolvedValue(null);
-      mockPrismaService.profile.findFirst.mockResolvedValue({
+      const company = (over = {}) => ({
         id: 'p-company',
         userId: 'u-company',
         username: 'companyuser',
@@ -915,13 +921,62 @@ describe('ProfilesService', () => {
         accountType: 'BUSINESS',
         user: null,
         _count: { posts: 0, followers: 0, following: 0 },
+        ...over,
       });
+      const acme = {
+        legalName: 'Acme SL',
+        taxId: 'B12345674',
+        domain: 'acme.es',
+      };
       mockPrismaService.platformSubscription = {
         findFirst: vi.fn().mockResolvedValue(null),
       };
+      // The approved verification, then the application waiting, if any.
+      const holds = (approved: object | null, pending: object | null) => {
+        mockPrismaService.companyVerification = {
+          findFirst: vi.fn(({ where }: { where: { status: string } }) =>
+            Promise.resolve(where.status === 'APPROVED' ? approved : pending),
+          ),
+        };
+      };
+      mockPrismaService.profile.findFirst.mockResolvedValue(company());
+      const mark = async () =>
+        ((await service.getProfile('companyuser')) as any).verifiedCompany;
 
-      const res: any = await service.getProfile('companyuser');
-      expect(res).not.toHaveProperty('companyVerified');
+      holds(acme, null);
+      expect(await mark()).toBe(true);
+      // The same details again under review: it stays.
+      holds(acme, { ...acme });
+      expect(await mark()).toBe(true);
+      // Another legal name, tax ID or domain under review: hidden until
+      // decided, back if that one is rejected or withdrawn.
+      holds(acme, { ...acme, domain: 'acme.com' });
+      expect(await mark()).toBe(false);
+      holds(acme, { ...acme, legalName: 'Acme Spain SL' });
+      expect(await mark()).toBe(false);
+      holds(null, null);
+      expect(await mark()).toBe(false);
+
+      // A profile served from the cache reads the mark fresh.
+      mockCacheManager.get.mockResolvedValueOnce({
+        id: 'p-company',
+        username: 'companyuser',
+        accountType: 'BUSINESS',
+        verificationLevel: 'BUSINESS',
+        verifiedCompany: false,
+      });
+      holds(acme, null);
+      expect(await mark()).toBe(true);
+
+      // Without the plan the mark is hidden; nothing is read.
+      holds(acme, null);
+      mockPrismaService.profile.findFirst.mockResolvedValue(
+        company({ verificationLevel: 'ELITE' }),
+      );
+      expect(await mark()).toBe(false);
+      expect(
+        mockPrismaService.companyVerification.findFirst,
+      ).not.toHaveBeenCalled();
     });
 
     it('handles ELITE verificationLevel without platformSubscription', async () => {

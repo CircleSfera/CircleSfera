@@ -513,14 +513,21 @@ export class CompanyVerificationService {
     // The application first, so a document being added waits and then
     // finds it withdrawn.
     await this.prisma.$transaction(async (tx) => {
-      await tx.companyVerification.update({
-        where: { id: application.id },
+      // Only while still open: a decision made meanwhile stands.
+      const { count } = await tx.companyVerification.updateMany({
+        where: { id: application.id, status: { in: OPEN } },
         data: {
           status: CompanyVerificationStatus.WITHDRAWN,
           emailCodeHash: null,
           emailCodeExpiresAt: null,
         },
       });
+      if (count === 0) {
+        throw AppException.Conflict(
+          ErrorCode.COMPANY_VERIFICATION_LOCKED,
+          'The application was decided meanwhile',
+        );
+      }
       await tx.companyVerificationDocument.deleteMany({
         where: { verificationId: application.id },
       });

@@ -27,6 +27,7 @@ import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js'
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
+import { isVerifiedCompany } from '../company-verification/company-mark.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { followTeamPlan } from '../team/team-plan.js';
@@ -65,6 +66,7 @@ const PUBLIC_PROFILE_FIELDS = [
   'privacyLevel',
   'isPrivate',
   'isVerified',
+  'verifiedCompany',
   'identityVerified',
   'emailConfirmed',
   'joinedAt',
@@ -182,11 +184,19 @@ export class ProfilesService {
   // Throws NotFoundException if profile does not exist or either side has blocked the other
   async getProfile(username: string, viewerProfileId?: string) {
     const cacheKey = `profile:${username}`;
-    const cachedProfile = await this.cacheManager.get<{ id: string }>(cacheKey);
+    const cachedProfile = await this.cacheManager.get<{
+      id: string;
+      accountType?: string;
+      verificationLevel?: string;
+    }>(cacheKey);
     if (cachedProfile) {
       await this.assertNotBlocked(viewerProfileId, cachedProfile.id);
       // A view cached before the list of fields was closed is cut to it too.
-      return publicProfileView(cachedProfile);
+      // The company mark is read fresh: it is never kept in the cache.
+      return publicProfileView({
+        ...cachedProfile,
+        verifiedCompany: await this.companyMark(cachedProfile),
+      });
     }
 
     const profile = await this.prisma.profile.findFirst({
@@ -275,7 +285,23 @@ export class ProfilesService {
     });
 
     await this.cacheManager.set(cacheKey, profileWithFields, 600000); // 10 minutes
-    return profileWithFields;
+    return {
+      ...profileWithFields,
+      verifiedCompany: await this.companyMark(profile),
+    };
+  }
+
+  // Whether the Profile shows "Verified company", worked out on each read.
+  private companyMark(profile: {
+    id: string;
+    accountType?: string;
+    verificationLevel?: string;
+  }) {
+    return isVerifiedCompany(this.prisma, {
+      id: profile.id,
+      accountType: profile.accountType ?? '',
+      verificationLevel: profile.verificationLevel ?? '',
+    });
   }
 
   // Search profiles by username or full name (case-insensitive).
@@ -605,6 +631,7 @@ export class ProfilesService {
       }),
       isPrivate: profile.privacyLevel === 'PRIVATE',
       isVerified: planVerified,
+      verifiedCompany: await isVerifiedCompany(this.prisma, profile),
       // The email shown is the one the person is signed in with.
       user: profile.user && {
         ...profile.user,

@@ -27,6 +27,7 @@ export type StaffPermission =
   | 'content'
   | 'plans'
   | 'review'
+  | 'company_verification'
   | 'admins.manage';
 
 export const STAFF_PERMISSIONS_KEY = 'staff_permissions';

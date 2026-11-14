@@ -10,6 +10,8 @@ const day = new Date('2026-11-03T12:00:00Z');
 
 // One notice of every kind, with the fields each one needs.
 const EVERY_NOTICE: Notice[] = [
+  { key: 'company_verified' },
+  { key: 'company_rejected', reason: 'DOCUMENTS_UNREADABLE', note: null },
   { key: 'post_liked' },
   { key: 'comment_liked' },
   { key: 'post_commented' },
@@ -375,5 +377,29 @@ describe('renderChatPush', () => {
   it('says only that there is a message when the sender has no handle', () => {
     expect(renderChatPush('es', null).body).toBe('Tienes un mensaje nuevo');
     expect(renderChatPush('en', undefined).body).toBe('You have a new message');
+  });
+});
+
+describe('company verification notices', () => {
+  it('say the outcome, the reason and the note, and where to apply again, in each language', () => {
+    expect(renderNotice('en', { key: 'company_verified' })).toContain(
+      '"Verified company" while it has the Business plan',
+    );
+    expect(renderNotice('es', { key: 'company_verified' })).toContain(
+      '«Empresa verificada» mientras tenga el plan Business',
+    );
+    const rejected = {
+      key: 'company_rejected' as const,
+      reason: 'NAME_NOT_IDENTITY' as const,
+      note: 'Use the 036 with your full name.',
+    };
+    expect(renderNotice('en', rejected)).toBe(
+      'Your company verification was not approved. The name on the documents does not match your verified identity. Use the 036 with your full name. You can apply again from Settings.',
+    );
+    expect(
+      renderNotice('es', { ...rejected, reason: 'OTHER', note: null }),
+    ).toBe(
+      'Tu verificación de empresa no se ha aprobado. No se pudo aprobar. Puedes volver a solicitarla desde Ajustes.',
+    );
   });
 });

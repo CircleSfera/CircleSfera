@@ -2886,6 +2886,12 @@ enum AdminAction {
   // Domains a link on a story cannot point to
   LINK_DOMAIN_BLOCKED
   LINK_DOMAIN_UNBLOCKED
+
+  // Company verification: a decision, and a document opened by staff.
+  COMPANY_VERIFICATION_APPROVED
+  COMPANY_VERIFICATION_REJECTED
+  COMPANY_DOCUMENT_VIEWED
+  COMPANY_IDENTITY_VIEWED
 }
 
 enum AdminIdentityStatus {
@@ -3387,6 +3393,22 @@ enum CompanyVerificationStatus {
   APPROVED
   REJECTED
   WITHDRAWN
+  // An approval a newer application of the Profile took the place of.
+  REPLACED
+}
+
+// Why staff rejected an application; shown to the person, in their language.
+enum CompanyRejectionReason {
+  // The documents cannot be read.
+  DOCUMENTS_UNREADABLE
+  // The documents are not the ones asked for (tax ID card, Commercial
+  // Registry certificate, 036 or 037).
+  DOCUMENTS_NOT_ACCEPTED
+  // The legal name or tax ID differ from the documents.
+  DETAILS_DO_NOT_MATCH
+  // A sole trader's name differs from the verified identity.
+  NAME_NOT_IDENTITY
+  OTHER
 }
 
 // A Business Profile's application to show "Verified company": its company,
@@ -3427,6 +3449,11 @@ model CompanyVerification {
   emailCodeSendsSince DateTime?
   submittedAt         DateTime?
   decidedAt           DateTime?
+  // The member of staff who decided, and why a rejection was made, with a
+  // note the person reads.
+  decidedById         String?
+  rejectionReason     CompanyRejectionReason?
+  rejectionNote       String?
   createdAt           DateTime                  @default(now())
   updatedAt           DateTime                  @updatedAt
 

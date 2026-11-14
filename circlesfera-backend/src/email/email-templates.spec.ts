@@ -49,6 +49,19 @@ describe('EmailTemplates', () => {
     expect(esMail.html).toContain('Vale durante 30 minutos');
   });
 
+  it('the company decision email carries the notice, escaped', () => {
+    const ok = EmailTemplates.companyDecided(
+      en,
+      true,
+      'Your company is verified.',
+    );
+    const no = EmailTemplates.companyDecided(es, false, 'No <b>aprobada</b>');
+    expect(ok.subject).toBe('Your company is verified on CircleSfera');
+    expect(ok.html).toContain('Company verified');
+    expect(no.subject).toBe('Tu verificación de empresa en CircleSfera');
+    expect(no.html).toContain('No &lt;b&gt;aprobada&lt;/b&gt;');
+  });
+
   it('carries the brand: logo, wordmark, gradient and a solid fallback', () => {
     const { html } = EmailTemplates.passwordReset(en, 'https://x/reset');
 
