@@ -5255,6 +5255,24 @@
       "by": "Plantilla de @{{username}}",
       "from_frame": "Del Frame del que vienes",
       "unavailable": "La plantilla de ese Frame ya no está disponible."
+    },
+    "curves": {
+      "title": "Curva",
+      "open": "Curva hasta el siguiente fotograma clave",
+      "hint": "Cómo van los valores de este fotograma clave al siguiente.",
+      "pro_note": "Suave al entrar y salir es gratis. Las demás curvas y una curva propia vienen con Edits Studio Pro.",
+      "no_keyframe": "Lleva el cursor a un fotograma clave del clip elegido.",
+      "presets": {
+        "smooth": "Suave",
+        "linear": "Lineal",
+        "in": "Al entrar",
+        "out": "Al salir",
+        "back": "Retroceso",
+        "bounce": "Rebote",
+        "elastic": "Elástica"
+      },
+      "own": "Tu propia curva",
+      "point": "Punto de control {{name}}"
     }
   },
   "live": {

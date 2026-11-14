@@ -4,6 +4,7 @@ import type { Keyframe } from '../types/studio';
 import {
   changedValues,
   clipAt,
+  curveAt,
   ease,
   editedAt,
   framesExpr,
@@ -22,6 +23,7 @@ import {
   toggleKeyframe,
   valueAt,
   withBaseValue,
+  withCurveAt,
   withEdgeKeyframes,
   withValuesAt,
 } from './studioKeyframes';
@@ -314,5 +316,44 @@ describe('keyframes when a clip changes', () => {
       first: undefined,
       second: undefined,
     });
+  });
+});
+
+describe('curves of keyframes', () => {
+  const animated = () =>
+    ({
+      ...mediaClip('a', { startAt: 0, duration: 2 }),
+      keyframes: {
+        x: [
+          { t: 0, v: 0 },
+          { t: 2, v: 100 },
+        ],
+        opacity: [
+          { t: 0, v: 1 },
+          { t: 2, v: 0 },
+        ],
+      },
+    }) as ReturnType<typeof mediaClip>;
+
+  it('follows the curve of the keyframe it leaves, in the preview and the export alike', () => {
+    const linear = withCurveAt(animated(), 0, 'linear');
+    expect(valueAt(linear, 'x', 0.5)).toBeCloseTo(25);
+    expect(valueAt(animated(), 'x', 0.5)).toBeCloseTo(15.625);
+    expect(curveAt(linear, 0)).toBe('linear');
+    expect(curveAt(linear, 2)).toBeUndefined();
+    expect(keyframeExpr(linear, 'x', 'T')).toContain('(clip((T-0)/2\\,0\\,1))');
+  });
+
+  it('stores ease in and out as no curve, and keeps a curve when a keyframe value changes', () => {
+    const bounce = withCurveAt(animated(), 0, 'bounce');
+    expect(withCurveAt(bounce, 0, 'smooth').keyframes?.x?.[0]).toEqual({
+      t: 0,
+      v: 0,
+    });
+    const moved = withValuesAt(bounce, { x: 40 }, 0);
+    expect(moved.keyframes?.x?.[0]).toEqual({ t: 0, v: 40, curve: 'bounce' });
+    // A clip without keyframes is left as it is.
+    const plain = mediaClip('a', { startAt: 0, duration: 2 });
+    expect(withCurveAt(plain, 0, 'linear')).toBe(plain);
   });
 });

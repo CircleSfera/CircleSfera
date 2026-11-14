@@ -155,7 +155,8 @@ function slotOf(v: unknown): Record<string, unknown> {
     if (!isObject(v.keyframes)) {
       throw new InvalidTemplateError('keyframes are not an object');
     }
-    const frames: Record<string, { t: number; v: number }[]> = {};
+    const frames: Record<string, { t: number; v: number; curve?: KeyCurve }[]> =
+      {};
     for (const [prop, values] of Object.entries(v.keyframes)) {
       const key = oneOf(prop, KEY_PROPS, 'a keyframed property');
       frames[key] = list(values, TEMPLATE_LIMITS.keyframes, 'keyframes').map(
@@ -165,6 +166,7 @@ function slotOf(v: unknown): Record<string, unknown> {
           return {
             t: num(f.t, 0, seconds, 'a keyframe time'),
             v: num(f.v, -10000, 10000, 'a keyframe value'),
+            ...(f.curve !== undefined && { curve: curveOf(f.curve) }),
           };
         },
       );
@@ -172,6 +174,37 @@ function slotOf(v: unknown): Record<string, unknown> {
     slot.keyframes = frames;
   }
   return slot;
+}
+
+// How a value goes to the next keyframe: a named curve, or a curve of
+// one's own by the two control points of a Bézier.
+const CURVE_PRESETS = [
+  'smooth',
+  'linear',
+  'in',
+  'out',
+  'back',
+  'bounce',
+  'elastic',
+] as const;
+type KeyCurve =
+  | (typeof CURVE_PRESETS)[number]
+  | { bezier: [number, number, number, number] };
+
+function curveOf(v: unknown): KeyCurve {
+  if (typeof v === 'string') return oneOf(v, CURVE_PRESETS, 'a curve');
+  if (!isObject(v) || !Array.isArray(v.bezier) || v.bezier.length !== 4) {
+    throw new InvalidTemplateError('a curve is not valid');
+  }
+  const [x1, y1, x2, y2] = v.bezier as unknown[];
+  return {
+    bezier: [
+      num(x1, 0, 1, 'a curve point'),
+      num(y1, -1, 2, 'a curve point'),
+      num(x2, 0, 1, 'a curve point'),
+      num(y2, -1, 2, 'a curve point'),
+    ],
+  };
 }
 
 function effectOf(v: unknown): Record<string, unknown> {

@@ -14,11 +14,14 @@ import {
   ducksUnderVoice,
   withDetachedSound,
 } from '../utils/studioAudio';
+import type { KeyCurve } from '../utils/studioCurves';
 import { resolutionForAspect } from '../utils/studioExportHelpers';
 import {
   editedAt,
+  hasKeyframeAt,
   splitKeyframes,
   toggleKeyframe as toggleOn,
+  withCurveAt,
 } from '../utils/studioKeyframes';
 import { withLengthOfClips } from '../utils/studioProject';
 import {
@@ -77,6 +80,8 @@ interface StudioState {
   selectCut: (clipId: string | null) => void;
   /** Adds a keyframe to a clip at the playhead, or takes away the one there. */
   toggleKeyframe: (clipId: string) => void;
+  /** The curve from the chosen clip's keyframes at the playhead to the next. */
+  setKeyframeCurve: (clipId: string, curve: KeyCurve) => void;
   /** Sets the transition of a cut, or takes it away. */
   setTransition: (
     clipId: string,
@@ -156,6 +161,7 @@ const CLIP_PANELS: ReadonlySet<StudioPanel> = new Set([
   'effect',
   'blend',
   'chroma',
+  'curve',
 ]);
 
 // After undo or redo, a chosen clip that is no longer there is let go, and
@@ -286,6 +292,22 @@ export const useStudioStore = create<StudioState>((set) => ({
       selectedCut: clipId,
       selectedClipId: null,
       openSheet: clipId ? 'transition' : null,
+    }),
+
+  setKeyframeCurve: (clipId, curve) =>
+    set((state) => {
+      if (!state.project) return state;
+      const found = locateClip(state.project, clipId);
+      if (!found) return state;
+      const t = state.playhead - found.clip.startAt;
+      if (!hasKeyframeAt(found.clip, t)) return state;
+      const tracks = state.project.tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((c) =>
+          c.id === clipId ? withCurveAt(c, t, curve) : c,
+        ),
+      }));
+      return pushHistory(state, { ...state.project, tracks });
     }),
 
   toggleKeyframe: (clipId) =>

@@ -1,4 +1,4 @@
-import { Diamond, Pause, Play, Redo2, Undo2 } from 'lucide-react';
+import { Diamond, Pause, Play, Redo2, Spline, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import { hasKeyframeAt, keyPropsOf } from '../../../utils/studioKeyframes';
@@ -24,6 +24,7 @@ export default function EditorTransport() {
   const canUndo = useStudioStore((s) => s.canUndo);
   const canRedo = useStudioStore((s) => s.canRedo);
   const toggleKeyframe = useStudioStore((s) => s.toggleKeyframe);
+  const setOpenSheet = useStudioStore((s) => s.setOpenSheet);
   // The chosen clip, when it can be animated and the playhead is on it.
   const clip = useStudioStore((s) => {
     const found =
@@ -37,7 +38,9 @@ export default function EditorTransport() {
   const keyed = onClip && hasKeyframeAt(clip, local);
 
   return (
-    <div className="shrink-0 grid grid-cols-3 items-center px-3 h-14">
+    // The sides take what they hold, so a phone fits the curve button too;
+    // play sits in the middle of what is left.
+    <div className="shrink-0 grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3 h-14">
       <p className="text-xs font-mono text-white/70 tabular-nums">
         <span className="text-white">{formatTimecode(playhead)}</span>
         <span className="text-white/40"> / {formatTimecode(duration)}</span>
@@ -61,6 +64,17 @@ export default function EditorTransport() {
         </button>
       </div>
       <div className="flex justify-end gap-1">
+        {keyed && (
+          // How the values go from this keyframe to the next.
+          <button
+            type="button"
+            onClick={() => setOpenSheet('curve')}
+            aria-label={t('studio.curves.open')}
+            className="min-h-11 min-w-11 flex items-center justify-center rounded-full text-white hover:bg-white/10"
+          >
+            <Spline size={18} aria-hidden />
+          </button>
+        )}
         {clip && (
           <button
             type="button"

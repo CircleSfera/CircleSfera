@@ -5255,6 +5255,24 @@
       "by": "Template by @{{username}}",
       "from_frame": "From the Frame you came from",
       "unavailable": "That Frame’s template is no longer available."
+    },
+    "curves": {
+      "title": "Curve",
+      "open": "Curve to the next keyframe",
+      "hint": "How the values go from this keyframe to the next.",
+      "pro_note": "Ease in and out is free. The other curves and a curve of your own come with Edits Studio Pro.",
+      "no_keyframe": "Move the playhead onto a keyframe of the chosen clip.",
+      "presets": {
+        "smooth": "Ease in and out",
+        "linear": "Linear",
+        "in": "Ease in",
+        "out": "Ease out",
+        "back": "Back",
+        "bounce": "Bounce",
+        "elastic": "Elastic"
+      },
+      "own": "Your own curve",
+      "point": "Control point {{name}}"
     }
   },
   "live": {

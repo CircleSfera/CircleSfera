@@ -86,6 +86,47 @@ describe('a template’s structure', () => {
     expect(JSON.stringify(structure)).not.toMatch(/someone|a text|voice/);
   });
 
+  it('keeps the curve of each keyframe, named or of one own, and refuses any other', () => {
+    const withCurves = (curve: unknown) => ({
+      ...valid,
+      slots: [
+        {
+          ...slot,
+          keyframes: {
+            x: [
+              { t: 0, v: 0, curve },
+              { t: 1, v: 10 },
+            ],
+          },
+        },
+      ],
+    });
+    const framesOf = (curve: unknown) =>
+      (
+        templateStructureOf(withCurves(curve), 'Name').slots[0] as {
+          keyframes: { x: unknown[] };
+        }
+      ).keyframes.x;
+
+    expect(framesOf('bounce')[0]).toEqual({ t: 0, v: 0, curve: 'bounce' });
+    expect(framesOf({ bezier: [0.25, -0.5, 0.75, 1.5] })[0]).toEqual({
+      t: 0,
+      v: 0,
+      curve: { bezier: [0.25, -0.5, 0.75, 1.5] },
+    });
+    expect(framesOf(undefined)[0]).toEqual({ t: 0, v: 0 });
+    for (const bad of [
+      'wobble',
+      { bezier: [0, 0, 1] },
+      { bezier: [2, 0, 1, 1] },
+      3,
+    ]) {
+      expect(() => templateStructureOf(withCurves(bad), 'Name')).toThrow(
+        InvalidTemplateError,
+      );
+    }
+  });
+
   it('takes no song, no effects and an empty filter', () => {
     const structure = templateStructureOf(
       {
