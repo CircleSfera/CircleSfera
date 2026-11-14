@@ -16,10 +16,44 @@ export const EFFECT_KINDS: readonly EffectKind[] = [
   'glow',
   'rgbsplit',
   'duotone',
+  'kaleidoscope',
 ];
 
 /** The effects that come with Edits Studio Pro: chosen only with it. */
-export const PRO_EFFECTS: ReadonlySet<EffectKind> = new Set(['duotone']);
+export const PRO_EFFECTS: ReadonlySet<EffectKind> = new Set([
+  'duotone',
+  'kaleidoscope',
+]);
+
+/**
+ * Kaleidoscope: the top left quarter of the picture mirrored into the other
+ * three, mixed with the picture by the intensity. The pixel a pixel takes,
+ * in a picture of even width and height.
+ */
+export function kaleidoscopeSource(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): [number, number] {
+  const halfW = Math.floor(width / 2);
+  const halfH = Math.floor(height / 2);
+  return [x < halfW ? x : 2 * halfW - 1 - x, y < halfH ? y : 2 * halfH - 1 - y];
+}
+
+/** The same in ffmpeg: the quarter cropped, flipped and stacked, blended. */
+export function kaleidoscopeGraph(tag: string, k: number): string {
+  const t = tag;
+  return [
+    `format=gbrp,split[${t}o][${t}c]`,
+    `[${t}c]crop=iw/2:ih/2:0:0,split[${t}q1][${t}q2]`,
+    `[${t}q2]hflip[${t}q3]`,
+    `[${t}q1][${t}q3]hstack,split[${t}h1][${t}h2]`,
+    `[${t}h2]vflip[${t}h3]`,
+    `[${t}h1][${t}h3]vstack[${t}m]`,
+    `[${t}m][${t}o]blend=all_mode=normal:all_opacity=${k}`,
+  ].join(';');
+}
 
 /**
  * Duotone: the picture's lightness painted from one colour in the shadows
@@ -133,6 +167,7 @@ export function effectAmounts(
     case 'mono':
       return { amount: round(k) };
     case 'duotone':
+    case 'kaleidoscope':
       return { amount: round(k) };
   }
 }
@@ -197,6 +232,8 @@ export function effectFilter(
       return `format=rgba[${tag}a];[${tag}a][${mask}]overlay=0:0:format=auto`;
     case 'duotone':
       return duotoneGeq((a as { amount: number }).amount);
+    case 'kaleidoscope':
+      return kaleidoscopeGraph(tag, (a as { amount: number }).amount);
   }
 }
 

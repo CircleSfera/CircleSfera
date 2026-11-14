@@ -206,7 +206,8 @@ export type EffectKind =
   | 'glow'
   | 'rgbsplit'
   // Edits Studio Pro.
-  | 'duotone';
+  | 'duotone'
+  | 'kaleidoscope';
 
 /** An effect on the effects layer: it changes the picture for its stretch. */
 export interface EffectClip extends BaseClip {
