@@ -91,6 +91,7 @@ describe('AdminStatsService monetization tiers', () => {
           plan('Verified', 999, [badge, support]),
           plan('Elite Creator', 1999, elite),
           plan('Business', 4999, [...elite, 'team_access']),
+          plan('Edits Studio Pro', 799, ['studio_pro']),
         ]),
       count: vi.fn().mockResolvedValue(0),
     };
@@ -102,6 +103,8 @@ describe('AdminStatsService monetization tiers', () => {
       PREMIUM: 2,
       ELITE: 1,
       BUSINESS: 1,
+      // The add-on counts on its own; Elite and Business include it too.
+      STUDIO_PRO: 1,
     });
   });
 });

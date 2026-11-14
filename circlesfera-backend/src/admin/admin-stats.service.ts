@@ -289,6 +289,8 @@ export class AdminStatsService {
       PREMIUM: 0,
       ELITE: 0,
       BUSINESS: 0,
+      // The Edits Studio Pro add-on, held on its own or beside a plan.
+      STUDIO_PRO: 0,
     };
 
     // A plan is told by what it includes, not by its name: the €9.99 plan
@@ -299,6 +301,7 @@ export class AdminStatsService {
       else if (features.includes('advanced_analytics')) tierCounts.ELITE++;
       else if (features.includes('priority_support')) tierCounts.PREMIUM++;
       else if (features.includes('verified_badge')) tierCounts.VERIFIED++;
+      else if (features.includes('studio_pro')) tierCounts.STUDIO_PRO++;
     });
 
     const thirtyDaysAgo = new Date();

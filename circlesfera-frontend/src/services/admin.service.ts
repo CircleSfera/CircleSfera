@@ -1258,6 +1258,8 @@ export const adminApi = {
         PREMIUM: number;
         ELITE: number;
         BUSINESS: number;
+        // Missing from a server older than Edits Studio Pro.
+        STUDIO_PRO?: number;
       };
       subscriptionGrowth: number;
       activeRetentionRate?: number | null;

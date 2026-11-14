@@ -3162,7 +3162,8 @@
       "tx_type": {
         "STRIPE_SUBSCRIPTION": "Plan payment",
         "PROMOTION_PAYMENT": "Promotion payment"
-      }
+      },
+      "tier_studio_pro": "Edits Studio Pro (add-on)"
     },
     "appeals": {
       "title": "Appeals",
