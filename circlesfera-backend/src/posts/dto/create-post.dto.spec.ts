@@ -263,7 +263,7 @@ describe('the shape of a post', () => {
   });
 });
 
-describe('the sale fields older apps still send', () => {
+describe('the sale fields older apps sent', () => {
   const failed = async (
     dto: typeof CreatePostDto | typeof CreateStoryDto | typeof SendMessageDto,
     body: object,
@@ -283,18 +283,17 @@ describe('the sale fields older apps still send', () => {
     ['a post', CreatePostDto, 'isPremium'],
     ['a story', CreateStoryDto, 'isPremium'],
     ['a message', SendMessageDto, 'isLocked'],
-  ] as const)('accepts %s marked as not for sale', async (_name, dto, flag) => {
-    expect(await failed(dto, { [flag]: false, priceCents: 0 })).toEqual([]);
-  });
-
-  it.each([
-    ['a post', CreatePostDto, 'isPremium'],
-    ['a story', CreateStoryDto, 'isPremium'],
-    ['a message', SendMessageDto, 'isLocked'],
-  ] as const)('refuses to put %s on sale', async (_name, dto, flag) => {
-    expect(await failed(dto, { [flag]: true, priceCents: 500 })).toEqual([
-      flag,
-      'priceCents',
-    ]);
-  });
+  ] as const)(
+    'are refused on %s like any unknown field, even as not for sale',
+    async (_name, dto, flag) => {
+      expect(await failed(dto, { [flag]: false, priceCents: 0 })).toEqual([
+        flag,
+        'priceCents',
+      ]);
+      expect(await failed(dto, { [flag]: true, priceCents: 500 })).toEqual([
+        flag,
+        'priceCents',
+      ]);
+    },
+  );
 });

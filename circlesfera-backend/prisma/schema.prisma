@@ -25,9 +25,6 @@ model User {
   // Account status
   isActive            Boolean   @default(true)
   isRootBanned        Boolean   @default(false)
-  // Former hold of a banned person's payouts. No query reads or writes it
-  // any more; it is dropped in the next release.
-  payoutsHeldAt       DateTime?
   rootBanReason       String?   @db.Text
   // Legacy account-level strike counter. Strikes are recorded per Profile in
   // profile_strikes; nothing reads or writes this column any more.
@@ -98,19 +95,11 @@ model User {
   promotions            Promotion[]
   platformSubscriptions PlatformSubscription[]
   interactionEvents     InteractionEvent[]
-  monetization          Monetization?
   sentTransactions      Transaction[]          @relation("SentTransactions")
   paymentDisputes       PaymentDispute[]
-  receivedTransactions  Transaction[]          @relation("ReceivedTransactions")
-  postUnlocks           PostUnlock[]
-  storyUnlocks          StoryUnlock[]
-  messageUnlocks        MessageUnlock[]
-  sentLiveGifts         LiveGift[]             @relation("LiveGiftSender")
-  receivedLiveGifts     LiveGift[]             @relation("LiveGiftReceiver")
   supportTickets        SupportTicket[]
   appeals               Appeal[]
   userExperiments       UserExperiment[]
-  stripePayoutLogs      StripePayoutLog[]
 
   uploadedFiles StoredFile[]
 
@@ -424,56 +413,48 @@ model Profile {
 
   // Account Ban Flags
 
-  isAccountBanned        Boolean             @default(false)
-  // The former monetization programme. No query reads or writes these
-  // columns any more; they are dropped in the next release.
-  monetizationStatus     MonetizationStatus  @default(NONE) @ignore
-  monetizationAppliedAt  DateTime?
-  monetizationPitch      String?             @db.VarChar(500)
-  monetizationReviewedAt DateTime?
-  monetizationReviewedBy String?
-  monetizationNote       String?             @db.VarChar(500)
-  accountBanReason       String?             @db.Text
-  suspendedUntil         DateTime?
+  isAccountBanned      Boolean             @default(false)
+  accountBanReason     String?             @db.Text
+  suspendedUntil       DateTime?
   // The strike that caused the current ban or suspension, if any. An appeal
   // about that strike lifts only a restriction it caused; staff restrictions
   // and direct bans clear these.
-  banStrikeId            String?
-  suspensionStrikeId     String?
+  banStrikeId          String?
+  suspensionStrikeId   String?
   // When the last ban or suspension was placed: the six months to appeal it
   // count from then.
-  sanctionedAt           DateTime?
+  sanctionedAt         DateTime?
   // Who may see this Profile's content: each Profile of a person chooses for
   // itself. PRIVATE asks for an accepted follow.
-  privacyLevel           Visibility          @default(PUBLIC)
+  privacyLevel         Visibility          @default(PUBLIC)
   // Whether others may share this Profile's posts and Frames to their
   // stories, as a card of the original. Off stops new shares only.
-  allowStoryShares       Boolean             @default(true)
+  allowStoryShares     Boolean             @default(true)
   // Who may mention this Profile and who may tag it. A mention or tag from
   // someone not allowed is kept out silently: no notice, no tag; nobody is
   // told. FOLLOWING means Profiles this one follows.
-  mentionsFrom           InteractionAudience @default(EVERYONE)
-  tagsFrom               InteractionAudience @default(EVERYONE)
+  mentionsFrom         InteractionAudience @default(EVERYONE)
+  tagsFrom             InteractionAudience @default(EVERYONE)
   // Tags wait for this Profile's approval before they show on its profile.
-  manualTagApproval      Boolean             @default(false)
+  manualTagApproval    Boolean             @default(false)
   // Whether Profiles it does not follow may start a chat with it (a message
   // request). Profiles it follows always reach its inbox.
-  messageRequests        Boolean             @default(true)
+  messageRequests      Boolean             @default(true)
   // Push notifications of this Profile; the person's other Profiles keep
   // their own choice. Off pauses every push of the Profile.
-  pushNotifications      Boolean             @default(true)
+  pushNotifications    Boolean             @default(true)
   // Push by group, each on its own. Moderation, plan and payment notices
   // have no group: only the pause stops their push.
-  pushLikes              Boolean             @default(true)
-  pushComments           Boolean             @default(true) // comments and mentions
-  pushFollows            Boolean             @default(true) // new followers and requests
-  pushMessages           Boolean             @default(true)
-  pushLive               Boolean             @default(true) // live broadcasts
+  pushLikes            Boolean             @default(true)
+  pushComments         Boolean             @default(true) // comments and mentions
+  pushFollows          Boolean             @default(true) // new followers and requests
+  pushMessages         Boolean             @default(true)
+  pushLive             Boolean             @default(true) // live broadcasts
   // Whether a story is kept in the archive when its 24 hours end. Off, a
   // story that ends while it is off is erased, unless it is in a highlight;
   // storyArchiveOffAt is when it was turned off.
-  saveStoriesToArchive   Boolean             @default(true)
-  storyArchiveOffAt      DateTime?
+  saveStoriesToArchive Boolean             @default(true)
+  storyArchiveOffAt    DateTime?
 
   // Why staff suspended this Profile directly; empty for a suspension that
   // comes from strikes or from the review of unusual activity.
@@ -482,14 +463,11 @@ model Profile {
   // recorded in profile_strikes; nothing reads or writes this column any more.
   strikeCount     Int              @default(0)
 
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // The payout account this Profile holds, and what it paid out.
-  monetization     Monetization?
-  stripePayoutLogs StripePayoutLog[]
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   // The people who work on this Profile besides its owner (Business only).
-  members          ProfileMember[]
+  members    ProfileMember[]
   // What was done on this Profile, and by which person (Business).
-  activities       ProfileActivity[]
+  activities ProfileActivity[]
 
   // The sign-in this Profile is entered with. Several Profiles of one person
   // may share one. Filled for every Profile by the database; optional in the
@@ -499,63 +477,62 @@ model Profile {
 
   // Social Relations Moved from User
 
-  posts                   Post[]
-  stories                 Story[]
-  liveStreams             LiveStream[]            @relation("LiveStreamHost")
-  coHostedStreams         LiveStream[]            @relation("LiveStreamCoHost")
-  liveGuestPlaces         LiveGuest[]
-  scheduledLives          ScheduledLive[]
-  scheduledLiveReminders  ScheduledLiveReminder[]
-  comments                Comment[]
-  likes                   Like[]
-  commentLikes            CommentLike[]
-  followers               Follow[]                @relation("UserFollowing")
-  following               Follow[]                @relation("UserFollowers")
-  notifications           Notification[]          @relation("NotificationRecipient")
-  sentNotifications       Notification[]          @relation("NotificationSender")
-  groupedNotifications    Notification[]          @relation("NotificationPreviousSender")
-  participants            Participant[]
-  messages                Message[]
-  messageReactions        MessageReaction[] // New: User reactions to messages
-  blockedBy               Block[]                 @relation("BlockedBy")
-  blocking                Block[]                 @relation("Blocking")
-  mutedBy                 Mute[]                  @relation("MutedBy")
-  muting                  Mute[]                  @relation("Muting")
-  restrictedBy            Restriction[]           @relation("RestrictedBy")
-  restricting             Restriction[]           @relation("Restricting")
-  bookmarks               Bookmark[]
-  collections             Collection[]
-  highlights              Highlight[]
-  closeFriends            CloseFriend[]           @relation("CloseFriendOwner")
-  closeFriendOf           CloseFriend[]           @relation("CloseFriendTarget")
+  posts                  Post[]
+  stories                Story[]
+  liveStreams            LiveStream[]            @relation("LiveStreamHost")
+  coHostedStreams        LiveStream[]            @relation("LiveStreamCoHost")
+  liveGuestPlaces        LiveGuest[]
+  scheduledLives         ScheduledLive[]
+  scheduledLiveReminders ScheduledLiveReminder[]
+  comments               Comment[]
+  likes                  Like[]
+  commentLikes           CommentLike[]
+  followers              Follow[]                @relation("UserFollowing")
+  following              Follow[]                @relation("UserFollowers")
+  notifications          Notification[]          @relation("NotificationRecipient")
+  sentNotifications      Notification[]          @relation("NotificationSender")
+  groupedNotifications   Notification[]          @relation("NotificationPreviousSender")
+  participants           Participant[]
+  messages               Message[]
+  messageReactions       MessageReaction[] // New: User reactions to messages
+  blockedBy              Block[]                 @relation("BlockedBy")
+  blocking               Block[]                 @relation("Blocking")
+  mutedBy                Mute[]                  @relation("MutedBy")
+  muting                 Mute[]                  @relation("Muting")
+  restrictedBy           Restriction[]           @relation("RestrictedBy")
+  restricting            Restriction[]           @relation("Restricting")
+  bookmarks              Bookmark[]
+  collections            Collection[]
+  highlights             Highlight[]
+  closeFriends           CloseFriend[]           @relation("CloseFriendOwner")
+  closeFriendOf          CloseFriend[]           @relation("CloseFriendTarget")
   // The Profiles this one reads in its Favorites feed, and who has it there.
-  favorites               FavoriteProfile[]       @relation("FavoriteOwner")
-  favoriteOf              FavoriteProfile[]       @relation("FavoriteTarget")
-  storyViews              StoryView[]
-  storyReactions          StoryReaction[]
-  taggedPosts             PostTag[]
+  favorites              FavoriteProfile[]       @relation("FavoriteOwner")
+  favoriteOf             FavoriteProfile[]       @relation("FavoriteTarget")
+  storyViews             StoryView[]
+  storyReactions         StoryReaction[]
+  taggedPosts            PostTag[]
   // Posts it was invited to author too, accepted or not yet.
-  collaborations          PostCollaborator[]
-  reports                 Report[]                @relation("ReportReporter")
-  strikes                 ProfileStrike[]
-  riskCases               RiskCase[]
-  searchHistory           SearchHistory[]
-  postViews               PostView[]
-  feedHiddenPosts         FeedHiddenPost[]
-  feedHiddenAuthors       FeedHiddenAuthor[]      @relation("FeedHidingAuthor")
-  feedHiddenByAuthors     FeedHiddenAuthor[]      @relation("FeedHiddenAsAuthor")
-  feedMutedKeywords       FeedMutedKeyword[]
-  hiddenWords             HiddenWord[]
-  editProjects            EditProject[]
-  studioTemplates         StudioTemplate[]
-  studioTemplateUses      StudioTemplateUse[]
-  pollVotes               PollVote[]
-  qnaAnswers              QnaAnswer[]
-  storyStickerResponses   StoryStickerResponse[]
-  metrics                 ProfileMetric[]
-  embedding               ProfileEmbedding?
-  platformSubscriptions   PlatformSubscription[]
-  receivedTipTransactions Transaction[]           @relation("ReceivedTipTransactions")
+  collaborations         PostCollaborator[]
+  reports                Report[]                @relation("ReportReporter")
+  strikes                ProfileStrike[]
+  riskCases              RiskCase[]
+  searchHistory          SearchHistory[]
+  postViews              PostView[]
+  feedHiddenPosts        FeedHiddenPost[]
+  feedHiddenAuthors      FeedHiddenAuthor[]      @relation("FeedHidingAuthor")
+  feedHiddenByAuthors    FeedHiddenAuthor[]      @relation("FeedHiddenAsAuthor")
+  feedMutedKeywords      FeedMutedKeyword[]
+  hiddenWords            HiddenWord[]
+  editProjects           EditProject[]
+  studioTemplates        StudioTemplate[]
+  studioTemplateUses     StudioTemplateUse[]
+  pollVotes              PollVote[]
+  qnaAnswers             QnaAnswer[]
+  storyStickerResponses  StoryStickerResponse[]
+  metrics                ProfileMetric[]
+  embedding              ProfileEmbedding?
+  platformSubscriptions  PlatformSubscription[]
 
   storedFiles StoredFile[]
 
@@ -646,12 +623,6 @@ model Post {
   // When its author pinned it to the top of their profile; null when not
   // pinned. A Profile pins at most PROFILE_PINS_MAX.
   pinnedToProfileAt       DateTime?
-
-  // Former sale of a post. No query reads or writes these columns any more;
-  // they are dropped in the next release.
-  isPremium   Boolean      @default(false) @ignore
-  priceCents  Int          @default(0) @ignore
-  postUnlocks PostUnlock[]
 
   // Scheduling & Interactive Features
   scheduledAt     DateTime?
@@ -896,12 +867,6 @@ model Story {
   sharedInMessages Message[] @relation("SharedStories")
 
   notifications Notification[]
-
-  // Former sale of a story. No query reads or writes these columns any
-  // more; they are dropped in the next release.
-  isPremium    Boolean       @default(false) @ignore
-  priceCents   Int           @default(0) @ignore
-  storyUnlocks StoryUnlock[]
 
   // Scheduling & Interactive Features
 
@@ -1321,8 +1286,6 @@ model LiveStream {
   // A host's streams are erased with the host.
   host           Profile             @relation("LiveStreamHost", fields: [hostId], references: [id], onDelete: Cascade)
   coHost         Profile?            @relation("LiveStreamCoHost", fields: [coHostId], references: [id], onDelete: SetNull)
-  gifts          LiveGift[]
-  transactions   Transaction[]
   recordingParts LiveRecordingPart[]
   guests         LiveGuest[]
   // The scheduled live this live was started from, if any.
@@ -1447,55 +1410,6 @@ model LiveRecordingPart {
   @@index([status])
   @@index([profileId])
   @@map("live_recording_parts")
-}
-
-/// Paid virtual gift sent during a live stream (Stripe Checkout + webhook).
-// A tip being paid: its amount counts towards what its payer may give in a
-// week from the moment its checkout opens until it is paid (then the
-// payment counts) or its checkout expires.
-model TipReservation {
-  id          String   @id @default(uuid())
-  // The paying person (User.id); kept without a relation, as the row lives
-  // only as long as its checkout.
-  senderId    String
-  amountCents Int
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-
-  @@index([senderId, expiresAt])
-  @@map("tip_reservations")
-}
-
-model LiveGift {
-  id                      String            @id @default(uuid())
-  // Null once the stream is erased with its host: the gift is a
-  // financial record kept for seven years, whoever is erased.
-  streamId                String?
-  // Nullable for financial retention: senderId/receiverId are set to NULL on
-  // user hard-deletion (onDelete: SetNull). The row survives for fiscal audit
-  // compliance (7-year retention), matching Transaction/StripePayoutLog/
-  // PlatformSubscription.
-  senderId                String?
-  receiverId              String?
-  giftId                  String // catalog key: star | flame | crown | gem | rocket
-  amountCents             Int
-  currency                String            @default("EUR")
-  status                  TransactionStatus @default(PENDING)
-  stripeCheckoutSessionId String?           @unique
-  transactionId           String?           @unique
-  createdAt               DateTime          @default(now())
-  completedAt             DateTime?
-
-  stream      LiveStream?  @relation(fields: [streamId], references: [id], onDelete: SetNull)
-  sender      User?        @relation("LiveGiftSender", fields: [senderId], references: [id], onDelete: SetNull)
-  receiver    User?        @relation("LiveGiftReceiver", fields: [receiverId], references: [id], onDelete: SetNull)
-  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-
-  @@index([streamId])
-  @@index([senderId])
-  @@index([receiverId])
-  @@index([status])
-  @@map("live_gifts")
 }
 
 // =============================================================================
@@ -1714,12 +1628,6 @@ model Message {
 
   expiresAt DateTime?
 
-  // Former sale of a message. No query reads or writes these columns any
-  // more; they are dropped in the next release.
-  isLocked       Boolean         @default(false) @ignore
-  priceCents     Int             @default(0) @ignore
-  messageUnlocks MessageUnlock[]
-
   // New: Post Sharing
 
   postId String?
@@ -1749,7 +1657,6 @@ model Message {
 
   reactions     MessageReaction[]
   notifications Notification[]
-  transactions  Transaction[]
 
   @@index([senderId, createdAt])
   @@index([storyId])
@@ -1981,65 +1888,6 @@ model PromotionView {
   @@map("promotion_views")
 }
 
-model Monetization {
-  id                     String  @id @default(uuid())
-  // The person's row: their shared payout account, the one every Profile
-  // without an account of its own is paid into. userId marks that row and
-  // stays. A row opened by a Profile for an account of its own names no
-  // person: it is the Profile's.
-  userId                 String? @unique
-  // The Profile that holds this payout account, and the account itself. The
-  // person's first account sits with the Profile that connected it, or with
-  // their oldest Creator or Business Profile (their oldest Profile when none
-  // earns) when it was connected before accounts were kept per Profile.
-  profileId              String? @unique
-  stripeConnectAccountId String? @unique
-
-  // No longer written: what a Profile earned is read from its payments
-  // (transactions), as every creator screen and the data export read it.
-  // Kept so that rows written before stay as they were.
-  lifetimeEarningsCents Int     @default(0)
-  // Cached from Stripe account.updated webhook
-  transfersEnabled      Boolean @default(false)
-  chargesEnabled        Boolean @default(false)
-  // The payout account belongs to a company and the provider has verified it
-  verifiedCompany       Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
-
-  @@map("monetization")
-}
-
-model StripePayoutLog {
-  id             String   @id @default(uuid())
-  stripePayoutId String   @unique
-  // Nullable for financial retention: userId is set to NULL on user hard-deletion
-  // (onDelete: SetNull). The row survives for fiscal audit compliance (7-year retention).
-  userId         String? // Connected account owner
-  // The Profile whose payout account paid it out; kept empty if it is erased.
-  profileId      String?
-  amountCents    Int
-  currency       String   @default("EUR") // Aligns with platform-wide EUR default; always overwritten by Stripe's payout.currency
-  status         String // 'paid', 'pending', 'failed', 'canceled'
-  arrivalDate    DateTime
-  failureReason  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
-
-  @@index([status])
-  @@index([userId])
-  @@index([profileId])
-  @@map("stripe_payout_logs")
-}
-
 model Transaction {
   id            String            @id @default(uuid())
   type          TransactionType
@@ -2055,18 +1903,11 @@ model Transaction {
 
   // Participants
 
-  senderId          String?
-  receiverId        String?
-  // The Profile a tip was given to; the person behind it is receiverId.
-  receiverProfileId String?
+  senderId String?
 
   // Associated entities
 
-  postId       String?
-  storyId      String?
-  messageId    String?
-  promotionId  String?
-  liveStreamId String?
+  promotionId String?
 
   stripePaymentIntentId String? @unique
 
@@ -2076,19 +1917,11 @@ model Transaction {
   // warehouse export takes a payment again after it changes.
   updatedAt   DateTime @default(now()) @updatedAt
 
-  sender          User?            @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
-  receiver        User?            @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
-  receiverProfile Profile?         @relation("ReceivedTipTransactions", fields: [receiverProfileId], references: [id], onDelete: SetNull)
-  liveStream      LiveStream?      @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
-  liveGift        LiveGift?
-  message         Message?         @relation(fields: [messageId], references: [id], onDelete: SetNull)
-  disputes        PaymentDispute[]
+  sender   User?            @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
+  disputes PaymentDispute[]
 
   @@index([senderId])
-  @@index([receiverId])
-  @@index([receiverProfileId])
   @@index([type])
-  @@index([liveStreamId])
   @@index([updatedAt])
   @@map("transactions")
 }
@@ -2133,48 +1966,6 @@ model PaymentDispute {
   // A payment just recorded finds the disputes reported before it.
   @@index([stripePaymentIntentId])
   @@map("payment_disputes")
-}
-
-model PostUnlock {
-  id        String   @id @default(uuid())
-  userId    String
-  postId    String
-  pricePaid Int // In cents
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId])
-  @@map("post_unlocks")
-}
-
-model MessageUnlock {
-  id        String   @id @default(uuid())
-  userId    String
-  messageId String
-  pricePaid Int // In cents
-  createdAt DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, messageId])
-  @@map("message_unlocks")
-}
-
-model StoryUnlock {
-  id        String   @id @default(uuid())
-  userId    String
-  storyId   String
-  pricePaid Int
-  createdAt DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, storyId])
-  @@map("story_unlocks")
 }
 
 // =============================================================================
@@ -3020,15 +2811,6 @@ enum BusinessCategory {
   OTHER
 }
 
-// Where a Profile stands in the monetization programme.
-enum MonetizationStatus {
-  NONE
-  PENDING
-  APPROVED
-  REJECTED
-  REVOKED
-}
-
 enum AdminAction {
   // User Management
 
@@ -3408,11 +3190,6 @@ enum TransactionStatus {
 }
 
 enum TransactionType {
-  DIRECT_POST_UNLOCK
-  DIRECT_STORY_UNLOCK
-  DIRECT_MESSAGE_UNLOCK
-  DIRECT_TIP
-  DIRECT_LIVE_GIFT
   STRIPE_SUBSCRIPTION
   PROMOTION_PAYMENT
 }

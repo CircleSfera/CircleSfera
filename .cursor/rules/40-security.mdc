@@ -30,7 +30,7 @@ Non-negotiable:
   `@RequireOwnership` for routes it covers (model + route `:id`), or a shared service method for the
   cases it doesn't (body/query-supplied id, non-HTTP callers). Never skip both.
 - Every client-supplied id is authorized against the caller. Enumerable ids are not access control.
-- No privileged field is settable from a DTO: `role`, `verificationLevel`, `isPremium`, `priceCents`,
+- No privileged field is settable from a DTO: `role`, `verificationLevel`, `priceCents`,
   `moderationStatus`, `status`, another user's id.
 - Never log or return a secret, token, cookie, authorization header, message plaintext, full payment
   payload or another user's personal data. Do not weaken the Pino `redact` list.
