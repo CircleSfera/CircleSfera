@@ -17,13 +17,64 @@ export const EFFECT_KINDS: readonly EffectKind[] = [
   'rgbsplit',
   'duotone',
   'kaleidoscope',
+  'lightleak',
 ];
 
 /** The effects that come with Edits Studio Pro: chosen only with it. */
 export const PRO_EFFECTS: ReadonlySet<EffectKind> = new Set([
   'duotone',
   'kaleidoscope',
+  'lightleak',
 ]);
+
+/**
+ * Light leak: a warm glow that crosses the picture from left to right over
+ * the effect's time, laid over it as a screen, as strong as the intensity.
+ * Its centre goes from a quarter before the left edge to a quarter past
+ * the right one, at a third of the height; it fades out at three quarters
+ * of the picture's longer side.
+ */
+export const LEAK_COLOR = [255, 150, 70] as const;
+const LEAK_FROM = -0.25;
+const LEAK_ACROSS = 1.5;
+const LEAK_HEIGHT = 0.35;
+const LEAK_REACH = 0.75;
+
+/** One pixel under the light leak at a moment t of an effect lasting dur. */
+export function lightLeakPixel(
+  rgb: readonly [number, number, number],
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  t: number,
+  dur: number,
+  k: number,
+): [number, number, number] {
+  const u = Math.max(0, Math.min(1, t / Math.max(dur, 0.01)));
+  const cx = width * (LEAK_FROM + LEAK_ACROSS * u);
+  const cy = height * LEAK_HEIGHT;
+  const reach = LEAK_REACH * Math.max(width, height);
+  const d = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+  const glow = Math.max(0, 1 - d / reach) ** 2 * k;
+  return rgb.map((c, i) =>
+    Math.round(255 - ((255 - c) * (255 - glow * LEAK_COLOR[i])) / 255),
+  ) as [number, number, number];
+}
+
+/** The same as ffmpeg geq expressions, in RGB, with T from the effect's start. */
+export function lightLeakGeq(dur: number, k: number): string {
+  const u = `clip(T/${Math.max(dur, 0.01)}\\,0\\,1)`;
+  const cx = `W*(${LEAK_FROM}+${LEAK_ACROSS}*${u})`;
+  const cy = `H*${LEAK_HEIGHT}`;
+  // In brackets: it divides as a whole.
+  const reach = `(${LEAK_REACH}*max(W\\,H))`;
+  const d = `sqrt((X-${cx})*(X-${cx})+(Y-${cy})*(Y-${cy}))`;
+  const glow = `pow(max(0\\,1-${d}/${reach})\\,2)*${k}`;
+  const plane = (c: 0 | 1 | 2, fn: 'r' | 'g' | 'b') =>
+    `${fn}='round(255-(255-${fn}(X\\,Y))*(255-${glow}*${LEAK_COLOR[c]})/255)'`;
+  return `format=gbrp,geq=${plane(0, 'r')}:${plane(1, 'g')}:${plane(2, 'b')}`;
+}
 
 /**
  * Kaleidoscope: the top left quarter of the picture mirrored into the other
@@ -168,6 +219,7 @@ export function effectAmounts(
       return { amount: round(k) };
     case 'duotone':
     case 'kaleidoscope':
+    case 'lightleak':
       return { amount: round(k) };
   }
 }
@@ -234,6 +286,8 @@ export function effectFilter(
       return duotoneGeq((a as { amount: number }).amount);
     case 'kaleidoscope':
       return kaleidoscopeGraph(tag, (a as { amount: number }).amount);
+    case 'lightleak':
+      return lightLeakGeq(clip.duration, (a as { amount: number }).amount);
   }
 }
 

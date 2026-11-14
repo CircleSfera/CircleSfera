@@ -4,6 +4,7 @@ import {
   duotonePixel,
   effectAmounts,
   kaleidoscopeSource,
+  lightLeakPixel,
   shakeAt,
   VIGNETTE_STOPS,
   vignetteDarkAt,
@@ -300,6 +301,31 @@ export function drawEffect(
         px[i] = r;
         px[i + 1] = g;
         px[i + 2] = b;
+      }
+      ctx.putImageData(image, 0, 0);
+      break;
+    }
+    case 'lightleak': {
+      // The same sum per pixel as the export's geq, at this moment.
+      const image = ctx.getImageData(0, 0, width, height);
+      const px = image.data;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const i = (y * width + x) * 4;
+          const [r, g, b] = lightLeakPixel(
+            [px[i], px[i + 1], px[i + 2]],
+            x,
+            y,
+            width,
+            height,
+            t,
+            clip.duration,
+            a.amount,
+          );
+          px[i] = r;
+          px[i + 1] = g;
+          px[i + 2] = b;
+        }
       }
       ctx.putImageData(image, 0, 0);
       break;

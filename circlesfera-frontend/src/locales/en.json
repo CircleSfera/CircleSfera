@@ -5197,7 +5197,8 @@
       "add_hint": "Added at the playhead, on the effects layer",
       "duotone": "Duotone",
       "pro_note": "Duotone and the other effects with a lock come with Edits Studio Pro.",
-      "kaleidoscope": "Kaleidoscope"
+      "kaleidoscope": "Kaleidoscope",
+      "lightleak": "Light leak"
     },
     "transitions": {
       "title": "Transitions",

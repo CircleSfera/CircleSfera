@@ -5197,7 +5197,8 @@
       "add_hint": "Se añade en el cursor, en la capa de efectos",
       "duotone": "Duotono",
       "pro_note": "El duotono y los demás efectos con candado vienen con Edits Studio Pro.",
-      "kaleidoscope": "Caleidoscopio"
+      "kaleidoscope": "Caleidoscopio",
+      "lightleak": "Destello de luz"
     },
     "transitions": {
       "title": "Transiciones",
