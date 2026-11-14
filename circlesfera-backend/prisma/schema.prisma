@@ -2885,12 +2885,6 @@ enum AdminAction {
   // Domains a link on a story cannot point to
   LINK_DOMAIN_BLOCKED
   LINK_DOMAIN_UNBLOCKED
-
-  // The monetization programme: a Profile's application approved,
-  // rejected, or its approval revoked.
-  MONETIZATION_APPROVED
-  MONETIZATION_REJECTED
-  MONETIZATION_REVOKED
 }
 
 enum AdminIdentityStatus {
