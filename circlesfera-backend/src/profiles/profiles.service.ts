@@ -27,6 +27,7 @@ import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js'
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
+import { isVerifiedCompany } from '../company-verification/company-mark.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { followTeamPlan } from '../team/team-plan.js';
@@ -65,6 +66,7 @@ const PUBLIC_PROFILE_FIELDS = [
   'privacyLevel',
   'isPrivate',
   'isVerified',
+  'verifiedCompany',
   'identityVerified',
   'emailConfirmed',
   'joinedAt',
@@ -252,6 +254,7 @@ export class ProfilesService {
       privacyLevel: profile.privacyLevel,
       isPrivate: profile.privacyLevel === Visibility.PRIVATE,
       isVerified: planVerified,
+      verifiedCompany: await isVerifiedCompany(this.prisma, profile),
       // The chosen colour shows only while the plan that includes it is
       // active; the choice itself stays stored.
       accentColor: canPersonalizeProfile(profile.verificationLevel)
@@ -605,6 +608,7 @@ export class ProfilesService {
       }),
       isPrivate: profile.privacyLevel === 'PRIVATE',
       isVerified: planVerified,
+      verifiedCompany: await isVerifiedCompany(this.prisma, profile),
       // The email shown is the one the person is signed in with.
       user: profile.user && {
         ...profile.user,

@@ -1,4 +1,9 @@
-import type { Locale, ReportReason, SuspensionCause } from '@prisma/client';
+import type {
+  CompanyRejectionReason,
+  Locale,
+  ReportReason,
+  SuspensionCause,
+} from '@prisma/client';
 
 // In-app notices and push texts, written in the recipient account's
 // language when the notice is created. Social notices hold only the action
@@ -72,7 +77,14 @@ export type Notice =
   | { key: 'live_starting_soon'; title: string }
   | { key: 'scheduled_live_started'; title: string }
   // Someone who saw what the Profile shared is worried about it.
-  | { key: 'support_resources' };
+  | { key: 'support_resources' }
+  // Staff decided on the Profile's company verification.
+  | { key: 'company_verified' }
+  | {
+      key: 'company_rejected';
+      reason: CompanyRejectionReason;
+      note?: string | null;
+    };
 
 export type NoticeKey = Notice['key'];
 
@@ -169,6 +181,33 @@ const RULES: Record<Locale, Record<ReportReason, string>> = {
 const rule = (locale: Locale, value: ReportReason) => RULES[locale][value];
 
 // The roles of a team member, as a notice says them.
+// Why a company verification was rejected, as a full sentence.
+const COMPANY_REJECTION: Record<
+  Locale,
+  Record<CompanyRejectionReason, string>
+> = {
+  en: {
+    DOCUMENTS_UNREADABLE: 'The documents could not be read.',
+    DOCUMENTS_NOT_ACCEPTED:
+      'The documents are not the ones asked for: the tax ID card or a Commercial Registry certificate for a company, the 036 or 037 form for a sole trader.',
+    DETAILS_DO_NOT_MATCH:
+      'The legal name or the tax ID do not match the documents.',
+    NAME_NOT_IDENTITY:
+      'The name on the documents does not match your verified identity.',
+    OTHER: 'It could not be approved.',
+  },
+  es: {
+    DOCUMENTS_UNREADABLE: 'No se pudieron leer los documentos.',
+    DOCUMENTS_NOT_ACCEPTED:
+      'Los documentos no son los que se piden: la tarjeta de identificación fiscal o un certificado del Registro Mercantil para una empresa, el modelo 036 o 037 para un autónomo.',
+    DETAILS_DO_NOT_MATCH:
+      'El nombre legal o el NIF no coinciden con los documentos.',
+    NAME_NOT_IDENTITY:
+      'El nombre de los documentos no coincide con tu identidad verificada.',
+    OTHER: 'No se pudo aprobar.',
+  },
+};
+
 const TEAM_ROLE: Record<Locale, Record<'ADMINISTRATOR' | 'EDITOR', string>> = {
   en: { ADMINISTRATOR: 'administrator', EDITOR: 'editor' },
   es: { ADMINISTRATOR: 'administrador', EDITOR: 'editor' },
@@ -396,6 +435,10 @@ function renderEn(n: Notice): string {
       return `is going live soon: "${n.title}"`;
     case 'scheduled_live_started':
       return `started the live you asked to be reminded of: "${n.title}"`;
+    case 'company_verified':
+      return 'Your company is verified. This profile shows "Verified company" while it has the Business plan.';
+    case 'company_rejected':
+      return `Your company verification was not approved. ${COMPANY_REJECTION.en[n.reason]}${n.note ? ` ${n.note}` : ''} You can apply again from Settings.`;
     case 'support_resources':
       return 'Someone who saw what you shared is worried about you. If you are going through something hard, you are not alone. In immediate danger, call 112 or your local emergency number. To talk to someone for free, find a helpline in your country at findahelpline.com.';
   }
@@ -543,6 +586,10 @@ function renderEs(n: Notice): string {
       return `va a empezar un directo en breve: «${n.title}»`;
     case 'scheduled_live_started':
       return `ha empezado el directo del que pediste que te avisáramos: «${n.title}»`;
+    case 'company_verified':
+      return 'Tu empresa está verificada. Este perfil muestra «Empresa verificada» mientras tenga el plan Business.';
+    case 'company_rejected':
+      return `Tu verificación de empresa no se ha aprobado. ${COMPANY_REJECTION.es[n.reason]}${n.note ? ` ${n.note}` : ''} Puedes volver a solicitarla desde Ajustes.`;
     case 'support_resources':
       return 'Alguien que ha visto lo que compartiste se preocupa por ti. Si estás pasando por algo difícil, no estás solo ni sola. Si estás en peligro inmediato, llama al 112. Para hablar con alguien, llama al 024: es gratis, confidencial y atiende a cualquier hora.';
   }

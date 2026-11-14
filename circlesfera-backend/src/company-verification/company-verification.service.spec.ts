@@ -647,6 +647,34 @@ describe('CompanyVerificationService', () => {
       ).toMatchObject({ status: 'PENDING' });
     });
 
+    it('sending new details stops an earlier approval with other details from showing the mark', async () => {
+      open = application({
+        domainProvedAt: new Date(),
+        emailVerifiedAt: new Date(),
+        emailAddress: 'info@acme.es',
+      });
+      prisma.companyVerificationDocument.count.mockResolvedValue(1);
+      await service.submit('u-1', 'prof-1');
+      expect(prisma.companyVerification.updateMany.mock.calls[1][0]).toEqual({
+        where: {
+          profileId: 'prof-1',
+          status: 'APPROVED',
+          OR: [
+            { legalName: { not: 'Acme SL' } },
+            { taxId: { not: 'B12345674' } },
+            { OR: [{ domain: null }, { domain: { not: 'acme.es' } }] },
+          ],
+        },
+        data: { status: 'REPLACED' },
+      });
+
+      open = application({ kind: 'SOLE_TRADER', domain: null });
+      await service.submit('u-1', 'prof-1');
+      expect(
+        prisma.companyVerification.updateMany.mock.calls[3][0].where.OR[2],
+      ).toEqual({ domain: { not: null } });
+    });
+
     it('a code confirmed on another domain does not count', async () => {
       open = application({
         domainProvedAt: new Date(),

@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bullmq';
 import { DEFAULT_LOCALE } from '../common/constants/locale.constants.js';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
+import { type Notice, renderNotice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EMAIL_COPY } from './email-copy.js';
 import {
@@ -425,6 +426,20 @@ export class EmailService {
   ) {
     const ctx = await this.contextFor(applicantEmail ?? to);
     await this.send(to, EmailTemplates.companyDomainCode(ctx, code));
+  }
+
+  // The decision on a company verification, in the person's language; the
+  // text is the notice they also read in the app.
+  async sendCompanyVerificationDecided(email: string, notice: Notice) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.companyDecided(
+        ctx,
+        notice.key === 'company_verified',
+        renderNotice(ctx.locale, notice),
+      ),
+    );
   }
 
   // Enqueue an email for delivery. Returns as soon as the job is

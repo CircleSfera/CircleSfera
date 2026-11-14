@@ -20,6 +20,7 @@ describe('ProfilesService', () => {
   const mockPrismaService: any = {
     $transaction: vi.fn((cb: any) => cb(mockPrismaService)),
     storedFile: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    companyVerification: { count: vi.fn().mockResolvedValue(0) },
     profileMember: {
       findUnique: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn(),
@@ -905,9 +906,9 @@ describe('ProfilesService', () => {
       },
     );
 
-    it('shows no verified company mark, even on the Business plan', async () => {
+    it('shows the verified company mark only on the Business plan with an approved verification', async () => {
       mockCacheManager.get.mockResolvedValue(null);
-      mockPrismaService.profile.findFirst.mockResolvedValue({
+      const company = (over = {}) => ({
         id: 'p-company',
         userId: 'u-company',
         username: 'companyuser',
@@ -915,13 +916,36 @@ describe('ProfilesService', () => {
         accountType: 'BUSINESS',
         user: null,
         _count: { posts: 0, followers: 0, following: 0 },
+        ...over,
       });
       mockPrismaService.platformSubscription = {
         findFirst: vi.fn().mockResolvedValue(null),
       };
+      mockPrismaService.companyVerification = {
+        count: vi.fn().mockResolvedValue(1),
+      };
 
-      const res: any = await service.getProfile('companyuser');
-      expect(res).not.toHaveProperty('companyVerified');
+      mockPrismaService.profile.findFirst.mockResolvedValue(company());
+      const approved: any = await service.getProfile('companyuser');
+      expect(approved.verifiedCompany).toBe(true);
+      expect(mockPrismaService.companyVerification.count).toHaveBeenCalledWith({
+        where: { profileId: 'p-company', status: 'APPROVED' },
+      });
+
+      mockPrismaService.companyVerification.count.mockResolvedValue(0);
+      const none: any = await service.getProfile('companyuser');
+      expect(none.verifiedCompany).toBe(false);
+
+      // Without the plan the mark is hidden; the verification is kept.
+      mockPrismaService.companyVerification.count.mockClear();
+      mockPrismaService.profile.findFirst.mockResolvedValue(
+        company({ verificationLevel: 'ELITE' }),
+      );
+      const noPlan: any = await service.getProfile('companyuser');
+      expect(noPlan.verifiedCompany).toBe(false);
+      expect(
+        mockPrismaService.companyVerification.count,
+      ).not.toHaveBeenCalled();
     });
 
     it('handles ELITE verificationLevel without platformSubscription', async () => {

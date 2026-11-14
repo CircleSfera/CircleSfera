@@ -495,6 +495,27 @@ export class CompanyVerificationService {
           submittedAt: new Date(),
         },
       });
+      // A new legal name, tax ID or domain needs its own approval: the
+      // earlier one stops showing the mark until then.
+      await tx.companyVerification.updateMany({
+        where: {
+          profileId: application.profileId,
+          status: CompanyVerificationStatus.APPROVED,
+          OR: [
+            { legalName: { not: application.legalName } },
+            { taxId: { not: application.taxId } },
+            application.domain === null
+              ? { domain: { not: null } }
+              : {
+                  OR: [
+                    { domain: null },
+                    { domain: { not: application.domain } },
+                  ],
+                },
+          ],
+        },
+        data: { status: CompanyVerificationStatus.REPLACED },
+      });
     });
     return this.status(userId, profileId);
   }

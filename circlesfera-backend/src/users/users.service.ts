@@ -608,6 +608,8 @@ export class UsersService {
           emailAddress: true,
           submittedAt: true,
           decidedAt: true,
+          rejectionReason: true,
+          rejectionNote: true,
           createdAt: true,
         },
       }),
