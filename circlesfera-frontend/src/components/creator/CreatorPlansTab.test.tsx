@@ -110,6 +110,40 @@ describe('CreatorPlansTab', () => {
     sells.value = true;
   });
 
+  it('shows Edits Studio Pro as included, not to buy, when the plan has it, and as active when held', async () => {
+    vi.mocked(paymentsApi.getPlans).mockResolvedValue([
+      plan('Edits Studio Pro', 'plan-studio', 799),
+    ] as never);
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: true,
+      subscription: { planName: 'Elite Creator', status: 'ACTIVE' },
+      studioPro: { includedInPlan: true, subscription: null },
+    });
+    const { i18n, unmount } = renderWithProviders(
+      <CreatorPlansTab onToast={onToast} />,
+    );
+
+    expect(
+      await screen.findByText(i18n!.t('pricingPage.add_on.included')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('creator.plans.upgrade_now'),
+      }),
+    ).not.toBeInTheDocument();
+    unmount();
+
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: true,
+      subscription: { planName: 'Premium', status: 'ACTIVE' },
+      studioPro: { includedInPlan: false, subscription: { status: 'ACTIVE' } },
+    });
+    renderWithProviders(<CreatorPlansTab onToast={onToast} />);
+    expect(
+      await screen.findByText(i18n!.t('creator.plans.active')),
+    ).toBeInTheDocument();
+  });
+
   it('writes plan prices as currency in Spanish', async () => {
     renderWithProviders(<CreatorPlansTab onToast={onToast} />, {
       lng: 'es',

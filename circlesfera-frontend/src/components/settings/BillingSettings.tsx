@@ -10,6 +10,7 @@ import { sellsInApp } from '../../utils/sellsInApp';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
+import StudioProBilling from './StudioProBilling';
 
 // A plan can be cancelled while it runs, also with a payment overdue.
 const CANCELLABLE = ['ACTIVE', 'TRIALING', 'PAST_DUE'];
@@ -214,6 +215,8 @@ export default function BillingSettings() {
               </Button>
             </div>
           )}
+
+        <StudioProBilling billingStatus={billingStatus ?? null} />
       </SettingsSection>
 
       {otherProfiles.length > 0 && (

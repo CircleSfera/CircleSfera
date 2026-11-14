@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { STUDIO_PRO_PLAN_NAME } from '../src/common/constants/plan-features.constants.js';
 import {
   findProviderProduct,
   findStoredPlan,
@@ -57,8 +58,22 @@ describe('the plan catalog', () => {
       features: ['verified_badge', 'priority_support'],
     });
     expect(PLAN_CATALOG.map((p) => p.priceCents)).toEqual([
-      499, 999, 1999, 4999,
+      499, 999, 1999, 4999, 799,
     ]);
+  });
+
+  it('sells Edits Studio Pro as the add-on the server knows by name, and gives it with Elite Creator and Business only', () => {
+    expect(plan(STUDIO_PRO_PLAN_NAME)).toMatchObject({
+      priceCents: 799,
+      features: ['studio_pro'],
+    });
+    expect(
+      PLAN_CATALOG.filter((p) => p.features.includes('studio_pro')).map(
+        (p) => p.name,
+      ),
+    ).toEqual(['Elite Creator', 'Business', STUDIO_PRO_PLAN_NAME]);
+    // The add-on never gives the badge: the badge follows the plan.
+    expect(plan(STUDIO_PRO_PLAN_NAME).features).not.toContain('verified_badge');
   });
 });
 

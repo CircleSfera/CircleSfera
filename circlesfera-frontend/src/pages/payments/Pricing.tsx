@@ -33,7 +33,12 @@ import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
 import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
-import { planAccountType, planFitsProfile } from '../../utils/plans';
+import {
+  isAddOnPlan,
+  planAccountType,
+  planFitsProfile,
+  studioProState,
+} from '../../utils/plans';
 import { sellsInApp } from '../../utils/sellsInApp';
 
 // The articles of the help centre that answer what is asked before paying.
@@ -151,6 +156,10 @@ export default function Pricing() {
   // The plan of the subscription when there is one; otherwise the plan the
   // Profile's level stands for.
   const isPlanActive = (plan: PlatformPlanDto) => {
+    // The add-on is held beside the plan, never as it.
+    if (isAddOnPlan(plan.name)) {
+      return studioProState(billingStatus) === 'held';
+    }
     const name = plan.name.toLowerCase();
     if (billingStatus?.hasActiveSubscription) {
       return billingStatus.subscription?.planName?.toLowerCase() === name;
@@ -181,7 +190,8 @@ export default function Pricing() {
 
       return paymentsApi.createSubscriptionCheckout(
         plan.id,
-        billingCycle,
+        // The add-on is sold by the month only.
+        isAddOnPlan(plan.name) ? 'MONTHLY' : billingCycle,
         given,
       );
     },
@@ -214,6 +224,11 @@ export default function Pricing() {
       );
     });
   };
+
+  // Edits Studio Pro is shown apart, under the plans, as an add-on.
+  const tierPlans = plans?.filter((plan) => !isAddOnPlan(plan.name));
+  const addOn = plans?.find((plan) => isAddOnPlan(plan.name));
+  const addOnState = studioProState(billingStatus);
 
   const hasYearlyPlans =
     plans?.some((p) => p.yearlyPriceCents != null && p.yearlyPriceCents > 0) ??
@@ -263,17 +278,17 @@ export default function Pricing() {
             message={t('pricingPage.load_error_message')}
             onRetry={() => refetch()}
           />
-        ) : !plans?.length ? (
+        ) : !tierPlans?.length ? (
           <EmptyState
             title={t('pricingPage.badge')}
             message={t('pricingPage.subtitle')}
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
-            {plans.map((plan, index) => {
+            {tierPlans.map((plan, index) => {
               const isPopular =
                 plan.name.toLowerCase().includes('elite') ||
-                index === Math.floor(plans.length / 2);
+                index === Math.floor(tierPlans.length / 2);
               const isActive = isPlanActive(plan);
               const monthlyCents = plan.priceCents ?? 0;
               const yearlyCents = plan.yearlyPriceCents ?? 0;
@@ -418,6 +433,94 @@ export default function Pricing() {
               );
             })}
           </div>
+        )}
+
+        {addOn && !isLoading && !isError && (
+          <section
+            className="mt-10 sm:mt-14"
+            aria-labelledby="pricing-add-on"
+            data-testid="pricing-add-on"
+          >
+            <h2
+              id="pricing-add-on"
+              className="text-2xl font-black tracking-tight text-white"
+            >
+              {t('pricingPage.add_on.heading')}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/60">
+              {t('pricingPage.add_on.subtitle')}
+            </p>
+            <article className="mt-4 flex flex-col gap-6 rounded-3xl glass-panel border p-6 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-black tracking-tight text-white">
+                    {addOn.name}
+                  </h3>
+                  {addOnState === 'held' && (
+                    <span className="rounded-full border border-brand-primary/30 bg-brand-primary/20 px-2.5 py-1 text-xs font-bold text-brand-primary-text">
+                      {t('pricingPage.current_plan')}
+                    </span>
+                  )}
+                </div>
+                <ul className="mt-4 space-y-3">
+                  {(['export_4k', 'export_60fps', 'free_stays'] as const).map(
+                    (point) => (
+                      <li key={point} className="flex items-start gap-3">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-primary/20">
+                          <Check className="h-3 w-3 text-brand-primary-text" />
+                        </span>
+                        <span className="text-sm text-white/70">
+                          {t(`pricingPage.add_on.points.${point}`)}
+                        </span>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </div>
+              <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
+                <p className="flex items-baseline gap-1.5">
+                  <span className="text-4xl font-black tracking-tight text-white">
+                    {formatCents(
+                      addOn.priceCents ?? 0,
+                      i18n.language,
+                      addOn.currency || 'EUR',
+                    )}
+                  </span>
+                  <span className="text-sm text-white/60">
+                    /{t('pricingPage.per_month')}
+                  </span>
+                </p>
+                <p className="text-xs text-white/50">{t('vat.included')}</p>
+                {addOnState === 'included' ? (
+                  <p
+                    className="text-sm text-white/70"
+                    data-testid="pricing-add-on-included"
+                  >
+                    {t('pricingPage.add_on.included')}
+                  </p>
+                ) : !sellsInApp() ? (
+                  <p className="text-sm text-white/60">
+                    {t('pricingPage.not_in_app')}
+                  </p>
+                ) : (
+                  <MarketingCTA
+                    variant="secondary"
+                    size="lg"
+                    disabled={loadingPlanId !== null}
+                    onClick={() => handleTierClick(addOn)}
+                  >
+                    {loadingPlanId === addOn.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : addOnState === 'held' ? (
+                      t('pricingPage.manage_subscription')
+                    ) : (
+                      t('pricingPage.add_on.button')
+                    )}
+                  </MarketingCTA>
+                )}
+              </div>
+            </article>
+          </section>
         )}
 
         {/* What holds for every plan */}
