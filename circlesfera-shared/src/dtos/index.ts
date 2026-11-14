@@ -71,8 +71,6 @@ export interface CreatePostDto {
   /** The Edits Studio template the post was made with, for its credit. */
   templateId?: string;
   tags?: Array<{ profileId: string; x: number; y: number }>;
-  isPremium?: boolean;
-  priceCents?: number;
 }
 
 export interface CreateCommentDto {
@@ -102,8 +100,6 @@ export interface CreateStoryDto {
     region?: string;
     locality?: string;
   };
-  isPremium?: boolean;
-  priceCents?: number;
   /** The stickers of the story, up to ten. */
   stickers?: StoryStickerInput[];
 }

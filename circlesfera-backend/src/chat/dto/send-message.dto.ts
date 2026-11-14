@@ -2,7 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   IsArray,
-  IsBoolean,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -16,6 +15,10 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { LOCAL_UPLOAD_URL } from '../../common/constants/local-upload.constants.js';
+import {
+  LegacyNotForSaleFlag,
+  LegacyNotForSalePrice,
+} from '../../common/dto/legacy-not-for-sale.js';
 
 export class SendMessageDto {
   @ApiProperty({ required: false, type: () => String })
@@ -120,14 +123,11 @@ export class SendMessageDto {
   @IsOptional()
   voiceWaveform?: number[];
 
-  @ApiProperty({ required: false, type: () => Boolean })
-  @IsBoolean()
-  @IsOptional()
-  isLocked?: boolean;
+  /** Sent by older app versions; accepted only as "not for sale" and never read. */
+  @LegacyNotForSaleFlag()
+  isLocked?: false;
 
-  @ApiProperty({ required: false, type: () => Number, minimum: 0 })
-  @IsInt()
-  @Min(0)
-  @IsOptional()
-  priceCents?: number;
+  /** Sent by older app versions; accepted only as 0 and never read. */
+  @LegacyNotForSalePrice()
+  priceCents?: 0;
 }

@@ -13,7 +13,7 @@ import { createDirectConversation, createMessage } from './chat.factory.js';
 import {
   createPlatformPlan,
   createPlatformSubscription,
-} from './monetization.factory.js';
+} from './payments.factory.js';
 import { createPost } from './post.factory.js';
 import { createUserWithProfile } from './profile.factory.js';
 import { createFollow } from './social.factory.js';

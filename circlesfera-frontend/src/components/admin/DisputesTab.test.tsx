@@ -23,7 +23,7 @@ const dispute = (overrides: Record<string, unknown> = {}) => ({
   user: null,
   transaction: {
     id: 'tx-1',
-    type: 'TIP',
+    type: 'PROMOTION_PAYMENT',
     sender: { id: 'u-1', email: 'ana@example.com' },
   },
   ...overrides,
@@ -135,10 +135,12 @@ describe('DisputesTab', () => {
     expect(screen.getByText('Payment of a plan')).toBeInTheDocument();
   });
 
-  it('says the account is not known when a payment between people has lost its sender', async () => {
+  it('says the account is not known when a payment has lost its sender', async () => {
     vi.mocked(adminApi.getDisputes).mockResolvedValue(
       list([
-        dispute({ transaction: { id: 'tx-1', type: 'TIP', sender: null } }),
+        dispute({
+          transaction: { id: 'tx-1', type: 'PROMOTION_PAYMENT', sender: null },
+        }),
       ]) as never,
     );
     renderWithProviders(<DisputesTab />);

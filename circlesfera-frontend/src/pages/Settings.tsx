@@ -8,7 +8,6 @@ import CollaborationsSettings from '../components/settings/CollaborationsSetting
 import FavoritesSettings from '../components/settings/FavoritesSettings';
 import FeedPreferencesSettings from '../components/settings/FeedPreferencesSettings';
 import HiddenWordsSettings from '../components/settings/HiddenWordsSettings';
-import { MonetizationSettings } from '../components/settings/MonetizationSettings';
 import MutesSettings from '../components/settings/MutesSettings';
 import MyReportsSettings from '../components/settings/MyReportsSettings';
 import NotificationsSettings from '../components/settings/NotificationsSettings';
@@ -43,8 +42,6 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <SecuritySettings />;
     case 'billing':
       return <BillingSettings />;
-    case 'monetization':
-      return <MonetizationSettings />;
     case 'requests':
       return <RequestsSettings />;
     case 'collaborations':

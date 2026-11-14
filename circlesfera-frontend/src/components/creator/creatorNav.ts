@@ -1,24 +1,27 @@
 import {
   BarChart3,
   Clock,
-  DollarSign,
+  CreditCard,
   ImageIcon,
   LayoutDashboard,
   type LucideIcon,
   Megaphone,
 } from 'lucide-react';
 
-// Canonical creator studio tabs (finance redirects to monetization).
+// Canonical creator studio tabs (older addresses redirect to plans).
 export type CreatorTab =
   | 'overview'
   | 'analytics'
   | 'content'
   | 'stories'
-  | 'monetization'
+  | 'plans'
   | 'ads';
 
-// Legacy tab id kept only for redirects.
-export type CreatorLegacyTab = CreatorTab | 'finance';
+// Older tab ids kept only for redirects.
+export const CREATOR_LEGACY_TABS: readonly string[] = [
+  'finance',
+  'monetization',
+];
 
 export interface CreatorNavItem {
   id: CreatorTab;
@@ -49,9 +52,9 @@ export const CREATOR_NAV_GROUPS: CreatorNavGroup[] = [
         icon: BarChart3,
       },
       {
-        id: 'monetization',
-        labelKey: 'creator.nav.monetization',
-        icon: DollarSign,
+        id: 'plans',
+        labelKey: 'creator.nav.plans',
+        icon: CreditCard,
       },
       {
         id: 'ads',

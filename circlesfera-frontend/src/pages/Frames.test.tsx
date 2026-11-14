@@ -1,5 +1,4 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
-import toast from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FrameMenuActions } from '../components/frames/FrameOptionsSheet';
@@ -29,10 +28,6 @@ vi.mock('../stores/authStore', () => ({
 
 vi.mock('../services', () => ({
   postsApi: { getFrames: vi.fn(), getById: vi.fn() },
-}));
-
-vi.mock('react-hot-toast', () => ({
-  default: { success: vi.fn(), error: vi.fn() },
 }));
 
 vi.mock('../components/FrameItem', async () => {
@@ -409,37 +404,6 @@ describe('Frames', () => {
       await act(async () => deliver({ data: frame('linked') }));
 
       expect(await screen.findByTestId('frame-linked')).toBeInTheDocument();
-    });
-  });
-
-  describe('coming back from a payment', () => {
-    it('confirms it, refreshes the frames and cleans the address', async () => {
-      vi.mocked(postsApi.getFrames).mockResolvedValue(page([frame('a')]));
-      vi.mocked(postsApi.getById).mockResolvedValue({
-        data: frame('a'),
-      } as never);
-      open('/frames?post=a&success=true&session_id=cs_1');
-
-      await waitFor(() =>
-        expect(toast.success).toHaveBeenCalledWith(
-          'Payment successful. Content will unlock shortly.',
-        ),
-      );
-      expect(toast.success).toHaveBeenCalledTimes(1);
-      expect(screen.getByTestId('address')).toHaveTextContent('?post=a');
-      expect(screen.getByTestId('address')).not.toHaveTextContent('success');
-      expect(screen.getByTestId('address')).not.toHaveTextContent('session_id');
-    });
-
-    it('says so when the payment was cancelled', async () => {
-      vi.mocked(postsApi.getFrames).mockResolvedValue(page([frame('a')]));
-      open('/frames?canceled=true');
-
-      await waitFor(() =>
-        expect(toast.error).toHaveBeenCalledWith('Checkout was canceled.'),
-      );
-      expect(toast.success).not.toHaveBeenCalled();
-      expect(screen.getByTestId('address')).toBeEmptyDOMElement();
     });
   });
 

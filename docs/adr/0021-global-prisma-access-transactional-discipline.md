@@ -21,23 +21,18 @@ Verified current state (this ADR's originating audit):
 - Despite that, the codebase already has a real, consistently-applied transactional discipline — it was
   simply never written down. 11 files use Prisma's `$transaction`, always for the same shape of problem: a
   write that touches more than one table where partial completion would leave visibly inconsistent state.
-  Examples: `LiveService.completeGiftPayment` (`src/live/live.service.ts`) wraps `Transaction.create` +
-  `LiveGift.update` (status → COMPLETED) + `Monetization.upsert` (atomic `increment` on
-  `lifetimeEarningsCents`) in one transaction, guarded by an idempotency check (`existing.status ===
-  'COMPLETED'`) before the transaction even starts; `MonetizationWebhookService` does the same for every
-  checkout-session-completed branch (promotion, direct-post-unlock, etc.); `PostsService.createPost` wraps
+  Examples: `PaymentEventsService` (`src/payments/payment-events.service.ts`) wraps the promotion's
+  activation and its `Transaction.create` in one transaction when a promotion checkout completes;
+  `PostsService.createPost` wraps
   `Post.create` + `PostMedia.createMany` so a crash mid-creation cannot leave an orphaned post with partial
   media.
-- Counters that could otherwise race (earnings, viewer counts) never use a read-compute-write pattern — they
+- Counters that could otherwise race (viewer counts, for example) never use a read-compute-write pattern — they
   use Prisma's atomic `increment`/`decrement`, which needs no transaction because it is already atomic at the
   database level. `LiveRealtimeService.decrementViewerCount` (`src/socket/services/live-realtime.service.ts`)
   is a clean example: a conditional `updateMany({ where: { viewerCount: { gt: 0 } } })` floors at zero without
   ever reading first.
-- There is no internal financial ledger to race on in the first place. Per ADR-0002, Stripe Connect Express is
-  the sole source of truth for payout balances; CircleSfera stored `lifetimeEarningsCents` as a running total
-  for display, never a balance it debits from. (Later note: that counter is no longer written; a
-  creator's earnings are computed from the payments received, `monetization/earnings-sql.ts`, PD-046
-  step 7b. The point stands: there is no balance to debit.) This sidesteps an entire class of read-then-write races other
+- There is no internal balance to race on in the first place: CircleSfera records the payments it
+  receives and never keeps a balance it debits from. This sidesteps an entire class of read-then-write races other
   platforms have to solve with locking.
 - External-trigger idempotency (Stripe webhook redelivery) is handled upstream of all of the above, not by
   the transaction itself: `PaymentsService` maintains a `WebhookEvent` table keyed by Stripe's `event.id` with
@@ -63,7 +58,7 @@ reverse-engineer from examples:
 1. **Wrap a write in `$transaction` when, and only when, partial completion would leave state another
    request could observe as inconsistent.** The test is not "does this touch more than one table" — it is
    "would a crash between these statements produce a state that is wrong, not just incomplete." A payment
-   record without its corresponding earnings update is wrong. A post that exists before its media rows are
+   record without the change it pays for (a promotion left pending once paid) is wrong. A post that exists before its media rows are
    attached is wrong. A stream that ends without its viewer-count reconciliation running is not wrong, just
    momentarily stale.
 2. **Prefer an atomic Prisma primitive (`increment`, `decrement`, conditional `updateMany`, `upsert`) over a
@@ -71,8 +66,8 @@ reverse-engineer from examples:
    transaction at all because the database-level atomic operation already removes the race. Reach for
    `$transaction` only when the write genuinely spans more than one row or table.
 3. **Never build an internal balance/ledger that requires computing "current balance" from prior writes.**
-   Per ADR-0002, Stripe Connect stays the authoritative balance; this codebase only ever writes
-   monotonically-increasing running totals for display, never a debitable balance. If a future feature seems
+   The payment provider stays the authoritative record of money; this codebase never keeps a debitable
+   balance. If a future feature seems
    to need one, that is a new ADR, not a quiet addition.
 4. **External-trigger handlers (webhooks) claim their idempotency key before doing any domain write, not
    after.** Follow `PaymentsService`'s `WebhookEvent` compare-and-swap pattern rather than relying on the
@@ -110,8 +105,7 @@ tree (rule 1–2 above) instead of having to infer the pattern from unrelated fi
 ## Implementation anchors
 
 - `circlesfera-backend/src/prisma/prisma.module.ts` — global `PrismaModule` registration.
-- `circlesfera-backend/src/live/live.service.ts:565` (`completeGiftPayment`) and
-  `circlesfera-backend/src/monetization/monetization-webhook.service.ts` — the `$transaction` pattern for
+- `circlesfera-backend/src/payments/payment-events.service.ts` — the `$transaction` pattern for
   money-adjacent multi-table writes.
 - `circlesfera-backend/src/socket/services/live-realtime.service.ts` (`decrementViewerCount`) — the atomic
   conditional-`updateMany` pattern in place of a transaction.

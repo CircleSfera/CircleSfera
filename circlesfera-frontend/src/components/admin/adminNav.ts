@@ -30,7 +30,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   Users,
-  Wallet,
 } from 'lucide-react';
 import {
   adminPanelOrigin,
@@ -54,7 +53,6 @@ export type AdminTab =
   | 'whitelist'
   | 'verification'
   | 'monetization'
-  | 'payouts'
   | 'promotions'
   | 'moderation'
   | 'firewall'
@@ -68,7 +66,6 @@ export type AdminTab =
   | 'plans'
   | 'subscriptions'
   | 'disputes'
-  | 'companies'
   | 'roles'
   | 'trust'
   | 'live'
@@ -97,7 +94,6 @@ export const ADMIN_TAB_PERMISSIONS: Record<
 > = {
   analytics: 'users.read',
   monetization: 'payments',
-  payouts: 'payments',
   promotions: 'content',
   verification: 'users.read',
   whitelist: 'users.write',
@@ -128,7 +124,6 @@ export const ADMIN_TAB_PERMISSIONS: Record<
   plans: 'plans',
   subscriptions: 'payments',
   disputes: 'payments',
-  companies: 'payments',
   // The review area, read only: how the rules are enforced in the Admin
   // Panel, what is sold and who sells it in the Backoffice.
   'review-compliance': 'review',
@@ -154,11 +149,6 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         id: 'monetization',
         labelKey: 'admin.nav.monetization',
         icon: DollarSign,
-      },
-      {
-        id: 'payouts',
-        labelKey: 'admin.nav.payouts',
-        icon: Wallet,
       },
       {
         id: 'promotions',
@@ -323,11 +313,6 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         labelKey: 'admin.nav.disputes',
         icon: ShieldAlert,
       },
-      {
-        id: 'companies',
-        labelKey: 'admin.nav.companies',
-        icon: BadgeCheck,
-      },
     ],
   },
   {
@@ -360,9 +345,7 @@ const BACKOFFICE_TABS: readonly AdminTab[] = [
   'plans',
   'subscriptions',
   'disputes',
-  'companies',
   'promotions',
-  'payouts',
   'monetization',
   'newsletter',
   'review-business',

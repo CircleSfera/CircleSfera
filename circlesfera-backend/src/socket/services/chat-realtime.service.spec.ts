@@ -1,17 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AddReactionUseCase } from '../../chat/use-cases/messages/add-reaction.use-case.js';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  inlinePaidMedia,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../../common/testing/paid-posts.js';
-import { PostPaywallService } from '../../posts/services/post-paywall.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { ChatRealtimeService } from './chat-realtime.service.js';
 
@@ -37,7 +26,6 @@ describe('ChatRealtimeService', () => {
         ChatRealtimeService,
         { provide: PrismaService, useValue: prisma },
         { provide: AddReactionUseCase, useValue: addReactionUseCase },
-        { provide: PostPaywallService, useValue: realPaywall() },
       ],
     }).compile();
 
@@ -52,40 +40,6 @@ describe('ChatRealtimeService', () => {
     const pairs = await service.blocksAmong(['a', 'b']);
 
     expect([...(pairs.get('b') ?? [])]).toEqual(['a']);
-  });
-
-  describe('a paid post a message shares', () => {
-    const seenBy = (member: string) =>
-      service.sharedPostAsSeenBy(paidPost([inlinePaidMedia()]), member);
-
-    it('is closed to a member who has not unlocked it', async () => {
-      expectClosed(await seenBy(STRANGER_ID));
-    });
-
-    it('is whole for its author and for a member who unlocked it', async () => {
-      expectWhole(await seenBy(AUTHOR_ID));
-      expectWhole(await seenBy(BUYER_ID));
-    });
-
-    it.each([new Error('database gone'), 'database gone'])(
-      'is closed when the unlocks cannot be read (%s)',
-      async (failure) => {
-        const paywall = realPaywall();
-        vi.spyOn(paywall, 'applyPaywall').mockRejectedValueOnce(failure);
-        const failing = new ChatRealtimeService(
-          prisma as unknown as PrismaService,
-          addReactionUseCase as unknown as AddReactionUseCase,
-          paywall,
-        );
-
-        expectClosed(
-          await failing.sharedPostAsSeenBy(
-            paidPost([inlinePaidMedia()]),
-            BUYER_ID,
-          ),
-        );
-      },
-    );
   });
 
   describe('membersOf', () => {

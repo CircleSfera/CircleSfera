@@ -4,16 +4,6 @@ import {
   encodeKeysetCursor,
 } from '../../../common/pagination/keyset.util.js';
 import type { CryptoService } from '../../../common/services/crypto.service.js';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  inlinePaidMedia,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../../../common/testing/paid-posts.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import {
   CONVERSATION_PAGE_DEFAULT,
@@ -78,7 +68,6 @@ describe('GetConversationsQuery', () => {
     query = new GetConversationsQuery(
       mockPrisma as unknown as PrismaService,
       mockCryptoService as unknown as CryptoService,
-      realPaywall(),
     );
   });
 
@@ -513,51 +502,5 @@ describe('GetConversationsQuery', () => {
         'Conversation not found',
       );
     });
-  });
-
-  describe('a paid post the latest message shares', () => {
-    const conversation = () => ({
-      id: 'dm',
-      updatedAt: new Date(),
-      participants: [],
-      messages: [
-        {
-          id: 'm1',
-          content: null,
-          post: paidPost([inlinePaidMedia()], {
-            moderationStatus: 'VISIBLE',
-            deletedAt: null,
-            archivedAt: null,
-          }),
-        },
-      ],
-    });
-
-    const lists = {
-      list: async (viewer: string) =>
-        ((await query.execute(viewer)) as any[])[0],
-      page: async (viewer: string) =>
-        ((await query.executePage(viewer, 'inbox')).items as any[])[0],
-      one: async (viewer: string) => query.executeOne('dm', viewer) as any,
-    };
-
-    const previewFor = async (list: keyof typeof lists, viewer: string) => {
-      mockPrisma.conversation.findMany.mockResolvedValue([conversation()]);
-      (mockPrisma.conversation as any).findFirst = vi
-        .fn()
-        .mockResolvedValue(conversation());
-      return (await lists[list](viewer)).messages[0].post;
-    };
-
-    for (const list of Object.keys(lists) as Array<keyof typeof lists>) {
-      it(`${list}: is closed to a viewer who has not unlocked it`, async () => {
-        expectClosed(await previewFor(list, STRANGER_ID));
-      });
-
-      it(`${list}: is whole for its author and for a viewer who unlocked it`, async () => {
-        expectWhole(await previewFor(list, AUTHOR_ID));
-        expectWhole(await previewFor(list, BUYER_ID));
-      });
-    }
   });
 });

@@ -1,7 +1,6 @@
-import { ErrorCode, TIP_AMOUNTS_CENTS } from '@circlesfera/shared';
+import { ErrorCode } from '@circlesfera/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FollowsService } from '../../follows/follows.service.js';
-import { MonetizationService } from '../../monetization/monetization.service.js';
 import { PaymentsService } from '../../payments/payments.service.js';
 
 // Whoever pays here is an adult, unless a test says otherwise; the rule is
@@ -11,304 +10,7 @@ const adultPayer = vi.hoisted(() => ({
 }));
 vi.mock('../policies/adult-payer.policy.js', () => adultPayer);
 
-// Whoever pays may see the content; the viewing rules are tested on their
-// own (post-access and story-access policy specs).
-vi.mock('../policies/post-access.policy.js', () => ({
-  assertCanAccessPost: vi.fn().mockResolvedValue(undefined),
-}));
-vi.mock('../policies/story-access.policy.js', () => ({
-  assertCanAccessStory: vi.fn().mockResolvedValue(undefined),
-}));
-
 describe('Transaction Boundaries and Concurrency Invariants', () => {
-  describe('Monetization & Financial Ledger Invariants', () => {
-    let monetizationService: MonetizationService;
-    let mockPrisma: any;
-    let mockStripeService: any;
-
-    beforeEach(() => {
-      mockPrisma = {
-        $transaction: vi.fn(async (cb: any) => cb(mockPrisma)),
-        user: {
-          findUnique: vi.fn(),
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        // A tip names a Profile; these tests name the person directly, whose
-        // first Profile may receive it.
-        profile: {
-          findUnique: vi.fn().mockResolvedValue(null),
-          findFirst: vi.fn(
-            async ({ where }: { where: { userId: string } }) => ({
-              id: `${where.userId}-profile`,
-              userId: where.userId,
-              username: 'creator',
-              isAccountBanned: false,
-              suspendedUntil: null,
-              monetizationStatus: 'APPROVED',
-              user: {
-                isActive: true,
-                isRootBanned: false,
-                deletedAt: null,
-                // An adult with a verified identity, who may charge.
-                identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
-                dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
-                dateOfBirthVerified: true,
-              },
-            }),
-          ),
-        },
-        // The post a tip is for is one of the person tipped.
-        post: {
-          findUnique: vi.fn(async () => ({
-            profileId: 'creator-1-profile',
-            profile: {
-              id: 'creator-1-profile',
-              userId: 'creator-1',
-              username: 'creator',
-              isAccountBanned: false,
-              suspendedUntil: null,
-              monetizationStatus: 'APPROVED',
-              user: {
-                isActive: true,
-                isRootBanned: false,
-                deletedAt: null,
-                // An adult with a verified identity, who may charge.
-                identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
-                dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
-                dateOfBirthVerified: true,
-              },
-            },
-          })),
-        },
-        $executeRaw: vi.fn().mockResolvedValue(1),
-        // A tip holds its amount while its checkout is open.
-        tipReservation: {
-          create: vi.fn().mockResolvedValue({ id: 'hold-1' }),
-          delete: vi.fn().mockResolvedValue({}),
-          aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
-        },
-        liveGift: {
-          aggregate: vi.fn().mockResolvedValue({ _sum: { amountCents: null } }),
-        },
-        // Nothing given yet this week.
-        transaction: {
-          aggregate: vi
-            .fn()
-            .mockResolvedValue({ _sum: { amount: null, refundedCents: null } }),
-        },
-        postUnlock: {
-          findUnique: vi.fn(),
-        },
-        story: {
-          findUnique: vi.fn(),
-        },
-        storyUnlock: {
-          findUnique: vi.fn(),
-        },
-        message: {
-          findUnique: vi.fn(),
-        },
-        messageUnlock: {
-          findUnique: vi.fn(),
-        },
-        platformFeeLedger: {
-          create: vi.fn(),
-        },
-        // The rows of earnings: no payout account unless a test gives one.
-        monetization: {
-          findUnique: vi.fn().mockResolvedValue(null),
-        },
-      };
-
-      mockStripeService = {
-        createCheckoutSession: vi.fn(),
-        assertPaymentsEnabled: vi.fn().mockResolvedValue(undefined),
-        creatorTaxActive: vi.fn().mockResolvedValue(true),
-        createAccountLink: vi.fn(),
-        getAccountStatus: vi.fn(),
-        createLoginLink: vi.fn(),
-      };
-
-      monetizationService = new MonetizationService(
-        mockPrisma,
-        mockStripeService,
-      );
-    });
-
-    it('rejects self-tip attempt before touching payment provider', async () => {
-      // The post is one of the person tipping.
-      mockPrisma.post.findUnique.mockResolvedValueOnce({
-        profileId: 'user-1-profile',
-        profile: {
-          id: 'user-1-profile',
-          userId: 'user-1',
-          username: 'self',
-          isAccountBanned: false,
-          suspendedUntil: null,
-          user: { isActive: true, isRootBanned: false, deletedAt: null },
-        },
-      });
-      await expect(
-        monetizationService.createTipSession(
-          'user-1',
-          'user-1',
-          500,
-          'https://return',
-          'post-1',
-        ),
-      ).rejects.toThrow(
-        expect.objectContaining({
-          errorCode: ErrorCode.CANNOT_TIP_SELF,
-        }),
-      );
-
-      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-    });
-
-    it('rejects a tip one cent below the smallest fixed amount', async () => {
-      await expect(
-        monetizationService.createTipSession(
-          'user-1',
-          'user-2',
-          TIP_AMOUNTS_CENTS[0] - 1,
-          'https://return',
-          'post-1',
-        ),
-      ).rejects.toThrow(
-        expect.objectContaining({
-          errorCode: ErrorCode.TIP_AMOUNT_NOT_ALLOWED,
-        }),
-      );
-
-      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-    });
-
-    it('rejects tip when creator has no active Stripe Connect account', async () => {
-      mockPrisma.user.findUnique.mockResolvedValueOnce({
-        id: 'creator-1',
-        stripeConnectAccountId: null,
-      });
-
-      await expect(
-        monetizationService.createTipSession(
-          'user-1',
-          'creator-1',
-          1000,
-          'https://return',
-          'post-1',
-        ),
-      ).rejects.toThrow(
-        expect.objectContaining({
-          errorCode: ErrorCode.CREATOR_STRIPE_NOT_SETUP,
-        }),
-      );
-
-      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-    });
-
-    it("enforces the 20% platform fee and charges the payment on the creator's account", async () => {
-      const tipAmountCents = 1000;
-      mockPrisma.monetization.findUnique.mockResolvedValue({
-        stripeConnectAccountId: 'acct_creator_123',
-        chargesEnabled: true,
-      });
-      mockPrisma.user.findUnique.mockResolvedValueOnce({
-        id: 'sender-1',
-        email: 'sender@sfera.com',
-      });
-
-      mockStripeService.createCheckoutSession.mockResolvedValue({
-        id: 'cs_test_tip',
-        url: 'https://checkout.stripe.com/tip',
-      });
-
-      const res = await monetizationService.createTipSession(
-        'sender-1',
-        'creator-1',
-        tipAmountCents,
-        'https://return.com',
-        'post-1',
-      );
-
-      expect(res.url).toBe('https://checkout.stripe.com/tip');
-      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
-        expect.objectContaining({
-          // CircleSfera's 20% of 1000 cents; the rest, VAT included, is the
-          // creator's, as the seller.
-          payment_intent_data: { application_fee_amount: 200 },
-        }),
-        expect.objectContaining({ stripeAccount: 'acct_creator_123' }),
-      );
-    });
-
-    it('enforces pay-per-view unlock: rejects creator without active Connect account', async () => {
-      // A creator in good standing, with no account.
-      mockPrisma.profile.findUnique.mockResolvedValueOnce({
-        isAccountBanned: false,
-        suspendedUntil: null,
-        monetizationStatus: 'APPROVED',
-        user: {
-          isActive: true,
-          isRootBanned: false,
-          deletedAt: null,
-          // An adult with a verified identity, who may charge.
-          identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
-          dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
-          dateOfBirthVerified: true,
-        },
-      });
-      mockPrisma.post.findUnique.mockResolvedValue({
-        id: 'post-1',
-        isPremium: true,
-        priceCents: 500,
-        profileId: 'author-prof-id',
-        profile: {
-          user: { stripeConnectAccountId: null },
-        },
-      });
-
-      await expect(
-        monetizationService.createPostUnlockSession(
-          'buyer-user-id',
-          'buyer-prof-id',
-          'post-1',
-          'https://return',
-        ),
-      ).rejects.toThrow(
-        expect.objectContaining({
-          errorCode: ErrorCode.CREATOR_STRIPE_NOT_SETUP,
-        }),
-      );
-
-      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-    });
-
-    it('prevents author from buying their own locked content', async () => {
-      mockPrisma.post.findUnique.mockResolvedValue({
-        id: 'post-1',
-        isPremium: true,
-        priceCents: 500,
-        profileId: 'same-prof-id',
-        profile: {
-          user: { id: 'same-user-id' },
-        },
-      });
-
-      await expect(
-        monetizationService.createPostUnlockSession(
-          'same-user-id',
-          'same-prof-id',
-          'post-1',
-          'https://return',
-        ),
-      ).rejects.toThrow(
-        expect.objectContaining({
-          errorCode: ErrorCode.CANNOT_BUY_OWN_CONTENT,
-        }),
-      );
-    });
-  });
-
   describe('Stripe Webhook Concurrency & Idempotency Invariants', () => {
     let paymentsService: PaymentsService;
     let mockPrisma: any;
@@ -316,7 +18,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
     let mockEmailService: any;
     let mockSlackService: any;
     let mockStripeService: any;
-    let mockMonetizationWebhookService: any;
+    let mockPaymentEvents: any;
 
     beforeEach(() => {
       mockStripeService = {
@@ -346,13 +48,11 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         sendPaymentAlert: vi.fn(),
       };
 
-      mockMonetizationWebhookService = {
+      mockPaymentEvents = {
         handleCheckoutSessionCompleted: vi.fn(),
         handleCheckoutSessionExpired: vi.fn(),
         handleChargeRefunded: vi.fn(),
         applyDisputeToPayment: vi.fn(),
-        syncConnectPayoutLog: vi.fn(),
-        handleAccountUpdated: vi.fn(),
       };
 
       paymentsService = new PaymentsService(
@@ -361,7 +61,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         mockSlackService,
         mockEmailService,
         {} as any,
-        mockMonetizationWebhookService,
+        mockPaymentEvents,
         mockConfigService as any,
       );
     });

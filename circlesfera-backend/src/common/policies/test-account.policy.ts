@@ -131,11 +131,10 @@ export function isTestModeStripeKey(key: string | undefined): boolean {
   return /^(?:sk|rk)_test_/.test(key ?? '');
 }
 
-// Test Accounts never move real money: they cannot pay, and since
-// they cannot onboard a payout account they cannot be paid either. Call with
-// the paying (or onboarding) account before any payment provider request.
-// Where the server uses the provider's test mode, as on staging, no money is
-// real and a Test Account may pay and be paid.
+// Test Accounts never move real money: they cannot pay. Call with the paying
+// account before any payment provider request. Where the server uses the
+// provider's test mode, as on staging, no money is real and a Test Account
+// may pay.
 export async function assertRealMoneyAllowed(
   db: Pick<Prisma.TransactionClient, 'user'>,
   userId: string,

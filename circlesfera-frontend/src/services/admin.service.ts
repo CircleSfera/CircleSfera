@@ -1,25 +1,5 @@
 import type { PaginatedResponse } from '../types';
 import { apiClient } from './api';
-import type { MonetizationProgrammeStatus } from './monetization.service';
-
-// A Profile's application to the monetization programme, as staff read it.
-export interface MonetizationApplication {
-  id: string;
-  username: string;
-  fullName: string | null;
-  avatar: string | null;
-  accountType: string;
-  createdAt: string;
-  isAccountBanned: boolean;
-  suspendedUntil: string | null;
-  monetizationStatus: MonetizationProgrammeStatus;
-  monetizationAppliedAt: string | null;
-  monetizationPitch: string | null;
-  monetizationReviewedAt: string | null;
-  monetizationReviewedBy: string | null;
-  monetizationNote: string | null;
-  _count: { followers: number; posts: number };
-}
 
 export interface AdminStats {
   users: number;
@@ -153,21 +133,6 @@ export interface AdminPost {
 }
 
 // Unified moderation queue item (posts, stories, comments).
-// A priced post or story waiting for a person on staff to pass it before
-// sale: the first paid items of each creator.
-export interface FirstPaidItem {
-  type: 'POST' | 'STORY';
-  id: string;
-  caption: string | null;
-  priceCents: number;
-  createdAt: string;
-  // When its author last edited it; sent back when passing it.
-  contentEditedAt: string | null;
-  profile: { id: string; username: string; avatar: string | null };
-  media: { url?: string; thumbnailUrl?: string | null; type?: string | null }[];
-  passedByStaff: number;
-}
-
 export interface AdminModerationItem {
   id: string;
   entityType: 'POST' | 'STORY' | 'COMMENT';
@@ -410,36 +375,6 @@ export interface AdminUserDetail {
   };
 }
 
-export interface AdminStripePayoutLog {
-  id: string;
-  stripePayoutId: string;
-  userId: string | null;
-  amountCents: number;
-  currency: string;
-  status: string; // 'paid', 'pending', 'failed', 'canceled'
-  arrivalDate: string;
-  failureReason: string | null;
-  createdAt: string;
-  updatedAt: string;
-  // The person paid; empty once their account is erased.
-  user: {
-    id: string;
-    email: string;
-    profile: {
-      username: string;
-      fullName: string | null;
-      avatar: string | null;
-    } | null;
-  } | null;
-  // The Profile whose payout account paid it out, when known.
-  profile: {
-    id: string;
-    username: string;
-    fullName: string | null;
-    avatar: string | null;
-  } | null;
-}
-
 export interface AdminAudio {
   id: string;
   title: string;
@@ -481,19 +416,6 @@ export interface UserExperiment {
       fullName: string | null;
     } | null;
   } | null;
-}
-
-// A Business Profile and the three things the "Verified company" label
-// needs.
-export interface AdminCompany {
-  id: string;
-  username: string;
-  fullName: string | null;
-  avatar: string | null;
-  onBusinessPlan: boolean;
-  payoutConnected: boolean;
-  companyVerified: boolean;
-  labelShown: boolean;
 }
 
 // What support sees about who wrote a ticket. It is read-only.
@@ -572,7 +494,6 @@ export interface AdminSupportAccount {
   memberSince: string;
   identityVerified: boolean;
   plan: { name: string; renewsAt: string; cancelAtPeriodEnd: boolean } | null;
-  payouts: { connected: boolean; enabled: boolean };
   profiles: {
     id: string;
     username: string;
@@ -873,9 +794,6 @@ export interface AdminLiveStream {
     id: string;
     profile?: { username: string; avatar: string | null } | null;
   } | null;
-  _count?: {
-    gifts: number;
-  };
 }
 
 export interface AdminSystemSetting {
@@ -1128,20 +1046,6 @@ export const adminApi = {
   getOverviewWeek: (part: 'payments' | 'support' | 'promotions') =>
     apiClient.get<OverviewWeek>(`/admin/overview/week/${part}`),
 
-  // Payouts
-  getPayoutStats: () =>
-    apiClient.get<{
-      paid: number;
-      pending: number;
-      failed: number;
-      total: number;
-    }>('/admin/payouts/stats'),
-
-  getPayouts: (page = 1, limit = 20, status?: string, search?: string) =>
-    apiClient.get<PaginatedResponse<AdminStripePayoutLog>>('admin/payouts', {
-      params: { page, limit, status, search },
-    }),
-
   // Posts
   getPosts: (
     page = 1,
@@ -1348,27 +1252,6 @@ export const adminApi = {
       { params: { days } },
     ),
 
-  // The monetization programme: applications, and staff decisions on them.
-  getMonetizationApplications: (
-    status: MonetizationProgrammeStatus,
-    page = 1,
-  ) =>
-    apiClient.get<{
-      items: MonetizationApplication[];
-      total: number;
-      page: number;
-      totalPages: number;
-    }>('admin/monetization/applications', { params: { status, page } }),
-  decideMonetizationApplication: (
-    profileId: string,
-    decision: 'approve' | 'reject' | 'revoke',
-    note?: string,
-  ) =>
-    apiClient.patch(
-      `admin/monetization/applications/${profileId}/${decision}`,
-      note ? { note } : {},
-    ),
-
   getMonetizationAnalytics: () =>
     apiClient.get<{
       activeMRR: number;
@@ -1421,20 +1304,6 @@ export const adminApi = {
         params: { page, limit, type, search },
       },
     ),
-
-  getFirstPaidReview: () =>
-    apiClient.get<{ items: FirstPaidItem[]; needed: number }>(
-      'admin/moderation/first-paid',
-    ),
-
-  approveFirstPaid: (
-    type: 'POST' | 'STORY',
-    id: string,
-    editedAt: string | null = null,
-  ) =>
-    apiClient.post(`admin/moderation/first-paid/${type}/${id}/approve`, {
-      editedAt,
-    }),
 
   updateModerationStatus: (
     type: 'POST' | 'STORY' | 'COMMENT',
@@ -1603,7 +1472,7 @@ export const adminApi = {
   escalateSupportTicket: (id: string) =>
     apiClient.post<AdminSupportTicket>(`admin/support/tickets/${id}/escalate`),
 
-  // Read-only: plan, payout account and standing of who wrote the ticket.
+  // Read-only: plan and standing of who wrote the ticket.
   getSupportTicketAccount: (id: string) =>
     apiClient.get<AdminSupportAccount | null>(
       `admin/support/tickets/${id}/account`,
@@ -1618,13 +1487,6 @@ export const adminApi = {
     apiClient.get<
       PaginatedResponse<AdminDispute> & { meta: { openCount: number } }
     >('admin/disputes', { params }),
-
-  // Business Profiles and why each has the "Verified company" label. Read
-  // only.
-  getCompanies: (params: { page?: number; limit?: number; search?: string }) =>
-    apiClient.get<PaginatedResponse<AdminCompany>>('admin/companies', {
-      params,
-    }),
 
   // Platform plan subscriptions. Read only.
   getSubscriptions: (params: {

@@ -34,12 +34,6 @@ export class MediaStaffViewerService {
     return this.holds(req, 'content');
   }
 
-  // Whether the file is asked for by whoever reads the review area: an
-  // external reviewer, or staff holding the review permission.
-  async isReviewer(req: Pick<Request, 'cookies'>): Promise<boolean> {
-    return this.holds(req, 'review');
-  }
-
   private async holds(
     req: Pick<Request, 'cookies'>,
     permission: StaffPermission,

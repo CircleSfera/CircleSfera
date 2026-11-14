@@ -2,7 +2,6 @@ import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
-import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const SHOWN_BOOKMARKS = { post: LISTED_POST };
@@ -11,11 +10,7 @@ const SHOWN_BOOKMARKS = { post: LISTED_POST };
 // And auto-derives a cover image from the first bookmark.
 @Injectable()
 export class CollectionsService {
-  constructor(
-    @Inject(PrismaService) private prisma: PrismaService,
-    @Inject(PostPaywallService)
-    private readonly postPaywall: PostPaywallService,
-  ) {}
+  constructor(@Inject(PrismaService) private prisma: PrismaService) {}
 
   // Create a new bookmark collection.
   // Param profileId: The owner's profile ID
@@ -37,16 +32,14 @@ export class CollectionsService {
   // List all collections for a profile with bookmark counts and auto-derived cover URLs.
   // Param profileId: The owner's profile ID
   async findAll(profileId: string) {
-    // The cover is the latest saved post the owner may see whole: a paid post
-    // they have not unlocked is never it, and with none there is no cover.
-    const seenWhole = await this.postPaywall.seenWholeWhere(profileId);
+    // The cover is the latest saved post; with none there is no cover.
     const collections = await this.prisma.collection.findMany({
       where: { profileId },
       include: {
         // Saved posts that moderation removed are kept for their appeal,
         // shown nowhere: not the cover, not counted.
         bookmarks: {
-          where: { post: { AND: [LISTED_POST, seenWhole] } },
+          where: SHOWN_BOOKMARKS,
           take: 1,
           orderBy: { createdAt: 'desc' },
           include: {

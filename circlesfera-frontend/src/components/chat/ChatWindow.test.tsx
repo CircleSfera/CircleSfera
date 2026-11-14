@@ -117,12 +117,7 @@ vi.mock('./MessageBubble', () => ({
     onEdit: (msg: Message, text: string) => void;
     onDelete: (id: string) => void;
   }) => (
-    <div
-      data-testid={`message-${msg.id}`}
-      data-mine={isMe}
-      data-read={isRead}
-      data-locked-cents={msg.priceCents ?? ''}
-    >
+    <div data-testid={`message-${msg.id}`} data-mine={isMe} data-read={isRead}>
       <span>{msg.isDeleted ? 'deleted message' : msg.content}</span>
       <span data-testid={`reactions-${msg.id}`}>
         {(msg.reactions ?? [])
@@ -640,9 +635,6 @@ describe('ChatWindow', () => {
           }),
         ),
       );
-      expect(
-        vi.mocked(chatApi.sendMessage).mock.calls[0][0],
-      ).not.toHaveProperty('isLocked');
       expect(await screen.findByTestId('message-sent-1')).toBeInTheDocument();
       expect(screen.getAllByText('nuevo mensaje')).toHaveLength(1);
       expect(socketState.stopTyping).toHaveBeenCalledWith('c1', 'p2');

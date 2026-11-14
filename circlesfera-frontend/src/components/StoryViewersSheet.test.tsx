@@ -113,13 +113,4 @@ describe('StoryViewersSheet', () => {
     );
     expect(screen.getByText(i18n!.t('story.no_views'))).toBeInTheDocument();
   });
-
-  it('exposes unlock toast keys in the story catalog', () => {
-    const { i18n } = renderWithProviders(
-      <StoryViewersSheet viewers={[]} isLoading={false} onClose={vi.fn()} />,
-    );
-
-    expect(i18n!.t('story.unlock_success')).toBe('Story unlocked');
-    expect(i18n!.t('story.unlock_error')).toBe('Could not unlock story');
-  });
 });

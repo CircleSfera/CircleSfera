@@ -24,7 +24,6 @@ import {
   Pagination,
   SearchInput,
 } from './AdminTable';
-import FirstPaidReview from './FirstPaidReview';
 
 type ModerationEntityType = AdminModerationItem['entityType'];
 
@@ -207,8 +206,6 @@ export default function ModerationTab({ onToast }: Props) {
         title={t('admin.moderation.title')}
         subtitle={t('admin.moderation.subtitle')}
       />
-
-      <FirstPaidReview onToast={onToast} />
 
       <AdminFilterBar>
         <div className="flex-1 min-w-0">

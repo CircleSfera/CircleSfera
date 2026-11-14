@@ -1,4 +1,4 @@
-import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
+import { type NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -16,12 +16,6 @@ import {
   Visibility,
 } from '@prisma/client';
 import { Queue } from 'bullmq';
-import {
-  canMonetize,
-  MAX_PPV_PRICE_CENTS,
-  MIN_PPV_PRICE_CENTS,
-} from '../common/constants/monetization.constants.js';
-import { AppException } from '../common/errors/app.exception.js';
 import {
   decodeKeysetCursor,
   type KeysetPage,
@@ -41,10 +35,6 @@ import {
   resolveMediaFields,
 } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
-import {
-  assertMonetizationApproved,
-  assertOfChargingAge,
-} from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   FEED_STICKER_SELECT,
@@ -166,33 +156,6 @@ export class StoriesService {
       dto.overlayUrl,
     ]);
 
-    if (dto.isPremium) {
-      const authorProfile = await this.prisma.profile.findUnique({
-        where: { id: profileId },
-        select: { accountType: true, userId: true },
-      });
-      if (!authorProfile || !canMonetize(authorProfile.accountType)) {
-        throw AppException.Forbidden(
-          ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
-          'Only Creator or Business accounts can publish premium stories.',
-        );
-      }
-      // A price is only for someone who may charge.
-      await assertOfChargingAge(this.prisma, authorProfile.userId);
-      await assertMonetizationApproved(this.prisma, profileId);
-      if (
-        !dto.priceCents ||
-        dto.priceCents < MIN_PPV_PRICE_CENTS ||
-        dto.priceCents > MAX_PPV_PRICE_CENTS
-      ) {
-        throw AppException.BadRequest(
-          ErrorCode.PREMIUM_PRICE_OUT_OF_RANGE,
-          'The price of a premium story is out of range.',
-          { minCents: MIN_PPV_PRICE_CENTS, maxCents: MAX_PPV_PRICE_CENTS },
-        );
-      }
-    }
-
     let audioStartMs = 0;
     if (dto.audioId) {
       const audio = await this.prisma.audio.findUnique({
@@ -267,8 +230,6 @@ export class StoriesService {
           mediaType: dto.mediaType || 'image',
           overlayUrl: dto.overlayUrl ?? null,
           isCloseFriendsOnly: dto.isCloseFriendsOnly || false,
-          isPremium: dto.isPremium || false,
-          priceCents: dto.isPremium ? dto.priceCents || 0 : 0,
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
           audioId: dto.audioId,
           audioStartMs,
@@ -552,62 +513,11 @@ export class StoriesService {
       );
 
       const visible = allowedStories.filter((s) => s !== null);
-      return this.applyStoryPremiumLocks(visible, profileId);
+      return visible;
     }
 
     // Guest cannot view close friends
-    return this.applyStoryPremiumLocks(
-      mappedStories.filter((s) => !s.isCloseFriendsOnly),
-      undefined,
-    );
-  }
-
-  // Redact media URLs for premium stories the viewer has not unlocked.
-  private async applyStoryPremiumLocks<
-    T extends {
-      id: string;
-      profileId: string;
-      isPremium?: boolean;
-      url?: string;
-      standardUrl?: string | null;
-      thumbnailUrl?: string | null;
-    },
-  >(stories: T[], viewerId?: string): Promise<(T & { isLocked?: boolean })[]> {
-    const premiumIds = stories
-      .filter((s) => s.isPremium && s.profileId !== viewerId)
-      .map((s) => s.id);
-    if (premiumIds.length === 0) {
-      return stories.map((s) => ({ ...s, isLocked: false }));
-    }
-
-    const unlocked = viewerId
-      ? await (async () => {
-          const viewer = await this.prisma.profile.findUnique({
-            where: { id: viewerId },
-            select: { userId: true },
-          });
-          if (!viewer) return [];
-          return this.prisma.storyUnlock.findMany({
-            where: { userId: viewer.userId, storyId: { in: premiumIds } },
-            select: { storyId: true },
-          });
-        })()
-      : [];
-    const unlockedSet = new Set(
-      unlocked.map((u: { storyId: string }) => u.storyId),
-    );
-
-    return stories.map((s) => {
-      if (!s.isPremium || s.profileId === viewerId || unlockedSet.has(s.id)) {
-        return { ...s, isLocked: false };
-      }
-      return {
-        ...s,
-        isLocked: true,
-        url: s.thumbnailUrl || '',
-        standardUrl: null,
-      };
-    });
+    return mappedStories.filter((s) => !s.isCloseFriendsOnly);
   }
 
   // Retrieve active stories by a specific user's username.
@@ -687,7 +597,7 @@ export class StoriesService {
         isViewed: currentProfileId ? (views as unknown[]).length > 0 : false,
       };
     });
-    return this.applyStoryPremiumLocks(mapped, currentProfileId);
+    return mapped;
   }
 
   // Retrieve ALL stories (active and expired) for the current user's archive.

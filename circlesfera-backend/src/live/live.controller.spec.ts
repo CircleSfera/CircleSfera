@@ -20,7 +20,6 @@ import {
 } from '../common/testing/http-controller.js';
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
-import { LiveGiftService } from './live-gift.service.js';
 import { LiveScheduleService } from './live-schedule.service.js';
 import { LiveStartNoticeService } from './live-start-notice.service.js';
 
@@ -43,10 +42,6 @@ describe('LiveController', () => {
     removeAllGuests: vi.fn(),
   };
 
-  const mockLiveGiftService = {
-    sendGift: vi.fn(),
-  };
-
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [LiveController],
@@ -54,7 +49,6 @@ describe('LiveController', () => {
         { provide: LiveService, useValue: mockLiveService },
         { provide: LiveStartNoticeService, useValue: mockStartNotice },
         { provide: LiveScheduleService, useValue: mockSchedule },
-        { provide: LiveGiftService, useValue: mockLiveGiftService },
       ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
@@ -259,42 +253,6 @@ describe('LiveController', () => {
     // The Profile of the session, never the person's id.
     expect(mockLiveService.getViewerToken).toHaveBeenCalledWith(
       'stream-1',
-      TEST_USER.profileId,
-    );
-  });
-
-  it('rejects a gift with a client-supplied amount', async () => {
-    await request(app.getHttpServer())
-      .post('/api/v1/live/stream-1/gift')
-      .set(BEARER)
-      .send({ giftId: 'rose', amountCents: 1 })
-      .expect(400);
-
-    expect(mockLiveGiftService.sendGift).not.toHaveBeenCalled();
-  });
-
-  it('sends a gift as the session userId without a client price', async () => {
-    mockLiveGiftService.sendGift.mockResolvedValue({
-      url: 'https://example.com',
-    });
-
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/live/stream-1/gift')
-      .set(BEARER)
-      .set('idempotency-key', 'gift-1')
-      .send({
-        giftId: 'rose',
-        returnUrl: 'https://example.com/live/stream-1',
-      })
-      .expect(201);
-
-    expect(res.body).toEqual({ url: 'https://example.com' });
-    expect(mockLiveGiftService.sendGift).toHaveBeenCalledWith(
-      'stream-1',
-      TEST_USER.userId,
-      'rose',
-      'https://example.com/live/stream-1',
-      'gift-1',
       TEST_USER.profileId,
     );
   });

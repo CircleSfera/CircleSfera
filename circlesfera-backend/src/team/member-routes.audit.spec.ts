@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest';
 const OWNER_ONLY_DIRS = [
   'chat',
   'payments',
-  'monetization',
   'notifications',
   'users',
   'admin',

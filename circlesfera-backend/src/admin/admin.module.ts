@@ -17,18 +17,12 @@ import { ProfileStrikesModule } from '../strikes/profile-strikes.module.js';
 import { TrustModule } from '../trust/trust.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AdminService } from './admin.service.js';
-import { AdminCompaniesController } from './admin-companies.controller.js';
-import { AdminCompaniesService } from './admin-companies.service.js';
 import { AdminContentController } from './admin-content.controller.js';
 import { AdminDisputesController } from './admin-disputes.controller.js';
 import { AdminDisputesService } from './admin-disputes.service.js';
-import { AdminFirstPaidReviewController } from './admin-first-paid-review.controller.js';
-import { AdminFirstPaidReviewService } from './admin-first-paid-review.service.js';
 import { AdminLinkDomainsController } from './admin-link-domains.controller.js';
 import { AdminLinkDomainsService } from './admin-link-domains.service.js';
 import { AdminMediaController } from './admin-media.controller.js';
-import { AdminMonetizationProgrammeController } from './admin-monetization-programme.controller.js';
-import { AdminMonetizationProgrammeService } from './admin-monetization-programme.service.js';
 import { AdminOperatorsController } from './admin-operators.controller.js';
 import { AdminOperatorsService } from './admin-operators.service.js';
 import { AdminOpsController } from './admin-ops.controller.js';
@@ -86,14 +80,11 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
   ],
   controllers: [
     AdminProfileSuspensionController,
-    AdminMonetizationProgrammeController,
     AdminContentController,
-    AdminFirstPaidReviewController,
     AdminLinkDomainsController,
     AdminMediaController,
     AdminOpsController,
     AdminPlansController,
-    AdminCompaniesController,
     AdminDisputesController,
     AdminSubscriptionsController,
     AdminOperatorsController,
@@ -104,12 +95,10 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
   ],
   providers: [
     AdminProfileSuspensionService,
-    AdminMonetizationProgrammeService,
     AdminService,
     AdminLinkDomainsService,
     AdminOpsService,
     AdminPlansService,
-    AdminCompaniesService,
     AdminDisputesService,
     AdminSubscriptionsService,
     AdminOperatorsService,
@@ -127,7 +116,6 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     WarnLiveHostUseCase,
     LogAdminActionUseCase,
     ModerateContentUseCase,
-    AdminFirstPaidReviewService,
     ReviewPromotionUseCase,
     ReviewReportUseCase,
     GetContentQuery,

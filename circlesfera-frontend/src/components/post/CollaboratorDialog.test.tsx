@@ -72,7 +72,7 @@ describe('CollaboratorDialog', () => {
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
-        'Only a public post that is not paid can have a collaborator, and never its author.',
+        'Only a public post can have a collaborator, and never its author.',
       ),
     );
   });

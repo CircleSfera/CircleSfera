@@ -69,7 +69,7 @@ export class CircleSferaRequesterDirectory implements RequesterDirectory {
 export class CircleSferaAccountCard implements AccountCardProvider {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  // Plan, payout account and standing of each Profile.
+  // Plan and standing of each Profile.
   async accountCard(requesterRef: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: requesterRef },
@@ -78,9 +78,6 @@ export class CircleSferaAccountCard implements AccountCardProvider {
         isActive: true,
         createdAt: true,
         identityVerifiedAt: true,
-        monetization: {
-          select: { stripeConnectAccountId: true, transfersEnabled: true },
-        },
         profiles: {
           orderBy: { createdAt: 'asc' },
           select: {
@@ -90,9 +87,6 @@ export class CircleSferaAccountCard implements AccountCardProvider {
             verificationLevel: true,
             isAccountBanned: true,
             suspendedUntil: true,
-            monetization: {
-              select: { stripeConnectAccountId: true, transfersEnabled: true },
-            },
           },
         },
         platformSubscriptions: {
@@ -111,12 +105,6 @@ export class CircleSferaAccountCard implements AccountCardProvider {
 
     const [subscription] = user.platformSubscriptions;
     const now = new Date();
-    // The person's shared payout row and the rows of Profiles paid into an
-    // account of their own.
-    const payoutRows = [
-      user.monetization,
-      ...user.profiles.map((profile) => profile.monetization),
-    ];
     return {
       userId: user.id,
       isActive: user.isActive,
@@ -129,10 +117,6 @@ export class CircleSferaAccountCard implements AccountCardProvider {
             cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
           }
         : null,
-      payouts: {
-        connected: payoutRows.some((row) => !!row?.stripeConnectAccountId),
-        enabled: payoutRows.some((row) => !!row?.transfersEnabled),
-      },
       profiles: user.profiles.map((profile) => ({
         id: profile.id,
         username: profile.username,

@@ -165,9 +165,6 @@ describe('LiveBroadcaster', () => {
     expect(
       screen.queryByRole('button', { name: 'Terminar transmisión' }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: i18n!.t('live.goal.add') }),
-    ).toBeInTheDocument();
   });
 
   it('shows the ended summary from the catalog', async () => {
@@ -410,40 +407,6 @@ describe('LiveBroadcaster', () => {
     });
   });
 
-  it('sets the goal from a dialog of the app, only with a title and a whole number', async () => {
-    const { i18n } = await startStream();
-
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n!.t('live.goal.add') }),
-    );
-    const dialog = await screen.findByRole('dialog');
-    const save = within(dialog).getByRole('button', {
-      name: i18n!.t('live.goal.save'),
-    });
-    expect(save).toBeDisabled();
-
-    fireEvent.change(
-      within(dialog).getByLabelText(i18n!.t('live.goal.title_label')),
-      { target: { value: 'New camera' } },
-    );
-    fireEvent.change(
-      within(dialog).getByLabelText(i18n!.t('live.goal.target_label')),
-      { target: { value: '0' } },
-    );
-    expect(save).toBeDisabled();
-
-    fireEvent.change(
-      within(dialog).getByLabelText(i18n!.t('live.goal.target_label')),
-      { target: { value: '500' } },
-    );
-    expect(save).toBeEnabled();
-    fireEvent.click(save);
-
-    await waitFor(() =>
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
-    );
-  });
-
   it('lays the bands on the shared margins of Live, never on a distance of their own', async () => {
     await startStream();
 
@@ -465,7 +428,6 @@ describe('LiveBroadcaster', () => {
       i18n!.t('live.qna.title'),
       i18n!.t('live.guests.invite'),
       i18n!.t('live.turn_camera'),
-      i18n!.t('live.goal.add'),
     ]) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }

@@ -16,7 +16,7 @@ import {
 import {
   PROMOTION_DAILY_BUDGETS_EUROS,
   PROMOTION_DURATIONS_DAYS,
-} from '../../common/constants/monetization.constants.js';
+} from '../../common/constants/promotion.constants.js';
 
 // What can be promoted: only what a feed shows as promoted.
 export const PROMOTION_TARGETS = ['post', 'frame'] as const;

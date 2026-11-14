@@ -22,13 +22,11 @@ import {
   postsApi,
 } from '../services';
 import { creatorApi } from '../services/creator.service';
-import { monetizationApi } from '../services/monetization.service';
 import { studioTemplatesApi } from '../services/studioTemplates.service';
 import { useAuthStore } from '../stores/authStore';
 import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
 import { hasCreatorTools } from '../utils/creatorTools';
-import { reportPaymentError } from '../utils/identityVerification';
 import { libraryTrackUrl } from '../utils/libraryAudio';
 import { logger } from '../utils/logger';
 import { sellsInApp } from '../utils/sellsInApp';
@@ -40,11 +38,6 @@ import type { FrameMenuActions } from './frames/FrameOptionsSheet';
 import FrameOverlayInfo from './frames/FrameOverlayInfo';
 import ConfirmModal from './modals/ConfirmModal';
 import ReportModal from './modals/ReportModal';
-import PaywallOverlay from './monetization/PaywallOverlay';
-import {
-  useWithdrawalConsent,
-  type WithdrawalConsentGiven,
-} from './payments/WithdrawalConsent';
 import EditCaptionDialog from './post/EditCaptionDialog';
 import WhySeeingDialog from './post/WhySeeingDialog';
 import { buildPostElement } from './story/storyComposer.append';
@@ -110,26 +103,6 @@ export default function FrameItem({
     queryFn: () => bookmarksApi.check(post.id),
   });
   const isBookmarked = bookmarkData?.data?.bookmarked ?? false;
-
-  // Before paying: the consent to start at once and the acknowledgement of
-  // losing the withdrawal right.
-  const consent = useWithdrawalConsent();
-  const unlockMutation = useMutation({
-    mutationFn: (given: WithdrawalConsentGiven) =>
-      monetizationApi.unlockPost(post.id, window.location.href, given),
-    onSuccess: (response: { url?: string }) => {
-      if (response?.url) {
-        window.location.href = response.url;
-      } else {
-        toast.success(t('post.media.unlock_success'));
-        queryClient.invalidateQueries({ queryKey: ['frames'] });
-        queryClient.invalidateQueries({ queryKey: ['feed'] });
-      }
-    },
-    onError: (error: unknown) => {
-      reportPaymentError(error, t, 'post.media.unlock_error');
-    },
-  });
 
   const deleteMutation = useMutation({
     mutationFn: () => postsApi.delete(post.id),
@@ -498,7 +471,7 @@ export default function FrameItem({
   const handleDoubleTap = async () => {
     setShowHeartAnim(true);
     later(() => setShowHeartAnim(false), 1000);
-    if (!post.isLocked) void likeFromTaps();
+    void likeFromTaps();
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
     }
@@ -526,7 +499,7 @@ export default function FrameItem({
               ? videoMedia.standardUrl
               : undefined
           }
-          className={`w-full h-full object-cover bg-black rounded-[20px] transition-all duration-300 ${post.isLocked ? 'blur-2xl scale-[1.2] pointer-events-none' : ''}`}
+          className="w-full h-full object-cover bg-black rounded-[20px] transition-all duration-300"
           loop
           playsInline
           muted={isMuted}
@@ -558,17 +531,6 @@ export default function FrameItem({
           </div>
         )}
       </button>
-
-      {/* Beside the playback button, not inside it: pressing Unlock is not a
-          tap on the video. */}
-      {post.isLocked && (
-        <PaywallOverlay
-          price={post.priceCents ? post.priceCents / 100 : 0}
-          onUnlock={() => consent.ask((given) => unlockMutation.mutate(given))}
-          isLoading={unlockMutation.isPending}
-        />
-      )}
-      {consent.dialog}
 
       <div className="absolute top-4 right-4 z-30 pointer-events-auto">
         <button

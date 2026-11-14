@@ -143,29 +143,6 @@ export class AdminStatsController {
     return this.recurringIncome.history(days ? Number(days) : undefined);
   }
 
-  @RequireStaffPermissions('payments')
-  @Get('payouts/stats')
-  @ApiResponse({ status: 200 })
-  async getPayoutStats() {
-    return this.adminStatsService.getPayoutStats();
-  }
-
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'search', required: false })
-  @RequireStaffPermissions('payments')
-  @Get('payouts')
-  @ApiResponse({ status: 200 })
-  async getPayouts(
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
-    @Query('status') status?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.adminStatsService.getPayouts(+page, +limit, status, search);
-  }
-
   @Get('transactions')
   @RequireStaffPermissions('payments')
   @ApiResponse({ status: 200 })

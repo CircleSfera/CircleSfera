@@ -7,24 +7,17 @@ import type {
   CreatorStats,
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
-import { monetizationApi } from '../../services/monetization.service';
 import { useAuthStore } from '../../stores/authStore';
 import { exportToCSV } from '../../utils/exportUtils';
 import { formatNumber } from '../../utils/format';
-import { formatCents } from '../../utils/money';
 import { hasElitePlan } from '../../utils/plans';
 import { sellsInApp } from '../../utils/sellsInApp';
 import { Button, Card } from '../ui';
 import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
 import CreatorEmpty from './CreatorEmpty';
-import {
-  CreatorFigure,
-  CreatorFigures,
-  CreatorRow,
-  CreatorSection,
-} from './CreatorPieces';
+import { CreatorRow, CreatorSection } from './CreatorPieces';
 import CreatorTrendChart from './CreatorTrendChart';
-import { chartDay, chartMonth } from './creatorWords';
+import { chartDay } from './creatorWords';
 
 // The places with most followers; the rest would be a long tail of ones.
 const TOP_PLACES = 6;
@@ -48,22 +41,7 @@ export default function CreatorAnalyticsTab() {
     queryFn: () => creatorApi.getStats().then((r) => r.data),
   });
 
-  const { data: incomeStats, isLoading: isIncomeLoading } = useQuery({
-    queryKey: ['creator', 'income-stats'],
-    queryFn: () => monetizationApi.getIncomeStats(),
-  });
-
-  const { data: financialSummary, isLoading: isFinancialLoading } = useQuery({
-    queryKey: ['creator', 'financial-summary'],
-    queryFn: () => monetizationApi.getFinancialSummary(),
-  });
-
-  if (
-    isChartLoading ||
-    isStatsLoading ||
-    isIncomeLoading ||
-    isFinancialLoading
-  ) {
+  if (isChartLoading || isStatsLoading) {
     return (
       <div className="space-y-3" data-testid="analytics-loading">
         <div className="h-8 w-48 rounded-md bg-white/5 animate-pulse" />
@@ -147,41 +125,6 @@ export default function CreatorAnalyticsTab() {
             ))}
           </div>
         )}
-      </CreatorSection>
-
-      <CreatorSection
-        title={t('creator.analytics.income')}
-        hint={t('creator.analytics.income_history')}
-      >
-        <div className="space-y-3">
-          <CreatorFigures>
-            <CreatorFigure
-              label={t('creator.analytics.current_month_income')}
-              value={formatCents(
-                financialSummary?.currentMonthIncome || 0,
-                language,
-              )}
-            />
-            <CreatorFigure
-              label={t('creator.analytics.total_tips')}
-              value={formatCents(financialSummary?.totalTips || 0, language)}
-            />
-          </CreatorFigures>
-          <CreatorTrendChart
-            data={incomeStats ?? []}
-            xKey="month"
-            series={[
-              {
-                key: 'income',
-                name: t('creator.analytics.income_series'),
-                color: 'var(--color-brand-primary)',
-              },
-            ]}
-            formatX={(value, long) => chartMonth(value, long, language)}
-            formatY={(value) => formatCents(value, language)}
-            fewText={t('creator.analytics.no_income_data')}
-          />
-        </div>
       </CreatorSection>
 
       {/* Advanced analytics come with the Elite Creator and Business plans */}

@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertCircle,
   ChevronRight,
   CreditCard,
   LifeBuoy,
@@ -112,11 +111,6 @@ export default function OverviewTab() {
   const { data: supportWeek } = useQuery(weekOf('support', support));
   const { data: promotionsWeek } = useQuery(weekOf('promotions', promotions));
   const week = { ...paymentsWeek, ...supportWeek, ...promotionsWeek };
-  const { data: payouts } = useQuery({
-    queryKey: ['admin', 'payouts', 'stats'],
-    queryFn: () => adminApi.getPayoutStats().then((res) => res.data),
-    enabled: payments,
-  });
   const { data: openDisputes } = useQuery({
     queryKey: ['admin', 'overview', 'disputes'],
     queryFn: () =>
@@ -153,7 +147,6 @@ export default function OverviewTab() {
     value === undefined ? undefined : formatNumber(value, i18n.language);
   const tiers = money?.tierDistribution;
 
-  const failedPayouts = !!payouts && payouts.failed > 0;
   const queues = [
     payments && {
       waits: !!openDisputes && openDisputes > 0,
@@ -167,25 +160,6 @@ export default function OverviewTab() {
           value={count(openDisputes)}
           hint={t('backoffice.overview.open_disputes_hint')}
           attention={!!openDisputes && openDisputes > 0}
-        />
-      ),
-    },
-    payments && {
-      waits: failedPayouts,
-      figure: (
-        <Figure
-          key="payouts"
-          to="payouts"
-          icon={AlertCircle}
-          label={t('backoffice.overview.failed_payouts')}
-          value={count(payouts?.failed)}
-          hint={
-            payouts &&
-            t('backoffice.overview.pending_payouts', {
-              count: payouts.pending,
-            })
-          }
-          attention={failedPayouts}
         />
       ),
     },

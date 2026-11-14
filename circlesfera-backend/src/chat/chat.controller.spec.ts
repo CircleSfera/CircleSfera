@@ -321,7 +321,7 @@ describe('ChatController', () => {
       .send({ recipientId: 'profile-2', content: '', gifId: 'abc123' })
       .expect(201);
 
-    expect(mockSendMessageUseCase.execute.mock.calls[0][15]).toEqual({
+    expect(mockSendMessageUseCase.execute.mock.calls[0][13]).toEqual({
       gifId: 'abc123',
     });
   });
@@ -350,8 +350,6 @@ describe('ChatController', () => {
       undefined,
       'conv-1',
       'temp-1',
-      undefined,
-      undefined,
       undefined,
       undefined,
       undefined,
@@ -391,8 +389,6 @@ describe('ChatController', () => {
       'https://cdn.circlesfera.com/voice/note.webm',
       7,
       [0.15, 0.5, 1],
-      undefined,
-      undefined,
       { gifId: undefined },
     );
   });
@@ -446,40 +442,15 @@ describe('ChatController', () => {
     expect(mockSendMessageUseCase.execute).not.toHaveBeenCalled();
   });
 
-  it('sends a locked (PPV) message as the session profileId', async () => {
-    const message = { id: 'msg-locked', content: 'Unlock me', isLocked: true };
-    mockSendMessageUseCase.execute.mockResolvedValue(message);
-
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/chat/messages')
-      .set(BEARER)
-      .send({
-        recipientId: 'profile-2',
-        content: 'Unlock me',
-        isLocked: true,
-        priceCents: 999,
-      })
-      .expect(201);
-
-    expect(res.body).toEqual(message);
-    expect(mockSendMessageUseCase.execute).toHaveBeenCalledWith(
-      TEST_USER.profileId,
-      'profile-2',
-      'Unlock me',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      true,
-      999,
-      { gifId: undefined },
-    );
+  it('refuses a message that names a price or a lock', async () => {
+    for (const extra of [{ isLocked: true }, { priceCents: 999 }]) {
+      await request(app.getHttpServer())
+        .post('/api/v1/chat/messages')
+        .set(BEARER)
+        .send({ recipientId: 'profile-2', content: 'Hello', ...extra })
+        .expect(400);
+    }
+    expect(mockSendMessageUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('marks a conversation as read as the session profile', async () => {

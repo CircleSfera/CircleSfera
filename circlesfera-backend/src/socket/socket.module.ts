@@ -2,7 +2,6 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ChatModule } from '../chat/chat.module.js';
-import { PostsModule } from '../posts/posts.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { WebrtcModule } from '../webrtc/webrtc.module.js';
 import { AppGateway } from './app.gateway.js';
@@ -24,7 +23,6 @@ import { SocketPresenceService } from './services/socket-presence.service.js';
       inject: [ConfigService],
     }),
     PrismaModule,
-    PostsModule,
     ChatModule,
     WebrtcModule,
   ],

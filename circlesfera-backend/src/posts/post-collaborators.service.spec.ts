@@ -28,8 +28,6 @@ describe('PostCollaboratorsService', () => {
     id: 'post-1',
     profileId: 'author',
     visibility: 'PUBLIC',
-    isPremium: false,
-    priceCents: 0,
     collaborator: null,
     ...over,
   });
@@ -70,17 +68,16 @@ describe('PostCollaboratorsService', () => {
       );
     });
 
-    it.each([
-      ['a post for followers only', { visibility: 'FOLLOWERS' }],
-      ['a paid post', { isPremium: true }],
-      ['a post with a price', { priceCents: 300 }],
-    ])('refuses %s', async (_label, over) => {
-      prisma.post.findFirst.mockResolvedValue(post(over));
-      await expect(service.invite('post-1', 'ana')).rejects.toMatchObject({
-        errorCode: ErrorCode.COLLAB_NOT_ALLOWED,
-      });
-      expect(prisma.postCollaborator.create).not.toHaveBeenCalled();
-    });
+    it.each([['a post for followers only', { visibility: 'FOLLOWERS' }]])(
+      'refuses %s',
+      async (_label, over) => {
+        prisma.post.findFirst.mockResolvedValue(post(over));
+        await expect(service.invite('post-1', 'ana')).rejects.toMatchObject({
+          errorCode: ErrorCode.COLLAB_NOT_ALLOWED,
+        });
+        expect(prisma.postCollaborator.create).not.toHaveBeenCalled();
+      },
+    );
 
     it('refuses the author itself', async () => {
       prisma.profile.findFirst.mockResolvedValue({ id: 'author' });

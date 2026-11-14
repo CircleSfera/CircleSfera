@@ -85,7 +85,6 @@ describe('SeoService', () => {
       expect(mockPrismaService.post.count.mock.calls[0][0].where).toMatchObject(
         {
           visibility: 'PUBLIC',
-          isPremium: false,
           moderationStatus: 'VISIBLE',
           scheduledStatus: 'PUBLISHED',
           profile: profileWhere,
@@ -245,7 +244,6 @@ describe('SeoService', () => {
         expect.objectContaining({
           id: 'p-private',
           visibility: 'PUBLIC',
-          isPremium: false,
           moderationStatus: 'VISIBLE',
           scheduledStatus: 'PUBLISHED',
         }),

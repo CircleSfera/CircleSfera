@@ -79,7 +79,6 @@ test.describe('Post composer', () => {
     'Etiquetar Personas',
     'Añadir Música',
     'Añadir encuesta o preguntas',
-    'Monetización',
     'Accesibilidad',
     'Ajustes Avanzados',
   ]) {

@@ -17,7 +17,6 @@ vi.mock('../../hooks/usePostInteractions', () => ({
     handleToggleBookmark: vi.fn(),
     handleLikeToggle: vi.fn(),
     handleShare: vi.fn(),
-    handleTip: vi.fn(),
   }),
 }));
 

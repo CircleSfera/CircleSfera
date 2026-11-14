@@ -85,7 +85,7 @@ If `BASE_URL` points at the Nest API (`:3000` / `:3005`), Playwright ignores it 
 | `passkeys.spec.ts` | Virtual platform authenticator (DevTools WebAuthn): register a passkey, sign out, sign in with it only, remove it with a passkey confirmation |
 | `profiles.spec.ts` | New Profile with its own email and password (the default choice): sign in with them, switch back with no password; a new Profile that shares the sign-in |
 | `chat.spec.ts` | Two unique users, thread + message |
-| `creator.spec.ts` / `monetization.spec.ts` | CREATOR studio + Stripe Connect CTA (no Checkout) |
+| `creator.spec.ts` | CREATOR studio: analytics and the plans section |
 | `live.spec.ts` | Broadcast setup copy; unknown stream leaves the URL |
 | `studio.spec.ts` | Edits chrome + import still; wasm hung only to cancel export |
 | `support-tickets.spec.ts` | Guest portal + authenticated ticket |

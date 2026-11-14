@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 ### Changed
 
 - `docker-compose.prod.yml` keeps the nightly analytics CSV in the `etl_data` volume, which the backend can write to; the host folder it mounted before was not writable by the `node` user, so every nightly export failed
-- Monetization doc (`10-roadmap-monetization.md`) now describes shipped Connect Express, 20% fee, Admin Retiros, and promotions. Removed future-tense payout schedule, Custom accounts, and subscriber badges presented as current (gap D3)
 
 ### Added
 
@@ -20,14 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 - [ADR-0016](docs/adr/0016-analytical-warehouse-clickhouse.md): ClickHouse warehouse + nightly ETL (proposed)
 - [Runbook: ClickHouse Cloud analytics](circlesfera-documentation/runbooks/clickhouse-cloud-analytics.md)
 - Admin Trust tab shows 30-day median report resolution time (MTTR) from `Report.resolvedAt`, exposed on `GET admin/trust/queue` as `reportMttr`
-- Webhook signature accepts a second secret (`STRIPE_CONNECT_WEBHOOK_SECRET`) so a Connected-accounts destination can share `POST /api/v1/payments/webhook`
-- Admin Payouts tab can fill from Stripe Connect: webhooks `payout.created` / `updated` / `paid` / `failed` / `canceled` upsert `StripePayoutLog`. CircleSfera does not call `payouts.create` (ADR-0002)
 - Home For You can run the existing following feed as treatment under FeatureFlag `feed_home_following_first` (default off; assignment on User.id). No new ranking weights.
 
 ### Fixed
 
 - Admin report strike/ban notices now go to the target’s Profile; the strike/ban still writes on User
-- Tip and message-unlock payment notices now resolve User ids to primary Profile ids before writing `Notification` rows
 - Automated moderation reports and author notices now use a panel operator’s Profile id (`Report.reporterId` / `Notification.senderId`). Strikes increment on the author’s User, and a 3-strike escalation targets that User — the previous User.id-as-reporter path failed the Profile FKs after the identity split
 - Admin Users tab no longer labels a linked panel operator as “platform ADMIN (≠ panel)”. Rows and the filter say Operator / Operadores, and that filter matches a linked AdminIdentity instead of the deprecated `User.role`
 - EditsStudio Later: export preview + schedule handoff to Create; Roboto Bold/Regular font parity; richer CSS→FFmpeg filters; keyboard J/K/L/E/Esc/zoom; constrained-device 720p encode; cancel e2e
@@ -42,8 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 ### Changed
 
 - **EditsStudio (`/edits`)** redesigned as a mobile-first CircleSfera Studio: vertical stack (topbar → preview → timeline strip → tool dock), immersive chrome (no BottomNav, same as `/create`), token-aligned UI, cloud draft autosave with uploaded media URLs, and real AI captions via Whisper (`POST /edits/:id/captions`) with manual cues as fallback
-- Creator Studio Ingresos is a single money-in surface: PPV copy + Stripe Connect, ledger, type breakdown, and Connect balances. Wallet tab removed (`?section=wallet` still opens Ingresos). Planes stays a separate tab (creator pays CircleSfera). Platform fee remains Stripe’s 20% application fee.
-- Creator Studio cards match Settings: glass panels, sentence-case labels, quiet empty states, and token colours across analytics, wallet, plans, ads, posts, and stories.
+- Creator Studio cards match Settings: glass panels, sentence-case labels, quiet empty states, and token colours across analytics, plans, ads, posts, and stories.
 - Stripe Checkout, Billing Portal, and KYC Identity return URLs land on `/accounts/billing` and `/accounts/account` (account hub; `/accounts/edit` removed)
 - Onboarding aligned with Home: shared brand wash (no opaque black overlay), logo lockup, glass step pills, coral-to-purple primary CTAs, and i18n copy
 - Onboarding empty-suggestions state no longer nests a second card; it lists Home/Explore as next places and offers a refresh action
@@ -74,7 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 - Live broadcast title input before start
 - Lazy-loaded heavy routes (EditsStudio, Profile, Frames; lazy Chat panes)
 - Root governance files: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`
-- ADRs 0005–0010 (LiveKit, Redis/BullMQ, auth cookies+CSRF, storage providers, feed fan-out, 20% platform fee)
+- ADRs 0005–0009 (LiveKit, Redis/BullMQ, auth cookies+CSRF, storage providers, feed fan-out)
 - Ops runbook stubs under `circlesfera-documentation/runbooks/`
 - Dependabot + Playwright nightly workflow
 
@@ -84,7 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 - Appeals admin update uses `@CurrentAdmin` / AdminIdentity audit actor
 - Admin deep-links and Cmd+K respect tab permissions; promotions tab permission aligned with API (`content`)
 - Report claim/assignee stores `AdminIdentity` (`assignedAdminId`) instead of platform `User` after Admin Panel cutover
-- Documentation false negatives: live gifts are billed; feed preferences are implemented
 - `08-schema-prisma.md` reduced to a pointer at the live Prisma schema
 - Report status audit logged `DISMISSED` for non-RESOLVED (including REVIEWING)
 - Duplicate `AllExceptionsFilter` registration in `main.ts`

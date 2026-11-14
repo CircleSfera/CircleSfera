@@ -61,8 +61,6 @@ export type Notice =
       hours: number;
       days: number;
     }
-  | { key: 'message_unlocked'; amountCents: number; currency: string }
-  | { key: 'tip_received'; amountCents: number; currency: string }
   // The app shows it as coming from Support, like a sender.
   | { key: 'support_answered'; subject: string }
   // Sent by the Business Profile to the person invited to its team.
@@ -87,13 +85,6 @@ function day(locale: Locale, date: Date): string {
     year: 'numeric',
     timeZone: 'UTC',
   });
-}
-
-function money(locale: Locale, cents: number, currency: string): string {
-  return new Intl.NumberFormat(DATE_LOCALE[locale], {
-    style: 'currency',
-    currency: currency.toUpperCase(),
-  }).format(cents / 100);
 }
 
 function contentType(value: string): ContentType {
@@ -393,10 +384,6 @@ function renderEn(n: Notice): string {
       return n.by === 'automated'
         ? `An automated system detected unusual activity on this profile, such as many actions in a short time or repeated messages. Until a person on our team reviews it, for at most ${n.hours} hours, this profile can follow at most 20 accounts and send at most 5 message requests a day. Nothing is hidden or removed. ${APPEAL.en}`
         : `After a review by our team, this profile can follow at most 20 accounts and send at most 5 message requests a day for ${n.days} days, because of unusual activity such as many actions in a short time or repeated messages. Nothing is hidden or removed. ${APPEAL.en}`;
-    case 'message_unlocked':
-      return `unlocked your private message for ${money('en', n.amountCents, n.currency)}`;
-    case 'tip_received':
-      return `sent you a ${money('en', n.amountCents, n.currency)} tip`;
     case 'support_answered':
       return `answered your request "${n.subject}"`;
     case 'team_invited':
@@ -544,10 +531,6 @@ function renderEs(n: Notice): string {
       return n.by === 'automated'
         ? `Un sistema automático ha detectado actividad inusual en este perfil, como muchas acciones en poco tiempo o mensajes repetidos. Hasta que una persona de nuestro equipo lo revise, durante un máximo de ${n.hours} horas, este perfil puede seguir como mucho a 20 cuentas y enviar como mucho 5 solicitudes de mensaje al día. No se oculta ni se elimina nada. ${APPEAL.es}`
         : `Tras una revisión de nuestro equipo, durante ${n.days} días este perfil puede seguir como mucho a 20 cuentas y enviar como mucho 5 solicitudes de mensaje al día, por actividad inusual como muchas acciones en poco tiempo o mensajes repetidos. No se oculta ni se elimina nada. ${APPEAL.es}`;
-    case 'message_unlocked':
-      return `ha desbloqueado tu mensaje privado por ${money('es', n.amountCents, n.currency)}`;
-    case 'tip_received':
-      return `te ha enviado una propina de ${money('es', n.amountCents, n.currency)}`;
     case 'support_answered':
       return `ha respondido a tu solicitud «${n.subject}»`;
     case 'team_invited':

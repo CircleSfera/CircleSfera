@@ -1,5 +1,5 @@
 import { ErrorCode } from '@circlesfera/shared';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Visibility } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -258,11 +258,8 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
     beforeEach(() => {
       mockPrisma = {
         postMedia: { findMany: vi.fn().mockResolvedValue([]) },
-        postUnlock: { findUnique: vi.fn() },
         story: { findMany: vi.fn().mockResolvedValue([]) },
-        storyUnlock: { findUnique: vi.fn() },
         message: { findMany: vi.fn().mockResolvedValue([]) },
-        messageUnlock: { findUnique: vi.fn() },
         participant: { findFirst: vi.fn() },
         comment: { findMany: vi.fn().mockResolvedValue([]) },
         collection: { findMany: vi.fn().mockResolvedValue([]) },
@@ -286,7 +283,6 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
           post: {
             profileId: 'creator-1',
             visibility: Visibility.PUBLIC,
-            isPremium: false,
           },
         },
       ]);
@@ -295,77 +291,6 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
         '/uploads/posts/public-image.jpg',
         null, // anonymous guest
         null,
-      );
-      expect(allowed).toBe(true);
-    });
-
-    it('denies anonymous access to premium PPV media', async () => {
-      mockPrisma.postMedia.findMany.mockResolvedValue([
-        {
-          postId: 'post-ppv',
-          post: {
-            profileId: 'creator-1',
-            visibility: Visibility.PUBLIC,
-            isPremium: true,
-          },
-        },
-      ]);
-
-      const allowed = await mediaAuthService.isAccessAllowed(
-        '/uploads/posts/ppv-image.jpg',
-        null,
-        null,
-      );
-      expect(allowed).toBe(false);
-    });
-
-    it('allows author access to their own premium media without unlock', async () => {
-      mockPrisma.postMedia.findMany.mockResolvedValue([
-        {
-          postId: 'post-ppv',
-          post: {
-            profileId: 'creator-1',
-            visibility: Visibility.PUBLIC,
-            isPremium: true,
-          },
-        },
-      ]);
-
-      const allowed = await mediaAuthService.isAccessAllowed(
-        '/uploads/posts/ppv-image.jpg',
-        'user-creator',
-        'creator-1',
-      );
-      expect(allowed).toBe(true);
-    });
-
-    it('allows viewer access to premium media if unlocked, denies if not unlocked', async () => {
-      mockPrisma.postMedia.findMany.mockResolvedValue([
-        {
-          postId: 'post-ppv',
-          post: {
-            profileId: 'creator-1',
-            visibility: Visibility.PUBLIC,
-            isPremium: true,
-          },
-        },
-      ]);
-
-      // Not unlocked
-      mockPrisma.postUnlock.findUnique.mockResolvedValue(null);
-      let allowed = await mediaAuthService.isAccessAllowed(
-        '/uploads/posts/ppv-image.jpg',
-        'user-viewer',
-        'profile-viewer',
-      );
-      expect(allowed).toBe(false);
-
-      // Unlocked
-      mockPrisma.postUnlock.findUnique.mockResolvedValue({ id: 'unlock-1' });
-      allowed = await mediaAuthService.isAccessAllowed(
-        '/uploads/posts/ppv-image.jpg',
-        'user-viewer',
-        'profile-viewer',
       );
       expect(allowed).toBe(true);
     });
@@ -468,10 +393,10 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
   });
 
   // =========================================================================
-  // 8. Domain: PPV & Monetization
+  // 8. Domain: Verified identity
   // =========================================================================
-  describe('Domain 8: PPV & Monetization', () => {
-    it('requires verified identity for Stripe Connect onboarding and unlocking', async () => {
+  describe('Domain 8: Verified identity', () => {
+    it('requires a verified identity where the guard is used', async () => {
       const mockPrisma = {
         user: { findUnique: vi.fn() },
       };
@@ -485,27 +410,6 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
       await expect(guard.canActivate(ctx)).rejects.toMatchObject({
         errorCode: ErrorCode.IDENTITY_VERIFICATION_REQUIRED,
       });
-    });
-
-    it('blocks self-purchase / self-tip invariants', () => {
-      const validateTransactionActors = (
-        senderId: string,
-        receiverId: string,
-      ) => {
-        if (senderId === receiverId) {
-          throw new BadRequestException(
-            'Cannot purchase or tip your own content',
-          );
-        }
-        return true;
-      };
-
-      expect(validateTransactionActors('user-buyer', 'user-creator')).toBe(
-        true,
-      );
-      expect(() => validateTransactionActors('user-a', 'user-a')).toThrow(
-        BadRequestException,
-      );
     });
   });
 

@@ -3,7 +3,7 @@ import { PromotionStatus } from '@prisma/client';
 import {
   PROMOTION_COST_PER_VIEW_CENTS,
   PROMOTION_VIEWS_PER_PERSON_PER_DAY,
-} from '../../../../common/constants/monetization.constants.js';
+} from '../../../../common/constants/promotion.constants.js';
 import {
   dailyBudgetReached,
   spentOn,

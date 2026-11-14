@@ -2,7 +2,7 @@ import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PromotionStatus, PromotionTargetType } from '@prisma/client';
-import { eurosToCents } from '../../../../common/constants/monetization.constants.js';
+import { eurosToCents } from '../../../../common/constants/promotion.constants.js';
 import { withdrawalConsentMetadata } from '../../../../common/consumer/withdrawal-consent.js';
 import { AppException } from '../../../../common/errors/app.exception.js';
 import { assertAdultPayer } from '../../../../common/policies/adult-payer.policy.js';

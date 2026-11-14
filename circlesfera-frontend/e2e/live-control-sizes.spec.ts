@@ -84,7 +84,7 @@ async function watchLive(page: Page) {
   );
   await holdVideoConnection(page);
   await page.goto('/live/stream-1');
-  await expect(page.getByRole('button', { name: 'Regalar' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Enviar ❤️' })).toBeVisible();
 }
 
 test.describe('Going live', () => {
@@ -101,12 +101,6 @@ test.describe('Going live', () => {
   test('inviting a guest', async ({ page }) => {
     await startBroadcast(page);
     await page.getByRole('button', { name: 'Invitar', exact: true }).click();
-    await expectScreenInOrder(page);
-  });
-
-  test('setting the goal', async ({ page }) => {
-    await startBroadcast(page);
-    await page.getByRole('button', { name: 'Añadir objetivo' }).click();
     await expectScreenInOrder(page);
   });
 
@@ -151,12 +145,6 @@ test.describe('Watching a live', () => {
     await expect(
       page.getByRole('button', { name: 'Enviar comentario' }),
     ).toBeVisible();
-    await expectScreenInOrder(page);
-  });
-
-  test('gifts', async ({ page }) => {
-    await watchLive(page);
-    await page.getByRole('button', { name: 'Regalar' }).click();
     await expectScreenInOrder(page);
   });
 

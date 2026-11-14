@@ -24,7 +24,6 @@ export function usePostInteractions(post: Post) {
     useState(false);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showTipModal, setShowTipModal] = useState(false);
   const [showMuteModal, setShowMuteModal] = useState(false);
   const [editCaption, setEditCaption] = useState(post.caption || '');
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
@@ -253,8 +252,6 @@ export function usePostInteractions(post: Post) {
     setShowPromoteModal,
     showShareModal,
     setShowShareModal,
-    showTipModal,
-    setShowTipModal,
     showMuteModal,
     setShowMuteModal,
     editCaption,
@@ -266,7 +263,6 @@ export function usePostInteractions(post: Post) {
     handleLikeToggle,
     handleShare,
     handleMute,
-    handleTip: () => setShowTipModal(true),
   };
 }
 

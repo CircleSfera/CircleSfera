@@ -7,7 +7,6 @@ import {
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
 import { ExperimentsModule } from '../experiments/experiments.module.js';
-import { PostsModule } from '../posts/posts.module.js';
 import { FeedController } from './feed.controller.js';
 import { FeedService } from './feed.service.js';
 import { FeedInboxService } from './feed-inbox.service.js';
@@ -20,7 +19,6 @@ import { FeedFanoutProcessor } from './processors/feed-fanout.processor.js';
     ConfigModule,
     ExperimentsModule,
     AIModule,
-    PostsModule,
     BullModule.registerQueue(getRegisterQueueOptions(QUEUE_NAMES.FEED_FANOUT)),
   ],
   controllers: [FeedController, FeedPreferencesController],

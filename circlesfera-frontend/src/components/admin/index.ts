@@ -32,7 +32,6 @@ export {
 } from './adminNav';
 export { adminToast } from './adminToast';
 export { default as CommentsTab } from './CommentsTab';
-export { default as CompaniesTab } from './CompaniesTab';
 export { default as DisputesTab } from './DisputesTab';
 export { default as ExperimentsTab } from './ExperimentsTab';
 export { default as FirewallTab } from './FirewallTab';
@@ -45,7 +44,6 @@ export { default as ModerationTab } from './ModerationTab';
 export { default as MonetizationTab } from './MonetizationTab';
 export { default as NewsletterTab } from './NewsletterTab';
 export { default as OverviewTab } from './OverviewTab';
-export { default as PayoutsTab } from './PayoutsTab';
 export { default as PlansTab } from './PlansTab';
 export { default as PostDetailPanel } from './PostDetailPanel';
 export { default as PostsTab } from './PostsTab';

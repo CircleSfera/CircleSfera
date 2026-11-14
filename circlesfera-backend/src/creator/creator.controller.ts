@@ -30,7 +30,6 @@ import {
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
 import { GetAudienceRetentionQuery } from './use-cases/analytics/queries/get-audience-retention.query.js';
 import { GetCreatorStatsQuery } from './use-cases/analytics/queries/get-creator-stats.query.js';
-import { GetRevenueAnalyticsQuery } from './use-cases/analytics/queries/get-revenue-analytics.query.js';
 import { GetTopContentQuery } from './use-cases/analytics/queries/get-top-content.query.js';
 // Content
 import { GetCreatorPostsQuery } from './use-cases/content/queries/get-creator-posts.query.js';
@@ -54,8 +53,6 @@ export class CreatorController {
     // Analytics
     @Inject(GetCreatorStatsQuery)
     private readonly getCreatorStatsQ: GetCreatorStatsQuery,
-    @Inject(GetRevenueAnalyticsQuery)
-    private readonly getRevenueAnalyticsQ: GetRevenueAnalyticsQuery,
     @Inject(GetAudienceRetentionQuery)
     private readonly getAudienceRetentionQ: GetAudienceRetentionQuery,
     @Inject(GetTopContentQuery)
@@ -232,25 +229,8 @@ export class CreatorController {
   }
 
   // Advanced analytics come with the Elite Creator and Business plans. The
-  // summary, the content lists, promotions and earning stay with the kind of
-  // account alone.
-  @ApiQuery({ name: 'period', required: false })
-  @Get('analytics/revenue')
-  @UseGuards(CreatorAccountGuard, ElitePlanGuard)
-  @ApiResponse({ status: 200 })
-  async getRevenueAnalytics(
-    @Req() req: AuthRequest,
-    @Query('period') period?: '7d' | '30d' | '90d' | '1y',
-  ) {
-    // Transaction.receiverId stores User.id; followers are counted by
-    // Profile.id.
-    return this.getRevenueAnalyticsQ.execute(
-      req.user.userId,
-      req.user.profileId,
-      period,
-    );
-  }
-
+  // summary, the content lists and promotions stay with the kind of account
+  // alone.
   @Get('analytics/retention')
   @MemberAllowed('analytics.read')
   @UseGuards(CreatorAccountGuard, ElitePlanGuard)
@@ -287,11 +267,7 @@ export class CreatorController {
     @Req() req: AuthRequest,
     @Query('period') period?: string,
   ) {
-    // Same receiverId/User.id vs Profile.id note as getRevenueAnalytics above —
-    // this export reuses both GetRevenueAnalyticsQuery (userId) and
-    // GetAudienceRetentionQuery (profileId).
     return this.exportAnalyticsCsvUC.execute(
-      req.user.userId,
       req.user.profileId,
       period || '30d',
     );

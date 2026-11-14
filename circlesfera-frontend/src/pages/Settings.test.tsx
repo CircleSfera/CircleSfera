@@ -67,9 +67,6 @@ vi.mock('../components/settings/TeamSettings', () => ({
 vi.mock('../components/settings/SettingsHubIndex', () => ({
   default: () => <div>panel:hub</div>,
 }));
-vi.mock('../components/settings/MonetizationSettings', () => ({
-  MonetizationSettings: () => <div>panel:monetization</div>,
-}));
 vi.mock('../components/settings/SettingsShell', () => ({
   default: ({
     section,

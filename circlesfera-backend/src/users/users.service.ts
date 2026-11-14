@@ -1,17 +1,10 @@
 import {
-  ErrorCode,
   type SuggestionReason,
   type UserSessionTerminateEvent,
 } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import {
-  HttpStatus,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AdminAction,
@@ -31,13 +24,11 @@ import {
   ensureGroupAdmin,
 } from '../chat/services/group-admin-succession.service.js';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
-import { AppException } from '../common/errors/app.exception.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { isTestViewer } from '../common/policies/test-account.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
-import { earningsByProfile } from '../monetization/earnings-sql.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { followTeamPlan } from '../team/team-plan.js';
@@ -152,63 +143,6 @@ export class UsersService {
     }));
   }
 
-  /**
-   * A person banned from the whole account is paid out nothing while the ban
-   * lasts, for up to 85 days (the provider holds payouts for 90 at most):
-   * what every Profile of theirs earned stays in its provider balance, and
-   * the Monday payouts come back when the ban is lifted. A failure at the
-   * provider never undoes the ban: the team is told, and the daily schedule
-   * check does it again.
-   */
-  async holdPayouts(userId: string, held: boolean): Promise<void> {
-    const [rows, person] = await Promise.all([
-      this.prisma.monetization.findMany({
-        where: {
-          OR: [{ userId }, { profile: { userId } }],
-          stripeConnectAccountId: { not: null },
-        },
-        select: { stripeConnectAccountId: true },
-      }),
-      this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { payoutsHeldAt: true },
-      }),
-    ]);
-    const accounts = new Set(
-      rows
-        .map((row) => row.stripeConnectAccountId)
-        .filter((account): account is string => Boolean(account)),
-    );
-    // The 85 days before the held payouts are released count from the
-    // first ban: banning again does not push the release back.
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        payoutsHeldAt: held ? (person?.payoutsHeldAt ?? new Date()) : null,
-      },
-    });
-    const failed: string[] = [];
-    for (const account of accounts) {
-      try {
-        await this.stripeService.setPayoutsHeld(account, held);
-      } catch (error) {
-        failed.push(account);
-        this.logger.error(
-          `Could not ${held ? 'hold' : 'resume'} the payouts of account ${account} (person ${userId})`,
-          error,
-        );
-      }
-    }
-    if (failed.length > 0) {
-      this.eventEmitter.emit('system.incident', {
-        message: `The payouts of ${failed.length} account(s) of person ${userId} could not be ${held ? 'held after a ban' : 'resumed after a ban was lifted'}; the daily check tries again`,
-        path: 'stripe://payout-schedule',
-        statusCode: 502,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
-
   // Ban (deactivate) a user account. Admin only.
   // Param id: The user ID to ban
   async banUser(id: string) {
@@ -224,8 +158,6 @@ export class UsersService {
       reason: 'Account banned by administration',
     };
     this.eventEmitter.emit('user.session.terminate', banEvent);
-    // After the sessions end: the provider may take a while.
-    await this.holdPayouts(id, true);
     return updated;
   }
 
@@ -240,14 +172,13 @@ export class UsersService {
       where: { id },
       data: { isActive: true, isRootBanned: false },
     });
-    await this.holdPayouts(id, false);
     return updated;
   }
 
   // GDPR: Gathers all user-related data for export.
   // Param userId: The user ID to export
   async exportUserData(userId: string) {
-    const [account, relations, held, earnings] = await Promise.all([
+    const [account, relations, held, payments] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -451,7 +382,7 @@ export class UsersService {
         },
       }),
       this.heldAboutTheAccount(userId),
-      this.earningsOfTheAccount(userId),
+      this.paymentsOfTheAccount(userId),
     ]);
 
     if (!account || !relations) throw new Error('User not found');
@@ -512,7 +443,7 @@ export class UsersService {
       reportsFiled: undefined, // removed because reports are on profiles
       sentTransactions: relations.sentTransactions,
       receivedTransactions: relations.receivedTransactions,
-      earnings,
+      payments,
       ...held,
     };
 
@@ -520,95 +451,96 @@ export class UsersService {
   }
 
   /**
-   * What the person earned, was paid out and paid to promote: what each of
-   * their Profiles earned, read from the payments as the creator screens
-   * read it, each payout account of theirs and of their Profiles, with the
-   * Profile holding it, every payout to their bank, their promotions and the
-   * disputes of what they paid. The provider's own records of the account
-   * are read there.
+   * What the person paid to promote, and the disputes of what they paid.
+   * The provider's own records of the account are read there.
    */
-  private async earningsOfTheAccount(userId: string) {
-    const [earned, profiles, accounts, payouts, promotions, disputes] =
-      await Promise.all([
-        earningsByProfile(this.prisma, userId),
-        this.prisma.profile.findMany({
-          where: { userId },
-          select: { id: true, username: true },
-        }),
-        this.prisma.monetization.findMany({
-          where: { OR: [{ userId }, { profile: { userId } }] },
-          orderBy: { createdAt: 'asc' },
-          select: {
-            stripeConnectAccountId: true,
-            transfersEnabled: true,
-            chargesEnabled: true,
-            verifiedCompany: true,
-            createdAt: true,
-            profile: { select: { username: true } },
-          },
-        }),
-        this.prisma.stripePayoutLog.findMany({
-          where: { userId },
-          orderBy: { arrivalDate: 'asc' },
-          select: {
-            stripePayoutId: true,
-            amountCents: true,
-            currency: true,
-            status: true,
-            arrivalDate: true,
-            failureReason: true,
-            profile: { select: { username: true } },
-          },
-        }),
-        this.prisma.promotion.findMany({
-          where: { userId },
-          orderBy: { createdAt: 'asc' },
-          select: {
-            targetType: true,
-            targetId: true,
-            budgetCents: true,
-            dailyBudgetCents: true,
-            currency: true,
-            status: true,
-            countries: true,
-            startDate: true,
-            endDate: true,
-            reach: true,
-            clicks: true,
-            chargedAt: true,
-            refundedAt: true,
-            rejectionReason: true,
-            reviewedAt: true,
-            createdAt: true,
-          },
-        }),
-        this.prisma.paymentDispute.findMany({
-          where: { userId },
-          orderBy: { openedAt: 'asc' },
-          select: {
-            amountCents: true,
-            currency: true,
-            reason: true,
-            status: true,
-            openedAt: true,
-            closedAt: true,
-          },
-        }),
-      ]);
-    const username = new Map(profiles.map((p) => [p.id, p.username]));
+  private async paymentsOfTheAccount(userId: string) {
+    const [promotions, disputes] = await Promise.all([
+      this.prisma.promotion.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          targetType: true,
+          targetId: true,
+          budgetCents: true,
+          dailyBudgetCents: true,
+          currency: true,
+          status: true,
+          countries: true,
+          startDate: true,
+          endDate: true,
+          reach: true,
+          clicks: true,
+          chargedAt: true,
+          refundedAt: true,
+          rejectionReason: true,
+          reviewedAt: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.paymentDispute.findMany({
+        where: { userId },
+        orderBy: { openedAt: 'asc' },
+        select: {
+          amountCents: true,
+          currency: true,
+          reason: true,
+          status: true,
+          openedAt: true,
+          closedAt: true,
+        },
+      }),
+    ]);
+    return { promotions, disputes, ...(await this.formerCreatorRows(userId)) };
+  }
+
+  /**
+   * Rows from before payments to creators were removed, while their tables
+   * still exist: payout accounts of the person and of their Profiles, payouts
+   * to their bank and content they unlocked. Exported so the copy holds
+   * everything kept about the person; this goes when the tables are dropped.
+   */
+  private async formerCreatorRows(userId: string) {
+    const [accounts, payouts, posts, messages, stories] = await Promise.all([
+      this.prisma.monetization.findMany({
+        where: { OR: [{ userId }, { profile: { userId } }] },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          stripeConnectAccountId: true,
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: true,
+          createdAt: true,
+          profile: { select: { username: true } },
+        },
+      }),
+      this.prisma.stripePayoutLog.findMany({
+        where: { userId },
+        orderBy: { arrivalDate: 'asc' },
+        select: {
+          stripePayoutId: true,
+          amountCents: true,
+          currency: true,
+          status: true,
+          arrivalDate: true,
+          failureReason: true,
+          profile: { select: { username: true } },
+        },
+      }),
+      this.prisma.postUnlock.findMany({
+        where: { userId },
+        select: { postId: true, pricePaid: true, createdAt: true },
+      }),
+      this.prisma.messageUnlock.findMany({
+        where: { userId },
+        select: { messageId: true, pricePaid: true, createdAt: true },
+      }),
+      this.prisma.storyUnlock.findMany({
+        where: { userId },
+        select: { storyId: true, pricePaid: true, createdAt: true },
+      }),
+    ]);
     return {
-      // A payment that names none of the person's Profiles (recorded before
-      // income named its Profile, or to a Profile since erased) is listed
-      // with no Profile, and counts in the total.
-      earned: {
-        totalCents: earned.reduce((sum, row) => sum + Number(row.earned), 0),
-        byProfile: earned.map((row) => ({
-          profile:
-            (row.receiverProfileId && username.get(row.receiverProfileId)) ??
-            null,
-          earnedCents: Number(row.earned),
-        })),
-      },
       payoutAccounts: accounts.map(({ profile, ...account }) => ({
         ...account,
         profile: profile?.username ?? null,
@@ -617,14 +549,13 @@ export class UsersService {
         ...payout,
         profile: profile?.username ?? null,
       })),
-      promotions,
-      disputes,
+      unlocks: { posts, messages, stories },
     };
   }
 
   // The rest of what is kept about the person, for the export: warnings and
   // strikes, spam review cases, searches, what they viewed and did, support
-  // requests, plans, unlocks, experiments and the notes staff wrote about
+  // requests, plans, experiments and the notes staff wrote about
   // them. Who on the staff wrote or decided is not included.
   private async heldAboutTheAccount(userId: string) {
     const byProfile = { profile: { userId } };
@@ -637,9 +568,6 @@ export class UsersService {
       storyViews,
       supportRequests,
       plans,
-      postUnlocks,
-      messageUnlocks,
-      storyUnlocks,
       experiments,
       staffNotes,
       webPushDevices,
@@ -736,18 +664,6 @@ export class UsersService {
           plan: { select: { name: true } },
         },
       }),
-      this.prisma.postUnlock.findMany({
-        where: { userId },
-        select: { postId: true, pricePaid: true, createdAt: true },
-      }),
-      this.prisma.messageUnlock.findMany({
-        where: { userId },
-        select: { messageId: true, pricePaid: true, createdAt: true },
-      }),
-      this.prisma.storyUnlock.findMany({
-        where: { userId },
-        select: { storyId: true, pricePaid: true, createdAt: true },
-      }),
       this.prisma.userExperiment.findMany({
         where: { userId },
         select: { experimentKey: true, variant: true, createdAt: true },
@@ -775,11 +691,6 @@ export class UsersService {
       activity: { interactions, postViews, storyViews },
       supportRequests,
       platformPlans: plans,
-      unlocks: {
-        posts: postUnlocks,
-        messages: messageUnlocks,
-        stories: storyUnlocks,
-      },
       experiments,
       staffNotes,
       pushDevices: { browsers: webPushDevices, apps: appPushDevices },
@@ -808,8 +719,9 @@ export class UsersService {
         },
         select: { conversationId: true },
       });
-      // The payout rows its Profiles opened for accounts of their own name
-      // no person, so the cascade of the person does not reach them.
+      // Payout rows a Profile opened in its own name, from before payouts
+      // were removed: they name no person, so the cascade of the person does
+      // not reach them. They go with the person until the table is dropped.
       const profileRows = await tx.monetization.findMany({
         where: { userId: null, profile: { userId } },
         select: { id: true },
@@ -825,7 +737,6 @@ export class UsersService {
         },
       });
       if (result.count === 0) return false;
-      // Removed with the person, as the person's own row is.
       if (profileRows.length > 0) {
         await tx.monetization.deleteMany({
           where: { id: { in: profileRows.map((row) => row.id) } },
@@ -864,7 +775,6 @@ export class UsersService {
   // Param userId: The user ID
   // Returns The scheduled hard-deletion date
   async scheduleDeletion(userId: string) {
-    await this.assertNoPayoutBalance(userId);
     const scheduledDeletionAt = new Date();
     scheduledDeletionAt.setDate(scheduledDeletionAt.getDate() + 30);
     await this.markForErasure(userId, scheduledDeletionAt, {
@@ -873,47 +783,6 @@ export class UsersService {
       reason: 'Account scheduled for deletion',
     });
     return scheduledDeletionAt;
-  }
-
-  // An account is not scheduled for deletion while one of its payout
-  // accounts holds money, available or still on its way: the person first
-  // receives it. Every payout account of the person counts, theirs and each
-  // of their Profiles'. When the provider cannot say, nothing is deleted.
-  private async assertNoPayoutBalance(userId: string) {
-    const rows = await this.prisma.monetization.findMany({
-      where: {
-        stripeConnectAccountId: { not: null },
-        OR: [{ userId }, { profile: { userId } }],
-      },
-      select: { stripeConnectAccountId: true },
-    });
-    const accounts = [
-      ...new Set(rows.map((row) => row.stripeConnectAccountId as string)),
-    ];
-    for (const account of accounts) {
-      let balance: Stripe.Balance;
-      try {
-        balance = await this.stripeService.getConnectBalance(account);
-      } catch {
-        throw new AppException(
-          ErrorCode.PAYOUT_BALANCE_UNKNOWN,
-          HttpStatus.SERVICE_UNAVAILABLE,
-          'We could not check your earnings. Try again in a few minutes.',
-        );
-      }
-      // Only money owed to the person holds the deletion. A balance below
-      // zero (a lost dispute) is owed by them: it never makes their account
-      // impossible to delete.
-      const held = [...balance.available, ...balance.pending].some(
-        (funds) => funds.amount > 0,
-      );
-      if (held) {
-        throw AppException.Conflict(
-          ErrorCode.ACCOUNT_HOLDS_BALANCE,
-          'Your earnings must be paid out before the account can be deleted.',
-        );
-      }
-    }
   }
 
   // Erases an account now, through the same erasure as a scheduled one: its
@@ -1231,7 +1100,7 @@ export class UsersService {
       data: {
         identityVerifiedAt: new Date(),
         // Only a date read from the document counts as verified; without one
-        // the date typed at sign-up stays, and does not let them charge.
+        // the date typed at sign-up stays, and does not let them pay.
         ...(dateOfBirth
           ? { dateOfBirth, dateOfBirthVerified: true }
           : { dateOfBirthVerified: false }),
@@ -1377,7 +1246,7 @@ export class UsersService {
 
   // Derives each Profile's VerificationLevel from its active platform plans.
   // Plans sell verification and status only: Account Type is chosen by the
-  // user and is never written here, and monetization never requires a plan.
+  // user and is never written here.
   // Param userId: The user ID
   async syncUserTier(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({

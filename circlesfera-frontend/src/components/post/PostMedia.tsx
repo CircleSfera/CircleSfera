@@ -1,17 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { monetizationApi } from '../../services/monetization.service';
 import type { Post } from '../../types';
-import { reportPaymentError } from '../../utils/identityVerification';
 import { libraryTrackUrl } from '../../utils/libraryAudio';
 import Carousel from '../Carousel';
-import PaywallOverlay from '../monetization/PaywallOverlay';
-import {
-  useWithdrawalConsent,
-  type WithdrawalConsentGiven,
-} from '../payments/WithdrawalConsent';
 
 interface PostMediaProps {
   post: Post;
@@ -30,39 +21,15 @@ export default function PostMedia({
   priority = false,
 }: PostMediaProps) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   // The setting promises a blur "until you click": the person lifts it, for
   // this post, by pressing on it.
   const [revealed, setRevealed] = useState(false);
   const isBlurred = !!post.shouldBlurSensitive && !revealed;
 
-  // Before paying: the consent to start at once and the acknowledgement of
-  // losing the withdrawal right.
-  const consent = useWithdrawalConsent();
-  const unlockMutation = useMutation({
-    mutationFn: (given: WithdrawalConsentGiven) =>
-      monetizationApi.unlockPost(post.id, window.location.href, given),
-    onSuccess: (response: { url?: string }) => {
-      if (response?.url) {
-        window.location.href = response.url;
-      } else {
-        toast.success(t('post.media.unlock_success'));
-        queryClient.invalidateQueries({ queryKey: ['feed'] });
-        queryClient.invalidateQueries({ queryKey: ['posts'] });
-        queryClient.invalidateQueries({ queryKey: ['userPosts'] });
-        queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      }
-    },
-    onError: (error: unknown) => {
-      reportPaymentError(error, t, 'post.media.unlock_error');
-    },
-  });
-
   if (!post.media || post.media.length === 0) {
     return null;
   }
 
-  const displayPrice = post.priceCents ? post.priceCents / 100 : 0;
   const isFullHeight = className.includes('h-full');
   const hasTransparentBg = className.includes('bg-transparent');
   const bgClass = hasTransparentBg ? '' : 'bg-black';
@@ -89,13 +56,12 @@ export default function PostMedia({
           aspectRatio={finalAspectRatio}
           className={`${isFullHeight ? 'h-full' : ''} ${hasTransparentBg ? 'bg-transparent!' : ''}`.trim()}
           objectFit={objectFit}
-          isLocked={post.isLocked}
           priority={priority}
           libraryAudioUrl={libraryTrackUrl(post)}
           libraryAudioStartMs={post.audioStartMs ?? 0}
         />
       </div>
-      {isBlurred && !post.isLocked && (
+      {isBlurred && (
         <button
           type="button"
           onClick={() => setRevealed(true)}
@@ -109,14 +75,6 @@ export default function PostMedia({
           </span>
         </button>
       )}
-      {post.isLocked && (
-        <PaywallOverlay
-          price={displayPrice}
-          onUnlock={() => consent.ask((given) => unlockMutation.mutate(given))}
-          isLoading={unlockMutation.isPending}
-        />
-      )}
-      {consent.dialog}
     </div>
   );
 }

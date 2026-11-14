@@ -6,9 +6,9 @@ import type Stripe from 'stripe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
-import { MonetizationWebhookService } from '../monetization/monetization-webhook.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
+import { PaymentEventsService } from './payment-events.service.js';
 import { PaymentsService, planAccountType } from './payments.service.js';
 
 // Whoever pays here is an adult, unless a test says otherwise; the rule is
@@ -27,14 +27,12 @@ describe('PaymentsService', () => {
   let emailService: any;
   let stripeService: any;
   let usersService: any;
-  let monetizationWebhookService: {
+  let paymentEvents: {
     handleCheckoutSessionCompleted: ReturnType<typeof vi.fn>;
     handleCheckoutSessionExpired: ReturnType<typeof vi.fn>;
     handleChargeRefunded: ReturnType<typeof vi.fn>;
     applyDisputeToPayment: ReturnType<typeof vi.fn>;
     syncDispute: ReturnType<typeof vi.fn>;
-    syncConnectPayoutLog: ReturnType<typeof vi.fn>;
-    handleAccountUpdated: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -51,17 +49,12 @@ describe('PaymentsService', () => {
               update: vi.fn().mockResolvedValue({}),
               updateMany: vi.fn().mockResolvedValue({ count: 1 }),
             },
-            postUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
-            storyUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
-            messageUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
             transaction: {
               create: vi.fn(),
               findUnique: vi.fn(),
               findMany: vi.fn().mockResolvedValue([]),
               update: vi.fn(),
             },
-            monetization: { upsert: vi.fn() },
-            stripePayoutLog: { upsert: vi.fn() },
             promotion: { update: vi.fn(), updateMany: vi.fn() },
             platformSubscription: {
               upsert: vi.fn(),
@@ -113,7 +106,6 @@ describe('PaymentsService', () => {
         {
           provide: EmailService,
           useValue: {
-            sendTipReceivedEmail: vi.fn(),
             sendSubscriptionStartedEmail: vi.fn(),
             sendSubscriptionReceipt: vi.fn().mockResolvedValue(undefined),
           },
@@ -132,7 +124,7 @@ describe('PaymentsService', () => {
           },
         },
         {
-          provide: MonetizationWebhookService,
+          provide: PaymentEventsService,
           useValue: {
             handleCheckoutSessionCompleted: vi
               .fn()
@@ -141,8 +133,6 @@ describe('PaymentsService', () => {
             handleChargeRefunded: vi.fn().mockResolvedValue(undefined),
             applyDisputeToPayment: vi.fn().mockResolvedValue(undefined),
             syncDispute: vi.fn().mockResolvedValue(undefined),
-            syncConnectPayoutLog: vi.fn().mockResolvedValue(undefined),
-            handleAccountUpdated: vi.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -154,7 +144,7 @@ describe('PaymentsService', () => {
     emailService = module.get<EmailService>(EmailService);
     stripeService = module.get<StripeService>(StripeService);
     usersService = module.get<UsersService>(UsersService);
-    monetizationWebhookService = module.get(MonetizationWebhookService);
+    paymentEvents = module.get(PaymentEventsService);
   });
 
   it('should be defined', () => {
@@ -179,13 +169,13 @@ describe('PaymentsService', () => {
     const tx = (over: object) => ({
       id: 'tx_1',
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
-      type: 'DIRECT_TIP',
+      type: 'PROMOTION_PAYMENT',
       amount: 500,
       currency: 'EUR',
       status: 'COMPLETED',
       senderId: 'user_1',
       receiverId: 'user_2',
-      description: 'A "special" tip',
+      description: 'A "special" promotion',
       // 5 € plus 21% VAT.
       vatCents: 105,
       refundedCents: 0,
@@ -197,7 +187,7 @@ describe('PaymentsService', () => {
         tx({}),
         tx({
           id: 'tx_2',
-          type: 'DIRECT_UNLOCK',
+          type: 'STRIPE_SUBSCRIPTION',
           amount: 1999,
           vatCents: 0,
           refundedCents: 999,
@@ -215,8 +205,8 @@ describe('PaymentsService', () => {
       });
       expect(csv.split('\n')).toEqual([
         'ID,Date,Type,Direction,Amount,VAT,Refunded,Currency,Status,Description',
-        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","SENT","5.00","1.05","0.00","EUR","COMPLETED","A ""special"" tip"',
-        '"tx_2","2026-01-01T00:00:00.000Z","DIRECT_UNLOCK","RECEIVED","19.99","0.00","9.99","EUR","COMPLETED",""',
+        '"tx_1","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","SENT","5.00","1.05","0.00","EUR","COMPLETED","A ""special"" promotion"',
+        '"tx_2","2026-01-01T00:00:00.000Z","STRIPE_SUBSCRIPTION","RECEIVED","19.99","0.00","9.99","EUR","COMPLETED",""',
       ]);
     });
 
@@ -263,7 +253,7 @@ describe('PaymentsService', () => {
       });
       expect(csv.split('\n')).toEqual([
         'ID,Date,Type,Amount,VAT,Refunded,Currency,Status,Sender,Receiver,Description',
-        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","5.00","1.05","0.00","EUR","COMPLETED","sender@test.com","receiver@test.com","A ""special"" tip"',
+        '"tx_1","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","5.00","1.05","0.00","EUR","COMPLETED","sender@test.com","receiver@test.com","A ""special"" promotion"',
         '"tx_2","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","10.00","0.00","0.00","EUR","COMPLETED","SYSTEM","SYSTEM",""',
       ]);
     });
@@ -1384,7 +1374,7 @@ describe('PaymentsService', () => {
       prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue(null);
       prisma.webhookEvent.create = vi.fn().mockResolvedValue({ id: 'wh_fail' });
       prisma.webhookEvent.update = vi.fn().mockResolvedValue({});
-      monetizationWebhookService.handleCheckoutSessionCompleted = vi
+      paymentEvents.handleCheckoutSessionCompleted = vi
         .fn()
         .mockRejectedValue(new Error('db down'));
 
@@ -1440,9 +1430,7 @@ describe('PaymentsService', () => {
 
       await service.processWebhookEvent(asEvent(event));
       expect(prisma.webhookEvent.create).not.toHaveBeenCalled();
-      expect(
-        monetizationWebhookService.handleCheckoutSessionCompleted,
-      ).toHaveBeenCalled();
+      expect(paymentEvents.handleCheckoutSessionCompleted).toHaveBeenCalled();
       expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
         where: { externalId: 'evt_retry' },
         data: { status: 'PROCESSED', processedAt: expect.any(Date) },
@@ -2191,41 +2179,6 @@ describe('PaymentsService', () => {
       ).resolves.toBeUndefined();
     });
 
-    it('delegates payout.paid to monetizationWebhookService.syncConnectPayoutLog', async () => {
-      const event = {
-        id: 'evt_po_route',
-        type: 'payout.paid',
-        account: 'acct_1',
-        data: { object: { id: 'po_route' } },
-      };
-
-      await service.processWebhookEvent(asEvent(event));
-
-      expect(
-        monetizationWebhookService.syncConnectPayoutLog,
-      ).toHaveBeenCalledWith(event);
-    });
-
-    it('delegates account.updated to monetizationWebhookService.handleAccountUpdated', async () => {
-      const account = {
-        id: 'acct_route',
-        charges_enabled: true,
-        capabilities: { transfers: 'active' },
-      };
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_acct_route',
-          type: 'account.updated',
-          data: { object: account },
-        }),
-      );
-
-      expect(
-        monetizationWebhookService.handleAccountUpdated,
-      ).toHaveBeenCalledWith(account);
-    });
-
     it('hands a refund to the refund rules, never to the dispute ones', async () => {
       const charge = {
         payment_intent: 'pi_route',
@@ -2241,13 +2194,9 @@ describe('PaymentsService', () => {
         }),
       );
 
-      expect(
-        monetizationWebhookService.handleChargeRefunded,
-      ).toHaveBeenCalledWith(charge);
-      expect(monetizationWebhookService.syncDispute).not.toHaveBeenCalled();
-      expect(
-        monetizationWebhookService.applyDisputeToPayment,
-      ).not.toHaveBeenCalled();
+      expect(paymentEvents.handleChargeRefunded).toHaveBeenCalledWith(charge);
+      expect(paymentEvents.syncDispute).not.toHaveBeenCalled();
+      expect(paymentEvents.applyDisputeToPayment).not.toHaveBeenCalled();
     });
 
     it('mirrors a dispute when it is created, updated and closed, then applies it to its payment', async () => {
@@ -2263,24 +2212,19 @@ describe('PaymentsService', () => {
         );
       }
 
-      expect(monetizationWebhookService.syncDispute).toHaveBeenCalledTimes(3);
-      expect(monetizationWebhookService.syncDispute).toHaveBeenCalledWith(
+      expect(paymentEvents.syncDispute).toHaveBeenCalledTimes(3);
+      expect(paymentEvents.syncDispute).toHaveBeenCalledWith(
         dispute,
         expect.any(Function),
       );
-      expect(
-        monetizationWebhookService.applyDisputeToPayment,
-      ).toHaveBeenCalledTimes(3);
+      expect(paymentEvents.applyDisputeToPayment).toHaveBeenCalledTimes(3);
       // The payment follows the dispute only once the dispute is mirrored.
       expect(
-        monetizationWebhookService.syncDispute.mock.invocationCallOrder[0],
+        paymentEvents.syncDispute.mock.invocationCallOrder[0],
       ).toBeLessThan(
-        monetizationWebhookService.applyDisputeToPayment.mock
-          .invocationCallOrder[0],
+        paymentEvents.applyDisputeToPayment.mock.invocationCallOrder[0],
       );
-      expect(
-        monetizationWebhookService.handleChargeRefunded,
-      ).not.toHaveBeenCalled();
+      expect(paymentEvents.handleChargeRefunded).not.toHaveBeenCalled();
     });
 
     it('offers the mirror who was charged, read from the provider, and nobody when it cannot be read', async () => {
@@ -2294,9 +2238,9 @@ describe('PaymentsService', () => {
         );
       const asked = (call: number) =>
         (
-          monetizationWebhookService.syncDispute.mock.calls[
-            call
-          ][1] as () => Promise<string | undefined>
+          paymentEvents.syncDispute.mock.calls[call][1] as () => Promise<
+            string | undefined
+          >
         )();
 
       stripeService.getChargeCustomerId.mockResolvedValueOnce('cus_1');
@@ -2304,10 +2248,7 @@ describe('PaymentsService', () => {
       // Nothing is read until the mirror asks.
       expect(stripeService.getChargeCustomerId).not.toHaveBeenCalled();
       await expect(asked(0)).resolves.toBe('cus_1');
-      expect(stripeService.getChargeCustomerId).toHaveBeenCalledWith(
-        'ch_a',
-        undefined,
-      );
+      expect(stripeService.getChargeCustomerId).toHaveBeenCalledWith('ch_a');
 
       stripeService.getChargeCustomerId.mockRejectedValueOnce(
         new Error('provider down'),
@@ -2316,7 +2257,6 @@ describe('PaymentsService', () => {
       await expect(asked(1)).resolves.toBeUndefined();
       expect(stripeService.getChargeCustomerId).toHaveBeenLastCalledWith(
         'ch_b',
-        undefined,
       );
 
       await send({ id: 'dp_c', amount: 1 });
@@ -2324,28 +2264,7 @@ describe('PaymentsService', () => {
       expect(stripeService.getChargeCustomerId).toHaveBeenCalledTimes(2);
     });
 
-    it("reads who was charged on the creator's account for a dispute of a payment to a creator", async () => {
-      stripeService.getChargeCustomerId.mockResolvedValueOnce('cus_d');
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_dp_d',
-          type: 'charge.dispute.created',
-          account: 'acct_creator',
-          data: { object: { id: 'dp_d', amount: 1, charge: 'ch_d' } },
-        }),
-      );
-
-      const asked = monetizationWebhookService.syncDispute.mock.calls[0][1] as
-        | (() => Promise<string | undefined>)
-        | undefined;
-      await expect(asked?.()).resolves.toBe('cus_d');
-      expect(stripeService.getChargeCustomerId).toHaveBeenCalledWith(
-        'ch_d',
-        'acct_creator',
-      );
-    });
-
-    it('delegates checkout.session.expired for monetization types to monetizationWebhookService.handleCheckoutSessionExpired', async () => {
+    it('delegates checkout.session.expired to paymentEvents.handleCheckoutSessionExpired', async () => {
       const session = {
         id: 'cs_exp_route',
         metadata: { type: 'PROMOTION', promotionId: 'promo_route' },
@@ -2359,41 +2278,28 @@ describe('PaymentsService', () => {
         }),
       );
 
-      expect(
-        monetizationWebhookService.handleCheckoutSessionExpired,
-      ).toHaveBeenCalledWith(session);
+      expect(paymentEvents.handleCheckoutSessionExpired).toHaveBeenCalledWith(
+        session,
+      );
     });
 
-    it('delegates checkout.session.completed for monetization types to monetizationWebhookService.handleCheckoutSessionCompleted, and keeps platform subscriptions inline', async () => {
-      const monetizationSession = {
+    it('delegates checkout.session.completed for promotions to paymentEvents.handleCheckoutSessionCompleted, and keeps platform subscriptions inline', async () => {
+      const promotionSession = {
         id: 'cs_route',
-        metadata: { type: 'DIRECT_TIP', creatorId: 'creator_route' },
+        metadata: { type: 'PROMOTION', promotionId: 'promo_route' },
       };
       await service.processWebhookEvent(
         asEvent({
-          id: 'evt_route_monetization',
+          id: 'evt_route_promotion',
           type: 'checkout.session.completed',
-          data: { object: monetizationSession },
+          data: { object: promotionSession },
         }),
       );
-      expect(
-        monetizationWebhookService.handleCheckoutSessionCompleted,
-      ).toHaveBeenCalledWith(monetizationSession, undefined);
-
-      // A payment to a creator arrives from the creator's account.
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_route_connected',
-          type: 'checkout.session.completed',
-          account: 'acct_creator',
-          data: { object: monetizationSession },
-        }),
+      expect(paymentEvents.handleCheckoutSessionCompleted).toHaveBeenCalledWith(
+        promotionSession,
       );
-      expect(
-        monetizationWebhookService.handleCheckoutSessionCompleted,
-      ).toHaveBeenLastCalledWith(monetizationSession, 'acct_creator');
 
-      monetizationWebhookService.handleCheckoutSessionCompleted.mockClear();
+      paymentEvents.handleCheckoutSessionCompleted.mockClear();
       await service.processWebhookEvent(
         asEvent({
           id: 'evt_route_subscription',
@@ -2408,11 +2314,11 @@ describe('PaymentsService', () => {
         }),
       );
       expect(
-        monetizationWebhookService.handleCheckoutSessionCompleted,
+        paymentEvents.handleCheckoutSessionCompleted,
       ).not.toHaveBeenCalled();
     });
 
-    it("ignores a checkout on a creator's account that is not a payment to them", async () => {
+    it("ignores a checkout made on another account than CircleSfera's", async () => {
       const warn = vi
         .spyOn((service as any).logger, 'warn')
         .mockImplementation(() => {});
@@ -2421,18 +2327,21 @@ describe('PaymentsService', () => {
         asEvent({
           id: 'evt_route_foreign',
           type: 'checkout.session.completed',
-          account: 'acct_creator',
+          account: 'acct_other',
           data: {
-            object: { id: 'cs_foreign', metadata: { planId: 'p' } },
+            object: {
+              id: 'cs_foreign',
+              metadata: { type: 'PROMOTION', planId: 'p' },
+            },
           },
         }),
       );
 
       expect(
-        monetizationWebhookService.handleCheckoutSessionCompleted,
+        paymentEvents.handleCheckoutSessionCompleted,
       ).not.toHaveBeenCalled();
       expect(warn).toHaveBeenCalledWith(
-        'Checkout cs_foreign on account acct_creator is not a payment to a creator; ignored',
+        "Checkout cs_foreign on account acct_other is not CircleSfera's; ignored",
       );
     });
   });

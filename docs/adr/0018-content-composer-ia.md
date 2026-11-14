@@ -32,7 +32,7 @@ CircleSfera Create uses a **dual-path Content Composer IA** on the existing `cre
 
 **Mode at entry:** `CreateBottomSheet` / `?mode=` is the source of truth. Upload may still allow mode change, but the header does not duplicate mode labels.
 
-Does **not** change API contracts, schema, LiveKit, monetization, or ADR-0017 shell matrix.
+Does **not** change API contracts, schema, LiveKit, payments, or ADR-0017 shell matrix.
 
 ## Alternatives considered
 

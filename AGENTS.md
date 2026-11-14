@@ -136,8 +136,7 @@ what risk remains open. Never claim a check you did not run.
   `SignIn` or use separate `SignIn` records, as defined in
   `docs/adr/0025-sign-in-per-profile-one-identity.md`: check which step is on `main` before
   touching authentication. Staff access uses `AdminIdentity` RBAC, never `User.role`.
-- Money is integer cents. The platform fee constants are in
-  `circlesfera-backend/src/common/constants/monetization.constants.ts`.
+- Money is integer cents.
 - Never invent models, endpoints, enums, relations, permissions or flows that are not backed by the
   schema or code.
 

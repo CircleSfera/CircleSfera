@@ -5,7 +5,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | ADR | Title | Status |
 | --- | --- | --- |
 | [0001](./0001-profile-embedding-retention.md) | ProfileEmbedding retention | Accepted |
-| [0002](./0002-stripe-connect-payouts.md) | Stripe Connect Express payouts only, no internal payout ledger | Accepted |
 | [0003](./0003-one-active-platform-plan.md) | One active platform subscription plan per user | Accepted |
 | [0004](./0004-feed-preferences.md) | Feed preference domain tables (hide post/author, mute keywords) | Accepted |
 | [0005](./0005-livekit-live-streaming.md) | LiveKit for live streaming | Accepted |
@@ -13,7 +12,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0007](./0007-auth-cookies-csrf.md) | HTTP-only auth cookies + CSRF double-submit | Accepted |
 | [0008](./0008-storage-providers.md) | Pluggable storage providers (S3, Cloudinary, local) | Accepted |
 | [0009](./0009-feed-fan-out.md) | Hybrid feed fan-out | Accepted |
-| [0010](./0010-platform-fee-20-percent.md) | 20% platform application fee on Connect charges | Accepted |
 | [0011](./0011-ai-engineering-framework.md) | In-repository AI engineering framework under `.ai/` | Accepted |
 | [0012](./0012-webrtc-signaling-architecture.md) | WebRTC Voice & Video Call Signaling Architecture and Socket Event Compatibility | Accepted |
 | [0013](./0013-admin-panel-admin-identity.md) | Admin Panel — separate Admin Identity, RBAC, MFA, admin.circlesfera.com | Accepted (amended by 0031) |
@@ -31,7 +29,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0025](./0025-sign-in-per-profile-one-identity.md) | Sign-in per Profile, one identity behind — `User` stays the identity, credentials move to a `SignIn` that serves one or more Profiles; order of the changes | Accepted |
 | [0026](./0026-backoffice-second-staff-site.md) | Backoffice — a second staff site on the same app, chosen by host, with the staff identity and sessions per site | Accepted |
 | [0027](./0027-help-desk-module-with-host-contracts.md) | Help Desk — a module of the monolith behind host contracts, no imports from the social modules, every record per organization | Accepted |
-| [0029](./0029-creator-payments-direct-charges.md) | A payment to a creator is a direct charge on the creator's account; Stripe is liable for its negative balance | Accepted |
 | [0030](./0030-one-create-screen-one-canvas.md) | One Create screen and one full-screen editor for Posts, Stories, Frames and Lives; shared modules, video made on the server | Accepted |
 | [0031](./0031-staff-identity-own-credentials.md) | Staff sign in with credentials of their own (invitation link, own password, passkeys next), never with a CircleSfera account; amends 0013 | Accepted |
 

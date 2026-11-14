@@ -3,19 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  linkedPaidMedia,
-  PAID_POST_ID,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../common/testing/paid-posts.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
-import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from './feed.service.js';
 import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
@@ -46,10 +34,6 @@ describe('FeedService', () => {
     },
     creatorSubscription: {
       findMany: vi.fn().mockResolvedValue([]),
-    },
-    postUnlock: {
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
     },
     promotion: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -101,7 +85,6 @@ describe('FeedService', () => {
         { provide: FeedInboxService, useValue: mockFeedInboxService },
         { provide: FeedPreferencesService, useValue: mockFeedPreferences },
         { provide: ExperimentsService, useValue: mockExperiments },
-        { provide: PostPaywallService, useValue: realPaywall() },
       ],
     }).compile();
 
@@ -295,7 +278,6 @@ describe('FeedService', () => {
         mutedKeywords: [],
       });
       mockPrismaService.mute.findMany.mockResolvedValue([]);
-      mockPrismaService.postUnlock.findMany.mockResolvedValue([]);
       mockPrismaService.userSettings.findUnique.mockResolvedValue({
         contentPreference: 'GENERAL',
         blurSensitiveContent: true,
@@ -432,7 +414,6 @@ describe('FeedService', () => {
         mutedKeywords: [],
       });
       mockPrismaService.mute.findMany.mockResolvedValue([]);
-      mockPrismaService.postUnlock.findMany.mockResolvedValue([]);
       mockPrismaService.userSettings.findUnique.mockResolvedValue({
         contentPreference: 'GENERAL',
         blurSensitiveContent: true,
@@ -718,7 +699,7 @@ describe('FeedService', () => {
       expect(res.data[0].id).toBe('p1');
     });
 
-    it('locks premium posts in following feed if not subscribed or unlocked', async () => {
+    it('shows a post that was once priced whole in the following feed', async () => {
       mockFeedInboxService.getInbox.mockResolvedValueOnce(['prem-1']);
       mockPrismaService.post.findMany.mockResolvedValueOnce([
         {
@@ -729,18 +710,14 @@ describe('FeedService', () => {
           likes: [],
         },
       ]);
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        userId: 'u1',
-      });
-      mockPrismaService.postUnlock.findMany.mockResolvedValueOnce([]);
 
       const res = await service.getFollowingFeed('viewer-1', {
         page: 1,
         limit: 10,
       });
 
-      expect(res.data[0].isLocked).toBe(true);
-      expect(res.data[0].media[0].url).toBe('');
+      expect(res.data[0]).not.toHaveProperty('isLocked');
+      expect(res.data[0].media[0].url).toBe('secret.mp4');
     });
   });
 
@@ -865,16 +842,13 @@ describe('FeedService', () => {
           likes: [],
         },
       ]);
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        userId: 'u-viewer',
-      });
-      mockPrismaService.postUnlock.findMany.mockResolvedValueOnce([]);
 
       const res = (await service.getHybridFeed('viewer-prof', {
         page: 1,
         limit: 10,
       })) as any;
-      expect(res.data[0].isLocked).toBe(true);
+      expect(res.data[0]).not.toHaveProperty('isLocked');
+      expect(res.data[0].media[0].url).toBe('locked.mp4');
       expect(res.data[0].recommendationReason).toBe('following');
     });
   });
@@ -916,7 +890,6 @@ describe('FeedService', () => {
       );
       mockPrismaService.post.count.mockResolvedValueOnce(5);
       mockPrismaService.profile.findUnique
-        .mockResolvedValueOnce({ userId: 'viewer-user' })
         .mockResolvedValueOnce({ userId: 'viewer-user' })
         .mockResolvedValueOnce({ userId: 'viewer-user', verificationLevel });
       mockPrismaService.promotion.findMany.mockClear();
@@ -987,7 +960,6 @@ describe('FeedService', () => {
 
       mockPrismaService.profile.findUnique
         .mockResolvedValueOnce({ userId: 'viewer-user' }) // viewerContentSettings
-        .mockResolvedValueOnce({ userId: 'viewer-user' }) // postUnlock
         .mockResolvedValueOnce({
           userId: 'viewer-user',
           // Free text no longer aims anything: the country comes from the
@@ -1056,7 +1028,6 @@ describe('FeedService', () => {
 
       mockPrismaService.profile.findUnique
         .mockResolvedValueOnce({ userId: 'viewer-user' }) // viewerContentSettings
-        .mockResolvedValueOnce({ userId: 'viewer-user' }) // postUnlock
         .mockResolvedValueOnce({
           userId: 'viewer-user',
           // Free text no longer aims anything: the country comes from the
@@ -1107,60 +1078,6 @@ describe('FeedService', () => {
       );
     });
 
-    describe('a promoted paid post', () => {
-      const promotedFor = async (viewer: string) => {
-        mockCache.get.mockResolvedValue(null);
-        mockPrismaService.like.findMany.mockResolvedValueOnce([]);
-        mockPrismaService.$queryRaw.mockResolvedValueOnce(
-          Array.from({ length: 5 }, (_, i) => ({ id: `post-${i + 1}` })),
-        );
-        mockPrismaService.post.findMany
-          .mockResolvedValueOnce(
-            Array.from({ length: 5 }, (_, i) => ({
-              id: `post-${i + 1}`,
-              type: 'POST',
-              likes: [],
-              media: [],
-              contentRating: 'GENERAL',
-            })),
-          )
-          .mockResolvedValueOnce([
-            paidPost([linkedPaidMedia()], { likes: [] }),
-          ]);
-        mockPrismaService.post.count.mockResolvedValueOnce(5);
-        mockPrismaService.profile.findUnique
-          .mockResolvedValueOnce({ userId: 'viewer-user' })
-          .mockResolvedValueOnce({ userId: 'viewer-user' })
-          .mockResolvedValueOnce({
-            userId: 'viewer-user',
-            user: { signupCountry: 'ES', settings: { country: null } },
-          });
-        mockPrismaService.promotion.findMany.mockResolvedValueOnce([
-          { id: 'promo-paid', targetId: PAID_POST_ID, countries: null },
-        ]);
-
-        const res = (await service.getHybridFeed(viewer, {
-          page: 1,
-          limit: 10,
-        })) as any;
-        const promoted = res.data.find((p: any) => p.isPromoted);
-        expect(promoted.promotionId).toBe('promo-paid');
-        return promoted;
-      };
-
-      it('is closed to a viewer who has not unlocked it', async () => {
-        expectClosed(await promotedFor(STRANGER_ID));
-      });
-
-      it('is whole for its author', async () => {
-        expectWhole(await promotedFor(AUTHOR_ID));
-      });
-
-      it('is whole for someone who unlocked it', async () => {
-        expectWhole(await promotedFor(BUYER_ID));
-      });
-    });
-
     it('returns default content settings when viewer profile does not exist', async () => {
       mockFeedInboxService.getInbox.mockResolvedValueOnce(null);
       mockFeedPreferences.getFilterSets.mockResolvedValueOnce({
@@ -1209,14 +1126,13 @@ describe('FeedService', () => {
       expect(res.data).toEqual([]);
     });
 
-    it('locks premium posts and tests mutes in trending feed for authenticated viewer', async () => {
+    it('shows a once-priced post whole and tests mutes in trending feed for authenticated viewer', async () => {
       mockCache.get.mockResolvedValue(null);
       mockPrismaService.like.findMany.mockResolvedValueOnce([]);
       mockPrismaService.$queryRaw.mockResolvedValueOnce([]); // 0 posts triggers getTrendingFeed(page, limit, skip, profileId)
       mockPrismaService.profile.findUnique
         .mockResolvedValueOnce({ userId: 'u-viewer' }) // getViewerContentSettings in hybrid
-        .mockResolvedValueOnce({ userId: 'u-viewer' }) // getViewerContentSettings in trending
-        .mockResolvedValueOnce({ userId: 'u-viewer' }); // postUnlock in trending
+        .mockResolvedValueOnce({ userId: 'u-viewer' }); // getViewerContentSettings in trending
       mockPrismaService.mute.findMany.mockResolvedValueOnce([
         { mutedId: 'muted-creator' },
       ]);
@@ -1230,15 +1146,14 @@ describe('FeedService', () => {
         },
       ]);
       mockPrismaService.post.count.mockResolvedValueOnce(1);
-      mockPrismaService.postUnlock.findMany.mockResolvedValueOnce([]);
 
       const res = (await service.getHybridFeed('viewer-auth', {
         page: 1,
         limit: 10,
       })) as any;
       expect(res.data).toHaveLength(1);
-      expect(res.data[0].isLocked).toBe(true);
-      expect(res.data[0].media[0].url).toBe('');
+      expect(res.data[0]).not.toHaveProperty('isLocked');
+      expect(res.data[0].media[0].url).toBe('secret.mp4');
     });
 
     it('sets recommendationReason to interest and popular when social_weight is neutral', async () => {

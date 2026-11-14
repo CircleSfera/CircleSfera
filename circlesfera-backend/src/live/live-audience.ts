@@ -27,7 +27,7 @@ export function hostShown(host: {
 
 /**
  * Who a live is for, in one place: the list of lives, the token to watch,
- * the live's own page, its room for comments and its gifts all ask here.
+ * the live's own page and its room for comments all ask here.
  *
  * - Everyone: whoever can see the host (blocks are checked by the caller).
  * - Close friends: the people on the host's close friends list.

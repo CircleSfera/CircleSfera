@@ -94,8 +94,6 @@ interface MutationDeps {
   studioTemplate?: StudioTemplateHandoff | null;
   offerTemplate?: boolean;
   isCloseFriendsOnly: boolean;
-  isPremium: boolean;
-  price: number;
   scheduledAt: string;
   interactiveDraft: InteractiveDraft;
   storyElements: StoryElement[];
@@ -313,8 +311,6 @@ export function useCreatePostMutation(deps: MutationDeps) {
               audioStartMs: deps.selectedAudio ? deps.audioStartMs : 0,
               location: deps.location || undefined,
               place: deps.selectedPlace || undefined,
-              isPremium: deps.isPremium,
-              priceCents: deps.isPremium ? Math.round(deps.price * 100) : 0,
               scheduledAt: deps.scheduledAt
                 ? new Date(deps.scheduledAt).toISOString()
                 : undefined,
@@ -370,8 +366,6 @@ export function useCreatePostMutation(deps: MutationDeps) {
               x: t.x,
               y: t.y,
             })),
-          isPremium: deps.isPremium,
-          priceCents: deps.isPremium ? Math.round(deps.price * 100) : 0,
           contentRating: deps.isSensitive ? 'MATURE' : 'GENERAL',
           scheduledAt: deps.scheduledAt
             ? new Date(deps.scheduledAt).toISOString()

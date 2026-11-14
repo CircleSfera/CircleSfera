@@ -27,7 +27,7 @@ Go to Settings → Teams, write the person's username, choose a role and send th
 - Administrator: publishes, edits and deletes content, answers comments, sees the statistics and edits the profile.
 - Editor: publishes, edits and deletes content, answers comments and sees the statistics.
 
-Only the owner reads direct messages, creates promotions, manages the plan and payouts, manages the team and can delete the profile. Members cannot set a price on content.
+Only the owner reads direct messages, creates promotions, manages the plan, manages the team and can delete the profile.
 
 ## Working as the business
 Once accepted, the Business profile appears in the person's profile switcher. What they publish is shown as published by the Business profile.

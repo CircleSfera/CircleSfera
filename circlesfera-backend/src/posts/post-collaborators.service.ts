@@ -77,8 +77,8 @@ export class PostCollaboratorsService {
     return row ?? null;
   }
 
-  // The author invites one Profile. Only a public, unpaid post that is shown
-  // can carry one, and only one. Ownership is checked by OwnershipGuard.
+  // The author invites one Profile. Only a public post that is shown can
+  // carry one, and only one. Ownership is checked by OwnershipGuard.
   async invite(postId: string, username: string) {
     const [post, invitee] = await Promise.all([
       this.prisma.post.findFirst({
@@ -87,8 +87,6 @@ export class PostCollaboratorsService {
           id: true,
           profileId: true,
           visibility: true,
-          isPremium: true,
-          priceCents: true,
           collaborator: { select: { profileId: true } },
         },
       }),
@@ -108,13 +106,11 @@ export class PostCollaboratorsService {
     }
     if (
       invitee.id === post.profileId ||
-      post.visibility !== Visibility.PUBLIC ||
-      post.isPremium ||
-      post.priceCents > 0
+      post.visibility !== Visibility.PUBLIC
     ) {
       throw AppException.BadRequest(
         ErrorCode.COLLAB_NOT_ALLOWED,
-        'Only a public, unpaid post can have a collaborator',
+        'Only a public post can have a collaborator',
       );
     }
     if (post.collaborator) {

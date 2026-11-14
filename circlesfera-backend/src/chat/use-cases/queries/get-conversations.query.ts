@@ -9,10 +9,6 @@ import {
 import { isUnlisted } from '../../../common/policies/removed-content.policy.js';
 import { restrictersOf } from '../../../common/policies/restrict.policy.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
-import {
-  type PaywallPost,
-  PostPaywallService,
-} from '../../../posts/services/post-paywall.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import {
   blockedWithViewer,
@@ -135,7 +131,6 @@ export class GetConversationsQuery {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(CryptoService) private cryptoService: CryptoService,
-    @Inject(PostPaywallService) private postPaywall: PostPaywallService,
   ) {}
 
   async execute(profileId: string, folder: ChatFolder = 'inbox') {
@@ -149,10 +144,7 @@ export class GetConversationsQuery {
     });
 
     const shown = await this.withUnavailable(profileId, conversations);
-    const readable = await this.withSharedPostsAsSeenBy(
-      profileId,
-      shown.map((conv) => this.withReadablePreview(conv)),
-    );
+    const readable = shown.map((conv) => this.withReadablePreview(conv));
     return pinnedFirst(await this.withOwnSettings(profileId, readable));
   }
 
@@ -220,10 +212,7 @@ export class GetConversationsQuery {
     const items = rows.slice(0, take);
     const last = items.at(-1);
     const shown = await this.withUnavailable(profileId, [...pinned, ...items]);
-    const readable = await this.withSharedPostsAsSeenBy(
-      profileId,
-      shown.map((conv) => this.withReadablePreview(conv)),
-    );
+    const readable = shown.map((conv) => this.withReadablePreview(conv));
     return {
       items: pinnedFirst(await this.withOwnSettings(profileId, readable)),
       nextCursor:
@@ -255,10 +244,9 @@ export class GetConversationsQuery {
     }
 
     const [shown] = await this.withUnavailable(profileId, [conv]);
-    const [readable] = await this.withSharedPostsAsSeenBy(profileId, [
+    const [own] = await this.withOwnSettings(profileId, [
       this.withReadablePreview(shown),
     ]);
-    const [own] = await this.withOwnSettings(profileId, [readable]);
     return own;
   }
 
@@ -284,25 +272,6 @@ export class GetConversationsQuery {
         own?.mutedUntil && own.mutedUntil > now ? own.mutedUntil : null;
       return { ...conv, mutedUntil, pinnedAt: own?.pinnedAt ?? null };
     });
-  }
-
-  // A paid post the latest message shares shows closed to a viewer who has
-  // not unlocked it, as it does everywhere else.
-  private async withSharedPostsAsSeenBy<
-    T extends { messages: { post?: unknown }[] },
-  >(viewerProfileId: string, conversations: T[]): Promise<T[]> {
-    const sharing = conversations
-      .map((conv) => conv.messages?.[0])
-      .filter((m): m is { post: PaywallPost } => Boolean(m?.post));
-    if (sharing.length === 0) return conversations;
-    const posts = await this.postPaywall.applyPaywall(
-      sharing.map((m) => m.post),
-      viewerProfileId,
-    );
-    sharing.forEach((m, i) => {
-      m.post = posts[i];
-    });
-    return conversations;
   }
 
   // A participant in a block with the viewer, either way, stays in the

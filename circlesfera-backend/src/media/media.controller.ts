@@ -1,29 +1,17 @@
-import { ErrorCode } from '@circlesfera/shared';
 import {
   Controller,
   ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
-  Inject,
   Logger,
-  NotFoundException,
-  Param,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiExcludeEndpoint, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ScheduledPostStatus, Visibility } from '@prisma/client';
 import { Request, Response } from 'express';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
-import { AppException } from '../common/errors/app.exception.js';
-import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import {
-  STORAGE_PROVIDER,
-  type StorageProvider,
-} from '../uploads/interfaces/storage-provider.interface.js';
 import { MediaAuthService } from './media-auth.service.js';
 import { MediaStaffViewerService } from './media-staff-viewer.service.js';
 
@@ -33,11 +21,8 @@ export class MediaController {
   private readonly logger = new Logger(MediaController.name);
 
   constructor(
-    private readonly prisma: PrismaService,
     private readonly mediaAuthService: MediaAuthService,
     private readonly staffViewer: MediaStaffViewerService,
-    @Inject(STORAGE_PROVIDER)
-    private readonly storageProvider: StorageProvider,
   ) {}
 
   /**
@@ -67,15 +52,12 @@ export class MediaController {
     const viewerUserId = req.user?.userId ?? null;
     const viewerProfileId = req.user?.profileId ?? null;
 
-    // Staff are recognised only when a file of removed content is asked for,
-    // and whoever reads the review area only for a file of paid content on
-    // sale.
+    // Staff are recognised only when a file of removed content is asked for.
     const allowed = await this.mediaAuthService.isAccessAllowed(
       originalUri,
       viewerUserId,
       viewerProfileId,
       () => this.staffViewer.isContentStaff(req),
-      () => this.staffViewer.isReviewer(req),
     );
 
     if (!allowed) {
@@ -84,192 +66,5 @@ export class MediaController {
       );
       throw new ForbiddenException();
     }
-  }
-
-  @Get('teaser/:mediaId/*file')
-  @UseGuards(JwtOptionalGuard)
-  @ApiResponse({ status: 200 })
-  async serveTeaser(
-    @Param('mediaId') mediaId: string,
-    @Param('file') file: string | string[],
-    @Req() req: Request & { user?: { profileId?: string } },
-    @Res() res: Response,
-  ) {
-    const media = await this.prisma.postMedia.findUnique({
-      where: { id: mediaId },
-      include: {
-        post: {
-          select: {
-            id: true,
-            isPremium: true,
-            scheduledStatus: true,
-            visibility: true,
-            profileId: true,
-          },
-        },
-      },
-    });
-
-    // A teaser is the free start of a paid post's video, for whoever may see
-    // the post's card: never of a post that is not paid, nor of one the
-    // viewer may not see (private, followers-only, blocked, removed), nor of
-    // a scheduled post before it is published, to anyone. All answer as
-    // missing, so none is revealed.
-    const canSeeCard =
-      !!media?.post?.isPremium &&
-      media.post.scheduledStatus === ScheduledPostStatus.PUBLISHED &&
-      (await this.canSeeTeaserCard(media.post, req.user?.profileId ?? null));
-    if (!media?.standardUrl || !canSeeCard) {
-      this.logger.warn(
-        `Teaser requested for missing media: ${mediaId} by ${req.ip}`,
-      );
-      throw AppException.NotFound(ErrorCode.MEDIA_NOT_FOUND, 'Media not found');
-    }
-
-    // Resolve the base folder from standardUrl.
-    // Supports both local paths (/uploads/<baseName>/...) and
-    // remote URLs (https://.../.../circlesfera/hls/<baseName>/...).
-    const localMatch = media.standardUrl.match(/^\/uploads\/(.+)\/[^/]+$/);
-    const remoteMatch = media.standardUrl.match(
-      /circlesfera\/hls\/([^/]+)\/[^/]+$/,
-    );
-    const baseFolder = (localMatch ?? remoteMatch)?.[1] ?? null;
-
-    if (!baseFolder) {
-      this.logger.error(
-        `Invalid media path format for media ${mediaId}: ${media.standardUrl}`,
-      );
-      throw AppException.NotFound(
-        ErrorCode.INVALID_MEDIA_PATH,
-        'Invalid media path',
-      );
-    }
-
-    // Build the relative path from the wildcard parameter
-    const relativeFile = Array.isArray(file) ? file.join('/') : file;
-
-    // Reject obvious path traversal at the param level (before storage call)
-    if (relativeFile.includes('..') || relativeFile.startsWith('/')) {
-      this.logger.warn(
-        `Path traversal blocked for media ${mediaId}: ${relativeFile}`,
-      );
-      throw AppException.Forbidden(
-        ErrorCode.INVALID_MEDIA_PATH,
-        'Invalid file path',
-      );
-    }
-
-    // If it's a TS segment, only allow the first two segments (free preview window)
-    if (relativeFile.endsWith('.ts')) {
-      const segmentMatch = relativeFile.match(/_(\d+)\.ts$/);
-      if (segmentMatch) {
-        const segmentIndex = parseInt(segmentMatch[1], 10);
-        if (segmentIndex >= 2) {
-          throw AppException.Forbidden(
-            ErrorCode.PREMIUM_CONTENT_LOCKED,
-            'Premium content locked',
-          );
-        }
-      }
-    }
-
-    // Retrieve artifact through the storage provider abstraction
-    const artifact = await this.storageProvider.getMediaArtifact?.({
-      baseFolder,
-      relativePath: relativeFile,
-    });
-
-    if (!artifact) {
-      throw AppException.NotFound(ErrorCode.MEDIA_NOT_FOUND, 'File not found');
-    }
-
-    // If it's a playlist (.m3u8), slice to first 2 segments (teaser preview)
-    if (relativeFile.endsWith('.m3u8')) {
-      const content = artifact.content.toString('utf8');
-      const lines = content.split('\n');
-
-      const processedLines: string[] = [];
-      let segmentCount = 0;
-      const MAX_SEGMENTS = 2; // Roughly 4–5 seconds depending on HLS segment target duration
-
-      for (const line of lines) {
-        if (line.startsWith('#EXTINF:')) {
-          if (segmentCount >= MAX_SEGMENTS) break;
-          segmentCount++;
-        }
-        processedLines.push(line);
-      }
-
-      // Add ENDLIST if we cut it early
-      if (
-        segmentCount >= MAX_SEGMENTS &&
-        !processedLines.includes('#EXT-X-ENDLIST')
-      ) {
-        processedLines.push('#EXT-X-ENDLIST');
-      }
-
-      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-      return res.send(processedLines.join('\n'));
-    }
-
-    res.setHeader('Content-Type', artifact.contentType);
-    return res.send(artifact.content);
-  }
-  /**
-   * Whether the viewer may see the card of a paid post, as its teaser
-   * needs. A post for close friends has the author's close friends as its
-   * audience, so they get its teaser; everything else the card is subject
-   * to (removal, archive, blocks, a private account) still applies.
-   */
-  private async canSeeTeaserCard(
-    post: { id: string; visibility: Visibility; profileId: string },
-    viewerProfileId: string | null,
-  ): Promise<boolean> {
-    let target: Parameters<typeof assertCanAccessPost>[1] = post.id;
-    if (
-      post.visibility === Visibility.PRIVATE &&
-      viewerProfileId &&
-      viewerProfileId !== post.profileId &&
-      (await this.prisma.closeFriend.findUnique({
-        where: {
-          profileId_friendId: {
-            profileId: post.profileId,
-            friendId: viewerProfileId,
-          },
-        },
-        select: { id: true },
-      }))
-    ) {
-      const full = await this.prisma.post.findUnique({
-        where: { id: post.id },
-        select: {
-          id: true,
-          profileId: true,
-          visibility: true,
-          moderationStatus: true,
-          deletedAt: true,
-          archivedAt: true,
-          turnOffComments: true,
-          profile: { select: { privacyLevel: true } },
-        },
-      });
-      if (!full) return false;
-      // Their audience includes this viewer: the card is theirs as a
-      // public one would be, with every other rule still checked.
-      target = { ...full, visibility: Visibility.PUBLIC };
-    }
-    return assertCanAccessPost(this.prisma, target, viewerProfileId).then(
-      () => true,
-      (error: unknown) => {
-        // A refusal answers as missing; any other failure is a failure.
-        if (
-          error instanceof NotFoundException ||
-          error instanceof ForbiddenException
-        ) {
-          return false;
-        }
-        throw error;
-      },
-    );
   }
 }

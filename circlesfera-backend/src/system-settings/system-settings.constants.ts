@@ -56,7 +56,7 @@ export const SYSTEM_SETTING_DEFAULTS: readonly SystemSettingDefault[] = [
     key: SYSTEM_SETTING_KEYS.PAYMENTS_ENABLED,
     value: 'true',
     description:
-      'Allow new payments: plans, paid content, tips, live gifts and promotions. While off nothing new is charged; money already earned keeps being paid out.',
+      'Allow new payments: plans and promotions. While off nothing new is charged.',
   },
 ] as const;
 

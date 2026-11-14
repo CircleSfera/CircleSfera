@@ -8,30 +8,6 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('CriticalDomainEvent contracts', () => {
-  it('correctly discriminates and guards PaymentLiveGiftCompletedEvent', () => {
-    const event: CriticalDomainEvent = {
-      type: 'payment.live_gift_completed',
-      payload: {
-        liveGiftId: 'gift-1',
-        senderId: 'user-sender',
-        streamId: 'stream-1',
-        giftId: 'rose',
-        creatorId: 'creator-1',
-        amountCents: 500,
-        currency: 'EUR',
-        paymentIntentId: 'pi_test_123',
-      },
-    };
-
-    expect(isCriticalEvent('payment.live_gift_completed', event)).toBe(true);
-    expect(isCriticalEvent('user.hard_deleted', event)).toBe(false);
-
-    if (isCriticalEvent('payment.live_gift_completed', event)) {
-      expect(event.payload.amountCents).toBe(500);
-      expect(event.payload.currency).toBe('EUR');
-    }
-  });
-
   it('correctly discriminates UserHardDeletedEvent', () => {
     const event: CriticalDomainEvent = {
       type: 'user.hard_deleted',
@@ -44,6 +20,7 @@ describe('CriticalDomainEvent contracts', () => {
     };
 
     expect(isCriticalEvent('user.hard_deleted', event)).toBe(true);
+    expect(isCriticalEvent('payment.alert', event)).toBe(false);
     if (isCriticalEvent('user.hard_deleted', event)) {
       expect(event.payload.userId).toBe('user-deleted-1');
       expect(event.payload.profileIds).toHaveLength(1);
@@ -72,19 +49,15 @@ describe('CriticalDomainEvent contracts', () => {
   });
 
   it('enforces compile-time type safety on payload extractor', () => {
-    type LiveGiftPayload = CriticalEventPayload<'payment.live_gift_completed'>;
-    const samplePayload: LiveGiftPayload = {
-      liveGiftId: 'gift-1',
-      senderId: 'sender-1',
-      streamId: 'stream-1',
-      giftId: 'diamond',
-      creatorId: 'creator-1',
-      amountCents: 1000,
-      currency: 'USD',
-      paymentIntentId: 'pi_abc',
+    type AlertPayload = CriticalEventPayload<'payment.alert'>;
+    const samplePayload: AlertPayload = {
+      eventType: 'Promotion Payment',
+      amount: 1000,
+      currency: 'eur',
+      description: 'Promotion ID: promo-1',
     };
 
-    expect(samplePayload.amountCents).toBe(1000);
+    expect(samplePayload.amount).toBe(1000);
   });
 
   it('correctly discriminates ModerationReportFiledEvent', () => {
@@ -123,7 +96,6 @@ describe('CriticalDomainEvent contracts', () => {
 
   it('declares an owner for every governed event type', () => {
     const criticalEventTypes: CriticalEventType[] = [
-      'payment.live_gift_completed',
       'user.hard_deleted',
       'notification.dispatched',
       'system.incident',

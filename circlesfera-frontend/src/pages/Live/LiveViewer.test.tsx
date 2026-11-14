@@ -116,9 +116,6 @@ describe('LiveViewer', () => {
       screen.getByPlaceholderText(i18n!.t('live.chat_placeholder')),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: i18n!.t('live.send_gift_btn') }),
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole('button', { name: i18n!.t('common.close') }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Directo')).not.toBeInTheDocument();
@@ -143,19 +140,8 @@ describe('LiveViewer', () => {
     expect(i18n!.t('live.now')).toBe('Directo');
     expect(await screen.findByText(i18n!.t('live.now'))).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: i18n!.t('live.send_gift_btn') }),
+      screen.getByRole('button', { name: i18n!.t('live.qna.title') }),
     ).toBeInTheDocument();
-  });
-
-  it('toasts catalog copy after a successful gift checkout return', async () => {
-    vi.mocked(apiClient.get).mockReturnValue(new Promise(() => {}));
-    const { i18n } = renderViewer('/live/stream-1?gift_success=true');
-
-    await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith(i18n!.t('live.gift_sent'));
-    });
-    expect(i18n!.t('live.gift_sent')).toBe('Gift sent!');
-    expect(toast.success).not.toHaveBeenCalledWith('¡Regalo enviado!');
   });
 
   it('says on a screen of its own that the live has ended when it cannot be joined', async () => {
@@ -245,14 +231,14 @@ describe('LiveViewer', () => {
       },
     );
 
-    it('offers the gift until a comment is typed, then offers to send it', async () => {
+    it('offers the questions until a comment is typed, then offers to send it', async () => {
       mockJoin();
       const { i18n } = renderViewer();
       await screen.findByText(i18n!.t('live.now'));
-      const gift = { name: i18n!.t('live.send_gift_btn') };
+      const questions = { name: i18n!.t('live.qna.title') };
       const send = { name: i18n!.t('live.send_comment') };
 
-      expect(screen.getByRole('button', gift)).toBeInTheDocument();
+      expect(screen.getByRole('button', questions)).toBeInTheDocument();
       expect(screen.queryByRole('button', send)).not.toBeInTheDocument();
 
       fireEvent.change(
@@ -261,7 +247,7 @@ describe('LiveViewer', () => {
       );
 
       expect(screen.getByRole('button', send)).toBeInTheDocument();
-      expect(screen.queryByRole('button', gift)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', questions)).not.toBeInTheDocument();
     });
 
     it('shows a neutral picture with initials when the host has none, never a stock photo', async () => {

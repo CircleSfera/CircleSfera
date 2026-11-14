@@ -173,8 +173,6 @@ function compose(
     'setStoryBgStyle',
     'setIsComposed',
     'setOriginalStoryMedia',
-    'setIsPremium',
-    'setPrice',
     'setScheduledAt',
     'setInteractiveDraft',
     'setShareToStory',
@@ -308,7 +306,6 @@ describe('ContentComposerPage', () => {
     });
 
     it.each([
-      ['a paid post', { isPremium: true }],
       ['a post not out yet', { scheduledAt: '2099-01-01T10:00' }],
       ['a Frame', { mode: 'FRAME' }],
     ])('does not offer it for %s', (_what, state) => {

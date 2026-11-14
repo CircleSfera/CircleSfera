@@ -50,7 +50,7 @@ export function apiErrorDetails(
   return apiErrorBody(error)?.details;
 }
 
-// A purchase or payout action refused because the account's identity is not
+// A purchase refused because the account's identity is not
 // verified yet. The server sends a code for it; servers from before the code
 // existed answer 403 with a Spanish sentence, which is still recognised.
 export function isIdentityVerificationRequired(error: unknown): boolean {

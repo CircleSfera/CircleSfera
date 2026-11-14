@@ -133,7 +133,7 @@ describe('Pricing', () => {
       }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getAllByText(i18n!.t('monetization.not_in_app')).length,
+      screen.getAllByText(i18n!.t('pricingPage.not_in_app')).length,
     ).toBeGreaterThan(0);
     sells.value = true;
   });

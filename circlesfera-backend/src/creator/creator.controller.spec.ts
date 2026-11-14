@@ -24,7 +24,6 @@ import { CreatorController } from './creator.controller.js';
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
 import { GetAudienceRetentionQuery } from './use-cases/analytics/queries/get-audience-retention.query.js';
 import { GetCreatorStatsQuery } from './use-cases/analytics/queries/get-creator-stats.query.js';
-import { GetRevenueAnalyticsQuery } from './use-cases/analytics/queries/get-revenue-analytics.query.js';
 import { GetTopContentQuery } from './use-cases/analytics/queries/get-top-content.query.js';
 import { GetCreatorPostsQuery } from './use-cases/content/queries/get-creator-posts.query.js';
 import { GetCreatorStoriesQuery } from './use-cases/content/queries/get-creator-stories.query.js';
@@ -43,7 +42,6 @@ describe('CreatorController', () => {
     getCreatorDashboard: vi.fn(),
   };
   const mockGetCreatorStatsQ = { execute: vi.fn() };
-  const mockGetRevenueAnalyticsQ = { execute: vi.fn() };
   const mockGetAudienceRetentionQ = { execute: vi.fn() };
   const mockGetTopContentQ = { execute: vi.fn() };
   const mockExportAnalyticsCsvUC = { execute: vi.fn() };
@@ -68,10 +66,6 @@ describe('CreatorController', () => {
       providers: [
         { provide: AnalyticsService, useValue: mockAnalyticsService },
         { provide: GetCreatorStatsQuery, useValue: mockGetCreatorStatsQ },
-        {
-          provide: GetRevenueAnalyticsQuery,
-          useValue: mockGetRevenueAnalyticsQ,
-        },
         {
           provide: GetAudienceRetentionQuery,
           useValue: mockGetAudienceRetentionQ,
@@ -114,7 +108,7 @@ describe('CreatorController', () => {
   });
 
   it('reads stats as the session profileId', async () => {
-    const stats = { followers: 100, revenueCents: 5000 };
+    const stats = { followers: 100 };
     mockGetCreatorStatsQ.execute.mockResolvedValue(stats);
 
     const res = await request(app.getHttpServer())
@@ -356,26 +350,7 @@ describe('CreatorController', () => {
     );
   });
 
-  it('reads revenue analytics by session userId, not profileId', async () => {
-    // Regression test: Transaction.receiverId stores User.id, not Profile.id.
-    // Passing profileId here previously made this endpoint always return 0.
-    const revenue = { period: '30d', grossRevenue: 42.5 };
-    mockGetRevenueAnalyticsQ.execute.mockResolvedValue(revenue);
-
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/creator/analytics/revenue')
-      .set(BEARER)
-      .expect(200);
-
-    expect(res.body).toEqual(revenue);
-    expect(mockGetRevenueAnalyticsQ.execute).toHaveBeenCalledWith(
-      TEST_USER.userId,
-      TEST_USER.profileId,
-      undefined,
-    );
-  });
-
-  it('exports the analytics CSV with both userId (revenue) and profileId (retention)', async () => {
+  it('exports the analytics CSV of the session Profile', async () => {
     mockExportAnalyticsCsvUC.execute.mockResolvedValue('Metric,Value\n');
 
     await request(app.getHttpServer())
@@ -384,7 +359,6 @@ describe('CreatorController', () => {
       .expect(200);
 
     expect(mockExportAnalyticsCsvUC.execute).toHaveBeenCalledWith(
-      TEST_USER.userId,
       TEST_USER.profileId,
       '30d',
     );

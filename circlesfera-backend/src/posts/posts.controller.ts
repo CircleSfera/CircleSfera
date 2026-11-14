@@ -29,7 +29,6 @@ import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { MemberAllowed } from '../team/member-allowed.decorator.js';
-import { refuseMemberPrice } from '../team/member-price.js';
 import { RecordsActivity } from '../team/records-activity.decorator.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { FindPostsQueryDto } from './dto/find-posts-query.dto.js';
@@ -61,7 +60,6 @@ export class PostsController {
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreatePostDto,
   ) {
-    refuseMemberPrice(user, dto.priceCents);
     return this.postsService.create(user.profileId, dto);
   }
 

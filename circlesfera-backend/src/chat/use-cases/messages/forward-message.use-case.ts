@@ -15,8 +15,8 @@ export interface ForwardResult {
 // post it shares goes to up to CHAT_FORWARD_MAX of the forwarder's own
 // chats, each sent by the forwarder through the normal way of sending
 // (blocks, requests, hidden words, moderation, limits, who may see a post).
-// A paid message is never forwarded, nor a deleted one, a notice, a file, a
-// voice note or a story: files belong to whoever uploaded them.
+// A deleted message is never forwarded, nor a notice, a file, a voice note
+// or a story: files belong to whoever uploaded them.
 @Injectable()
 export class ForwardMessageUseCase {
   constructor(
@@ -46,7 +46,6 @@ export class ForwardMessageUseCase {
         content: true,
         kind: true,
         isDeleted: true,
-        isLocked: true,
         url: true,
         voiceUrl: true,
         storyId: true,
@@ -80,7 +79,6 @@ export class ForwardMessageUseCase {
     if (
       message.kind !== 'USER' ||
       message.isDeleted ||
-      message.isLocked ||
       message.url ||
       message.voiceUrl ||
       message.storyId ||
@@ -107,8 +105,6 @@ export class ForwardMessageUseCase {
           conversationId,
           undefined,
           message.postId ?? undefined,
-          undefined,
-          undefined,
           undefined,
           undefined,
           undefined,

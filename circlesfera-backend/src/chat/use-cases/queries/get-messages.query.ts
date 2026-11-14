@@ -3,7 +3,6 @@ import type { MediaStatus, Message, Participant } from '@prisma/client';
 import { isUnlisted } from '../../../common/policies/removed-content.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../../../common/selects/public-profile.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
-import { PostPaywallService } from '../../../posts/services/post-paywall.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { blockedWithViewer, maskMessage } from '../../blocked-participants.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
@@ -19,8 +18,6 @@ export class GetMessagesQuery {
     @Inject(CryptoService) private cryptoService: CryptoService,
     @Inject(ChatAuthorizationService)
     private chatAuth: ChatAuthorizationService,
-    @Inject(PostPaywallService)
-    private postPaywall: PostPaywallService,
   ) {}
 
   // The latest messages of a conversation, oldest first as they are read.
@@ -56,15 +53,6 @@ export class GetMessagesQuery {
         { createdAt: { lt: before.createdAt } },
         { createdAt: before.createdAt, id: { lt: before.id } },
       ];
-    }
-
-    let viewerUserId: string | undefined;
-    if (profileId) {
-      const viewer = await this.prisma.profile.findUnique({
-        where: { id: profileId },
-        select: { userId: true },
-      });
-      viewerUserId = viewer?.userId;
     }
 
     // Newest first to take the latest ones, then turned to reading order.
@@ -107,9 +95,6 @@ export class GetMessagesQuery {
             },
           },
         },
-        messageUnlocks: viewerUserId
-          ? { where: { userId: viewerUserId } }
-          : false,
       },
     });
 
@@ -134,9 +119,8 @@ export class GetMessagesQuery {
       }
 
       // Prefer the linked Media rows' fields over the legacy inline
-      // columns before any redaction below runs, so a locked/unlocked
-      // message is redacted/served consistently regardless of which
-      // source the value came from.
+      // columns before any redaction below runs, so a message is served
+      // consistently regardless of which source the value came from.
       m.url = m.media?.url ?? m.url;
       m.standardUrl = m.media?.standardUrl ?? m.standardUrl ?? null;
       m.thumbnailUrl = m.media?.thumbnailUrl ?? m.thumbnailUrl ?? null;
@@ -175,39 +159,9 @@ export class GetMessagesQuery {
         m.gif = null;
       }
 
-      if (m.isLocked) {
-        // Locked says whether this reader may read it: its sender and who
-        // bought it read it as any other message; anyone else gets nothing
-        // of it.
-        const isUnlocked = m.messageUnlocks && m.messageUnlocks.length > 0;
-        const canRead =
-          (!!profileId && m.senderId === profileId) || !!isUnlocked;
-        if (canRead) {
-          m.isLocked = false;
-        } else {
-          m.content = 'This message is locked. Pay to unlock.';
-          m.url = null;
-          m.standardUrl = null;
-          m.thumbnailUrl = null;
-          m.mediaType = null;
-          m.voiceUrl = null;
-        }
-      }
       return m;
     });
 
-    // A shared paid post the reader has not unlocked shows closed, as it
-    // does everywhere else.
-    const sharing = shown.filter((m: any) => m.post);
-    if (sharing.length > 0) {
-      const posts = await this.postPaywall.applyPaywall(
-        sharing.map((m: any) => m.post),
-        profileId,
-      );
-      sharing.forEach((m: any, i: number) => {
-        m.post = posts[i];
-      });
-    }
     return shown as any;
   }
 }

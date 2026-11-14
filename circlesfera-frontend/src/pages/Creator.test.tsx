@@ -61,14 +61,14 @@ vi.mock('../components/creator/CreatorPostsTab', () => ({
 vi.mock('../components/creator/CreatorStoriesTab', () => ({
   default: () => <p>stories tab</p>,
 }));
-vi.mock('../components/creator/CreatorMoneyTab', () => ({
+vi.mock('../components/creator/CreatorPlansTab', () => ({
   default: ({
     onToast,
   }: {
     onToast: (message: string, type: string) => void;
   }) => (
     <button type="button" onClick={() => onToast('saved', 'success')}>
-      money tab
+      plans tab
     </button>
   ),
 }));
@@ -137,7 +137,7 @@ describe('Creator', () => {
     ['analytics', 'analytics tab'],
     ['stories', 'stories tab'],
     ['ads', 'ads tab'],
-    ['monetization', 'money tab'],
+    ['plans', 'plans tab'],
     ['content', 'promote from content'],
   ])('shows the %s section at its address', async (tab, content) => {
     visit(`/creator/${tab}`);
@@ -157,16 +157,17 @@ describe('Creator', () => {
     expect(screen.getByTestId('shell')).toHaveAttribute('data-tab', 'overview');
   });
 
-  it('sends the old finance address to monetization, keeping what came with it', async () => {
-    visit('/creator/finance?connected=1');
+  it.each(['finance', 'monetization'])(
+    'sends the old %s address to plans, keeping what came with it',
+    async (old) => {
+      visit(`/creator/${old}?connected=1`);
 
-    await waitFor(() =>
-      expect(where).toBe('/creator/monetization?connected=1'),
-    );
-    await waitFor(() =>
-      expect(screen.getByText('money tab')).toBeInTheDocument(),
-    );
-  });
+      await waitFor(() => expect(where).toBe('/creator/plans?connected=1'));
+      await waitFor(() =>
+        expect(screen.getByText('plans tab')).toBeInTheDocument(),
+      );
+    },
+  );
 
   it('moves to another section from the overview', async () => {
     visit('/creator/overview');
@@ -196,8 +197,8 @@ describe('Creator', () => {
   );
 
   it('gives the sections the way to show a notice', async () => {
-    visit('/creator/monetization');
-    fireEvent.click(await screen.findByRole('button', { name: 'money tab' }));
+    visit('/creator/plans');
+    fireEvent.click(await screen.findByRole('button', { name: 'plans tab' }));
     expect(toast).toHaveBeenCalledWith('saved', 'success');
   });
 

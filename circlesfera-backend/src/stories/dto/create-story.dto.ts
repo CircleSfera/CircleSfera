@@ -6,13 +6,16 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
-  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
+import {
+  LegacyNotForSaleFlag,
+  LegacyNotForSalePrice,
+} from '../../common/dto/legacy-not-for-sale.js';
 import { PlaceInputDto } from '../../common/dto/place-input.dto.js';
 import { CreateStoryStickerDto } from '../../story-stickers/dto/story-sticker.dto.js';
 import { STICKER_LIMITS } from '../../story-stickers/story-sticker-settings.js';
@@ -78,16 +81,6 @@ export class CreateStoryDto {
   @Type(() => PlaceInputDto)
   place?: PlaceInputDto;
 
-  @ApiProperty({ required: false, type: () => Boolean })
-  @IsBoolean()
-  @IsOptional()
-  isPremium?: boolean;
-
-  @ApiProperty({ required: false, type: () => Number })
-  @IsNumber()
-  @IsOptional()
-  priceCents?: number;
-
   @ApiProperty({ required: false, type: () => Date })
   @IsOptional()
   @Type(() => Date)
@@ -105,4 +98,12 @@ export class CreateStoryDto {
   @ValidateNested({ each: true })
   @Type(() => CreateStoryStickerDto)
   stickers?: CreateStoryStickerDto[];
+
+  /** Sent by older app versions; accepted only as "not for sale" and never read. */
+  @LegacyNotForSaleFlag()
+  isPremium?: false;
+
+  /** Sent by older app versions; accepted only as 0 and never read. */
+  @LegacyNotForSalePrice()
+  priceCents?: 0;
 }

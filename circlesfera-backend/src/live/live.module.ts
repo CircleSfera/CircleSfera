@@ -5,7 +5,6 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { SocketModule } from '../socket/socket.module.js';
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
-import { LiveGiftService } from './live-gift.service.js';
 import { LiveKitTokenService } from './live-kit-token.service.js';
 import { LiveRoomWebhookController } from './live-room-webhook.controller.js';
 import { LiveRoomWebhookService } from './live-room-webhook.service.js';
@@ -30,12 +29,11 @@ import { LiveRecordingModule } from './recording/live-recording.module.js';
   ],
   providers: [
     LiveService,
-    LiveGiftService,
     LiveKitTokenService,
     LiveStartNoticeService,
     LiveScheduleService,
     LiveRoomWebhookService,
   ],
-  exports: [LiveService, LiveGiftService],
+  exports: [LiveService],
 })
 export class LiveModule {}

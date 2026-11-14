@@ -80,21 +80,6 @@ describe('CaptionStep', () => {
     expect(screen.queryByRole('switch', { name: label })).toBeNull();
   });
 
-  it('offers a price to the owner, never to a team member', () => {
-    const owner = renderWithProviders(
-      <CaptionStep {...baseProps} mediaFiles={[imageFile]} mode="POST" />,
-    );
-    const label = owner.i18n!.t('createPost.caption.monetization');
-    expect(screen.getByText(label)).toBeInTheDocument();
-    owner.unmount();
-
-    session.profile = { username: 'shop', memberRole: 'EDITOR' };
-    renderWithProviders(
-      <CaptionStep {...baseProps} mediaFiles={[imageFile]} mode="POST" />,
-    );
-    expect(screen.queryByText(label)).not.toBeInTheDocument();
-  });
-
   it('hides Tag People on Frame and surfaces music first', () => {
     const { i18n } = renderWithProviders(
       <CaptionStep {...baseProps} mediaFiles={[videoFile]} mode="FRAME" />,

@@ -70,7 +70,7 @@ export class RefundPromotionUseCase {
             description: `Promotion refund (${reason})`,
             // The Stripe refund id gives this row the same DB-layer
             // duplicate protection (via Transaction.stripePaymentIntentId's
-            // unique constraint) as every other monetization Transaction —
+            // unique constraint) as every other Transaction —
             // a second concurrent call reusing the same idempotencyKey gets
             // the same refund.id back from Stripe, so the second create()
             // here hits the unique constraint (caught below) instead of

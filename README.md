@@ -36,7 +36,7 @@ Identity model (**User** = account/billing, **Profile** = social `@username`, **
 | Web | React 19, Vite 7, TanStack Query, Zustand, Tailwind 4 |
 | Auth | HTTP-only JWT cookies, CSRF, passkeys, separate admin JWT |
 | Realtime | Socket.IO + Redis adapter; LiveKit for broadcasts |
-| Payments | Stripe (platform plans, Connect, tips/unlocks, live gifts) |
+| Payments | Stripe (Platform Plans and promotions) |
 
 ## Quick start
 

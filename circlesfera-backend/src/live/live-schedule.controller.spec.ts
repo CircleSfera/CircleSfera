@@ -22,7 +22,6 @@ import {
 } from '../common/testing/http-controller.js';
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
-import { LiveGiftService } from './live-gift.service.js';
 import { LiveScheduleController } from './live-schedule.controller.js';
 import { LiveScheduleService } from './live-schedule.service.js';
 import { LiveStartNoticeService } from './live-start-notice.service.js';
@@ -225,7 +224,6 @@ describe('the routes of scheduled lives beside those of a live', () => {
       providers: [
         { provide: LiveScheduleService, useValue: schedule },
         { provide: LiveService, useValue: live },
-        { provide: LiveGiftService, useValue: {} },
         { provide: LiveStartNoticeService, useValue: {} },
       ],
       guards: [

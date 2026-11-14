@@ -257,7 +257,6 @@ describe('StoryStickersService', () => {
         archivedAt: null,
         moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
         visibility: 'PUBLIC',
-        isPremium: false,
         profile: expect.objectContaining({
           privacyLevel: 'PUBLIC',
           blocking: { none: { blockedId: viewer } },

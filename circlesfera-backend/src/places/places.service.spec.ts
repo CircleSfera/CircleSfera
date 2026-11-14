@@ -1,16 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  FULL_URL,
-  inlinePaidMedia,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../common/testing/paid-posts.js';
 import { PlacesService } from './places.service.js';
 
 describe('PlacesService', () => {
@@ -33,7 +22,7 @@ describe('PlacesService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new PlacesService(prisma as never, realPaywall());
+    service = new PlacesService(prisma as never);
     prisma.block.findMany.mockResolvedValue([]);
   });
 
@@ -269,101 +258,64 @@ describe('PlacesService', () => {
     });
   });
 
-  describe('a paid post at a place', () => {
-    const OPEN_URL = 'https://open.example/free.jpg';
-    const place = {
-      id: 'pl-paid',
-      mapboxId: 'mb',
-      name: 'Plaza',
-      fullName: null,
-      latitude: 40.4,
-      longitude: -3.7,
-      country: null,
-      region: null,
-      locality: null,
-    };
-    const profile = { id: AUTHOR_ID, username: 'author', avatar: null };
-    // The paid post is the latest at the place; an older one is not paid.
-    const posts = () => [
-      paidPost([{ ...inlinePaidMedia(), thumbnailUrl: `${FULL_URL}.thumb` }], {
-        placeId: place.id,
-        profile,
-      }),
-      {
-        id: 'free-post',
-        profileId: AUTHOR_ID,
-        isPremium: false,
-        placeId: place.id,
-        profile,
-        media: [{ url: OPEN_URL, thumbnailUrl: null, standardUrl: null }],
-      },
-    ];
-
-    const pinFor = async (viewer?: string) => {
+  describe('a place on the map', () => {
+    it('shows the picture of its latest post', async () => {
+      const place = {
+        id: 'pl-1',
+        mapboxId: 'mb',
+        name: 'Plaza',
+        fullName: null,
+        latitude: 40.4,
+        longitude: -3.7,
+        country: null,
+        region: null,
+        locality: null,
+      };
+      const profile = { id: 'author-1', username: 'author', avatar: null };
       prisma.place.findMany.mockResolvedValueOnce([place]);
       prisma.post.groupBy.mockResolvedValueOnce([
         { placeId: place.id, _count: { _all: 2 } },
       ]);
-      prisma.post.findMany.mockResolvedValueOnce(posts());
-      const { data } = await service.getMapPins(
-        { minLat: 40, maxLat: 41, minLng: -4, maxLng: -3 },
-        viewer,
-      );
-      return data[0];
-    };
-
-    it('lends no picture to the map for a viewer who has not unlocked it', async () => {
-      for (const viewer of [STRANGER_ID, undefined]) {
-        const pin = await pinFor(viewer);
-        expect(pin.markerImageUrl).toBe(OPEN_URL);
-        expect(pin.previewMedia).toEqual([OPEN_URL]);
-        // The pin still leads to the latest post, which opens closed.
-        expect(pin.latestPostId).toBe('paid-post');
-      }
-    });
-
-    it('is the picture of the pin for its author and for someone who unlocked it', async () => {
-      for (const viewer of [AUTHOR_ID, BUYER_ID]) {
-        const pin = await pinFor(viewer);
-        expect(pin.markerImageUrl).toBe(`${FULL_URL}.thumb`);
-        expect(pin.previewMedia).toEqual([`${FULL_URL}.thumb`, OPEN_URL]);
-      }
-    });
-
-    it('has no picture when every post there is closed to the viewer', async () => {
-      prisma.place.findMany.mockResolvedValueOnce([place]);
-      prisma.post.groupBy.mockResolvedValueOnce([]);
-      prisma.post.findMany.mockResolvedValueOnce([posts()[0]]);
-      const { data } = await service.getMapPins(
-        { minLat: 40, maxLat: 41, minLng: -4, maxLng: -3 },
-        STRANGER_ID,
-      );
-      expect(data[0].markerImageUrl).toBeNull();
-      expect(data[0].previewMedia).toEqual([]);
-    });
-
-    const listedFor = async (viewer?: string) => {
-      prisma.place.findUnique.mockResolvedValueOnce({ id: place.id });
       prisma.post.findMany.mockResolvedValueOnce([
-        paidPost([inlinePaidMedia()], { likes: [] }),
+        {
+          id: 'latest',
+          profileId: 'author-1',
+          placeId: place.id,
+          profile,
+          media: [
+            {
+              url: 'https://files.example/latest.jpg',
+              thumbnailUrl: null,
+              standardUrl: null,
+            },
+          ],
+        },
+        {
+          id: 'older',
+          profileId: 'author-1',
+          placeId: place.id,
+          profile,
+          media: [
+            {
+              url: 'https://files.example/older.jpg',
+              thumbnailUrl: null,
+              standardUrl: null,
+            },
+          ],
+        },
       ]);
-      prisma.post.count.mockResolvedValueOnce(1);
-      const result = await service.getPlacePosts(
-        place.id,
-        { page: 1, limit: 20 },
-        viewer,
+
+      const { data } = await service.getMapPins(
+        { minLat: 40, maxLat: 41, minLng: -4, maxLng: -3 },
+        'viewer-1',
       );
-      return result.data[0];
-    };
 
-    it('is listed closed to a viewer who has not unlocked it', async () => {
-      expectClosed(await listedFor(STRANGER_ID));
-      expectClosed(await listedFor());
-    });
-
-    it('is listed whole for its author and for someone who unlocked it', async () => {
-      expectWhole(await listedFor(AUTHOR_ID));
-      expectWhole(await listedFor(BUYER_ID));
+      expect(data[0].markerImageUrl).toBe('https://files.example/latest.jpg');
+      expect(data[0].previewMedia).toEqual([
+        'https://files.example/latest.jpg',
+        'https://files.example/older.jpg',
+      ]);
+      expect(data[0].latestPostId).toBe('latest');
     });
   });
 });

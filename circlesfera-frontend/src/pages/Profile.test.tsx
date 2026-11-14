@@ -32,6 +32,7 @@ vi.mock('../components/profile/ProfileHeader', () => ({
     handleMessageClick: () => void;
     isMe: boolean;
     setShowReportModal: (show: boolean) => void;
+    setShowFollowsModal: (list: 'followers' | 'following') => void;
   }) => (
     <div>
       <span>{props.isMe ? 'own header' : 'other header'}</span>
@@ -41,12 +42,38 @@ vi.mock('../components/profile/ProfileHeader', () => ({
       <button type="button" onClick={() => props.setShowReportModal(true)}>
         report
       </button>
+      <button
+        type="button"
+        onClick={() => props.setShowFollowsModal('followers')}
+      >
+        followers
+      </button>
+      <button
+        type="button"
+        onClick={() => props.setShowFollowsModal('following')}
+      >
+        following
+      </button>
     </div>
   ),
 }));
 vi.mock('../components/modals/ReportModal', () => ({
   default: (props: { isOpen: boolean; targetId: string }) =>
     props.isOpen ? <div>report of {props.targetId}</div> : null,
+}));
+vi.mock('../components/FollowersModal', () => ({
+  default: (props: {
+    title: string;
+    users: { username: string }[];
+    onClose: () => void;
+  }) => (
+    <div>
+      {props.title}: {props.users.map((u) => u.username).join(',')}
+      <button type="button" onClick={props.onClose}>
+        close list
+      </button>
+    </div>
+  ),
 }));
 vi.mock('../components/profile/PostGrid', () => ({
   default: ({ items }: { items: { id: string }[] }) => (
@@ -105,6 +132,28 @@ describe('Profile', () => {
     expect(screen.getByText('other header')).toBeInTheDocument();
     expect(postsApi.getByUser).toHaveBeenCalledWith('ana', 1, 18, 'POST');
   });
+
+  it.each([
+    ['followers', 'getFollowers'],
+    ['following', 'getFollowing'],
+  ] as const)(
+    'lists the %s of the account, and closes the list',
+    async (list, call) => {
+      vi.mocked(followsApi[call]).mockResolvedValue({
+        data: { data: [{ username: 'eva' }], nextCursor: undefined },
+      } as never);
+      renderAt();
+
+      fireEvent.click(await screen.findByRole('button', { name: list }));
+
+      expect(await screen.findByText(`${list}: eva`)).toBeInTheDocument();
+      expect(followsApi[call]).toHaveBeenCalledWith('ana', undefined);
+      fireEvent.click(screen.getByRole('button', { name: 'close list' }));
+      await waitFor(() =>
+        expect(screen.queryByText(`${list}: eva`)).not.toBeInTheDocument(),
+      );
+    },
+  );
 
   it('reports the Profile itself, never the person behind it', async () => {
     renderAt();
@@ -232,26 +281,6 @@ describe('Profile', () => {
       expect.stringContaining('/direct/inbox/t/'),
     );
     consoleError.mockRestore();
-  });
-
-  it('confirms a creator subscription after checkout and cleans the address', async () => {
-    const { i18n } = renderAt('/ana?success=true&session_id=cs_123');
-
-    await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith(
-        i18n!.t('profile.messages.checkout_success'),
-      ),
-    );
-  });
-
-  it('says so when the checkout was cancelled', async () => {
-    const { i18n } = renderAt('/ana?canceled=true');
-
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        i18n!.t('profile.messages.checkout_canceled'),
-      ),
-    );
   });
 
   it('never shows the private notice on a public account while the follow check loads', async () => {

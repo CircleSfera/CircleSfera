@@ -40,7 +40,6 @@ import {
 } from '../common/config/origin.config.js';
 import { isEliteLiveReaction } from '../common/constants/live-reactions.constants.js';
 import { CorrelationContext } from '../common/correlation/correlation.context.js';
-import type { PaywallPost } from '../posts/services/post-paywall.service.js';
 import { WebrtcSignalingService } from '../webrtc/webrtc-signaling.service.js';
 import type {
   CallAcceptDeclineDto,
@@ -52,7 +51,6 @@ import type {
   LiveHighlightQuestionDto,
   LivePinCommentDto,
   LiveReactionDto,
-  LiveSetGoalDto,
   LiveStreamIdDto,
   MarkReadDto,
   SendReactionDto,
@@ -844,7 +842,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Shared policy for live actions of the host or a guest on air — the one
   // authoritative gate-and-log implementation for pin/unpin comment,
-  // highlight/clear question and set goal. Returns the caller's
+  // highlight/clear question. Returns the caller's
   // profileId when authorized, or null (after logging) when not.
   private async requireStreamHostOrOnAirGuest(
     client: SocketWithAuth,
@@ -995,7 +993,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  // Phase 2: Q&A and Live Goals
+  // Phase 2: Q&A
 
   @SubscribeMessage('live:ask_question')
   async handleLiveAskQuestion(
@@ -1085,39 +1083,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`live:${payload.streamId}`).emit('live:question_cleared');
   }
 
-  @SubscribeMessage('live:set_goal')
-  async handleLiveSetGoal(
-    @MessageBody() payload: LiveSetGoalDto,
-    @ConnectedSocket() client: SocketWithAuth,
-  ) {
-    if (
-      !payload?.streamId ||
-      !payload?.title ||
-      typeof payload.streamId !== 'string' ||
-      typeof payload.title !== 'string' ||
-      typeof payload.target !== 'number' ||
-      payload.target <= 0 ||
-      payload.target > 1000000
-    ) {
-      return;
-    }
-
-    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
-      client,
-      payload.streamId,
-      'live:set_goal',
-    );
-    if (!callerProfileId) return;
-
-    const cleanTitle = payload.title.trim().slice(0, 100);
-
-    this.server.to(`live:${payload.streamId}`).emit('live:goal_set', {
-      title: cleanTitle,
-      target: Math.floor(payload.target),
-      current: 0,
-    });
-  }
-
   // --- EDA Domain Event Listeners ---
 
   // The chat events of one conversation leave in the order they happened,
@@ -1201,44 +1166,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
         return;
       }
-      // A paid post the message shares reaches each member as they may see
-      // it: closed to one who has not unlocked it. Read for every member at
-      // once, before any is sent.
-      const members = event.participants ?? [];
-      const seenByEach = await Promise.all(
-        members.map(async (p) => {
-          const masked = asSeenBy(p.profileId);
-          const shared = masked.post as PaywallPost | null | undefined;
-          return shared?.isPremium
-            ? {
-                ...masked,
-                post: await this.chatRealtimeService.sharedPostAsSeenBy(
-                  shared,
-                  p.profileId,
-                ),
-              }
-            : masked;
-        }),
-      );
-      for (const [index, p] of members.entries()) {
+      for (const p of event.participants ?? []) {
         this.addConversationToSocket(p.profileId, event.payload.conversationId);
-        const seen = seenByEach[index];
-        // A message just sent can't have been unlocked yet by anyone but the
-        // sender — mirror GetMessagesQuery's redaction so the realtime channel
-        // can't leak locked-message content/media past the paywall.
-        const payload =
-          event.payload.isLocked && p.profileId !== event.payload.senderId
-            ? {
-                ...seen,
-                content: 'This message is locked. Pay to unlock.',
-                url: null,
-                standardUrl: null,
-                thumbnailUrl: null,
-                mediaType: null,
-                voiceUrl: null,
-              }
-            : seen;
-        this.server.to(`user:${p.profileId}`).emit('receiveMessage', payload);
+        this.server
+          .to(`user:${p.profileId}`)
+          .emit('receiveMessage', asSeenBy(p.profileId));
       }
     });
   }

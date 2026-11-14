@@ -10,7 +10,6 @@ import {
   AudioTab,
   AuditLogTab,
   CommentsTab,
-  CompaniesTab,
   DisputesTab,
   ExperimentsTab,
   FirewallTab,
@@ -23,7 +22,6 @@ import {
   MonetizationTab,
   NewsletterTab,
   OverviewTab,
-  PayoutsTab,
   PlansTab,
   PostsTab,
   PromotionsTab,
@@ -142,11 +140,9 @@ export default function Admin() {
         {activeTab === 'plans' && <PlansTab onToast={addToast} />}
         {activeTab === 'subscriptions' && <SubscriptionsTab />}
         {activeTab === 'disputes' && <DisputesTab />}
-        {activeTab === 'companies' && <CompaniesTab />}
         {activeTab === 'moderation' && <ModerationTab onToast={addToast} />}
         {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}
         {activeTab === 'monetization' && <MonetizationTab />}
-        {activeTab === 'payouts' && <PayoutsTab />}
         {activeTab === 'promotions' && <PromotionsTab onToast={addToast} />}
         {activeTab === 'verification' && (
           <UserVerificationTab onToast={addToast} />

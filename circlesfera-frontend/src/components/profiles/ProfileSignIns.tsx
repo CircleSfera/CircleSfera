@@ -24,8 +24,8 @@ export function useProfileSignIns() {
 
 /**
  * Settings → Profiles: how each Profile signs in. A Profile shares the email
- * and password of another one, or has its own; the identity, the payments
- * and the payouts behind are the same either way.
+ * and password of another one, or has its own; the identity and the payments
+ * behind are the same either way.
  */
 export default function ProfileSignIns() {
   const { t } = useTranslation();

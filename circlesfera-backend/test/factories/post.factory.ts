@@ -23,8 +23,6 @@ export interface PostFactoryOverrides {
   visibility?: Visibility;
   contentRating?: ContentRating;
   moderationStatus?: ModerationStatus;
-  isPremium?: boolean;
-  priceCents?: number;
   media?: PostMediaItemOverride[];
   hashtags?: string[];
 }
@@ -44,8 +42,6 @@ export function buildPostAttributes(
     visibility: overrides.visibility ?? 'PUBLIC',
     contentRating: overrides.contentRating ?? 'GENERAL',
     moderationStatus: overrides.moderationStatus ?? 'VISIBLE',
-    isPremium: overrides.isPremium ?? false,
-    priceCents: overrides.priceCents ?? 0,
   };
 }
 

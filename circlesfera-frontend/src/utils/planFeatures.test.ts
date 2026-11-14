@@ -24,8 +24,5 @@ describe('planFeatureLabel', () => {
     expect(Object.keys(es.pricingPage.features).sort()).toEqual(
       Object.keys(en.pricingPage.features).sort(),
     );
-    expect(Object.keys(es.creator.income.tx_types).sort()).toEqual(
-      Object.keys(en.creator.income.tx_types).sort(),
-    );
   });
 });

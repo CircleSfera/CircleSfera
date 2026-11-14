@@ -1,7 +1,7 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   type AccountType,
   SubscriptionStatus,
@@ -25,10 +25,8 @@ import {
 } from '../common/policies/block.policy.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
-import { payoutRowForProfile } from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { followTeamPlan } from '../team/team-plan.js';
@@ -67,7 +65,6 @@ const PUBLIC_PROFILE_FIELDS = [
   'privacyLevel',
   'isPrivate',
   'isVerified',
-  'companyVerified',
   'identityVerified',
   'emailConfirmed',
   'joinedAt',
@@ -137,34 +134,7 @@ export class ProfilesService {
     @Inject(UsersService) private readonly usersService: UsersService,
     @Inject(StoredFilesService)
     private readonly storedFiles: StoredFilesService,
-    @Inject(StripeService) private readonly stripeService: StripeService,
   ) {}
-
-  private readonly logger = new Logger(ProfilesService.name);
-
-  // A creator who takes a new username gives their payout account the new
-  // address of their page, which the provider asks of every creator. A
-  // failure is written down and never undoes the change: the address is sent
-  // again when they next open their payout settings.
-  // Only the account the Profile holds itself: one its person shares with
-  // another Profile is not this page's.
-  private async keepCreatorWebsite(profileId: string, username: string) {
-    const payout = await this.prisma.monetization.findUnique({
-      where: { profileId },
-      select: { stripeConnectAccountId: true },
-    });
-    if (!payout?.stripeConnectAccountId) return;
-    try {
-      await this.stripeService.setCreatorWebsite(
-        payout.stripeConnectAccountId,
-        username,
-      );
-    } catch (error) {
-      this.logger.warn(
-        `The new profile address of payout account ${payout.stripeConnectAccountId} could not be sent: ${error instanceof Error ? error.message : 'unknown error'}`,
-      );
-    }
-  }
 
   private buildProfileEmbeddingText(profile: {
     username: string;
@@ -273,8 +243,6 @@ export class ProfilesService {
       profile.verificationLevel === 'ELITE' ||
       profile.verificationLevel === 'BUSINESS';
 
-    const companyVerified = await this.isVerifiedCompany(profile);
-
     // The sign-in is read only to say whether the email is confirmed.
     const { user, signIn } = profile;
     const profileWithFields = publicProfileView({
@@ -284,7 +252,6 @@ export class ProfilesService {
       privacyLevel: profile.privacyLevel,
       isPrivate: profile.privacyLevel === Visibility.PRIVATE,
       isVerified: planVerified,
-      companyVerified,
       // The chosen colour shows only while the plan that includes it is
       // active; the choice itself stays stored.
       accentColor: canPersonalizeProfile(profile.verificationLevel)
@@ -542,10 +509,6 @@ export class ProfilesService {
       );
     }
 
-    if (updated.username !== profile.username) {
-      await this.keepCreatorWebsite(updated.id, updated.username);
-    }
-
     // Invalidate cache
     await this.cacheManager.del(`profile:${profile.username}`);
     return flattened;
@@ -609,7 +572,6 @@ export class ProfilesService {
       profile.verificationLevel === 'ELITE' ||
       profile.verificationLevel === 'BUSINESS';
 
-    const companyVerified = await this.isVerifiedCompany(profile);
     // The sign-in of the session, inside the account of this Profile; a
     // session that names none reads the Profile's own sign-in.
     const sessionSignIn = await this.prisma.signIn.findFirst({
@@ -623,7 +585,6 @@ export class ProfilesService {
     // Flatten for UI convenience
     return {
       ...profile,
-      companyVerified,
       accountType: profile.accountType,
       verificationLevel: profile.verificationLevel,
       identityVerifiedAt: profile.user?.identityVerifiedAt,
@@ -747,19 +708,6 @@ export class ProfilesService {
       ...p,
       isSuspended: !!(p.suspendedUntil && p.suspendedUntil > new Date()),
     }));
-  }
-
-  // "Verified company": the Business plan, and a payout account that the
-  // payment provider has verified as a company. The account is looked up only
-  // for a Profile on that plan.
-  private async isVerifiedCompany(profile: {
-    id: string;
-    userId: string;
-    verificationLevel: string | null;
-  }): Promise<boolean> {
-    if (profile.verificationLevel !== 'BUSINESS') return false;
-    const payout = await payoutRowForProfile(this.prisma, profile);
-    return !!payout?.verifiedCompany;
   }
 
   // Create an additional profile under the authenticated user identity:

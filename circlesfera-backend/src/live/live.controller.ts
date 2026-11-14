@@ -3,29 +3,23 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   Param,
   ParseUUIDPipe,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import type { LiveAudience } from '@prisma/client';
-import type { Request } from 'express';
 import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
-import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { InviteCoHostDto } from './dto/invite-cohost.dto.js';
 import { InviteGuestDto } from './dto/invite-guest.dto.js';
-import { SendGiftDto } from './dto/send-gift.dto.js';
 import { StartStreamDto } from './dto/start-stream.dto.js';
 import { LiveService } from './live.service.js';
-import { LiveGiftService } from './live-gift.service.js';
 import { LiveScheduleService } from './live-schedule.service.js';
 import { LiveStartNoticeService } from './live-start-notice.service.js';
 
@@ -34,7 +28,6 @@ import { LiveStartNoticeService } from './live-start-notice.service.js';
 export class LiveController {
   constructor(
     private readonly liveService: LiveService,
-    private readonly liveGiftService: LiveGiftService,
     private readonly startNotice: LiveStartNoticeService,
     private readonly schedule: LiveScheduleService,
   ) {}
@@ -206,27 +199,5 @@ export class LiveController {
     @Param('streamId') streamId: string,
   ) {
     return this.liveService.removeAllGuests(streamId, user.profileId);
-  }
-
-  @Post(':streamId/gift')
-  @UseGuards(IdentityVerifiedGuard)
-  @ApiResponse({ status: 201, type: Object })
-  sendGift(
-    @Req() req: Request,
-    @CurrentUser() user: CurrentUserData,
-    @Param('streamId') streamId: string,
-    @Body() dto: SendGiftDto,
-    @Headers('idempotency-key') idempotencyKey?: string,
-  ) {
-    const returnUrl =
-      dto.returnUrl || `${req.protocol}://${req.get('host')}/live/${streamId}`;
-    return this.liveGiftService.sendGift(
-      streamId,
-      user.userId,
-      dto.giftId,
-      returnUrl,
-      idempotencyKey,
-      user.profileId,
-    );
   }
 }

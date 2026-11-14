@@ -19,9 +19,7 @@ const SECTIONS = [
   'plans',
   'subscriptions',
   'disputes',
-  'companies',
   'promotions',
-  'payouts',
   'monetization',
   'newsletter',
 ] as const;
@@ -31,8 +29,6 @@ const PAYMENTS_SECTIONS = [
   'overview',
   'subscriptions',
   'disputes',
-  'companies',
-  'payouts',
   'monetization',
 ];
 
@@ -146,7 +142,7 @@ test.describe('Backoffice', () => {
   test('two sections fit a phone with no sideways scroll', async ({ page }) => {
     await signIn(page, SEEDED_ADMIN);
     await page.setViewportSize({ width: 390, height: 844 });
-    for (const section of ['payouts', 'companies']) {
+    for (const section of ['disputes', 'monetization']) {
       await openSection(page, section);
       const { scrollWidth, clientWidth } = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,

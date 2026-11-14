@@ -5,7 +5,6 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { canMonetize } from '../../common/constants/monetization.constants.js';
 import { AppException } from '../../common/errors/app.exception.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -28,9 +27,12 @@ export class CreatorAccountGuard implements CanActivate {
         })
       : null;
 
-    if (!canMonetize(profile?.accountType)) {
+    // Explicit allowlist (fail-closed): an unresolved Profile or an unknown
+    // account type is refused.
+    const accountType = profile?.accountType;
+    if (accountType !== 'CREATOR' && accountType !== 'BUSINESS') {
       throw AppException.Forbidden(
-        ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
+        ErrorCode.CREATOR_ACCOUNT_REQUIRED,
         'Creator tools are available to Creator and Business accounts.',
       );
     }

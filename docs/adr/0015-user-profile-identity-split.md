@@ -27,7 +27,7 @@ CircleSfera maintains **two platform identities** for end users:
 | Domain | FK / key |
 | --- | --- |
 | Posts, stories, comments, likes, follows, blocks, mutes, chat, notifications, live hosts, poll/QnA participation, reports (reporter) | `profileId` → `Profile` |
-| Platform subscriptions, promotions, Stripe Connect, transactions, unlocks, live gift payer/payee, GDPR export, appeals | `userId` → `User` |
+| Platform subscriptions, promotions, transactions, GDPR export, appeals | `userId` → `User` |
 | Admin moderation assignee, audit actor | `adminId` → `AdminIdentity` |
 
 **Session:** Platform JWT `sub` remains `User.id`. `JwtStrategy` attaches **`profileId`** (primary profile for the account) to `request.user` alongside `userId`.

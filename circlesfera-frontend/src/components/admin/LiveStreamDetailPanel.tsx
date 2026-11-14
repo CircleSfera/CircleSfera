@@ -91,14 +91,6 @@ export default function LiveStreamDetailPanel({
                 {stream.viewerCount}
               </dd>
             </div>
-            <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-              <dt className="text-xs font-medium text-white/50">
-                {t('admin.live.gifts')}
-              </dt>
-              <dd className="text-white font-semibold tabular-nums">
-                {stream._count?.gifts || 0}
-              </dd>
-            </div>
           </dl>
 
           <div>

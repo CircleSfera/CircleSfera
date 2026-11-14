@@ -147,20 +147,12 @@ export default defineConfig({
         functions: 85,
         // Critical paths: the API client (session renewal, CSRF), the
         // session guards and passkeys, the sign-in and account recovery
-        // pages, creator payouts and appeal review.
+        // pages, the plans of a creator and appeal review.
         'src/services/api.ts': { statements: 100, lines: 100 },
         'src/pages/ForgotPassword.tsx': { statements: 100, lines: 100 },
         'src/pages/ResetPassword.tsx': { statements: 100, lines: 100 },
         'src/pages/Login.tsx': { statements: 100, lines: 100 },
         'src/pages/AdminPanelLogin.tsx': { statements: 100, lines: 100 },
-        'src/components/monetization/ConnectStripeButton.tsx': {
-          statements: 100,
-          lines: 100,
-        },
-        'src/components/settings/MonetizationSettings.tsx': {
-          statements: 100,
-          lines: 100,
-        },
         'src/components/admin/AppealsTab.tsx': { statements: 100, lines: 100 },
         'src/utils/money.ts': { statements: 100, lines: 100 },
         'src/components/auth/AuthGuard.tsx': { statements: 100, lines: 100 },
@@ -170,35 +162,7 @@ export default defineConfig({
         'src/stores/adminAuthStore.ts': { statements: 96, lines: 95 },
         'src/pages/Onboarding.tsx': { statements: 84, lines: 85 },
         'src/pages/Settings.tsx': { statements: 95, lines: 95 },
-        'src/services/monetization.service.ts': {
-          statements: 100,
-          lines: 100,
-        },
-        'src/components/monetization/PaywallOverlay.tsx': {
-          statements: 100,
-          lines: 100,
-        },
-        'src/components/monetization/MonetizationDashboard.tsx': {
-          statements: 100,
-          lines: 100,
-        },
-        'src/components/monetization/TipModal.tsx': {
-          statements: 95,
-          lines: 100,
-        },
-        'src/components/live/LiveGiftModal.tsx': {
-          statements: 100,
-          lines: 100,
-        },
-        'src/components/create-post/MonetizationSubScreen.tsx': {
-          statements: 100,
-          lines: 100,
-        },
-        'src/components/creator/CreatorMoneyTab.tsx': {
-          statements: 100,
-          lines: 100,
-        },
-        'src/components/creator/CreatorMonetizationTab.tsx': {
+        'src/components/creator/CreatorPlansTab.tsx': {
           statements: 100,
           lines: 100,
         },
@@ -241,14 +205,12 @@ export default defineConfig({
           lines: 100,
         },
         'src/stores/securityStore.ts': { statements: 100, lines: 100 },
-        // Money: what is charged and what is paid out.
+        // Money: what is charged.
         'src/services/payments.service.ts': { statements: 100, lines: 100 },
-        'src/constants/monetization.ts': { statements: 100, lines: 100 },
         'src/components/admin/MonetizationTab.tsx': {
           statements: 100,
           lines: 100,
         },
-        'src/components/admin/PayoutsTab.tsx': { statements: 100, lines: 100 },
         // Registration, the sign-ins of a Profile, passkeys and the creator guard.
         'src/pages/Register.tsx': { statements: 100, lines: 100 },
         'src/services/signIns.service.ts': { statements: 100, lines: 100 },

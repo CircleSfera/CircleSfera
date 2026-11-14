@@ -13,7 +13,7 @@ export function isStreamHost(
 
 /**
  * The host, or a guest on air with them: who may pin a comment, highlight a
- * question or set the goal. A guest only invited may not yet.
+ * question. A guest only invited may not yet.
  */
 export function isStreamHostOrOnAirGuest(
   stream: { hostId: string },

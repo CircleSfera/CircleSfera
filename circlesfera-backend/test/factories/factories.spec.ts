@@ -18,7 +18,6 @@ import {
   createPlatformPlan,
   createPlatformSubscription,
   createPost,
-  createPostUnlock,
   createProfile,
   createTransaction,
   createUser,
@@ -143,15 +142,12 @@ describe('Test Data Factories & Scenario Seeder', () => {
 
     it('builds unpersisted Post attributes with proper defaults and overrides', () => {
       const post = buildPostAttributes('profile-456', {
-        caption: 'Exclusive creator post',
-        isPremium: true,
-        priceCents: 500,
+        caption: 'A creator post',
         visibility: 'PUBLIC',
       });
       expect(post.profileId).toBe('profile-456');
-      expect(post.caption).toBe('Exclusive creator post');
-      expect(post.isPremium).toBe(true);
-      expect(post.priceCents).toBe(500);
+      expect(post.caption).toBe('A creator post');
+      expect(post).not.toHaveProperty('isPremium');
       expect(post.type).toBe('POST');
     });
   });
@@ -204,9 +200,6 @@ describe('Test Data Factories & Scenario Seeder', () => {
         },
         platformSubscription: {
           create: vi.fn(),
-        },
-        postUnlock: {
-          upsert: vi.fn(),
         },
         transaction: {
           create: vi.fn(),
@@ -361,10 +354,9 @@ describe('Test Data Factories & Scenario Seeder', () => {
       });
     });
 
-    it('creates monetization models: plan, subscription, post unlock, transaction', async () => {
+    it('creates payment models: plan, subscription, transaction', async () => {
       mockPrisma.platformPlan.create.mockResolvedValue({ id: 'plan-1' });
       mockPrisma.platformSubscription.create.mockResolvedValue({ id: 'sub-1' });
-      mockPrisma.postUnlock.upsert.mockResolvedValue({ id: 'unlock-1' });
       mockPrisma.transaction.create.mockResolvedValue({ id: 'tx-1' });
 
       const plan = await createPlatformPlan(
@@ -379,13 +371,6 @@ describe('Test Data Factories & Scenario Seeder', () => {
         'plan-1',
       );
       expect(sub.id).toBe('sub-1');
-
-      const unlock = await createPostUnlock(
-        mockPrisma as unknown as PrismaClient,
-        'u1',
-        'post-1',
-      );
-      expect(unlock.id).toBe('unlock-1');
 
       const tx = await createTransaction(
         mockPrisma as unknown as PrismaClient,

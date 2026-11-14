@@ -920,18 +920,6 @@ const cases: Case[] = [
     ['creator/promotions/pr1', { countries: ['ES'] }],
   ],
   [
-    'creator.getRevenueAnalytics',
-    () => creatorApi.getRevenueAnalytics(),
-    'get',
-    ['creator/analytics/revenue', { params: { period: '30d' } }],
-  ],
-  [
-    'creator.getRevenueAnalytics of a period',
-    () => creatorApi.getRevenueAnalytics('7d'),
-    'get',
-    ['creator/analytics/revenue', { params: { period: '7d' } }],
-  ],
-  [
     'creator.getAudienceRetentionAnalytics',
     () => creatorApi.getAudienceRetentionAnalytics(),
     'get',
@@ -1044,21 +1032,6 @@ const cases: Case[] = [
     () => liveApi.removeGuest('l1', 'p2'),
     'delete',
     ['/live/l1/guests/p2'],
-  ],
-  [
-    'live.sendGift',
-    () => liveApi.sendGift('l1', 'rose', 'https://app.example/back'),
-    'post',
-    [
-      '/live/l1/gift',
-      { giftId: 'rose', returnUrl: 'https://app.example/back' },
-    ],
-  ],
-  [
-    'live.sendGift back to this page',
-    () => liveApi.sendGift('l1', 'rose'),
-    'post',
-    ['/live/l1/gift', { giftId: 'rose', returnUrl: window.location.href }],
   ],
 
   // Uploads, alt text and exports of personal data
@@ -1229,7 +1202,6 @@ describe('service clients', () => {
     await expect(liveApi.declineGuestInvite('l1')).resolves.toBe('payload');
     await expect(liveApi.leaveAsGuest('l1')).resolves.toBe('payload');
     await expect(liveApi.removeGuest('l1', 'p2')).resolves.toBe('payload');
-    await expect(liveApi.sendGift('l1', 'rose')).resolves.toBe('payload');
     await expect(requestDataExport()).resolves.toBe('payload');
   });
 

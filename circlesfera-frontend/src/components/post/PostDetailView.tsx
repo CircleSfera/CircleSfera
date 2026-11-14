@@ -40,7 +40,6 @@ export default memo(function PostDetailView({
     handleToggleBookmark,
     handleLikeToggle,
     handleShare,
-    handleTip,
   } = interactions;
 
   const actionsNode = (
@@ -51,7 +50,6 @@ export default memo(function PostDetailView({
       isBookmarkPending={isBookmarkPending}
       onLikeToggle={handleLikeToggle}
       onShare={handleShare}
-      onTip={handleTip}
       size="lg"
       hideCommentLink
     />

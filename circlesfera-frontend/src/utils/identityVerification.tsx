@@ -43,7 +43,7 @@ export function promptIdentityVerification(t: TFunction): void {
   );
 }
 
-// Reports a failed purchase or payout action: the verification notice when
+// Reports a failed purchase: the verification notice when
 // that is the reason, otherwise the screen's own message.
 export function reportPaymentError(
   error: unknown,

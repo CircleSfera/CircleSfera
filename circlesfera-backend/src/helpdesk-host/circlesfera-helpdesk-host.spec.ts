@@ -75,16 +75,12 @@ describe('CircleSfera as the host of the Help Desk', () => {
   describe('account card', () => {
     const cards = new CircleSferaAccountCard(prisma as never);
 
-    it('shows plan, payout account and the standing of each Profile', async () => {
+    it('shows the plan and the standing of each Profile', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: 'u-1',
         isActive: true,
         createdAt: new Date('2026-01-01'),
         identityVerifiedAt: new Date('2026-02-01'),
-        monetization: {
-          stripeConnectAccountId: 'acct_1',
-          transfersEnabled: true,
-        },
         profiles: [
           {
             id: 'p-1',
@@ -110,77 +106,7 @@ describe('CircleSfera as the host of the Help Desk', () => {
         userId: 'u-1',
         identityVerified: true,
         plan: { name: 'Elite Creator', cancelAtPeriodEnd: false },
-        payouts: { connected: true, enabled: true },
         profiles: [{ username: 'ana', banned: false, suspended: true }],
-      });
-      // The card never carries the email, the payout account id or dates of
-      // the identity check.
-      expect(JSON.stringify(card)).not.toContain('acct_1');
-    });
-
-    it('counts the payout account a Profile holds of its own, not only the shared one', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        isActive: true,
-        createdAt: new Date('2026-01-01'),
-        identityVerifiedAt: null,
-        monetization: null,
-        profiles: [
-          {
-            id: 'p-1',
-            username: 'ana',
-            accountType: 'PERSONAL',
-            verificationLevel: 'BASIC',
-            isAccountBanned: false,
-            suspendedUntil: null,
-            monetization: null,
-          },
-          {
-            id: 'p-2',
-            username: 'ana.studio',
-            accountType: 'BUSINESS',
-            verificationLevel: 'BASIC',
-            isAccountBanned: false,
-            suspendedUntil: null,
-            monetization: {
-              stripeConnectAccountId: 'acct_own',
-              transfersEnabled: true,
-            },
-          },
-        ],
-        platformSubscriptions: [],
-      });
-
-      const card = await cards.accountCard('u-1');
-
-      expect(card?.payouts).toEqual({ connected: true, enabled: true });
-      expect(JSON.stringify(card)).not.toContain('acct_own');
-    });
-
-    it('shows no payout account when neither the person nor a Profile holds one', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        isActive: true,
-        createdAt: new Date('2026-01-01'),
-        identityVerifiedAt: null,
-        monetization: { stripeConnectAccountId: null, transfersEnabled: false },
-        profiles: [
-          {
-            id: 'p-1',
-            username: 'ana',
-            accountType: 'PERSONAL',
-            verificationLevel: 'BASIC',
-            isAccountBanned: false,
-            suspendedUntil: null,
-            monetization: null,
-          },
-        ],
-        platformSubscriptions: [],
-      });
-
-      expect((await cards.accountCard('u-1'))?.payouts).toEqual({
-        connected: false,
-        enabled: false,
       });
     });
 

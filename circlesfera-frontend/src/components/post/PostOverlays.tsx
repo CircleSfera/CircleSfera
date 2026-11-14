@@ -18,7 +18,6 @@ import AddToCollectionModal from '../modals/AddToCollectionModal';
 import MuteDurationModal from '../modals/MuteDurationModal';
 import ReportModal from '../modals/ReportModal';
 import SharePostModal from '../modals/SharePostModal';
-import TipModal from '../monetization/TipModal';
 import { buildPostElement } from '../story/storyComposer.append';
 import { storyStartRoute } from '../story/storyStart';
 import CollaboratorDialog from './CollaboratorDialog';
@@ -57,8 +56,6 @@ export default function PostOverlays({
     setShowPromoteModal,
     showShareModal,
     setShowShareModal,
-    showTipModal,
-    setShowTipModal,
     showMuteModal,
     setShowMuteModal,
     editCaption,
@@ -297,14 +294,6 @@ export default function PostOverlays({
           />
         )}
       </AnimatePresence>
-
-      <TipModal
-        isOpen={showTipModal}
-        onClose={() => setShowTipModal(false)}
-        receiverId={post.profileId}
-        postId={post.id}
-        receiverName={post.profile?.username || t('common.default_user')}
-      />
 
       {showMuteModal && post.profile?.username ? (
         <MuteDurationModal

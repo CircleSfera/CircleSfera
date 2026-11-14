@@ -16,20 +16,11 @@ describe('MediaAuthService', () => {
     postMedia: {
       findMany: vi.fn(),
     },
-    postUnlock: {
-      findUnique: vi.fn(),
-    },
     story: {
       findMany: vi.fn(),
     },
-    storyUnlock: {
-      findUnique: vi.fn(),
-    },
     message: {
       findMany: vi.fn(),
-    },
-    messageUnlock: {
-      findUnique: vi.fn(),
     },
     participant: {
       findFirst: vi.fn(),
@@ -175,7 +166,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'PRIVATE',
-            isPremium: false,
           },
         },
       ]);
@@ -271,7 +261,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'PRIVATE',
-            isPremium: false,
           },
         },
       ]);
@@ -335,7 +324,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'private-author',
             visibility: 'PUBLIC',
-            isPremium: false,
             profile: { privacyLevel: 'PRIVATE' },
           },
         },
@@ -364,7 +352,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'PUBLIC',
-            isPremium: false,
           },
         },
       ]);
@@ -380,7 +367,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'FOLLOWERS',
-            isPremium: false,
           },
         },
       ]);
@@ -396,7 +382,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'PRIVATE',
-            isPremium: true,
           },
         },
       ]);
@@ -409,10 +394,10 @@ describe('MediaAuthService', () => {
       ).toBe(true);
     });
 
-    it('checks post unlock for premium / PPV content', async () => {
+    it('serves a public post that was once priced to anyone, as any public post', async () => {
       mockPrismaService.postMedia.findMany.mockResolvedValue([
         {
-          postId: 'post-ppv',
+          postId: 'post-once-priced',
           post: {
             profileId: 'author-1',
             visibility: 'PUBLIC',
@@ -421,25 +406,9 @@ describe('MediaAuthService', () => {
         },
       ]);
 
-      mockPrismaService.postUnlock.findUnique.mockResolvedValueOnce({
-        id: 'unlock-1',
-      });
       expect(
-        await service.isAccessAllowed(
-          '/uploads/posts/ppv.jpg',
-          'buyer-1',
-          'profile-buyer',
-        ),
+        await service.isAccessAllowed('/uploads/posts/once.jpg', null, null),
       ).toBe(true);
-
-      mockPrismaService.postUnlock.findUnique.mockResolvedValueOnce(null);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/posts/ppv.jpg',
-          'nonbuyer-1',
-          'profile-nonbuyer',
-        ),
-      ).toBe(false);
     });
 
     it('checks follow relationship for followers-only posts', async () => {
@@ -449,7 +418,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'FOLLOWERS',
-            isPremium: false,
           },
         },
       ]);
@@ -480,7 +448,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'PRIVATE',
-            isPremium: false,
           },
         },
       ]);
@@ -511,7 +478,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'CUSTOM' as any,
-            isPremium: false,
           },
         },
       ]);
@@ -531,7 +497,6 @@ describe('MediaAuthService', () => {
         {
           id: 'story-1',
           profileId: 'author-1',
-          isPremium: false,
           isCloseFriendsOnly: false,
           profile: { privacyLevel: 'PUBLIC' },
         },
@@ -550,7 +515,6 @@ describe('MediaAuthService', () => {
         {
           id: 'story-1',
           profileId: 'author-1',
-          isPremium: false,
           isCloseFriendsOnly: false,
           profile: { privacyLevel: 'PRIVATE' },
         },
@@ -565,7 +529,6 @@ describe('MediaAuthService', () => {
         {
           id: 'story-1',
           profileId: 'author-1',
-          isPremium: false,
           isCloseFriendsOnly: false,
           profile: { privacyLevel: 'PUBLIC' },
         },
@@ -579,44 +542,11 @@ describe('MediaAuthService', () => {
       ).toBe(true);
     });
 
-    it('checks StoryUnlock for premium stories', async () => {
-      mockPrismaService.story.findMany.mockResolvedValue([
-        {
-          id: 'story-ppv',
-          profileId: 'author-1',
-          isPremium: true,
-          isCloseFriendsOnly: false,
-          profile: { privacyLevel: 'PUBLIC' },
-        },
-      ]);
-
-      mockPrismaService.storyUnlock.findUnique.mockResolvedValueOnce({
-        id: 'su-1',
-      });
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/stories/ppv.jpg',
-          'buyer-u',
-          'buyer-p',
-        ),
-      ).toBe(true);
-
-      mockPrismaService.storyUnlock.findUnique.mockResolvedValueOnce(null);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/stories/ppv.jpg',
-          'nonbuyer-u',
-          'nonbuyer-p',
-        ),
-      ).toBe(false);
-    });
-
     it('checks CloseFriend for close-friends-only stories regardless of profile privacy', async () => {
       mockPrismaService.story.findMany.mockResolvedValue([
         {
           id: 'story-cf',
           profileId: 'author-1',
-          isPremium: false,
           isCloseFriendsOnly: true,
           profile: { privacyLevel: 'PUBLIC' },
         },
@@ -648,7 +578,6 @@ describe('MediaAuthService', () => {
         {
           id: 'story-priv',
           profileId: 'author-1',
-          isPremium: false,
           isCloseFriendsOnly: false,
           profile: { privacyLevel: 'PRIVATE' },
         },
@@ -685,7 +614,6 @@ describe('MediaAuthService', () => {
           id: 'msg-v',
           conversationId: 'conv-1',
           senderId: 'sender-p',
-          isLocked: false,
         },
       ]);
 
@@ -844,7 +772,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'PUBLIC',
-            isPremium: false,
             moderationStatus: 'APPROVED',
             deletedAt: null,
             archivedAt: null,
@@ -869,7 +796,6 @@ describe('MediaAuthService', () => {
           id: 'msg-1',
           conversationId: 'conv-1',
           senderId: 'sender-p',
-          isLocked: false,
         },
       ]);
       expect(
@@ -884,7 +810,6 @@ describe('MediaAuthService', () => {
           id: 'msg-1',
           conversationId: 'conv-1',
           senderId: 'sender-p',
-          isLocked: false,
         },
       ]);
       mockPrismaService.participant.findFirst.mockResolvedValue(null);
@@ -903,7 +828,6 @@ describe('MediaAuthService', () => {
           id: 'msg-1',
           conversationId: 'conv-1',
           senderId: 'sender-p',
-          isLocked: false,
         },
       ]);
       mockPrismaService.participant.findFirst.mockResolvedValue({
@@ -927,10 +851,10 @@ describe('MediaAuthService', () => {
       );
     });
 
-    it('exempts the sender from unlocking their own PPV message', async () => {
+    it('serves a message that was once sent locked to every member', async () => {
       mockPrismaService.message.findMany.mockResolvedValue([
         {
-          id: 'msg-ppv',
+          id: 'msg-once-locked',
           conversationId: 'conv-1',
           senderId: 'sender-p',
           isLocked: true,
@@ -941,142 +865,11 @@ describe('MediaAuthService', () => {
       });
       expect(
         await service.isAccessAllowed(
-          '/uploads/chat/ppv.jpg',
-          'sender-u',
-          'sender-p',
-        ),
-      ).toBe(true);
-      expect(mockPrismaService.messageUnlock.findUnique).not.toHaveBeenCalled();
-    });
-
-    it('denies a locked message when the participant has no viewerUserId (defensive branch)', async () => {
-      mockPrismaService.message.findMany.mockResolvedValue([
-        {
-          id: 'msg-ppv',
-          conversationId: 'conv-1',
-          senderId: 'sender-p',
-          isLocked: true,
-        },
-      ]);
-      mockPrismaService.participant.findFirst.mockResolvedValue({
-        id: 'part-1',
-      });
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/chat/ppv.jpg',
-          null,
+          '/uploads/chat/once.jpg',
+          'recipient-u',
           'recipient-p',
         ),
-      ).toBe(false);
-      expect(mockPrismaService.messageUnlock.findUnique).not.toHaveBeenCalled();
-    });
-
-    it('checks MessageUnlock for a locked message on a non-sender participant', async () => {
-      mockPrismaService.message.findMany.mockResolvedValue([
-        {
-          id: 'msg-ppv',
-          conversationId: 'conv-1',
-          senderId: 'sender-p',
-          isLocked: true,
-        },
-      ]);
-      mockPrismaService.participant.findFirst.mockResolvedValue({
-        id: 'part-1',
-      });
-
-      mockPrismaService.messageUnlock.findUnique.mockResolvedValueOnce({
-        id: 'mu-1',
-      });
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/chat/ppv.jpg',
-          'buyer-u',
-          'buyer-p',
-        ),
       ).toBe(true);
-
-      mockPrismaService.messageUnlock.findUnique.mockResolvedValueOnce(null);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/chat/ppv.jpg',
-          'nonbuyer-u',
-          'nonbuyer-p',
-        ),
-      ).toBe(false);
-    });
-  });
-
-  describe('Comment media (inherits parent Post policy)', () => {
-    it('allows comment media on a public free post', async () => {
-      mockPrismaService.comment.findMany.mockResolvedValue([
-        {
-          postId: 'post-1',
-          post: {
-            profileId: 'author-1',
-            visibility: 'PUBLIC',
-            isPremium: false,
-          },
-        },
-      ]);
-      expect(
-        await service.isAccessAllowed('/uploads/comments/c1.jpg', null, null),
-      ).toBe(true);
-    });
-
-    it('denies comment media on a protected post to a non-follower', async () => {
-      mockPrismaService.comment.findMany.mockResolvedValue([
-        {
-          postId: 'post-1',
-          post: {
-            profileId: 'author-1',
-            visibility: 'FOLLOWERS',
-            isPremium: false,
-          },
-        },
-      ]);
-      mockPrismaService.follow.findFirst.mockResolvedValue(null);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/comments/c1.jpg',
-          'stranger-u',
-          'stranger-p',
-        ),
-      ).toBe(false);
-    });
-  });
-
-  describe('Collection media (owner-only)', () => {
-    it('allows the collection owner', async () => {
-      mockPrismaService.collection.findMany.mockResolvedValue([
-        { profileId: 'owner-p' },
-      ]);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/collections/cover.jpg',
-          'owner-u',
-          'owner-p',
-        ),
-      ).toBe(true);
-    });
-
-    it('denies anyone else, including an anonymous viewer', async () => {
-      mockPrismaService.collection.findMany.mockResolvedValue([
-        { profileId: 'owner-p' },
-      ]);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/collections/cover.jpg',
-          null,
-          null,
-        ),
-      ).toBe(false);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/collections/cover.jpg',
-          'other-u',
-          'other-p',
-        ),
-      ).toBe(false);
     });
   });
 
@@ -1093,7 +886,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'attacker-1',
             visibility: 'PUBLIC',
-            isPremium: false,
           },
         },
       ]);
@@ -1101,12 +893,11 @@ describe('MediaAuthService', () => {
         {
           id: 'victim-story',
           profileId: 'victim-1',
-          isPremium: true,
-          isCloseFriendsOnly: false,
+          isCloseFriendsOnly: true,
           profile: { privacyLevel: 'PUBLIC' },
         },
       ]);
-      mockPrismaService.storyUnlock.findUnique.mockResolvedValue(null);
+      mockPrismaService.closeFriend.findUnique.mockResolvedValue(null);
 
       expect(
         await service.isAccessAllowed(
@@ -1124,7 +915,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'PUBLIC',
-            isPremium: false,
           },
         },
       ]);
@@ -1132,7 +922,6 @@ describe('MediaAuthService', () => {
         {
           id: 'story-1',
           profileId: 'author-2',
-          isPremium: false,
           isCloseFriendsOnly: false,
           profile: { privacyLevel: 'PUBLIC' },
         },
@@ -1150,140 +939,10 @@ describe('MediaAuthService', () => {
 
   // Content removed by moderation is kept for its appeal and shown to
   // nobody, its author included: its files are for staff who moderate.
-  describe('Paid content, for the review area', () => {
-    const paidPost = (extra: Record<string, unknown> = {}) => ({
-      profileId: 'author-1',
-      visibility: 'PUBLIC',
-      isPremium: true,
-      moderationStatus: 'VISIBLE',
-      deletedAt: null,
-      archivedAt: null,
-      profile: { privacyLevel: 'PRIVATE' },
-      ...extra,
-    });
-    const paidStory = (extra: Record<string, unknown> = {}) => ({
-      id: 'story-1',
-      profileId: 'author-1',
-      isPremium: true,
-      isCloseFriendsOnly: false,
-      moderationStatus: 'FLAGGED',
-      deletedAt: null,
-      profile: { privacyLevel: 'PRIVATE' },
-      ...extra,
-    });
-    const reviewer = vi.fn(() => Promise.resolve(true));
-    const notReviewer = () => Promise.resolve(false);
-    const staff = () => Promise.resolve(false);
-
-    it("shows a paid post or story on sale to whoever reads the review area, unbought, a private account's too", async () => {
-      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
-        { postId: 'post-1', post: paidPost() },
-      ]);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/p.jpg',
-          null,
-          null,
-          staff,
-          reviewer,
-        ),
-      ).toBe(true);
-
-      mockPrismaService.story.findMany.mockResolvedValueOnce([paidStory()]);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/s.jpg',
-          null,
-          null,
-          staff,
-          reviewer,
-        ),
-      ).toBe(true);
-    });
-
-    it('refuses it to anyone else who has not bought it', async () => {
-      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
-        { postId: 'post-1', post: paidPost() },
-      ]);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/p.jpg',
-          null,
-          null,
-          staff,
-          notReviewer,
-        ),
-      ).toBe(false);
-    });
-
-    it.each([
-      ['hidden', { moderationStatus: 'HIDDEN' }],
-      ['removed', { moderationStatus: 'REMOVED' }],
-      ['deleted', { deletedAt: new Date() }],
-      ['archived', { archivedAt: new Date() }],
-      ['not paid', { isPremium: false }],
-    ])('does not open a post that is %s', async (_label, extra) => {
-      reviewer.mockClear();
-      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
-        { postId: 'post-1', post: paidPost(extra) },
-      ]);
-      await service.isAccessAllowed(
-        '/uploads/p.jpg',
-        null,
-        null,
-        staff,
-        reviewer,
-      );
-      expect(reviewer).not.toHaveBeenCalled();
-    });
-
-    it('does not open a file another row names too, such as a message', async () => {
-      reviewer.mockClear();
-      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
-        { postId: 'post-1', post: paidPost() },
-      ]);
-      mockPrismaService.message.findMany.mockResolvedValueOnce([
-        { id: 'm-1', conversationId: 'c-1', senderId: 'u-2', isLocked: true },
-      ]);
-      expect(
-        await service.isAccessAllowed(
-          '/uploads/p.jpg',
-          null,
-          null,
-          staff,
-          reviewer,
-        ),
-      ).toBe(false);
-      expect(reviewer).not.toHaveBeenCalled();
-    });
-
-    it('without a review check handed over, nobody reads it unbought', async () => {
-      mockPrismaService.postMedia.findMany.mockResolvedValueOnce([
-        { postId: 'post-1', post: paidPost() },
-      ]);
-      expect(await service.isAccessAllowed('/uploads/p.jpg', null, null)).toBe(
-        false,
-      );
-    });
-
-    it('asks nothing of the session for a file no row names', async () => {
-      reviewer.mockClear();
-      await service.isAccessAllowed(
-        '/uploads/none.jpg',
-        null,
-        null,
-        staff,
-        reviewer,
-      );
-      expect(reviewer).not.toHaveBeenCalled();
-    });
-  });
-
   describe('Removed content', () => {
     const publicPost = (moderationStatus: string) => ({
       profileId: 'author-1',
       visibility: 'PUBLIC',
-      isPremium: false,
       moderationStatus,
       profile: { privacyLevel: 'PUBLIC' },
     });
@@ -1331,7 +990,6 @@ describe('MediaAuthService', () => {
             {
               id: 'story-1',
               profileId: 'author-1',
-              isPremium: false,
               isCloseFriendsOnly: false,
               moderationStatus: 'REMOVED',
               profile: { privacyLevel: 'PUBLIC' },
@@ -1429,7 +1087,6 @@ describe('MediaAuthService', () => {
             {
               id: 'story-1',
               profileId: 'author-1',
-              isPremium: false,
               isCloseFriendsOnly: false,
               moderationStatus: 'VISIBLE',
               deletedAt: new Date(),

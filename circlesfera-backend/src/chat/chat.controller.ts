@@ -247,8 +247,6 @@ export class ChatController {
       dto.voiceUrl,
       dto.voiceDuration,
       dto.voiceWaveform,
-      dto.isLocked,
-      dto.priceCents,
       { gifId: dto.gifId },
     );
   }

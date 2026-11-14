@@ -77,10 +77,6 @@
         "label": "Suscripción",
         "desc": "Planes"
       },
-      "monetization": {
-        "label": "Monetización",
-        "desc": "Stripe Connect y pagos"
-      },
       "requests": {
         "label": "Solicitudes",
         "desc": "Seguidores"
@@ -158,11 +154,6 @@
       "presence_links": "Presencia y Enlaces",
       "bio": "Biografía",
       "website": "Sitio web",
-      "company": {
-        "title": "Empresa",
-        "hint": "Verifica tu empresa con Stripe para que tu perfil muestre «Empresa verificada». Stripe comprueba los datos de la empresa; CircleSfera no guarda ningún documento.",
-        "verify": "Verificar empresa"
-      },
       "colour": {
         "title": "Color del perfil",
         "hint": "Se ve en la parte alta de tu perfil, en el botón principal y en tu enlace. Lo ve todo el que visita tu perfil.",
@@ -316,7 +307,7 @@
         "btn": "Verificar identidad",
         "verified": "Verificado",
         "error": "No se pudo iniciar la sesión de verificación",
-        "reverify_desc": "Tu identidad está verificada, pero entonces no se leyó la fecha de nacimiento de tu documento. Verifícala de nuevo para pagar o cobrar en CircleSfera.",
+        "reverify_desc": "Tu identidad está verificada, pero entonces no se leyó la fecha de nacimiento de tu documento. Verifícala de nuevo para pagar en CircleSfera.",
         "reverify_btn": "Verificar de nuevo"
       },
       "ledger": {
@@ -485,62 +476,6 @@
       "target_story": "Historia",
       "target_message": "Mensaje"
     },
-    "monetization": {
-      "title": "Monetización",
-      "desc": "Propinas, pagos y tu cuenta de Stripe Connect.",
-      "stripeConnect": "Stripe Connect",
-      "status": {
-        "active": "Tu cuenta puede recibir pagos.",
-        "incomplete": "Completa los datos en Stripe para recibir pagos.",
-        "unconnected": "Conecta Stripe para recibir propinas.",
-        "update": "Actualiza tu cuenta de Stripe para vender: son unos pocos pasos.",
-        "shared": "Este perfil cobra en la cuenta de Stripe de otro de tus perfiles."
-      },
-      "dashboard": "Panel de Stripe",
-      "connect": "Conectar Stripe",
-      "earnings": "Ingresos",
-      "lifetime": "Ingresos acumulados",
-      "error_connect": "No se pudo conectar con Stripe",
-      "error_dashboard": "No se pudo abrir el panel de Stripe",
-      "connect_own": "Conectar cuenta propia",
-      "update": "Actualizar en Stripe",
-      "complete": "Completar en Stripe",
-      "own_account_note": "Con una cuenta propia, los ingresos, los pagos y las reclamaciones de este perfil no se mezclan con los de tu otro perfil. Entra en Stripe con el mismo usuario y podrá ofrecerte reutilizar los datos ya verificados de tu otra cuenta.",
-      "tax": {
-        "title": "Datos fiscales",
-        "desc": "Sin un registro fiscal, Stripe no cobra IVA en tus ventas.",
-        "address": "Dirección fiscal",
-        "address_none": "Sin añadir",
-        "registrations": "Registros de IVA",
-        "registrations_none": "Ninguno: Stripe no cobra IVA",
-        "add": "Añadir",
-        "edit": "Editar",
-        "manage": "Gestionar",
-        "reading": "Cargando…",
-        "unreadable": "No se pudo leer",
-        "loading": "Cargando datos fiscales",
-        "error": "No se pudieron cargar los datos fiscales.",
-        "retry": "Reintentar",
-        "on_web": "Abre circlesfera.com en tu navegador para editar tus datos fiscales."
-      },
-      "programme": {
-        "title": "Programa de monetización",
-        "desc": "Para cobrar por tu contenido, propinas o regalos en directo, el equipo de CircleSfera revisa y aprueba antes tu perfil.",
-        "status": {
-          "NONE": "Todavía no lo has solicitado.",
-          "PENDING": "Tu solicitud está en revisión desde el {{date}}.",
-          "APPROVED": "Aprobado: puedes cobrar.",
-          "REJECTED": "Tu solicitud no se ha aprobado. Puedes volver a solicitarlo.",
-          "REVOKED": "Se ha retirado tu aprobación para cobrar. Puedes volver a solicitarlo."
-        },
-        "reason": "Motivo: {{reason}}",
-        "pitch_label": "¿Qué vas a ofrecer?",
-        "pitch_placeholder": "Por ejemplo: tutoriales semanales de fotografía y el detrás de cámaras de mis sesiones.",
-        "pitch_hint": "Entre {{min}} y {{max}} caracteres (llevas {{count}}).",
-        "apply": "Solicitar",
-        "error": "No se ha podido enviar tu solicitud. Inténtalo de nuevo."
-      }
-    },
     "back_to_profile": "← Volver al perfil",
     "notifications_tab": {
       "title": "Notificaciones Push",
@@ -615,7 +550,7 @@
     },
     "signIns": {
       "title": "Cómo entra cada perfil",
-      "description": "Un perfil puede entrar con el mismo correo y contraseña que otro, o tener los suyos. La identidad, los pagos y los cobros son los mismos para todos tus perfiles, entren como entren.",
+      "description": "Un perfil puede entrar con el mismo correo y contraseña que otro, o tener los suyos. La identidad y los pagos son los mismos para todos tus perfiles, entren como entren.",
       "shared": "Comparte el inicio de sesión",
       "own": "Tiene su propio inicio de sesión",
       "unverified": "Correo sin verificar",
@@ -1041,13 +976,13 @@
         "s2_title": "2. Respeto",
         "s2_content": "No se permite el acoso, el discurso de odio, las amenazas ni la discriminación. Puedes discrepar con alguien; no puedes atacarle.",
         "s3_title": "3. Contenido que no se permite",
-        "s3_content": "No publiques contenido ilegal, desnudos ni contenido sexual explícito, de pago o no. El material de abuso sexual infantil, las amenazas creíbles de violencia y el terrorismo suponen el bloqueo inmediato del perfil.",
+        "s3_content": "No publiques contenido ilegal, desnudos ni contenido sexual explícito. El material de abuso sexual infantil, las amenazas creíbles de violencia y el terrorismo suponen el bloqueo inmediato del perfil.",
         "s4_title": "4. Sé quien dices ser",
         "s4_content": "No suplantes a otras personas ni uses cuentas falsas. No envíes spam ni uses herramientas para inflar seguidores, me gusta o visualizaciones. Una cuenta automatizada tiene que estar etiquetada como tal.",
         "s5_title": "5. Derechos de autor",
         "s5_content": "Publica contenido que sea tuyo o que tengas derecho a compartir.",
-        "s6_title": "6. Creadores y contenido de pago",
-        "s6_content": "Si cobras por tu contenido, da lo que prometes. No se permiten las ofertas engañosas. El contenido de pago y las promociones cumplen las mismas normas que el resto.",
+        "s6_title": "6. Promociones",
+        "s6_content": "Las promociones cumplen las mismas normas que el resto del contenido. No se permiten las ofertas engañosas.",
         "s7_title": "7. Cómo denunciar",
         "s7_content": "Puedes denunciar una publicación, un comentario, una historia, un mensaje o un perfil desde su menú. Una persona de nuestro equipo revisa cada denuncia.",
         "s8_title": "8. Qué pasa si incumples",
@@ -1066,13 +1001,13 @@
         "s1_title": "1. Quién es el responsable",
         "s1_content": "CircleSfera es el responsable del tratamiento de tus datos. Para cualquier asunto de privacidad, o para ejercer tus derechos, escríbenos a legal@circlesfera.com.",
         "s2_title": "2. Qué datos tratamos",
-        "s2_content": "• Cuenta: correo electrónico, contraseña (guardada cifrada), fecha de nacimiento y métodos de acceso (2FA, passkeys).\n• Perfil y contenido: nombre de usuario, nombre, biografía, foto, publicaciones, historias, comentarios, reacciones, seguidores y mensajes directos (cifrados en nuestros servidores).\n• Pagos: si compras o cobras, los identificadores de Stripe y el historial de transacciones. Los datos de tu tarjeta los gestiona Stripe; nosotros no los vemos.\n• Seguridad: la dirección IP con la que te registras y la del último acceso, el país de registro y una huella del dispositivo que solo guardamos cifrada de forma irreversible.\n• Actividad: interacciones dentro de la app, visualizaciones y búsquedas.",
+        "s2_content": "• Cuenta: correo electrónico, contraseña (guardada cifrada), fecha de nacimiento y métodos de acceso (2FA, passkeys).\n• Perfil y contenido: nombre de usuario, nombre, biografía, foto, publicaciones, historias, comentarios, reacciones, seguidores y mensajes directos (cifrados en nuestros servidores).\n• Pagos: si compras un plan o una promoción, los identificadores de Stripe y el historial de pagos. Los datos de tu tarjeta los gestiona Stripe; nosotros no los vemos.\n• Seguridad: la dirección IP con la que te registras y la del último acceso, el país de registro y una huella del dispositivo que solo guardamos cifrada de forma irreversible.\n• Actividad: interacciones dentro de la app, visualizaciones y búsquedas.",
         "s3_title": "3. Para qué los usamos",
         "s3_content": "• Prestarte el servicio (cuenta, perfil, contenido, mensajes y pagos): ejecución del contrato.\n• Proteger la plataforma frente a spam, bots, cuentas falsas y abusos: interés legítimo (ver el apartado 4).\n• Moderar el contenido con ayuda de inteligencia artificial y revisión humana: interés legítimo y obligaciones legales.\n• Mejorar la app y medir su uso: interés legítimo. La monitorización de errores solo se activa si aceptas las cookies de análisis.\n• Cumplir las obligaciones fiscales y contables de los pagos: obligación legal.",
         "s4_title": "4. Detección de spam y decisiones automatizadas",
         "s4_content": "Para proteger a la comunidad, un sistema automático valora la actividad de cada perfil (por ejemplo, muchas acciones en poco tiempo, el mismo mensaje enviado muchas veces o varias cuentas desde el mismo dispositivo) y calcula una puntuación de riesgo. No guardamos el texto de tus mensajes para esto: solo una huella cifrada durante 24 horas.\n• Si la puntuación es alta, una persona de nuestro equipo revisa el caso y decide. Las sanciones (avisos, strikes, suspensiones, bloqueos y la etiqueta de bot) siempre las decide una persona.\n• Si la puntuación es muy alta, el sistema puede limitar temporalmente cuántas cuentas puedes seguir y a cuántas personas puedes escribir por primera vez (20 y 5 al día) durante un máximo de 72 horas mientras se revisa. No oculta ni elimina nada. Te avisamos indicando que fue automático y puedes apelar.\n• Puedes oponerte a este tratamiento y apelar cualquier decisión desde Ajustes → Apelaciones.",
         "s5_title": "5. Con quién compartimos tus datos",
-        "s5_content": "Solo con proveedores que nos prestan el servicio y tratan los datos por cuenta nuestra: Stripe (pagos y verificación de identidad), OpenAI (moderación y funciones de búsqueda y accesibilidad), Cloudflare (protección contra bots), Brevo (correo electrónico), Sentry (errores, con tu consentimiento), LiveKit y Metered (vídeo en directo y llamadas), Mapbox (mapas) y OVH (alojamiento en la Unión Europea). Algunos tratan datos en Estados Unidos; en ese caso la transferencia se ampara en el Marco de Privacidad de Datos UE-EE. UU. o en las cláusulas contractuales tipo aprobadas por la Comisión Europea, según el proveedor. Además, con ese acceso de solo lectura, Stripe puede revisar el contenido de pago, el nombre de usuario de quien lo vende, los pagos en totales y el resultado de la moderación, para cumplir sus obligaciones como proveedor de pagos. No ve tu correo, tus mensajes ni tu dirección IP. No vendemos tus datos.",
+        "s5_content": "Solo con proveedores que nos prestan el servicio y tratan los datos por cuenta nuestra: Stripe (pagos y verificación de identidad), OpenAI (moderación y funciones de búsqueda y accesibilidad), Cloudflare (protección contra bots), Brevo (correo electrónico), Sentry (errores, con tu consentimiento), LiveKit y Metered (vídeo en directo y llamadas), Mapbox (mapas) y OVH (alojamiento en la Unión Europea). Algunos tratan datos en Estados Unidos; en ese caso la transferencia se ampara en el Marco de Privacidad de Datos UE-EE. UU. o en las cláusulas contractuales tipo aprobadas por la Comisión Europea, según el proveedor. Además, con ese acceso de solo lectura, Stripe puede revisar los pagos en totales y el resumen de la moderación, para cumplir sus obligaciones como proveedor de pagos. No ve tu correo, tus mensajes ni tu dirección IP. No vendemos tus datos.",
         "s6_title": "6. Cuánto tiempo los guardamos",
         "s6_content": "• Cuenta y contenido: mientras tengas la cuenta. Si la eliminas, la borramos definitivamente a los 30 días.\n• Actividad, visualizaciones y búsquedas: 90 días.\n• Direcciones IP completas: 90 días desde que se registran; después solo guardamos una versión cifrada e irreversible para detectar cuentas vinculadas.\n• Huellas de dispositivo: hasta 180 días sin uso.\n• Avisos y strikes: dejan de contar a los 90 días y se borran 12 meses después, salvo que sigan siendo la causa de un bloqueo o una suspensión vigentes.\n• Casos de revisión de spam: 12 meses desde que se cierran. Denuncias resueltas: 2 años.\n• Datos de pagos: el tiempo que exija la ley fiscal y contable.",
         "s7_title": "7. Tus derechos",
@@ -1099,8 +1034,8 @@
         "s5_content": "• Puedes denunciar contenido o perfiles. Una persona de nuestro equipo revisa las denuncias.\n• Una primera infracción leve recibe un aviso sin consecuencias; las siguientes reciben strikes. Con 2 strikes activos el perfil queda suspendido 7 días, y con 3 queda bloqueado. Cada aviso y cada strike caduca a los 90 días. Las infracciones graves pueden suponer un bloqueo inmediato.\n• Las sanciones se aplican al perfil que incumplió las normas, no a tus otros perfiles, salvo en casos graves (contenido ilegal, eludir un bloqueo anterior o una orden de una autoridad).\n• Un sistema automático detecta actividad de spam y puede limitar temporalmente, durante un máximo de 72 horas, a cuántas cuentas puedes seguir y a cuántas personas puedes escribir mientras una persona lo revisa.\n• Siempre explicamos el motivo de cada decisión, y puedes apelarla desde Ajustes → Apelaciones.",
         "s6_title": "6. Planes de pago",
         "s6_content": "Ofrecemos planes mensuales (Verified, Premium, Elite Creator y Business) con las funciones y los precios que se muestran en la app. Se cobran por adelantado a través de Stripe y se renuevan cada mes hasta que canceles. Si cancelas, el plan sigue activo hasta el final del periodo pagado.",
-        "s7_title": "7. Monetización de creadores",
-        "s7_content": "• Las cuentas de creador y de empresa con la identidad verificada pueden recibir propinas (desde 2 €), vender publicaciones, historias y mensajes de pago (de 3 € a 500 €) y recibir regalos en directo.\n• CircleSfera se queda con el 20 % de cada pago y el creador recibe el 80 % a través de Stripe Connect, con sujeción a las condiciones de Stripe.\n• Cada creador es responsable de los impuestos de lo que gana.\n• El contenido de pago debe cumplir estas normas.\n• Stripe, nuestro proveedor de pagos, puede revisar el contenido de pago, las cuentas que cobran y cómo aplicamos estas normas, para cumplir sus propias obligaciones legales y de supervisión. Para ello le damos un acceso de solo lectura que termina en una fecha fijada y registra cada página que abre.",
+        "s7_title": "7. Pagos entre usuarios",
+        "s7_content": "• CircleSfera no procesa pagos entre usuarios: nadie puede comprar contenido ni pagar a otro usuario a través de CircleSfera, y CircleSfera no cobra comisión sobre las ventas de nadie.\n• Los únicos pagos en CircleSfera son los de sus propios planes y promociones.\n• Stripe, nuestro proveedor de pagos, puede revisar cómo aplicamos estas normas, para cumplir sus propias obligaciones legales y de supervisión. Para ello le damos un acceso de solo lectura que termina en una fecha fijada y registra cada página que abre.",
         "s8_title": "8. Promociones",
         "s8_content": "Puedes promocionar contenido con un presupuesto. La promoción debe cumplir estas normas; si la rechazamos, te devolvemos el importe.",
         "s9_title": "9. Suspensión y cierre de la cuenta",
@@ -1352,9 +1287,9 @@
       },
       "live": {
         "seo_title": "Live — CircleSfera",
-        "seo_desc": "Emite en CircleSfera: chat en tiempo real, herramientas de audiencia y regalos a creadores en un solo producto.",
+        "seo_desc": "Emite en CircleSfera: chat en tiempo real y herramientas de audiencia en un solo producto.",
         "title": "Live",
-        "lead": "Live permite emitir y unirse en tiempo real — chat, presencia y apoyo a creadores con la misma identidad de CircleSfera.",
+        "lead": "Live permite emitir y unirse en tiempo real — chat, presencia, preguntas y reacciones con la misma identidad de CircleSfera.",
         "points": {
           "p1": {
             "title": "Emite y mira",
@@ -1365,32 +1300,32 @@
             "body": "El chat va junto al directo. Se puede moderar y denunciar mientras dura."
           },
           "p3": {
-            "title": "Apoyo a creadores",
-            "body": "Los regalos tienen un precio visible antes de enviarlos."
+            "title": "Preguntas y reacciones",
+            "body": "Tu público hace preguntas y envía reacciones mientras emites."
           }
         },
         "closing": "Regístrate para emitir o unirte a un Live. Precios explica los planes de plataforma cuando necesites capacidades de pago."
       },
       "creator": {
         "seo_title": "Herramientas de creador — CircleSfera",
-        "seo_desc": "Propinas, contenido de pago y regalos en directo con Stripe, con una comisión de plataforma del 20 %.",
+        "seo_desc": "Creator Studio: estadísticas de tus publicaciones y de tu público, y promociones para llegar a más gente.",
         "title": "Herramientas de creador",
-        "lead": "Creator Studio y la monetización te ayudan a cobrar en CircleSfera con precios y comisiones que puedes ver antes de pagar o cobrar.",
+        "lead": "Creator Studio te muestra cómo van tus publicaciones y tu público, y te deja promocionar una publicación para llegar a más gente.",
         "points": {
           "p1": {
-            "title": "Propinas y contenido de pago",
-            "body": "Recibe propinas y vende publicaciones, historias y mensajes de pago. Los cobros van por Stripe."
+            "title": "Estadísticas",
+            "body": "Visualizaciones, seguidores, interacción y tus mejores publicaciones, día a día."
           },
           "p2": {
-            "title": "Comisión clara",
-            "body": "La comisión de CircleSfera es del 20 %. El precio se ve antes de pagar, sin extras."
+            "title": "Promociones",
+            "body": "Promociona una publicación con el presupuesto diario que elijas. El precio se ve antes de pagar, sin extras."
           },
           "p3": {
-            "title": "Verificación de identidad",
-            "body": "Para ganar dinero necesitas una cuenta de creador o de empresa y verificar tu identidad. Te lo decimos antes de empezar."
+            "title": "Perfiles de creador y de empresa",
+            "body": "Creator Studio viene con los perfiles de creador y de empresa. La analítica avanzada viene con los planes Elite Creator y Business."
           }
         },
-        "closing": "Lee Precios para el detalle de planes y luego crea una cuenta para abrir Creator Studio cuando seas elegible."
+        "closing": "Lee Precios para el detalle de planes y luego crea una cuenta para abrir Creator Studio."
       }
     },
     "error_message": "Algo salió mal al cargar publicaciones. Inténtalo de nuevo.",
@@ -1413,7 +1348,6 @@
     "actions": {
       "comments": "Comentarios",
       "share": "Compartir publicación",
-      "tip": "Dar propina",
       "remove_bookmark": "Quitar de guardados",
       "add_bookmark": "Guardar publicación",
       "like": "Me gusta",
@@ -1440,8 +1374,6 @@
       "more_options": "Más opciones"
     },
     "media": {
-      "unlock_success": "¡Publicación desbloqueada con éxito!",
-      "unlock_error": "Error al desbloquear la publicación",
       "carousel": "Carrusel de medios",
       "previous_slide": "Foto o vídeo anterior",
       "next_slide": "Foto o vídeo siguiente",
@@ -1512,8 +1444,6 @@
       },
       "favorite": "Favoritos"
     },
-    "checkout_canceled": "El pago se canceló.",
-    "checkout_success": "Pago correcto. El contenido se desbloqueará en breve.",
     "why_seeing": {
       "open": "¿Por qué veo esto?",
       "title": "¿Por qué veo esto?",
@@ -1575,8 +1505,6 @@
     "viewer_list_empty": "La lista de espectadores aparecerá aquí",
     "insights_title": "Actividad de la historia",
     "views_tab": "Vistas",
-    "unlock_success": "Historia desbloqueada",
-    "unlock_error": "No se pudo desbloquear la historia",
     "delete_highlight": "Eliminar destacado",
     "delete_highlight_confirm": "¿Eliminar este destacado?",
     "edit_highlight": "Editar destacado",
@@ -1716,7 +1644,6 @@
       "report_profile": "Reportar Perfil",
       "block_user": "Bloquear Usuario",
       "close_friends": "Mejores amigos",
-      "send_tip": "Enviar Propina",
       "copy_link": "Copiar Enlace",
       "new_collection": "Nueva Colección",
       "more_options": "Más opciones",
@@ -1766,9 +1693,7 @@
     "messages": {
       "subscribed_success": "¡Suscrito con éxito!",
       "subscribe_error": "Error al suscribirse",
-      "chat_error": "No se pudo abrir el chat",
-      "checkout_canceled": "El pago se canceló.",
-      "checkout_success": "Pago correcto. ¡Gracias por tu apoyo!"
+      "chat_error": "No se pudo abrir el chat"
     },
     "badges": {
       "premium": "Suscriptor Premium",
@@ -1804,7 +1729,6 @@
     },
     "private_account": "Cuenta privada",
     "private_label": "Privada",
-    "company_verified": "Empresa verificada",
     "upcoming_lives": {
       "title": "Próximos directos"
     },
@@ -1916,16 +1840,6 @@
       "options": "Opciones de publicación",
       "more_options": "Más opciones",
       "too_long": "La descripción es demasiado larga.",
-      "monetization": "Monetización",
-      "monetization_active": "Contenido de pago",
-      "premium_content": "Contenido de pago (pago por ver)",
-      "premium_desc": "Requiere que los usuarios paguen para desbloquear y ver esta publicación.",
-      "price_usd": "Precio (EUR)",
-      "min_price_warning": "El precio mínimo es €3,00",
-      "max_price_warning": "El precio máximo es €500,00",
-      "creator_earning": "Tus ganancias (80%):",
-      "platform_fee": "Comisión de la plataforma (20%):",
-      "vat_inside": "IVA incluido, si se compra desde la UE ({{rate}} %)",
       "schedule": "Programar publicación",
       "schedule_desc": "Déjalo vacío para publicar de inmediato.",
       "clear_schedule": "Borrar programación",
@@ -1935,7 +1849,6 @@
       "turn_off_comments_desc": "Nadie podrá comentar esta publicación. No se puede cambiar después de publicarla.",
       "mark_sensitive": "Marcar como contenido sensible",
       "mark_sensitive_desc": "Violencia gráfica, lenguaje fuerte o contexto artístico. Los desnudos y el contenido sexual explícito no están permitidos en CircleSfera y se retiran, no se filtran.",
-      "price_eur": "Precio (EUR)",
       "share_to_story": "Compartir también en tu historia",
       "share_to_story_desc": "Al publicar se abre tu historia con la tarjeta del post, lista para compartir.",
       "suggestions": "Sugerencias",
@@ -2552,7 +2465,6 @@
       "make_admin_for": "Hacer admin a @{{username}}",
       "make_admin_confirm": "¿Hacer admin a @{{username}}? Podrá editar el grupo y gestionar a sus miembros."
     },
-    "locked_title": "Mensaje exclusivo",
     "voice_note": "🎤 Nota de voz",
     "decrypting": "Descifrando…",
     "edited": "editado",
@@ -2604,7 +2516,6 @@
     "hidden_requests_desc": "Solicitudes de mensaje que contienen alguna de tus palabras ocultas. No te avisamos de ellas.",
     "no_hidden_requests": "No hay solicitudes ocultas",
     "encrypted_on_servers": "Los mensajes se guardan cifrados en nuestros servidores.",
-    "locked_not_for_sale": "Este mensaje de pago ya no está a la venta.",
     "preferences": {
       "mute": "Silenciar mensajes",
       "mute_hint": "Sin notificaciones de este chat",
@@ -2644,7 +2555,6 @@
     "subtitle": "Gestiona tu contenido, finanzas y audiencia",
     "new_content": "Nuevo contenido",
     "nav_label": "Creator Studio",
-    "monetization_label": "Monetización",
     "back_to_app": "Volver a CircleSfera",
     "back_short": "App",
     "open_nav": "Abrir navegación",
@@ -2655,11 +2565,11 @@
       "dashboard": "Panel",
       "overview": "Resumen",
       "analytics": "Analíticas",
-      "monetization": "Monetización",
       "ads": "Promociones",
       "content_group": "Contenido",
       "content": "Publicaciones",
-      "stories": "Historias"
+      "stories": "Historias",
+      "plans": "Planes"
     },
     "posts": {
       "empty_title": "Aún no tienes publicaciones",
@@ -2686,54 +2596,6 @@
       "expires": "Caduca {{when}}",
       "expired_on": "Caducó el {{date}}"
     },
-    "money": {
-      "sections": "Secciones de monetización",
-      "income": "Ingresos",
-      "plans": "Planes"
-    },
-    "ppv": {
-      "title": "Cobra por tu contenido",
-      "description": "Ganas cuando alguien desbloquea una publicación o una historia que has marcado como de pago. No hay suscripción mensual de fans.",
-      "lock_rule": "Al publicar puedes poner precio a una publicación o una historia. Quien no paga no ve el contenido bloqueado.",
-      "split": "Stripe reparte cada cobro: 80 % para ti, 20 % para CircleSfera. El dinero llega a tu banco a través de Stripe.",
-      "connect": "Conectar Stripe"
-    },
-    "income": {
-      "connect_success": "Cuenta de Stripe vinculada correctamente.",
-      "breakdown": "Por tipo de ingreso",
-      "breakdown_hint": "Tu parte: el precio sin IVA, menos el 20 % de la plataforma.",
-      "posts_ppv": "Publicaciones de pago",
-      "stories_ppv": "Historias de pago",
-      "messages_ppv": "Mensajes de pago",
-      "tips": "Propinas",
-      "live_gifts": "Regalos en directo",
-      "stripe_balances": "Saldo en Stripe",
-      "stripe_balances_hint": "Lo dice Stripe. CircleSfera no guarda una cartera de la que retirar.",
-      "available": "Disponible",
-      "pending": "Pendiente",
-      "transactions": "Movimientos recientes",
-      "tx_types": {
-        "DIRECT_POST_UNLOCK": "Desbloqueo de publicación",
-        "DIRECT_STORY_UNLOCK": "Desbloqueo de historia",
-        "DIRECT_MESSAGE_UNLOCK": "Desbloqueo de mensaje",
-        "DIRECT_TIP": "Propina",
-        "DIRECT_LIVE_GIFT": "Regalo en directo",
-        "STRIPE_SUBSCRIPTION": "Suscripción",
-        "PROMOTION_PAYMENT": "Promoción"
-      },
-      "no_transactions": "Aún no hay movimientos.",
-      "all_profiles": {
-        "title": "Todos mis perfiles",
-        "hint": "Lo que has ganado con cada uno de tus perfiles: tu parte, sin el IVA y tras el 20 % de la plataforma.",
-        "earned": "Ganado en total",
-        "this_month": "Ganado este mes",
-        "month_line": "{{amount}} este mes",
-        "own_account": "Cuenta de cobro propia",
-        "shared_account": "Cobra en una cuenta compartida",
-        "earlier": "Otros ingresos",
-        "earlier_hint": "De antes de guardarse por perfil, o de un perfil, publicación o historia borrados"
-      }
-    },
     "dashboard": {
       "untitled_post": "Publicación sin título",
       "performance": "Performance"
@@ -2744,17 +2606,11 @@
       "followers": "Seguidores",
       "not_enough_data": "Todavía no hay días suficientes para dibujar la evolución.",
       "export_csv": "Exportar",
-      "income_history": "Este mes, las propinas y los últimos 6 meses.",
-      "no_income_data": "Todavía no hay meses suficientes para dibujar tus ingresos.",
-      "current_month_income": "Ingresos de este mes",
-      "total_tips": "Propinas totales",
       "follower_locations": "Dónde están tus seguidores",
       "no_location_data": "Tus seguidores aún no han indicado dónde están.",
-      "income_series": "Ingresos",
       "no_place": "Sin ubicación indicada",
       "place_followers_one": "{{formatted}} seguidor",
-      "place_followers_other": "{{formatted}} seguidores",
-      "income": "Ingresos"
+      "place_followers_other": "{{formatted}} seguidores"
     },
     "promotions": {
       "created": "Promoción creada",
@@ -2809,37 +2665,12 @@
         "FAILED": "Pago fallido"
       }
     },
-    "monetization": {
-      "error_checkout": "Error al iniciar el pago",
-      "error_portal": "Error al acceder al portal",
-      "error_connect": "Error al conectar con Stripe",
-      "error_dashboard": "Error al abrir el panel",
-      "loading_plans": "Cargando…",
-      "subscription_status": "Tu plan",
-      "current_plan": "{{plan}}",
-      "free_plan": "Sin plan",
-      "select_plan_start": "Elige un plan de los de abajo para empezar.",
-      "manage_subscription": "Gestionar el plan",
-      "active": "Activo",
-      "per_month": "/ mes",
-      "per_year": "/ año",
-      "upgrade_now": "Elegir este plan",
-      "lifetime": "Ingresos recibidos",
-      "express_dashboard": "Panel de Stripe",
-      "stripe_connected": "Cuenta de cobro",
-      "stripe_connected_desc": "Stripe reparte cada cobro (80 % para ti, 20 % para CircleSfera) y paga a tu banco.",
-      "transfers_enabled": "Pagos a tu banco activados",
-      "transfers_pending": "Pagos a tu banco en configuración",
-      "sales_need_update": "Actualiza tu cuenta de Stripe para vender",
-      "update_stripe": "Actualizar en Stripe"
-    },
     "advanced": {
-      "plan_desc": "Tus ingresos por periodo y por tipo, las horas a las que miran tus publicaciones, tus mejores publicaciones y la exportación completa vienen con los planes Elite Creator y Business.",
+      "plan_desc": "Las horas a las que miran tus publicaciones, tus mejores publicaciones y la exportación completa vienen con los planes Elite Creator y Business.",
       "plan_cta": "Ver planes",
       "title": "Analítica avanzada",
       "error": "No se pudo cargar la analítica avanzada.",
       "export_csv": "Exportar",
-      "income_title": "Ingresos por periodo",
       "period_label": "Periodo",
       "period": {
         "7d": "7 días",
@@ -2847,11 +2678,6 @@
         "90d": "90 días",
         "1y": "1 año"
       },
-      "gross": "Total",
-      "gross_hint": "Antes de la comisión de la plataforma.",
-      "tips": "Propinas",
-      "unlocks": "Contenido de pago",
-      "gifts": "Regalos en directo",
       "hours_title": "Cuándo miran tus publicaciones",
       "hours_hint_one": "Según {{formatted}} visualización medida, en tu hora. La mayoría, a las {{hour}}.",
       "hours_hint_other": "Según {{formatted}} visualizaciones medidas, en tu hora. La mayoría, a las {{hour}}.",
@@ -2862,7 +2688,8 @@
       "no_top_posts": "Todavía no tienes publicaciones que comparar.",
       "saves_one": "guardada {{formatted}} vez",
       "saves_other": "guardada {{formatted}} veces",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "report_title": "Informe por periodo"
     },
     "guard": {
       "creators_only": "Creator Studio solo está disponible para cuentas de creador."
@@ -2875,8 +2702,6 @@
       "reach_hint": "Vistas de publicaciones e historias",
       "interaction": "Interacción",
       "interaction_hint": "Por publicación, entre tus seguidores",
-      "income": "Ingresos",
-      "income_hint": "Tu parte, desde el principio",
       "views_title": "Vistas de los últimos 14 días",
       "views_series": "Vistas",
       "views_few": "Todavía no hay días suficientes para dibujar la evolución.",
@@ -2928,54 +2753,21 @@
       "no_posts": "Todavía no tienes publicaciones que promocionar.",
       "days_one": "{{count}} día",
       "days_other": "{{count}} días"
+    },
+    "plans": {
+      "error_checkout": "Error al iniciar el pago",
+      "error_portal": "Error al acceder al portal",
+      "loading_plans": "Cargando…",
+      "subscription_status": "Tu plan",
+      "current_plan": "{{plan}}",
+      "free_plan": "Sin plan",
+      "select_plan_start": "Elige un plan de los de abajo para empezar.",
+      "manage_subscription": "Gestionar el plan",
+      "active": "Activo",
+      "per_month": "/ mes",
+      "per_year": "/ año",
+      "upgrade_now": "Elegir este plan"
     }
-  },
-  "wallet": {
-    "send_gift": "Enviar Regalo",
-    "support_with_money": "Apoya a {{name}} con una propina",
-    "processing": "Procesando...",
-    "send_tip": "Enviar Propina",
-    "error_send_tip": "Error al enviar la propina",
-    "weekly_limit": "Puedes dar hasta {{limit}} a la semana, entre propinas y regalos en directo."
-  },
-  "monetization": {
-    "available_balance": "Saldo Disponible",
-    "amount_placeholder": "Cantidad...",
-    "buy": "Comprar",
-    "earnings_withdrawable": "Ganancias (Retirables)",
-    "request_withdrawal": "Solicitar Retiro",
-    "transaction_history": "Historial de Transacciones",
-    "no_transactions": "No hay transacciones recientes",
-    "not_in_app": "No disponible en la app.",
-    "exclusive_content": "Contenido Exclusivo",
-    "premium_description_app": "Este contenido es de pago.",
-    "premium_description": "Este post es de pago. Desbloquéalo para verlo.",
-    "unlocking": "Desbloqueando...",
-    "error_send_tip": "Error al enviar propina",
-    "send_gift": "Enviar Regalo",
-    "send_tip": "Enviar Propina",
-    "processing": "Procesando...",
-    "error_checkout": "Error al iniciar el pago",
-    "error_portal": "Error al acceder al portal",
-    "loading_plans": "Cargando planes...",
-    "subscription_status": "Estatus de Suscripción",
-    "current_plan": "Plan Actual",
-    "select_plan_start": "Selecciona un plan abajo para comenzar.",
-    "manage_subscription": "Gestionar Suscripción",
-    "active": "Activo",
-    "per_month": "/ mes",
-    "per_year": "/ año",
-    "upgrade_now": "Mejorar Ahora",
-    "growth_analytics": "Analíticas de Crecimiento",
-    "growth_desc": "Descubre patrones de interacción y optimiza tu alcance con nuestras herramientas de IA propietarias.",
-    "vip_community": "Comunidad VIP",
-    "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global.",
-    "unlock_for_money": "Desbloquear por {{price}}",
-    "failed_to_unlock": "No se pudo desbloquear el mensaje",
-    "connect_stripe_error": "No se pudo conectar Stripe.",
-    "connect_with_stripe": "Conectar con Stripe",
-    "stripe_connect_desc": "Para retirar ganancias, verifica tu identidad y vincula una cuenta bancaria con Stripe Connect.",
-    "verify_identity": "Verifica tu identidad para recibir pagos"
   },
   "admin": {
     "panel": "Admin Panel",
@@ -2994,7 +2786,6 @@
       "dashboard": "Dashboard",
       "analytics": "Estadísticas",
       "monetization": "Monetización",
-      "payouts": "Retiros",
       "promotions": "Promociones",
       "verification": "Verificación de identidad",
       "whitelist": "Lista de espera",
@@ -3028,10 +2819,9 @@
       "spam_review": "Revisión de spam",
       "link_domains": "Dominios bloqueados",
       "illegal_notices": "Avisos de contenido ilegal",
-      "companies": "Empresas verificadas",
       "review": "Revisión",
       "review_compliance": "Cumplimiento de normas",
-      "review_business": "Ventas y creadores"
+      "review_business": "Pagos"
     },
     "table": {
       "empty_title": "No hay datos disponibles",
@@ -3227,23 +3017,7 @@
       "note_batch_approved": "Aprobado en lote",
       "note_batch_hidden": "Ocultado en lote",
       "note_false_positive": "Aprobado (falso positivo)",
-      "select_item": "Seleccionar este elemento",
-      "first_paid": {
-        "title": "Primer contenido de pago",
-        "subtitle_one": "Una persona revisa la primera publicación o historia de pago de cada creador antes de ponerla a la venta.",
-        "subtitle_other": "Una persona revisa las primeras {{count}} publicaciones e historias de pago de cada creador antes de ponerlas a la venta.",
-        "progress_one": "{{passed}} de {{count}} revisada",
-        "progress_other": "{{passed}} de {{count}} revisadas",
-        "approve": "Aprobar para la venta",
-        "remove": "Retirar",
-        "ask_remove": "¿Retirar el contenido de pago de @{{username}}?",
-        "reason": "Motivo que lee el creador",
-        "approved": "Ya está a la venta",
-        "removed": "Retirado",
-        "error": "No se ha podido hacer. Inténtalo de nuevo.",
-        "view": "Ver",
-        "view_title": "Contenido de pago de @{{username}}"
-      }
+      "select_item": "Seleccionar este elemento"
     },
     "reports": {
       "title": "Reportes",
@@ -3387,45 +3161,7 @@
       },
       "tx_type": {
         "STRIPE_SUBSCRIPTION": "Pago de un plan",
-        "DIRECT_TIP": "Propina",
-        "DIRECT_LIVE_GIFT": "Regalo en un directo",
-        "DIRECT_POST_UNLOCK": "Publicación desbloqueada",
-        "DIRECT_STORY_UNLOCK": "Historia desbloqueada",
-        "DIRECT_MESSAGE_UNLOCK": "Mensaje desbloqueado",
         "PROMOTION_PAYMENT": "Pago de una promoción"
-      },
-      "programme": {
-        "title": "Solicitudes de monetización",
-        "subtitle": "Un perfil Creator o Business solo cobra cuando se aprueba aquí. Primero las más antiguas.",
-        "filter": "Solicitudes por estado",
-        "status": {
-          "PENDING": "Pendientes",
-          "APPROVED": "Aprobadas",
-          "REJECTED": "Rechazadas",
-          "REVOKED": "Retiradas"
-        },
-        "type": {
-          "CREATOR": "Creador",
-          "BUSINESS": "Empresa"
-        },
-        "counts": "{{followers}} seguidores · {{posts}} publicaciones",
-        "applied": "Solicitado el {{date}}",
-        "approve": "Aprobar",
-        "reject": "Rechazar",
-        "revoke": "Retirar",
-        "empty": "No hay solicitudes aquí.",
-        "ask": {
-          "reject": "Rechazar a @{{username}}",
-          "revoke": "Retirar a @{{username}}"
-        },
-        "reason": "Motivo",
-        "reason_hint": "El creador lee este motivo.",
-        "done": {
-          "approve": "Aprobado: el perfil ya puede cobrar.",
-          "reject": "Solicitud rechazada.",
-          "revoke": "Aprobación retirada: el perfil ya no puede cobrar."
-        },
-        "error": "No se ha podido guardar la decisión. Inténtalo de nuevo."
       }
     },
     "appeals": {
@@ -3534,7 +3270,6 @@
       "kpi_traffic": "Pico de tráfico",
       "kpi_traffic_normal": "Normal",
       "status_live_now": "En vivo ahora",
-      "gifts": "Regalos",
       "viewers": "Espectadores",
       "badge_live": "En vivo",
       "badge_ended": "Finalizado",
@@ -3847,10 +3582,6 @@
         "identity": "Identidad verificada",
         "yes": "Sí",
         "no": "No",
-        "payouts": "Cobros",
-        "payouts_enabled": "Activos",
-        "payouts_pending": "Alta sin terminar",
-        "payouts_none": "Sin cuenta de cobros",
         "banned": "Bloqueado",
         "suspended": "Suspendido",
         "in_good_standing": "En regla"
@@ -4421,7 +4152,7 @@
       "account_personal": "Cuenta personal",
       "account_creator": "Cuenta de creador",
       "account_business": "Cuenta de empresa",
-      "account_type_hint": "Define las herramientas (estadísticas, monetización) que puede usar la cuenta.",
+      "account_type_hint": "Define las herramientas (estadísticas, promociones) que puede usar la cuenta.",
       "detail_select_title": "Selecciona un usuario de la cola",
       "detail_select_description": "Para revisar su verificación de identidad y su nivel",
       "toast_updated": "Perfil actualizado correctamente",
@@ -4691,34 +4422,8 @@
         "live_streams_enabled": "Permite iniciar transmisiones en vivo.",
         "turnstile_required": "Pide la comprobación anti-bots al registrarse y al iniciar sesión.",
         "email_verification_required": "Exige un correo verificado para publicar, seguir, escribir mensajes, dar me gusta, subir archivos y editar el perfil.",
-        "payments_enabled": "Permite pagos nuevos: planes, contenido de pago, propinas, regalos en directo y promociones. Desactivado, no se cobra nada nuevo; lo ya ganado se sigue pagando."
+        "payments_enabled": "Permite pagos nuevos: planes y promociones. Desactivado, no se cobra nada nuevo."
       }
-    },
-    "payouts": {
-      "status_pending": "Pendientes",
-      "status_paid": "Pagados",
-      "status_failed": "Fallidos",
-      "status_failed_cancelled": "Fallidos/Cancelados",
-      "search_placeholder": "Buscar por usuario o ID...",
-      "title": "Retiros",
-      "description": "Auditoría de los retiros automáticos gestionados por Stripe Connect.",
-      "kpi_paid": "Pagados",
-      "kpi_pending": "Pendientes",
-      "kpi_failed": "Fallidos",
-      "filter_status": "Estado",
-      "filter_all": "Todos los estados",
-      "filter_failed_cancelled": "Fallidos/Cancelados",
-      "empty_title": "No hay pagos registrados",
-      "empty_description": "Los retiros de Stripe Connect aparecerán aquí.",
-      "badge": {
-        "paid": "Pagado",
-        "pending": "Pendiente",
-        "in_transit": "En camino",
-        "failed": "Fallido",
-        "canceled": "Cancelado"
-      },
-      "account_erased": "Cuenta eliminada",
-      "arrives_on": "Llegada: {{date}}"
     },
     "roles": {
       "search_placeholder": "Buscar administradores..."
@@ -4922,22 +4627,6 @@
       "empty_title": "No hay avisos aquí",
       "empty_description": "Aquí aparecen los avisos enviados desde el formulario público."
     },
-    "companies": {
-      "title": "Empresas verificadas",
-      "subtitle": "Perfiles de empresa y por qué muestran o no la etiqueta «Empresa verificada»: necesita el plan Business y una cuenta de cobro que Stripe haya verificado como empresa.",
-      "search_placeholder": "Buscar por usuario o nombre",
-      "load_failed": "No se pudo cargar la lista.",
-      "empty_title": "No hay perfiles de empresa",
-      "empty_description": "Aquí aparecen los perfiles de tipo Empresa.",
-      "label_shown": "Con etiqueta",
-      "label_not_shown": "Sin etiqueta",
-      "plan_yes": "Plan Business",
-      "plan_no": "Sin plan Business",
-      "payout_yes": "Cuenta de cobro",
-      "payout_no": "Sin cuenta de cobro",
-      "verified_yes": "Empresa verificada por Stripe",
-      "verified_no": "Stripe no la ha verificado como empresa"
-    },
     "review": {
       "intro_label": "Sobre esta sección de revisión",
       "read_only": "Solo lectura. Los creadores aparecen por su nombre de usuario público; no se muestran correos, direcciones, mensajes ni notas de nadie. Cada página que se abre aquí queda registrada.",
@@ -4949,12 +4638,10 @@
       },
       "compliance_title": "Cumplimiento de normas",
       "compliance_subtitle": "Denuncias, strikes, apelaciones y avisos de contenido ilegal, con su resultado.",
-      "business_title": "Ventas y creadores",
-      "business_subtitle": "Qué se vende, quién lo vende y el dinero que mueve.",
+      "business_title": "Pagos",
+      "business_subtitle": "El dinero que mueven las ventas de CircleSfera.",
       "last_days_one": "Último {{count}} día",
       "last_days_other": "Últimos {{count}} días",
-      "on_sale_and_last_days_one": "A la venta ahora y en el último {{count}} día",
-      "on_sale_and_last_days_other": "A la venta ahora y en los últimos {{count}} días",
       "figure": {
         "reports": "Denuncias recibidas",
         "reports_hint_one": "{{count}} decidida",
@@ -4968,9 +4655,6 @@
         "notices": "Avisos de contenido ilegal",
         "notices_hint_one": "{{count}} con medidas",
         "notices_hint_other": "{{count}} con medidas",
-        "on_sale": "Contenido de pago a la venta",
-        "on_sale_hint": "{{posts}} publicaciones · {{stories}} historias",
-        "charging_accounts": "Cuentas que pueden cobrar",
         "payments": "Pagos realizados",
         "payments_hint_one": "{{count}} pago",
         "payments_hint_other": "{{count}} pagos",
@@ -4982,15 +4666,10 @@
         "reports": "Denuncias",
         "strikes": "Strikes",
         "appeals": "Apelaciones",
-        "notices": "Avisos",
-        "paid_posts": "Publicaciones de pago",
-        "paid_stories": "Historias de pago",
-        "creators": "Creadores",
-        "payments": "Pagos"
+        "notices": "Avisos"
       },
       "load_failed": "No se ha podido cargar. Vuelve a intentarlo en un momento.",
       "empty": "Aún no hay nada aquí.",
-      "empty_paid": "No hay contenido de pago a la venta.",
       "report_reason": {
         "SPAM": "Spam",
         "HARASSMENT": "Acoso",
@@ -5054,39 +4733,7 @@
       "urgent": "Urgente",
       "notice_title": "Aviso de contenido ilegal",
       "notice_child_abuse": "Denuncia abuso sexual infantil",
-      "paid_media_alt": "Contenido de pago",
-      "more_files_one": "+{{count}} archivo",
-      "more_files_other": "+{{count}} archivos",
-      "audience": {
-        "PUBLIC": "Público",
-        "FOLLOWERS": "Seguidores",
-        "PRIVATE": "Cuenta privada",
-        "CLOSE_FRIENDS": "Mejores amigos"
-      },
-      "sales_one": "{{count}} venta",
-      "sales_other": "{{count}} ventas",
-      "account_type": {
-        "CREATOR": "Creador",
-        "BUSINESS": "Empresa",
-        "PERSONAL": "Personal"
-      },
-      "standing": {
-        "ACTIVE": "Activo",
-        "SUSPENDED": "Suspendido",
-        "BANNED": "Bloqueado"
-      },
-      "creator_paid_one": "{{amount}} de {{count}} pago",
-      "creator_paid_other": "{{amount}} de {{count}} pagos",
-      "creator_on_sale_one": "{{count}} publicación de pago a la venta",
-      "creator_on_sale_other": "{{count}} publicaciones de pago a la venta",
-      "active_strikes_one": "{{count}} strike activo",
-      "active_strikes_other": "{{count}} strikes activos",
       "payment_type": {
-        "DIRECT_POST_UNLOCK": "Publicaciones de pago",
-        "DIRECT_STORY_UNLOCK": "Historias de pago",
-        "DIRECT_MESSAGE_UNLOCK": "Mensajes de pago",
-        "DIRECT_TIP": "Propinas",
-        "DIRECT_LIVE_GIFT": "Regalos en directo",
         "STRIPE_SUBSCRIPTION": "Planes de la plataforma",
         "PROMOTION_PAYMENT": "Promociones"
       },
@@ -5259,7 +4906,8 @@
       "CREATOR": "Para perfiles de creador. Cambia el tipo de este perfil en Ajustes para elegirlo.",
       "BUSINESS": "Para perfiles de empresa. Cambia el tipo de este perfil en Ajustes para elegirlo."
     },
-    "all_questions": "Ver todas las preguntas"
+    "all_questions": "Ver todas las preguntas",
+    "not_in_app": "No disponible en la app."
   },
   "studio": {
     "seo_title": "Studio | CircleSfera",
@@ -5609,18 +5257,6 @@
     "title_placeholder": "Añade un título",
     "default_title": "Mi directo",
     "start_button": "Emitir en directo",
-    "send_gift_title": "Enviar un regalo virtual",
-    "send_gift_desc": "Apoya al creador en tiempo real",
-    "confirm_send_gift": "Enviar regalo",
-    "gift_checkout_missing": "No se pudo iniciar el pago",
-    "gift_error": "Error al enviar el regalo",
-    "gifts": {
-      "star": "Estrella Sfera",
-      "flame": "Fuego",
-      "crown": "Corona Real",
-      "gem": "Diamante",
-      "rocket": "Cohete Sfera"
-    },
     "qna": {
       "title": "Preguntas",
       "empty_host": "No hay preguntas todavía.",
@@ -5677,22 +5313,6 @@
       "not_recorded_limit": "Este directo no se ha grabado: se estaban grabando demasiados directos a la vez.",
       "not_recorded_failed": "No se ha podido grabar este directo."
     },
-    "goal": {
-      "add": "Añadir objetivo",
-      "target_prompt": "Ingresa el monto objetivo (ej. 1000):",
-      "title_prompt": "Ingresa el título del objetivo:",
-      "dialog_title": "Objetivo del directo",
-      "title_label": "¿Para qué es el objetivo?",
-      "target_label": "Cantidad a alcanzar",
-      "save": "Fijar objetivo",
-      "title_default": "Objetivo del directo"
-    },
-    "gift_sent": "¡Regalo enviado!",
-    "gift_canceled": "Pago de regalo cancelado",
-    "gift_received_toast": "{{user}} envió un {{gift}}",
-    "send_gift_btn": "Regalar",
-    "someone": "Alguien",
-    "gift_generic": "regalo",
     "host_fallback": "Creador Live",
     "host_n": "Host {{n}}",
     "cohost_fallback": "Coanfitrión",
@@ -5718,7 +5338,6 @@
     "viewer_ended_profile": "Ver su perfil",
     "viewers_peak": "Máximo de espectadores",
     "comments": "Comentarios",
-    "gifts_received": "Regalos recibidos",
     "audience": {
       "label": "Para quién es el directo",
       "EVERYONE": "Todos",
@@ -5961,8 +5580,6 @@
     "be_first": "¡Sé el primero en publicar un Frame!",
     "load_error_title": "No se pudieron cargar los Frames",
     "load_error_message": "Algo salió mal al cargar los Frames. Inténtalo de nuevo.",
-    "checkout_success": "Pago correcto. El contenido se desbloqueará en breve.",
-    "checkout_canceled": "El pago fue cancelado.",
     "comments": "Ver comentarios",
     "share": "Compartir frame",
     "share_frame": "Compartir frame",
@@ -6087,12 +5704,12 @@
         "live": {
           "title": "Live",
           "headline": "Emite en directo y habla con tu público",
-          "desc": "Chat en tiempo real y regalos para apoyar a quien emite."
+          "desc": "Chat en tiempo real, preguntas y reacciones con quien emite."
         },
         "creator": {
           "title": "Herramientas de creador",
-          "headline": "Gana dinero con lo que creas",
-          "desc": "Propinas, contenido de pago y regalos en directo, con Stripe. La comisión de la plataforma es del 20 % y los precios se ven antes de pagar."
+          "headline": "Mira cómo va lo que creas",
+          "desc": "Estadísticas de tus publicaciones y de tu público en Creator Studio, y promociones para llegar a más gente."
         }
       }
     },
@@ -6175,9 +5792,6 @@
       "subscriptions_by_plan": "Verified {{verified}} · Premium {{premium}} · Elite {{elite}} · Business {{business}}",
       "recurring_revenue": "Ingresos recurrentes al mes",
       "recurring_revenue_hint": "Suma del precio mensual de las suscripciones activas",
-      "failed_payouts": "Retiros fallidos",
-      "pending_payouts_one": "{{count}} pendiente",
-      "pending_payouts_other": "{{count}} pendientes",
       "open_tickets": "Tickets abiertos",
       "tickets_past_target_one": "{{count}} fuera de objetivo",
       "tickets_past_target_other": "{{count}} fuera de objetivo",
@@ -6187,7 +5801,7 @@
     },
     "home": {
       "title": "El negocio de CircleSfera",
-      "description": "Aquí se llevan el soporte, las promociones, los pagos a creadores, la monetización y el boletín. La moderación y la plataforma siguen en el Admin Panel.",
+      "description": "Aquí se llevan el soporte, los planes, las promociones, los ingresos y el boletín. La moderación y la plataforma siguen en el Admin Panel.",
       "sections_note": "Tu cuenta no tiene permiso para ninguna sección del Backoffice. Pídeselo a quien administra los roles."
     }
   },
@@ -6421,22 +6035,11 @@
       "FOLLOW_REQUEST_NOT_FOUND": "Esa solicitud de seguimiento ya no existe.",
       "ACTION_LIMIT_REACHED": "Has hecho esto demasiadas veces por ahora. Inténtalo más tarde.",
       "INSUFFICIENT_FUNDS": "No hay fondos suficientes para este pago.",
-      "CANNOT_BUY_OWN_CONTENT": "No puedes comprar tu propio contenido.",
-      "CONTENT_ALREADY_UNLOCKED": "Ya has desbloqueado este contenido.",
-      "NOT_PREMIUM_OR_NO_PRICE": "Este contenido no está a la venta.",
-      "BUYER_NOT_FOUND": "No hemos encontrado la cuenta del comprador.",
-      "SENDER_NOT_FOUND": "No hemos encontrado la cuenta de quien envía.",
-      "MINIMUM_TIP_NOT_MET": "La propina es inferior al importe mínimo.",
-      "CANNOT_TIP_SELF": "No puedes enviarte una propina a ti mismo.",
-      "STRIPE_CONNECT_NOT_SETUP": "Configura los cobros antes de poder recibir pagos.",
-      "CREATOR_STRIPE_NOT_SETUP": "Este creador todavía no puede recibir pagos.",
-      "STRIPE_ONBOARDING_FAILED": "No hemos podido iniciar la configuración de cobros. Inténtalo de nuevo.",
       "PLAN_NOT_FOUND": "Ese plan no está disponible.",
       "PRICE_NOT_FOUND": "Ese precio no está disponible.",
       "ACTIVE_SUBSCRIPTION_EXISTS": "Este perfil ya tiene un plan activo. Gestiónalo desde la facturación.",
       "STRIPE_CUSTOMER_MISSING": "No hemos encontrado tus datos de facturación. Contacta con soporte.",
       "PROMOTION_ID_MISSING": "Falta la promoción. Inténtalo de nuevo.",
-      "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Cambia a un perfil de Creador o Negocio para ganar dinero.",
       "POST_NOT_FOUND": "Esta publicación ya no está disponible.",
       "STORY_NOT_FOUND": "Esta historia ya no está disponible.",
       "MEDIA_NOT_FOUND": "No hemos encontrado ese archivo.",
@@ -6444,7 +6047,6 @@
       "COMMENT_PINS_FULL": "Ya tienes 3 comentarios fijados. Quita uno para fijar otro.",
       "MESSAGE_NOT_FOUND": "Este mensaje ya no está disponible.",
       "INVALID_MEDIA_PATH": "Ese archivo no se puede usar.",
-      "PREMIUM_CONTENT_LOCKED": "Desbloquea este contenido para verlo.",
       "MEDIA_ACCESS_DENIED": "No tienes acceso a este archivo.",
       "FILE_NOT_OWNED": "Este archivo no se puede usar aquí. Vuelve a subirlo desde tu dispositivo.",
       "FRAME_COVER_IMAGE_INVALID": "Esa imagen no se puede usar como portada. Elige una foto de tu dispositivo.",
@@ -6470,8 +6072,6 @@
       "LIVE_GUEST_ALREADY_INVITED": "Ya está invitado a este directo.",
       "NOT_A_LIVE_GUEST": "No eres invitado de este directo.",
       "ALREADY_ON_AIR": "Estás emitiendo en este directo.",
-      "CANNOT_GIFT_SELF": "No puedes enviarte un regalo a ti mismo.",
-      "GIFT_NOT_FOUND": "Ese regalo no está disponible.",
       "CANNOT_RECONNECT_GUEST": "No puedes volver a entrar como invitado.",
       "LIVE_STREAMS_DISABLED": "Los directos están desactivados ahora mismo.",
       "RECORDING_NOT_READY": "Esta grabación no está lista.",
@@ -6485,6 +6085,7 @@
       "CONTENT_POSTING_DISABLED": "Publicar está desactivado ahora mismo.",
       "EMAIL_NOT_VERIFIED": "Verifica tu email para hacer esto.",
       "IDENTITY_VERIFICATION_REQUIRED": "Verifica tu identidad para poder comprar o cobrar.",
+      "CREATOR_ACCOUNT_REQUIRED": "Las herramientas de creador son para perfiles de Creador y de Empresa.",
       "PLAN_REQUIRED": "Esto viene con los planes Elite Creator y Business.",
       "CAPTCHA_FAILED": "No hemos podido comprobar que eres una persona. Inténtalo de nuevo.",
       "CAPTCHA_REQUIRED": "Completa la comprobación de seguridad para continuar.",
@@ -6511,30 +6112,19 @@
       "TEAM_MEMBER_NOT_ALLOWED": "Tu rol en este perfil de equipo no incluye esto.",
       "MESSAGE_IS_NOTICE": "Es un aviso de CircleSfera y no se puede cambiar.",
       "GROUP_ADMIN_NOT_ELIGIBLE": "Este miembro no puede ser admin del grupo.",
-      "PREMIUM_PRICE_OUT_OF_RANGE": "El precio del contenido premium está fuera del rango permitido.",
       "CONTENT_BLOCKED_BY_MODERATION": "Este contenido no cumple las normas de la comunidad y no se ha publicado.",
       "HIDDEN_WORD_INVALID": "Escribe entre 1 y 64 caracteres.",
       "HIDDEN_WORDS_FULL": "Has llegado al máximo de palabras ocultas. Quita alguna para añadir otra.",
       "GIFS_UNAVAILABLE": "Los GIF no están disponibles ahora mismo.",
       "GIF_NOT_FOUND": "Ese GIF no está disponible. Elige otro.",
-      "MONETIZATION_UNDER_AGE": "Puedes cobrar a partir de los {{minAge}} años, con tu identidad verificada.",
-      "PAID_MESSAGES_UNAVAILABLE": "Los mensajes de pago ya no están disponibles.",
       "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
       "PAYER_UNDER_AGE": "Puedes pagar a partir de los {{minAge}} años, con tu identidad y tu fecha de nacimiento verificadas. Si ya te verificaste antes, vuelve a hacerlo en Ajustes → Cuenta.",
-      "MONETIZATION_APPLICATION_NOT_OPEN": "Ahora mismo no puedes solicitarlo.",
-      "ACCOUNT_HOLDS_BALANCE": "Antes de borrar la cuenta tienen que pagarse tus ganancias. Consulta tu saldo en Monetización.",
-      "PAYOUT_BALANCE_UNKNOWN": "No hemos podido comprobar tus ganancias, así que la cuenta no se ha borrado. Inténtalo de nuevo en unos minutos.",
-      "MONETIZATION_NOT_APPROVED": "Tu perfil necesita la aprobación del programa de monetización para cobrar.",
-      "MONETIZATION_REVIEW_NOT_ALLOWED": "Esta solicitud ya está decidida.",
       "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes.",
-      "CONTENT_UNDER_REVIEW": "Este contenido todavía se está revisando. Podrás venderlo o promocionarlo en cuanto termine: vuelve a intentarlo en unos minutos.",
-      "WEEKLY_SUPPORT_LIMIT_REACHED": "Has llegado al máximo que puedes dar en una semana, entre propinas y regalos.",
-      "COLLAB_NOT_ALLOWED": "Solo una publicación pública y no de pago puede tener un colaborador, y nunca su autor.",
+      "CONTENT_UNDER_REVIEW": "Este contenido todavía se está revisando. Podrás promocionarlo en cuanto termine: vuelve a intentarlo en unos minutos.",
+      "COLLAB_NOT_ALLOWED": "Solo una publicación pública puede tener un colaborador, y nunca su autor.",
       "COLLABORATOR_EXISTS": "Esta publicación ya tiene un colaborador.",
-      "TIP_AMOUNT_NOT_ALLOWED": "Elige uno de los importes que se muestran.",
       "CONTENT_CHANGED_SINCE_REVIEW": "Su autor lo ha cambiado después de que lo abrieras. Vuelve a mirarlo.",
       "COLLAB_NOT_FOUND": "Esta invitación ya no está disponible.",
-      "TIP_TARGET_REQUIRED": "Una propina siempre es para una publicación.",
       "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
       "CHAT_PINS_FULL": "Ya tienes 3 chats fijados. Quita uno para fijar otro.",
       "MESSAGE_NOT_FORWARDABLE": "Este mensaje no se puede reenviar.",

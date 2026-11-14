@@ -2,7 +2,6 @@ import { screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CreatorStats } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
-import { monetizationApi } from '../../services/monetization.service';
 import { renderWithProviders } from '../../test/test-utils';
 import CreatorAnalyticsTab from './CreatorAnalyticsTab';
 
@@ -23,13 +22,6 @@ vi.mock('../../stores/authStore', () => ({
 
 vi.mock('./CreatorAnalyticsDashboard', () => ({
   CreatorAnalyticsDashboard: () => <div data-testid="advanced-analytics" />,
-}));
-
-vi.mock('../../services/monetization.service', () => ({
-  monetizationApi: {
-    getIncomeStats: vi.fn(),
-    getFinancialSummary: vi.fn(),
-  },
 }));
 
 const emptyStats: CreatorStats = {
@@ -62,11 +54,6 @@ describe('CreatorAnalyticsTab', () => {
     } as never);
     vi.mocked(creatorApi.getActivityChart).mockResolvedValue({
       data: [],
-    } as never);
-    vi.mocked(monetizationApi.getIncomeStats).mockResolvedValue([]);
-    vi.mocked(monetizationApi.getFinancialSummary).mockResolvedValue({
-      currentMonthIncome: 0,
-      totalTips: 0,
     } as never);
   });
 
@@ -104,7 +91,7 @@ describe('CreatorAnalyticsTab', () => {
     },
   );
 
-  it('shows the audience, where the followers are and the income, and nothing the server does not measure', async () => {
+  it('shows the audience and where the followers are, and nothing the server does not measure', async () => {
     vi.mocked(creatorApi.getStats).mockResolvedValue({
       data: {
         ...emptyStats,
@@ -114,10 +101,6 @@ describe('CreatorAnalyticsTab', () => {
           { location: 'Madrid', count: 3 },
         ],
       },
-    } as never);
-    vi.mocked(monetizationApi.getFinancialSummary).mockResolvedValue({
-      currentMonthIncome: 899,
-      totalTips: 500,
     } as never);
     renderWithProviders(<CreatorAnalyticsTab />);
 
@@ -135,8 +118,7 @@ describe('CreatorAnalyticsTab', () => {
     expect(screen.getByText('3 followers')).toBeInTheDocument();
     expect(screen.getByText('75 %')).toBeInTheDocument();
     expect(screen.queryByText('Unknown')).not.toBeInTheDocument();
-    expect(screen.getByText('€8.99')).toBeInTheDocument();
-    expect(screen.getByText('€5.00')).toBeInTheDocument();
+    expect(screen.queryByText(/income/i)).toBeNull();
     // Fixed zeros and an answer that is always empty are not drawn.
     expect(screen.queryByText(/retention of subscriptions/i)).toBeNull();
     expect(screen.queryByText(/most active hours/i)).toBeNull();
@@ -152,11 +134,6 @@ describe('CreatorAnalyticsTab', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText('Tus seguidores aún no han indicado dónde están.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Todavía no hay meses suficientes para dibujar tus ingresos.',
-      ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Exportar' })).toBeNull();
   });

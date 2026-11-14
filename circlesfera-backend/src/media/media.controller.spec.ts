@@ -1,5 +1,3 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import {
@@ -13,95 +11,9 @@ import {
 } from 'vitest';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { createControllerApp } from '../common/testing/http-controller.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import {
-  STORAGE_PROVIDER,
-  type StorageMediaItem,
-} from '../uploads/interfaces/storage-provider.interface.js';
 import { MediaController } from './media.controller.js';
 import { MediaAuthService } from './media-auth.service.js';
 import { MediaStaffViewerService } from './media-staff-viewer.service.js';
-
-const MEDIA_FOLDER = 'video_teaser_http_spec';
-const mediaDir = path.resolve(process.cwd(), 'uploads', MEDIA_FOLDER);
-// Local-style standardUrl so the controller can extract baseFolder
-const standardUrl = `/uploads/${MEDIA_FOLDER}/master.m3u8`;
-
-// ---------------------------------------------------------------------------
-// Minimal StorageProvider mock that reads from the real temp dir on disk
-// ---------------------------------------------------------------------------
-const mockStorageProvider = {
-  upload: vi.fn(),
-  delete: vi.fn(),
-  getMediaArtifact: vi.fn(
-    async (params: {
-      baseFolder: string;
-      relativePath: string;
-    }): Promise<StorageMediaItem | null> => {
-      // Reject obvious path traversal
-      if (
-        params.relativePath.includes('..') ||
-        params.relativePath.startsWith('/')
-      ) {
-        return null;
-      }
-
-      const filePath = path.resolve(
-        process.cwd(),
-        'uploads',
-        params.baseFolder,
-        params.relativePath,
-      );
-      try {
-        const content = await fs.promises.readFile(filePath);
-        const ext = path.extname(params.relativePath).toLowerCase();
-        const contentType =
-          ext === '.m3u8'
-            ? 'application/vnd.apple.mpegurl'
-            : ext === '.ts'
-              ? 'video/MP2T'
-              : ext === '.jpg'
-                ? 'image/jpeg'
-                : 'application/octet-stream';
-        return { content, contentType };
-      } catch {
-        return null;
-      }
-    },
-  ),
-};
-
-const mockPrismaService = {
-  postMedia: {
-    findUnique: vi.fn(),
-  },
-  // The post a teaser belongs to, read by the post access rule.
-  post: { findUnique: vi.fn() },
-  block: { findFirst: vi.fn().mockResolvedValue(null) },
-  // Test accounts are kept apart from real ones; none here.
-  user: { findMany: vi.fn().mockResolvedValue([]) },
-  follow: { findUnique: vi.fn().mockResolvedValue(null) },
-  closeFriend: { findUnique: vi.fn().mockResolvedValue(null) },
-};
-
-// A paid post everyone may see the card of.
-const PAID = {
-  id: 'post-1',
-  isPremium: true,
-  scheduledStatus: 'PUBLISHED',
-  visibility: 'PUBLIC',
-  profileId: 'author-1',
-};
-// The same post, for the author's close friends.
-const PAID_CLOSE_FRIENDS = { ...PAID, visibility: 'PRIVATE' };
-const paidCard = {
-  id: 'post-1',
-  profileId: 'author-1',
-  visibility: 'PUBLIC',
-  moderationStatus: 'APPROVED',
-  turnOffComments: false,
-  profile: { privacyLevel: 'PUBLIC' },
-};
 
 describe('MediaController (HTTP integration)', () => {
   let app: INestApplication;
@@ -109,340 +21,25 @@ describe('MediaController (HTTP integration)', () => {
   const mockMediaAuthService = {
     isAccessAllowed: vi.fn().mockResolvedValue(true),
   };
-  const mockStaffViewer = { isContentStaff: vi.fn(), isReviewer: vi.fn() };
+  const mockStaffViewer = { isContentStaff: vi.fn() };
 
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [MediaController],
       providers: [
-        { provide: PrismaService, useValue: mockPrismaService },
         { provide: MediaAuthService, useValue: mockMediaAuthService },
         { provide: MediaStaffViewerService, useValue: mockStaffViewer },
-        { provide: STORAGE_PROVIDER, useValue: mockStorageProvider },
       ],
       guards: [{ guard: JwtOptionalGuard, mode: 'optional' }],
     });
-    fs.mkdirSync(mediaDir, { recursive: true });
   });
 
   afterAll(async () => {
     await app.close();
-    fs.rmSync(mediaDir, { recursive: true, force: true });
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPrismaService.post.findUnique.mockResolvedValue(paidCard);
-    mockPrismaService.block.findFirst.mockResolvedValue(null);
-    mockPrismaService.user.findMany.mockResolvedValue([]);
-    mockPrismaService.follow.findUnique.mockResolvedValue(null);
-    mockPrismaService.closeFriend.findUnique.mockResolvedValue(null);
-    // Restore default mock implementation after clearAllMocks
-    mockStorageProvider.getMediaArtifact.mockImplementation(
-      async (params: { baseFolder: string; relativePath: string }) => {
-        if (
-          params.relativePath.includes('..') ||
-          params.relativePath.startsWith('/')
-        ) {
-          return null;
-        }
-        const filePath = path.resolve(
-          process.cwd(),
-          'uploads',
-          params.baseFolder,
-          params.relativePath,
-        );
-        try {
-          const content = await fs.promises.readFile(filePath);
-          const ext = path.extname(params.relativePath).toLowerCase();
-          const contentType =
-            ext === '.m3u8'
-              ? 'application/vnd.apple.mpegurl'
-              : ext === '.ts'
-                ? 'video/MP2T'
-                : ext === '.jpg'
-                  ? 'image/jpeg'
-                  : 'application/octet-stream';
-          return { content, contentType };
-        } catch {
-          return null;
-        }
-      },
-    );
-  });
-
-  it('serves no teaser of a post that is not paid', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl,
-      post: { id: 'post-1', isPremium: false },
-    });
-    // The file is there: only the rule keeps it.
-    fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
-
-    await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/master.m3u8')
-      .expect(404);
-  });
-
-  it.each([
-    ['private', { visibility: 'PRIVATE' }],
-    [
-      'for followers, to a viewer who does not follow',
-      { visibility: 'FOLLOWERS' },
-    ],
-    ['on a private account', { profile: { privacyLevel: 'PRIVATE' } }],
-    ['removed', { moderationStatus: 'REMOVED' }],
-  ])('serves no teaser of a paid post that is %s', async (_why, change) => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl,
-      post: PAID,
-    });
-    mockPrismaService.post.findUnique.mockResolvedValue({
-      ...paidCard,
-      ...change,
-    });
-    fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
-
-    await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/master.m3u8')
-      .expect(404);
-  });
-
-  it.each(['SCHEDULED', 'CANCELLED'])(
-    'serves no teaser of a %s post, not even to its author',
-    async (scheduledStatus) => {
-      mockPrismaService.postMedia.findUnique.mockResolvedValue({
-        standardUrl,
-        post: { ...PAID, scheduledStatus, profileId: 'profile-1' },
-      });
-      mockPrismaService.post.findUnique.mockResolvedValue({
-        ...paidCard,
-        profileId: 'profile-1',
-      });
-      fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
-
-      await request(app.getHttpServer())
-        .get('/api/v1/media/teaser/media-1/master.m3u8')
-        .set('Authorization', 'Bearer test')
-        .expect(404);
-    },
-  );
-
-  describe('a paid post for close friends', () => {
-    beforeEach(() => {
-      mockPrismaService.postMedia.findUnique.mockResolvedValue({
-        standardUrl,
-        post: PAID_CLOSE_FRIENDS,
-      });
-      mockPrismaService.post.findUnique.mockResolvedValue({
-        ...paidCard,
-        visibility: 'PRIVATE',
-      });
-      fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
-    });
-    const teaser = () =>
-      request(app.getHttpServer()).get(
-        '/api/v1/media/teaser/media-1/master.m3u8',
-      );
-
-    it('serves its teaser to a close friend of the author', async () => {
-      mockPrismaService.closeFriend.findUnique.mockResolvedValue({ id: 'cf' });
-
-      await teaser().set('Authorization', 'Bearer test').expect(200);
-      expect(mockPrismaService.closeFriend.findUnique).toHaveBeenCalledWith({
-        where: {
-          profileId_friendId: { profileId: 'author-1', friendId: 'profile-1' },
-        },
-        select: { id: true },
-      });
-    });
-
-    it('serves no teaser to someone who is not a close friend, nor to a visitor', async () => {
-      await teaser().set('Authorization', 'Bearer test').expect(404);
-      await teaser().expect(404);
-      expect(mockPrismaService.closeFriend.findUnique).toHaveBeenCalledTimes(1);
-    });
-
-    it('serves no teaser to a close friend of a private account who does not follow it, and serves it once they do', async () => {
-      mockPrismaService.closeFriend.findUnique.mockResolvedValue({ id: 'cf' });
-      mockPrismaService.post.findUnique.mockResolvedValue({
-        ...paidCard,
-        visibility: 'PRIVATE',
-        profile: { privacyLevel: 'PRIVATE' },
-      });
-
-      await teaser().set('Authorization', 'Bearer test').expect(404);
-
-      mockPrismaService.follow.findUnique.mockResolvedValue({
-        status: 'ACCEPTED',
-      });
-      await teaser().set('Authorization', 'Bearer test').expect(200);
-    });
-
-    it.each([
-      [
-        'blocked either way',
-        () => mockPrismaService.block.findFirst.mockResolvedValue({ id: 'b' }),
-      ],
-      [
-        'archived',
-        () =>
-          mockPrismaService.post.findUnique.mockResolvedValue({
-            ...paidCard,
-            visibility: 'PRIVATE',
-            archivedAt: new Date(),
-          }),
-      ],
-      ['gone', () => mockPrismaService.post.findUnique.mockResolvedValue(null)],
-    ])(
-      'serves no teaser to a close friend when the post is %s',
-      async (_why, arrange) => {
-        mockPrismaService.closeFriend.findUnique.mockResolvedValue({
-          id: 'cf',
-        });
-        arrange();
-
-        await teaser().set('Authorization', 'Bearer test').expect(404);
-      },
-    );
-  });
-
-  it('answers a failure to read the post as a failure, not as missing media', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl,
-      post: PAID,
-    });
-    mockPrismaService.post.findUnique.mockRejectedValue(
-      new Error('database unavailable'),
-    );
-    fs.writeFileSync(path.join(mediaDir, 'master.m3u8'), '#EXTM3U\n');
-
-    await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/master.m3u8')
-      .expect(500);
-  });
-
-  it('returns 404 when the media record has no standardUrl', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue(null);
-
-    await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/master.m3u8')
-      .expect(404);
-  });
-
-  it('returns 404 when standardUrl has an unexpected format', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl: 'https://cdn.example.com/not-a-local-path.mp4',
-      post: PAID,
-    });
-
-    await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/master.m3u8')
-      .expect(404);
-  });
-
-  it('blocks path traversal attempts outside the media folder', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl,
-      post: PAID,
-    });
-
-    const traversal = encodeURIComponent('../../etc/passwd');
-    await request(app.getHttpServer())
-      .get(`/api/v1/media/teaser/media-1/${traversal}`)
-      .expect(403);
-  });
-
-  it('returns 404 when the resolved file does not exist in storage', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl,
-      post: PAID,
-    });
-
-    await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/missing.m3u8')
-      .expect(404);
-  });
-
-  it('truncates an .m3u8 playlist to the first two segments', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl,
-      post: PAID,
-    });
-    fs.writeFileSync(
-      path.join(mediaDir, 'master.m3u8'),
-      [
-        '#EXTM3U',
-        '#EXTINF:2.0,',
-        'stream_0.ts',
-        '#EXTINF:2.0,',
-        'stream_1.ts',
-        '#EXTINF:2.0,',
-        'stream_2.ts',
-        '#EXT-X-ENDLIST',
-      ].join('\n'),
-    );
-
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/master.m3u8')
-      .expect(200);
-
-    expect(res.headers['content-type']).toMatch(
-      /application\/vnd\.apple\.mpegurl/,
-    );
-    expect(res.text).toContain('stream_0.ts');
-    expect(res.text).toContain('stream_1.ts');
-    expect(res.text).not.toContain('stream_2.ts');
-    expect(res.text.trim().endsWith('#EXT-X-ENDLIST')).toBe(true);
-  });
-
-  it('serves the first two .ts segments', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl,
-      post: PAID,
-    });
-    fs.writeFileSync(path.join(mediaDir, 'stream_1.ts'), 'segment-bytes');
-
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/stream_1.ts')
-      .expect(200);
-
-    expect(res.headers['content-type']).toMatch(/video\/MP2T/i);
-    expect(res.body.toString()).toBe('segment-bytes');
-  });
-
-  it('locks .ts segments beyond the free preview window', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl,
-      post: PAID,
-    });
-    fs.writeFileSync(path.join(mediaDir, 'stream_2.ts'), 'locked');
-
-    await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/stream_2.ts')
-      .expect(403);
-  });
-
-  it('serves other file types (e.g. thumbnails) via storage provider', async () => {
-    mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl,
-      post: PAID,
-    });
-    fs.writeFileSync(path.join(mediaDir, 'thumb.jpg'), 'jpeg-bytes');
-
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/media/teaser/media-1/thumb.jpg')
-      .expect(200);
-
-    expect(res.headers['content-type']).toMatch(/image\/jpeg/);
-    expect(res.body.toString()).toBe('jpeg-bytes');
-  });
-
-  it('delegates to storageProvider and has no direct filesystem imports', () => {
-    // Verify the provider was wired correctly — the mock must have been called
-    // at least once if any earlier test ran. Here we just confirm the mock itself
-    // is the injected provider (structural check).
-    expect(mockStorageProvider.getMediaArtifact).toBeDefined();
   });
 
   describe('authCheck', () => {
@@ -459,6 +56,18 @@ describe('MediaController (HTTP integration)', () => {
         null,
         null,
         expect.any(Function),
+      );
+    });
+
+    it('answers no header as an empty path', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/media/auth-check')
+        .expect(204);
+
+      expect(mockMediaAuthService.isAccessAllowed).toHaveBeenCalledWith(
+        '',
+        null,
+        null,
         expect.any(Function),
       );
     });
@@ -482,26 +91,6 @@ describe('MediaController (HTTP integration)', () => {
       expect(mockStaffViewer.isContentStaff).toHaveBeenCalledTimes(1);
     });
 
-    it('asks whether the request reads the review area only through the check it hands over', async () => {
-      mockStaffViewer.isReviewer.mockResolvedValueOnce(true);
-      mockMediaAuthService.isAccessAllowed.mockImplementationOnce(
-        async (
-          _uri: string,
-          _user: string | null,
-          _profile: string | null,
-          _isStaff: () => Promise<boolean>,
-          isReviewer: () => Promise<boolean>,
-        ) => isReviewer(),
-      );
-
-      await request(app.getHttpServer())
-        .get('/api/v1/media/auth-check')
-        .set('x-original-uri', '/uploads/paid.jpg')
-        .expect(204);
-
-      expect(mockStaffViewer.isReviewer).toHaveBeenCalledTimes(1);
-    });
-
     it('returns 403 when access is denied', async () => {
       mockMediaAuthService.isAccessAllowed.mockResolvedValueOnce(false);
 
@@ -509,6 +98,12 @@ describe('MediaController (HTTP integration)', () => {
         .get('/api/v1/media/auth-check')
         .set('x-original-uri', '/uploads/private/doc.pdf')
         .expect(403);
+    });
+
+    it('serves no teaser of a post any more', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/media/teaser/media-1/master.m3u8')
+        .expect(404);
     });
   });
 });

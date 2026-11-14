@@ -9,7 +9,6 @@ import {
   withLikeCountAsSeenBy,
 } from '../common/policies/public-post-list.policy.js';
 import { SHOWN_COMMENTS_COUNT } from '../common/policies/removed-content.policy.js';
-import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { MapBboxDto } from './dto/map-bbox.dto.js';
 
@@ -42,11 +41,7 @@ export type PlaceMapPin = {
 
 @Injectable()
 export class PlacesService {
-  constructor(
-    @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(PostPaywallService)
-    private readonly postPaywall: PostPaywallService,
-  ) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getMapPins(
     bbox: MapBboxDto,
@@ -118,14 +113,8 @@ export class PlacesService {
         .map((c) => [c.placeId as string, c._count._all]),
     );
 
-    // A paid post the viewer has not unlocked lends no picture to the map:
-    // its pin shows the latest one they may see whole, or none.
-    const seenPosts = await this.postPaywall.applyPaywall(
-      recentPosts,
-      currentProfileId ?? undefined,
-    );
-    const postsByPlace = new Map<string, typeof seenPosts>();
-    for (const post of seenPosts) {
+    const postsByPlace = new Map<string, typeof recentPosts>();
+    for (const post of recentPosts) {
       if (!post.placeId) continue;
       const list = postsByPlace.get(post.placeId) ?? [];
       list.push(post);
@@ -139,7 +128,7 @@ export class PlacesService {
       const seenCreators = new Set<string>();
 
       for (const post of posts) {
-        if (previewMedia.length < PREVIEW_MEDIA && !post.isLocked) {
+        if (previewMedia.length < PREVIEW_MEDIA) {
           const m = post.media[0];
           const url = m?.thumbnailUrl || m?.standardUrl || m?.url;
           if (url && !previewMedia.includes(url)) {
@@ -166,7 +155,7 @@ export class PlacesService {
       }
 
       const latest = posts[0];
-      const markerMedia = posts.find((post) => !post.isLocked)?.media[0];
+      const markerMedia = latest?.media[0];
       const markerImageUrl =
         markerMedia?.thumbnailUrl ||
         markerMedia?.standardUrl ||
@@ -277,18 +266,12 @@ export class PlacesService {
       };
     });
 
-    // A paid post the viewer has not unlocked is listed closed.
-    const shown = await this.postPaywall.applyPaywall(
-      data,
-      currentProfileId ?? undefined,
-    );
-
     return createPaginatedResult(
-      shown,
+      data,
       total,
       page,
       limit,
-      shown.length > 0 ? shown[shown.length - 1].id : undefined,
+      data.length > 0 ? data[data.length - 1].id : undefined,
     );
   }
 }

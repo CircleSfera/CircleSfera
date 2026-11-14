@@ -96,14 +96,14 @@ describe('Notifications written for the reader', () => {
     show([
       notice({
         type: 'PAYMENT',
-        content: 'te ha enviado una propina de 12,50 €',
+        content: 'tu plan Premium se ha renovado por 9,99 €',
       }),
     ]);
 
     renderWithProviders(<Notifications />, { lng: 'es' });
 
     expect(
-      await screen.findByText('te ha enviado una propina de 12,50 €'),
+      await screen.findByText('tu plan Premium se ha renovado por 9,99 €'),
     ).toBeInTheDocument();
   });
 

@@ -132,17 +132,17 @@ describe('SavedReplies', () => {
     const save = panel.getByRole('button', { name: t('save') });
     expect(save).toBeDisabled();
     fireEvent.change(panel.getByLabelText(t('field_title')), {
-      target: { value: '  Payout dates  ' },
+      target: { value: '  Renewal dates  ' },
     });
     fireEvent.change(panel.getByLabelText(t('field_body')), {
-      target: { value: '  Payouts go out on Mondays.  ' },
+      target: { value: '  Plans renew on the day they started.  ' },
     });
     fireEvent.click(save);
 
     await waitFor(() =>
       expect(adminApi.createSavedReply).toHaveBeenCalledWith({
-        title: 'Payout dates',
-        body: 'Payouts go out on Mondays.',
+        title: 'Renewal dates',
+        body: 'Plans renew on the day they started.',
       }),
     );
     await waitFor(() =>

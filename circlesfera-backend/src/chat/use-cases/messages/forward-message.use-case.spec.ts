@@ -17,7 +17,6 @@ function textMessage(overrides: Record<string, unknown> = {}) {
     content: 'enc:hola',
     kind: 'USER',
     isDeleted: false,
-    isLocked: false,
     url: null,
     voiceUrl: null,
     storyId: null,
@@ -65,7 +64,7 @@ describe('ForwardMessageUseCase', () => {
     expect(args[1]).toBeUndefined();
     expect(args[2]).toBe('hola');
     expect(args[5]).toBe('c-a');
-    expect(args[15]).toEqual({ forwarded: true });
+    expect(args[13]).toEqual({ forwarded: true });
   });
 
   it('forwards a shared post with its post', async () => {
@@ -89,7 +88,7 @@ describe('ForwardMessageUseCase', () => {
 
     const args = send.execute.mock.calls[0];
     expect(args[2]).toBe('');
-    expect(args[15]).toEqual({ forwarded: true, gifId: 'g-1' });
+    expect(args[13]).toEqual({ forwarded: true, gifId: 'g-1' });
   });
 
   it.each([
@@ -102,7 +101,7 @@ describe('ForwardMessageUseCase', () => {
 
     await useCase.execute('me', 'm-1', ['c-a']);
 
-    expect(send.execute.mock.calls[0][15]).toStrictEqual({
+    expect(send.execute.mock.calls[0][13]).toStrictEqual({
       forwarded: true,
       gifId: undefined,
     });
@@ -145,7 +144,6 @@ describe('ForwardMessageUseCase', () => {
   it.each([
     ['a notice', { kind: 'SYSTEM' }],
     ['a deleted message', { isDeleted: true }],
-    ['a paid message', { isLocked: true }],
     ['a file', { url: 'https://cdn/x.jpg' }],
     ['a voice note', { voiceUrl: 'https://cdn/x.m4a' }],
     ['a story', { storyId: 's-1' }],

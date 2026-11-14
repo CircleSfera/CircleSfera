@@ -465,7 +465,6 @@ describe('Failure Injection & Recovery Invariants', () => {
         },
         like: { findMany: vi.fn().mockResolvedValue([]) },
         creatorSubscription: { findMany: vi.fn().mockResolvedValue([]) },
-        postUnlock: { findMany: vi.fn().mockResolvedValue([]) },
         promotion: { findMany: vi.fn().mockResolvedValue([]) },
         post: {
           findMany: vi
@@ -503,7 +502,6 @@ describe('Failure Injection & Recovery Invariants', () => {
         mockFeedInbox,
         mockFeedPreferences as never,
         mockExperiments as never,
-        { applyPaywall: async (posts: unknown[]) => posts } as never,
       );
     });
 

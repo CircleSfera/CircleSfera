@@ -68,7 +68,6 @@ const mine = (over: object = {}) => ({
   avatar: null,
   verificationLevel: 'BASIC',
   emailConfirmed: true,
-  companyVerified: false,
   ...over,
 });
 
@@ -401,18 +400,6 @@ describe('ProfileSettings', () => {
         expect.objectContaining({ accentColor: null }),
       ),
     );
-  });
-
-  it('offers a business to verify its company, or shows that it is verified', async () => {
-    const first = await show(mine({ verificationLevel: 'BUSINESS' }));
-    expect(
-      screen.getByRole('link', { name: 'Verify company' }),
-    ).toHaveAttribute('href', '/creator/monetization');
-    first.unmount();
-
-    await show(mine({ verificationLevel: 'BUSINESS', companyVerified: true }));
-    expect(screen.getByText('Verified company')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Verify company' })).toBeNull();
   });
 
   it('does not save while the email is unverified, and sends the email again once', async () => {

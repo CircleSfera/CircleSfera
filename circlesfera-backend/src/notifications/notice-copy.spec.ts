@@ -49,8 +49,6 @@ const EVERY_NOTICE: Notice[] = [
   { key: 'profile_suspended_cause', until: day, cause: 'HARASSMENT' },
   { key: 'profile_suspended_cause', until: day, cause: 'COMPROMISED' },
   { key: 'profile_restricted', by: 'automated', hours: 72, days: 7 },
-  { key: 'message_unlocked', amountCents: 499, currency: 'eur' },
-  { key: 'tip_received', amountCents: 1250, currency: 'eur' },
   { key: 'support_answered', subject: 'I was charged twice' },
   { key: 'live_started' },
   { key: 'live_starting_soon', title: 'Ensayo abierto' },
@@ -84,18 +82,7 @@ describe('renderNotice', () => {
     );
   });
 
-  it('formats money and dates for each language', () => {
-    const tip = {
-      key: 'tip_received',
-      amountCents: 1250,
-      currency: 'eur',
-    } as const;
-    expect(renderNotice('en', tip)).toBe('sent you a €12.50 tip');
-    // Spanish puts the symbol after the amount, with a non-breaking space.
-    expect(renderNotice('es', tip)).toMatch(
-      /^te ha enviado una propina de 12,50\s€$/,
-    );
-
+  it('formats dates for each language', () => {
     const until = { key: 'account_suspended', until: day } as const;
     expect(renderNotice('en', until)).toContain('3 November 2026');
     expect(renderNotice('es', until)).toContain('3 de noviembre de 2026');

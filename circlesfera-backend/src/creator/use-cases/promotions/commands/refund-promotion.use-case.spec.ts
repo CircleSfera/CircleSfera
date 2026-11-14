@@ -126,7 +126,7 @@ describe('RefundPromotionUseCase', () => {
         // Regression test: the refund's own Stripe id must be
         // stored so Transaction.stripePaymentIntentId's unique constraint
         // protects against a concurrent duplicate refund double-counting
-        // in the ledger, same as every other monetization Transaction.
+        // in the ledger, same as every other Transaction.
         stripePaymentIntentId: 're_test_123',
       }),
     });

@@ -15,7 +15,6 @@ export { default as RichText } from './RichText';
 export { default as StoryList } from './StoryList';
 export { default as StoryViewer } from './StoryViewer';
 export { ActiveSessionsSettings } from './settings/ActiveSessionsSettings';
-export * from './settings/MonetizationSettings';
 export { default as PasskeySettings } from './settings/PasskeySettings';
 export { TwoFactorSettings } from './TwoFactorSettings';
 export { default as UserAvatar } from './UserAvatar';

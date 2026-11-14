@@ -1,16 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../../common/errors/app.exception.js';
 import type { CryptoService } from '../../../common/services/crypto.service.js';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  inlinePaidMedia,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../../../common/testing/paid-posts.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 import { GetMessagesQuery, MESSAGE_PAGE } from './get-messages.query.js';
@@ -39,7 +29,6 @@ describe('GetMessagesQuery', () => {
       mockPrisma as unknown as PrismaService,
       mockCryptoService as unknown as CryptoService,
       new ChatAuthorizationService(mockPrisma as unknown as PrismaService),
-      realPaywall(),
     );
   });
 
@@ -63,7 +52,6 @@ describe('GetMessagesQuery', () => {
         id: 'msg-1',
         content: 'enc_hello',
         senderId: 'prof-1',
-        isLocked: false,
       },
     ]);
 
@@ -90,7 +78,6 @@ describe('GetMessagesQuery', () => {
         id: 'msg-3',
         content: null,
         senderId: 'prof-1',
-        isLocked: false,
         postId: 'post-archived',
         post: {
           id: 'post-archived',
@@ -103,7 +90,6 @@ describe('GetMessagesQuery', () => {
         id: 'msg-2',
         content: null,
         senderId: 'prof-1',
-        isLocked: false,
         postId: 'post-hidden',
         post: { id: 'post-hidden', moderationStatus: 'HIDDEN' },
       },
@@ -111,7 +97,6 @@ describe('GetMessagesQuery', () => {
         id: 'msg-1',
         content: null,
         senderId: 'prof-1',
-        isLocked: false,
         postId: 'post-removed',
         post: { id: 'post-removed', moderationStatus: 'REMOVED' },
       },
@@ -119,7 +104,6 @@ describe('GetMessagesQuery', () => {
         id: 'msg-0',
         content: null,
         senderId: 'prof-1',
-        isLocked: false,
         postId: 'post-deleted',
         post: {
           id: 'post-deleted',
@@ -141,70 +125,24 @@ describe('GetMessagesQuery', () => {
     expect(result[3]).toMatchObject({ postId: 'post-archived', post: null });
   });
 
-  it('masks locked message content and media if viewer has not unlocked it', async () => {
+  it('shows a message that was once sent locked whole to every reader', async () => {
     mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt: null });
-    mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-viewer' });
-
     mockPrisma.message.findMany.mockResolvedValue([
       {
-        id: 'msg-locked',
+        id: 'msg-once-locked',
         content: 'enc_secret',
         senderId: 'prof-creator',
         isLocked: true,
         url: 'https://cdn/secret.jpg',
-        standardUrl: 'https://cdn/secret-std.jpg',
-        thumbnailUrl: 'https://cdn/secret-thumb.jpg',
         mediaType: 'image',
-        voiceUrl: 'https://cdn/secret-voice.m4a',
-        messageUnlocks: [],
       },
     ]);
 
     const result = await query.execute('conv-1', 50, 'prof-viewer');
 
-    expect(result[0].content).toBe('This message is locked. Pay to unlock.');
-    expect(result[0].url).toBeNull();
-    expect(result[0].standardUrl).toBeNull();
-    expect(result[0].thumbnailUrl).toBeNull();
-    expect(result[0].mediaType).toBeNull();
-    expect(result[0].voiceUrl).toBeNull();
-    // Still locked for this reader.
-    expect(result[0].isLocked).toBe(true);
-  });
-
-  it('does not mask locked message if viewer is the sender or has unlocked it', async () => {
-    mockPrisma.participant.findFirst.mockResolvedValue({ clearedAt: null });
-    mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'user-viewer' });
-
-    // The database answers newest first; the result is oldest first.
-    mockPrisma.message.findMany.mockResolvedValue([
-      {
-        id: 'msg-locked-own',
-        content: 'enc_my_locked_msg',
-        senderId: 'prof-viewer',
-        isLocked: true,
-        url: 'https://cdn/media2.jpg',
-        messageUnlocks: [],
-      },
-      {
-        id: 'msg-locked-unlocked',
-        content: 'enc_unlocked_msg',
-        senderId: 'prof-other',
-        isLocked: true,
-        url: 'https://cdn/media.jpg',
-        messageUnlocks: [{ id: 'unlock-1' }],
-      },
-    ]);
-
-    const result = await query.execute('conv-1', 50, 'prof-viewer');
-
-    expect(result[0].content).toBe('decrypted_enc_unlocked_msg');
-    expect(result[0].url).toBe('https://cdn/media.jpg');
-    expect(result[1].content).toBe('decrypted_enc_my_locked_msg');
-    expect(result[1].url).toBe('https://cdn/media2.jpg');
-    // Neither is locked for this reader, so the app shows them as read.
-    expect(result[0].isLocked).toBe(false);
-    expect(result[1].isLocked).toBe(false);
+    expect(result[0].content).toBe('decrypted_enc_secret');
+    expect(result[0].url).toBe('https://cdn/secret.jpg');
+    expect(result[0].mediaType).toBe('image');
   });
 
   it('prefers the linked Media rows over the inline columns, and exposes status', async () => {
@@ -213,7 +151,6 @@ describe('GetMessagesQuery', () => {
         id: 'msg-media',
         content: null,
         senderId: 'prof-1',
-        isLocked: false,
         url: 'https://cdn/stale.mp4',
         standardUrl: null,
         thumbnailUrl: null,
@@ -244,7 +181,6 @@ describe('GetMessagesQuery', () => {
         id: 'msg-1',
         content: '',
         senderId: 'prof-2',
-        isLocked: false,
         isDeleted: true,
         url: null,
         standardUrl: '/uploads/v/master.m3u8',
@@ -337,7 +273,6 @@ describe('GetMessagesQuery', () => {
       id,
       content: null,
       senderId: 'prof-2',
-      isLocked: false,
       createdAt: new Date(at),
     });
 
@@ -489,44 +424,5 @@ describe('GetMessagesQuery', () => {
       unavailable: true,
     });
     expect(m.sender.username).toBe('dan');
-  });
-
-  describe('a paid post shared in a message', () => {
-    const readBy = async (reader: string) => {
-      mockPrisma.participant.findFirst.mockResolvedValue({});
-      mockPrisma.profile.findUnique.mockResolvedValue({
-        userId: `user-of-${reader}`,
-      });
-      mockPrisma.message.findMany.mockResolvedValue([
-        {
-          id: 'm-text',
-          content: 'enc_hi',
-          senderId: 'dan',
-        },
-        {
-          id: 'm-shared',
-          content: null,
-          senderId: 'dan',
-          postId: 'paid-post',
-          post: paidPost([inlinePaidMedia()], {
-            moderationStatus: 'VISIBLE',
-            deletedAt: null,
-            archivedAt: null,
-          }),
-        },
-      ]);
-      const messages = (await query.execute('conv-1', 50, reader)) as any[];
-      expect(messages.find((m) => m.id === 'm-text').post).toBeUndefined();
-      return messages.find((m) => m.id === 'm-shared').post;
-    };
-
-    it('is closed to a reader who has not unlocked it', async () => {
-      expectClosed(await readBy(STRANGER_ID));
-    });
-
-    it('is whole for its author and for a reader who unlocked it', async () => {
-      expectWhole(await readBy(AUTHOR_ID));
-      expectWhole(await readBy(BUYER_ID));
-    });
   });
 });

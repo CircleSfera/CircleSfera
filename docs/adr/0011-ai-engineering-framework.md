@@ -9,7 +9,7 @@
 
 Most CircleSfera development happens with AI coding tools (Cursor, Antigravity, cloud agents). The repo already had `AGENTS.md` defining operating rules, but nothing operational underneath it: no shared project context, no routing from a request to the right lens, no workflow, no closing gates. In practice each session re-derived the same facts from the codebase, sometimes wrongly, and produced inconsistent decisions across sessions.
 
-The codebase is large enough that this matters: 76 Prisma models, 51 Nest modules, a React 19 SPA, Stripe Connect money flows, encrypted chat, moderation and GDPR obligations. Ad-hoc prompting on a surface that size reliably invents endpoints, models and enums that do not exist.
+The codebase is large enough that this matters: 76 Prisma models, 51 Nest modules, a React 19 SPA, Stripe money flows, encrypted chat, moderation and GDPR obligations. Ad-hoc prompting on a surface that size reliably invents endpoints, models and enums that do not exist.
 
 ## Decision
 

@@ -554,7 +554,6 @@ async function main() {
     }
   }
 
-  // Creator monetization transactions
   let userCookies;
   try {
     const login = await userLogin();
@@ -566,34 +565,6 @@ async function main() {
   }
 
   if (userCookies) {
-    const { res, json } = await fetchJson(
-      '/monetization/transactions?limit=10',
-      {
-        cookies: userCookies,
-      },
-    );
-    if (!res.ok) {
-      record('creator monetization transactions', 'FAIL', `HTTP ${res.status}`);
-    } else {
-      const rows = json?.data ?? [];
-      record(
-        'creator monetization transactions',
-        'PASS',
-        `${rows.length} row(s), no 500`,
-      );
-      const bad = rows.filter(
-        (tx) => tx.sender?.profiles && !tx.sender?.profile,
-      );
-      if (bad.length)
-        record(
-          'creator tx sender.profile shape',
-          'FAIL',
-          `${bad.length} unmapped`,
-        );
-      else if (rows.length) record('creator tx sender.profile shape', 'PASS');
-      else record('creator tx sender.profile shape', 'SKIP', 'empty');
-    }
-
     await validateWithFixtures(adminCookies, userCookies);
   }
 
