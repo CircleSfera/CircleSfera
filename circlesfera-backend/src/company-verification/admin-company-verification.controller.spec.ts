@@ -30,6 +30,7 @@ describe('AdminCompanyVerificationController', () => {
     detail: vi.fn(),
     document: vi.fn(),
     decide: vi.fn(),
+    identityName: vi.fn(),
   };
   const DOC = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 
@@ -109,6 +110,22 @@ describe('AdminCompanyVerificationController', () => {
       TEST_ADMIN.adminId,
       TEST_UUID,
       DOC,
+    );
+  });
+
+  it('gives the verified name of a sole trader, never cached', async () => {
+    review.identityName.mockResolvedValue({
+      name: { firstName: 'Ana', lastName: 'Ruiz' },
+    });
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/admin/company-verifications/${TEST_UUID}/identity-name`)
+      .set(ADMIN_BEARER)
+      .expect(200);
+    expect(res.body).toEqual({ name: { firstName: 'Ana', lastName: 'Ruiz' } });
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(review.identityName).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      TEST_UUID,
     );
   });
 

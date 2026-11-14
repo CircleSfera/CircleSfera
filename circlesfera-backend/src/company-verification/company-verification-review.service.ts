@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import { CryptoService } from '../common/services/crypto.service.js';
+import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -44,11 +45,7 @@ const STAFF_SELECT = {
       username: true,
       accountType: true,
       verificationLevel: true,
-      user: {
-        // The identity check, so staff can match a sole trader's name in
-        // the provider that verified it.
-        select: { identityVerifiedAt: true, stripeIdentitySessionId: true },
-      },
+      user: { select: { identityVerifiedAt: true } },
     },
   },
   documents: {
@@ -74,7 +71,59 @@ export class CompanyVerificationReviewService {
     @Inject(CryptoService) private readonly crypto: CryptoService,
     @Inject(EmailService) private readonly email: EmailService,
     @Inject(EventEmitter2) private readonly events: EventEmitter2,
+    @Inject(StripeService) private readonly stripe: StripeService,
   ) {}
+
+  // The name on the identity document of the person who holds a sole
+  // trader's Profile, read from the provider that verified it when staff
+  // ask, to match it against the documents. Never stored; each reading is
+  // recorded. Null when there is no verified identity to read.
+  async identityName(adminId: string, id: string) {
+    const application = await this.prisma.companyVerification.findUnique({
+      where: { id },
+      select: {
+        kind: true,
+        profile: {
+          select: { user: { select: { stripeIdentitySessionId: true } } },
+        },
+      },
+    });
+    if (!application) throw this.notFound();
+    if (application.kind !== 'SOLE_TRADER') {
+      throw AppException.BadRequest(
+        ErrorCode.COMPANY_VERIFICATION_LOCKED,
+        'Only a sole trader is matched against the identity',
+      );
+    }
+    const sessionId = application.profile.user?.stripeIdentitySessionId;
+    let name: { firstName: string; lastName: string } | null = null;
+    if (sessionId) {
+      const session = await this.stripe
+        .getIdentityVerificationSession(sessionId)
+        .catch((err: unknown) => {
+          this.logger.error('Failed to read the identity session', err);
+          return null;
+        });
+      const outputs =
+        session?.status === 'verified' ? session.verified_outputs : null;
+      if (outputs?.first_name || outputs?.last_name) {
+        name = {
+          firstName: outputs.first_name ?? '',
+          lastName: outputs.last_name ?? '',
+        };
+      }
+    }
+    await this.prisma.adminAuditLog.create({
+      data: {
+        adminId,
+        action: AdminAction.COMPANY_IDENTITY_VIEWED,
+        targetType: 'company_verification',
+        targetId: id,
+        details: name ? 'Identity name read' : 'No identity name to read',
+      },
+    });
+    return { name };
+  }
 
   // The applications waiting, oldest first.
   async queue() {

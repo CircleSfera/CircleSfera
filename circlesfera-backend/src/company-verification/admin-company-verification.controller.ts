@@ -49,6 +49,17 @@ export class AdminCompanyVerificationController {
     return this.review.detail(id);
   }
 
+  // The verified identity's name of a sole trader, to match the documents.
+  @Get(':id/identity-name')
+  @Header('Cache-Control', 'no-store')
+  @ApiResponse({ status: 200 })
+  identityName(
+    @CurrentAdmin() admin: CurrentAdminData,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.review.identityName(admin.adminId, id);
+  }
+
   // A document, shown in the Backoffice only: never cached, never sniffed,
   // never run as a page.
   @Get(':id/documents/:documentId')

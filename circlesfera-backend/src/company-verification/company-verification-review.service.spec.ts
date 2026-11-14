@@ -6,6 +6,7 @@ describe('CompanyVerificationReviewService', () => {
   let crypto: { decrypt: ReturnType<typeof vi.fn> };
   let email: { sendCompanyVerificationDecided: ReturnType<typeof vi.fn> };
   let events: { emit: ReturnType<typeof vi.fn> };
+  let stripe: { getIdentityVerificationSession: ReturnType<typeof vi.fn> };
   let service: CompanyVerificationReviewService;
 
   beforeEach(() => {
@@ -40,11 +41,18 @@ describe('CompanyVerificationReviewService', () => {
       sendCompanyVerificationDecided: vi.fn().mockResolvedValue(undefined),
     };
     events = { emit: vi.fn() };
+    stripe = {
+      getIdentityVerificationSession: vi.fn().mockResolvedValue({
+        status: 'verified',
+        verified_outputs: { first_name: 'Ana', last_name: 'Ruiz Gil' },
+      }),
+    };
     service = new CompanyVerificationReviewService(
       prisma,
       crypto as never,
       email as never,
       events as never,
+      stripe as never,
     );
   });
 
@@ -188,5 +196,84 @@ describe('CompanyVerificationReviewService', () => {
     await expect(
       service.decide('admin-1', 'app-1', { approve: true }),
     ).resolves.toEqual({ id: 'app-1' });
+  });
+
+  describe('the verified name of a sole trader', () => {
+    const soleTrader = (sessionId: string | null = 'vs_1') => ({
+      kind: 'SOLE_TRADER',
+      profile: { user: { stripeIdentitySessionId: sessionId } },
+    });
+
+    it('is read from the provider when asked, never stored, and each reading recorded', async () => {
+      prisma.companyVerification.findUnique.mockResolvedValueOnce(soleTrader());
+      await expect(service.identityName('admin-1', 'app-1')).resolves.toEqual({
+        name: { firstName: 'Ana', lastName: 'Ruiz Gil' },
+      });
+      expect(stripe.getIdentityVerificationSession).toHaveBeenCalledWith(
+        'vs_1',
+      );
+      expect(prisma.companyVerification.updateMany).not.toHaveBeenCalled();
+      expect(prisma.adminAuditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          adminId: 'admin-1',
+          action: 'COMPANY_IDENTITY_VIEWED',
+          details: 'Identity name read',
+        }),
+      });
+    });
+
+    it('is none without a verified session, or when the provider cannot answer', async () => {
+      prisma.companyVerification.findUnique.mockResolvedValueOnce(
+        soleTrader(null),
+      );
+      await expect(service.identityName('admin-1', 'app-1')).resolves.toEqual({
+        name: null,
+      });
+      expect(stripe.getIdentityVerificationSession).not.toHaveBeenCalled();
+
+      prisma.companyVerification.findUnique.mockResolvedValueOnce(soleTrader());
+      stripe.getIdentityVerificationSession.mockResolvedValueOnce({
+        status: 'requires_input',
+        verified_outputs: { first_name: 'X' },
+      });
+      await expect(service.identityName('admin-1', 'app-1')).resolves.toEqual({
+        name: null,
+      });
+
+      prisma.companyVerification.findUnique.mockResolvedValueOnce(soleTrader());
+      stripe.getIdentityVerificationSession.mockRejectedValueOnce(
+        new Error('down'),
+      );
+      await expect(service.identityName('admin-1', 'app-1')).resolves.toEqual({
+        name: null,
+      });
+      expect(prisma.adminAuditLog.create).toHaveBeenLastCalledWith({
+        data: expect.objectContaining({ details: 'No identity name to read' }),
+      });
+    });
+
+    it('a last name alone is enough, and a company is not matched against a person', async () => {
+      prisma.companyVerification.findUnique.mockResolvedValueOnce(soleTrader());
+      stripe.getIdentityVerificationSession.mockResolvedValueOnce({
+        status: 'verified',
+        verified_outputs: { last_name: 'Ruiz' },
+      });
+      await expect(service.identityName('admin-1', 'app-1')).resolves.toEqual({
+        name: { firstName: '', lastName: 'Ruiz' },
+      });
+
+      prisma.companyVerification.findUnique.mockResolvedValueOnce({
+        kind: 'COMPANY',
+        profile: { user: null },
+      });
+      await expect(
+        service.identityName('admin-1', 'app-1'),
+      ).rejects.toMatchObject({ errorCode: 'COMPANY_VERIFICATION_LOCKED' });
+
+      prisma.companyVerification.findUnique.mockResolvedValueOnce(null);
+      await expect(
+        service.identityName('admin-1', 'app-x'),
+      ).rejects.toMatchObject({ errorCode: 'COMPANY_VERIFICATION_NOT_FOUND' });
+    });
   });
 });
