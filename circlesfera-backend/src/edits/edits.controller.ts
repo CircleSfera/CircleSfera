@@ -40,6 +40,14 @@ export class EditsController {
     return this.editsService.findAll(user.profileId);
   }
 
+  // Whether the Profile in use has the Studio's Pro features, decided here
+  // and never by the app.
+  @Get('pro')
+  @ApiResponse({ status: 200 })
+  studioPro(@CurrentUser() user: CurrentUserData) {
+    return this.editsService.studioPro(user.profileId);
+  }
+
   @Post(':id/captions')
   @Throttle({ short: { limit: 3, ttl: 3600000 } })
   @ApiResponse({ status: 201 })

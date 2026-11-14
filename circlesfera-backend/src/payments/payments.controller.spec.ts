@@ -188,6 +188,37 @@ describe('PaymentsController', () => {
     );
   });
 
+  it('cancels and resumes the Edits Studio Pro add-on of the session Profile apart from its plan', async () => {
+    mockService.cancelPlan.mockResolvedValue({ hasActiveSubscription: true });
+    mockService.resumePlan.mockResolvedValue({ hasActiveSubscription: true });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/studio-pro/cancel')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/studio-pro/resume')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.cancelPlan).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+      true,
+    );
+    expect(mockService.resumePlan).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+      true,
+    );
+  });
+
+  it('refuses to cancel the add-on without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/studio-pro/cancel')
+      .expect(401);
+  });
+
   it('refuses to resume a plan without a session', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/payments/plan/resume')

@@ -219,7 +219,12 @@ describe('SubscriptionGuard', () => {
 
     expect(
       prisma.platformSubscription.findFirst.mock.calls[0][0].where,
-    ).toEqual({ userId: 'u-1', profileId: 'p-2', status: 'ACTIVE' });
+    ).toEqual({
+      userId: 'u-1',
+      profileId: 'p-2',
+      addOn: false,
+      status: 'ACTIVE',
+    });
   });
 
   it('refuses a session without a Profile, without looking for any plan', async () => {

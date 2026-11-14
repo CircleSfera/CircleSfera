@@ -90,7 +90,8 @@ export class CircleSferaAccountCard implements AccountCardProvider {
           },
         },
         platformSubscriptions: {
-          where: { status: 'ACTIVE' },
+          // The plan, not the Edits Studio Pro add-on.
+          where: { status: 'ACTIVE', addOn: false },
           orderBy: { createdAt: 'desc' },
           take: 1,
           select: {

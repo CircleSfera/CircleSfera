@@ -2,6 +2,7 @@
 
 - **Status:** Superseded in part by [ADR-0025](./0025-sign-in-per-profile-one-identity.md)
 - **What no longer holds:** the rule is one active plan per **Profile**, not per `User`. A person may hold several plans, one per Profile, checked in `PaymentsService.createCheckout` and kept by a partial unique index on the subscriptions. The rest of this record (the checkout refusing a second plan, the healing of races when a plan is activated) describes the same mechanism, now scoped to the Profile.
+- **Amended (add-on):** a Profile may also hold one add-on, Edits Studio Pro, beside its plan, as the owner decided. The partial unique index is on (`profileId`, `addOn`): at most one active plan and one active add-on per Profile. Checkout refuses the add-on beside a plan that includes the Studio's Pro features and refuses such a plan while the add-on still renews; resuming the add-on beside such a plan is refused; if two checkouts at once still leave both running, the add-on stops renewing and ends with the period paid. The healing of races cancels only an older subscription of the same kind. This is the deliberate relaxation the last consequence below asked for.
 - **Date:** 2026-07-23
 - **Deciders:** CircleSfera engineering (remediation pass)
 
