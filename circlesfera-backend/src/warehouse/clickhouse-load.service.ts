@@ -9,6 +9,15 @@ import {
 } from '../users/events/user-hard-deleted.event.js';
 import type { ExportRowCounts, ExportTableName } from './types/export.types.js';
 
+/** Columns of the former payments to creators, gone from the export. */
+export const RETIRED_PAYMENT_COLUMNS = [
+  'receiverId',
+  'receiverProfileId',
+  'postId',
+  'storyId',
+  'liveStreamId',
+] as const;
+
 @Injectable()
 export class ClickHouseLoadService {
   private readonly logger = new Logger(ClickHouseLoadService.name);
@@ -35,6 +44,9 @@ export class ClickHouseLoadService {
 
     for (const table of Object.keys(rowCounts) as ExportTableName[]) {
       if (rowCounts[table] === 0) continue;
+      if (table === 'transactions') {
+        await this.dropRetiredPaymentColumns(baseUrl, database);
+      }
       const csvPath = join(outputDir, `${table}.csv`);
       const csv = await readFile(csvPath, 'utf8');
       await this.insertCsv(baseUrl, database, table, csv);
@@ -72,6 +84,24 @@ export class ClickHouseLoadService {
         `ClickHouse rows of an erased person could not be removed: ${String(err)}`,
       );
     }
+  }
+
+  // A table created before payments to creators were removed still has their
+  // columns. They are dropped before payments are loaded; once gone, the
+  // statement changes nothing.
+  private async dropRetiredPaymentColumns(
+    baseUrl: string,
+    database: string,
+  ): Promise<void> {
+    const url = new URL(baseUrl);
+    url.searchParams.set('database', database);
+    url.searchParams.set(
+      'query',
+      `ALTER TABLE transactions ${RETIRED_PAYMENT_COLUMNS.map(
+        (column) => `DROP COLUMN IF EXISTS ${column}`,
+      ).join(', ')}`,
+    );
+    await this.post(url, 'text/plain', '', 'drop retired payment columns');
   }
 
   private database(): string {
