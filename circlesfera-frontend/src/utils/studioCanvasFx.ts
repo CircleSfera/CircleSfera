@@ -1,6 +1,7 @@
 import type { EffectClip, TransitionKind } from '../types/studio';
 import {
   COOL_COLOR,
+  duotonePixel,
   effectAmounts,
   shakeAt,
   VIGNETTE_STOPS,
@@ -287,6 +288,19 @@ export function drawEffect(
         ctx.fillStyle = pattern;
         ctx.fillRect(0, 0, width, height);
       }
+      break;
+    }
+    case 'duotone': {
+      // The same sum per pixel as the export's geq.
+      const image = ctx.getImageData(0, 0, width, height);
+      const px = image.data;
+      for (let i = 0; i < px.length; i += 4) {
+        const [r, g, b] = duotonePixel(px[i], px[i + 1], px[i + 2], a.amount);
+        px[i] = r;
+        px[i + 1] = g;
+        px[i + 2] = b;
+      }
+      ctx.putImageData(image, 0, 0);
       break;
     }
     case 'rgbsplit': {

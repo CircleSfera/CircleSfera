@@ -1,5 +1,5 @@
 import { act, fireEvent, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStudioStore } from '../../../stores/studioStore';
 import {
   effectClip,
@@ -19,6 +19,11 @@ import { DEFAULT_TRANSITION_SEC } from '../../../utils/studioTransitions';
 import ColorPanel from './ColorPanel';
 import EffectsPanel from './EffectsPanel';
 import TransitionPanel from './TransitionPanel';
+
+const studioPro = vi.hoisted(() => ({ pro: false }));
+vi.mock('../../../services/edits.service', () => ({
+  editsService: { getStudioPro: vi.fn(async () => ({ ...studioPro })) },
+}));
 
 const store = () => useStudioStore.getState();
 const three = (over: Partial<MediaClip> = {}) =>
@@ -114,6 +119,27 @@ describe('effects', () => {
     useStudioStore.setState((s) => ({
       project: s.project ? { ...s.project, duration: 12 } : null,
     }));
+  });
+
+  it('locks the Pro effects without Edits Studio Pro, and offers them with it', async () => {
+    studioPro.pro = false;
+    const view = renderWithProviders(<EffectsPanel />);
+    expect(await screen.findByTestId('effects-pro-note')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Duotone' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Blur' })).toBeEnabled();
+    view.unmount();
+
+    studioPro.pro = true;
+    renderWithProviders(<EffectsPanel />);
+    const duotone = screen.getByRole('button', { name: 'Duotone' });
+    await vi.waitFor(() => expect(duotone).toBeEnabled());
+    fireEvent.click(duotone);
+    expect(
+      store()
+        .project?.tracks.flatMap((t) => t.clips)
+        .some((c) => (c as EffectClip).effect === 'duotone'),
+    ).toBe(true);
+    studioPro.pro = false;
   });
 
   it('adds an effect at the playhead, on an effects layer, for the time left', () => {

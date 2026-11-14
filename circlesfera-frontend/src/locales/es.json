@@ -5194,7 +5194,9 @@
       "rgbsplit": "Separación RGB",
       "intensity": "Intensidad",
       "replace": "Cambiar por",
-      "add_hint": "Se añade en el cursor, en la capa de efectos"
+      "add_hint": "Se añade en el cursor, en la capa de efectos",
+      "duotone": "Duotono",
+      "pro_note": "El duotono y los demás efectos con candado vienen con Edits Studio Pro."
     },
     "transitions": {
       "title": "Transiciones",

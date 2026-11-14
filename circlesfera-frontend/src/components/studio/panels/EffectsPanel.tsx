@@ -1,10 +1,13 @@
+import { Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useStudioPro } from '../../../hooks/useStudioPro';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { EffectClip, EffectKind } from '../../../types/studio';
 import {
   DEFAULT_EFFECT_INTENSITY,
   EFFECT_CLIP_SEC,
   EFFECT_KINDS,
+  PRO_EFFECTS,
 } from '../../../utils/studioEffects';
 import {
   emptyTrack,
@@ -28,6 +31,7 @@ const chip = (on: boolean) =>
  */
 export default function EffectsPanel() {
   const { t } = useTranslation();
+  const { pro } = useStudioPro();
   const project = useStudioStore((s) => s.project);
   const playhead = useStudioStore((s) => s.playhead);
   const selectedClipId = useStudioStore((s) => s.selectedClipId);
@@ -79,24 +83,36 @@ export default function EffectsPanel() {
         <legend className="mb-2 text-sm text-white/60">
           {chosen ? t('studio.effects.replace') : t('studio.effects.add_hint')}
         </legend>
-        {EFFECT_KINDS.map((effect) => (
-          <button
-            key={effect}
-            type="button"
-            aria-pressed={chosen ? chosen.effect === effect : undefined}
-            onClick={() =>
-              chosen
-                ? updateClip(chosen.id, { effect } as Partial<EffectClip>, {
-                    history: true,
-                  })
-                : add(effect)
-            }
-            className={chip(chosen?.effect === effect)}
-          >
-            {t(`studio.effects.${effect}`)}
-          </button>
-        ))}
+        {EFFECT_KINDS.map((effect) => {
+          // A Pro effect is chosen only with Pro; one already on the
+          // timeline stays and exports without it.
+          const locked = PRO_EFFECTS.has(effect) && !pro;
+          return (
+            <button
+              key={effect}
+              type="button"
+              aria-pressed={chosen ? chosen.effect === effect : undefined}
+              disabled={locked}
+              onClick={() =>
+                chosen
+                  ? updateClip(chosen.id, { effect } as Partial<EffectClip>, {
+                      history: true,
+                    })
+                  : add(effect)
+              }
+              className={`${chip(chosen?.effect === effect)} inline-flex items-center gap-1.5 disabled:opacity-50`}
+            >
+              {t(`studio.effects.${effect}`)}
+              {locked ? <Lock size={12} aria-hidden /> : null}
+            </button>
+          );
+        })}
       </fieldset>
+      {!pro ? (
+        <p className="text-xs text-white/60" data-testid="effects-pro-note">
+          {t('studio.effects.pro_note')}
+        </p>
+      ) : null}
     </div>
   );
 }
