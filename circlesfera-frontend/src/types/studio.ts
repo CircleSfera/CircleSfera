@@ -204,7 +204,9 @@ export type EffectKind =
   | 'slowzoom'
   | 'mono'
   | 'glow'
-  | 'rgbsplit';
+  | 'rgbsplit'
+  // Edits Studio Pro.
+  | 'duotone';
 
 /** An effect on the effects layer: it changes the picture for its stretch. */
 export interface EffectClip extends BaseClip {

@@ -5168,7 +5168,9 @@
       "rgbsplit": "RGB split",
       "intensity": "Intensity",
       "replace": "Change to",
-      "add_hint": "Added at the playhead, on the effects layer"
+      "add_hint": "Added at the playhead, on the effects layer",
+      "duotone": "Duotone",
+      "pro_note": "Duotone and the other effects with a lock come with Edits Studio Pro."
     },
     "transitions": {
       "title": "Transitions",

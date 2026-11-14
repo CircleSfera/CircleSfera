@@ -15,7 +15,49 @@ export const EFFECT_KINDS: readonly EffectKind[] = [
   'mono',
   'glow',
   'rgbsplit',
+  'duotone',
 ];
+
+/** The effects that come with Edits Studio Pro: chosen only with it. */
+export const PRO_EFFECTS: ReadonlySet<EffectKind> = new Set(['duotone']);
+
+/**
+ * Duotone: the picture's lightness painted from one colour in the shadows
+ * to another in the lights, mixed with the picture by the intensity.
+ */
+export const DUOTONE_SHADOW = [35, 16, 79] as const;
+export const DUOTONE_LIGHT = [255, 122, 92] as const;
+const LUMA = [0.299, 0.587, 0.114] as const;
+
+/** One pixel through the duotone at a share k of the way, 0 to 255 each. */
+export function duotonePixel(
+  r: number,
+  g: number,
+  b: number,
+  k: number,
+): [number, number, number] {
+  const lum = (LUMA[0] * r + LUMA[1] * g + LUMA[2] * b) / 255;
+  const source = [r, g, b];
+  return [0, 1, 2].map((c) => {
+    const tone =
+      DUOTONE_SHADOW[c] + (DUOTONE_LIGHT[c] - DUOTONE_SHADOW[c]) * lum;
+    return Math.max(
+      0,
+      Math.min(255, Math.round(source[c] + k * (tone - source[c]))),
+    );
+  }) as [number, number, number];
+}
+
+/** The same as ffmpeg geq expressions for r, g and b, in RGB. */
+export function duotoneGeq(k: number): string {
+  const lum = `(${LUMA[0]}*r(X\\,Y)+${LUMA[1]}*g(X\\,Y)+${LUMA[2]}*b(X\\,Y))/255`;
+  const plane = (c: 0 | 1 | 2, fn: 'r' | 'g' | 'b') => {
+    const source = `${fn}(X\\,Y)`;
+    const span = DUOTONE_LIGHT[c] - DUOTONE_SHADOW[c];
+    return `${fn}='clip(round(${source}+${k}*(${DUOTONE_SHADOW[c]}+${span}*${lum}-${source}))\\,0\\,255)'`;
+  };
+  return `format=gbrp,geq=${plane(0, 'r')}:${plane(1, 'g')}:${plane(2, 'b')}`;
+}
 
 /** How long a new effect lasts, in seconds, when the video has that much left. */
 export const EFFECT_CLIP_SEC = 3;
@@ -90,6 +132,8 @@ export function effectAmounts(
       return { dark: round(k * VIGNETTE_DARK) };
     case 'mono':
       return { amount: round(k) };
+    case 'duotone':
+      return { amount: round(k) };
   }
 }
 
@@ -151,6 +195,8 @@ export function effectFilter(
     }
     case 'vignette':
       return `format=rgba[${tag}a];[${tag}a][${mask}]overlay=0:0:format=auto`;
+    case 'duotone':
+      return duotoneGeq((a as { amount: number }).amount);
   }
 }
 

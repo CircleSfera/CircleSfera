@@ -25,6 +25,7 @@ export const EFFECT_KINDS = [
   'mono',
   'glow',
   'rgbsplit',
+  'duotone',
 ] as const;
 export const KEY_PROPS = [
   'x',
