@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 // Dates and numbers in the app language, never the browser's. Components
 // pass `i18n.language` from useTranslation so the text follows a language
 // change.
@@ -22,7 +24,7 @@ export function formatDay(value: DateInput, language: string): string {
 export function formatWaiting(
   value: DateInput,
   language: string,
-  t: (key: string, options?: Record<string, unknown>) => string,
+  t: TFunction,
 ): string {
   const minutes = Math.floor(
     Math.max(0, Date.now() - new Date(value).getTime()) / 60_000,

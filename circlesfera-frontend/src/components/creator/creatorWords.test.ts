@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { againstAverage, localHour, weekdayName } from './creatorWords';
 
 const t = ((key: string, options?: { value?: number }) =>
-  options?.value == null ? key : `${key}:${options.value}`) as TFunction;
+  options?.value == null
+    ? key
+    : `${key}:${options.value}`) as unknown as TFunction;
 
 describe('againstAverage', () => {
   it('says a score as a distance from the average of the profile', () => {

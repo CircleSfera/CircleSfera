@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import { Flag, Gavel, Scale, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -290,10 +291,7 @@ type ReviewEnforcementRow =
   | ReviewAppeal
   | ReviewNotice;
 
-function stateLabel(
-  t: (key: string, options?: Record<string, unknown>) => string,
-  state: string,
-) {
+function stateLabel(t: TFunction, state: string) {
   return t(`admin.review.state.${state}`, { defaultValue: state });
 }
 

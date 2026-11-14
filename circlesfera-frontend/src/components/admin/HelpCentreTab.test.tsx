@@ -83,7 +83,7 @@ describe('HelpCentreTab', () => {
       <HelpCentreTab onToast={onToast} />,
     );
     const t = (key: string, values?: Record<string, unknown>) =>
-      i18n!.t(`admin.support.help_centre.${key}`, values);
+      i18n!.t(`admin.support.help_centre.${key}`, { ...values });
     await screen.findByRole('heading', { name: t('title') });
     return { t, panel: within(container) };
   };

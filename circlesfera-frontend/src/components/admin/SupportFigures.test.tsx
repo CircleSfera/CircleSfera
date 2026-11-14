@@ -41,7 +41,7 @@ describe('SupportFigures', () => {
   const openPanel = async () => {
     const { i18n } = renderWithProviders(<SupportFigures />);
     const t = (key: string, values?: Record<string, unknown>) =>
-      i18n!.t(`admin.support.figures.${key}`, values);
+      i18n!.t(`admin.support.figures.${key}`, { ...values });
     fireEvent.click(screen.getByRole('button', { name: t('open') }));
     return { t, panel: within(await screen.findByRole('dialog')) };
   };
