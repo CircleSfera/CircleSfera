@@ -10,10 +10,6 @@ vi.mock('../services', () => ({
   commentsApi: { getByPost: vi.fn() },
 }));
 
-vi.mock('react-hot-toast', () => ({
-  default: { success: vi.fn(), error: vi.fn() },
-}));
-
 vi.mock('../components/common/SEO', () => ({
   default: () => null,
 }));

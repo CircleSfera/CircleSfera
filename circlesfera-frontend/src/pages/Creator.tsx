@@ -17,6 +17,7 @@ import {
 } from 'react-router-dom';
 import CreatorShell from '../components/creator/CreatorShell';
 import {
+  CREATOR_LEGACY_TABS,
   type CreatorTab,
   isCreatorTab,
 } from '../components/creator/creatorNav';
@@ -34,8 +35,8 @@ const CreatorAnalyticsTab = lazy(
 const CreatorDashboard = lazy(
   () => import('../components/creator/CreatorDashboard'),
 );
-const CreatorMoneyTab = lazy(
-  () => import('../components/creator/CreatorMoneyTab'),
+const CreatorPlansTab = lazy(
+  () => import('../components/creator/CreatorPlansTab'),
 );
 const CreatorPostsTab = lazy(
   () => import('../components/creator/CreatorPostsTab'),
@@ -56,7 +57,7 @@ export default function Creator() {
   const handledPromoReturn = useRef(false);
   const [promotePost, setPromotePost] = useState<CreatorPost | null>(null);
 
-  const isFinanceRedirect = tab === 'finance';
+  const isFinanceRedirect = !!tab && CREATOR_LEGACY_TABS.includes(tab);
   const isInvalidTab = !!tab && !isFinanceRedirect && !isCreatorTab(tab);
   const activeTab: CreatorTab = isCreatorTab(tab) ? tab : 'overview';
 
@@ -104,9 +105,7 @@ export default function Creator() {
 
   if (isFinanceRedirect) {
     const qs = searchParams.toString();
-    return (
-      <Navigate to={`/creator/monetization${qs ? `?${qs}` : ''}`} replace />
-    );
+    return <Navigate to={`/creator/plans${qs ? `?${qs}` : ''}`} replace />;
   }
 
   if (isInvalidTab) {
@@ -145,8 +144,8 @@ export default function Creator() {
               <CreatorPostsTab onPromote={(post) => setPromotePost(post)} />
             )}
             {activeTab === 'stories' && <CreatorStoriesTab />}
-            {activeTab === 'monetization' && (
-              <CreatorMoneyTab onToast={creatorToast} />
+            {activeTab === 'plans' && (
+              <CreatorPlansTab onToast={creatorToast} />
             )}
             {activeTab === 'ads' && (
               <CreatorPromotionsTab onToast={creatorToast} />

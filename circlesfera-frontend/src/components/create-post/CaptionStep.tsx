@@ -2,7 +2,6 @@ import type { PostShape } from '@circlesfera/shared';
 import {
   BarChart2,
   ChevronRight,
-  Euro,
   Eye,
   Image as ImageIcon,
   MapPin,
@@ -45,7 +44,6 @@ interface CaptionStepProps {
   selectedAudio: AudioTrack | null;
   onClearAudio: () => void;
   onOpenMusic: () => void;
-  isPremium?: boolean;
   interactiveDraft?: InteractiveDraft;
   // A frame whose author already chose its cover.
   hasChosenCover?: boolean;
@@ -79,7 +77,6 @@ export default function CaptionStep({
   selectedAudio,
   onClearAudio,
   onOpenMusic,
-  isPremium,
   interactiveDraft,
   hasChosenCover = false,
   shareToStory,
@@ -192,21 +189,6 @@ export default function CaptionStep({
           } satisfies OptionRow,
         ]
       : []),
-    // A price is money, which stays with the owner: a team member
-    // publishes free content only.
-    ...(profile?.memberRole
-      ? []
-      : [
-          {
-            key: 'monetization',
-            icon: Euro,
-            label: isPremium
-              ? t('createPost.caption.monetization_active')
-              : t('createPost.caption.monetization'),
-            isActive: !!isPremium,
-            onClick: () => setSubScreen('monetization'),
-          } satisfies OptionRow,
-        ]),
     {
       key: 'accessibility',
       icon: Eye,

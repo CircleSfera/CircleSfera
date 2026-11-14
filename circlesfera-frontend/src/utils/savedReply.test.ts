@@ -6,7 +6,7 @@ import {
 } from './savedReply';
 
 describe('saved replies', () => {
-  const ticket = { name: 'Ana', subject: 'My payout', reference: 1042 };
+  const ticket = { name: 'Ana', subject: 'My plan', reference: 1042 };
 
   it('fills the name, the subject and the number of the request', () => {
     expect(
@@ -14,7 +14,7 @@ describe('saved replies', () => {
         'Hello {{name}}, about "{{subject}}" (request #{{reference}}).',
         ticket,
       ),
-    ).toBe('Hello Ana, about "My payout" (request #1042).');
+    ).toBe('Hello Ana, about "My plan" (request #1042).');
   });
 
   it('accepts spaces and capitals inside the braces, and fills every occurrence', () => {

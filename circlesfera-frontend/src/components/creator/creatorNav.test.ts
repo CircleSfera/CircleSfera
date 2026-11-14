@@ -10,7 +10,7 @@ describe('creatorNav', () => {
     expect(CREATOR_TAB_IDS).toEqual([
       'overview',
       'analytics',
-      'monetization',
+      'plans',
       'ads',
       'content',
       'stories',
@@ -23,6 +23,7 @@ describe('creatorNav', () => {
   it('validates creator tab ids', () => {
     expect(isCreatorTab('overview')).toBe(true);
     expect(isCreatorTab('finance')).toBe(false);
+    expect(isCreatorTab('monetization')).toBe(false);
     expect(isCreatorTab('unknown')).toBe(false);
   });
 });

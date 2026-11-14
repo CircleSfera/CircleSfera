@@ -21,7 +21,6 @@ interface CarouselProps {
   aspectRatio?: string;
   objectFit?: 'cover' | 'contain';
   className?: string;
-  isLocked?: boolean;
   priority?: boolean;
   activeIndex?: number;
   onActiveIndexChange?: (index: number) => void;
@@ -48,7 +47,6 @@ export default function Carousel({
   aspectRatio = 'aspect-4/5',
   objectFit = 'cover',
   className = '',
-  isLocked = false,
   priority = false,
   activeIndex,
   onActiveIndexChange,
@@ -171,10 +169,6 @@ export default function Carousel({
       item.filter,
     );
 
-    const blurClass = isLocked
-      ? 'blur-2xl scale-[1.2] pointer-events-none'
-      : '';
-
     const fitClass = objectFit === 'cover' ? 'object-cover' : 'object-contain';
 
     if (item.type === 'video') {
@@ -191,7 +185,7 @@ export default function Carousel({
             hlsUrl={
               item.standardUrl?.endsWith('.m3u8') ? item.standardUrl : undefined
             }
-            className={`w-full h-full ${fitClass} ${filterClass} ${blurClass} transition-all duration-300`}
+            className={`w-full h-full ${fitClass} ${filterClass} transition-all duration-300`}
             style={filterStyle}
             autoPlay
             muted={hasLibraryAudio ? true : isMuted}
@@ -202,16 +196,14 @@ export default function Carousel({
             onClick={toggleMute}
             preload={priority ? 'auto' : 'metadata'}
           />
-          {!isLocked && (
-            <button
-              type="button"
-              onClick={toggleMute}
-              aria-label={isMuted ? t('common.unmute') : t('common.mute')}
-              className="absolute bottom-4 right-4 w-11 h-11 flex items-center justify-center bg-black/50 backdrop-blur-md rounded-full text-white z-20 hover:bg-black/70 transition-colors"
-            >
-              {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={toggleMute}
+            aria-label={isMuted ? t('common.unmute') : t('common.mute')}
+            className="absolute bottom-4 right-4 w-11 h-11 flex items-center justify-center bg-black/50 backdrop-blur-md rounded-full text-white z-20 hover:bg-black/70 transition-colors"
+          >
+            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
         </div>
       );
     }
@@ -235,7 +227,7 @@ export default function Carousel({
         srcSet={srcSet}
         sizes="(max-width: 768px) 100vw, 800px"
         alt={item.altText || 'Post content'}
-        className={`w-full h-full ${fitClass} ${filterClass} ${blurClass}`}
+        className={`w-full h-full ${fitClass} ${filterClass}`}
         fit={objectFit}
         style={filterStyle}
         loading={priority ? 'eager' : 'lazy'}

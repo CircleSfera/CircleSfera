@@ -23,7 +23,6 @@ import {
   StatusBadge,
 } from './AdminTable';
 import { adminToast } from './adminToast';
-import MonetizationApplications from './MonetizationApplications';
 import { RecurringIncomeDays } from './RecurringIncomeDays';
 import StatCard from './StatCard';
 
@@ -200,9 +199,6 @@ export default function MonetizationTab() {
           </Button>
         }
       />
-
-      {/* Who may charge: the monetization programme's applications. */}
-      <MonetizationApplications />
 
       {/* SaaS Primary Stats */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3">

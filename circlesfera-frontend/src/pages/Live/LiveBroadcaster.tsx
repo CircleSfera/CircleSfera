@@ -69,7 +69,6 @@ import { useSocketStore } from '../../stores/socketStore';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 import { formatLiveStart } from '../../utils/liveSchedule';
-import { formatCents } from '../../utils/money';
 
 /** A neutral picture with the person's initials, for someone without one. */
 const fallbackAvatar = (username: string) => initialsAvatarUrl(username);
@@ -106,7 +105,6 @@ export default function LiveBroadcaster() {
   // What the summary says, counted on this screen while on air.
   const [peakViewers, setPeakViewers] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
-  const [giftsCents, setGiftsCents] = useState(0);
   // One sheet at a time: opening one closes the other.
   const [sheet, setSheet] = useState<
     'guests' | 'questions' | 'schedule' | 'upcoming' | null
@@ -278,18 +276,6 @@ export default function LiveBroadcaster() {
       setHighlightedQuestion(null);
     });
 
-    // Listen for gifts to update goal
-    socket.on('live:gift', (data: { amountCents?: number }) => {
-      if (data.amountCents) {
-        setGiftsCents((cents) => cents + (data.amountCents || 0));
-        setLiveGoal((prev) => {
-          if (!prev) return prev;
-          // In this example, 1 cent = 1 unit for the goal
-          return { ...prev, current: prev.current + (data.amountCents || 0) };
-        });
-      }
-    });
-
     // Viewers send every reaction, hearts included, as a reaction; a heart
     // of the host comes as a heart. Both float, and the hearts are counted.
     // Each floats for two seconds; leaving the live cancels what is left.
@@ -327,7 +313,6 @@ export default function LiveBroadcaster() {
       socket.off('live:question_asked');
       socket.off('live:question_highlighted');
       socket.off('live:question_cleared');
-      socket.off('live:gift');
       for (const timer of floating) clearTimeout(timer);
     };
   }, [streamId]);
@@ -621,10 +606,6 @@ export default function LiveBroadcaster() {
               [t('live.viewers_peak'), String(peakViewers)],
               [t('live.likes'), String(likesCount)],
               [t('live.comments'), String(commentsCount)],
-              [
-                t('live.gifts_received'),
-                formatCents(giftsCents, i18n.language),
-              ],
             ].map(([label, value]) => (
               <li
                 key={label}

@@ -14,7 +14,6 @@ slice, not the repo-root `e2e/` suite (that one hits Postgres).
 | `profile.spec.ts` | Own profile → Settings → bio save → bio on profile. |
 | `search.spec.ts` | Explore grid pin + people search (`es` placeholder). |
 | `messages.spec.ts` | Inbox thread → send text. |
-| `stripe.spec.ts` | Creator `/creator/monetization` → `Conectar Stripe` → Connect URL. |
 | `restrict.spec.ts` | Restrict from a profile's menu, restrict from a comment, approve a comment waiting for approval, unrestrict in Settings, at 390×844 and 1280×800 (`RESTRICT_SHOTS=dir` saves captures). |
 | `mention-tag-message-controls.spec.ts` | Choose who can mention, tag or message you in Settings → Privacy, approve a waiting tag and remove yourself from a post in Settings → Tags, and the notice when an account takes no message requests, at 390×844 and 1280×800 (`MENTION_TAG_SHOTS=dir` saves captures). |
 

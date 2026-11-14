@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Check,
@@ -19,11 +19,9 @@ import { useNavigate } from 'react-router-dom';
 import { STORY_MAX_DURATION_SEC } from '../constants/uploadLimits';
 import { useStoryPlayback } from '../hooks/useStoryPlayback';
 import { chatApi, storiesApi } from '../services';
-import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
 import type { Story, UserWithProfile } from '../types';
 import { apiErrorCode } from '../utils/apiErrorMessage';
-import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
 import { placementOf, placementOfSticker } from '../utils/storySticker';
 import { parseFilter } from '../utils/styleUtils';
@@ -51,11 +49,6 @@ import {
 } from './interactive/SharedPostSticker';
 import { SliderWidget } from './interactive/SliderWidget';
 import { RESULT_KINDS } from './interactive/StickerResultsCard';
-import PaywallOverlay from './monetization/PaywallOverlay';
-import {
-  useWithdrawalConsent,
-  type WithdrawalConsentGiven,
-} from './payments/WithdrawalConsent';
 import { StoryDeleteConfirm } from './StoryDeleteConfirm';
 import { StoryViewersSheet } from './StoryViewersSheet';
 import { buildMentionElement } from './story/storyComposer.append';
@@ -109,7 +102,6 @@ export default function StoryViewer({
   // A link of the story being opened: the story waits meanwhile.
   const [leaving, setLeaving] = useState<StoryLink | null>(null);
   const isModalOpen = showDeleteConfirm || showViewers || leaving !== null;
-  const [lockedPause, setLockedPause] = useState(false);
 
   const resolveStoryDurationMs = (story: Story | undefined): number => {
     if (!story) return STORY_IMAGE_DURATION_MS;
@@ -142,16 +134,11 @@ export default function StoryViewer({
         windowMs: resolveStoryDurationMs(story),
       };
     },
-    isPausedOverride: isModalOpen || lockedPause,
+    isPausedOverride: isModalOpen,
   });
 
   const currentStory = stories[currentIndex];
   const isOwner = profile?.id === currentStory?.profileId;
-  const isLocked = !!currentStory?.isLocked;
-
-  useEffect(() => {
-    setLockedPause(isLocked);
-  }, [isLocked]);
 
   // Probe video duration for the active story (and prefetch neighbors lightly).
   useEffect(() => {
@@ -179,29 +166,6 @@ export default function StoryViewer({
       video.src = '';
     };
   }, [currentIndex, stories, durationById]);
-
-  // Before paying: the consent to start at once and the acknowledgement of
-  // losing the withdrawal right.
-  const consent = useWithdrawalConsent();
-  const unlockMutation = useMutation({
-    mutationFn: (given: WithdrawalConsentGiven) =>
-      monetizationApi.unlockStory(
-        currentStory!.id,
-        window.location.href,
-        given,
-      ),
-    onSuccess: (response: { url?: string }) => {
-      if (response?.url) {
-        window.location.href = response.url;
-        return;
-      }
-      toast.success(t('story.unlock_success'));
-      queryClient.invalidateQueries({ queryKey: ['stories'] });
-    },
-    onError: (error: unknown) => {
-      reportPaymentError(error, t, 'story.unlock_error');
-    },
-  });
 
   // Safeguard
   useEffect(() => {
@@ -357,8 +321,8 @@ export default function StoryViewer({
   );
 
   // Someone mentioned in a story may add it to their own: its picture as the
-  // background and a mention of its author. Not a paid story, nor one for
-  // close friends, whose picture is not for everyone.
+  // background and a mention of its author. Not a story for close friends,
+  // whose picture is not for everyone.
   const navigate = useNavigate();
   const isMentioned =
     !isOwner &&
@@ -366,12 +330,7 @@ export default function StoryViewer({
     (currentStory?.stickers ?? []).some(
       (s) => s.kind === 'MENTION' && s.settings.profileId === profile.id,
     );
-  const canAddToStory =
-    isMentioned &&
-    !isLocked &&
-    !currentStory?.isPremium &&
-    !currentStory?.priceCents &&
-    !currentStory?.isCloseFriendsOnly;
+  const canAddToStory = isMentioned && !currentStory?.isCloseFriendsOnly;
   const handleAddToStory = () => {
     if (!currentStory) return;
     const picture =
@@ -467,7 +426,6 @@ export default function StoryViewer({
           >
             {(() => {
               const { className, style } = parseFilter(currentStory.filter);
-              const lockClass = isLocked ? 'blur-2xl scale-110' : '';
               return currentStory.mediaType === 'video' &&
                 currentStory.overlayUrl ? (
                 // Until the server joins them, what was painted shows over the
@@ -475,14 +433,14 @@ export default function StoryViewer({
                 <div className="absolute inset-0 z-10 overflow-hidden flex items-center justify-center [container-type:size]">
                   <div
                     data-testid="story-layered"
-                    className={`relative shrink-0 aspect-9/16 w-[max(100cqw,calc(100cqh*9/16))] ${lockClass}`}
+                    className="relative shrink-0 aspect-9/16 w-[max(100cqw,calc(100cqh*9/16))]"
                   >
                     <HlsVideoPlayer
                       src={currentStory.url}
                       hlsUrl={currentStory.standardUrl || undefined}
                       className={`absolute inset-0 w-full h-full object-cover pointer-events-auto ${className}`}
                       style={style}
-                      autoPlay={!isLocked}
+                      autoPlay
                       muted
                       playsInline
                     />
@@ -497,9 +455,9 @@ export default function StoryViewer({
                 <HlsVideoPlayer
                   src={currentStory.url}
                   hlsUrl={currentStory.standardUrl || undefined}
-                  className={`absolute inset-0 w-full h-full object-cover pointer-events-auto z-10 ${className} ${lockClass}`}
+                  className={`absolute inset-0 w-full h-full object-cover pointer-events-auto z-10 ${className}`}
                   style={style}
-                  autoPlay={!isLocked}
+                  autoPlay
                   muted
                   playsInline
                 />
@@ -513,187 +471,171 @@ export default function StoryViewer({
                   }
                   sizes="(max-width: 768px) 100vw, 500px"
                   alt={t('common.alt.story')}
-                  className={`absolute inset-0 w-full h-full object-cover pointer-events-auto z-10 ${className} ${lockClass}`}
+                  className={`absolute inset-0 w-full h-full object-cover pointer-events-auto z-10 ${className}`}
                   style={style}
                   loading="eager"
                 />
               );
             })()}
 
-            {isLocked && (
-              <div className="absolute inset-0 z-50">
-                <PaywallOverlay
-                  price={
-                    currentStory.priceCents ? currentStory.priceCents / 100 : 0
-                  }
-                  onUnlock={() =>
-                    consent.ask((given) => unlockMutation.mutate(given))
-                  }
-                  isLoading={unlockMutation.isPending}
-                />
-              </div>
-            )}
-            {consent.dialog}
-
             <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20" />
             <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20" />
 
-            {!isLocked &&
-              (currentStory.stickers?.length
-                ? // The stickers of the story, live where they were placed.
-                  currentStory.stickers.map((sticker) =>
-                    sticker.kind === 'POLL' ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                      >
-                        <PollWidget stickerId={sticker.id} />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'QUIZ' ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                      >
-                        <QuizWidget stickerId={sticker.id} />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'SLIDER' ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                      >
-                        <SliderWidget stickerId={sticker.id} />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'COUNTDOWN' ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                      >
-                        <CountdownWidget
-                          stickerId={sticker.id}
-                          isAuthor={isOwner}
-                        />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'MUSIC' && sticker.settings.title ? (
-                      // Its sound is turned on and off with the story going on.
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        fitContent
-                      >
-                        <MusicSticker
-                          track={{
-                            title: String(sticker.settings.title),
-                            artist: String(sticker.settings.artist ?? ''),
-                            cover:
-                              typeof sticker.settings.cover === 'string'
-                                ? sticker.settings.cover
-                                : null,
-                          }}
-                          muted={isMuted}
-                          onToggleSound={() => setIsMuted(!isMuted)}
-                        />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'LINK' && sticker.settings.url ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                        fitContent
-                      >
-                        <LinkSticker
-                          link={sticker.settings as unknown as StoryLink}
-                          onOpen={() =>
-                            setLeaving(sticker.settings as unknown as StoryLink)
-                          }
-                        />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'HASHTAG' ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                        fitContent
-                      >
-                        <HashtagSticker
-                          tag={String(sticker.settings.tag ?? '')}
-                        />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'MENTION' &&
-                      sticker.settings.username ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                        fitContent
-                      >
-                        <MentionSticker
-                          username={String(sticker.settings.username)}
-                        />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'LOCATION' && sticker.settings.name ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                        fitContent
-                      >
-                        <LocationSticker
-                          placeId={String(sticker.settings.placeId ?? '')}
-                          name={String(sticker.settings.name)}
-                        />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'POST' ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                        fitContent
-                      >
-                        <SharedPostSticker
-                          card={
-                            (sticker.settings.post as SharedPostCard | null) ??
-                            null
-                          }
-                        />
-                      </PlacedSticker>
-                    ) : sticker.kind === 'QUESTION' && !isOwner ? (
-                      <PlacedSticker
-                        key={sticker.id}
-                        placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
-                      >
-                        <QnaWidget
-                          stickerId={sticker.id}
-                          prompt={String(sticker.settings.prompt ?? '')}
-                        />
-                      </PlacedSticker>
-                    ) : null,
-                  )
-                : // A story from a server without stickers.
-                  [
-                    currentStory.poll?.id ? (
-                      <PlacedSticker
-                        key="poll"
-                        placement={placementOf(currentStory.poll)}
-                        onPointerDown={() => setIsPaused(true)}
-                      >
-                        <PollWidget pollId={currentStory.poll.id} />
-                      </PlacedSticker>
-                    ) : null,
-                    currentStory.qnaBox?.id && !isOwner ? (
-                      <PlacedSticker
-                        key="qna"
-                        placement={placementOf(currentStory.qnaBox)}
-                        onPointerDown={() => setIsPaused(true)}
-                      >
-                        <QnaWidget qnaBoxId={currentStory.qnaBox.id} />
-                      </PlacedSticker>
-                    ) : null,
-                  ])}
+            {currentStory.stickers?.length
+              ? // The stickers of the story, live where they were placed.
+                currentStory.stickers.map((sticker) =>
+                  sticker.kind === 'POLL' ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                    >
+                      <PollWidget stickerId={sticker.id} />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'QUIZ' ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                    >
+                      <QuizWidget stickerId={sticker.id} />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'SLIDER' ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                    >
+                      <SliderWidget stickerId={sticker.id} />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'COUNTDOWN' ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                    >
+                      <CountdownWidget
+                        stickerId={sticker.id}
+                        isAuthor={isOwner}
+                      />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'MUSIC' && sticker.settings.title ? (
+                    // Its sound is turned on and off with the story going on.
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      fitContent
+                    >
+                      <MusicSticker
+                        track={{
+                          title: String(sticker.settings.title),
+                          artist: String(sticker.settings.artist ?? ''),
+                          cover:
+                            typeof sticker.settings.cover === 'string'
+                              ? sticker.settings.cover
+                              : null,
+                        }}
+                        muted={isMuted}
+                        onToggleSound={() => setIsMuted(!isMuted)}
+                      />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'LINK' && sticker.settings.url ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                      fitContent
+                    >
+                      <LinkSticker
+                        link={sticker.settings as unknown as StoryLink}
+                        onOpen={() =>
+                          setLeaving(sticker.settings as unknown as StoryLink)
+                        }
+                      />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'HASHTAG' ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                      fitContent
+                    >
+                      <HashtagSticker
+                        tag={String(sticker.settings.tag ?? '')}
+                      />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'MENTION' &&
+                    sticker.settings.username ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                      fitContent
+                    >
+                      <MentionSticker
+                        username={String(sticker.settings.username)}
+                      />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'LOCATION' && sticker.settings.name ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                      fitContent
+                    >
+                      <LocationSticker
+                        placeId={String(sticker.settings.placeId ?? '')}
+                        name={String(sticker.settings.name)}
+                      />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'POST' ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                      fitContent
+                    >
+                      <SharedPostSticker
+                        card={
+                          (sticker.settings.post as SharedPostCard | null) ??
+                          null
+                        }
+                      />
+                    </PlacedSticker>
+                  ) : sticker.kind === 'QUESTION' && !isOwner ? (
+                    <PlacedSticker
+                      key={sticker.id}
+                      placement={placementOfSticker(sticker)}
+                      onPointerDown={() => setIsPaused(true)}
+                    >
+                      <QnaWidget
+                        stickerId={sticker.id}
+                        prompt={String(sticker.settings.prompt ?? '')}
+                      />
+                    </PlacedSticker>
+                  ) : null,
+                )
+              : // A story from a server without stickers.
+                [
+                  currentStory.poll?.id ? (
+                    <PlacedSticker
+                      key="poll"
+                      placement={placementOf(currentStory.poll)}
+                      onPointerDown={() => setIsPaused(true)}
+                    >
+                      <PollWidget pollId={currentStory.poll.id} />
+                    </PlacedSticker>
+                  ) : null,
+                  currentStory.qnaBox?.id && !isOwner ? (
+                    <PlacedSticker
+                      key="qna"
+                      placement={placementOf(currentStory.qnaBox)}
+                      onPointerDown={() => setIsPaused(true)}
+                    >
+                      <QnaWidget qnaBoxId={currentStory.qnaBox.id} />
+                    </PlacedSticker>
+                  ) : null,
+                ]}
 
             {/* Progress Bars */}
             <div className="absolute top-0 left-0 right-0 z-40 flex gap-1 p-3 pt-safe-top">

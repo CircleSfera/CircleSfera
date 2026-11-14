@@ -4,7 +4,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { Bookmark, Clapperboard, Plus, UserSquare2 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -71,7 +71,6 @@ export default function Profile() {
   const openStories = useStoryStore((state) => state.openStories);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const handledCheckoutReturn = useRef(false);
 
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
   const isCreatorModeActive = useAuthStore(
@@ -127,29 +126,6 @@ export default function Profile() {
     next.delete('action');
     setSearchParams(next, { replace: true });
   }, [isMe, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (handledCheckoutReturn.current) return;
-    const success = searchParams.get('success') === 'true';
-    const canceled = searchParams.get('canceled') === 'true';
-    if (!success && !canceled) return;
-
-    handledCheckoutReturn.current = true;
-
-    if (success) {
-      toast.success(t('profile.messages.checkout_success'));
-      queryClient.invalidateQueries({ queryKey: ['profile', username] });
-      queryClient.invalidateQueries({ queryKey: ['userPosts', username] });
-    } else {
-      toast.error(t('profile.messages.checkout_canceled'));
-    }
-
-    const next = new URLSearchParams(searchParams);
-    next.delete('success');
-    next.delete('canceled');
-    next.delete('session_id');
-    setSearchParams(next, { replace: true });
-  }, [queryClient, searchParams, setSearchParams, t, username]);
 
   const { data: followStatus, isFetched: isFollowStatusFetched } = useQuery({
     queryKey: ['follow', username],

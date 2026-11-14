@@ -131,7 +131,6 @@ const { dialog } = vi.hoisted(() => {
 });
 vi.mock('../modals/ReportModal', () => ({ default: dialog('report') }));
 vi.mock('../modals/SharePostModal', () => ({ default: dialog('share') }));
-vi.mock('../monetization/TipModal', () => ({ default: dialog('tip') }));
 vi.mock('../modals/MuteDurationModal', () => ({ default: dialog('mute') }));
 vi.mock('../modals/AddToCollectionModal', () => ({
   default: dialog('collection'),
@@ -156,7 +155,6 @@ function stub(over: Partial<UsePostInteractionsReturn> = {}) {
     setShowAddToCollectionModal: vi.fn(),
     setShowPromoteModal: vi.fn(),
     setShowShareModal: vi.fn(),
-    setShowTipModal: vi.fn(),
     setShowMuteModal: vi.fn(),
     setEditCaption: vi.fn(),
   };
@@ -172,7 +170,6 @@ function stub(over: Partial<UsePostInteractionsReturn> = {}) {
     showAddToCollectionModal: false,
     showPromoteModal: false,
     showShareModal: false,
-    showTipModal: false,
     showMuteModal: false,
     editCaption: '',
     deleteMutation: { mutate: vi.fn(), isPending: false },
@@ -416,12 +413,6 @@ describe('PostOverlays', () => {
         '"targetType":"POST","targetId":"post-1"',
       ],
       ['share', { showShareModal: true }, 'setShowShareModal', ''],
-      [
-        'tip',
-        { showTipModal: true },
-        'setShowTipModal',
-        '"postId":"post-1","receiverId":"profile-1","receiverName":"ana"',
-      ],
       ['mute', { showMuteModal: true }, 'setShowMuteModal', '"username":"ana"'],
       [
         'collection',
@@ -451,28 +442,6 @@ describe('PostOverlays', () => {
       expect(
         screen.queryByRole('dialog', { name: 'mute' }),
       ).not.toBeInTheDocument();
-    });
-
-    it('names a nameless receiver of a tip in the language of the person', () => {
-      const english = show(
-        { showMenu: false, showTipModal: true },
-        post({ profile: undefined }),
-      );
-      expect(screen.getByRole('dialog', { name: 'tip' }).textContent).toContain(
-        '"receiverName":"User"',
-      );
-      english.unmount();
-
-      renderWithProviders(
-        <PostOverlays
-          post={post({ profile: undefined })}
-          interactions={stub({ showMenu: false, showTipModal: true })}
-        />,
-        { lng: 'es' },
-      );
-      expect(screen.getByRole('dialog', { name: 'tip' }).textContent).toContain(
-        '"receiverName":"Usuario"',
-      );
     });
 
     it('shows what the promotion reports, as success or as failure', async () => {
@@ -526,8 +495,8 @@ describe('PostOverlays', () => {
       });
     });
 
-    it('is not offered for paid content', () => {
-      show({}, post({ isPremium: true }));
+    it('is not offered for archived content', () => {
+      show({}, post({ archivedAt: '2026-10-01' }));
       expect(offered()).not.toContain('onAddToStory');
     });
   });

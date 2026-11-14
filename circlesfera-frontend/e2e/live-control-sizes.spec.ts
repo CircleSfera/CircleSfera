@@ -154,12 +154,6 @@ test.describe('Watching a live', () => {
     await expectScreenInOrder(page);
   });
 
-  test('gifts', async ({ page }) => {
-    await watchLive(page);
-    await page.getByRole('button', { name: 'Regalar' }).click();
-    await expectScreenInOrder(page);
-  });
-
   test('questions panel', async ({ page }) => {
     await watchLive(page);
     await page.getByRole('button', { name: /Preguntas/ }).click();

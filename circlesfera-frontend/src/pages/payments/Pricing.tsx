@@ -376,7 +376,7 @@ export default function Pricing() {
                   {/* Plans are bought on the web only: not in the apps. */}
                   {!sellsInApp() ? (
                     <p className="mt-6 text-center text-sm text-white/60">
-                      {t('monetization.not_in_app')}
+                      {t('pricingPage.not_in_app')}
                     </p>
                   ) : (
                     <MarketingCTA

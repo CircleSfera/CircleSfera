@@ -79,15 +79,15 @@ Root repo also runs Playwright from `/e2e`.
 
 ## API integration
 
-Domain modules under `src/services/` (e.g. `posts`, `profiles`, `chat`, `monetization`, `passkey`, `notifications`). Prefer TanStack Query hooks in components; invalidate queries on mutations.
+Domain modules under `src/services/` (e.g. `posts`, `profiles`, `chat`, `payments`, `passkey`, `notifications`). Prefer TanStack Query hooks in components; invalidate queries on mutations.
 
 Do not duplicate endpoint lists here — use the OpenAPI reference at `/api/docs` on a running backend.
 
 ## Product surfaces (non-exhaustive)
 
-Consumer: feed (hybrid/following), explore, profiles, stories, frames, chat + calls, live viewer, bookmarks/collections, creator studio, monetization, settings (privacy, appeals, passkeys).
+Consumer: feed (hybrid/following), explore, profiles, stories, frames, chat + calls, live viewer, bookmarks/collections, creator studio, plans and promotions, settings (privacy, appeals, passkeys).
 
-Admin (`admin.*` host): Trust queue, users, content, monetization, live ops, experiments — permission-gated tabs.
+Admin (`admin.*` host): Trust queue, users, content, revenue, live ops, experiments — permission-gated tabs.
 
 ## Testing & quality
 

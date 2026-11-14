@@ -172,20 +172,6 @@ export const creatorApi = {
     },
   ) => apiClient.patch(`creator/promotions/${id}`, data),
 
-  getRevenueAnalytics: (period = '30d') =>
-    apiClient.get<{
-      period: string;
-      grossRevenue: number;
-      subscriptionsTotal: number;
-      tipsTotal: number;
-      postUnlocksTotal: number;
-      giftsTotal: number;
-      activeSubscribersCount: number;
-      totalFollowersCount: number;
-      conversionRate: number;
-      currency: string;
-    }>('creator/analytics/revenue', { params: { period } }),
-
   getAudienceRetentionAnalytics: () =>
     apiClient.get<{
       avgDwellSeconds: number;

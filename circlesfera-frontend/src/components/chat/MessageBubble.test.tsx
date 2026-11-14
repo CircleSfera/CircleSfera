@@ -208,17 +208,6 @@ describe('MessageBubble', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows a paid message nobody bought as no longer for sale, with nothing to buy', () => {
-    renderBubble({ isLocked: true, priceCents: 199, content: 'secret' });
-
-    expect(screen.getByText('Exclusive message')).toBeInTheDocument();
-    expect(
-      screen.getByText('This paid message is no longer for sale.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('secret')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /€/ })).not.toBeInTheDocument();
-  });
-
   it('labels edited and delivery state from the catalog for own messages', () => {
     const { i18n } = renderBubble(
       { content: 'edited body', isEdited: true },
@@ -293,7 +282,6 @@ describe('MessageBubble', () => {
     it.each([
       ['a file', { url: 'https://cdn/x.jpg' }],
       ['a voice note', { voiceUrl: 'https://cdn/x.m4a' }],
-      ['a paid message', { isLocked: true }],
       ['a deleted message', { isDeleted: true }],
       ['a notice', { kind: 'ADMIN_GRANTED' }],
     ])('does not offer it on %s', (_name, overrides) => {

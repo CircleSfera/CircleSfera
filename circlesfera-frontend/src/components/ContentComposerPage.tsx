@@ -129,7 +129,6 @@ export default function ContentComposerPage() {
     reset,
     isComposed,
     setIsComposed,
-    isPremium,
     interactiveDraft,
     isPending,
     setMediaFiles,
@@ -601,13 +600,12 @@ export default function ContentComposerPage() {
                     setAudioStartMs(0);
                   }}
                   onOpenMusic={() => setSubScreen('music')}
-                  isPremium={isPremium}
                   interactiveDraft={interactiveDraft}
                   hasChosenCover={coverTimeMs !== null || Boolean(coverImage)}
-                  // Not for a paid post, which is never shared, nor for one
-                  // not out yet, which has nothing to share until it is.
+                  // Not for a post not out yet, which has nothing to share
+                  // until it is.
                   shareToStory={
-                    mode === 'POST' && !isPremium && !composer.scheduledAt
+                    mode === 'POST' && !composer.scheduledAt
                       ? {
                           on: composer.shareToStory,
                           onChange: composer.setShareToStory,

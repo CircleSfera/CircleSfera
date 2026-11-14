@@ -8,7 +8,6 @@ import OverviewTab from './OverviewTab';
 vi.mock('../../services/admin.service', () => ({
   adminApi: {
     getMonetizationAnalytics: vi.fn(),
-    getPayoutStats: vi.fn(),
     getSupportTickets: vi.fn(),
     getPromotions: vi.fn(),
     getDisputes: vi.fn(),
@@ -32,9 +31,6 @@ describe('OverviewTab', () => {
         tierDistribution: { PREMIUM: 1, ELITE: 1, BUSINESS: 1 },
         subscriptionGrowth: 0,
       },
-    } as never);
-    vi.mocked(adminApi.getPayoutStats).mockResolvedValue({
-      data: { paid: 5, pending: 2, failed: 1, total: 8 },
     } as never);
     vi.mocked(adminApi.getSupportTickets).mockImplementation(((
       _page: number,
@@ -77,9 +73,6 @@ describe('OverviewTab', () => {
     expect(
       screen.getByRole('link', { name: /Monthly recurring revenue/ }),
     ).toHaveTextContent(/79[.,]97/);
-    const payouts = screen.getByRole('link', { name: /Failed payouts/ });
-    expect(payouts).toHaveAttribute('href', '/payouts');
-    await waitFor(() => expect(payouts).toHaveTextContent('2 pending'));
 
     const disputes = screen.getByRole('link', { name: /Open disputes/ });
     await waitFor(() => expect(disputes).toHaveTextContent('2'));
@@ -101,9 +94,6 @@ describe('OverviewTab', () => {
     vi.mocked(adminApi.getDisputes).mockResolvedValue({
       data: { data: [], meta: { total: 0, openCount: 0 } },
     } as never);
-    vi.mocked(adminApi.getPayoutStats).mockResolvedValue({
-      data: { paid: 5, pending: 0, failed: 0, total: 5 },
-    } as never);
     withPermissions('payments', 'support', 'content');
     renderWithProviders(<OverviewTab />);
 
@@ -119,7 +109,6 @@ describe('OverviewTab', () => {
         '/support',
         '/promotions',
         '/disputes',
-        '/payouts',
         '/subscriptions',
         '/monetization',
       ]),
@@ -180,10 +169,8 @@ describe('OverviewTab', () => {
       await screen.findByRole('link', { name: /Open tickets/ }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /subscriptions/i })).toBeNull();
-    expect(screen.queryByRole('link', { name: /payouts/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /Promotions/ })).toBeNull();
     expect(adminApi.getMonetizationAnalytics).not.toHaveBeenCalled();
-    expect(adminApi.getPayoutStats).not.toHaveBeenCalled();
     expect(adminApi.getPromotions).not.toHaveBeenCalled();
     expect(adminApi.getDisputes).not.toHaveBeenCalled();
   });

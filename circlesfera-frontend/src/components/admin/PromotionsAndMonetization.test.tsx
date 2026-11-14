@@ -557,7 +557,7 @@ describe('MonetizationTab', () => {
           amount: 50,
           status: 'FAILED',
           description: null,
-          type: 'DIRECT_TIP',
+          type: 'PROMOTION_PAYMENT',
           sender: { email: 'b@example.com', profile: null },
           receiver: null,
         }),
@@ -581,7 +581,7 @@ describe('MonetizationTab', () => {
 
     // Who paid by e-mail when there is no handle, and nobody paid to.
     const b = row('b@example.com');
-    expect(b).toHaveTextContent('€0.50 · Tip');
+    expect(b).toHaveTextContent('€0.50 · Promotion payment');
     expect(b).not.toHaveTextContent('→');
     expect(within(b).getByText('Failed')).toHaveClass('text-red-400');
 

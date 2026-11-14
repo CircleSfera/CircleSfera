@@ -126,7 +126,7 @@ describe('reportPaymentError', () => {
         data: { errorCode: 'IDENTITY_VERIFICATION_REQUIRED' },
       }),
       t,
-      'wallet.error_send_tip',
+      'pricingPage.checkout_error',
     );
     reportPaymentError(
       Object.assign(
@@ -134,7 +134,7 @@ describe('reportPaymentError', () => {
         { status: 403, data: {} },
       ),
       t,
-      'wallet.error_send_tip',
+      'pricingPage.checkout_error',
     );
 
     expect(toast).toHaveBeenCalledTimes(2);
@@ -145,10 +145,10 @@ describe('reportPaymentError', () => {
     reportPaymentError(
       Object.assign(new Error('Internal'), { status: 400, data: {} }),
       t,
-      'wallet.error_send_tip',
+      'pricingPage.checkout_error',
     );
 
-    expect(toast.error).toHaveBeenCalledWith(t('wallet.error_send_tip'));
+    expect(toast.error).toHaveBeenCalledWith(t('pricingPage.checkout_error'));
     expect(toast).not.toHaveBeenCalled();
   });
 });

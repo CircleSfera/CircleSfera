@@ -2,19 +2,18 @@ import type { LiveChatMessage } from '@circlesfera/shared';
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Gift, Heart, HelpCircle, LogOut, Send, X } from 'lucide-react';
+import { Heart, HelpCircle, LogOut, Send, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   CREATE_PRIMARY,
   CREATE_SECONDARY,
 } from '../../components/create-post/createStyles';
 import CinematicStage from '../../components/live/CinematicStage';
 import CoHostInviteBanner from '../../components/live/CoHostInviteBanner';
-import LiveGiftModal from '../../components/live/LiveGiftModal';
 import LiveGoalBar, {
   type LiveGoalData,
 } from '../../components/live/LiveGoalBar';
@@ -40,7 +39,6 @@ import { useSocketStore } from '../../stores/socketStore';
 import { apiErrorCode } from '../../utils/apiErrorMessage';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 import { hasElitePlan } from '../../utils/plans';
-import { sellsInApp } from '../../utils/sellsInApp';
 
 const REACTION_EMOJIS = ['🔥', '❤️', '👏', '🚀', '⭐'];
 // The reactions of the Elite Creator and Business plans. Everyone sees them
@@ -64,7 +62,6 @@ const isStreamGone = (error: unknown) =>
 export default function LiveViewer() {
   const { t } = useTranslation();
   const { streamId } = useParams<{ streamId: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
   const profile = useAuthStore((state) => state.profile);
   const canSendEliteReactions = hasElitePlan(profile?.verificationLevel);
   const [token, setToken] = useState('');
@@ -73,7 +70,6 @@ export default function LiveViewer() {
   const [hasEnded, setHasEnded] = useState(false);
   const [coHostStreamId, setCoHostStreamId] = useState<string | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(1);
-  const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [pinnedComment, setPinnedComment] = useState<PinnedCommentData | null>(
     null,
   );
@@ -108,20 +104,6 @@ export default function LiveViewer() {
   const [streamDetails, setStreamDetails] = useState<any>(null);
   // The guests invited or on air, kept up to date by the live's room.
   const [guests, setGuests] = useState<LiveGuest[]>([]);
-
-  useEffect(() => {
-    if (searchParams.get('gift_success') === 'true') {
-      toast.success(t('live.gift_sent'));
-      searchParams.delete('gift_success');
-      searchParams.delete('session_id');
-      setSearchParams(searchParams, { replace: true });
-    }
-    if (searchParams.get('gift_canceled') === 'true') {
-      toast.error(t('live.gift_canceled'));
-      searchParams.delete('gift_canceled');
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams, t]);
 
   useEffect(() => {
     if (!streamId) return;
@@ -187,23 +169,6 @@ export default function LiveViewer() {
       }, 2000);
     };
 
-    socket.on(
-      'live:gift',
-      (data: {
-        giftId?: string;
-        senderUsername?: string;
-        amountCents?: number;
-      }) => {
-        toast.success(
-          t('live.gift_received_toast', {
-            user: data.senderUsername || t('live.someone'),
-            gift: data.giftId || t('live.gift_generic'),
-          }),
-        );
-        triggerFloatingReaction('🎁');
-      },
-    );
-
     socket.on('live:heart_received', (data: any) => {
       triggerFloatingReaction(data?.reaction || '❤️');
     });
@@ -258,7 +223,6 @@ export default function LiveViewer() {
       socket.off('live:chat_message');
       socket.off('live:comment_pinned');
       socket.off('live:comment_unpinned');
-      socket.off('live:gift');
       socket.off('live:heart_received');
       socket.off('live:reaction_received');
       socket.off('live:guest_invite');
@@ -678,23 +642,12 @@ export default function LiveViewer() {
                   <Send className="h-4 w-4" aria-hidden />
                 </LiveControl>
               ) : (
-                <>
-                  <LiveControl
-                    label={t('live.qna.title')}
-                    onClick={() => setIsQnAOpen(true)}
-                  >
-                    <HelpCircle className="h-6 w-6" aria-hidden />
-                  </LiveControl>
-                  {/* Gifts are bought on the web only: not in the apps. */}
-                  {sellsInApp() && (
-                    <LiveControl
-                      label={t('live.send_gift_btn')}
-                      onClick={() => setGiftModalOpen(true)}
-                    >
-                      <Gift className="h-6 w-6" aria-hidden />
-                    </LiveControl>
-                  )}
-                </>
+                <LiveControl
+                  label={t('live.qna.title')}
+                  onClick={() => setIsQnAOpen(true)}
+                >
+                  <HelpCircle className="h-6 w-6" aria-hidden />
+                </LiveControl>
               )}
             </form>
           </div>
@@ -706,13 +659,6 @@ export default function LiveViewer() {
             questions={questions}
             onAskQuestion={handleAskQuestion}
           />
-          {streamId ? (
-            <LiveGiftModal
-              isOpen={giftModalOpen}
-              onClose={() => setGiftModalOpen(false)}
-              streamId={streamId}
-            />
-          ) : null}
         </LiveFrame>
       </LiveKitRoom>
       <style>{`

@@ -32,12 +32,10 @@ const post = (over: Partial<Post> = {}) =>
   ({ id: 'post-1', profileId: 'ana', collaborator: null, ...over }) as Post;
 
 describe('canHaveCollaborator', () => {
-  it('lets only a public post that is not paid, and is shown, have one', () => {
+  it('lets only a public post that is shown have one', () => {
     expect(canHaveCollaborator(post())).toBe(true);
     expect(canHaveCollaborator(post({ visibility: 'PUBLIC' }))).toBe(true);
     expect(canHaveCollaborator(post({ visibility: 'FOLLOWERS' }))).toBe(false);
-    expect(canHaveCollaborator(post({ isPremium: true }))).toBe(false);
-    expect(canHaveCollaborator(post({ priceCents: 300 }))).toBe(false);
     expect(canHaveCollaborator(post({ archivedAt: '2026-11-09' }))).toBe(false);
   });
 });

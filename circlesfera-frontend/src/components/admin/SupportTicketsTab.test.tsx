@@ -65,7 +65,6 @@ const account = {
     renewsAt: '2026-11-01T00:00:00.000Z',
     cancelAtPeriodEnd: false,
   },
-  payouts: { connected: true, enabled: false },
   profiles: [
     {
       id: 'p-1',
@@ -214,13 +213,10 @@ describe('SupportTicketsTab', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the account card of who wrote: plan, payouts and standing', async () => {
+  it('shows the account card of who wrote: plan and standing', async () => {
     const i18n = await open([ticket()]);
 
     expect(await screen.findByText('Elite Creator')).toBeInTheDocument();
-    expect(
-      screen.getByText(i18n.t('admin.support.account.payouts_pending')),
-    ).toBeInTheDocument();
     expect(
       screen.getByText(i18n.t('admin.support.account.suspended')),
     ).toBeInTheDocument();

@@ -335,14 +335,6 @@ describe('usePostInteractions', () => {
       expect(on().showMenu).toBe(false);
       expect(on().showMuteModal).toBe(true);
     });
-
-    it('opens the tip dialog', () => {
-      const { on } = setup();
-
-      act(() => on().handleTip());
-
-      expect(on().showTipModal).toBe(true);
-    });
   });
 
   describe('changing the caption', () => {

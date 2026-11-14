@@ -15,15 +15,10 @@ export const COLLABORATION_QUERY_KEYS = [
   ['frames'],
 ] as const;
 
-// Only a public post that is not paid, and is shown, can have a
-// collaborator. The server checks it again.
+// Only a public post that is shown can have a collaborator. The server
+// checks it again.
 export function canHaveCollaborator(post: Post): boolean {
-  return (
-    (post.visibility ?? 'PUBLIC') === 'PUBLIC' &&
-    !post.isPremium &&
-    !post.priceCents &&
-    !post.archivedAt
-  );
+  return (post.visibility ?? 'PUBLIC') === 'PUBLIC' && !post.archivedAt;
 }
 
 /**

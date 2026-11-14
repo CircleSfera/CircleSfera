@@ -21,7 +21,6 @@ export type SubScreen =
   | 'accessibility'
   | 'advanced'
   | 'tags'
-  | 'monetization'
   | 'interactive'
   | 'music'
   | 'cover'
@@ -133,8 +132,6 @@ export function useCreatePostState() {
     }
   }, [modeParam, searchParams]);
 
-  const [isPremium, setIsPremium] = useState(false);
-  const [price, setPrice] = useState<number>(0);
   const [scheduledAt, setScheduledAt] = useState('');
   const [interactiveDraft, setInteractiveDraft] =
     useState<InteractiveDraft>(null);
@@ -199,10 +196,6 @@ export function useCreatePostState() {
     setOfferTemplate,
     isCloseFriendsOnly,
     setIsCloseFriendsOnly,
-    isPremium,
-    setIsPremium,
-    price,
-    setPrice,
     scheduledAt,
     setScheduledAt,
     interactiveDraft,

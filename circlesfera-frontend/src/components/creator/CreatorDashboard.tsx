@@ -8,10 +8,8 @@ import type {
   CreatorStats,
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
-import { monetizationApi } from '../../services/monetization.service';
 import type { PaginatedResponse } from '../../types';
 import { formatNumber } from '../../utils/format';
-import { formatCents } from '../../utils/money';
 import PostInsightsModal from '../modals/PostInsightsModal';
 import CreatorEmpty from './CreatorEmpty';
 import { CreatorFigure, CreatorFigures, CreatorSection } from './CreatorPieces';
@@ -40,11 +38,6 @@ export default function CreatorDashboard({
   >({
     queryKey: ['creator', 'posts', 'top', 1],
     queryFn: () => creatorApi.getPosts(1, 4).then((r) => r.data),
-  });
-
-  const { data: monetization } = useQuery<{ lifetimeEarningsCents?: number }>({
-    queryKey: ['monetization'],
-    queryFn: monetizationApi.getMonetization,
   });
 
   const posts = recentPosts?.data ?? [];
@@ -85,14 +78,6 @@ export default function CreatorDashboard({
           label={t('creator.overview.interaction')}
           value={`${formatNumber(stats?.engagementRate ?? 0, language)} %`}
           hint={t('creator.overview.interaction_hint')}
-        />
-        <CreatorFigure
-          label={t('creator.overview.income')}
-          value={formatCents(
-            monetization?.lifetimeEarningsCents ?? 0,
-            language,
-          )}
-          hint={t('creator.overview.income_hint')}
         />
       </CreatorFigures>
 

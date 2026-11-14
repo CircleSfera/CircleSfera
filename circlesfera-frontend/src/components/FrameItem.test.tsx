@@ -10,7 +10,6 @@ import {
   postsApi,
 } from '../services';
 import { creatorApi } from '../services/creator.service';
-import { monetizationApi } from '../services/monetization.service';
 import { studioTemplatesApi } from '../services/studioTemplates.service';
 import { useFrameStore } from '../stores/frameStore';
 import { renderWithProviders } from '../test/test-utils';
@@ -18,19 +17,12 @@ import type { Post } from '../types';
 import FrameItem from './FrameItem';
 import type { FrameMenuActions } from './frames/FrameOptionsSheet';
 
-vi.mock('./payments/WithdrawalConsent', async () =>
-  (await import('../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
-);
-
 const session = vi.hoisted(() => ({
   profile: { id: 'me', accountType: 'PERSONAL' } as {
     id: string;
     accountType: string;
   },
 }));
-
-/** The unlock handler the paywall last received. */
-const paywall = vi.hoisted(() => ({ unlock: () => {} }));
 
 vi.mock('../stores/authStore', () => ({
   useAuthStore: (selector: (s: typeof session) => unknown) => selector(session),
@@ -53,10 +45,6 @@ vi.mock('../services/creator.service', () => ({
     trackFrameLoop: vi.fn(),
     recordPromotionView: vi.fn(),
   },
-}));
-
-vi.mock('../services/monetization.service', () => ({
-  monetizationApi: { unlockPost: vi.fn() },
 }));
 
 vi.mock('react-hot-toast', () => ({
@@ -133,13 +121,6 @@ vi.mock('./creator/PromoteModal', () => ({
   default: ({ post }: { post: Post }) => (
     <div data-testid="promote">{post.id}</div>
   ),
-}));
-
-vi.mock('./monetization/PaywallOverlay', () => ({
-  default: ({ price, onUnlock }: { price: number; onUnlock: () => void }) => {
-    paywall.unlock = onUnlock;
-    return <span>unlock for {price}</span>;
-  },
 }));
 
 function frame(over: Partial<Post> = {}): Post {
@@ -437,7 +418,7 @@ describe('FrameItem', () => {
       vi.useFakeTimers();
       const set = vi.spyOn(globalThis, 'setTimeout');
       const clear = vi.spyOn(globalThis, 'clearTimeout');
-      const { unmount } = show(frame({ isLocked: true }));
+      const { unmount } = show(frame());
 
       // One tap starts the play animation, two more the heart.
       fireEvent.click(area());
@@ -605,47 +586,6 @@ describe('FrameItem', () => {
       show(frame());
 
       expect(observers).toHaveLength(0);
-    });
-  });
-
-  describe('a paid frame', () => {
-    const locked = () => frame({ isLocked: true, priceCents: 499 } as never);
-
-    it('shows the price in whole currency', () => {
-      show(locked());
-
-      expect(screen.getByText('unlock for 4.99')).toBeInTheDocument();
-    });
-
-    it('keeps the unlock outside the playback button', () => {
-      show(locked());
-
-      expect(
-        screen
-          .getByRole('button', { name: 'Video playback area' })
-          .contains(screen.getByText('unlock for 4.99')),
-      ).toBe(false);
-    });
-
-    it('refreshes the lists when it unlocks without a payment page', async () => {
-      vi.mocked(monetizationApi.unlockPost).mockResolvedValue({} as never);
-      const { queryClient } = show(locked());
-      const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
-
-      act(() => paywall.unlock());
-
-      await waitFor(() =>
-        expect(toast.success).toHaveBeenCalledWith(
-          'Post successfully unlocked!',
-        ),
-      );
-      expect(monetizationApi.unlockPost).toHaveBeenCalledWith(
-        'f1',
-        window.location.href,
-        { withdrawalConsent: true },
-      );
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['frames'] });
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['feed'] });
     });
   });
 

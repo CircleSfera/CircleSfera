@@ -268,64 +268,10 @@ const cases: Case[] = [
 
   // Money
   [
-    'getPayoutStats',
-    () => adminApi.getPayoutStats(),
-    'get',
-    ['/admin/payouts/stats'],
-  ],
-  [
-    'getPayouts',
-    () => adminApi.getPayouts(),
-    'get',
-    [
-      'admin/payouts',
-      q({ page: 1, limit: 20, status: undefined, search: undefined }),
-    ],
-  ],
-  [
-    'getPayouts filtered',
-    () => adminApi.getPayouts(2, 5, 'failed', 'ana'),
-    'get',
-    [
-      'admin/payouts',
-      q({ page: 2, limit: 5, status: 'failed', search: 'ana' }),
-    ],
-  ],
-  [
     'getRecurringIncomeHistory',
     () => adminApi.getRecurringIncomeHistory(31),
     'get',
     ['admin/analytics/monetization/history', q({ days: 31 })],
-  ],
-  [
-    'getMonetizationApplications',
-    () => adminApi.getMonetizationApplications('PENDING', 2),
-    'get',
-    [
-      'admin/monetization/applications',
-      { params: { status: 'PENDING', page: 2 } },
-    ],
-  ],
-  [
-    'getMonetizationApplications on the first page',
-    () => adminApi.getMonetizationApplications('APPROVED'),
-    'get',
-    [
-      'admin/monetization/applications',
-      { params: { status: 'APPROVED', page: 1 } },
-    ],
-  ],
-  [
-    'decideMonetizationApplication with a reason',
-    () => adminApi.decideMonetizationApplication('p1', 'reject', 'Too new'),
-    'patch',
-    ['admin/monetization/applications/p1/reject', { note: 'Too new' }],
-  ],
-  [
-    'decideMonetizationApplication with none',
-    () => adminApi.decideMonetizationApplication('p1', 'approve'),
-    'patch',
-    ['admin/monetization/applications/p1/approve', {}],
   ],
   [
     'getMonetizationAnalytics',
@@ -362,12 +308,6 @@ const cases: Case[] = [
     () => adminApi.getDisputes({ state: 'open', page: 1 }),
     'get',
     ['admin/disputes', q({ state: 'open', page: 1 })],
-  ],
-  [
-    'getCompanies',
-    () => adminApi.getCompanies({ search: 'acme', page: 2 }),
-    'get',
-    ['admin/companies', q({ search: 'acme', page: 2 })],
   ],
   [
     'getSubscriptions',
@@ -776,21 +716,6 @@ const cases: Case[] = [
     [
       'admin/moderation/queue',
       q({ page: 2, limit: 5, type: 'POST', search: 'x' }),
-    ],
-  ],
-  [
-    'getFirstPaidReview',
-    () => adminApi.getFirstPaidReview(),
-    'get',
-    ['admin/moderation/first-paid'],
-  ],
-  [
-    'approveFirstPaid',
-    () => adminApi.approveFirstPaid('POST', 'p1', '2026-11-05T10:00:00Z'),
-    'post',
-    [
-      'admin/moderation/first-paid/POST/p1/approve',
-      { editedAt: '2026-11-05T10:00:00Z' },
     ],
   ],
   [

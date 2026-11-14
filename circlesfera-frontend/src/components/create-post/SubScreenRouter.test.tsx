@@ -21,7 +21,6 @@ vi.mock('./LocationSubScreen', () => screenOf('location'));
 vi.mock('./AccessibilitySubScreen', () => screenOf('accessibility'));
 vi.mock('./AdvancedSettingsSubScreen', () => screenOf('advanced'));
 vi.mock('./TagPeopleSubScreen', () => screenOf('tags'));
-vi.mock('./MonetizationSubScreen', () => screenOf('monetization'));
 vi.mock('./InteractiveSubScreen', () => screenOf('interactive'));
 vi.mock('./MusicSubScreen', () => screenOf('music'));
 vi.mock('./CloseFriendsSubScreen', () => screenOf('close_friends'));
@@ -54,10 +53,6 @@ function show(
     location: 'Madrid',
     setSelectedPlace: vi.fn(),
     generateAltTextForIndex: vi.fn(),
-    isPremium: false,
-    setIsPremium: vi.fn(),
-    price: 3,
-    setPrice: vi.fn(),
     scheduledAt: '',
     setScheduledAt: vi.fn(),
     interactiveDraft: null,
@@ -85,7 +80,6 @@ describe('SubScreenRouter', () => {
     'accessibility',
     'advanced',
     'tags',
-    'monetization',
     'interactive',
     'music',
     'cover',

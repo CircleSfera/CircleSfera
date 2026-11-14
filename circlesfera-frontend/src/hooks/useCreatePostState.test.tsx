@@ -46,8 +46,6 @@ describe('useCreatePostState', () => {
       isSensitive: false,
       selectedAudio: null,
       audioStartMs: 0,
-      isPremium: false,
-      price: 0,
       scheduledAt: '',
       interactiveDraft: null,
       storyElements: [],
@@ -65,8 +63,6 @@ describe('useCreatePostState', () => {
       result.current.setStep('caption');
       result.current.setSubScreen('music');
       result.current.setCaption('A day out');
-      result.current.setIsPremium(true);
-      result.current.setPrice(300);
       result.current.setInteractiveDraft({ kind: 'qna', prompt: 'Ask me' });
       result.current.setIsCloseFriendsOnly(true);
     });
@@ -76,8 +72,6 @@ describe('useCreatePostState', () => {
       step: 'caption',
       subScreen: 'music',
       caption: 'A day out',
-      isPremium: true,
-      price: 300,
       interactiveDraft: { kind: 'qna', prompt: 'Ask me' },
       isCloseFriendsOnly: true,
     });

@@ -10,7 +10,8 @@ export function formatCents(
   });
 }
 
-// A whole amount of euros with no decimals, for fixed choices such as tips.
+// A whole amount of euros with no decimals, for fixed choices such as a
+// promotion's budget.
 export function formatWholeEuros(euros: number, language: string): string {
   return euros.toLocaleString(language, {
     style: 'currency',

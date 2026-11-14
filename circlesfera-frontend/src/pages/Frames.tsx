@@ -1,10 +1,5 @@
-import {
-  useInfiniteQuery,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { EmptyState, ErrorState } from '../components/ErrorEmptyStates';
@@ -30,10 +25,8 @@ import { hasCreatorTools } from '../utils/creatorTools';
 
 export default function Frames() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const targetPostId = searchParams.get('post');
-  const handledCheckoutReturn = useRef(false);
   const scrolledToTarget = useRef(false);
   const [activeFrameIndex, setActiveFrameIndex] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -83,28 +76,6 @@ export default function Frames() {
     if (frames.some((frame) => frame.id === target.id)) return frames;
     return [target, ...frames];
   }, [frames, targetPostResponse]);
-
-  useEffect(() => {
-    if (handledCheckoutReturn.current) return;
-    const success = searchParams.get('success') === 'true';
-    const canceled = searchParams.get('canceled') === 'true';
-    if (!success && !canceled) return;
-
-    handledCheckoutReturn.current = true;
-
-    if (success) {
-      toast.success(t('frames.checkout_success'));
-      queryClient.invalidateQueries({ queryKey: ['frames'] });
-    } else {
-      toast.error(t('frames.checkout_canceled'));
-    }
-
-    const next = new URLSearchParams(searchParams);
-    next.delete('success');
-    next.delete('canceled');
-    next.delete('session_id');
-    setSearchParams(next, { replace: true });
-  }, [queryClient, searchParams, setSearchParams, t]);
 
   useEffect(() => {
     scrolledToTarget.current = false;

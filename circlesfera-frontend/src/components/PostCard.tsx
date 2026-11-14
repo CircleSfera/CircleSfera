@@ -39,7 +39,6 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
     handleToggleBookmark,
     handleLikeToggle,
     handleShare,
-    handleTip,
   } = interactions;
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -210,7 +209,6 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
             isBookmarkPending={isBookmarkPending}
             onLikeToggle={handleLikeToggle}
             onShare={handleShare}
-            onTip={handleTip}
           />
           <PostContent post={post} likesCount={likesCount} />
         </div>

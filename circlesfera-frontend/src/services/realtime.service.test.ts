@@ -233,7 +233,7 @@ describe('realtimeService', () => {
       content: 'followed you',
       sender: { username: 'luis' },
     });
-    line.receive('notification', { id: 'n-3', content: 'sent you a tip' });
+    line.receive('notification', { id: 'n-3', content: 'mentioned you' });
 
     expect(useNotificationsStore.getState().liveNotifications).toHaveLength(
       before + 3,
@@ -241,7 +241,7 @@ describe('realtimeService', () => {
     expect(vi.mocked(toast.success).mock.calls.map(([text]) => text)).toEqual([
       'Ana Pérez liked your post',
       'luis followed you',
-      'Someone sent you a tip',
+      'Someone mentioned you',
     ]);
   });
 

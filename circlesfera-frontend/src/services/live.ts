@@ -72,20 +72,6 @@ export const liveApi = {
     return response.data;
   },
 
-  // Starts Stripe Checkout for a catalog gift; returns { url, liveGiftId, amountCents }.
-  sendGift: async (streamId: string, giftId: string, returnUrl?: string) => {
-    const response = await api.post(`/live/${streamId}/gift`, {
-      giftId,
-      returnUrl: returnUrl || window.location.href,
-    });
-    return response.data as {
-      url: string;
-      liveGiftId: string;
-      giftId: string;
-      amountCents: number;
-    };
-  },
-
   // The upcoming lives of a Profile that the viewer may see, soonest first.
   listScheduled: async (profileId: string): Promise<ScheduledLive[]> => {
     const response = await api.get('/live/scheduled', {

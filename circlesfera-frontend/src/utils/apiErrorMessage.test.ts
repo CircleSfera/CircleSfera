@@ -27,19 +27,19 @@ describe('apiErrorMessage', () => {
   const t = i18n.t.bind(i18n);
 
   it('shows the error code text in the reader language', () => {
-    const error = clientError(400, { errorCode: 'CANNOT_TIP_SELF' });
+    const error = clientError(400, { errorCode: 'PLAN_NOT_FOUND' });
     expect(apiErrorMessage(error, t, 'feedPrefs.error')).toBe(
-      'No puedes enviarte una propina a ti mismo.',
+      es.errors.codes.PLAN_NOT_FOUND,
     );
   });
 
   it('puts the values the error carries into its text', () => {
     const error = clientError(403, {
-      errorCode: 'MONETIZATION_UNDER_AGE',
+      errorCode: 'PAYER_UNDER_AGE',
       details: { minAge: 18, nested: { no: 1 } },
     });
     expect(apiErrorMessage(error, t)).toBe(
-      'Puedes cobrar a partir de los 18 años, con tu identidad verificada.',
+      'Puedes pagar a partir de los 18 años, con tu identidad y tu fecha de nacimiento verificadas. Si ya te verificaste antes, vuelve a hacerlo en Ajustes → Cuenta.',
     );
   });
 

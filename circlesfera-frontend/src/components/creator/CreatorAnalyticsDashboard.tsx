@@ -4,24 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { creatorApi } from '../../services/creator.service';
 import { formatNumber } from '../../utils/format';
 import { logger } from '../../utils/logger';
-import { formatCents } from '../../utils/money';
 import { Button, Card } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
-import {
-  CreatorFigure,
-  CreatorFigures,
-  CreatorRow,
-  CreatorSection,
-  CreatorViewChoice,
-} from './CreatorPieces';
-
-interface RevenueData {
-  grossRevenue: number;
-  tipsTotal: number;
-  postUnlocksTotal: number;
-  messageUnlocksTotal?: number;
-  giftsTotal: number;
-}
+import { CreatorRow, CreatorSection, CreatorViewChoice } from './CreatorPieces';
 
 interface RetentionData {
   totalInteractionsSampled: number;
@@ -55,8 +40,8 @@ function byLocalHour(utcCounts: number[]): number[] {
   return local;
 }
 
-// What the Elite Creator and Business plans add to Analytics: the income of a
-// period by kind, the hours the posts are looked at, and the best posts.
+// What the Elite Creator and Business plans add to Analytics: the report of a
+// period, the hours the posts are looked at, and the best posts.
 export const CreatorAnalyticsDashboard = () => {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
@@ -65,7 +50,6 @@ export const CreatorAnalyticsDashboard = () => {
   const [downloadingCsv, setDownloadingCsv] = useState(false);
   const [error, setError] = useState(false);
 
-  const [revenue, setRevenue] = useState<RevenueData | null>(null);
   const [retention, setRetention] = useState<RetentionData | null>(null);
   const [topPosts, setTopPosts] = useState<TopPost[]>([]);
 
@@ -73,12 +57,10 @@ export const CreatorAnalyticsDashboard = () => {
     try {
       setLoading(true);
       setError(false);
-      const [revRes, retRes, topRes] = await Promise.all([
-        creatorApi.getRevenueAnalytics(period),
+      const [retRes, topRes] = await Promise.all([
         creatorApi.getAudienceRetentionAnalytics(),
         creatorApi.getTopPerformingContent(5),
       ]);
-      setRevenue(revRes.data);
       setRetention(retRes.data);
       setTopPosts(topRes.data);
     } catch (err) {
@@ -87,7 +69,7 @@ export const CreatorAnalyticsDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, []);
 
   useEffect(() => {
     fetchAnalytics();
@@ -113,9 +95,6 @@ export const CreatorAnalyticsDashboard = () => {
     }
   };
 
-  // These amounts arrive in euros; every amount is written from cents.
-  const amount = (euros: number | undefined) =>
-    formatCents(Math.round((euros ?? 0) * 100), language);
   const count = (key: string, value: number) =>
     t(key, { count: value, formatted: formatNumber(value, language) });
 
@@ -131,17 +110,11 @@ export const CreatorAnalyticsDashboard = () => {
       minute: '2-digit',
     });
   };
-  // Paid content: posts, stories and messages unlocked.
-  const paidContent =
-    Math.round(
-      ((revenue?.postUnlocksTotal ?? 0) + (revenue?.messageUnlocksTotal ?? 0)) *
-        100,
-    ) / 100;
 
   return (
     <div className="space-y-8">
       <CreatorSection
-        title={t('creator.advanced.income_title')}
+        title={t('creator.advanced.report_title')}
         action={
           <Button
             variant="ghost"
@@ -169,7 +142,7 @@ export const CreatorAnalyticsDashboard = () => {
             value={period}
             onChange={setPeriod}
           />
-          {error ? (
+          {error && (
             <CreatorEmpty
               title={t('creator.advanced.error')}
               action={{
@@ -177,31 +150,12 @@ export const CreatorAnalyticsDashboard = () => {
                 onClick: fetchAnalytics,
               }}
             />
-          ) : loading ? (
+          )}
+          {!error && loading && (
             <div
               className="h-24 rounded-xl bg-white/5 animate-pulse border border-white/5"
               data-testid="advanced-loading"
             />
-          ) : (
-            <CreatorFigures>
-              <CreatorFigure
-                label={t('creator.advanced.gross')}
-                value={amount(revenue?.grossRevenue)}
-                hint={t('creator.advanced.gross_hint')}
-              />
-              <CreatorFigure
-                label={t('creator.advanced.tips')}
-                value={amount(revenue?.tipsTotal)}
-              />
-              <CreatorFigure
-                label={t('creator.advanced.unlocks')}
-                value={amount(paidContent)}
-              />
-              <CreatorFigure
-                label={t('creator.advanced.gifts')}
-                value={amount(revenue?.giftsTotal)}
-              />
-            </CreatorFigures>
           )}
         </div>
       </CreatorSection>

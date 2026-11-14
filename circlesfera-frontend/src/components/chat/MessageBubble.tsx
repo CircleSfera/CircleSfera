@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Forward, Lock, Reply, Smile, Trash2 } from 'lucide-react';
+import { Forward, Reply, Smile, Trash2 } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
@@ -239,37 +239,19 @@ export default memo(function MessageBubble({
             {/* Text Content */}
             {(displayText || msg.isDeleted) && (
               <div className="relative">
-                {msg.isLocked ? (
-                  <div className="flex flex-col items-center justify-center p-4 min-w-50 gap-3 bg-black/20 rounded-xl backdrop-blur-md border border-amber-500/30">
-                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                      <Lock className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-semibold text-white">
-                        {t('chat.locked_title')}
-                      </p>
-                      {/* Paid messages are no longer sold; who already
-                          bought one sees it open. */}
-                      <p className="text-xs text-white/70 mt-1">
-                        {t('chat.locked_not_for_sale')}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <span
-                    className={`wrap-break-word whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}
-                  >
-                    {msg.isDeleted ? (
-                      <>🚫 {t('chat.message_deleted')}</>
-                    ) : isDecrypting ? (
-                      <span className="opacity-50 italic">
-                        {t('chat.decrypting')}
-                      </span>
-                    ) : (
-                      displayText
-                    )}
-                  </span>
-                )}
+                <span
+                  className={`wrap-break-word whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}
+                >
+                  {msg.isDeleted ? (
+                    <>🚫 {t('chat.message_deleted')}</>
+                  ) : isDecrypting ? (
+                    <span className="opacity-50 italic">
+                      {t('chat.decrypting')}
+                    </span>
+                  ) : (
+                    displayText
+                  )}
+                </span>
                 <span className="inline-block w-16 h-4" />{' '}
                 {/* Spacer for absolute timestamp */}
               </div>

@@ -15,7 +15,6 @@ import type {
   Post as IPost,
   PostMedia as IPostMedia,
   Profile as IProfile,
-  Purchase as IPurchase,
   RegisterDto as IRegisterDto,
   Report as IReport,
   SearchResult as ISearchResult,
@@ -44,10 +43,6 @@ export type Post = IPost & {
   promotionId?: string;
   // The countries a promoted post is aimed at; empty for everywhere.
   promotionCountries?: string[];
-  isPremium?: boolean;
-  price?: number | null;
-  priceCents?: number | null;
-  isLocked?: boolean;
   recommendationReason?: string;
   recommendationSignals?: string[];
   shouldBlurSensitive?: boolean;
@@ -72,8 +67,6 @@ export type Story = IStory & {
   qnaBox?: StoryStickerRef | null;
   /** Polls, questions and the rest, where the creator placed them. */
   stickers?: FeedSticker[];
-  isLocked?: boolean;
-  priceCents?: number | null;
 };
 export type Collection = ICollection & {
   description?: string | null;
@@ -82,7 +75,6 @@ export type Audio = IAudio;
 export type Place = IPlace;
 export type PlaceMapPin = IPlaceMapPin;
 export type PlaceDetail = IPlaceDetail;
-export type Purchase = IPurchase;
 export interface WebhookEvent {
   id: string;
   provider: string;
@@ -97,7 +89,6 @@ export type SuggestedUser = ISuggestedUser;
 export type PlatformPlanDto = IPlatformPlanDto;
 
 export interface ProfileWithUser extends IProfile {
-  subscriptionPriceCents?: number;
   user?: {
     id: string;
     // Only present on the authenticated user's own profile; the API never
@@ -106,7 +97,6 @@ export interface ProfileWithUser extends IProfile {
     role?: string;
     createdAt: Date | string;
     providerAccountId?: string | null;
-    isMonetizationEnabled?: boolean;
     isTwoFactorEnabled?: boolean;
     // Own profile only: language of the account's emails and notices.
     locale?: 'en' | 'es';
@@ -123,8 +113,6 @@ export interface ProfileWithUser extends IProfile {
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   // Colour chosen for the profile page; empty means the colour of the app.
   accentColor?: string | null;
-  // On the Business plan, with a payout account verified as a company.
-  companyVerified?: boolean;
   // Set when the session acts as this Profile as a team member: the role.
   memberRole?: 'ADMINISTRATOR' | 'EDITOR';
   isVerified?: boolean;
@@ -200,8 +188,6 @@ export type CreatePostDto = {
     x: number;
     y: number;
   }[];
-  isPremium?: boolean;
-  priceCents?: number;
   scheduledAt?: string | Date;
   contentRating?: 'GENERAL' | 'MATURE';
   /** The shape every item shows in; a post only. */
@@ -228,8 +214,6 @@ export type CreateStoryDto = {
     region?: string;
     locality?: string;
   };
-  isPremium?: boolean;
-  priceCents?: number;
   scheduledAt?: string | Date;
   /** Polls, questions, quizzes, sliders and hashtags, up to ten. */
   stickers?: StoryStickerInput[];

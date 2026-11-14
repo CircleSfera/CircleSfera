@@ -124,26 +124,6 @@ describe('ProfileHeader', () => {
     ).toBeInTheDocument();
   });
 
-  it('says a profile is a verified company only when the server says so', () => {
-    const { i18n, unmount } = renderWithProviders(
-      <ProfileHeader
-        {...headerProps}
-        profile={{
-          data: { ...ownProfile.data, companyVerified: true },
-        }}
-      />,
-    );
-    expect(
-      screen.getByText(i18n!.t('profile.company_verified')),
-    ).toBeInTheDocument();
-    unmount();
-
-    renderWithProviders(<ProfileHeader {...headerProps} />);
-    expect(
-      screen.queryByText(i18n!.t('profile.company_verified')),
-    ).not.toBeInTheDocument();
-  });
-
   it('offers the creator mode switch to creator and business accounts only', () => {
     const withAccount = (accountType: string) => ({
       data: { ...ownProfile.data, accountType } as ProfileWithUser,
@@ -197,16 +177,6 @@ describe('ProfileHeader', () => {
       'aria-pressed',
       'true',
     );
-  });
-
-  it('offers no tip on a profile: a tip is always for a post', () => {
-    const other = { ...headerProps, isMe: false };
-    const { i18n } = renderWithProviders(<ProfileHeader {...other} />);
-    expect(
-      screen.queryByRole('button', {
-        name: i18n!.t('profile.actions.send_tip'),
-      }),
-    ).not.toBeInTheDocument();
   });
 
   it('offers to restrict or unrestrict another profile from its menu, asking only once it is open', () => {

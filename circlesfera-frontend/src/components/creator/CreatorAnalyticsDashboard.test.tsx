@@ -7,23 +7,11 @@ import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
 
 vi.mock('../../services/creator.service', () => ({
   creatorApi: {
-    getRevenueAnalytics: vi.fn(),
     getAudienceRetentionAnalytics: vi.fn(),
     getTopPerformingContent: vi.fn(),
     exportAnalyticsCsv: vi.fn(),
   },
 }));
-
-const revenue = {
-  period: '30d',
-  grossRevenue: 1000,
-  tipsTotal: 600.5,
-  postUnlocksTotal: 300,
-  giftsTotal: 99.5,
-  totalFollowersCount: 40,
-  conversionRate: 0,
-  currency: 'EUR',
-};
 
 const noHours = {
   avgDwellSeconds: 0,
@@ -35,9 +23,6 @@ const noHours = {
 describe('CreatorAnalyticsDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(creatorApi.getRevenueAnalytics).mockResolvedValue({
-      data: revenue,
-    } as never);
     vi.mocked(creatorApi.getAudienceRetentionAnalytics).mockResolvedValue({
       data: noHours,
     } as never);
@@ -46,47 +31,22 @@ describe('CreatorAnalyticsDashboard', () => {
     } as never);
   });
 
-  it('writes the income of the period by kind, in the format of the reader', async () => {
-    renderWithProviders(<CreatorAnalyticsDashboard />);
-
-    expect(
-      await screen.findByRole('heading', { name: 'Income by period' }),
-    ).toBeInTheDocument();
-    expect(await screen.findByText('€1,000.00')).toBeInTheDocument();
-    expect(screen.getByText('€600.50')).toBeInTheDocument();
-    expect(screen.getByText('€300.00')).toBeInTheDocument();
-    expect(screen.getByText('€99.50')).toBeInTheDocument();
-    expect(screen.getByText('Before the platform fee.')).toBeInTheDocument();
-  });
-
-  it('leaves out what the server never measures', async () => {
-    renderWithProviders(<CreatorAnalyticsDashboard />);
-
-    await screen.findByText('€1,000.00');
-    expect(screen.queryByText(/subscri/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/conversion/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/dwell/i)).not.toBeInTheDocument();
-  });
-
-  it('counts messages unlocked as paid content, with posts and stories', async () => {
-    vi.mocked(creatorApi.getRevenueAnalytics).mockResolvedValue({
-      data: { ...revenue, messageUnlocksTotal: 25.5 },
-    } as never);
-    renderWithProviders(<CreatorAnalyticsDashboard />);
-
-    expect(await screen.findByText('€325.50')).toBeInTheDocument();
-  });
-
-  it('asks again when another period is chosen, named in words', async () => {
+  it('exports the report of the period chosen, named in words', async () => {
     const user = userEvent.setup();
+    vi.mocked(creatorApi.exportAnalyticsCsv).mockResolvedValue({
+      data: 'a,b',
+    } as never);
+    URL.createObjectURL = vi.fn(() => 'blob:report');
+    URL.revokeObjectURL = vi.fn();
     renderWithProviders(<CreatorAnalyticsDashboard />);
 
     const chosen = await screen.findByRole('button', { name: '30 days' });
     expect(chosen).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: '1 year' }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
     await waitFor(() =>
-      expect(creatorApi.getRevenueAnalytics).toHaveBeenLastCalledWith('1y'),
+      expect(creatorApi.exportAnalyticsCsv).toHaveBeenCalledWith('1y'),
     );
   });
 
@@ -161,7 +121,7 @@ describe('CreatorAnalyticsDashboard', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
     onTestFinished(() => logged.mockRestore());
     const user = userEvent.setup();
-    vi.mocked(creatorApi.getRevenueAnalytics).mockRejectedValueOnce(
+    vi.mocked(creatorApi.getAudienceRetentionAnalytics).mockRejectedValueOnce(
       new Error('down'),
     );
     renderWithProviders(<CreatorAnalyticsDashboard />);
@@ -173,8 +133,8 @@ describe('CreatorAnalyticsDashboard', () => {
 
     await user.click(screen.getByRole('button', { name: 'Try again' }));
 
-    expect(await screen.findByText('€1,000.00')).toBeInTheDocument();
-    expect(creatorApi.getRevenueAnalytics).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText('Your best posts')).toBeInTheDocument();
+    expect(creatorApi.getAudienceRetentionAnalytics).toHaveBeenCalledTimes(2);
     expect(logged).toHaveBeenCalledWith(
       'Failed to fetch creator analytics:',
       new Error('down'),
@@ -185,9 +145,9 @@ describe('CreatorAnalyticsDashboard', () => {
     renderWithProviders(<CreatorAnalyticsDashboard />, { lng: 'es' });
 
     expect(
-      await screen.findByRole('heading', { name: 'Ingresos por periodo' }),
+      await screen.findByRole('heading', { name: 'Informe por periodo' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '30 días' })).toBeInTheDocument();
-    expect(screen.queryByText('Income by period')).not.toBeInTheDocument();
+    expect(screen.queryByText('Report by period')).not.toBeInTheDocument();
   });
 });

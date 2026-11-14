@@ -5,7 +5,6 @@ import { useComposer } from './ComposerContext';
 import CoverSubScreen from './CoverSubScreen';
 import InteractiveSubScreen from './InteractiveSubScreen';
 import LocationSubScreen from './LocationSubScreen';
-import MonetizationSubScreen from './MonetizationSubScreen';
 import MusicSubScreen from './MusicSubScreen';
 import TagPeopleSubScreen from './TagPeopleSubScreen';
 
@@ -42,10 +41,6 @@ export default function SubScreenRouter({
     location,
     setSelectedPlace,
     generateAltTextForIndex,
-    isPremium,
-    setIsPremium,
-    price,
-    setPrice,
     scheduledAt,
     setScheduledAt,
     interactiveDraft,
@@ -132,18 +127,6 @@ export default function SubScreenRouter({
         mediaFiles={mediaFiles}
         tagsMap={tagsMap}
         setTagsMap={setTagsMap}
-        onClose={() => setSubScreen('none')}
-      />
-    );
-  }
-
-  if (subScreen === 'monetization') {
-    return (
-      <MonetizationSubScreen
-        isPremium={isPremium}
-        setIsPremium={setIsPremium}
-        price={price}
-        setPrice={setPrice}
         onClose={() => setSubScreen('none')}
       />
     );

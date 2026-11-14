@@ -2,7 +2,6 @@ import {
   Archive,
   Bell,
   CreditCard,
-  DollarSign,
   EyeOff,
   Flag,
   Handshake,
@@ -32,7 +31,6 @@ export type SettingsSectionId =
   | 'notifications'
   | 'security'
   | 'billing'
-  | 'monetization'
   | 'requests'
   | 'collaborations'
   | 'close_friends'
@@ -74,7 +72,6 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'notifications',
   'security',
   'billing',
-  'monetization',
   'requests',
   'collaborations',
   'close_friends',
@@ -218,11 +215,6 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'billing',
         labelKey: 'settings.tabs.billing.label',
         icon: CreditCard,
-      },
-      {
-        id: 'monetization',
-        labelKey: 'settings.tabs.monetization.label',
-        icon: DollarSign,
       },
     ],
   },

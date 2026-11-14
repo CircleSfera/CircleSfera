@@ -42,7 +42,6 @@ const stream = (id: string, over: object = {}) => ({
   replayUrl: null,
   host: { id: `h-${id}`, profile: { username: `host_${id}`, avatar: null } },
   coHost: null,
-  _count: { gifts: 4 },
   ...over,
 });
 
@@ -308,9 +307,7 @@ describe('LiveStreamsTab', () => {
       'https://media.test/a.m3u8',
     );
     expect(within(open).getAllByText('55')).toHaveLength(2);
-    expect(
-      within(open).getByText('Gifts').parentElement?.parentElement,
-    ).toHaveTextContent('4');
+    expect(within(open).queryByText('Gifts')).not.toBeInTheDocument();
     expect(within(open).getByText('Participants')).toBeInTheDocument();
     expect(within(open).getByText('@host_a')).toBeInTheDocument();
     expect(within(open).getByText('Host')).toBeInTheDocument();
@@ -344,9 +341,6 @@ describe('LiveStreamsTab', () => {
     );
     expect(within(open).getByText('@guest')).toBeInTheDocument();
     expect(within(open).getByText('Guest co-host')).toBeInTheDocument();
-    expect(
-      within(open).getByText('Gifts').parentElement?.parentElement,
-    ).toHaveTextContent('0');
     expect(
       within(open).queryByText('Moderation actions'),
     ).not.toBeInTheDocument();

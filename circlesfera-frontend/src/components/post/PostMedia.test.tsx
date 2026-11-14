@@ -1,45 +1,18 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { toast } from 'react-hot-toast';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { monetizationApi } from '../../services/monetization.service';
+import { fireEvent, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import type { Post } from '../../types';
 import PostMedia from './PostMedia';
 
 const pieces = vi.hoisted(() => ({
   carousel: {} as Record<string, unknown>,
-  reportPaymentError: vi.fn(),
 }));
 
-vi.mock('react-hot-toast', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
-}));
-vi.mock('../../services/monetization.service', () => ({
-  monetizationApi: { unlockPost: vi.fn() },
-}));
-vi.mock('../../utils/identityVerification', () => ({
-  reportPaymentError: pieces.reportPaymentError,
-}));
 vi.mock('../Carousel', () => ({
   default: (props: Record<string, unknown>) => {
     pieces.carousel = props;
     return <div data-testid="carousel" />;
   },
-}));
-vi.mock('../monetization/PaywallOverlay', () => ({
-  default: ({
-    price,
-    onUnlock,
-    isLoading,
-  }: {
-    price: number;
-    onUnlock: () => void;
-    isLoading: boolean;
-  }) => (
-    <button type="button" onClick={onUnlock} disabled={isLoading}>
-      unlock for {price}
-    </button>
-  ),
 }));
 
 const post = (over: Partial<Post> = {}): Post =>
@@ -67,19 +40,8 @@ const post = (over: Partial<Post> = {}): Post =>
   }) as Post;
 
 describe('PostMedia', () => {
-  const location = window.location;
   beforeEach(() => {
     vi.clearAllMocks();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { ...location, href: 'http://localhost/p/p1' },
-    });
-  });
-  afterEach(() => {
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: location,
-    });
   });
 
   it('shows nothing for a post with no media', () => {
@@ -171,125 +133,6 @@ describe('PostMedia', () => {
       const { container } = renderWithProviders(<PostMedia post={post()} />);
       expect(blurred(container)).toBe(false);
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    });
-
-    it('stays blurred behind the paywall of a locked post, with only the paywall to press', () => {
-      const { container } = renderWithProviders(
-        <PostMedia
-          post={post({
-            shouldBlurSensitive: true,
-            isLocked: true,
-            priceCents: 499,
-          })}
-        />,
-      );
-      expect(blurred(container)).toBe(true);
-      expect(screen.getAllByRole('button')).toHaveLength(1);
-    });
-  });
-
-  describe('a locked post', () => {
-    const locked = post({ isLocked: true, priceCents: 499 });
-    const unlock = () => screen.getByRole('button', { name: /^unlock for/ });
-
-    it('shows its price in whole units and tells the carousel it is locked', () => {
-      renderWithProviders(<PostMedia post={locked} />);
-      expect(unlock()).toHaveTextContent('unlock for 4.99');
-      expect(pieces.carousel.isLocked).toBe(true);
-    });
-
-    it('shows zero for a locked post with no price', () => {
-      renderWithProviders(<PostMedia post={post({ isLocked: true })} />);
-      expect(unlock()).toHaveTextContent('unlock for 0');
-    });
-
-    // The box of the consent dialog, then Continue.
-    const consentAndContinue = () => {
-      fireEvent.click(
-        screen.getByRole('checkbox', { name: /14-day right of withdrawal/ }),
-      );
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Continue to payment' }),
-      );
-    };
-
-    it('asks the consent to start at once before paying, and starts nothing without it', () => {
-      renderWithProviders(<PostMedia post={locked} />);
-
-      fireEvent.click(unlock());
-
-      const box = screen.getByRole('checkbox', {
-        name: /14-day right of withdrawal/,
-      });
-      const go = screen.getByRole('button', { name: 'Continue to payment' });
-      expect(box).not.toBeChecked();
-      expect(go).toBeDisabled();
-      fireEvent.click(go);
-      expect(monetizationApi.unlockPost).not.toHaveBeenCalled();
-    });
-
-    it('goes to the payment page the server gives, coming back to this page', async () => {
-      vi.mocked(monetizationApi.unlockPost).mockResolvedValue({
-        url: 'https://pay.example/s1',
-      } as never);
-      renderWithProviders(<PostMedia post={locked} />);
-
-      fireEvent.click(unlock());
-      consentAndContinue();
-
-      await waitFor(() =>
-        expect(window.location.href).toBe('https://pay.example/s1'),
-      );
-      expect(monetizationApi.unlockPost).toHaveBeenCalledWith(
-        'p1',
-        'http://localhost/p/p1',
-        { withdrawalConsent: true },
-      );
-      expect(toast.success).not.toHaveBeenCalled();
-    });
-
-    it('says the post is unlocked when no payment page is needed', async () => {
-      vi.mocked(monetizationApi.unlockPost).mockResolvedValue({} as never);
-      renderWithProviders(<PostMedia post={locked} />);
-
-      fireEvent.click(unlock());
-      consentAndContinue();
-
-      await waitFor(() =>
-        expect(toast.success).toHaveBeenCalledWith(
-          'Post successfully unlocked!',
-        ),
-      );
-      expect(window.location.href).toBe('http://localhost/p/p1');
-    });
-
-    it('explains a payment that could not start', async () => {
-      const failure = new Error('declined');
-      vi.mocked(monetizationApi.unlockPost).mockRejectedValue(failure);
-      renderWithProviders(<PostMedia post={locked} />);
-
-      fireEvent.click(unlock());
-      consentAndContinue();
-
-      await waitFor(() =>
-        expect(pieces.reportPaymentError).toHaveBeenCalledWith(
-          failure,
-          expect.any(Function),
-          'post.media.unlock_error',
-        ),
-      );
-    });
-
-    it('takes no second press while the unlock is on its way', async () => {
-      vi.mocked(monetizationApi.unlockPost).mockReturnValue(
-        new Promise(() => {}),
-      );
-      renderWithProviders(<PostMedia post={locked} />);
-
-      fireEvent.click(unlock());
-      consentAndContinue();
-
-      await waitFor(() => expect(unlock()).toBeDisabled());
     });
   });
 });

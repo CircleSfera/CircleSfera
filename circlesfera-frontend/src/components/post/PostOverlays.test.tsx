@@ -32,7 +32,6 @@ vi.mock('../modals/AddToCollectionModal', () => ({ default: () => null }));
 vi.mock('../modals/MuteDurationModal', () => ({ default: () => null }));
 vi.mock('../modals/ReportModal', () => ({ default: () => null }));
 vi.mock('../modals/SharePostModal', () => ({ default: () => null }));
-vi.mock('../monetization/TipModal', () => ({ default: () => null }));
 
 const post = {
   id: 'post-1',
@@ -60,8 +59,6 @@ function interactionsStub() {
     setShowPromoteModal: vi.fn(),
     showShareModal: false,
     setShowShareModal: vi.fn(),
-    showTipModal: false,
-    setShowTipModal: vi.fn(),
     showMuteModal: false,
     setShowMuteModal: vi.fn(),
     editCaption: '',

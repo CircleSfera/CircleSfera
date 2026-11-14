@@ -19,11 +19,8 @@ const post = (over: Partial<Post> = {}) =>
   }) as unknown as Post;
 
 describe('sharing a post to a story', () => {
-  it('is offered for a free post on show, never for paid, locked or archived ones', () => {
+  it('is offered for a post on show, never for an archived one', () => {
     expect(canOfferStoryShare(post())).toBe(true);
-    expect(canOfferStoryShare(post({ isPremium: true }))).toBe(false);
-    expect(canOfferStoryShare(post({ isLocked: true }))).toBe(false);
-    expect(canOfferStoryShare(post({ priceCents: 300 }))).toBe(false);
     expect(canOfferStoryShare(post({ archivedAt: '2026-10-01' }))).toBe(false);
   });
 

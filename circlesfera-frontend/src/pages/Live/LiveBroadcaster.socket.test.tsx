@@ -205,8 +205,8 @@ async function goLive(title = '') {
   fireEvent.click(screen.getByRole('button', { name: 'Go live' }));
   await screen.findByRole('button', { name: 'End livestream' });
   // The screen is drawn a moment before it starts listening to the room.
-  // Eleven events of the live, and the new connection that joins it again.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(13));
+  // Ten events of the live, and the new connection that joins it again.
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(12));
   return view;
 }
 
@@ -485,7 +485,7 @@ describe('LiveBroadcaster on the live connection', () => {
   });
 
   describe('the goal', () => {
-    it('sets it for everyone, shows it and adds each gift to it', async () => {
+    it('sets it for everyone and shows it', async () => {
       await goLive();
 
       fireEvent.click(screen.getByRole('button', { name: 'set a goal' }));
@@ -500,16 +500,12 @@ describe('LiveBroadcaster on the live connection', () => {
       ).not.toBeInTheDocument();
 
       fire('live:goal_set', { title: 'New lens', current: 0, target: 5000 });
-      fire('live:gift', { amountCents: 500 });
-      fire('live:gift', { amountCents: 250 });
-      fire('live:gift', {});
-      expect(screen.getByText('goal: New lens 750/5000')).toBeInTheDocument();
+      expect(screen.getByText('goal: New lens 0/5000')).toBeInTheDocument();
     });
 
-    it('ignores a gift while there is no goal, and can close the dialog', async () => {
+    it('can close the dialog', async () => {
       await goLive();
 
-      fire('live:gift', { amountCents: 500 });
       expect(
         screen.getByRole('button', { name: 'set a goal' }),
       ).toBeInTheDocument();

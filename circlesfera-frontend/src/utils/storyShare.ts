@@ -2,17 +2,12 @@ import type { SharedPostCard } from '../components/interactive/SharedPostSticker
 import type { Post } from '../types';
 
 /**
- * Whether "Add to your story" is offered for a post or Frame. Paid,
- * locked and archived content is never shared; the server decides the rest
- * (who can see it, and whether its author allows sharing).
+ * Whether "Add to your story" is offered for a post or Frame. Archived
+ * content is never shared; the server decides the rest (who can see it, and
+ * whether its author allows sharing).
  */
 export function canOfferStoryShare(post: Post): boolean {
-  return (
-    !post.isPremium &&
-    !post.isLocked &&
-    !(post.priceCents && post.priceCents > 0) &&
-    !post.archivedAt
-  );
+  return !post.archivedAt;
 }
 
 /** The card a post or Frame starts a story with, as viewers will see it. */

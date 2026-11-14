@@ -11,12 +11,6 @@ vi.mock('../../services/creator.service', () => ({
   },
 }));
 
-vi.mock('../../services/monetization.service', () => ({
-  monetizationApi: {
-    getMonetization: vi.fn().mockResolvedValue({ lifetimeEarningsCents: 1250 }),
-  },
-}));
-
 vi.mock('../../stores/authStore', () => ({
   useAuthStore: (selector: (s: { profile: unknown }) => unknown) =>
     selector({
@@ -68,7 +62,7 @@ describe('CreatorDashboard', () => {
     } as never);
   });
 
-  it('shows the four figures the server measures, each saying what it is', async () => {
+  it('shows the three figures the server measures, each saying what it is', async () => {
     renderWithProviders(
       <CreatorDashboard onPromote={onPromote} stats={stats} />,
     );
@@ -79,10 +73,10 @@ describe('CreatorDashboard', () => {
     expect(screen.getByText('1,200')).toBeInTheDocument();
     expect(screen.getByText('Views of posts and stories')).toBeInTheDocument();
     expect(screen.getByText('4.2 %')).toBeInTheDocument();
-    expect(await screen.findByText('€12.50')).toBeInTheDocument();
+    expect(screen.queryByText(/€/)).not.toBeInTheDocument();
   });
 
-  it('leaves out the monthly income and the subscribers, which nothing measures', () => {
+  it('leaves out income and subscribers', () => {
     renderWithProviders(
       <CreatorDashboard onPromote={onPromote} stats={stats} />,
     );

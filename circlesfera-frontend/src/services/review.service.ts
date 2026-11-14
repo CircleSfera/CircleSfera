@@ -2,14 +2,11 @@ import type { PaginatedResponse } from '../types';
 import { apiClient } from './api';
 
 // The review area of the staff sites: what an external reviewer (a payment
-// provider) reads, read only. Creators are named by public username; no
-// one's email, address, message or note is in any answer.
+// provider) reads, read only. No one's email, address, message or note is in
+// any answer.
 
 export interface ReviewSummary {
   days: number;
-  paidPostsOnSale: number;
-  paidStoriesOnSale: number;
-  chargingAccounts: number;
   payments: Array<{
     type: string;
     status: string;
@@ -22,36 +19,6 @@ export interface ReviewSummary {
   strikes: Record<string, number>;
   appeals: Record<string, number>;
   illegalContentNotices: Record<string, number>;
-}
-
-export interface ReviewCreatorRef {
-  username: string;
-  accountType: string;
-  verificationLevel: string;
-}
-
-export interface ReviewPaidItem {
-  id: string;
-  kind: 'post' | 'story';
-  postType?: string;
-  createdAt: string;
-  expiresAt?: string;
-  caption?: string | null;
-  priceCents: number;
-  moderationStatus: string;
-  audience: string;
-  media: Array<{ url: string; thumbnailUrl: string | null; type: string }>;
-  creator: ReviewCreatorRef;
-  sales: number;
-}
-
-export interface ReviewCreator extends ReviewCreatorRef {
-  createdAt: string;
-  standing: 'ACTIVE' | 'SUSPENDED' | 'BANNED';
-  paidPostsOnSale: number;
-  activeStrikes: number;
-  completedPayments: number;
-  grossCents: number;
 }
 
 export interface ReviewReport {
@@ -108,17 +75,6 @@ type Page = { page?: number; limit?: number };
 
 export const reviewApi = {
   summary: () => apiClient.get<ReviewSummary>('admin/review/summary'),
-
-  paidContent: (params: Page & { kind: 'post' | 'story' }) =>
-    apiClient.get<PaginatedResponse<ReviewPaidItem>>(
-      'admin/review/paid-content',
-      { params },
-    ),
-
-  creators: (params: Page) =>
-    apiClient.get<PaginatedResponse<ReviewCreator>>('admin/review/creators', {
-      params,
-    }),
 
   enforcement: <K extends ReviewEnforcementKind>(params: Page & { kind: K }) =>
     apiClient.get<PaginatedResponse<ReviewEnforcementRow[K]>>(

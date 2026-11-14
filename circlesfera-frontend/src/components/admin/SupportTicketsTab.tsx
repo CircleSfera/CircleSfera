@@ -958,18 +958,6 @@ export default function SupportTicketsTab({ onToast }: Props) {
                               : t('admin.support.account.no')}
                           </dd>
                         </div>
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-white/50">
-                            {t('admin.support.account.payouts')}
-                          </dt>
-                          <dd className="font-semibold text-white">
-                            {account.payouts.enabled
-                              ? t('admin.support.account.payouts_enabled')
-                              : account.payouts.connected
-                                ? t('admin.support.account.payouts_pending')
-                                : t('admin.support.account.payouts_none')}
-                          </dd>
-                        </div>
                       </dl>
                       <ul className="mt-2 space-y-1 border-t border-white/5 pt-2 text-sm">
                         {account.profiles.map((profile) => (

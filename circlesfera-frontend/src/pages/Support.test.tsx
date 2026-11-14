@@ -43,7 +43,7 @@ describe('Support', () => {
     fireEvent.change(
       screen.getByPlaceholderText(t('supportPage.message_placeholder')),
       {
-        target: { value: 'My tip did not arrive' },
+        target: { value: 'My plan did not renew' },
       },
     );
     fireEvent.submit(

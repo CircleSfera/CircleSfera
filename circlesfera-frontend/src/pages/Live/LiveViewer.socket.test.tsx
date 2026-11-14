@@ -99,25 +99,6 @@ vi.mock('../../components/live/CoHostInviteBanner', () => ({
       </div>
     ) : null,
 }));
-vi.mock('../../components/live/LiveGiftModal', () => ({
-  default: ({
-    isOpen,
-    onClose,
-    streamId,
-  }: {
-    isOpen: boolean;
-    onClose: () => void;
-    streamId: string;
-  }) =>
-    isOpen ? (
-      <div role="dialog" aria-label="gifts">
-        <span>gifts for {streamId}</span>
-        <button type="button" onClick={onClose}>
-          close gifts
-        </button>
-      </div>
-    ) : null,
-}));
 vi.mock('../../components/live/LiveQnAPanel', () => ({
   default: ({
     isOpen,
@@ -184,8 +165,8 @@ async function watch(path = '/live/stream-1') {
   );
   await screen.findByTestId('livekit-room');
   // The listeners are attached in the same step as the two requests.
-  // Thirteen events of the live, and the new connection that joins it again.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(16));
+  // Fourteen events of the live, and the new connection that joins it again.
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(15));
   return view;
 }
 
@@ -218,7 +199,7 @@ describe('LiveViewer on the live connection', () => {
       audio: false,
     });
     const listened = [...live.handlers.keys()];
-    expect(listened).toHaveLength(16);
+    expect(listened).toHaveLength(15);
     expect(listened).toContain('connect');
 
     unmount();
@@ -311,7 +292,7 @@ describe('LiveViewer on the live connection', () => {
     expect(screen.queryByText('What camera?')).not.toBeInTheDocument();
   });
 
-  it('floats a reaction for two seconds for each gift, heart and reaction', async () => {
+  it('floats a reaction for two seconds for each heart and reaction', async () => {
     const { container } = await watch();
     // From here on: the two seconds a reaction floats are stepped by hand.
     vi.useFakeTimers();
@@ -327,23 +308,6 @@ describe('LiveViewer on the live connection', () => {
 
     act(() => vi.advanceTimersByTime(2000));
     expect(floating()).toEqual([]);
-  });
-
-  it('announces a gift, naming who sent it when it is known', async () => {
-    await watch();
-
-    fire('live:gift', { giftId: 'rose', senderUsername: 'dave' });
-    expect(toast.success).toHaveBeenLastCalledWith(
-      expect.stringContaining('dave'),
-    );
-    expect(toast.success).toHaveBeenLastCalledWith(
-      expect.stringContaining('rose'),
-    );
-
-    fire('live:gift', {});
-    expect(toast.success).toHaveBeenLastCalledWith(
-      expect.stringContaining('Someone'),
-    );
   });
 
   describe('taking part', () => {
@@ -407,18 +371,6 @@ describe('LiveViewer on the live connection', () => {
       fireEvent.doubleClick(control());
 
       expect(live.socket.emit).not.toHaveBeenCalled();
-    });
-
-    it('opens the gifts and closes them', async () => {
-      await watch();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Send gift' }));
-      expect(screen.getByText('gifts for stream-1')).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('button', { name: 'close gifts' }));
-      expect(
-        screen.queryByRole('dialog', { name: 'gifts' }),
-      ).not.toBeInTheDocument();
     });
 
     it('lists the questions asked and sends one with the name and picture of the person', async () => {
@@ -680,10 +632,5 @@ describe('LiveViewer on the live connection', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'See their profile' }));
     expect(live.navigate).toHaveBeenCalledWith('/alice');
-  });
-
-  it('says a gift was cancelled on coming back from the payment page', async () => {
-    await watch('/live/stream-1?gift_canceled=true');
-    expect(toast.error).toHaveBeenCalledTimes(1);
   });
 });

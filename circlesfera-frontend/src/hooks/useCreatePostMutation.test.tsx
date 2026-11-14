@@ -72,8 +72,6 @@ function setup(overrides: Record<string, unknown> = {}) {
     selectedAudio: null,
     audioStartMs: 4000,
     isCloseFriendsOnly: false,
-    isPremium: false,
-    price: 0,
     scheduledAt: '',
     interactiveDraft: null,
     storyElements: [],
@@ -407,10 +405,8 @@ describe('useCreatePostMutation', () => {
     });
   });
 
-  it('publishes a post with the price in cents, tags and rating, then goes home', async () => {
+  it('publishes a post with its tags and rating, then goes home', async () => {
     const { deps, submit } = setup({
-      isPremium: true,
-      price: 4.99,
       isSensitive: true,
       tagsMap: { 0: [{ profileId: 'p9', username: 'ana', x: 0.2, y: 0.4 }] },
       scheduledAt: '2026-11-01T10:00:00.000Z',
@@ -425,8 +421,6 @@ describe('useCreatePostMutation', () => {
         type: 'POST',
         audioStartMs: 0,
         tags: [{ profileId: 'p9', x: 0.2, y: 0.4 }],
-        isPremium: true,
-        priceCents: 499,
         contentRating: 'MATURE',
         scheduledAt: '2026-11-01T10:00:00.000Z',
       }),
@@ -484,7 +478,7 @@ describe('useCreatePostMutation', () => {
       expect(navigate).toHaveBeenLastCalledWith('/');
 
       vi.mocked(postsApi.create).mockResolvedValue({
-        data: { ...card, isPremium: true },
+        data: { ...card, archivedAt: '2026-10-01' },
       } as never);
       await setup({ shareToStory: true }).submit();
       expect(navigate).toHaveBeenLastCalledWith('/');
@@ -515,12 +509,12 @@ describe('useCreatePostMutation', () => {
     });
   });
 
-  it('a free post never sends a price', async () => {
-    const { submit } = setup({ isPremium: false, price: 9 });
+  it('a post never sends a price', async () => {
+    const { submit } = setup();
     await submit();
-    expect(postsApi.create).toHaveBeenCalledWith(
-      expect.objectContaining({ isPremium: false, priceCents: 0 }),
-    );
+    const sent = vi.mocked(postsApi.create).mock.calls[0][0];
+    expect(sent).not.toHaveProperty('priceCents');
+    expect(sent).not.toHaveProperty('isPremium');
   });
 
   it('adds the poll after the post, and still goes home if the poll fails', async () => {
@@ -573,7 +567,6 @@ describe('useCreatePostMutation', () => {
         url: 'https://cdn/a.jpg',
         mediaType: 'image',
         isCloseFriendsOnly: true,
-        priceCents: 0,
         stickers: [
           {
             kind: 'POLL',
@@ -799,11 +792,7 @@ describe('useCreatePostMutation', () => {
     );
   });
 
-  it.each([
-    'CONTENT_BLOCKED_BY_MODERATION',
-    'PREMIUM_PRICE_OUT_OF_RANGE',
-    'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
-  ])(
+  it.each(['CONTENT_BLOCKED_BY_MODERATION'])(
     "says why when the server refuses with %s, in the reader's language",
     async (code) => {
       vi.mocked(postsApi.create).mockRejectedValue({

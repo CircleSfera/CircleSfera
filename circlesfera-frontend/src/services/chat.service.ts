@@ -66,8 +66,6 @@ export const chatApi = {
     voiceUrl?: string;
     voiceDuration?: number;
     voiceWaveform?: number[];
-    isLocked?: boolean;
-    priceCents?: number;
     gifId?: string;
   }) => apiClient.post<Message>('/chat/messages', data),
 

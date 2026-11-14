@@ -4,14 +4,9 @@ import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { chatApi, storiesApi } from '../services';
 import { apiClient } from '../services/api';
-import { monetizationApi } from '../services/monetization.service';
 import { renderWithProviders } from '../test/test-utils';
 import type { Story } from '../types';
 import StoryViewer from './StoryViewer';
-
-vi.mock('./payments/WithdrawalConsent', async () =>
-  (await import('../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
-);
 
 vi.mock('../stores/authStore', () => ({
   useAuthStore: (selector: (s: { profile: { id: string } }) => unknown) =>
@@ -35,10 +30,6 @@ const navigate = vi.fn();
 vi.mock('react-router-dom', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-router-dom')>()),
   useNavigate: () => navigate,
-}));
-
-vi.mock('../services/monetization.service', () => ({
-  monetizationApi: { unlockStory: vi.fn() },
 }));
 
 vi.mock('react-hot-toast', () => ({
@@ -90,13 +81,6 @@ vi.mock('./interactive/CountdownWidget', () => ({
     <div data-testid="countdown">
       {stickerId}:{isAuthor ? 'author' : 'viewer'}
     </div>
-  ),
-}));
-vi.mock('./monetization/PaywallOverlay', () => ({
-  default: ({ price, onUnlock }: { price: number; onUnlock: () => void }) => (
-    <button type="button" onClick={onUnlock}>
-      unlock for {price}
-    </button>
   ),
 }));
 
@@ -524,9 +508,6 @@ describe('StoryViewer', () => {
       expect(await offered(mentionsMe({ isCloseFriendsOnly: true }))).toBe(
         false,
       );
-      expect(
-        await offered(mentionsMe({ isPremium: true, priceCents: 300 })),
-      ).toBe(false);
       expect(await offered(mentionsMe())).toBe(true);
     });
   });
@@ -696,39 +677,6 @@ describe('StoryViewer', () => {
       expect(log).toHaveBeenCalledWith('Failed to delete story:', failure);
       expect(onClose).not.toHaveBeenCalled();
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('a paid story', () => {
-    const locked = () =>
-      story('s1', { isLocked: true, priceCents: 250, poll: { id: 'p1' } });
-
-    it('shows the price in whole currency and hides the poll', async () => {
-      await show([locked()]);
-
-      expect(
-        screen.getByRole('button', { name: 'unlock for 2.5' }),
-      ).toBeInTheDocument();
-      expect(screen.queryByTestId('poll')).not.toBeInTheDocument();
-    });
-
-    it('says it is unlocked when no payment page is needed', async () => {
-      const user = userEvent.setup();
-      vi.mocked(monetizationApi.unlockStory).mockResolvedValue({} as never);
-      const { queryClient } = await show([locked()]);
-      const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
-
-      await user.click(screen.getByRole('button', { name: /unlock for/ }));
-
-      await waitFor(() =>
-        expect(toast.success).toHaveBeenCalledWith('Story unlocked'),
-      );
-      expect(monetizationApi.unlockStory).toHaveBeenCalledWith(
-        's1',
-        window.location.href,
-        { withdrawalConsent: true },
-      );
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['stories'] });
     });
   });
 

@@ -131,8 +131,6 @@ export function useCreatePost() {
     studioTemplate: state.studioTemplate,
     offerTemplate: state.offerTemplate,
     isCloseFriendsOnly: state.isCloseFriendsOnly,
-    isPremium: state.isPremium,
-    price: state.price,
     scheduledAt: state.scheduledAt,
     interactiveDraft: state.interactiveDraft,
     storyElements: state.storyElements,
