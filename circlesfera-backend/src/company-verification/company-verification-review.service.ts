@@ -1,9 +1,9 @@
 import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
-import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AdminAction,
+  type CompanyRejectionReason,
   CompanyVerificationStatus,
   NotificationType,
   type Prisma,
@@ -15,7 +15,6 @@ import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { forgetProfileView } from './company-mark.js';
 import type { DecideCompanyDto } from './dto/decide-company.dto.js';
 
 const QUEUE_PAGE = 50;
@@ -75,7 +74,6 @@ export class CompanyVerificationReviewService {
     @Inject(EmailService) private readonly email: EmailService,
     @Inject(EventEmitter2) private readonly events: EventEmitter2,
     @Inject(StripeService) private readonly stripe: StripeService,
-    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   // The name on the identity document of the person who holds a sole
@@ -246,9 +244,24 @@ export class CompanyVerificationReviewService {
       return application;
     });
 
-    // Others see the mark change at once.
-    await forgetProfileView(this.prisma, this.cache, decided.profileId);
-    const notice: Notice = dto.approve
+    // The decision stands once committed: telling the person is best
+    // effort, and a failure here never reports the decision as failed.
+    await this.tellDecision(id, dto.approve, decided).catch((err: unknown) =>
+      this.logger.error('Failed to tell the company decision', err),
+    );
+    return this.detail(id);
+  }
+
+  private async tellDecision(
+    id: string,
+    approve: boolean,
+    decided: {
+      profileId: string;
+      rejectionReason: CompanyRejectionReason | null;
+      rejectionNote: string | null;
+    },
+  ) {
+    const notice: Notice = approve
       ? { key: 'company_verified' }
       : {
           key: 'company_rejected',
@@ -272,7 +285,6 @@ export class CompanyVerificationReviewService {
           this.logger.error('Failed to send the company decision email', err),
         );
     }
-    return this.detail(id);
   }
 
   private notFound() {

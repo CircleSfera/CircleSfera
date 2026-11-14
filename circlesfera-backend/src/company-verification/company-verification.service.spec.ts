@@ -49,7 +49,6 @@ describe('CompanyVerificationService', () => {
   let prisma: any;
   let crypto: { encrypt: ReturnType<typeof vi.fn> };
   let email: { sendCompanyDomainCode: ReturnType<typeof vi.fn> };
-  let cache: { del: ReturnType<typeof vi.fn> };
   let service: CompanyVerificationService;
   // The application being filled in, as the "open" lookup finds it.
   let open: ReturnType<typeof application> | null;
@@ -89,12 +88,10 @@ describe('CompanyVerificationService', () => {
     };
     crypto = { encrypt: vi.fn((text: string) => `enc(${text})`) };
     email = { sendCompanyDomainCode: vi.fn().mockResolvedValue(undefined) };
-    cache = { del: vi.fn().mockResolvedValue(undefined) };
     service = new CompanyVerificationService(
       prisma,
       crypto as never,
       email as never,
-      cache as never,
     );
     checks.askVies.mockResolvedValue({ valid: true, name: 'ACME SL' });
   });
@@ -653,7 +650,7 @@ describe('CompanyVerificationService', () => {
       ).toMatchObject({ status: 'PENDING' });
     });
 
-    it('sending leaves an earlier approval as it is, and forgets the cached profile so the mark reads again', async () => {
+    it('sending leaves an earlier approval as it is', async () => {
       open = application({
         domainProvedAt: new Date(),
         emailVerifiedAt: new Date(),
@@ -663,7 +660,6 @@ describe('CompanyVerificationService', () => {
       await service.submit('u-1', 'prof-1');
       // Only the hold of the draft: no earlier approval is replaced.
       expect(prisma.companyVerification.updateMany).toHaveBeenCalledTimes(1);
-      expect(cache.del).toHaveBeenCalledWith('profile:acme');
     });
 
     it('a code confirmed on another domain does not count', async () => {
@@ -728,7 +724,6 @@ describe('CompanyVerificationService', () => {
           data: expect.objectContaining({ status: 'WITHDRAWN' }),
         }),
       );
-      expect(cache.del).toHaveBeenCalledWith('profile:acme');
     });
 
     it('a decision made meanwhile stands: the withdrawal changes nothing', async () => {
@@ -737,13 +732,6 @@ describe('CompanyVerificationService', () => {
       await expect(service.withdraw('u-1', 'prof-1')).rejects.toMatchObject({
         errorCode: 'COMPANY_VERIFICATION_LOCKED',
       });
-    });
-
-    it('forgets no cache for a Profile gone meanwhile', async () => {
-      open = application({ status: 'PENDING' });
-      prisma.profile.findUnique.mockResolvedValueOnce(null);
-      await service.withdraw('u-1', 'prof-1');
-      expect(cache.del).not.toHaveBeenCalled();
     });
 
     it('only the owner withdraws', async () => {

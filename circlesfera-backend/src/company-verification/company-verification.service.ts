@@ -5,7 +5,6 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { ErrorCode } from '@circlesfera/shared';
-import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type CompanyKind,
@@ -20,7 +19,6 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { hasTeamPlan } from '../team/team-plan.js';
 import { askVies, hasDnsProof, hasMetaProof } from './company-checks.js';
 import { isValidLocalPart, normalizeDomain } from './company-domain.js';
-import { forgetProfileView } from './company-mark.js';
 import {
   DOCUMENT_TYPES,
   DOMAIN_META_NAME,
@@ -96,7 +94,6 @@ export class CompanyVerificationService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CryptoService) private readonly crypto: CryptoService,
     @Inject(EmailService) private readonly email: EmailService,
-    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   // Whether the Profile in use can apply, and its latest application.
@@ -499,8 +496,6 @@ export class CompanyVerificationService {
         },
       });
     });
-    // A change of details hides the mark while it waits.
-    await forgetProfileView(this.prisma, this.cache, profileId);
     return this.status(userId, profileId);
   }
 
@@ -537,8 +532,6 @@ export class CompanyVerificationService {
         where: { verificationId: application.id },
       });
     });
-    // A withdrawn change of details gives the mark back.
-    await forgetProfileView(this.prisma, this.cache, profileId);
     return this.status(userId, profileId);
   }
 

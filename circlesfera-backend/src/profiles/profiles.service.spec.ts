@@ -92,7 +92,8 @@ describe('ProfilesService', () => {
 
       const result = await service.getProfile('cacheduser');
       expect(mockCacheManager.get).toHaveBeenCalledWith('profile:cacheduser');
-      expect(result).toEqual(cached);
+      // The company mark is read fresh, never from the cache.
+      expect(result).toEqual({ ...cached, verifiedCompany: false });
     });
 
     it('should throw NotFoundException if profile is not found in cache or DB', async () => {
@@ -245,8 +246,11 @@ describe('ProfilesService', () => {
       expect(result._count).not.toHaveProperty('strikes');
       // Dated by the Profile, not by the person's sign-up.
       expect(result.joinedAt).toBe('2026-02-03T00:00:00.000Z');
-      // What is cached is the same closed view.
-      expect(mockCacheManager.set.mock.calls[0][1]).toEqual(result);
+      // What is cached is the same closed view, without the company mark,
+      // which is read fresh on every view.
+      const { verifiedCompany, ...cachedView } = result;
+      expect(verifiedCompany).toBe(false);
+      expect(mockCacheManager.set.mock.calls[0][1]).toEqual(cachedView);
     });
 
     describe('business presentation', () => {
@@ -329,6 +333,7 @@ describe('ProfilesService', () => {
         id: 'p-target',
         username: 'cacheduser',
         _count: { posts: 1, followers: 2, following: 3 },
+        verifiedCompany: false,
       });
     });
 
@@ -338,7 +343,7 @@ describe('ProfilesService', () => {
       mockPrismaService.block.findFirst.mockResolvedValue(null);
 
       const result = await service.getProfile('cacheduser', 'p-viewer');
-      expect(result).toEqual(cached);
+      expect(result).toEqual({ ...cached, verifiedCompany: false });
     });
 
     it('skips the block check when the viewer is looking at their own profile', async () => {
@@ -346,7 +351,7 @@ describe('ProfilesService', () => {
       mockCacheManager.get.mockResolvedValue(cached);
 
       const result = await service.getProfile('cacheduser', 'p-self');
-      expect(result).toEqual(cached);
+      expect(result).toEqual({ ...cached, verifiedCompany: false });
       expect(mockPrismaService.block.findFirst).not.toHaveBeenCalled();
     });
 
@@ -355,7 +360,7 @@ describe('ProfilesService', () => {
       mockCacheManager.get.mockResolvedValue(cached);
 
       const result = await service.getProfile('cacheduser');
-      expect(result).toEqual(cached);
+      expect(result).toEqual({ ...cached, verifiedCompany: false });
       expect(mockPrismaService.block.findFirst).not.toHaveBeenCalled();
     });
   });
@@ -951,6 +956,17 @@ describe('ProfilesService', () => {
       expect(await mark()).toBe(false);
       holds(null, null);
       expect(await mark()).toBe(false);
+
+      // A profile served from the cache reads the mark fresh.
+      mockCacheManager.get.mockResolvedValueOnce({
+        id: 'p-company',
+        username: 'companyuser',
+        accountType: 'BUSINESS',
+        verificationLevel: 'BUSINESS',
+        verifiedCompany: false,
+      });
+      holds(acme, null);
+      expect(await mark()).toBe(true);
 
       // Without the plan the mark is hidden; nothing is read.
       holds(acme, null);

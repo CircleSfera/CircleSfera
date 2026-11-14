@@ -42,19 +42,3 @@ export async function isVerifiedCompany(
   if (!approved) return false;
   return !pending || sameCompany(approved, pending);
 }
-
-/**
- * Forgets the cached public view of a Profile, which carries the mark, so
- * others see a change at once instead of when the cache expires.
- */
-export async function forgetProfileView(
-  prisma: Pick<PrismaService, 'profile'>,
-  cache: { del: (key: string) => Promise<unknown> },
-  profileId: string,
-): Promise<void> {
-  const profile = await prisma.profile.findUnique({
-    where: { id: profileId },
-    select: { username: true },
-  });
-  if (profile) await cache.del(`profile:${profile.username}`);
-}

@@ -184,11 +184,19 @@ export class ProfilesService {
   // Throws NotFoundException if profile does not exist or either side has blocked the other
   async getProfile(username: string, viewerProfileId?: string) {
     const cacheKey = `profile:${username}`;
-    const cachedProfile = await this.cacheManager.get<{ id: string }>(cacheKey);
+    const cachedProfile = await this.cacheManager.get<{
+      id: string;
+      accountType?: string;
+      verificationLevel?: string;
+    }>(cacheKey);
     if (cachedProfile) {
       await this.assertNotBlocked(viewerProfileId, cachedProfile.id);
       // A view cached before the list of fields was closed is cut to it too.
-      return publicProfileView(cachedProfile);
+      // The company mark is read fresh: it is never kept in the cache.
+      return publicProfileView({
+        ...cachedProfile,
+        verifiedCompany: await this.companyMark(cachedProfile),
+      });
     }
 
     const profile = await this.prisma.profile.findFirst({
@@ -254,7 +262,6 @@ export class ProfilesService {
       privacyLevel: profile.privacyLevel,
       isPrivate: profile.privacyLevel === Visibility.PRIVATE,
       isVerified: planVerified,
-      verifiedCompany: await isVerifiedCompany(this.prisma, profile),
       // The chosen colour shows only while the plan that includes it is
       // active; the choice itself stays stored.
       accentColor: canPersonalizeProfile(profile.verificationLevel)
@@ -278,7 +285,23 @@ export class ProfilesService {
     });
 
     await this.cacheManager.set(cacheKey, profileWithFields, 600000); // 10 minutes
-    return profileWithFields;
+    return {
+      ...profileWithFields,
+      verifiedCompany: await this.companyMark(profile),
+    };
+  }
+
+  // Whether the Profile shows "Verified company", worked out on each read.
+  private companyMark(profile: {
+    id: string;
+    accountType?: string;
+    verificationLevel?: string;
+  }) {
+    return isVerifiedCompany(this.prisma, {
+      id: profile.id,
+      accountType: profile.accountType ?? '',
+      verificationLevel: profile.verificationLevel ?? '',
+    });
   }
 
   // Search profiles by username or full name (case-insensitive).

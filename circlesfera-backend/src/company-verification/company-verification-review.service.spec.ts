@@ -7,7 +7,6 @@ describe('CompanyVerificationReviewService', () => {
   let email: { sendCompanyVerificationDecided: ReturnType<typeof vi.fn> };
   let events: { emit: ReturnType<typeof vi.fn> };
   let stripe: { getIdentityVerificationSession: ReturnType<typeof vi.fn> };
-  let cache: { del: ReturnType<typeof vi.fn> };
   let service: CompanyVerificationReviewService;
 
   beforeEach(() => {
@@ -34,8 +33,7 @@ describe('CompanyVerificationReviewService', () => {
         deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
       },
       adminAuditLog: { create: vi.fn().mockResolvedValue({}) },
-      // The Profile decided on: its username for the cache, and its own
-      // verified sign-in for the email.
+      // The Profile decided on: its own verified sign-in for the email.
       profile: {
         findUnique: vi.fn().mockResolvedValue({
           username: 'acme',
@@ -52,7 +50,6 @@ describe('CompanyVerificationReviewService', () => {
       sendCompanyVerificationDecided: vi.fn().mockResolvedValue(undefined),
     };
     events = { emit: vi.fn() };
-    cache = { del: vi.fn().mockResolvedValue(undefined) };
     stripe = {
       getIdentityVerificationSession: vi.fn().mockResolvedValue({
         status: 'verified',
@@ -65,7 +62,6 @@ describe('CompanyVerificationReviewService', () => {
       email as never,
       events as never,
       stripe as never,
-      cache as never,
     );
   });
 
@@ -154,8 +150,6 @@ describe('CompanyVerificationReviewService', () => {
       'ana@example.com',
       { key: 'company_verified' },
     );
-    // Others see the mark change at once.
-    expect(cache.del).toHaveBeenCalledWith('profile:acme');
   });
 
   it('rejects with a reason and a note the person reads, and replaces nothing', async () => {
@@ -198,14 +192,11 @@ describe('CompanyVerificationReviewService', () => {
     });
     expect(email.sendCompanyVerificationDecided).toHaveBeenCalled();
 
-    // A Profile gone meanwhile is told nothing by email, and no cache is
-    // forgotten for it.
+    // A Profile gone meanwhile is told nothing by email.
     prisma.profile.findUnique.mockResolvedValue(null);
     email.sendCompanyVerificationDecided.mockClear();
-    cache.del.mockClear();
     await service.decide('admin-1', 'app-1', { approve: false });
     expect(email.sendCompanyVerificationDecided).not.toHaveBeenCalled();
-    expect(cache.del).not.toHaveBeenCalled();
   });
 
   it('decides only an application that is waiting: once, never twice', async () => {
@@ -217,6 +208,14 @@ describe('CompanyVerificationReviewService', () => {
       prisma.companyVerificationDocument.deleteMany,
     ).not.toHaveBeenCalled();
     expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('a failure telling the person never reports the committed decision as failed', async () => {
+    prisma.profile.findUnique.mockRejectedValueOnce(new Error('db down'));
+    await expect(
+      service.decide('admin-1', 'app-1', { approve: true }),
+    ).resolves.toEqual({ id: 'app-1' });
+    expect(prisma.companyVerificationDocument.deleteMany).toHaveBeenCalled();
   });
 
   it('a failed email does not undo the decision', async () => {
