@@ -84,7 +84,7 @@ async function watchLive(page: Page) {
   );
   await holdVideoConnection(page);
   await page.goto('/live/stream-1');
-  await expect(page.getByRole('button', { name: 'Regalar' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Enviar ❤️' })).toBeVisible();
 }
 
 test.describe('Going live', () => {

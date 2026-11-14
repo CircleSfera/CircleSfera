@@ -169,7 +169,7 @@ export default function CreatorPlansTab({ onToast }: Props) {
                   portalMutation.mutate();
                 }
               }}
-              className="min-h-11 px-5 shrink-0"
+              className="min-h-11 px-5 shrink-0 self-start sm:self-auto"
             >
               {t('creator.plans.manage_subscription')}
             </Button>
