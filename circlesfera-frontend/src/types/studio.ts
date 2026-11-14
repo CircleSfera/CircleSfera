@@ -1,3 +1,4 @@
+import type { KeyCurve } from '../utils/studioCurves';
 export type MediaType =
   | 'video'
   | 'image'
@@ -32,6 +33,7 @@ export type StudioPanel =
   | 'transition'
   | 'blend'
   | 'chroma'
+  | 'curve'
   | 'settings';
 
 export interface BaseClip {
@@ -65,6 +67,8 @@ export type KeyProp =
 export interface Keyframe {
   t: number;
   v: number;
+  /** How the value goes to the next keyframe; ease in and out without. */
+  curve?: KeyCurve;
 }
 
 export type Keyframes = Partial<Record<KeyProp, Keyframe[]>>;

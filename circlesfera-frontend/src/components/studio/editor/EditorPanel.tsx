@@ -12,6 +12,7 @@ import ClipFadesPanel from '../panels/ClipFadesPanel';
 import ClipSpeedPanel from '../panels/ClipSpeedPanel';
 import ClipVolumePanel from '../panels/ClipVolumePanel';
 import ColorPanel from '../panels/ColorPanel';
+import CurvePanel from '../panels/CurvePanel';
 import EffectsPanel from '../panels/EffectsPanel';
 import FiltersPanel from '../panels/FiltersPanel';
 import ProjectSettingsPanel from '../panels/ProjectSettingsPanel';
@@ -36,6 +37,7 @@ const TITLES: Record<StudioPanel, string> = {
   transition: 'studio.tools.transition',
   blend: 'studio.tools.blend',
   chroma: 'studio.tools.chroma',
+  curve: 'studio.curves.title',
   settings: 'studio.settings.title',
 };
 
@@ -92,6 +94,8 @@ function PanelBody({
       return <BlendPanel />;
     case 'chroma':
       return <ChromaPanel />;
+    case 'curve':
+      return <CurvePanel />;
     case 'settings':
       return <ProjectSettingsPanel />;
     default:

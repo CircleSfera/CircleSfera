@@ -7,6 +7,12 @@ import type {
   MediaClip,
   TextClip,
 } from '../types/studio';
+import {
+  curveExpr,
+  curveValue,
+  FREE_CURVE,
+  type KeyCurve,
+} from './studioCurves';
 
 /** Two keyframes closer than this are at the same moment, in seconds. */
 export const KEYFRAME_EPS = 1 / 60;
@@ -99,8 +105,7 @@ export function withBaseValue<C extends Clip>(
 
 /** The ease between two keyframes: slow out of one and into the next. */
 export function ease(u: number): number {
-  const x = Math.max(0, Math.min(1, u));
-  return x * x * (3 - 2 * x);
+  return curveValue(FREE_CURVE, u);
 }
 
 const framesOf = (clip: Clip, prop: KeyProp): Keyframe[] =>
@@ -130,7 +135,7 @@ export function valueAt(clip: Clip, prop: KeyProp, t: number): number {
   const i = frames.findIndex((f) => f.t > t);
   const a = frames[i - 1];
   const b = frames[i];
-  return a.v + (b.v - a.v) * ease((t - a.t) / (b.t - a.t));
+  return a.v + (b.v - a.v) * curveValue(a.curve, (t - a.t) / (b.t - a.t));
 }
 
 /** The clip as it is at a moment of itself: every animated value set. */
@@ -162,11 +167,48 @@ export function hasKeyframeAt(clip: Clip, t: number): boolean {
 
 const round = (n: number) => Math.round(n * 1e6) / 1e6;
 
-// The frames with one set at a moment, replacing one already there.
+// The frames with one set at a moment, replacing one already there and
+// keeping its curve.
 function withFrame(frames: Keyframe[], t: number, v: number): Keyframe[] {
-  const kept = frames.filter((f) => Math.abs(f.t - t) >= KEYFRAME_EPS);
+  const there = frames.find((f) => Math.abs(f.t - t) < KEYFRAME_EPS);
+  const kept = frames.filter((f) => f !== there);
   if (kept.length >= MAX_KEYFRAMES) return frames;
-  return [...kept, { t: round(t), v }].sort((a, b) => a.t - b.t);
+  const frame: Keyframe = { t: round(t), v };
+  if (there?.curve !== undefined) frame.curve = there.curve;
+  return [...kept, frame].sort((a, b) => a.t - b.t);
+}
+
+/** The curve of the keyframes at a moment of the clip, if any is set. */
+export function curveAt(clip: Clip, t: number): KeyCurve | undefined {
+  for (const frames of Object.values(clip.keyframes ?? {})) {
+    const frame = frames?.find((f) => Math.abs(f.t - t) < KEYFRAME_EPS);
+    if (frame?.curve !== undefined) return frame.curve;
+  }
+  return undefined;
+}
+
+/**
+ * The clip with a curve set on every keyframe at a moment: how each value
+ * goes from there to its next keyframe. The free curve is stored as none.
+ */
+export function withCurveAt<C extends Clip>(
+  clip: C,
+  t: number,
+  curve: KeyCurve,
+): C {
+  if (!clip.keyframes) return clip;
+  const frames: Keyframes = {};
+  for (const [prop, list] of Object.entries(clip.keyframes) as [
+    KeyProp,
+    Keyframe[],
+  ][]) {
+    frames[prop] = list.map((f) => {
+      if (Math.abs(f.t - t) >= KEYFRAME_EPS) return f;
+      const { curve: _old, ...rest } = f;
+      return curve === FREE_CURVE ? rest : { ...rest, curve };
+    });
+  }
+  return { ...clip, keyframes: frames };
 }
 
 function withFrames<C extends Clip>(clip: C, frames: Keyframes): C {
@@ -402,7 +444,7 @@ export function framesExpr(
     if (delta === 0) continue;
     const span = Math.max(b.t - a.t, 1e-6);
     const u = `clip((${time}-${num(a.t)})/${num(span)}\\,0\\,1)`;
-    parts.push(`${num(delta)}*${u}*${u}*(3-2*${u})`);
+    parts.push(`${num(delta)}*${curveExpr(a.curve, u)}`);
   }
   return parts.join('+');
 }
@@ -419,14 +461,18 @@ export function shareExpr(
 ): { expr: string; low: number; high: number } {
   // The amount at each keyframe, eased between as the value is: the amount
   // must change in a straight line with the value for this to be exact.
-  const amounts = frames.map((f) => ({ t: f.t, v: amountOf(f.v) }));
+  const amounts = frames.map((f) => ({
+    t: f.t,
+    v: amountOf(f.v),
+    ...(f.curve !== undefined && { curve: f.curve }),
+  }));
   const values = amounts.map((f) => f.v);
   const low = Math.min(...values);
   const high = Math.max(...values);
   const span = high - low;
   if (span === 0) return { expr: '0', low, high };
   const expr = framesExpr(
-    amounts.map((f) => ({ t: f.t, v: (f.v - low) / span })),
+    amounts.map((f) => ({ ...f, v: (f.v - low) / span })),
     0,
     time,
   );
