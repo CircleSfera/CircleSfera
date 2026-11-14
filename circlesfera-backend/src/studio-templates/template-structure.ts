@@ -28,6 +28,7 @@ export const EFFECT_KINDS = [
   'duotone',
   'kaleidoscope',
   'lightleak',
+  'vhs',
 ] as const;
 export const KEY_PROPS = [
   'x',

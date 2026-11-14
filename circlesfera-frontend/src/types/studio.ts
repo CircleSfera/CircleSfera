@@ -208,7 +208,8 @@ export type EffectKind =
   // Edits Studio Pro.
   | 'duotone'
   | 'kaleidoscope'
-  | 'lightleak';
+  | 'lightleak'
+  | 'vhs';
 
 /** An effect on the effects layer: it changes the picture for its stretch. */
 export interface EffectClip extends BaseClip {

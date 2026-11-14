@@ -5196,9 +5196,10 @@
       "replace": "Change to",
       "add_hint": "Added at the playhead, on the effects layer",
       "duotone": "Duotone",
-      "pro_note": "Duotone and the other effects with a lock come with Edits Studio Pro.",
+      "pro_note": "Duotone, kaleidoscope, light leak and VHS come with Edits Studio Pro.",
       "kaleidoscope": "Kaleidoscope",
-      "lightleak": "Light leak"
+      "lightleak": "Light leak",
+      "vhs": "VHS"
     },
     "transitions": {
       "title": "Transitions",
