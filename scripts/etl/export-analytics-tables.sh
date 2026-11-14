@@ -68,8 +68,7 @@ export_csv "support_tickets" "
 
 export_csv "transactions" "
   SELECT id, type, amount, \"vatCents\", \"refundedCents\", currency, status,
-         \"senderId\", \"receiverId\", \"receiverProfileId\", \"postId\", \"storyId\",
-         \"promotionId\", \"liveStreamId\", \"createdAt\", \"updatedAt\"
+         \"senderId\", \"promotionId\", \"createdAt\", \"updatedAt\"
   FROM transactions
   WHERE \"createdAt\" >= ${SINCE} OR \"updatedAt\" >= ${SINCE}
 "

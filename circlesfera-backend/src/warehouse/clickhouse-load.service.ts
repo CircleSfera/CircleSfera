@@ -45,18 +45,18 @@ export class ClickHouseLoadService {
   }
 
   // When a person's account is erased, their payments leave the warehouse
-  // too: every row that names the person or one of their Profiles. The
-  // erasure goes on whatever happens here; a failure is logged for staff.
+  // too: every row the person paid, refunds included. The erasure goes on
+  // whatever happens here; a failure is logged for staff.
   @OnEvent(USER_HARD_DELETED_EVENT)
   async eraseUser(event: UserHardDeletedEvent): Promise<void> {
     const baseUrl = this.config.get<string>('CLICKHOUSE_URL')?.trim();
     if (!baseUrl) return;
-    const ids = [event.userId, ...event.profileIds].filter(Boolean);
+    const ids = [event.userId];
     const url = new URL(baseUrl);
     url.searchParams.set('database', this.database());
     url.searchParams.set(
       'query',
-      'ALTER TABLE transactions DELETE WHERE senderId IN {ids:Array(String)} OR receiverId IN {ids:Array(String)} OR receiverProfileId IN {ids:Array(String)}',
+      'ALTER TABLE transactions DELETE WHERE senderId IN {ids:Array(String)}',
     );
     url.searchParams.set(
       'param_ids',
@@ -90,8 +90,12 @@ export class ClickHouseLoadService {
     const url = new URL(baseUrl);
     url.searchParams.set('database', database);
     url.searchParams.set('query', `INSERT INTO ${table} FORMAT CSVWithNames`);
-    // A column the export gained before the table did is left out rather
-    // than failing the whole load.
+    // Each value goes to the column its CSV header names, never by position.
+    // A column of the table the export does not carry takes its default
+    // (NULL when it may be empty), and a column the export gained before the
+    // table did is left out, rather than failing the whole load.
+    url.searchParams.set('input_format_with_names_use_header', '1');
+    url.searchParams.set('input_format_defaults_for_omitted_fields', '1');
     url.searchParams.set('input_format_skip_unknown_fields', '1');
     await this.post(url, 'text/csv', csv, `insert into ${table}`);
   }

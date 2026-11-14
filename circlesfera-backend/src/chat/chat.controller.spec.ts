@@ -442,8 +442,13 @@ describe('ChatController', () => {
     expect(mockSendMessageUseCase.execute).not.toHaveBeenCalled();
   });
 
-  it('refuses a message that names a price or a lock', async () => {
-    for (const extra of [{ isLocked: true }, { priceCents: 999 }]) {
+  it('refuses a message that names a price or a lock, even an empty one', async () => {
+    for (const extra of [
+      { isLocked: true },
+      { priceCents: 999 },
+      { isLocked: false },
+      { priceCents: 0 },
+    ]) {
       await request(app.getHttpServer())
         .post('/api/v1/chat/messages')
         .set(BEARER)

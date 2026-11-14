@@ -49,8 +49,8 @@ export interface RetentionPolicy {
  */
 export const DATA_RETENTION_POLICY = {
   /**
-   * Monetary transactions (tips, unlocks, live gifts, promotions).
-   * onDelete: SetNull — row survives; senderId/receiverId become NULL.
+   * Monetary transactions (plans and promotions).
+   * onDelete: SetNull — row survives; senderId becomes NULL.
    * Schema already compliant.
    */
   Transaction: {
@@ -61,34 +61,6 @@ export const DATA_RETENTION_POLICY = {
     disposalMethod: 'SET_NULL_ON_USER_DELETE',
     rationale:
       'Payment records required for tax authority reporting, VAT reconciliation, and potential dispute evidence.',
-  },
-
-  /**
-   * Stripe Connect payout ledger entries.
-   * Changed to onDelete: SetNull (migration 20260916220736).
-   */
-  StripePayoutLog: {
-    label: 'Stripe Payout Log',
-    model: 'StripePayoutLog',
-    retentionClass: 'FINANCIAL_AUDIT',
-    retentionDays: 7 * 365, // 7 years
-    disposalMethod: 'SET_NULL_ON_USER_DELETE',
-    rationale:
-      'Payout records required for creator earnings audit trail and Stripe Connect reconciliation.',
-  },
-
-  /**
-   * Live-stream gift payment records (Stripe Checkout, charged on the creator's own account).
-   * Changed to onDelete: SetNull (migration 20260925184359).
-   */
-  LiveGift: {
-    label: 'Live Gift Payment',
-    model: 'LiveGift',
-    retentionClass: 'FINANCIAL_AUDIT',
-    retentionDays: 7 * 365, // 7 years
-    disposalMethod: 'SET_NULL_ON_USER_DELETE',
-    rationale:
-      'Live-gift payment records required for creator earnings audit trail and Stripe Connect reconciliation, independent of either party (sender or receiver) later deleting their account.',
   },
 
   /**
@@ -103,21 +75,6 @@ export const DATA_RETENTION_POLICY = {
     disposalMethod: 'SET_NULL_ON_USER_DELETE',
     rationale:
       'Subscription billing records required for refund processing, chargeback defence, and fiscal audit.',
-  },
-
-  /**
-   * Monetization ledger (lifetime earnings, Stripe status cache).
-   * Operational aggregate — not a primary financial record.
-   * Cascade-deleted: Stripe is the authoritative source for earnings.
-   */
-  Monetization: {
-    label: 'Creator Monetization Ledger',
-    model: 'Monetization',
-    retentionClass: 'OPERATIONAL',
-    retentionDays: 0,
-    disposalMethod: 'CASCADE_DELETE',
-    rationale:
-      'Operational cache of Stripe data. Stripe Connect account serves as authoritative source. Cascade-delete is acceptable.',
   },
 
   /**

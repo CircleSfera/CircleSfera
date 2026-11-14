@@ -64,8 +64,9 @@ export class RefundPromotionUseCase {
             amount: -(refund.amount || amountInCents),
             currency: (refund.currency || promo.currency).toUpperCase(),
             status: 'REFUNDED',
-            senderId: null,
-            receiverId: promo.userId,
+            // The person who paid, as on the payment refunded; the amount
+            // is negative.
+            senderId: promo.userId,
             promotionId,
             description: `Promotion refund (${reason})`,
             // The Stripe refund id gives this row the same DB-layer

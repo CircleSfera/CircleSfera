@@ -1988,7 +1988,6 @@ describe('AppGateway payload bounds and authorization', () => {
           id: 'msg-2',
           conversationId: 'c-1',
           senderId: 'sender-1',
-          isLocked: true,
           content: 'The real content',
           url: 'https://media/photo.jpg',
           mediaType: 'image',

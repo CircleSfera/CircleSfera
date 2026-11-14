@@ -448,7 +448,6 @@ describe('MonetizationTab', () => {
       email: `${id}@example.com`,
       profile: { username: `payer_${id}` },
     },
-    receiver: { email: 'r@example.com', profile: { username: 'creator' } },
     ...over,
   });
   const show = () => renderWithProviders(<MonetizationTab />);
@@ -549,7 +548,7 @@ describe('MonetizationTab', () => {
     expect(card('Active Subscriptions')).toHaveTextContent('0');
   });
 
-  it('lists the transactions with the amount in units and who paid whom', async () => {
+  it('lists the transactions with the amount in units and who paid', async () => {
     api.getTransactions.mockResolvedValue(
       list([
         tx('a'),
@@ -559,11 +558,9 @@ describe('MonetizationTab', () => {
           description: null,
           type: 'PROMOTION_PAYMENT',
           sender: { email: 'b@example.com', profile: null },
-          receiver: null,
         }),
         tx('c', {
           status: 'REFUNDED',
-          receiver: null,
           description: 'Refund c',
         }),
         tx('d', { status: 'PENDING', sender: null, description: 'Wait d' }),
@@ -575,11 +572,12 @@ describe('MonetizationTab', () => {
     await screen.findByText('Plan a');
     const a = row('Plan a');
     expect(a).toHaveTextContent('€9.99 · SUBSCRIPTION');
-    expect(a).toHaveTextContent('@payer_a → @creator');
+    expect(a).toHaveTextContent('@payer_a');
+    expect(a).not.toHaveTextContent('→');
     expect(within(a).getByText('Completed')).toHaveClass('text-green-400');
     expect(a).not.toHaveTextContent('COMPLETED');
 
-    // Who paid by e-mail when there is no handle, and nobody paid to.
+    // Who paid by e-mail when there is no handle.
     const b = row('b@example.com');
     expect(b).toHaveTextContent('€0.50 · Promotion payment');
     expect(b).not.toHaveTextContent('→');

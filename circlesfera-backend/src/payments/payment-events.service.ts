@@ -95,7 +95,6 @@ export class PaymentEventsService {
             currency,
             status: 'COMPLETED',
             senderId: metadata.userId || null,
-            receiverId: null,
             promotionId,
             stripePaymentIntentId:
               typeof session.payment_intent === 'string'

@@ -8,10 +8,7 @@ describe('DATA_RETENTION_POLICY', () => {
   it('defines a policy for every expected record class', () => {
     const expectedModels = [
       'Transaction',
-      'StripePayoutLog',
-      'LiveGift',
       'PlatformSubscription',
-      'Monetization',
       'Promotion',
       'DataExportRequest',
     ];
@@ -20,14 +17,8 @@ describe('DATA_RETENTION_POLICY', () => {
     }
   });
 
-  it('assigns FINANCIAL_AUDIT class to Transaction, StripePayoutLog, LiveGift and PlatformSubscription', () => {
+  it('assigns FINANCIAL_AUDIT class to Transaction and PlatformSubscription', () => {
     expect(DATA_RETENTION_POLICY.Transaction.retentionClass).toBe(
-      'FINANCIAL_AUDIT',
-    );
-    expect(DATA_RETENTION_POLICY.StripePayoutLog.retentionClass).toBe(
-      'FINANCIAL_AUDIT',
-    );
-    expect(DATA_RETENTION_POLICY.LiveGift.retentionClass).toBe(
       'FINANCIAL_AUDIT',
     );
     expect(DATA_RETENTION_POLICY.PlatformSubscription.retentionClass).toBe(
@@ -52,10 +43,7 @@ describe('DATA_RETENTION_POLICY', () => {
     }
   });
 
-  it('assigns OPERATIONAL class to Monetization, Promotion and DataExportRequest', () => {
-    expect(DATA_RETENTION_POLICY.Monetization.retentionClass).toBe(
-      'OPERATIONAL',
-    );
+  it('assigns OPERATIONAL class to Promotion and DataExportRequest', () => {
     expect(DATA_RETENTION_POLICY.Promotion.retentionClass).toBe('OPERATIONAL');
     expect(DATA_RETENTION_POLICY.DataExportRequest.retentionClass).toBe(
       'OPERATIONAL',
@@ -63,9 +51,6 @@ describe('DATA_RETENTION_POLICY', () => {
   });
 
   it('sets CASCADE_DELETE disposal for OPERATIONAL records', () => {
-    expect(DATA_RETENTION_POLICY.Monetization.disposalMethod).toBe(
-      'CASCADE_DELETE',
-    );
     expect(DATA_RETENTION_POLICY.Promotion.disposalMethod).toBe(
       'CASCADE_DELETE',
     );
@@ -92,17 +77,13 @@ describe('getFinancialAuditRecords', () => {
     }
   });
 
-  it('includes Transaction, StripePayoutLog, LiveGift and PlatformSubscription', () => {
+  it('includes Transaction and PlatformSubscription', () => {
     const models = getFinancialAuditRecords().map((r) => r.model);
-    expect(models).toContain('Transaction');
-    expect(models).toContain('StripePayoutLog');
-    expect(models).toContain('LiveGift');
-    expect(models).toContain('PlatformSubscription');
+    expect(models).toEqual(['Transaction', 'PlatformSubscription']);
   });
 
   it('does not include OPERATIONAL records', () => {
     const models = getFinancialAuditRecords().map((r) => r.model);
-    expect(models).not.toContain('Monetization');
     expect(models).not.toContain('Promotion');
     expect(models).not.toContain('DataExportRequest');
   });

@@ -94,8 +94,8 @@ describe('WarehouseExportService', () => {
       {
         id: 'tx1',
         amount: 100,
-        receiverId: 'u-creator',
-        receiverProfileId: 'p-shop',
+        senderId: 'u-payer',
+        promotionId: 'promo-1',
         vatCents: 17,
         refundedCents: 40,
         createdAt: new Date('2026-08-01T10:00:00Z'),
@@ -131,14 +131,28 @@ describe('WarehouseExportService', () => {
     );
     expect(flagsCsv).toContain('Feed test, ""quoted""\nwith newline');
 
-    // Each payment names the Profile that earned it, beside the person.
+    // Each payment names the person who paid and what it paid for, and
+    // nothing of the former payments to creators.
     const [header, row] = (
       await readFile(join(result.outputDir, 'transactions.csv'), 'utf8')
     ).split('\n');
     const columns = header.split(',').map((c) => c.replaceAll('"', ''));
     const cells = row.split(',').map((c) => c.replaceAll('"', ''));
-    expect(cells[columns.indexOf('receiverId')]).toBe('u-creator');
-    expect(cells[columns.indexOf('receiverProfileId')]).toBe('p-shop');
+    expect(columns).toEqual([
+      'id',
+      'type',
+      'amount',
+      'vatCents',
+      'refundedCents',
+      'currency',
+      'status',
+      'senderId',
+      'promotionId',
+      'createdAt',
+      'updatedAt',
+    ]);
+    expect(cells[columns.indexOf('senderId')]).toBe('u-payer');
+    expect(cells[columns.indexOf('promotionId')]).toBe('promo-1');
     // What was VAT and what went back to the buyer, and when it last changed.
     expect(cells[columns.indexOf('vatCents')]).toBe('17');
     expect(cells[columns.indexOf('refundedCents')]).toBe('40');
@@ -328,10 +342,14 @@ describe('ClickHouseLoadService', () => {
     });
 
     expect(loaded).toBe(true);
-    // A column the export gained before the table did is left out.
-    expect(fetchMock.mock.calls[0][0]).toContain(
-      'input_format_skip_unknown_fields=1',
-    );
+    // Values go by the names of the header: a column the export gained
+    // before the table did is left out, and one the table has that the
+    // export does not carry takes its default.
+    const insert = new URL(fetchMock.mock.calls[0][0]).searchParams;
+    expect(insert.get('query')).toBe('INSERT INTO reports FORMAT CSVWithNames');
+    expect(insert.get('input_format_with_names_use_header')).toBe('1');
+    expect(insert.get('input_format_defaults_for_omitted_fields')).toBe('1');
+    expect(insert.get('input_format_skip_unknown_fields')).toBe('1');
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('custom_db'),
       expect.objectContaining({
@@ -361,7 +379,7 @@ describe('ClickHouseLoadService', () => {
 
     afterEach(() => vi.unstubAllGlobals());
 
-    it('deletes every payment naming the person or one of their Profiles', async () => {
+    it('deletes every payment the person paid', async () => {
       const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
       vi.stubGlobal('fetch', fetchMock);
 
@@ -370,9 +388,9 @@ describe('ClickHouseLoadService', () => {
       const [address, init] = fetchMock.mock.calls[0];
       const url = new URL(address);
       expect(url.searchParams.get('query')).toBe(
-        'ALTER TABLE transactions DELETE WHERE senderId IN {ids:Array(String)} OR receiverId IN {ids:Array(String)} OR receiverProfileId IN {ids:Array(String)}',
+        'ALTER TABLE transactions DELETE WHERE senderId IN {ids:Array(String)}',
       );
-      expect(url.searchParams.get('param_ids')).toBe("['u-1','p-1','p-2']");
+      expect(url.searchParams.get('param_ids')).toBe("['u-1']");
       expect(url.searchParams.get('database')).toBe('circlesfera_analytics');
       // The password goes in a header, never in the address.
       expect(url.password).toBe('');

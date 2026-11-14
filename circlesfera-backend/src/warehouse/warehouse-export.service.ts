@@ -48,13 +48,7 @@ const TRANSACTION_HEADERS = [
   'currency',
   'status',
   'senderId',
-  'receiverId',
-  // The Profile that earned it: a person may have several earning Profiles.
-  'receiverProfileId',
-  'postId',
-  'storyId',
   'promotionId',
-  'liveStreamId',
   'createdAt',
   // A payment is exported again when it changes; the row with the latest
   // updatedAt is the one that counts.
@@ -140,12 +134,7 @@ export class WarehouseExportService {
             currency: true,
             status: true,
             senderId: true,
-            receiverId: true,
-            receiverProfileId: true,
-            postId: true,
-            storyId: true,
             promotionId: true,
-            liveStreamId: true,
             createdAt: true,
             updatedAt: true,
           },

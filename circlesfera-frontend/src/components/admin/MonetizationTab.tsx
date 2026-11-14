@@ -171,14 +171,11 @@ export default function MonetizationTab() {
   };
   const txKind = (tx: AdminTransaction) =>
     t(`admin.monetization.tx_type.${tx.type}`, { defaultValue: tx.type });
-  // Who paid, and who was paid when the payment was to a person.
-  const txParties = (tx: AdminTransaction) => {
-    const from = tx.sender?.profile?.username
+  // Who paid.
+  const txParties = (tx: AdminTransaction) =>
+    tx.sender?.profile?.username
       ? `@${tx.sender.profile.username}`
       : tx.sender?.email || '—';
-    const to = tx.receiver?.profile?.username;
-    return to ? `${from} → @${to}` : from;
-  };
 
   const transactions = txData?.data ?? [];
 

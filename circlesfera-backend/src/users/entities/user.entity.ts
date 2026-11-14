@@ -8,7 +8,8 @@ import {
 } from '@prisma/client';
 import { Exclude } from 'class-transformer';
 
-export class UserEntity implements User {
+// The retired payout hold is read by no query and dropped in the next release.
+export class UserEntity implements Omit<User, 'payoutsHeldAt'> {
   @ApiProperty({ required: true, type: () => String })
   id!: string;
   @ApiProperty({ required: true, type: () => String })
@@ -18,10 +19,6 @@ export class UserEntity implements User {
   isRootBanned!: boolean;
   @ApiProperty({ required: true, type: () => String, nullable: true })
   rootBanReason!: string | null;
-  // Kept on the server: since when a banned person's payouts are held.
-  @ApiProperty({ required: true, type: () => Date, nullable: true })
-  @Exclude()
-  payoutsHeldAt!: Date | null;
 
   // Old copy of the credentials, retired: the app does not read it.
   @ApiProperty({ required: true, type: () => String, nullable: true })

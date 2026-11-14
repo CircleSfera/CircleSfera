@@ -212,13 +212,12 @@ describe('ReportsService', () => {
         expect(mockPrismaService.report.create).not.toHaveBeenCalled();
       });
 
-      it('a payment is reported only by the person who paid or was paid', async () => {
+      it('a payment is reported only by the person who paid it', async () => {
         mockPrismaService.profile.findUnique.mockResolvedValue({
           userId: 'u-me',
         });
         mockPrismaService.transaction.findUnique.mockResolvedValue({
           senderId: 'u-other',
-          receiverId: 'u-third',
         });
         await expect(report('PAYMENT')).rejects.toMatchObject({
           errorCode: 'NOT_FOUND',
@@ -231,14 +230,14 @@ describe('ReportsService', () => {
         expect(mockPrismaService.report.create).not.toHaveBeenCalled();
 
         mockPrismaService.transaction.findUnique.mockResolvedValue({
-          senderId: 'u-me',
-          receiverId: 'u-third',
+          senderId: null,
         });
-        await expect(report('PAYMENT')).resolves.toMatchObject({ id: 'rep' });
+        await expect(report('PAYMENT')).rejects.toMatchObject({
+          errorCode: 'NOT_FOUND',
+        });
 
         mockPrismaService.transaction.findUnique.mockResolvedValue({
-          senderId: null,
-          receiverId: 'u-me',
+          senderId: 'u-me',
         });
         await expect(report('PAYMENT')).resolves.toMatchObject({ id: 'rep' });
 

@@ -401,7 +401,6 @@ describe('MediaAuthService', () => {
           post: {
             profileId: 'author-1',
             visibility: 'PUBLIC',
-            isPremium: true,
           },
         },
       ]);
@@ -857,7 +856,6 @@ describe('MediaAuthService', () => {
           id: 'msg-once-locked',
           conversationId: 'conv-1',
           senderId: 'sender-p',
-          isLocked: true,
         },
       ]);
       mockPrismaService.participant.findFirst.mockResolvedValue({

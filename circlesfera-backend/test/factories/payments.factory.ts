@@ -77,12 +77,11 @@ export async function createPlatformSubscription(
 }
 
 /**
- * Create a financial ledger transaction between two users.
+ * Create a financial ledger transaction paid by a user.
  */
 export async function createTransaction(
   prisma: PrismaClient,
   senderId: string,
-  receiverId: string,
   options: {
     amountCents?: number;
     amount?: number;
@@ -94,7 +93,6 @@ export async function createTransaction(
   return prisma.transaction.create({
     data: {
       senderId,
-      receiverId,
       amount: options.amount ?? options.amountCents ?? 1000,
       type: options.type ?? 'PROMOTION_PAYMENT',
       status: options.status ?? 'COMPLETED',

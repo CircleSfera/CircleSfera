@@ -174,7 +174,6 @@ describe('PaymentsService', () => {
       currency: 'EUR',
       status: 'COMPLETED',
       senderId: 'user_1',
-      receiverId: 'user_2',
       description: 'A "special" promotion',
       // 5 € plus 21% VAT.
       vatCents: 105,
@@ -182,7 +181,7 @@ describe('PaymentsService', () => {
       ...over,
     });
 
-    it('gives a person their own record, in euros, saying what they sent and what they received', async () => {
+    it('gives a person what they paid, refunds included, in euros', async () => {
       prisma.transaction.findMany = vi.fn().mockResolvedValue([
         tx({}),
         tx({
@@ -191,8 +190,13 @@ describe('PaymentsService', () => {
           amount: 1999,
           vatCents: 0,
           refundedCents: 999,
-          senderId: 'user_3',
-          receiverId: 'user_1',
+          description: null,
+        }),
+        tx({
+          id: 'tx_3',
+          amount: -500,
+          vatCents: 0,
+          status: 'REFUNDED',
           description: null,
         }),
       ]);
@@ -200,23 +204,21 @@ describe('PaymentsService', () => {
       const csv = await service.getLedgerCsv('user_1');
 
       expect(prisma.transaction.findMany).toHaveBeenCalledWith({
-        where: { OR: [{ senderId: 'user_1' }, { receiverId: 'user_1' }] },
+        where: { senderId: 'user_1' },
         orderBy: { createdAt: 'desc' },
       });
       expect(csv.split('\n')).toEqual([
         'ID,Date,Type,Direction,Amount,VAT,Refunded,Currency,Status,Description',
         '"tx_1","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","SENT","5.00","1.05","0.00","EUR","COMPLETED","A ""special"" promotion"',
-        '"tx_2","2026-01-01T00:00:00.000Z","STRIPE_SUBSCRIPTION","RECEIVED","19.99","0.00","9.99","EUR","COMPLETED",""',
+        '"tx_2","2026-01-01T00:00:00.000Z","STRIPE_SUBSCRIPTION","SENT","19.99","0.00","9.99","EUR","COMPLETED",""',
+        '"tx_3","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","SENT","-5.00","0.00","0.00","EUR","REFUNDED",""',
       ]);
     });
 
     it("never names the other party in a person's own record", async () => {
-      prisma.transaction.findMany = vi.fn().mockResolvedValue([
-        tx({
-          sender: { email: 'sender@test.com' },
-          receiver: { email: 'receiver@test.com' },
-        }),
-      ]);
+      prisma.transaction.findMany = vi
+        .fn()
+        .mockResolvedValue([tx({ sender: { email: 'sender@test.com' } })]);
 
       const csv = await service.getLedgerCsv('user_1');
 
@@ -224,19 +226,15 @@ describe('PaymentsService', () => {
       expect(csv).not.toContain('user_2');
     });
 
-    it('gives staff every transaction with who sent and received it, in euros', async () => {
+    it('gives staff every transaction with who paid it, in euros', async () => {
       prisma.transaction.findMany = vi.fn().mockResolvedValue([
-        tx({
-          sender: { email: 'sender@test.com' },
-          receiver: { email: 'receiver@test.com' },
-        }),
+        tx({ sender: { email: 'sender@test.com' } }),
         tx({
           id: 'tx_2',
           type: 'PROMOTION_PAYMENT',
           amount: 1000,
           vatCents: 0,
           sender: null,
-          receiver: null,
           description: null,
         }),
       ]);
@@ -248,13 +246,12 @@ describe('PaymentsService', () => {
         orderBy: { createdAt: 'desc' },
         include: {
           sender: { select: { email: true } },
-          receiver: { select: { email: true } },
         },
       });
       expect(csv.split('\n')).toEqual([
-        'ID,Date,Type,Amount,VAT,Refunded,Currency,Status,Sender,Receiver,Description',
-        '"tx_1","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","5.00","1.05","0.00","EUR","COMPLETED","sender@test.com","receiver@test.com","A ""special"" promotion"',
-        '"tx_2","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","10.00","0.00","0.00","EUR","COMPLETED","SYSTEM","SYSTEM",""',
+        'ID,Date,Type,Amount,VAT,Refunded,Currency,Status,Sender,Description',
+        '"tx_1","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","5.00","1.05","0.00","EUR","COMPLETED","sender@test.com","A ""special"" promotion"',
+        '"tx_2","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","10.00","0.00","0.00","EUR","COMPLETED","SYSTEM",""',
       ]);
     });
 
@@ -272,7 +269,7 @@ describe('PaymentsService', () => {
         prisma.transaction.findMany = vi
           .fn()
           .mockResolvedValue([
-            tx({ description: text, sender: { email: text }, receiver: null }),
+            tx({ description: text, sender: { email: text } }),
           ]);
 
         // Whole files: a text may hold a line break of its own.
@@ -281,7 +278,7 @@ describe('PaymentsService', () => {
 
         const quoted = `"'${text.replace(/"/g, '""')}"`;
         expect(own.endsWith(`"COMPLETED",${quoted}`)).toBe(true);
-        expect(staff).toContain(`"COMPLETED",${quoted},"SYSTEM",${quoted}`);
+        expect(staff).toContain(`"COMPLETED",${quoted},${quoted}`);
       },
     );
   });

@@ -70,32 +70,9 @@ describe('UsersService', () => {
     paymentDispute: { findMany: vi.fn().mockResolvedValue([]) },
   };
 
-  // Rows from before payments to creators were removed, while their tables
-  // still exist.
-  const formerCreatorModels = {
-    monetization: { findMany: vi.fn(), deleteMany: vi.fn() },
-    stripePayoutLog: { findMany: vi.fn() },
-    postUnlock: { findMany: vi.fn() },
-    messageUnlock: { findMany: vi.fn() },
-    storyUnlock: { findMany: vi.fn() },
-  };
-  const resetFormerCreatorModels = () => {
-    formerCreatorModels.monetization.findMany.mockReset().mockResolvedValue([]);
-    formerCreatorModels.monetization.deleteMany.mockReset();
-    for (const model of [
-      formerCreatorModels.stripePayoutLog,
-      formerCreatorModels.postUnlock,
-      formerCreatorModels.messageUnlock,
-      formerCreatorModels.storyUnlock,
-    ]) {
-      model.findMany.mockReset().mockResolvedValue([]);
-    }
-  };
-
   const mockPrismaService = {
     ...heldModels,
     ...paymentModels,
-    ...formerCreatorModels,
     $transaction: vi
       .fn()
       .mockImplementation((cb: any) => cb(mockPrismaService)),
@@ -154,7 +131,6 @@ describe('UsersService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    resetFormerCreatorModels();
     mockPrismaService.$transaction.mockImplementation((cb: any) =>
       cb(mockPrismaService),
     );
@@ -357,61 +333,6 @@ describe('UsersService', () => {
       expect(data.payments).toEqual({
         promotions: [{ status: 'ACTIVE', budgetCents: 500 }],
         disputes: [{ amountCents: 300, reason: 'fraudulent', status: 'won' }],
-        payoutAccounts: [],
-        payouts: [],
-        unlocks: { posts: [], messages: [], stories: [] },
-      });
-    });
-
-    it('holds the payout accounts, payouts and unlocks kept from before payments to creators ended', async () => {
-      mockPrismaService.user.findUnique
-        .mockResolvedValueOnce({ id: 'u1', deviceSignals: [], signIns: [] })
-        .mockResolvedValueOnce({ profiles: [] });
-      formerCreatorModels.monetization.findMany.mockResolvedValueOnce([
-        { chargesEnabled: false, profile: { username: 'ana' } },
-        { chargesEnabled: false, profile: null },
-      ]);
-      formerCreatorModels.stripePayoutLog.findMany.mockResolvedValueOnce([
-        { amountCents: 800, profile: null },
-      ]);
-      formerCreatorModels.postUnlock.findMany.mockResolvedValueOnce([
-        { postId: 'p1' },
-      ]);
-      formerCreatorModels.messageUnlock.findMany.mockResolvedValueOnce([
-        { messageId: 'm1' },
-      ]);
-      formerCreatorModels.storyUnlock.findMany.mockResolvedValueOnce([
-        { storyId: 's1' },
-      ]);
-
-      const data = await service.exportUserData('u1');
-
-      expect(formerCreatorModels.monetization.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { OR: [{ userId: 'u1' }, { profile: { userId: 'u1' } }] },
-        }),
-      );
-      for (const model of [
-        formerCreatorModels.stripePayoutLog,
-        formerCreatorModels.postUnlock,
-        formerCreatorModels.messageUnlock,
-        formerCreatorModels.storyUnlock,
-      ]) {
-        expect(model.findMany).toHaveBeenCalledWith(
-          expect.objectContaining({ where: { userId: 'u1' } }),
-        );
-      }
-      expect(data.payments).toMatchObject({
-        payoutAccounts: [
-          { chargesEnabled: false, profile: 'ana' },
-          { chargesEnabled: false, profile: null },
-        ],
-        payouts: [{ amountCents: 800, profile: null }],
-        unlocks: {
-          posts: [{ postId: 'p1' }],
-          messages: [{ messageId: 'm1' }],
-          stories: [{ storyId: 's1' }],
-        },
       });
     });
 
@@ -494,18 +415,6 @@ describe('UsersService', () => {
             currency: 'EUR',
             status: 'COMPLETED',
             createdAt: new Date(),
-            receiverId: 'u_rec',
-          },
-        ],
-        receivedTransactions: [
-          {
-            id: 'tx_r1',
-            type: 'PROMOTION_PAYMENT',
-            amount: 500,
-            currency: 'EUR',
-            status: 'COMPLETED',
-            createdAt: new Date(),
-            senderId: 'u_send',
           },
         ],
       };
@@ -608,7 +517,7 @@ describe('UsersService', () => {
       expect((res.network as any).note).toContain('90 days');
       expect(JSON.stringify(res)).not.toContain('life of the account');
       expect(res.sentTransactions).toHaveLength(1);
-      expect(res.receivedTransactions).toHaveLength(1);
+      expect(res).not.toHaveProperty('receivedTransactions');
     });
 
     it('holds everything else kept about the person, staff notes included, and never who on the staff acted', async () => {
@@ -623,7 +532,6 @@ describe('UsersService', () => {
           settings: null,
           appeals: [],
           sentTransactions: [],
-          receivedTransactions: [],
         });
       heldModels.profileStrike.findMany.mockResolvedValue([
         { kind: 'STRIKE', reason: 'SPAM' },
@@ -797,36 +705,6 @@ describe('UsersService', () => {
         'chat.message.sent',
         expect.anything(),
       );
-    });
-
-    it('removes the payout rows its Profiles opened in their own name', async () => {
-      formerCreatorModels.monetization.findMany.mockResolvedValue([
-        { id: 'row-2' },
-      ]);
-      mockPrismaService.user.deleteMany.mockResolvedValue({ count: 1 });
-
-      await service.deleteScheduledUser('u_sched');
-
-      expect(formerCreatorModels.monetization.findMany).toHaveBeenCalledWith({
-        where: { userId: null, profile: { userId: 'u_sched' } },
-        select: { id: true },
-      });
-      expect(formerCreatorModels.monetization.deleteMany).toHaveBeenCalledWith({
-        where: { id: { in: ['row-2'] } },
-      });
-    });
-
-    it('keeps them when the account was restored meanwhile', async () => {
-      formerCreatorModels.monetization.findMany.mockResolvedValue([
-        { id: 'row-2' },
-      ]);
-      mockPrismaService.user.deleteMany.mockResolvedValue({ count: 0 });
-
-      await service.deleteScheduledUser('u_restored');
-
-      expect(
-        formerCreatorModels.monetization.deleteMany,
-      ).not.toHaveBeenCalled();
     });
 
     it('deletes the account and queues every file its Profiles uploaded, in one transaction', async () => {

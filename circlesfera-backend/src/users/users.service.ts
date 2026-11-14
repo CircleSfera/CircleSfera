@@ -363,20 +363,6 @@ export class UsersService {
               currency: true,
               status: true,
               createdAt: true,
-              receiverId: true,
-            },
-          },
-          receivedTransactions: {
-            select: {
-              id: true,
-              type: true,
-              amount: true,
-              currency: true,
-              status: true,
-              createdAt: true,
-              senderId: true,
-              // Which of the person's Profiles earned it.
-              receiverProfile: { select: { username: true } },
             },
           },
         },
@@ -442,7 +428,6 @@ export class UsersService {
       appeals: relations.appeals,
       reportsFiled: undefined, // removed because reports are on profiles
       sentTransactions: relations.sentTransactions,
-      receivedTransactions: relations.receivedTransactions,
       payments,
       ...held,
     };
@@ -491,66 +476,7 @@ export class UsersService {
         },
       }),
     ]);
-    return { promotions, disputes, ...(await this.formerCreatorRows(userId)) };
-  }
-
-  /**
-   * Rows from before payments to creators were removed, while their tables
-   * still exist: payout accounts of the person and of their Profiles, payouts
-   * to their bank and content they unlocked. Exported so the copy holds
-   * everything kept about the person; this goes when the tables are dropped.
-   */
-  private async formerCreatorRows(userId: string) {
-    const [accounts, payouts, posts, messages, stories] = await Promise.all([
-      this.prisma.monetization.findMany({
-        where: { OR: [{ userId }, { profile: { userId } }] },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          stripeConnectAccountId: true,
-          transfersEnabled: true,
-          chargesEnabled: true,
-          verifiedCompany: true,
-          createdAt: true,
-          profile: { select: { username: true } },
-        },
-      }),
-      this.prisma.stripePayoutLog.findMany({
-        where: { userId },
-        orderBy: { arrivalDate: 'asc' },
-        select: {
-          stripePayoutId: true,
-          amountCents: true,
-          currency: true,
-          status: true,
-          arrivalDate: true,
-          failureReason: true,
-          profile: { select: { username: true } },
-        },
-      }),
-      this.prisma.postUnlock.findMany({
-        where: { userId },
-        select: { postId: true, pricePaid: true, createdAt: true },
-      }),
-      this.prisma.messageUnlock.findMany({
-        where: { userId },
-        select: { messageId: true, pricePaid: true, createdAt: true },
-      }),
-      this.prisma.storyUnlock.findMany({
-        where: { userId },
-        select: { storyId: true, pricePaid: true, createdAt: true },
-      }),
-    ]);
-    return {
-      payoutAccounts: accounts.map(({ profile, ...account }) => ({
-        ...account,
-        profile: profile?.username ?? null,
-      })),
-      payouts: payouts.map(({ profile, ...payout }) => ({
-        ...payout,
-        profile: profile?.username ?? null,
-      })),
-      unlocks: { posts, messages, stories },
-    };
+    return { promotions, disputes };
   }
 
   // The rest of what is kept about the person, for the export: warnings and
@@ -719,13 +645,6 @@ export class UsersService {
         },
         select: { conversationId: true },
       });
-      // Payout rows a Profile opened in its own name, from before payouts
-      // were removed: they name no person, so the cascade of the person does
-      // not reach them. They go with the person until the table is dropped.
-      const profileRows = await tx.monetization.findMany({
-        where: { userId: null, profile: { userId } },
-        select: { id: true },
-      });
       const result = await tx.user.deleteMany({
         where: {
           id: userId,
@@ -737,11 +656,6 @@ export class UsersService {
         },
       });
       if (result.count === 0) return false;
-      if (profileRows.length > 0) {
-        await tx.monetization.deleteMany({
-          where: { id: { in: profileRows.map((row) => row.id) } },
-        });
-      }
       for (const { conversationId } of administered) {
         const notice = await ensureGroupAdmin(tx, conversationId);
         if (notice) notices.push(notice);
