@@ -10,6 +10,7 @@ vi.mock('../../services/companyVerification.service', () => ({
     queue: vi.fn(),
     document: vi.fn(),
     decide: vi.fn(),
+    identityName: vi.fn(),
   },
 }));
 vi.mock('./adminToast', () => ({ adminToast: vi.fn() }));
@@ -46,7 +47,7 @@ const application = (over = {}) => ({
     username: 'acme',
     accountType: 'BUSINESS',
     verificationLevel: 'BUSINESS',
-    user: { identityVerifiedAt: '2026-10-01', stripeIdentitySessionId: 'vs_1' },
+    user: { identityVerifiedAt: '2026-10-01' },
   },
   ...over,
 });
@@ -69,7 +70,54 @@ describe('CompanyVerificationsTab', () => {
       i18n!.t('admin.company_verifications.proof_DNS'),
     );
     expect(card).toHaveTextContent('info@acme.es');
-    expect(card).toHaveTextContent('vs_1');
+    // A company is not matched against a person.
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('admin.company_verifications.show_identity_name'),
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('reads the verified name of a sole trader only when asked, and says when there is none or it fails', async () => {
+    api.queue.mockResolvedValue({
+      items: [application({ kind: 'SOLE_TRADER', domain: null })],
+      total: 1,
+    });
+    api.identityName
+      .mockResolvedValueOnce({ name: { firstName: 'Ana', lastName: 'Ruiz' } })
+      .mockResolvedValueOnce({ name: null })
+      .mockRejectedValueOnce(new Error('x'));
+    const ask = (label: string) =>
+      fireEvent.click(screen.getByRole('button', { name: label }));
+    const first = renderWithProviders(<CompanyVerificationsTab />);
+    const label = first.i18n!.t(
+      'admin.company_verifications.show_identity_name',
+    );
+    await screen.findByTestId('company-application-app-1');
+    expect(api.identityName).not.toHaveBeenCalled();
+    ask(label);
+    expect(await screen.findByText('Ana Ruiz')).toBeInTheDocument();
+    first.unmount();
+
+    const second = renderWithProviders(<CompanyVerificationsTab />);
+    await screen.findByTestId('company-application-app-1');
+    ask(label);
+    expect(
+      await screen.findByText(
+        first.i18n!.t('admin.company_verifications.identity_name_none'),
+      ),
+    ).toBeInTheDocument();
+    second.unmount();
+
+    renderWithProviders(<CompanyVerificationsTab />);
+    await screen.findByTestId('company-application-app-1');
+    ask(label);
+    await waitFor(() =>
+      expect(adminToast).toHaveBeenCalledWith(
+        first.i18n!.t('admin.company_verifications.identity_name_failed'),
+        'error',
+      ),
+    );
   });
 
   it('approves, and says the documents were deleted', async () => {

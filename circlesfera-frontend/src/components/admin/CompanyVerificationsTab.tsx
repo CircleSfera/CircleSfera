@@ -102,6 +102,19 @@ function ApplicationCard({
     'DOCUMENTS_UNREADABLE',
   );
   const [note, setNote] = useState('');
+  // Read when asked, kept only on this screen.
+  const [identityName, setIdentityName] = useState<
+    { firstName: string; lastName: string } | null | undefined
+  >(undefined);
+  const readName = useMutation({
+    mutationFn: () => companyVerificationStaffApi.identityName(application.id),
+    onSuccess: (res) => setIdentityName(res.name),
+    onError: () =>
+      adminToast(
+        t('admin.company_verifications.identity_name_failed'),
+        'error',
+      ),
+  });
 
   const decide = useMutation({
     mutationFn: (approve: boolean) =>
@@ -204,15 +217,29 @@ function ApplicationCard({
           : null}
         {fact(
           t('admin.company_verifications.identity'),
-          application.profile.user?.identityVerifiedAt
-            ? `${yes}${
-                application.profile.user.stripeIdentitySessionId
-                  ? ` · ${application.profile.user.stripeIdentitySessionId}`
-                  : ''
-              }`
-            : no,
+          application.profile.user?.identityVerifiedAt ? yes : no,
         )}
+        {identityName !== undefined
+          ? fact(
+              t('admin.company_verifications.identity_name'),
+              identityName
+                ? `${identityName.firstName} ${identityName.lastName}`.trim()
+                : t('admin.company_verifications.identity_name_none'),
+            )
+          : null}
       </dl>
+      {application.kind === 'SOLE_TRADER' && identityName === undefined ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="min-h-11"
+          isLoading={readName.isPending}
+          onClick={() => readName.mutate()}
+        >
+          {t('admin.company_verifications.show_identity_name')}
+        </Button>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         {application.documents.map((doc) => (

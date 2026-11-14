@@ -4865,7 +4865,11 @@
       "approved": "Aprobada. Los documentos se han borrado.",
       "rejected": "Rechazada. Los documentos se han borrado.",
       "decide_failed": "No se pudo guardar la decisión",
-      "document_failed": "No se pudo abrir el documento"
+      "document_failed": "No se pudo abrir el documento",
+      "show_identity_name": "Ver nombre verificado",
+      "identity_name": "Nombre verificado",
+      "identity_name_none": "No hay nombre verificado que leer",
+      "identity_name_failed": "No se pudo leer el nombre verificado"
     }
   },
   "collections": {

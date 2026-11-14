@@ -4865,7 +4865,11 @@
       "approved": "Approved. The documents were deleted.",
       "rejected": "Rejected. The documents were deleted.",
       "decide_failed": "The decision could not be saved",
-      "document_failed": "The document could not be opened"
+      "document_failed": "The document could not be opened",
+      "show_identity_name": "Show verified name",
+      "identity_name": "Verified name",
+      "identity_name_none": "No verified name to read",
+      "identity_name_failed": "The verified name could not be read"
     }
   },
   "collections": {

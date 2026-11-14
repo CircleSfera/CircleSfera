@@ -118,10 +118,7 @@ export interface StaffCompanyApplication extends CompanyApplication {
     username: string;
     accountType: string;
     verificationLevel: string;
-    user: {
-      identityVerifiedAt: string | null;
-      stripeIdentitySessionId: string | null;
-    } | null;
+    user: { identityVerifiedAt: string | null } | null;
   };
 }
 
@@ -145,6 +142,13 @@ export const companyVerificationStaffApi = {
       `${STAFF}/${id}/documents/${documentId}`,
       { responseType: 'blob' },
     );
+    return data;
+  },
+  // The verified name of the person behind a sole trader, read when asked.
+  async identityName(
+    id: string,
+  ): Promise<{ name: { firstName: string; lastName: string } | null }> {
+    const { data } = await apiClient.get(`${STAFF}/${id}/identity-name`);
     return data;
   },
   async decide(id: string, decision: CompanyDecision) {
