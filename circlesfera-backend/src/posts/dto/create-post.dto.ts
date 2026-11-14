@@ -22,10 +22,6 @@ import {
 } from 'class-validator';
 import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
 import { POST_MAX_MEDIA_ITEMS } from '../../common/constants/post-media.constants.js';
-import {
-  LegacyNotForSaleFlag,
-  LegacyNotForSalePrice,
-} from '../../common/dto/legacy-not-for-sale.js';
 import { PlaceInputDto } from '../../common/dto/place-input.dto.js';
 
 /** The longest caption of a post or frame; the composer shows the same limit. */
@@ -237,12 +233,4 @@ export class CreatePostDto {
   @MaxLength(POST_FILE_URL_MAX_LENGTH)
   @NotWithCoverTime()
   coverImageUrl?: string;
-
-  /** Sent by older app versions; accepted only as "not for sale" and never read. */
-  @LegacyNotForSaleFlag()
-  isPremium?: false;
-
-  /** Sent by older app versions; accepted only as 0 and never read. */
-  @LegacyNotForSalePrice()
-  priceCents?: 0;
 }

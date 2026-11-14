@@ -441,21 +441,6 @@ describe('AIProcessor', () => {
       },
     );
 
-    it('marks a post that was once priced as passed, without waiting for a person', async () => {
-      prisma.post.findUnique.mockResolvedValue({
-        priceCents: 500,
-        profileId: 'creator-1',
-      });
-
-      await processor.process(job('POST'));
-
-      expect(prisma.post.count).not.toHaveBeenCalled();
-      expect(prisma.post.updateMany).toHaveBeenCalledWith({
-        where: { id: 't-1', moderationStatus: 'VISIBLE' },
-        data: { moderationPassedAt: expect.any(Date) },
-      });
-    });
-
     it('marks nothing on a comment, which is never promoted', async () => {
       await processor.process(job('COMMENT'));
       expect(prisma.comment.updateMany).not.toHaveBeenCalled();

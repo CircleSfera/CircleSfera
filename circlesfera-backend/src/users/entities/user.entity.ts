@@ -8,8 +8,7 @@ import {
 } from '@prisma/client';
 import { Exclude } from 'class-transformer';
 
-// The retired payout hold is read by no query and dropped in the next release.
-export class UserEntity implements Omit<User, 'payoutsHeldAt'> {
+export class UserEntity implements User {
   @ApiProperty({ required: true, type: () => String })
   id!: string;
   @ApiProperty({ required: true, type: () => String })
