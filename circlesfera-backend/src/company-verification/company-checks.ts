@@ -51,13 +51,21 @@ export async function hasMetaProof(
   return false;
 }
 
-// The meta tag in the page's head, not in a comment or a script.
+// The meta tag in the page's head, not in a comment or a script. The page
+// is only read, never shown: tags inside a comment or a script are skipped
+// by their position, nothing is removed from the text.
 function headHasTag(html: string, token: string): boolean {
-  const head = html
-    .split(/<\/head\s*>|<body\b/i)[0]
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '');
-  for (const tag of head.match(/<meta\b[^>]*>/gi) ?? []) {
+  const lower = html.toLowerCase();
+  const headEnd = [lower.indexOf('</head'), lower.indexOf('<body')]
+    .filter((at) => at >= 0)
+    .reduce((first, at) => Math.min(first, at), lower.length);
+  const skipped = skippedRanges(lower, headEnd);
+  const tags = /<meta\b[^>]*>/gi;
+  for (let match = tags.exec(html); match; match = tags.exec(html)) {
+    if (match.index >= headEnd) break;
+    const at = match.index;
+    if (skipped.some(([from, to]) => at >= from && at < to)) continue;
+    const tag = match[0];
     const name = /\bname\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
     const content = /\bcontent\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
     if (name?.trim() === DOMAIN_META_NAME && content?.trim() === token) {
@@ -65,6 +73,28 @@ function headHasTag(html: string, token: string): boolean {
     }
   }
   return false;
+}
+
+// Where comments and scripts start and end in the head, as positions; one
+// left open runs to the end of the head.
+function skippedRanges(lower: string, end: number): [number, number][] {
+  const ranges: [number, number][] = [];
+  let at = 0;
+  while (at < end) {
+    const comment = lower.indexOf('<!--', at);
+    const script = lower.indexOf('<script', at);
+    const starts = [comment, script].filter((i) => i >= 0 && i < end);
+    if (starts.length === 0) break;
+    const start = Math.min(...starts);
+    const close =
+      start === comment
+        ? lower.indexOf('-->', start + 4)
+        : lower.indexOf('</script', start + 7);
+    const stop = close < 0 ? end : close + 1;
+    ranges.push([start, stop]);
+    at = stop;
+  }
+  return ranges;
 }
 
 export type ViesAnswer = { valid: boolean; name: string | null };

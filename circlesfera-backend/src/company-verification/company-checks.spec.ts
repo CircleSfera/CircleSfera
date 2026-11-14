@@ -90,6 +90,35 @@ describe('domain proof', () => {
     }
   });
 
+  it('a comment left open hides what follows, and a tag after a closed script counts', async () => {
+    await expect(
+      hasMetaProof(
+        'example.com',
+        'abc',
+        page(
+          '<head><!-- open <meta name="circlesfera-verification" content="abc"></head>',
+        ) as never,
+      ),
+    ).resolves.toBe(false);
+    await expect(
+      hasMetaProof(
+        'example.com',
+        'abc',
+        page(
+          '<head><script>x()</script ><!-- c --><meta name="circlesfera-verification" content="abc"></head>',
+        ) as never,
+      ),
+    ).resolves.toBe(true);
+    // A page with no head end: the whole page is its head.
+    await expect(
+      hasMetaProof(
+        'example.com',
+        'abc',
+        page('<meta name="circlesfera-verification" content="abc">') as never,
+      ),
+    ).resolves.toBe(true);
+  });
+
   it('a page that cannot be read, or is refused, has no tag', async () => {
     const fetchPage = vi.fn().mockRejectedValue(new Error('blocked'));
     await expect(
