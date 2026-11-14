@@ -364,7 +364,7 @@ export default function ProfileHeader({
                     >
                       <Building2
                         size={18}
-                        className="text-sky-400"
+                        className="text-brand-blue"
                         aria-hidden
                       />
                     </span>
@@ -537,7 +537,7 @@ export default function ProfileHeader({
                 role="img"
                 className="inline-flex shrink-0"
               >
-                <Building2 size={14} className="text-sky-400" aria-hidden />
+                <Building2 size={14} className="text-brand-blue" aria-hidden />
               </span>
             )}
             {data.botLabeled && (

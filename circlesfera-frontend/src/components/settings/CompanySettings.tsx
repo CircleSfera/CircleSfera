@@ -44,8 +44,11 @@ export default function CompanySettings() {
     retry: false,
   });
 
-  const settle = (next: CompanyVerificationStatusView) =>
-    queryClient.setQueryData(['companyVerification'], next);
+  // After any change the status is asked again, so an answer that arrives
+  // late never brings back an older state.
+  const settle = (_next?: CompanyVerificationStatusView) =>
+    queryClient.invalidateQueries({ queryKey: ['companyVerification'] });
+  const [changing, setChanging] = useState(false);
   const failed = (fallback: string) => (err: unknown) =>
     toast.error(apiErrorMessage(err, t, fallback));
 
@@ -139,8 +142,28 @@ export default function CompanySettings() {
         <p className="text-xs text-white/50">
           {t('settings.company.change_hint')}
         </p>
+        <Button
+          variant="secondary"
+          onClick={() => setChanging(true)}
+          className="min-h-11 self-start px-5 text-sm font-semibold"
+        >
+          {t('settings.company.change_company')}
+        </Button>
       </div>
     );
+    if (changing) {
+      // A new application with the changed details; the mark stays while it
+      // is filled in and is hidden only once it is sent.
+      body = (
+        <DetailsForm
+          initial={application}
+          onSaved={(next) => {
+            settle(next);
+            setChanging(false);
+          }}
+        />
+      );
+    }
   } else if (application?.status === 'PENDING') {
     body = (
       <div className={card} data-testid="company-pending">
@@ -283,7 +306,7 @@ function DetailsForm({
         }
         value={domain}
         onChange={(e) => setDomain(e.target.value)}
-        placeholder="example.es"
+        placeholder={t('settings.company.domain_example')}
         maxLength={253}
         inputMode="url"
         required={kind === 'COMPANY'}
@@ -355,9 +378,15 @@ function DraftSteps({
     onError: failed,
   });
 
-  const copy = (text: string) => {
-    void navigator.clipboard?.writeText(text);
-    toast.success(t('settings.company.copied'));
+  // Says it was copied only once the clipboard took it.
+  const copy = async (text: string) => {
+    try {
+      if (!navigator.clipboard) throw new Error('no clipboard');
+      await navigator.clipboard.writeText(text);
+      toast.success(t('settings.company.copied'));
+    } catch {
+      toast.error(t('settings.company.copy_failed'));
+    }
   };
 
   const hasDomain = !!application.domain;
@@ -443,7 +472,7 @@ function DraftSteps({
                       </code>
                       <button
                         type="button"
-                        onClick={() => copy(value)}
+                        onClick={() => void copy(value)}
                         aria-label={t('settings.company.copy')}
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/5 text-white/70 hover:bg-white/10"
                       >
@@ -486,7 +515,7 @@ function DraftSteps({
                     label={t('settings.company.address')}
                     value={localPart}
                     onChange={(e) => setLocalPart(e.target.value)}
-                    placeholder="info"
+                    placeholder={t('settings.company.address_example')}
                     maxLength={64}
                   />
                 </div>

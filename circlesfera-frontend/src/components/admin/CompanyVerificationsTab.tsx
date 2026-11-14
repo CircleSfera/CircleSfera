@@ -142,16 +142,25 @@ function ApplicationCard({
   });
 
   // Opens a document in a new tab from memory; nothing is kept.
+  // The tab is opened during the click, so the browser does not block it
+  // however long the download takes, and filled once it arrives.
   const open = async (documentId: string) => {
+    const tab = window.open('', '_blank');
+    if (!tab) {
+      adminToast(t('admin.company_verifications.document_blocked'), 'error');
+      return;
+    }
+    tab.opener = null;
     try {
       const blob = await companyVerificationStaffApi.document(
         application.id,
         documentId,
       );
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      tab.location.href = url;
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch {
+      tab.close();
       adminToast(t('admin.company_verifications.document_failed'), 'error');
     }
   };

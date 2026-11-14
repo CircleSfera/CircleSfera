@@ -924,7 +924,11 @@
         "DETAILS_DO_NOT_MATCH": "El nombre legal o el NIF no coincidían con los documentos.",
         "NAME_NOT_IDENTITY": "El nombre de los documentos no coincidía con tu identidad verificada.",
         "OTHER": "No se pudo aprobar."
-      }
+      },
+      "change_company": "Cambiar los datos de la empresa",
+      "domain_example": "ejemplo.es",
+      "address_example": "info",
+      "copy_failed": "No se pudo copiar. Selecciona el texto y cópialo tú."
     }
   },
   "auth": {
@@ -4869,7 +4873,8 @@
       "show_identity_name": "Ver nombre verificado",
       "identity_name": "Nombre verificado",
       "identity_name_none": "No hay nombre verificado que leer",
-      "identity_name_failed": "No se pudo leer el nombre verificado"
+      "identity_name_failed": "No se pudo leer el nombre verificado",
+      "document_blocked": "El navegador bloqueó la pestaña nueva. Permite ventanas emergentes para el Backoffice."
     }
   },
   "collections": {

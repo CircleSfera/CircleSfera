@@ -175,27 +175,30 @@ describe('CompanyVerificationsTab', () => {
     );
   });
 
-  it('opens a document from memory, and says when it cannot', async () => {
+  it('opens the tab during the click, fills it once the document arrives, and says when it cannot', async () => {
     api.document.mockResolvedValueOnce(new Blob(['%PDF']));
     URL.createObjectURL = vi.fn(() => 'blob:doc');
     URL.revokeObjectURL = vi.fn();
-    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+    const tab = { opener: {}, location: { href: '' }, close: vi.fn() };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(tab as never);
     renderWithProviders(<CompanyVerificationsTab />);
     fireEvent.click(await screen.findByRole('button', { name: 'cif.pdf' }));
-    await waitFor(() =>
-      expect(openSpy).toHaveBeenCalledWith(
-        'blob:doc',
-        '_blank',
-        'noopener,noreferrer',
-      ),
-    );
+    expect(openSpy).toHaveBeenCalledWith('', '_blank');
+    await waitFor(() => expect(tab.location.href).toBe('blob:doc'));
+    expect(tab.opener).toBeNull();
     expect(api.document).toHaveBeenCalledWith('app-1', 'd1');
 
+    // A download that fails closes the tab it took.
     api.document.mockRejectedValueOnce(new Error('x'));
     fireEvent.click(screen.getByRole('button', { name: 'cif.pdf' }));
-    await waitFor(() =>
-      expect(adminToast).toHaveBeenCalledWith(expect.any(String), 'error'),
-    );
+    await waitFor(() => expect(tab.close).toHaveBeenCalled());
+    expect(adminToast).toHaveBeenCalledWith(expect.any(String), 'error');
+
+    // A blocked tab is said, without downloading.
+    openSpy.mockReturnValueOnce(null);
+    api.document.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'cif.pdf' }));
+    expect(api.document).not.toHaveBeenCalled();
     openSpy.mockRestore();
   });
 

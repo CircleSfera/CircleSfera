@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
+import type { MockInstance } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type CompanyApplication,
@@ -31,6 +32,23 @@ vi.mock('../../utils/identityVerification', () => ({
 }));
 
 const api = vi.mocked(companyVerificationApi);
+
+// The server as the screen sees it: what a change answers is what the
+// status says next, since the screen asks again after every change.
+let current: unknown = null;
+const serveStatus = (value: unknown) => {
+  current = value;
+  api.status.mockImplementation(async () => current as never);
+};
+function answers<T extends (...args: never[]) => Promise<unknown>>(
+  fn: MockInstance<T>,
+  value: Awaited<ReturnType<T>>,
+) {
+  fn.mockImplementation((async () => {
+    current = value;
+    return value;
+  }) as never);
+}
 
 const application = (
   over: Partial<CompanyApplication> = {},
@@ -110,8 +128,8 @@ describe('CompanySettings', () => {
   });
 
   it('starts an application with the company details, cleaned', async () => {
-    api.status.mockResolvedValue(view());
-    api.saveDetails.mockResolvedValue(view({ application: application() }));
+    serveStatus(view());
+    answers(api.saveDetails, view({ application: application() }));
     const { i18n } = renderWithProviders(<CompanySettings />);
 
     fireEvent.change(
@@ -141,8 +159,8 @@ describe('CompanySettings', () => {
   });
 
   it('a sole trader may leave the domain out', async () => {
-    api.status.mockResolvedValue(view());
-    api.saveDetails.mockResolvedValue(view());
+    serveStatus(view());
+    answers(api.saveDetails, view());
     const { i18n } = renderWithProviders(<CompanySettings />);
     fireEvent.click(
       await screen.findByRole('button', {
@@ -168,8 +186,9 @@ describe('CompanySettings', () => {
   });
 
   it('shows the DNS record and the meta tag to copy, and checks the domain', async () => {
-    api.status.mockResolvedValue(view({ application: application() }));
-    api.checkDomain.mockResolvedValue(
+    serveStatus(view({ application: application() }));
+    answers(
+      api.checkDomain,
       view({ application: application({ domainProvedAt: '2026-11-14' }) }),
     );
     const writeText = vi.fn().mockResolvedValue(undefined);
@@ -185,6 +204,11 @@ describe('CompanySettings', () => {
       })[0],
     );
     expect(writeText).toHaveBeenCalledWith('circlesfera-verification=tok');
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        i18n!.t('settings.company.copied'),
+      ),
+    );
     fireEvent.click(
       screen.getByRole('button', {
         name: i18n!.t('settings.company.check_domain'),
@@ -199,11 +223,13 @@ describe('CompanySettings', () => {
 
   it('sends a code to an address on the domain and confirms it', async () => {
     const proved = application({ domainProvedAt: '2026-11-14' });
-    api.status.mockResolvedValue(view({ application: proved }));
-    api.sendEmailCode.mockResolvedValue(
+    serveStatus(view({ application: proved }));
+    answers(
+      api.sendEmailCode,
       view({ application: { ...proved, emailAddress: 'info@acme.es' } }),
     );
-    api.confirmEmailCode.mockResolvedValue(
+    answers(
+      api.confirmEmailCode,
       view({
         application: {
           ...proved,
@@ -249,7 +275,7 @@ describe('CompanySettings', () => {
 
   it('adds and removes documents, and sends only a complete application', async () => {
     const sole = application({ kind: 'SOLE_TRADER', domain: null });
-    api.status.mockResolvedValue(view({ application: sole }));
+    serveStatus(view({ application: sole }));
     const withDoc = {
       ...sole,
       documents: [
@@ -262,9 +288,10 @@ describe('CompanySettings', () => {
         },
       ],
     };
-    api.addDocument.mockResolvedValue(view({ application: withDoc }));
-    api.removeDocument.mockResolvedValue(view({ application: sole }));
-    api.submit.mockResolvedValue(
+    answers(api.addDocument, view({ application: withDoc }));
+    answers(api.removeDocument, view({ application: sole }));
+    answers(
+      api.submit,
       view({
         application: {
           ...withDoc,
@@ -297,7 +324,7 @@ describe('CompanySettings', () => {
   });
 
   it('removes a document from the draft', async () => {
-    api.status.mockResolvedValue(
+    serveStatus(
       view({
         application: application({
           documents: [
@@ -312,7 +339,7 @@ describe('CompanySettings', () => {
         }),
       }),
     );
-    api.removeDocument.mockResolvedValue(view({ application: application() }));
+    answers(api.removeDocument, view({ application: application() }));
     const { i18n } = renderWithProviders(<CompanySettings />);
     fireEvent.click(
       await screen.findByRole('button', {
@@ -323,7 +350,7 @@ describe('CompanySettings', () => {
   });
 
   it('withdraws an application under review', async () => {
-    api.status.mockResolvedValue(
+    serveStatus(
       view({
         application: application({
           status: 'PENDING',
@@ -331,7 +358,7 @@ describe('CompanySettings', () => {
         }),
       }),
     );
-    api.withdraw.mockResolvedValue(view());
+    answers(api.withdraw, view());
     const { i18n } = renderWithProviders(<CompanySettings />);
     fireEvent.click(
       await screen.findByRole('button', {
@@ -373,12 +400,59 @@ describe('CompanySettings', () => {
     expect(screen.getByTestId('company-details')).toBeInTheDocument();
   });
 
-  it('changes the details of a draft and goes back to its steps, and withdraws it', async () => {
-    api.status.mockResolvedValue(view({ application: application() }));
-    api.saveDetails.mockResolvedValue(
+  it('says when the clipboard refuses a copy', async () => {
+    serveStatus(view({ application: application() }));
+    const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+    Object.assign(navigator, { clipboard: { writeText } });
+    const { i18n } = renderWithProviders(<CompanySettings />);
+    fireEvent.click(
+      (
+        await screen.findAllByRole('button', {
+          name: i18n!.t('settings.company.copy'),
+        })
+      )[0],
+    );
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('settings.company.copy_failed'),
+      ),
+    );
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('an approved company changes its details into a new application, keeping the mark until it is sent', async () => {
+    serveStatus(view({ application: application({ status: 'APPROVED' }) }));
+    answers(
+      api.saveDetails,
       view({ application: application({ legalName: 'Acme Spain SL' }) }),
     );
-    api.withdraw.mockResolvedValue(view());
+    const { i18n } = renderWithProviders(<CompanySettings />);
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: i18n!.t('settings.company.change_company'),
+      }),
+    );
+    const name = screen.getByLabelText(i18n!.t('settings.company.legal_name'));
+    expect(name).toHaveValue('Acme SL');
+    fireEvent.change(name, { target: { value: 'Acme Spain SL' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('settings.company.save') }),
+    );
+    expect(await screen.findByTestId('company-draft')).toHaveTextContent(
+      'Acme Spain SL',
+    );
+    expect(api.saveDetails).toHaveBeenCalledWith(
+      expect.objectContaining({ legalName: 'Acme Spain SL' }),
+    );
+  });
+
+  it('changes the details of a draft and goes back to its steps, and withdraws it', async () => {
+    serveStatus(view({ application: application() }));
+    answers(
+      api.saveDetails,
+      view({ application: application({ legalName: 'Acme Spain SL' }) }),
+    );
+    answers(api.withdraw, view());
     const { i18n } = renderWithProviders(<CompanySettings />);
 
     fireEvent.click(
@@ -406,7 +480,7 @@ describe('CompanySettings', () => {
   });
 
   it('says what went wrong when a step is refused', async () => {
-    api.status.mockResolvedValue(view({ application: application() }));
+    serveStatus(view({ application: application() }));
     api.checkDomain.mockRejectedValue(new Error('x'));
     const { i18n } = renderWithProviders(<CompanySettings />);
     fireEvent.click(
