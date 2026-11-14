@@ -85,7 +85,7 @@ export default function HelpCentreTab({ onToast }: Props) {
   const [preview, setPreview] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const tr = (key: string, values?: Record<string, unknown>) =>
-    t(`admin.support.help_centre.${key}`, values);
+    t(`admin.support.help_centre.${key}`, { ...values });
 
   const {
     data: articles = [],

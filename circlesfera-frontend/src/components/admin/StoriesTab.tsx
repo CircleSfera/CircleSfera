@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import { CheckCircle, Clock, Eye, EyeOff, Heart, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,10 +28,7 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
-function moderationBadge(
-  status: AdminStory['moderationStatus'],
-  t: (key: string, options?: Record<string, unknown>) => string,
-) {
+function moderationBadge(status: AdminStory['moderationStatus'], t: TFunction) {
   const styles: Record<string, string> = {
     VISIBLE: 'text-green-400 bg-green-400/10',
     FLAGGED: 'text-amber-400 bg-amber-400/10',

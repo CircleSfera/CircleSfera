@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import {
   ChevronRight,
   Flag,
@@ -30,10 +31,7 @@ import { AdminListSkeleton } from './AdminSkeletons';
 import { StatusBadge } from './AdminTable';
 import { ADMIN_TAB_PERMISSIONS, adminTabPath } from './adminNav';
 
-function formatMttrDuration(
-  ms: number,
-  t: (key: string, options?: Record<string, unknown>) => string,
-): string {
+function formatMttrDuration(ms: number, t: TFunction): string {
   const mins = Math.round(ms / 60_000);
   if (mins < 60) {
     return t('admin.trust.mttr_duration_minutes', { count: Math.max(1, mins) });

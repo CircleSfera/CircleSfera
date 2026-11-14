@@ -51,7 +51,7 @@ describe('SavedReplies', () => {
       />,
     );
     const t = (key: string, values?: Record<string, string>) =>
-      i18n!.t(`admin.support.saved_replies.${key}`, values);
+      i18n!.t(`admin.support.saved_replies.${key}`, { ...values });
     await screen.findByRole('combobox', { name: t('insert') });
     fireEvent.click(screen.getByRole('button', { name: t('manage') }));
     return { t, panel: within(await screen.findByRole('dialog')) };
