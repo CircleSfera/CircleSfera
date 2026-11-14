@@ -104,12 +104,6 @@ test.describe('Going live', () => {
     await expectScreenInOrder(page);
   });
 
-  test('setting the goal', async ({ page }) => {
-    await startBroadcast(page);
-    await page.getByRole('button', { name: 'Añadir objetivo' }).click();
-    await expectScreenInOrder(page);
-  });
-
   test('questions panel', async ({ page }) => {
     await startBroadcast(page);
     await page.getByRole('button', { name: /Preguntas/ }).click();

@@ -5313,16 +5313,6 @@
       "not_recorded_limit": "This live wasn’t recorded: too many lives were being recorded at the same time.",
       "not_recorded_failed": "This live couldn’t be recorded."
     },
-    "goal": {
-      "add": "Add goal",
-      "target_prompt": "Enter the target amount (e.g. 1000):",
-      "title_prompt": "Enter the goal title:",
-      "dialog_title": "Goal of the live",
-      "title_label": "What is the goal for?",
-      "target_label": "Target",
-      "save": "Set goal",
-      "title_default": "Goal of the live"
-    },
     "host_fallback": "Live creator",
     "host_n": "Host {{n}}",
     "cohost_fallback": "Co-host",

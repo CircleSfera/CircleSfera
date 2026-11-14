@@ -702,68 +702,6 @@ describe('AppGateway payload bounds and authorization', () => {
     });
   });
 
-  it('rejects live:set_goal when caller is not the stream host or target is invalid', async () => {
-    const mockEmit = vi.fn();
-    const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
-    const mockLiveRealtime = {
-      incrementViewerCount: vi.fn(),
-      decrementViewerCount: vi.fn(),
-      isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(false),
-      getChatAuthor: vi.fn(),
-    };
-
-    const gateway = gatewayWithServer(
-      { to: mockTo },
-      { liveRealtimeService: mockLiveRealtime },
-    );
-
-    // Test non-host
-    const viewerSocket = mockSocket('viewer-profile');
-    await gateway.handleLiveSetGoal(
-      { streamId: 'stream-1', title: 'New Goal', target: 500 },
-      viewerSocket,
-    );
-    expect(mockEmit).not.toHaveBeenCalled();
-
-    // Test invalid target (target <= 0 or > 1,000,000)
-    mockLiveRealtime.isStreamHostOrOnAirGuest.mockResolvedValue(true);
-    const hostSocket = mockSocket('host-profile');
-    await gateway.handleLiveSetGoal(
-      { streamId: 'stream-1', title: 'New Goal', target: 0 },
-      hostSocket,
-    );
-    expect(mockEmit).not.toHaveBeenCalled();
-  });
-
-  it('allows live:set_goal when caller is the stream host and target is valid', async () => {
-    const mockEmit = vi.fn();
-    const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
-    const mockLiveRealtime = {
-      incrementViewerCount: vi.fn(),
-      decrementViewerCount: vi.fn(),
-      isStreamHostOrOnAirGuest: vi.fn().mockResolvedValue(true),
-      getChatAuthor: vi.fn(),
-    };
-
-    const gateway = gatewayWithServer(
-      { to: mockTo },
-      { liveRealtimeService: mockLiveRealtime },
-    );
-
-    const hostSocket = mockSocket('host-profile');
-    await gateway.handleLiveSetGoal(
-      { streamId: 'stream-1', title: 'Followers Goal', target: 1000 },
-      hostSocket,
-    );
-
-    expect(mockTo).toHaveBeenCalledWith('live:stream-1');
-    expect(mockEmit).toHaveBeenCalledWith('live:goal_set', {
-      title: 'Followers Goal',
-      target: 1000,
-      current: 0,
-    });
-  });
-
   it('rejects live:highlight_question when caller is not the stream host', async () => {
     const mockEmit = vi.fn();
     const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
@@ -2695,10 +2633,6 @@ describe('AppGateway payload bounds and authorization', () => {
         emptySocket,
       );
       await gateway.handleLiveClearQuestion({ streamId: 's-1' }, emptySocket);
-      await gateway.handleLiveSetGoal(
-        { streamId: 's-1', title: 'Goal', target: 100 },
-        emptySocket,
-      );
     });
 
     it('handles invalid questions and unauthorized clear_question', async () => {

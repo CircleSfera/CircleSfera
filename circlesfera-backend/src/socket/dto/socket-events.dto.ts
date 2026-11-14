@@ -229,28 +229,3 @@ export class LiveHighlightQuestionDto {
   @MaxLength(2048)
   avatar?: string;
 }
-
-export class LiveSetGoalDto {
-  @ApiProperty({ required: true, type: () => String, maxLength: 64 })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(64)
-  streamId!: string;
-
-  @ApiProperty({ required: true, type: () => String, maxLength: 100 })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  title!: string;
-
-  @ApiProperty({
-    required: true,
-    type: () => Number,
-    minimum: 1,
-    maximum: 1000000,
-  })
-  @IsNumber()
-  @Min(1)
-  @Max(1000000)
-  target!: number;
-}

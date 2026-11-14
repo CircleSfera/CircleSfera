@@ -63,45 +63,6 @@ vi.mock('../../components/live/MirrorOwnCamera', () => ({
 vi.mock('../../components/live/CinematicStage', () => ({
   default: () => null,
 }));
-vi.mock('../../components/live/LiveGoalBar', () => ({
-  default: ({
-    goal,
-    onClick,
-  }: {
-    goal: { title: string; current: number; target: number } | null;
-    onClick?: () => void;
-  }) => (
-    <button type="button" onClick={onClick}>
-      {goal
-        ? `goal: ${goal.title} ${goal.current}/${goal.target}`
-        : 'set a goal'}
-    </button>
-  ),
-}));
-vi.mock('../../components/live/LiveGoalDialog', () => ({
-  default: ({
-    isOpen,
-    onSave,
-    onClose,
-  }: {
-    isOpen: boolean;
-    onSave: (goal: { title: string; target: number }) => void;
-    onClose: () => void;
-  }) =>
-    isOpen ? (
-      <div role="dialog" aria-label="goal">
-        <button
-          type="button"
-          onClick={() => onSave({ title: 'New lens', target: 5000 })}
-        >
-          save goal
-        </button>
-        <button type="button" onClick={onClose}>
-          close goal
-        </button>
-      </div>
-    ) : null,
-}));
 vi.mock('../../components/live/LivePinnedComment', () => ({
   default: ({
     pinnedComment,
@@ -206,7 +167,7 @@ async function goLive(title = '') {
   await screen.findByRole('button', { name: 'End livestream' });
   // The screen is drawn a moment before it starts listening to the room.
   // Ten events of the live, and the new connection that joins it again.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(12));
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(11));
   return view;
 }
 
@@ -484,40 +445,6 @@ describe('LiveBroadcaster on the live connection', () => {
     });
   });
 
-  describe('the goal', () => {
-    it('sets it for everyone and shows it', async () => {
-      await goLive();
-
-      fireEvent.click(screen.getByRole('button', { name: 'set a goal' }));
-      fireEvent.click(screen.getByRole('button', { name: 'save goal' }));
-      expect(live.socket.emit).toHaveBeenCalledWith('live:set_goal', {
-        streamId: 'stream-1',
-        title: 'New lens',
-        target: 5000,
-      });
-      expect(
-        screen.queryByRole('dialog', { name: 'goal' }),
-      ).not.toBeInTheDocument();
-
-      fire('live:goal_set', { title: 'New lens', current: 0, target: 5000 });
-      expect(screen.getByText('goal: New lens 0/5000')).toBeInTheDocument();
-    });
-
-    it('can close the dialog', async () => {
-      await goLive();
-
-      expect(
-        screen.getByRole('button', { name: 'set a goal' }),
-      ).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('button', { name: 'set a goal' }));
-      fireEvent.click(screen.getByRole('button', { name: 'close goal' }));
-      expect(
-        screen.queryByRole('dialog', { name: 'goal' }),
-      ).not.toBeInTheDocument();
-    });
-  });
-
   describe('questions', () => {
     it('counts them on the button, projects the chosen one and clears it', async () => {
       await goLive();
@@ -644,8 +571,6 @@ describe('LiveBroadcaster on the live connection', () => {
     fireEvent.change(comment(), { target: { value: 'hello' } });
     fireEvent.submit(comment());
     fireEvent.doubleClick(screen.getByTestId('live-video'));
-    fireEvent.click(screen.getByRole('button', { name: 'set a goal' }));
-    fireEvent.click(screen.getByRole('button', { name: 'save goal' }));
 
     expect(live.socket.emit).not.toHaveBeenCalled();
   });

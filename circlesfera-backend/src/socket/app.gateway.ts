@@ -51,7 +51,6 @@ import type {
   LiveHighlightQuestionDto,
   LivePinCommentDto,
   LiveReactionDto,
-  LiveSetGoalDto,
   LiveStreamIdDto,
   MarkReadDto,
   SendReactionDto,
@@ -843,7 +842,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Shared policy for live actions of the host or a guest on air — the one
   // authoritative gate-and-log implementation for pin/unpin comment,
-  // highlight/clear question and set goal. Returns the caller's
+  // highlight/clear question. Returns the caller's
   // profileId when authorized, or null (after logging) when not.
   private async requireStreamHostOrOnAirGuest(
     client: SocketWithAuth,
@@ -994,7 +993,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  // Phase 2: Q&A and Live Goals
+  // Phase 2: Q&A
 
   @SubscribeMessage('live:ask_question')
   async handleLiveAskQuestion(
@@ -1082,39 +1081,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!callerProfileId) return;
 
     this.server.to(`live:${payload.streamId}`).emit('live:question_cleared');
-  }
-
-  @SubscribeMessage('live:set_goal')
-  async handleLiveSetGoal(
-    @MessageBody() payload: LiveSetGoalDto,
-    @ConnectedSocket() client: SocketWithAuth,
-  ) {
-    if (
-      !payload?.streamId ||
-      !payload?.title ||
-      typeof payload.streamId !== 'string' ||
-      typeof payload.title !== 'string' ||
-      typeof payload.target !== 'number' ||
-      payload.target <= 0 ||
-      payload.target > 1000000
-    ) {
-      return;
-    }
-
-    const callerProfileId = await this.requireStreamHostOrOnAirGuest(
-      client,
-      payload.streamId,
-      'live:set_goal',
-    );
-    if (!callerProfileId) return;
-
-    const cleanTitle = payload.title.trim().slice(0, 100);
-
-    this.server.to(`live:${payload.streamId}`).emit('live:goal_set', {
-      title: cleanTitle,
-      target: Math.floor(payload.target),
-      current: 0,
-    });
   }
 
   // --- EDA Domain Event Listeners ---

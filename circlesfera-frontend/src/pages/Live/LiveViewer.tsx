@@ -14,9 +14,6 @@ import {
 } from '../../components/create-post/createStyles';
 import CinematicStage from '../../components/live/CinematicStage';
 import CoHostInviteBanner from '../../components/live/CoHostInviteBanner';
-import LiveGoalBar, {
-  type LiveGoalData,
-} from '../../components/live/LiveGoalBar';
 import {
   LiveCommentLine,
   LiveControl,
@@ -83,7 +80,6 @@ export default function LiveViewer() {
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
 
   // Phase 2 State
-  const [liveGoal, setLiveGoal] = useState<LiveGoalData | null>(null);
   const [isQnAOpen, setIsQnAOpen] = useState(false);
   const [questions, setQuestions] = useState<LiveQuestion[]>([]);
   const [highlightedQuestion, setHighlightedQuestion] =
@@ -200,9 +196,6 @@ export default function LiveViewer() {
     socket.on('live:guest_removed', () => backToWatchingRef.current());
 
     // Phase 2 listeners
-    socket.on('live:goal_set', (data: LiveGoalData) => {
-      setLiveGoal(data);
-    });
 
     socket.on('live:question_asked', (q: LiveQuestion) => {
       setQuestions((prev) => [q, ...prev]);
@@ -229,7 +222,6 @@ export default function LiveViewer() {
       socket.off('live:guests_changed');
       socket.off('live:unavailable');
       socket.off('live:guest_removed');
-      socket.off('live:goal_set');
       socket.off('live:question_asked');
       socket.off('live:question_highlighted');
       socket.off('live:question_cleared');
@@ -477,7 +469,6 @@ export default function LiveViewer() {
                   viewers={viewerCount}
                 />
               </div>
-              <LiveGoalBar goal={liveGoal} />
             </div>
             <div className="flex shrink-0 flex-col items-center gap-1">
               <LiveControl

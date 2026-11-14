@@ -15,7 +15,6 @@ import {
   Pin,
   Send,
   SwitchCamera,
-  Target,
   Trash2,
   UserPlus,
   X,
@@ -30,10 +29,6 @@ import {
 } from '../../components/create-post/createStyles';
 import CinematicStage from '../../components/live/CinematicStage';
 import { LiveCameraPreview } from '../../components/live/LiveCameraPreview';
-import LiveGoalBar, {
-  type LiveGoalData,
-} from '../../components/live/LiveGoalBar';
-import LiveGoalDialog from '../../components/live/LiveGoalDialog';
 import LiveGuestChips from '../../components/live/LiveGuestChips';
 import {
   LiveCameraMicSwitches,
@@ -111,7 +106,6 @@ export default function LiveBroadcaster() {
   >(null);
   const guestFormOpen = sheet === 'guests';
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   // Read when the video connection closes, which also happens on purpose
   // when the live ends.
   const endedRef = useRef(false);
@@ -124,7 +118,6 @@ export default function LiveBroadcaster() {
     useState<LiveChatMessage | null>(null);
 
   // Phase 2 State
-  const [liveGoal, setLiveGoal] = useState<LiveGoalData | null>(null);
   const isQnAOpen = sheet === 'questions';
   const [questions, setQuestions] = useState<LiveQuestion[]>([]);
   const [highlightedQuestion, setHighlightedQuestion] =
@@ -260,10 +253,6 @@ export default function LiveBroadcaster() {
     });
 
     // Phase 2 listeners
-    socket.on('live:goal_set', (data: LiveGoalData) => {
-      setLiveGoal(data);
-    });
-
     socket.on('live:question_asked', (q: LiveQuestion) => {
       setQuestions((prev) => [q, ...prev]);
     });
@@ -309,7 +298,6 @@ export default function LiveBroadcaster() {
       socket.off('live:comment_unpinned');
       socket.off('live:heart_received');
       socket.off('live:reaction_received');
-      socket.off('live:goal_set');
       socket.off('live:question_asked');
       socket.off('live:question_highlighted');
       socket.off('live:question_cleared');
@@ -429,14 +417,6 @@ export default function LiveBroadcaster() {
     setChatMessages((prev) => prev.filter((m) => m.id !== selectedMessage.id));
     // Would ideally emit a socket event to delete it for everyone, but local hide works for Phase 1
     setSelectedMessage(null);
-  };
-
-  const handleSetGoal = (goal: { title: string; target: number }) => {
-    setGoalDialogOpen(false);
-    const socket = useSocketStore.getState().socket;
-    if (socket && streamId) {
-      socket.emit('live:set_goal', { streamId, ...goal });
-    }
   };
 
   const handleHighlightQuestion = (q: LiveQuestion) => {
@@ -683,10 +663,6 @@ export default function LiveBroadcaster() {
                 guests={liveGuests.guests}
                 onRemove={(id) => void handleRemoveGuest(id)}
               />
-              <LiveGoalBar
-                goal={liveGoal}
-                onClick={() => setGoalDialogOpen(true)}
-              />
             </div>
             {/* The way out, and under it the host's own camera and sound. */}
             <div className="flex shrink-0 flex-col items-center gap-1">
@@ -833,14 +809,6 @@ export default function LiveBroadcaster() {
                       <UserPlus className="h-6 w-6" aria-hidden />
                     </LiveControl>
                   )}
-                  {!liveGoal && (
-                    <LiveControl
-                      label={t('live.goal.add')}
-                      onClick={() => setGoalDialogOpen(true)}
-                    >
-                      <Target className="h-6 w-6" aria-hidden />
-                    </LiveControl>
-                  )}
                 </>
               )}
             </form>
@@ -882,11 +850,6 @@ export default function LiveBroadcaster() {
             hasHighlight={!!highlightedQuestion}
             onHighlightQuestion={handleHighlightQuestion}
             onClearHighlight={handleClearHighlightQuestion}
-          />
-          <LiveGoalDialog
-            isOpen={goalDialogOpen}
-            onClose={() => setGoalDialogOpen(false)}
-            onSave={handleSetGoal}
           />
         </LiveFrame>
       </LiveKitRoom>

@@ -5313,16 +5313,6 @@
       "not_recorded_limit": "Este directo no se ha grabado: se estaban grabando demasiados directos a la vez.",
       "not_recorded_failed": "No se ha podido grabar este directo."
     },
-    "goal": {
-      "add": "Añadir objetivo",
-      "target_prompt": "Ingresa el monto objetivo (ej. 1000):",
-      "title_prompt": "Ingresa el título del objetivo:",
-      "dialog_title": "Objetivo del directo",
-      "title_label": "¿Para qué es el objetivo?",
-      "target_label": "Cantidad a alcanzar",
-      "save": "Fijar objetivo",
-      "title_default": "Objetivo del directo"
-    },
     "host_fallback": "Creador Live",
     "host_n": "Host {{n}}",
     "cohost_fallback": "Coanfitrión",

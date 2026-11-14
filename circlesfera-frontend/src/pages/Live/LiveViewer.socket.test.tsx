@@ -63,10 +63,6 @@ vi.mock('../../components/live/MirrorOwnCamera', () => ({
 vi.mock('../../components/live/CinematicStage', () => ({
   default: () => null,
 }));
-vi.mock('../../components/live/LiveGoalBar', () => ({
-  default: ({ goal }: { goal: { title: string } | null }) =>
-    goal ? <div>goal: {goal.title}</div> : null,
-}));
 vi.mock('../../components/live/LivePinnedComment', () => ({
   default: ({
     pinnedComment,
@@ -165,8 +161,8 @@ async function watch(path = '/live/stream-1') {
   );
   await screen.findByTestId('livekit-room');
   // The listeners are attached in the same step as the two requests.
-  // Fourteen events of the live, and the new connection that joins it again.
-  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(15));
+  // Thirteen events of the live, and the new connection that joins it again.
+  if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(14));
   return view;
 }
 
@@ -199,7 +195,7 @@ describe('LiveViewer on the live connection', () => {
       audio: false,
     });
     const listened = [...live.handlers.keys()];
-    expect(listened).toHaveLength(15);
+    expect(listened).toHaveLength(14);
     expect(listened).toContain('connect');
 
     unmount();
@@ -261,16 +257,13 @@ describe('LiveViewer on the live connection', () => {
     expect(screen.getByText('line 50')).toBeInTheDocument();
   });
 
-  it('shows the pinned comment, the goal and the invitation, and takes them away', async () => {
+  it('shows the pinned comment and the invitation, and takes them away', async () => {
     await watch();
 
     fire('live:comment_pinned', { message: 'Read the rules' });
     expect(screen.getByText('pinned: Read the rules')).toBeInTheDocument();
     fire('live:comment_unpinned');
     expect(screen.queryByText(/pinned:/)).not.toBeInTheDocument();
-
-    fire('live:goal_set', { title: 'New lens' });
-    expect(screen.getByText('goal: New lens')).toBeInTheDocument();
 
     fire('live:guest_invite', { streamId: 'stream-1', host: {} });
     fireEvent.click(screen.getByRole('button', { name: 'dismiss invite' }));
