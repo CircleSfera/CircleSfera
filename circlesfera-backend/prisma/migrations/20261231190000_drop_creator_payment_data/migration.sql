@@ -2,18 +2,9 @@
 -- stories and messages, tips, live gifts, payouts and the monetization
 -- programme) are dropped. The previous release names none of them: it left
 -- the columns to their database defaults and emptied the tables, so a deploy
--- that rolls back to it still works. The file is applied as one script, in
--- one transaction: if any step fails, nothing changes.
-
--- A promotion refund names the person refunded as its sender. Refunds
--- written by an older image during a rollback window still named them only
--- as the receiver, a column dropped below; they get their sender first.
--- Touching updatedAt sends them to the analytics warehouse again.
-UPDATE "transactions"
-SET "senderId" = "receiverId", "updatedAt" = CURRENT_TIMESTAMP
-WHERE "type" = 'PROMOTION_PAYMENT'
-  AND "senderId" IS NULL
-  AND "receiverId" IS NOT NULL;
+-- that rolls back to it still works, whichever of the steps below ran. The
+-- check of former payment kinds runs first, so stopping there changes
+-- nothing however the script is executed.
 
 -- Stop, changing nothing, if a payment of a former kind is still recorded:
 -- the kinds below are removed from the transaction types.
@@ -36,6 +27,16 @@ BEGIN
       former_kind;
   END IF;
 END $$;
+
+-- A promotion refund names the person refunded as its sender. Refunds
+-- written by an older image during a rollback window still named them only
+-- as the receiver, a column dropped below; they get their sender first.
+-- Touching updatedAt sends them to the analytics warehouse again.
+UPDATE "transactions"
+SET "senderId" = "receiverId", "updatedAt" = CURRENT_TIMESTAMP
+WHERE "type" = 'PROMOTION_PAYMENT'
+  AND "senderId" IS NULL
+  AND "receiverId" IS NOT NULL;
 
 -- The tables of the former creator payments, emptied by the previous release.
 ALTER TABLE "live_gifts" DROP CONSTRAINT "live_gifts_receiverId_fkey";
