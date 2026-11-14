@@ -36,6 +36,9 @@ const application = (over: Record<string, unknown> = {}) => ({
   emailCodeExpiresAt: null,
   emailCodeTries: 0,
   emailVerifiedAt: null,
+  emailCodeSentAt: null,
+  emailCodeSends: 0,
+  emailCodeSendsSince: null,
   ...over,
 });
 
@@ -70,13 +73,15 @@ describe('CompanyVerificationService', () => {
         ),
         create: vi.fn().mockResolvedValue({}),
         update: vi.fn().mockResolvedValue({}),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUniqueOrThrow: vi.fn(() => Promise.resolve(open)),
       },
       companyVerificationDocument: {
         count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockResolvedValue({}),
         deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
-      $transaction: vi.fn((ops: unknown[]) => Promise.all(ops)),
+      $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
     };
     crypto = { encrypt: vi.fn((text: string) => `enc(${text})`) };
     email = { sendCompanyDomainCode: vi.fn().mockResolvedValue(undefined) };
@@ -219,7 +224,7 @@ describe('CompanyVerificationService', () => {
         domain: 'acme.es',
       });
       expect(checks.askVies).not.toHaveBeenCalled();
-      const data = prisma.companyVerification.update.mock.calls[0][0].data;
+      const data = prisma.companyVerification.updateMany.mock.calls[0][0].data;
       expect(data).toEqual({
         kind: 'COMPANY',
         legalName: 'Acme Spain SL',
@@ -233,7 +238,7 @@ describe('CompanyVerificationService', () => {
       await service.saveDetails('u-1', 'prof-1', details);
       expect(checks.askVies).toHaveBeenCalledTimes(1);
       expect(
-        prisma.companyVerification.update.mock.calls[0][0].data,
+        prisma.companyVerification.updateMany.mock.calls[0][0].data,
       ).toMatchObject({ viesValid: true });
     });
 
@@ -247,7 +252,7 @@ describe('CompanyVerificationService', () => {
         domain: 'acme.com',
       });
       expect(
-        prisma.companyVerification.update.mock.calls[0][0].data,
+        prisma.companyVerification.updateMany.mock.calls[0][0].data,
       ).toMatchObject({
         domain: 'acme.com',
         domainProvedAt: null,
@@ -300,7 +305,7 @@ describe('CompanyVerificationService', () => {
       await service.checkDomain('u-1', 'prof-1');
       expect(checks.hasMetaProof).not.toHaveBeenCalled();
       expect(
-        prisma.companyVerification.update.mock.calls[0][0].data,
+        prisma.companyVerification.updateMany.mock.calls[0][0].data,
       ).toMatchObject({ domainProof: 'DNS' });
 
       checks.hasDnsProof.mockResolvedValueOnce(false);
@@ -308,7 +313,7 @@ describe('CompanyVerificationService', () => {
       await service.checkDomain('u-1', 'prof-1');
       expect(checks.hasMetaProof).toHaveBeenCalledWith('acme.es', 'tok');
       expect(
-        prisma.companyVerification.update.mock.calls[1][0].data,
+        prisma.companyVerification.updateMany.mock.calls[1][0].data,
       ).toMatchObject({ domainProof: 'META' });
     });
 
@@ -326,16 +331,37 @@ describe('CompanyVerificationService', () => {
     });
   });
 
+  it('a domain proved after the application changed its domain is not kept', async () => {
+    open = application();
+    checks.hasDnsProof.mockResolvedValueOnce(true);
+    prisma.companyVerification.updateMany.mockResolvedValueOnce({ count: 0 });
+    await expect(service.checkDomain('u-1', 'prof-1')).rejects.toMatchObject({
+      errorCode: 'COMPANY_VERIFICATION_LOCKED',
+    });
+    expect(
+      prisma.companyVerification.updateMany.mock.calls[0][0].where,
+    ).toEqual({ id: 'app-1', status: 'DRAFT', domain: 'acme.es' });
+  });
+
+  it('shows no application to someone who does not own the Profile', async () => {
+    prisma.profile.findFirst.mockResolvedValue(null);
+    open = application();
+    await expect(service.status('u-2', 'prof-1')).resolves.toMatchObject({
+      isOwner: false,
+      application: null,
+    });
+  });
+
   describe('the code sent to an address on the domain', () => {
     it('goes to that address, in the language of the person who applies, kept only as a hash', async () => {
-      open = application();
+      open = application({ domainProvedAt: new Date() });
       await service.sendEmailCode('u-1', 'prof-1', 'Info');
 
       const [to, code, applicant] = email.sendCompanyDomainCode.mock.calls[0];
       expect(to).toBe('info@acme.es');
       expect(code).toMatch(/^\d{6}$/);
       expect(applicant).toBe('ana@example.com');
-      const data = prisma.companyVerification.update.mock.calls[0][0].data;
+      const data = prisma.companyVerification.updateMany.mock.calls[0][0].data;
       expect(data.emailAddress).toBe('info@acme.es');
       expect(data.emailCodeHash).toBe(hash(code));
       expect(data.emailCodeTries).toBe(0);
@@ -358,47 +384,138 @@ describe('CompanyVerificationService', () => {
 
     it('is confirmed with the right code before it expires', async () => {
       open = application({
+        emailAddress: 'info@acme.es',
         emailCodeHash: hash('123456'),
         emailCodeExpiresAt: new Date(Date.now() + 60_000),
       });
       await service.confirmEmailCode('u-1', 'prof-1', '123456');
-      expect(
-        prisma.companyVerification.update.mock.calls[0][0].data,
-      ).toMatchObject({ emailCodeHash: null, emailCodeExpiresAt: null });
-      expect(
-        prisma.companyVerification.update.mock.calls[0][0].data.emailVerifiedAt,
-      ).toBeInstanceOf(Date);
+      // A try is used first, only while tries are left for this code.
+      expect(prisma.companyVerification.updateMany.mock.calls[0][0]).toEqual({
+        where: {
+          id: 'app-1',
+          status: 'DRAFT',
+          domain: 'acme.es',
+          emailCodeHash: hash('123456'),
+          emailCodeTries: { lt: 5 },
+        },
+        data: { emailCodeTries: { increment: 1 } },
+      });
+      const confirmed = prisma.companyVerification.updateMany.mock.calls[1][0];
+      expect(confirmed.where).toMatchObject({
+        status: 'DRAFT',
+        domain: 'acme.es',
+        emailCodeHash: hash('123456'),
+      });
+      expect(confirmed.data).toMatchObject({
+        emailCodeHash: null,
+        emailCodeExpiresAt: null,
+      });
+      expect(confirmed.data.emailVerifiedAt).toBeInstanceOf(Date);
     });
 
-    it('a wrong or expired code uses a try; five tries end it', async () => {
-      open = application({
-        emailCodeHash: hash('123456'),
-        emailCodeExpiresAt: new Date(Date.now() + 60_000),
-      });
+    it('a wrong or expired code uses a try; once none are left it says so', async () => {
+      const sent = (over = {}) =>
+        application({
+          emailAddress: 'info@acme.es',
+          emailCodeHash: hash('123456'),
+          emailCodeExpiresAt: new Date(Date.now() + 60_000),
+          ...over,
+        });
+      open = sent();
       await expect(
         service.confirmEmailCode('u-1', 'prof-1', '654321'),
       ).rejects.toMatchObject({ errorCode: 'COMPANY_EMAIL_CODE_INVALID' });
-      expect(prisma.companyVerification.update).toHaveBeenCalledWith({
-        where: { id: 'app-1' },
-        data: { emailCodeTries: { increment: 1 } },
-      });
+      expect(prisma.companyVerification.updateMany).toHaveBeenCalledTimes(1);
 
-      open = application({
-        emailCodeHash: hash('123456'),
-        emailCodeExpiresAt: new Date(Date.now() - 1),
-      });
+      open = sent({ emailCodeExpiresAt: new Date(Date.now() - 1) });
       await expect(
         service.confirmEmailCode('u-1', 'prof-1', '123456'),
       ).rejects.toMatchObject({ errorCode: 'COMPANY_EMAIL_CODE_INVALID' });
 
-      open = application({
-        emailCodeHash: hash('123456'),
-        emailCodeExpiresAt: new Date(Date.now() + 60_000),
-        emailCodeTries: 5,
-      });
+      // No try left: the conditional use of a try changes nothing.
+      open = sent();
+      prisma.companyVerification.updateMany.mockResolvedValueOnce({ count: 0 });
       await expect(
         service.confirmEmailCode('u-1', 'prof-1', '123456'),
       ).rejects.toMatchObject({ errorCode: 'COMPANY_EMAIL_CODE_TRIES' });
+    });
+
+    it('a code sent to an address on a domain the application no longer has proves nothing', async () => {
+      open = application({
+        domain: 'bigcorp.es',
+        emailAddress: 'info@acme.es',
+        emailCodeHash: hash('123456'),
+        emailCodeExpiresAt: new Date(Date.now() + 60_000),
+      });
+      await expect(
+        service.confirmEmailCode('u-1', 'prof-1', '123456'),
+      ).rejects.toMatchObject({ errorCode: 'COMPANY_EMAIL_CODE_INVALID' });
+      expect(prisma.companyVerification.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('is sent only once the domain is proved, a minute apart and five a day', async () => {
+      open = application();
+      await expect(
+        service.sendEmailCode('u-1', 'prof-1', 'info'),
+      ).rejects.toMatchObject({ errorCode: 'COMPANY_VERIFICATION_INCOMPLETE' });
+
+      open = application({
+        domainProvedAt: new Date(),
+        emailCodeSentAt: new Date(Date.now() - 10_000),
+      });
+      await expect(
+        service.sendEmailCode('u-1', 'prof-1', 'info'),
+      ).rejects.toMatchObject({ errorCode: 'COMPANY_EMAIL_CODE_WAIT' });
+
+      open = application({
+        domainProvedAt: new Date(),
+        emailCodeSentAt: new Date(Date.now() - 120_000),
+        emailCodeSends: 5,
+        emailCodeSendsSince: new Date(Date.now() - 3600_000),
+      });
+      await expect(
+        service.sendEmailCode('u-1', 'prof-1', 'info'),
+      ).rejects.toMatchObject({ errorCode: 'COMPANY_EMAIL_CODE_WAIT' });
+      expect(email.sendCompanyDomainCode).not.toHaveBeenCalled();
+
+      // A new day starts the count again.
+      open = application({
+        domainProvedAt: new Date(),
+        emailCodeSentAt: new Date(Date.now() - 120_000),
+        emailCodeSends: 5,
+        emailCodeSendsSince: new Date(Date.now() - 25 * 3600_000),
+      });
+      await service.sendEmailCode('u-1', 'prof-1', 'info');
+      expect(
+        prisma.companyVerification.updateMany.mock.calls[0][0].data,
+      ).toMatchObject({ emailCodeSends: 1 });
+      open = application({
+        domainProvedAt: new Date(),
+        emailCodeSentAt: new Date(Date.now() - 120_000),
+        emailCodeSends: 2,
+        emailCodeSendsSince: new Date(Date.now() - 3600_000),
+      });
+      await service.sendEmailCode('u-1', 'prof-1', 'info');
+      expect(
+        prisma.companyVerification.updateMany.mock.calls[1][0].data,
+      ).toMatchObject({ emailCodeSends: 3 });
+    });
+
+    it('nothing is written, nor sent, when the application changed meanwhile', async () => {
+      open = application({ domainProvedAt: new Date() });
+      prisma.companyVerification.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(
+        service.sendEmailCode('u-1', 'prof-1', 'info'),
+      ).rejects.toMatchObject({ errorCode: 'COMPANY_VERIFICATION_LOCKED' });
+      expect(email.sendCompanyDomainCode).not.toHaveBeenCalled();
+      expect(
+        prisma.companyVerification.updateMany.mock.calls[0][0].where,
+      ).toEqual({
+        id: 'app-1',
+        status: 'DRAFT',
+        domain: 'acme.es',
+        emailCodeSentAt: null,
+      });
     });
 
     it('is refused when none was sent', async () => {
@@ -489,7 +606,11 @@ describe('CompanyVerificationService', () => {
       expect(
         prisma.companyVerificationDocument.deleteMany,
       ).toHaveBeenCalledWith({
-        where: { id: 'doc-1', verificationId: 'app-1' },
+        where: {
+          id: 'doc-1',
+          verificationId: 'app-1',
+          verification: { status: 'DRAFT' },
+        },
       });
       prisma.companyVerificationDocument.deleteMany.mockResolvedValueOnce({
         count: 0,
@@ -513,12 +634,51 @@ describe('CompanyVerificationService', () => {
       open = application({
         domainProvedAt: new Date(),
         emailVerifiedAt: new Date(),
+        emailAddress: 'info@acme.es',
       });
       prisma.companyVerificationDocument.count.mockResolvedValue(1);
       await service.submit('u-1', 'prof-1');
+      // The draft is held first, then sent.
+      expect(
+        prisma.companyVerification.updateMany.mock.calls[0][0].where,
+      ).toEqual({ id: 'app-1', status: 'DRAFT' });
       expect(
         prisma.companyVerification.update.mock.calls[0][0].data,
       ).toMatchObject({ status: 'PENDING' });
+    });
+
+    it('a code confirmed on another domain does not count', async () => {
+      open = application({
+        domainProvedAt: new Date(),
+        emailVerifiedAt: new Date(),
+        emailAddress: 'info@other.es',
+      });
+      prisma.companyVerificationDocument.count.mockResolvedValue(1);
+      await expect(service.submit('u-1', 'prof-1')).rejects.toMatchObject({
+        errorCode: 'COMPANY_VERIFICATION_INCOMPLETE',
+        details: { missing: ['email'] },
+      });
+    });
+
+    it('an application sent or withdrawn meanwhile is not sent again, nor given a document', async () => {
+      open = application({ kind: 'SOLE_TRADER', domain: null });
+      prisma.companyVerification.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(service.submit('u-1', 'prof-1')).rejects.toMatchObject({
+        errorCode: 'COMPANY_VERIFICATION_LOCKED',
+      });
+      fileType.fileTypeFromBuffer.mockResolvedValue({
+        mime: 'application/pdf',
+        ext: 'pdf',
+      });
+      prisma.companyVerification.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(
+        service.addDocument('u-1', 'prof-1', {
+          originalname: 'a.pdf',
+          size: 10,
+          buffer: Buffer.from('%PDF'),
+        }),
+      ).rejects.toMatchObject({ errorCode: 'COMPANY_VERIFICATION_LOCKED' });
+      expect(prisma.companyVerificationDocument.create).not.toHaveBeenCalled();
     });
 
     it('a sole trader without a domain needs only the documents', async () => {

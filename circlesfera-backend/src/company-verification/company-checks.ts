@@ -22,35 +22,49 @@ export async function hasDnsProof(
   );
 }
 
-// Whether the home page of the domain, read over HTTPS from a public
-// address only and bounded in size and time, has the meta tag with the code.
-// A page that cannot be read has none.
+// Whether the home page of the domain, or of www. on it, has the meta tag
+// with the code in its head. Each is read over HTTPS from a public address
+// only, bounded in size and time, and without following a redirect: a tag
+// on another host proves nothing about this domain. A page that cannot be
+// read has none.
 export async function hasMetaProof(
   domain: string,
   token: string,
   fetchPage: typeof safeFetchMedia = safeFetchMedia,
 ): Promise<boolean> {
-  try {
-    const page = await fetchPage(`https://${domain}/`, {
-      requireHttps: true,
-      allowedPorts: [443],
-      maxBytes: HOME_PAGE_MAX_BYTES,
-      timeoutMs: HOME_PAGE_TIMEOUT_MS,
-      // An HTML page has no file signature to check.
-      allowedMimeTypes: [],
-    });
-    const html = page.buffer.toString('utf8');
-    for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
-      const name = /\bname\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
-      const content = /\bcontent\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
-      if (name?.trim() === DOMAIN_META_NAME && content?.trim() === token) {
-        return true;
-      }
+  for (const host of [domain, `www.${domain}`]) {
+    try {
+      const page = await fetchPage(`https://${host}/`, {
+        requireHttps: true,
+        allowedPorts: [443],
+        maxBytes: HOME_PAGE_MAX_BYTES,
+        timeoutMs: HOME_PAGE_TIMEOUT_MS,
+        maxRedirects: 0,
+        // An HTML page has no file signature to check.
+        allowedMimeTypes: [],
+      });
+      if (headHasTag(page.buffer.toString('utf8'), token)) return true;
+    } catch {
+      // Not readable: the next host, or none.
     }
-    return false;
-  } catch {
-    return false;
   }
+  return false;
+}
+
+// The meta tag in the page's head, not in a comment or a script.
+function headHasTag(html: string, token: string): boolean {
+  const head = html
+    .split(/<\/head\s*>|<body\b/i)[0]
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '');
+  for (const tag of head.match(/<meta\b[^>]*>/gi) ?? []) {
+    const name = /\bname\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
+    const content = /\bcontent\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
+    if (name?.trim() === DOMAIN_META_NAME && content?.trim() === token) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export type ViesAnswer = { valid: boolean; name: string | null };

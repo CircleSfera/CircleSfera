@@ -6,7 +6,7 @@ import {
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { safeFetchMedia } from './safe-media-fetcher.js';
+import { connectLookup, safeFetchMedia } from './safe-media-fetcher.js';
 import { SsrfBlockedError } from './ssrf.util.js';
 
 // Valid WAV audio buffer recognized by file-type
@@ -253,6 +253,58 @@ describe('safeFetchMedia', () => {
           allowedPorts: [80, 443, serverPort],
         }),
       ).rejects.toThrow(SsrfBlockedError);
+    });
+  });
+
+  describe('the lookup made when connecting', () => {
+    const run = (
+      dnsLookup: unknown,
+      options: object,
+    ): Promise<{ err: unknown; address: unknown; family: unknown }> =>
+      new Promise((resolve) =>
+        connectLookup(dnsLookup as never)(
+          'example.com',
+          options as never,
+          ((err: unknown, address: unknown, family: unknown) =>
+            resolve({ err, address, family })) as never,
+        ),
+      );
+    const publicIps = (async () => [
+      { address: '93.184.215.14', family: 4 },
+      { address: '2606:2800:21f:cb07:6820:80da:af6b:8b2c', family: 6 },
+    ]) as never;
+
+    it('gives every address when Node asks for all of them, as it does by default', async () => {
+      const { err, address } = await run(publicIps, { all: true });
+      expect(err).toBeNull();
+      expect(address).toEqual([
+        { address: '93.184.215.14', family: 4 },
+        { address: '2606:2800:21f:cb07:6820:80da:af6b:8b2c', family: 6 },
+      ]);
+    });
+
+    it('gives the first address when Node asks for one', async () => {
+      await expect(run(publicIps, {})).resolves.toEqual({
+        err: null,
+        address: '93.184.215.14',
+        family: 4,
+      });
+    });
+
+    it('refuses a host with any private address, and one with none', async () => {
+      const mixed = (async () => [
+        { address: '93.184.215.14', family: 4 },
+        { address: '10.0.0.1', family: 4 },
+      ]) as never;
+      expect((await run(mixed, { all: true })).err).toBeInstanceOf(
+        SsrfBlockedError,
+      );
+      const none = (async () => []) as never;
+      expect((await run(none, { all: true })).err).toBeInstanceOf(Error);
+      const failing = (async () => {
+        throw new Error('ENOTFOUND');
+      }) as never;
+      expect((await run(failing, {})).err).toBeInstanceOf(Error);
     });
   });
 

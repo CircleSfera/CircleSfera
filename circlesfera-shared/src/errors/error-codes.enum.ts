@@ -210,6 +210,8 @@ export enum ErrorCode {
   COMPANY_EMAIL_CODE_INVALID = 'COMPANY_EMAIL_CODE_INVALID',
   // No tries are left for the code: a new one has to be sent.
   COMPANY_EMAIL_CODE_TRIES = 'COMPANY_EMAIL_CODE_TRIES',
+  // A new code was asked too soon, or too many today; details carry when.
+  COMPANY_EMAIL_CODE_WAIT = 'COMPANY_EMAIL_CODE_WAIT',
   // A document of a type or size that is not accepted, or one too many.
   COMPANY_DOCUMENT_INVALID = 'COMPANY_DOCUMENT_INVALID',
   COMPANY_DOCUMENTS_FULL = 'COMPANY_DOCUMENTS_FULL',

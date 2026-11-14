@@ -6138,7 +6138,8 @@
       "COMPANY_EMAIL_CODE_INVALID": "That code is wrong or has expired.",
       "COMPANY_EMAIL_CODE_TRIES": "No tries are left for this code. Send a new one.",
       "COMPANY_DOCUMENT_INVALID": "Upload a PDF, JPG or PNG of up to 5 MB.",
-      "COMPANY_DOCUMENTS_FULL": "You can upload up to 3 documents."
+      "COMPANY_DOCUMENTS_FULL": "You can upload up to 3 documents.",
+      "COMPANY_EMAIL_CODE_WAIT": "Wait a moment before asking for a new code. A day allows 5 codes."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

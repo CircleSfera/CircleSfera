@@ -33,6 +33,7 @@ describe('company domain', () => {
     ['info.', false],
     ['in fo', false],
     ['a@b', false],
+    ['a%example.org', false],
     ['', false],
   ])('the address part %s is %s', (part, valid) => {
     expect(isValidLocalPart(part)).toBe(valid);

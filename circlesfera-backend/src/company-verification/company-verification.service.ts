@@ -24,8 +24,11 @@ import {
   DOMAIN_META_NAME,
   DOMAIN_TXT_PREFIX,
   EMAIL_CODE_DIGITS,
+  EMAIL_CODE_RESEND_MS,
   EMAIL_CODE_TRIES,
   EMAIL_CODE_TTL_MS,
+  EMAIL_CODES_PER_DAY,
+  EMAIL_CODES_WINDOW_MS,
   MAX_DOCUMENT_BYTES,
   MAX_DOCUMENTS,
 } from './company-verification.constants.js';
@@ -96,14 +99,17 @@ export class CompanyVerificationService {
   // Whether the Profile in use can apply, and its latest application.
   async status(userId: string, profileId: string) {
     const eligibility = await this.eligibility(userId, profileId);
-    const application = await this.prisma.companyVerification.findFirst({
-      where: {
-        profileId,
-        status: { not: CompanyVerificationStatus.WITHDRAWN },
-      },
-      orderBy: { createdAt: 'desc' },
-      select: PUBLIC_SELECT,
-    });
+    // Only the owner of the Profile sees its application.
+    const application = !eligibility.isOwner
+      ? null
+      : await this.prisma.companyVerification.findFirst({
+          where: {
+            profileId,
+            status: { not: CompanyVerificationStatus.WITHDRAWN },
+          },
+          orderBy: { createdAt: 'desc' },
+          select: PUBLIC_SELECT,
+        });
     return {
       ...eligibility,
       dnsRecord: application
@@ -183,9 +189,11 @@ export class CompanyVerificationService {
       : {};
 
     if (current) {
-      await this.prisma.companyVerification.update({
-        where: { id: current.id },
-        data: {
+      // Written only while still a draft: VIES may have taken seconds, and
+      // the application may have been sent meanwhile.
+      await this.writeDraft(
+        current,
+        {
           kind: details.kind,
           legalName,
           taxId,
@@ -193,7 +201,8 @@ export class CompanyVerificationService {
           ...viesFields,
           ...domainFields,
         },
-      });
+        false,
+      );
     } else {
       await this.prisma.companyVerification
         .create({
@@ -241,15 +250,17 @@ export class CompanyVerificationService {
         'Neither the DNS record nor the meta tag was found',
       );
     }
-    await this.prisma.companyVerification.update({
-      where: { id: application.id },
-      data: { domainProvedAt: new Date(), domainProof: proof },
+    // Kept only if the domain is still the one that was checked.
+    await this.writeDraft(application, {
+      domainProvedAt: new Date(),
+      domainProof: proof,
     });
     return this.status(userId, profileId);
   }
 
-  // Sends a code to an address on the application's domain. A new code
-  // replaces the one before, with all its tries.
+  // Sends a code to an address on the application's domain, once the
+  // domain is proved. A new code replaces the one before, with all its
+  // tries; it waits a minute after the last one, and a day allows five.
   async sendEmailCode(userId: string, profileId: string, localPart: string) {
     await this.assertEligible(userId, profileId);
     const application = await this.draft(profileId);
@@ -259,21 +270,55 @@ export class CompanyVerificationService {
         'The address is not on the domain',
       );
     }
+    if (!application.domainProvedAt) {
+      throw AppException.BadRequest(
+        ErrorCode.COMPANY_VERIFICATION_INCOMPLETE,
+        'Prove the domain first',
+        { missing: ['domain'] },
+      );
+    }
+    const now = Date.now();
+    const lastSent = application.emailCodeSentAt?.getTime() ?? 0;
+    if (now - lastSent < EMAIL_CODE_RESEND_MS) {
+      throw AppException.BadRequest(
+        ErrorCode.COMPANY_EMAIL_CODE_WAIT,
+        'Wait before asking for a new code',
+        { retryAt: new Date(lastSent + EMAIL_CODE_RESEND_MS) },
+      );
+    }
+    const since = application.emailCodeSendsSince?.getTime() ?? 0;
+    const newWindow = now - since >= EMAIL_CODES_WINDOW_MS;
+    if (!newWindow && application.emailCodeSends >= EMAIL_CODES_PER_DAY) {
+      throw AppException.BadRequest(
+        ErrorCode.COMPANY_EMAIL_CODE_WAIT,
+        'Too many codes today',
+        { retryAt: new Date(since + EMAIL_CODES_WINDOW_MS) },
+      );
+    }
     const address = `${localPart.toLowerCase()}@${application.domain}`;
     const code = String(randomInt(0, 10 ** EMAIL_CODE_DIGITS)).padStart(
       EMAIL_CODE_DIGITS,
       '0',
     );
-    await this.prisma.companyVerification.update({
-      where: { id: application.id },
-      data: {
+    // Written only if the domain is still the one proved and no other code
+    // went out meanwhile.
+    await this.writeDraft(
+      application,
+      {
         emailAddress: address,
         emailCodeHash: this.hashCode(application.id, code),
-        emailCodeExpiresAt: new Date(Date.now() + EMAIL_CODE_TTL_MS),
+        emailCodeExpiresAt: new Date(now + EMAIL_CODE_TTL_MS),
         emailCodeTries: 0,
         emailVerifiedAt: null,
+        emailCodeSentAt: new Date(now),
+        emailCodeSends: newWindow ? 1 : application.emailCodeSends + 1,
+        emailCodeSendsSince: newWindow
+          ? new Date(now)
+          : application.emailCodeSendsSince,
       },
-    });
+      true,
+      { emailCodeSentAt: application.emailCodeSentAt },
+    );
     const applicant = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { email: true },
@@ -282,17 +327,32 @@ export class CompanyVerificationService {
     return this.status(userId, profileId);
   }
 
-  // Checks the code typed back. Five tries per code.
+  // Checks the code typed back. A try is used before the code is compared,
+  // so tries at once cannot pass the limit; five per code.
   async confirmEmailCode(userId: string, profileId: string, code: string) {
     await this.assertEligible(userId, profileId);
     const application = await this.draft(profileId);
-    if (!application.emailCodeHash || !application.emailCodeExpiresAt) {
+    if (
+      !application.emailCodeHash ||
+      !application.emailCodeExpiresAt ||
+      !this.onDomain(application.emailAddress, application.domain)
+    ) {
       throw AppException.BadRequest(
         ErrorCode.COMPANY_EMAIL_CODE_INVALID,
         'No code was sent',
       );
     }
-    if (application.emailCodeTries >= EMAIL_CODE_TRIES) {
+    const { count: tried } = await this.prisma.companyVerification.updateMany({
+      where: {
+        id: application.id,
+        status: CompanyVerificationStatus.DRAFT,
+        domain: application.domain,
+        emailCodeHash: application.emailCodeHash,
+        emailCodeTries: { lt: EMAIL_CODE_TRIES },
+      },
+      data: { emailCodeTries: { increment: 1 } },
+    });
+    if (tried === 0) {
       throw AppException.BadRequest(
         ErrorCode.COMPANY_EMAIL_CODE_TRIES,
         'No tries are left for this code',
@@ -305,23 +365,21 @@ export class CompanyVerificationService {
       expected.length === given.length &&
       timingSafeEqual(expected, given);
     if (!right) {
-      await this.prisma.companyVerification.update({
-        where: { id: application.id },
-        data: { emailCodeTries: { increment: 1 } },
-      });
       throw AppException.BadRequest(
         ErrorCode.COMPANY_EMAIL_CODE_INVALID,
         'The code is wrong or expired',
       );
     }
-    await this.prisma.companyVerification.update({
-      where: { id: application.id },
-      data: {
+    await this.writeDraft(
+      application,
+      {
         emailVerifiedAt: new Date(),
         emailCodeHash: null,
         emailCodeExpiresAt: null,
       },
-    });
+      true,
+      { emailCodeHash: application.emailCodeHash },
+    );
     return this.status(userId, profileId);
   }
 
@@ -350,24 +408,30 @@ export class CompanyVerificationService {
         'Only PDF, JPG and PNG documents are accepted',
       );
     }
-    const count = await this.prisma.companyVerificationDocument.count({
-      where: { verificationId: application.id },
-    });
-    if (count >= MAX_DOCUMENTS) {
-      throw AppException.Conflict(
-        ErrorCode.COMPANY_DOCUMENTS_FULL,
-        `At most ${MAX_DOCUMENTS} documents`,
-        { max: MAX_DOCUMENTS },
-      );
-    }
-    await this.prisma.companyVerificationDocument.create({
-      data: {
-        verificationId: application.id,
-        fileName: this.safeFileName(file.originalname, detected.ext),
-        contentType: detected.mime,
-        sizeBytes: file.size,
-        content: this.crypto.encrypt(file.buffer.toString('base64')),
-      },
+    const content = this.crypto.encrypt(file.buffer.toString('base64'));
+    // With the application held, so it cannot be sent or withdrawn while
+    // the document is added, and two uploads at once cannot pass the limit.
+    await this.prisma.$transaction(async (tx) => {
+      await this.holdDraft(tx, application.id);
+      const count = await tx.companyVerificationDocument.count({
+        where: { verificationId: application.id },
+      });
+      if (count >= MAX_DOCUMENTS) {
+        throw AppException.Conflict(
+          ErrorCode.COMPANY_DOCUMENTS_FULL,
+          `At most ${MAX_DOCUMENTS} documents`,
+          { max: MAX_DOCUMENTS },
+        );
+      }
+      await tx.companyVerificationDocument.create({
+        data: {
+          verificationId: application.id,
+          fileName: this.safeFileName(file.originalname, detected.ext),
+          contentType: detected.mime,
+          sizeBytes: file.size,
+          content,
+        },
+      });
     });
     return this.status(userId, profileId);
   }
@@ -376,7 +440,11 @@ export class CompanyVerificationService {
     await this.assertEligible(userId, profileId);
     const application = await this.draft(profileId);
     const { count } = await this.prisma.companyVerificationDocument.deleteMany({
-      where: { id: documentId, verificationId: application.id },
+      where: {
+        id: documentId,
+        verificationId: application.id,
+        verification: { status: CompanyVerificationStatus.DRAFT },
+      },
     });
     if (count === 0) {
       throw AppException.NotFound(
@@ -387,35 +455,46 @@ export class CompanyVerificationService {
     return this.status(userId, profileId);
   }
 
-  // Sends the application to staff once every step is done: the identity,
-  // the documents and, when there is a domain, its proof and the code.
+  // Sends the application to staff once every step is done: the documents
+  // and, when there is a domain, its proof and the code sent to an address
+  // on it. Checked with the application held, as it is then.
   async submit(userId: string, profileId: string) {
     await this.assertEligible(userId, profileId);
-    const application = await this.draft(profileId);
-    const documents = await this.prisma.companyVerificationDocument.count({
-      where: { verificationId: application.id },
-    });
-    const missing: string[] = [];
-    if (application.domain && !application.domainProvedAt) {
-      missing.push('domain');
-    }
-    if (application.domain && !application.emailVerifiedAt) {
-      missing.push('email');
-    }
-    if (documents === 0) missing.push('documents');
-    if (missing.length > 0) {
-      throw AppException.BadRequest(
-        ErrorCode.COMPANY_VERIFICATION_INCOMPLETE,
-        'The application is not complete',
-        { missing },
-      );
-    }
-    await this.prisma.companyVerification.update({
-      where: { id: application.id },
-      data: {
-        status: CompanyVerificationStatus.PENDING,
-        submittedAt: new Date(),
-      },
+    const { id } = await this.draft(profileId);
+    await this.prisma.$transaction(async (tx) => {
+      await this.holdDraft(tx, id);
+      const application = await tx.companyVerification.findUniqueOrThrow({
+        where: { id },
+      });
+      const documents = await tx.companyVerificationDocument.count({
+        where: { verificationId: id },
+      });
+      const missing: string[] = [];
+      if (application.domain && !application.domainProvedAt) {
+        missing.push('domain');
+      }
+      if (
+        application.domain &&
+        (!application.emailVerifiedAt ||
+          !this.onDomain(application.emailAddress, application.domain))
+      ) {
+        missing.push('email');
+      }
+      if (documents === 0) missing.push('documents');
+      if (missing.length > 0) {
+        throw AppException.BadRequest(
+          ErrorCode.COMPANY_VERIFICATION_INCOMPLETE,
+          'The application is not complete',
+          { missing },
+        );
+      }
+      await tx.companyVerification.update({
+        where: { id },
+        data: {
+          status: CompanyVerificationStatus.PENDING,
+          submittedAt: new Date(),
+        },
+      });
     });
     return this.status(userId, profileId);
   }
@@ -431,19 +510,21 @@ export class CompanyVerificationService {
         'No application to withdraw',
       );
     }
-    await this.prisma.$transaction([
-      this.prisma.companyVerificationDocument.deleteMany({
-        where: { verificationId: application.id },
-      }),
-      this.prisma.companyVerification.update({
+    // The application first, so a document being added waits and then
+    // finds it withdrawn.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.companyVerification.update({
         where: { id: application.id },
         data: {
           status: CompanyVerificationStatus.WITHDRAWN,
           emailCodeHash: null,
           emailCodeExpiresAt: null,
         },
-      }),
-    ]);
+      });
+      await tx.companyVerificationDocument.deleteMany({
+        where: { verificationId: application.id },
+      });
+    });
     return this.status(userId, profileId);
   }
 
@@ -521,6 +602,53 @@ export class CompanyVerificationService {
       );
     }
     return application;
+  }
+
+  // Writes to the application only while it is still the draft that was
+  // read: still a draft, with the same domain when `sameDomain`, and with
+  // the same values in `unchanged`. Otherwise something changed it since,
+  // and nothing is written.
+  private async writeDraft(
+    application: { id: string; domain: string | null },
+    data: Prisma.CompanyVerificationUpdateManyMutationInput,
+    sameDomain = true,
+    unchanged: Prisma.CompanyVerificationWhereInput = {},
+  ) {
+    const { count } = await this.prisma.companyVerification.updateMany({
+      where: {
+        id: application.id,
+        status: CompanyVerificationStatus.DRAFT,
+        ...(sameDomain && { domain: application.domain }),
+        ...unchanged,
+      },
+      data,
+    });
+    if (count === 0) {
+      throw AppException.Conflict(
+        ErrorCode.COMPANY_VERIFICATION_LOCKED,
+        'The application changed meanwhile',
+      );
+    }
+  }
+
+  // Holds the draft for the rest of the transaction; refused when it is no
+  // longer a draft.
+  private async holdDraft(tx: Prisma.TransactionClient, id: string) {
+    const { count } = await tx.companyVerification.updateMany({
+      where: { id, status: CompanyVerificationStatus.DRAFT },
+      data: { updatedAt: new Date() },
+    });
+    if (count === 0) {
+      throw AppException.Conflict(
+        ErrorCode.COMPANY_VERIFICATION_LOCKED,
+        'The application was sent',
+      );
+    }
+  }
+
+  // Whether an address is on the domain the application has now.
+  private onDomain(address: string | null, domain: string | null) {
+    return !!address && !!domain && address.endsWith(`@${domain}`);
   }
 
   private hashCode(applicationId: string, code: string) {

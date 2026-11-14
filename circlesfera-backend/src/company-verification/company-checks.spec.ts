@@ -57,6 +57,39 @@ describe('domain proof', () => {
     ).resolves.toBe(false);
   });
 
+  it('follows no redirect, and tries www. on the domain when the domain itself has no tag', async () => {
+    const fetchPage = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Too many redirects'))
+      .mockResolvedValueOnce({
+        buffer: Buffer.from(
+          '<head><meta name="circlesfera-verification" content="abc"></head>',
+        ),
+      });
+    await expect(
+      hasMetaProof('example.com', 'abc', fetchPage as never),
+    ).resolves.toBe(true);
+    expect(fetchPage.mock.calls.map((call) => call[0])).toEqual([
+      'https://example.com/',
+      'https://www.example.com/',
+    ]);
+    for (const call of fetchPage.mock.calls) {
+      expect(call[1]).toMatchObject({ maxRedirects: 0 });
+    }
+  });
+
+  it('counts a tag only in the head, not in a comment, a script or the body', async () => {
+    for (const html of [
+      '<head><!-- <meta name="circlesfera-verification" content="abc"> --></head>',
+      '<head><script>var t = \'<meta name="circlesfera-verification" content="abc">\'</script></head>',
+      '<head></head><body><meta name="circlesfera-verification" content="abc"></body>',
+    ]) {
+      await expect(
+        hasMetaProof('example.com', 'abc', page(html) as never),
+      ).resolves.toBe(false);
+    }
+  });
+
   it('a page that cannot be read, or is refused, has no tag', async () => {
     const fetchPage = vi.fn().mockRejectedValue(new Error('blocked'));
     await expect(

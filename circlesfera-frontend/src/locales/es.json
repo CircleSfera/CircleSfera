@@ -6138,7 +6138,8 @@
       "COMPANY_EMAIL_CODE_INVALID": "Ese código no es correcto o ha caducado.",
       "COMPANY_EMAIL_CODE_TRIES": "No quedan intentos para este código. Envía uno nuevo.",
       "COMPANY_DOCUMENT_INVALID": "Sube un PDF, JPG o PNG de hasta 5 MB.",
-      "COMPANY_DOCUMENTS_FULL": "Puedes subir hasta 3 documentos."
+      "COMPANY_DOCUMENTS_FULL": "Puedes subir hasta 3 documentos.",
+      "COMPANY_EMAIL_CODE_WAIT": "Espera un momento antes de pedir otro código. Se pueden pedir 5 al día."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

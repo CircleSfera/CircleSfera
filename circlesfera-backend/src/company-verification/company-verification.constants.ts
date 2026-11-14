@@ -18,6 +18,11 @@ export const HOME_PAGE_TIMEOUT_MS = 10_000;
 export const EMAIL_CODE_DIGITS = 6;
 export const EMAIL_CODE_TTL_MS = 30 * 60 * 1000;
 export const EMAIL_CODE_TRIES = 5;
+// A new code waits a minute after the last one, and at most five are sent
+// for an application in 24 hours.
+export const EMAIL_CODE_RESEND_MS = 60 * 1000;
+export const EMAIL_CODES_PER_DAY = 5;
+export const EMAIL_CODES_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // The documents of an application.
 export const MAX_DOCUMENTS = 3;

@@ -3400,36 +3400,41 @@ enum CompanyVerificationStatus {
 // decide, its documents. Spain only. At most one DRAFT or PENDING
 // application per Profile (a partial unique index in its migration).
 model CompanyVerification {
-  id                 String                    @id @default(uuid())
-  profileId          String
-  status             CompanyVerificationStatus @default(DRAFT)
-  kind               CompanyKind
-  legalName          String
+  id                  String                    @id @default(uuid())
+  profileId           String
+  status              CompanyVerificationStatus @default(DRAFT)
+  kind                CompanyKind
+  legalName           String
   // The Spanish tax ID (NIF, NIE or CIF), upper case, without spaces.
-  taxId              String
+  taxId               String
   // The company's website domain, lower case; a sole trader may have none.
-  domain             String?
+  domain              String?
   // What VIES said of ES + taxId: valid or not, and the name it gives.
   // Null when VIES could not be asked; it helps and never blocks.
-  viesValid          Boolean?
-  viesName           String?
-  viesCheckedAt      DateTime?
+  viesValid           Boolean?
+  viesName            String?
+  viesCheckedAt       DateTime?
   // The code the company puts in a DNS TXT record or a meta tag of its home
   // page, and when one of them was found ("DNS" or "META").
-  domainToken        String
-  domainProvedAt     DateTime?
-  domainProof        String?
+  domainToken         String
+  domainProvedAt      DateTime?
+  domainProof         String?
   // The address on the domain a code was sent to, its hash and expiry,
   // the tries left, and when it was typed back.
-  emailAddress       String?
-  emailCodeHash      String?
-  emailCodeExpiresAt DateTime?
-  emailCodeTries     Int                       @default(0)
-  emailVerifiedAt    DateTime?
-  submittedAt        DateTime?
-  decidedAt          DateTime?
-  createdAt          DateTime                  @default(now())
-  updatedAt          DateTime                  @updatedAt
+  emailAddress        String?
+  emailCodeHash       String?
+  emailCodeExpiresAt  DateTime?
+  emailCodeTries      Int                       @default(0)
+  emailVerifiedAt     DateTime?
+  // When the last code was sent, and how many were sent since the start of
+  // the current 24 hours: a new code waits a minute, and a day allows five.
+  emailCodeSentAt     DateTime?
+  emailCodeSends      Int                       @default(0)
+  emailCodeSendsSince DateTime?
+  submittedAt         DateTime?
+  decidedAt           DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
 
   profile   Profile                       @relation(fields: [profileId], references: [id], onDelete: Cascade)
   documents CompanyVerificationDocument[]

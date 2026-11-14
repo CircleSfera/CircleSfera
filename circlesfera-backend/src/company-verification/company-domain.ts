@@ -19,5 +19,6 @@ export function normalizeDomain(raw: string): string | null {
 
 // The local part of an address on the company's domain.
 export function isValidLocalPart(localPart: string): boolean {
-  return /^[a-z0-9](?:[a-z0-9._%+-]{0,62}[a-z0-9])?$/i.test(localPart);
+  // No "%": some mail servers still relay "a%b@domain" to another host.
+  return /^[a-z0-9](?:[a-z0-9._+-]{0,62}[a-z0-9])?$/i.test(localPart);
 }
