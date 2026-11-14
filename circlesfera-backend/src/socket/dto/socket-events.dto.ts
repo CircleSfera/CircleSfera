@@ -2,12 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsIn,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
-  Max,
   MaxLength,
-  Min,
 } from 'class-validator';
 
 export class TypingEventDto {
