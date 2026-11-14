@@ -513,6 +513,19 @@ describe('MonetizationTab', () => {
     expect(tier('Business')).toHaveTextContent('10%');
   });
 
+  it('counts the Edits Studio Pro add-on in the breakdown, and none from an older server', async () => {
+    api.getMonetizationAnalytics.mockResolvedValue(
+      analytics({
+        tierDistribution: { PREMIUM: 6, ELITE: 0, BUSINESS: 0, STUDIO_PRO: 2 },
+      }) as never,
+    );
+    show();
+    await waitFor(() =>
+      expect(tier('Edits Studio Pro (add-on)')).toHaveTextContent('2 members'),
+    );
+    expect(tier('Edits Studio Pro (add-on)')).toHaveTextContent('25%');
+  });
+
   it.each([
     [-4, '-4%'],
     [0, '0%'],

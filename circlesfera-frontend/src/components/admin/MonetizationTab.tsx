@@ -116,13 +116,16 @@ export default function MonetizationTab() {
     PREMIUM: 0,
     ELITE: 0,
     BUSINESS: 0,
+    STUDIO_PRO: 0,
   };
   const verifiedCount = distribution.VERIFIED ?? 0;
+  const studioProCount = distribution.STUDIO_PRO ?? 0;
   const total =
     verifiedCount +
       distribution.PREMIUM +
       distribution.ELITE +
-      distribution.BUSINESS || 1;
+      distribution.BUSINESS +
+      studioProCount || 1;
 
   const tiers = [
     {
@@ -144,6 +147,11 @@ export default function MonetizationTab() {
       label: t('admin.monetization.tier_business'),
       count: distribution.BUSINESS,
       color: 'bg-yellow-400',
+    },
+    {
+      label: t('admin.monetization.tier_studio_pro'),
+      count: studioProCount,
+      color: 'bg-violet-400',
     },
   ];
 
