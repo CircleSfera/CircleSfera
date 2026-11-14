@@ -373,11 +373,16 @@ export default function EditsStudio() {
   }, []);
 
   // Whether the Profile has Edits Studio Pro, asked when the export opens.
-  const { data: studioPro } = useQuery({
+  const {
+    data: studioPro,
+    isPending: studioProPending,
+    isError: studioProFailed,
+  } = useQuery({
     queryKey: ['studio-pro'],
     queryFn: () => editsService.getStudioPro(),
     enabled: showExport,
     staleTime: 60_000,
+    retry: 1,
   });
 
   const startExport = async (
@@ -408,10 +413,9 @@ export default function EditsStudio() {
           preset,
           signal: controller.signal,
           onProgress: setExportProgress,
-          ...(proQuality && {
-            shortSide: proQuality.shortSide,
-            fps: proQuality.fps,
-          }),
+          // The rate chosen with Pro is kept even when it is 30.
+          ...(studioPro?.pro === true && quality && { fps: quality.fps }),
+          ...(proQuality && { shortSide: proQuality.shortSide }),
         }),
       );
     } catch (err) {
@@ -582,6 +586,8 @@ export default function EditsStudio() {
           }
         }}
         studioPro={studioPro?.pro === true}
+        studioProPending={showExport && studioProPending}
+        studioProFailed={studioProFailed}
         onStartExport={(preset, quality) => void startExport(preset, quality)}
         onCancelExport={() => exportAbortRef.current?.abort()}
         onPublish={(scheduledAt) => void publish(scheduledAt)}

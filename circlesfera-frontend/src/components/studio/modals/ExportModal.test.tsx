@@ -101,6 +101,18 @@ describe('ExportModal', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('waits for the answer about Edits Studio Pro before the export can start, and says when it could not be checked', () => {
+    const { i18n, unmount } = renderModal({ studioProPending: true });
+    expect(screen.getByTestId('studio-export-start')).toBeDisabled();
+    unmount();
+
+    renderModal({ studioProFailed: true });
+    expect(screen.getByTestId('studio-export-pro-unknown')).toHaveTextContent(
+      i18n!.t('studio.export_pro.unknown'),
+    );
+    expect(screen.getByTestId('studio-export-start')).toBeEnabled();
+  });
+
   it('offers no Pro choices without Edits Studio Pro', () => {
     const { i18n } = renderModal();
 

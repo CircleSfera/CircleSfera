@@ -20,8 +20,11 @@ interface ExportModalProps {
   exportProgress: number;
   exportedBlob: Blob | null;
   projectDuration?: number;
-  // Whether the Profile has Edits Studio Pro, as the server says.
+  // Whether the Profile has Edits Studio Pro, as the server says; pending
+  // while it is asked, and failed when it could not be.
   studioPro?: boolean;
+  studioProPending?: boolean;
+  studioProFailed?: boolean;
   onClose: () => void;
   onStartExport: (
     preset: FfmpegEncodePreset,
@@ -39,6 +42,8 @@ export default function ExportModal({
   exportedBlob,
   projectDuration = 0,
   studioPro = false,
+  studioProPending = false,
+  studioProFailed = false,
   onClose,
   onStartExport,
   onCancelExport,
@@ -120,7 +125,9 @@ export default function ExportModal({
       title={title}
       maxWidth="sm"
     >
-      <div className="p-6 flex flex-col items-center text-center">
+      {/* Scrolls inside the screen, so Start and Cancel stay reachable on a
+          short one. */}
+      <div className="p-6 flex flex-col items-center text-center max-h-[calc(100dvh-8rem)] overflow-y-auto">
         {isExporting ? (
           <>
             <div className="w-64 bg-surface-raised rounded-full h-2 overflow-hidden border border-white/10 shadow-inner">
@@ -221,6 +228,14 @@ export default function ExportModal({
             {projectDuration > 90 ? (
               <p className="text-xs text-white/45 mb-3 text-left w-full">
                 {t('studio.export_long_duration_hint')}
+              </p>
+            ) : null}
+            {studioProFailed ? (
+              <p
+                className="text-xs text-white/70 mb-3 text-left w-full"
+                data-testid="studio-export-pro-unknown"
+              >
+                {t('studio.export_pro.unknown')}
               </p>
             ) : null}
             {studioPro && constrained ? (
@@ -331,6 +346,8 @@ export default function ExportModal({
             <Button
               variant="primary"
               onClick={handleStart}
+              // Started once it is known whether the Pro choices apply.
+              isLoading={studioProPending}
               className="button-alone"
               data-testid="studio-export-start"
             >

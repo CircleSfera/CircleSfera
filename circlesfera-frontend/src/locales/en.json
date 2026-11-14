@@ -4933,7 +4933,8 @@
       "frame_rate": "Frame rate",
       "fps": "{{rate}} fps",
       "frames_note": "Larger sizes take longer. A published Frame plays at the app's streaming quality; the larger size is kept in the downloaded file.",
-      "on_computer": "Edits Studio Pro exports in up to 4K and at 60 fps on a computer."
+      "on_computer": "Edits Studio Pro exports in up to 4K and at 60 fps on a computer.",
+      "unknown": "Could not check Edits Studio Pro. The export uses the standard size; close and open it again to retry."
     },
     "export_options_title": "Export settings",
     "export_quality": "Encode quality",

@@ -867,6 +867,22 @@ describe('EditsStudio', () => {
       studioPro.pro = false;
     });
 
+    it('keeps the rate chosen with Pro even at 30, without a Pro size', async () => {
+      vi.mocked(exportStudioProject).mockResolvedValue(new Blob() as never);
+      studioPro.pro = true;
+      await open(project([clip('a')]));
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await waitFor(() => expect(seen.exportModal.studioPro).toBe(true));
+      expect(seen.exportModal.studioProPending).toBe(false);
+      await act(async () =>
+        seen.exportModal.onStartExport('fast', { shortSide: 1080, fps: 30 }),
+      );
+      const options = vi.mocked(exportStudioProject).mock.lastCall?.[1];
+      expect(options).toMatchObject({ fps: 30 });
+      expect(options).not.toHaveProperty('shortSide');
+      studioPro.pro = false;
+    });
+
     it('ignores a Pro size without Edits Studio Pro, and tells a failed Pro export to try smaller', async () => {
       vi.mocked(exportStudioProject).mockResolvedValue(new Blob() as never);
       await open(project([clip('a')]));
