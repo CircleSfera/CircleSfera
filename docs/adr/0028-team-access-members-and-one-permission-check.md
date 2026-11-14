@@ -46,7 +46,7 @@ person can do an action on a Profile.
 | `analytics.read` | yes | yes | yes |
 | `profile.edit`: the Profile and its settings | yes | yes | no |
 | `promotions.create` | yes | no | no |
-| `billing.manage`: plan, payouts and company verification | yes | no | no |
+| `billing.manage`: plan | yes | no | no |
 | `team.manage`: invite and remove people | yes | no | no |
 | `messages.read`: read and answer direct messages | yes | no | no |
 | `profile.delete` | yes | no | no |

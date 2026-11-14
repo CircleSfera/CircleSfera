@@ -1,11 +1,12 @@
 ---
-description: Stripe, platform fee, entitlement and webhook rules for CircleSfera money flows
-globs: circlesfera-backend/src/payments/**, circlesfera-backend/src/monetization/**, circlesfera-backend/src/creator/**, circlesfera-backend/src/live/**, circlesfera-backend/src/common/stripe/**
+description: Stripe, plan, promotion and webhook rules for CircleSfera money flows
+globs: circlesfera-backend/src/payments/**, circlesfera-backend/src/creator/**, circlesfera-backend/src/common/stripe/**
 alwaysApply: false
 ---
 
 Money is the highest-risk surface in the codebase. Monetization changes are on the `AGENTS.md`
-confirmation list.
+confirmation list. CircleSfera charges only for what it sells: Platform Plans and promotions. No
+payment to a creator or a business goes through it.
 
 Facts, verified:
 
@@ -13,23 +14,13 @@ Facts, verified:
   active plan per user (`docs/adr/0003-one-active-platform-plan.md`).
 - **No `CreatorSubscription` Prisma model** (table removed). Do not invent VIP subscription fields or
   routes — verify controllers and schema first.
-- **Platform fee is 20%** on Connect charges via `PLATFORM_FEE_DECIMAL` /
-  `PLATFORM_FEE_PERCENT` in `src/common/constants/monetization.constants.ts`. A creator's
-  earnings are computed from the payments they received (`monetization/earnings-sql.ts`: the
-  `CREATOR_SHARE_DECIMAL` share of each payment without VAT, less refunds); the stored
-  `Monetization.lifetimeEarningsCents` is no longer written or read. Stripe fee and the computed
-  share must always agree. Changing the percentage requires confirmation and supersedes `docs/adr/0010-platform-fee-20-percent.md`.
-- **Gift prices are server-side** in `src/live/gift-catalog.ts`. Never trust a client amount.
-- **Currency** is EUR for tips, unlocks and gifts. Integer cents everywhere, never floats.
+- **Currency** is EUR. Integer cents everywhere, never floats.
 - **Webhooks** are deduplicated via `WebhookEvent`, marked `PROCESSED` only after success, and return
   HTTP 5xx on failure so Stripe retries. Never swallow a webhook error.
-- **Payouts are read-only** — Connect balance and recent payouts only. There is no internal payout
-  ledger and reintroducing one would supersede `docs/adr/0002-stripe-connect-payouts.md`.
-- **KYC:** `IdentityVerifiedGuard` protects connect, tip, unlock, unlock-story, checkout and gift
-  sending.
-- **Entitlement** is verified server-side against `PostUnlock`, `StoryUnlock`, `MessageUnlock`, or
-  ownership — never from the client, never only in the UI. A dispute revokes unlocks; keep revocation
-  consistent for anything new.
+- **KYC:** `IdentityVerifiedGuard` protects checkout; only an adult with a verified identity pays
+  (`assertAdultPayer`).
+- **Promotion checkouts, refunds and disputes** are applied by `PaymentEventsService`
+  (`src/payments/payment-events.service.ts`); plan subscriptions by `PaymentsService`.
 - Every money movement writes a `Transaction` with the right `TransactionType`.
 
 Never:
@@ -40,7 +31,7 @@ Never:
 - Log a full Stripe payload, customer object or payment method details.
 - Hardcode a price, product or key — they come from the database or config.
 
-Every change here needs tests on the money path: fee math, idempotency on double delivery, and the
+Every change here needs tests on the money path: amounts, idempotency on double delivery, and the
 failure matrix (expired, failed, refunded, disputed, cancelled).
 
 Documentation: Notion → CircleSfera Documentation (see `AGENTS.md` for links).

@@ -16,7 +16,7 @@ Use **LiveKit** as the media plane for live streams:
 - Frontend embeds LiveKit React components for broadcaster and viewer.
 - Production requires LiveKit credentials (fail-fast when missing).
 
-CircleSfera retains domain state (`LiveStream`, co-host invites, chat/hearts/gifts via API + sockets) and does not replace LiveKit with a self-hosted SFU unless product needs change.
+CircleSfera retains domain state (`LiveStream`, co-host invites, chat/hearts via API + sockets) and does not replace LiveKit with a self-hosted SFU unless product needs change.
 
 ## Consequences
 

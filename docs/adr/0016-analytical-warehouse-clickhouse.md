@@ -5,7 +5,7 @@
 
 ## Context
 
-CircleSfera needs analytical KPIs (Trust MTTR aggregates, monetization MRR, retention cohorts) without overloading PostgreSQL or building one-off admin queries for every metric. Phase 2–4 product work already emits durable facts in Postgres (`Report.resolvedAt`, transactions, dwell events, feature flags).
+CircleSfera needs analytical KPIs (Trust MTTR aggregates, plan MRR, retention cohorts) without overloading PostgreSQL or building one-off admin queries for every metric. Phase 2–4 product work already emits durable facts in Postgres (`Report.resolvedAt`, transactions, dwell events, feature flags).
 
 `00-status.md` previously listed “data warehouse / BI” as OUT OF SCOPE for the Jul 2026 closure track. Product has reopened measurement at scale.
 
@@ -22,7 +22,7 @@ CircleSfera needs analytical KPIs (Trust MTTR aggregates, monetization MRR, rete
 
 3. **P0 dashboards (internal, Admin or Metabase/Grafana):**
    - **Trust & Safety:** 30-day median MTTR by queue (reports, appeals, tickets) — mirrors Trust tab but trended.
-   - **Monetization:** daily gross/net by `TransactionType`, Connect payout lag.
+   - **Payments:** daily gross/net by `TransactionType`.
    - **Product (Phase 2):** dwell aggregates by feed variant when `feed_home_following_first` is enabled.
 
 4. **Postgres remains source of truth** for operational queues and billing. ClickHouse is read-only analytics; no writes back to prod DB.

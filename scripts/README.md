@@ -221,7 +221,7 @@ npm run smoke:profile-drift
 #### `npm run backend:cov`
 Executes backend unit tests with V8 coverage collection and enforces risk-based
 coverage thresholds across critical domains (Security, Authorization, Payments,
-Monetization, Data Lifecycle, and Global baseline):
+Data Lifecycle, and Global baseline):
 ```bash
 npm run backend:cov
 ```

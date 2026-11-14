@@ -9,7 +9,7 @@
 
 The Admin Panel at `admin.circlesfera.com` (ADR-0013) holds everything staff do: protecting the
 community, running the platform and running the business. The business part is growing (platform
-plans, creator payouts, promotions, support), needs different people and permissions, and has
+plans, promotions, support), needs different people and permissions, and has
 nothing to do with sanctioning participants. The DNS record `backoffice.circlesfera.com` exists.
 
 ## Decision

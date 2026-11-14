@@ -7,7 +7,7 @@
 ## Context
 
 A `User` row is three things at once: the person (identity verification, date of birth, Stripe
-customer and Connect account, data rights, account-wide ban), the sign-in (email, password,
+customer, data rights, account-wide ban), the sign-in (email, password,
 two-factor secret, passkeys, refresh tokens, reset and verification tokens) and the owner of one or
 more `Profile` rows. A person with several Profiles has one email and one password for all of them.
 
@@ -20,9 +20,9 @@ Two ways to get there were weighed.
 
 1. **Keep `User` as the sign-in and add an identity above it.** Each sign-in is a `User`; a person
    with two sign-ins has two `User` rows linked to one identity. The credential code stays as it is,
-   but everything keyed by `User.id` that belongs to the person (transactions, unlocks, payouts,
+   but everything keyed by `User.id` that belongs to the person (transactions,
    subscriptions, data exports, appeals, experiments: about thirty relations) would have to be
-   re-read through the identity. A missed place is a purchase or a payout that goes missing for the
+   re-read through the identity. A missed place is a purchase that goes missing for the
    person after they give a Profile its own sign-in.
 2. **Keep `User` as the identity and move the sign-in out of it.** The money and the data rights do
    not move. What changes is the authentication code, which is concentrated: `auth.service.ts`,
@@ -40,7 +40,7 @@ User (identity, unchanged key)        SignIn (credentials)             Profile
   id                              ┌──  id                          ┌──  id
   identityVerifiedAt, dateOfBirth │    userId  ───────────► User   │    userId   ───► User
   stripeCustomerId                │    email (unique)              │    signInId ───► SignIn
-  (payout accounts: monetization) │    password                    │    username (unique)
+                                  │    password                    │    username (unique)
   isRootBanned, deletion fields   │    emailVerified               │    ...
   profiles, signIns ◄─────────────┘    verificationToken           │
                                        resetToken, resetTokenExpires
