@@ -1,16 +1,14 @@
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import webpush from 'web-push';
+import * as webpush from 'web-push';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ApnsSender } from './apns.sender.js';
 import { PushService } from './push.service.js';
 
 vi.mock('web-push', () => ({
-  default: {
-    setVapidDetails: vi.fn(),
-    sendNotification: vi.fn(),
-  },
+  setVapidDetails: vi.fn(),
+  sendNotification: vi.fn(),
 }));
 
 describe('PushService', () => {
