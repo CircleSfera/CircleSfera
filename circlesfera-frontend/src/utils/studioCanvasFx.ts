@@ -3,8 +3,11 @@ import {
   COOL_COLOR,
   duotonePixel,
   effectAmounts,
+  kaleidoscopeSource,
+  lightLeakPixel,
   shakeAt,
   VIGNETTE_STOPS,
+  vhsPixel,
   vignetteDarkAt,
   WARM_COLOR,
 } from './studioEffects';
@@ -299,6 +302,71 @@ export function drawEffect(
         px[i] = r;
         px[i + 1] = g;
         px[i + 2] = b;
+      }
+      ctx.putImageData(image, 0, 0);
+      break;
+    }
+    case 'vhs': {
+      // The same pixels as the export's geq, read from a copy.
+      const image = ctx.getImageData(0, 0, width, height);
+      const src = new Uint8ClampedArray(image.data);
+      const px = image.data;
+      const at = (x: number, y: number) => {
+        const i = (y * width + x) * 4;
+        return [src[i], src[i + 1], src[i + 2]] as const;
+      };
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const i = (y * width + x) * 4;
+          const [r, g, b] = vhsPixel(at, x, y, width, height, t, a.amount);
+          px[i] = r;
+          px[i + 1] = g;
+          px[i + 2] = b;
+        }
+      }
+      ctx.putImageData(image, 0, 0);
+      break;
+    }
+    case 'lightleak': {
+      // The same sum per pixel as the export's geq, at this moment.
+      const image = ctx.getImageData(0, 0, width, height);
+      const px = image.data;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const i = (y * width + x) * 4;
+          const [r, g, b] = lightLeakPixel(
+            [px[i], px[i + 1], px[i + 2]],
+            x,
+            y,
+            width,
+            height,
+            t,
+            clip.duration,
+            a.amount,
+          );
+          px[i] = r;
+          px[i + 1] = g;
+          px[i + 2] = b;
+        }
+      }
+      ctx.putImageData(image, 0, 0);
+      break;
+    }
+    case 'kaleidoscope': {
+      // The same pixel each takes as the export, mixed the same way.
+      const image = ctx.getImageData(0, 0, width, height);
+      const src = new Uint8ClampedArray(image.data);
+      const px = image.data;
+      const k = a.amount;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const [sx, sy] = kaleidoscopeSource(x, y, width, height);
+          const i = (y * width + x) * 4;
+          const j = (sy * width + sx) * 4;
+          for (let c = 0; c < 3; c++) {
+            px[i + c] = Math.round(src[i + c] + k * (src[j + c] - src[i + c]));
+          }
+        }
       }
       ctx.putImageData(image, 0, 0);
       break;

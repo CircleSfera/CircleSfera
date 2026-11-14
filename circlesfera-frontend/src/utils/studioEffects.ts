@@ -16,10 +16,157 @@ export const EFFECT_KINDS: readonly EffectKind[] = [
   'glow',
   'rgbsplit',
   'duotone',
+  'kaleidoscope',
+  'lightleak',
+  'vhs',
 ];
 
 /** The effects that come with Edits Studio Pro: chosen only with it. */
-export const PRO_EFFECTS: ReadonlySet<EffectKind> = new Set(['duotone']);
+export const PRO_EFFECTS: ReadonlySet<EffectKind> = new Set([
+  'duotone',
+  'kaleidoscope',
+  'lightleak',
+  'vhs',
+]);
+
+/**
+ * VHS: red and blue shifted apart sideways, every other line darker, and a
+ * lighter tracking band that runs down the picture every two seconds, as
+ * strong as the intensity. No random noise: the preview and the export
+ * draw the same pixels.
+ */
+const VHS_SHIFT_SHARE = 0.006;
+const VHS_SCAN_DARK = 0.25;
+const VHS_BAND_HEIGHT = 0.04;
+const VHS_BAND_LIGHT = 40;
+const VHS_BAND_HZ = 0.5;
+
+/** How far red and blue move apart at an intensity, in whole pixels. */
+export function vhsShift(width: number, k: number): number {
+  return Math.round(k * VHS_SHIFT_SHARE * width);
+}
+
+/**
+ * One pixel of the VHS look at a moment t: read from the picture at a
+ * pixel (clamped to its edges) by a function given the x and y.
+ */
+export function vhsPixel(
+  at: (x: number, y: number) => readonly [number, number, number],
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  t: number,
+  k: number,
+): [number, number, number] {
+  const shift = vhsShift(width, k);
+  const clampX = (n: number) => Math.max(0, Math.min(width - 1, n));
+  const values = [
+    at(clampX(x - shift), y)[0],
+    at(x, y)[1],
+    at(clampX(x + shift), y)[2],
+  ];
+  const scan = y % 2 === 1 ? 1 - VHS_SCAN_DARK * k : 1;
+  const phase = t * VHS_BAND_HZ - Math.floor(t * VHS_BAND_HZ);
+  const inBand = Math.abs(y - height * phase) < height * VHS_BAND_HEIGHT;
+  const lift = inBand ? VHS_BAND_LIGHT * k : 0;
+  return values.map((v) =>
+    Math.max(0, Math.min(255, Math.round(v * scan + lift))),
+  ) as [number, number, number];
+}
+
+/** The same as ffmpeg geq expressions in RGB, timed from the effect start. */
+export function vhsGeq(width: number, k: number): string {
+  const shift = vhsShift(width, k);
+  const scan = `if(mod(Y\\,2)\\,${1 - VHS_SCAN_DARK * k}\\,1)`;
+  const phase = `(T*${VHS_BAND_HZ}-floor(T*${VHS_BAND_HZ}))`;
+  const lift = `if(lt(abs(Y-H*${phase})\\,H*${VHS_BAND_HEIGHT})\\,${VHS_BAND_LIGHT * k}\\,0)`;
+  const plane = (fn: 'r' | 'g' | 'b', dx: number) => {
+    const x =
+      dx === 0 ? 'X' : `clip(X${dx > 0 ? '+' : '-'}${Math.abs(dx)}\\,0\\,W-1)`;
+    return `${fn}='clip(round(${fn}(${x}\\,Y)*${scan}+${lift})\\,0\\,255)'`;
+  };
+  return `format=gbrp,geq=${plane('r', -shift)}:${plane('g', 0)}:${plane('b', shift)}`;
+}
+
+/**
+ * Light leak: a warm glow that crosses the picture from left to right over
+ * the effect's time, laid over it as a screen, as strong as the intensity.
+ * Its centre goes from a quarter before the left edge to a quarter past
+ * the right one, at a third of the height; it fades out at three quarters
+ * of the picture's longer side.
+ */
+export const LEAK_COLOR = [255, 150, 70] as const;
+const LEAK_FROM = -0.25;
+const LEAK_ACROSS = 1.5;
+const LEAK_HEIGHT = 0.35;
+const LEAK_REACH = 0.75;
+
+/** One pixel under the light leak at a moment t of an effect lasting dur. */
+export function lightLeakPixel(
+  rgb: readonly [number, number, number],
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  t: number,
+  dur: number,
+  k: number,
+): [number, number, number] {
+  const u = Math.max(0, Math.min(1, t / Math.max(dur, 0.01)));
+  const cx = width * (LEAK_FROM + LEAK_ACROSS * u);
+  const cy = height * LEAK_HEIGHT;
+  const reach = LEAK_REACH * Math.max(width, height);
+  const d = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+  const glow = Math.max(0, 1 - d / reach) ** 2 * k;
+  return rgb.map((c, i) =>
+    Math.round(255 - ((255 - c) * (255 - glow * LEAK_COLOR[i])) / 255),
+  ) as [number, number, number];
+}
+
+/** The same as ffmpeg geq expressions, in RGB, with T from the effect's start. */
+export function lightLeakGeq(dur: number, k: number): string {
+  const u = `clip(T/${Math.max(dur, 0.01)}\\,0\\,1)`;
+  const cx = `W*(${LEAK_FROM}+${LEAK_ACROSS}*${u})`;
+  const cy = `H*${LEAK_HEIGHT}`;
+  // In brackets: it divides as a whole.
+  const reach = `(${LEAK_REACH}*max(W\\,H))`;
+  const d = `sqrt((X-${cx})*(X-${cx})+(Y-${cy})*(Y-${cy}))`;
+  const glow = `pow(max(0\\,1-${d}/${reach})\\,2)*${k}`;
+  const plane = (c: 0 | 1 | 2, fn: 'r' | 'g' | 'b') =>
+    `${fn}='round(255-(255-${fn}(X\\,Y))*(255-${glow}*${LEAK_COLOR[c]})/255)'`;
+  return `format=gbrp,geq=${plane(0, 'r')}:${plane(1, 'g')}:${plane(2, 'b')}`;
+}
+
+/**
+ * Kaleidoscope: the top left quarter of the picture mirrored into the other
+ * three, mixed with the picture by the intensity. The pixel a pixel takes,
+ * in a picture of even width and height.
+ */
+export function kaleidoscopeSource(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): [number, number] {
+  const halfW = Math.floor(width / 2);
+  const halfH = Math.floor(height / 2);
+  return [x < halfW ? x : 2 * halfW - 1 - x, y < halfH ? y : 2 * halfH - 1 - y];
+}
+
+/** The same in ffmpeg: the quarter cropped, flipped and stacked, blended. */
+export function kaleidoscopeGraph(tag: string, k: number): string {
+  const t = tag;
+  return [
+    `format=gbrp,split[${t}o][${t}c]`,
+    `[${t}c]crop=iw/2:ih/2:0:0,split[${t}q1][${t}q2]`,
+    `[${t}q2]hflip[${t}q3]`,
+    `[${t}q1][${t}q3]hstack,split[${t}h1][${t}h2]`,
+    `[${t}h2]vflip[${t}h3]`,
+    `[${t}h1][${t}h3]vstack[${t}m]`,
+    `[${t}m][${t}o]blend=all_mode=normal:all_opacity=${k}`,
+  ].join(';');
+}
 
 /**
  * Duotone: the picture's lightness painted from one colour in the shadows
@@ -133,6 +280,9 @@ export function effectAmounts(
     case 'mono':
       return { amount: round(k) };
     case 'duotone':
+    case 'kaleidoscope':
+    case 'lightleak':
+    case 'vhs':
       return { amount: round(k) };
   }
 }
@@ -197,6 +347,12 @@ export function effectFilter(
       return `format=rgba[${tag}a];[${tag}a][${mask}]overlay=0:0:format=auto`;
     case 'duotone':
       return duotoneGeq((a as { amount: number }).amount);
+    case 'kaleidoscope':
+      return kaleidoscopeGraph(tag, (a as { amount: number }).amount);
+    case 'lightleak':
+      return lightLeakGeq(clip.duration, (a as { amount: number }).amount);
+    case 'vhs':
+      return vhsGeq(width, (a as { amount: number }).amount);
   }
 }
 

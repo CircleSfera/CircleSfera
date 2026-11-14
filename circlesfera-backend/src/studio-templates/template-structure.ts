@@ -26,6 +26,9 @@ export const EFFECT_KINDS = [
   'glow',
   'rgbsplit',
   'duotone',
+  'kaleidoscope',
+  'lightleak',
+  'vhs',
 ] as const;
 export const KEY_PROPS = [
   'x',
