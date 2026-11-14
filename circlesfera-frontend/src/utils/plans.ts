@@ -29,3 +29,33 @@ export function planFitsProfile(
   const required = planAccountType(planName);
   return !required || required === accountType;
 }
+
+/**
+ * Edits Studio Pro is an add-on, held beside the Verified or Premium plan;
+ * Elite Creator and Business include it. The server knows it by this name.
+ */
+export const STUDIO_PRO_PLAN_NAME = 'Edits Studio Pro';
+
+export function isAddOnPlan(planName: string | null | undefined): boolean {
+  return planName === STUDIO_PRO_PLAN_NAME;
+}
+
+type StudioProBilling = {
+  studioPro?: {
+    includedInPlan?: boolean;
+    subscription?: { status?: string } | null;
+  };
+} | null;
+
+/**
+ * Where the Profile in use stands with Edits Studio Pro, from its billing
+ * status: holding the add-on, having it with its plan, or neither.
+ */
+export function studioProState(
+  billing: StudioProBilling | undefined,
+): 'held' | 'included' | 'none' {
+  const status = billing?.studioPro?.subscription?.status;
+  if (status === 'ACTIVE' || status === 'TRIALING') return 'held';
+  if (billing?.studioPro?.includedInPlan) return 'included';
+  return 'none';
+}

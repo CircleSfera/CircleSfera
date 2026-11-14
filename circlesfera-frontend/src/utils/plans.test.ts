@@ -1,5 +1,46 @@
 import { describe, expect, it } from 'vitest';
-import { hasElitePlan, planAccountType, planFitsProfile } from './plans';
+import {
+  hasElitePlan,
+  isAddOnPlan,
+  planAccountType,
+  planFitsProfile,
+  studioProState,
+} from './plans';
+
+describe('Edits Studio Pro', () => {
+  it('is the add-on, known by its name', () => {
+    expect(isAddOnPlan('Edits Studio Pro')).toBe(true);
+    expect(isAddOnPlan('Premium')).toBe(false);
+    expect(isAddOnPlan(undefined)).toBe(false);
+  });
+
+  it('is held while its subscription runs, included with a plan that has it, or neither', () => {
+    expect(
+      studioProState({
+        studioPro: {
+          includedInPlan: false,
+          subscription: { status: 'ACTIVE' },
+        },
+      }),
+    ).toBe('held');
+    expect(
+      studioProState({
+        studioPro: { subscription: { status: 'TRIALING' } },
+      }),
+    ).toBe('held');
+    expect(
+      studioProState({
+        studioPro: { includedInPlan: true, subscription: null },
+      }),
+    ).toBe('included');
+    expect(
+      studioProState({
+        studioPro: { subscription: { status: 'PAST_DUE' } },
+      }),
+    ).toBe('none');
+    expect(studioProState(undefined)).toBe('none');
+  });
+});
 
 describe('hasElitePlan', () => {
   it.each(['ELITE', 'BUSINESS'])('is true for %s', (level) => {

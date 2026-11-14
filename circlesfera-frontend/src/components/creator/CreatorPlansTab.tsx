@@ -19,6 +19,7 @@ import {
 import { promptIdentityVerification } from '../../utils/identityVerification';
 import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
+import { isAddOnPlan, studioProState } from '../../utils/plans';
 import { sellsInApp } from '../../utils/sellsInApp';
 import {
   useWithdrawalConsent,
@@ -35,6 +36,10 @@ interface BillingStatus {
   subscription?: {
     planName?: string;
     status?: string;
+  };
+  studioPro?: {
+    includedInPlan?: boolean;
+    subscription?: { status?: string } | null;
   };
 }
 
@@ -109,6 +114,8 @@ export default function CreatorPlansTab({ onToast }: Props) {
   // level stands for. The Verified and Premium plans both give the VERIFIED
   // level, the badge, so without a subscription it stands for Verified.
   const isTierActive = (planName: string) => {
+    // The add-on is held beside the plan, never as it.
+    if (isAddOnPlan(planName)) return studioProState(billingStatus) === 'held';
     const lower = planName.toLowerCase();
     if (billingStatus?.hasActiveSubscription) {
       return billingStatus.subscription?.planName?.toLowerCase() === lower;
@@ -181,6 +188,10 @@ export default function CreatorPlansTab({ onToast }: Props) {
           {plans?.map((plan) => {
             const displayName = plan.name;
             const active = isTierActive(plan.name);
+            // Edits Studio Pro already comes with this Profile's plan.
+            const included =
+              isAddOnPlan(plan.name) &&
+              studioProState(billingStatus) === 'included';
             return (
               <div
                 key={plan.id}
@@ -239,12 +250,17 @@ export default function CreatorPlansTab({ onToast }: Props) {
                 </div>
 
                 {/* Plans are bought on the web only: not in the apps. */}
-                {!active && !sellsInApp() && (
+                {included && (
+                  <p className="text-sm text-white/70">
+                    {t('pricingPage.add_on.included')}
+                  </p>
+                )}
+                {!active && !included && !sellsInApp() && (
                   <p className="text-sm text-white/60">
                     {t('pricingPage.not_in_app')}
                   </p>
                 )}
-                {!active && sellsInApp() && (
+                {!active && !included && sellsInApp() && (
                   <Button
                     variant="secondary"
                     disabled={checkoutMutation.isPending}

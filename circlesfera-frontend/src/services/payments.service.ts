@@ -42,6 +42,18 @@ export const paymentsApi = {
     return response.data;
   },
 
+  // The same for the Edits Studio Pro add-on of the profile in use, kept
+  // apart from its plan.
+  cancelStudioPro: async () => {
+    const response = await api.post('/payments/plan/studio-pro/cancel');
+    return response.data;
+  },
+
+  resumeStudioPro: async () => {
+    const response = await api.post('/payments/plan/studio-pro/resume');
+    return response.data;
+  },
+
   // Get billing status for the current user
   getBillingStatus: async () => {
     const response = await api.get('/payments/status');

@@ -354,7 +354,21 @@
       "resume": "Reanudar plan",
       "resume_hint": "Tu plan está cancelado y termina el {{date}}. Si lo reanudas, se renovará ese día como antes y hoy no se cobra nada.",
       "resume_done": "Plan reanudado. Se renovará en su fecha.",
-      "resume_error": "No se pudo reanudar el plan. Inténtalo de nuevo."
+      "resume_error": "No se pudo reanudar el plan. Inténtalo de nuevo.",
+      "studio_pro": {
+        "title": "Edits Studio Pro",
+        "included": "Incluido con tu plan.",
+        "cancel": "Cancelar Edits Studio Pro",
+        "cancel_confirm": "Conservas Edits Studio Pro hasta el {{date}}, el final del periodo que ya pagaste, y no se renovará. ¿Cancelarlo?",
+        "cancel_confirm_button": "Sí, cancelar Edits Studio Pro",
+        "keep": "Mantener Edits Studio Pro",
+        "cancel_done": "Edits Studio Pro cancelado. Sigue hasta el final del periodo que pagaste.",
+        "cancel_error": "No se pudo cancelar Edits Studio Pro. Inténtalo de nuevo.",
+        "resume": "Reanudar Edits Studio Pro",
+        "resume_hint": "Edits Studio Pro está cancelado y termina el {{date}}. Si lo reanudas, se renueva ese día como antes y hoy no se cobra nada.",
+        "resume_done": "Edits Studio Pro reanudado. Se renueva en su fecha.",
+        "resume_error": "No se pudo reanudar Edits Studio Pro. Inténtalo de nuevo."
+      }
     },
     "security": {
       "title": "Seguridad",
@@ -4869,7 +4883,8 @@
       "elite_badge": "Insignia élite",
       "business_badge": "Insignia de empresa",
       "advanced_analytics": "Analíticas avanzadas",
-      "team_access": "Acceso de equipo: hasta 5 personas"
+      "team_access": "Acceso de equipo: hasta 5 personas",
+      "studio_pro": "Edits Studio Pro"
     },
     "desc_verified": "La insignia de verificado en tu perfil.",
     "desc_premium": "La insignia de verificado y soporte prioritario.",
@@ -4908,7 +4923,18 @@
       "BUSINESS": "Para perfiles de empresa. Cambia el tipo de este perfil en Ajustes para elegirlo."
     },
     "all_questions": "Ver todas las preguntas",
-    "not_in_app": "No disponible en la app."
+    "not_in_app": "No disponible en la app.",
+    "add_on": {
+      "heading": "Complemento",
+      "subtitle": "Edits Studio Pro se suma a Verified o Premium, o va por su cuenta. Elite Creator y Business lo incluyen.",
+      "button": "Conseguir Edits Studio Pro",
+      "included": "Incluido en tu plan",
+      "points": {
+        "export_4k": "Exporta hasta en 4K en un ordenador",
+        "export_60fps": "Exporta a 60 fotogramas por segundo en un ordenador",
+        "free_stays": "Todo lo que el Studio tiene hoy sigue gratis, sin marca de agua"
+      }
+    }
   },
   "studio": {
     "seo_title": "Studio | CircleSfera",

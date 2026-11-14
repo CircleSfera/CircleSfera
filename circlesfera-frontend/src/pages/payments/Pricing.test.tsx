@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { toast } from 'react-hot-toast';
 import {
@@ -256,6 +262,95 @@ describe('Pricing', () => {
 
     expect(navigate).toHaveBeenCalledWith('/accounts/signup');
     expect(paymentsApi.createSubscriptionCheckout).not.toHaveBeenCalled();
+  });
+
+  describe('Edits Studio Pro, the add-on', () => {
+    beforeEach(() => {
+      vi.mocked(paymentsApi.getPlans).mockResolvedValue([
+        ...PLANS,
+        {
+          ...plan('Edits Studio Pro', 'p-studio', 799),
+          features: ['studio_pro'],
+        },
+      ]);
+    });
+
+    it('is shown apart from the plans and bought by the month whatever the cycle shown', async () => {
+      vi.mocked(paymentsApi.createSubscriptionCheckout).mockResolvedValue({
+        url: 'https://checkout.stripe.com/c/2',
+      });
+      const { i18n } = renderWithProviders(<Pricing />);
+
+      const addOn = await screen.findByTestId('pricing-add-on');
+      expect(addOn).toHaveTextContent('Edits Studio Pro');
+      expect(addOn).toHaveTextContent(
+        i18n!.t('pricingPage.add_on.points.export_4k'),
+      );
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n!.t('pricingPage.billing_yearly'),
+        }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n!.t('pricingPage.add_on.button'),
+        }),
+      );
+      await waitFor(() =>
+        expect(paymentsApi.createSubscriptionCheckout).toHaveBeenCalledWith(
+          'p-studio',
+          'MONTHLY',
+          { withdrawalConsent: true },
+        ),
+      );
+    });
+
+    it('is not sold to a Profile whose plan includes it', async () => {
+      vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+        hasActiveSubscription: true,
+        subscription: { planName: 'Elite Creator', status: 'ACTIVE' },
+        studioPro: { includedInPlan: true, subscription: null },
+      });
+      const { i18n } = renderWithProviders(<Pricing />);
+
+      expect(
+        await screen.findByTestId('pricing-add-on-included'),
+      ).toHaveTextContent(i18n!.t('pricingPage.add_on.included'));
+      expect(
+        screen.queryByRole('button', {
+          name: i18n!.t('pricingPage.add_on.button'),
+        }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('held beside a plan, opens the billing portal instead of a second checkout', async () => {
+      vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+        hasActiveSubscription: true,
+        subscription: { planName: 'Premium', status: 'ACTIVE' },
+        studioPro: {
+          includedInPlan: false,
+          subscription: { status: 'ACTIVE' },
+        },
+      });
+      vi.mocked(paymentsApi.getBillingPortalUrl).mockResolvedValue({
+        url: 'https://billing.stripe.com/p/1',
+      });
+      const { i18n } = renderWithProviders(<Pricing />);
+      const addOn = await screen.findByTestId('pricing-add-on');
+      await waitFor(() =>
+        expect(addOn).toHaveTextContent(i18n!.t('pricingPage.current_plan')),
+      );
+
+      fireEvent.click(
+        within(addOn).getByRole('button', {
+          name: i18n!.t('pricingPage.manage_subscription'),
+        }),
+      );
+      await waitFor(() =>
+        expect(location.href).toBe('https://billing.stripe.com/p/1'),
+      );
+      expect(paymentsApi.createSubscriptionCheckout).not.toHaveBeenCalled();
+    });
   });
 
   it('opens the monthly or yearly checkout for the chosen plan', async () => {

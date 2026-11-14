@@ -32,12 +32,13 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     formerNames: [],
     priceCents: 1999,
     description:
-      'Elite badge, priority support, a feed without promoted posts and advanced analytics.',
+      'Elite badge, priority support, a feed without promoted posts, advanced analytics and Edits Studio Pro.',
     features: [
       'verified_badge',
       'priority_support',
       'no_promoted_content',
       'advanced_analytics',
+      'studio_pro',
     ],
   },
   {
@@ -45,14 +46,26 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     formerNames: [],
     priceCents: 4999,
     description:
-      'Business badge, priority support, a feed without promoted posts, advanced analytics and team access for up to 5 people.',
+      'Business badge, priority support, a feed without promoted posts, advanced analytics, team access for up to 5 people and Edits Studio Pro.',
     features: [
       'verified_badge',
       'priority_support',
       'no_promoted_content',
       'advanced_analytics',
       'team_access',
+      'studio_pro',
     ],
+  },
+  {
+    // An add-on, held beside Verified or Premium. The server tells it from
+    // the plans by this exact name (STUDIO_PRO_PLAN_NAME): renaming it would
+    // make its purchases plans.
+    name: 'Edits Studio Pro',
+    formerNames: [],
+    priceCents: 799,
+    description:
+      'Edits Studio Pro: export in up to 4K and at 60 fps on a computer.',
+    features: ['studio_pro'],
   },
 ];
 
