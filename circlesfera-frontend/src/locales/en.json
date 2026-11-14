@@ -2903,7 +2903,8 @@
       "illegal_notices": "Illegal content notices",
       "review": "Review",
       "review_compliance": "Rules enforcement",
-      "review_business": "Payments"
+      "review_business": "Payments",
+      "company_verifications": "Company verification"
     },
     "table": {
       "empty_title": "No data available",
@@ -4823,6 +4824,48 @@
       "payments_count_one": "{{count}} payment",
       "payments_count_other": "{{count}} payments",
       "refunded": "{{amount}} refunded"
+    },
+    "company_verifications": {
+      "title": "Company verification",
+      "subtitle_one": "{{count}} application waiting, oldest first",
+      "subtitle_other": "{{count}} applications waiting, oldest first",
+      "load_failed": "The applications could not be loaded",
+      "retry": "Try again",
+      "empty_title": "Nothing waiting",
+      "empty_description": "Applications sent by Business profiles show here.",
+      "kind": "Kind",
+      "kinds": {
+        "COMPANY": "Company",
+        "SOLE_TRADER": "Sole trader"
+      },
+      "tax_id": "Tax ID",
+      "vies": "In VIES",
+      "vies_unknown": "VIES could not answer",
+      "domain": "Domain",
+      "proof_DNS": "proved by DNS record",
+      "proof_META": "proved by meta tag",
+      "no_domain": "None (sole trader)",
+      "email": "Address confirmed",
+      "identity": "Identity verified",
+      "yes": "Yes",
+      "no": "No",
+      "reason": "Reason, shown to the person",
+      "reasons": {
+        "DOCUMENTS_UNREADABLE": "Documents unreadable",
+        "DOCUMENTS_NOT_ACCEPTED": "Not the documents asked for",
+        "DETAILS_DO_NOT_MATCH": "Name or tax ID do not match",
+        "NAME_NOT_IDENTITY": "Name not the verified identity",
+        "OTHER": "Other"
+      },
+      "note": "Note for the person (optional)",
+      "approve": "Approve",
+      "reject": "Reject",
+      "confirm_reject": "Reject and tell them",
+      "cancel": "Cancel",
+      "approved": "Approved. The documents were deleted.",
+      "rejected": "Rejected. The documents were deleted.",
+      "decide_failed": "The decision could not be saved",
+      "document_failed": "The document could not be opened"
     }
   },
   "collections": {

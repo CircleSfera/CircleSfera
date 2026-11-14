@@ -108,3 +108,47 @@ export const companyVerificationApi = {
     return data as CompanyVerificationStatusView;
   },
 };
+
+// What staff see of an application in the Backoffice.
+export interface StaffCompanyApplication extends CompanyApplication {
+  viesName: string | null;
+  domainProof: 'DNS' | 'META' | null;
+  profile: {
+    id: string;
+    username: string;
+    accountType: string;
+    verificationLevel: string;
+    user: {
+      identityVerifiedAt: string | null;
+      stripeIdentitySessionId: string | null;
+    } | null;
+  };
+}
+
+export interface CompanyDecision {
+  approve: boolean;
+  reason?: CompanyRejectionReason;
+  note?: string;
+}
+
+const STAFF = 'admin/company-verifications';
+
+// Staff with the company-verification permission, in the Backoffice.
+export const companyVerificationStaffApi = {
+  async queue(): Promise<{ items: StaffCompanyApplication[]; total: number }> {
+    const { data } = await apiClient.get(STAFF);
+    return data;
+  },
+  // A document, as a file the Backoffice opens; never stored by the app.
+  async document(id: string, documentId: string): Promise<Blob> {
+    const { data } = await apiClient.get(
+      `${STAFF}/${id}/documents/${documentId}`,
+      { responseType: 'blob' },
+    );
+    return data;
+  },
+  async decide(id: string, decision: CompanyDecision) {
+    const { data } = await apiClient.post(`${STAFF}/${id}/decision`, decision);
+    return data as StaffCompanyApplication;
+  },
+};

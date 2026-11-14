@@ -2903,7 +2903,8 @@
       "illegal_notices": "Avisos de contenido ilegal",
       "review": "Revisión",
       "review_compliance": "Cumplimiento de normas",
-      "review_business": "Pagos"
+      "review_business": "Pagos",
+      "company_verifications": "Verificación de empresas"
     },
     "table": {
       "empty_title": "No hay datos disponibles",
@@ -4823,6 +4824,48 @@
       "payments_count_one": "{{count}} pago",
       "payments_count_other": "{{count}} pagos",
       "refunded": "{{amount}} reembolsado"
+    },
+    "company_verifications": {
+      "title": "Verificación de empresas",
+      "subtitle_one": "{{count}} solicitud en espera, la más antigua primero",
+      "subtitle_other": "{{count}} solicitudes en espera, las más antiguas primero",
+      "load_failed": "No se pudieron cargar las solicitudes",
+      "retry": "Reintentar",
+      "empty_title": "Nada en espera",
+      "empty_description": "Aquí aparecen las solicitudes que envían los perfiles Business.",
+      "kind": "Tipo",
+      "kinds": {
+        "COMPANY": "Empresa",
+        "SOLE_TRADER": "Autónomo"
+      },
+      "tax_id": "NIF",
+      "vies": "En VIES",
+      "vies_unknown": "VIES no pudo responder",
+      "domain": "Dominio",
+      "proof_DNS": "probado por registro DNS",
+      "proof_META": "probado por etiqueta meta",
+      "no_domain": "Ninguno (autónomo)",
+      "email": "Dirección confirmada",
+      "identity": "Identidad verificada",
+      "yes": "Sí",
+      "no": "No",
+      "reason": "Motivo, que verá la persona",
+      "reasons": {
+        "DOCUMENTS_UNREADABLE": "Documentos ilegibles",
+        "DOCUMENTS_NOT_ACCEPTED": "No son los documentos pedidos",
+        "DETAILS_DO_NOT_MATCH": "El nombre o el NIF no coinciden",
+        "NAME_NOT_IDENTITY": "El nombre no es el de la identidad verificada",
+        "OTHER": "Otro"
+      },
+      "note": "Nota para la persona (opcional)",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "confirm_reject": "Rechazar y avisar",
+      "cancel": "Cancelar",
+      "approved": "Aprobada. Los documentos se han borrado.",
+      "rejected": "Rechazada. Los documentos se han borrado.",
+      "decide_failed": "No se pudo guardar la decisión",
+      "document_failed": "No se pudo abrir el documento"
     }
   },
   "collections": {

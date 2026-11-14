@@ -39,6 +39,7 @@ describe('the two staff sites', () => {
       'support',
       'help-centre',
       'plans',
+      'company-verifications',
       'subscriptions',
       'disputes',
       'promotions',
@@ -46,6 +47,13 @@ describe('the two staff sites', () => {
       'newsletter',
       'review-business',
     ]);
+  });
+
+  it('opens company verification only to staff with its own permission, in the Backoffice', () => {
+    expect(tabSite('company-verifications')).toBe('backoffice');
+    expect(ADMIN_TAB_PERMISSIONS['company-verifications']).toBe(
+      'company_verification',
+    );
   });
 
   describe('the review area of an external reviewer', () => {

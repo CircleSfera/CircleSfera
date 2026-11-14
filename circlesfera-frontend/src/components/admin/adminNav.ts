@@ -42,6 +42,7 @@ export type AdminTab =
   | 'analytics'
   | 'reports'
   | 'illegal-notices'
+  | 'company-verifications'
   | 'users'
   | 'posts'
   | 'comments'
@@ -114,6 +115,8 @@ export const ADMIN_TAB_PERMISSIONS: Record<
   experiments: 'experiments',
   reports: 'reports',
   'illegal-notices': 'reports',
+  // It shows companies' documents: super, platform and support roles.
+  'company-verifications': 'company_verification',
   audit: 'audit',
   roles: 'admins.manage',
   appeals: 'appeals',
@@ -304,6 +307,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: BadgeCheck,
       },
       {
+        id: 'company-verifications',
+        labelKey: 'admin.nav.company_verifications',
+        icon: Briefcase,
+      },
+      {
         id: 'subscriptions',
         labelKey: 'admin.nav.subscriptions',
         icon: CreditCard,
@@ -343,6 +351,7 @@ const BACKOFFICE_TABS: readonly AdminTab[] = [
   'support',
   'help-centre',
   'plans',
+  'company-verifications',
   'subscriptions',
   'disputes',
   'promotions',
