@@ -56,6 +56,7 @@ describe('UsersService', () => {
     supportTicket: { findMany: vi.fn() },
     platformSubscription: { findMany: vi.fn() },
     userExperiment: { findMany: vi.fn() },
+    companyVerification: { findMany: vi.fn().mockResolvedValue([]) },
     staffNote: { findMany: vi.fn() },
     pushSubscription: { findMany: vi.fn() },
     nativePushToken: { findMany: vi.fn() },
@@ -552,6 +553,9 @@ describe('UsersService', () => {
       heldModels.userExperiment.findMany.mockResolvedValue([
         { experimentKey: 'feed', variant: 'b' },
       ]);
+      heldModels.companyVerification.findMany.mockResolvedValue([
+        { status: 'PENDING', legalName: 'Acme SL' },
+      ]);
       heldModels.staffNote.findMany.mockResolvedValue([
         { body: 'Asked twice about a refund', createdAt: new Date() },
       ]);
@@ -572,6 +576,12 @@ describe('UsersService', () => {
       expect(res.activity.storyViews).toHaveLength(1);
       expect(res.supportRequests[0].reference).toBe(7);
       expect(res.platformPlans[0].plan.name).toBe('Pro');
+      expect(res.companyVerifications[0].legalName).toBe('Acme SL');
+      // Never the documents of an application.
+      expect(
+        heldModels.companyVerification.findMany.mock.calls[0][0].select
+          .documents,
+      ).toBeUndefined();
       expect(res.experiments[0].variant).toBe('b');
       expect(res.staffNotes[0].body).toBe('Asked twice about a refund');
       expect(res.pushDevices.browsers).toHaveLength(1);

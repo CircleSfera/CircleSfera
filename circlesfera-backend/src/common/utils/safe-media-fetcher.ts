@@ -200,6 +200,68 @@ interface HttpFetchResponse {
 }
 
 /**
+ * The DNS lookup a request makes when it connects: it refuses any private
+ * address the host resolves to, so a name that changed its answer since
+ * it was checked (DNS rebinding) is still refused. Node asks for every
+ * address ({ all: true }) when it tries IPv4 and IPv6 in turn, and then
+ * expects the list back; otherwise one address.
+ */
+export function connectLookup(
+  customDnsLookup?: typeof dns.promises.lookup,
+): NonNullable<http.RequestOptions['lookup']> {
+  return (hostname, options, callback) => {
+    const answer = (records: { address: string; family: number }[]): void => {
+      if (records.length === 0) {
+        callback(new Error(`No address for ${hostname}`) as any, '', 4);
+      } else if ((options as { all?: boolean })?.all) {
+        (callback as unknown as (e: null, a: typeof records) => void)(
+          null,
+          records,
+        );
+      } else {
+        callback(null, records[0].address, records[0].family);
+      }
+    };
+    if (customDnsLookup) {
+      customDnsLookup(hostname, { all: true })
+        .then((records) => {
+          for (const r of records) {
+            if (isPrivateIp(r.address)) {
+              return callback(
+                new SsrfBlockedError(
+                  `SSRF blocked: Hostname resolved to private IP "${r.address}" during connection.`,
+                  'PRIVATE_IP_RESOLVED',
+                ) as any,
+                '',
+                4,
+              );
+            }
+          }
+          answer(records);
+        })
+        .catch((err) => callback(err as any, '', 4));
+    } else {
+      dns.lookup(hostname, { all: true }, (err, addresses) => {
+        if (err) return callback(err as any, '', 4);
+        for (const addr of addresses) {
+          if (isPrivateIp(addr.address)) {
+            return callback(
+              new SsrfBlockedError(
+                `SSRF blocked: Hostname resolved to private IP "${addr.address}" during connection.`,
+                'PRIVATE_IP_RESOLVED',
+              ) as any,
+              '',
+              4,
+            );
+          }
+        }
+        answer(addresses);
+      });
+    }
+  };
+}
+
+/**
  * Performs a single HTTP or HTTPS request with:
  * - Anti-DNS-Rebinding lookup hook
  * - Socket connection remoteAddress inspection
@@ -245,45 +307,7 @@ function fetchHttpMedia(
         Accept: '*/*',
       },
       // Socket-level DNS lookup check (Anti-DNS-Rebinding)
-      lookup: (hostname, _options, callback) => {
-        if (customDnsLookup) {
-          customDnsLookup(hostname, { all: true })
-            .then((records) => {
-              for (const r of records) {
-                if (isPrivateIp(r.address)) {
-                  return callback(
-                    new SsrfBlockedError(
-                      `SSRF blocked: Hostname resolved to private IP "${r.address}" during connection.`,
-                      'PRIVATE_IP_RESOLVED',
-                    ) as any,
-                    '',
-                    4,
-                  );
-                }
-              }
-              const first = records[0];
-              callback(null, first.address, first.family);
-            })
-            .catch((err) => callback(err as any, '', 4));
-        } else {
-          dns.lookup(hostname, { all: true }, (err, addresses) => {
-            if (err) return callback(err as any, '', 4);
-            for (const addr of addresses) {
-              if (isPrivateIp(addr.address)) {
-                return callback(
-                  new SsrfBlockedError(
-                    `SSRF blocked: Hostname resolved to private IP "${addr.address}" during connection.`,
-                    'PRIVATE_IP_RESOLVED',
-                  ) as any,
-                  '',
-                  4,
-                );
-              }
-            }
-            callback(null, addresses[0].address, addresses[0].family);
-          });
-        }
-      },
+      lookup: connectLookup(customDnsLookup),
     };
 
     const req = client.request(requestOptions, (res) => {

@@ -51,6 +51,7 @@ import {
 } from './common/observability/redaction.util.js';
 import { PlaceLanguageInterceptor } from './common/places/place-language.interceptor.js';
 import { CryptoModule } from './common/services/crypto.module.js';
+import { CompanyVerificationModule } from './company-verification/company-verification.module.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
 import { EmailModule } from './email/email.module.js';
@@ -237,6 +238,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     ReviewModule,
     WellKnownModule,
     TeamModule,
+    CompanyVerificationModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [

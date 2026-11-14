@@ -193,6 +193,28 @@ export enum ErrorCode {
   TEAM_MEMBER_NOT_FOUND = 'TEAM_MEMBER_NOT_FOUND',
   // A team member's session reached something their role does not open.
   TEAM_MEMBER_NOT_ALLOWED = 'TEAM_MEMBER_NOT_ALLOWED',
+  // Company verification of a Business Profile.
+  // There is no application of the Profile to act on.
+  COMPANY_VERIFICATION_NOT_FOUND = 'COMPANY_VERIFICATION_NOT_FOUND',
+  // The application was sent and can no longer be changed.
+  COMPANY_VERIFICATION_LOCKED = 'COMPANY_VERIFICATION_LOCKED',
+  // The application lacks a step; details name the steps missing.
+  COMPANY_VERIFICATION_INCOMPLETE = 'COMPANY_VERIFICATION_INCOMPLETE',
+  // The tax ID is not a valid CIF (company) or NIF/NIE (sole trader).
+  COMPANY_TAX_ID_INVALID = 'COMPANY_TAX_ID_INVALID',
+  // The domain is not a public host name, or a company gave none.
+  COMPANY_DOMAIN_INVALID = 'COMPANY_DOMAIN_INVALID',
+  // Neither the DNS record nor the meta tag with the code was found.
+  COMPANY_DOMAIN_NOT_PROVED = 'COMPANY_DOMAIN_NOT_PROVED',
+  // The code sent to the address on the domain is wrong or expired.
+  COMPANY_EMAIL_CODE_INVALID = 'COMPANY_EMAIL_CODE_INVALID',
+  // No tries are left for the code: a new one has to be sent.
+  COMPANY_EMAIL_CODE_TRIES = 'COMPANY_EMAIL_CODE_TRIES',
+  // A new code was asked too soon, or too many today; details carry when.
+  COMPANY_EMAIL_CODE_WAIT = 'COMPANY_EMAIL_CODE_WAIT',
+  // A document of a type or size that is not accepted, or one too many.
+  COMPANY_DOCUMENT_INVALID = 'COMPANY_DOCUMENT_INVALID',
+  COMPANY_DOCUMENTS_FULL = 'COMPANY_DOCUMENTS_FULL',
   CAPTCHA_FAILED = 'CAPTCHA_FAILED',
   CAPTCHA_REQUIRED = 'CAPTCHA_REQUIRED',
 }

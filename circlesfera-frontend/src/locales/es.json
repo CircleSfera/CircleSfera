@@ -6098,7 +6098,7 @@
       "REGISTRATION_CLOSED": "El registro está cerrado ahora mismo.",
       "CONTENT_POSTING_DISABLED": "Publicar está desactivado ahora mismo.",
       "EMAIL_NOT_VERIFIED": "Verifica tu email para hacer esto.",
-      "IDENTITY_VERIFICATION_REQUIRED": "Verifica tu identidad para poder comprar o cobrar.",
+      "IDENTITY_VERIFICATION_REQUIRED": "Verifica tu identidad para continuar.",
       "CREATOR_ACCOUNT_REQUIRED": "Las herramientas de creador son para perfiles de Creador y de Empresa.",
       "PLAN_REQUIRED": "Esto viene con los planes Elite Creator y Business.",
       "CAPTCHA_FAILED": "No hemos podido comprobar que eres una persona. Inténtalo de nuevo.",
@@ -6142,7 +6142,18 @@
       "COLLAB_REQUIRES_PUBLIC": "Una publicación con colaborador sigue siendo pública. Quita antes al colaborador.",
       "CHAT_PINS_FULL": "Ya tienes 3 chats fijados. Quita uno para fijar otro.",
       "MESSAGE_NOT_FORWARDABLE": "Este mensaje no se puede reenviar.",
-      "STAFF_PASSWORD_IS_ACCOUNT_PASSWORD": "Elige una contraseña distinta de la de tu cuenta de CircleSfera: el acceso de equipo no comparte contraseña con ninguna cuenta."
+      "STAFF_PASSWORD_IS_ACCOUNT_PASSWORD": "Elige una contraseña distinta de la de tu cuenta de CircleSfera: el acceso de equipo no comparte contraseña con ninguna cuenta.",
+      "COMPANY_VERIFICATION_NOT_FOUND": "No hay ninguna verificación de empresa sobre la que actuar.",
+      "COMPANY_VERIFICATION_LOCKED": "Esta solicitud ya se envió y no se puede cambiar. Retírala para empezar de nuevo.",
+      "COMPANY_VERIFICATION_INCOMPLETE": "Completa todos los pasos antes de enviar la solicitud.",
+      "COMPANY_TAX_ID_INVALID": "Ese NIF no es válido. Una empresa da su CIF; un autónomo, su NIF o NIE.",
+      "COMPANY_DOMAIN_INVALID": "Ese dominio o dirección no es válido.",
+      "COMPANY_DOMAIN_NOT_PROVED": "Aún no encontramos el registro DNS ni la etiqueta meta. Los cambios de DNS pueden tardar; vuelve a intentarlo más tarde.",
+      "COMPANY_EMAIL_CODE_INVALID": "Ese código no es correcto o ha caducado.",
+      "COMPANY_EMAIL_CODE_TRIES": "No quedan intentos para este código. Envía uno nuevo.",
+      "COMPANY_DOCUMENT_INVALID": "Sube un PDF, JPG o PNG de hasta 5 MB.",
+      "COMPANY_DOCUMENTS_FULL": "Puedes subir hasta 3 documentos.",
+      "COMPANY_EMAIL_CODE_WAIT": "Espera un momento antes de pedir otro código. Se pueden pedir 5 al día."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

@@ -463,11 +463,12 @@ model Profile {
   // recorded in profile_strikes; nothing reads or writes this column any more.
   strikeCount     Int              @default(0)
 
-  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   // The people who work on this Profile besides its owner (Business only).
-  members    ProfileMember[]
+  members              ProfileMember[]
+  companyVerifications CompanyVerification[]
   // What was done on this Profile, and by which person (Business).
-  activities ProfileActivity[]
+  activities           ProfileActivity[]
 
   // The sign-in this Profile is entered with. Several Profiles of one person
   // may share one. Filled for every Profile by the database; optional in the
@@ -3373,4 +3374,90 @@ model HiddenWord {
 
   @@unique([profileId, word])
   @@map("hidden_words")
+}
+
+// =============================================================================
+// === Company verification
+// =============================================================================
+
+enum CompanyKind {
+  COMPANY
+  SOLE_TRADER
+}
+
+enum CompanyVerificationStatus {
+  // Being filled in by the owner of the Profile.
+  DRAFT
+  // Sent, waiting for staff.
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+// A Business Profile's application to show "Verified company": its company,
+// the VIES answer, the proof that it controls its domain and, until staff
+// decide, its documents. Spain only. At most one DRAFT or PENDING
+// application per Profile (a partial unique index in its migration).
+model CompanyVerification {
+  id                  String                    @id @default(uuid())
+  profileId           String
+  status              CompanyVerificationStatus @default(DRAFT)
+  kind                CompanyKind
+  legalName           String
+  // The Spanish tax ID (NIF, NIE or CIF), upper case, without spaces.
+  taxId               String
+  // The company's website domain, lower case; a sole trader may have none.
+  domain              String?
+  // What VIES said of ES + taxId: valid or not, and the name it gives.
+  // Null when VIES could not be asked; it helps and never blocks.
+  viesValid           Boolean?
+  viesName            String?
+  viesCheckedAt       DateTime?
+  // The code the company puts in a DNS TXT record or a meta tag of its home
+  // page, and when one of them was found ("DNS" or "META").
+  domainToken         String
+  domainProvedAt      DateTime?
+  domainProof         String?
+  // The address on the domain a code was sent to, its hash and expiry,
+  // the tries left, and when it was typed back.
+  emailAddress        String?
+  emailCodeHash       String?
+  emailCodeExpiresAt  DateTime?
+  emailCodeTries      Int                       @default(0)
+  emailVerifiedAt     DateTime?
+  // When the last code was sent, and how many were sent since the start of
+  // the current 24 hours: a new code waits a minute, and a day allows five.
+  emailCodeSentAt     DateTime?
+  emailCodeSends      Int                       @default(0)
+  emailCodeSendsSince DateTime?
+  submittedAt         DateTime?
+  decidedAt           DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  profile   Profile                       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  documents CompanyVerificationDocument[]
+
+  @@index([profileId])
+  @@index([status, submittedAt])
+  @@map("company_verifications")
+}
+
+// A document of an application, encrypted, kept only until staff decide or
+// the application is withdrawn. Never in public storage.
+model CompanyVerificationDocument {
+  id             String   @id @default(uuid())
+  verificationId String
+  fileName       String
+  contentType    String
+  sizeBytes      Int
+  // The file, base64, encrypted with the server's encryption key.
+  content        String
+  createdAt      DateTime @default(now())
+
+  verification CompanyVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([verificationId])
+  @@map("company_verification_documents")
 }

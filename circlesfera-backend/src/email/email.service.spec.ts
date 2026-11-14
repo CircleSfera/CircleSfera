@@ -209,6 +209,31 @@ describe('EmailService', () => {
       );
     });
 
+    it('sends the company code to the address on the domain, in the language of the person who applies', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ locale: 'en' });
+      await service.sendCompanyDomainCode(
+        'info@acme.es',
+        '123456',
+        'ana@example.com',
+      );
+      expect(mockPrisma.user.findUnique).toHaveBeenLastCalledWith(
+        expect.objectContaining({ where: { email: 'ana@example.com' } }),
+      );
+      expect(mockEmailQueue.add).toHaveBeenLastCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({
+          to: 'info@acme.es',
+          subject: 'Your CircleSfera company verification code',
+        }),
+      );
+
+      // Without the person's address, the language of the address itself.
+      await service.sendCompanyDomainCode('info@acme.es', '123456');
+      expect(mockPrisma.user.findUnique).toHaveBeenLastCalledWith(
+        expect.objectContaining({ where: { email: 'info@acme.es' } }),
+      );
+    });
+
     it('enqueues the link that enrols a staff authenticator, with the link as its button', async () => {
       await service.sendStaffEnrolmentEmail(
         'staff@example.com',

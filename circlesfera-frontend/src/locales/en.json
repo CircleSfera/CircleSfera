@@ -6098,7 +6098,7 @@
       "REGISTRATION_CLOSED": "Sign-ups are closed right now.",
       "CONTENT_POSTING_DISABLED": "Posting is turned off right now.",
       "EMAIL_NOT_VERIFIED": "Verify your email to do this.",
-      "IDENTITY_VERIFICATION_REQUIRED": "Verify your identity to buy or get paid.",
+      "IDENTITY_VERIFICATION_REQUIRED": "Verify your identity to continue.",
       "CREATOR_ACCOUNT_REQUIRED": "The creator tools are for Creator and Business profiles.",
       "PLAN_REQUIRED": "This comes with the Elite Creator and Business plans.",
       "CAPTCHA_FAILED": "We couldn't verify you're a person. Try again.",
@@ -6142,7 +6142,18 @@
       "COLLAB_REQUIRES_PUBLIC": "A post with a collaborator stays public. Remove the collaborator first.",
       "CHAT_PINS_FULL": "You already have 3 pinned chats. Unpin one to pin another.",
       "MESSAGE_NOT_FORWARDABLE": "This message cannot be forwarded.",
-      "STAFF_PASSWORD_IS_ACCOUNT_PASSWORD": "Choose a password different from your CircleSfera account's: staff access shares no password with any account."
+      "STAFF_PASSWORD_IS_ACCOUNT_PASSWORD": "Choose a password different from your CircleSfera account's: staff access shares no password with any account.",
+      "COMPANY_VERIFICATION_NOT_FOUND": "There is no company verification to act on.",
+      "COMPANY_VERIFICATION_LOCKED": "This application was sent and can't be changed. Withdraw it to start again.",
+      "COMPANY_VERIFICATION_INCOMPLETE": "Finish every step before sending the application.",
+      "COMPANY_TAX_ID_INVALID": "That tax ID isn't valid. A company gives its CIF; a sole trader their NIF or NIE.",
+      "COMPANY_DOMAIN_INVALID": "That isn't a valid website domain or address.",
+      "COMPANY_DOMAIN_NOT_PROVED": "We couldn't find the DNS record or the meta tag yet. Changes to DNS can take a while; try again later.",
+      "COMPANY_EMAIL_CODE_INVALID": "That code is wrong or has expired.",
+      "COMPANY_EMAIL_CODE_TRIES": "No tries are left for this code. Send a new one.",
+      "COMPANY_DOCUMENT_INVALID": "Upload a PDF, JPG or PNG of up to 5 MB.",
+      "COMPANY_DOCUMENTS_FULL": "You can upload up to 3 documents.",
+      "COMPANY_EMAIL_CODE_WAIT": "Wait a moment before asking for a new code. A day allows 5 codes."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
