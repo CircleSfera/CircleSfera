@@ -73,6 +73,8 @@ export class SubscriptionGuard implements CanActivate {
       where: {
         userId: user.userId,
         profileId: user.profileId,
+        // The plan, never the Edits Studio Pro add-on beside it.
+        addOn: false,
         status: SubscriptionStatus.ACTIVE,
       },
       include: {

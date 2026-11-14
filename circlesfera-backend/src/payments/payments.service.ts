@@ -575,6 +575,13 @@ export class PaymentsService {
       // Resuming means the plan is charged again on its date: whoever pays
       // must be an adult, as for a new plan.
       await assertAdultPayer(this.prisma, userId);
+      // The add-on is not resumed beside a plan that already includes it.
+      if (addOn && (await this.planIncludesStudioPro(profileId))) {
+        throw AppException.Conflict(
+          ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+          'This profile already has Edits Studio Pro with its plan.',
+        );
+      }
       await this.stripeService
         .resumeSubscription(subscription.stripeSubscriptionId)
         .catch((err: unknown) =>
@@ -682,10 +689,64 @@ export class PaymentsService {
     );
   }
 
+  // Whether the running plan (not an add-on) of a Profile gives the
+  // Studio's Pro features.
+  private async planIncludesStudioPro(profileId: string): Promise<boolean> {
+    const count = await this.prisma.platformSubscription.count({
+      where: {
+        profileId: profileId || '__no_profile__',
+        addOn: false,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+        plan: { features: { has: 'studio_pro' } },
+      },
+    });
+    return count > 0;
+  }
+
+  // Two checkouts at once can end with the add-on and a plan that includes
+  // it both running. The add-on then stops renewing: it ends with the
+  // period already paid, so nothing is charged twice again and no paid
+  // time is lost.
+  private async stopAddOnBesidePlanWithStudioPro(profileId: string) {
+    if (!(await this.planIncludesStudioPro(profileId))) return;
+    const addOns = await this.prisma.platformSubscription.findMany({
+      where: {
+        profileId,
+        addOn: true,
+        cancelAtPeriodEnd: false,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+      },
+      select: { id: true, stripeSubscriptionId: true },
+    });
+    for (const addOn of addOns) {
+      try {
+        await this.stripeService.cancelSubscription(
+          addOn.stripeSubscriptionId,
+          true,
+        );
+        await this.prisma.platformSubscription.update({
+          where: { id: addOn.id },
+          data: { cancelAtPeriodEnd: true },
+        });
+      } catch (err) {
+        this.logger.error(
+          `Failed to stop the add-on ${addOn.stripeSubscriptionId} beside a plan that includes it`,
+          err,
+        );
+      }
+    }
+  }
+
   private async plansOfOtherProfiles(userId: string, profileId: string) {
     const others = await this.prisma.platformSubscription.findMany({
       where: {
         userId,
+        // The plans, not the add-ons.
+        addOn: false,
         profileId: { not: profileId || '__no_profile__' },
         status: {
           in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
@@ -1104,6 +1165,7 @@ export class PaymentsService {
               addOn,
             },
           });
+          await this.stopAddOnBesidePlanWithStudioPro(profileId);
 
           // Phase 3: Elevate account type and verification level based on plan
           if (plan) {

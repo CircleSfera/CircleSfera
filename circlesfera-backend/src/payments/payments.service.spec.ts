@@ -62,6 +62,7 @@ describe('PaymentsService', () => {
               findFirst: vi.fn(),
               findMany: vi.fn().mockResolvedValue([]),
               update: vi.fn(),
+              count: vi.fn().mockResolvedValue(0),
             },
             creatorSubscription: {
               updateMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -1114,6 +1115,19 @@ describe('PaymentsService', () => {
       );
     });
 
+    it('does not resume the add-on beside a plan that already includes it', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      prisma.platformSubscription.count = vi.fn().mockResolvedValue(1);
+
+      await expect(service.resumePlan('u_1', 'prof_1', true)).rejects.toThrow(
+        'This profile already has Edits Studio Pro with its plan.',
+      );
+      expect(stripeService.resumeSubscription).not.toHaveBeenCalled();
+      expect(
+        vi.mocked(prisma.platformSubscription.count).mock.calls[0][0]?.where,
+      ).toMatchObject({ profileId: 'prof_1', addOn: false });
+    });
+
     it('resumes the add-on, not the plan, when asked for the add-on', async () => {
       prisma.platformSubscription.findFirst = vi
         .fn()
@@ -1829,6 +1843,110 @@ describe('PaymentsService', () => {
           create: expect.objectContaining({ addOn: true }),
         }),
       );
+    });
+
+    it('2c. stops the add-on renewing when a plan that includes it ends up running beside it', async () => {
+      stripeService.getSubscription.mockResolvedValue({
+        status: 'active',
+        items: {
+          data: [
+            {
+              current_period_start: Math.floor(Date.now() / 1000),
+              current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+            },
+          ],
+        },
+        cancel_at_period_end: false,
+      });
+      prisma.platformPlan.findUnique = vi.fn().mockResolvedValue({
+        id: 'plan_elite',
+        name: 'Elite Creator',
+      });
+      prisma.user.findUnique = vi
+        .fn()
+        .mockResolvedValue({ id: 'user1', email: 'user1@test.com' });
+      prisma.platformSubscription.count = vi.fn().mockResolvedValue(1);
+      prisma.platformSubscription.findMany = vi
+        .fn()
+        // Older plans of the Profile: none.
+        .mockResolvedValueOnce([])
+        // The add-on still renewing.
+        .mockResolvedValueOnce([
+          { id: 'sub_addon', stripeSubscriptionId: 'stripe_addon' },
+        ]);
+      prisma.platformSubscription.update = vi.fn().mockResolvedValue({});
+
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_race',
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_race',
+              amount_total: 1999,
+              currency: 'eur',
+              subscription: 'sub_elite',
+              metadata: { userId: 'user1', planId: 'plan_elite' },
+            },
+          },
+        }),
+      );
+
+      // Ends with the period paid, never at once.
+      expect(stripeService.cancelSubscription).toHaveBeenCalledWith(
+        'stripe_addon',
+        true,
+      );
+      expect(prisma.platformSubscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub_addon' },
+        data: { cancelAtPeriodEnd: true },
+      });
+    });
+
+    it('2d. a failure stopping the add-on does not fail the recording of the plan', async () => {
+      stripeService.getSubscription.mockResolvedValue({
+        status: 'active',
+        items: {
+          data: [
+            {
+              current_period_start: Math.floor(Date.now() / 1000),
+              current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+            },
+          ],
+        },
+        cancel_at_period_end: false,
+      });
+      prisma.platformPlan.findUnique = vi
+        .fn()
+        .mockResolvedValue({ id: 'plan_elite', name: 'Elite Creator' });
+      prisma.user.findUnique = vi.fn().mockResolvedValue(null);
+      prisma.platformSubscription.count = vi.fn().mockResolvedValue(1);
+      prisma.platformSubscription.findMany = vi
+        .fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { id: 'sub_addon', stripeSubscriptionId: 'stripe_addon' },
+        ]);
+      stripeService.cancelSubscription.mockRejectedValueOnce(new Error('down'));
+
+      await expect(
+        service.processWebhookEvent(
+          asEvent({
+            id: 'evt_race2',
+            type: 'checkout.session.completed',
+            data: {
+              object: {
+                id: 'cs_race2',
+                amount_total: 1999,
+                currency: 'eur',
+                subscription: 'sub_elite2',
+                metadata: { userId: 'user1', planId: 'plan_elite' },
+              },
+            },
+          }),
+        ),
+      ).resolves.not.toThrow();
+      expect(prisma.platformSubscription.upsert).toHaveBeenCalled();
     });
 
     it('2a. records the plan for the Profile the checkout names, looked for among those of the person, and records nothing without one', async () => {
