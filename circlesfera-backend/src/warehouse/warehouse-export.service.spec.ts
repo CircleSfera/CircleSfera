@@ -3,7 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConfigService } from '@nestjs/config';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ClickHouseLoadService } from './clickhouse-load.service.js';
+import {
+  ClickHouseLoadService,
+  RETIRED_PAYMENT_COLUMNS,
+} from './clickhouse-load.service.js';
 import { WarehouseExportService } from './warehouse-export.service.js';
 
 describe('WarehouseExportService', () => {
@@ -361,6 +364,39 @@ describe('ClickHouseLoadService', () => {
       }),
     );
 
+    vi.unstubAllGlobals();
+  });
+
+  it('drops the columns of the former payments to creators before loading payments', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'ch-retired-'));
+    await writeFile(
+      join(dir, 'transactions.csv'),
+      'id,type\n"t1","STRIPE_SUBSCRIPTION"\n',
+    );
+    const service = new ClickHouseLoadService({
+      get: vi.fn((key: string) =>
+        key === 'CLICKHOUSE_URL' ? 'http://clickhouse:8123' : null,
+      ),
+    } as unknown as ConfigService);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await service.loadExportDirectory(dir, {
+      reports: 0,
+      appeals: 0,
+      support_tickets: 0,
+      transactions: 1,
+      feature_flags: 0,
+    });
+
+    const [drop, insert] = fetchMock.mock.calls.map(([address]) =>
+      new URL(address).searchParams.get('query'),
+    );
+    expect(drop).toBe(
+      `ALTER TABLE transactions ${RETIRED_PAYMENT_COLUMNS.map((c) => `DROP COLUMN IF EXISTS ${c}`).join(', ')}`,
+    );
+    expect(drop).toContain('DROP COLUMN IF EXISTS receiverId');
+    expect(insert).toBe('INSERT INTO transactions FORMAT CSVWithNames');
     vi.unstubAllGlobals();
   });
 
