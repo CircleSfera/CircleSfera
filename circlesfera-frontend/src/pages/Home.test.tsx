@@ -54,6 +54,13 @@ describe('Home', () => {
     useAuthStore.setState({ isAuthenticated: false });
   });
 
+  it('takes no room for suggestions when there is no one to suggest, so the feed stays centred', () => {
+    const { container } = renderWithProviders(<Home />);
+    const aside = container.querySelector('aside');
+    expect(aside).toBeEmptyDOMElement();
+    expect(aside).toHaveClass('lg:empty:hidden');
+  });
+
   it('offers Favorites only to someone signed in', () => {
     renderWithProviders(<Home />);
     expect(
