@@ -17,6 +17,7 @@ import {
   type FfmpegEncodePreset,
   isConstrainedDevice,
   resolutionForAspect,
+  resolutionWithShortSide,
   resolveStudioFontFile,
   StudioExportError,
   scaleResolutionForExport,
@@ -62,6 +63,11 @@ export type ExportStudioOptions = {
   preset?: FfmpegEncodePreset;
   // Force long-edge cap (default: 720 on constrained devices).
   maxLongEdge?: number;
+  // A size chosen by its short side (Edits Studio Pro), which can be larger
+  // than the format's own; it takes the place of the cap.
+  shortSide?: number;
+  // A frame rate other than the project's (Edits Studio Pro: 60).
+  fps?: number;
 };
 
 function throwIfAborted(signal?: AbortSignal) {
@@ -105,7 +111,14 @@ export async function exportStudioProject(
     typeof onProgressOrOptions === 'function'
       ? { onProgress: onProgressOrOptions }
       : onProgressOrOptions || {};
-  const { onProgress, signal, preset = 'ultrafast', maxLongEdge } = options;
+  const {
+    onProgress,
+    signal,
+    preset = 'ultrafast',
+    maxLongEdge,
+    shortSide,
+    fps: fpsChosen,
+  } = options;
 
   const visualClips = visualClipsOnVideoTracks(project);
   if (visualClips.length === 0) {
@@ -178,11 +191,13 @@ export async function exportStudioProject(
       (constrained
         ? 720
         : Math.max(project.resolution.width, project.resolution.height));
-    const scaled = scaleResolutionForExport(
-      project.resolution.width,
-      project.resolution.height,
-      edgeCap,
-    );
+    const scaled = shortSide
+      ? resolutionWithShortSide(project.aspectRatio, shortSide)
+      : scaleResolutionForExport(
+          project.resolution.width,
+          project.resolution.height,
+          edgeCap,
+        );
     const w = scaled.width;
     const h = scaled.height;
     // The editor draws at the full size of its format; sizes and moves set
@@ -195,7 +210,7 @@ export async function exportStudioProject(
       contentEnd > 0 ? contentEnd : project.duration,
       1,
     );
-    const fps = project.fps || 30;
+    const fps = fpsChosen || project.fps || 30;
 
     const cliInputs: string[] = [];
     const prepared: PreparedVisual[] = [];

@@ -42,6 +42,30 @@ const graph = () => command[command.indexOf('-filter_complex') + 1];
 const exported = (project: StudioProject) =>
   exportStudioProject(packMainTrack(project), { maxLongEdge: 1920 });
 
+describe('exporting at an Edits Studio Pro size and frame rate', () => {
+  beforeEach(() => {
+    written = [];
+    vi.clearAllMocks();
+  });
+
+  it('draws at the chosen short side and rate, larger than the format, keeping its shape', async () => {
+    await exportStudioProject(
+      packMainTrack(
+        studioProject([
+          studioTrack('v1', 'video', [
+            mediaClip('a', { startAt: 0, duration: 4 }),
+          ]),
+        ]),
+      ),
+      { shortSide: 2160, fps: 60 },
+    );
+    const g = graph();
+    expect(g).toContain('color=c=black:s=2160x3840:d=4:r=60');
+    expect(g).toContain('fps=60');
+    expect(g).not.toContain('fps=30');
+  });
+});
+
 describe('exporting transitions, effects and adjustments', () => {
   beforeEach(() => {
     written = [];

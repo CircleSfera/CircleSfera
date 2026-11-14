@@ -4920,7 +4920,21 @@
       "no_clips": "Añade un clip de vídeo o imagen antes de exportar",
       "load_failed": "No se pudo cargar el codificador. Recarga e inténtalo de nuevo",
       "encode_failed": "Falló la codificación. Prueba con menos clips o medios más cortos",
-      "cancelled": "Exportación cancelada"
+      "cancelled": "Exportación cancelada",
+      "pro_failed": "No se pudo crear el vídeo a este tamaño. Prueba un tamaño menor o 30 fps"
+    },
+    "export_pro": {
+      "size": "Tamaño",
+      "sizes": {
+        "1080": "1080p",
+        "1440": "2K",
+        "2160": "4K"
+      },
+      "frame_rate": "Fotogramas por segundo",
+      "fps": "{{rate}} fps",
+      "frames_note": "Los tamaños mayores tardan más. Un Frame publicado se reproduce con la calidad de la app; el tamaño mayor se conserva en el archivo descargado.",
+      "on_computer": "Edits Studio Pro exporta hasta en 4K y a 60 fps en un ordenador.",
+      "unknown": "No se pudo comprobar Edits Studio Pro. La exportación usa el tamaño normal; ciérrala y vuelve a abrirla para reintentarlo."
     },
     "export_options_title": "Ajustes de exportación",
     "export_quality": "Calidad de codificación",

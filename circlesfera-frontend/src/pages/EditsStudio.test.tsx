@@ -46,6 +46,10 @@ vi.mock('../services/upload.service', () => ({
   uploadApi: { upload: vi.fn() },
 }));
 vi.mock('../utils/ffmpegExport', () => ({ exportStudioProject: vi.fn() }));
+const studioPro = vi.hoisted(() => ({ pro: false }));
+vi.mock('../services/edits.service', () => ({
+  editsService: { getStudioPro: vi.fn(async () => ({ ...studioPro })) },
+}));
 vi.mock('../utils/studioLocalDraft', () => ({ loadLocalStudioDraft: vi.fn() }));
 vi.mock('../components/common/SEO', () => ({ default: () => null }));
 vi.mock('../components/studio/StudioPlayer', () => ({ default: () => null }));
@@ -845,6 +849,67 @@ describe('EditsStudio', () => {
       );
       expect(seen.exportModal.exportedBlob).toBe(blob);
       expect(seen.exportModal.exportProgress).toBe(50);
+    });
+
+    it('exports at an Edits Studio Pro size and rate only when the server says the Profile has it', async () => {
+      vi.mocked(exportStudioProject).mockResolvedValue(new Blob() as never);
+      studioPro.pro = true;
+      await open(project([clip('a')]));
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await waitFor(() => expect(seen.exportModal.studioPro).toBe(true));
+      await act(async () =>
+        seen.exportModal.onStartExport('fast', { shortSide: 2160, fps: 60 }),
+      );
+      expect(exportStudioProject).toHaveBeenLastCalledWith(
+        store().project,
+        expect.objectContaining({ shortSide: 2160, fps: 60 }),
+      );
+      studioPro.pro = false;
+    });
+
+    it('keeps the rate chosen with Pro even at 30, without a Pro size', async () => {
+      vi.mocked(exportStudioProject).mockResolvedValue(new Blob() as never);
+      studioPro.pro = true;
+      await open(project([clip('a')]));
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await waitFor(() => expect(seen.exportModal.studioPro).toBe(true));
+      expect(seen.exportModal.studioProPending).toBe(false);
+      await act(async () =>
+        seen.exportModal.onStartExport('fast', { shortSide: 1080, fps: 30 }),
+      );
+      const options = vi.mocked(exportStudioProject).mock.lastCall?.[1];
+      expect(options).toMatchObject({ fps: 30 });
+      expect(options).not.toHaveProperty('shortSide');
+      studioPro.pro = false;
+    });
+
+    it('ignores a Pro size without Edits Studio Pro, and tells a failed Pro export to try smaller', async () => {
+      vi.mocked(exportStudioProject).mockResolvedValue(new Blob() as never);
+      await open(project([clip('a')]));
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await act(async () =>
+        seen.exportModal.onStartExport('fast', { shortSide: 2160, fps: 60 }),
+      );
+      expect(
+        vi.mocked(exportStudioProject).mock.lastCall?.[1],
+      ).not.toHaveProperty('shortSide');
+    });
+
+    it('says a failed Pro export may work smaller or at 30 fps', async () => {
+      vi.mocked(exportStudioProject).mockRejectedValue(
+        new StudioExportError('studio.export_errors.encode_failed'),
+      );
+      studioPro.pro = true;
+      await open(project([clip('a')]));
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      await waitFor(() => expect(seen.exportModal.studioPro).toBe(true));
+      await act(async () =>
+        seen.exportModal.onStartExport('fast', { shortSide: 1440, fps: 30 }),
+      );
+      expect(toast.error).toHaveBeenLastCalledWith(
+        'The video could not be made at this size. Try a smaller size or 30 fps',
+      );
+      studioPro.pro = false;
     });
 
     it('closes when the encoding is cancelled', async () => {

@@ -21,6 +21,29 @@ export function resolutionForAspect(aspect: AspectRatioType): {
   }
 }
 
+// Sizes a video can be exported at, by its short side: 1080 for everyone,
+// the larger ones with Edits Studio Pro. The default frame rate is 30;
+// Edits Studio Pro adds 60.
+export const STUDIO_EXPORT_SHORT_SIDES = [1080, 1440, 2160] as const;
+export type StudioExportShortSide = (typeof STUDIO_EXPORT_SHORT_SIDES)[number];
+export const STUDIO_FREE_SHORT_SIDE: StudioExportShortSide = 1080;
+export const STUDIO_EXPORT_FRAME_RATES = [30, 60] as const;
+export type StudioExportFrameRate = (typeof STUDIO_EXPORT_FRAME_RATES)[number];
+export const STUDIO_FREE_FRAME_RATE: StudioExportFrameRate = 30;
+
+// The size of a project's format with the given short side, in even pixels.
+export function resolutionWithShortSide(
+  aspect: AspectRatioType,
+  shortSide: number,
+): { width: number; height: number } {
+  const base = resolutionForAspect(aspect);
+  const scale = shortSide / Math.min(base.width, base.height);
+  return {
+    width: evenDim(Math.round(base.width * scale)),
+    height: evenDim(Math.round(base.height * scale)),
+  };
+}
+
 // Letterbox (contain) source into destination — matches FFmpeg
 // `scale=…:force_original_aspect_ratio=decrease` + centered overlay.
 export function containRect(

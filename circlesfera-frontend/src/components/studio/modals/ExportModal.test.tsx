@@ -57,6 +57,87 @@ describe('ExportModal', () => {
     expect(note).not.toHaveClass('text-brand-accent');
   });
 
+  it('offers Edits Studio Pro sizes and 60 fps on a computer, and starts with what was chosen', () => {
+    const { i18n } = renderModal({ studioPro: true });
+
+    fireEvent.click(
+      screen.getByLabelText(i18n!.t('studio.export_pro.sizes.2160')),
+    );
+    fireEvent.click(
+      screen.getByLabelText(i18n!.t('studio.export_pro.fps', { rate: 60 })),
+    );
+    expect(
+      screen.getByText(i18n!.t('studio.export_pro.frames_note')),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('studio-export-start'));
+
+    expect(onStartExport).toHaveBeenCalledWith('ultrafast', {
+      shortSide: 2160,
+      fps: 60,
+    });
+  });
+
+  it('reads whether the device is a phone each time, not once for the editor', () => {
+    const { rerender, i18n } = renderModal({ studioPro: true });
+    expect(screen.getByText(i18n!.t('studio.export_pro.size'))).toBeVisible();
+
+    constrainedDevice.value = true;
+    rerender(
+      <ExportModal
+        isOpen
+        isExporting={false}
+        exportProgress={0}
+        exportedBlob={null}
+        studioPro
+        onClose={onClose}
+        onStartExport={onStartExport}
+        onCancelExport={onCancelExport}
+        onPublish={onPublish}
+        onDownload={onDownload}
+      />,
+    );
+    expect(
+      screen.queryByText(i18n!.t('studio.export_pro.size')),
+    ).not.toBeInTheDocument();
+  });
+
+  it('waits for the answer about Edits Studio Pro before the export can start, and says when it could not be checked', () => {
+    const { i18n, unmount } = renderModal({ studioProPending: true });
+    expect(screen.getByTestId('studio-export-start')).toBeDisabled();
+    unmount();
+
+    renderModal({ studioProFailed: true });
+    expect(screen.getByTestId('studio-export-pro-unknown')).toHaveTextContent(
+      i18n!.t('studio.export_pro.unknown'),
+    );
+    expect(screen.getByTestId('studio-export-start')).toBeEnabled();
+  });
+
+  it('offers no Pro choices without Edits Studio Pro', () => {
+    const { i18n } = renderModal();
+
+    expect(
+      screen.queryByText(i18n!.t('studio.export_pro.size')),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps a phone on its lighter export even with Edits Studio Pro, and says where Pro exports', () => {
+    constrainedDevice.value = true;
+    const { i18n } = renderModal({ studioPro: true });
+
+    expect(
+      screen.queryByText(i18n!.t('studio.export_pro.size')),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('studio-export-pro-computer')).toHaveTextContent(
+      i18n!.t('studio.export_pro.on_computer'),
+    );
+    fireEvent.click(screen.getByTestId('studio-export-start'));
+    expect(onStartExport).toHaveBeenCalledWith('ultrafast', {
+      shortSide: 1080,
+      fps: 30,
+    });
+  });
+
   it('renders nothing when closed', () => {
     renderModal({ isOpen: false });
 
@@ -75,7 +156,10 @@ describe('ExportModal', () => {
     ).toBeChecked();
     fireEvent.click(screen.getByTestId('studio-export-start'));
 
-    expect(onStartExport).toHaveBeenCalledWith('ultrafast');
+    expect(onStartExport).toHaveBeenCalledWith('ultrafast', {
+      shortSide: 1080,
+      fps: 30,
+    });
   });
 
   it('starts export with the chosen preset', () => {
@@ -86,7 +170,10 @@ describe('ExportModal', () => {
     );
     fireEvent.click(screen.getByTestId('studio-export-start'));
 
-    expect(onStartExport).toHaveBeenCalledWith('fast');
+    expect(onStartExport).toHaveBeenCalledWith('fast', {
+      shortSide: 1080,
+      fps: 30,
+    });
   });
 
   it('shows a long-duration hint and closes without starting', () => {
@@ -181,6 +268,9 @@ describe('ExportModal', () => {
     );
 
     fireEvent.click(screen.getByTestId('studio-export-start'));
-    expect(onStartExport).toHaveBeenCalledWith('ultrafast');
+    expect(onStartExport).toHaveBeenCalledWith('ultrafast', {
+      shortSide: 1080,
+      fps: 30,
+    });
   });
 });

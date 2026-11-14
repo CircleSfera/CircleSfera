@@ -70,6 +70,12 @@ export interface EditProject {
 }
 
 export const editsService = {
+  // Whether the Profile in use has Edits Studio Pro; the server decides.
+  async getStudioPro(): Promise<{ pro: boolean }> {
+    const { data } = await apiClient.get('/edits/pro');
+    return data;
+  },
+
   async getProjects(): Promise<EditProject[]> {
     const { data } = await apiClient.get('/edits');
     return data;

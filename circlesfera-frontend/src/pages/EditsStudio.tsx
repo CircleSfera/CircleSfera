@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +14,7 @@ import type { VoiceRecording } from '../components/studio/panels/VoicePanel';
 import StudioPlayer from '../components/studio/StudioPlayer';
 import { useStudioAutosave } from '../hooks/useStudioAutosave';
 import { useWideScreen } from '../hooks/useWideScreen';
+import { editsService } from '../services/edits.service';
 import { uploadApi } from '../services/upload.service';
 import { useStudioStore } from '../stores/studioStore';
 import type { Audio } from '../types';
@@ -22,7 +24,11 @@ import { readMediaDuration } from '../utils/mediaDuration';
 import { librarySongOf } from '../utils/studioAudio';
 import {
   type FfmpegEncodePreset,
+  STUDIO_FREE_FRAME_RATE,
+  STUDIO_FREE_SHORT_SIDE,
   StudioExportError,
+  type StudioExportFrameRate,
+  type StudioExportShortSide,
 } from '../utils/studioExportHelpers';
 import { loadLocalStudioDraft } from '../utils/studioLocalDraft';
 import { getPrimaryMediaUrl, projectContentEnd } from '../utils/studioProject';
@@ -366,8 +372,35 @@ export default function EditsStudio() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const startExport = async (preset: FfmpegEncodePreset) => {
+  // Whether the Profile has Edits Studio Pro, asked when the export opens.
+  const {
+    data: studioPro,
+    isPending: studioProPending,
+    isError: studioProFailed,
+  } = useQuery({
+    queryKey: ['studio-pro'],
+    queryFn: () => editsService.getStudioPro(),
+    enabled: showExport,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const startExport = async (
+    preset: FfmpegEncodePreset,
+    quality?: {
+      shortSide: StudioExportShortSide;
+      fps: StudioExportFrameRate;
+    },
+  ) => {
     const current = useStudioStore.getState().project;
+    // The larger sizes and 60 fps are Edits Studio Pro's.
+    const proQuality =
+      studioPro?.pro === true &&
+      quality &&
+      (quality.shortSide !== STUDIO_FREE_SHORT_SIDE ||
+        quality.fps !== STUDIO_FREE_FRAME_RATE)
+        ? quality
+        : undefined;
     if (!current) return;
     exportAbortRef.current?.abort();
     const controller = new AbortController();
@@ -380,6 +413,9 @@ export default function EditsStudio() {
           preset,
           signal: controller.signal,
           onProgress: setExportProgress,
+          // The rate chosen with Pro is kept even when it is 30.
+          ...(studioPro?.pro === true && quality && { fps: quality.fps }),
+          ...(proQuality && { shortSide: proQuality.shortSide }),
         }),
       );
     } catch (err) {
@@ -390,11 +426,15 @@ export default function EditsStudio() {
         toast(t('studio.export_errors.cancelled'));
         setShowExport(false);
       } else {
-        toast.error(
-          t(
-            err instanceof StudioExportError ? err.code : 'studio.export_error',
-          ),
-        );
+        const code =
+          err instanceof StudioExportError ? err.code : 'studio.export_error';
+        // A large export can run out of memory: a smaller size or 30 fps
+        // may work.
+        const heavy =
+          proQuality &&
+          (code === 'studio.export_errors.encode_failed' ||
+            code === 'studio.export_error');
+        toast.error(t(heavy ? 'studio.export_errors.pro_failed' : code));
       }
     } finally {
       setIsExporting(false);
@@ -545,7 +585,10 @@ export default function EditsStudio() {
             setExportedBlob(null);
           }
         }}
-        onStartExport={(preset) => void startExport(preset)}
+        studioPro={studioPro?.pro === true}
+        studioProPending={showExport && studioProPending}
+        studioProFailed={studioProFailed}
+        onStartExport={(preset, quality) => void startExport(preset, quality)}
         onCancelExport={() => exportAbortRef.current?.abort()}
         onPublish={(scheduledAt) => void publish(scheduledAt)}
         onDownload={download}
