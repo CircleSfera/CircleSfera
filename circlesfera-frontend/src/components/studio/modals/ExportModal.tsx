@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FFMPEG_ENCODE_PRESETS,
@@ -46,7 +46,9 @@ export default function ExportModal({
   onDownload,
 }: ExportModalProps) {
   const { t } = useTranslation();
-  const constrained = useMemo(() => isConstrainedDevice(), []);
+  // Read on every render, so a window made narrow since the editor opened
+  // is seen when the export opens.
+  const constrained = isConstrainedDevice();
   const [preset, setPreset] = useState<FfmpegEncodePreset>('ultrafast');
   const [shortSide, setShortSide] = useState<StudioExportShortSide>(
     STUDIO_FREE_SHORT_SIDE,

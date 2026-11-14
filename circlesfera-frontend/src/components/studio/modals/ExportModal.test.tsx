@@ -77,6 +77,30 @@ describe('ExportModal', () => {
     });
   });
 
+  it('reads whether the device is a phone each time, not once for the editor', () => {
+    const { rerender, i18n } = renderModal({ studioPro: true });
+    expect(screen.getByText(i18n!.t('studio.export_pro.size'))).toBeVisible();
+
+    constrainedDevice.value = true;
+    rerender(
+      <ExportModal
+        isOpen
+        isExporting={false}
+        exportProgress={0}
+        exportedBlob={null}
+        studioPro
+        onClose={onClose}
+        onStartExport={onStartExport}
+        onCancelExport={onCancelExport}
+        onPublish={onPublish}
+        onDownload={onDownload}
+      />,
+    );
+    expect(
+      screen.queryByText(i18n!.t('studio.export_pro.size')),
+    ).not.toBeInTheDocument();
+  });
+
   it('offers no Pro choices without Edits Studio Pro', () => {
     const { i18n } = renderModal();
 
