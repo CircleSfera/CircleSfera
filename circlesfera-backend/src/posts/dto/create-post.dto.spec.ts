@@ -2,6 +2,7 @@ import { POST_SHAPES } from '@circlesfera/shared';
 import { plainToInstance } from 'class-transformer';
 import { type ValidationError, validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
+import { SendMessageDto } from '../../chat/dto/send-message.dto.js';
 import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
 import { CreateStoryDto } from '../../stories/dto/create-story.dto.js';
 import { CreatePostDto, POST_FILE_URL_MAX_LENGTH } from './create-post.dto.js';
@@ -259,5 +260,41 @@ describe('the shape of a post', () => {
 
   it('is no other value', async () => {
     expect(await rules('CIRCLE')).toEqual(['isIn']);
+  });
+});
+
+describe('the sale fields older apps still send', () => {
+  const failed = async (
+    dto: typeof CreatePostDto | typeof CreateStoryDto | typeof SendMessageDto,
+    body: object,
+  ) =>
+    (
+      await validate(plainToInstance(dto as typeof CreatePostDto, body), {
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      })
+    )
+      .filter((error) =>
+        ['isPremium', 'isLocked', 'priceCents'].includes(error.property),
+      )
+      .map((error) => error.property);
+
+  it.each([
+    ['a post', CreatePostDto, 'isPremium'],
+    ['a story', CreateStoryDto, 'isPremium'],
+    ['a message', SendMessageDto, 'isLocked'],
+  ] as const)('accepts %s marked as not for sale', async (_name, dto, flag) => {
+    expect(await failed(dto, { [flag]: false, priceCents: 0 })).toEqual([]);
+  });
+
+  it.each([
+    ['a post', CreatePostDto, 'isPremium'],
+    ['a story', CreateStoryDto, 'isPremium'],
+    ['a message', SendMessageDto, 'isLocked'],
+  ] as const)('refuses to put %s on sale', async (_name, dto, flag) => {
+    expect(await failed(dto, { [flag]: true, priceCents: 500 })).toEqual([
+      flag,
+      'priceCents',
+    ]);
   });
 });

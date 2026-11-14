@@ -15,6 +15,10 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { LOCAL_UPLOAD_URL } from '../../common/constants/local-upload.constants.js';
+import {
+  LegacyNotForSaleFlag,
+  LegacyNotForSalePrice,
+} from '../../common/dto/legacy-not-for-sale.js';
 
 export class SendMessageDto {
   @ApiProperty({ required: false, type: () => String })
@@ -118,4 +122,12 @@ export class SendMessageDto {
   @Max(1, { each: true })
   @IsOptional()
   voiceWaveform?: number[];
+
+  /** Sent by older app versions; accepted only as "not for sale" and never read. */
+  @LegacyNotForSaleFlag()
+  isLocked?: false;
+
+  /** Sent by older app versions; accepted only as 0 and never read. */
+  @LegacyNotForSalePrice()
+  priceCents?: 0;
 }
