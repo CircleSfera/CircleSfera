@@ -39,19 +39,18 @@ export const PARTICIPANT_PRIVATE_OMIT = {
 // Columns of the former sale of content and of payments to creators. No
 // query names them: they are dropped in the next release, and this release
 // must keep working on the database after that drop if a deploy rolls back.
+// The ones with a default (the sale fields of posts, stories and messages,
+// and monetizationStatus) are `@ignore` in the schema instead, so the client
+// neither reads nor writes them and the database fills them.
 export const RETIRED_COLUMNS_OMIT = {
   user: { payoutsHeldAt: true },
   profile: {
-    monetizationStatus: true,
     monetizationAppliedAt: true,
     monetizationPitch: true,
     monetizationReviewedAt: true,
     monetizationReviewedBy: true,
     monetizationNote: true,
   },
-  post: { isPremium: true, priceCents: true },
-  story: { isPremium: true, priceCents: true },
-  message: { isLocked: true, priceCents: true },
   transaction: {
     receiverId: true,
     receiverProfileId: true,
@@ -67,9 +66,6 @@ const clientOmit = {
   signIn: SIGN_IN_SECRET_OMIT,
   participant: PARTICIPANT_PRIVATE_OMIT,
   profile: RETIRED_COLUMNS_OMIT.profile,
-  post: RETIRED_COLUMNS_OMIT.post,
-  story: RETIRED_COLUMNS_OMIT.story,
-  message: RETIRED_COLUMNS_OMIT.message,
   transaction: RETIRED_COLUMNS_OMIT.transaction,
 } as const;
 

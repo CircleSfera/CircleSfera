@@ -427,7 +427,7 @@ model Profile {
   isAccountBanned        Boolean             @default(false)
   // The former monetization programme. No query reads or writes these
   // columns any more; they are dropped in the next release.
-  monetizationStatus     MonetizationStatus?
+  monetizationStatus     MonetizationStatus  @default(NONE) @ignore
   monetizationAppliedAt  DateTime?
   monetizationPitch      String?             @db.VarChar(500)
   monetizationReviewedAt DateTime?
@@ -649,8 +649,8 @@ model Post {
 
   // Former sale of a post. No query reads or writes these columns any more;
   // they are dropped in the next release.
-  isPremium   Boolean?
-  priceCents  Int?
+  isPremium   Boolean      @default(false) @ignore
+  priceCents  Int          @default(0) @ignore
   postUnlocks PostUnlock[]
 
   // Scheduling & Interactive Features
@@ -899,8 +899,8 @@ model Story {
 
   // Former sale of a story. No query reads or writes these columns any
   // more; they are dropped in the next release.
-  isPremium    Boolean?
-  priceCents   Int?
+  isPremium    Boolean       @default(false) @ignore
+  priceCents   Int           @default(0) @ignore
   storyUnlocks StoryUnlock[]
 
   // Scheduling & Interactive Features
@@ -1716,8 +1716,8 @@ model Message {
 
   // Former sale of a message. No query reads or writes these columns any
   // more; they are dropped in the next release.
-  isLocked       Boolean?
-  priceCents     Int?
+  isLocked       Boolean         @default(false) @ignore
+  priceCents     Int             @default(0) @ignore
   messageUnlocks MessageUnlock[]
 
   // New: Post Sharing
