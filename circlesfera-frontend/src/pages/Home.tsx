@@ -271,9 +271,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Sidebar (Desktop ≥1024px) */}
+          {/* Right Sidebar (Desktop ≥1024px). With no one to suggest it takes
+              no room, so the feed stays centred. */}
           <aside
-            className="hidden lg:block shrink-0"
+            className="hidden lg:block lg:empty:hidden shrink-0"
             style={{ width: 280, position: 'sticky', top: 80 }}
           >
             <SuggestionsList layout="vertical" />
