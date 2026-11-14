@@ -1,4 +1,5 @@
 import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
+import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -7,12 +8,14 @@ import {
   NotificationType,
   type Prisma,
 } from '@prisma/client';
+import { emailForProfile } from '../common/auth/sign-in-lookup.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { forgetProfileView } from './company-mark.js';
 import type { DecideCompanyDto } from './dto/decide-company.dto.js';
 
 const QUEUE_PAGE = 50;
@@ -72,6 +75,7 @@ export class CompanyVerificationReviewService {
     @Inject(EmailService) private readonly email: EmailService,
     @Inject(EventEmitter2) private readonly events: EventEmitter2,
     @Inject(StripeService) private readonly stripe: StripeService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   // The name on the identity document of the person who holds a sole
@@ -79,8 +83,9 @@ export class CompanyVerificationReviewService {
   // ask, to match it against the documents. Never stored; each reading is
   // recorded. Null when there is no verified identity to read.
   async identityName(adminId: string, id: string) {
-    const application = await this.prisma.companyVerification.findUnique({
-      where: { id },
+    const application = await this.prisma.companyVerification.findFirst({
+      // Only while the application waits for a decision.
+      where: { id, status: CompanyVerificationStatus.PENDING },
       select: {
         kind: true,
         profile: {
@@ -152,8 +157,13 @@ export class CompanyVerificationReviewService {
   // A document, decrypted for the member of staff who opens it; the
   // opening is recorded.
   async document(adminId: string, id: string, documentId: string) {
+    // Only while the application waits for a decision.
     const document = await this.prisma.companyVerificationDocument.findFirst({
-      where: { id: documentId, verificationId: id },
+      where: {
+        id: documentId,
+        verificationId: id,
+        verification: { status: CompanyVerificationStatus.PENDING },
+      },
       select: { fileName: true, contentType: true, content: true },
     });
     if (!document) throw this.notFound();
@@ -236,6 +246,8 @@ export class CompanyVerificationReviewService {
       return application;
     });
 
+    // Others see the mark change at once.
+    await forgetProfileView(this.prisma, this.cache, decided.profileId);
     const notice: Notice = dto.approve
       ? { key: 'company_verified' }
       : {
@@ -251,7 +263,8 @@ export class CompanyVerificationReviewService {
       targetId: id,
     } satisfies NotificationCreateEvent['payload']);
     // Telling by email is best effort: the decision already stands.
-    const address = decided.profile.user?.email;
+    // Where an email about a Profile goes: its own verified sign-in.
+    const address = await emailForProfile(this.prisma, decided.profileId);
     if (address) {
       await this.email
         .sendCompanyVerificationDecided(address, notice)

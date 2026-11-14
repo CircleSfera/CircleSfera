@@ -5,6 +5,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { ErrorCode } from '@circlesfera/shared';
+import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type CompanyKind,
@@ -19,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { hasTeamPlan } from '../team/team-plan.js';
 import { askVies, hasDnsProof, hasMetaProof } from './company-checks.js';
 import { isValidLocalPart, normalizeDomain } from './company-domain.js';
+import { forgetProfileView } from './company-mark.js';
 import {
   DOCUMENT_TYPES,
   DOMAIN_META_NAME,
@@ -94,6 +96,7 @@ export class CompanyVerificationService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CryptoService) private readonly crypto: CryptoService,
     @Inject(EmailService) private readonly email: EmailService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   // Whether the Profile in use can apply, and its latest application.
@@ -495,28 +498,9 @@ export class CompanyVerificationService {
           submittedAt: new Date(),
         },
       });
-      // A new legal name, tax ID or domain needs its own approval: the
-      // earlier one stops showing the mark until then.
-      await tx.companyVerification.updateMany({
-        where: {
-          profileId: application.profileId,
-          status: CompanyVerificationStatus.APPROVED,
-          OR: [
-            { legalName: { not: application.legalName } },
-            { taxId: { not: application.taxId } },
-            application.domain === null
-              ? { domain: { not: null } }
-              : {
-                  OR: [
-                    { domain: null },
-                    { domain: { not: application.domain } },
-                  ],
-                },
-          ],
-        },
-        data: { status: CompanyVerificationStatus.REPLACED },
-      });
     });
+    // A change of details hides the mark while it waits.
+    await forgetProfileView(this.prisma, this.cache, profileId);
     return this.status(userId, profileId);
   }
 
@@ -534,18 +518,27 @@ export class CompanyVerificationService {
     // The application first, so a document being added waits and then
     // finds it withdrawn.
     await this.prisma.$transaction(async (tx) => {
-      await tx.companyVerification.update({
-        where: { id: application.id },
+      // Only while still open: a decision made meanwhile stands.
+      const { count } = await tx.companyVerification.updateMany({
+        where: { id: application.id, status: { in: OPEN } },
         data: {
           status: CompanyVerificationStatus.WITHDRAWN,
           emailCodeHash: null,
           emailCodeExpiresAt: null,
         },
       });
+      if (count === 0) {
+        throw AppException.Conflict(
+          ErrorCode.COMPANY_VERIFICATION_LOCKED,
+          'The application was decided meanwhile',
+        );
+      }
       await tx.companyVerificationDocument.deleteMany({
         where: { verificationId: application.id },
       });
     });
+    // A withdrawn change of details gives the mark back.
+    await forgetProfileView(this.prisma, this.cache, profileId);
     return this.status(userId, profileId);
   }
 

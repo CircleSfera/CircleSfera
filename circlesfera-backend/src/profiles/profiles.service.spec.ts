@@ -20,7 +20,7 @@ describe('ProfilesService', () => {
   const mockPrismaService: any = {
     $transaction: vi.fn((cb: any) => cb(mockPrismaService)),
     storedFile: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-    companyVerification: { count: vi.fn().mockResolvedValue(0) },
+    companyVerification: { findFirst: vi.fn().mockResolvedValue(null) },
     profileMember: {
       findUnique: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn(),
@@ -906,7 +906,7 @@ describe('ProfilesService', () => {
       },
     );
 
-    it('shows the verified company mark only on the Business plan with an approved verification', async () => {
+    it('shows the verified company mark only on the Business plan with an approved verification, hidden while other details wait', async () => {
       mockCacheManager.get.mockResolvedValue(null);
       const company = (over = {}) => ({
         id: 'p-company',
@@ -918,33 +918,48 @@ describe('ProfilesService', () => {
         _count: { posts: 0, followers: 0, following: 0 },
         ...over,
       });
+      const acme = {
+        legalName: 'Acme SL',
+        taxId: 'B12345674',
+        domain: 'acme.es',
+      };
       mockPrismaService.platformSubscription = {
         findFirst: vi.fn().mockResolvedValue(null),
       };
-      mockPrismaService.companyVerification = {
-        count: vi.fn().mockResolvedValue(1),
+      // The approved verification, then the application waiting, if any.
+      const holds = (approved: object | null, pending: object | null) => {
+        mockPrismaService.companyVerification = {
+          findFirst: vi.fn(({ where }: { where: { status: string } }) =>
+            Promise.resolve(where.status === 'APPROVED' ? approved : pending),
+          ),
+        };
       };
-
       mockPrismaService.profile.findFirst.mockResolvedValue(company());
-      const approved: any = await service.getProfile('companyuser');
-      expect(approved.verifiedCompany).toBe(true);
-      expect(mockPrismaService.companyVerification.count).toHaveBeenCalledWith({
-        where: { profileId: 'p-company', status: 'APPROVED' },
-      });
+      const mark = async () =>
+        ((await service.getProfile('companyuser')) as any).verifiedCompany;
 
-      mockPrismaService.companyVerification.count.mockResolvedValue(0);
-      const none: any = await service.getProfile('companyuser');
-      expect(none.verifiedCompany).toBe(false);
+      holds(acme, null);
+      expect(await mark()).toBe(true);
+      // The same details again under review: it stays.
+      holds(acme, { ...acme });
+      expect(await mark()).toBe(true);
+      // Another legal name, tax ID or domain under review: hidden until
+      // decided, back if that one is rejected or withdrawn.
+      holds(acme, { ...acme, domain: 'acme.com' });
+      expect(await mark()).toBe(false);
+      holds(acme, { ...acme, legalName: 'Acme Spain SL' });
+      expect(await mark()).toBe(false);
+      holds(null, null);
+      expect(await mark()).toBe(false);
 
-      // Without the plan the mark is hidden; the verification is kept.
-      mockPrismaService.companyVerification.count.mockClear();
+      // Without the plan the mark is hidden; nothing is read.
+      holds(acme, null);
       mockPrismaService.profile.findFirst.mockResolvedValue(
         company({ verificationLevel: 'ELITE' }),
       );
-      const noPlan: any = await service.getProfile('companyuser');
-      expect(noPlan.verifiedCompany).toBe(false);
+      expect(await mark()).toBe(false);
       expect(
-        mockPrismaService.companyVerification.count,
+        mockPrismaService.companyVerification.findFirst,
       ).not.toHaveBeenCalled();
     });
 

@@ -7,6 +7,7 @@ describe('CompanyVerificationReviewService', () => {
   let email: { sendCompanyVerificationDecided: ReturnType<typeof vi.fn> };
   let events: { emit: ReturnType<typeof vi.fn> };
   let stripe: { getIdentityVerificationSession: ReturnType<typeof vi.fn> };
+  let cache: { del: ReturnType<typeof vi.fn> };
   let service: CompanyVerificationReviewService;
 
   beforeEach(() => {
@@ -15,6 +16,7 @@ describe('CompanyVerificationReviewService', () => {
         findMany: vi.fn().mockResolvedValue([{ id: 'app-1' }]),
         count: vi.fn().mockResolvedValue(1),
         findUnique: vi.fn().mockResolvedValue({ id: 'app-1' }),
+        findFirst: vi.fn(),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         findUniqueOrThrow: vi.fn().mockResolvedValue({
           profileId: 'prof-1',
@@ -32,6 +34,15 @@ describe('CompanyVerificationReviewService', () => {
         deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
       },
       adminAuditLog: { create: vi.fn().mockResolvedValue({}) },
+      // The Profile decided on: its username for the cache, and its own
+      // verified sign-in for the email.
+      profile: {
+        findUnique: vi.fn().mockResolvedValue({
+          username: 'acme',
+          userId: 'u-1',
+          signIn: { email: 'ana@example.com', emailVerified: true },
+        }),
+      },
       $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
     };
     crypto = {
@@ -41,6 +52,7 @@ describe('CompanyVerificationReviewService', () => {
       sendCompanyVerificationDecided: vi.fn().mockResolvedValue(undefined),
     };
     events = { emit: vi.fn() };
+    cache = { del: vi.fn().mockResolvedValue(undefined) };
     stripe = {
       getIdentityVerificationSession: vi.fn().mockResolvedValue({
         status: 'verified',
@@ -53,6 +65,7 @@ describe('CompanyVerificationReviewService', () => {
       email as never,
       events as never,
       stripe as never,
+      cache as never,
     );
   });
 
@@ -80,9 +93,14 @@ describe('CompanyVerificationReviewService', () => {
     const file = await service.document('admin-1', 'app-1', 'doc-1');
     expect(file.content.toString()).toBe('%PDF-1.7');
     expect(file.contentType).toBe('application/pdf');
+    // Only while the application waits for a decision.
     expect(
       prisma.companyVerificationDocument.findFirst.mock.calls[0][0].where,
-    ).toEqual({ id: 'doc-1', verificationId: 'app-1' });
+    ).toEqual({
+      id: 'doc-1',
+      verificationId: 'app-1',
+      verification: { status: 'PENDING' },
+    });
     expect(prisma.adminAuditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         adminId: 'admin-1',
@@ -136,6 +154,8 @@ describe('CompanyVerificationReviewService', () => {
       'ana@example.com',
       { key: 'company_verified' },
     );
+    // Others see the mark change at once.
+    expect(cache.del).toHaveBeenCalledWith('profile:acme');
   });
 
   it('rejects with a reason and a note the person reads, and replaces nothing', async () => {
@@ -176,8 +196,16 @@ describe('CompanyVerificationReviewService', () => {
       reason: 'OTHER',
       note: null,
     });
-    // A person with no address is told in the app only.
+    expect(email.sendCompanyVerificationDecided).toHaveBeenCalled();
+
+    // A Profile gone meanwhile is told nothing by email, and no cache is
+    // forgotten for it.
+    prisma.profile.findUnique.mockResolvedValue(null);
+    email.sendCompanyVerificationDecided.mockClear();
+    cache.del.mockClear();
+    await service.decide('admin-1', 'app-1', { approve: false });
     expect(email.sendCompanyVerificationDecided).not.toHaveBeenCalled();
+    expect(cache.del).not.toHaveBeenCalled();
   });
 
   it('decides only an application that is waiting: once, never twice', async () => {
@@ -205,7 +233,7 @@ describe('CompanyVerificationReviewService', () => {
     });
 
     it('is read from the provider when asked, never stored, and each reading recorded', async () => {
-      prisma.companyVerification.findUnique.mockResolvedValueOnce(soleTrader());
+      prisma.companyVerification.findFirst.mockResolvedValueOnce(soleTrader());
       await expect(service.identityName('admin-1', 'app-1')).resolves.toEqual({
         name: { firstName: 'Ana', lastName: 'Ruiz Gil' },
       });
@@ -223,7 +251,7 @@ describe('CompanyVerificationReviewService', () => {
     });
 
     it('is none without a verified session, or when the provider cannot answer', async () => {
-      prisma.companyVerification.findUnique.mockResolvedValueOnce(
+      prisma.companyVerification.findFirst.mockResolvedValueOnce(
         soleTrader(null),
       );
       await expect(service.identityName('admin-1', 'app-1')).resolves.toEqual({
@@ -231,7 +259,7 @@ describe('CompanyVerificationReviewService', () => {
       });
       expect(stripe.getIdentityVerificationSession).not.toHaveBeenCalled();
 
-      prisma.companyVerification.findUnique.mockResolvedValueOnce(soleTrader());
+      prisma.companyVerification.findFirst.mockResolvedValueOnce(soleTrader());
       stripe.getIdentityVerificationSession.mockResolvedValueOnce({
         status: 'requires_input',
         verified_outputs: { first_name: 'X' },
@@ -240,7 +268,7 @@ describe('CompanyVerificationReviewService', () => {
         name: null,
       });
 
-      prisma.companyVerification.findUnique.mockResolvedValueOnce(soleTrader());
+      prisma.companyVerification.findFirst.mockResolvedValueOnce(soleTrader());
       stripe.getIdentityVerificationSession.mockRejectedValueOnce(
         new Error('down'),
       );
@@ -253,7 +281,7 @@ describe('CompanyVerificationReviewService', () => {
     });
 
     it('a last name alone is enough, and a company is not matched against a person', async () => {
-      prisma.companyVerification.findUnique.mockResolvedValueOnce(soleTrader());
+      prisma.companyVerification.findFirst.mockResolvedValueOnce(soleTrader());
       stripe.getIdentityVerificationSession.mockResolvedValueOnce({
         status: 'verified',
         verified_outputs: { last_name: 'Ruiz' },
@@ -262,7 +290,7 @@ describe('CompanyVerificationReviewService', () => {
         name: { firstName: '', lastName: 'Ruiz' },
       });
 
-      prisma.companyVerification.findUnique.mockResolvedValueOnce({
+      prisma.companyVerification.findFirst.mockResolvedValueOnce({
         kind: 'COMPANY',
         profile: { user: null },
       });
@@ -270,7 +298,7 @@ describe('CompanyVerificationReviewService', () => {
         service.identityName('admin-1', 'app-1'),
       ).rejects.toMatchObject({ errorCode: 'COMPANY_VERIFICATION_LOCKED' });
 
-      prisma.companyVerification.findUnique.mockResolvedValueOnce(null);
+      prisma.companyVerification.findFirst.mockResolvedValueOnce(null);
       await expect(
         service.identityName('admin-1', 'app-x'),
       ).rejects.toMatchObject({ errorCode: 'COMPANY_VERIFICATION_NOT_FOUND' });
