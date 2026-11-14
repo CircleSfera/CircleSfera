@@ -1,4 +1,4 @@
-import { PROMOTION_COST_PER_VIEW_CENTS } from '../constants/monetization.constants.js';
+import { PROMOTION_COST_PER_VIEW_CENTS } from '../constants/promotion.constants.js';
 
 // The day a view belongs to, in universal time, as YYYY-MM-DD.
 export function utcDay(at: Date = new Date()): string {

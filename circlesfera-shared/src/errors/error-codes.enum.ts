@@ -29,18 +29,8 @@ export enum ErrorCode {
   // The decision was already appealed; each decision is appealed once.
   APPEAL_ALREADY_MADE = 'APPEAL_ALREADY_MADE',
 
-  // Monetization & Payments
+  // Payments
   INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',
-  CANNOT_BUY_OWN_CONTENT = 'CANNOT_BUY_OWN_CONTENT',
-  CONTENT_ALREADY_UNLOCKED = 'CONTENT_ALREADY_UNLOCKED',
-  NOT_PREMIUM_OR_NO_PRICE = 'NOT_PREMIUM_OR_NO_PRICE',
-  BUYER_NOT_FOUND = 'BUYER_NOT_FOUND',
-  SENDER_NOT_FOUND = 'SENDER_NOT_FOUND',
-  MINIMUM_TIP_NOT_MET = 'MINIMUM_TIP_NOT_MET',
-  CANNOT_TIP_SELF = 'CANNOT_TIP_SELF',
-  STRIPE_CONNECT_NOT_SETUP = 'STRIPE_CONNECT_NOT_SETUP',
-  CREATOR_STRIPE_NOT_SETUP = 'CREATOR_STRIPE_NOT_SETUP',
-  STRIPE_ONBOARDING_FAILED = 'STRIPE_ONBOARDING_FAILED',
   PLAN_NOT_FOUND = 'PLAN_NOT_FOUND',
   // The Profile in use has no plan the person pays.
   SUBSCRIPTION_NOT_FOUND = 'SUBSCRIPTION_NOT_FOUND',
@@ -50,31 +40,14 @@ export enum ErrorCode {
   PLAN_NOT_FOR_PROFILE_TYPE = 'PLAN_NOT_FOR_PROFILE_TYPE',
   STRIPE_CUSTOMER_MISSING = 'STRIPE_CUSTOMER_MISSING',
   PROMOTION_ID_MISSING = 'PROMOTION_ID_MISSING',
-  ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION = 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
-  // Paid content goes on sale once automatic moderation has checked it.
+  // The creator tools are for Creator and Business Profiles.
+  CREATOR_ACCOUNT_REQUIRED = 'CREATOR_ACCOUNT_REQUIRED',
+  // Content is promoted once automatic moderation has checked it.
   CONTENT_UNDER_REVIEW = 'CONTENT_UNDER_REVIEW',
-  // The monetization programme: a Profile charges only once staff approve it.
-  MONETIZATION_NOT_APPROVED = 'MONETIZATION_NOT_APPROVED',
-  MONETIZATION_APPLICATION_NOT_OPEN = 'MONETIZATION_APPLICATION_NOT_OPEN',
-  MONETIZATION_REVIEW_NOT_ALLOWED = 'MONETIZATION_REVIEW_NOT_ALLOWED',
-  // An account is not deleted while one of its payout accounts holds money,
-  // nor while that cannot be known.
-  ACCOUNT_HOLDS_BALANCE = 'ACCOUNT_HOLDS_BALANCE',
-  PAYOUT_BALANCE_UNKNOWN = 'PAYOUT_BALANCE_UNKNOWN',
   // Staff paused new payments (the payments_enabled setting is off).
   PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
-  // Charging for anything needs a verified identity of someone 18 or older.
-  MONETIZATION_UNDER_AGE = 'MONETIZATION_UNDER_AGE',
   // Paying for anything needs a verified identity of someone 18 or older.
   PAYER_UNDER_AGE = 'PAYER_UNDER_AGE',
-  // Messages are no longer sold: none can be sent with a price, and none
-  // sent before can be bought now.
-  PAID_MESSAGES_UNAVAILABLE = 'PAID_MESSAGES_UNAVAILABLE',
-  // A tip is always for a post, at one of TIP_AMOUNTS_CENTS.
-  TIP_TARGET_REQUIRED = 'TIP_TARGET_REQUIRED',
-  TIP_AMOUNT_NOT_ALLOWED = 'TIP_AMOUNT_NOT_ALLOWED',
-  // Tips and live gifts of one person in seven days reached the limit.
-  WEEKLY_SUPPORT_LIMIT_REACHED = 'WEEKLY_SUPPORT_LIMIT_REACHED',
 
   // Posts & Media
   POST_NOT_FOUND = 'POST_NOT_FOUND',
@@ -100,7 +73,7 @@ export enum ErrorCode {
   FAVORITES_FULL = 'FAVORITES_FULL',
   // Only a Profile one follows can be a Favorite.
   FAVORITE_NOT_FOLLOWED = 'FAVORITE_NOT_FOLLOWED',
-  // Only a public, unpaid post that is shown can carry a collaborator, and
+  // Only a public post that is shown can carry a collaborator, and
   // never its own author.
   COLLAB_NOT_ALLOWED = 'COLLAB_NOT_ALLOWED',
   // A post already has its one collaborator, invited or accepted.
@@ -113,15 +86,13 @@ export enum ErrorCode {
   // A notice from the app in a chat, such as someone becoming admin: it
   // cannot be edited, deleted, reacted to, replied to or reported.
   MESSAGE_IS_NOTICE = 'MESSAGE_IS_NOTICE',
-  // Only a member's text or a shared post can be forwarded: never a paid
-  // message, a deleted one, a file, a voice note or a story.
+  // Only a member's text or a shared post can be forwarded: never a deleted
+  // message, a file, a voice note or a story.
   MESSAGE_NOT_FORWARDABLE = 'MESSAGE_NOT_FORWARDABLE',
   // The member named to be a group admin may not be one: not in the group,
   // has not accepted it, or their account is not active.
   GROUP_ADMIN_NOT_ELIGIBLE = 'GROUP_ADMIN_NOT_ELIGIBLE',
   INVALID_MEDIA_PATH = 'INVALID_MEDIA_PATH',
-  PREMIUM_CONTENT_LOCKED = 'PREMIUM_CONTENT_LOCKED',
-  PREMIUM_PRICE_OUT_OF_RANGE = 'PREMIUM_PRICE_OUT_OF_RANGE',
   CONTENT_BLOCKED_BY_MODERATION = 'CONTENT_BLOCKED_BY_MODERATION',
   MEDIA_ACCESS_DENIED = 'MEDIA_ACCESS_DENIED',
   // A stored file that the sending Profile did not upload.
@@ -161,8 +132,6 @@ export enum ErrorCode {
   NOT_A_LIVE_GUEST = 'NOT_A_LIVE_GUEST',
   // The host asks to watch their own live, where they are on air.
   ALREADY_ON_AIR = 'ALREADY_ON_AIR',
-  CANNOT_GIFT_SELF = 'CANNOT_GIFT_SELF',
-  GIFT_NOT_FOUND = 'GIFT_NOT_FOUND',
   CANNOT_RECONNECT_GUEST = 'CANNOT_RECONNECT_GUEST',
   LIVE_STREAMS_DISABLED = 'LIVE_STREAMS_DISABLED',
   // The broadcast is still on, or its recording is not ready (or gone).
@@ -207,8 +176,7 @@ export enum ErrorCode {
   REGISTRATION_CLOSED = 'REGISTRATION_CLOSED',
   CONTENT_POSTING_DISABLED = 'CONTENT_POSTING_DISABLED',
   EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED',
-  // A purchase or payout action from an account whose identity is not
-  // verified yet.
+  // A purchase from an account whose identity is not verified yet.
   IDENTITY_VERIFICATION_REQUIRED = 'IDENTITY_VERIFICATION_REQUIRED',
   // The action is part of a platform plan the Profile does not have.
   PLAN_REQUIRED = 'PLAN_REQUIRED',

@@ -34,7 +34,6 @@ describe('PostTagsService', () => {
       id,
       profileId: `author-${id}`,
       caption: `caption ${id}`,
-      isPremium: false,
       contentRating: 'GENERAL',
       visibility: 'PUBLIC',
       moderationStatus: 'VISIBLE',
@@ -165,21 +164,6 @@ describe('PostTagsService', () => {
       caption: 'caption m',
       thumbnailUrl: 'https://cdn/m.jpg',
     });
-  });
-
-  it('never shows a picture of a paid post', async () => {
-    prisma.postTag.findMany.mockResolvedValue([
-      row('paid', {
-        isPremium: true,
-        media: [{ thumbnailUrl: 'https://cdn/t.jpg', url: 'x', type: 'image' }],
-      }),
-    ]);
-
-    const { data } = await service.list('me', 'SHOWN');
-
-    expect(data[0].post.thumbnailUrl).toBeNull();
-    expect(data[0].post).not.toHaveProperty('isPremium');
-    expect(data[0].post).not.toHaveProperty('media');
   });
 
   it('approves only a tag of its own that is waiting', async () => {

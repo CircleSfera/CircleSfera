@@ -2,7 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   IsArray,
-  IsBoolean,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -119,15 +118,4 @@ export class SendMessageDto {
   @Max(1, { each: true })
   @IsOptional()
   voiceWaveform?: number[];
-
-  @ApiProperty({ required: false, type: () => Boolean })
-  @IsBoolean()
-  @IsOptional()
-  isLocked?: boolean;
-
-  @ApiProperty({ required: false, type: () => Number, minimum: 0 })
-  @IsInt()
-  @Min(0)
-  @IsOptional()
-  priceCents?: number;
 }

@@ -1,22 +1,9 @@
-import { ErrorCode } from '@circlesfera/shared';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { assertCanAccessPost } from '../../../common/policies/post-access.policy.js';
 import { assertCanAccessStory } from '../../../common/policies/story-access.policy.js';
 import type { CryptoService } from '../../../common/services/crypto.service.js';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  FULL_URL,
-  inlinePaidMedia,
-  PAID_POST_ID,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../../../common/testing/paid-posts.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import type { PushService } from '../../../push/push.service.js';
 import { SendMessageUseCase } from './send-message.use-case.js';
@@ -122,7 +109,6 @@ describe('SendMessageUseCase', () => {
         recordText: vi.fn().mockResolvedValue(undefined),
       } as never,
       storedFiles as never,
-      realPaywall(),
       hiddenWords as never,
       giphy as never,
     );
@@ -796,8 +782,6 @@ describe('SendMessageUseCase', () => {
         undefined,
         undefined,
         undefined,
-        undefined,
-        undefined,
         { gifId: 'abc123' },
       );
 
@@ -1059,40 +1043,6 @@ describe('SendMessageUseCase', () => {
     expect(result.content).toBe('Test');
   });
 
-  describe('paid messages', () => {
-    // Messages are no longer sold: one with a price is refused before the
-    // conversation is touched, whoever sends it.
-    const send = (isLocked?: boolean, priceCents?: number) =>
-      useCase.execute(
-        'sender-1',
-        undefined,
-        'Hello',
-        undefined,
-        undefined,
-        'conv-1',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        isLocked,
-        priceCents,
-      );
-
-    it.each([
-      ['marked as locked', true, 500],
-      ['marked as locked, with no price', true, undefined],
-      ['with only a price', undefined, 500],
-    ])('refuses a message %s', async (_case, isLocked, priceCents) => {
-      await expect(send(isLocked, priceCents)).rejects.toMatchObject({
-        errorCode: ErrorCode.PAID_MESSAGES_UNAVAILABLE,
-      });
-      expect(mockTx.conversation.findUnique).not.toHaveBeenCalled();
-    });
-  });
-
   describe('sharing a post or story', () => {
     const conversation = {
       id: 'conv-1',
@@ -1168,52 +1118,34 @@ describe('SendMessageUseCase', () => {
         ],
       });
 
-    it('gives a paid post back closed to a sender who has not unlocked it', async () => {
-      sentBy(STRANGER_ID);
+    it('gives a shared post back as it is, to the sender and over the socket', async () => {
+      sentBy('sender-1');
+      const post = {
+        id: 'post-1',
+        profileId: 'author-1',
+        media: [{ url: 'https://files.example/full.jpg' }],
+      };
       mockTx.message.create.mockResolvedValue({
         id: 'm1',
-        sender: { id: STRANGER_ID, username: 's' },
-        post: paidPost([inlinePaidMedia()]),
+        sender: { id: 'sender-1', username: 's' },
+        post,
       });
       const sent = await useCase.execute(
-        STRANGER_ID,
+        'sender-1',
         undefined,
         'Look',
         undefined,
         undefined,
         'conv-1',
         undefined,
-        PAID_POST_ID,
+        'post-1',
       );
 
-      expectClosed((sent as any).post);
-      // Every member gets the post from the socket, as each may see it.
+      expect((sent as any).post).toEqual(post);
       const event = mockEventEmitter.emit.mock.calls.find(
         ([name]) => name === 'chat.message.sent',
       )?.[1];
-      expect(JSON.stringify(event.payload.post)).toContain(FULL_URL);
-    });
-
-    it('gives a paid post back whole to its author and to a sender who unlocked it', async () => {
-      for (const sender of [AUTHOR_ID, BUYER_ID]) {
-        sentBy(sender);
-        mockTx.message.create.mockResolvedValueOnce({
-          id: 'm1',
-          sender: { id: sender, username: 's' },
-          post: paidPost([inlinePaidMedia()]),
-        });
-        const sent = await useCase.execute(
-          sender,
-          undefined,
-          'Look',
-          undefined,
-          undefined,
-          'conv-1',
-          undefined,
-          PAID_POST_ID,
-        );
-        expectWhole((sent as any).post);
-      }
+      expect(event.payload.post).toEqual(post);
     });
 
     it('checks nothing for a message that shares nothing', async () => {

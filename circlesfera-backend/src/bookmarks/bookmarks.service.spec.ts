@@ -2,17 +2,6 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LISTED_POST } from '../common/policies/removed-content.policy.js';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  inlinePaidMedia,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../common/testing/paid-posts.js';
-import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { BookmarksService } from './bookmarks.service.js';
 
@@ -45,7 +34,6 @@ describe('BookmarksService', () => {
       providers: [
         BookmarksService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: PostPaywallService, useValue: realPaywall() },
       ],
     }).compile();
 
@@ -395,37 +383,6 @@ describe('BookmarksService', () => {
           { visibility: 'PUBLIC' },
           { visibility: 'FOLLOWERS', profile: follows },
         ]);
-      });
-    }
-  });
-
-  describe('a saved paid post', () => {
-    const lists = {
-      saved: (saver: string) => service.getBookmarks(saver),
-      collection: (saver: string) => service.getByCollection(saver, 'col-1'),
-    };
-
-    const savedBy = async (list: keyof typeof lists, saver: string) => {
-      mockPrismaService.collection.findUnique.mockResolvedValueOnce({
-        id: 'col-1',
-        name: 'Saved',
-        profileId: saver,
-      });
-      mockPrismaService.bookmark.findMany.mockResolvedValueOnce([
-        { id: 'b-paid', post: paidPost([inlinePaidMedia()]) },
-      ]);
-      mockPrismaService.bookmark.count.mockResolvedValueOnce(1);
-      return (await lists[list](saver)).data[0];
-    };
-
-    for (const list of Object.keys(lists) as Array<keyof typeof lists>) {
-      it(`${list}: is closed to someone who saved it without unlocking it`, async () => {
-        expectClosed(await savedBy(list, STRANGER_ID));
-      });
-
-      it(`${list}: is whole for its author and for someone who unlocked it`, async () => {
-        expectWhole(await savedBy(list, AUTHOR_ID));
-        expectWhole(await savedBy(list, BUYER_ID));
       });
     }
   });

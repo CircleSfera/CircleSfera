@@ -1,17 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  inlinePaidMedia,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../common/testing/paid-posts.js';
-import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AudioService } from './audio.service.js';
 
@@ -39,7 +28,6 @@ describe('AudioService', () => {
       providers: [
         AudioService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: PostPaywallService, useValue: realPaywall() },
       ],
     }).compile();
 
@@ -253,25 +241,6 @@ describe('AudioService', () => {
         NotFoundException,
       );
       expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('a paid post using the sound', () => {
-    const postsFor = async (viewer?: string) => {
-      mockPrismaService.post.findMany.mockResolvedValueOnce([
-        paidPost([inlinePaidMedia()]),
-      ]);
-      mockPrismaService.audio.findUnique.mockResolvedValue({ id: 'audio-1' });
-      return (await service.getAudioPosts('audio-1', {}, viewer)).data[0];
-    };
-
-    it('is closed to a viewer who has not unlocked it', async () => {
-      expectClosed(await postsFor(STRANGER_ID));
-    });
-
-    it('is whole for its author and for someone who unlocked it', async () => {
-      expectWhole(await postsFor(AUTHOR_ID));
-      expectWhole(await postsFor(BUYER_ID));
     });
   });
 

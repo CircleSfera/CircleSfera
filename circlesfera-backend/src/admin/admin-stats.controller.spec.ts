@@ -32,8 +32,6 @@ describe('AdminStatsController', () => {
     getActivityChart: vi.fn(),
     getTopUsers: vi.fn(),
     getMonetizationAnalytics: vi.fn(),
-    getPayoutStats: vi.fn(),
-    getPayouts: vi.fn(),
     getTransactions: vi.fn(),
   };
 
@@ -78,11 +76,10 @@ describe('AdminStatsController', () => {
     expect(mockService.getEnhancedStats).not.toHaveBeenCalled();
   });
 
-  it('reads stats, top users, monetization and payout stats', async () => {
+  it('reads stats, top users and the plan revenue', async () => {
     mockService.getEnhancedStats.mockResolvedValue({});
     mockService.getTopUsers.mockResolvedValue([]);
     mockService.getMonetizationAnalytics.mockResolvedValue({});
-    mockService.getPayoutStats.mockResolvedValue({});
 
     await request(app.getHttpServer())
       .get('/api/v1/admin/stats/enhanced')
@@ -96,15 +93,10 @@ describe('AdminStatsController', () => {
       .get('/api/v1/admin/analytics/monetization')
       .set(ADMIN_BEARER)
       .expect(200);
-    await request(app.getHttpServer())
-      .get('/api/v1/admin/payouts/stats')
-      .set(ADMIN_BEARER)
-      .expect(200);
 
     expect(mockService.getEnhancedStats).toHaveBeenCalledWith();
     expect(mockService.getTopUsers).toHaveBeenCalledWith();
     expect(mockService.getMonetizationAnalytics).toHaveBeenCalledWith();
-    expect(mockService.getPayoutStats).toHaveBeenCalledWith();
   });
 
   it('reads the recurring income kept day by day, for the days asked or the usual ones', async () => {
@@ -253,19 +245,9 @@ describe('AdminStatsController', () => {
     expect(mockService.getActivityChart).toHaveBeenNthCalledWith(2, 7);
   });
 
-  it('lists payouts and transactions with defaults', async () => {
-    mockService.getPayouts.mockResolvedValue({ data: [] });
+  it('lists transactions with defaults', async () => {
     mockService.getTransactions.mockResolvedValue({ data: [] });
 
-    await request(app.getHttpServer())
-      .get('/api/v1/admin/payouts')
-      .set(ADMIN_BEARER)
-      .expect(200);
-    await request(app.getHttpServer())
-      .get('/api/v1/admin/payouts')
-      .query({ page: 2, limit: 10, status: 'paid', search: 'ada' })
-      .set(ADMIN_BEARER)
-      .expect(200);
     await request(app.getHttpServer())
       .get('/api/v1/admin/transactions')
       .set(ADMIN_BEARER)
@@ -276,25 +258,11 @@ describe('AdminStatsController', () => {
         page: 3,
         limit: 15,
         status: 'COMPLETED',
-        search: 'tip',
+        search: 'promo',
       })
       .set(ADMIN_BEARER)
       .expect(200);
 
-    expect(mockService.getPayouts).toHaveBeenNthCalledWith(
-      1,
-      1,
-      20,
-      undefined,
-      undefined,
-    );
-    expect(mockService.getPayouts).toHaveBeenNthCalledWith(
-      2,
-      2,
-      10,
-      'paid',
-      'ada',
-    );
     expect(mockService.getTransactions).toHaveBeenNthCalledWith(
       1,
       1,
@@ -307,7 +275,7 @@ describe('AdminStatsController', () => {
       3,
       15,
       'COMPLETED',
-      'tip',
+      'promo',
     );
   });
 });

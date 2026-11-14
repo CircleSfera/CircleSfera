@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AnalyticsModule } from '../analytics/analytics.module.js';
 import { StripeModule } from '../common/stripe/stripe.module.js';
-import { MonetizationModule } from '../monetization/monetization.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { CreatorController } from './creator.controller.js';
 
@@ -9,7 +8,6 @@ import { CreatorController } from './creator.controller.js';
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
 import { GetAudienceRetentionQuery } from './use-cases/analytics/queries/get-audience-retention.query.js';
 import { GetCreatorStatsQuery } from './use-cases/analytics/queries/get-creator-stats.query.js';
-import { GetRevenueAnalyticsQuery } from './use-cases/analytics/queries/get-revenue-analytics.query.js';
 import { GetTopContentQuery } from './use-cases/analytics/queries/get-top-content.query.js';
 
 // Content
@@ -24,12 +22,11 @@ import { RefundPromotionUseCase } from './use-cases/promotions/commands/refund-p
 import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotions.query.js';
 
 @Module({
-  imports: [PrismaModule, AnalyticsModule, MonetizationModule, StripeModule],
+  imports: [PrismaModule, AnalyticsModule, StripeModule],
   controllers: [CreatorController],
   providers: [
     // Analytics
     GetCreatorStatsQuery,
-    GetRevenueAnalyticsQuery,
     GetAudienceRetentionQuery,
     GetTopContentQuery,
     ExportAnalyticsCsvUseCase,

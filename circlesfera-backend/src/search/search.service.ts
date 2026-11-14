@@ -21,10 +21,6 @@ import {
   isTestViewerProfile,
 } from '../common/policies/test-account.policy.js';
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
-import {
-  type PaywallPost,
-  PostPaywallService,
-} from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   USER_HARD_DELETED_EVENT,
@@ -67,17 +63,15 @@ export class SearchService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @Inject(AIService) private readonly aiService: AIService,
-    @Inject(PostPaywallService)
-    private readonly postPaywall: PostPaywallService,
   ) {}
 
   // AI-powered semantic search for posts.
   // Uses vector similarity to find content that matches the concept of the query,
   // Even if exact keywords aren't present.
   // Posts as this viewer asked to see sensitive content: mature ones only if
-  // allowed (their own always), each marked when it shows blurred. A paid
-  // post the viewer has not unlocked is closed. The lists are cached for
-  // everyone, so both apply to each viewer after the cache.
+  // allowed (their own always), each marked when it shows blurred. The
+  // lists are cached for everyone, so this applies to each viewer after the
+  // cache.
   private async forViewer<
     T extends { contentRating?: string | null; profileId?: string },
   >(
@@ -85,7 +79,7 @@ export class SearchService {
     viewerId?: string,
   ): Promise<Array<T & { shouldBlurSensitive: boolean }>> {
     const content = await loadViewerContent(this.prisma, viewerId);
-    const shown = posts
+    return posts
       .filter(
         (p) =>
           content.allowMature ||
@@ -96,10 +90,6 @@ export class SearchService {
         ...p,
         shouldBlurSensitive: shouldBlur(p, content, viewerId),
       }));
-    return (await this.postPaywall.applyPaywall(
-      shown as unknown as PaywallPost[],
-      viewerId,
-    )) as unknown as Array<T & { shouldBlurSensitive: boolean }>;
   }
 
   async semanticSearchPosts(

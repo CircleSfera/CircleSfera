@@ -16,8 +16,6 @@ interface FakeMessage extends Files {
   voiceUrl?: string | null;
   media?: Files | null;
   voiceMedia?: Files | null;
-  isLocked?: boolean;
-  unlocked?: boolean;
   reports?: Array<{ status: string; resolvedAt: Date | null }>;
 }
 
@@ -40,7 +38,6 @@ function mayBeErased(c: FakeConversation, since: Date): boolean {
   const messages = c.messages ?? [];
   return (
     c.rows.every((deletedAt) => deletedAt !== null) &&
-    !messages.some((m) => m.isLocked || m.unlocked) &&
     !messages.some((m) =>
       (m.reports ?? []).some(
         (r) =>
@@ -96,9 +93,7 @@ function fakeDatabase(conversations: FakeConversation[]) {
             )
             .sort((a, b) => (a.id as string).localeCompare(b.id as string))
             .slice(0, args.take)
-            .map(
-              ({ isLocked: _l, unlocked: _u, reports: _r, ...files }) => files,
-            ),
+            .map(({ reports: _r, ...files }) => files),
       ),
     },
     $queryRaw: vi.fn(
@@ -207,8 +202,6 @@ describe('EndedConversationsErasureService', () => {
     });
 
     it.each<[string, FakeMessage, boolean]>([
-      ['a paid message', { isLocked: true }, false],
-      ['a message someone paid to unlock', { unlocked: true }, false],
       [
         'a message reported and not reviewed yet',
         { reports: [resolved('PENDING', null)] },
@@ -234,7 +227,7 @@ describe('EndedConversationsErasureService', () => {
         { reports: [resolved('REJECTED', new Date('2026-04-01T00:00:00Z'))] },
         true,
       ],
-      ['nothing, for a message nobody paid for nor reported', {}, true],
+      ['nothing, for a message nobody reported', {}, true],
     ])('%s: erased %s', async (_name, message, erased) => {
       const { service, live } = serviceOver([
         { id: 'c-1', rows: [removed, removed], messages: [message] },

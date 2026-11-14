@@ -11,7 +11,6 @@ import { AppException } from '../common/errors/app.exception.js';
 import { assertAdultPayer } from '../common/policies/adult-payer.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
-  type ConnectAccountCompanyFields,
   classifyStripeError,
   StripeService,
 } from '../common/stripe/stripe.service.js';
@@ -20,14 +19,14 @@ import {
   subscriptionPeriod,
 } from '../common/stripe/subscription-period.js';
 import { EmailService } from '../email/email.service.js';
-import {
-  isMonetizationCheckoutType,
-  MonetizationWebhookService,
-  type StripeDisputePayload,
-  type StripeRefundedCharge,
-} from '../monetization/monetization-webhook.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
+import {
+  isOneTimeCheckoutType,
+  PaymentEventsService,
+  type StripeDisputePayload,
+  type StripeRefundedCharge,
+} from './payment-events.service.js';
 
 export const WEBHOOK_LEASE_DURATION_MS = 2 * 60 * 1000; // 2 minutes lease duration
 
@@ -74,8 +73,8 @@ export class PaymentsService {
     @Inject(StripeService) private readonly stripeService: StripeService,
     @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(UsersService) private readonly usersService: UsersService,
-    @Inject(MonetizationWebhookService)
-    private readonly monetizationWebhookService: MonetizationWebhookService,
+    @Inject(PaymentEventsService)
+    private readonly paymentEvents: PaymentEventsService,
     private readonly eventEmitter: EventEmitter2,
     @Optional()
     @Inject(ConfigService)
@@ -574,10 +573,10 @@ export class PaymentsService {
         named.id,
       )) as unknown as StripeSubscriptionState;
     } catch (err) {
-      // Only a subscription the provider does not hold here (one of a
-      // connected account's) falls back to the notice's copy. Any other
-      // failure (network, rate limit) is thrown, so the notice is tried
-      // again later rather than writing a state that may be stale.
+      // Only a subscription the provider does not hold here falls back to
+      // the notice's copy. Any other failure (network, rate limit) is
+      // thrown, so the notice is tried again later rather than writing a
+      // state that may be stale.
       if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') {
         throw err;
       }
@@ -933,14 +932,13 @@ export class PaymentsService {
   // Mirrors a dispute. Who was charged is read from the provider only when
   // the dispute cannot be tied to an account otherwise; a provider that does
   // not answer never loses the dispute.
-  // A dispute of a payment to a creator is on the creator's account.
-  private async syncDispute(dispute: StripeDisputePayload, account?: string) {
+  private async syncDispute(dispute: StripeDisputePayload) {
     const chargeId =
       typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id;
-    await this.monetizationWebhookService.syncDispute(dispute, async () => {
+    await this.paymentEvents.syncDispute(dispute, async () => {
       if (!chargeId) return undefined;
       try {
-        return await this.stripeService.getChargeCustomerId(chargeId, account);
+        return await this.stripeService.getChargeCustomerId(chargeId);
       } catch {
         this.logger.warn(
           `The customer of the charge of dispute ${dispute.id} could not be read`,
@@ -972,23 +970,16 @@ export class PaymentsService {
           );
         }
 
-        // Creator monetization (post/story/message unlocks, tips, live
-        // gifts, promotions) is fulfilled by MonetizationWebhookService —
-        // an independent application boundary from platform subscription
-        // billing below. Both share this webhook's signature
-        // verification and WebhookEvent idempotency bookkeeping.
-        // A payment to a creator is made on the creator's account, which
-        // the notice names.
-        if (isMonetizationCheckoutType(metadata?.type)) {
-          await this.monetizationWebhookService.handleCheckoutSessionCompleted(
-            session,
-            event.account,
-          );
-        } else if (event.account) {
-          // Nothing else is sold on a creator's account.
+        // A checkout made on another account than CircleSfera's is never
+        // CircleSfera's sale: it is ignored. Promotions are fulfilled by
+        // PaymentEventsService; plans below. Both share this webhook's
+        // signature verification and WebhookEvent idempotency bookkeeping.
+        if (event.account) {
           this.logger.warn(
-            `Checkout ${session.id} on account ${event.account} is not a payment to a creator; ignored`,
+            `Checkout ${session.id} on account ${event.account} is not CircleSfera's; ignored`,
           );
+        } else if (isOneTimeCheckoutType(metadata?.type)) {
+          await this.paymentEvents.handleCheckoutSessionCompleted(session);
         } else {
           // Handle Subscriptions (Existing logic)
           const userId = metadata?.userId;
@@ -1113,9 +1104,7 @@ export class PaymentsService {
       }
 
       case 'checkout.session.expired': {
-        await this.monetizationWebhookService.handleCheckoutSessionExpired(
-          data.object,
-        );
+        await this.paymentEvents.handleCheckoutSessionExpired(data.object);
         break;
       }
 
@@ -1147,7 +1136,7 @@ export class PaymentsService {
       }
 
       case 'charge.refunded': {
-        await this.monetizationWebhookService.handleChargeRefunded(
+        await this.paymentEvents.handleChargeRefunded(
           data.object as StripeRefundedCharge,
         );
         break;
@@ -1157,28 +1146,8 @@ export class PaymentsService {
       case 'charge.dispute.updated':
       case 'charge.dispute.closed': {
         const dispute = data.object as StripeDisputePayload;
-        await this.syncDispute(dispute, event.account);
-        await this.monetizationWebhookService.applyDisputeToPayment(dispute);
-        break;
-      }
-
-      case 'payout.created':
-      case 'payout.updated':
-      case 'payout.paid':
-      case 'payout.failed':
-      case 'payout.canceled': {
-        await this.monetizationWebhookService.syncConnectPayoutLog(event);
-        break;
-      }
-
-      case 'account.updated': {
-        await this.monetizationWebhookService.handleAccountUpdated(
-          data.object as {
-            id: string;
-            charges_enabled?: boolean;
-            capabilities?: { transfers?: string; card_payments?: string };
-          } & ConnectAccountCompanyFields,
-        );
+        await this.syncDispute(dispute);
+        await this.paymentEvents.applyDisputeToPayment(dispute);
         break;
       }
 

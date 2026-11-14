@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PromotionStatus } from '@prisma/client';
-import { eurosToCents } from '../../../../common/constants/monetization.constants.js';
+import { eurosToCents } from '../../../../common/constants/promotion.constants.js';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { RefundPromotionUseCase } from './refund-promotion.use-case.js';

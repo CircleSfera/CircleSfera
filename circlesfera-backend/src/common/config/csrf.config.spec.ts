@@ -48,6 +48,6 @@ describe('isCsrfExempt', () => {
 
   it('asks every other route for a token', () => {
     expect(isCsrfExempt('/api/v1/posts')).toBe(false);
-    expect(isCsrfExempt('/api/v1/monetization/connect/onboarding')).toBe(false);
+    expect(isCsrfExempt('/api/v1/payments/checkout')).toBe(false);
   });
 });

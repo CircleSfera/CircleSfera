@@ -105,7 +105,6 @@ describe('Public responses never carry account-level User columns (e2e)', () => 
     twoFactorSecret: `sentinel-2fa-${id}`,
     signupIp: `203.0.113.${(id.length % 200) + 1}`,
     stripeCustomerId: `cus_sentinel_${id}`,
-    stripeConnectAccountId: `acct_sentinel_${id}`,
   };
   const marker = `probe${id.replace(/[^a-z0-9]/gi, '').toLowerCase()}`;
 
@@ -184,15 +183,6 @@ describe('Public responses never carry account-level User columns (e2e)', () => 
         lastIp: sentinels.signupIp,
         stripeCustomerId: sentinels.stripeCustomerId,
       },
-    });
-    // The payout account is kept on the person's payout row.
-    await prisma.monetization.upsert({
-      where: { userId: author.user.id },
-      create: {
-        userId: author.user.id,
-        stripeConnectAccountId: sentinels.stripeConnectAccountId,
-      },
-      update: { stripeConnectAccountId: sentinels.stripeConnectAccountId },
     });
 
     const post = await createPost(prisma, author.profile.id, {
@@ -323,13 +313,6 @@ describe('Public responses never carry account-level User columns (e2e)', () => 
   const ownDataRoutes = (): string[] => [
     '/profiles/my-profiles',
     '/profiles/me',
-    '/monetization',
-    '/monetization/transactions',
-    '/monetization/status',
-    '/monetization/dashboard',
-    '/monetization/payouts',
-    '/monetization/analytics/income',
-    '/monetization/analytics/summary',
   ];
 
   it('does not leak account-level columns on any read route', async () => {

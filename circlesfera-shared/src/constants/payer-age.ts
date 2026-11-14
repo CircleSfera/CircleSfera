@@ -1,10 +1,9 @@
 /**
- * The youngest a person may be to charge for anything on CircleSfera (tips,
- * paid posts and stories, live gifts): 18, by the date of birth on the
- * document verified with the identity provider. The app itself is open from
- * a younger age.
+ * The youngest a person may be to pay for anything on CircleSfera (Platform
+ * Plans and promotions): 18, by the date of birth on the document verified
+ * with the identity provider. The app itself is open from a younger age.
  */
-export const MONETIZATION_MIN_AGE = 18;
+export const PAYER_MIN_AGE = 18;
 
 /** A person's age in whole years on a day, from their date of birth. */
 export function ageOn(dateOfBirth: Date, day: Date = new Date()): number {

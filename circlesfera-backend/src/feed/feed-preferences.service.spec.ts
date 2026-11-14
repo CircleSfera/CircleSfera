@@ -1,15 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  FULL_URL,
-  inlinePaidMedia,
-  PAID_POST_ID,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../common/testing/paid-posts.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { FeedPreferencesService } from './feed-preferences.service.js';
 
@@ -67,7 +57,6 @@ describe('FeedPreferencesService', () => {
 
     service = new FeedPreferencesService(
       mockPrisma as unknown as PrismaService,
-      realPaywall(),
     );
   });
 
@@ -265,43 +254,6 @@ describe('FeedPreferencesService', () => {
       expect(res.hiddenPosts[3].thumbnailUrl).toBeNull();
       expect(res.hiddenAuthors).toHaveLength(1);
       expect(res.mutedKeywords).toHaveLength(1);
-    });
-  });
-
-  describe('a hidden paid post', () => {
-    const row = () => ({
-      id: 'h1',
-      postId: PAID_POST_ID,
-      createdAt: new Date(),
-      post: paidPost(
-        [{ ...inlinePaidMedia(), thumbnailUrl: `${FULL_URL}.thumb` }],
-        { profile: { username: 'author', avatar: null } },
-      ),
-    });
-
-    const listsFor = async (viewer: string) => {
-      mockPrisma.feedHiddenPost.findMany
-        .mockResolvedValueOnce([row()])
-        .mockResolvedValueOnce([row()]);
-      const all = await service.listPreferences(viewer);
-      const page = await service.listPage(viewer, 'hidden-posts');
-      return [all.hiddenPosts[0], page.items[0]] as Array<{
-        thumbnailUrl: string | null;
-      }>;
-    };
-
-    it('shows no picture to a viewer who has not unlocked it', async () => {
-      for (const item of await listsFor(STRANGER_ID)) {
-        expect(item.thumbnailUrl).toBeNull();
-      }
-    });
-
-    it('shows its picture to its author and to someone who unlocked it', async () => {
-      for (const viewer of [AUTHOR_ID, BUYER_ID]) {
-        for (const item of await listsFor(viewer)) {
-          expect(item.thumbnailUrl).toBe(`${FULL_URL}.thumb`);
-        }
-      }
     });
   });
 

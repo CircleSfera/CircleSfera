@@ -11,16 +11,6 @@ import { ContentRating, Visibility } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
-import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  linkedPaidMedia,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../common/testing/paid-posts.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StudioTemplatesService } from '../studio-templates/studio-templates.service.js';
@@ -30,10 +20,6 @@ import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import {
-  type PaywallPost,
-  PostPaywallService,
-} from './services/post-paywall.service.js';
 
 // Every file in these tests is the sending Profile's own unless a test says so.
 const mockStoredFiles = {
@@ -53,13 +39,7 @@ describe('PostsService', () => {
   const mockPrismaService = {
     user: {
       findMany: vi.fn().mockResolvedValue([]),
-      // The author of a priced post or story is an adult with a verified
-      // identity, unless a test says otherwise.
-      findUnique: vi.fn().mockResolvedValue({
-        identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
-        dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
-        dateOfBirthVerified: true,
-      }),
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     adminIdentity: { findUnique: vi.fn().mockResolvedValue(null) },
     block: {
@@ -124,10 +104,6 @@ describe('PostsService', () => {
     }),
   };
 
-  const mockPostPaywallService = {
-    applyPaywall: vi.fn(async (posts: unknown[], _viewerId?: string) => posts),
-  };
-
   const mockPostDistributionService = {
     dispatchPostPublished: vi.fn().mockResolvedValue(undefined),
     moderateEditedCaption: vi.fn().mockResolvedValue(undefined),
@@ -168,7 +144,6 @@ describe('PostsService', () => {
           provide: SystemSettingsService,
           useValue: mockSystemSettingsService,
         },
-        { provide: PostPaywallService, useValue: mockPostPaywallService },
         {
           provide: PostDistributionService,
           useValue: mockPostDistributionService,
@@ -256,93 +231,6 @@ describe('PostsService', () => {
       );
       expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
       expect(mockFrameCover.chooseImage).not.toHaveBeenCalled();
-    });
-
-    it('takes no price from an author under 18, saying why', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
-        accountType: 'CREATOR',
-        monetizationStatus: 'APPROVED',
-        userId: 'user-1',
-      });
-      mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        identityVerifiedAt: new Date(),
-        dateOfBirth: new Date(new Date().getFullYear() - 17, 0, 1),
-      });
-
-      await expect(
-        service.create('user-1', { isPremium: true, priceCents: 500 }),
-      ).rejects.toMatchObject({
-        status: 403,
-        response: expect.objectContaining({
-          errorCode: 'MONETIZATION_UNDER_AGE',
-        }),
-      });
-    });
-
-    it('takes no price from a Profile staff have not approved', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
-        accountType: 'CREATOR',
-        monetizationStatus: 'PENDING',
-        userId: 'user-1',
-      });
-
-      await expect(
-        service.create('user-1', { isPremium: true, priceCents: 500 }),
-      ).rejects.toMatchObject({
-        status: 403,
-        response: expect.objectContaining({
-          errorCode: 'MONETIZATION_NOT_APPROVED',
-        }),
-      });
-    });
-
-    it('validates premium price bounds when isPremium is true', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
-        accountType: 'CREATOR',
-        monetizationStatus: 'APPROVED',
-      });
-
-      await expect(
-        service.create('user-1', { isPremium: true, priceCents: 50 }),
-      ).rejects.toMatchObject({
-        status: 400,
-        response: expect.objectContaining({
-          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
-        }),
-      });
-
-      await expect(
-        service.create('user-1', { isPremium: true, priceCents: 200000 }),
-      ).rejects.toMatchObject({
-        status: 400,
-        response: expect.objectContaining({
-          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
-        }),
-      });
-
-      await expect(
-        service.create('user-1', { isPremium: true }),
-      ).rejects.toMatchObject({
-        status: 400,
-        response: expect.objectContaining({
-          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
-        }),
-      });
-    });
-
-    it('rejects premium posts from PERSONAL accounts', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        accountType: 'PERSONAL',
-      });
-
-      await expect(
-        service.create('user-1', { isPremium: true, priceCents: 500 }),
-      ).rejects.toMatchObject({
-        status: 403,
-        response: expect.objectContaining({
-          errorCode: 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
-        }),
-      });
     });
 
     it('validates audio track exists and resolves offset when audioId provided', async () => {
@@ -848,8 +736,6 @@ describe('PostsService', () => {
           { profileId: 'approving-user', x: 0.3, y: 0.4 },
           { profileId: 'closed-user', x: 0.5, y: 0.6 },
         ],
-        isPremium: true,
-        priceCents: 500,
         contentRating: ContentRating.GENERAL,
         visibility: Visibility.PUBLIC,
       };
@@ -880,10 +766,6 @@ describe('PostsService', () => {
           callback(mockTx as unknown as Partial<PrismaService>),
       );
 
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        accountType: 'CREATOR',
-        monetizationStatus: 'APPROVED',
-      });
       // Who lets the author tag them, and who approves tags by hand.
       mockPrismaService.profile.findMany.mockResolvedValueOnce([
         { id: 'tagged-user', tagsFrom: 'EVERYONE', manualTagApproval: false },
@@ -1120,7 +1002,6 @@ describe('PostsService', () => {
       );
       expect(result.data).toHaveLength(1);
       expect(result.meta.total).toBe(1);
-      expect(mockPostPaywallService.applyPaywall).toHaveBeenCalled();
       expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { likes: { _count: 'desc' } },
@@ -1234,7 +1115,6 @@ describe('PostsService', () => {
       );
 
       expect(result.data).toHaveLength(1);
-      expect(mockPostPaywallService.applyPaywall).toHaveBeenCalled();
       expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ type: 'FRAME' }),
@@ -1261,12 +1141,11 @@ describe('PostsService', () => {
       );
     });
 
-    it('runs the paywall on the post once its media addresses are resolved, and answers what it gives', async () => {
+    it('answers the post with its media addresses resolved', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
-        id: 'p-paid',
+        id: 'p-1',
         profileId: 'author-1',
         visibility: Visibility.PUBLIC,
-        isPremium: true,
         profile: { id: 'author-1', privacyLevel: Visibility.PUBLIC, user: {} },
         likes: [],
         // As a post is created: the row points at its Media, whose own
@@ -1278,21 +1157,16 @@ describe('PostsService', () => {
           },
         ],
       });
-      const closed = { id: 'p-paid', isLocked: true };
-      mockPostPaywallService.applyPaywall.mockResolvedValueOnce([closed]);
+      const shown = (await service.findOne('p-1', 'viewer-1')) as {
+        media: unknown[];
+        isLocked?: boolean;
+      };
 
-      const shown = await service.findOne('p-paid', 'viewer-1');
-
-      const [[[given], viewer]] =
-        mockPostPaywallService.applyPaywall.mock.calls.slice(-1) as [
-          [[{ media: unknown[] }], string],
-        ];
-      expect(viewer).toBe('viewer-1');
-      expect(given.media[0]).toMatchObject({
+      expect(shown.media[0]).toMatchObject({
         url: '/uploads/a.jpg',
         standardUrl: '/uploads/a.webp',
       });
-      expect(shown).toBe(closed);
+      expect(shown).not.toHaveProperty('isLocked');
     });
 
     it('allows author to view post even if profile is private', async () => {
@@ -2137,44 +2011,6 @@ describe('PostsService', () => {
         }),
       );
     });
-  });
-
-  describe('a paid post in the hashtag and tagged lists', () => {
-    const lists = {
-      hashtag: (viewer?: string) =>
-        service.getByTag('summer', { page: 1, limit: 10 }, viewer),
-      tagged: (viewer?: string) =>
-        service.getTaggedPosts('alice', { page: 1, limit: 10 }, viewer),
-    };
-
-    const listFor = async (list: keyof typeof lists, viewer?: string) => {
-      const paywall = realPaywall();
-      mockPostPaywallService.applyPaywall.mockImplementationOnce(
-        (posts: unknown[], viewerId?: string) =>
-          paywall.applyPaywall(posts as PaywallPost[], viewerId),
-      );
-      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
-        id: 'tagged-profile',
-      });
-      mockPrismaService.post.findMany.mockResolvedValueOnce([
-        paidPost([linkedPaidMedia()], { likes: [] }),
-      ]);
-      mockPrismaService.post.count.mockResolvedValueOnce(1);
-      const result = await lists[list](viewer);
-      return result.data[0];
-    };
-
-    for (const list of Object.keys(lists) as Array<keyof typeof lists>) {
-      it(`${list}: is closed to a viewer who has not unlocked it, and to a guest`, async () => {
-        expectClosed(await listFor(list, STRANGER_ID));
-        expectClosed(await listFor(list));
-      });
-
-      it(`${list}: is whole for its author and for someone who unlocked it`, async () => {
-        expectWhole(await listFor(list, AUTHOR_ID));
-        expectWhole(await listFor(list, BUYER_ID));
-      });
-    }
   });
 
   describe('update', () => {

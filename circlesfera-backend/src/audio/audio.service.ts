@@ -9,18 +9,13 @@ import {
   withLikeCountAsSeenBy,
 } from '../common/policies/public-post-list.policy.js';
 import { SHOWN_COMMENTS_COUNT } from '../common/policies/removed-content.policy.js';
-import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateAudioDto } from './dto/create-audio.dto.js';
 
 // Service for audio track CRUD, search, and trending retrieval.
 @Injectable()
 export class AudioService {
-  constructor(
-    @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(PostPaywallService)
-    private readonly postPaywall: PostPaywallService,
-  ) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   // Create a new audio track record.
   // Param dto: Audio metadata (title, artist, url, duration)
@@ -117,7 +112,7 @@ export class AudioService {
   }
 
   // Get all posts (Posts and Frames) using a specific audio track, as the
-  // viewer sees them: a paid post they have not unlocked is closed.
+  // viewer sees them.
   // Param id: The audio track's ID
   // The posts and Frames that use a song, newest first, a page at a time:
   // only those the viewer may find in a public list, with a like count the
@@ -152,9 +147,8 @@ export class AudioService {
       }),
       this.prisma.post.count({ where }),
     ]);
-    const shown = await this.postPaywall.applyPaywall(
-      posts.map((post) => withLikeCountAsSeenBy(post, viewerProfileId)),
-      viewerProfileId,
+    const shown = posts.map((post) =>
+      withLikeCountAsSeenBy(post, viewerProfileId),
     );
     return createPaginatedResult(
       shown,

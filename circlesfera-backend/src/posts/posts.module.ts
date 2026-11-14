@@ -18,7 +18,6 @@ import { PostsController } from './posts.controller.js';
 import { PostsService } from './posts.service.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import { PostPaywallService } from './services/post-paywall.service.js';
 
 @Module({
   imports: [
@@ -39,10 +38,9 @@ import { PostPaywallService } from './services/post-paywall.service.js';
     PostWhyService,
     PostCollaboratorsService,
     PostTagsService,
-    PostPaywallService,
     PostDistributionService,
     FrameCoverService,
   ],
-  exports: [PostsService, PostPaywallService, PostDistributionService],
+  exports: [PostsService, PostDistributionService],
 })
 export class PostsModule {}

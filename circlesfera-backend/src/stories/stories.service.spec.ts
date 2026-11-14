@@ -42,13 +42,7 @@ describe('StoriesService', () => {
   const mockPrismaService = {
     user: {
       findMany: vi.fn().mockResolvedValue([]),
-      // The author of a priced post or story is an adult with a verified
-      // identity, unless a test says otherwise.
-      findUnique: vi.fn().mockResolvedValue({
-        identityVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
-        dateOfBirth: new Date('1990-05-01T00:00:00.000Z'),
-        dateOfBirthVerified: true,
-      }),
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     $transaction: vi.fn((cb) => cb(mockPrismaService)),
     block: { findFirst: vi.fn().mockResolvedValue(null) },
@@ -103,9 +97,6 @@ describe('StoriesService', () => {
     place: {
       findUnique: vi.fn(),
       upsert: vi.fn(),
-    },
-    storyUnlock: {
-      findMany: vi.fn(),
     },
     media: {
       create: vi.fn().mockResolvedValue({ id: 'media-1' }),
@@ -273,89 +264,6 @@ describe('StoriesService', () => {
       await expect(
         service.create('user-1', { url: 'test.jpg' }),
       ).rejects.toThrow('CONTENT_POSTING_DISABLED');
-    });
-
-    it('should throw BadRequestException if isPremium is true but price is invalid', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        accountType: 'CREATOR',
-        monetizationStatus: 'APPROVED',
-      });
-      // The approval check reads the Profile again.
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        monetizationStatus: 'APPROVED',
-      });
-      const dto: CreateStoryDto = {
-        url: 'test.jpg',
-        isPremium: true,
-        priceCents: 50,
-      };
-
-      await expect(service.create('user-1', dto)).rejects.toMatchObject({
-        status: 400,
-        response: expect.objectContaining({
-          errorCode: 'PREMIUM_PRICE_OUT_OF_RANGE',
-        }),
-      });
-    });
-
-    it('takes no price for a story from an author under 18', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        accountType: 'CREATOR',
-        monetizationStatus: 'APPROVED',
-        userId: 'user-1',
-      });
-      mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        identityVerifiedAt: new Date(),
-        dateOfBirth: new Date(new Date().getFullYear() - 17, 0, 1),
-      });
-      const dto: CreateStoryDto = {
-        url: 'test.jpg',
-        isPremium: true,
-        priceCents: 500,
-      };
-
-      await expect(service.create('user-1', dto)).rejects.toMatchObject({
-        status: 403,
-        response: expect.objectContaining({
-          errorCode: 'MONETIZATION_UNDER_AGE',
-        }),
-      });
-    });
-
-    it('takes no price for a story from a Profile staff have not approved', async () => {
-      mockPrismaService.profile.findUnique
-        .mockResolvedValueOnce({ accountType: 'CREATOR', userId: 'user-1' })
-        .mockResolvedValueOnce({ monetizationStatus: 'REJECTED' });
-      const dto: CreateStoryDto = {
-        url: 'test.jpg',
-        isPremium: true,
-        priceCents: 500,
-      };
-
-      await expect(service.create('user-1', dto)).rejects.toMatchObject({
-        status: 403,
-        response: expect.objectContaining({
-          errorCode: 'MONETIZATION_NOT_APPROVED',
-        }),
-      });
-    });
-
-    it('rejects premium stories from PERSONAL accounts', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        accountType: 'PERSONAL',
-      });
-      const dto: CreateStoryDto = {
-        url: 'test.jpg',
-        isPremium: true,
-        priceCents: 500,
-      };
-
-      await expect(service.create('user-1', dto)).rejects.toMatchObject({
-        status: 403,
-        response: expect.objectContaining({
-          errorCode: 'ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION',
-        }),
-      });
     });
 
     it('throws BadRequestException if audioId is not found in database', async () => {
@@ -887,81 +795,24 @@ describe('StoriesService', () => {
     });
   });
 
-  describe('applyStoryPremiumLocks', () => {
-    it('locks premium stories for guest viewer with thumbnail fallback', async () => {
+  describe('a story that was once priced', () => {
+    it('is shown whole to a guest, with all its addresses', async () => {
       mockPrismaService.story.findMany.mockResolvedValue([
         {
-          id: 'prem-1',
+          id: 'once-priced',
           profileId: 'author-1',
           isPremium: true,
-          url: 'https://cdn.example.com/prem.jpg',
-          standardUrl: 'https://cdn.example.com/prem-std.jpg',
-          thumbnailUrl: 'https://cdn.example.com/prem-thumb.jpg',
+          url: 'https://cdn.example.com/full.jpg',
+          standardUrl: 'https://cdn.example.com/full-std.jpg',
+          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
           isCloseFriendsOnly: false,
         },
       ]);
 
-      const result = await service.findAll(undefined);
-      expect(result[0].isLocked).toBe(true);
-      expect(result[0].url).toBe('https://cdn.example.com/prem-thumb.jpg');
-      expect(result[0].standardUrl).toBeNull();
-    });
-
-    it('unlocks premium stories when viewer is the author', async () => {
-      mockPrismaService.follow.findMany.mockResolvedValue([]);
-      mockPrismaService.story.findMany.mockResolvedValue([
-        {
-          id: 'prem-own',
-          profileId: 'me-1',
-          isPremium: true,
-          url: 'https://cdn.example.com/mine.jpg',
-          isCloseFriendsOnly: false,
-        },
-      ]);
-
-      const result = await service.findAll('me-1');
-      expect(result[0].isLocked).toBe(false);
-      expect(result[0].url).toBe('https://cdn.example.com/mine.jpg');
-    });
-
-    it('unlocks premium stories when viewer purchased an unlock', async () => {
-      mockPrismaService.follow.findMany.mockResolvedValue([]);
-      mockPrismaService.story.findMany.mockResolvedValue([
-        {
-          id: 'prem-bought',
-          profileId: 'author-2',
-          isPremium: true,
-          url: 'https://cdn.example.com/bought.jpg',
-          isCloseFriendsOnly: false,
-        },
-      ]);
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        userId: 'user-viewer',
-      });
-      mockPrismaService.storyUnlock.findMany.mockResolvedValueOnce([
-        { storyId: 'prem-bought' },
-      ]);
-
-      const result = await service.findAll('viewer-prof');
-      expect(result[0].isLocked).toBe(false);
-    });
-
-    it('locks premium stories when viewer has no unlock or viewer profile not found', async () => {
-      mockPrismaService.follow.findMany.mockResolvedValue([]);
-      mockPrismaService.story.findMany.mockResolvedValue([
-        {
-          id: 'prem-locked',
-          profileId: 'author-2',
-          isPremium: true,
-          url: 'https://cdn.example.com/secret.jpg',
-          isCloseFriendsOnly: false,
-        },
-      ]);
-      mockPrismaService.profile.findUnique.mockResolvedValueOnce(null);
-
-      const result = await service.findAll('viewer-prof-missing');
-      expect(result[0].isLocked).toBe(true);
-      expect(result[0].url).toBe('');
+      const [story] = await service.findAll(undefined);
+      expect(story).not.toHaveProperty('isLocked');
+      expect(story.url).toBe('https://cdn.example.com/full.jpg');
+      expect(story.standardUrl).toBe('https://cdn.example.com/full-std.jpg');
     });
   });
 

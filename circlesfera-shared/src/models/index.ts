@@ -5,7 +5,6 @@ export interface User {
   isOnline?: boolean;
   lastSeenAt?: Date | string | null;
   providerAccountId?: string | null;
-  isMonetizationEnabled?: boolean;
 }
 
 export interface Profile {
@@ -48,7 +47,6 @@ export interface ProfileWithUser extends Profile {
     email?: string;
     role?: string;
     createdAt: Date | string;
-    isMonetizationEnabled?: boolean;
   };
   _count?: {
     posts: number;
@@ -154,11 +152,6 @@ export interface Post {
   turnOffComments?: boolean;
   hideLikes?: boolean;
 
-  isPremium?: boolean;
-  priceCents?: number | null;
-  currency?: string;
-  isPurchased?: boolean;
-
   audioId?: string | null;
   /** Offset into attached track (ms). Clip window = media duration at playback. */
   audioStartMs?: number | null;
@@ -230,12 +223,6 @@ export interface Story {
   filter?: string;
   expiresAt: Date | string;
   createdAt: Date | string;
-
-  isPremium?: boolean;
-  priceCents?: number | null;
-  currency?: string;
-  isPurchased?: boolean;
-  isLocked?: boolean;
   profile: ProfileWithUser;
   isCloseFriendsOnly?: boolean | null;
   audioId?: string | null;
@@ -291,8 +278,6 @@ export interface Message {
   isEdited?: boolean;
   // A copy someone forwarded from another chat; it names no one behind it.
   isForwarded?: boolean;
-  isLocked?: boolean;
-  priceCents?: number;
   sender?: ProfileWithUser;
 }
 

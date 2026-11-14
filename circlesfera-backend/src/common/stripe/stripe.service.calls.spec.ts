@@ -10,27 +10,12 @@ const client = {
     sessions: { create: vi.fn(), retrieve: vi.fn(), expire: vi.fn() },
   },
   refunds: { create: vi.fn() },
-  paymentIntents: { retrieve: vi.fn() },
-  applicationFees: { retrieve: vi.fn(), createRefund: vi.fn() },
-  tax: {
-    settings: { retrieve: vi.fn() },
-    registrations: { list: vi.fn() },
-  },
   customers: { create: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
   subscriptions: { retrieve: vi.fn(), update: vi.fn(), cancel: vi.fn() },
-  accounts: {
-    create: vi.fn(),
-    retrieve: vi.fn(),
-    update: vi.fn(),
-    createLoginLink: vi.fn(),
-  },
-  accountLinks: { create: vi.fn() },
-  accountSessions: { create: vi.fn() },
-  balance: { retrieve: vi.fn() },
+  charges: { retrieve: vi.fn() },
   events: { list: vi.fn() },
-  payouts: { list: vi.fn() },
   identity: { verificationSessions: { create: vi.fn(), retrieve: vi.fn() } },
 };
 
@@ -53,15 +38,6 @@ const serviceWith = (env: Record<string, string | undefined> = {}) => {
 beforeEach(() => {
   vi.clearAllMocks();
 });
-
-// A provider list that iterates over every page in turn.
-function listOf<T>(...pages: T[][]) {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for (const page of pages) yield* page;
-    },
-  };
-}
 
 describe('StripeService at startup', () => {
   const prod = {
@@ -364,175 +340,6 @@ describe('StripeService refund of a checkout', () => {
   });
 });
 
-describe('StripeService refund of a payment to a creator', () => {
-  beforeEach(() => {
-    client.refunds.create.mockReset().mockResolvedValue({ id: 're_9' });
-  });
-
-  it("refunds on the creator's account with CircleSfera's fee, in full, once per key", async () => {
-    const { service } = serviceWith();
-
-    await service.refundCreatorPayment({
-      account: 'acct_creator',
-      paymentIntentId: 'pi_9',
-      idempotencyKey: 'key-9',
-      metadata: { reason: 'gone' },
-    });
-
-    expect(client.refunds.create).toHaveBeenCalledWith(
-      {
-        payment_intent: 'pi_9',
-        reason: 'requested_by_customer',
-        refund_application_fee: true,
-        metadata: { reason: 'gone' },
-      },
-      { stripeAccount: 'acct_creator', idempotencyKey: 'key-9' },
-    );
-  });
-});
-
-describe("StripeService settling CircleSfera's fee on a payment to a creator", () => {
-  const settle = (service: StripeService, feeDueCents: number) =>
-    service.settleCreatorPaymentFee({
-      account: 'acct_creator',
-      paymentIntentId: 'pi_9',
-      feeDueCents,
-    });
-  const feeOf = (fee: { amount: number; amount_refunded: number }) =>
-    client.applicationFees.retrieve.mockResolvedValue({ id: 'fee_9', ...fee });
-
-  beforeEach(() => {
-    client.paymentIntents.retrieve
-      .mockReset()
-      .mockResolvedValue({ latest_charge: { application_fee: 'fee_9' } });
-    client.applicationFees.retrieve.mockReset();
-    client.applicationFees.createRefund.mockReset();
-  });
-
-  it("reads the payment on the creator's account and gives back the fee taken on the VAT, once", async () => {
-    const { service } = serviceWith();
-    // 1000 paid, 174 of VAT: the fee asked was 200, 165 is due.
-    feeOf({ amount: 200, amount_refunded: 0 });
-
-    await settle(service, 165);
-
-    expect(client.paymentIntents.retrieve).toHaveBeenCalledWith(
-      'pi_9',
-      { expand: ['latest_charge'] },
-      { stripeAccount: 'acct_creator' },
-    );
-    expect(client.applicationFees.createRefund).toHaveBeenCalledWith(
-      'fee_9',
-      { amount: 35, metadata: { reason: 'vat' } },
-      { idempotencyKey: 'fee-settle-pi_9' },
-    );
-  });
-
-  it('reads the fee when the charge names it as an object', async () => {
-    const { service } = serviceWith();
-    client.paymentIntents.retrieve.mockResolvedValue({
-      latest_charge: { application_fee: { id: 'fee_9' } },
-    });
-    feeOf({ amount: 200, amount_refunded: 0 });
-
-    await settle(service, 165);
-
-    expect(client.applicationFees.retrieve).toHaveBeenCalledWith('fee_9');
-  });
-
-  it.each([
-    [{ amount: 200, amount_refunded: 35 }, 'was given back already'],
-    [{ amount: 165, amount_refunded: 0 }, 'is what is due'],
-    [{ amount: 200, amount_refunded: 200 }, 'went back with a refund'],
-  ])('gives nothing back when the fee %j %s', async (fee) => {
-    const { service } = serviceWith();
-    feeOf(fee);
-
-    await settle(service, 165);
-
-    expect(client.applicationFees.createRefund).not.toHaveBeenCalled();
-  });
-
-  it('waits the time it is given between two looks', async () => {
-    vi.useFakeTimers();
-    try {
-      const { service } = serviceWith();
-      let waited = false;
-      const wait = service.waitBeforeFeeLook(1000).then(() => {
-        waited = true;
-      });
-      await vi.advanceTimersByTimeAsync(999);
-      expect(waited).toBe(false);
-      await vi.advanceTimersByTimeAsync(1);
-      await wait;
-      expect(waited).toBe(true);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('looks again for a fee the provider has not added yet, and settles it', async () => {
-    const { service } = serviceWith();
-    service.waitBeforeFeeLook = vi.fn().mockResolvedValue(undefined);
-    client.paymentIntents.retrieve
-      .mockResolvedValueOnce({ latest_charge: { application_fee: null } })
-      .mockResolvedValueOnce({ latest_charge: { application_fee: null } })
-      .mockResolvedValue({ latest_charge: { application_fee: 'fee_9' } });
-    feeOf({ amount: 200, amount_refunded: 0 });
-
-    await settle(service, 165);
-
-    expect(client.paymentIntents.retrieve).toHaveBeenCalledTimes(3);
-    expect(service.waitBeforeFeeLook).toHaveBeenCalledTimes(2);
-    expect(service.waitBeforeFeeLook).toHaveBeenCalledWith(1000);
-    expect(client.applicationFees.createRefund).toHaveBeenCalledWith(
-      'fee_9',
-      { amount: 35, metadata: { reason: 'vat' } },
-      { idempotencyKey: 'fee-settle-pi_9' },
-    );
-  });
-
-  it.each([
-    [{ latest_charge: 'ch_9' }],
-    [{ latest_charge: null }],
-    [{ latest_charge: { application_fee: null } }],
-  ])(
-    'fails, so the notice is tried again, when the payment still shows no fee after six looks (%j)',
-    async (intent) => {
-      const { service } = serviceWith();
-      service.waitBeforeFeeLook = vi.fn().mockResolvedValue(undefined);
-      client.paymentIntents.retrieve.mockResolvedValue(intent);
-
-      await expect(settle(service, 165)).rejects.toThrow(
-        'Payment pi_9 has no fee to settle on account acct_creator',
-      );
-      expect(client.paymentIntents.retrieve).toHaveBeenCalledTimes(6);
-      expect(client.applicationFees.createRefund).not.toHaveBeenCalled();
-    },
-  );
-});
-
-describe("StripeService a creator's tax settings", () => {
-  it.each([
-    ['active', true],
-    ['pending', false],
-  ])(
-    "reads the settings on the creator's account: %s is %s",
-    async (status, active) => {
-      const { service } = serviceWith();
-      client.tax.settings.retrieve.mockResolvedValue({ status });
-
-      await expect(service.creatorTaxActive('acct_creator')).resolves.toBe(
-        active,
-      );
-      expect(client.tax.settings.retrieve).toHaveBeenCalledWith(
-        {},
-        { stripeAccount: 'acct_creator' },
-      );
-    },
-  );
-});
-
 describe('StripeService notices of the provider', () => {
   const payload = Buffer.from('{}');
 
@@ -551,36 +358,16 @@ describe('StripeService notices of the provider', () => {
     );
   });
 
-  it('accepts a notice signed with the secret of creator accounts when the first does not match', () => {
+  it('refuses a notice that does not match the secret', () => {
     const { service } = serviceWith({
       STRIPE_WEBHOOK_SECRET: 'whsec_platform',
-      STRIPE_CONNECT_WEBHOOK_SECRET: 'whsec_connect',
-    });
-    client.webhooks.constructEvent
-      .mockImplementationOnce(() => {
-        throw new Error('no match');
-      })
-      .mockReturnValueOnce({ id: 'evt_2' });
-
-    expect(service.constructEvent(payload, 'sig')).toEqual({ id: 'evt_2' });
-    expect(client.webhooks.constructEvent).toHaveBeenLastCalledWith(
-      payload,
-      'sig',
-      'whsec_connect',
-    );
-  });
-
-  it('refuses a notice that matches neither secret', () => {
-    const { service } = serviceWith({
-      STRIPE_WEBHOOK_SECRET: 'whsec_platform',
-      STRIPE_CONNECT_WEBHOOK_SECRET: 'whsec_connect',
     });
     client.webhooks.constructEvent.mockImplementation(() => {
       throw new Error('no match');
     });
 
     expect(() => service.constructEvent(payload, 'sig')).toThrow('no match');
-    expect(client.webhooks.constructEvent).toHaveBeenCalledTimes(2);
+    expect(client.webhooks.constructEvent).toHaveBeenCalledTimes(1);
   });
 
   it('refuses every notice when no secret is set, without reading it', () => {
@@ -596,9 +383,9 @@ describe('StripeService notices of the provider', () => {
 describe('StripeService event deliveries', () => {
   const { service } = serviceWith();
 
-  it('lists the events not delivered in a window, of the platform or of one account', async () => {
+  it('lists the events of the platform not delivered in a window', async () => {
     client.events.list.mockResolvedValue({
-      data: [{ id: 'evt_1', type: 'account.updated', extra: 'dropped' }],
+      data: [{ id: 'evt_1', type: 'charge.refunded', extra: 'dropped' }],
     });
     const window = {
       from: new Date('2026-10-28T12:00:00.000Z'),
@@ -606,247 +393,18 @@ describe('StripeService event deliveries', () => {
     };
 
     await expect(service.listUndeliveredEvents(window)).resolves.toEqual([
-      { id: 'evt_1', type: 'account.updated' },
+      { id: 'evt_1', type: 'charge.refunded' },
     ]);
-    expect(client.events.list).toHaveBeenLastCalledWith(
-      {
-        delivery_success: false,
-        created: { gte: 1793188800, lte: 1793271600 },
-        limit: 100,
-      },
-      undefined,
-    );
-
-    await service.listUndeliveredEvents(window, 'acct_1');
-    expect(client.events.list).toHaveBeenLastCalledWith(expect.anything(), {
-      stripeAccount: 'acct_1',
+    expect(client.events.list).toHaveBeenLastCalledWith({
+      delivery_success: false,
+      created: { gte: 1793188800, lte: 1793271600 },
+      limit: 100,
     });
   });
 });
 
-describe('StripeService creator accounts and identity', () => {
+describe('StripeService identity', () => {
   const { service } = serviceWith();
-
-  it('opens an account where the creator is the seller and the provider is liable, paid out every Monday', async () => {
-    await service.createExpressAccount('creator@example.com');
-
-    expect(client.accounts.create).toHaveBeenCalledWith(
-      {
-        email: 'creator@example.com',
-        controller: {
-          losses: { payments: 'stripe' },
-          fees: { payer: 'account' },
-          stripe_dashboard: { type: 'express' },
-          requirement_collection: 'stripe',
-        },
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-        settings: {
-          payouts: {
-            schedule: { interval: 'weekly', weekly_anchor: 'monday' },
-          },
-        },
-      },
-      { apiVersion: '2026-10-28.preview' },
-    );
-  });
-
-  it('opens one account for a repeated request with the same key', async () => {
-    await service.createExpressAccount('creator@example.com', 'key-1');
-
-    expect(client.accounts.create).toHaveBeenLastCalledWith(
-      expect.objectContaining({ email: 'creator@example.com' }),
-      { apiVersion: '2026-10-28.preview', idempotencyKey: 'key-1' },
-    );
-  });
-
-  it("gives a payout account the address of its creator's page", async () => {
-    const { service: onSite } = serviceWith({
-      FRONTEND_URL: 'https://circlesfera.com/',
-    });
-    await onSite.setCreatorWebsite('acct_1', 'ana.trazos');
-    expect(client.accounts.update).toHaveBeenLastCalledWith(
-      'acct_1',
-      { business_profile: { url: 'https://circlesfera.com/ana.trazos' } },
-      { apiVersion: '2026-10-28.preview' },
-    );
-
-    // Without a site configured, the public one.
-    await serviceWith().service.setCreatorWebsite('acct_2', 'bea');
-    expect(client.accounts.update).toHaveBeenLastCalledWith(
-      'acct_2',
-      { business_profile: { url: 'https://circlesfera.com/bea' } },
-      { apiVersion: '2026-10-28.preview' },
-    );
-  });
-
-  it('holds the payouts of an account, and gives it its Monday payouts back', async () => {
-    await service.setPayoutsHeld('acct_1', true);
-    expect(client.accounts.update).toHaveBeenLastCalledWith('acct_1', {
-      settings: { payouts: { schedule: { interval: 'manual' } } },
-    });
-
-    await service.setPayoutsHeld('acct_1', false);
-    expect(client.accounts.update).toHaveBeenLastCalledWith('acct_1', {
-      settings: {
-        payouts: { schedule: { interval: 'weekly', weekly_anchor: 'monday' } },
-      },
-    });
-  });
-
-  it('reads an account, and makes its onboarding and its panel links', async () => {
-    await service.getAccount('acct_1');
-    await service.createAccountLink(
-      'acct_1',
-      'https://app/back',
-      'https://app/again',
-    );
-    await service.createLoginLink('acct_1');
-
-    expect(client.accounts.retrieve).toHaveBeenCalledWith('acct_1');
-    expect(client.accountLinks.create).toHaveBeenCalledWith({
-      account: 'acct_1',
-      refresh_url: 'https://app/again',
-      return_url: 'https://app/back',
-      type: 'account_onboarding',
-    });
-    expect(client.accounts.createLoginLink).toHaveBeenCalledWith('acct_1');
-  });
-
-  it('opens a session of the embedded panels with only the tax settings and registrations', async () => {
-    client.accountSessions.create.mockResolvedValue({
-      client_secret: 'accs_secret__abc',
-    });
-
-    await expect(service.createTaxDetailsSession('acct_1')).resolves.toBe(
-      'accs_secret__abc',
-    );
-    expect(client.accountSessions.create).toHaveBeenCalledWith({
-      account: 'acct_1',
-      components: {
-        tax_settings: { enabled: true },
-        tax_registrations: { enabled: true },
-      },
-    });
-  });
-
-  it("reads the tax details of the creator's own account, never of the platform", async () => {
-    client.tax.settings.retrieve.mockResolvedValue({
-      status: 'active',
-      head_office: {
-        address: { city: 'Madrid', country: 'ES', line1: 'Calle Mayor 1' },
-      },
-    });
-    // Two pages, as the provider's list walks them.
-    client.tax.registrations.list.mockReturnValue(
-      listOf(
-        [{ country: 'ES' }, { country: 'FR' }],
-        [{ country: 'ES' }, { country: 'IT' }],
-      ),
-    );
-
-    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toEqual({
-      headOffice: { city: 'Madrid', country: 'ES' },
-      status: 'active',
-      registrationCountries: ['ES', 'FR', 'IT'],
-    });
-    expect(client.tax.settings.retrieve).toHaveBeenCalledWith(
-      {},
-      { stripeAccount: 'acct_1' },
-    );
-    expect(client.tax.registrations.list).toHaveBeenCalledWith(
-      { status: 'active', limit: 100 },
-      { stripeAccount: 'acct_1' },
-    );
-  });
-
-  it('reads an account with no head office yet, or one with no city', async () => {
-    client.tax.registrations.list.mockReturnValue(listOf([]));
-    client.tax.settings.retrieve.mockResolvedValueOnce({
-      status: 'pending',
-      head_office: null,
-    });
-    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toEqual({
-      headOffice: null,
-      status: 'pending',
-      registrationCountries: [],
-    });
-
-    client.tax.settings.retrieve.mockResolvedValueOnce({
-      status: 'active',
-      head_office: { address: { country: 'ES' } },
-    });
-    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toMatchObject({
-      headOffice: { city: null, country: 'ES' },
-    });
-
-    client.tax.settings.retrieve.mockResolvedValueOnce({
-      status: 'active',
-      head_office: { address: { city: 'Madrid' } },
-    });
-    await expect(service.getTaxDetailsStatus('acct_1')).resolves.toMatchObject({
-      headOffice: { city: 'Madrid', country: null },
-    });
-  });
-
-  it('gives the panels the publishable key only when it is of the mode of the secret key', () => {
-    const key = (env: Record<string, string | undefined>) =>
-      serviceWith(env).service.embeddedPanelsPublishableKey();
-
-    expect(key({ STRIPE_PUBLISHABLE_KEY: 'pk_test_123' })).toBe('pk_test_123');
-    expect(
-      key({
-        STRIPE_SECRET_KEY: 'rk_live_x',
-        STRIPE_PUBLISHABLE_KEY: 'pk_live_9',
-      }),
-    ).toBe('pk_live_9');
-    // A live secret with a test publishable key, or the other way round.
-    expect(
-      key({
-        STRIPE_SECRET_KEY: 'sk_live_x',
-        STRIPE_PUBLISHABLE_KEY: 'pk_test_1',
-      }),
-    ).toBeNull();
-    expect(key({ STRIPE_PUBLISHABLE_KEY: 'pk_live_1' })).toBeNull();
-    // Not set, or not a publishable key at all.
-    expect(key({})).toBeNull();
-    expect(key({ STRIPE_PUBLISHABLE_KEY: 'sk_test_1' })).toBeNull();
-    expect(
-      key({
-        STRIPE_SECRET_KEY: 'not_a_key',
-        STRIPE_PUBLISHABLE_KEY: 'pk_test_1',
-      }),
-    ).toBeNull();
-    // Nothing set at all.
-    const { service: bare } = serviceWith();
-    (bare as unknown as { configService: unknown }).configService = {
-      get: () => undefined,
-    };
-    expect(bare.embeddedPanelsPublishableKey()).toBeNull();
-  });
-
-  it('reads the balance and the payouts of the creator account, never of the platform', async () => {
-    await service.getConnectBalance('acct_1');
-    await service.listConnectPayouts('acct_1');
-    await service.listConnectPayouts('acct_1', 3);
-
-    expect(client.balance.retrieve).toHaveBeenCalledWith(
-      {},
-      { stripeAccount: 'acct_1' },
-    );
-    expect(client.payouts.list).toHaveBeenNthCalledWith(
-      1,
-      { limit: 10 },
-      { stripeAccount: 'acct_1' },
-    );
-    expect(client.payouts.list).toHaveBeenNthCalledWith(
-      2,
-      { limit: 3 },
-      { stripeAccount: 'acct_1' },
-    );
-  });
 
   it('asks for a document with a live capture and a matching selfie, tied to the person', async () => {
     await service.createIdentityVerificationSession(

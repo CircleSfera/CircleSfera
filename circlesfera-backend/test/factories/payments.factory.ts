@@ -1,7 +1,6 @@
 import type {
   PlatformPlan,
   PlatformSubscription,
-  PostUnlock,
   PrismaClient,
   SubscriptionStatus,
   Transaction,
@@ -78,33 +77,6 @@ export async function createPlatformSubscription(
 }
 
 /**
- * Unlock a PPV post on behalf of a user.
- */
-export async function createPostUnlock(
-  prisma: PrismaClient,
-  userId: string,
-  postId: string,
-  pricePaid = 499,
-): Promise<PostUnlock> {
-  return prisma.postUnlock.upsert({
-    where: {
-      userId_postId: {
-        userId,
-        postId,
-      },
-    },
-    create: {
-      userId,
-      postId,
-      pricePaid,
-    },
-    update: {
-      pricePaid,
-    },
-  });
-}
-
-/**
  * Create a financial ledger transaction between two users.
  */
 export async function createTransaction(
@@ -124,7 +96,7 @@ export async function createTransaction(
       senderId,
       receiverId,
       amount: options.amount ?? options.amountCents ?? 1000,
-      type: options.type ?? 'DIRECT_POST_UNLOCK',
+      type: options.type ?? 'PROMOTION_PAYMENT',
       status: options.status ?? 'COMPLETED',
       currency: 'EUR',
       stripePaymentIntentId: `pi_test_${suffix}`,

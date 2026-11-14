@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MonetizationWebhookService } from './monetization-webhook.service.js';
+import { PaymentEventsService } from './payment-events.service.js';
 
 // Disputes mirrored from the payment provider: one row per dispute, kept in
 // step with what the provider reports.
-describe('MonetizationWebhookService: disputes', () => {
+describe('PaymentEventsService: disputes', () => {
   const prisma = {
     paymentDispute: { findUnique: vi.fn(), upsert: vi.fn() },
     transaction: { findUnique: vi.fn() },
     user: { findUnique: vi.fn() },
   };
-  let service: MonetizationWebhookService;
+  let service: PaymentEventsService;
 
   const dispute = {
     id: 'dp_1',
@@ -28,7 +28,7 @@ describe('MonetizationWebhookService: disputes', () => {
     vi.clearAllMocks();
     prisma.paymentDispute.findUnique.mockResolvedValue(null);
     prisma.transaction.findUnique.mockResolvedValue({ id: 'tx_1' });
-    service = new MonetizationWebhookService(prisma as never, {} as never);
+    service = new PaymentEventsService(prisma as never);
   });
 
   it('stores a new dispute with its amount in cents, reason, state and due day', async () => {

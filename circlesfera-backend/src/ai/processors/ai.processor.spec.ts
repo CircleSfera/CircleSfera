@@ -1,4 +1,3 @@
-import { FIRST_PAID_ITEMS_REVIEWED_BY_STAFF } from '@circlesfera/shared';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ModerationStatus, NotificationType } from '@prisma/client';
@@ -409,7 +408,7 @@ describe('AIProcessor', () => {
     });
   });
 
-  describe('what automatic moderation lets go on sale', () => {
+  describe('what automatic moderation lets be promoted', () => {
     const job = (targetType: string, text = 'Recetas de temporada') =>
       ({
         name: 'moderate-content',
@@ -442,68 +441,22 @@ describe('AIProcessor', () => {
       },
     );
 
-    it.each([
-      ['POST', 'post'],
-      ['STORY', 'story'],
-    ] as const)(
-      'keeps a priced %s off sale until a person passes the first paid items of its Profile',
-      async (type, model) => {
-        prisma[model].findUnique.mockResolvedValue({
-          priceCents: 500,
-          profileId: 'creator-1',
-        });
-        prisma.post.count.mockResolvedValue(1);
-        prisma.story.count.mockResolvedValue(1);
-
-        await processor.process(job(type));
-
-        expect(prisma[model].updateMany).not.toHaveBeenCalledWith(
-          expect.objectContaining({
-            data: { moderationPassedAt: expect.any(Date) },
-          }),
-        );
-        // Counted among that Profile's priced items a person passed.
-        expect(prisma.post.count).toHaveBeenCalledWith({
-          where: {
-            profileId: 'creator-1',
-            priceCents: { gt: 0 },
-            moderationPassedByStaff: true,
-          },
-        });
-      },
-    );
-
-    it('puts a priced post on sale once a person has passed enough of its Profile', async () => {
+    it('marks a post that was once priced as passed, without waiting for a person', async () => {
       prisma.post.findUnique.mockResolvedValue({
         priceCents: 500,
-        profileId: 'creator-1',
-      });
-      prisma.post.count.mockResolvedValue(
-        FIRST_PAID_ITEMS_REVIEWED_BY_STAFF - 1,
-      );
-      prisma.story.count.mockResolvedValue(1);
-
-      await processor.process(job('POST'));
-
-      expect(prisma.post.updateMany).toHaveBeenCalledWith({
-        where: { id: 't-1', moderationStatus: 'VISIBLE' },
-        data: { moderationPassedAt: expect.any(Date) },
-      });
-    });
-
-    it('puts a free post on sale without waiting for a person', async () => {
-      prisma.post.findUnique.mockResolvedValue({
-        priceCents: 0,
         profileId: 'creator-1',
       });
 
       await processor.process(job('POST'));
 
       expect(prisma.post.count).not.toHaveBeenCalled();
-      expect(prisma.post.updateMany).toHaveBeenCalled();
+      expect(prisma.post.updateMany).toHaveBeenCalledWith({
+        where: { id: 't-1', moderationStatus: 'VISIBLE' },
+        data: { moderationPassedAt: expect.any(Date) },
+      });
     });
 
-    it('marks nothing on a comment, which is never sold', async () => {
+    it('marks nothing on a comment, which is never promoted', async () => {
       await processor.process(job('COMMENT'));
       expect(prisma.comment.updateMany).not.toHaveBeenCalled();
       expect(prisma.post.updateMany).not.toHaveBeenCalled();
@@ -514,7 +467,7 @@ describe('AIProcessor', () => {
       expect(prisma.post.updateMany).toHaveBeenCalled();
     });
 
-    it('leaves a post a rule sent to review off sale', async () => {
+    it('leaves a post a rule sent to review unpromotable', async () => {
       prisma.moderationRule.findMany.mockResolvedValue([{ keyword: 'estafa' }]);
       prisma.report.findFirst.mockResolvedValue({ id: 'open-report' });
 
@@ -523,7 +476,7 @@ describe('AIProcessor', () => {
       expect(prisma.post.updateMany).not.toHaveBeenCalled();
     });
 
-    it('leaves a post off sale when the rules cannot be read', async () => {
+    it('leaves a post unpromotable when the rules cannot be read', async () => {
       prisma.moderationRule.findMany.mockRejectedValue(new Error('db down'));
 
       await processor.process(job('POST'));
@@ -531,7 +484,7 @@ describe('AIProcessor', () => {
       expect(prisma.post.updateMany).not.toHaveBeenCalled();
     });
 
-    it('leaves a post the AI flagged off sale', async () => {
+    it('leaves a post the AI flagged unpromotable', async () => {
       prisma.post.update.mockResolvedValue({ profileId: 'author-1' });
       aiService.moderateContent.mockResolvedValue({
         flagged: true,

@@ -5,22 +5,6 @@
  * truth for what each event's payload actually contains.
  */
 
-export interface PaymentLiveGiftCompletedEvent {
-  type: 'payment.live_gift_completed';
-  payload: {
-    liveGiftId: string;
-    senderId: string;
-    streamId: string;
-    giftId: string;
-    creatorId: string;
-    amountCents: number;
-    // The VAT inside amountCents.
-    vatCents?: number;
-    currency: string;
-    paymentIntentId: string;
-  };
-}
-
 export interface UserHardDeletedEvent {
   type: 'user.hard_deleted';
   payload: {
@@ -87,7 +71,6 @@ export interface ChatMessageSentEvent {
     id: string;
     conversationId: string;
     senderId?: string;
-    isLocked?: boolean;
     content?: string;
     tempId?: string;
     [key: string]: unknown;
@@ -214,7 +197,6 @@ export interface NotificationCreateEvent {
  * Discriminated union of all governed EventEmitter2 domain events.
  */
 export type CriticalDomainEvent =
-  | PaymentLiveGiftCompletedEvent
   | UserHardDeletedEvent
   | NotificationDispatchedEvent
   | SystemIncidentEvent
@@ -259,7 +241,6 @@ export function isCriticalEvent<T extends CriticalEventType>(
  * source of truth for the payload shape and when the event fires.
  */
 export const EVENT_OWNERS: Record<CriticalEventType, string> = {
-  'payment.live_gift_completed': 'LiveGiftService',
   'user.hard_deleted': 'AccountDeletionProcessor',
   'notification.dispatched': 'AppGateway',
   'system.incident': 'SlackService',

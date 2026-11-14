@@ -6,7 +6,6 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
-  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -77,16 +76,6 @@ export class CreateStoryDto {
   @ValidateNested()
   @Type(() => PlaceInputDto)
   place?: PlaceInputDto;
-
-  @ApiProperty({ required: false, type: () => Boolean })
-  @IsBoolean()
-  @IsOptional()
-  isPremium?: boolean;
-
-  @ApiProperty({ required: false, type: () => Number })
-  @IsNumber()
-  @IsOptional()
-  priceCents?: number;
 
   @ApiProperty({ required: false, type: () => Date })
   @IsOptional()

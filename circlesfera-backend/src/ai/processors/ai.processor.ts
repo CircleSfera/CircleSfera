@@ -8,7 +8,6 @@ import {
   getWorkerOptions,
   QUEUE_NAMES,
 } from '../../common/constants/queue-policy.constants.js';
-import { awaitsStaffPaidReview } from '../../common/policies/first-paid-review.policy.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService, classifyOpenAIError } from '../ai.service.js';
 
@@ -275,21 +274,13 @@ export class AIProcessor extends WorkerHost {
   }
 
   // Automatic moderation checked a post or story and found nothing: from now
-  // it may be sold or tipped. Only while it is still shown as it was checked:
-  // a rule or staff that hid it meanwhile keep it off sale. A priced item of
-  // a Profile whose first paid items a person has not passed yet stays off
-  // sale, waiting in the staff queue.
+  // it may be promoted. Only while it is still shown as it was checked: a
+  // rule or staff that hid it meanwhile keep it from being promoted.
   private async markModerationPassed(
     targetType: 'POST' | 'STORY' | 'COMMENT',
     targetId: string,
   ) {
     if (targetType === 'COMMENT') return;
-    if (await awaitsStaffPaidReview(this.prisma, targetType, targetId)) {
-      this.logger.log(
-        `${targetType} ${targetId} waits for a person to pass it before sale`,
-      );
-      return;
-    }
     const where = { id: targetId, moderationStatus: ModerationStatus.VISIBLE };
     const data = { moderationPassedAt: new Date() };
     if (targetType === 'POST') {

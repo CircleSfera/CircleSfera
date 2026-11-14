@@ -214,7 +214,6 @@ async function main() {
         visibility: 'PUBLIC',
         moderationStatus: 'VISIBLE',
         scheduledStatus: 'PUBLISHED',
-        isPremium: false,
       } as const;
       await prisma.post.upsert({
         where: { id: post.id },
@@ -231,7 +230,6 @@ async function main() {
       moderationStatus: 'VISIBLE',
       scheduledStatus: 'PUBLISHED',
       isCloseFriendsOnly: false,
-      isPremium: false,
     } as const;
     await prisma.story.upsert({
       where: { id: SMOKE_FIXTURES.publicStoryId },

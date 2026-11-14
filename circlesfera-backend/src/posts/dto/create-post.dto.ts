@@ -202,16 +202,6 @@ export class CreatePostDto {
   @IsOptional()
   tags?: TagDto[];
 
-  @ApiProperty({ required: false, type: () => Boolean })
-  @IsBoolean()
-  @IsOptional()
-  isPremium?: boolean;
-
-  @ApiProperty({ required: false, type: () => Number })
-  @IsNumber()
-  @IsOptional()
-  priceCents?: number;
-
   @ApiProperty({ required: false, type: () => Date })
   @IsOptional()
   @Type(() => Date)

@@ -1,13 +1,12 @@
-import { ErrorCode, MONETIZATION_MIN_AGE } from '@circlesfera/shared';
+import { ageOn, ErrorCode, PAYER_MIN_AGE } from '@circlesfera/shared';
 import type { Prisma } from '@prisma/client';
-import { isOfChargingAge } from '../../monetization/payout-account.js';
 import { AppException } from '../errors/app.exception.js';
 
 /**
  * Only an adult pays on CircleSfera: a person with an identity verified by
- * document who is MONETIZATION_MIN_AGE or older by its date of birth. Asked
- * before any checkout opens: plans, paid content, tips, live gifts and
- * promotions. The app itself is open from a younger age.
+ * document who is PAYER_MIN_AGE or older by its date of birth. A date only
+ * typed at sign-up, or none, does not count. Asked before any checkout
+ * opens: plans and promotions. The app itself is open from a younger age.
  */
 export async function assertAdultPayer(
   db: Pick<Prisma.TransactionClient, 'user'>,
@@ -21,11 +20,16 @@ export async function assertAdultPayer(
       dateOfBirthVerified: true,
     },
   });
-  if (!user || !isOfChargingAge(user)) {
+  const adult =
+    !!user?.identityVerifiedAt &&
+    user.dateOfBirthVerified &&
+    !!user.dateOfBirth &&
+    ageOn(user.dateOfBirth) >= PAYER_MIN_AGE;
+  if (!adult) {
     throw AppException.Forbidden(
       ErrorCode.PAYER_UNDER_AGE,
-      `Only people ${MONETIZATION_MIN_AGE} or older, with a verified identity, can pay.`,
-      { minAge: MONETIZATION_MIN_AGE },
+      `Only people ${PAYER_MIN_AGE} or older, with a verified identity, can pay.`,
+      { minAge: PAYER_MIN_AGE },
     );
   }
 }

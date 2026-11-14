@@ -109,12 +109,6 @@ export default defineConfig({
           lines: 100,
         },
 
-        // Monetization: Creator payouts, tips, and fee calculations
-        'src/monetization/**': {
-          statements: 100,
-          lines: 100,
-        },
-
         // Data Lifecycle: GDPR personal data export and account deletion
         'src/users/data-export.service.ts': {
           statements: 99,
@@ -297,10 +291,6 @@ export default defineConfig({
           lines: 100,
         },
         'src/posts/services/post-media-cleanup.service.ts': {
-          statements: 100,
-          lines: 100,
-        },
-        'src/posts/services/post-paywall.service.ts': {
           statements: 100,
           lines: 100,
         },

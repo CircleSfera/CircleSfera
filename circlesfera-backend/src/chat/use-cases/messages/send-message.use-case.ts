@@ -17,10 +17,6 @@ import {
 import { type Gif, GiphyService } from '../../../gifs/giphy.service.js';
 import { HiddenWordsService } from '../../../hidden-words/hidden-words.service.js';
 import { renderChatPush } from '../../../notifications/notice-copy.js';
-import {
-  type PaywallPost,
-  PostPaywallService,
-} from '../../../posts/services/post-paywall.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { PushService } from '../../../push/push.service.js';
 import { ActionLimitsService } from '../../../trust/action-limits.service.js';
@@ -40,8 +36,6 @@ export class SendMessageUseCase {
     private readonly actionLimits: ActionLimitsService,
     @Inject(StoredFilesService)
     private readonly storedFiles: StoredFilesService,
-    @Inject(PostPaywallService)
-    private readonly postPaywall: PostPaywallService,
     @Inject(HiddenWordsService)
     private readonly hiddenWords: HiddenWordsService,
     @Inject(GiphyService) private readonly giphy: GiphyService,
@@ -88,8 +82,6 @@ export class SendMessageUseCase {
     voiceUrl?: string,
     voiceDuration?: number,
     voiceWaveform?: number[],
-    isLocked?: boolean,
-    priceCents?: number,
     // A copy forwarded from another chat (ForwardMessageUseCase): marked so.
     // A GIF is named by its GIPHY id.
     options: { forwarded?: boolean; gifId?: string } = {},
@@ -99,15 +91,6 @@ export class SendMessageUseCase {
     const gif = options.gifId
       ? await this.gifFor(options.gifId, [url, voiceUrl, postId, storyId])
       : null;
-
-    // Messages are no longer sold: a private message cannot carry a price,
-    // as the payment provider does not take pay-per-view in private chats.
-    if (isLocked || priceCents) {
-      throw AppException.BadRequest(
-        ErrorCode.PAID_MESSAGES_UNAVAILABLE,
-        'Paid messages are no longer available.',
-      );
-    }
 
     const encryptedContent = this.cryptoService.encrypt(content);
 
@@ -308,7 +291,6 @@ export class SendMessageUseCase {
             voiceWaveform: voiceWaveform
               ? JSON.parse(JSON.stringify(voiceWaveform))
               : undefined,
-            ...(isLocked ? { isLocked: true, priceCents } : {}),
             ...(gif ? { gif: gif as Prisma.InputJsonValue } : {}),
             ...(options.forwarded ? { isForwarded: true } : {}),
           },
@@ -487,16 +469,6 @@ export class SendMessageUseCase {
       );
     }
 
-    // The sender gets the message back as they see it: a paid post they
-    // share without having unlocked it stays closed to them. Each member
-    // gets it the same way over the socket.
-    if (payload.post?.isPremium) {
-      const [post] = await this.postPaywall.applyPaywall(
-        [payload.post as PaywallPost],
-        senderId,
-      );
-      return { ...payload, post } as typeof payload;
-    }
     return payload;
   }
 

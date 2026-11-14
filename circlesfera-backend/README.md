@@ -2,7 +2,7 @@
 
 NestJS API for CircleSfera. Global prefix: **`/api/v1`**.
 
-This is a production codebase (auth, monetization, chat, live, moderation, admin RBAC), not a tutorial API. For the route inventory use the OpenAPI reference at `/api/docs` on a running backend (generated from the controllers); for models use [`prisma/schema.prisma`](./prisma/schema.prisma).
+This is a production codebase (auth, payments, chat, live, moderation, admin RBAC), not a tutorial API. For the route inventory use the OpenAPI reference at `/api/docs` on a running backend (generated from the controllers); for models use [`prisma/schema.prisma`](./prisma/schema.prisma).
 
 ## Identity model
 
@@ -23,7 +23,7 @@ JWT session exposes `userId` (`sub`) and the session `profileId`. Details: Notio
 
 ## Module map (high level)
 
-`src/` is organized by domain modules, including: `auth`, `profiles`, `users`, `posts`, `stories`, `feed`, `follows`, `chat`, `notifications`, `search`, `interactive` (polls/QnA), `live`, `monetization`, `payments`, `creator`, `reports`, `appeals`, `admin`, `admin-auth`, `uploads`, `media`, `ai`, `webrtc`, `maintenance`, and others. Business rules live in **services**, not controllers.
+`src/` is organized by domain modules, including: `auth`, `profiles`, `users`, `posts`, `stories`, `feed`, `follows`, `chat`, `notifications`, `search`, `interactive` (polls/QnA), `live`, `payments`, `creator`, `reports`, `appeals`, `admin`, `admin-auth`, `uploads`, `media`, `ai`, `webrtc`, `maintenance`, and others. Business rules live in **services**, not controllers.
 
 ## Getting started
 

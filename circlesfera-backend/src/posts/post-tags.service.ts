@@ -48,7 +48,6 @@ export class PostTagsService {
             id: true,
             profileId: true,
             caption: true,
-            isPremium: true,
             contentRating: true,
             visibility: true,
             moderationStatus: true,
@@ -106,12 +105,10 @@ export class PostTagsService {
           };
         }
         const mature = post.contentRating !== 'GENERAL';
-        // A paid post shows no picture: the tag is not a way into it. A
-        // mature one shows none to a Profile that blurs or does not allow
-        // them, and no caption either when it does not allow them.
+        // A mature post shows no picture to a Profile that blurs or does not
+        // allow them, and no caption either when it does not allow them.
         const noPicture =
-          post.isPremium ||
-          (mature && (content.blurSensitiveContent || !content.allowMature));
+          mature && (content.blurSensitiveContent || !content.allowMature);
         const first = post.media[0];
         return {
           ...tag,

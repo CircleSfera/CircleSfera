@@ -12,11 +12,7 @@ import {
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
-import {
-  ReviewEnforcementDto,
-  ReviewPageDto,
-  ReviewPaidContentDto,
-} from './dto/review-page.dto.js';
+import { ReviewEnforcementDto } from './dto/review-page.dto.js';
 import { ReviewService } from './review.service.js';
 import { ReviewViewLogInterceptor } from './review-view-log.interceptor.js';
 
@@ -33,18 +29,6 @@ export class ReviewController {
   @ApiResponse({ status: 200 })
   summary() {
     return this.review.summary();
-  }
-
-  @Get('paid-content')
-  @ApiResponse({ status: 200 })
-  paidContent(@Query() q: ReviewPaidContentDto) {
-    return this.review.paidContent(q.kind, q.page, q.limit);
-  }
-
-  @Get('creators')
-  @ApiResponse({ status: 200 })
-  creators(@Query() q: ReviewPageDto) {
-    return this.review.creators(q.page, q.limit);
   }
 
   @Get('enforcement')

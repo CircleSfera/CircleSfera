@@ -34,24 +34,15 @@ export function reportsKeptSince(now: Date): Date {
  * still has is too. A row is gone as well when its Profile's account is
  * erased.
  *
- * And nothing in it must be kept: a paid message, or one someone paid to
- * unlock, keeps the conversation for its purchase records; a reported
- * message keeps it while the report is open, and for as long as the decision
- * on it can be appealed, so staff can still read it and sanction its sender.
+ * And nothing in it must be kept: a reported message keeps it while the
+ * report is open, and for as long as the decision on it can be appealed, so
+ * staff can still read it and sanction its sender.
  */
 export function erasableConversation(now: Date): Prisma.Sql {
   return Prisma.sql`
     NOT EXISTS (
       SELECT 1 FROM "participants" p
       WHERE p."conversationId" = c.id AND p."deletedAt" IS NULL
-    )
-    AND NOT EXISTS (
-      SELECT 1 FROM "messages" m
-      WHERE m."conversationId" = c.id
-        AND (
-          m."isLocked"
-          OR EXISTS (SELECT 1 FROM "message_unlocks" u WHERE u."messageId" = m.id)
-        )
     )
     AND NOT EXISTS (
       SELECT 1 FROM "reports" r

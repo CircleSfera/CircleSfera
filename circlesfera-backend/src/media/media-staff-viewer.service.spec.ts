@@ -113,7 +113,7 @@ describe('MediaStaffViewerService', () => {
       service.isContentStaff(request(token({}, platformSecret))),
     ).resolves.toBe(false);
   });
-  it('recognises who reads the review area: an external reviewer, or staff with the review permission', async () => {
+  it('never takes an external reviewer for content staff', async () => {
     prisma.adminIdentity.findUnique.mockResolvedValue({
       ...identity([], {
         totpEnabled: false,
@@ -133,13 +133,8 @@ describe('MediaStaffViewerService', () => {
       rev: true,
       sst: Math.floor(Date.now() / 1000),
     });
-    await expect(service.isReviewer(request(reviewer))).resolves.toBe(true);
-    // A reviewer is never content staff.
     await expect(service.isContentStaff(request(reviewer))).resolves.toBe(
       false,
     );
-
-    prisma.adminIdentity.findUnique.mockResolvedValue(identity(['content']));
-    await expect(service.isReviewer(request(token()))).resolves.toBe(false);
   });
 });

@@ -14,8 +14,8 @@ describe('ReviewViewLogInterceptor', () => {
       switchToHttp: () => ({
         getRequest: () => ({
           user,
-          path: '/api/v1/admin/review/paid-content',
-          originalUrl: '/api/v1/admin/review/paid-content?kind=story&page=2',
+          path: '/api/v1/admin/review/enforcement',
+          originalUrl: '/api/v1/admin/review/enforcement?kind=reports&page=2',
           ip: '203.0.113.9',
           headers: { 'user-agent': 'Reviewer browser' },
         }),
@@ -40,8 +40,8 @@ describe('ReviewViewLogInterceptor', () => {
         adminId: 'rev-1',
         action: 'REVIEW_VIEWED',
         targetType: 'review',
-        targetId: 'paid-content',
-        details: '/api/v1/admin/review/paid-content?kind=story&page=2',
+        targetId: 'enforcement',
+        details: '/api/v1/admin/review/enforcement?kind=reports&page=2',
         ipAddress: '203.0.113.9',
         userAgent: 'Reviewer browser',
       },

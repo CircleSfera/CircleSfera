@@ -55,9 +55,6 @@ describe('UsersService', () => {
     storyView: { findMany: vi.fn() },
     supportTicket: { findMany: vi.fn() },
     platformSubscription: { findMany: vi.fn() },
-    postUnlock: { findMany: vi.fn() },
-    messageUnlock: { findMany: vi.fn() },
-    storyUnlock: { findMany: vi.fn() },
     userExperiment: { findMany: vi.fn() },
     staffNote: { findMany: vi.fn() },
     pushSubscription: { findMany: vi.fn() },
@@ -67,27 +64,15 @@ describe('UsersService', () => {
     decrypt: vi.fn((text: string) => text.replace(/^cipher_/, '')),
   };
 
-  // What the person earned and was paid out.
-  const earningModels = {
-    // The payout accounts of the person and of their Profiles.
-    monetization: {
-      findMany: vi
-        .fn()
-        .mockResolvedValue([
-          { stripeConnectAccountId: 'acct_person' },
-          { stripeConnectAccountId: 'acct_profile' },
-        ]),
-    },
-    // What each Profile earned, read from the payments.
-    $queryRaw: vi.fn().mockResolvedValue([]),
-    stripePayoutLog: { findMany: vi.fn().mockResolvedValue([]) },
+  // What the person paid for.
+  const paymentModels = {
     promotion: { findMany: vi.fn().mockResolvedValue([]) },
     paymentDispute: { findMany: vi.fn().mockResolvedValue([]) },
   };
 
   const mockPrismaService = {
     ...heldModels,
-    ...earningModels,
+    ...paymentModels,
     $transaction: vi
       .fn()
       .mockImplementation((cb: any) => cb(mockPrismaService)),
@@ -128,8 +113,6 @@ describe('UsersService', () => {
   const mockStripeService = {
     createIdentityVerificationSession: vi.fn(),
     getIdentityVerificationSession: vi.fn(),
-    setPayoutsHeld: vi.fn(),
-    getConnectBalance: vi.fn(),
   };
 
   const mockUsersQueue = {
@@ -308,149 +291,6 @@ describe('UsersService', () => {
       });
       expect(result.isActive).toBe(true);
     });
-
-    it('holds the payouts of every account of the person while banned, and resumes them on unban', async () => {
-      mockPrismaService.user.update.mockResolvedValue({ id: '1' });
-
-      await service.banUser('1');
-
-      expect(mockPrismaService.monetization.findMany).toHaveBeenCalledWith({
-        where: {
-          OR: [{ userId: '1' }, { profile: { userId: '1' } }],
-          stripeConnectAccountId: { not: null },
-        },
-        select: { stripeConnectAccountId: true },
-      });
-      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
-        'acct_person',
-        true,
-      );
-      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
-        'acct_profile',
-        true,
-      );
-      // The 85 days count from the ban.
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: '1' },
-        data: { payoutsHeldAt: expect.any(Date) },
-      });
-
-      mockStripeService.setPayoutsHeld.mockClear();
-      await service.unbanUser('1');
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: '1' },
-        data: { payoutsHeldAt: null },
-      });
-
-      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
-        'acct_person',
-        false,
-      );
-      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
-        'acct_profile',
-        false,
-      );
-    });
-
-    it('keeps the date of the first ban when the person is banned again', async () => {
-      const firstBan = new Date('2026-09-01T00:00:00Z');
-      mockPrismaService.user.update.mockResolvedValue({ id: '1' });
-      mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        payoutsHeldAt: firstBan,
-      });
-
-      await service.banUser('1');
-
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: '1' },
-        data: { payoutsHeldAt: firstBan },
-      });
-    });
-
-    it('holds no account kept only on the person, and ends the sessions before holding', async () => {
-      mockPrismaService.user.update.mockResolvedValue({ id: '1' });
-      // The person's own column is no longer read: only the rows hold accounts.
-      mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        stripeConnectAccountId: 'acct_column_only',
-        payoutsHeldAt: null,
-      });
-      mockPrismaService.monetization.findMany.mockResolvedValueOnce([
-        { stripeConnectAccountId: 'acct_person' },
-      ]);
-      const order: string[] = [];
-      mockPrismaService.refreshToken.deleteMany.mockImplementationOnce(
-        async () => {
-          order.push('sessions');
-          return { count: 1 };
-        },
-      );
-      mockStripeService.setPayoutsHeld.mockImplementation(async () => {
-        order.push('payouts');
-      });
-
-      await service.banUser('1');
-
-      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
-        where: { id: '1' },
-        select: { payoutsHeldAt: true },
-      });
-      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledTimes(1);
-      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledWith(
-        'acct_person',
-        true,
-      );
-      expect(order).toEqual(['sessions', 'payouts']);
-      mockStripeService.setPayoutsHeld.mockReset();
-    });
-
-    it('tells the team when the provider refuses to hold or resume them', async () => {
-      mockPrismaService.user.update.mockResolvedValue({ id: '1' });
-      mockStripeService.setPayoutsHeld.mockRejectedValue(new Error('down'));
-
-      await service.banUser('1');
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'system.incident',
-        expect.objectContaining({
-          message: expect.stringContaining(
-            'could not be held after a ban; the daily check tries again',
-          ),
-          path: 'stripe://payout-schedule',
-        }),
-      );
-
-      await service.unbanUser('1');
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'system.incident',
-        expect.objectContaining({
-          message: expect.stringContaining('resumed after a ban was lifted'),
-        }),
-      );
-      mockStripeService.setPayoutsHeld.mockReset();
-    });
-
-    it('keeps the ban, and holds the other accounts, when the provider fails for one', async () => {
-      mockPrismaService.user.update.mockResolvedValue({
-        id: '1',
-        isActive: false,
-      });
-      mockPrismaService.monetization.findMany.mockResolvedValueOnce([
-        { stripeConnectAccountId: 'acct_person' },
-        { stripeConnectAccountId: null },
-        { stripeConnectAccountId: 'acct_profile' },
-      ]);
-      mockStripeService.setPayoutsHeld.mockRejectedValueOnce(
-        new Error('Stripe down'),
-      );
-
-      await expect(service.banUser('1')).resolves.toEqual(
-        expect.objectContaining({ isActive: false }),
-      );
-      expect(mockStripeService.setPayoutsHeld).toHaveBeenLastCalledWith(
-        'acct_profile',
-        true,
-      );
-      expect(mockStripeService.setPayoutsHeld).toHaveBeenCalledTimes(2);
-    });
   });
 
   describe('exportUserData', () => {
@@ -462,89 +302,23 @@ describe('UsersService', () => {
       );
     });
 
-    it('holds every payout account of the person and of their Profiles, and every payout to their bank', async () => {
+    it('holds the promotions the person paid for and the disputes of what they paid', async () => {
       mockPrismaService.user.findUnique
         .mockResolvedValueOnce({ id: 'u1', deviceSignals: [], signIns: [] })
         .mockResolvedValueOnce({ profiles: [] });
-      // 6.61 € earned by @ana, 4 € by a Profile since erased and 1 € before
-      // income named its Profile.
-      earningModels.$queryRaw.mockResolvedValueOnce([
-        { receiverProfileId: 'p-ana', earned: 661n },
-        { receiverProfileId: 'p-erased', earned: 400n },
-        { receiverProfileId: null, earned: 100n },
-      ]);
-      mockPrismaService.profile.findMany.mockResolvedValueOnce([
-        { id: 'p-ana', username: 'ana' },
-      ]);
-      earningModels.monetization.findMany.mockResolvedValueOnce([
-        {
-          stripeConnectAccountId: 'acct_1',
-          transfersEnabled: true,
-          chargesEnabled: true,
-          verifiedCompany: false,
-          createdAt: new Date('2026-01-01'),
-          profile: { username: 'ana' },
-        },
-        {
-          stripeConnectAccountId: null,
-          transfersEnabled: false,
-          chargesEnabled: false,
-          verifiedCompany: false,
-          createdAt: new Date('2026-02-01'),
-          profile: null,
-        },
-      ]);
-      earningModels.stripePayoutLog.findMany.mockResolvedValueOnce([
-        {
-          stripePayoutId: 'po_1',
-          amountCents: 960,
-          currency: 'eur',
-          status: 'paid',
-          arrivalDate: new Date('2026-01-12'),
-          failureReason: null,
-          profile: { username: 'ana' },
-        },
-      ]);
-
-      earningModels.promotion.findMany.mockResolvedValueOnce([
+      paymentModels.promotion.findMany.mockResolvedValueOnce([
         { status: 'ACTIVE', budgetCents: 500 },
       ]);
-      earningModels.paymentDispute.findMany.mockResolvedValueOnce([
+      paymentModels.paymentDispute.findMany.mockResolvedValueOnce([
         { amountCents: 300, reason: 'fraudulent', status: 'won' },
       ]);
 
       const data = await service.exportUserData('u1');
 
-      // Only the person's own rows, and only these fields.
-      expect(earningModels.monetization.findMany).toHaveBeenCalledWith({
-        where: { OR: [{ userId: 'u1' }, { profile: { userId: 'u1' } }] },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          stripeConnectAccountId: true,
-          transfersEnabled: true,
-          chargesEnabled: true,
-          verifiedCompany: true,
-          createdAt: true,
-          profile: { select: { username: true } },
-        },
-      });
-      expect(earningModels.stripePayoutLog.findMany).toHaveBeenCalledWith({
-        where: { userId: 'u1' },
-        orderBy: { arrivalDate: 'asc' },
-        select: {
-          stripePayoutId: true,
-          amountCents: true,
-          currency: true,
-          status: true,
-          arrivalDate: true,
-          failureReason: true,
-          profile: { select: { username: true } },
-        },
-      });
-      expect(earningModels.promotion.findMany).toHaveBeenCalledWith(
+      expect(paymentModels.promotion.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { userId: 'u1' } }),
       );
-      expect(earningModels.paymentDispute.findMany).toHaveBeenCalledWith({
+      expect(paymentModels.paymentDispute.findMany).toHaveBeenCalledWith({
         where: { userId: 'u1' },
         orderBy: { openedAt: 'asc' },
         select: {
@@ -556,65 +330,10 @@ describe('UsersService', () => {
           closedAt: true,
         },
       });
-      expect(earningModels.$queryRaw).toHaveBeenCalledTimes(1);
-      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
-        where: { userId: 'u1' },
-        select: { id: true, username: true },
-      });
-      expect(data.earnings).toEqual({
-        // As the creator screens count it, from the payments.
-        earned: {
-          totalCents: 1161,
-          byProfile: [
-            { profile: 'ana', earnedCents: 661 },
-            { profile: null, earnedCents: 400 },
-            { profile: null, earnedCents: 100 },
-          ],
-        },
-        payoutAccounts: [
-          {
-            stripeConnectAccountId: 'acct_1',
-            transfersEnabled: true,
-            chargesEnabled: true,
-            verifiedCompany: false,
-            createdAt: new Date('2026-01-01'),
-            profile: 'ana',
-          },
-          {
-            stripeConnectAccountId: null,
-            transfersEnabled: false,
-            chargesEnabled: false,
-            verifiedCompany: false,
-            createdAt: new Date('2026-02-01'),
-            profile: null,
-          },
-        ],
-        payouts: [
-          {
-            stripePayoutId: 'po_1',
-            amountCents: 960,
-            currency: 'eur',
-            status: 'paid',
-            arrivalDate: new Date('2026-01-12'),
-            failureReason: null,
-            profile: 'ana',
-          },
-        ],
+      expect(data.payments).toEqual({
         promotions: [{ status: 'ACTIVE', budgetCents: 500 }],
         disputes: [{ amountCents: 300, reason: 'fraudulent', status: 'won' }],
       });
-      // Which Profile earned each payment received.
-      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith(
-        expect.objectContaining({
-          select: expect.objectContaining({
-            receivedTransactions: expect.objectContaining({
-              select: expect.objectContaining({
-                receiverProfile: { select: { username: true } },
-              }),
-            }),
-          }),
-        }),
-      );
     });
 
     it('returns formatted GDPR safe data export', async () => {
@@ -691,7 +410,7 @@ describe('UsersService', () => {
         sentTransactions: [
           {
             id: 'tx_s1',
-            type: 'TIP',
+            type: 'PROMOTION_PAYMENT',
             amount: 500,
             currency: 'EUR',
             status: 'COMPLETED',
@@ -702,7 +421,7 @@ describe('UsersService', () => {
         receivedTransactions: [
           {
             id: 'tx_r1',
-            type: 'TIP',
+            type: 'PROMOTION_PAYMENT',
             amount: 500,
             currency: 'EUR',
             status: 'COMPLETED',
@@ -843,11 +562,6 @@ describe('UsersService', () => {
       heldModels.platformSubscription.findMany.mockResolvedValue([
         { status: 'ACTIVE', plan: { name: 'Pro' } },
       ]);
-      heldModels.postUnlock.findMany.mockResolvedValue([{ postId: 'p2' }]);
-      heldModels.messageUnlock.findMany.mockResolvedValue([
-        { messageId: 'm1' },
-      ]);
-      heldModels.storyUnlock.findMany.mockResolvedValue([{ storyId: 's2' }]);
       heldModels.userExperiment.findMany.mockResolvedValue([
         { experimentKey: 'feed', variant: 'b' },
       ]);
@@ -871,9 +585,6 @@ describe('UsersService', () => {
       expect(res.activity.storyViews).toHaveLength(1);
       expect(res.supportRequests[0].reference).toBe(7);
       expect(res.platformPlans[0].plan.name).toBe('Pro');
-      expect(res.unlocks.posts).toHaveLength(1);
-      expect(res.unlocks.messages).toHaveLength(1);
-      expect(res.unlocks.stories).toHaveLength(1);
       expect(res.experiments[0].variant).toBe('b');
       expect(res.staffNotes[0].body).toBe('Asked twice about a refund');
       expect(res.pushDevices.browsers).toHaveLength(1);
@@ -922,12 +633,7 @@ describe('UsersService', () => {
     };
     const conversation = { findUnique: vi.fn() };
     const message = { create: vi.fn() };
-    const monetization = { findMany: vi.fn(), deleteMany: vi.fn() };
     beforeEach(() => {
-      monetization.findMany.mockReset().mockResolvedValue([]);
-      monetization.deleteMany.mockReset();
-      (mockPrismaService as Record<string, unknown>).monetization =
-        monetization;
       message.create.mockImplementation(
         ({ data }: { data: { conversationId: string; senderId: string } }) =>
           Promise.resolve({ id: 'notice-1', ...data }),
@@ -1059,135 +765,9 @@ describe('UsersService', () => {
       expect(res).toBe(false);
       expect(mockUploadsService.scheduleMediaDeletion).not.toHaveBeenCalled();
     });
-
-    it('removes the payout rows its Profiles opened for accounts of their own', async () => {
-      monetization.findMany.mockResolvedValue([{ id: 'row-2' }]);
-      mockPrismaService.user.deleteMany.mockResolvedValue({ count: 1 });
-
-      await service.deleteScheduledUser('u_sched');
-
-      expect(monetization.findMany).toHaveBeenCalledWith({
-        where: { userId: null, profile: { userId: 'u_sched' } },
-        select: { id: true },
-      });
-      expect(monetization.deleteMany).toHaveBeenCalledWith({
-        where: { id: { in: ['row-2'] } },
-      });
-    });
-
-    it('keeps them when the account was restored meanwhile', async () => {
-      monetization.findMany.mockResolvedValue([{ id: 'row-2' }]);
-      mockPrismaService.user.deleteMany.mockResolvedValue({ count: 0 });
-
-      await service.deleteScheduledUser('u_restored');
-
-      expect(monetization.deleteMany).not.toHaveBeenCalled();
-    });
   });
 
   describe('scheduleDeletion and cancelScheduledDeletion', () => {
-    const noMoney = { available: [{ amount: 0 }], pending: [{ amount: 0 }] };
-    // The payout accounts of the person and of their Profiles.
-    const payoutRows = { findMany: vi.fn() };
-    beforeEach(() => {
-      mockStripeService.getConnectBalance.mockResolvedValue(noMoney);
-      payoutRows.findMany
-        .mockReset()
-        .mockResolvedValue([
-          { stripeConnectAccountId: 'acct_person' },
-          { stripeConnectAccountId: 'acct_profile' },
-        ]);
-      (mockPrismaService as Record<string, unknown>).monetization = payoutRows;
-    });
-
-    it('asks the balance of every payout account of the person and their Profiles', async () => {
-      mockPrismaService.user.update.mockResolvedValue({});
-
-      await service.scheduleDeletion('user-abc');
-
-      expect(payoutRows.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            stripeConnectAccountId: { not: null },
-            OR: [{ userId: 'user-abc' }, { profile: { userId: 'user-abc' } }],
-          },
-        }),
-      );
-      expect(mockStripeService.getConnectBalance).toHaveBeenCalledWith(
-        'acct_person',
-      );
-      expect(mockStripeService.getConnectBalance).toHaveBeenCalledWith(
-        'acct_profile',
-      );
-    });
-
-    it.each([
-      ['available', { available: [{ amount: 1200 }], pending: [] }],
-      ['on its way', { available: [], pending: [{ amount: 800 }] }],
-    ])(
-      'deletes nothing while a payout account holds money %s',
-      async (_, balance) => {
-        mockStripeService.getConnectBalance
-          .mockResolvedValueOnce(noMoney)
-          .mockResolvedValueOnce(balance);
-
-        await expect(
-          service.scheduleDeletion('user-abc'),
-        ).rejects.toMatchObject({
-          errorCode: 'ACCOUNT_HOLDS_BALANCE',
-          status: 409,
-        });
-        expect(mockPrismaService.user.update).not.toHaveBeenCalled();
-        expect(mockOutboxService.enqueue).not.toHaveBeenCalled();
-      },
-    );
-
-    it('deletes nothing when the provider cannot say what an account holds', async () => {
-      mockStripeService.getConnectBalance.mockRejectedValueOnce(
-        new Error('provider down'),
-      );
-
-      await expect(service.scheduleDeletion('user-abc')).rejects.toMatchObject({
-        errorCode: 'PAYOUT_BALANCE_UNKNOWN',
-        status: 503,
-      });
-      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
-    });
-
-    it('deletes an account whose payout account owes money rather than holds it', async () => {
-      mockStripeService.getConnectBalance.mockResolvedValue({
-        available: [{ amount: -1500 }],
-        pending: [],
-      });
-      mockPrismaService.user.update.mockResolvedValue({});
-
-      await expect(
-        service.scheduleDeletion('user-abc'),
-      ).resolves.toBeInstanceOf(Date);
-    });
-
-    it('asks once for an account found on two rows', async () => {
-      payoutRows.findMany.mockResolvedValueOnce([
-        { stripeConnectAccountId: 'acct_same' },
-        { stripeConnectAccountId: 'acct_same' },
-      ]);
-      mockPrismaService.user.update.mockResolvedValue({});
-
-      await service.scheduleDeletion('user-abc');
-
-      expect(mockStripeService.getConnectBalance).toHaveBeenCalledTimes(1);
-    });
-
-    it('asks the provider nothing for a person with no payout account', async () => {
-      payoutRows.findMany.mockResolvedValueOnce([]);
-      mockPrismaService.user.update.mockResolvedValue({});
-
-      await expect(
-        service.scheduleDeletion('user-abc'),
-      ).resolves.toBeInstanceOf(Date);
-      expect(mockStripeService.getConnectBalance).not.toHaveBeenCalled();
-    });
-
     it('scheduleDeletion atomically enqueues job and updates user', async () => {
       mockPrismaService.user.update.mockResolvedValue({});
 

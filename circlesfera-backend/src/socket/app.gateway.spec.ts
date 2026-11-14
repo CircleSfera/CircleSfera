@@ -1,15 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  AUTHOR_ID,
-  BUYER_ID,
-  expectClosed,
-  expectWhole,
-  inlinePaidMedia,
-  paidPost,
-  realPaywall,
-  STRANGER_ID,
-} from '../common/testing/paid-posts.js';
-import {
   AppGateway,
   CHAT_EVENT_BURST,
   CHAT_EVENTS_PER_SECOND,
@@ -30,7 +20,6 @@ interface ServiceOverrides {
     addReaction: ReturnType<typeof vi.fn>;
     membersOf?: ReturnType<typeof vi.fn>;
     blocksAmong?: ReturnType<typeof vi.fn>;
-    sharedPostAsSeenBy?: ReturnType<typeof vi.fn>;
     restricts?: ReturnType<typeof vi.fn>;
   };
   webrtcSignalingService?: {
@@ -2047,10 +2036,7 @@ describe('AppGateway payload bounds and authorization', () => {
       expect(mockTo.mock.calls).toEqual([['user:p-1']]);
     });
 
-    it('redacts a locked message content/media over the socket for non-sender participants', async () => {
-      // Security regression test: a freshly-sent locked message must never
-      // leak its real content/media to a recipient over the realtime
-      // channel, mirroring GetMessagesQuery's read-path redaction.
+    it('sends a message once sent locked to every member as it is', async () => {
       const mockEmit = vi.fn();
       const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
       const gateway = gatewayWithServer({
@@ -2065,98 +2051,40 @@ describe('AppGateway payload bounds and authorization', () => {
           conversationId: 'c-1',
           senderId: 'sender-1',
           isLocked: true,
-          priceCents: 999,
-          content: 'The real secret content',
-          url: 'https://media/secret.jpg',
+          content: 'The real content',
+          url: 'https://media/photo.jpg',
           mediaType: 'image',
         },
       });
 
-      expect(mockEmit).toHaveBeenCalledWith(
-        'receiveMessage',
-        expect.objectContaining({
-          content: 'The real secret content',
-          priceCents: 999,
-        }),
-      );
-      expect(mockEmit).toHaveBeenCalledWith(
-        'receiveMessage',
-        expect.objectContaining({
-          content: 'This message is locked. Pay to unlock.',
-          url: null,
-          standardUrl: null,
-          thumbnailUrl: null,
-          mediaType: null,
-          voiceUrl: null,
-          priceCents: 999,
-        }),
-      );
+      expect(mockTo).toHaveBeenCalledWith('user:recipient-1');
+      for (const [payload] of mockEmit.mock.calls.map((c) => c.slice(1))) {
+        expect(payload).toMatchObject({
+          content: 'The real content',
+          url: 'https://media/photo.jpg',
+          mediaType: 'image',
+        });
+      }
     });
 
-    it('sends a shared paid post to each member as they may see it', async () => {
-      const sent = new Map<string, any>();
-      const gateway = gatewayWithServer(
-        {
-          to: (room: string) => ({
-            emit: (_event: string, payload: any) => {
-              sent.set(room, payload);
-            },
-          }),
-          sockets: new Map(),
-        },
-        {
-          chatRealtimeService: {
-            addReaction: vi.fn(),
-            blocksAmong: vi.fn(async () => new Map()),
-            sharedPostAsSeenBy: vi.fn((post, profileId) =>
-              realPaywall()
-                .applyPaywall([post], profileId)
-                .then(([seen]) => seen),
-            ),
-          },
-        },
-      );
-
-      await gateway.handleChatMessageSent({
-        participants: [
-          { profileId: AUTHOR_ID },
-          { profileId: BUYER_ID },
-          { profileId: STRANGER_ID },
-        ],
-        payload: {
-          id: 'msg-shared',
-          conversationId: 'c-1',
-          senderId: AUTHOR_ID,
-          post: paidPost([inlinePaidMedia()]),
-        },
-      });
-
-      expectWhole(sent.get(`user:${AUTHOR_ID}`).post);
-      expectWhole(sent.get(`user:${BUYER_ID}`).post);
-      expectClosed(sent.get(`user:${STRANGER_ID}`).post);
-    });
-
-    it('sends a shared post that is not paid as it is, without asking', async () => {
+    it('sends a shared post to each member as it is', async () => {
       const mockEmit = vi.fn();
-      const sharedPostAsSeenBy = vi.fn();
       const gateway = gatewayWithServer(
         { to: vi.fn().mockReturnValue({ emit: mockEmit }), sockets: new Map() },
         {
           chatRealtimeService: {
             addReaction: vi.fn(),
             blocksAmong: vi.fn(async () => new Map()),
-            sharedPostAsSeenBy,
           },
         },
       );
-      const post = { id: 'free', profileId: 'a', isPremium: false, media: [] };
+      const post = { id: 'shared', profileId: 'a', media: [] };
 
       await gateway.handleChatMessageSent({
         participants: [{ profileId: 'p-1' }],
         payload: { id: 'm', conversationId: 'c-1', senderId: 'a', post },
       });
 
-      expect(sharedPostAsSeenBy).not.toHaveBeenCalled();
       expect(mockEmit).toHaveBeenCalledWith(
         'receiveMessage',
         expect.objectContaining({ post }),

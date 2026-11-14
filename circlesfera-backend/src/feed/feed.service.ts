@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Visibility } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
-import { PROMOTION_VIEWS_PER_PERSON_PER_DAY } from '../common/constants/monetization.constants.js';
+import { PROMOTION_VIEWS_PER_PERSON_PER_DAY } from '../common/constants/promotion.constants.js';
 import {
   loadViewerContent,
   matureWhere,
@@ -37,7 +37,6 @@ import {
   ACCEPTED_COLLABORATOR_INCLUDE,
   shownCollaborator,
 } from '../posts/post-collaborators.service.js';
-import { PostPaywallService } from '../posts/services/post-paywall.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
 import { FeedInboxService } from './feed-inbox.service.js';
@@ -57,8 +56,6 @@ export class FeedService {
     private readonly feedPreferences: FeedPreferencesService,
     @Inject(ExperimentsService)
     private readonly experiments: ExperimentsService,
-    @Inject(PostPaywallService)
-    private readonly postPaywall: PostPaywallService,
   ) {}
 
   private postHydrationInclude(profileId?: string | null) {
@@ -365,25 +362,6 @@ export class FeedService {
         .map((id) => hydratedPosts.find((p) => p.id === id))
         .filter(Boolean);
 
-      // Fetch user's subscriptions and unlocked posts
-      let subscribedCreatorIds = new Set<string>();
-      let unlockedPostIds = new Set<string>();
-
-      if (profileId) {
-        const viewer = await this.prisma.profile.findUnique({
-          where: { id: profileId },
-          select: { userId: true },
-        });
-        const unlocks = viewer
-          ? await this.prisma.postUnlock.findMany({
-              where: { userId: viewer.userId },
-              select: { postId: true },
-            })
-          : [];
-        subscribedCreatorIds = new Set();
-        unlockedPostIds = new Set(unlocks.map((u) => u.postId));
-      }
-
       const formattedPosts = sortedPosts.map((post: any) => {
         const { likes, ...rest } = post;
         rest.media = rest.media?.map(resolveMediaFields);
@@ -397,29 +375,12 @@ export class FeedService {
           post.performanceScore || 0,
         );
 
-        let finalPost = {
+        const finalPost = {
           ...rest,
           isLiked,
           ...recommendationMeta,
           shouldBlurSensitive: shouldBlur(post, viewerSettings, profileId),
         };
-
-        if (finalPost.isPremium && finalPost.profileId !== profileId) {
-          const isSubscribed = subscribedCreatorIds.has(finalPost.profileId);
-          const isUnlocked = unlockedPostIds.has(finalPost.id);
-
-          if (!isSubscribed && !isUnlocked) {
-            finalPost = {
-              ...finalPost,
-              isLocked: true,
-              media: finalPost.media?.map((m: any) => ({
-                ...m,
-                url: '',
-                standardUrl: '',
-              })),
-            };
-          }
-        }
 
         return finalPost;
       });
@@ -652,7 +613,7 @@ export class FeedService {
       // But for now, they'll just get new posts seamlessly as they are created.
     }
 
-    // 3. Hydrate Subscriptions and Unlocks (Common Path)
+    // 3. Shape the posts (Common Path)
     const formattedPosts = await this.presentFollowedPosts(
       posts,
       profileId,
@@ -764,8 +725,7 @@ export class FeedService {
   }
 
   // Shapes posts of Profiles the viewer chose to read (Following, Favorites):
-  // whether the viewer liked each, why it is shown, the sensitive blur, and a
-  // paid post locked until it is unlocked.
+  // whether the viewer liked each, why it is shown and the sensitive blur.
   private async presentFollowedPosts(
     posts: any[],
     profileId: string,
@@ -774,24 +734,6 @@ export class FeedService {
     >,
     reason: 'following' | 'favorite',
   ) {
-    let subscribedCreatorIds = new Set<string>();
-    let unlockedPostIds = new Set<string>();
-
-    if (profileId) {
-      const viewer = await this.prisma.profile.findUnique({
-        where: { id: profileId },
-        select: { userId: true },
-      });
-      const unlocks = viewer
-        ? await this.prisma.postUnlock.findMany({
-            where: { userId: viewer.userId },
-            select: { postId: true },
-          })
-        : [];
-      subscribedCreatorIds = new Set();
-      unlockedPostIds = new Set(unlocks.map((u) => u.postId));
-    }
-
     return posts.map((post: any) => {
       const { likes, ...rest } = post;
       rest.media = rest.media?.map(resolveMediaFields);
@@ -803,29 +745,12 @@ export class FeedService {
         reason,
       );
 
-      let finalPost = {
+      const finalPost = {
         ...rest,
         isLiked,
         ...recommendationMeta,
         shouldBlurSensitive: shouldBlur(post, viewerSettings, profileId),
       };
-
-      if (finalPost.isPremium && finalPost.profileId !== profileId) {
-        const isSubscribed = subscribedCreatorIds.has(finalPost.profileId);
-        const isUnlocked = unlockedPostIds.has(finalPost.id);
-
-        if (!isSubscribed && !isUnlocked) {
-          finalPost = {
-            ...finalPost,
-            isLocked: true,
-            media: finalPost.media?.map((m: any) => ({
-              ...m,
-              url: '',
-              standardUrl: '',
-            })),
-          };
-        }
-      }
 
       return finalPost;
     });
@@ -905,24 +830,6 @@ export class FeedService {
       this.prisma.post.count({ where }),
     ]);
 
-    let subscribedCreatorIds = new Set<string>();
-    let unlockedPostIds = new Set<string>();
-
-    if (currentProfileId) {
-      const viewer = await this.prisma.profile.findUnique({
-        where: { id: currentProfileId },
-        select: { userId: true },
-      });
-      const unlocks = viewer
-        ? await this.prisma.postUnlock.findMany({
-            where: { userId: viewer.userId },
-            select: { postId: true },
-          })
-        : [];
-      subscribedCreatorIds = new Set();
-      unlockedPostIds = new Set(unlocks.map((u) => u.postId));
-    }
-
     const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
       rest.media = rest.media?.map(resolveMediaFields);
@@ -935,29 +842,12 @@ export class FeedService {
         'popular',
       );
 
-      let finalPost = {
+      const finalPost = {
         ...rest,
         isLiked,
         ...recommendationMeta,
         shouldBlurSensitive: shouldBlur(post, viewerSettings, currentProfileId),
       };
-
-      if (finalPost.isPremium && finalPost.profileId !== currentProfileId) {
-        const isSubscribed = subscribedCreatorIds.has(finalPost.profileId);
-        const isUnlocked = unlockedPostIds.has(finalPost.id);
-
-        if (!isSubscribed && !isUnlocked) {
-          finalPost = {
-            ...finalPost,
-            isLocked: true,
-            media: finalPost.media?.map((m: any) => ({
-              ...m,
-              url: '',
-              standardUrl: '',
-            })),
-          };
-        }
-      }
 
       return finalPost;
     });
@@ -1077,23 +967,18 @@ export class FeedService {
       include: this.postHydrationInclude(profileId),
     });
 
-    // A promoted paid post the viewer has not unlocked is closed, as it is
-    // in the rest of the feed.
-    const promotedPosts = await this.postPaywall.applyPaywall(
-      promotedPostsRaw.map((p) => {
-        const { likes, media, ...rest } = p;
-        const isLiked =
-          profileId && Array.isArray(likes) ? likes.length > 0 : false;
-        return {
-          ...rest,
-          collaborator: shownCollaborator(rest.collaborator),
-          media: media.map(resolveMediaFields),
-          isLiked,
-          isPromoted: true,
-        };
-      }),
-      profileId ?? undefined,
-    );
+    const promotedPosts = promotedPostsRaw.map((p) => {
+      const { likes, media, ...rest } = p;
+      const isLiked =
+        profileId && Array.isArray(likes) ? likes.length > 0 : false;
+      return {
+        ...rest,
+        collaborator: shownCollaborator(rest.collaborator),
+        media: media.map(resolveMediaFields),
+        isLiked,
+        isPromoted: true,
+      };
+    });
     const promotedPostsDict = new Map(promotedPosts.map((p) => [p.id, p]));
 
     const finalPosts = [];

@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 // Public, unauthenticated surfaces (sitemap, Open Graph) may only describe
 // profiles and posts that any anonymous visitor could already open: active,
 // non-deactivated, non-banned accounts that are not private, and posts that are
-// public, published, unlocked and not moderated out.
+// public, published and not moderated out.
 const PUBLIC_PROFILE_WHERE = {
   privacyLevel: { not: Visibility.PRIVATE },
   user: {
@@ -22,7 +22,6 @@ const PUBLIC_PROFILE_WHERE = {
 
 const PUBLIC_POST_WHERE = {
   visibility: Visibility.PUBLIC,
-  isPremium: false,
   moderationStatus: 'VISIBLE',
   deletedAt: null,
   archivedAt: null,
@@ -194,8 +193,7 @@ Sitemap: ${baseUrl}/sitemap.xml
 
     // Default meta tags
     let title = 'CircleSfera - The Next-Gen Social Network';
-    let description =
-      'Connect, share, and monetize your content on CircleSfera.';
+    let description = 'Connect and share your content on CircleSfera.';
     let imageUrl = fallbackImage;
 
     try {

@@ -19,11 +19,6 @@ import { tellAuthorOfRemoval } from '../admin/utils/tell-author-of-removal.js';
 import { AIService, type ContentModerationResult } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import {
-  canMonetize,
-  MAX_PPV_PRICE_CENTS,
-  MIN_PPV_PRICE_CENTS,
-} from '../common/constants/monetization.constants.js';
-import {
   loadViewerContent,
   matureWhere,
   shouldBlur,
@@ -54,10 +49,6 @@ import {
   resolveMediaFields,
 } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
-import {
-  assertMonetizationApproved,
-  assertOfChargingAge,
-} from '../monetization/payout-account.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StudioTemplatesService } from '../studio-templates/studio-templates.service.js';
 import {
@@ -80,10 +71,6 @@ import {
 import { countProfilePins } from './profile-pins.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
-import {
-  type PaywallPost,
-  PostPaywallService,
-} from './services/post-paywall.service.js';
 
 // Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
 @Injectable()
@@ -97,8 +84,6 @@ export class PostsService {
     @Inject(AIService) private readonly aiService: AIService,
     @Inject(SystemSettingsService)
     private readonly systemSettings: SystemSettingsService,
-    @Inject(PostPaywallService)
-    private readonly postPaywallService: PostPaywallService,
     @Inject(PostDistributionService)
     private readonly postDistributionService: PostDistributionService,
     @Inject(FrameCoverService)
@@ -195,33 +180,6 @@ export class PostsService {
       );
     }
 
-    if (dto.isPremium) {
-      const authorProfile = await this.prisma.profile.findUnique({
-        where: { id: profileId },
-        select: { accountType: true, userId: true },
-      });
-      if (!authorProfile || !canMonetize(authorProfile.accountType)) {
-        throw AppException.Forbidden(
-          ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
-          'Only Creator or Business accounts can publish premium content.',
-        );
-      }
-      // A price is only for someone who may charge.
-      await assertOfChargingAge(this.prisma, authorProfile.userId);
-      await assertMonetizationApproved(this.prisma, profileId);
-      if (
-        !dto.priceCents ||
-        dto.priceCents < MIN_PPV_PRICE_CENTS ||
-        dto.priceCents > MAX_PPV_PRICE_CENTS
-      ) {
-        throw AppException.BadRequest(
-          ErrorCode.PREMIUM_PRICE_OUT_OF_RANGE,
-          'The price of premium content is out of range.',
-          { minCents: MIN_PPV_PRICE_CENTS, maxCents: MAX_PPV_PRICE_CENTS },
-        );
-      }
-    }
-
     let audioStartMs = 0;
     if (dto.audioId) {
       const audio = await this.prisma.audio.findUnique({
@@ -305,8 +263,6 @@ export class PostsService {
             ),
             contentRating: dto.contentRating || ContentRating.GENERAL,
             visibility: dto.visibility || Visibility.PUBLIC,
-            isPremium: dto.isPremium || false,
-            priceCents: dto.priceCents || 0,
             scheduledAt: scheduledAt ?? null,
             scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
             tags:
@@ -483,10 +439,8 @@ export class PostsService {
       }),
     ]);
 
-    // A paid post the viewer has not unlocked is listed closed.
-    const processedPosts = await this.postPaywallService.applyPaywall(
-      posts.map((post) => this.injectIsLiked(post, currentProfileId, content)),
-      currentProfileId,
+    const processedPosts = posts.map((post) =>
+      this.injectIsLiked(post, currentProfileId, content),
     );
 
     return createPaginatedResult(
@@ -556,10 +510,7 @@ export class PostsService {
       this.injectIsLiked(post, currentProfileId, content),
     );
 
-    const processedPosts = await this.postPaywallService.applyPaywall(
-      formattedPosts,
-      currentProfileId,
-    );
+    const processedPosts = formattedPosts;
     return createPaginatedResult(
       processedPosts,
       total,
@@ -620,10 +571,7 @@ export class PostsService {
       await withTemplateInfo(this.prisma, posts, currentProfileId)
     ).map((post) => this.injectIsLiked(post, currentProfileId, content));
 
-    const processedPosts = await this.postPaywallService.applyPaywall(
-      formattedPosts,
-      currentProfileId,
-    );
+    const processedPosts = formattedPosts;
 
     return createPaginatedResult(processedPosts, total, page, limit);
   }
@@ -671,24 +619,16 @@ export class PostsService {
       });
 
     const content = await loadViewerContent(this.prisma, currentProfileId);
-    // A paid post not unlocked shows closed, as in the lists of a profile:
-    // the paywall runs on the post once its media addresses are resolved.
     const [withTemplate] = await withTemplateInfo(
       this.prisma,
       [post],
       currentProfileId,
     );
-    const [shown] = await this.postPaywallService.applyPaywall(
-      [
-        this.injectIsLiked(
-          withTemplate,
-          currentProfileId,
-          content,
-        ) as PaywallPost,
-      ],
+    return this.injectIsLiked(
+      withTemplate,
       currentProfileId,
-    );
-    return shown as Record<string, unknown>;
+      content,
+    ) as Record<string, unknown>;
   }
 
   // Retrieve posts by a specific user's username with optional type filter.
@@ -871,10 +811,7 @@ export class PostsService {
     const postsWithLikes = posts.map((post) =>
       this.injectIsLiked(post, currentProfileId, content),
     );
-    const processedPosts = await this.postPaywallService.applyPaywall(
-      postsWithLikes,
-      currentProfileId,
-    );
+    const processedPosts = postsWithLikes;
 
     return createPaginatedResult(
       processedPosts,
@@ -949,10 +886,8 @@ export class PostsService {
       }),
     ]);
 
-    // A paid post the viewer has not unlocked is listed closed.
-    const processedPosts = await this.postPaywallService.applyPaywall(
-      posts.map((post) => this.injectIsLiked(post, currentProfileId, content)),
-      currentProfileId,
+    const processedPosts = posts.map((post) =>
+      this.injectIsLiked(post, currentProfileId, content),
     );
 
     return createPaginatedResult(

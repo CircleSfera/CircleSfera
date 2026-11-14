@@ -12,7 +12,6 @@ import {
 interface PostLikeAccess {
   profileId: string;
   visibility: Visibility;
-  isPremium: boolean;
   profile?: { privacyLevel?: Visibility } | null;
   moderationStatus?: string;
 }
@@ -20,7 +19,6 @@ interface PostLikeAccess {
 interface StoryAccess {
   id: string;
   profileId: string;
-  isPremium: boolean;
   isCloseFriendsOnly: boolean;
   profile: { privacyLevel: Visibility } | null;
 }
@@ -29,7 +27,6 @@ interface MessageAccess {
   id: string;
   conversationId: string;
   senderId: string;
-  isLocked: boolean;
 }
 
 /**
@@ -51,18 +48,16 @@ interface MessageAccess {
  * │ No matching content     │ Yes (avatars, public assets, etc.)           │
  * │ Post is PUBLIC + free   │ Yes                                          │
  * │ Post author == viewer   │ Yes                                          │
- * │ Post is PPV (isPremium) │ Only if viewer has a PostUnlock              │
  * │ Post is FOLLOWERS-only  │ Only if viewer follows the author            │
  * │ Post is PRIVATE (CF)    │ Only if viewer is in author's Close Friends  │
  * └─────────────────────────┴───────────────────────────────────────────────┘
  *
- * Story: author always allowed; isPremium requires StoryUnlock;
+ * Story: author always allowed;
  * isCloseFriendsOnly requires CloseFriend (independent of profile privacy);
  * a private profile otherwise requires an ACCEPTED Follow.
  *
  * Message (DM/group chat attachments): requires the viewer to be an active
- * (non-"deleted for me") Participant of the conversation. isLocked (PPV
- * message) additionally requires a MessageUnlock, except for the sender.
+ * (non-"deleted for me") Participant of the conversation.
  *
  * Collection: owner-only -- there is no shared/public collection viewing
  * feature in the API today.
@@ -92,7 +87,6 @@ interface MessageAccess {
 const POST_ACCESS_SELECT = {
   profileId: true,
   visibility: true,
-  isPremium: true,
   moderationStatus: true,
   deletedAt: true,
   archivedAt: true,
@@ -123,7 +117,6 @@ export class MediaAuthService {
     viewerUserId: string | null,
     viewerProfileId: string | null,
     isStaff: () => Promise<boolean> = () => Promise.resolve(false),
-    isReviewer: () => Promise<boolean> = () => Promise.resolve(false),
   ): Promise<boolean> {
     // Nginx passes the raw, undecoded $request_uri (including any query
     // string/fragment) via X-Original-URI, but its own `location /uploads/`
@@ -218,7 +211,6 @@ export class MediaAuthService {
         select: {
           id: true,
           profileId: true,
-          isPremium: true,
           isCloseFriendsOnly: true,
           moderationStatus: true,
           deletedAt: true,
@@ -232,7 +224,6 @@ export class MediaAuthService {
           id: true,
           conversationId: true,
           senderId: true,
-          isLocked: true,
         },
       }),
       this.prisma.comment.findMany({
@@ -272,38 +263,9 @@ export class MediaAuthService {
     // PUBLIC post's url field (client-controlled, see MediaItemDto) to
     // literally embed a known/leaked protected filename, so a naive
     // "first matching table wins" would let that public post authorize
-    // access to someone else's private/PPV file. Requiring every matched
+    // access to someone else's private file. Requiring every matched
     // owner (across every table) to independently grant access closes that
     // without costing anything in the normal, non-adversarial case.
-    // A file of paid content on sale: the review area shows it, without
-    // buying it, to whoever holds the review permission. Only when every row
-    // naming the file is such a post's or story's: never a message's, nor
-    // content hidden, removed, deleted or archived.
-    const onSale = (content: {
-      isPremium: boolean;
-      moderationStatus: string;
-      deletedAt: Date | null;
-      archivedAt?: Date | null;
-    }) =>
-      content.isPremium &&
-      (content.moderationStatus === 'VISIBLE' ||
-        content.moderationStatus === 'FLAGGED') &&
-      !content.deletedAt &&
-      !content.archivedAt;
-    if (
-      postMedia.length + story.length > 0 &&
-      message.length +
-        comment.length +
-        collection.length +
-        editProject.length +
-        liveStream.length ===
-        0 &&
-      postMedia.every((media) => onSale(media.post)) &&
-      story.every(onSale) &&
-      (await isReviewer())
-    ) {
-      return true;
-    }
 
     // A file of removed content: staff who moderate content may see it,
     // nobody else. The other rows naming the file are still checked.
@@ -378,26 +340,14 @@ export class MediaAuthService {
 
     const accessChecks: Promise<boolean>[] = [
       ...postMedia.map((media) =>
-        this.checkPostAccess(
-          media.postId,
-          media.post,
-          viewerUserId,
-          viewerProfileId,
-        ),
+        this.checkPostAccess(media.post, viewerUserId, viewerProfileId),
       ),
       ...story.map((item) =>
         this.checkStoryAccess(item, viewerUserId, viewerProfileId),
       ),
-      ...message.map((item) =>
-        this.checkMessageAccess(item, viewerUserId, viewerProfileId),
-      ),
+      ...message.map((item) => this.checkMessageAccess(item, viewerProfileId)),
       ...comment.map((item) =>
-        this.checkPostAccess(
-          item.postId,
-          item.post,
-          viewerUserId,
-          viewerProfileId,
-        ),
+        this.checkPostAccess(item.post, viewerUserId, viewerProfileId),
       ),
       ...collection.map((item) =>
         Promise.resolve(item.profileId === viewerProfileId),
@@ -488,7 +438,6 @@ export class MediaAuthService {
   }
 
   private async checkPostAccess(
-    postId: string,
     post: PostLikeAccess,
     viewerUserId: string | null,
     viewerProfileId: string | null,
@@ -496,11 +445,7 @@ export class MediaAuthService {
     // A post of a private account is its followers' only, whatever the
     // post's own audience, as the post itself is (assertCanAccessPost).
     const privateAccount = post.profile?.privacyLevel === Visibility.PRIVATE;
-    if (
-      post.visibility === Visibility.PUBLIC &&
-      !post.isPremium &&
-      !privateAccount
-    ) {
+    if (post.visibility === Visibility.PUBLIC && !privateAccount) {
       return true;
     }
 
@@ -526,16 +471,8 @@ export class MediaAuthService {
     if (privateAccount && !(await follows())) {
       return false;
     }
-    if (post.visibility === Visibility.PUBLIC && !post.isPremium) {
+    if (post.visibility === Visibility.PUBLIC) {
       return true;
-    }
-
-    if (post.isPremium) {
-      const unlock = await this.prisma.postUnlock.findUnique({
-        where: { userId_postId: { userId: viewerUserId, postId } },
-        select: { id: true },
-      });
-      return !!unlock;
     }
 
     if (post.visibility === Visibility.FOLLOWERS) {
@@ -572,16 +509,6 @@ export class MediaAuthService {
 
     if (!viewerUserId || !viewerProfileId) {
       return false;
-    }
-
-    if (story.isPremium) {
-      const unlock = await this.prisma.storyUnlock.findUnique({
-        where: { userId_storyId: { userId: viewerUserId, storyId: story.id } },
-        select: { id: true },
-      });
-      if (!unlock) {
-        return false;
-      }
     }
 
     if (story.isCloseFriendsOnly) {
@@ -632,24 +559,10 @@ export class MediaAuthService {
 
   private async checkMessageAccess(
     message: MessageAccess,
-    viewerUserId: string | null,
     viewerProfileId: string | null,
   ): Promise<boolean> {
     if (!(await this.isMember(message.conversationId, viewerProfileId))) {
       return false;
-    }
-
-    if (message.isLocked && message.senderId !== viewerProfileId) {
-      if (!viewerUserId) {
-        return false;
-      }
-      const unlock = await this.prisma.messageUnlock.findUnique({
-        where: {
-          userId_messageId: { userId: viewerUserId, messageId: message.id },
-        },
-        select: { id: true },
-      });
-      return !!unlock;
     }
 
     return true;
