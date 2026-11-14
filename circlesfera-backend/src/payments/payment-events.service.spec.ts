@@ -50,7 +50,7 @@ describe('PaymentEventsService', () => {
   it('routes only promotions and the legacy subscription metadata here', () => {
     expect(isOneTimeCheckoutType('PROMOTION')).toBe(true);
     expect(isOneTimeCheckoutType('STRIPE_SUBSCRIPTION')).toBe(true);
-    expect(isOneTimeCheckoutType('DIRECT_TIP')).toBe(false);
+    expect(isOneTimeCheckoutType('TIP')).toBe(false);
     expect(isOneTimeCheckoutType(undefined)).toBe(false);
   });
 
@@ -81,7 +81,6 @@ describe('PaymentEventsService', () => {
           currency: 'EUR',
           status: 'COMPLETED',
           senderId: 'user_promo',
-          receiverId: null,
           promotionId: 'promo_test_id',
           stripePaymentIntentId: 'pi_promo_1',
           description: 'Promotion checkout cs_promo_1',

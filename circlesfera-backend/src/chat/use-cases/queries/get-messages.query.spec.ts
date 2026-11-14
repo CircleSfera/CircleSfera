@@ -132,7 +132,6 @@ describe('GetMessagesQuery', () => {
         id: 'msg-once-locked',
         content: 'enc_secret',
         senderId: 'prof-creator',
-        isLocked: true,
         url: 'https://cdn/secret.jpg',
         mediaType: 'image',
       },

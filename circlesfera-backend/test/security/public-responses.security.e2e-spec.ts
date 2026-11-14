@@ -37,23 +37,12 @@ const FORBIDDEN_KEYS = [
   'rootBanReason',
   'isRootBanned',
   'email',
-  // A Profile's place in the monetization programme, between it and staff.
-  'monetizationStatus',
-  'monetizationPitch',
-  'monetizationNote',
-  'monetizationReviewedBy',
 ];
 
 // Subset that must never appear even in a response about the caller's own
 // account (the caller's own email and birth date are legitimate there).
 const OWN_DATA_FORBIDDEN_KEYS = FORBIDDEN_KEYS.filter(
-  (k) =>
-    k !== 'email' &&
-    k !== 'dateOfBirth' &&
-    // The caller's own application, its answer and why.
-    k !== 'monetizationStatus' &&
-    k !== 'monetizationPitch' &&
-    k !== 'monetizationNote',
+  (k) => k !== 'email' && k !== 'dateOfBirth',
 );
 
 function collectLeaks(

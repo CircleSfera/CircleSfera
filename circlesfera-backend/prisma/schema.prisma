@@ -25,8 +25,8 @@ model User {
   // Account status
   isActive            Boolean   @default(true)
   isRootBanned        Boolean   @default(false)
-  // Since when the payouts of a person banned from the whole account are
-  // held at the provider; they are released after 85 days (its limit is 90).
+  // Former hold of a banned person's payouts. No query reads or writes it
+  // any more; it is dropped in the next release.
   payoutsHeldAt       DateTime?
   rootBanReason       String?   @db.Text
   // Legacy account-level strike counter. Strikes are recorded per Profile in
@@ -425,10 +425,9 @@ model Profile {
   // Account Ban Flags
 
   isAccountBanned        Boolean             @default(false)
-  // The monetization programme: a Profile charges only once staff approve
-  // its application (MonetizationStatus). The note is the reason given to
-  // the creator for a refusal or a revocation.
-  monetizationStatus     MonetizationStatus  @default(NONE)
+  // The former monetization programme. No query reads or writes these
+  // columns any more; they are dropped in the next release.
+  monetizationStatus     MonetizationStatus  @default(NONE) @ignore
   monetizationAppliedAt  DateTime?
   monetizationPitch      String?             @db.VarChar(500)
   monetizationReviewedAt DateTime?
@@ -648,10 +647,10 @@ model Post {
   // pinned. A Profile pins at most PROFILE_PINS_MAX.
   pinnedToProfileAt       DateTime?
 
-  // Premium Content
-
-  isPremium   Boolean      @default(false)
-  priceCents  Int          @default(0) // Price in fiat cents (e.g., 500 = $5.00)
+  // Former sale of a post. No query reads or writes these columns any more;
+  // they are dropped in the next release.
+  isPremium   Boolean      @default(false) @ignore
+  priceCents  Int          @default(0) @ignore
   postUnlocks PostUnlock[]
 
   // Scheduling & Interactive Features
@@ -898,10 +897,10 @@ model Story {
 
   notifications Notification[]
 
-  // Premium Content
-
-  isPremium    Boolean       @default(false)
-  priceCents   Int           @default(0)
+  // Former sale of a story. No query reads or writes these columns any
+  // more; they are dropped in the next release.
+  isPremium    Boolean       @default(false) @ignore
+  priceCents   Int           @default(0) @ignore
   storyUnlocks StoryUnlock[]
 
   // Scheduling & Interactive Features
@@ -1715,10 +1714,10 @@ model Message {
 
   expiresAt DateTime?
 
-  // Premium Content (PPV)
-
-  isLocked       Boolean         @default(false)
-  priceCents     Int             @default(0)
+  // Former sale of a message. No query reads or writes these columns any
+  // more; they are dropped in the next release.
+  isLocked       Boolean         @default(false) @ignore
+  priceCents     Int             @default(0) @ignore
   messageUnlocks MessageUnlock[]
 
   // New: Post Sharing

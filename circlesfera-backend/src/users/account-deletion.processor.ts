@@ -149,12 +149,11 @@ export class AccountDeletionProcessor extends WorkerHost {
       // Their userId FK is set to NULL (onDelete: SetNull) when the User row
       // is deleted, preserving the row for fiscal compliance (7-year window).
       //
-      //   Transaction        — senderId/receiverId SetNull (pre-existing)
-      //   StripePayoutLog    — userId SetNull (migration 20260916220736)
+      //   Transaction        — senderId SetNull (pre-existing)
       //   PlatformSubscription — userId SetNull (migration 20260916220736)
       //
       // Cascade-deleted (OPERATIONAL, no retention obligation):
-      //   Monetization, Promotion, DataExportRequest
+      //   Promotion, DataExportRequest
       //
       // This log entry provides an auditable record of the retention decision.
       const financialAuditRecords = getFinancialAuditRecords();

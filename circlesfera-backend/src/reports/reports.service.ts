@@ -176,11 +176,11 @@ export class ReportsService {
         break;
       }
       case ReportTargetType.PAYMENT: {
-        // A payment is reported by the person who paid or was paid.
+        // A payment is reported by the person who paid it.
         const [payment, reporter] = await Promise.all([
           this.prisma.transaction.findUnique({
             where: { id: dto.targetId },
-            select: { senderId: true, receiverId: true },
+            select: { senderId: true },
           }),
           this.prisma.profile.findUnique({
             where: { id: reporterId },
@@ -188,10 +188,7 @@ export class ReportsService {
           }),
         ]);
         const party =
-          !!payment &&
-          !!reporter &&
-          (payment.senderId === reporter.userId ||
-            payment.receiverId === reporter.userId);
+          !!payment && !!reporter && payment.senderId === reporter.userId;
         if (!party)
           throw AppException.NotFound(
             ErrorCode.NOT_FOUND,

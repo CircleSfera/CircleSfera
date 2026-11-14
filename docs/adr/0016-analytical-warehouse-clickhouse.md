@@ -34,12 +34,12 @@ CircleSfera needs analytical KPIs (Trust MTTR aggregates, plan MRR, retention co
   - Its memory is capped at 2 GiB. When it was decided, the server had 23 GiB with about 19.7 GiB available, and the production containers used under 400 MiB.
 - **Access:** one user, `circlesfera`. Its password is a repository secret (`CLICKHOUSE_PASSWORD`) that the production deploy writes, with `CLICKHOUSE_URL`, into the server's environment. Default access management is off.
 - **Schema:** `scripts/etl/clickhouse-schema.sql`, applied by the container on its first start.
-- **What is loaded:** the nightly export only. That is reports, appeals and support tickets (ids, statuses, dates) and payments (ids, type, amounts, VAT, refunds, status, and the ids of the paying person, the paid person and Profile, and the item). No names, emails, texts or messages.
+- **What is loaded:** the nightly export only. That is reports, appeals and support tickets (ids, statuses, dates) and payments (ids, type, amounts, VAT, refunds, status, and the ids of the paying person and of the promotion paid for). A table created before payments to creators were removed still has their columns (the paid person and Profile, and the item); new rows leave them empty. No names, emails, texts or messages.
 - **How long:**
   - Rows older than 24 months are dropped by a table TTL.
   - The nightly CSVs are deleted 7 days after export (`ETL_RETENTION_DAYS`).
   - In production they live in the `etl_data` Docker volume, owned by the `node` user the backend runs as. They are a step on the way into the warehouse, not a backup: a lost folder is exported again.
-  - When a person's account is erased, their rows are deleted from ClickHouse too.
+  - When a person's account is erased, the payments they made are deleted from ClickHouse too.
 - **Backups:** none. ClickHouse holds a copy of what Postgres holds and is rebuilt from it.
 - **Dashboards:** not part of this step.
 

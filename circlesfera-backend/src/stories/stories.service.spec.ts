@@ -801,7 +801,6 @@ describe('StoriesService', () => {
         {
           id: 'once-priced',
           profileId: 'author-1',
-          isPremium: true,
           url: 'https://cdn.example.com/full.jpg',
           standardUrl: 'https://cdn.example.com/full-std.jpg',
           thumbnailUrl: 'https://cdn.example.com/thumb.jpg',

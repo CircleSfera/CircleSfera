@@ -9,7 +9,9 @@ CircleSfera exports analytics **read-only** from PostgreSQL. Operational queues 
 - Schedule: **03:30 UTC** daily (`30 3 * * *`)
 - Registered in `WarehouseModule` on backend boot (same pattern as GDPR crons)
 - Writes CSV under `ETL_DIR` (default `./backups/etl/<timestamp>/`)
-- If `CLICKHOUSE_URL` is set → HTTP `INSERT ... FORMAT CSVWithNames` per table
+- If `CLICKHOUSE_URL` is set → HTTP `INSERT ... FORMAT CSVWithNames` per table. Values go to the columns
+  their CSV header names, never by position: a column of the table that the export does not carry takes
+  its default (`NULL` when nullable), and a column the export carries that the table lacks is skipped.
 
 ### Backend environment
 
@@ -34,7 +36,8 @@ On OVH Docker, `docker-compose.prod.yml` mounts the `etl_data` volume at `/app/c
 Connect read-only to ClickHouse Cloud. P0 dashboards:
 
 - Trust: daily median MTTR by queue (`reports`, `appeals`, `support_tickets`)
-- Monetization: daily sum `amount` by `type` from `transactions`. A payment is loaded again each time it
+- Payments: daily sum `amount` by `type` from `transactions` (plans and promotions; each row names the
+  person who paid, `senderId`, and the promotion, `promotionId`). A payment is loaded again each time it
   changes (a refund, a dispute), so take its latest row per `id` (`argMax(…, updatedAt)`);
   what a payment kept is `amount - refundedCents`, and `vatCents` is the VAT inside `amount`.
 - Experiments: `feature_flags` snapshot + join with product metrics later
@@ -52,7 +55,8 @@ ETL_SINCE_DAYS=90 DATABASE_URL=... ./scripts/etl/export-analytics-tables.sh
 Load manually:
 
 ```bash
-clickhouse-client --secure --query "INSERT INTO circlesfera_analytics.reports FORMAT CSVWithNames" < reports.csv
+clickhouse-client --secure --input_format_with_names_use_header=1 --input_format_defaults_for_omitted_fields=1 \
+  --query "INSERT INTO circlesfera_analytics.reports FORMAT CSVWithNames" < reports.csv
 ```
 
 ---

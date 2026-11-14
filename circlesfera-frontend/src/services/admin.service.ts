@@ -667,10 +667,6 @@ export interface AdminTransaction {
     email: string;
     profile?: { username: string } | null;
   } | null;
-  receiver?: {
-    email: string;
-    profile?: { username: string } | null;
-  } | null;
 }
 
 export interface TrustQueueAppeal {

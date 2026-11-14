@@ -121,7 +121,7 @@ describe('RefundPromotionUseCase', () => {
         amount: -1000,
         currency: 'EUR',
         status: 'REFUNDED',
-        receiverId: 'user-1',
+        senderId: 'user-1',
         promotionId: 'promo-1',
         // Regression test: the refund's own Stripe id must be
         // stored so Transaction.stripePaymentIntentId's unique constraint

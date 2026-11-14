@@ -110,36 +110,28 @@ export class PaymentsService {
     }
   }
 
-  // The record of money a person sent and received, or of every
-  // transaction for staff. A person's own record never names the other
-  // party: a transaction is between accounts, and naming one could tell
-  // which Profile is behind it. Amounts are in euros, not cents.
+  // The record of money a person paid, refunds included, or of every
+  // transaction for staff. Amounts are in euros, not cents.
   async getLedgerCsv(userId?: string): Promise<string> {
     const transactions = await this.prisma.transaction.findMany({
-      where: userId
-        ? {
-            OR: [{ senderId: userId }, { receiverId: userId }],
-          }
-        : undefined,
+      where: userId ? { senderId: userId } : undefined,
       orderBy: { createdAt: 'desc' },
       ...(userId
         ? {}
         : {
             include: {
               sender: { select: { email: true } },
-              receiver: { select: { email: true } },
             },
           }),
     });
 
     const header = userId
       ? 'ID,Date,Type,Direction,Amount,VAT,Refunded,Currency,Status,Description\n'
-      : 'ID,Date,Type,Amount,VAT,Refunded,Currency,Status,Sender,Receiver,Description\n';
+      : 'ID,Date,Type,Amount,VAT,Refunded,Currency,Status,Sender,Description\n';
     const rows = transactions
       .map((tx) => {
         const parties = tx as typeof tx & {
           sender?: { email: string } | null;
-          receiver?: { email: string } | null;
         };
         const common = [tx.id, tx.createdAt.toISOString(), tx.type];
         // The amount is what was paid; the VAT is the part of it that is VAT,
@@ -154,7 +146,9 @@ export class PaymentsService {
         const cells = userId
           ? [
               ...common,
-              tx.senderId === userId ? 'SENT' : 'RECEIVED',
+              // Every row of a person's own record is one they paid, or the
+              // refund of one (a negative amount).
+              tx.amount < 0 ? 'REFUND' : 'SENT',
               ...money,
               csvText(tx.description),
             ]
@@ -162,7 +156,6 @@ export class PaymentsService {
               ...common,
               ...money,
               csvText(parties.sender?.email || 'SYSTEM'),
-              csvText(parties.receiver?.email || 'SYSTEM'),
               csvText(tx.description),
             ];
         return cells.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',');

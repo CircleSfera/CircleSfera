@@ -375,7 +375,6 @@ describe('Test Data Factories & Scenario Seeder', () => {
       const tx = await createTransaction(
         mockPrisma as unknown as PrismaClient,
         'u1',
-        'u2',
       );
       expect(tx.id).toBe('tx-1');
     });

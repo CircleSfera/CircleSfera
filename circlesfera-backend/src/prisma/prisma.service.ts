@@ -36,22 +36,37 @@ export const PARTICIPANT_PRIVATE_OMIT = {
   pinnedAt: true,
 } as const;
 
-// A Profile's place in the monetization programme is between it and staff:
-// whether it applied, was refused or revoked, why, and who decided.
-export const PROFILE_PRIVATE_OMIT = {
-  monetizationStatus: true,
-  monetizationAppliedAt: true,
-  monetizationPitch: true,
-  monetizationReviewedAt: true,
-  monetizationReviewedBy: true,
-  monetizationNote: true,
+// Columns of the former sale of content and of payments to creators. No
+// query names them: they are dropped in the next release, and this release
+// must keep working on the database after that drop if a deploy rolls back.
+// The ones with a default (the sale fields of posts, stories and messages,
+// and monetizationStatus) are `@ignore` in the schema instead, so the client
+// neither reads nor writes them and the database fills them.
+export const RETIRED_COLUMNS_OMIT = {
+  user: { payoutsHeldAt: true },
+  profile: {
+    monetizationAppliedAt: true,
+    monetizationPitch: true,
+    monetizationReviewedAt: true,
+    monetizationReviewedBy: true,
+    monetizationNote: true,
+  },
+  transaction: {
+    receiverId: true,
+    receiverProfileId: true,
+    postId: true,
+    storyId: true,
+    messageId: true,
+    liveStreamId: true,
+  },
 } as const;
 
 const clientOmit = {
-  user: USER_SECRET_OMIT,
+  user: { ...USER_SECRET_OMIT, ...RETIRED_COLUMNS_OMIT.user },
   signIn: SIGN_IN_SECRET_OMIT,
   participant: PARTICIPANT_PRIVATE_OMIT,
-  profile: PROFILE_PRIVATE_OMIT,
+  profile: RETIRED_COLUMNS_OMIT.profile,
+  transaction: RETIRED_COLUMNS_OMIT.transaction,
 } as const;
 
 @Injectable()

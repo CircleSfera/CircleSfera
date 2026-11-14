@@ -413,16 +413,8 @@ export class AdminStatsService {
       where.OR = [
         { description: { contains: q, mode: 'insensitive' } },
         { sender: { email: { contains: q, mode: 'insensitive' } } },
-        { receiver: { email: { contains: q, mode: 'insensitive' } } },
         {
           sender: {
-            profiles: {
-              some: { username: { contains: q, mode: 'insensitive' } },
-            },
-          },
-        },
-        {
-          receiver: {
             profiles: {
               some: { username: { contains: q, mode: 'insensitive' } },
             },
@@ -444,12 +436,6 @@ export class AdminStatsService {
               profiles: { select: { username: true } },
             },
           },
-          receiver: {
-            select: {
-              email: true,
-              profiles: { select: { username: true } },
-            },
-          },
         },
       }),
       this.prisma.transaction.count({ where }),
@@ -459,7 +445,6 @@ export class AdminStatsService {
       data: data.map((tx) => ({
         ...tx,
         sender: tx.sender ? withPrimaryProfile(tx.sender) : null,
-        receiver: tx.receiver ? withPrimaryProfile(tx.receiver) : null,
       })),
       meta: {
         total,

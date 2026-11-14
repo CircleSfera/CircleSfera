@@ -49,12 +49,7 @@ CREATE TABLE IF NOT EXISTS circlesfera_analytics.transactions (
   currency String,
   status String,
   senderId Nullable(String),
-  receiverId Nullable(String),
-  receiverProfileId Nullable(String),
-  postId Nullable(String),
-  storyId Nullable(String),
   promotionId Nullable(String),
-  liveStreamId Nullable(String),
   createdAt DateTime64(3),
   updatedAt DateTime64(3) DEFAULT createdAt
 ) ENGINE = MergeTree()
@@ -66,10 +61,12 @@ TTL toDateTime(createdAt) + INTERVAL 24 MONTH;
 -- changes nothing. A payment is loaded again each time it changes (a refund,
 -- a dispute): per id, the row with the latest updatedAt is the one that counts,
 -- e.g. argMax(status, updatedAt) ... GROUP BY id.
+-- A table created earlier also has the columns of the former payments to
+-- creators (receiverId, receiverProfileId, postId, storyId, liveStreamId):
+-- the export no longer carries them, so new rows leave them NULL.
 ALTER TABLE circlesfera_analytics.transactions
   ADD COLUMN IF NOT EXISTS vatCents Int32 DEFAULT 0 AFTER amount,
   ADD COLUMN IF NOT EXISTS refundedCents Int32 DEFAULT 0 AFTER vatCents,
-  ADD COLUMN IF NOT EXISTS receiverProfileId Nullable(String) AFTER receiverId,
   ADD COLUMN IF NOT EXISTS updatedAt DateTime64(3) DEFAULT createdAt AFTER createdAt;
 
 CREATE TABLE IF NOT EXISTS circlesfera_analytics.feature_flags (

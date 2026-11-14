@@ -705,7 +705,6 @@ describe('FeedService', () => {
         {
           id: 'prem-1',
           profileId: 'creator-x',
-          isPremium: true,
           media: [{ url: 'secret.mp4', standardUrl: 'std.mp4' }],
           likes: [],
         },
@@ -837,7 +836,6 @@ describe('FeedService', () => {
         {
           id: 'prem-hybrid',
           profileId: 'author-y',
-          isPremium: true,
           media: [{ url: 'locked.mp4' }],
           likes: [],
         },
@@ -1140,7 +1138,6 @@ describe('FeedService', () => {
         {
           id: 'prem-trend',
           profileId: 'creator-z',
-          isPremium: true,
           media: [{ url: 'secret.mp4', standardUrl: 'std.mp4' }],
           likes: [],
         },
