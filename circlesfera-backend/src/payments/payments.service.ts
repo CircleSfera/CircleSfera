@@ -146,8 +146,9 @@ export class PaymentsService {
         const cells = userId
           ? [
               ...common,
-              // Every row of a person's own record is one they paid.
-              'SENT',
+              // Every row of a person's own record is one they paid, or the
+              // refund of one (a negative amount).
+              tx.amount < 0 ? 'REFUND' : 'SENT',
               ...money,
               csvText(tx.description),
             ]

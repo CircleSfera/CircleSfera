@@ -211,7 +211,7 @@ describe('PaymentsService', () => {
         'ID,Date,Type,Direction,Amount,VAT,Refunded,Currency,Status,Description',
         '"tx_1","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","SENT","5.00","1.05","0.00","EUR","COMPLETED","A ""special"" promotion"',
         '"tx_2","2026-01-01T00:00:00.000Z","STRIPE_SUBSCRIPTION","SENT","19.99","0.00","9.99","EUR","COMPLETED",""',
-        '"tx_3","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","SENT","-5.00","0.00","0.00","EUR","REFUNDED",""',
+        '"tx_3","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","REFUND","-5.00","0.00","0.00","EUR","REFUNDED",""',
       ]);
     });
 

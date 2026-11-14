@@ -263,7 +263,7 @@ describe('the shape of a post', () => {
   });
 });
 
-describe('the sale fields of content', () => {
+describe('the sale fields older apps still send', () => {
   const failed = async (
     dto: typeof CreatePostDto | typeof CreateStoryDto | typeof SendMessageDto,
     body: object,
@@ -279,22 +279,22 @@ describe('the sale fields of content', () => {
       )
       .map((error) => error.property);
 
-  // Nothing is sold: the fields are unknown, refused even as "not for sale".
   it.each([
     ['a post', CreatePostDto, 'isPremium'],
     ['a story', CreateStoryDto, 'isPremium'],
     ['a message', SendMessageDto, 'isLocked'],
-  ] as const)(
-    'refuses them on %s, whatever their value',
-    async (_name, dto, flag) => {
-      expect(await failed(dto, { [flag]: false, priceCents: 0 })).toEqual([
-        flag,
-        'priceCents',
-      ]);
-      expect(await failed(dto, { [flag]: true, priceCents: 500 })).toEqual([
-        flag,
-        'priceCents',
-      ]);
-    },
-  );
+  ] as const)('accepts %s marked as not for sale', async (_name, dto, flag) => {
+    expect(await failed(dto, { [flag]: false, priceCents: 0 })).toEqual([]);
+  });
+
+  it.each([
+    ['a post', CreatePostDto, 'isPremium'],
+    ['a story', CreateStoryDto, 'isPremium'],
+    ['a message', SendMessageDto, 'isLocked'],
+  ] as const)('refuses to put %s on sale', async (_name, dto, flag) => {
+    expect(await failed(dto, { [flag]: true, priceCents: 500 })).toEqual([
+      flag,
+      'priceCents',
+    ]);
+  });
 });
