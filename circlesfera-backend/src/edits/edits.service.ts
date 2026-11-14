@@ -18,6 +18,7 @@ import {
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
 import { UpdateEditDto } from './dto/update-edit.dto.js';
+import { hasStudioPro } from './studio-pro.js';
 
 const CAPTIONS_FLAG = 'studio_ai_captions';
 
@@ -65,6 +66,10 @@ export class EditsService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async studioPro(profileId: string) {
+    return { pro: await hasStudioPro(this.prisma, profileId) };
   }
 
   async findAll(profileId: string) {

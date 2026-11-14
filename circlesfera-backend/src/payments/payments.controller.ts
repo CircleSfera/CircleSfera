@@ -89,6 +89,32 @@ export class PaymentsController {
     return this.paymentsService.resumePlan(req.user.userId, req.user.profileId);
   }
 
+  // The same for the Profile's Edits Studio Pro add-on, which is kept
+  // apart from its plan.
+  @Post('plan/studio-pro/cancel')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: HttpStatus.OK })
+  async cancelStudioPro(@Req() req: RequestWithUser) {
+    return this.paymentsService.cancelPlan(
+      req.user.userId,
+      req.user.profileId,
+      true,
+    );
+  }
+
+  @Post('plan/studio-pro/resume')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: HttpStatus.OK })
+  async resumeStudioPro(@Req() req: RequestWithUser) {
+    return this.paymentsService.resumePlan(
+      req.user.userId,
+      req.user.profileId,
+      true,
+    );
+  }
+
   @Get('status')
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200 })

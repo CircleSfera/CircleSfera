@@ -24,6 +24,7 @@ describe('EditsController', () => {
   const mockService = {
     create: vi.fn(),
     findAll: vi.fn(),
+    studioPro: vi.fn(),
     startCaptions: vi.fn(),
     getCaptionsJob: vi.fn(),
     findOne: vi.fn(),
@@ -104,6 +105,19 @@ describe('EditsController', () => {
       .expect(200);
 
     expect(mockService.findAll).toHaveBeenCalledWith(TEST_USER.profileId);
+  });
+
+  it('says whether the session profile has Studio Pro, and is not taken for a project id', async () => {
+    mockService.studioPro.mockResolvedValue({ pro: true });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/edits/pro')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual({ pro: true });
+    expect(mockService.studioPro).toHaveBeenCalledWith(TEST_USER.profileId);
+    expect(mockService.findOne).not.toHaveBeenCalled();
   });
 
   it('starts captions as the session profile and unwraps clipId', async () => {

@@ -351,12 +351,14 @@ describe('PaymentsService', () => {
         platformSubscriptions: [
           {
             planId: 'plan_1',
+            plan: { name: 'Premium', features: [] },
             profileId: 'prof_1',
             status: SubscriptionStatus.ACTIVE,
           },
         ],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        features: [],
         id: 'plan_1',
         stripePriceId: 'price_monthly',
       });
@@ -372,12 +374,14 @@ describe('PaymentsService', () => {
         platformSubscriptions: [
           {
             planId: 'plan_diff',
+            plan: { name: 'Premium', features: [] },
             profileId: 'prof_1',
             status: SubscriptionStatus.ACTIVE,
           },
         ],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        features: [],
         id: 'plan_1',
         stripePriceId: 'price_monthly',
       });
@@ -393,6 +397,7 @@ describe('PaymentsService', () => {
         platformSubscriptions: [],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        features: [],
         id: 'plan_1',
         stripePriceId: 'price_monthly',
         yearlyStripePriceId: null,
@@ -411,6 +416,7 @@ describe('PaymentsService', () => {
         platformSubscriptions: [],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        features: [],
         id: 'plan_1',
         stripePriceId: 'price_monthly',
       });
@@ -432,6 +438,7 @@ describe('PaymentsService', () => {
         platformSubscriptions: [],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        features: [],
         id: 'plan_1',
         stripePriceId: 'price_monthly',
       });
@@ -461,6 +468,93 @@ describe('PaymentsService', () => {
       expect(stripeService.createCheckoutSession).toHaveBeenCalledTimes(1);
     });
 
+    describe('Edits Studio Pro is an add-on', () => {
+      const sub = (name: string, features: string[], over = {}) => ({
+        planId: `plan_${name}`,
+        profileId: 'prof_1',
+        status: SubscriptionStatus.ACTIVE,
+        cancelAtPeriodEnd: false,
+        plan: { name, features },
+        ...over,
+      });
+      const holding = (subscriptions: object[]) => {
+        prisma.user.findUnique = vi.fn().mockResolvedValue({
+          id: 'u_1',
+          email: 'u@test.com',
+          stripeCustomerId: 'cust_1',
+          platformSubscriptions: subscriptions,
+        });
+      };
+      const buying = (name: string, features: string[]) => {
+        prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+          id: 'plan_new',
+          name,
+          features,
+          stripePriceId: 'price_new',
+        });
+      };
+      const checkout = () =>
+        service.createCheckout('u_1', 'plan_new', 'MONTHLY', 'prof_1');
+      beforeEach(() => {
+        prisma.profile.findFirst = vi
+          .fn()
+          .mockResolvedValue({ id: 'prof_1', accountType: 'CREATOR' });
+        stripeService.createCheckoutSession.mockResolvedValue({
+          url: 'https://checkout',
+        });
+      });
+
+      it('is bought beside a Verified or Premium plan', async () => {
+        holding([sub('Premium', ['verified_badge', 'priority_support'])]);
+        buying('Edits Studio Pro', ['studio_pro']);
+
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+      });
+
+      it('is not bought on top of a plan that already includes it', async () => {
+        holding([sub('Elite Creator', ['verified_badge', 'studio_pro'])]);
+        buying('Edits Studio Pro', ['studio_pro']);
+
+        await expect(checkout()).rejects.toThrow(
+          'This profile already has Edits Studio Pro with its plan.',
+        );
+        expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+      });
+
+      it('does not let a Profile with the add-on buy a second plan beside its plan', async () => {
+        holding([
+          sub('Premium', ['verified_badge']),
+          sub('Edits Studio Pro', ['studio_pro']),
+        ]);
+        buying('Verified', ['verified_badge']);
+
+        await expect(checkout()).rejects.toThrow(
+          'This profile already has an active platform plan',
+        );
+      });
+
+      it('lets a Profile with only the add-on choose a plan without it', async () => {
+        holding([sub('Edits Studio Pro', ['studio_pro'])]);
+        buying('Premium', ['verified_badge', 'priority_support']);
+
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+      });
+
+      it('asks to cancel the add-on before a plan that includes it, so the two are never charged together', async () => {
+        holding([sub('Edits Studio Pro', ['studio_pro'])]);
+        buying('Elite Creator', ['verified_badge', 'studio_pro']);
+
+        await expect(checkout()).rejects.toThrow(
+          'This plan includes Edits Studio Pro. Cancel Edits Studio Pro before choosing it.',
+        );
+
+        holding([
+          sub('Edits Studio Pro', ['studio_pro'], { cancelAtPeriodEnd: true }),
+        ]);
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+      });
+    });
+
     describe('a plan belongs to one Profile', () => {
       const person = (subscriptions: object[] = []) => {
         prisma.user.findUnique = vi.fn().mockResolvedValue({
@@ -472,6 +566,7 @@ describe('PaymentsService', () => {
       };
       const plan = (name: string) => {
         prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+          features: [],
           id: 'plan_1',
           name,
           stripePriceId: 'price_monthly',
@@ -494,6 +589,7 @@ describe('PaymentsService', () => {
         person([
           {
             planId: 'plan_1',
+            plan: { name: 'Premium', features: [] },
             profileId: 'prof_other',
             status: SubscriptionStatus.ACTIVE,
           },
@@ -579,6 +675,7 @@ describe('PaymentsService', () => {
         platformSubscriptions: [],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        features: [],
         id: 'plan_1',
         stripePriceId: 'price_monthly',
         yearlyStripePriceId: 'price_yearly',
@@ -625,6 +722,7 @@ describe('PaymentsService', () => {
         platformSubscriptions: [],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        features: [],
         id: 'plan_1',
         stripePriceId: 'price_monthly',
       });
@@ -652,6 +750,7 @@ describe('PaymentsService', () => {
         platformSubscriptions: [],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        features: [],
         id: 'plan_1',
         stripePriceId: 'price_monthly',
         yearlyStripePriceId: 'price_yearly',
@@ -778,7 +877,13 @@ describe('PaymentsService', () => {
       currentPeriodStart: new Date('2026-10-01T00:00:00.000Z'),
       currentPeriodEnd: new Date('2026-11-01T00:00:00.000Z'),
       cancelAtPeriodEnd: false,
-      plan: { id: 'plan_pro', name: 'Pro', priceCents: 2000, currency: 'EUR' },
+      plan: {
+        id: 'plan_pro',
+        name: 'Pro',
+        priceCents: 2000,
+        currency: 'EUR',
+        features: [],
+      },
       profile: { username: 'ana' },
       ...over,
     });
@@ -817,6 +922,18 @@ describe('PaymentsService', () => {
         'ana',
         new Date('2026-11-01T00:00:00.000Z'),
       );
+    });
+
+    it('cancels the add-on, not the plan, when asked for the add-on', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      prisma.user.findUnique = vi.fn().mockResolvedValue({ email: null });
+
+      await service.cancelPlan('u_1', 'prof_1', true);
+
+      expect(
+        vi.mocked(prisma.platformSubscription.findFirst).mock.calls[0][0]
+          ?.where,
+      ).toMatchObject({ profileId: 'prof_1', addOn: true });
     });
 
     it('a failed email does not undo the cancellation, and a payer with no email gets none', async () => {
@@ -930,7 +1047,13 @@ describe('PaymentsService', () => {
       currentPeriodStart: new Date('2026-10-01T00:00:00.000Z'),
       currentPeriodEnd: future,
       cancelAtPeriodEnd: true,
-      plan: { id: 'plan_pro', name: 'Pro', priceCents: 2000, currency: 'EUR' },
+      plan: {
+        id: 'plan_pro',
+        name: 'Pro',
+        priceCents: 2000,
+        currency: 'EUR',
+        features: [],
+      },
       profile: { username: 'ana' },
       ...over,
     });
@@ -989,6 +1112,19 @@ describe('PaymentsService', () => {
         'ana',
         future,
       );
+    });
+
+    it('resumes the add-on, not the plan, when asked for the add-on', async () => {
+      prisma.platformSubscription.findFirst = vi
+        .fn()
+        .mockResolvedValue(plan({ cancelAtPeriodEnd: false }));
+
+      await service.resumePlan('u_1', 'prof_1', true);
+
+      expect(
+        vi.mocked(prisma.platformSubscription.findFirst).mock.calls[0][0]
+          ?.where,
+      ).toMatchObject({ profileId: 'prof_1', addOn: true });
     });
 
     it('a plan that is not cancelled is left as it is', async () => {
@@ -1160,6 +1296,7 @@ describe('PaymentsService', () => {
           name: 'Pro',
           priceCents: 2000,
           currency: 'EUR',
+          features: [],
         },
       });
 
@@ -1174,7 +1311,7 @@ describe('PaymentsService', () => {
         id: 'sub_past',
         planId: 'plan_pro',
         status: SubscriptionStatus.PAST_DUE,
-        plan: { name: 'Pro', priceCents: 2000, currency: 'EUR' },
+        plan: { name: 'Pro', priceCents: 2000, currency: 'EUR', features: [] },
       });
 
       const res = await service.getBillingStatus('u_1', 'prof_1');
@@ -1227,6 +1364,54 @@ describe('PaymentsService', () => {
         vi.mocked(prisma.platformSubscription.findFirst).mock.calls[0][0]
           ?.where,
       ).toMatchObject({ profileId: '__no_profile__' });
+    });
+
+    it('gives the plan and the Edits Studio Pro add-on apart, and says when the plan already includes it', async () => {
+      const row = (name: string, features: string[]) => ({
+        id: `sub_${name}`,
+        planId: `plan_${name}`,
+        status: SubscriptionStatus.ACTIVE,
+        currentPeriodStart: new Date('2026-01-01'),
+        currentPeriodEnd: new Date('2026-02-01'),
+        cancelAtPeriodEnd: false,
+        plan: {
+          id: `plan_${name}`,
+          name,
+          priceCents: 799,
+          currency: 'EUR',
+          features,
+        },
+      });
+      prisma.platformSubscription.findFirst = vi
+        .fn()
+        .mockImplementation(({ where }) =>
+          Promise.resolve(
+            where.addOn
+              ? row('Edits Studio Pro', ['studio_pro'])
+              : row('Premium', ['verified_badge']),
+          ),
+        );
+
+      const res = await service.getBillingStatus('u_1', 'prof_1');
+
+      expect(res.subscription?.planName).toBe('Premium');
+      expect(res.studioPro).toEqual({
+        includedInPlan: false,
+        subscription: expect.objectContaining({ planName: 'Edits Studio Pro' }),
+      });
+
+      prisma.platformSubscription.findFirst = vi
+        .fn()
+        .mockImplementation(({ where }) =>
+          Promise.resolve(
+            where.addOn ? null : row('Business', ['team_access', 'studio_pro']),
+          ),
+        );
+      const business = await service.getBillingStatus('u_1', 'prof_1');
+      expect(business.studioPro).toEqual({
+        includedInPlan: true,
+        subscription: null,
+      });
     });
 
     it('returns null subscription when no subscription found', async () => {
@@ -1552,6 +1737,7 @@ describe('PaymentsService', () => {
           create: expect.objectContaining({
             userId: 'user1',
             profileId: 'prof_1',
+            addOn: false,
           }),
         }),
       );
@@ -1560,6 +1746,8 @@ describe('PaymentsService', () => {
       expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith({
         where: {
           profileId: 'prof_1',
+          // A plan cancels only another plan, never the add-on beside it.
+          addOn: false,
           status: {
             in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
           },
@@ -1593,6 +1781,54 @@ describe('PaymentsService', () => {
         }),
       );
       expect(prisma.webhookEvent.update).toHaveBeenCalled();
+    });
+
+    it('2b. records Edits Studio Pro as an add-on that cancels only an older add-on, never the plan beside it', async () => {
+      stripeService.getSubscription.mockResolvedValue({
+        status: 'active',
+        items: {
+          data: [
+            {
+              current_period_start: Math.floor(Date.now() / 1000),
+              current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+            },
+          ],
+        },
+        cancel_at_period_end: false,
+      });
+      prisma.platformPlan.findUnique = vi.fn().mockResolvedValue({
+        id: 'plan_studio',
+        name: 'Edits Studio Pro',
+      });
+      prisma.user.findUnique = vi
+        .fn()
+        .mockResolvedValue({ id: 'user1', email: 'user1@test.com' });
+      prisma.platformSubscription.findMany = vi.fn().mockResolvedValue([]);
+
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_studio',
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_studio',
+              amount_total: 799,
+              currency: 'eur',
+              subscription: 'sub_studio',
+              metadata: { userId: 'user1', planId: 'plan_studio' },
+            },
+          },
+        }),
+      );
+
+      expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({ profileId: 'prof_1', addOn: true }),
+      });
+      expect(prisma.platformSubscription.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ addOn: true }),
+        }),
+      );
     });
 
     it('2a. records the plan for the Profile the checkout names, looked for among those of the person, and records nothing without one', async () => {

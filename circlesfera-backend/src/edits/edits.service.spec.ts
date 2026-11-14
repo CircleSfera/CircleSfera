@@ -33,6 +33,9 @@ describe('EditsService', () => {
     audio: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    platformSubscription: {
+      count: vi.fn().mockResolvedValue(0),
+    },
   };
 
   const mockUploadsService = {
@@ -259,6 +262,33 @@ describe('EditsService', () => {
         tx,
       );
       expect(mockUploadsService.deleteFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('studioPro', () => {
+    it('is true only with a running plan or add-on of this Profile that includes it', async () => {
+      mockPrismaService.platformSubscription.count.mockResolvedValueOnce(1);
+      await expect(service.studioPro('p-1')).resolves.toEqual({ pro: true });
+      expect(mockPrismaService.platformSubscription.count).toHaveBeenCalledWith(
+        {
+          where: {
+            profileId: 'p-1',
+            status: { in: ['ACTIVE', 'TRIALING'] },
+            plan: { features: { has: 'studio_pro' } },
+          },
+        },
+      );
+
+      mockPrismaService.platformSubscription.count.mockResolvedValueOnce(0);
+      await expect(service.studioPro('p-1')).resolves.toEqual({ pro: false });
+    });
+
+    it('is false for a session without a Profile, without reading plans', async () => {
+      mockPrismaService.platformSubscription.count.mockClear();
+      await expect(service.studioPro('')).resolves.toEqual({ pro: false });
+      expect(
+        mockPrismaService.platformSubscription.count,
+      ).not.toHaveBeenCalled();
     });
   });
 

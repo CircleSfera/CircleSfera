@@ -49,6 +49,7 @@ describe('AdminPlansService', () => {
       'no_promoted_content',
       'advanced_analytics',
       'team_access',
+      'studio_pro',
     ]);
   });
 
