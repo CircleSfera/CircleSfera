@@ -416,6 +416,17 @@ export class EmailService {
     );
   }
 
+  // The code that shows a company controls an address on its domain, in
+  // the language of the person who applies. The code is never logged.
+  async sendCompanyDomainCode(
+    to: string,
+    code: string,
+    applicantEmail?: string | null,
+  ) {
+    const ctx = await this.contextFor(applicantEmail ?? to);
+    await this.send(to, EmailTemplates.companyDomainCode(ctx, code));
+  }
+
   // Enqueue an email for delivery. Returns as soon as the job is
   // queued -- callers never block on Brevo's actual response time, and a
   // transient Brevo failure gets BullMQ's retry/backoff instead of being

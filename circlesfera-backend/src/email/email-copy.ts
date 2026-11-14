@@ -38,6 +38,12 @@ export interface EmailCopy {
     button: string;
     footer: string;
   };
+  companyDomainCode: {
+    subject: string;
+    title: string;
+    body: string;
+    footer: string;
+  };
   accountBanned: { subject: string; title: string; body: string };
   // A notice of illegal content: its receipt, and the decision on it.
   noticeReceived: { subject: string; title: string; body: string };
@@ -120,6 +126,13 @@ const en: EmailCopy = {
     button: 'Verify email',
     footer:
       'If you did not create this account, you can safely ignore this email.',
+  },
+  companyDomainCode: {
+    subject: 'Your CircleSfera company verification code',
+    title: 'Confirm this address',
+    body: 'Someone is verifying a company on CircleSfera with this address. Type this code in CircleSfera to confirm that the company receives email here. It is valid for 30 minutes.',
+    footer:
+      'If you did not expect it, ignore this email: without the code, nothing is confirmed.',
   },
   staffEnrolment: {
     subject: 'Set up your CircleSfera staff access',
@@ -253,6 +266,13 @@ const es: EmailCopy = {
     button: 'Verificar email',
     footer:
       'Si no has creado esta cuenta, puedes ignorar este correo de forma segura.',
+  },
+  companyDomainCode: {
+    subject: 'Tu código de verificación de empresa en CircleSfera',
+    title: 'Confirma esta dirección',
+    body: 'Alguien está verificando una empresa en CircleSfera con esta dirección. Escribe este código en CircleSfera para confirmar que la empresa recibe correo aquí. Vale durante 30 minutos.',
+    footer:
+      'Si no lo esperabas, ignora este correo: sin el código no se confirma nada.',
   },
   staffEnrolment: {
     subject: 'Configura tu acceso de equipo en CircleSfera',

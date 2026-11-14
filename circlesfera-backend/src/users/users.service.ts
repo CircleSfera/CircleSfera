@@ -481,8 +481,9 @@ export class UsersService {
 
   // The rest of what is kept about the person, for the export: warnings and
   // strikes, spam review cases, searches, what they viewed and did, support
-  // requests, plans, experiments and the notes staff wrote about
-  // them. Who on the staff wrote or decided is not included.
+  // requests, plans, company verifications (never their documents),
+  // experiments and the notes staff wrote about them. Who on the staff
+  // wrote or decided is not included.
   private async heldAboutTheAccount(userId: string) {
     const byProfile = { profile: { userId } };
     const [
@@ -494,6 +495,7 @@ export class UsersService {
       storyViews,
       supportRequests,
       plans,
+      companyVerifications,
       experiments,
       staffNotes,
       webPushDevices,
@@ -590,6 +592,25 @@ export class UsersService {
           plan: { select: { name: true } },
         },
       }),
+      this.prisma.companyVerification.findMany({
+        where: byProfile,
+        orderBy: { createdAt: 'asc' },
+        select: {
+          profileId: true,
+          status: true,
+          kind: true,
+          legalName: true,
+          taxId: true,
+          domain: true,
+          viesValid: true,
+          viesName: true,
+          domainProof: true,
+          emailAddress: true,
+          submittedAt: true,
+          decidedAt: true,
+          createdAt: true,
+        },
+      }),
       this.prisma.userExperiment.findMany({
         where: { userId },
         select: { experimentKey: true, variant: true, createdAt: true },
@@ -617,6 +638,7 @@ export class UsersService {
       activity: { interactions, postViews, storyViews },
       supportRequests,
       platformPlans: plans,
+      companyVerifications,
       experiments,
       staffNotes,
       pushDevices: { browsers: webPushDevices, apps: appPushDevices },

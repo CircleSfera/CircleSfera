@@ -37,6 +37,18 @@ describe('EmailTemplates', () => {
     expect(esMail.html).toContain('caduca en 24 horas');
   });
 
+  it('the company code email shows the digits only, in each language', () => {
+    const enMail = EmailTemplates.companyDomainCode(en, '<b>123456</b>');
+    const esMail = EmailTemplates.companyDomainCode(es, '654321');
+
+    expect(enMail.subject).toBe('Your CircleSfera company verification code');
+    expect(enMail.html).toContain('>123456</p>');
+    expect(enMail.html).not.toContain('<b>');
+    expect(enMail.html).toContain('valid for 30 minutes');
+    expect(esMail.html).toContain('>654321</p>');
+    expect(esMail.html).toContain('Vale durante 30 minutos');
+  });
+
   it('carries the brand: logo, wordmark, gradient and a solid fallback', () => {
     const { html } = EmailTemplates.passwordReset(en, 'https://x/reset');
 

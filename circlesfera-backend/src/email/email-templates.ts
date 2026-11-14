@@ -201,6 +201,20 @@ export const EmailTemplates = {
     };
   },
 
+  // A code of digits only, shown large.
+  companyDomainCode: (ctx: EmailContext, code: string): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const digits = code.replace(/\D/g, '');
+    return {
+      subject: copy.companyDomainCode.subject,
+      html: layout(ctx, copy, {
+        title: copy.companyDomainCode.title,
+        content: `${copy.companyDomainCode.body}<p style="margin: 20px 0 0 0; font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: 6px;">${digits}</p>`,
+        note: copy.companyDomainCode.footer,
+      }),
+    };
+  },
+
   passwordReset: (ctx: EmailContext, url: string): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
     return {

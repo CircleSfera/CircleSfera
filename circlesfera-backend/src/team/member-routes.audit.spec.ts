@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // Areas that stay the owner's: direct messages, money, the
-// owner's notices and the account. No route there may be opened to a team
+// owner's notices, the account and the company's verification. No route there may be opened to a team
 // member until a later step reviews it.
 const OWNER_ONLY_DIRS = [
   'chat',
@@ -12,6 +12,7 @@ const OWNER_ONLY_DIRS = [
   'users',
   'admin',
   'push',
+  'company-verification',
 ];
 
 const SRC = join(import.meta.dirname, '..');
