@@ -9,6 +9,7 @@ import {
   isFfmpegEncodePreset,
   mapCaptionSegmentsToTimeline,
   resolutionForAspect,
+  resolutionWithShortSide,
   resolveStudioFontFile,
   StudioExportError,
   scaleResolutionForExport,
@@ -133,6 +134,25 @@ describe('studioExportHelpers (production fidelity)', () => {
 
   it('maps aspect to resolution', () => {
     expect(resolutionForAspect('16:9').width).toBe(1920);
+  });
+
+  it('gives each format the chosen short side, in even pixels', () => {
+    expect(resolutionWithShortSide('9:16', 2160)).toEqual({
+      width: 2160,
+      height: 3840,
+    });
+    expect(resolutionWithShortSide('16:9', 1440)).toEqual({
+      width: 2560,
+      height: 1440,
+    });
+    expect(resolutionWithShortSide('4:5', 1440)).toEqual({
+      width: 1440,
+      height: 1800,
+    });
+    expect(resolutionWithShortSide('1:1', 1080)).toEqual({
+      width: 1080,
+      height: 1080,
+    });
   });
 
   it('recognizes encode presets and cancelled error code', () => {

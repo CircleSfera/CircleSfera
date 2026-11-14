@@ -4,6 +4,12 @@ import {
   FFMPEG_ENCODE_PRESETS,
   type FfmpegEncodePreset,
   isConstrainedDevice,
+  STUDIO_EXPORT_FRAME_RATES,
+  STUDIO_EXPORT_SHORT_SIDES,
+  STUDIO_FREE_FRAME_RATE,
+  STUDIO_FREE_SHORT_SIDE,
+  type StudioExportFrameRate,
+  type StudioExportShortSide,
 } from '../../../utils/studioExportHelpers';
 import { Button } from '../../ui/Button';
 import { Dialog } from '../../ui/Dialog';
@@ -14,8 +20,13 @@ interface ExportModalProps {
   exportProgress: number;
   exportedBlob: Blob | null;
   projectDuration?: number;
+  // Whether the Profile has Edits Studio Pro, as the server says.
+  studioPro?: boolean;
   onClose: () => void;
-  onStartExport: (preset: FfmpegEncodePreset) => void;
+  onStartExport: (
+    preset: FfmpegEncodePreset,
+    quality: { shortSide: StudioExportShortSide; fps: StudioExportFrameRate },
+  ) => void;
   onCancelExport: () => void;
   onPublish: (scheduledAt: string) => void;
   onDownload: () => void;
@@ -27,6 +38,7 @@ export default function ExportModal({
   exportProgress,
   exportedBlob,
   projectDuration = 0,
+  studioPro = false,
   onClose,
   onStartExport,
   onCancelExport,
@@ -36,6 +48,13 @@ export default function ExportModal({
   const { t } = useTranslation();
   const constrained = useMemo(() => isConstrainedDevice(), []);
   const [preset, setPreset] = useState<FfmpegEncodePreset>('ultrafast');
+  const [shortSide, setShortSide] = useState<StudioExportShortSide>(
+    STUDIO_FREE_SHORT_SIDE,
+  );
+  const [fps, setFps] = useState<StudioExportFrameRate>(STUDIO_FREE_FRAME_RATE);
+  // Larger sizes and 60 fps were measured on a computer only; a phone keeps
+  // its lighter export.
+  const proChoices = studioPro && !constrained;
   const [scheduledAt, setScheduledAt] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -63,6 +82,8 @@ export default function ExportModal({
     if (!isOpen) {
       setScheduledAt('');
       setPreset('ultrafast');
+      setShortSide(STUDIO_FREE_SHORT_SIDE);
+      setFps(STUDIO_FREE_FRAME_RATE);
     }
   }, [isOpen]);
 
@@ -75,11 +96,20 @@ export default function ExportModal({
       : t('studio.export_options_title');
 
   const handleStart = () => {
-    if (projectDuration > 90) {
-      // Non-blocking: parent may also toast; hint shown inline
-    }
-    onStartExport(preset);
+    onStartExport(
+      preset,
+      proChoices
+        ? { shortSide, fps }
+        : { shortSide: STUDIO_FREE_SHORT_SIDE, fps: STUDIO_FREE_FRAME_RATE },
+    );
   };
+
+  const chip = (selected: boolean) =>
+    `inline-flex items-center gap-2 min-h-11 px-3 rounded-xl border cursor-pointer transition-colors ${
+      selected
+        ? 'border-brand-primary bg-brand-primary/15 text-white'
+        : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+    }`;
 
   return (
     <Dialog
@@ -181,9 +211,6 @@ export default function ExportModal({
           </>
         ) : (
           <>
-            <p className="text-xs text-white/50 mb-2 text-left w-full">
-              {t('studio.export_quality_hint')}
-            </p>
             {constrained ? (
               <p className="text-xs text-white/70 mb-3 text-left w-full">
                 {t('studio.export_mobile_hint')}
@@ -194,6 +221,83 @@ export default function ExportModal({
                 {t('studio.export_long_duration_hint')}
               </p>
             ) : null}
+            {studioPro && constrained ? (
+              <p
+                className="text-xs text-white/70 mb-3 text-left w-full"
+                data-testid="studio-export-pro-computer"
+              >
+                {t('studio.export_pro.on_computer')}
+              </p>
+            ) : null}
+            {proChoices ? (
+              <div className="w-full text-left mb-4 flex flex-col gap-3">
+                <div>
+                  <div className="text-sm font-medium text-white mb-2">
+                    {t('studio.export_pro.size')}
+                  </div>
+                  <div
+                    className="flex flex-wrap gap-2"
+                    role="radiogroup"
+                    aria-label={t('studio.export_pro.size')}
+                  >
+                    {STUDIO_EXPORT_SHORT_SIDES.map((side) => (
+                      <label key={side} className={chip(shortSide === side)}>
+                        <input
+                          type="radio"
+                          name="export-size"
+                          value={side}
+                          checked={shortSide === side}
+                          onChange={() => setShortSide(side)}
+                          className="accent-brand-primary"
+                        />
+                        <span className="text-xs font-semibold">
+                          {t(`studio.export_pro.sizes.${side}`)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white mb-2">
+                    {t('studio.export_pro.frame_rate')}
+                  </div>
+                  <div
+                    className="flex flex-wrap gap-2"
+                    role="radiogroup"
+                    aria-label={t('studio.export_pro.frame_rate')}
+                  >
+                    {STUDIO_EXPORT_FRAME_RATES.map((rate) => (
+                      <label key={rate} className={chip(fps === rate)}>
+                        <input
+                          type="radio"
+                          name="export-fps"
+                          value={rate}
+                          checked={fps === rate}
+                          onChange={() => setFps(rate)}
+                          className="accent-brand-primary"
+                        />
+                        <span className="text-xs font-semibold">
+                          {t('studio.export_pro.fps', { rate })}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {shortSide !== STUDIO_FREE_SHORT_SIDE ? (
+                  <p className="text-xs text-white/50">
+                    {t('studio.export_pro.frames_note')}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {proChoices ? (
+              <div className="text-sm font-medium text-white mb-1 text-left w-full">
+                {t('studio.export_quality')}
+              </div>
+            ) : null}
+            <p className="text-xs text-white/50 mb-2 text-left w-full">
+              {t('studio.export_quality_hint')}
+            </p>
             <div
               className="w-full flex flex-col gap-2 mb-6"
               role="radiogroup"
