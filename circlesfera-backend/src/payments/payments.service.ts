@@ -252,6 +252,20 @@ export class PaymentsService {
           'This profile already has Edits Studio Pro with its plan.',
         );
       }
+      // An add-on whose renewal failed is paid in the billing portal, not
+      // bought again: two add-ons are never charged.
+      const overdue = user.platformSubscriptions.some(
+        (s) =>
+          s.profileId === profile.id &&
+          s.status === SubscriptionStatus.PAST_DUE &&
+          isAddOnPlan(s.plan.name),
+      );
+      if (overdue) {
+        throw AppException.Conflict(
+          ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+          'Edits Studio Pro has a payment due. Pay it in the billing portal.',
+        );
+      }
     } else {
       if (activeSubs.some((s) => !isAddOnPlan(s.plan.name))) {
         throw AppException.Conflict(

@@ -14,7 +14,7 @@ describe('Edits Studio Pro', () => {
     expect(isAddOnPlan(undefined)).toBe(false);
   });
 
-  it('is held while its subscription runs, included with a plan that has it, or neither', () => {
+  it('is held while its subscription runs or waits on a failed renewal, included with a plan that has it, or neither', () => {
     expect(
       studioProState({
         studioPro: {
@@ -37,7 +37,7 @@ describe('Edits Studio Pro', () => {
       studioProState({
         studioPro: { subscription: { status: 'PAST_DUE' } },
       }),
-    ).toBe('none');
+    ).toBe('held');
     expect(studioProState(undefined)).toBe('none');
   });
 });

@@ -522,6 +522,19 @@ describe('PaymentsService', () => {
         expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
       });
 
+      it('sends an add-on whose renewal failed to the billing portal, never a second checkout', async () => {
+        holding([
+          sub('Premium', ['verified_badge']),
+          sub('Edits Studio Pro', ['studio_pro'], { status: 'PAST_DUE' }),
+        ]);
+        buying('Edits Studio Pro', ['studio_pro']);
+
+        await expect(checkout()).rejects.toThrow(
+          'Edits Studio Pro has a payment due. Pay it in the billing portal.',
+        );
+        expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+      });
+
       it('does not let a Profile with the add-on buy a second plan beside its plan', async () => {
         holding([
           sub('Premium', ['verified_badge']),

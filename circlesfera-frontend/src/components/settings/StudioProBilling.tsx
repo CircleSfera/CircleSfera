@@ -39,21 +39,25 @@ export default function StudioProBilling({
 
   const cancel = useMutation({
     mutationFn: () => paymentsApi.cancelStudioPro(),
-    onSuccess: (status) => {
-      queryClient.setQueryData(['billingStatus'], status);
+    onSuccess: () => {
       setConfirmingCancel(false);
       toast.success(t('settings.billing.studio_pro.cancel_done'));
     },
     onError: () => toast.error(t('settings.billing.studio_pro.cancel_error')),
+    // Asked again rather than taken from the answer: the plan's own
+    // cancel may answer at the same time.
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ['billingStatus'] }),
   });
 
   const resume = useMutation({
     mutationFn: () => paymentsApi.resumeStudioPro(),
-    onSuccess: (status) => {
-      queryClient.setQueryData(['billingStatus'], status);
+    onSuccess: () => {
       toast.success(t('settings.billing.studio_pro.resume_done'));
     },
     onError: () => toast.error(t('settings.billing.studio_pro.resume_error')),
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ['billingStatus'] }),
   });
 
   if (state === 'none' && !subscription) return null;
