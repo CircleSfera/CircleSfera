@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import {
   Ban,
   Bot,
+  Building2,
   ExternalLink,
   Flag,
   Heart,
@@ -264,6 +265,7 @@ export default function ProfileHeader({
     botLabeled?: boolean;
     lastActiveBucket?: 'today' | 'week' | 'month' | 'older' | 'unknown';
     accountStanding?: 'ok' | 'suspended';
+    verifiedCompany?: boolean;
   };
 
   const tierLevel = profile.data.verificationLevel as
@@ -348,6 +350,21 @@ export default function ProfileHeader({
                       <ShieldCheck
                         size={18}
                         className="fill-emerald-400 text-white"
+                        aria-hidden
+                      />
+                    </span>
+                  )}
+                  {data.verifiedCompany && (
+                    <span
+                      title={t('profile.badges.company')}
+                      aria-label={t('profile.badges.company')}
+                      role="img"
+                      className="inline-flex"
+                      data-testid="verified-company-mark"
+                    >
+                      <Building2
+                        size={18}
+                        className="text-sky-400"
                         aria-hidden
                       />
                     </span>
@@ -512,6 +529,16 @@ export default function ProfileHeader({
                 className="fill-emerald-400 text-white shrink-0"
                 aria-hidden
               />
+            )}
+            {data.verifiedCompany && (
+              <span
+                title={t('profile.badges.company')}
+                aria-label={t('profile.badges.company')}
+                role="img"
+                className="inline-flex shrink-0"
+              >
+                <Building2 size={14} className="text-sky-400" aria-hidden />
+              </span>
             )}
             {data.botLabeled && (
               <Bot size={14} className="text-amber-400 shrink-0" aria-hidden />

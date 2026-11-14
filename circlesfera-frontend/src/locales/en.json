@@ -140,6 +140,10 @@
       "collaborations": {
         "label": "Collaborations",
         "desc": "Invitations"
+      },
+      "company": {
+        "label": "Verified company",
+        "desc": "Show the company behind a Business profile"
       }
     },
     "profile": {
@@ -858,6 +862,69 @@
       "accepted": "You're now a collaborator on this post",
       "accept_error": "Couldn't accept the invitation",
       "decline_error": "Couldn't decline the invitation"
+    },
+    "company": {
+      "title": "Verified company",
+      "intro": "A Business profile on the Business plan can show \"Verified company\" beside its name once our team checks the company. Spanish companies and sole traders only, for now.",
+      "business_only": "Company verification is for Business profiles. Change this profile's type in Profile settings to use it.",
+      "needs_plan": "Company verification comes with the Business plan.",
+      "see_plans": "See plans",
+      "needs_identity": "First verify your identity: the company is checked against the person who holds this profile.",
+      "verify_identity": "Verify identity",
+      "error_title": "Could not load company verification",
+      "error": "Something went wrong. Try again.",
+      "step_details": "1. The company",
+      "kind": "Kind",
+      "kinds": {
+        "COMPANY": "Company",
+        "SOLE_TRADER": "Sole trader"
+      },
+      "legal_name": "Legal name",
+      "tax_id_company": "Tax ID (CIF)",
+      "tax_id_person": "Tax ID (NIF or NIE)",
+      "domain": "Website domain",
+      "domain_optional": "Website domain (optional)",
+      "start": "Continue",
+      "save": "Save",
+      "edit": "Change details",
+      "vies_found": "Found in the EU VAT register (VIES).",
+      "step_domain": "2. Show that you control {{domain}}",
+      "domain_how": "Add one of these to your domain, then check. A DNS record can take a while to appear.",
+      "dns_record": "DNS TXT record",
+      "meta_tag": "Or this tag in the <head> of your home page",
+      "copy": "Copy",
+      "copied": "Copied",
+      "check_domain": "Check",
+      "domain_proved": "Domain checked.",
+      "step_email": "3. Confirm an address on the domain",
+      "address": "Address",
+      "send_code": "Send code",
+      "code_sent": "Code sent. It is valid for 30 minutes.",
+      "code": "Code sent to {{address}}",
+      "confirm_code": "Confirm",
+      "email_confirmed": "{{address}} confirmed.",
+      "step_documents": "Documents",
+      "documents_COMPANY": "Upload the tax ID card (tarjeta de identificación fiscal) or a Commercial Registry certificate. PDF, JPG or PNG, up to 5 MB, up to 3 files. They are deleted once our team decides.",
+      "documents_SOLE_TRADER": "Upload your 036 or 037 form; the name must match your verified identity. PDF, JPG or PNG, up to 5 MB, up to 3 files. They are deleted once our team decides.",
+      "add_document": "Add document",
+      "remove_document": "Remove {{name}}",
+      "submit": "Send for review",
+      "sent": "Sent. We will tell you when our team decides.",
+      "withdraw": "Withdraw",
+      "withdrawn": "Withdrawn. Its documents were deleted.",
+      "pending_title": "Under review",
+      "pending_body": "Sent on {{date}}. We will tell you in the app and by email when our team decides.",
+      "approved_title": "Your company is verified",
+      "approved_body": "{{name}} is verified. This profile shows \"Verified company\" while it has the Business plan.",
+      "change_hint": "To change the legal name, tax ID or domain, a new verification is needed.",
+      "rejected_title": "Your last application was not approved",
+      "reasons": {
+        "DOCUMENTS_UNREADABLE": "The documents could not be read.",
+        "DOCUMENTS_NOT_ACCEPTED": "The documents were not the ones asked for.",
+        "DETAILS_DO_NOT_MATCH": "The legal name or the tax ID did not match the documents.",
+        "NAME_NOT_IDENTITY": "The name on the documents did not match your verified identity.",
+        "OTHER": "It could not be approved."
+      }
     }
   },
   "auth": {
@@ -1714,7 +1781,8 @@
       "elite": "Elite creator",
       "business": "Official business",
       "identity": "Identity verified",
-      "bot": "Possibly automated"
+      "bot": "Possibly automated",
+      "company": "Verified company"
     },
     "about": {
       "title": "About this account",
