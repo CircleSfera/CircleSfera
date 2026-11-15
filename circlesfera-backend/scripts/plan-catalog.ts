@@ -64,7 +64,7 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     formerNames: [],
     priceCents: 799,
     description:
-      'Edits Studio Pro: export in up to 4K and at 60 fps on a computer.',
+      'Edits Studio Pro: export in up to 4K and at 60 fps on a computer, keyframe curves, and the duotone, kaleidoscope, light leak and VHS effects.',
     features: ['studio_pro'],
   },
 ];

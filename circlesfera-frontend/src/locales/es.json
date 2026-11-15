@@ -5052,6 +5052,8 @@
       "points": {
         "export_4k": "Exporta hasta en 4K en un ordenador",
         "export_60fps": "Exporta a 60 fotogramas por segundo en un ordenador",
+        "curves": "Curvas de fotogramas clave: seis ajustes más y una curva propia",
+        "effects": "Efectos duotono, caleidoscopio, destello de luz y VHS",
         "free_stays": "Todo lo que el Studio tiene hoy sigue gratis, sin marca de agua"
       }
     }

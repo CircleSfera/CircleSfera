@@ -283,9 +283,11 @@ describe('Pricing', () => {
 
       const addOn = await screen.findByTestId('pricing-add-on');
       expect(addOn).toHaveTextContent('Edits Studio Pro');
-      expect(addOn).toHaveTextContent(
-        i18n!.t('pricingPage.add_on.points.export_4k'),
-      );
+      for (const point of ['export_4k', 'curves', 'effects']) {
+        expect(addOn).toHaveTextContent(
+          i18n!.t(`pricingPage.add_on.points.${point}`),
+        );
+      }
       fireEvent.click(
         screen.getByRole('button', {
           name: i18n!.t('pricingPage.billing_yearly'),
