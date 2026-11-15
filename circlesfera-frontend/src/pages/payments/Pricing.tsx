@@ -469,6 +469,7 @@ export default function Pricing() {
                       'export_60fps',
                       'curves',
                       'effects',
+                      'transitions',
                       'free_stays',
                     ] as const
                   ).map((point) => (
