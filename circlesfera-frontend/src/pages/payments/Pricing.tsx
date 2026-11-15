@@ -463,18 +463,24 @@ export default function Pricing() {
                   )}
                 </div>
                 <ul className="mt-4 space-y-3">
-                  {(['export_4k', 'export_60fps', 'free_stays'] as const).map(
-                    (point) => (
-                      <li key={point} className="flex items-start gap-3">
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-primary/20">
-                          <Check className="h-3 w-3 text-brand-primary-text" />
-                        </span>
-                        <span className="text-sm text-white/70">
-                          {t(`pricingPage.add_on.points.${point}`)}
-                        </span>
-                      </li>
-                    ),
-                  )}
+                  {(
+                    [
+                      'export_4k',
+                      'export_60fps',
+                      'curves',
+                      'effects',
+                      'free_stays',
+                    ] as const
+                  ).map((point) => (
+                    <li key={point} className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-primary/20">
+                        <Check className="h-3 w-3 text-brand-primary-text" />
+                      </span>
+                      <span className="text-sm text-white/70">
+                        {t(`pricingPage.add_on.points.${point}`)}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </div>
               <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">

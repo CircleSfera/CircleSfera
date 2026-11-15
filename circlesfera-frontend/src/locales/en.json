@@ -5052,6 +5052,8 @@
       "points": {
         "export_4k": "Export in up to 4K on a computer",
         "export_60fps": "Export at 60 frames per second on a computer",
+        "curves": "Keyframe curves: six more presets and a curve of your own",
+        "effects": "Duotone, kaleidoscope, light leak and VHS effects",
         "free_stays": "Everything in the Studio today stays free, with no watermark"
       }
     }
