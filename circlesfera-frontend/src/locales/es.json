@@ -5054,6 +5054,7 @@
         "export_60fps": "Exporta a 60 fotogramas por segundo en un ordenador",
         "curves": "Curvas de fotogramas clave: seis ajustes más y una curva propia",
         "effects": "Efectos duotono, caleidoscopio, destello de luz y VHS",
+        "transitions": "Transiciones barrido rápido, glitch, giro y zoom con desenfoque",
         "free_stays": "Todo lo que el Studio tiene hoy sigue gratis, sin marca de agua"
       }
     }
