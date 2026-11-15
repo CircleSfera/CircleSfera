@@ -10,6 +10,7 @@ import {
   AudioTab,
   AuditLogTab,
   CommentsTab,
+  CompanyVerificationsTab,
   DisputesTab,
   ExperimentsTab,
   FirewallTab,
@@ -120,6 +121,7 @@ export default function Admin() {
         {activeTab === 'analytics' && <StatsTab />}
         {activeTab === 'reports' && <ReportsTab onToast={addToast} />}
         {activeTab === 'illegal-notices' && <IllegalNoticesTab />}
+        {activeTab === 'company-verifications' && <CompanyVerificationsTab />}
         {activeTab === 'users' && <UsersTab onToast={addToast} />}
         {activeTab === 'roles' && <RolesTab onToast={addToast} />}
         {activeTab === 'posts' && <PostsTab onToast={addToast} />}

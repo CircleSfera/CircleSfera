@@ -64,6 +64,9 @@ vi.mock('../components/settings/TagsSettings', () => ({
 vi.mock('../components/settings/TeamSettings', () => ({
   default: () => <div>panel:team</div>,
 }));
+vi.mock('../components/settings/CompanySettings', () => ({
+  default: () => <div>panel:company</div>,
+}));
 vi.mock('../components/settings/SettingsHubIndex', () => ({
   default: () => <div>panel:hub</div>,
 }));

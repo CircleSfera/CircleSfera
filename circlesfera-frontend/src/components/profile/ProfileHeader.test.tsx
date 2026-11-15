@@ -109,6 +109,28 @@ describe('ProfileHeader', () => {
     expect(screen.queryByLabelText('Create new post')).not.toBeInTheDocument();
   });
 
+  it('shows "Verified company" beside the name only when the server says so', () => {
+    const { i18n, unmount } = renderWithProviders(
+      <ProfileHeader
+        {...headerProps}
+        profile={{
+          data: { ...ownProfile.data, verifiedCompany: true } as never,
+        }}
+      />,
+    );
+    const marks = screen.getAllByRole('img', {
+      name: i18n!.t('profile.badges.company'),
+    });
+    // One beside the name on a phone, one on a wide screen.
+    expect(marks).toHaveLength(2);
+    unmount();
+
+    renderWithProviders(<ProfileHeader {...headerProps} />);
+    expect(
+      screen.queryByRole('img', { name: i18n!.t('profile.badges.company') }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows private account chrome from the catalog', () => {
     const { i18n } = renderWithProviders(
       <ProfileHeader

@@ -1,6 +1,7 @@
 import {
   Archive,
   Bell,
+  Building2,
   CreditCard,
   EyeOff,
   Flag,
@@ -27,6 +28,7 @@ export type SettingsSectionId =
   | 'profile'
   | 'profiles'
   | 'team'
+  | 'company'
   | 'privacy'
   | 'notifications'
   | 'security'
@@ -68,6 +70,7 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'profile',
   'profiles',
   'team',
+  'company',
   'privacy',
   'notifications',
   'security',
@@ -106,6 +109,11 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'team',
         labelKey: 'settings.tabs.team.label',
         icon: Users,
+      },
+      {
+        id: 'company',
+        labelKey: 'settings.tabs.company.label',
+        icon: Building2,
       },
       {
         id: 'notifications',

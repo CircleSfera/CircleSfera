@@ -140,6 +140,10 @@
       "collaborations": {
         "label": "Colaboraciones",
         "desc": "Invitaciones"
+      },
+      "company": {
+        "label": "Empresa verificada",
+        "desc": "Muestra la empresa detrás de un perfil Business"
       }
     },
     "profile": {
@@ -858,6 +862,73 @@
       "accepted": "Ahora colaboras en esta publicación",
       "accept_error": "No se ha podido aceptar la invitación",
       "decline_error": "No se ha podido rechazar la invitación"
+    },
+    "company": {
+      "title": "Empresa verificada",
+      "intro": "Un perfil Business con el plan Business puede mostrar «Empresa verificada» junto a su nombre cuando nuestro equipo comprueba la empresa. Por ahora, solo empresas y autónomos de España.",
+      "business_only": "La verificación de empresa es para perfiles Business. Cambia el tipo de este perfil en Ajustes del perfil para usarla.",
+      "needs_plan": "La verificación de empresa viene con el plan Business.",
+      "see_plans": "Ver planes",
+      "needs_identity": "Primero verifica tu identidad: la empresa se comprueba con la persona titular de este perfil.",
+      "verify_identity": "Verificar identidad",
+      "error_title": "No se pudo cargar la verificación de empresa",
+      "error": "Algo ha fallado. Inténtalo de nuevo.",
+      "step_details": "1. La empresa",
+      "kind": "Tipo",
+      "kinds": {
+        "COMPANY": "Empresa",
+        "SOLE_TRADER": "Autónomo"
+      },
+      "legal_name": "Nombre legal",
+      "tax_id_company": "NIF de la empresa (CIF)",
+      "tax_id_person": "NIF o NIE",
+      "domain": "Dominio de la web",
+      "domain_optional": "Dominio de la web (opcional)",
+      "start": "Continuar",
+      "save": "Guardar",
+      "edit": "Cambiar datos",
+      "vies_found": "Encontrada en el registro de IVA de la UE (VIES).",
+      "step_domain": "2. Demuestra que controlas {{domain}}",
+      "domain_how": "Añade uno de estos a tu dominio y después compruébalo. Un registro DNS puede tardar un rato en aparecer.",
+      "dns_record": "Registro DNS TXT",
+      "meta_tag": "O esta etiqueta en el <head> de tu página de inicio",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "check_domain": "Comprobar",
+      "domain_proved": "Dominio comprobado.",
+      "step_email": "3. Confirma una dirección del dominio",
+      "address": "Dirección",
+      "send_code": "Enviar código",
+      "code_sent": "Código enviado. Vale durante 30 minutos.",
+      "code": "Código enviado a {{address}}",
+      "confirm_code": "Confirmar",
+      "email_confirmed": "{{address}} confirmada.",
+      "step_documents": "Documentos",
+      "documents_COMPANY": "Sube la tarjeta de identificación fiscal o un certificado del Registro Mercantil. PDF, JPG o PNG, hasta 5 MB, hasta 3 archivos. Se borran cuando nuestro equipo decide.",
+      "documents_SOLE_TRADER": "Sube tu modelo 036 o 037; el nombre debe coincidir con tu identidad verificada. PDF, JPG o PNG, hasta 5 MB, hasta 3 archivos. Se borran cuando nuestro equipo decide.",
+      "add_document": "Añadir documento",
+      "remove_document": "Quitar {{name}}",
+      "submit": "Enviar a revisión",
+      "sent": "Enviada. Te avisaremos cuando nuestro equipo decida.",
+      "withdraw": "Retirar",
+      "withdrawn": "Retirada. Sus documentos se han borrado.",
+      "pending_title": "En revisión",
+      "pending_body": "Enviada el {{date}}. Te avisaremos en la app y por correo cuando nuestro equipo decida.",
+      "approved_title": "Tu empresa está verificada",
+      "approved_body": "{{name}} está verificada. Este perfil muestra «Empresa verificada» mientras tenga el plan Business.",
+      "change_hint": "Para cambiar el nombre legal, el NIF o el dominio hace falta una verificación nueva.",
+      "rejected_title": "Tu última solicitud no se aprobó",
+      "reasons": {
+        "DOCUMENTS_UNREADABLE": "No se pudieron leer los documentos.",
+        "DOCUMENTS_NOT_ACCEPTED": "Los documentos no eran los que se piden.",
+        "DETAILS_DO_NOT_MATCH": "El nombre legal o el NIF no coincidían con los documentos.",
+        "NAME_NOT_IDENTITY": "El nombre de los documentos no coincidía con tu identidad verificada.",
+        "OTHER": "No se pudo aprobar."
+      },
+      "change_company": "Cambiar los datos de la empresa",
+      "domain_example": "ejemplo.es",
+      "address_example": "info",
+      "copy_failed": "No se pudo copiar. Selecciona el texto y cópialo tú."
     }
   },
   "auth": {
@@ -1714,7 +1785,8 @@
       "elite": "Creador Elite",
       "business": "Empresa oficial",
       "identity": "Identidad comprobada",
-      "bot": "Posiblemente automatizada"
+      "bot": "Posiblemente automatizada",
+      "company": "Empresa verificada"
     },
     "about": {
       "title": "Acerca de esta cuenta",
@@ -2835,7 +2907,8 @@
       "illegal_notices": "Avisos de contenido ilegal",
       "review": "Revisión",
       "review_compliance": "Cumplimiento de normas",
-      "review_business": "Pagos"
+      "review_business": "Pagos",
+      "company_verifications": "Verificación de empresas"
     },
     "table": {
       "empty_title": "No hay datos disponibles",
@@ -4755,6 +4828,53 @@
       "payments_count_one": "{{count}} pago",
       "payments_count_other": "{{count}} pagos",
       "refunded": "{{amount}} reembolsado"
+    },
+    "company_verifications": {
+      "title": "Verificación de empresas",
+      "subtitle_one": "{{count}} solicitud en espera, la más antigua primero",
+      "subtitle_other": "{{count}} solicitudes en espera, las más antiguas primero",
+      "load_failed": "No se pudieron cargar las solicitudes",
+      "retry": "Reintentar",
+      "empty_title": "Nada en espera",
+      "empty_description": "Aquí aparecen las solicitudes que envían los perfiles Business.",
+      "kind": "Tipo",
+      "kinds": {
+        "COMPANY": "Empresa",
+        "SOLE_TRADER": "Autónomo"
+      },
+      "tax_id": "NIF",
+      "vies": "En VIES",
+      "vies_unknown": "VIES no pudo responder",
+      "domain": "Dominio",
+      "proof_DNS": "probado por registro DNS",
+      "proof_META": "probado por etiqueta meta",
+      "no_domain": "Ninguno (autónomo)",
+      "email": "Dirección confirmada",
+      "identity": "Identidad verificada",
+      "yes": "Sí",
+      "no": "No",
+      "reason": "Motivo, que verá la persona",
+      "reasons": {
+        "DOCUMENTS_UNREADABLE": "Documentos ilegibles",
+        "DOCUMENTS_NOT_ACCEPTED": "No son los documentos pedidos",
+        "DETAILS_DO_NOT_MATCH": "El nombre o el NIF no coinciden",
+        "NAME_NOT_IDENTITY": "El nombre no es el de la identidad verificada",
+        "OTHER": "Otro"
+      },
+      "note": "Nota para la persona (opcional)",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "confirm_reject": "Rechazar y avisar",
+      "cancel": "Cancelar",
+      "approved": "Aprobada. Los documentos se han borrado.",
+      "rejected": "Rechazada. Los documentos se han borrado.",
+      "decide_failed": "No se pudo guardar la decisión",
+      "document_failed": "No se pudo abrir el documento",
+      "show_identity_name": "Ver nombre verificado",
+      "identity_name": "Nombre verificado",
+      "identity_name_none": "No hay nombre verificado que leer",
+      "identity_name_failed": "No se pudo leer el nombre verificado",
+      "document_blocked": "El navegador bloqueó la pestaña nueva. Permite ventanas emergentes para el Backoffice."
     }
   },
   "collections": {

@@ -32,6 +32,7 @@ export {
 } from './adminNav';
 export { adminToast } from './adminToast';
 export { default as CommentsTab } from './CommentsTab';
+export { default as CompanyVerificationsTab } from './CompanyVerificationsTab';
 export { default as DisputesTab } from './DisputesTab';
 export { default as ExperimentsTab } from './ExperimentsTab';
 export { default as FirewallTab } from './FirewallTab';
