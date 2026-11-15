@@ -214,7 +214,7 @@ describe('shapes', () => {
 
   it('cuts a clip to a shape on its alpha only', () => {
     expect(shapeFilter('circle', 's2')).toBe(
-      `format=rgba,split[s2a][s2b];[s2b]alphaextract,geq=lum='p(X\\,Y)*${shapeInsideExpr('circle')}'[s2c];[s2a][s2c]alphamerge`,
+      `format=rgba,split[s2a][s2b];[s2b]alphaextract,geq=lum='p(X\\,Y)*${shapeInsideExpr('circle')}':interpolation=nearest[s2c];[s2a][s2c]alphamerge`,
     );
   });
 });

@@ -211,7 +211,7 @@ export function shapeInsideExpr(shape: ClipShape): string {
 
 /** The ffmpeg filters that cut a clip to a shape, keeping its own see-through parts. */
 export function shapeFilter(shape: ClipShape, tag: string): string {
-  return `format=rgba,split[${tag}a][${tag}b];[${tag}b]alphaextract,geq=lum='p(X\\,Y)*${shapeInsideExpr(shape)}'[${tag}c];[${tag}a][${tag}c]alphamerge`;
+  return `format=rgba,split[${tag}a][${tag}b];[${tag}b]alphaextract,geq=lum='p(X\\,Y)*${shapeInsideExpr(shape)}':interpolation=nearest[${tag}c];[${tag}a][${tag}c]alphamerge`;
 }
 
 /** The canvas composite operation that draws a blend mode. */

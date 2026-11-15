@@ -86,7 +86,7 @@ export function vhsGeq(width: number, k: number): string {
       dx === 0 ? 'X' : `clip(X${dx > 0 ? '+' : '-'}${Math.abs(dx)}\\,0\\,W-1)`;
     return `${fn}='clip(round(${fn}(${x}\\,Y)*${scan}+${lift})\\,0\\,255)'`;
   };
-  return `format=gbrp,geq=${plane('r', -shift)}:${plane('g', 0)}:${plane('b', shift)}`;
+  return `format=gbrp,geq=${plane('r', -shift)}:${plane('g', 0)}:${plane('b', shift)}:interpolation=nearest`;
 }
 
 /**
@@ -135,7 +135,7 @@ export function lightLeakGeq(dur: number, k: number): string {
   const glow = `pow(max(0\\,1-${d}/${reach})\\,2)*${k}`;
   const plane = (c: 0 | 1 | 2, fn: 'r' | 'g' | 'b') =>
     `${fn}='round(255-(255-${fn}(X\\,Y))*(255-${glow}*${LEAK_COLOR[c]})/255)'`;
-  return `format=gbrp,geq=${plane(0, 'r')}:${plane(1, 'g')}:${plane(2, 'b')}`;
+  return `format=gbrp,geq=${plane(0, 'r')}:${plane(1, 'g')}:${plane(2, 'b')}:interpolation=nearest`;
 }
 
 /**
@@ -203,7 +203,7 @@ export function duotoneGeq(k: number): string {
     const span = DUOTONE_LIGHT[c] - DUOTONE_SHADOW[c];
     return `${fn}='clip(round(${source}+${k}*(${DUOTONE_SHADOW[c]}+${span}*${lum}-${source}))\\,0\\,255)'`;
   };
-  return `format=gbrp,geq=${plane(0, 'r')}:${plane(1, 'g')}:${plane(2, 'b')}`;
+  return `format=gbrp,geq=${plane(0, 'r')}:${plane(1, 'g')}:${plane(2, 'b')}:interpolation=nearest`;
 }
 
 /** How long a new effect lasts, in seconds, when the video has that much left. */
