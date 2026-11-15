@@ -16,6 +16,7 @@ import {
   vignetteMaskPng,
   warmPicture,
 } from './studioCanvasFx';
+import { proTransitionPixel } from './studioProTransitions';
 
 type Call = {
   op: string;
@@ -156,6 +157,63 @@ describe('drawing a transition', () => {
       expect(images[1].args.slice(0, 3)).toEqual([to, ...toAt]);
     },
   );
+
+  it('moves the old clip until halfway through a Pro transition, then the new one, each pixel as the export does', () => {
+    const W = 4;
+    const H = 2;
+    for (const [p, side] of [
+      [0.3, 'out'],
+      [0.8, 'in'],
+    ] as const) {
+      const { ctx, calls } = recorder();
+      const data = new Uint8ClampedArray(W * H * 4).map(
+        (_, i) => (i * 9) % 256,
+      );
+      const src = new Uint8ClampedArray(data);
+      (ctx as unknown as Record<string, unknown>).getImageData = () => ({
+        data,
+      });
+      const from = canvas();
+      const to = canvas();
+      drawTransition(ctx, from, to, 'whip', p, W, H, 0.5);
+      const images = calls.filter((c) => c.op === 'drawImage');
+      expect(images).toHaveLength(1);
+      expect(images[0].args[0]).toBe(side === 'out' ? from : to);
+      expect(calls.filter((c) => c.op === 'putImageData')).toHaveLength(1);
+      const at = (x: number, y: number) => {
+        const i = (y * W + x) * 4;
+        return [src[i], src[i + 1], src[i + 2]] as const;
+      };
+      const expected = proTransitionPixel(
+        'whip',
+        side,
+        at,
+        1,
+        1,
+        W,
+        H,
+        p * 0.5,
+        0.5,
+      );
+      const i = (1 * W + 1) * 4;
+      expect([data[i], data[i + 1], data[i + 2], data[i + 3]]).toEqual([
+        ...expected,
+        255,
+      ]);
+    }
+  });
+
+  it('shows a Pro transition unmoved when the browser will not let the page read the picture', () => {
+    const { ctx, calls } = recorder();
+    (ctx as unknown as Record<string, unknown>).getImageData = () => {
+      throw new DOMException('tainted', 'SecurityError');
+    };
+    expect(() =>
+      drawTransition(ctx, canvas(), canvas(), 'spin', 0.2, 10, 10, 0.5),
+    ).not.toThrow();
+    expect(calls.filter((c) => c.op === 'drawImage')).toHaveLength(1);
+    expect(calls.filter((c) => c.op === 'putImageData')).toHaveLength(0);
+  });
 
   it('crossfades over black, adding the two at their shares', () => {
     const { calls } = draw('crossfade', 0.25);

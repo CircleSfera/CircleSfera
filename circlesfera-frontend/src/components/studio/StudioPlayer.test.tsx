@@ -667,6 +667,8 @@ describe('StudioPlayer', () => {
         0.25,
         1080,
         1920,
+        // How long the transition lasts, in seconds.
+        1,
       );
       // Both clips play through the overlap.
       expect(video('a')).toBeDefined();

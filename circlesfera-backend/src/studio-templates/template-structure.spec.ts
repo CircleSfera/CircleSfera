@@ -205,7 +205,7 @@ describe('a template’s structure', () => {
       'an unknown transition',
       () =>
         bad((t) => {
-          slot0(t).transitionOut = { kind: 'spin', duration: 1 };
+          slot0(t).transitionOut = { kind: 'warp', duration: 1 };
         }),
     ],
     [

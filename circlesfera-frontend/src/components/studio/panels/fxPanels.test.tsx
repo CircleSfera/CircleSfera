@@ -56,6 +56,46 @@ describe('the transitions of a cut', () => {
     expect(studioClip('a').transitionOut).toBeUndefined();
   });
 
+  it('locks the Pro transitions without Edits Studio Pro, and offers them with it', async () => {
+    studioPro.pro = false;
+    const view = renderWithProviders(<TransitionPanel />);
+    expect(
+      await screen.findByTestId('transitions-pro-note'),
+    ).toBeInTheDocument();
+    for (const name of ['Whip pan', 'Glitch', 'Spin', 'Zoom blur']) {
+      expect(screen.getByRole('button', { name })).toBeDisabled();
+    }
+    expect(screen.getByRole('button', { name: 'Crossfade' })).toBeEnabled();
+    view.unmount();
+
+    studioPro.pro = true;
+    renderWithProviders(<TransitionPanel />);
+    const whip = screen.getByRole('button', { name: 'Whip pan' });
+    await vi.waitFor(() => expect(whip).toBeEnabled());
+    fireEvent.click(whip);
+    expect(studioClip('a').transitionOut?.kind).toBe('whip');
+    expect(screen.queryByTestId('transitions-pro-note')).toBeNull();
+    studioPro.pro = false;
+  });
+
+  it('keeps a Pro transition already on a cut without Pro, but does not copy it to every cut', async () => {
+    studioPro.pro = false;
+    act(() =>
+      store().setTransition('a', {
+        kind: 'spin',
+        duration: DEFAULT_TRANSITION_SEC,
+      }),
+    );
+    renderWithProviders(<TransitionPanel />);
+    await screen.findByTestId('transitions-pro-note');
+    expect(screen.getByRole('button', { name: 'Spin' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(studioClip('a').transitionOut?.kind).toBe('spin');
+    expect(screen.getByRole('button', { name: 'Apply to all' })).toBeDisabled();
+  });
+
   it('sets its length up to half the shorter clip, and takes it away', () => {
     renderWithProviders(<TransitionPanel />);
     fireEvent.click(screen.getByRole('button', { name: 'Crossfade' }));

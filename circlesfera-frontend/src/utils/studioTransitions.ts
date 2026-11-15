@@ -4,6 +4,7 @@ import type {
   MediaClip,
   TransitionKind,
 } from '../types/studio';
+import { XFADE_CUT } from './studioProTransitions';
 
 /** The transitions a cut of the main track can take, in the order shown. */
 export const TRANSITION_KINDS: readonly TransitionKind[] = [
@@ -15,6 +16,10 @@ export const TRANSITION_KINDS: readonly TransitionKind[] = [
   'slidedown',
   'zoomin',
   'blur',
+  'whip',
+  'glitch',
+  'spin',
+  'zoomblur',
 ];
 
 /** How long a new transition lasts, in seconds. */
@@ -105,6 +110,11 @@ export const XFADE_OF: Record<TransitionKind, string> = {
   slidedown: 'slidedown',
   zoomin: 'zoomin',
   blur: 'hblur',
+  // The Pro transitions move each clip on its side, then cut halfway.
+  whip: XFADE_CUT,
+  glitch: XFADE_CUT,
+  spin: XFADE_CUT,
+  zoomblur: XFADE_CUT,
 };
 
 /**
