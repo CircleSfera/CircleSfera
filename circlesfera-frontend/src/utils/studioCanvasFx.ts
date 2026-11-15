@@ -12,6 +12,7 @@ import {
   WARM_COLOR,
 } from './studioEffects';
 import { chromaKeep } from './studioOverlay';
+import { isProTransition, proTransitionPixel } from './studioProTransitions';
 
 /*
  * How the preview draws transitions and effects on its canvas, matching
@@ -62,7 +63,8 @@ export function transitionWeights(
 
 /**
  * Draws the moment of a transition between the outgoing picture and the
- * incoming one, each the size of the canvas, at a share of its way.
+ * incoming one, each the size of the canvas, at a share of its way, for a
+ * transition lasting `seconds`.
  */
 export function drawTransition(
   ctx: CanvasRenderingContext2D,
@@ -72,7 +74,12 @@ export function drawTransition(
   p: number,
   width: number,
   height: number,
+  seconds = 0,
 ) {
+  if (isProTransition(kind)) {
+    drawProTransition(ctx, from, to, kind, p, width, height, seconds);
+    return;
+  }
   ctx.save();
   switch (kind) {
     case 'slideleft':
@@ -135,6 +142,58 @@ export function drawTransition(
     }
   }
   ctx.restore();
+}
+
+// A Pro transition: the outgoing picture moving until halfway, then the
+// incoming one, each pixel as the export draws it.
+function drawProTransition(
+  ctx: CanvasRenderingContext2D,
+  from: CanvasImageSource,
+  to: CanvasImageSource,
+  kind: Parameters<typeof proTransitionPixel>[0],
+  p: number,
+  width: number,
+  height: number,
+  seconds: number,
+) {
+  const side = p < 0.5 ? 'out' : 'in';
+  ctx.drawImage(side === 'out' ? from : to, 0, 0, width, height);
+  let image: ImageData;
+  try {
+    image = ctx.getImageData(0, 0, width, height);
+  } catch {
+    // A file the browser will not let the page read shows unmoved here;
+    // the export still moves it.
+    return;
+  }
+  const src = new Uint8ClampedArray(image.data);
+  const out = image.data;
+  const at = (x: number, y: number) => {
+    const i = (y * width + x) * 4;
+    return [src[i], src[i + 1], src[i + 2]] as const;
+  };
+  const t = p * seconds;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const [r, g, b] = proTransitionPixel(
+        kind,
+        side,
+        at,
+        x,
+        y,
+        width,
+        height,
+        t,
+        seconds,
+      );
+      const i = (y * width + x) * 4;
+      out[i] = r;
+      out[i + 1] = g;
+      out[i + 2] = b;
+      out[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
 }
 
 /** A canvas of a size, kept to be drawn on again. */

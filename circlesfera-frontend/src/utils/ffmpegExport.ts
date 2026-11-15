@@ -43,6 +43,7 @@ import {
 } from './studioKeyframes';
 import { chromaFilter, shapeFilter } from './studioOverlay';
 import { projectContentEnd } from './studioProject';
+import { proTransitionSides } from './studioProTransitions';
 import { mainClips, mainTrackOf } from './studioTimeline';
 import { transitionOf, withCutFades, XFADE_OF } from './studioTransitions';
 
@@ -448,11 +449,26 @@ export async function exportStudioProject(
 
       if (joined) {
         const byId = new Map(prepared.map((p) => [p.clip.id, p.inputIndex]));
-        let chain = `m${byId.get(ordered[0].id)}`;
+        // A clip beside a Pro transition moves at its start or its end
+        // first; the join then cuts halfway through.
+        const joinLabel = new Map<string, string>();
+        ordered.forEach((clip, i) => {
+          const label = `m${byId.get(clip.id)}`;
+          const sides = proTransitionSides(
+            label,
+            clip.duration,
+            fps,
+            i > 0 ? transitionOf(ordered[i - 1]) : undefined,
+            i < ordered.length - 1 ? transitionOf(clip) : undefined,
+          );
+          if (sides) parts.push(...sides.filters);
+          joinLabel.set(clip.id, sides?.label ?? label);
+        });
+        let chain = joinLabel.get(ordered[0].id);
         ordered.slice(1).forEach((clip, i) => {
           const before = transitionOf(ordered[i]);
           const next = `j${i}`;
-          const into = `[${chain}][m${byId.get(clip.id)}]`;
+          const into = `[${chain}][${joinLabel.get(clip.id)}]`;
           parts.push(
             before
               ? `${into}xfade=transition=${XFADE_OF[before.kind]}:duration=${before.duration}:offset=${clip.startAt}[${next}]`

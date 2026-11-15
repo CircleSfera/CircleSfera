@@ -187,7 +187,11 @@ export type TransitionKind =
   | 'slideup'
   | 'slidedown'
   | 'zoomin'
-  | 'blur';
+  | 'blur'
+  | 'whip'
+  | 'glitch'
+  | 'spin'
+  | 'zoomblur';
 
 /** How a clip passes to the next: the two overlap for its length. */
 export interface ClipTransition {

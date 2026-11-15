@@ -1,6 +1,9 @@
+import { Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useStudioPro } from '../../../hooks/useStudioPro';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { TransitionKind } from '../../../types/studio';
+import { PRO_TRANSITIONS } from '../../../utils/studioProTransitions';
 import { mainClips } from '../../../utils/studioTimeline';
 import {
   DEFAULT_TRANSITION_SEC,
@@ -23,6 +26,7 @@ const chip = (on: boolean) =>
 /** How the chosen cut passes from one clip to the next. */
 export default function TransitionPanel() {
   const { t } = useTranslation();
+  const { pro } = useStudioPro();
   const project = useStudioStore((s) => s.project);
   const cut = useStudioStore((s) => s.selectedCut);
   const setTransition = useStudioStore((s) => s.setTransition);
@@ -71,19 +75,30 @@ export default function TransitionPanel() {
         >
           {t('studio.transitions.none')}
         </button>
-        {TRANSITION_KINDS.map((kind) => (
-          <button
-            key={kind}
-            type="button"
-            aria-pressed={current?.kind === kind}
-            disabled={longest < MIN_TRANSITION_SEC}
-            onClick={() => choose(kind)}
-            className={`${chip(current?.kind === kind)} disabled:opacity-40`}
-          >
-            {t(`studio.transitions.${kind}`)}
-          </button>
-        ))}
+        {TRANSITION_KINDS.map((kind) => {
+          // A Pro transition is chosen only with Pro; one already in the
+          // project stays and exports without it.
+          const locked = PRO_TRANSITIONS.has(kind) && !pro;
+          return (
+            <button
+              key={kind}
+              type="button"
+              aria-pressed={current?.kind === kind}
+              disabled={longest < MIN_TRANSITION_SEC || locked}
+              onClick={() => choose(kind)}
+              className={`${chip(current?.kind === kind)} gap-1.5 disabled:opacity-40`}
+            >
+              {t(`studio.transitions.${kind}`)}
+              {locked ? <Lock size={12} aria-hidden /> : null}
+            </button>
+          );
+        })}
       </fieldset>
+      {!pro ? (
+        <p className="text-xs text-white/60" data-testid="transitions-pro-note">
+          {t('studio.transitions.pro_note')}
+        </p>
+      ) : null}
       {current && (
         <div className="w-full max-w-sm">
           <StudioSlider
@@ -103,8 +118,9 @@ export default function TransitionPanel() {
       )}
       <button
         type="button"
+        disabled={!!current && PRO_TRANSITIONS.has(current.kind) && !pro}
         onClick={() => setAllTransitions(current)}
-        className="inline-flex min-h-11 items-center rounded-full bg-white/5 px-4 text-sm font-semibold text-white hover:bg-white/10"
+        className="disabled:opacity-40 inline-flex min-h-11 items-center rounded-full bg-white/5 px-4 text-sm font-semibold text-white hover:bg-white/10"
       >
         {t('studio.transitions.apply_all')}
       </button>

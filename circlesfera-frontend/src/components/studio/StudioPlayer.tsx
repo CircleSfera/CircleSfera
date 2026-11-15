@@ -522,6 +522,7 @@ export default function StudioPlayer() {
                 transitionProgress(transition, to.startAt, ph),
                 canvas.width,
                 canvas.height,
+                transition.duration,
               );
               continue;
             }

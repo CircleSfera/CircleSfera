@@ -15,6 +15,10 @@ export const TRANSITION_KINDS = [
   'slidedown',
   'zoomin',
   'blur',
+  'whip',
+  'glitch',
+  'spin',
+  'zoomblur',
 ] as const;
 export const EFFECT_KINDS = [
   'blur',

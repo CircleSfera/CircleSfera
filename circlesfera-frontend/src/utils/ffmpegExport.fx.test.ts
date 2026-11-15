@@ -111,6 +111,48 @@ describe('exporting transitions, effects and adjustments', () => {
     expect(chainOf(3)).toMatch(/,setpts=PTS\+1\/TB\[seg3\]$/);
   });
 
+  it('moves the clips beside an Edits Studio Pro transition, then cuts halfway', async () => {
+    await exported(
+      studioProject([
+        studioTrack('v1', 'video', [
+          mediaClip('a', {
+            startAt: 0,
+            duration: 4,
+            transitionOut: { kind: 'whip', duration: 0.5 },
+          }),
+          mediaClip('b', {
+            startAt: 4,
+            duration: 3,
+            type: 'image',
+            muted: true,
+            transitionOut: { kind: 'crossfade', duration: 0.5 },
+          }),
+          mediaClip('c', { startAt: 7, duration: 4 }),
+        ]),
+      ]),
+    );
+    const g = graph();
+    // The end of the first clip and the start of the second move; the rest
+    // of each passes as it is.
+    expect(g).toContain('[m0]split=2[m0bs][m0ts]');
+    expect(g).toContain('[m0bs]trim=start=0:end=3.5,setpts=PTS-STARTPTS[m0b]');
+    expect(g).toMatch(
+      /\[m0ts\]trim=start=3\.5,setpts=PTS-STARTPTS,format=gbrp,geq=[^;]*:interpolation=nearest,format=yuv420p\[m0t\]/,
+    );
+    expect(g).toContain('[m1]split=2[m1hs][m1bs]');
+    expect(g).toMatch(
+      /\[m1hs\]trim=end=0\.5,setpts=PTS-STARTPTS,format=gbrp,geq=/,
+    );
+    expect(g).toContain(
+      `[m0x][m1x]xfade=transition=custom:expr='if(gt(P\\,0.5)\\,A\\,B)':duration=0.5:offset=3.5[j0]`,
+    );
+    // A transition that is not Pro joins the clips as before.
+    expect(g).toMatch(
+      /\[j0\]\[m2\]xfade=transition=fade:duration=0\.5:offset=[0-9.]+\[j1\]/,
+    );
+    expect(g).not.toContain('[m2]split');
+  });
+
   it('fades the sound of the clips on either side of a transition over its length', async () => {
     await exported(withCuts());
     const g = graph();
