@@ -1,7 +1,10 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SYSTEM_SETTING_KEYS } from './system-settings.constants.js';
+import {
+  SYSTEM_SETTING_DEFAULTS,
+  SYSTEM_SETTING_KEYS,
+} from './system-settings.constants.js';
 import { SystemSettingsService } from './system-settings.service.js';
 
 describe('SystemSettingsService', () => {
@@ -139,5 +142,13 @@ describe('SystemSettingsService', () => {
 
     const value = await service.getValue('UNKNOWN_KEY' as any);
     expect(value).toBe('false');
+  });
+
+  it('sells promotions unless staff turn them off', () => {
+    expect(
+      SYSTEM_SETTING_DEFAULTS.find(
+        (d) => d.key === SYSTEM_SETTING_KEYS.PROMOTIONS_ON_SALE,
+      )?.value,
+    ).toBe('true');
   });
 });
