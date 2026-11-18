@@ -7,6 +7,7 @@ export const SYSTEM_SETTING_KEYS = {
   TURNSTILE_REQUIRED: 'turnstile_required',
   EMAIL_VERIFICATION_REQUIRED: 'email_verification_required',
   PAYMENTS_ENABLED: 'payments_enabled',
+  PROMOTIONS_ON_SALE: 'promotions_on_sale',
 } as const;
 
 export type SystemSettingKey =
@@ -57,6 +58,14 @@ export const SYSTEM_SETTING_DEFAULTS: readonly SystemSettingDefault[] = [
     value: 'true',
     description:
       'Allow new payments: plans and promotions. While off nothing new is charged.',
+  },
+  {
+    // Off until the payment provider confirms in writing that it accepts
+    // paid promotion; staff turn it on from the global settings.
+    key: SYSTEM_SETTING_KEYS.PROMOTIONS_ON_SALE,
+    value: 'false',
+    description:
+      'Sell new promotions. While off nobody can buy one; promotions already bought keep running.',
   },
 ] as const;
 

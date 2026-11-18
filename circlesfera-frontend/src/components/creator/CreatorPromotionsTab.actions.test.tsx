@@ -4,11 +4,13 @@ import {
   type CreatorPromotion,
   creatorApi,
 } from '../../services/creator.service';
+import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import CreatorPromotionsTab from './CreatorPromotionsTab';
 
 vi.mock('../../services/creator.service', () => ({
   creatorApi: {
+    getPromotionsOnSale: vi.fn(async () => ({ data: { onSale: true } })),
     getPromotions: vi.fn(),
     cancelPromotion: vi.fn(),
     pausePromotion: vi.fn(),
@@ -101,6 +103,10 @@ async function open(caption: string) {
 
 describe('CreatorPromotionsTab with campaigns', () => {
   beforeEach(() => {
+    // Promotions are offered to a Creator or Business Profile.
+    useAuthStore.setState({
+      profile: { id: 'p1', accountType: 'CREATOR' } as never,
+    });
     vi.clearAllMocks();
     vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
   });

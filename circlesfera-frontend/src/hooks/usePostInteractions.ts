@@ -3,16 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 import { bookmarksApi, creatorApi, postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Post } from '../types';
-import { hasCreatorTools } from '../utils/creatorTools';
-import { sellsInApp } from '../utils/sellsInApp';
 import { telemetry } from '../utils/telemetry';
+import { usePromotionsOnSale } from './usePromotionsOnSale';
 
 export function usePostInteractions(post: Post) {
   const queryClient = useQueryClient();
   const profile = useAuthStore((state) => state.profile);
-  // Promoting follows the kind of account, not a paid plan.
-  // Promotions are bought on the web only: never offered in the apps.
-  const canPromote = hasCreatorTools(profile?.accountType) && sellsInApp();
+  // Promoting follows the kind of account, not a paid plan; it is offered
+  // on the web only, while promotions are on sale.
+  const canPromote = usePromotionsOnSale();
   const isOwner = profile?.id === post.profileId;
 
   const [showMenu, setShowMenu] = useState(false);

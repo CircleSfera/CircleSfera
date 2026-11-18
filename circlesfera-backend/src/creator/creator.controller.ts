@@ -21,6 +21,8 @@ import { type CurrentUserData } from '../auth/decorators/current-user.decorator.
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { ElitePlanGuard } from '../auth/guards/elite-plan.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import {
   CreatePromotionDto,
@@ -73,6 +75,8 @@ export class CreatorController {
     private readonly managePromotionUC: ManagePromotionUseCase,
     @Inject(RecordPromotionInteractionUseCase)
     private readonly recordPromotionInteractionUC: RecordPromotionInteractionUseCase,
+    @Inject(SystemSettingsService)
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   @Get('stats')
@@ -151,6 +155,17 @@ export class CreatorController {
       page ? Number.parseInt(page, 10) : 1,
       limit ? Number.parseInt(limit, 10) : 10,
     );
+  }
+
+  // Whether promotions are on sale, so the app offers to buy one only then.
+  @Get('promotions/on-sale')
+  @ApiResponse({ status: 200 })
+  async promotionsOnSale(): Promise<{ onSale: boolean }> {
+    return {
+      onSale: await this.systemSettings.isEnabled(
+        SYSTEM_SETTING_KEYS.PROMOTIONS_ON_SALE,
+      ),
+    };
   }
 
   @Post('promotions')

@@ -2710,6 +2710,7 @@
       "no_active": "No campaigns yet",
       "boost_desc": "Promote your content with sponsored disclosure to reach a targeted audience in the feed.",
       "create_first": "Create my first campaign",
+      "not_on_sale": "Promotions are not on sale yet. Campaigns already bought keep running.",
       "campaign": "Campaign of a {{type}}",
       "started_on": "Started on {{date}}",
       "investment": "Budget left",
@@ -4501,7 +4502,8 @@
         "live_streams_enabled": "Live streams enabled",
         "turnstile_required": "Bot check required",
         "email_verification_required": "Verified email required",
-        "payments_enabled": "Payments enabled"
+        "payments_enabled": "Payments enabled",
+        "promotions_on_sale": "Promotions on sale"
       },
       "descriptions": {
         "maintenance_mode": "When on, the consumer API returns 503 except health, CSRF, webhooks and Admin Panel.",
@@ -4510,7 +4512,8 @@
         "live_streams_enabled": "Allow starting live streams.",
         "turnstile_required": "Asks for the bot check when signing up and signing in.",
         "email_verification_required": "Requires a verified email to post, follow, message, like, upload and edit the profile.",
-        "payments_enabled": "Allow new payments: plans and promotions. While off nothing new is charged."
+        "payments_enabled": "Allow new payments: plans and promotions. While off nothing new is charged.",
+        "promotions_on_sale": "Sell new promotions. While off nobody can buy one; promotions already bought keep running."
       }
     },
     "roles": {
@@ -6310,6 +6313,7 @@
       "GIFS_UNAVAILABLE": "GIFs aren't available right now.",
       "GIF_NOT_FOUND": "That GIF isn't available. Pick another one.",
       "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",
+      "PROMOTIONS_NOT_ON_SALE": "Promotions are not on sale yet.",
       "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, with your identity and date of birth verified. If you verified before, verify again in Settings → Account.",
       "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests.",
       "CONTENT_UNDER_REVIEW": "This content is still being checked. It can be promoted once that is done: try again in a few minutes.",

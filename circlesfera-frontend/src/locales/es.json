@@ -2710,6 +2710,7 @@
       "no_active": "Aún no tienes campañas",
       "boost_desc": "Promociona una publicación para que llegue, marcada como patrocinada, a más personas en el feed.",
       "create_first": "Crear mi primera campaña",
+      "not_on_sale": "Las promociones aún no están a la venta. Las campañas ya compradas siguen en marcha.",
       "campaign": "Campaña de {{type}}",
       "started_on": "Empezó el {{date}}",
       "investment": "Presupuesto restante",
@@ -4501,7 +4502,8 @@
         "live_streams_enabled": "Directos habilitados",
         "turnstile_required": "Comprobación anti-bots obligatoria",
         "email_verification_required": "Correo verificado obligatorio",
-        "payments_enabled": "Pagos habilitados"
+        "payments_enabled": "Pagos habilitados",
+        "promotions_on_sale": "Promociones a la venta"
       },
       "descriptions": {
         "maintenance_mode": "Si está activo, la API de consumidores responde 503 salvo health, CSRF, webhooks y Admin Panel.",
@@ -4510,7 +4512,8 @@
         "live_streams_enabled": "Permite iniciar transmisiones en vivo.",
         "turnstile_required": "Pide la comprobación anti-bots al registrarse y al iniciar sesión.",
         "email_verification_required": "Exige un correo verificado para publicar, seguir, escribir mensajes, dar me gusta, subir archivos y editar el perfil.",
-        "payments_enabled": "Permite pagos nuevos: planes y promociones. Desactivado, no se cobra nada nuevo."
+        "payments_enabled": "Permite pagos nuevos: planes y promociones. Desactivado, no se cobra nada nuevo.",
+        "promotions_on_sale": "Vende promociones nuevas. Mientras está desactivado nadie puede comprar una; las ya compradas siguen."
       }
     },
     "roles": {
@@ -6310,6 +6313,7 @@
       "GIFS_UNAVAILABLE": "Los GIF no están disponibles ahora mismo.",
       "GIF_NOT_FOUND": "Ese GIF no está disponible. Elige otro.",
       "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
+      "PROMOTIONS_NOT_ON_SALE": "Las promociones aún no están a la venta.",
       "PAYER_UNDER_AGE": "Puedes pagar a partir de los {{minAge}} años, con tu identidad y tu fecha de nacimiento verificadas. Si ya te verificaste antes, vuelve a hacerlo en Ajustes → Cuenta.",
       "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes.",
       "CONTENT_UNDER_REVIEW": "Este contenido todavía se está revisando. Podrás promocionarlo en cuanto termine: vuelve a intentarlo en unos minutos.",

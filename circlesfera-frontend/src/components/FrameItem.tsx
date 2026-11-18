@@ -13,6 +13,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { usePromotionsOnSale } from '../hooks/usePromotionsOnSale';
 import { useSyncedLibraryAudio } from '../hooks/useSyncedLibraryAudio';
 import {
   archiveApi,
@@ -26,10 +27,8 @@ import { studioTemplatesApi } from '../services/studioTemplates.service';
 import { useAuthStore } from '../stores/authStore';
 import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
-import { hasCreatorTools } from '../utils/creatorTools';
 import { libraryTrackUrl } from '../utils/libraryAudio';
 import { logger } from '../utils/logger';
-import { sellsInApp } from '../utils/sellsInApp';
 import { canOfferStoryShare, postStoryCard } from '../utils/storyShare';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import FrameActionRail from './frames/FrameActionRail';
@@ -77,7 +76,7 @@ export default function FrameItem({
   const profile = useAuthStore((state) => state.profile);
   // Promoting follows the kind of account, not a paid plan.
   // Promotions are bought on the web only: never offered in the apps.
-  const canPromote = hasCreatorTools(profile?.accountType) && sellsInApp();
+  const canPromote = usePromotionsOnSale();
   const { isMuted, toggleMute, setMuted } = useFrameStore();
   const queryClient = useQueryClient();
 

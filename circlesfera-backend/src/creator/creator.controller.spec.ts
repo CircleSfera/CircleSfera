@@ -20,6 +20,8 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { CreatorController } from './creator.controller.js';
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
 import { GetAudienceRetentionQuery } from './use-cases/analytics/queries/get-audience-retention.query.js';
@@ -34,6 +36,8 @@ import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotion
 
 // The key under which @UseGuards stores a handler's guards.
 const NEST_GUARDS_METADATA = '__guards__';
+
+const settings = { isEnabled: vi.fn() };
 
 describe('CreatorController', () => {
   let app: INestApplication;
@@ -80,6 +84,10 @@ describe('CreatorController', () => {
         { provide: GetPromotionsQuery, useValue: mockGetPromotionsQ },
         { provide: CreatePromotionUseCase, useValue: mockCreatePromotionUC },
         { provide: ManagePromotionUseCase, useValue: mockManagePromotionUC },
+        {
+          provide: SystemSettingsService,
+          useValue: settings,
+        },
         {
           provide: RecordPromotionInteractionUseCase,
           useValue: mockRecordPromotionInteractionUC,
@@ -413,5 +421,23 @@ describe('CreatorController', () => {
       .expect(400);
 
     expect(mockCreatePromotionUC.execute).not.toHaveBeenCalled();
+  });
+
+  it('says whether promotions are on sale', async () => {
+    settings.isEnabled.mockResolvedValueOnce(false);
+    await expect(
+      app.get(CreatorController).promotionsOnSale(),
+    ).resolves.toEqual({
+      onSale: false,
+    });
+    settings.isEnabled.mockResolvedValueOnce(true);
+    await expect(
+      app.get(CreatorController).promotionsOnSale(),
+    ).resolves.toEqual({
+      onSale: true,
+    });
+    expect(settings.isEnabled).toHaveBeenCalledWith(
+      SYSTEM_SETTING_KEYS.PROMOTIONS_ON_SALE,
+    );
   });
 });
