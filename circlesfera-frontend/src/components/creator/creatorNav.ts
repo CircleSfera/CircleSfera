@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Briefcase,
   Clock,
   CreditCard,
   ImageIcon,
@@ -15,7 +16,8 @@ export type CreatorTab =
   | 'content'
   | 'stories'
   | 'plans'
-  | 'ads';
+  | 'ads'
+  | 'business';
 
 // Older tab ids kept only for redirects.
 export const CREATOR_LEGACY_TABS: readonly string[] = [
@@ -28,6 +30,8 @@ export interface CreatorNavItem {
   labelKey: string;
   icon: LucideIcon;
   badge?: string;
+  /** Shown only to a Business Profile. */
+  businessOnly?: boolean;
 }
 
 export interface CreatorNavGroup {
@@ -50,6 +54,12 @@ export const CREATOR_NAV_GROUPS: CreatorNavGroup[] = [
         id: 'analytics',
         labelKey: 'creator.nav.analytics',
         icon: BarChart3,
+      },
+      {
+        id: 'business',
+        labelKey: 'creator.nav.business',
+        icon: Briefcase,
+        businessOnly: true,
       },
       {
         id: 'plans',
@@ -95,4 +105,12 @@ export function findCreatorNavItem(
 
 export function isCreatorTab(tab: string | undefined): tab is CreatorTab {
   return !!tab && (CREATOR_TAB_IDS as string[]).includes(tab);
+}
+
+/** The items a Profile of this kind sees in a group. */
+export function visibleNavItems(
+  items: CreatorNavItem[],
+  accountType: string | undefined,
+): CreatorNavItem[] {
+  return items.filter((i) => !i.businessOnly || accountType === 'BUSINESS');
 }

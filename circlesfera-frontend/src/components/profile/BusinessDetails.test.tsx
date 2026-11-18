@@ -1,5 +1,5 @@
-import { screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import BusinessDetails from './BusinessDetails';
 
@@ -42,5 +42,29 @@ describe('BusinessDetails', () => {
   it('shows nothing when none is set', () => {
     const { container } = renderWithProviders(<BusinessDetails />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('says which button a visitor tapped', () => {
+    const onTap = vi.fn();
+    renderWithProviders(
+      <BusinessDetails
+        email="hola@shop.es"
+        phone="+34600111222"
+        place={{
+          id: 'place-1',
+          name: 'Calle Mayor 1',
+          fullName: 'Calle Mayor 1, Madrid',
+          latitude: 40.41,
+          longitude: -3.7,
+        }}
+        onTap={onTap}
+      />,
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Email hola@shop.es' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Call +34600111222' }));
+    fireEvent.click(
+      screen.getByRole('link', { name: 'Calle Mayor 1, Madrid' }),
+    );
+    expect(onTap.mock.calls).toEqual([['email'], ['call'], ['address']]);
   });
 });

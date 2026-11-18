@@ -2655,7 +2655,8 @@
       "content_group": "Contenido",
       "content": "Publicaciones",
       "stories": "Historias",
-      "plans": "Planes"
+      "plans": "Planes",
+      "business": "Empresa"
     },
     "posts": {
       "empty_title": "Aún no tienes publicaciones",
@@ -2853,6 +2854,36 @@
       "per_month": "/ mes",
       "per_year": "/ año",
       "upgrade_now": "Elegir este plan"
+    },
+    "business": {
+      "title": "Tu empresa",
+      "hint": "Visitas a tu perfil y toques en sus botones. Cada persona cuenta una vez al día; tú y tu equipo nunca contáis.",
+      "range": "Periodo",
+      "last_days_one": "Último {{count}} día",
+      "last_days_other": "Últimos {{count}} días",
+      "totals": {
+        "visits": "Visitas al perfil",
+        "calls": "Toques en Llamar",
+        "emails": "Toques en Email",
+        "addresses": "Toques en la dirección",
+        "websites": "Toques en la web"
+      },
+      "taps": "Toques en botones",
+      "by_day": "Día a día",
+      "countries": "Dónde están tus visitantes",
+      "countries_hint": "Por el país que eligió cada visitante, o donde se registró.",
+      "unknown_country": "País desconocido",
+      "other_countries": "Otros países",
+      "visits_count_one": "{{formatted}} visita",
+      "visits_count_other": "{{formatted}} visitas",
+      "no_visits": "Aún no hay visitas en este periodo.",
+      "best_hours": "Mejores horas para publicar",
+      "best_hours_hint": "Cuándo se vieron más tus publicaciones en los últimos 28 días, en tu hora.",
+      "views_count_one": "{{formatted}} visualización",
+      "views_count_other": "{{formatted}} visualizaciones",
+      "no_views": "Tus publicaciones aún no tienen visualizaciones en los últimos 28 días.",
+      "error": "No se pudieron cargar las estadísticas de tu empresa.",
+      "retry": "Reintentar"
     }
   },
   "admin": {
@@ -6278,6 +6309,7 @@
       "EMAIL_NOT_VERIFIED": "Verifica tu email para hacer esto.",
       "IDENTITY_VERIFICATION_REQUIRED": "Verifica tu identidad para continuar.",
       "CREATOR_ACCOUNT_REQUIRED": "Las herramientas de creador son para perfiles de Creador y de Empresa.",
+      "BUSINESS_ACCOUNT_REQUIRED": "Las estadísticas de empresa son para perfiles de Empresa.",
       "PLAN_REQUIRED": "Esto viene con los planes Elite Creator y Business.",
       "CAPTCHA_FAILED": "No hemos podido comprobar que eres una persona. Inténtalo de nuevo.",
       "CAPTCHA_REQUIRED": "Completa la comprobación de seguridad para continuar.",

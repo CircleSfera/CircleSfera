@@ -4,7 +4,8 @@ import { type TransitionEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { CREATOR_NAV_GROUPS } from './creatorNav';
+import { useAuthStore } from '../../stores/authStore';
+import { CREATOR_NAV_GROUPS, visibleNavItems } from './creatorNav';
 
 interface Props {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface Props {
 // cannot peek.
 export function CreatorMobileDrawer({ isOpen, onClose }: Props) {
   const { t } = useTranslation();
+  const accountType = useAuthStore((s) => s.profile?.accountType);
   const sheetRef = useRef<HTMLDivElement>(null);
   // Keep in DOM while open or exiting so translate can animate.
   const [mounted, setMounted] = useState(isOpen);
@@ -124,7 +126,7 @@ export function CreatorMobileDrawer({ isOpen, onClose }: Props) {
                 {t(group.labelKey)}
               </h3>
               <div className="grid grid-cols-2 gap-2">
-                {group.items.map((item) => {
+                {visibleNavItems(group.items, accountType).map((item) => {
                   const ItemIcon = item.icon;
                   return (
                     <NavLink

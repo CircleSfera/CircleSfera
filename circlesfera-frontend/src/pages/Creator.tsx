@@ -35,6 +35,9 @@ const CreatorAnalyticsTab = lazy(
 const CreatorDashboard = lazy(
   () => import('../components/creator/CreatorDashboard'),
 );
+const CreatorBusinessTab = lazy(
+  () => import('../components/creator/CreatorBusinessTab'),
+);
 const CreatorPlansTab = lazy(
   () => import('../components/creator/CreatorPlansTab'),
 );
@@ -140,6 +143,7 @@ export default function Creator() {
               />
             )}
             {activeTab === 'analytics' && <CreatorAnalyticsTab />}
+            {activeTab === 'business' && <CreatorBusinessTab />}
             {activeTab === 'content' && (
               <CreatorPostsTab onPromote={(post) => setPromotePost(post)} />
             )}

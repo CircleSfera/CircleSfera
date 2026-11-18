@@ -24,6 +24,11 @@ import { Link } from 'react-router-dom';
 import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useRestriction } from '../../hooks/useRestriction';
+import {
+  type BusinessStatKind,
+  businessStatsApi,
+  recordBusinessVisit,
+} from '../../services/businessStats.service';
 import type { ProfileWithUser } from '../../types';
 import { hasCreatorTools } from '../../utils/creatorTools';
 import FollowButton from '../FollowButton';
@@ -248,6 +253,16 @@ export default function ProfileHeader({
   const [showAbout, setShowAbout] = useState(false);
   const [showMuteModal, setShowMuteModal] = useState(false);
   const { closeFriendsCount } = useCloseFriendsList(isMe);
+  // A visit to a Business Profile, and the taps on its buttons, count for
+  // its statistics; the owner's own never do.
+  const isBusiness = profile.data.accountType === 'BUSINESS';
+  const countsVisits = isBusiness && !isMe;
+  useEffect(() => {
+    if (countsVisits) recordBusinessVisit(profile.data.id);
+  }, [countsVisits, profile.data.id]);
+  const businessTap = (kind: BusinessStatKind) => {
+    if (countsVisits) void businessStatsApi.record(profile.data.id, kind);
+  };
   const canFavorite = !isMe && isFollowing;
   const favorites = useFavorites(canFavorite);
   const favoriteProps = canFavorite
@@ -570,6 +585,7 @@ export default function ProfileHeader({
               email={profile.data.contactEmail}
               phone={profile.data.contactPhone}
               place={profile.data.businessPlace}
+              onTap={businessTap}
             />
 
             {(profile.data.website || profile.data.location) && (
@@ -593,6 +609,7 @@ export default function ProfileHeader({
                     }
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => businessTap('website')}
                     className="min-h-11 flex items-center gap-2 text-brand-blue hover:text-blue-300 transition-colors"
                   >
                     <LinkIcon size={16} aria-hidden="true" />

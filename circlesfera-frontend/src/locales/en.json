@@ -2655,7 +2655,8 @@
       "content_group": "Content",
       "content": "Posts",
       "stories": "Stories",
-      "plans": "Plans"
+      "plans": "Plans",
+      "business": "Business"
     },
     "posts": {
       "empty_title": "No posts yet",
@@ -2853,6 +2854,36 @@
       "per_month": "/ month",
       "per_year": "/ year",
       "upgrade_now": "Choose this plan"
+    },
+    "business": {
+      "title": "Your business",
+      "hint": "Visits to your profile and taps on its buttons. Each person counts once a day; you and your team never count.",
+      "range": "Period",
+      "last_days_one": "Last {{count}} day",
+      "last_days_other": "Last {{count}} days",
+      "totals": {
+        "visits": "Profile visits",
+        "calls": "Taps on Call",
+        "emails": "Taps on Email",
+        "addresses": "Taps on the address",
+        "websites": "Taps on the website"
+      },
+      "taps": "Taps on buttons",
+      "by_day": "Day by day",
+      "countries": "Where your visitors are",
+      "countries_hint": "By the country each visitor chose, or where they signed up.",
+      "unknown_country": "Country not known",
+      "other_countries": "Other countries",
+      "visits_count_one": "{{formatted}} visit",
+      "visits_count_other": "{{formatted}} visits",
+      "no_visits": "No visits yet in this period.",
+      "best_hours": "Best hours to post",
+      "best_hours_hint": "When your posts were seen most over the last 28 days, in your time.",
+      "views_count_one": "{{formatted}} view",
+      "views_count_other": "{{formatted}} views",
+      "no_views": "Your posts have no views in the last 28 days yet.",
+      "error": "Your business statistics could not be loaded.",
+      "retry": "Try again"
     }
   },
   "admin": {
@@ -6278,6 +6309,7 @@
       "EMAIL_NOT_VERIFIED": "Verify your email to do this.",
       "IDENTITY_VERIFICATION_REQUIRED": "Verify your identity to continue.",
       "CREATOR_ACCOUNT_REQUIRED": "The creator tools are for Creator and Business profiles.",
+      "BUSINESS_ACCOUNT_REQUIRED": "Business statistics are for Business profiles.",
       "PLAN_REQUIRED": "This comes with the Elite Creator and Business plans.",
       "CAPTCHA_FAILED": "We couldn't verify you're a person. Try again.",
       "CAPTCHA_REQUIRED": "Complete the security check to continue.",
