@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { LayoutTemplate, Pencil, Trash2 } from 'lucide-react';
+import { LayoutTemplate, Lock, Pencil, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useStudioPro } from '../../../hooks/useStudioPro';
 import { studioTemplatesApi } from '../../../services/studioTemplates.service';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { StudioProject } from '../../../types/studio';
@@ -13,6 +14,7 @@ import {
   type StudioTemplate,
   type TemplatePick,
   templateLength,
+  templateNeedsPro,
 } from '../../../utils/studioTemplates';
 import ConfirmModal from '../../modals/ConfirmModal';
 import { Input } from '../../ui';
@@ -101,6 +103,8 @@ export default function TemplatesSection({
         community: { author: offered.data.author.username },
       }
     : null;
+  // A template with Pro pieces is used only with Edits Studio Pro.
+  const { pro } = useStudioPro();
   const builtIn: Listed[] = BUILT_IN_TEMPLATES.map((b) => ({
     id: b.id,
     name: t(b.nameKey),
@@ -131,6 +135,7 @@ export default function TemplatesSection({
   // The files chosen fill the slots in order, each from its start.
   const fill = async (files: File[]) => {
     if (!using || !files.length) return;
+    if (templateNeedsPro(using.template) && !pro) return;
     const picks: TemplatePick[] = [];
     for (const file of files.slice(0, using.template.slots.length)) {
       const isVideo = file.type.startsWith('video');
@@ -165,95 +170,112 @@ export default function TemplatesSection({
     onOpen(project);
   };
 
-  const row = (item: Listed) => (
-    <li
-      key={item.id}
-      className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4"
-    >
-      {renaming?.id === item.id ? (
-        <form
-          className="flex flex-wrap items-end gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const name = renaming.name.trim();
-            if (name) rename.mutate({ id: item.id, name });
-          }}
-        >
-          <div className="min-w-48 flex-1">
-            <Input
-              label={t('studio.templates.name')}
-              value={renaming.name}
-              maxLength={80}
-              onChange={(e) =>
-                setRenaming({ id: item.id, name: e.target.value })
-              }
-            />
-          </div>
-          <button
-            type="submit"
-            className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-sm font-bold text-black"
+  const row = (item: Listed) => {
+    const needsPro = templateNeedsPro(item.template);
+    const locked = needsPro && !pro;
+    return (
+      <li
+        key={item.id}
+        className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4"
+      >
+        {renaming?.id === item.id ? (
+          <form
+            className="flex flex-wrap items-end gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const name = renaming.name.trim();
+              if (name) rename.mutate({ id: item.id, name });
+            }}
           >
-            {t('common.save')}
-          </button>
-        </form>
-      ) : (
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">
-              {item.name}
-            </p>
-            {item.community && (
-              <p className="truncate text-xs text-brand-primary-text">
-                {t('studio.templates.by', {
-                  username: item.community.author,
-                })}
-              </p>
-            )}
-            <p className="text-xs text-white/50">
-              {t('studio.templates.summary', {
-                count: item.template.slots.length,
-                length: formatClock(templateLength(item.template)),
-              })}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {item.own && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setRenaming({ id: item.id, name: item.name })}
-                  aria-label={t('studio.templates.rename', { name: item.name })}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-white/70 hover:bg-white/10"
-                >
-                  <Pencil size={16} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setToDelete(item.id)}
-                  aria-label={t('studio.templates.delete', { name: item.name })}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-brand-secondary hover:bg-white/10"
-                >
-                  <Trash2 size={16} aria-hidden />
-                </button>
-              </>
-            )}
+            <div className="min-w-48 flex-1">
+              <Input
+                label={t('studio.templates.name')}
+                value={renaming.name}
+                maxLength={80}
+                onChange={(e) =>
+                  setRenaming({ id: item.id, name: e.target.value })
+                }
+              />
+            </div>
             <button
-              type="button"
-              onClick={() => {
-                setUsing(item);
-                input.current?.click();
-              }}
-              aria-label={t('studio.templates.use', { name: item.name })}
+              type="submit"
               className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-sm font-bold text-black"
             >
-              {t('studio.templates.use_short')}
+              {t('common.save')}
             </button>
+          </form>
+        ) : (
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">
+                {item.name}
+              </p>
+              {needsPro && (
+                <p className="inline-flex items-center gap-1 text-xs font-semibold text-brand-primary-text">
+                  {locked ? <Lock size={12} aria-hidden /> : null}
+                  {t('studio.templates.pro')}
+                </p>
+              )}
+              {item.community && (
+                <p className="truncate text-xs text-brand-primary-text">
+                  {t('studio.templates.by', {
+                    username: item.community.author,
+                  })}
+                </p>
+              )}
+              <p className="text-xs text-white/50">
+                {t('studio.templates.summary', {
+                  count: item.template.slots.length,
+                  length: formatClock(templateLength(item.template)),
+                })}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {item.own && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRenaming({ id: item.id, name: item.name })
+                    }
+                    aria-label={t('studio.templates.rename', {
+                      name: item.name,
+                    })}
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-white/70 hover:bg-white/10"
+                  >
+                    <Pencil size={16} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setToDelete(item.id)}
+                    aria-label={t('studio.templates.delete', {
+                      name: item.name,
+                    })}
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-brand-secondary hover:bg-white/10"
+                  >
+                    <Trash2 size={16} aria-hidden />
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                disabled={locked}
+                onClick={() => {
+                  setUsing(item);
+                  input.current?.click();
+                }}
+                aria-label={t('studio.templates.use', { name: item.name })}
+                className="inline-flex min-h-11 items-center rounded-full bg-white px-4 text-sm font-bold text-black disabled:opacity-40"
+              >
+                {t('studio.templates.use_short')}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-      <SlotStrip template={item.template} />
-    </li>
-  );
+        )}
+        <SlotStrip template={item.template} />
+      </li>
+    );
+  };
 
   return (
     <section aria-labelledby="studio-templates-title" className="mb-8">
@@ -289,6 +311,14 @@ export default function TemplatesSection({
       <h3 className="mb-2 text-xs font-bold text-white/50">
         {t('studio.templates.circlesfera')}
       </h3>
+      {!pro && (
+        <p
+          className="mb-3 text-xs text-white/60"
+          data-testid="templates-pro-note"
+        >
+          {t('studio.templates.pro_note')}
+        </p>
+      )}
       <ul className="grid gap-3 md:grid-cols-2">{builtIn.map(row)}</ul>
       <input
         ref={input}

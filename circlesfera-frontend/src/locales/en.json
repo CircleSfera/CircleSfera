@@ -5409,10 +5409,18 @@
         "quick_cuts": "Quick cuts",
         "soft_story": "Soft story",
         "before_after": "Before and after",
-        "trip": "Trip"
+        "trip": "Trip",
+        "beat_drop": "Beat drop",
+        "retro_vhs": "Retro VHS",
+        "kaleidoscope": "Kaleidoscope",
+        "golden_hour": "Golden hour",
+        "duotone": "Duotone",
+        "launch": "Launch"
       },
       "by": "Template by @{{username}}",
       "from_frame": "From the Frame you came from",
+      "pro": "Edits Studio Pro",
+      "pro_note": "Templates marked Edits Studio Pro use its effects, transitions or curves: they need it.",
       "unavailable": "That Frame’s template is no longer available."
     },
     "curves": {

@@ -5409,10 +5409,18 @@
         "quick_cuts": "Cortes rápidos",
         "soft_story": "Historia suave",
         "before_after": "Antes y después",
-        "trip": "Viaje"
+        "trip": "Viaje",
+        "beat_drop": "Golpe de ritmo",
+        "retro_vhs": "Retro VHS",
+        "kaleidoscope": "Caleidoscopio",
+        "golden_hour": "Hora dorada",
+        "duotone": "Dúo de color",
+        "launch": "Lanzamiento"
       },
       "by": "Plantilla de @{{username}}",
       "from_frame": "Del Frame del que vienes",
+      "pro": "Edits Studio Pro",
+      "pro_note": "Las plantillas marcadas con Edits Studio Pro usan sus efectos, transiciones o curvas: lo necesitan.",
       "unavailable": "La plantilla de ese Frame ya no está disponible."
     },
     "curves": {

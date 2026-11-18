@@ -12,6 +12,7 @@ import {
   projectFromTemplate,
   type StudioTemplate,
   templateLength,
+  templateNeedsPro,
   templateOf,
 } from './studioTemplates';
 import { mainClips } from './studioTimeline';
@@ -256,14 +257,125 @@ describe('a project from a template', () => {
       'soft-story',
       'before-after',
       'trip',
+      'beat-drop',
+      'retro-vhs',
+      'kaleidoscope',
+      'golden-hour',
+      'duotone',
+      'launch',
     ]);
     for (const { template } of BUILT_IN_TEMPLATES) {
       expect(template.slots.length).toBeGreaterThan(1);
+      template.slots.forEach((slot, i) => {
+        // Each transition fits as it is: at most half of either clip.
+        const next = template.slots[i + 1];
+        if (slot.transitionOut && next) {
+          expect(slot.transitionOut.duration).toBeLessThanOrEqual(
+            Math.min(slot.duration, next.duration) / 2,
+          );
+        }
+        // Keyframes stay within their clip.
+        for (const frames of Object.values(slot.keyframes ?? {})) {
+          for (const k of frames ?? []) {
+            expect(k.t).toBeLessThanOrEqual(slot.duration);
+          }
+        }
+      });
       for (const fx of template.effects) {
         expect(fx.startAt + fx.duration).toBeLessThanOrEqual(
           templateLength(template) + 1e-9,
         );
       }
     }
+  });
+
+  it('marks the templates that need Edits Studio Pro: the last six', () => {
+    expect(
+      BUILT_IN_TEMPLATES.filter((b) => templateNeedsPro(b.template)).map(
+        (b) => b.id,
+      ),
+    ).toEqual([
+      'beat-drop',
+      'retro-vhs',
+      'kaleidoscope',
+      'golden-hour',
+      'duotone',
+      'launch',
+    ]);
+  });
+
+  it('needs Pro for a Pro effect, transition or keyframe curve, and not otherwise', () => {
+    const base = {
+      version: 1 as const,
+      name: 'x',
+      aspectRatio: '9:16' as const,
+      slots: [
+        { duration: 2, speed: 1 },
+        { duration: 2, speed: 1 },
+      ],
+      effects: [],
+    };
+    expect(templateNeedsPro(base)).toBe(false);
+    expect(
+      templateNeedsPro({
+        ...base,
+        effects: [{ startAt: 0, duration: 1, effect: 'vhs', intensity: 50 }],
+      }),
+    ).toBe(true);
+    expect(
+      templateNeedsPro({
+        ...base,
+        effects: [{ startAt: 0, duration: 1, effect: 'blur', intensity: 50 }],
+      }),
+    ).toBe(false);
+    expect(
+      templateNeedsPro({
+        ...base,
+        slots: [
+          {
+            duration: 2,
+            speed: 1,
+            transitionOut: { kind: 'glitch', duration: 0.4 },
+          },
+          { duration: 2, speed: 1 },
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      templateNeedsPro({
+        ...base,
+        slots: [
+          {
+            duration: 2,
+            speed: 1,
+            keyframes: {
+              scale: [
+                { t: 0, v: 1, curve: 'linear' },
+                { t: 1, v: 2 },
+              ],
+            },
+          },
+          { duration: 2, speed: 1 },
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      templateNeedsPro({
+        ...base,
+        slots: [
+          {
+            duration: 2,
+            speed: 1,
+            keyframes: {
+              scale: [
+                { t: 0, v: 1 },
+                { t: 1, v: 2 },
+              ],
+            },
+          },
+          { duration: 2, speed: 1 },
+        ],
+      }),
+    ).toBe(false);
   });
 });
