@@ -2,12 +2,14 @@ import { clsx } from 'clsx';
 import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
-import { CREATOR_NAV_GROUPS } from './creatorNav';
+import { useAuthStore } from '../../stores/authStore';
+import { CREATOR_NAV_GROUPS, visibleNavItems } from './creatorNav';
 
 // The sections on desktop: a row of tabs under the title, so the content keeps
 // the width the app's navigation leaves. On a phone they are in the sheet.
 export default function CreatorTabs() {
   const { t } = useTranslation();
+  const accountType = useAuthStore((s) => s.profile?.accountType);
 
   return (
     <nav
@@ -20,7 +22,7 @@ export default function CreatorTabs() {
           {index > 0 ? (
             <span className="mx-2 h-5 w-px bg-white/10 shrink-0" aria-hidden />
           ) : null}
-          {group.items.map((item) => {
+          {visibleNavItems(group.items, accountType).map((item) => {
             const ItemIcon = item.icon;
             return (
               <NavLink

@@ -534,6 +534,7 @@ model Profile {
   metrics                ProfileMetric[]
   embedding              ProfileEmbedding?
   platformSubscriptions  PlatformSubscription[]
+  businessStatDays       BusinessStatDay[]
 
   storedFiles StoredFile[]
 
@@ -2742,6 +2743,26 @@ model PostView {
   @@index([postId, createdAt])
   @@index([viewerId])
   @@map("post_views")
+}
+
+// The business statistics of a Business Profile: totals for one day and one
+// visitor country, never who visited or tapped. Kept 13 months.
+model BusinessStatDay {
+  profileId   String
+  day         DateTime @db.Date
+  // ISO code of the visitor's country; empty when it is not known.
+  country     String   @default("") @db.VarChar(2)
+  visits      Int      @default(0)
+  emailTaps   Int      @default(0)
+  callTaps    Int      @default(0)
+  addressTaps Int      @default(0)
+  websiteTaps Int      @default(0)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, day, country])
+  @@index([day])
+  @@map("business_stat_days")
 }
 
 model ProfileMetric {

@@ -8,6 +8,8 @@ interface BusinessDetailsProps {
   email?: string | null;
   phone?: string | null;
   place?: BusinessPlace | null;
+  /** Told when a visitor taps the address, Call or Email. */
+  onTap?: (kind: 'address' | 'call' | 'email') => void;
 }
 
 const ACTION_CLASS =
@@ -23,6 +25,7 @@ export default function BusinessDetails({
   email,
   phone,
   place,
+  onTap,
 }: BusinessDetailsProps) {
   const { t } = useTranslation();
   if (!category && !email && !phone && !place) return null;
@@ -44,6 +47,7 @@ export default function BusinessDetails({
           {place && (
             <Link
               to={`/explore/places/${place.id}`}
+              onClick={() => onTap?.('address')}
               className="min-h-11 flex items-center gap-2 text-zinc-300 hover:text-white transition-colors"
             >
               <MapPin
@@ -63,6 +67,7 @@ export default function BusinessDetails({
           {phone && (
             <a
               href={`tel:${phone}`}
+              onClick={() => onTap?.('call')}
               className={ACTION_CLASS}
               aria-label={t('profile.business.call_aria', { phone })}
             >
@@ -73,6 +78,7 @@ export default function BusinessDetails({
           {email && (
             <a
               href={`mailto:${email}`}
+              onClick={() => onTap?.('email')}
               className={ACTION_CLASS}
               aria-label={t('profile.business.email_aria', { email })}
             >

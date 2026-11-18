@@ -31,6 +31,7 @@ import { AudioModule } from './audio/audio.module.js';
 import { AccountStateModule } from './auth/account-state.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { BookmarksModule } from './bookmarks/bookmarks.module.js';
+import { BusinessStatsModule } from './business-stats/business-stats.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { CloseFriendsModule } from './close-friends/close-friends.module.js';
 import { CollectionsModule } from './collections/collections.module.js';
@@ -239,6 +240,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     WellKnownModule,
     TeamModule,
     CompanyVerificationModule,
+    BusinessStatsModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [

@@ -42,6 +42,8 @@ export enum ErrorCode {
   PROMOTION_ID_MISSING = 'PROMOTION_ID_MISSING',
   // The creator tools are for Creator and Business Profiles.
   CREATOR_ACCOUNT_REQUIRED = 'CREATOR_ACCOUNT_REQUIRED',
+  // Business statistics are for Business Profiles.
+  BUSINESS_ACCOUNT_REQUIRED = 'BUSINESS_ACCOUNT_REQUIRED',
   // Content is promoted once automatic moderation has checked it.
   CONTENT_UNDER_REVIEW = 'CONTENT_UNDER_REVIEW',
   // Staff paused new payments (the payments_enabled setting is off).

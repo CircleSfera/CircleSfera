@@ -5,6 +5,11 @@ import type { ProfileWithUser } from '../../types';
 import ProfileHeader from './ProfileHeader';
 
 const sells = vi.hoisted(() => ({ value: true }));
+const bizStats = vi.hoisted(() => ({ record: vi.fn(), visit: vi.fn() }));
+vi.mock('../../services/businessStats.service', () => ({
+  businessStatsApi: { record: bizStats.record },
+  recordBusinessVisit: bizStats.visit,
+}));
 vi.mock('../../utils/sellsInApp', () => ({ sellsInApp: () => sells.value }));
 
 vi.mock('../../hooks/useCloseFriendsList', () => ({
@@ -218,5 +223,39 @@ describe('ProfileHeader', () => {
       screen.getAllByRole('button', { name: 'Unrestrict' }).length,
     ).toBeGreaterThan(0);
     restriction.state = { restricted: false, isKnown: true, isPending: false };
+  });
+
+  it('counts a visit to a Business Profile and the taps on its buttons, never one\u2019s own', () => {
+    bizStats.record.mockClear();
+    bizStats.visit.mockClear();
+    const business = {
+      data: {
+        ...ownProfile.data,
+        id: 'biz-1',
+        accountType: 'BUSINESS',
+        contactPhone: '+34600111222',
+        website: 'shop.es',
+      } as never,
+    };
+    const { unmount } = renderWithProviders(
+      <ProfileHeader {...headerProps} isMe={false} profile={business} />,
+    );
+    expect(bizStats.visit).toHaveBeenCalledWith('biz-1');
+    fireEvent.click(screen.getByRole('link', { name: 'Call +34600111222' }));
+    fireEvent.click(screen.getByRole('link', { name: /shop\.es/ }));
+    expect(bizStats.record.mock.calls).toEqual([
+      ['biz-1', 'call'],
+      ['biz-1', 'website'],
+    ]);
+    unmount();
+
+    bizStats.record.mockClear();
+    bizStats.visit.mockClear();
+    renderWithProviders(
+      <ProfileHeader {...headerProps} isMe profile={business} />,
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Call +34600111222' }));
+    expect(bizStats.visit).not.toHaveBeenCalled();
+    expect(bizStats.record).not.toHaveBeenCalled();
   });
 });
