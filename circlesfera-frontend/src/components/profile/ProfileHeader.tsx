@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   ShieldMinus,
+  Sparkles,
   Star,
   VolumeX,
 } from 'lucide-react';
@@ -562,6 +563,22 @@ export default function ProfileHeader({
             {profile.data.bio && (
               <p className="text-zinc-400 text-[13px] md:text-base leading-relaxed whitespace-pre-wrap">
                 {profile.data.bio}
+              </p>
+            )}
+
+            {profile.data.creatorCategory && (
+              <p
+                className="mt-3 flex items-center gap-2 text-xs md:text-sm font-medium text-zinc-300"
+                data-testid="creator-category"
+              >
+                <Sparkles
+                  size={16}
+                  className="text-brand-primary-text"
+                  aria-hidden="true"
+                />
+                {t(
+                  `profile.creator.categories.${profile.data.creatorCategory}`,
+                )}
               </p>
             )}
 

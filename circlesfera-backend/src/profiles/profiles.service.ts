@@ -60,6 +60,7 @@ const PUBLIC_PROFILE_FIELDS = [
   'accountType',
   'accentColor',
   'businessCategory',
+  'creatorCategory',
   'contactEmail',
   'contactPhone',
   'businessPlace',
@@ -91,6 +92,7 @@ export const BUSINESS_PLACE_SELECT = {
 type BusinessPresentationSource = {
   accountType: AccountType | string;
   businessCategory?: string | null;
+  creatorCategory?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
   businessPlace?: unknown;
@@ -106,6 +108,11 @@ export function businessPresentation(profile: BusinessPresentationSource) {
     contactEmail: isBusiness ? (profile.contactEmail ?? null) : null,
     contactPhone: isBusiness ? (profile.contactPhone ?? null) : null,
     businessPlace: isBusiness ? (profile.businessPlace ?? null) : null,
+    // A creator's category, the same way: only while it is a Creator.
+    creatorCategory:
+      profile.accountType === 'CREATOR'
+        ? (profile.creatorCategory ?? null)
+        : null,
   };
 }
 
@@ -425,6 +432,16 @@ export class ProfilesService {
       throw AppException.Forbidden(
         ErrorCode.FORBIDDEN_ACCESS,
         'Only a Business Profile shows a category, contact buttons or a business address',
+      );
+    }
+    // Only a Creator Profile shows a creator category; removing it is
+    // always allowed.
+    const becomesCreator =
+      (profileData.accountType ?? profile.accountType) === 'CREATOR';
+    if (profileData.creatorCategory && !becomesCreator) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Only a Creator Profile shows a creator category',
       );
     }
     if (profileData.contactEmail) {

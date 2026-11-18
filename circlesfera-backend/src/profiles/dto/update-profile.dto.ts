@@ -3,6 +3,8 @@ import {
   BUSINESS_CONTACT_EMAIL_MAX,
   BUSINESS_CONTACT_PHONE_PATTERN,
   type BusinessCategory,
+  CREATOR_CATEGORIES,
+  type CreatorCategory,
 } from '@circlesfera/shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -89,6 +91,14 @@ export class UpdateProfileDto {
   @ValidateIf((o: UpdateProfileDto) => o.accentColor !== null)
   @IsIn(PROFILE_ACCENT_COLORS)
   accentColor?: ProfileAccentColor | null;
+
+  // The kind of creator a Creator Profile says it is; null removes it.
+  // Only a Creator Profile can set one (the service checks).
+  @ApiProperty({ required: false, nullable: true, enum: CREATOR_CATEGORIES })
+  @IsOptional()
+  @ValidateIf((o: UpdateProfileDto) => o.creatorCategory !== null)
+  @IsIn(CREATOR_CATEGORIES)
+  creatorCategory?: CreatorCategory | null;
 
   // How a Business Profile presents itself. Each is optional; null removes
   // it. Only a Business Profile can set one (the service checks).

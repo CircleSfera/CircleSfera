@@ -1,4 +1,5 @@
 export * from './business-profile.js';
+export * from './creator-profile.js';
 export * from './chat-pins.js';
 export * from './comments.js';
 export * from './favorites.js';

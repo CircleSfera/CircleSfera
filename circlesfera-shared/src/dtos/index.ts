@@ -1,4 +1,5 @@
 import type { BusinessCategory } from '../constants/business-profile.js';
+import type { CreatorCategory } from '../constants/creator-profile.js';
 import type { PlaceInput } from '../models/index.js';
 
 export interface RegisterDto {
@@ -35,6 +36,7 @@ export interface UpdateProfileDto {
   // Colour of the Profile page, from the closed list; null = the default.
   accentColor?: string | null;
   // How a Business Profile presents itself; null removes each one.
+  creatorCategory?: CreatorCategory | null;
   businessCategory?: BusinessCategory | null;
   contactEmail?: string | null;
   contactPhone?: string | null;

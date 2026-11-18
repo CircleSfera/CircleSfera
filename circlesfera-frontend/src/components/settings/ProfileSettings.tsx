@@ -34,6 +34,7 @@ import BusinessPresentationFields, {
   isValidContactPhone,
   normalizeContactPhone,
 } from './BusinessPresentationFields';
+import CreatorCategoryField from './CreatorCategoryField';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
 
@@ -81,6 +82,7 @@ export default function ProfileSettings() {
   const [accentColor, setAccentColor] = useState<string | null>(null);
   // How a Business Profile presents itself. The address is changed only
   // when a place is chosen (a selection) or removed (null).
+  const [creatorCategory, setCreatorCategory] = useState('');
   const [businessCategory, setBusinessCategory] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -107,6 +109,7 @@ export default function ProfileSettings() {
       setBio(response.data.bio || '');
       setWebsite(response.data.website || '');
       setBusinessCategory(response.data.businessCategory || '');
+      setCreatorCategory(response.data.creatorCategory || '');
       setContactEmail(response.data.contactEmail || '');
       setContactPhone(response.data.contactPhone || '');
       setPlaceChange(undefined);
@@ -125,6 +128,7 @@ export default function ProfileSettings() {
       setAccountType(profile.accountType || 'PERSONAL');
       setAccentColor(profile.accentColor ?? null);
       setBusinessCategory(profile.businessCategory || '');
+      setCreatorCategory(profile.creatorCategory || '');
       setContactEmail(profile.contactEmail || '');
       setContactPhone(profile.contactPhone || '');
       setInitialized(true);
@@ -220,6 +224,9 @@ export default function ProfileSettings() {
   const canChooseColour = hasElitePlan(profile?.verificationLevel);
 
   const isBusiness = accountType === 'BUSINESS';
+  const isCreator = accountType === 'CREATOR';
+  const creatorDirty =
+    isCreator && creatorCategory !== (profile?.creatorCategory || '');
   const savedPlaceLabel =
     profile?.businessPlace?.fullName || profile?.businessPlace?.name || '';
   const placeLabel =
@@ -247,7 +254,8 @@ export default function ProfileSettings() {
       website !== (profile?.website || '') ||
       accountType !== (profile?.accountType || 'PERSONAL') ||
       accentColor !== (profile?.accentColor ?? null) ||
-      businessDirty);
+      businessDirty ||
+      creatorDirty);
 
   const canSubmit =
     isDirty &&
@@ -277,6 +285,11 @@ export default function ProfileSettings() {
     // profile without one must still be able to save everything else.
     if (accentColor !== (profile?.accentColor ?? null)) {
       data.accentColor = accentColor;
+    }
+    // Only a Creator Profile sends its category, and only when it changed.
+    if (creatorDirty) {
+      data.creatorCategory = (creatorCategory ||
+        null) as UpdateProfileDto['creatorCategory'];
     }
     // Only a Business Profile sends them, and only what changed.
     if (isBusiness) {
@@ -537,6 +550,15 @@ export default function ProfileSettings() {
           />
         </div>
       </SettingsSection>
+
+      {isCreator && (
+        <SettingsSection title={t('settings.profile.creator.title')}>
+          <CreatorCategoryField
+            category={creatorCategory}
+            onCategoryChange={setCreatorCategory}
+          />
+        </SettingsSection>
+      )}
 
       {isBusiness && (
         <SettingsSection title={t('settings.profile.business.title')}>

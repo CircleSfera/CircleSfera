@@ -25,6 +25,7 @@ export interface Profile {
   // How a Business Profile presents itself. Others receive them only while
   // the Profile is a Business; empty otherwise.
   businessCategory?: string | null;
+  creatorCategory?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
   businessPlace?: BusinessPlace | null;
