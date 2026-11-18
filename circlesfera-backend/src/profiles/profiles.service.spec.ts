@@ -262,6 +262,7 @@ describe('ProfilesService', () => {
         accountType,
         privacyLevel: 'PUBLIC',
         businessCategory: 'CAFE_BAKERY',
+        creatorCategory: 'MUSICIAN',
         contactEmail: 'hola@shop.es',
         contactPhone: '+34600111222',
         businessPlace: {
@@ -315,6 +316,28 @@ describe('ProfilesService', () => {
             contactPhone: null,
             businessPlace: null,
           });
+        },
+      );
+
+      it.each([
+        ['CREATOR', 'MUSICIAN'],
+        ['BUSINESS', null],
+        ['PERSONAL', null],
+      ])(
+        'shows the creator category only while the Profile is a Creator (%s)',
+        async (accountType, shown) => {
+          mockCacheManager.get.mockResolvedValue(null);
+          mockPrismaService.block.findFirst.mockResolvedValue(null);
+          mockPrismaService.platformSubscription.findFirst.mockResolvedValue(
+            null,
+          );
+          mockPrismaService.profile.findFirst.mockResolvedValue(
+            row(accountType),
+          );
+
+          const result = await service.getProfile('shop');
+
+          expect(result).toMatchObject({ creatorCategory: shown });
         },
       );
     });
@@ -557,6 +580,55 @@ describe('ProfilesService', () => {
               accountType: 'BUSINESS',
               businessCategory: 'SHOP',
             }),
+          }),
+        );
+      });
+
+      it('saves a creator category on a Creator, or one becoming a Creator, refuses it on another kind, and always lets it go', async () => {
+        mockPrismaService.profile.update.mockResolvedValue(saved);
+        mockPrismaService.profileMember.updateMany.mockResolvedValue({
+          count: 0,
+        });
+
+        mockPrismaService.profile.findUnique.mockResolvedValue(
+          stored('CREATOR'),
+        );
+        await service.updateProfile('p-1', { creatorCategory: 'MUSICIAN' });
+        expect(mockPrismaService.profile.update).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ creatorCategory: 'MUSICIAN' }),
+          }),
+        );
+
+        mockPrismaService.profile.findUnique.mockResolvedValue(
+          stored('PERSONAL'),
+        );
+        await service.updateProfile('p-1', {
+          accountType: 'CREATOR',
+          creatorCategory: 'PHOTOGRAPHER',
+        });
+        expect(mockPrismaService.profile.update).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              accountType: 'CREATOR',
+              creatorCategory: 'PHOTOGRAPHER',
+            }),
+          }),
+        );
+
+        mockPrismaService.profile.update.mockClear();
+        mockPrismaService.profile.findUnique.mockResolvedValue(
+          stored('BUSINESS'),
+        );
+        await expect(
+          service.updateProfile('p-1', { creatorCategory: 'ARTIST' }),
+        ).rejects.toMatchObject({ status: 403 });
+        expect(mockPrismaService.profile.update).not.toHaveBeenCalled();
+
+        await service.updateProfile('p-1', { creatorCategory: null });
+        expect(mockPrismaService.profile.update).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ creatorCategory: null }),
           }),
         );
       });

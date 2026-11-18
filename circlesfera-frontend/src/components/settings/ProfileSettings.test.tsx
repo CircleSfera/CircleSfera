@@ -525,6 +525,39 @@ describe('ProfileSettings', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
   });
 
+  describe('creator category', () => {
+    it('is offered only to a Creator profile', async () => {
+      await show();
+      expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
+    });
+
+    it('fills in from the profile and saves the new one, or none', async () => {
+      await show(mine({ accountType: 'CREATOR', creatorCategory: 'ARTIST' }));
+      const field = screen.getByLabelText('Category');
+      expect(field).toHaveValue('ARTIST');
+      expect(save()).toBeDisabled();
+
+      fireEvent.change(field, { target: { value: 'MUSICIAN' } });
+      fireEvent.click(save());
+      await waitFor(() => expect(api.profile.updateProfile).toHaveBeenCalled());
+      expect(api.profile.updateProfile.mock.calls[0][0]).toMatchObject({
+        creatorCategory: 'MUSICIAN',
+      });
+    });
+
+    it('removes it with no category', async () => {
+      await show(mine({ accountType: 'CREATOR', creatorCategory: 'ARTIST' }));
+      fireEvent.change(screen.getByLabelText('Category'), {
+        target: { value: '' },
+      });
+      fireEvent.click(save());
+      await waitFor(() => expect(api.profile.updateProfile).toHaveBeenCalled());
+      expect(api.profile.updateProfile.mock.calls[0][0]).toMatchObject({
+        creatorCategory: null,
+      });
+    });
+  });
+
   describe('business details', () => {
     const shop = (over: object = {}) =>
       mine({

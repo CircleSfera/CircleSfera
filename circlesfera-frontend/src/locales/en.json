@@ -216,6 +216,12 @@
         "address": "Address",
         "add_address": "Add address",
         "remove_address": "Remove address"
+      },
+      "creator": {
+        "title": "Creator",
+        "hint": "The kind of creator you are shows under your name. Optional.",
+        "category": "Category",
+        "no_category": "No category"
       }
     },
     "privacy": {
@@ -1846,6 +1852,30 @@
       "email": "Email",
       "call_aria": "Call {{phone}}",
       "email_aria": "Email {{email}}"
+    },
+    "creator": {
+      "categories": {
+        "DIGITAL_CREATOR": "Digital creator",
+        "ARTIST": "Artist",
+        "MUSICIAN": "Musician",
+        "PHOTOGRAPHER": "Photographer",
+        "VIDEO_CREATOR": "Video creator",
+        "WRITER": "Writer",
+        "GAMER": "Gamer",
+        "ATHLETE": "Athlete",
+        "FITNESS_COACH": "Fitness coach",
+        "CHEF": "Chef",
+        "COMEDIAN": "Comedian",
+        "DANCER": "Dancer",
+        "DESIGNER": "Designer",
+        "EDUCATOR": "Educator",
+        "FASHION": "Fashion",
+        "BEAUTY": "Beauty",
+        "TRAVEL": "Travel",
+        "PODCASTER": "Podcaster",
+        "PUBLIC_FIGURE": "Public figure",
+        "OTHER": "Other"
+      }
     }
   },
   "suggestions": {

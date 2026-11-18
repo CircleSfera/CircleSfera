@@ -216,6 +216,12 @@
         "address": "Dirección",
         "add_address": "Añadir dirección",
         "remove_address": "Quitar dirección"
+      },
+      "creator": {
+        "title": "Creador",
+        "hint": "El tipo de creador que eres se ve bajo tu nombre. Opcional.",
+        "category": "Categoría",
+        "no_category": "Sin categoría"
       }
     },
     "privacy": {
@@ -1846,6 +1852,30 @@
       "email": "Correo",
       "call_aria": "Llamar al {{phone}}",
       "email_aria": "Escribir a {{email}}"
+    },
+    "creator": {
+      "categories": {
+        "DIGITAL_CREATOR": "Creador digital",
+        "ARTIST": "Artista",
+        "MUSICIAN": "Músico",
+        "PHOTOGRAPHER": "Fotógrafo",
+        "VIDEO_CREATOR": "Creador de vídeo",
+        "WRITER": "Escritor",
+        "GAMER": "Gamer",
+        "ATHLETE": "Deportista",
+        "FITNESS_COACH": "Entrenador",
+        "CHEF": "Chef",
+        "COMEDIAN": "Humorista",
+        "DANCER": "Bailarín",
+        "DESIGNER": "Diseñador",
+        "EDUCATOR": "Educador",
+        "FASHION": "Moda",
+        "BEAUTY": "Belleza",
+        "TRAVEL": "Viajes",
+        "PODCASTER": "Podcaster",
+        "PUBLIC_FIGURE": "Figura pública",
+        "OTHER": "Otro"
+      }
     }
   },
   "suggestions": {

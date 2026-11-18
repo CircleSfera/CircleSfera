@@ -219,4 +219,25 @@ describe('ProfileHeader', () => {
     ).toBeGreaterThan(0);
     restriction.state = { restricted: false, isKnown: true, isPending: false };
   });
+
+  it('shows a creator\u2019s category under the name, in the person\u2019s language', () => {
+    const { i18n, unmount } = renderWithProviders(
+      <ProfileHeader
+        {...headerProps}
+        profile={{
+          data: {
+            ...ownProfile.data,
+            accountType: 'CREATOR',
+            creatorCategory: 'PHOTOGRAPHER',
+          } as never,
+        }}
+      />,
+    );
+    expect(screen.getByTestId('creator-category')).toHaveTextContent(
+      i18n!.t('profile.creator.categories.PHOTOGRAPHER'),
+    );
+    unmount();
+    renderWithProviders(<ProfileHeader {...headerProps} />);
+    expect(screen.queryByTestId('creator-category')).not.toBeInTheDocument();
+  });
 });

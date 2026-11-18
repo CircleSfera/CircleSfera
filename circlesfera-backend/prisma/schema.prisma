@@ -403,6 +403,7 @@ model Profile {
   // and shown only while the Profile is a Business; a Profile of another
   // kind keeps them, hidden.
   businessCategory BusinessCategory?
+  creatorCategory  CreatorCategory?
   // Shown as an "Email" button; nothing is sent through CircleSfera.
   contactEmail     String?
   // International format (+ and digits), shown as a "Call" button.
@@ -2812,6 +2813,31 @@ enum BusinessCategory {
   REAL_ESTATE
   FINANCE_INSURANCE
   NON_PROFIT
+  OTHER
+}
+
+// The kinds of creator a Creator Profile can say it is; the same list as
+// CREATOR_CATEGORIES in circlesfera-shared.
+enum CreatorCategory {
+  DIGITAL_CREATOR
+  ARTIST
+  MUSICIAN
+  PHOTOGRAPHER
+  VIDEO_CREATOR
+  WRITER
+  GAMER
+  ATHLETE
+  FITNESS_COACH
+  CHEF
+  COMEDIAN
+  DANCER
+  DESIGNER
+  EDUCATOR
+  FASHION
+  BEAUTY
+  TRAVEL
+  PODCASTER
+  PUBLIC_FIGURE
   OTHER
 }
 
