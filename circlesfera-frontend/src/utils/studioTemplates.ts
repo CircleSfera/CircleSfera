@@ -8,10 +8,13 @@ import type {
   MediaClip,
   StudioProject,
 } from '../types/studio';
+import { isProCurve } from './studioCurves';
+import { PRO_EFFECTS } from './studioEffects';
 import { resolutionForAspect } from './studioExportHelpers';
 import { shiftedKeyframes } from './studioKeyframes';
 import { withLengthOfClips } from './studioProject';
 import { newBlankProject } from './studioProjects';
+import { PRO_TRANSITIONS } from './studioProTransitions';
 import {
   emptyTrack,
   mainClips,
@@ -71,6 +74,22 @@ export function templateLength(template: StudioTemplate): number {
       slot.duration -
       (i < template.slots.length - 1 ? (slot.transitionOut?.duration ?? 0) : 0),
     0,
+  );
+}
+
+/**
+ * Whether using a template needs Edits Studio Pro: it has a Pro effect, a
+ * Pro transition or a Pro keyframe curve. Without it, a template would hand
+ * out what only Pro chooses.
+ */
+export function templateNeedsPro(template: StudioTemplate): boolean {
+  if (template.effects.some((fx) => PRO_EFFECTS.has(fx.effect))) return true;
+  return template.slots.some(
+    (slot) =>
+      (slot.transitionOut && PRO_TRANSITIONS.has(slot.transitionOut.kind)) ||
+      Object.values(slot.keyframes ?? {}).some((frames) =>
+        (frames ?? []).some((k) => isProCurve(k.curve)),
+      ),
   );
 }
 
@@ -265,6 +284,109 @@ export interface BuiltInTemplate {
 const slots = (count: number, slot: TemplateSlot): TemplateSlot[] =>
   Array.from({ length: count }, () => ({ ...slot }));
 
+// The whole length of a template with these slots: an effect over all of it.
+const lengthOf = (list: TemplateSlot[]) =>
+  templateLength({
+    version: 1,
+    name: '',
+    aspectRatio: '9:16',
+    slots: list,
+    effects: [],
+  });
+
+// The templates that come with Edits Studio Pro, each showing what it adds.
+const beatDrop: TemplateSlot[] = [
+  {
+    duration: 0.8,
+    speed: 1,
+    transitionOut: { kind: 'whip', duration: 0.3 },
+    // A punch in that overshoots and settles.
+    keyframes: {
+      scale: [
+        { t: 0, v: 1.25, curve: 'back' },
+        { t: 0.6, v: 1 },
+      ],
+    },
+  },
+  ...slots(2, {
+    duration: 0.8,
+    speed: 1,
+    transitionOut: { kind: 'whip', duration: 0.3 },
+  }),
+  {
+    duration: 0.8,
+    speed: 1,
+    transitionOut: { kind: 'zoomblur', duration: 0.4 },
+  },
+  ...slots(2, {
+    duration: 0.8,
+    speed: 1,
+    transitionOut: { kind: 'whip', duration: 0.3 },
+  }),
+];
+const retroVhs = slots(4, {
+  duration: 2,
+  speed: 1,
+  transitionOut: { kind: 'glitch', duration: 0.4 },
+});
+const kaleidoscope: TemplateSlot[] = [
+  { duration: 1.5, speed: 1, transitionOut: { kind: 'spin', duration: 0.6 } },
+  ...slots(3, {
+    duration: 2,
+    speed: 1,
+    transitionOut: { kind: 'spin', duration: 0.6 },
+  }),
+];
+const goldenHour: TemplateSlot[] = Array.from({ length: 5 }, (_, i) => ({
+  duration: 2.4,
+  speed: 1,
+  transitionOut:
+    i % 2 === 0
+      ? { kind: 'zoomblur' as const, duration: 0.6 }
+      : { kind: 'crossfade' as const, duration: 0.8 },
+  color: {
+    brightness: 5,
+    contrast: 0,
+    saturation: 10,
+    warmth: 40,
+    exposure: 0,
+    sharpness: 0,
+  },
+  // A slow push in on every shot.
+  keyframes: {
+    scale: [
+      { t: 0, v: 1 },
+      { t: 2.4, v: 1.1 },
+    ],
+  },
+}));
+const duotone = slots(4, {
+  duration: 2,
+  speed: 1,
+  transitionOut: { kind: 'glitch', duration: 0.3 },
+});
+const launch: TemplateSlot[] = [
+  ...Array.from({ length: 4 }, (_, i) => ({
+    duration: 1.8,
+    speed: 1,
+    transitionOut:
+      i % 2 === 0
+        ? { kind: 'spin' as const, duration: 0.5 }
+        : { kind: 'whip' as const, duration: 0.4 },
+  })),
+  {
+    duration: 3,
+    speed: 1,
+    // The last shot lands with a bounce.
+    keyframes: {
+      scale: [
+        { t: 0, v: 0.85, curve: 'bounce' },
+        { t: 1, v: 1 },
+      ],
+    },
+  },
+];
+
 /** The templates CircleSfera offers. */
 export const BUILT_IN_TEMPLATES: readonly BuiltInTemplate[] = [
   {
@@ -342,6 +464,95 @@ export const BUILT_IN_TEMPLATES: readonly BuiltInTemplate[] = [
       effects: [
         { startAt: 0, duration: 7.6, effect: 'vignette', intensity: 40 },
       ],
+    },
+  },
+  {
+    id: 'beat-drop',
+    nameKey: 'studio.templates.built_in.beat_drop',
+    template: {
+      version: 1,
+      name: 'beat-drop',
+      aspectRatio: '9:16',
+      slots: beatDrop,
+      effects: [],
+    },
+  },
+  {
+    id: 'retro-vhs',
+    nameKey: 'studio.templates.built_in.retro_vhs',
+    template: {
+      version: 1,
+      name: 'retro-vhs',
+      aspectRatio: '9:16',
+      slots: retroVhs,
+      effects: [
+        {
+          startAt: 0,
+          duration: lengthOf(retroVhs),
+          effect: 'vhs',
+          intensity: 70,
+        },
+      ],
+    },
+  },
+  {
+    id: 'kaleidoscope',
+    nameKey: 'studio.templates.built_in.kaleidoscope',
+    template: {
+      version: 1,
+      name: 'kaleidoscope',
+      aspectRatio: '9:16',
+      slots: kaleidoscope,
+      effects: [
+        { startAt: 0, duration: 1.5, effect: 'kaleidoscope', intensity: 80 },
+      ],
+    },
+  },
+  {
+    id: 'golden-hour',
+    nameKey: 'studio.templates.built_in.golden_hour',
+    template: {
+      version: 1,
+      name: 'golden-hour',
+      aspectRatio: '9:16',
+      slots: goldenHour,
+      effects: [
+        {
+          startAt: 0,
+          duration: lengthOf(goldenHour),
+          effect: 'lightleak',
+          intensity: 60,
+        },
+      ],
+    },
+  },
+  {
+    id: 'duotone',
+    nameKey: 'studio.templates.built_in.duotone',
+    template: {
+      version: 1,
+      name: 'duotone',
+      aspectRatio: '9:16',
+      slots: duotone,
+      effects: [
+        {
+          startAt: 0,
+          duration: lengthOf(duotone),
+          effect: 'duotone',
+          intensity: 80,
+        },
+      ],
+    },
+  },
+  {
+    id: 'launch',
+    nameKey: 'studio.templates.built_in.launch',
+    template: {
+      version: 1,
+      name: 'launch',
+      aspectRatio: '9:16',
+      slots: launch,
+      effects: [],
     },
   },
 ];

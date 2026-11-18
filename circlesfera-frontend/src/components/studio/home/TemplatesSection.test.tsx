@@ -24,6 +24,10 @@ vi.mock('../../../services/studioTemplates.service', () => ({
     use: vi.fn().mockResolvedValue({ data: { uses: 1 } }),
   },
 }));
+const studioPro = vi.hoisted(() => ({ pro: false }));
+vi.mock('../../../services/edits.service', () => ({
+  editsService: { getStudioPro: vi.fn(async () => ({ ...studioPro })) },
+}));
 vi.mock('../../../utils/mediaDuration', () => ({
   readMediaDuration: vi.fn().mockResolvedValue(0.5),
 }));
@@ -219,5 +223,34 @@ describe('saving a project as a template', () => {
     expect(
       screen.getByRole('button', { name: 'Save as template' }),
     ).toBeDisabled();
+  });
+
+  it('locks the templates that need Edits Studio Pro without it, and opens them with it', async () => {
+    studioPro.pro = false;
+    const onOpen = vi.fn();
+    const view = renderWithProviders(<TemplatesSection onOpen={onOpen} />);
+    expect(await screen.findByTestId('templates-pro-note')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Use Retro VHS' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Use Trip' })).toBeEnabled();
+    view.unmount();
+
+    studioPro.pro = true;
+    renderWithProviders(<TemplatesSection onOpen={onOpen} />);
+    const use = screen.getByRole('button', { name: 'Use Retro VHS' });
+    await waitFor(() => expect(use).toBeEnabled());
+    expect(screen.queryByTestId('templates-pro-note')).toBeNull();
+    fireEvent.click(use);
+    choose([photo(), photo(), photo(), photo()]);
+    await waitFor(() => expect(onOpen).toHaveBeenCalled());
+    const project = onOpen.mock.calls[0][0];
+    expect(mainClips(project)).toHaveLength(4);
+    expect(
+      project.tracks
+        .flatMap((t: { clips: { effect?: string }[] }) => t.clips)
+        .some((c: { effect?: string }) => c.effect === 'vhs'),
+    ).toBe(true);
+    studioPro.pro = false;
   });
 });
