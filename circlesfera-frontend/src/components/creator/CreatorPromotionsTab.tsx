@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePromotionsOnSale } from '../../hooks/usePromotionsOnSale';
+import { usePromotionsSale } from '../../hooks/usePromotionsOnSale';
 import type {
   CancelPromotionResult,
   CreatorPost,
@@ -81,7 +81,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   // Promotions are bought on the web only, while they are on sale.
-  const onSale = usePromotionsOnSale();
+  const { canBuy: onSale, notOnSale } = usePromotionsSale();
   const [page, setPage] = useState(1);
   const [showNewPromo, setShowNewPromo] = useState(false);
   const [repeatPost, setRepeatPost] = useState<CreatorPost | null>(null);
@@ -339,7 +339,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
   return (
     <div className="space-y-4 pb-8">
       {/* On the web, while promotions are not on sale, it says so. */}
-      {sellsInApp() && !onSale && (
+      {notOnSale && (
         <p
           className="text-sm text-white/60"
           data-testid="promotions-not-on-sale"

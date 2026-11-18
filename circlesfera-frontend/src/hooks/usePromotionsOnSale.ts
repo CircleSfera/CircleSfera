@@ -10,6 +10,14 @@ import { sellsInApp } from '../utils/sellsInApp';
  * on sale. Until the server answers, nothing is offered.
  */
 export function usePromotionsOnSale(): boolean {
+  return usePromotionsSale().canBuy;
+}
+
+/**
+ * The same, with whether the server said they are not on sale: told only
+ * after that answer, never while it is awaited or when the question failed.
+ */
+export function usePromotionsSale(): { canBuy: boolean; notOnSale: boolean } {
   const accountType = useAuthStore((state) => state.profile?.accountType);
   const could = hasCreatorTools(accountType) && sellsInApp();
   const query = useQuery({
@@ -19,5 +27,8 @@ export function usePromotionsOnSale(): boolean {
     staleTime: 60_000,
     retry: 1,
   });
-  return could && query.data?.onSale === true;
+  return {
+    canBuy: could && query.data?.onSale === true,
+    notOnSale: could && query.data?.onSale === false,
+  };
 }

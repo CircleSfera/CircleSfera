@@ -92,4 +92,18 @@ describe('CreatorPromotionsTab', () => {
       }),
     ).toBeNull();
   });
+
+  it('says nothing about sale while the answer is awaited or failed', async () => {
+    vi.mocked(creatorApi.getPromotionsOnSale).mockRejectedValue(new Error('x'));
+    const { i18n } = renderWithProviders(
+      <CreatorPromotionsTab onToast={vi.fn()} />,
+    );
+    await screen.findByText(i18n!.t('creator.promotions.no_active'));
+    expect(screen.queryByTestId('promotions-not-on-sale')).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('creator.promotions.create_first'),
+      }),
+    ).toBeNull();
+  });
 });
