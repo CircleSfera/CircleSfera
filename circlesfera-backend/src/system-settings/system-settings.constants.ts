@@ -60,10 +60,10 @@ export const SYSTEM_SETTING_DEFAULTS: readonly SystemSettingDefault[] = [
       'Allow new payments: plans and promotions. While off nothing new is charged.',
   },
   {
-    // Off until the payment provider confirms in writing that it accepts
-    // paid promotion; staff turn it on from the global settings.
+    // On: promotions are sold. Staff turn it off from the global settings
+    // to stop new sales at once.
     key: SYSTEM_SETTING_KEYS.PROMOTIONS_ON_SALE,
-    value: 'false',
+    value: 'true',
     description:
       'Sell new promotions. While off nobody can buy one; promotions already bought keep running.',
   },
