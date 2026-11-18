@@ -46,6 +46,8 @@ export enum ErrorCode {
   CONTENT_UNDER_REVIEW = 'CONTENT_UNDER_REVIEW',
   // Staff paused new payments (the payments_enabled setting is off).
   PAYMENTS_PAUSED = 'PAYMENTS_PAUSED',
+  // Promotions are not on sale (the promotions_on_sale setting is off).
+  PROMOTIONS_NOT_ON_SALE = 'PROMOTIONS_NOT_ON_SALE',
   // Paying for anything needs a verified identity of someone 18 or older.
   PAYER_UNDER_AGE = 'PAYER_UNDER_AGE',
 

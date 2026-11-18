@@ -15,6 +15,11 @@ const session = vi.hoisted(() => ({
 vi.mock('../stores/authStore', () => ({
   useAuthStore: (selector: (s: typeof session) => unknown) => selector(session),
 }));
+const onSale = vi.hoisted(() => ({ value: false }));
+vi.mock('./usePromotionsOnSale', () => ({
+  usePromotionsOnSale: () => onSale.value,
+}));
+
 vi.mock('../services', () => ({
   bookmarksApi: { check: vi.fn(), toggle: vi.fn() },
   creatorApi: { recordPromotionView: vi.fn() },
@@ -82,11 +87,13 @@ describe('usePostInteractions', () => {
       expect(setup().on().isOwner).toBe(false);
     });
 
-    it('offers promoting to creator and business accounts, not to personal ones', () => {
+    it('offers promoting only when this Profile may buy a promotion', () => {
+      onSale.value = false;
       expect(setup().on().canPromote).toBe(false);
 
-      session.profile = { id: 'me', accountType: 'BUSINESS' };
+      onSale.value = true;
       expect(setup().on().canPromote).toBe(true);
+      onSale.value = false;
     });
   });
 

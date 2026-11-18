@@ -41,6 +41,7 @@ vi.mock('../services/studioTemplates.service', () => ({
 }));
 vi.mock('../services/creator.service', () => ({
   creatorApi: {
+    getPromotionsOnSale: vi.fn(async () => ({ data: { onSale: true } })),
     trackFrameWatch: vi.fn(),
     trackFrameLoop: vi.fn(),
     recordPromotionView: vi.fn(),
@@ -920,6 +921,8 @@ describe('FrameItem', () => {
 
       session.profile = { id: 'me', accountType: 'CREATOR' };
       const { actions } = withMenu(frame({ id: 'f2', profileId: 'me' }));
+      // Offered once the server says promotions are on sale.
+      await waitFor(() => expect(actions()?.onPromote).toBeDefined());
       act(() => actions()?.onPromote?.());
 
       expect(await screen.findByTestId('promote')).toHaveTextContent('f2');

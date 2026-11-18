@@ -122,6 +122,10 @@ export const creatorApi = {
       chart: { date: string; views: number }[];
     }>(`analytics/post/${postId}/insights`),
 
+  // Whether promotions are on sale.
+  getPromotionsOnSale: () =>
+    apiClient.get<{ onSale: boolean }>('creator/promotions/on-sale'),
+
   recordPromotionView: (promotionId: string) =>
     apiClient.post<{ success: boolean }>(
       `/creator/promotions/${promotionId}/view`,

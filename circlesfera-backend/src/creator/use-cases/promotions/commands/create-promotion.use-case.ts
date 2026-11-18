@@ -1,5 +1,5 @@
 import { ErrorCode } from '@circlesfera/shared';
-import { Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PromotionStatus, PromotionTargetType } from '@prisma/client';
 import { eurosToCents } from '../../../../common/constants/promotion.constants.js';
@@ -14,6 +14,8 @@ import {
 import { assertRealMoneyAllowed } from '../../../../common/policies/test-account.policy.js';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { SYSTEM_SETTING_KEYS } from '../../../../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../../../../system-settings/system-settings.service.js';
 
 @Injectable()
 export class CreatePromotionUseCase {
@@ -21,6 +23,8 @@ export class CreatePromotionUseCase {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(StripeService) private readonly stripeService: StripeService,
     @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(SystemSettingsService)
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   // One's own content still waiting for automatic moderation: promoted once
@@ -51,6 +55,18 @@ export class CreatePromotionUseCase {
     currency = 'EUR',
     countries?: string[],
   ) {
+    // Nobody buys a promotion while they are not on sale.
+    if (
+      !(await this.systemSettings.isEnabled(
+        SYSTEM_SETTING_KEYS.PROMOTIONS_ON_SALE,
+      ))
+    ) {
+      throw new AppException(
+        ErrorCode.PROMOTIONS_NOT_ON_SALE,
+        HttpStatus.FORBIDDEN,
+        'Promotions are not on sale.',
+      );
+    }
     await assertRealMoneyAllowed(this.prisma, userId);
     await assertAdultPayer(this.prisma, userId);
     // Only Profiles in good standing promote: one banned, or suspended

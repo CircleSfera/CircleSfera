@@ -4,6 +4,8 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { SYSTEM_SETTING_KEYS } from '../../../../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../../../../system-settings/system-settings.service.js';
 import { CreatePromotionUseCase } from './create-promotion.use-case.js';
 
 // Whoever pays here is an adult, unless a test says otherwise; the rule is
@@ -47,7 +49,11 @@ describe('CreatePromotionUseCase', () => {
     get: vi.fn().mockReturnValue('https://app.circlesfera.com'),
   };
 
+  // Promotions are on sale unless a test says otherwise.
+  const settings = { isEnabled: vi.fn() };
+
   beforeEach(async () => {
+    settings.isEnabled.mockReset().mockResolvedValue(true);
     vi.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -56,6 +62,7 @@ describe('CreatePromotionUseCase', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: StripeService, useValue: mockStripeService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: SystemSettingsService, useValue: settings },
       ],
     }).compile();
 
@@ -259,6 +266,22 @@ describe('CreatePromotionUseCase', () => {
       useCase.execute('u-1', 'profile', 'p-other', 3, 20),
     ).rejects.toMatchObject({ errorCode: ErrorCode.PROFILE_NOT_FOUND });
 
+    expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it('sells no promotion while promotions are not on sale, before anything else', async () => {
+    settings.isEnabled.mockResolvedValue(false);
+    const refused = await useCase
+      .execute('user-1', 'post', 'post-1', 7, 10)
+      .catch((e: unknown) => e);
+    expect(refused).toMatchObject({
+      errorCode: ErrorCode.PROMOTIONS_NOT_ON_SALE,
+    });
+    expect((refused as { getStatus: () => number }).getStatus()).toBe(403);
+    expect(settings.isEnabled).toHaveBeenCalledWith(
+      SYSTEM_SETTING_KEYS.PROMOTIONS_ON_SALE,
+    );
+    expect(mockPrismaService.promotion.create).not.toHaveBeenCalled();
     expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
   });
 });

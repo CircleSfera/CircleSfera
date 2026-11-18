@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { usePromotionsSale } from '../../hooks/usePromotionsOnSale';
 import type {
   CancelPromotionResult,
   CreatorPost,
@@ -79,6 +80,8 @@ interface Props {
 export default function CreatorPromotionsTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  // Promotions are bought on the web only, while they are on sale.
+  const { canBuy: onSale, notOnSale } = usePromotionsSale();
   const [page, setPage] = useState(1);
   const [showNewPromo, setShowNewPromo] = useState(false);
   const [repeatPost, setRepeatPost] = useState<CreatorPost | null>(null);
@@ -318,7 +321,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             )}
           </div>
         ) : (
-          sellsInApp() && (
+          onSale && (
             <Button
               variant="secondary"
               className="min-h-11 button-alone button-alone-wide"
@@ -335,8 +338,17 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4 pb-8">
+      {/* On the web, while promotions are not on sale, it says so. */}
+      {notOnSale && (
+        <p
+          className="text-sm text-white/60"
+          data-testid="promotions-not-on-sale"
+        >
+          {t('creator.promotions.not_on_sale')}
+        </p>
+      )}
       {/* Promotions are bought on the web only: not in the apps. */}
-      {promos.length > 0 && sellsInApp() && (
+      {promos.length > 0 && onSale && (
         <div className="flex justify-end">
           <Button
             variant="primary"
@@ -364,7 +376,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           title={t('creator.promotions.no_active')}
           message={t('creator.promotions.boost_desc')}
           action={
-            sellsInApp()
+            onSale
               ? {
                   label: t('creator.promotions.create_first'),
                   onClick: () => setShowNewPromo(true),
