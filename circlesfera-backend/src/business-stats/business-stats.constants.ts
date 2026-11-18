@@ -27,6 +27,10 @@ export const BUSINESS_STAT_RETENTION_DAYS = 395;
 // The best hours to post come from the views of this many days.
 export const BUSINESS_STAT_HOURS_DAYS = 28;
 
+// A country with fewer visits than this in the period is added to the
+// others, so a single visitor is not told apart by where they are.
+export const BUSINESS_STAT_MIN_COUNTRY_VISITS = 3;
+
 // How many countries are listed; the rest are added up as others.
 export const BUSINESS_STAT_TOP_COUNTRIES = 10;
 

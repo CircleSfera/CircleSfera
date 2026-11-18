@@ -11,6 +11,7 @@ import {
   BUSINESS_STAT_COLUMN,
   BUSINESS_STAT_DEFAULT_RANGE_DAYS,
   BUSINESS_STAT_HOURS_DAYS,
+  BUSINESS_STAT_MIN_COUNTRY_VISITS,
   BUSINESS_STAT_ONCE_SECONDS,
   BUSINESS_STAT_RANGES_DAYS,
   BUSINESS_STAT_RETENTION_DAYS,
@@ -30,6 +31,24 @@ export function utcDay(at: Date): Date {
 }
 
 const dayKey = (day: Date) => day.toISOString().slice(0, 10);
+
+/**
+ * Who a guest is, for counting once a day: the address, or for IPv6 its
+ * /64 network, which one household or machine holds as a whole.
+ */
+export function guestNetwork(address: string): string {
+  if (!address.includes(':')) return address;
+  const [head, tail = ''] = address.split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const groups = address.includes('::')
+    ? [...left, ...Array(8 - left.length - right.length).fill('0'), ...right]
+    : left;
+  return `${groups
+    .slice(0, 4)
+    .map((g) => (g || '0').toLowerCase().replace(/^0+(?=.)/, ''))
+    .join(':')}::/64`;
+}
 
 type Totals = {
   visits: number;
@@ -101,7 +120,7 @@ export class BusinessStatsService {
     const who = viewerUserId
       ? `u:${viewerUserId}`
       : guestAddress
-        ? `g:${guestAddress}`
+        ? `g:${guestNetwork(guestAddress)}`
         : null;
     if (!who) return;
 
@@ -122,11 +141,19 @@ export class BusinessStatsService {
     }
 
     const column = BUSINESS_STAT_COLUMN[kind];
-    await this.prisma.businessStatDay.upsert({
-      where: { profileId_day_country: { profileId, day, country } },
-      create: { profileId, day, country, [column]: 1 },
-      update: { [column]: { increment: 1 } },
-    });
+    const where = { profileId_day_country: { profileId, day, country } };
+    const update = { [column]: { increment: 1 } };
+    try {
+      await this.prisma.businessStatDay.upsert({
+        where,
+        create: { profileId, day, country, [column]: 1 },
+        update,
+      });
+    } catch (e) {
+      // Two first visits of the day at once: the other one made the row.
+      if ((e as { code?: string }).code !== 'P2002') throw e;
+      await this.prisma.businessStatDay.update({ where, data: update });
+    }
   }
 
   // Whether this is the first time today this person does this on this
@@ -215,16 +242,22 @@ export class BusinessStatsService {
       const key = dayKey(new Date(from.getTime() + i * DAY_MS));
       return { day: key, ...(byDay.get(key) ?? empty()) };
     });
-    const ranked = [...byCountry.entries()]
-      .filter(([, visits]) => visits > 0)
+    const counted = [...byCountry.entries()].filter(([, visits]) => visits > 0);
+    const few = counted
+      .filter(([, visits]) => visits < BUSINESS_STAT_MIN_COUNTRY_VISITS)
+      .reduce((sum, [, visits]) => sum + visits, 0);
+    const ranked = counted
+      .filter(([, visits]) => visits >= BUSINESS_STAT_MIN_COUNTRY_VISITS)
       .map(([country, visits]) => ({ country, visits }))
       .sort(
         (a, b) => b.visits - a.visits || a.country.localeCompare(b.country),
       );
     const countries = ranked.slice(0, BUSINESS_STAT_TOP_COUNTRIES);
-    const otherCountriesVisits = ranked
-      .slice(BUSINESS_STAT_TOP_COUNTRIES)
-      .reduce((sum, c) => sum + c.visits, 0);
+    const otherCountriesVisits =
+      few +
+      ranked
+        .slice(BUSINESS_STAT_TOP_COUNTRIES)
+        .reduce((sum, c) => sum + c.visits, 0);
 
     const since = new Date(now.getTime() - BUSINESS_STAT_HOURS_DAYS * DAY_MS);
     const hours = await this.prisma.$queryRaw<

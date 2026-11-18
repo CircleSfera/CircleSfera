@@ -5,7 +5,11 @@ import {
   BUSINESS_STAT_RETENTION_DAYS,
   BUSINESS_STAT_TOP_COUNTRIES,
 } from './business-stats.constants.js';
-import { BusinessStatsService, utcDay } from './business-stats.service.js';
+import {
+  BusinessStatsService,
+  guestNetwork,
+  utcDay,
+} from './business-stats.service.js';
 
 const NOW = new Date('2026-11-18T15:30:00Z');
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -162,6 +166,48 @@ describe('BusinessStatsService', () => {
       expect(prisma.businessStatDay.upsert).not.toHaveBeenCalled();
     });
 
+    it('counts a guest on IPv6 by their /64 network, so new addresses of one machine do not add up', async () => {
+      await service.record('p1', 'visit', null, '2001:db8:1:2::a', NOW);
+      await service.record('p1', 'visit', null, '2001:db8:1:2:ffff::b', NOW);
+      await service.record('p1', 'visit', null, '2001:db8:1:3::a', NOW);
+      expect(prisma.businessStatDay.upsert).toHaveBeenCalledTimes(2);
+      expect(guestNetwork('2001:0DB8:0001:0002:0:0:0:1')).toBe(
+        '2001:db8:1:2::/64',
+      );
+      expect(guestNetwork('::1')).toBe('0:0:0:0::/64');
+      expect(guestNetwork('203.0.113.9')).toBe('203.0.113.9');
+    });
+
+    it('adds to the row another first visit made at the same moment', async () => {
+      (prisma.businessStatDay as Record<string, unknown>).update = vi
+        .fn()
+        .mockResolvedValue({});
+      prisma.businessStatDay.upsert.mockRejectedValueOnce(
+        Object.assign(new Error('unique'), { code: 'P2002' }),
+      );
+      await service.record('p1', 'call', 'viewer', null, NOW);
+      expect(
+        (
+          prisma.businessStatDay as unknown as {
+            update: ReturnType<typeof vi.fn>;
+          }
+        ).update,
+      ).toHaveBeenCalledWith({
+        where: {
+          profileId_day_country: {
+            profileId: 'p1',
+            day: utcDay(NOW),
+            country: 'ES',
+          },
+        },
+        data: { callTaps: { increment: 1 } },
+      });
+      prisma.businessStatDay.upsert.mockRejectedValueOnce(new Error('db down'));
+      await expect(
+        service.record('p1', 'email', 'viewer', null, NOW),
+      ).rejects.toThrow('db down');
+    });
+
     it('still tells a person once a day without the hashing secret', async () => {
       hasher.hash.mockReturnValue(null);
       await service.record('p1', 'visit', 'viewer', null, NOW);
@@ -247,13 +293,13 @@ describe('BusinessStatsService', () => {
       });
       expect(stats.daily[6].visits).toBe(7);
       expect(stats.daily[1].visits).toBe(0);
-      // Countries by visits; one with no visits is left out.
+      // Countries by visits; one with no visits is left out, and one with
+      // too few to keep its visitors apart goes with the others.
       expect(stats.countries).toEqual([
         { country: 'ES', visits: 5 },
         { country: 'FR', visits: 3 },
-        { country: '', visits: 2 },
       ]);
-      expect(stats.otherCountriesVisits).toBe(0);
+      expect(stats.otherCountriesVisits).toBe(2);
       expect(stats.viewsByHour[9]).toBe(4);
       expect(stats.viewsByHour[20]).toBe(11);
       expect(stats.viewsByHour).toHaveLength(24);
