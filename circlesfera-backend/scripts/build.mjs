@@ -16,11 +16,21 @@ const dist = path.join(root, 'dist');
 const ASSETS = ['auth/leaked-passwords/leaked-passwords.txt'];
 
 rmSync(dist, { recursive: true, force: true });
+// TypeScript's own launcher, run with this Node. Not node_modules/.bin/tsc:
+// on Windows that is tsc.cmd, which cannot be started without a shell.
 const tsc = spawnSync(
-  path.join(root, 'node_modules/.bin/tsc'),
-  ['-p', path.join(root, 'tsconfig.build.json')],
+  process.execPath,
+  [
+    path.join(root, 'node_modules/typescript/bin/tsc'),
+    '-p',
+    path.join(root, 'tsconfig.build.json'),
+  ],
   { stdio: 'inherit' },
 );
+if (tsc.error) {
+  console.error(`The build could not start TypeScript: ${tsc.error.message}`);
+  process.exit(1);
+}
 if (tsc.status !== 0) process.exit(tsc.status ?? 1);
 
 for (const asset of ASSETS) {
