@@ -550,6 +550,14 @@ export class AppealsService {
       return res;
     });
     await this.strikesService.invalidateProfileCache(affectedProfileIds);
+    // A ban or a bot label taken back changes every Profile of the account.
+    if (
+      dto.status === 'APPROVED' &&
+      appeal.status !== 'APPROVED' &&
+      (appeal.targetType === 'ACCOUNT_BAN' || appeal.targetType === 'BOT_LABEL')
+    ) {
+      await this.strikesService.invalidateAccountProfileCache(appeal.userId);
+    }
     await Promise.all(
       liftedRestrictionIds.map((id) => this.actionLimits.clearRestricted(id)),
     );

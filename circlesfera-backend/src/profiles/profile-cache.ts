@@ -37,3 +37,38 @@ export async function forgetCachedProfiles(
       }),
   );
 }
+
+// Only what reading the usernames needs, so this file stays free of the
+// Prisma service and any module can use it.
+interface ProfileReader {
+  profile: {
+    findMany(args: {
+      where: { userId: string } | { signInId: string };
+      select: { username: true };
+    }): Promise<{ username: string | null }[]>;
+  };
+}
+
+/**
+ * Drops the cached public profile of every Profile of an account, or of every
+ * Profile that signs in with one sign-in: what the account's standing (active,
+ * deleted, identity, labels) or the sign-in's confirmed email shows on each.
+ */
+export async function forgetCachedProfilesOf(
+  db: ProfileReader,
+  cache: Pick<Cache, 'del'>,
+  owner: { userId: string } | { signInId: string },
+): Promise<void> {
+  try {
+    const profiles = await db.profile.findMany({
+      where: owner,
+      select: { username: true },
+    });
+    await forgetCachedProfiles(
+      cache,
+      profiles.map((profile) => profile.username),
+    );
+  } catch (error) {
+    logger.warn(`Could not drop cached profiles: ${String(error)}`);
+  }
+}

@@ -28,6 +28,7 @@ describe('SignInsService', () => {
     set: vi.fn(async (key: string, value: number) => {
       counters.set(key, value);
     }),
+    del: vi.fn(),
   };
   const service = new SignInsService(
     prisma as never,
@@ -215,6 +216,11 @@ describe('SignInsService', () => {
         'shop@example.com',
         created.verificationToken,
       );
+      // Its public view says whether its sign-in's email is confirmed.
+      expect(prisma.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u-1' },
+        select: { username: true },
+      });
     });
 
     it('refuses a leaked password and creates nothing', async () => {
@@ -347,6 +353,11 @@ describe('SignInsService', () => {
       // Removed only inside the account, and only if no Profile uses it.
       expect(tx.signIn.deleteMany).toHaveBeenCalledWith({
         where: { id: 's-own', userId: 'u-1', profiles: { none: {} } },
+      });
+      // Its public view says whether its sign-in's email is confirmed.
+      expect(prisma.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u-1' },
+        select: { username: true },
       });
     });
 

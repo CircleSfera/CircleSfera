@@ -824,10 +824,15 @@ describe('AuthService', () => {
   describe('verifyEmail', () => {
     it('should verify email successfully and evict profile cache', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({ id: '1' });
-      mockPrismaService.profile.findFirst.mockResolvedValue({
-        username: 'bob',
-      });
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { username: 'bob' },
+      ]);
       const result = await service.verifyEmail({ token: 'token' });
+      // Every Profile that signs in with it now shows its email confirmed.
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { signInId: 'sign-in-1' },
+        select: { username: true },
+      });
       // The token is looked for, and the verification written, on the sign-in.
       expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith({
         where: { verificationToken: 'token' },
@@ -908,6 +913,14 @@ describe('AuthService', () => {
   });
 
   describe('refreshToken', () => {
+    // The account's Profile is in good standing unless a test says otherwise.
+    beforeEach(() => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'profile-1',
+        suspendedUntil: null,
+      });
+    });
+
     it('should refresh tokens successfully and mark old token as revoked', async () => {
       mockJwtService.verify.mockReturnValue({
         sub: '1',
@@ -1025,6 +1038,14 @@ describe('AuthService', () => {
   });
 
   describe('the sign-in of a session', () => {
+    // The account's Profile is in good standing unless a test says otherwise.
+    beforeEach(() => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'profile-1',
+        suspendedUntil: null,
+      });
+    });
+
     it('is written in both tokens and in the stored refresh token', async () => {
       mockPrismaService.refreshToken.create.mockClear();
       mockJwtService.sign.mockClear();
@@ -1426,6 +1447,14 @@ describe('AuthService', () => {
   });
 
   describe('loginById', () => {
+    // The account's Profile is in good standing unless a test says otherwise.
+    beforeEach(() => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'profile-1',
+        suspendedUntil: null,
+      });
+    });
+
     it('throws UnauthorizedException when user is not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       await expect(service.loginById('u-missing')).rejects.toThrow(
@@ -1455,6 +1484,11 @@ describe('AuthService', () => {
       });
       expect(mockJob.remove).toHaveBeenCalled();
       expect(result).toHaveProperty('accessToken');
+      // Its Profiles show the account active again.
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u-restored' },
+        select: { username: true },
+      });
     });
 
     it('throws UnauthorizedException with ACCOUNT_BANNED when inactive user is root banned', async () => {
@@ -1491,6 +1525,11 @@ describe('AuthService', () => {
         data: { isActive: true, deactivatedAt: null },
       });
       expect(result).toHaveProperty('accessToken');
+      // Its Profiles show the account active again.
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u-back' },
+        select: { username: true },
+      });
     });
 
     it('throws UnauthorizedException with appealToken when inactive user is not root banned', async () => {

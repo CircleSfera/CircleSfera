@@ -15,7 +15,10 @@ import type { Cache } from 'cache-manager';
 import type { Notice } from '../notifications/notice-copy.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { forgetCachedProfiles } from '../profiles/profile-cache.js';
+import {
+  forgetCachedProfiles,
+  forgetCachedProfilesOf,
+} from '../profiles/profile-cache.js';
 import {
   activeStrikeRecordWhere,
   STRIKES_TO_BAN,
@@ -86,6 +89,12 @@ export class ProfileStrikesService {
       this.cacheManager,
       profiles.map((p) => p.username),
     );
+  }
+
+  // The same for every Profile of an account, after a change to the account
+  // itself (a ban or a bot label taken back on appeal).
+  async invalidateAccountProfileCache(userId: string): Promise<void> {
+    await forgetCachedProfilesOf(this.prisma, this.cacheManager, { userId });
   }
 
   // Records an upheld violation and applies its consequence. The first

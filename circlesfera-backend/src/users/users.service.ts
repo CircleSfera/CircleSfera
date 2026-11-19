@@ -32,7 +32,10 @@ import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { forgetCachedProfiles } from '../profiles/profile-cache.js';
+import {
+  forgetCachedProfiles,
+  forgetCachedProfilesOf,
+} from '../profiles/profile-cache.js';
 import { followTeamPlan } from '../team/team-plan.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -748,6 +751,8 @@ export class UsersService {
       reason: job.reason,
     };
     this.eventEmitter.emit('user.session.terminate', deleteEvent);
+    // Its Profiles no longer show an active account.
+    await forgetCachedProfilesOf(this.prisma, this.cacheManager, { userId });
 
     // Trigger immediate outbox publish for sub-second delivery after commit.
     this.outboxService.triggerImmediatePublish();
@@ -773,6 +778,8 @@ export class UsersService {
         scheduledDeletionAt: null,
       } satisfies Prisma.UserUpdateInput,
     });
+    // Its Profiles show the account active again.
+    await forgetCachedProfilesOf(this.prisma, this.cacheManager, { userId });
 
     try {
       const job = await this.usersQueue.getJob(`delete-${userId}`);
@@ -924,6 +931,10 @@ export class UsersService {
         await setProfilePrivacy(tx, profileId, dto.privacyLevel as Visibility);
       }
     });
+    if (dto.privacyLevel !== undefined) {
+      // The public view says whether the Profile is private.
+      await forgetCachedProfilesOf(this.prisma, this.cacheManager, { userId });
+    }
     return this.getSettings(userId, profileId);
   }
 
@@ -1016,6 +1027,8 @@ export class UsersService {
     if (underMinimumAge) {
       await this.deactivateUnderMinimumAge(userId);
     }
+    // Its Profiles show the identity verified, or the account closed.
+    await forgetCachedProfilesOf(this.prisma, this.cacheManager, { userId });
   }
 
   // Closes an account whose identity check showed an age under 16. The

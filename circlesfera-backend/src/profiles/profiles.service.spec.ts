@@ -1199,11 +1199,11 @@ describe('ProfilesService', () => {
   });
 
   describe('deactivateAccount & deleteAccount', () => {
-    it('deactivates account and deletes cache', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
-        id: 'p-1',
-        username: 'deactivateuser',
-      });
+    it('deactivates account and drops the cached view of each of its Profiles', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValue([
+        { username: 'deactivateuser' },
+        { username: 'Second.Profile' },
+      ]);
       mockPrismaService.user.update.mockResolvedValue({
         id: 'u-1',
         isActive: false,
@@ -1216,24 +1216,27 @@ describe('ProfilesService', () => {
         where: { id: 'u-1' },
         data: { isActive: false, deactivatedAt: expect.any(Date) },
       });
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u-1' },
+        select: { username: true },
+      });
       expect(mockCacheManager.del).toHaveBeenCalledWith(
         'profile:deactivateuser',
       );
+      expect(mockCacheManager.del).toHaveBeenCalledWith(
+        'profile:second.profile',
+      );
     });
 
-    it('schedules account deletion and deletes cache', async () => {
+    // UsersService.scheduleDeletion drops the cached view of every Profile.
+    it('schedules account deletion through UsersService', async () => {
       const scheduledDate = new Date('2026-10-15T00:00:00.000Z');
-      mockPrismaService.profile.findUnique.mockResolvedValue({
-        id: 'p-del',
-        username: 'deleteuser',
-      });
       mockUsersService.scheduleDeletion.mockResolvedValue(scheduledDate);
 
       const res = await service.deleteAccount('u-del', 'p-del');
       expect(res.success).toBe(true);
       expect(mockUsersService.scheduleDeletion).toHaveBeenCalledWith('u-del');
       expect(res.scheduled_deletion_at).toBe(scheduledDate.toISOString());
-      expect(mockCacheManager.del).toHaveBeenCalledWith('profile:deleteuser');
     });
   });
 

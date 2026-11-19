@@ -30,7 +30,7 @@ import { toSupportedLocale } from '../common/constants/locale.constants.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { forgetCachedProfiles } from '../profiles/profile-cache.js';
+import { forgetCachedProfilesOf } from '../profiles/profile-cache.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { resolveSessionProfile } from '../team/member-session.js';
@@ -227,8 +227,6 @@ export class AuthService {
     if (!signIn) {
       throw new BadRequestException('Invalid or expired verification token');
     }
-    const user = { id: signIn.userId };
-
     await this.prisma.signIn.update({
       where: { id: signIn.id },
       data: {
@@ -237,11 +235,10 @@ export class AuthService {
       },
     });
 
-    const profile = await this.prisma.profile.findFirst({
-      where: { userId: user.id },
-      select: { username: true },
+    // Every Profile that signs in with it now shows its email confirmed.
+    await forgetCachedProfilesOf(this.prisma, this.cacheManager, {
+      signInId: signIn.id,
     });
-    await forgetCachedProfiles(this.cacheManager, [profile?.username]);
 
     return { message: 'Email verified successfully' };
   }
@@ -461,6 +458,10 @@ export class AuthService {
             scheduledDeletionAt: null,
           },
         });
+        // Its Profiles show the account active again.
+        await forgetCachedProfilesOf(this.prisma, this.cacheManager, {
+          userId: user.id,
+        });
 
         // Cancel the scheduled hard delete job safely
         try {
@@ -489,6 +490,10 @@ export class AuthService {
         await this.prisma.user.update({
           where: { id: user.id },
           data: { isActive: true, deactivatedAt: null },
+        });
+        // Its Profiles show the account active again.
+        await forgetCachedProfilesOf(this.prisma, this.cacheManager, {
+          userId: user.id,
         });
       } else {
         const secret = this.configService.getOrThrow<string>('JWT_SECRET');
@@ -615,6 +620,10 @@ export class AuthService {
             scheduledDeletionAt: null,
           },
         });
+        // Its Profiles show the account active again.
+        await forgetCachedProfilesOf(this.prisma, this.cacheManager, {
+          userId: user.id,
+        });
 
         // Cancel the scheduled hard delete job
         const job = await this.usersQueue.getJob(`delete-${user.id}`);
@@ -637,6 +646,10 @@ export class AuthService {
         await this.prisma.user.update({
           where: { id: user.id },
           data: { isActive: true, deactivatedAt: null },
+        });
+        // Its Profiles show the account active again.
+        await forgetCachedProfilesOf(this.prisma, this.cacheManager, {
+          userId: user.id,
         });
       } else {
         const secret = this.configService.getOrThrow<string>('JWT_SECRET');

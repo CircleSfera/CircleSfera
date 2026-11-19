@@ -1,3 +1,4 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Logger } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +17,8 @@ describe('MaintenanceService', () => {
   const mockPostDistribution = {
     dispatchScheduledPostPublished: vi.fn().mockResolvedValue(undefined),
   };
+
+  const mockCache = { del: vi.fn() };
 
   const mockPrismaService = {
     story: {
@@ -92,6 +95,7 @@ describe('MaintenanceService', () => {
         { provide: StoriesService, useValue: mockStories },
         { provide: PostDistributionService, useValue: mockPostDistribution },
         { provide: HelpdeskDataPort, useValue: mockHelpdeskData },
+        { provide: CACHE_MANAGER, useValue: mockCache },
       ],
     }).compile();
 
@@ -238,6 +242,25 @@ describe('MaintenanceService', () => {
 
       await service.liftExpiredSuspensions();
       expect(mockPrismaService.$transaction).toHaveBeenCalled();
+    });
+
+    // The cached public view of each Profile of those accounts still said
+    // suspended until it expired.
+    it('drops the cached public profile of every Profile of each account', async () => {
+      mockPrismaService.profile.findMany
+        .mockResolvedValueOnce([{ id: 'prof-1', userId: 'user-1' }])
+        .mockResolvedValueOnce([{ username: 'Ana' }, { username: 'ana.shop' }]);
+
+      await service.liftExpiredSuspensions();
+
+      expect(mockPrismaService.profile.findMany).toHaveBeenLastCalledWith({
+        where: { userId: 'user-1' },
+        select: { username: true },
+      });
+      expect(mockCache.del.mock.calls).toEqual([
+        ['profile:ana'],
+        ['profile:ana.shop'],
+      ]);
     });
 
     it('should catch errors gracefully', async () => {
