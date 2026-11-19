@@ -18,6 +18,7 @@ import {
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
+import { deleteRefreshTokens } from '../auth/refresh-token-deletion.js';
 import {
   type AdminNotice,
   announceAdminNotices,
@@ -724,9 +725,7 @@ export class UsersService {
         } satisfies Prisma.UserUpdateInput,
       });
 
-      await tx.refreshToken.deleteMany({
-        where: { userId },
-      });
+      await deleteRefreshTokens(tx, { userId });
 
       // Enqueue hard-delete job atomically with the DB state change.
       // The OutboxService sweeper guarantees delivery even after a crash.
@@ -1056,7 +1055,7 @@ export class UsersService {
             'Deactivated automatically: the identity check showed an age under 16',
         },
       });
-      await tx.refreshToken.deleteMany({ where: { userId } });
+      await deleteRefreshTokens(tx, { userId });
       if (mail) {
         await this.outboxService.enqueue(tx, {
           queueName: QUEUE_NAMES.EMAIL_PROCESSING,

@@ -26,6 +26,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
           update: vi.fn().mockResolvedValue({}),
         },
         refreshToken: {
+          findMany: vi.fn().mockResolvedValue([]),
           deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
       };

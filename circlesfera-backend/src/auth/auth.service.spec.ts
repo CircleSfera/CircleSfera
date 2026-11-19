@@ -112,11 +112,11 @@ describe('AuthService', () => {
     refreshToken: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       count: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
-      deleteMany: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },

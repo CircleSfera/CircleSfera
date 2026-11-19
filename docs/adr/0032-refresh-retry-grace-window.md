@@ -72,11 +72,15 @@ Staff renewals (`POST /admin-auth/refresh`) do not delete families and are uncha
 - After a change of Profile the family has two live tokens, so a retry in that session ends the
   family as before: it fails safe.
 - A tab or app running an earlier build keeps working, without ending sessions, while it renews.
-- **Not closed here:** a sign-out, password change or ban takes no lock. One that deletes the
-  session's tokens while a renewal holds the lock waits for it, then deletes only the rows it could
-  already see, so the token that renewal wrote stays live. This was already so before this
-  decision (the window was the renewal itself); closing it needs those writers to take the same
-  lock.
+- **Closing a session waits for its renewal.** Every place that deletes refresh tokens to close
+  sessions (sign-out, closing one or the other sessions, password reset, account erasure, the
+  deactivation of an account under the minimum age, and the staff's ban, suspension and closing
+  of an account's sessions) goes through `deleteRefreshTokens`: it locks the live
+  tokens it deletes, in id order as the renewal does, and deletes after, so a token written by a
+  renewal it waited for is deleted too. Without it, such a token stayed live, as it already could
+  before this decision. A sign-in removed when its last Profile moves to another one deletes its
+  tokens by cascade; the renewal's insert of a token naming that sign-in holds a lock on its row,
+  which the removal waits for (inferred from PostgreSQL's foreign-key locking, not tested).
 - `revokedAt` comes from the application server's clock. The backend runs as one process today
   (ADR-0024); with several, their clocks must agree to within the window.
 - Every retry is logged (user and family, never a token).

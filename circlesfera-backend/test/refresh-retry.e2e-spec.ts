@@ -129,6 +129,18 @@ describe('Refresh retried after a lost answer (e2e)', () => {
     expect(await liveTokens(familyId)).toBe(1);
   });
 
+  // Signing out waits for a renewal in progress and deletes the token it
+  // wrote; a renewal that comes second finds the session closed.
+  it('leaves no token of a session signed out while it renews', async () => {
+    const { token: first, familyId } = await openSession();
+
+    await Promise.allSettled([renew(first), auth.logout(userId, first)]);
+
+    expect(
+      await prisma.refreshToken.count({ where: { userId, familyId } }),
+    ).toBe(0);
+  });
+
   it('ends the session for a replaced token once the window has passed', async () => {
     const { token: first, familyId } = await openSession();
     await renew(first);

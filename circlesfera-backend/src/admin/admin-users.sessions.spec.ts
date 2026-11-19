@@ -6,7 +6,14 @@ import { AdminUsersService } from './admin-users.service.js';
 describe('AdminUsersService: the sessions of an account', () => {
   const prisma = {
     user: { findUnique: vi.fn(), update: vi.fn() },
-    refreshToken: { count: vi.fn(), deleteMany: vi.fn() },
+    refreshToken: {
+      count: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    // Deleting sessions waits for their renewals (deleteRefreshTokens).
+    $transaction: vi.fn(async (run: (tx: unknown) => unknown) => run(prisma)),
+    $queryRaw: vi.fn().mockResolvedValue([]),
     adminAuditLog: { create: vi.fn().mockResolvedValue({}) },
   };
   const events = { emit: vi.fn() };
