@@ -11,8 +11,8 @@ import {
 import { ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
-import { requestAbuseMeta } from '../common/abuse/device-signal.service.js';
-import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import { requestAbuseMeta } from '../abuse/device-signal.service.js';
+import { TurnstileService } from '../abuse/turnstile.service.js';
 import { CreateIllegalNoticeDto } from './dto/create-illegal-notice.dto.js';
 import { IllegalNoticesService } from './illegal-notices.service.js';
 

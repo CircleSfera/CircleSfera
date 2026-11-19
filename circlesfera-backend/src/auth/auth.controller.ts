@@ -15,7 +15,7 @@ import {
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
-import { requestAbuseMeta } from '../common/abuse/device-signal.service.js';
+import { requestAbuseMeta } from '../abuse/device-signal.service.js';
 import {
   ACCESS_TOKEN_COOKIE,
   accessTokenCookieOptions,

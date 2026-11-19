@@ -1,7 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { AbuseModule } from '../common/abuse/abuse.module.js';
+import { AbuseModule } from '../abuse/abuse.module.js';
 import {
   getRegisterQueueOptions,
   QUEUE_NAMES,

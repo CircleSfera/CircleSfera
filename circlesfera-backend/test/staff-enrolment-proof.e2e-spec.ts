@@ -5,7 +5,7 @@ import { generateSync } from 'otplib';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AdminOperatorsService } from '../src/admin/admin-operators.service.js';
-import { AppModule } from './../src/app.module.js';
+import { AppModule } from '../src/app.module.js';
 import { EmailService } from '../src/email/email.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { createUserWithProfile } from './factories/index.js';

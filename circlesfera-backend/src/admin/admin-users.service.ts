@@ -10,10 +10,10 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AdminAction, NotificationType, Prisma, Role } from '@prisma/client';
 import type { Cache } from 'cache-manager';
+import { linkedAccountsWhere } from '../abuse/linked-accounts.js';
+import { computeTrustScore } from '../abuse/trust-score.js';
+import { TurnstileService } from '../abuse/turnstile.service.js';
 import { deleteRefreshTokens } from '../auth/refresh-token-deletion.js';
-import { linkedAccountsWhere } from '../common/abuse/linked-accounts.js';
-import { computeTrustScore } from '../common/abuse/trust-score.js';
-import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { FIRST_SIGN_IN_ORDER } from '../common/auth/sign-in-lookup.js';
 import {
   decodeKeysetCursor,

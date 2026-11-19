@@ -19,6 +19,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
+import { AbuseModule } from './abuse/abuse.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { AdminAuthModule } from './admin-auth/admin-auth.module.js';
 import { AIModule } from './ai/ai.module.js';
@@ -36,7 +37,6 @@ import { ChatModule } from './chat/chat.module.js';
 import { CloseFriendsModule } from './close-friends/close-friends.module.js';
 import { CollectionsModule } from './collections/collections.module.js';
 import { CommentsModule } from './comments/comments.module.js';
-import { AbuseModule } from './common/abuse/abuse.module.js';
 import { RedisCacheModule } from './common/cache/cache.module.js';
 import { AppConfigModule } from './common/config/app-config.module.js';
 import { validateEnv } from './common/config/env.validation.js';
@@ -45,13 +45,12 @@ import { CorrelationMiddleware } from './common/correlation/correlation.middlewa
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ObservabilityInterceptor } from './common/interceptors/observability.interceptor.js';
-import { ObservabilityModule } from './common/observability/observability.module.js';
+import { PlaceLanguageInterceptor } from './common/places/place-language.interceptor.js';
+import { CryptoModule } from './common/services/crypto.module.js';
 import {
   createPinoRedactPaths,
   REDACTED_CENSOR,
-} from './common/observability/redaction.util.js';
-import { PlaceLanguageInterceptor } from './common/places/place-language.interceptor.js';
-import { CryptoModule } from './common/services/crypto.module.js';
+} from './common/utils/redaction.util.js';
 import { CompanyVerificationModule } from './company-verification/company-verification.module.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
@@ -74,6 +73,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { MediaModule } from './media/media.module.js';
 import { NewsletterModule } from './newsletter/newsletter.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { ObservabilityModule } from './observability/observability.module.js';
 import { OutboxModule } from './outbox/outbox.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { PlacesModule } from './places/places.module.js';

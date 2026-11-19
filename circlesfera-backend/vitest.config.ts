@@ -85,14 +85,14 @@ export default defineConfig({
         },
 
         // Payments: Stripe webhook secret security validation (100% fully covered)
-        'src/common/stripe/stripe-webhook-secrets.ts': {
+        'src/stripe/stripe-webhook-secrets.ts': {
           statements: 100,
           lines: 100,
         },
 
         // Payments: every call to the payment provider, refunds and the
         // signature of its notices
-        'src/common/stripe/stripe.service.ts': {
+        'src/stripe/stripe.service.ts': {
           statements: 100,
           lines: 100,
         },
@@ -150,7 +150,7 @@ export default defineConfig({
         },
 
         // Security: abuse protection (Turnstile, device signals) and policies
-        'src/common/abuse/**': {
+        'src/abuse/**': {
           statements: 100,
           lines: 100,
         },

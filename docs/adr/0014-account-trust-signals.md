@@ -39,7 +39,7 @@ CircleSfera uses:
 
 ## Implementation anchors
 
-- `circlesfera-backend/src/common/abuse/`
+- `circlesfera-backend/src/abuse/`
 - `circlesfera-backend/src/auth/guards/email-verified.guard.ts`
 - `circlesfera-backend/prisma/schema.prisma` — `DeviceSignal`, bot label fields, `signupIp` / `lastIp`
 - ADR index: `circlesfera-documentation/adr/README.md`

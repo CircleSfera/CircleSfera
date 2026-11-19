@@ -2,8 +2,8 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { PromotionStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { StripeService } from '../../../../stripe/stripe.service.js';
 import { ManagePromotionUseCase } from './manage-promotion.use-case.js';
 import { RefundPromotionUseCase } from './refund-promotion.use-case.js';
 

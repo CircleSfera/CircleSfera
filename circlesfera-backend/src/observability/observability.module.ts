@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { SocketModule } from '../../socket/socket.module.js';
+import { SocketModule } from '../socket/socket.module.js';
 import { OperationalMetricsService } from './operational-metrics.service.js';
 
 @Global()

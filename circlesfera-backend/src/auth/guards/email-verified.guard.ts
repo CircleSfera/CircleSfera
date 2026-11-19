@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { TurnstileService } from '../../common/abuse/turnstile.service.js';
+import { TurnstileService } from '../../abuse/turnstile.service.js';
 import { sessionEmailVerified } from '../../common/auth/sign-in-lookup.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../../system-settings/system-settings.constants.js';
