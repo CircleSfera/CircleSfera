@@ -30,6 +30,7 @@ import { toSupportedLocale } from '../common/constants/locale.constants.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { resolveSessionProfile } from '../team/member-session.js';
@@ -53,7 +54,6 @@ import {
   SESSION_PROFILE_SELECT,
 } from './services/session-profile.util.js';
 import { takeTotpCodeOnce } from './two-factor/totp-once.js';
-import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 
 // Service responsible for authentication, registration, and session management.
 // Handles password hashing (Argon2), JWT token generation/rotation, email verification,

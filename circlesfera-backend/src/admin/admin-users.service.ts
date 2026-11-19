@@ -23,10 +23,10 @@ import {
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { followTeamPlan } from '../team/team-plan.js';
 import { UsersService } from '../users/users.service.js';
-import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 import type {
   BroadcastAudienceDto,
   BroadcastEmailDto,

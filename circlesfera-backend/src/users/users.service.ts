@@ -32,10 +32,10 @@ import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 import { followTeamPlan } from '../team/team-plan.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
-import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 
 // The push switches of a Profile: the pause and the five groups.
 const PROFILE_PUSH_FIELDS = [
