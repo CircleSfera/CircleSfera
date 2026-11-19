@@ -443,10 +443,9 @@ describe('AccountSettings', () => {
       within(again).getByRole('button', { name: 'Delete account' }),
     );
     await waitFor(() => expect(users.scheduleDeletion).toHaveBeenCalled());
+    // Signing out loads the app again: the sign-in page gives the notice.
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith(
-        'Account scheduled for deletion. Log in within 30 days to restore it.',
-      ),
+      expect(session.logout).toHaveBeenCalledWith('deletion_scheduled'),
     );
     expect(session.logout).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('where')).toHaveTextContent('/accounts/login');

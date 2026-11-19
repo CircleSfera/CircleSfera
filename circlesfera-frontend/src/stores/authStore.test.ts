@@ -77,6 +77,17 @@ describe('authStore', () => {
     );
   });
 
+  it('leaves a known notice for the sign-in page, and nothing else', async () => {
+    await useAuthStore.getState().logout('deletion_scheduled');
+    expect(assign).toHaveBeenLastCalledWith(
+      '/accounts/login?notice=deletion_scheduled',
+    );
+
+    // A click handler given straight to an onClick passes its event.
+    await useAuthStore.getState().logout(new MouseEvent('click') as never);
+    expect(assign).toHaveBeenLastCalledWith('/accounts/login');
+  });
+
   it('loads the app again even when the server cannot be told', async () => {
     vi.mocked(authApi.logout).mockRejectedValueOnce(new Error('offline'));
     const consoleError = vi

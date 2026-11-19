@@ -2,10 +2,10 @@ import { ApiErrorCode } from '@circlesfera/shared';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation } from '@tanstack/react-query';
 import { AlertOctagon, Fingerprint } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import TurnstileWidget from '../components/auth/TurnstileWidget';
 import { Button } from '../components/ui';
 import {
@@ -16,7 +16,11 @@ import {
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, passkeyApi, profileApi } from '../services';
 import { apiClient } from '../services/api';
-import { useAuthStore } from '../stores/authStore';
+import {
+  isSignOutNotice,
+  type SignOutNotice,
+  useAuthStore,
+} from '../stores/authStore';
 import type { LoginDto } from '../types';
 import {
   apiErrorBody,
@@ -26,6 +30,11 @@ import {
 } from '../utils/apiErrorMessage';
 import { logger } from '../utils/logger';
 import { getVisitorId } from '../utils/visitorId';
+
+// The words for each notice signing out can leave for this page.
+const SIGN_OUT_NOTICE_TEXT: Record<SignOutNotice, string> = {
+  deletion_scheduled: 'settings.account.delete_scheduled',
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -38,6 +47,24 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+
+  // What signing out had to say (useAuthStore logout): shown once here, after
+  // the app loaded again, and then taken off the address.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const notice = searchParams.get('notice');
+  useEffect(() => {
+    if (!notice) return;
+    if (isSignOutNotice(notice)) {
+      toast.success(t(SIGN_OUT_NOTICE_TEXT[notice]), { id: 'sign-out-notice' });
+    }
+    setSearchParams(
+      (params) => {
+        params.delete('notice');
+        return params;
+      },
+      { replace: true },
+    );
+  }, [notice, setSearchParams, t]);
 
   // Appeal state
   const [appealToken, setAppealToken] = useState<string | null>(null);
