@@ -42,7 +42,10 @@ import type {
   VerifyEmailDto,
 } from './dto/index.js';
 import { assertNotLeakedPassword } from './leaked-passwords/leaked-password.js';
-import { deleteRefreshTokens } from './refresh-token-deletion.js';
+import {
+  deleteRefreshTokens,
+  retryOnDeadlock,
+} from './refresh-token-deletion.js';
 import { AccountStateService } from './services/account-state.service.js';
 import {
   pickSessionProfile,
@@ -869,8 +872,9 @@ export class AuthService {
           outcome: 'renewed' | 'retried';
           tokens: { accessToken: string; refreshToken: string };
         };
-    const renewal = await this.prisma.$transaction(
-      async (tx): Promise<Renewal> => {
+    // Run again if PostgreSQL ends it to break a deadlock with a sign-out.
+    const renewal = await retryOnDeadlock(() =>
+      this.prisma.$transaction(async (tx): Promise<Renewal> => {
         await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE id = ${storedToken.id} OR ("familyId" = ${storedToken.familyId} AND "isRevoked" = false) ORDER BY id FOR UPDATE`;
         // Locked again with a new snapshot: a renewal this one waited for may
         // have written a token the first lock could not see.
@@ -922,7 +926,7 @@ export class AuthService {
           tx,
         );
         return { outcome, tokens };
-      },
+      }),
     );
 
     if (!('tokens' in renewal)) {
