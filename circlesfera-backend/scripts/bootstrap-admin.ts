@@ -2,7 +2,7 @@
  * Bootstrap an Admin Panel AdminIdentity.
  *
  * Usage:
- *   npx ts-node scripts/bootstrap-admin.ts <email> <password> [displayName] [ROLE]
+ *   node scripts/bootstrap-admin.ts <email> <password> [displayName] [ROLE]
  *
  * ROLE defaults to SUPER_ADMIN.
  * Prints MFA enrollment reminder — first login requires TOTP setup.
@@ -35,7 +35,7 @@ async function main() {
 
   if (!email || !password) {
     console.error(
-      'Usage: ts-node scripts/bootstrap-admin.ts <email> <password> [displayName] [ROLE]',
+      'Usage: node scripts/bootstrap-admin.ts <email> <password> [displayName] [ROLE]',
     );
     process.exit(1);
   }
