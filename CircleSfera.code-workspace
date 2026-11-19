@@ -6,7 +6,11 @@
   ],
   "settings": {
     "git.ignoreLimitWarning": true,
-    "typescript.tsdk": "circlesfera-backend/node_modules/typescript/lib",
-    "typescript.enablePromptUseWorkspaceTsdk": true
+    "js/ts.experimental.useTsgo": true,
+    "js/ts.tsdk.path": "circlesfera-backend/node_modules/typescript/lib",
+    "js/ts.tsdk.promptToUseWorkspaceVersion": true
+  },
+  "extensions": {
+    "recommendations": ["typescriptteam.native-preview", "biomejs.biome"]
   }
 }
