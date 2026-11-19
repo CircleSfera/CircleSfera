@@ -17,29 +17,54 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 
 const SOURCE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 const DECLARATION = /\.d\.[mc]?ts$/;
+
+// dependency-cruiser names modules with forward slashes on every platform.
+const toModulePath = (path) => path.split(sep).join('/');
 
 function sourceFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return sourceFiles(path);
     return SOURCE.test(entry.name) && !DECLARATION.test(entry.name)
-      ? [relative(process.cwd(), path)]
+      ? [toModulePath(relative(process.cwd(), path))]
       : [];
   });
 }
 
+// The package's own dependency-cruiser, run with this Node. Not through `npx`:
+// on Windows that is `npx.cmd`, which cannot be started without a shell.
+function depcruiseBin() {
+  const packageDir = join(process.cwd(), 'node_modules', 'dependency-cruiser');
+  let manifest;
+  try {
+    manifest = JSON.parse(
+      readFileSync(join(packageDir, 'package.json'), 'utf8'),
+    );
+  } catch {
+    console.error(
+      'Module boundary check failed: dependency-cruiser is not installed here. Run `npm ci` in this package first.',
+    );
+    process.exit(1);
+  }
+  return join(packageDir, manifest.bin.depcruise);
+}
+
 let output;
 try {
-  output = execFileSync('npx', ['depcruise', 'src', '--output-type', 'json'], {
-    encoding: 'utf8',
-    maxBuffer: 256 * 1024 * 1024,
-    stdio: ['ignore', 'pipe', 'inherit'],
-  });
+  output = execFileSync(
+    process.execPath,
+    [depcruiseBin(), 'src', '--output-type', 'json'],
+    {
+      encoding: 'utf8',
+      maxBuffer: 256 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'inherit'],
+    },
+  );
 } catch (error) {
   // dependency-cruiser exits with the number of errors; the graph is still
   // printed.
