@@ -737,23 +737,24 @@ export class AuthService {
   }
 
   // A revoked refresh token that is not a retry: taken as stolen, its whole
-  // family (the session, on every device) is ended (RFC 6819).
+  // family (the session, on every device) is ended (RFC 6819). The caller
+  // refuses the renewal.
   private async endFamilyForReuse(
+    db: Pick<PrismaService, 'refreshToken'>,
     token: { id: string; userId: string; familyId: string | null },
     payloadFamilyId: string | undefined,
-  ): Promise<never> {
+  ): Promise<void> {
     const familyToRevoke = token.familyId || payloadFamilyId;
     if (familyToRevoke) {
-      await this.prisma.refreshToken.deleteMany({
+      await db.refreshToken.deleteMany({
         where: { userId: token.userId, familyId: familyToRevoke },
       });
     } else {
-      await this.prisma.refreshToken.delete({ where: { id: token.id } });
+      await db.refreshToken.delete({ where: { id: token.id } });
     }
     this.logger.warn(
       `Security alert: Refresh token replay attack detected for user ${token.userId}, family ${familyToRevoke || 'unknown'}`,
     );
-    throw new UnauthorizedException('Refresh token reuse detected');
   }
 
   // Returns New access and refresh token pair
@@ -812,7 +813,8 @@ export class AuthService {
     // token can only be the retry of a renewal whose answer never arrived
     // (ADR-0032), decided below with the family locked.
     if (storedToken.isRevoked && !this.withinRetryWindow(storedToken)) {
-      await this.endFamilyForReuse(storedToken, payload.familyId);
+      await this.endFamilyForReuse(this.prisma, storedToken, payload.familyId);
+      throw new UnauthorizedException('Refresh token reuse detected');
     }
 
     // Check if token is expired
@@ -859,63 +861,79 @@ export class AuthService {
     const currentFamilyId =
       storedToken.familyId || payload.familyId || randomUUID();
 
-    // Renewals of one session run one at a time: the token sent and the live
-    // tokens of its family are locked while it is read again and revoked.
-    const outcome = await this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE id = ${storedToken.id} OR ("familyId" = ${storedToken.familyId} AND "isRevoked" = false) FOR UPDATE`;
-      const current = await tx.refreshToken.findUnique({
-        where: { id: storedToken.id },
-      });
-      // The session was closed meanwhile (sign-out, password change, ban).
-      if (!current) return 'closed' as const;
-
-      const revoked = { isRevoked: true, revokedAt: new Date() };
-      if (!current.isRevoked) {
-        await tx.refreshToken.update({
-          where: { id: current.id },
-          data: revoked,
+    // Renewals of one session run one at a time: with the token sent and the
+    // live tokens of its family locked, it is read again, revoked, and the new
+    // token written, so the next renewal of the session sees all of it.
+    type Renewal =
+      | { outcome: 'closed' | 'reused' }
+      | {
+          outcome: 'renewed' | 'retried';
+          tokens: { accessToken: string; refreshToken: string };
+        };
+    const renewal = await this.prisma.$transaction(
+      async (tx): Promise<Renewal> => {
+        await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE id = ${storedToken.id} OR ("familyId" = ${storedToken.familyId} AND "isRevoked" = false) FOR UPDATE`;
+        const current = await tx.refreshToken.findUnique({
+          where: { id: storedToken.id },
         });
-        return 'renewed' as const;
-      }
-      // Revoked: by a renewal whose answer never arrived, or by another
-      // renewal with the same token just before this one.
-      if (!(await this.isRetryOfLastRotation(tx, current.userId, current))) {
-        return 'reused' as const;
-      }
-      // The token that renewal issued never reached the person: it is
-      // withdrawn, and a new one is issued in its place.
-      await tx.refreshToken.updateMany({
-        where: {
-          userId: current.userId,
-          familyId: currentFamilyId,
-          isRevoked: false,
-        },
-        data: revoked,
-      });
-      return 'retried' as const;
-    });
+        // The session was closed meanwhile (sign-out, password change, ban).
+        if (!current) return { outcome: 'closed' };
 
-    if (outcome === 'closed') {
-      throw new UnauthorizedException('Invalid refresh token');
+        const revoked = { isRevoked: true, revokedAt: new Date() };
+        let outcome: 'renewed' | 'retried' = 'renewed';
+        if (!current.isRevoked) {
+          await tx.refreshToken.update({
+            where: { id: current.id },
+            data: revoked,
+          });
+        } else if (
+          // Revoked: by a renewal whose answer never arrived, or by another
+          // renewal with the same token just before this one.
+          await this.isRetryOfLastRotation(tx, current.userId, current)
+        ) {
+          // The token that renewal issued never reached the person: it is
+          // withdrawn, and a new one is issued in its place.
+          await tx.refreshToken.updateMany({
+            where: {
+              userId: current.userId,
+              familyId: currentFamilyId,
+              isRevoked: false,
+            },
+            data: revoked,
+          });
+          outcome = 'retried';
+        } else {
+          await this.endFamilyForReuse(tx, current, payload.familyId);
+          return { outcome: 'reused' };
+        }
+
+        const tokens = await this.generateTokens(
+          payload.sub,
+          payload.email,
+          meta.userAgent || undefined,
+          meta.ip || undefined,
+          currentFamilyId,
+          profile?.id,
+          sessionSignInId,
+          tx,
+        );
+        return { outcome, tokens };
+      },
+    );
+
+    if (!('tokens' in renewal)) {
+      throw new UnauthorizedException(
+        renewal.outcome === 'closed'
+          ? 'Invalid refresh token'
+          : 'Refresh token reuse detected',
+      );
     }
-    if (outcome === 'reused') {
-      await this.endFamilyForReuse(storedToken, payload.familyId);
-    }
-    if (outcome === 'retried') {
+    if (renewal.outcome === 'retried') {
       this.logger.log(
         `Refresh retried within the grace window for user ${storedToken.userId}, family ${currentFamilyId}`,
       );
     }
-
-    return this.generateTokens(
-      payload.sub,
-      payload.email,
-      meta.userAgent || undefined,
-      meta.ip || undefined,
-      currentFamilyId,
-      profile?.id,
-      sessionSignInId,
-    );
+    return renewal.tokens;
   }
 
   // Invalidate a specific refresh token (or its entire session family) for the given user.
@@ -1117,11 +1135,14 @@ export class AuthService {
     familyId?: string,
     profileId?: string,
     signInId?: string,
+    // A renewal writes the new token inside the transaction that locks the
+    // session's tokens (ADR-0032).
+    db: Pick<PrismaService, 'signIn' | 'refreshToken'> = this.prisma,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     // The sign-in that opens the session, inside this account: the one
     // named, or the first of the account when none is. A sign-in of another
     // account, or none at all, opens no session.
-    const sessionSignIn = await this.prisma.signIn.findFirst({
+    const sessionSignIn = await db.signIn.findFirst({
       where: { userId, ...(signInId && { id: signInId }) },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       select: { id: true },
@@ -1168,7 +1189,7 @@ export class AuthService {
     const hashedToken = this.hashRefreshToken(refreshToken);
 
     try {
-      await this.prisma.refreshToken.create({
+      await db.refreshToken.create({
         data: {
           token: hashedToken,
           userId,
@@ -1180,7 +1201,9 @@ export class AuthService {
           expiresAt,
         },
       });
-    } catch (_err) {
+    } catch (err) {
+      // A failed write ends a transaction: nothing more can run in it.
+      if (db !== this.prisma) throw err;
       // Fallback: If familyId, userAgent or ipAddress columns are missing in legacy DB schemas before migration runs
       await this.prisma.refreshToken.create({
         data: {

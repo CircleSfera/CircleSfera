@@ -1167,6 +1167,32 @@ describe('AuthService', () => {
   });
 
   describe('generateTokens', () => {
+    // A renewal writes the token inside its transaction (ADR-0032), where a
+    // failed write ends the transaction: no second write is tried in it.
+    it('lets a failed write inside a transaction fail, with no fallback', async () => {
+      const tx = {
+        signIn: { findFirst: vi.fn().mockResolvedValue({ id: 'sign-in-1' }) },
+        refreshToken: {
+          create: vi.fn().mockRejectedValue(new Error('write failed')),
+        },
+      };
+
+      await expect(
+        service.generateTokens(
+          'user-1',
+          'user@example.com',
+          undefined,
+          undefined,
+          'family-1',
+          undefined,
+          undefined,
+          tx as never,
+        ),
+      ).rejects.toThrow('write failed');
+      expect(tx.refreshToken.create).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.refreshToken.create).not.toHaveBeenCalled();
+    });
+
     it('should store cryptographic sha256 digest of refresh token at rest, not raw token', async () => {
       mockPrismaService.refreshToken.create.mockClear();
 

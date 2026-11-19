@@ -29,16 +29,17 @@ accepted again for a few seconds, as long as the token that replaced it has not 
 
 ## Decision
 
-**Renewals of one session run one at a time.** `AuthService.refreshToken` reads the token again
-and revokes it inside one transaction that first locks the token sent and the live tokens of its
-family (`SELECT ... FOR UPDATE`). With the lock held:
+**Renewals of one session run one at a time.** `AuthService.refreshToken` reads the token again,
+revokes it and writes the new token inside one transaction that first locks the token sent and the
+live tokens of its family (`SELECT ... FOR UPDATE`). The next renewal of the session waits for
+that transaction and sees everything it wrote. With the lock held:
 
 - the token no longer exists (the session was closed: sign-out, password change, ban): the renewal
   is refused and nothing is issued;
 - the token is live: it is revoked, and a new pair is issued in the same family;
 - the token is revoked: it is accepted as the **retry of the renewal that revoked it** only when
-  all of the following hold, and otherwise the family is deleted and the renewal refused
-  ("Refresh token reuse detected"):
+  all of the following hold; otherwise the family is deleted, in the same transaction, and the
+  renewal refused ("Refresh token reuse detected"):
   - the token was stored with its own family;
   - it was revoked at most **30 seconds** ago (`REFRESH_RETRY_GRACE_MS`; a token revoked before
     `revokedAt` was recorded never qualifies);
@@ -51,7 +52,9 @@ in the same family. Everything else a renewal checks still applies first: expiry
 Profile standing, and the session's sign-in.
 
 Because a retry withdraws the live token, it counts as a later renewal: of several replays of the
-same token sent together, the lock lets the first through and every later one ends the family.
+same token sent together, the lock lets the first through and every later one ends the family. Two
+renewals of the same live token sent together leave one live token: the second finds the token
+the first wrote, and withdraws it as a retry.
 
 Staff renewals (`POST /admin-auth/refresh`) do not delete families and are unchanged.
 
@@ -68,9 +71,13 @@ Staff renewals (`POST /admin-auth/refresh`) do not delete families and are uncha
 - After a change of Profile the family has two live tokens, so a retry in that session ends the
   family as before: it fails safe.
 - A tab or app running an earlier build keeps working, without ending sessions, while it renews.
-- New tokens are issued just after the transaction. A sign-out that deletes the family between
-  that transaction and the issue (a few milliseconds) still leaves the new token live. This was
-  already so before this decision.
+- **Not closed here:** a sign-out, password change or ban takes no lock. One that deletes the
+  session's tokens while a renewal holds the lock waits for it, then deletes only the rows it could
+  already see, so the token that renewal wrote stays live. This was already so before this
+  decision (the window was the renewal itself); closing it needs those writers to take the same
+  lock.
+- `revokedAt` comes from the application server's clock. The backend runs as one process today
+  (ADR-0024); with several, their clocks must agree to within the window.
 - Every retry is logged (user and family, never a token).
 
 ## Alternatives considered

@@ -118,6 +118,17 @@ describe('Refresh retried after a lost answer (e2e)', () => {
     expect(await liveTokens(familyId)).toBeLessThanOrEqual(1);
   });
 
+  // Two requests of the same page renewing at once: the second waits for the
+  // first, and its retry withdraws the token the first wrote.
+  it('leaves one live token after two renewals of the same token at once', async () => {
+    const { token: first, familyId } = await openSession();
+
+    const results = await Promise.allSettled([renew(first), renew(first)]);
+
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'fulfilled']);
+    expect(await liveTokens(familyId)).toBe(1);
+  });
+
   it('ends the session for a replaced token once the window has passed', async () => {
     const { token: first, familyId } = await openSession();
     await renew(first);
