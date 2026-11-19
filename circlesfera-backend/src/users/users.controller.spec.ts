@@ -29,8 +29,6 @@ describe('UsersController', () => {
 
   const mockUsersService = {
     getSuggestions: vi.fn(),
-    banUser: vi.fn(),
-    unbanUser: vi.fn(),
     deleteUser: vi.fn(),
     scheduleDeletion: vi.fn(),
     cancelScheduledDeletion: vi.fn(),
@@ -127,31 +125,17 @@ describe('UsersController', () => {
     },
   );
 
-  it('rejects ban with a user session', async () => {
-    await request(app.getHttpServer())
-      .patch('/api/v1/users/user-2/ban')
-      .set(BEARER)
-      .expect(401);
-
-    expect(mockUsersService.banUser).not.toHaveBeenCalled();
-  });
-
-  it('bans and unbans by user id without a staff identity', async () => {
-    mockUsersService.banUser.mockResolvedValue({ id: 'user-2' });
-    mockUsersService.unbanUser.mockResolvedValue({ id: 'user-2' });
-
-    await request(app.getHttpServer())
-      .patch('/api/v1/users/user-2/ban')
-      .set(ADMIN_BEARER)
-      .expect(200);
-    await request(app.getHttpServer())
-      .patch('/api/v1/users/user-2/unban')
-      .set(ADMIN_BEARER)
-      .expect(200);
-
-    expect(mockUsersService.banUser).toHaveBeenCalledWith('user-2');
-    expect(mockUsersService.unbanUser).toHaveBeenCalledWith('user-2');
-  });
+  // A ban here skipped the appeal window, the audit log, the cached profile
+  // and the email. Staff ban only through admin/users/:id/ban.
+  it.each(['ban', 'unban'])(
+    'has no users/:id/%s, even for a staff session',
+    async (action) => {
+      await request(app.getHttpServer())
+        .patch(`/api/v1/users/user-2/${action}`)
+        .set(ADMIN_BEARER)
+        .expect(404);
+    },
+  );
 
   it('requests and lists GDPR exports as the caller userId', async () => {
     mockExportService.requestDataExport.mockResolvedValue({ id: 'export-1' });
