@@ -53,6 +53,7 @@ import {
   SESSION_PROFILE_SELECT,
 } from './services/session-profile.util.js';
 import { takeTotpCodeOnce } from './two-factor/totp-once.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 
 // Service responsible for authentication, registration, and session management.
 // Handles password hashing (Argon2), JWT token generation/rotation, email verification,
@@ -240,9 +241,7 @@ export class AuthService {
       where: { userId: user.id },
       select: { username: true },
     });
-    if (profile?.username) {
-      await this.cacheManager.del(`profile:${profile.username}`);
-    }
+    await forgetCachedProfiles(this.cacheManager, [profile?.username]);
 
     return { message: 'Email verified successfully' };
   }

@@ -22,6 +22,7 @@ import {
   strikeExpiresAt,
   suspensionEndsAt,
 } from './profile-strikes.constants.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 
 // Notification.targetType values for moderation notices about a Profile. The
 // client uses them to show a localized message and a link to the details.
@@ -81,12 +82,9 @@ export class ProfileStrikesService {
       where: { id: { in: profileIds } },
       select: { username: true },
     });
-    await Promise.all(
-      profiles.map((p) =>
-        this.cacheManager
-          .del(`profile:${p.username}`)
-          .catch((e: unknown) => this.logger.warn(String(e))),
-      ),
+    await forgetCachedProfiles(
+      this.cacheManager,
+      profiles.map((p) => p.username),
     );
   }
 

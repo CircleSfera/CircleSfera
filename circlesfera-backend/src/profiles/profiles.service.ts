@@ -35,6 +35,7 @@ import { StoredFilesService } from '../uploads/services/stored-files.service.js'
 import { UsersService } from '../users/users.service.js';
 import { CreateProfileDto } from './dto/create-profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { forgetCachedProfiles, profileCacheKey } from './profile-cache.js';
 
 // Service for profile CRUD, username validation, and account lifecycle (deactivate/delete).
 // Uses cache-manager for profile read caching.
@@ -183,7 +184,7 @@ export class ProfilesService {
   // Param viewerProfileId: The authenticated viewer's profile, if any (route allows anonymous access)
   // Throws NotFoundException if profile does not exist or either side has blocked the other
   async getProfile(username: string, viewerProfileId?: string) {
-    const cacheKey = `profile:${username}`;
+    const cacheKey = profileCacheKey(username);
     const cachedProfile = await this.cacheManager.get<{
       id: string;
       accountType?: string;
@@ -536,7 +537,7 @@ export class ProfilesService {
     }
 
     // Invalidate cache
-    await this.cacheManager.del(`profile:${profile.username}`);
+    await forgetCachedProfiles(this.cacheManager, [profile.username]);
     return flattened;
   }
 
@@ -654,7 +655,7 @@ export class ProfilesService {
       data: { isActive: false, deactivatedAt: new Date() },
     });
     if (profile) {
-      await this.cacheManager.del(`profile:${profile.username}`);
+      await forgetCachedProfiles(this.cacheManager, [profile.username]);
     }
     return result;
   }
@@ -669,7 +670,7 @@ export class ProfilesService {
     const scheduledDeletionAt =
       await this.usersService.scheduleDeletion(userId);
     if (profile) {
-      await this.cacheManager.del(`profile:${profile.username}`);
+      await forgetCachedProfiles(this.cacheManager, [profile.username]);
     }
     return {
       success: true,

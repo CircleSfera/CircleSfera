@@ -35,6 +35,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { followTeamPlan } from '../team/team-plan.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 
 // The push switches of a Profile: the pause and the five groups.
 const PROFILE_PUSH_FIELDS = [
@@ -1198,7 +1199,7 @@ export class UsersService {
           data: { verificationLevel: targetVerificationLevel },
         });
         // The public profile is cached with what the old level allowed.
-        await this.cacheManager.del(`profile:${profile.username}`);
+        await forgetCachedProfiles(this.cacheManager, [profile.username]);
         this.logger.log(
           `Profile ${profile.id} verification synced: ${targetVerificationLevel}`,
         );

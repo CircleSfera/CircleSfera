@@ -96,6 +96,34 @@ describe('ProfilesService', () => {
       expect(result).toEqual({ ...cached, verifiedCompany: false });
     });
 
+    // A username is found whatever its case: the view read at /ana for "Ana"
+    // is stored under the key a change to "Ana" drops.
+    it('caches a profile read in another case under the key its changes drop', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockPrismaService.block.findFirst.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'p-ana',
+        userId: 'u-ana',
+        username: 'Ana',
+        verificationLevel: 'BASIC',
+        accountType: 'PERSONAL',
+        privacyLevel: 'PUBLIC',
+        suspendedUntil: null,
+        user: { id: 'u-ana', createdAt: new Date(), isActive: true },
+        signIn: null,
+        _count: { posts: 0, followers: 0, following: 0, strikes: 0 },
+      });
+
+      await service.getProfile('ANA');
+
+      expect(mockCacheManager.get).toHaveBeenCalledWith('profile:ana');
+      expect(mockCacheManager.set).toHaveBeenCalledWith(
+        'profile:ana',
+        expect.anything(),
+        600000,
+      );
+    });
+
     it('should throw NotFoundException if profile is not found in cache or DB', async () => {
       mockCacheManager.get.mockResolvedValue(null);
       mockPrismaService.profile.findFirst.mockResolvedValue(null);
