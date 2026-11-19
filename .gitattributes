@@ -1,0 +1,9 @@
+# One line ending for every text file: LF, the same on macOS, on Windows and
+# in CI (Linux), as Biome's formatter requires (biome.json "lineEnding": "lf").
+# Without this, Git for Windows (core.autocrlf=true) checks files out with
+# CRLF: Biome then reports every file, and code that reads a text file of the
+# repository line by line sees a "\r" at the end of each line.
+* text=auto eol=lf
+
+# Windows scripts keep CRLF, as Windows needs.
+*.bat text eol=crlf
