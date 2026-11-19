@@ -2,7 +2,6 @@
   "name": "circlesfera",
   "version": "1.0.0",
   "description": "CircleSfera - Your World, Connected.",
-  "main": "index.js",
   "scripts": {
     "test:e2e": "env -u NO_COLOR FORCE_COLOR=0 npx playwright test",
     "e2e:db:up": "docker compose -p circlesfera-e2e -f docker-compose.e2e.yml up -d",
