@@ -30,6 +30,7 @@ import { toSupportedLocale } from '../common/constants/locale.constants.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { resolveSessionProfile } from '../team/member-session.js';
@@ -240,9 +241,7 @@ export class AuthService {
       where: { userId: user.id },
       select: { username: true },
     });
-    if (profile?.username) {
-      await this.cacheManager.del(`profile:${profile.username}`);
-    }
+    await forgetCachedProfiles(this.cacheManager, [profile?.username]);
 
     return { message: 'Email verified successfully' };
   }

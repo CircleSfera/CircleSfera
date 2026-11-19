@@ -15,6 +15,7 @@ import type { Cache } from 'cache-manager';
 import type { Notice } from '../notifications/notice-copy.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 import {
   activeStrikeRecordWhere,
   STRIKES_TO_BAN,
@@ -81,12 +82,9 @@ export class ProfileStrikesService {
       where: { id: { in: profileIds } },
       select: { username: true },
     });
-    await Promise.all(
-      profiles.map((p) =>
-        this.cacheManager
-          .del(`profile:${p.username}`)
-          .catch((e: unknown) => this.logger.warn(String(e))),
-      ),
+    await forgetCachedProfiles(
+      this.cacheManager,
+      profiles.map((p) => p.username),
     );
   }
 

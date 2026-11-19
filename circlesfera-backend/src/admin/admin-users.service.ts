@@ -23,6 +23,7 @@ import {
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { followTeamPlan } from '../team/team-plan.js';
 import { UsersService } from '../users/users.service.js';
@@ -188,13 +189,12 @@ export class AdminUsersService {
         where: { userId },
         select: { username: true },
       });
-      for (const profile of profiles) {
-        if (profile.username) {
-          await this.cacheManager.del(`profile:${profile.username}`);
-        }
-      }
+      await forgetCachedProfiles(
+        this.cacheManager,
+        profiles.map((profile) => profile.username),
+      );
     } catch (error) {
-      console.error('Failed to invalidate cache:', error);
+      this.logger.warn(`Could not drop cached profiles: ${String(error)}`);
     }
   }
 

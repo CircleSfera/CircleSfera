@@ -32,6 +32,7 @@ import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { forgetCachedProfiles } from '../profiles/profile-cache.js';
 import { followTeamPlan } from '../team/team-plan.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -1198,7 +1199,7 @@ export class UsersService {
           data: { verificationLevel: targetVerificationLevel },
         });
         // The public profile is cached with what the old level allowed.
-        await this.cacheManager.del(`profile:${profile.username}`);
+        await forgetCachedProfiles(this.cacheManager, [profile.username]);
         this.logger.log(
           `Profile ${profile.id} verification synced: ${targetVerificationLevel}`,
         );
