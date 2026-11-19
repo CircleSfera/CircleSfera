@@ -112,11 +112,11 @@ describe('AuthService', () => {
     refreshToken: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       count: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
-      deleteMany: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
@@ -2255,6 +2255,20 @@ describe('AuthService', () => {
 
       await expectFamilyEnded();
       expect(mockPrismaService.refreshToken.count).not.toHaveBeenCalled();
+    });
+
+    // PostgreSQL may end the renewal to break a deadlock with a sign-out: it
+    // did nothing, and runs again.
+    it('renews again when PostgreSQL ended it for a deadlock', async () => {
+      sent(token({}));
+      mockPrismaService.$transaction.mockRejectedValueOnce(
+        Object.assign(new Error('deadlock'), { code: 'P2034' }),
+      );
+
+      const result = await service.refreshToken({ refreshToken: 'sent' });
+
+      expect(result).toHaveProperty('refreshToken');
+      expect(mockPrismaService.$transaction).toHaveBeenCalledTimes(2);
     });
 
     // Sign-out, a password change or a ban deletes the session's tokens.

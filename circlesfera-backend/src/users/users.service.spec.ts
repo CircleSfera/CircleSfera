@@ -101,8 +101,10 @@ describe('UsersService', () => {
       upsert: vi.fn(),
     },
     refreshToken: {
+      findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
+    $queryRaw: vi.fn().mockResolvedValue([]),
     follow: {
       findMany: vi.fn(),
     },

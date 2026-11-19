@@ -42,6 +42,10 @@ import type {
   VerifyEmailDto,
 } from './dto/index.js';
 import { assertNotLeakedPassword } from './leaked-passwords/leaked-password.js';
+import {
+  deleteRefreshTokens,
+  retryOnDeadlock,
+} from './refresh-token-deletion.js';
 import { AccountStateService } from './services/account-state.service.js';
 import {
   pickSessionProfile,
@@ -338,11 +342,9 @@ export class AuthService {
 
     // Revoke the sessions of this sign-in to prevent hijack persistence. A
     // stored token that names no sign-in is revoked too, never spared.
-    await this.prisma.refreshToken.deleteMany({
-      where: {
-        userId: user.id,
-        OR: [{ signInId: signIn.id }, { signInId: null }],
-      },
+    await deleteRefreshTokens(this.prisma, {
+      userId: user.id,
+      OR: [{ signInId: signIn.id }, { signInId: null }],
     });
 
     return { message: 'Password reset successfully' };
@@ -870,13 +872,14 @@ export class AuthService {
           outcome: 'renewed' | 'retried';
           tokens: { accessToken: string; refreshToken: string };
         };
-    const renewal = await this.prisma.$transaction(
-      async (tx): Promise<Renewal> => {
-        await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE id = ${storedToken.id} OR ("familyId" = ${storedToken.familyId} AND "isRevoked" = false) FOR UPDATE`;
+    // Run again if PostgreSQL ends it to break a deadlock with a sign-out.
+    const renewal = await retryOnDeadlock(() =>
+      this.prisma.$transaction(async (tx): Promise<Renewal> => {
+        await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE id = ${storedToken.id} OR ("familyId" = ${storedToken.familyId} AND "isRevoked" = false) ORDER BY id FOR UPDATE`;
         // Locked again with a new snapshot: a renewal this one waited for may
         // have written a token the first lock could not see.
         if (storedToken.familyId) {
-          await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE "familyId" = ${storedToken.familyId} AND "isRevoked" = false FOR UPDATE`;
+          await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE "familyId" = ${storedToken.familyId} AND "isRevoked" = false ORDER BY id FOR UPDATE`;
         }
         const current = await tx.refreshToken.findUnique({
           where: { id: storedToken.id },
@@ -923,7 +926,7 @@ export class AuthService {
           tx,
         );
         return { outcome, tokens };
-      },
+      }),
     );
 
     if (!('tokens' in renewal)) {
@@ -954,18 +957,14 @@ export class AuthService {
     });
 
     if (stored?.familyId) {
-      await this.prisma.refreshToken.deleteMany({
-        where: {
-          userId,
-          familyId: stored.familyId,
-        },
+      await deleteRefreshTokens(this.prisma, {
+        userId,
+        familyId: stored.familyId,
       });
     } else {
-      await this.prisma.refreshToken.deleteMany({
-        where: {
-          userId,
-          OR: [{ token: hashedToken }, { token: refreshToken }],
-        },
+      await deleteRefreshTokens(this.prisma, {
+        userId,
+        OR: [{ token: hashedToken }, { token: refreshToken }],
       });
     }
   }
@@ -1017,13 +1016,12 @@ export class AuthService {
       where: { id: sessionId, userId },
     });
     if (session?.familyId) {
-      await this.prisma.refreshToken.deleteMany({
-        where: { familyId: session.familyId, userId },
+      await deleteRefreshTokens(this.prisma, {
+        familyId: session.familyId,
+        userId,
       });
     } else {
-      await this.prisma.refreshToken.deleteMany({
-        where: { id: sessionId, userId },
-      });
+      await deleteRefreshTokens(this.prisma, { id: sessionId, userId });
     }
     return { success: true };
   }
@@ -1047,11 +1045,9 @@ export class AuthService {
     if (!currentSessionId || !open) {
       throw new ConflictException('The current session is not known');
     }
-    await this.prisma.refreshToken.deleteMany({
-      where: {
-        userId,
-        OR: [{ familyId: null }, { familyId: { not: currentSessionId } }],
-      },
+    await deleteRefreshTokens(this.prisma, {
+      userId,
+      OR: [{ familyId: null }, { familyId: { not: currentSessionId } }],
     });
     return { success: true };
   }

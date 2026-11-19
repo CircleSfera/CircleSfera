@@ -10,6 +10,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AdminAction, NotificationType, Prisma, Role } from '@prisma/client';
 import type { Cache } from 'cache-manager';
+import { deleteRefreshTokens } from '../auth/refresh-token-deletion.js';
 import { linkedAccountsWhere } from '../common/abuse/linked-accounts.js';
 import { computeTrustScore } from '../common/abuse/trust-score.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
@@ -359,9 +360,7 @@ export class AdminUsersService {
         },
       },
     });
-    await this.prisma.refreshToken.deleteMany({
-      where: { userId },
-    });
+    await deleteRefreshTokens(this.prisma, { userId });
     const banEvent: UserSessionTerminateEvent['payload'] = {
       userId,
       profileId: result.profiles[0]?.id,
@@ -572,9 +571,7 @@ export class AdminUsersService {
       userId,
       `Suspended until ${until.toISOString()}: ${reason || ''}`,
     );
-    await this.prisma.refreshToken.deleteMany({
-      where: { userId },
-    });
+    await deleteRefreshTokens(this.prisma, { userId });
     const recipientProfileId = await this.resolvePrimaryProfileId(userId);
     const suspendEvent: UserSessionTerminateEvent['payload'] = {
       userId,
@@ -725,7 +722,7 @@ export class AdminUsersService {
     // What is said to be closed is what the record showed as open; rows of
     // sessions already ended are deleted with them and are not counted.
     const { open: count } = await this.countOpenSessions(userId);
-    await this.prisma.refreshToken.deleteMany({ where: { userId } });
+    await deleteRefreshTokens(this.prisma, { userId });
     for (const profile of user.profiles) {
       const event: UserSessionTerminateEvent['payload'] = {
         userId,

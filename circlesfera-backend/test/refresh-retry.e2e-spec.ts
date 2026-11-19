@@ -129,6 +129,45 @@ describe('Refresh retried after a lost answer (e2e)', () => {
     expect(await liveTokens(familyId)).toBe(1);
   });
 
+  // Signing out waits for a renewal in progress and deletes the token it
+  // wrote. The renewal is held open here, as a slow one would be, while the
+  // sign-out starts: before deleteRefreshTokens, the sign-out deleted only
+  // the rows it could see when it started, and the new token stayed live.
+  it('leaves no token of a session signed out while a renewal holds it', async () => {
+    const { token: first, familyId } = await openSession();
+    const sent = await prisma.refreshToken.findFirstOrThrow({
+      where: { userId, familyId, isRevoked: false },
+      select: { id: true, signInId: true },
+    });
+
+    let signingOut: Promise<void> | undefined;
+    // What a renewal does: lock the token, revoke it, write the next one.
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE id = ${sent.id} FOR UPDATE`;
+      await tx.refreshToken.update({
+        where: { id: sent.id },
+        data: { isRevoked: true, revokedAt: new Date() },
+      });
+      await tx.refreshToken.create({
+        data: {
+          token: `next-${id}-${Date.now()}`,
+          userId,
+          signInId: sent.signInId,
+          familyId,
+          expiresAt: new Date(Date.now() + 86_400_000),
+        },
+      });
+      signingOut = auth.logout(userId, first);
+      // Long enough for the sign-out to reach the lock and wait on it.
+      await new Promise((done) => setTimeout(done, 500));
+    });
+    await signingOut;
+
+    expect(
+      await prisma.refreshToken.count({ where: { userId, familyId } }),
+    ).toBe(0);
+  });
+
   it('ends the session for a replaced token once the window has passed', async () => {
     const { token: first, familyId } = await openSession();
     await renew(first);
