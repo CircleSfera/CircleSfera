@@ -1,6 +1,6 @@
 # ADR-0011: In-repository AI engineering framework under `.ai/`
 
-- **Status:** Accepted
+- **Status:** Accepted, not built: the first implementation under `.ai/` and `.agents/` was removed on 2026-09-28 (commit 95ad3d2a) to be rebuilt from scratch. Until then, nothing in the repository implements this record. The rules for agents are in `AGENTS.md`. The folders it names below are not on `main`, so do not recreate them from this text.
 - **Date:** 2026-07-27
 - **Deciders:** CircleSfera engineering
 - **Scope:** engineering process / repository structure

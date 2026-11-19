@@ -12,7 +12,7 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0007](./0007-auth-cookies-csrf.md) | HTTP-only auth cookies + CSRF double-submit | Accepted (amended by 0032) |
 | [0008](./0008-storage-providers.md) | Pluggable storage providers (S3, Cloudinary, local) | Accepted |
 | [0009](./0009-feed-fan-out.md) | Hybrid feed fan-out | Accepted |
-| [0011](./0011-ai-engineering-framework.md) | In-repository AI engineering framework under `.ai/` | Accepted |
+| [0011](./0011-ai-engineering-framework.md) | In-repository AI engineering framework under `.ai/` | Accepted, not built (`.ai/` removed to be rebuilt) |
 | [0012](./0012-webrtc-signaling-architecture.md) | WebRTC Voice & Video Call Signaling Architecture and Socket Event Compatibility | Accepted |
 | [0013](./0013-admin-panel-admin-identity.md) | Admin Panel — separate Admin Identity, RBAC, MFA, admin.circlesfera.com | Accepted (amended by 0031) |
 | [0014](./0014-account-trust-signals.md) | Account trust signals (Turnstile, email gate, KYC vs plan, abuse hashes) | Accepted (amended: plaintext IP kept 90 days) |
