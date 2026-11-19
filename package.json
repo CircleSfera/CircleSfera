@@ -8,7 +8,7 @@
     "e2e:db:up": "docker compose -p circlesfera-e2e -f docker-compose.e2e.yml up -d",
     "e2e:db:down": "docker compose -p circlesfera-e2e -f docker-compose.e2e.yml down",
     "e2e:db:migrate": "cd circlesfera-backend && DATABASE_URL=\"${E2E_DATABASE_URL:-postgresql://prisma:prisma@localhost:5433/circlesfera_e2e?schema=public}\" npx prisma migrate deploy",
-    "e2e:cleanup": "cd circlesfera-backend && npx tsx scripts/cleanup-e2e-users.ts",
+    "e2e:cleanup": "cd circlesfera-backend && node scripts/cleanup-e2e-users.ts",
     "smoke:profile-drift": "node scripts/validate-profile-drift-smoke.mjs",
     "db:backup": "./scripts/backup-postgres.sh",
     "db:restore": "./scripts/restore-postgres.sh",

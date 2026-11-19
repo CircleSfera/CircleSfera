@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import pkg from 'pg';
-import { seedFirstPartyAudio } from './first-party-audio.seed.js';
+import { seedFirstPartyAudio } from './first-party-audio.seed.ts';
 
 const { Pool } = pkg;
 
