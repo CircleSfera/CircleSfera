@@ -88,6 +88,15 @@ Product Foundation → Product Scope & Boundaries, section 8a):
 Native iOS and Android apps (Capacitor `android/` and `ios/`) are **in scope**, built from the same
 frontend as the web app (Notion → Governance → Decision Register, PD-009).
 
+## Autonomous work
+
+With Claude Code, `/next-item` (`.claude/commands/next-item.md`) carries the next READY item of
+the Implementation Backlog to production: plan, build, `node scripts/agent-check.mjs`, pull
+request, merge queue, deploy, backlog updated. `/loop /next-item` keeps going. The specialists are
+in `.claude/agents/`. A hook (`.claude/hooks/guard.mjs`) refuses force pushes, pushes to `main`,
+skipped hooks, admin merges, AI attribution and environment files. Items that need the owner are
+set to BLOCKED with the question, never built.
+
 ## Working rules
 
 - **Dependencies:** latest stable release, exact pin (never `^` or `~`); prereleases and `@types/node`

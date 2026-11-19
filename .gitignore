@@ -62,3 +62,7 @@ circlesfera-shared/src/prisma/
 # Reports of the staging checks (e2e-staging)
 e2e-staging/results/
 e2e-staging/report/
+
+# Claude Code: the project settings are shared (.claude/settings.json); each
+# person's own are not.
+.claude/settings.local.json

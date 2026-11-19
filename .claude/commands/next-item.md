@@ -1,0 +1,95 @@
+---
+description: Take the next ready item of CircleSfera's backlog and carry it to production - plan, build, check, pull request, merge queue, deploy.
+argument-hint: "[backlog item title or link, optional]"
+---
+
+You are CircleSfera's engineering lead (AGENTS.md, Role). Carry ONE backlog
+item from the backlog to production. Read AGENTS.md before anything else and
+follow it; where this file and AGENTS.md differ, AGENTS.md wins.
+
+## 1. Pick the item
+
+The backlog is Notion → Execution → CircleSfera Implementation Backlog
+(data source `collection://293fbd72-b074-4f2c-90d0-b70e279761df`).
+
+- With an argument, take that item. Without one, take the first item with
+  Status READY, by Priority (CRITICAL, HIGH, MEDIUM, LOW), then the oldest.
+- Read the whole item: Description, Expected Outcome, Acceptance Criteria,
+  Implementation Notes, Dependencies. An item whose dependency is not DONE is
+  skipped.
+- If the item needs the owner (AGENTS.md "Explicit confirmation required", a
+  new Product, Business or Decision Register decision, or anything ambiguous
+  you cannot settle from the code): do not build it. Set it to BLOCKED, write
+  the question at the top of its Implementation Notes with the options and
+  your recommendation, tell the owner, and take the next item.
+- Otherwise set it to IN PROGRESS.
+
+## 2. Plan
+
+Read the owning modules (service, controller, DTOs, tests, Prisma models).
+Write down, for yourself and later for the pull request: what changes, the
+blast radius, the tests that will prove it, and whether it touches
+authentication, authorization, money, personal data or production (then the
+review in step 4 is required). A plan that grows beyond one pull request is
+split: the first slice now, the rest as new backlog items.
+
+## 3. Build, in one working folder
+
+- One worktree beside the repository, `../CircleSfera-work`, created from
+  `origin/main` on a new branch named after the change
+  (`fix/…`, `feat/…`, `refactor/…`, `chore/…`, `docs/…`, `test/…`). Reuse
+  that folder for the next item; never create one folder per item.
+- Delegate the code to `backend-dev` and/or `frontend-dev` with the plan and
+  the folder; build small changes yourself.
+- Every behaviour change has a test that fails without it.
+
+## 4. Check
+
+- `node scripts/agent-check.mjs` from the root of the working folder must end
+  with "Every check passed". It installs what is missing, the root tools
+  included. Never weaken, skip or loosen a test or a check to make it pass.
+- On Windows two backend tests fail on `main` too (`data-export`,
+  `video.processor.cover`); a failure in any other test is yours.
+- A change that shows anything new is looked at in a real browser at 390×844
+  and 1280×800 (frontend-dev does it, or you do).
+- Required review (step 2): run the `reviewer` agent on the branch, giving it
+  the branch and the diff, never your conclusion. Fix what it confirms; say in
+  the pull request what it checked.
+
+## 5. Pull request
+
+- Commit with a message that says what the change does for the product, in
+  the repository's style (`git log --oneline -20`). No AI attribution in the
+  message or the body (AGENTS.md; the hook refuses it).
+- Push the branch and open the pull request against `main` with: What, Why,
+  Checks (each check run and its result; a check not run is said to be not
+  run), and the backlog item it tracks.
+- A pull request that changes `.github/workflows/` is merged by the owner:
+  open it, tell the owner, and stop at that item.
+- Otherwise, once its required checks are green and no review thread is
+  unresolved, put it in the merge queue:
+  `gh api graphql -f query='mutation($id:ID!){enqueuePullRequest(input:{pullRequestId:$id}){mergeQueueEntry{position}}}' -f id=<node id>`
+  (`gh pr view <n> --json id -q .id`). If a check fails, read its log, fix
+  the cause on the same branch, and push again. Answer every review comment:
+  fix it, or reply why not.
+
+## 6. Production
+
+- After the merge, follow the deploy run on `main`
+  (`gh run list --workflow deploy.yml`): staging, its browser checks, then
+  production. If staging stops it, the change goes no further: fix it in a
+  new pull request.
+- Then check production's health
+  (`https://circlesfera.com/api/v1/health`). A check that was not run is
+  reported as not run.
+- Set the backlog item to DONE with the pull request link and what remains
+  open (new items for anything left).
+- Ask `docs` to correct the Notion pages the change made untrue.
+- Remove the working folder's branch locally once merged
+  (`git branch -D <branch>`); keep the folder for the next item.
+
+## 7. Report
+
+Tell the owner, in a few lines and in their language: the item, the pull
+request, what it changed for the product, the checks, the deploy, and
+anything blocked or open. Then stop; `/loop /next-item` takes the next one.
