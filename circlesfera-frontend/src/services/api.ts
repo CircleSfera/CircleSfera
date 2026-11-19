@@ -9,6 +9,36 @@ import { handleApiError } from '../utils/apiUtils';
 // In development, it defaults to localhost:3000
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+export type RenewalPath = '/auth/refresh' | '/admin-auth/refresh';
+
+// One session renewal at a time. Each renewal replaces the refresh cookie,
+// and the server takes a second use of the old one as theft and ends every
+// session of that sign-in (auth.service refresh, "reuse detected"). So the
+// requests that fail together and the live connection share one renewal, and
+// other tabs wait for it (Web Locks), then renew with the cookie it set.
+const renewals = new Map<RenewalPath, Promise<void>>();
+
+// A renewed session gets a new CSRF token on the next write.
+let forgetCsrfToken: () => void = () => {};
+
+export function renewSession(path: RenewalPath): Promise<void> {
+  const pending = renewals.get(path);
+  if (pending) return pending;
+
+  const renew = async () => {
+    await axios.post(`${API_URL}${path}`, {}, { withCredentials: true });
+    forgetCsrfToken();
+  };
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  const renewal = (
+    locks?.request ? locks.request(`circlesfera:renew${path}`, renew) : renew()
+  ).finally(() => {
+    renewals.delete(path);
+  });
+  renewals.set(path, renewal);
+  return renewal;
+}
+
 class ApiClient {
   private client: AxiosInstance;
   private csrfToken: string | null = null;
@@ -22,6 +52,9 @@ class ApiClient {
       },
       withCredentials: true,
     });
+    forgetCsrfToken = () => {
+      this.csrfToken = null;
+    };
 
     const getCSRFToken = async () => {
       if (this.csrfTokenPromise) return this.csrfTokenPromise;
@@ -121,13 +154,8 @@ class ApiClient {
           originalRequest._retry = true;
 
           try {
-            const refreshPath = adminPanel
-              ? '/admin-auth/refresh'
-              : '/auth/refresh';
-            await axios.post(
-              `${API_URL}${refreshPath}`,
-              {},
-              { withCredentials: true },
+            await renewSession(
+              adminPanel ? '/admin-auth/refresh' : '/auth/refresh',
             );
             this.csrfToken = null;
             await getCSRFToken();

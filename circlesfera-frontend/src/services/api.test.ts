@@ -17,7 +17,7 @@ vi.mock('../utils/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }));
 
-import { apiClient } from './api';
+import { apiClient, renewSession } from './api';
 
 type Reply = { status: number; data?: unknown } | 'network';
 
@@ -175,6 +175,70 @@ describe('apiClient', () => {
     );
     expect(res.data).toEqual({ me: 1 });
     expect(sent).toHaveLength(2);
+  });
+
+  // A renewal replaces the refresh cookie, and the server ends every session
+  // of the sign-in when the old one comes back a second time.
+  it('renews once for requests whose session expired together', async () => {
+    csrf('t-4b');
+    const post = vi
+      .spyOn(axios, 'post')
+      .mockImplementation(() => new Promise((done) => setTimeout(done, 5)));
+    serve([
+      { status: 401 },
+      { status: 401 },
+      { status: 401 },
+      { status: 200, data: { n: 1 } },
+      { status: 200, data: { n: 2 } },
+      { status: 200, data: { n: 3 } },
+    ]);
+
+    const answers = await Promise.all([
+      apiClient.get('/profiles/me'),
+      apiClient.get('/notifications'),
+      apiClient.get('/feed'),
+    ]);
+
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(answers.map((a) => a.data.n).sort()).toEqual([1, 2, 3]);
+  });
+
+  it('shares one renewal with the live connection, and renews again later', async () => {
+    let finish: () => void = () => {};
+    const post = vi.spyOn(axios, 'post').mockImplementation(
+      () =>
+        new Promise((done) => {
+          finish = () => done({});
+        }),
+    );
+
+    const first = renewSession('/auth/refresh');
+    const second = renewSession('/auth/refresh');
+    finish();
+    await Promise.all([first, second]);
+    expect(post).toHaveBeenCalledTimes(1);
+
+    const later = renewSession('/auth/refresh');
+    finish();
+    await later;
+    expect(post).toHaveBeenCalledTimes(2);
+  });
+
+  it('renews inside a lock other tabs wait on, when the browser has one', async () => {
+    const request = vi.fn((_name: string, run: () => Promise<void>) => run());
+    Object.defineProperty(navigator, 'locks', {
+      configurable: true,
+      value: { request },
+    });
+    vi.spyOn(axios, 'post').mockResolvedValue({});
+
+    await renewSession('/admin-auth/refresh');
+
+    expect(request).toHaveBeenCalledWith(
+      'circlesfera:renew/admin-auth/refresh',
+      expect.any(Function),
+    );
+    Reflect.deleteProperty(navigator, 'locks');
   });
 
   it('never tries to renew the session for sign-in itself', async () => {
