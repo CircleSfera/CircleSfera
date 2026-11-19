@@ -9,6 +9,15 @@ import { handleApiError } from '../utils/apiUtils';
 // In development, it defaults to localhost:3000
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+// The pages where a person signs in or creates an account: a session that
+// cannot be renewed there sends no one anywhere. Every other page under
+// /accounts (the account settings) needs a session like the rest of the app.
+const SIGN_IN_PAGES = new Set([
+  '/accounts/login',
+  '/accounts/signup',
+  '/accounts/emailsignup',
+]);
+
 export type RenewalPath = '/auth/refresh' | '/admin-auth/refresh';
 
 // One session renewal at a time. Each renewal replaces the refresh cookie,
@@ -168,7 +177,7 @@ class ApiClient {
               }
             } else if (
               !isAuthRequest &&
-              !window.location.pathname.includes('/accounts/')
+              !SIGN_IN_PAGES.has(window.location.pathname)
             ) {
               window.dispatchEvent(new CustomEvent('auth:unauthorized'));
               window.location.href = '/accounts/login';

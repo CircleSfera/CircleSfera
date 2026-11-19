@@ -268,7 +268,17 @@ describe('apiClient', () => {
     window.removeEventListener('auth:unauthorized', listener);
   });
 
-  it('does not redirect when already on an account page', async () => {
+  it('sends the participant to sign in from an account settings page too', async () => {
+    csrf('t-7b');
+    vi.spyOn(axios, 'post').mockRejectedValue(new Error('expired'));
+    location.pathname = '/accounts/privacy';
+    serve([{ status: 401 }]);
+
+    await expect(apiClient.get('/profiles/me')).rejects.toThrow('expired');
+    expect(location.href).toBe('/accounts/login');
+  });
+
+  it('does not redirect when already on a sign-in page', async () => {
     csrf('t-7');
     vi.spyOn(axios, 'post').mockRejectedValue(new Error('expired'));
     location.pathname = '/accounts/login';
