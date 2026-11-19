@@ -7,11 +7,14 @@ Monorepo layout:
 ```
 CircleSfera/
 ├── circlesfera-backend/       # NestJS REST + WebSockets API
-├── circlesfera-frontend/      # React SPA (consumer + admin.circlesfera.com panel)
+├── circlesfera-frontend/      # React app: web, Admin Panel and Backoffice, and the iOS/Android apps (Capacitor)
 ├── circlesfera-shared/        # Shared types (partial adoption)
 ├── docs/adr/                  # Architecture Decision Records (full text)
-├── scripts/                   # Backups, schema checks, profile-drift smoke
-├── e2e/                       # Playwright tests
+├── scripts/                   # Backups, schema and dependency checks, CI and ops helpers
+├── e2e/                       # Playwright: the whole stack against a real database
+├── e2e-staging/               # Playwright: checks against a deployed environment
+├── load-tests/                # API load tests
+├── infra/                     # Host configuration
 ├── nginx/                     # Reverse-proxy templates
 └── AGENTS.md                  # Operating rules (highest precedence)
 ```
@@ -32,8 +35,10 @@ Identity model (**User** = account/billing, **Profile** = social `@username`, **
 
 | Layer | Tech |
 | --- | --- |
-| API | NestJS 11, Prisma 7, PostgreSQL 16 + pgvector, Redis + BullMQ |
-| Web | React 19, Vite 7, TanStack Query, Zustand, Tailwind 4 |
+| Language | TypeScript 7, Node 26 |
+| API | NestJS 12, Prisma 7, PostgreSQL 16 + pgvector, Redis + BullMQ |
+| Web | React 19, Vite 8, TanStack Query, Zustand, Tailwind 4 |
+| Native apps | Capacitor 8, built from the same frontend (iOS and Android) |
 | Auth | HTTP-only JWT cookies, CSRF, passkeys, separate admin JWT |
 | Realtime | Socket.IO + Redis adapter; LiveKit for broadcasts |
 | Payments | Stripe (Platform Plans and promotions) |
@@ -56,6 +61,7 @@ docker compose up -d
 **Local dev (without Docker):** Node **26** (matches CI/Docker images). Install the shared package first (its `npm install` also builds `dist/`; run `npm run watch` there while you change it), then backend + frontend. Backend needs Postgres **and** Redis; pointing a host `start:dev` at container Redis without auth will fail — prefer the compose stack.
 
 ```bash
+npm install                    # root: Biome, Git hooks, Playwright, commitlint
 cd circlesfera-shared && npm install && cd ..
 cd circlesfera-backend && npm install && npx prisma migrate dev && npm run start:dev
 cd circlesfera-frontend && npm install && npm run dev
@@ -68,8 +74,17 @@ Required env highlights: `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JW
 ```bash
 npm run check                 # Biome (root)
 npm run smoke:profile-drift   # API smoke for User/Profile admin shapes (needs running stack)
-npm run test:e2e              # Playwright (e2e/)
 ```
+
+## Browser tests (Playwright)
+
+Three suites, each with its own configuration:
+
+| Suite | Runs against | How |
+| --- | --- | --- |
+| [`e2e/`](./e2e/README.md) | The whole stack, writing real users to a database | `npm run e2e:db:up`, `npm run e2e:db:migrate`, the backend on that database, then `npm run test:e2e` from the root ([e2e/README](./e2e/README.md)) |
+| [`circlesfera-frontend/e2e/`](./circlesfera-frontend/e2e/README.md) | The web app alone, with the API stubbed | `npm run test:e2e` in `circlesfera-frontend` |
+| `e2e-staging/` | A deployed environment | Run by the deploy workflow after a staging deploy (`npx playwright test -c e2e-staging/playwright.config.ts`) |
 
 Per-package scripts: see [backend README](./circlesfera-backend/README.md) and [frontend README](./circlesfera-frontend/README.md).
 
