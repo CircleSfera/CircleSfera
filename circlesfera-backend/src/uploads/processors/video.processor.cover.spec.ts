@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import type { Job } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { probeMediaDurationSec } from '../../common/utils/media-duration.util.js';
@@ -122,7 +123,8 @@ describe('VideoProcessor: the cover of a frame', () => {
       '1',
       '-map',
       '[screen0]',
-      '/tmp/frame-cover-x/cover.jpg',
+      // Joined as the processor joins it, with this system's separator.
+      path.join('/tmp/frame-cover-x', 'cover.jpg'),
     ]);
     expect(storage.upload).toHaveBeenCalledWith({
       originalname: expect.stringMatching(/\.jpg$/),

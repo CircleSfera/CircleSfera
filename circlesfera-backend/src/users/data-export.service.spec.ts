@@ -548,9 +548,11 @@ describe('DataExportService', () => {
         url: 'http://localhost:3000/api/v1/users/gdpr/exports/export-1/download',
         expiresAt: new Date(Date.now() + 3600 * 1000),
       });
-      fs.mkdirSync(EXPORTS_DIR, { recursive: true });
-      fs.writeFileSync(testFilePath, 'mock zip data');
-      fs.chmodSync(testFilePath, 0o000);
+      // A folder where the archive should be: it exists, but reading it
+      // fails (EISDIR) on every system. A file without read permission
+      // does not, since Windows ignores those permissions.
+      if (fs.existsSync(testFilePath)) fs.rmSync(testFilePath, { force: true });
+      fs.mkdirSync(testFilePath, { recursive: true });
 
       const res = createMockRes();
 
@@ -561,7 +563,7 @@ describe('DataExportService', () => {
 
         expect(res.status).toHaveBeenCalledWith(500);
       } finally {
-        fs.chmodSync(testFilePath, 0o644);
+        fs.rmSync(testFilePath, { recursive: true, force: true });
       }
     });
   });
