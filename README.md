@@ -53,10 +53,10 @@ docker compose up -d
 | http://localhost:5173 | Vite dev server (direct) |
 | http://localhost:3000/api/v1 | Backend API (direct) |
 
-**Local dev (without Docker):** Node **26** (matches CI/Docker images). Build shared package first, then backend + frontend. Backend needs Postgres **and** Redis; pointing a host `start:dev` at container Redis without auth will fail — prefer the compose stack.
+**Local dev (without Docker):** Node **26** (matches CI/Docker images). Install the shared package first (its `npm install` also builds `dist/`; run `npm run watch` there while you change it), then backend + frontend. Backend needs Postgres **and** Redis; pointing a host `start:dev` at container Redis without auth will fail — prefer the compose stack.
 
 ```bash
-cd circlesfera-shared && npm install && npm run build && cd ..
+cd circlesfera-shared && npm install && cd ..
 cd circlesfera-backend && npm install && npx prisma migrate dev && npm run start:dev
 cd circlesfera-frontend && npm install && npm run dev
 ```
