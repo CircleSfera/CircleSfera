@@ -822,7 +822,7 @@ describe('AuthService', () => {
   });
 
   describe('verifyEmail', () => {
-    it('should verify email successfully and evict profile cache', async () => {
+    it('verifies the email and reads the Profiles of that sign-in to drop their cached view', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({ id: '1' });
       mockPrismaService.profile.findMany.mockResolvedValueOnce([
         { username: 'bob' },
