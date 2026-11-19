@@ -51,6 +51,7 @@ function build() {
     revokeForAppeal: vi.fn().mockResolvedValue(null),
     liftRestrictionForAppeal: vi.fn(),
     invalidateProfileCache: vi.fn(),
+    invalidateAccountProfileCache: vi.fn(),
   };
   const risk = { liftRestrictionForAppeal: vi.fn().mockResolvedValue(null) };
   const limits = { clearRestricted: vi.fn() };

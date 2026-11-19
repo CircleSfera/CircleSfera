@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Prisma } from '@prisma/client';
+import type { Cache } from 'cache-manager';
 import {
   CASE_RECORD_RETENTION_DAYS,
   FAILED_EXPORT_RETENTION_DAYS,
@@ -11,6 +13,7 @@ import {
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PostDistributionService } from '../posts/services/post-distribution.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { forgetCachedProfilesOf } from '../profiles/profile-cache.js';
 import { StoriesService } from '../stories/stories.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 
@@ -24,6 +27,7 @@ export class MaintenanceService {
     private readonly stories: StoriesService,
     private readonly postDistribution: PostDistributionService,
     private readonly helpdeskData: HelpdeskDataPort,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   // Expired stories are not deleted: each stays in its author's archive.
@@ -173,6 +177,11 @@ export class MaintenanceService {
           data: { isActive: true },
         }),
       ]);
+
+      // Their Profiles show the accounts active again.
+      for (const userId of userIds) {
+        await forgetCachedProfilesOf(this.prisma, this.cache, { userId });
+      }
 
       this.logger.log(
         `Lifted ${userIds.length} expired suspensions (${profileIds.length} profiles).`,

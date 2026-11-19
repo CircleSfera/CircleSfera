@@ -45,6 +45,7 @@ describe('AppealsService', () => {
     revokeForAppeal: vi.fn(),
     liftRestrictionForAppeal: vi.fn(),
     invalidateProfileCache: vi.fn(),
+    invalidateAccountProfileCache: vi.fn(),
   };
 
   const mockEventEmitter = {
@@ -443,6 +444,39 @@ describe('AppealsService', () => {
       mockPrismaService.profileStrike.findUnique.mockResolvedValue({
         profileId: 'profile-1',
       });
+    });
+
+    // A bot label taken back changes the account, so every Profile of it.
+    it('approving a bot label appeal drops the cached view of every Profile of the account', async () => {
+      mockPrismaService.appeal.findUnique.mockResolvedValue(
+        pendingAppeal({ targetType: 'BOT_LABEL', targetId: null }),
+      );
+
+      await service.update(
+        'appeal-1',
+        { status: 'APPROVED' as any },
+        'admin-1',
+      );
+
+      expect(
+        mockStrikesService.invalidateAccountProfileCache,
+      ).toHaveBeenCalledWith('user-1');
+    });
+
+    it('a strike appeal leaves the other Profiles of the account cached', async () => {
+      mockPrismaService.appeal.findUnique.mockResolvedValue(
+        pendingAppeal({ targetType: 'STRIKE', targetId: 'strike-1' }),
+      );
+
+      await service.update(
+        'appeal-1',
+        { status: 'APPROVED' as any },
+        'admin-1',
+      );
+
+      expect(
+        mockStrikesService.invalidateAccountProfileCache,
+      ).not.toHaveBeenCalled();
     });
 
     it('approving a strike appeal withdraws that strike', async () => {

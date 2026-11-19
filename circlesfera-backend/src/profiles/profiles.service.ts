@@ -35,7 +35,11 @@ import { StoredFilesService } from '../uploads/services/stored-files.service.js'
 import { UsersService } from '../users/users.service.js';
 import { CreateProfileDto } from './dto/create-profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
-import { forgetCachedProfiles, profileCacheKey } from './profile-cache.js';
+import {
+  forgetCachedProfiles,
+  forgetCachedProfilesOf,
+  profileCacheKey,
+} from './profile-cache.js';
 
 // Service for profile CRUD, username validation, and account lifecycle (deactivate/delete).
 // Uses cache-manager for profile read caching.
@@ -646,32 +650,23 @@ export class ProfilesService {
 
   // Deactivate the authenticated user's account (soft, reversible: logging in
   // reactivates it). Acts on the owning User, not the Profile id.
-  async deactivateAccount(userId: string, profileId: string) {
-    const profile = await this.prisma.profile.findUnique({
-      where: { id: profileId },
-    });
+  // Every Profile of the account shows it inactive, not only this one.
+  async deactivateAccount(userId: string, _profileId: string) {
     const result = await this.prisma.user.update({
       where: { id: userId },
       data: { isActive: false, deactivatedAt: new Date() },
     });
-    if (profile) {
-      await forgetCachedProfiles(this.cacheManager, [profile.username]);
-    }
+    await forgetCachedProfilesOf(this.prisma, this.cacheManager, { userId });
     return result;
   }
 
   // Schedule account deletion with 30-day grace window (canonical GDPR flow).
   // Delegates to UsersService so BullMQ hard-delete job is always enqueued.
   // Prefer DELETE /users/me from new clients; this keeps DELETE /profiles/me compatible.
-  async deleteAccount(userId: string, profileId: string) {
-    const profile = await this.prisma.profile.findUnique({
-      where: { id: profileId },
-    });
+  // scheduleDeletion drops the cached view of every Profile of the account.
+  async deleteAccount(userId: string, _profileId: string) {
     const scheduledDeletionAt =
       await this.usersService.scheduleDeletion(userId);
-    if (profile) {
-      await forgetCachedProfiles(this.cacheManager, [profile.username]);
-    }
     return {
       success: true,
       message: 'Account scheduled for deletion',

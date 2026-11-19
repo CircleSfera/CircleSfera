@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { forgetCachedProfiles, profileCacheKey } from './profile-cache.js';
+import {
+  forgetCachedProfiles,
+  forgetCachedProfilesOf,
+  profileCacheKey,
+} from './profile-cache.js';
 
 describe('the cached public profile', () => {
   it('has one key for a username in any case', () => {
@@ -24,5 +28,38 @@ describe('the cached public profile', () => {
     };
 
     await expect(forgetCachedProfiles(cache, ['ana'])).resolves.toBeUndefined();
+  });
+
+  it('drops the view of every Profile of an account, or of a sign-in', async () => {
+    const cache = { del: vi.fn().mockResolvedValue(true) };
+    const db = {
+      profile: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ username: 'Ana' }, { username: 'ana.shop' }]),
+      },
+    };
+
+    await forgetCachedProfilesOf(db, cache, { userId: 'u-1' });
+    await forgetCachedProfilesOf(db, cache, { signInId: 's-1' });
+
+    expect(db.profile.findMany.mock.calls).toEqual([
+      [{ where: { userId: 'u-1' }, select: { username: true } }],
+      [{ where: { signInId: 's-1' }, select: { username: true } }],
+    ]);
+    expect(cache.del).toHaveBeenCalledWith('profile:ana');
+    expect(cache.del).toHaveBeenCalledWith('profile:ana.shop');
+  });
+
+  it('never fails the write when the Profiles cannot be read', async () => {
+    const cache = { del: vi.fn() };
+    const db = {
+      profile: { findMany: vi.fn().mockRejectedValue(new Error('db down')) },
+    };
+
+    await expect(
+      forgetCachedProfilesOf(db, cache, { userId: 'u-1' }),
+    ).resolves.toBeUndefined();
+    expect(cache.del).not.toHaveBeenCalled();
   });
 });

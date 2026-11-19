@@ -743,6 +743,11 @@ describe('UsersService', () => {
       );
       expect(mockOutboxService.enqueue).toHaveBeenCalled();
       expect(mockOutboxService.triggerImmediatePublish).toHaveBeenCalled();
+      // Its Profiles no longer show an active account.
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-abc' },
+        select: { username: true },
+      });
     });
 
     it('eraseNow queues the hard delete at once, with its own job id, through the same transaction', async () => {
@@ -780,6 +785,10 @@ describe('UsersService', () => {
         'user.session.terminate',
         { userId: 'user-now', reason: 'Account deleted by staff' },
       );
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-now' },
+        select: { username: true },
+      });
     });
 
     it('cancelScheduledDeletion throws error when user not found', async () => {
@@ -820,6 +829,11 @@ describe('UsersService', () => {
       mockUsersQueue.getJob.mockResolvedValue(mockJob);
 
       const res = await service.cancelScheduledDeletion('u_restore');
+      // Its Profiles show the account active again.
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u_restore' },
+        select: { username: true },
+      });
 
       expect(res).toEqual({
         success: true,
@@ -995,6 +1009,11 @@ describe('UsersService', () => {
       expect(tx.follow.updateMany).toHaveBeenCalledWith({
         where: { followingId: 'p-1', status: 'PENDING' },
         data: { status: 'ACCEPTED' },
+      });
+      // Its public view said private.
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u-1' },
+        select: { username: true },
       });
     });
 
@@ -1223,6 +1242,11 @@ describe('UsersService', () => {
           }),
         }),
       );
+      // Its Profiles now show the identity verified.
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u_full' },
+        select: { username: true },
+      });
     });
 
     it('keeps a date of birth it could not read from the document as not verified', async () => {
