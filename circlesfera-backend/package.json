@@ -15,6 +15,7 @@
     "start:debug": "node --inspect --watch-path=src --watch-preserve-output scripts/dev.mjs",
     "start:prod": "node dist/main.js",
     "lint": "biome lint .",
+    "typecheck:scripts": "node node_modules/typescript/bin/tsc -p tsconfig.scripts.json",
     "check": "biome check --write .",
     "check:deps": "node ../scripts/check-module-boundaries.mjs",
     "test": "vitest run",
