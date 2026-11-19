@@ -154,10 +154,6 @@ verifyComposeFile('docker-compose.prod.yml', [
   'redis',
 ]);
 verifyComposeFile('docker-compose.yml', ['postgres', 'redis', 'proxy']);
-verifyComposeFile('circlesfera-backend/docker-compose.dev.yml', [
-  'postgres',
-  'redis',
-]);
 verifyComposeFile('docker-compose.e2e.yml', ['postgres-e2e']);
 
 // 3. CI Workflows with service containers
