@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "CircleSfera - Your World, Connected.",
   "scripts": {
-    "test:e2e": "env -u NO_COLOR FORCE_COLOR=0 npx playwright test",
+    "test:e2e": "node scripts/playwright.mjs",
     "e2e:db:up": "docker compose -p circlesfera-e2e -f docker-compose.e2e.yml up -d --wait",
     "e2e:db:down": "docker compose -p circlesfera-e2e -f docker-compose.e2e.yml down",
-    "e2e:db:migrate": "cd circlesfera-backend && DATABASE_URL=\"${E2E_DATABASE_URL:-postgresql://prisma:prisma@localhost:5433/circlesfera_e2e?schema=public}\" npx prisma migrate deploy",
+    "e2e:db:migrate": "node scripts/e2e-db-migrate.mjs",
     "e2e:cleanup": "cd circlesfera-backend && node scripts/cleanup-e2e-users.ts",
     "smoke:profile-drift": "node scripts/validate-profile-drift-smoke.mjs",
     "db:backup": "./scripts/backup-postgres.sh",
