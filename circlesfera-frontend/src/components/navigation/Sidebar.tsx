@@ -319,7 +319,7 @@ export default function Sidebar({ compact = false }: { compact?: boolean }) {
 
         <button
           type="button"
-          onClick={logout}
+          onClick={() => void logout()}
           aria-label={t('nav.log_out')}
           className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-red-400/80 hover:bg-red-500/8 hover:text-red-300 transition-all duration-200 active:scale-95"
           style={{ minHeight: 44 }}

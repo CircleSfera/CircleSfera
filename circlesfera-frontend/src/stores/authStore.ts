@@ -21,7 +21,7 @@ interface AuthState {
   setAuthenticated: () => void;
   setProfile: (profile: ProfileWithUser) => void;
   switchProfile?: (profileId: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (notice?: SignOutNotice) => Promise<void>;
   // Validates the locally-persisted auth state against the backend by
   // Fetching the current profile. Persisted `isAuthenticated`/`profile`
   // Can be stale (e.g. the HTTP-only session cookie expired while the
@@ -44,6 +44,28 @@ async function clearApiCache(): Promise<boolean> {
     console.error('Failed to clear api-cache', e);
     return false;
   }
+}
+
+// A notice the sign-in page shows after signing out, since a notice shown
+// before the reload would vanish with it. Only these names reach the address.
+export const SIGN_OUT_NOTICES = ['deletion_scheduled'] as const;
+export type SignOutNotice = (typeof SIGN_OUT_NOTICES)[number];
+
+export function isSignOutNotice(value: unknown): value is SignOutNotice {
+  return SIGN_OUT_NOTICES.includes(value as SignOutNotice);
+}
+
+// After signing out the app loads again from the sign-in page, as it does
+// after a Profile switch: the query cache, every in-memory store (unread
+// counts, live notices, chat presence, an open Studio project, a call) and the
+// socket hold what the person who left was shown, and none of it may reach
+// whoever signs in next on this tab.
+export function leaveSignedOut(notice?: unknown) {
+  window.location.assign(
+    isSignOutNotice(notice)
+      ? `/accounts/login?notice=${notice}`
+      : '/accounts/login',
+  );
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -107,7 +129,7 @@ export const useAuthStore = create<AuthState>()(
           });
         }
       },
-      logout: async () => {
+      logout: async (notice) => {
         // 1. Reset local Zustand state synchronously to prevent infinite redirect loops
         set({
           profile: null,
@@ -117,19 +139,24 @@ export const useAuthStore = create<AuthState>()(
           isCheckingSession: false,
         });
 
-        // 2. Take this phone off push while the session still allows it: the
-        // next person to sign in on it must not get this one's notices.
-        await forgetNativePushToken();
-
         try {
-          // 3. Tell backend to revoke session cookies
-          await authApi.logout();
-        } catch (error) {
-          console.error('Failed to logout from backend', error);
-        }
+          // 2. Take this phone off push while the session still allows it: the
+          // next person to sign in on it must not get this one's notices.
+          await forgetNativePushToken();
 
-        // 4. Clear Service Worker API cache to prevent cross-account data bleed
-        await clearApiCache();
+          try {
+            // 3. Tell backend to revoke session cookies
+            await authApi.logout();
+          } catch (error) {
+            console.error('Failed to logout from backend', error);
+          }
+
+          // 4. Clear Service Worker API cache to prevent cross-account data bleed
+          await clearApiCache();
+        } finally {
+          // 5. Start the app again, signed out, even if a step above failed.
+          leaveSignedOut(notice);
+        }
       },
     }),
     {

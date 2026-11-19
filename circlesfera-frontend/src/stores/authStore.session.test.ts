@@ -1,7 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authApi } from '../services/auth.service';
 import { profileApi } from '../services/profile.service';
 import { useAuthStore } from './authStore';
+
+// Signing out loads the app again, which jsdom cannot do.
+const originalLocation = window.location;
 
 vi.mock('../services/profile.service', () => ({
   profileApi: { getMyProfile: vi.fn(), switchProfile: vi.fn() },
@@ -24,6 +27,17 @@ describe('authStore session check', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     reset({});
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, assign: vi.fn() },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    });
   });
 
   it('does not call the server when nothing was remembered', async () => {

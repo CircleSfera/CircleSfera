@@ -81,8 +81,9 @@ export default function AccountSettings() {
   const deleteAccountMutation = useMutation({
     mutationFn: () => usersApi.scheduleDeletion(),
     onSuccess: () => {
-      toast.success(t('settings.account.delete_scheduled'));
-      logout();
+      // The sign-in page says the deletion is scheduled: signing out loads
+      // the app again, and a notice shown here would go with it.
+      logout('deletion_scheduled');
       navigate('/accounts/login');
     },
     onError: (error: unknown) => {

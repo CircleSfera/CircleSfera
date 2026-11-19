@@ -2,6 +2,7 @@ import { startAuthentication } from '@simplewebauthn/browser';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { i18n as I18nInstance } from 'i18next';
 import { toast } from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
 import {
   afterEach,
   beforeEach,
@@ -720,6 +721,57 @@ describe('Login Page Integration', () => {
         await screen.findByTestId('login-submit-button'),
       ).toBeInTheDocument();
       expect(apiClient.post).not.toHaveBeenCalled();
+    });
+  });
+
+  // Signing out loads the app again, so what it had to say is shown here.
+  describe('a notice left by signing out', () => {
+    function WhereNow() {
+      return <output data-testid="search">{useLocation().search}</output>;
+    }
+
+    it('says the deletion is scheduled, once, and takes it off the address', async () => {
+      renderWithProviders(
+        <>
+          <Login />
+          <WhereNow />
+        </>,
+        {
+          routerProps: {
+            initialEntries: ['/accounts/login?notice=deletion_scheduled'],
+          },
+        },
+      );
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          'Account scheduled for deletion. Log in within 30 days to restore it.',
+          { id: 'sign-out-notice' },
+        ),
+      );
+      expect(toast.success).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(screen.getByTestId('search')).toHaveTextContent(''),
+      );
+    });
+
+    it('says nothing for a notice it does not know', async () => {
+      renderWithProviders(
+        <>
+          <Login />
+          <WhereNow />
+        </>,
+        {
+          routerProps: {
+            initialEntries: ['/accounts/login?notice=<b>hello</b>'],
+          },
+        },
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId('search')).toHaveTextContent(''),
+      );
+      expect(toast.success).not.toHaveBeenCalled();
     });
   });
 });
