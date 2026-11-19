@@ -15,10 +15,10 @@
     "check:deps": "node ../scripts/check-module-boundaries.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.7",
+    "@biomejs/biome": "2.6.8",
     "@prisma/client": "7.10.1",
     "@swc/core": "1.16.22",
-    "dependency-cruiser": "18.7.2",
+    "dependency-cruiser": "18.8.0",
     "typescript": "7.0.2"
   },
   "engines": {
