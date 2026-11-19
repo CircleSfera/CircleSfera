@@ -11,7 +11,7 @@ import { type Report, ReportStatus } from '@prisma/client';
 import axios from 'axios';
 import { ReviewReportUseCase } from '../admin/use-cases/content/commands/review-report.use-case.js';
 import { AIService } from '../ai/ai.service.js';
-import { redactSensitiveText } from '../common/observability/redaction.util.js';
+import { redactSensitiveText } from '../common/utils/redaction.util.js';
 import { sanitizeUrl } from '../common/utils/url-sanitizer.util.js';
 import { EmailService } from '../email/email.service.js';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';

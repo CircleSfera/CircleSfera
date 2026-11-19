@@ -1,7 +1,7 @@
 import type { Queue } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StripeService } from '../common/stripe/stripe.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import type { StripeService } from '../stripe/stripe.service.js';
 import { AccountDeletionProcessor } from './account-deletion.processor.js';
 import type { UsersService } from './users.service.js';
 

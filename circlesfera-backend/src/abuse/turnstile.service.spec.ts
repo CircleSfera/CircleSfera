@@ -3,7 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SystemSettingsService } from '../../system-settings/system-settings.service.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { TurnstileService } from './turnstile.service.js';
 
 describe('TurnstileService', () => {

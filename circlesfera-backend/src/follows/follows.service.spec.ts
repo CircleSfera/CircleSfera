@@ -1,7 +1,7 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import { TurnstileService } from '../abuse/turnstile.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { LiveService } from '../live/live.service.js';

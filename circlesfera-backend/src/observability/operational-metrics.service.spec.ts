@@ -1,7 +1,7 @@
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Queue } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SocketPresenceService } from '../../socket/services/socket-presence.service.js';
+import type { SocketPresenceService } from '../socket/services/socket-presence.service.js';
 import {
   DEFAULT_OPERATIONAL_THRESHOLDS,
   OperationalMetricsService,

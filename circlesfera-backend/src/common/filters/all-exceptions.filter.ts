@@ -12,7 +12,7 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as Sentry from '@sentry/nestjs';
 import { CorrelationContext } from '../correlation/correlation.context.js';
-import { redactSensitiveText } from '../observability/redaction.util.js';
+import { redactSensitiveText } from '../utils/redaction.util.js';
 import { sanitizeUrl } from '../utils/url-sanitizer.util.js';
 
 @Catch()

@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { StripeService } from '../../../../stripe/stripe.service.js';
 
 export type RefundPromotionResult =
   | { refunded: true; amount: number; currency: string }

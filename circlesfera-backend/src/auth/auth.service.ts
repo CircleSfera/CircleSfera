@@ -20,8 +20,8 @@ import type { Cache } from 'cache-manager';
 import {
   type AbuseRequestMeta,
   DeviceSignalService,
-} from '../common/abuse/device-signal.service.js';
-import { TurnstileService } from '../common/abuse/turnstile.service.js';
+} from '../abuse/device-signal.service.js';
+import { TurnstileService } from '../abuse/turnstile.service.js';
 import {
   FIRST_SIGN_IN_ORDER,
   sessionSignInWhere,

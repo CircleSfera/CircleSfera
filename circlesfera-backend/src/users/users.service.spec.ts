@@ -19,10 +19,10 @@ import {
   vi,
 } from 'vitest';
 import { CryptoService } from '../common/services/crypto.service.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StripeService } from '../stripe/stripe.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import {
   ContentPreferenceDto,

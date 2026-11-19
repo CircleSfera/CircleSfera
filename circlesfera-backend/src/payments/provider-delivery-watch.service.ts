@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { StripeService } from '../common/stripe/stripe.service.js';
+import { StripeService } from '../stripe/stripe.service.js';
 
 // Retries of the provider's own come within this time; an event still not
 // delivered after it is a fault, and older ones were told before.

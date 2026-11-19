@@ -3,7 +3,7 @@ import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import {
   scrubSentryBreadcrumb,
   scrubSentryEvent,
-} from './common/observability/redaction.util.js';
+} from './common/utils/redaction.util.js';
 
 const isProd = process.env.NODE_ENV === 'production';
 

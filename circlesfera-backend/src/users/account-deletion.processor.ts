@@ -3,8 +3,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
 import { type Job, type Queue, UnrecoverableError } from 'bullmq';
-import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StripeService } from '../stripe/stripe.service.js';
 import { getFinancialAuditRecords } from './data-retention.constants.js';
 import {
   USER_HARD_DELETED_EVENT,

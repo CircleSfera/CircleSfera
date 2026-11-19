@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { IllegalNoticeStatus } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from './../src/app.module.js';
+import { AppModule } from '../src/app.module.js';
 import { IllegalNoticesService } from '../src/illegal-notices/illegal-notices.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { uniqueSuffix } from './utils/unique-id.js';
