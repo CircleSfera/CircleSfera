@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, type TestingModule } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import * as bcrypt from 'bcrypt';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeviceSignalService } from '../common/abuse/device-signal.service.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { CryptoService } from '../common/services/crypto.service.js';
@@ -107,6 +107,8 @@ describe('AuthService', () => {
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) =>
       fn(mockPrismaService),
     ),
+    // Renewing locks the token and its family's live tokens.
+    $queryRaw: vi.fn().mockResolvedValue([]),
     refreshToken: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -930,16 +932,15 @@ describe('AuthService', () => {
         refreshToken: 'mock-refresh',
       });
       expect(result).toHaveProperty('accessToken');
-      // Revoked only if still live, so a renewal racing it is seen as its retry.
-      expect(mockPrismaService.refreshToken.updateMany).toHaveBeenCalledTimes(
-        1,
-      );
-      expect(mockPrismaService.refreshToken.updateMany).toHaveBeenCalledWith(
+      // Revoked inside the transaction that locks the session's tokens.
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.refreshToken.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'token-id', isRevoked: false },
+          where: { id: 'token-id' },
           data: expect.objectContaining({ isRevoked: true }),
         }),
       );
+      expect(mockPrismaService.refreshToken.updateMany).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException and delete token if user is banned during refreshToken', async () => {
@@ -2037,21 +2038,37 @@ describe('AuthService', () => {
       isRootBanned: false,
       profiles: [{ id: 'p-1', isAccountBanned: false, suspendedUntil: null }],
     };
+    const recently = () => new Date(Date.now() - 5_000);
 
-    function replaced(revokedAt: Date | null) {
+    // A refusal before the second read leaves its answer queued: none may
+    // reach the next test.
+    afterEach(() => {
+      mockPrismaService.refreshToken.findUnique.mockReset();
+      mockPrismaService.refreshToken.count.mockReset();
+    });
+
+    function token(over: Record<string, unknown>) {
+      return {
+        id: 'sent-token',
+        userId: '1',
+        familyId: 'family-1',
+        isRevoked: false,
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 100000),
+        ...over,
+      };
+    }
+
+    // The token as first read, then as read again with the family locked.
+    function sent(first: unknown, locked: unknown = first) {
       mockJwtService.verify.mockReturnValue({
         sub: '1',
         email: 'test@example.com',
         familyId: 'family-1',
       });
-      mockPrismaService.refreshToken.findUnique.mockResolvedValue({
-        id: 'replaced-token',
-        userId: '1',
-        familyId: 'family-1',
-        isRevoked: true,
-        revokedAt,
-        expiresAt: new Date(Date.now() + 100000),
-      });
+      mockPrismaService.refreshToken.findUnique
+        .mockResolvedValueOnce(first)
+        .mockResolvedValueOnce(locked);
       mockPrismaService.user.findUnique.mockResolvedValue(operationalUser);
     }
 
@@ -2064,7 +2081,7 @@ describe('AuthService', () => {
 
     async function expectFamilyEnded() {
       await expect(
-        service.refreshToken({ refreshToken: 'replaced' }),
+        service.refreshToken({ refreshToken: 'sent' }),
       ).rejects.toThrow(
         new UnauthorizedException('Refresh token reuse detected'),
       );
@@ -2075,21 +2092,32 @@ describe('AuthService', () => {
     }
 
     it('renews again within the window while the token it issued is unused', async () => {
-      replaced(new Date(Date.now() - 5_000));
+      const replaced = token({ isRevoked: true, revokedAt: recently() });
+      sent(replaced);
       family(0, 1);
 
-      const result = await service.refreshToken({ refreshToken: 'replaced' });
+      const result = await service.refreshToken({ refreshToken: 'sent' });
 
       expect(result).toHaveProperty('refreshToken');
-      expect(mockPrismaService.refreshToken.deleteMany).not.toHaveBeenCalled();
+      // Decided with the token and the family's live tokens locked.
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.refreshToken.count).toHaveBeenNthCalledWith(1, {
+        where: {
+          userId: '1',
+          familyId: 'family-1',
+          isRevoked: true,
+          revokedAt: { gt: replaced.revokedAt },
+        },
+      });
+      expect(mockPrismaService.refreshToken.count).toHaveBeenNthCalledWith(2, {
+        where: { userId: '1', familyId: 'family-1', isRevoked: false },
+      });
       // The token the lost answer carried is withdrawn, never left live.
-      expect(mockPrismaService.refreshToken.updateMany).toHaveBeenCalledTimes(
-        1,
-      );
       expect(mockPrismaService.refreshToken.updateMany).toHaveBeenCalledWith({
         where: { userId: '1', familyId: 'family-1', isRevoked: false },
         data: expect.objectContaining({ isRevoked: true }),
       });
+      expect(mockPrismaService.refreshToken.deleteMany).not.toHaveBeenCalled();
       expect(mockPrismaService.refreshToken.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ familyId: 'family-1' }),
@@ -2098,35 +2126,56 @@ describe('AuthService', () => {
     });
 
     it('ends the family once the window has passed', async () => {
-      replaced(new Date(Date.now() - REFRESH_RETRY_GRACE_MS - 1_000));
+      sent(
+        token({
+          isRevoked: true,
+          revokedAt: new Date(Date.now() - REFRESH_RETRY_GRACE_MS - 1_000),
+        }),
+      );
 
       await expectFamilyEnded();
       expect(mockPrismaService.refreshToken.count).not.toHaveBeenCalled();
     });
 
     it('ends the family when the token it issued was already renewed', async () => {
-      replaced(new Date(Date.now() - 5_000));
+      sent(token({ isRevoked: true, revokedAt: recently() }));
       family(1, 1);
 
       await expectFamilyEnded();
     });
 
+    // Replays sent together queue on the lock: the first withdraws the live
+    // token, so every later one sees a renewal after its own.
+    it('ends the family for a replay that comes after another retry', async () => {
+      sent(token({ isRevoked: true, revokedAt: recently() }));
+      family(1, 0);
+
+      await expectFamilyEnded();
+    });
+
     it('ends the family when more than one token of it is live', async () => {
-      replaced(new Date(Date.now() - 5_000));
+      sent(token({ isRevoked: true, revokedAt: recently() }));
       family(0, 2);
 
       await expectFamilyEnded();
     });
 
     it('ends the family for a revoked token that never said when', async () => {
-      replaced(null);
+      sent(token({ isRevoked: true, revokedAt: null }));
 
       await expectFamilyEnded();
+      expect(mockPrismaService.refreshToken.count).not.toHaveBeenCalled();
+    });
+
+    it('gives no window to a token stored without its own family', async () => {
+      sent(token({ familyId: null, isRevoked: true, revokedAt: recently() }));
+
+      await expectFamilyEnded();
+      expect(mockPrismaService.refreshToken.count).not.toHaveBeenCalled();
     });
 
     it('still refuses an account that may not be used', async () => {
-      replaced(new Date(Date.now() - 5_000));
-      family(0, 1);
+      sent(token({ isRevoked: true, revokedAt: recently() }));
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: '1',
         isActive: false,
@@ -2136,41 +2185,50 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.refreshToken({ refreshToken: 'replaced' }),
+        service.refreshToken({ refreshToken: 'sent' }),
       ).rejects.toThrow(UnauthorizedException);
       expect(mockPrismaService.refreshToken.create).not.toHaveBeenCalled();
     });
 
     it('takes the second of two renewals with the same token as its retry', async () => {
-      mockJwtService.verify.mockReturnValue({
-        sub: '1',
-        email: 'test@example.com',
-        familyId: 'family-1',
-      });
-      // Both read it live; the other renewal revoked it first.
-      mockPrismaService.refreshToken.findUnique.mockResolvedValue({
-        id: 'raced-token',
-        userId: '1',
-        familyId: 'family-1',
-        isRevoked: false,
-        expiresAt: new Date(Date.now() + 100000),
-      });
-      mockPrismaService.user.findUnique.mockResolvedValue(operationalUser);
-      mockPrismaService.refreshToken.updateMany
-        .mockResolvedValueOnce({ count: 0 })
-        .mockResolvedValueOnce({ count: 1 });
+      // Read live, then found revoked by the other renewal once locked.
+      sent(token({}), token({ isRevoked: true, revokedAt: new Date() }));
+      family(0, 1);
 
-      const result = await service.refreshToken({ refreshToken: 'raced' });
+      const result = await service.refreshToken({ refreshToken: 'sent' });
 
       expect(result).toHaveProperty('refreshToken');
-      expect(mockPrismaService.refreshToken.updateMany).toHaveBeenNthCalledWith(
-        2,
-        {
-          where: { userId: '1', familyId: 'family-1', isRevoked: false },
-          data: expect.objectContaining({ isRevoked: true }),
-        },
-      );
+      expect(mockPrismaService.refreshToken.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: '1', familyId: 'family-1', isRevoked: false },
+        data: expect.objectContaining({ isRevoked: true }),
+      });
       expect(mockPrismaService.refreshToken.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('ends the family when the token, read again locked, was revoked long ago', async () => {
+      sent(
+        token({}),
+        token({
+          isRevoked: true,
+          revokedAt: new Date(Date.now() - REFRESH_RETRY_GRACE_MS - 1_000),
+        }),
+      );
+
+      await expectFamilyEnded();
+      expect(mockPrismaService.refreshToken.count).not.toHaveBeenCalled();
+    });
+
+    // Sign-out, a password change or a ban deletes the session's tokens.
+    it('issues nothing when the session was closed while it renewed', async () => {
+      sent(token({}), null);
+
+      await expect(
+        service.refreshToken({ refreshToken: 'sent' }),
+      ).rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
+      expect(mockPrismaService.refreshToken.create).not.toHaveBeenCalled();
+      expect(mockPrismaService.refreshToken.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.refreshToken.updateMany).not.toHaveBeenCalled();
     });
   });
 

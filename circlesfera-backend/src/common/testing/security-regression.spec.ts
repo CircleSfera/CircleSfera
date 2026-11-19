@@ -381,6 +381,11 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
           count: vi.fn().mockResolvedValue(0),
           create: vi.fn().mockResolvedValue({ id: 'rt-new', token: 'hash' }),
         },
+        // A renewal locks the session's tokens inside one transaction.
+        $transaction: vi.fn(async (fn: (tx: unknown) => unknown) =>
+          fn(mockPrisma),
+        ),
+        $queryRaw: vi.fn().mockResolvedValue([]),
         signIn: { findFirst: vi.fn().mockResolvedValue({ id: 'sign-in-1' }) },
         // The account's own Profiles, read when the session is resolved.
         profile: { findMany: vi.fn().mockResolvedValue([]) },
@@ -535,9 +540,10 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
       expect(result).toBeDefined();
       expect(result.accessToken).toBe('new-access-token');
 
-      // Verify old token was marked revoked, only if still live (ADR-0032)
-      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith({
-        where: { id: 'token-active', isRevoked: false },
+      // Verify old token was marked revoked, with the session's tokens locked
+      expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith({
+        where: { id: 'token-active' },
         data: {
           isRevoked: true,
           revokedAt: expect.any(Date),
