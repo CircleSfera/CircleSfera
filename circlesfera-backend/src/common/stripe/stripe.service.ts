@@ -17,11 +17,10 @@ import { usableWebhookSecret } from './stripe-webhook-secrets.js';
 // A Stripe Payment Method Configuration id (pmc_...).
 const PAYMENT_METHOD_CONFIGURATION = /^pmc_[A-Za-z0-9]+$/;
 
-// The provider's stable version, used for every request but one. The
-// installed library is the provider's preview release, whose own version is
-// the preview below; its documentation allows another version for the
-// client, typed as its own.
-const STRIPE_API_VERSION = '2026-10-28.endive';
+// The API version every request names: the one the installed library is
+// typed for, so moving the library to a new version fails the type check
+// until this moves with it.
+const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2026-11-18.endive';
 
 @Injectable()
 export class StripeService implements OnModuleInit {
@@ -37,7 +36,7 @@ export class StripeService implements OnModuleInit {
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
     this.stripe = new Stripe(secretKey, {
-      apiVersion: STRIPE_API_VERSION as Stripe.LatestApiVersion,
+      apiVersion: STRIPE_API_VERSION,
       timeout: 20_000,
       maxNetworkRetries: 2,
     });
