@@ -1,10 +1,19 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminAuthApi } from '../services/admin-auth.service';
 import { useAdminAuthStore } from './adminAuthStore';
 
 vi.mock('../services/admin-auth.service', () => ({
   adminAuthApi: { me: vi.fn(), logout: vi.fn() },
 }));
+
+// Signing out loads the panel again, which jsdom cannot do.
+const originalLocation = window.location;
+const assign = vi.fn();
+const at = (pathname: string) =>
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: { ...originalLocation, pathname, assign },
+  });
 
 const staff = (roles: string[], permissions: string[]) =>
   ({ id: 'a1', email: 'ops@circlesfera.com', roles, permissions }) as never;
@@ -17,6 +26,14 @@ describe('adminAuthStore', () => {
       isAuthenticated: false,
       isSessionChecked: false,
       isCheckingSession: false,
+    });
+    at('/reports');
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
     });
   });
 
@@ -65,6 +82,24 @@ describe('adminAuthStore', () => {
       admin: null,
       isAuthenticated: false,
     });
+  });
+
+  it('loads the panel again from its sign-in page after signing out', async () => {
+    useAdminAuthStore.getState().setAdmin(staff(['MODERATOR'], []));
+    vi.mocked(adminAuthApi.logout).mockResolvedValue({} as never);
+
+    await useAdminAuthStore.getState().logout();
+
+    expect(assign).toHaveBeenCalledWith('/login');
+  });
+
+  it('does not load the sign-in page again when already on it', async () => {
+    at('/login');
+    vi.mocked(adminAuthApi.logout).mockResolvedValue({} as never);
+
+    await useAdminAuthStore.getState().logout();
+
+    expect(assign).not.toHaveBeenCalled();
   });
 
   it('signs staff out when a panel request reports the session ended', async () => {

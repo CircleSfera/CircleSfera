@@ -49,13 +49,21 @@ export const useAdminAuthStore = create<AdminAuthState>()(
         try {
           await adminAuthApi.logout();
         } catch {
-          // Ignore
+          // Signed out here even when the server cannot be reached.
         }
         set({
           admin: null,
           isAuthenticated: false,
           isSessionChecked: true,
         });
+        // The panel loads again from its sign-in page, as the app does after
+        // a participant signs out: the query cache and every in-memory store
+        // hold what this staff member was shown, and none of it may reach
+        // whoever signs in next on this tab. Already on that page, nothing is
+        // left to drop, and loading it again would only repeat the check.
+        if (window.location.pathname !== '/login') {
+          window.location.assign('/login');
+        }
       },
       hasPermission: (key: string) => {
         const admin = get().admin;

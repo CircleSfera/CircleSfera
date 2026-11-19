@@ -512,29 +512,16 @@ describe('staff panel navigation', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
-  it('signs out and leaves for the sign-in page', async () => {
-    const before = window.location;
-    const place = { href: 'http://localhost/users' };
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: place,
-    });
-    try {
-      show('users');
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Account of Ana Staff' }),
-      );
+  it('signs out from the account menu', () => {
+    show('users');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Account of Ana Staff' }),
+    );
 
-      fireEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }));
 
-      expect(logout).toHaveBeenCalledTimes(1);
-      await waitFor(() => expect(place.href).toBe('/login'));
-    } finally {
-      Object.defineProperty(window, 'location', {
-        configurable: true,
-        value: before,
-      });
-    }
+    // Leaving for the sign-in page is the store's part (adminAuthStore.test).
+    expect(logout).toHaveBeenCalledTimes(1);
   });
 
   it('shows no account menu while nobody is signed in', () => {
