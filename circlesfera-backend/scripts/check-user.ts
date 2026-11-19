@@ -13,14 +13,14 @@ async function listUsers() {
 
   try {
     const users = await prisma.user.findMany({
-      include: { profile: true },
+      include: { profiles: { select: { username: true } } },
     });
     console.log(
       'Users in DB:',
       JSON.stringify(
         users.map((u) => ({
           email: u.email,
-          username: u.profile?.username,
+          usernames: u.profiles.map((profile) => profile.username),
           isActive: u.isActive,
         })),
         null,
