@@ -92,6 +92,19 @@ describe('BackofficeApp', () => {
   it('signing out ends the session and returns to the sign-in', async () => {
     vi.mocked(adminAuthApi.me).mockResolvedValue({ data: operator } as never);
     const logged = catchLoggedWarning();
+    // Signing out loads the panel again, which jsdom cannot do.
+    const originalLocation = window.location;
+    const assign = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, assign },
+    });
+    onTestFinished(() => {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: originalLocation,
+      });
+    });
 
     const { i18n } = renderWithProviders(<BackofficeApp />);
     fireEvent.click(
@@ -100,6 +113,7 @@ describe('BackofficeApp', () => {
 
     expect(await screen.findByTestId('staff-sign-in')).toBeInTheDocument();
     expect(adminAuthApi.logout).toHaveBeenCalled();
+    expect(assign).toHaveBeenCalledWith('/login');
     expect(logged).toHaveBeenCalledWith(
       'Admin Panel: unauthenticated access attempt at /',
     );
