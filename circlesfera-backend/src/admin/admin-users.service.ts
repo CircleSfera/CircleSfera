@@ -172,6 +172,16 @@ export class AdminUsersService {
   }
 
   // Helper to invalidate a profile cache by userId.
+  // An account that does not exist is "not found", not a server error from
+  // the first write that misses it.
+  private async assertUserExists(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+  }
+
   private async invalidateProfileCache(userId: string) {
     try {
       const profiles = await this.prisma.profile.findMany({
@@ -347,19 +357,23 @@ export class AdminUsersService {
     }
 
     // The six months to appeal the ban count from now, on every Profile.
-    await this.prisma.profile.updateMany({
-      where: { userId },
-      data: { sanctionedAt: new Date() },
-    });
-    const result = await this.prisma.user.update({
-      where: { id: userId },
-      data: { isActive: false, isRootBanned: true },
-      include: {
-        profiles: {
-          select: { id: true, username: true, fullName: true, avatar: true },
+    // Both writes or neither: a ban without its appeal clock, or a clock
+    // without the ban, is a state no one decided.
+    const [, result] = await this.prisma.$transaction([
+      this.prisma.profile.updateMany({
+        where: { userId },
+        data: { sanctionedAt: new Date() },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { isActive: false, isRootBanned: true },
+        include: {
+          profiles: {
+            select: { id: true, username: true, fullName: true, avatar: true },
+          },
         },
-      },
-    });
+      }),
+    ]);
     await deleteRefreshTokens(this.prisma, { userId });
     const banEvent: UserSessionTerminateEvent['payload'] = {
       userId,
@@ -381,23 +395,28 @@ export class AdminUsersService {
   }
 
   async unbanUser(adminId: string, userId: string) {
-    await this.prisma.profile.updateMany({
-      where: { userId },
-      data: {
-        suspendedUntil: null,
-        isAccountBanned: false,
-        banStrikeId: null,
-        suspensionStrikeId: null,
-        suspensionCause: null,
-      },
-    });
-    const result = await this.prisma.user.update({
-      where: { id: userId },
-      data: { isActive: true, isRootBanned: false },
-      include: {
-        profiles: true,
-      },
-    });
+    await this.assertUserExists(userId);
+    // Both writes or neither: Profiles cleared on an account still banned
+    // would show as free while no one can use them.
+    const [, result] = await this.prisma.$transaction([
+      this.prisma.profile.updateMany({
+        where: { userId },
+        data: {
+          suspendedUntil: null,
+          isAccountBanned: false,
+          banStrikeId: null,
+          suspensionStrikeId: null,
+          suspensionCause: null,
+        },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { isActive: true, isRootBanned: false },
+        include: {
+          profiles: true,
+        },
+      }),
+    ]);
     await this.logAction(adminId, AdminAction.UNBAN_USER, 'user', userId);
     await this.invalidateProfileCache(userId);
     return result;
@@ -546,24 +565,29 @@ export class AdminUsersService {
     days: number,
     reason?: string,
   ) {
+    await this.assertUserExists(userId);
     const until = new Date();
     until.setDate(until.getDate() + Math.max(1, days));
-    await this.prisma.profile.updateMany({
-      where: { userId },
-      // A staff suspension has no strike behind it.
-      data: {
-        suspendedUntil: until,
-        suspensionStrikeId: null,
-        suspensionCause: null,
-        sanctionedAt: new Date(),
-      },
-    });
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        isActive: false,
-      },
-    });
+    // Both writes or neither, as for a ban.
+    await this.prisma.$transaction([
+      this.prisma.profile.updateMany({
+        where: { userId },
+        // A staff suspension has no strike behind it.
+        data: {
+          suspendedUntil: until,
+          suspensionStrikeId: null,
+          suspensionCause: null,
+          sanctionedAt: new Date(),
+        },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          isActive: false,
+        },
+      }),
+    ]);
+    await this.invalidateProfileCache(userId);
     await this.logAction(
       adminId,
       AdminAction.ACCOUNT_SUSPENDED,
@@ -592,20 +616,25 @@ export class AdminUsersService {
   }
 
   async restoreUser(adminId: string, userId: string) {
-    await this.prisma.profile.updateMany({
-      where: { userId },
-      data: {
-        suspendedUntil: null,
-        suspensionStrikeId: null,
-        suspensionCause: null,
-      },
-    });
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        isActive: true,
-      },
-    });
+    await this.assertUserExists(userId);
+    // Both writes or neither, as for a ban.
+    await this.prisma.$transaction([
+      this.prisma.profile.updateMany({
+        where: { userId },
+        data: {
+          suspendedUntil: null,
+          suspensionStrikeId: null,
+          suspensionCause: null,
+        },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          isActive: true,
+        },
+      }),
+    ]);
+    await this.invalidateProfileCache(userId);
     await this.logAction(adminId, AdminAction.ACCOUNT_RESTORED, 'user', userId);
     return { success: true };
   }
