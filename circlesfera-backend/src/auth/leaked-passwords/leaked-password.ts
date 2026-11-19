@@ -7,13 +7,17 @@ import { AppException } from '../../common/errors/app.exception.js';
 // licence in NOTICE.
 let leaked: Set<string> | undefined;
 
+// One password per line. A checkout on Windows can turn the file's line
+// endings into CRLF; a "\r" kept on each entry would match no password.
+export function parseLeakedPasswords(text: string): Set<string> {
+  return new Set(text.split(/\r?\n/).filter(Boolean));
+}
+
 function leakedPasswords(): Set<string> {
   if (!leaked) {
-    const text = readFileSync(
-      new URL('./leaked-passwords.txt', import.meta.url),
-      'utf8',
+    leaked = parseLeakedPasswords(
+      readFileSync(new URL('./leaked-passwords.txt', import.meta.url), 'utf8'),
     );
-    leaked = new Set(text.split('\n').filter(Boolean));
   }
   return leaked;
 }
