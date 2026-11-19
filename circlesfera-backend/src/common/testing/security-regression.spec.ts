@@ -10,7 +10,10 @@ import * as argon2 from 'argon2';
 import * as bcrypt from 'bcrypt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppealsController } from '../../appeals/appeals.controller.js';
-import { AuthService } from '../../auth/auth.service.js';
+import {
+  AuthService,
+  REFRESH_RETRY_GRACE_MS,
+} from '../../auth/auth.service.js';
 import { AccountStateService } from '../../auth/services/account-state.service.js';
 import { MediaAuthService } from '../../media/media-auth.service.js';
 import { DataExportService } from '../../users/data-export.service.js';
@@ -374,8 +377,15 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
           delete: vi.fn().mockResolvedValue({}),
           deleteMany: vi.fn().mockResolvedValue({ count: 3 }),
           update: vi.fn().mockResolvedValue({}),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+          count: vi.fn().mockResolvedValue(0),
           create: vi.fn().mockResolvedValue({ id: 'rt-new', token: 'hash' }),
         },
+        // A renewal locks the session's tokens inside one transaction.
+        $transaction: vi.fn(async (fn: (tx: unknown) => unknown) =>
+          fn(mockPrisma),
+        ),
+        $queryRaw: vi.fn().mockResolvedValue([]),
         signIn: { findFirst: vi.fn().mockResolvedValue({ id: 'sign-in-1' }) },
         // The account's own Profiles, read when the session is resolved.
         profile: { findMany: vi.fn().mockResolvedValue([]) },
@@ -461,6 +471,51 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
       });
     });
 
+    // ADR-0032 forgives only the retry of the last renewal, within 30 seconds
+    // and while the token it issued was never used. Anything else is replay.
+    it.each([
+      [
+        'after the 30-second window',
+        new Date(Date.now() - REFRESH_RETRY_GRACE_MS - 60_000),
+        [0, 1],
+      ],
+      ['once the token it issued was renewed', new Date(), [1, 1]],
+      ['while two tokens of its family are live', new Date(), [0, 2]],
+    ])(
+      'revokes the entire family for a replay %s',
+      async (_when, revokedAt, [renewedSince, live]) => {
+        mockJwtService.verify.mockReturnValue({
+          sub: 'user-victim',
+          email: 'victim@example.com',
+          familyId: 'compromised-family-123',
+        });
+        mockPrisma.refreshToken.findUnique.mockResolvedValue({
+          id: 'rt-revoked',
+          userId: 'user-victim',
+          familyId: 'compromised-family-123',
+          isRevoked: true,
+          revokedAt,
+          token: 'some-hash',
+          expiresAt: new Date(Date.now() + 86400000),
+        });
+        mockPrisma.refreshToken.count
+          .mockResolvedValueOnce(renewedSince)
+          .mockResolvedValueOnce(live);
+
+        await expect(
+          authService.refreshToken(
+            { refreshToken: 'replayed.refresh.token' },
+            { ip: '1.2.3.4', userAgent: 'Attacker Browser' },
+          ),
+        ).rejects.toThrow(UnauthorizedException);
+
+        expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledWith({
+          where: { userId: 'user-victim', familyId: 'compromised-family-123' },
+        });
+        expect(mockPrisma.refreshToken.create).not.toHaveBeenCalled();
+      },
+    );
+
     it('allows legitimate token rotation within the existing family', async () => {
       mockJwtService.verify.mockReturnValue({
         sub: 'user-legit',
@@ -485,7 +540,8 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
       expect(result).toBeDefined();
       expect(result.accessToken).toBe('new-access-token');
 
-      // Verify old token was marked revoked
+      // Verify old token was marked revoked, with the session's tokens locked
+      expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2);
       expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith({
         where: { id: 'token-active' },
         data: {

@@ -58,6 +58,13 @@ import { takeTotpCodeOnce } from './two-factor/totp-once.js';
 // the secret of its second step.
 const LOGIN_SIGN_IN_OMIT = { password: false, twoFactorSecret: false } as const;
 
+// A renewal whose answer never arrived (the connection dropped, the app was
+// closed) leaves the person holding the refresh token it replaced. For this
+// long after that renewal, and only while the token it issued was never used,
+// sending the replaced token again is taken as that retry, not as a stolen
+// token (ADR-0032).
+export const REFRESH_RETRY_GRACE_MS = 30_000;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -686,6 +693,70 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
+  // Whether a revoked refresh token was revoked recently enough to be the
+  // retry of the renewal that revoked it (ADR-0032). Only a token stored with
+  // its own family qualifies.
+  private withinRetryWindow(token: {
+    familyId: string | null;
+    revokedAt: Date | null;
+  }): token is { familyId: string; revokedAt: Date } {
+    return (
+      Boolean(token.familyId) &&
+      token.revokedAt instanceof Date &&
+      Date.now() - token.revokedAt.getTime() <= REFRESH_RETRY_GRACE_MS
+    );
+  }
+
+  // Whether a revoked refresh token comes back as the retry of the renewal
+  // that revoked it: within REFRESH_RETRY_GRACE_MS of that renewal, no later
+  // renewal in its family, and at most the one live token that renewal issued.
+  // Read inside the transaction that locks the family's live tokens.
+  private async isRetryOfLastRotation(
+    db: Pick<PrismaService, 'refreshToken'>,
+    userId: string,
+    token: { familyId: string | null; revokedAt: Date | null },
+  ): Promise<boolean> {
+    if (!this.withinRetryWindow(token)) {
+      return false;
+    }
+    const { familyId, revokedAt } = token;
+    const [renewedSince, live] = await Promise.all([
+      db.refreshToken.count({
+        where: {
+          userId,
+          familyId,
+          isRevoked: true,
+          revokedAt: { gt: revokedAt },
+        },
+      }),
+      db.refreshToken.count({
+        where: { userId, familyId, isRevoked: false },
+      }),
+    ]);
+    return renewedSince === 0 && live <= 1;
+  }
+
+  // A revoked refresh token that is not a retry: taken as stolen, its whole
+  // family (the session, on every device) is ended (RFC 6819). The caller
+  // refuses the renewal.
+  private async endFamilyForReuse(
+    db: Pick<PrismaService, 'refreshToken'>,
+    token: { id: string; userId: string; familyId: string | null },
+    payloadFamilyId: string | undefined,
+  ): Promise<void> {
+    const familyToRevoke = token.familyId || payloadFamilyId;
+    if (familyToRevoke) {
+      await db.refreshToken.deleteMany({
+        where: { userId: token.userId, familyId: familyToRevoke },
+      });
+    } else {
+      await db.refreshToken.delete({ where: { id: token.id } });
+    }
+    this.logger.warn(
+      `Security alert: Refresh token replay attack detected for user ${token.userId}, family ${familyToRevoke || 'unknown'}`,
+    );
+  }
+
   // Returns New access and refresh token pair
   // Throws UnauthorizedException if token is invalid, expired, revoked, or reused
   async refreshToken(
@@ -738,25 +809,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Token family reuse / replay attack detection (RFC 6819)
-    if (storedToken.isRevoked) {
-      const familyToRevoke = storedToken.familyId || payload.familyId;
-      if (familyToRevoke) {
-        await this.prisma.refreshToken.deleteMany({
-          where: {
-            userId: storedToken.userId,
-            familyId: familyToRevoke,
-          },
-        });
-      } else {
-        await this.prisma.refreshToken.delete({
-          where: { id: storedToken.id },
-        });
-      }
-
-      this.logger.warn(
-        `Security alert: Refresh token replay attack detected for user ${storedToken.userId}, family ${familyToRevoke || 'unknown'}`,
-      );
+    // Token family reuse / replay attack detection (RFC 6819). A revoked
+    // token can only be the retry of a renewal whose answer never arrived
+    // (ADR-0032), decided below with the family locked.
+    if (storedToken.isRevoked && !this.withinRetryWindow(storedToken)) {
+      await this.endFamilyForReuse(this.prisma, storedToken, payload.familyId);
       throw new UnauthorizedException('Refresh token reuse detected');
     }
 
@@ -804,23 +861,84 @@ export class AuthService {
     const currentFamilyId =
       storedToken.familyId || payload.familyId || randomUUID();
 
-    await this.prisma.refreshToken.update({
-      where: { id: storedToken.id },
-      data: {
-        isRevoked: true,
-        revokedAt: new Date(),
-      },
-    });
+    // Renewals of one session run one at a time: with the token sent and the
+    // live tokens of its family locked, it is read again, revoked, and the new
+    // token written, so the next renewal of the session sees all of it.
+    type Renewal =
+      | { outcome: 'closed' | 'reused' }
+      | {
+          outcome: 'renewed' | 'retried';
+          tokens: { accessToken: string; refreshToken: string };
+        };
+    const renewal = await this.prisma.$transaction(
+      async (tx): Promise<Renewal> => {
+        await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE id = ${storedToken.id} OR ("familyId" = ${storedToken.familyId} AND "isRevoked" = false) FOR UPDATE`;
+        // Locked again with a new snapshot: a renewal this one waited for may
+        // have written a token the first lock could not see.
+        if (storedToken.familyId) {
+          await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE "familyId" = ${storedToken.familyId} AND "isRevoked" = false FOR UPDATE`;
+        }
+        const current = await tx.refreshToken.findUnique({
+          where: { id: storedToken.id },
+        });
+        // The session was closed meanwhile (sign-out, password change, ban).
+        if (!current) return { outcome: 'closed' };
 
-    return this.generateTokens(
-      payload.sub,
-      payload.email,
-      meta.userAgent || undefined,
-      meta.ip || undefined,
-      currentFamilyId,
-      profile?.id,
-      sessionSignInId,
+        const revoked = { isRevoked: true, revokedAt: new Date() };
+        let outcome: 'renewed' | 'retried' = 'renewed';
+        if (!current.isRevoked) {
+          await tx.refreshToken.update({
+            where: { id: current.id },
+            data: revoked,
+          });
+        } else if (
+          // Revoked: by a renewal whose answer never arrived, or by another
+          // renewal with the same token just before this one.
+          await this.isRetryOfLastRotation(tx, current.userId, current)
+        ) {
+          // The token that renewal issued never reached the person: it is
+          // withdrawn, and a new one is issued in its place.
+          await tx.refreshToken.updateMany({
+            where: {
+              userId: current.userId,
+              familyId: currentFamilyId,
+              isRevoked: false,
+            },
+            data: revoked,
+          });
+          outcome = 'retried';
+        } else {
+          await this.endFamilyForReuse(tx, current, payload.familyId);
+          return { outcome: 'reused' };
+        }
+
+        const tokens = await this.generateTokens(
+          payload.sub,
+          payload.email,
+          meta.userAgent || undefined,
+          meta.ip || undefined,
+          currentFamilyId,
+          profile?.id,
+          sessionSignInId,
+          tx,
+        );
+        return { outcome, tokens };
+      },
     );
+
+    if (!('tokens' in renewal)) {
+      throw new UnauthorizedException(
+        renewal.outcome === 'closed'
+          ? 'Invalid refresh token'
+          : 'Refresh token reuse detected',
+      );
+    }
+    if (renewal.outcome === 'retried') {
+      this.logger.log(
+        `Refresh retried within the grace window for user ${storedToken.userId}, family ${currentFamilyId}`,
+      );
+    }
+    return renewal.tokens;
   }
 
   // Invalidate a specific refresh token (or its entire session family) for the given user.
@@ -1022,11 +1140,14 @@ export class AuthService {
     familyId?: string,
     profileId?: string,
     signInId?: string,
+    // A renewal writes the new token inside the transaction that locks the
+    // session's tokens (ADR-0032).
+    db: Pick<PrismaService, 'signIn' | 'refreshToken'> = this.prisma,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     // The sign-in that opens the session, inside this account: the one
     // named, or the first of the account when none is. A sign-in of another
     // account, or none at all, opens no session.
-    const sessionSignIn = await this.prisma.signIn.findFirst({
+    const sessionSignIn = await db.signIn.findFirst({
       where: { userId, ...(signInId && { id: signInId }) },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       select: { id: true },
@@ -1073,7 +1194,7 @@ export class AuthService {
     const hashedToken = this.hashRefreshToken(refreshToken);
 
     try {
-      await this.prisma.refreshToken.create({
+      await db.refreshToken.create({
         data: {
           token: hashedToken,
           userId,
@@ -1085,7 +1206,9 @@ export class AuthService {
           expiresAt,
         },
       });
-    } catch (_err) {
+    } catch (err) {
+      // A failed write ends a transaction: nothing more can run in it.
+      if (db !== this.prisma) throw err;
       // Fallback: If familyId, userAgent or ipAddress columns are missing in legacy DB schemas before migration runs
       await this.prisma.refreshToken.create({
         data: {
