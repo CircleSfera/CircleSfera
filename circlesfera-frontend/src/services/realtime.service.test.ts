@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../stores/authStore';
 import { useNotificationsStore } from '../stores/notificationsStore';
 import { useSocketStore } from '../stores/socketStore';
-import { apiClient } from './api';
+import { renewSession } from './api';
 import { chatApi } from './chat.service';
 import { realtimeService } from './realtime.service';
 
 vi.mock('socket.io-client', () => ({ io: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ toast: { success: vi.fn() } }));
-vi.mock('./api', () => ({ apiClient: { post: vi.fn() } }));
+vi.mock('./api', () => ({ renewSession: vi.fn() }));
 vi.mock('./chat.service', () => ({ chatApi: { getUnreadCount: vi.fn() } }));
 vi.mock('../utils/logger', () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -251,10 +251,10 @@ describe('realtimeService', () => {
       line.receive('connect_error', Object.assign(new Error(message), {}));
 
     it('renews the session and connects again when the session had expired', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({} as never);
+      vi.mocked(renewSession).mockResolvedValue(undefined);
 
       await refuse('jwt expired');
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/refresh');
+      expect(renewSession).toHaveBeenCalledWith('/auth/refresh');
 
       await vi.advanceTimersByTimeAsync(1100);
       expect(line.socket.connect).toHaveBeenCalledTimes(2);
@@ -262,7 +262,7 @@ describe('realtimeService', () => {
     });
 
     it('does not connect again if it is already back up by then', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({} as never);
+      vi.mocked(renewSession).mockResolvedValue(undefined);
 
       await refuse('Unauthorized');
       useSocketStore.setState({ isConnected: true });
@@ -272,7 +272,7 @@ describe('realtimeService', () => {
     });
 
     it('signs the person out when the session cannot be renewed', async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new Error('refresh failed'));
+      vi.mocked(renewSession).mockRejectedValue(new Error('refresh failed'));
 
       await refuse('No token found');
 
@@ -280,7 +280,7 @@ describe('realtimeService', () => {
     });
 
     it('gives up after three tries and signs the person out', async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({} as never);
+      vi.mocked(renewSession).mockResolvedValue(undefined);
 
       await refuse('invalid csrf token');
       await refuse('invalid csrf token');
@@ -288,14 +288,14 @@ describe('realtimeService', () => {
       expect(logout).not.toHaveBeenCalled();
 
       await refuse('invalid csrf token');
-      expect(apiClient.post).toHaveBeenCalledTimes(3);
+      expect(renewSession).toHaveBeenCalledTimes(3);
       expect(logout).toHaveBeenCalledTimes(1);
     });
 
     it('leaves the session alone when the failure is not about the session', async () => {
       await refuse('xhr poll error');
 
-      expect(apiClient.post).not.toHaveBeenCalled();
+      expect(renewSession).not.toHaveBeenCalled();
       expect(logout).not.toHaveBeenCalled();
     });
   });

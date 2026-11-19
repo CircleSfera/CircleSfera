@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useNotificationsStore } from '../stores/notificationsStore';
 import { useSocketStore } from '../stores/socketStore';
 import { logger } from '../utils/logger';
-import { apiClient } from './api';
+import { renewSession } from './api';
 import { chatApi } from './chat.service';
 
 interface SocketWithRetry extends Socket {
@@ -173,7 +173,8 @@ class RealtimeService {
           `Socket auth/CSRF error (attempt ${retryCount + 1}) — attempting session refresh...`,
         );
         try {
-          await apiClient.post('/auth/refresh');
+          // The same renewal as the requests', never a second one beside it.
+          await renewSession('/auth/refresh');
           logger.log('Socket: Session refresh successful, reconnecting...');
           setTimeout(
             () => {
