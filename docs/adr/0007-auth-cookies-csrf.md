@@ -1,6 +1,6 @@
 # ADR-0007: HTTP-only auth cookies + CSRF double-submit
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0032](./0032-refresh-retry-grace-window.md): a renewal retried within 30 seconds, while the token it issued is unused, is not taken as a stolen refresh token)
 - **Date:** 2026-07-27
 - **Deciders:** CircleSfera engineering
 

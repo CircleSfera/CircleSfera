@@ -9,7 +9,7 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0004](./0004-feed-preferences.md) | Feed preference domain tables (hide post/author, mute keywords) | Accepted |
 | [0005](./0005-livekit-live-streaming.md) | LiveKit for live streaming | Accepted |
 | [0006](./0006-redis-bullmq.md) | Redis + BullMQ for cache, pub/sub, and jobs | Accepted |
-| [0007](./0007-auth-cookies-csrf.md) | HTTP-only auth cookies + CSRF double-submit | Accepted |
+| [0007](./0007-auth-cookies-csrf.md) | HTTP-only auth cookies + CSRF double-submit | Accepted (amended by 0032) |
 | [0008](./0008-storage-providers.md) | Pluggable storage providers (S3, Cloudinary, local) | Accepted |
 | [0009](./0009-feed-fan-out.md) | Hybrid feed fan-out | Accepted |
 | [0011](./0011-ai-engineering-framework.md) | In-repository AI engineering framework under `.ai/` | Accepted |
@@ -31,5 +31,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0027](./0027-help-desk-module-with-host-contracts.md) | Help Desk — a module of the monolith behind host contracts, no imports from the social modules, every record per organization | Accepted |
 | [0030](./0030-one-create-screen-one-canvas.md) | One Create screen and one full-screen editor for Posts, Stories, Frames and Lives; shared modules, video made on the server | Accepted |
 | [0031](./0031-staff-identity-own-credentials.md) | Staff sign in with credentials of their own (invitation link, own password, passkeys next), never with a CircleSfera account; amends 0013 | Accepted |
+| [0032](./0032-refresh-retry-grace-window.md) | A renewal retried within 30 seconds, while the token it issued is unused, is not taken as a stolen refresh token; conditional revoke; amends 0007 | Accepted |
 
 When adding a durable architectural choice, create `NNNN-slug.md`, link it from this table and add it as a row of Notion → Governance → Decision Register (domain Architecture). A change that is structural and also chooses a tool is one ADR only; a change that only swaps a tool is a technology decision (TD) in Notion, not an ADR (AD-004).

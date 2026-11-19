@@ -58,6 +58,13 @@ import { takeTotpCodeOnce } from './two-factor/totp-once.js';
 // the secret of its second step.
 const LOGIN_SIGN_IN_OMIT = { password: false, twoFactorSecret: false } as const;
 
+// A renewal whose answer never arrived (the connection dropped, the app was
+// closed) leaves the person holding the refresh token it replaced. For this
+// long after that renewal, and only while the token it issued was never used,
+// sending the replaced token again is taken as that retry, not as a stolen
+// token (ADR-0032).
+export const REFRESH_RETRY_GRACE_MS = 30_000;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -686,6 +693,36 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
+  // Whether a revoked refresh token comes back as the retry of the renewal
+  // that revoked it: within REFRESH_RETRY_GRACE_MS of that renewal, no later
+  // renewal in its family, and at most the one live token that renewal issued.
+  private async isRetryOfLastRotation(
+    userId: string,
+    familyId: string,
+    revokedAt: Date | null,
+  ): Promise<boolean> {
+    if (
+      !revokedAt ||
+      Date.now() - revokedAt.getTime() > REFRESH_RETRY_GRACE_MS
+    ) {
+      return false;
+    }
+    const [renewedSince, live] = await Promise.all([
+      this.prisma.refreshToken.count({
+        where: {
+          userId,
+          familyId,
+          isRevoked: true,
+          revokedAt: { gt: revokedAt },
+        },
+      }),
+      this.prisma.refreshToken.count({
+        where: { userId, familyId, isRevoked: false },
+      }),
+    ]);
+    return renewedSince === 0 && live <= 1;
+  }
+
   // Returns New access and refresh token pair
   // Throws UnauthorizedException if token is invalid, expired, revoked, or reused
   async refreshToken(
@@ -738,9 +775,22 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Token family reuse / replay attack detection (RFC 6819)
-    if (storedToken.isRevoked) {
-      const familyToRevoke = storedToken.familyId || payload.familyId;
+    // Token family reuse / replay attack detection (RFC 6819), except for the
+    // retry of a renewal whose answer never arrived (ADR-0032).
+    let retryOfRotation = false;
+    const familyOfStored = storedToken.familyId || payload.familyId;
+    if (
+      storedToken.isRevoked &&
+      familyOfStored &&
+      (await this.isRetryOfLastRotation(
+        storedToken.userId,
+        familyOfStored,
+        storedToken.revokedAt,
+      ))
+    ) {
+      retryOfRotation = true;
+    } else if (storedToken.isRevoked) {
+      const familyToRevoke = familyOfStored;
       if (familyToRevoke) {
         await this.prisma.refreshToken.deleteMany({
           where: {
@@ -803,14 +853,32 @@ export class AuthService {
     // Legitimate rotation: mark current token as revoked and issue a new token within the same family
     const currentFamilyId =
       storedToken.familyId || payload.familyId || randomUUID();
+    const revoked = { isRevoked: true, revokedAt: new Date() };
 
-    await this.prisma.refreshToken.update({
-      where: { id: storedToken.id },
-      data: {
-        isRevoked: true,
-        revokedAt: new Date(),
-      },
-    });
+    if (!retryOfRotation) {
+      // Only if it is still live: of two renewals with the same token, the
+      // second finds it revoked and is that renewal's retry.
+      const { count } = await this.prisma.refreshToken.updateMany({
+        where: { id: storedToken.id, isRevoked: false },
+        data: revoked,
+      });
+      retryOfRotation = count === 0;
+    }
+    if (retryOfRotation) {
+      // The token the earlier renewal issued never reached the person: it is
+      // withdrawn, and a new one is issued in its place.
+      await this.prisma.refreshToken.updateMany({
+        where: {
+          userId: storedToken.userId,
+          familyId: currentFamilyId,
+          isRevoked: false,
+        },
+        data: revoked,
+      });
+      this.logger.log(
+        `Refresh retried within the grace window for user ${storedToken.userId}, family ${currentFamilyId}`,
+      );
+    }
 
     return this.generateTokens(
       payload.sub,
