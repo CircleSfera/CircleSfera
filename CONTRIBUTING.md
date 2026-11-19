@@ -43,7 +43,6 @@ Open a PR for any meaningful change, even as a single developer. The PR should s
 AI agents are welcome, but they follow the same rules as humans:
 
 - [AGENTS.md](./AGENTS.md) holds the operating rules and guardrails; every agent reads it first.
-- Cursor users get the relevant context automatically through [`.cursor/rules/`](./.cursor/rules/). Other tools should be pointed at `AGENTS.md`.
 - Documentation is not a source of truth for current behavior. If a statement in Notion contradicts the code, classify the conflict (Notion → Governance → Cross-Domain Conflict Resolution) instead of silently changing either side.
 
 ## Commit style
