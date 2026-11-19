@@ -541,7 +541,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
       expect(result.accessToken).toBe('new-access-token');
 
       // Verify old token was marked revoked, with the session's tokens locked
-      expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2);
       expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith({
         where: { id: 'token-active' },
         data: {

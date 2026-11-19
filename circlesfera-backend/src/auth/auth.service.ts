@@ -873,6 +873,11 @@ export class AuthService {
     const renewal = await this.prisma.$transaction(
       async (tx): Promise<Renewal> => {
         await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE id = ${storedToken.id} OR ("familyId" = ${storedToken.familyId} AND "isRevoked" = false) FOR UPDATE`;
+        // Locked again with a new snapshot: a renewal this one waited for may
+        // have written a token the first lock could not see.
+        if (storedToken.familyId) {
+          await tx.$queryRaw`SELECT id FROM refresh_tokens WHERE "familyId" = ${storedToken.familyId} AND "isRevoked" = false FOR UPDATE`;
+        }
         const current = await tx.refreshToken.findUnique({
           where: { id: storedToken.id },
         });

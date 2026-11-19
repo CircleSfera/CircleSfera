@@ -31,8 +31,9 @@ accepted again for a few seconds, as long as the token that replaced it has not 
 
 **Renewals of one session run one at a time.** `AuthService.refreshToken` reads the token again,
 revokes it and writes the new token inside one transaction that first locks the token sent and the
-live tokens of its family (`SELECT ... FOR UPDATE`). The next renewal of the session waits for
-that transaction and sees everything it wrote. With the lock held:
+live tokens of its family (`SELECT ... FOR UPDATE`), and once more after any wait, so a token
+written by the renewal it waited for is locked too. The next renewal of the session waits for that
+transaction and sees everything it wrote. With the lock held:
 
 - the token no longer exists (the session was closed: sign-out, password change, ban): the renewal
   is refused and nothing is issued;

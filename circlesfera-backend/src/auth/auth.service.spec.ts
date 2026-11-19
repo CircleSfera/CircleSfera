@@ -933,7 +933,7 @@ describe('AuthService', () => {
       });
       expect(result).toHaveProperty('accessToken');
       // Revoked inside the transaction that locks the session's tokens.
-      expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(2);
       expect(mockPrismaService.refreshToken.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'token-id' },
@@ -2126,7 +2126,7 @@ describe('AuthService', () => {
 
       expect(result).toHaveProperty('refreshToken');
       // Decided with the token and the family's live tokens locked.
-      expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(2);
       expect(mockPrismaService.refreshToken.count).toHaveBeenNthCalledWith(1, {
         where: {
           userId: '1',
@@ -2198,6 +2198,18 @@ describe('AuthService', () => {
 
       await expectFamilyEnded();
       expect(mockPrismaService.refreshToken.count).not.toHaveBeenCalled();
+    });
+
+    it('renews a token stored without a family, locking only that token', async () => {
+      sent(token({ familyId: null }));
+
+      const result = await service.refreshToken({ refreshToken: 'sent' });
+
+      expect(result).toHaveProperty('refreshToken');
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.refreshToken.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'sent-token' } }),
+      );
     });
 
     it('still refuses an account that may not be used', async () => {
