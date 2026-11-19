@@ -1,5 +1,5 @@
 # Isolated Postgres for root Playwright journeys (e2e/).
-# Does not replace docker-compose.dev.yml — keep your day-to-day DB on :5432.
+# Does not replace docker-compose.yml — keep your day-to-day DB on :5432.
 #
 #   npm run e2e:db:up
 #   npm run e2e:db:migrate

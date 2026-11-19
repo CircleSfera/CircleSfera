@@ -73,7 +73,7 @@ npm run nginx:lint
 #### `verify-container-digests.mjs`
 Statically audits all Dockerfiles, Compose manifests, and CI service containers to ensure complete cryptographic immutability:
 - Asserts that all `FROM` statements in backend and frontend Dockerfiles specify an `@sha256:` digest.
-- Asserts that all 3rd-party service container definitions in `docker-compose.prod.yml`, `docker-compose.yml`, `docker-compose.dev.yml`, and `docker-compose.e2e.yml` specify an `@sha256:` digest.
+- Asserts that all 3rd-party service container definitions in `docker-compose.prod.yml`, `docker-compose.yml` and `docker-compose.e2e.yml` specify an `@sha256:` digest.
 - Asserts that CI workflow service containers in `ci-quality.yml`, `pr.yml`, and `playwright-nightly.yml` specify immutable digests.
 - Prevents unpinned floating tags (e.g. `latest`, `alpine`, `pg16`) from introducing supply chain drift.
 
