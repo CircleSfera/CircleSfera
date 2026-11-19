@@ -62,7 +62,7 @@ npm run test:e2e:composer          # smoke + visual
 npm run test:e2e:composer:update   # regenerate PNG baselines
 ```
 
-Scripts prefix `env -u NO_COLOR FORCE_COLOR=0` so Node does not warn when Cursor sets both.
+The scripts run Playwright through `scripts/playwright.mjs`, which removes `NO_COLOR` and sets `FORCE_COLOR=0` so Node does not warn when both are set, on macOS, Linux and Windows.
 
 ## Notes
 
