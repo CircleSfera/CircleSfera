@@ -143,38 +143,6 @@ export class UsersService {
     }));
   }
 
-  // Ban (deactivate) a user account. Admin only.
-  // Param id: The user ID to ban
-  async banUser(id: string) {
-    const updated = await this.prisma.user.update({
-      where: { id },
-      data: { isActive: false, isRootBanned: true },
-    });
-    await this.prisma.refreshToken.deleteMany({
-      where: { userId: id },
-    });
-    const banEvent: UserSessionTerminateEvent['payload'] = {
-      userId: id,
-      reason: 'Account banned by administration',
-    };
-    this.eventEmitter.emit('user.session.terminate', banEvent);
-    return updated;
-  }
-
-  // Unban (reactivate) a user account. Admin only.
-  // Param id: The user ID to unban
-  async unbanUser(id: string) {
-    await this.prisma.profile.updateMany({
-      where: { userId: id },
-      data: { suspendedUntil: null, isAccountBanned: false },
-    });
-    const updated = await this.prisma.user.update({
-      where: { id },
-      data: { isActive: true, isRootBanned: false },
-    });
-    return updated;
-  }
-
   // GDPR: Gathers all user-related data for export.
   // Param userId: The user ID to export
   async exportUserData(userId: string) {

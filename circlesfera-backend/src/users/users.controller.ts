@@ -7,7 +7,6 @@ import {
   Inject,
   Optional,
   Param,
-  Patch,
   Post,
   Put,
   Query,
@@ -22,11 +21,6 @@ import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
-import {
-  AdminGuard,
-  RequireStaffPermissions,
-} from '../auth/guards/admin.guard.js';
-import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
@@ -63,23 +57,11 @@ export class UsersController {
       : SUGGESTIONS_SHORT;
     return this.usersService.getSuggestions(user.userId, count);
   }
-  // Ban a user (admin only).
-  @Patch(':id/ban')
-  @UseGuards(AdminJwtAuthGuard, AdminGuard)
-  @RequireStaffPermissions('users.ban')
-  @ApiResponse({ status: 200 })
-  async banUser(@Param('id') id: string) {
-    return this.usersService.banUser(id);
-  }
 
-  // Unban a user (admin only).
-  @Patch(':id/unban')
-  @UseGuards(AdminJwtAuthGuard, AdminGuard)
-  @RequireStaffPermissions('users.ban')
-  @ApiResponse({ status: 200 })
-  async unbanUser(@Param('id') id: string) {
-    return this.usersService.unbanUser(id);
-  }
+  // Staff ban and unban a user only through the Admin Panel's
+  // PATCH admin/users/:id/ban and :id/unban (AdminUsersService), which also
+  // open the appeal window, write the audit log, drop the cached profile and
+  // tell the person by email.
 
   // GDPR: Request Data Export (.zip).
   @Get('gdpr/export')

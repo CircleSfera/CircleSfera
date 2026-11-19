@@ -249,51 +249,6 @@ describe('UsersService', () => {
     });
   });
 
-  describe('banUser and unbanUser', () => {
-    it('should ban a user', async () => {
-      mockPrismaService.user.update.mockResolvedValue({
-        id: '1',
-        isActive: false,
-        isRootBanned: true,
-      });
-      const result = await service.banUser('1');
-      expect(result.isActive).toBe(false);
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: '1' },
-        data: { isActive: false, isRootBanned: true },
-      });
-      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: '1' },
-      });
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'user.session.terminate',
-        {
-          userId: '1',
-          reason: 'Account banned by administration',
-        },
-      );
-    });
-
-    it('should unban a user', async () => {
-      mockPrismaService.profile.updateMany.mockResolvedValue({ count: 1 });
-      mockPrismaService.user.update.mockResolvedValue({
-        id: '1',
-        isActive: true,
-        isRootBanned: false,
-      });
-      const result = await service.unbanUser('1');
-      expect(mockPrismaService.profile.updateMany).toHaveBeenCalledWith({
-        where: { userId: '1' },
-        data: { suspendedUntil: null, isAccountBanned: false },
-      });
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: '1' },
-        data: { isActive: true, isRootBanned: false },
-      });
-      expect(result.isActive).toBe(true);
-    });
-  });
-
   describe('exportUserData', () => {
     it('throws error when user account or relations are not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);

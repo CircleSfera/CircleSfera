@@ -306,8 +306,6 @@ const cases: Case[] = [
     'get',
     ['/users/suggestions', { params: { limit: 10 } }],
   ],
-  ['users.ban', () => usersApi.ban('u1'), 'patch', ['/users/u1/ban']],
-  ['users.unban', () => usersApi.unban('u1'), 'patch', ['/users/u1/unban']],
   [
     'users.requestExport',
     () => usersApi.requestExport(),
