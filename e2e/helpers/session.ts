@@ -54,6 +54,16 @@ export async function registerViaApi(
   }
 }
 
+// Signing out first shows the sign-in page, then loads the whole app again
+// there, so nothing of the person who left stays in memory. Waiting only for
+// the address would let the next navigation run into that load and abort.
+export async function signOutViaUi(page: Page): Promise<void> {
+  const reloaded = page.waitForEvent('load');
+  await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await reloaded;
+  await expect(page).toHaveURL(/\/accounts\/login/);
+}
+
 export async function loginViaUi(
   page: Page,
   account: Pick<E2eAccount, 'email' | 'password'>,

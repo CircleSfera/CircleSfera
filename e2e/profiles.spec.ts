@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { markEmailVerified } from './helpers/backend.js';
-import { enterAsNewUser, loginViaUi } from './helpers/session.js';
+import { enterAsNewUser, loginViaUi, signOutViaUi } from './helpers/session.js';
 import { E2E_PASSWORD } from './helpers/unique.js';
 
 // Profiles of one person against the live API: a new Profile with an email
@@ -28,11 +28,6 @@ async function createAndSwitch(page: Page) {
   expect((await created).status()).toBe(201);
   // Creating switches to the new Profile and reloads on the home page.
   await page.waitForURL((url) => url.pathname === '/');
-}
-
-async function signOut(page: Page) {
-  await page.getByRole('button', { name: 'Cerrar sesión' }).click();
-  await page.waitForURL(/\/accounts\/login|\/$/);
 }
 
 test.describe('Profiles', () => {
@@ -67,7 +62,7 @@ test.describe('Profiles', () => {
 
     // Signing in with the new email and password opens the new Profile.
     await markEmailVerified(ownEmail);
-    await signOut(page);
+    await signOutViaUi(page);
     await loginViaUi(page, { email: ownEmail, password: ownPassword });
     await page.goto('/accounts/profiles');
     await expect(currentProfile(page)).toContainText(`@${second}`);
@@ -81,7 +76,7 @@ test.describe('Profiles', () => {
     await expect(currentProfile(page)).toContainText(`@${account.username}`);
 
     // The first Profile's own password still opens it, not the new one.
-    await signOut(page);
+    await signOutViaUi(page);
     await loginViaUi(page, account);
     await page.goto('/accounts/profiles');
     await expect(currentProfile(page)).toContainText(`@${account.username}`);
@@ -111,7 +106,7 @@ test.describe('Profiles', () => {
 
     // The same email and password reach both Profiles: one opens, the other
     // is a switch away.
-    await signOut(page);
+    await signOutViaUi(page);
     await loginViaUi(page, account);
     await page.goto('/accounts/profiles');
     await expect(page.getByText(`@${account.username}`).first()).toBeVisible();

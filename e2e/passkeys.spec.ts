@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { enterAsNewUser } from './helpers/session.js';
+import { enterAsNewUser, signOutViaUi } from './helpers/session.js';
 import {
   addVirtualAuthenticator,
   storedCredentials,
@@ -34,8 +34,7 @@ test.describe('Passkeys', () => {
     expect(await storedCredentials(cdp, authenticatorId)).toBe(1);
 
     // Sign out, and back in with the passkey only.
-    await page.getByRole('button', { name: 'Cerrar sesión' }).click();
-    await expect(page).toHaveURL(/\/accounts\/login|\/$/);
+    await signOutViaUi(page);
     await page.goto('/accounts/login');
     await page.locator('#identifier').fill(account.email);
     const signIn = page.waitForResponse(
