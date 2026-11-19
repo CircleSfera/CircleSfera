@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authApi } from '../services/auth.service';
 import type { Profile } from '../types';
 import { useAuthStore } from './authStore';
@@ -9,6 +9,9 @@ vi.mock('../services/auth.service', () => ({
   },
 }));
 
+const assign = vi.fn();
+const originalLocation = window.location;
+
 describe('authStore', () => {
   beforeEach(() => {
     useAuthStore.setState({
@@ -16,6 +19,17 @@ describe('authStore', () => {
       isAuthenticated: false,
     });
     vi.clearAllMocks();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, assign },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    });
   });
 
   it('should have initial state', () => {
@@ -47,5 +61,31 @@ describe('authStore', () => {
     expect(state.profile).toBeNull();
     expect(state.isAuthenticated).toBe(false);
     expect(authApi.logout).toHaveBeenCalledTimes(1);
+  });
+
+  // The query cache and the in-memory stores hold what the person who left
+  // was shown: the app loads again so none of it reaches the next person.
+  it('loads the app again at sign-in once the session is revoked', async () => {
+    useAuthStore.getState().setAuthenticated();
+
+    await useAuthStore.getState().logout();
+
+    expect(assign).toHaveBeenCalledTimes(1);
+    expect(assign).toHaveBeenCalledWith('/accounts/login');
+    expect(vi.mocked(authApi.logout).mock.invocationCallOrder[0]).toBeLessThan(
+      assign.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('loads the app again even when the server cannot be told', async () => {
+    vi.mocked(authApi.logout).mockRejectedValueOnce(new Error('offline'));
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    await useAuthStore.getState().logout();
+
+    expect(assign).toHaveBeenCalledWith('/accounts/login');
+    consoleError.mockRestore();
   });
 });

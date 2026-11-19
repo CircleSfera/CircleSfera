@@ -46,6 +46,15 @@ async function clearApiCache(): Promise<boolean> {
   }
 }
 
+// After signing out the app loads again from the sign-in page, as it does
+// after a Profile switch: the query cache, every in-memory store (unread
+// counts, live notices, chat presence, an open Studio project, a call) and the
+// socket hold what the person who left was shown, and none of it may reach
+// whoever signs in next on this tab.
+export function leaveSignedOut() {
+  window.location.assign('/accounts/login');
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -117,19 +126,24 @@ export const useAuthStore = create<AuthState>()(
           isCheckingSession: false,
         });
 
-        // 2. Take this phone off push while the session still allows it: the
-        // next person to sign in on it must not get this one's notices.
-        await forgetNativePushToken();
-
         try {
-          // 3. Tell backend to revoke session cookies
-          await authApi.logout();
-        } catch (error) {
-          console.error('Failed to logout from backend', error);
-        }
+          // 2. Take this phone off push while the session still allows it: the
+          // next person to sign in on it must not get this one's notices.
+          await forgetNativePushToken();
 
-        // 4. Clear Service Worker API cache to prevent cross-account data bleed
-        await clearApiCache();
+          try {
+            // 3. Tell backend to revoke session cookies
+            await authApi.logout();
+          } catch (error) {
+            console.error('Failed to logout from backend', error);
+          }
+
+          // 4. Clear Service Worker API cache to prevent cross-account data bleed
+          await clearApiCache();
+        } finally {
+          // 5. Start the app again, signed out, even if a step above failed.
+          leaveSignedOut();
+        }
       },
     }),
     {
