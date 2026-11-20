@@ -46,6 +46,10 @@ import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ObservabilityInterceptor } from './common/interceptors/observability.interceptor.js';
 import { PlaceLanguageInterceptor } from './common/places/place-language.interceptor.js';
+import {
+  RedisModule,
+  redisConnectionOptions,
+} from './common/redis/redis.module.js';
 import { CryptoModule } from './common/services/crypto.module.js';
 import {
   createPinoRedactPaths,
@@ -127,6 +131,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
 
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
+    RedisModule,
     RedisCacheModule,
     CryptoModule,
     SystemSettingsModule,
@@ -135,11 +140,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>('REDIS_HOST') || 'localhost',
-          port: configService.get<number>('REDIS_PORT') || 6379,
-          password: configService.get<string>('REDIS_PASSWORD') || undefined,
-        },
+        connection: redisConnectionOptions(configService),
         defaultJobOptions: GLOBAL_DEFAULT_JOB_OPTIONS,
       }),
     }),

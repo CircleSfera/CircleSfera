@@ -3,6 +3,7 @@ import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import { AbuseHashService } from '../abuse/abuse-hash.service.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { REDIS_CLIENT } from '../common/redis/redis.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ACTION_WINDOWS,
@@ -15,7 +16,6 @@ import {
   SAME_TEXT_BY_PROFILE,
   VELOCITY_THRESHOLDS,
 } from './trust.constants.js';
-import { TRUST_REDIS } from './trust-redis.provider.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TEXT_PROFILE_TTL_S = 24 * 60 * 60;
@@ -61,7 +61,7 @@ export class ActionLimitsService {
   private trigger: EvaluationTrigger | null = null;
 
   constructor(
-    @Inject(TRUST_REDIS) private readonly redis: Redis,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AbuseHashService) private readonly abuseHash: AbuseHashService,
   ) {}

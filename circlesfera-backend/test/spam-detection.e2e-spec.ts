@@ -7,6 +7,7 @@ import { AppModule } from '../src/app.module.js';
 import { AppealsService } from '../src/appeals/appeals.service.js';
 import { CreateGroupUseCase } from '../src/chat/use-cases/groups/create-group.use-case.js';
 import { SendMessageUseCase } from '../src/chat/use-cases/messages/send-message.use-case.js';
+import { REDIS_CLIENT } from '../src/common/redis/redis.module.js';
 import { FollowsService } from '../src/follows/follows.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import {
@@ -15,7 +16,6 @@ import {
 } from '../src/trust/action-limits.service.js';
 import { RiskDetectorService } from '../src/trust/risk-detector.service.js';
 import { ACTION_WINDOWS } from '../src/trust/trust.constants.js';
-import { TRUST_REDIS } from '../src/trust/trust-redis.provider.js';
 import { createUserWithProfile } from './factories/profile.factory.js';
 import { uniqueSuffix } from './utils/unique-id.js';
 
@@ -73,7 +73,7 @@ describe('Spam and bot protection (e2e)', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
-    redis = app.get(TRUST_REDIS);
+    redis = app.get(REDIS_CLIENT);
     follows = app.get(FollowsService);
     createConversation = app.get(CreateGroupUseCase);
     sendMessage = app.get(SendMessageUseCase);

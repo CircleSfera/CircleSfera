@@ -5,6 +5,7 @@ import {
   HealthIndicatorService,
 } from '@nestjs/terminus';
 import { Redis } from 'ioredis';
+import { redisConnectionOptions } from '../common/redis/redis.module.js';
 
 // Pings Redis directly with ioredis (already a dependency for BullMQ and the
 // Socket.IO adapter) rather than through @nestjs/terminus's
@@ -21,16 +22,11 @@ export class RedisHealthIndicator {
   ) {}
 
   async pingCheck(key: string): Promise<HealthIndicatorResult> {
-    const redisHost =
-      this.configService.get<string>('REDIS_HOST') || 'localhost';
-    const redisPort = this.configService.get<number>('REDIS_PORT') || 6379;
-    const redisPassword =
-      this.configService.get<string>('REDIS_PASSWORD') || undefined;
-
+    // A connection of its own, opened for each ping: it proves Redis answers
+    // now, which the shared client, queueing commands while it reconnects,
+    // would not.
     const client = new Redis({
-      host: redisHost,
-      port: redisPort,
-      password: redisPassword,
+      ...redisConnectionOptions(this.configService),
       lazyConnect: true,
       maxRetriesPerRequest: 1,
       connectTimeout: 3000,
