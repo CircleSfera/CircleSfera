@@ -95,8 +95,10 @@ test('a photo story with text is shared with its photo behind the text, not on b
   await page.getByRole('button', { name: 'Tu historia', exact: true }).click();
 
   await expect.poll(sent.shared, { timeout: 15_000 }).toBe(1);
-  // The photo fills the story: nearly all of it is lit.
-  expect((await shares(page)).lit).toBeGreaterThan(0.9);
+  // The photo fills the story. The fixture photo, filling a story, has 87%
+  // of its pixels lit (it has dark parts of its own); a story shared on black
+  // with only its text would have almost none.
+  expect((await shares(page)).lit).toBeGreaterThan(0.8);
 });
 
 test('a drawing on a story is shared in its picture', async ({ page }) => {

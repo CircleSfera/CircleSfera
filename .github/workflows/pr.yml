@@ -169,26 +169,19 @@ jobs:
           PLAYWRIGHT_SKIP_WEBSERVER: 'true'
         run: npm run test:e2e -- --project=chromium
 
-      # Opens every screen of the content editor and of the live at 390×844
-      # and measures its controls, then drags a sticker and a slider in the
-      # story composer and undoes them, and creates a text story with a poll and a
-      # video story up to sharing. The API is replaced inside the browser, so it only needs
-      # the frontend that is already running.
-      - name: Check control sizes of the editor and the live, and undo
+      # Every check under circlesfera-frontend/e2e, the whole folder, so a new
+      # check runs from the day it is added and a removed one leaves no name
+      # behind. The checks open the screens of the app at 390×844 (and 1280×800
+      # where the layout changes) with the API replaced inside the browser, so
+      # they only need the frontend that is already running. They include the
+      # composer captures in e2e/composer-visual.spec.ts-snapshots, whose
+      # *-linux.png files are taken in this same Playwright image.
+      # e2e/marketing-captures.spec.ts skips itself unless MARKETING_CAPTURES
+      # is set.
+      - name: Check the screens of the app
         run: |
           cd circlesfera-frontend
-          npx playwright test e2e/editor-control-sizes.spec.ts e2e/live-control-sizes.spec.ts e2e/story-undo.spec.ts e2e/story-flow.spec.ts e2e/story-capture.spec.ts e2e/story-drawing.spec.ts e2e/story-gestures.spec.ts e2e/editor-desktop-sidebar.spec.ts e2e/carousel.spec.ts e2e/post-detail.spec.ts e2e/profile-sizes.spec.ts e2e/explore-notifications.spec.ts e2e/messages-sizes.spec.ts e2e/messages.spec.ts e2e/frames-viewer.spec.ts e2e/settings-sizes.spec.ts e2e/entry-screens.spec.ts e2e/frame-clips.spec.ts e2e/thumbnails.spec.ts e2e/live-guests.spec.ts --project=chromium
-
-      # Walks a post and a frame through the composer and compares four of its
-      # screens with the captures in e2e/composer-visual.spec.ts-snapshots
-      # (the *-linux.png ones are taken in this same Playwright image). Also
-      # the photo editor reopening as it was left, the frames viewer, and the
-      # feed, sign-in, profile, explore and Stripe screens. The API is
-      # replaced inside the browser here too.
-      - name: Check the composer and its captures, and the main screens
-        run: |
-          cd circlesfera-frontend
-          npx playwright test e2e/composer-smoke.spec.ts e2e/composer-carousel.spec.ts e2e/composer-visual.spec.ts e2e/photo-editor-reopen.spec.ts e2e/frames-render-loop.spec.ts e2e/feed.spec.ts e2e/login.spec.ts e2e/profile.spec.ts e2e/search.spec.ts e2e/smoke.spec.ts e2e/stripe.spec.ts --project=chromium
+          npx playwright test --project=chromium
 
       - name: Dump server logs on failure
         if: failure()
