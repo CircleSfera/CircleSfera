@@ -1,0 +1,11 @@
+{
+  // The scripts under scripts/ run with Node (node scripts/x.ts) and are not
+  // part of the build. This checks their types, after the build: some import
+  // what it puts in dist/.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["scripts/**/*"]
+}
