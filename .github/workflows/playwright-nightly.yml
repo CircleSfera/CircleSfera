@@ -108,7 +108,7 @@ jobs:
           npx prisma migrate deploy
           # The seeded staff (with a known second-step secret) sign in to the
           # Backoffice in its suite.
-          ADMIN_E2E_FORCE_TOTP=1 npx tsx prisma/seed.ts
+          ADMIN_E2E_FORCE_TOTP=1 node prisma/seed.ts
           npm run build
 
       - name: "Frontend: Install Dependencies"
