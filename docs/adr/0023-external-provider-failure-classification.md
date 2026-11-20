@@ -16,7 +16,7 @@ operational metrics), both already accepted.
 
 Verified current state (this ADR's originating audit, `circlesfera-backend/src/`) before this change:
 
-- **Stripe** (`common/stripe/stripe.service.ts`, `payments/payments.service.ts`) had the most mature
+- **Stripe** (`stripe/stripe.service.ts`, `payments/payments.service.ts`) had the most mature
   infrastructure of any provider audited — an explicit client timeout (20s) and SDK-level retry
   (`maxNetworkRetries: 2`), a genuinely solid idempotent webhook state machine (dedup by Stripe's
   `event.id`, `PENDING/FAILED/PROCESSED` states, lease-based crash recovery, a `@Cron` reconciliation
@@ -73,7 +73,7 @@ in `deliverMail`, evaluated per delivery attempt rather than per enqueue.
 
 ### 2. Stripe — add classification, log it at the two highest-value call sites, keep the existing idempotency/reconciliation infrastructure as-is
 
-`classifyStripeError` (`common/stripe/stripe.service.ts`) checks `instanceof` against Stripe's typed
+`classifyStripeError` (`stripe/stripe.service.ts`) checks `instanceof` against Stripe's typed
 error classes: `StripeConnectionError`/`StripeAPIError`/`StripeRateLimitError` are transient; everything
 else (`StripeCardError`, `StripeInvalidRequestError`, `StripeAuthenticationError`,
 `StripePermissionError`, `StripeIdempotencyError`, `StripeSignatureVerificationError`) is permanent —
@@ -160,7 +160,7 @@ recording) is a separate, unrelated product question this ADR takes no position 
   policy.
 - `circlesfera-backend/src/email/email.service.ts`, `src/email/processors/email.processor.ts` — queued
   Brevo delivery, `isTransientBrevoFailure`.
-- `circlesfera-backend/src/common/stripe/stripe.service.ts` — `classifyStripeError`.
+- `circlesfera-backend/src/stripe/stripe.service.ts` — `classifyStripeError`.
 - `circlesfera-backend/src/payments/payments.service.ts` — classified logging at checkout creation and
   webhook dispatch failure.
 - `circlesfera-backend/src/ai/ai.service.ts`, `src/ai/processors/ai.processor.ts` —

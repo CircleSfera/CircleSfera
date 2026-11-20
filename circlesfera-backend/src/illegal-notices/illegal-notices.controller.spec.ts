@@ -10,12 +10,12 @@ import {
   it,
   vi,
 } from 'vitest';
+import { TurnstileService } from '../abuse/turnstile.service.js';
 import {
   AdminGuard,
   STAFF_PERMISSIONS_KEY,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
-import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import {
   ADMIN_BEARER,
   createControllerApp,

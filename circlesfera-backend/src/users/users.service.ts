@@ -28,7 +28,6 @@ import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { isTestViewer } from '../common/policies/test-account.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -36,6 +35,7 @@ import {
   forgetCachedProfiles,
   forgetCachedProfilesOf,
 } from '../profiles/profile-cache.js';
+import { StripeService } from '../stripe/stripe.service.js';
 import { followTeamPlan } from '../team/team-plan.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';

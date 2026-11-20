@@ -9,9 +9,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
-import { SYSTEM_SETTING_KEYS } from '../../system-settings/system-settings.constants.js';
-import { SystemSettingsService } from '../../system-settings/system-settings.service.js';
-import { AppException } from '../errors/app.exception.js';
+import { AppException } from '../common/errors/app.exception.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { usableWebhookSecret } from './stripe-webhook-secrets.js';
 
 // A Stripe Payment Method Configuration id (pmc_...).

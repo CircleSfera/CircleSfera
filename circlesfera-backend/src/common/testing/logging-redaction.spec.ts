@@ -12,7 +12,7 @@ import {
   redactSensitiveText,
   scrubSentryBreadcrumb,
   scrubSentryEvent,
-} from '../observability/redaction.util.js';
+} from '../utils/redaction.util.js';
 
 describe('Logging & Telemetry Sensitive Data Redaction', () => {
   describe('isSensitiveKey', () => {

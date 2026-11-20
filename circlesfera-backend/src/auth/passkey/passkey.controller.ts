@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { requestAbuseMeta } from '../../common/abuse/device-signal.service.js';
+import { requestAbuseMeta } from '../../abuse/device-signal.service.js';
 import {
   ACCESS_TOKEN_COOKIE,
   accessTokenCookieOptions,

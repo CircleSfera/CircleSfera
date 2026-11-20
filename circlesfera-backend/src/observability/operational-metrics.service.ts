@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Queue } from 'bullmq';
-import { SocketPresenceService } from '../../socket/services/socket-presence.service.js';
+import { SocketPresenceService } from '../socket/services/socket-presence.service.js';
 
 export interface MetricThresholds {
   queueWaitingWarn: number;

@@ -15,13 +15,13 @@ import {
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
+import { clientIp } from '../abuse/device-signal.service.js';
 import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
-import { clientIp } from '../common/abuse/device-signal.service.js';
 import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import { BusinessStatsService } from './business-stats.service.js';
 import { RecordBusinessStatDto } from './dto/record-business-stat.dto.js';

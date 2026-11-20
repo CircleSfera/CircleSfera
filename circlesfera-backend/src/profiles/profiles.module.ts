@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { AIModule } from '../ai/ai.module.js';
 import { AuthModule } from '../auth/auth.module.js';
-import { StripeModule } from '../common/stripe/stripe.module.js';
+import { StripeModule } from '../stripe/stripe.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { ProfilesController } from './profiles.controller.js';

@@ -1,11 +1,11 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { ForbiddenException } from '@nestjs/common';
-import { TurnstileService } from '../../common/abuse/turnstile.service.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { SYSTEM_SETTING_KEYS } from '../../system-settings/system-settings.constants.js';
-import { SystemSettingsService } from '../../system-settings/system-settings.service.js';
-import { sessionEmailVerified } from '../auth/sign-in-lookup.js';
-import { AppException } from '../errors/app.exception.js';
+import { sessionEmailVerified } from '../common/auth/sign-in-lookup.js';
+import { AppException } from '../common/errors/app.exception.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { TurnstileService } from './turnstile.service.js';
 
 export async function assertEmailVerifiedForWrite(
   prisma: PrismaService,

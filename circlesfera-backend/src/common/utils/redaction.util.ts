@@ -1,4 +1,4 @@
-import { sanitizeUrl } from '../utils/url-sanitizer.util.js';
+import { sanitizeUrl } from './url-sanitizer.util.js';
 
 const RAW_SENSITIVE_KEYS: readonly string[] = [
   'password',

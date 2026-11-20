@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { PromotionStatus } from '@prisma/client';
 import { eurosToCents } from '../../../../common/constants/promotion.constants.js';
-import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { StripeService } from '../../../../stripe/stripe.service.js';
 import { RefundPromotionUseCase } from './refund-promotion.use-case.js';
 
 // Prisma row + money fields (guards IDE lag after cents migration).

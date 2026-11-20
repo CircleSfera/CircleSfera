@@ -2,8 +2,8 @@ import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums, type FollowStatus, type Prisma } from '@prisma/client';
-import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verified.js';
-import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import { assertEmailVerifiedForWrite } from '../abuse/assert-email-verified.js';
+import { TurnstileService } from '../abuse/turnstile.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   decodeKeysetCursor,

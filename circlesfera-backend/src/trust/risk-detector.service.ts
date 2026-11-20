@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { NotificationType, type Prisma } from '@prisma/client';
-import { linkedAccountsWhere } from '../common/abuse/linked-accounts.js';
+import { linkedAccountsWhere } from '../abuse/linked-accounts.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ActionLimitsService } from './action-limits.service.js';

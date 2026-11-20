@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { StripeModule } from '../common/stripe/stripe.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { StripeModule } from '../stripe/stripe.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { PaymentEventsService } from './payment-events.service.js';
 import { PaymentsController } from './payments.controller.js';
