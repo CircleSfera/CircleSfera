@@ -8,6 +8,10 @@ import {
   isOriginAllowed,
   parseAllowedOrigins,
 } from '../config/origin.config.js';
+import {
+  redisConnectionOptions,
+  redisRetryStrategy,
+} from '../redis/redis.module.js';
 
 export class RedisIoAdapter extends IoAdapter {
   private adapterConstructor!: ReturnType<typeof createAdapter>;
@@ -21,23 +25,17 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   async connectToRedis(): Promise<void> {
-    const host = this.configService.get<string>('REDIS_HOST') || 'localhost';
-    const port = this.configService.get<number>('REDIS_PORT') || 6379;
+    const connection = redisConnectionOptions(this.configService);
+    const { host, port } = connection;
 
     this.logger.log(`Connecting to Redis for WebSockets at ${host}:${port}...`);
 
-    const password =
-      this.configService.get<string>('REDIS_PASSWORD') || undefined;
-
+    // socket.io needs its own pair: a subscribed connection runs no other
+    // command, so it cannot be the shared client.
     const pubClient = new Redis({
-      host,
-      port,
-      password,
+      ...connection,
       lazyConnect: true,
-      retryStrategy(times) {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
+      retryStrategy: redisRetryStrategy,
     });
 
     const subClient = pubClient.duplicate();

@@ -1,13 +1,7 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { Redis } from 'ioredis';
+import type { Redis } from 'ioredis';
+import { REDIS_CLIENT } from '../common/redis/redis.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   USER_HARD_DELETED_EVENT,
@@ -15,45 +9,14 @@ import {
 } from '../users/events/user-hard-deleted.event.js';
 
 @Injectable()
-export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
+export class FeedInboxService {
   private readonly logger = new Logger(FeedInboxService.name);
-  private redisClient: Redis | null = null;
   private readonly INBOX_LIMIT = 1000;
 
   constructor(
-    private readonly configService: ConfigService,
+    @Inject(REDIS_CLIENT) private readonly redisClient: Redis,
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
-
-  onModuleInit() {
-    const host = this.configService.get<string>('REDIS_HOST') || 'localhost';
-    const port = this.configService.get<number>('REDIS_PORT') || 6379;
-
-    const password =
-      this.configService.get<string>('REDIS_PASSWORD') || undefined;
-
-    this.redisClient = new Redis({
-      host,
-      port,
-      password,
-      retryStrategy: (times) => Math.min(times * 50, 2000),
-      maxRetriesPerRequest: 3,
-    });
-
-    this.redisClient.on('connect', () => {
-      this.logger.log(`Connected to Redis for Feed Inbox at ${host}:${port}`);
-    });
-
-    this.redisClient.on('error', (err) => {
-      this.logger.error(`Redis Feed Inbox connection error: ${err.message}`);
-    });
-  }
-
-  onModuleDestroy() {
-    if (this.redisClient) {
-      this.redisClient.disconnect();
-    }
-  }
 
   // Pushes a new post ID to the inbox of multiple followers.
   // Limits each inbox to a predefined capacity to save memory.
@@ -61,7 +24,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     followerIds: string[],
     postId: string,
   ): Promise<void> {
-    if (!this.redisClient || followerIds.length === 0) return;
+    if (followerIds.length === 0) return;
 
     try {
       const pipeline = this.redisClient.pipeline();
@@ -91,13 +54,6 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     skip: number,
     limit: number,
   ): Promise<string[] | null> {
-    if (!this.redisClient) {
-      this.logger.warn(
-        `Redis client unavailable when reading inbox for profile ${profileId}`,
-      );
-      return null;
-    }
-
     const key = `user:${profileId}:inbox`;
     try {
       const end = skip + limit - 1;
@@ -114,12 +70,6 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   // Uses ZCARD for Sorted Set.
   // Throws if Redis is unavailable to prevent failure from masquerading as empty.
   async isInboxEmpty(profileId: string): Promise<boolean> {
-    if (!this.redisClient) {
-      this.logger.warn(
-        `Redis client unavailable when checking inbox empty for ${profileId}`,
-      );
-      throw new Error('Redis client unavailable');
-    }
     const key = `user:${profileId}:inbox`;
     try {
       const length = await this.redisClient.zcard(key);
@@ -154,7 +104,6 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
 
   // Invalidates Redis feed cache for a user.
   async invalidateUserFeedCache(profileId: string): Promise<void> {
-    if (!this.redisClient) return;
     try {
       const key = `user:${profileId}:inbox`;
       await this.redisClient.del(key);
@@ -169,12 +118,6 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   // Gets the total count of posts in the user's inbox.
   // Returns number on success, or null if Redis is unavailable/fails.
   async getInboxCount(profileId: string): Promise<number | null> {
-    if (!this.redisClient) {
-      this.logger.warn(
-        `Redis client unavailable when reading inbox count for profile ${profileId}`,
-      );
-      return null;
-    }
     const key = `user:${profileId}:inbox`;
     try {
       const count = await this.redisClient.zcard(key);
@@ -192,7 +135,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     profileId: string,
     postIds: string[],
   ): Promise<void> {
-    if (!this.redisClient || postIds.length === 0) return;
+    if (postIds.length === 0) return;
 
     try {
       const key = `user:${profileId}:inbox`;
@@ -211,8 +154,6 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   // Fetches recent published posts from accepted followed profiles
   // and repopulates the Redis Sorted Set.
   async rebuildInbox(profileId: string): Promise<number> {
-    if (!this.redisClient) return 0;
-
     try {
       // 1. Purge existing derived state
       await this.invalidateUserFeedCache(profileId);

@@ -6,6 +6,7 @@ import type { Redis } from 'ioredis';
 import { AbuseHashService } from '../common/abuse/abuse-hash.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { viewerCountryOf } from '../common/promotions/promotion-country.js';
+import { REDIS_CLIENT } from '../common/redis/redis.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   BUSINESS_STAT_COLUMN,
@@ -18,7 +19,6 @@ import {
   BUSINESS_STAT_TOP_COUNTRIES,
   type BusinessStatKind,
 } from './business-stats.constants.js';
-import { BUSINESS_STATS_REDIS } from './business-stats-redis.provider.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const COUNTRY = /^[A-Z]{2}$/;
@@ -82,7 +82,7 @@ export class BusinessStatsService {
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(BUSINESS_STATS_REDIS) private readonly redis: Redis,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
     @Inject(AbuseHashService) private readonly hasher: AbuseHashService,
   ) {}
 

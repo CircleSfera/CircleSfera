@@ -1,33 +1,12 @@
-import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { REDIS_CLIENT } from '../common/redis/redis.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import { FeedInboxService } from './feed-inbox.service.js';
 
-vi.mock('ioredis', () => {
-  return {
-    Redis: vi.fn().mockImplementation(function (this: any, opts: any) {
-      this.on = vi.fn((event: string, cb: (...args: any[]) => void) => {
-        if (event === 'connect') cb();
-        if (event === 'error') cb(new Error('redis error'));
-      });
-      this.disconnect = vi.fn();
-      if (opts?.retryStrategy) opts.retryStrategy(2);
-    }),
-  };
-});
-
 describe('FeedInboxService', () => {
   let service: FeedInboxService;
-
-  const mockConfigService = {
-    get: vi.fn((key: string) => {
-      if (key === 'REDIS_HOST') return 'localhost';
-      if (key === 'REDIS_PORT') return 6379;
-      return null;
-    }),
-  };
 
   const mockPrismaService = {
     follow: {
@@ -58,7 +37,7 @@ describe('FeedInboxService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FeedInboxService,
-        { provide: ConfigService, useValue: mockConfigService },
+        { provide: REDIS_CLIENT, useValue: mockRedisClient },
         { provide: PrismaService, useValue: mockPrismaService },
       ],
     }).compile();
@@ -71,15 +50,6 @@ describe('FeedInboxService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('lifecycle onModuleInit and onModuleDestroy', () => {
-    it('initializes Redis client and handles disconnect', () => {
-      service.onModuleInit();
-      expect((service as any).redisClient).toBeDefined();
-      service.onModuleDestroy();
-      expect((service as any).redisClient.disconnect).toHaveBeenCalled();
-    });
-  });
-
   describe('fanoutToFollowers', () => {
     it('should return early if followerIds is empty', async () => {
       await expect(
@@ -88,8 +58,6 @@ describe('FeedInboxService', () => {
     });
 
     it('fans out to followers via pipeline and logs completion', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       await service.fanoutToFollowers(['user-1', 'user-2'], 'post-1');
       expect(mockRedisClient.pipeline).toHaveBeenCalled();
       expect(mockPipeline.zadd).toHaveBeenCalledTimes(2);
@@ -97,8 +65,6 @@ describe('FeedInboxService', () => {
     });
 
     it('rethrows error when pipeline.exec fails', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockPipeline.exec.mockRejectedValueOnce(new Error('pipeline error'));
       await expect(
         service.fanoutToFollowers(['user-1'], 'post-1'),
@@ -107,14 +73,7 @@ describe('FeedInboxService', () => {
   });
 
   describe('getInbox (REDIS-002 Failure Distinction)', () => {
-    it('should return null if redis client is not connected', async () => {
-      const inbox = await service.getInbox('user-1', 0, 10);
-      expect(inbox).toBeNull();
-    });
-
     it('should return null when Redis throws an error instead of masquerading as empty', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.zrevrange.mockRejectedValueOnce(
         new Error('Redis connection lost'),
       );
@@ -124,8 +83,6 @@ describe('FeedInboxService', () => {
     });
 
     it('should return post IDs from Redis sorted set when connected', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.zrevrange.mockResolvedValueOnce(['post-1', 'post-2']);
 
       const inbox = await service.getInbox('user-1', 0, 10);
@@ -138,8 +95,6 @@ describe('FeedInboxService', () => {
     });
 
     it('should return empty array when inbox is genuinely empty', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.zrevrange.mockResolvedValueOnce([]);
 
       const inbox = await service.getInbox('user-1', 0, 10);
@@ -148,15 +103,7 @@ describe('FeedInboxService', () => {
   });
 
   describe('isInboxEmpty (REDIS-001 ZCARD & REDIS-002 Observable Failure)', () => {
-    it('should throw if redis client is not connected instead of masquerading as empty', async () => {
-      await expect(service.isInboxEmpty('user-1')).rejects.toThrow(
-        'Redis client unavailable',
-      );
-    });
-
     it('should call zcard (not llen) on the sorted set and return true when 0 (REDIS-001)', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.zcard.mockResolvedValueOnce(0);
 
       const empty = await service.isInboxEmpty('user-1');
@@ -167,8 +114,6 @@ describe('FeedInboxService', () => {
     });
 
     it('should call zcard and return false when inbox has items', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.zcard.mockResolvedValueOnce(5);
 
       const empty = await service.isInboxEmpty('user-1');
@@ -178,8 +123,6 @@ describe('FeedInboxService', () => {
     });
 
     it('should rethrow error when zcard fails (REDIS-002)', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.zcard.mockRejectedValueOnce(
         new Error('CLUSTERDOWN Hash slot not served'),
       );
@@ -191,14 +134,7 @@ describe('FeedInboxService', () => {
   });
 
   describe('getInboxCount (REDIS-002)', () => {
-    it('should return null when redis client is not connected', async () => {
-      const count = await service.getInboxCount('user-1');
-      expect(count).toBeNull();
-    });
-
     it('should return null when zcard throws error', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.zcard.mockRejectedValueOnce(new Error('Timeout'));
 
       const count = await service.getInboxCount('user-1');
@@ -206,8 +142,6 @@ describe('FeedInboxService', () => {
     });
 
     it('should return count on success', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.zcard.mockResolvedValueOnce(42);
 
       const count = await service.getInboxCount('user-1');
@@ -240,9 +174,6 @@ describe('FeedInboxService', () => {
 
   describe('invalidateUserFeedCache (Deletion Semantics)', () => {
     it('should delete user inbox key from Redis', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
-
       await service.invalidateUserFeedCache('profile-123');
 
       expect(mockRedisClient.del).toHaveBeenCalledWith(
@@ -250,15 +181,7 @@ describe('FeedInboxService', () => {
       );
     });
 
-    it('should handle missing redis client safely', async () => {
-      await expect(
-        service.invalidateUserFeedCache('user-1'),
-      ).resolves.not.toThrow();
-    });
-
     it('catches and logs error when del fails', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.del.mockRejectedValueOnce(new Error('del failed'));
       await expect(
         service.invalidateUserFeedCache('user-1'),
@@ -268,9 +191,6 @@ describe('FeedInboxService', () => {
 
   describe('removePostsFromInbox (Stale Post Eviction)', () => {
     it('should evict specific post IDs from user inbox', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
-
       await service.removePostsFromInbox('profile-1', [
         'post-deleted-1',
         'post-deleted-2',
@@ -284,17 +204,12 @@ describe('FeedInboxService', () => {
     });
 
     it('should do nothing if postIds is empty', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
-
       await service.removePostsFromInbox('profile-1', []);
 
       expect(mockRedisClient.zrem).not.toHaveBeenCalled();
     });
 
     it('catches and logs error when zrem fails', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockRedisClient.zrem.mockRejectedValueOnce(new Error('zrem failed'));
       await expect(
         service.removePostsFromInbox('profile-1', ['p-1']),
@@ -303,14 +218,7 @@ describe('FeedInboxService', () => {
   });
 
   describe('rebuildInbox (Rebuild Semantics)', () => {
-    it('should return 0 when redis client is not available', async () => {
-      const count = await service.rebuildInbox('profile-1');
-      expect(count).toBe(0);
-    });
-
     it('should return 0 if user follows no profiles', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockPrismaService.follow.findMany.mockResolvedValueOnce([]);
 
       const count = await service.rebuildInbox('profile-1');
@@ -321,8 +229,6 @@ describe('FeedInboxService', () => {
     });
 
     it('returns 0 when followed profiles have no recent posts', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockPrismaService.follow.findMany.mockResolvedValueOnce([
         { followingId: 'creator-A' },
       ]);
@@ -333,8 +239,6 @@ describe('FeedInboxService', () => {
     });
 
     it('catches error and returns 0 when rebuild throws', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
       mockPrismaService.follow.findMany.mockRejectedValueOnce(
         new Error('DB crash'),
       );
@@ -344,9 +248,6 @@ describe('FeedInboxService', () => {
     });
 
     it('should query canonical DB posts from followed profiles and populate Redis ZSET', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
-
       mockPrismaService.follow.findMany.mockResolvedValueOnce([
         { followingId: 'creator-A' },
         { followingId: 'creator-B' },
@@ -402,9 +303,6 @@ describe('FeedInboxService', () => {
 
   describe('handleUserHardDeleted (Hard Deletion Event)', () => {
     it('should purge inboxes for all profiles of the hard-deleted user', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
-
       const event = new UserHardDeletedEvent({
         userId: 'user-to-delete',
         profileIds: ['profile-main', 'profile-secondary'],
@@ -422,9 +320,6 @@ describe('FeedInboxService', () => {
     });
 
     it('should safely handle events with no profileIds', async () => {
-      // @ts-expect-error - inject mocked redis client
-      service.redisClient = mockRedisClient;
-
       const event = new UserHardDeletedEvent({
         userId: 'user-to-delete',
         profileIds: [],
