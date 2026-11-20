@@ -1,7 +1,7 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import type { Redis } from 'ioredis';
-import { AbuseHashService } from '../common/abuse/abuse-hash.service.js';
+import { AbuseHashService } from '../abuse/abuse-hash.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { REDIS_CLIENT } from '../common/redis/redis.module.js';
 import { PrismaService } from '../prisma/prisma.service.js';

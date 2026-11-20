@@ -3,7 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from './../src/app.module.js';
+import { AppModule } from '../src/app.module.js';
 import {
   AuthService,
   REFRESH_RETRY_GRACE_MS,

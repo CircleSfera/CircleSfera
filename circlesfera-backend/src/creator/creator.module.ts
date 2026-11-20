@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AnalyticsModule } from '../analytics/analytics.module.js';
-import { StripeModule } from '../common/stripe/stripe.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { StripeModule } from '../stripe/stripe.module.js';
 import { CreatorController } from './creator.controller.js';
 
 // Analytics

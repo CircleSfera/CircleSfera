@@ -3,7 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AdminLinkDomainsService } from '../src/admin/admin-link-domains.service.js';
 import { AdminUsersService } from '../src/admin/admin-users.service.js';
-import { AppModule } from './../src/app.module.js';
+import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { createUserWithProfile } from './factories/index.js';
 import { uniqueSuffix } from './utils/unique-id.js';

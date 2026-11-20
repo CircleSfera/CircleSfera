@@ -11,16 +11,16 @@ import { withdrawalConsentMetadata } from '../common/consumer/withdrawal-consent
 import { AppException } from '../common/errors/app.exception.js';
 import { assertAdultPayer } from '../common/policies/adult-payer.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
+import { EmailService } from '../email/email.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   classifyStripeError,
   StripeService,
-} from '../common/stripe/stripe.service.js';
+} from '../stripe/stripe.service.js';
 import {
   type SubscriptionWithItems,
   subscriptionPeriod,
-} from '../common/stripe/subscription-period.js';
-import { EmailService } from '../email/email.service.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+} from '../stripe/subscription-period.js';
 import { UsersService } from '../users/users.service.js';
 import {
   isOneTimeCheckoutType,

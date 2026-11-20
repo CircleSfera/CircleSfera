@@ -9,10 +9,7 @@ import {
 } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
-import {
-  accountStanding,
-  lastActiveBucket,
-} from '../common/abuse/trust-score.js';
+import { accountStanding, lastActiveBucket } from '../abuse/trust-score.js';
 import {
   BUSINESS_PROFILE_LIMIT,
   canPersonalizeProfile,

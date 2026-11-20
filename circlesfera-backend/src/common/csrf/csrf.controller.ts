@@ -1,7 +1,7 @@
 import { Controller, Get, Req, Res } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { generateCsrfToken } from '../../common/config/csrf.config.js';
+import { generateCsrfToken } from '../config/csrf.config.js';
 
 @Controller('csrf-token')
 export class CsrfController {

@@ -9,10 +9,10 @@ import {
   registerRecurringJob,
   removeRecurringJob,
 } from '../common/queues/recurring-jobs.js';
-import { StripeModule } from '../common/stripe/stripe.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { OutboxModule } from '../outbox/outbox.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { StripeModule } from '../stripe/stripe.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { AccountDeletionProcessor } from './account-deletion.processor.js';
 import { DataExportProcessor } from './data-export.processor.js';

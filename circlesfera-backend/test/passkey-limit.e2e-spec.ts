@@ -3,7 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from './../src/app.module.js';
+import { AppModule } from '../src/app.module.js';
 import { MAX_PASSKEYS_PER_SIGN_IN } from '../src/auth/passkey/passkey.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { uniqueSuffix } from './utils/unique-id.js';

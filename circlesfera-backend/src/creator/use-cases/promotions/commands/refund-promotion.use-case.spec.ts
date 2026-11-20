@@ -1,8 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { StripeService } from '../../../../stripe/stripe.service.js';
 import { RefundPromotionUseCase } from './refund-promotion.use-case.js';
 
 function basePromo(overrides: Record<string, unknown> = {}) {

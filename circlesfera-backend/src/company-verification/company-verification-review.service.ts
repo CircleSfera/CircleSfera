@@ -11,10 +11,10 @@ import {
 import { emailForProfile } from '../common/auth/sign-in-lookup.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { CryptoService } from '../common/services/crypto.service.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StripeService } from '../stripe/stripe.service.js';
 import type { DecideCompanyDto } from './dto/decide-company.dto.js';
 
 const QUEUE_PAGE = 50;

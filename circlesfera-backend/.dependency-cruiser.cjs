@@ -16,13 +16,19 @@ module.exports = {
     {
       name: 'strict-common',
       severity: 'error',
-      comment: 'Shared common code should not depend on business modules.',
+      comment:
+        'common/ holds code every module may use, so it depends on nothing ' +
+        'but itself and Prisma. Code that needs a module of the product ' +
+        '(settings, sockets, auth) is a module of its own under src/, as ' +
+        'stripe/, abuse/ and observability/ are. The test helpers in ' +
+        'common/testing/ may reach any module.',
       from: {
         path: '^src/common/',
-        pathNot: ['^src/common/testing/', '^src/common/abuse/'],
+        pathNot: ['^src/common/testing/'],
       },
       to: {
-        path: '^src/(auth|users|posts|comments|chat|notifications|payments)/',
+        path: '^src/',
+        pathNot: ['^src/common/', '^src/prisma/'],
       },
     },
     {
