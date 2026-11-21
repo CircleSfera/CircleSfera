@@ -1,6 +1,6 @@
 # ADR-0011: In-repository AI engineering framework under `.ai/`
 
-- **Status:** Accepted, not built: the first implementation under `.ai/` and `.agents/` was removed on 2026-09-28 (commit 95ad3d2a) to be rebuilt from scratch. Until then, nothing in the repository implements this record. The rules for agents are in `AGENTS.md`. The folders it names below are not on `main`, so do not recreate them from this text.
+- **Status:** Superseded by [ADR-0033](./0033-agent-framework-claude-code.md). The implementation it describes under `.ai/` and `.agents/` was removed on 2026-09-28 (commit 95ad3d2a) and is not rebuilt; do not recreate those folders from this text.
 - **Date:** 2026-07-27
 - **Deciders:** CircleSfera engineering
 - **Scope:** engineering process / repository structure
