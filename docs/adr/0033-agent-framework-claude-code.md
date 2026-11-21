@@ -33,9 +33,11 @@ Code:
   authentication, authorization, money, personal data or production; given the diff, never the
   author's conclusion).
 - `.claude/hooks/guard.mjs`, wired in `.claude/settings.json` as a `PreToolUse` hook — refuses,
-  before the call runs, what an instruction alone cannot guarantee: force pushes, pushes to `main`,
-  skipped hooks, admin merges, AI attribution in commits and pull requests, and reading or writing
-  environment files. Its rules are tested in `.claude/hooks/guard.test.mjs`.
+  before the call runs, the common mistakes that an instruction alone does not prevent: force
+  pushes, pushes to `main`, skipped hooks, admin merges, AI attribution in commits and pull
+  requests, and a file tool or a command that names an environment file. It matches text, so it is
+  a safety net, not a sandbox: a name the shell builds (`f=.e''nv`) is not caught, and the rule in
+  `AGENTS.md` still applies. Its rules are tested in `.claude/hooks/guard.test.mjs`.
 - `scripts/agent-check.mjs` — the checks CI runs, in one command, ending with "Every check passed".
 
 `AGENTS.md` stays the authority; where a command and `AGENTS.md` differ, `AGENTS.md` wins. Facts
