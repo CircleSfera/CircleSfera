@@ -6385,8 +6385,7 @@
       "COMPANY_DOCUMENT_INVALID": "Upload a PDF, JPG or PNG of up to 5 MB.",
       "COMPANY_DOCUMENTS_FULL": "You can upload up to 3 documents.",
       "COMPANY_EMAIL_CODE_WAIT": "Wait a moment before asking for a new code. A day allows 5 codes.",
-      "WITHDRAWAL_PERIOD_ENDED": "The 14 days to withdraw from this plan ended on {{deadline, datetime(dateStyle: long)}}. You can still cancel it at the end of its period.",
-      "WITHDRAWAL_NEEDS_SUPPORT": "This plan was paid from your account balance, so our support team handles your withdrawal. Open a request on the Support page and we'll take care of it."
+      "WITHDRAWAL_PERIOD_ENDED": "The 14 days to withdraw from this plan ended on {{deadline, datetime(dateStyle: long)}}. You can still cancel it at the end of its period."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",

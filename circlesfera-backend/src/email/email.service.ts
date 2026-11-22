@@ -425,6 +425,7 @@ export class EmailService {
     username: string,
     refundCents: number,
     currency: string,
+    owedByTeamCents = 0,
   ) {
     const ctx = await this.contextFor(email);
     await this.send(
@@ -435,6 +436,7 @@ export class EmailService {
         username,
         refundCents,
         currency,
+        owedByTeamCents,
       ),
     );
   }

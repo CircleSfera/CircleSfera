@@ -94,8 +94,6 @@ export function withdrawalRetryDelayMs(attempts: number): number {
 const WITHDRAWAL_REPORT_FROM_ATTEMPT = 5;
 // A withdrawal not finished this long after it was made is reported too.
 const WITHDRAWAL_REPORT_AFTER_MS = 2 * 24 * 60 * 60 * 1000;
-// A plan paid from the balance is reported to staff at most once an hour.
-const SUPPORT_REPORT_INTERVAL_MS = 60 * 60 * 1000;
 
 // A subscription as the provider describes it, in a notice or read again.
 type StripeSubscriptionState = {
@@ -118,9 +116,6 @@ function providerStart(
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
-  // When each balance-paid plan someone tried to withdraw from was last
-  // reported to the error tracker.
-  private readonly supportReportedAt = new Map<string, number>();
   private readonly checkoutInFlight = new Map<
     string,
     Promise<Stripe.Checkout.Session>
@@ -730,6 +725,7 @@ export class PaymentsService {
       data: {
         withdrawnAt: new Date(now),
         withdrawalRefundCents: owed.refundCents,
+        withdrawalOwedByStaffCents: owed.owedByStaffCents,
         withdrawalInvoiceId: owed.invoiceId,
         withdrawalPaymentIntentId: owed.paymentIntentId,
         withdrawalRefundKey: `plan-withdrawal-${subscription.stripeSubscriptionId}`,
@@ -741,6 +737,21 @@ export class PaymentsService {
     });
     // Marked by another request at the same time: that one finishes it.
     if (count === 0) return this.getBillingStatus(userId, profileId);
+
+    // The part paid from the balance is returned by the team: told once,
+    // when the withdrawal is made.
+    if (owed.owedByStaffCents > 0) {
+      const message = `Plan withdrawal of subscription ${subscription.id}: ${owed.owedByStaffCents} cents paid from the customer balance are owed by staff`;
+      this.logger.warn(message);
+      Sentry.captureMessage(message, {
+        level: 'warning',
+        tags: { area: 'plan-withdrawal' },
+        extra: {
+          platformSubscriptionId: subscription.id,
+          owedByStaffCents: owed.owedByStaffCents,
+        },
+      });
+    }
 
     // The benefits stop now. A failure here does not hold back the rest:
     // every attempt to finish syncs them again.
@@ -771,6 +782,7 @@ export class PaymentsService {
     providerStartedAt: Date | null;
   }): Promise<{
     refundCents: number;
+    owedByStaffCents: number;
     invoiceId: string | null;
     paymentIntentId: string | null;
     startedAt: Date;
@@ -800,29 +812,17 @@ export class PaymentsService {
     if (!invoice || invoice.totalCents <= 0) {
       return {
         refundCents: 0,
+        owedByStaffCents: 0,
         invoiceId: invoice?.id ?? null,
         paymentIntentId: null,
         startedAt,
       };
     }
-    if (invoice.paidCents <= 0 || !invoice.paymentIntentId) {
-      // It cost something but was settled from the customer's balance or a
-      // credit: there is no card payment to refund here. Support takes the
-      // withdrawal; the plan is NOT ended here (how to end it and give the
-      // balance back is for the owner to decide). Staff are told, once an
-      // hour per subscription.
-      const message = `Withdrawal of subscription ${subscription.id}: invoice ${invoice.id} was settled without a card payment; support takes it`;
-      this.logger.error(message);
-      const reportedAt = this.supportReportedAt.get(subscription.id) ?? 0;
-      if (Date.now() - reportedAt >= SUPPORT_REPORT_INTERVAL_MS) {
-        this.supportReportedAt.set(subscription.id, Date.now());
-        Sentry.captureMessage(message, 'error');
-      }
-      throw AppException.Conflict(
-        ErrorCode.WITHDRAWAL_NEEDS_SUPPORT,
-        'This plan was paid from the account balance: support takes the withdrawal.',
-      );
-    }
+    // What the card paid is refunded to it; what was paid from the
+    // customer's balance or a credit is owed by staff (owner decision,
+    // 2026-11-22): the plan is withdrawn like any other either way.
+    const cardCents = invoice.paymentIntentId ? invoice.paidCents : 0;
+    const balanceCents = Math.max(0, invoice.totalCents - cardCents);
     // The period paid for, as the invoice says; the row's when the invoice
     // names none.
     let start = invoice.periodStart.getTime();
@@ -831,12 +831,13 @@ export class PaymentsService {
       start = subscription.currentPeriodStart.getTime();
       end = subscription.currentPeriodEnd.getTime();
     }
+    // Each part rounded down on its own: together never more than the
+    // unused share of the invoice total.
     return {
-      // Only the card payment is refunded here: what the payment intent
-      // took, not what the invoice came to.
-      refundCents: unusedPartCents(invoice.paidCents, start, end, now),
+      refundCents: unusedPartCents(cardCents, start, end, now),
+      owedByStaffCents: unusedPartCents(balanceCents, start, end, now),
       invoiceId: invoice.id,
-      paymentIntentId: invoice.paymentIntentId,
+      paymentIntentId: cardCents > 0 ? invoice.paymentIntentId : null,
       startedAt,
     };
   }
@@ -1028,6 +1029,7 @@ export class PaymentsService {
           row.profile?.username ?? '',
           refund?.amount ?? 0,
           refund?.currency ?? row.plan.currency,
+          row.withdrawalOwedByStaffCents ?? 0,
         );
       }
     } catch (err) {

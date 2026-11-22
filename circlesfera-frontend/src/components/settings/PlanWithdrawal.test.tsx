@@ -105,49 +105,6 @@ describe('PlanWithdrawal', () => {
     );
   });
 
-  it('sends a plan paid from the balance to support, saying where to ask', async () => {
-    const withdraw = vi.fn().mockRejectedValue({
-      status: 409,
-      data: { errorCode: 'WITHDRAWAL_NEEDS_SUPPORT' },
-    });
-    renderWithProviders(
-      <PlanWithdrawal name="Pro" until={until} withdraw={withdraw} />,
-    );
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Withdraw from the contract here' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, withdraw' }));
-
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "This plan was paid from your account balance, so our support team handles your withdrawal. Open a request on the Support page and we'll take care of it.",
-      ),
-    );
-  });
-
-  it('sends a plan paid from the balance to support in Spanish too', async () => {
-    const withdraw = vi.fn().mockRejectedValue({
-      status: 409,
-      data: { errorCode: 'WITHDRAWAL_NEEDS_SUPPORT' },
-    });
-    renderWithProviders(
-      <PlanWithdrawal name="Pro" until={until} withdraw={withdraw} />,
-      { lng: 'es' },
-    );
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Desistir del contrato aquí' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Sí, desistir' }));
-
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('página de Soporte'),
-      ),
-    );
-  });
-
   it('says so when the withdrawal fails for another reason', async () => {
     const withdraw = vi.fn().mockRejectedValue(new Error('down'));
     const { i18n } = renderWithProviders(

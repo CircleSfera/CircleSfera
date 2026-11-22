@@ -115,6 +115,9 @@ export interface EmailCopy {
     body: string;
     refunded: string;
     nothingToRefund: string;
+    // The part paid from the account balance or a credit, which the team
+    // returns.
+    byTeam: string;
     button: string;
   };
   greeting: string;
@@ -269,6 +272,8 @@ const en: EmailCopy = {
       'A refund of <strong>{amount}</strong>, the part of the period you had not used, is on its way to the card you paid with. It can take 5 to 10 days to show on your statement.',
     nothingToRefund:
       'Nothing was left to refund: no part of the period paid was unused.',
+    byTeam:
+      'The other <strong>{amount}</strong>, paid from your account balance, is returned to you by the CircleSfera team.',
     button: 'See my plan',
   },
   greeting: 'Hello',
@@ -428,6 +433,8 @@ const es: EmailCopy = {
       'Una devolución de <strong>{amount}</strong>, la parte del periodo que no habías usado, está en camino a la tarjeta con la que pagaste. Puede tardar de 5 a 10 días en verse en tu extracto.',
     nothingToRefund:
       'No quedaba nada por devolver: no había ninguna parte del periodo pagado sin usar.',
+    byTeam:
+      'Los otros <strong>{amount}</strong>, pagados con el saldo de tu cuenta, te los devuelve el equipo de CircleSfera.',
     button: 'Ver mi plan',
   },
   greeting: 'Hola',

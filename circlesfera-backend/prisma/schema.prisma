@@ -1754,44 +1754,47 @@ model PlatformPlan {
 }
 
 model PlatformSubscription {
-  id                        String             @id @default(uuid())
+  id                         String             @id @default(uuid())
   // Nullable for financial retention: userId is set to NULL on user hard-deletion
   // (onDelete: SetNull). The row survives for fiscal audit compliance (7-year retention).
-  userId                    String?
-  planId                    String
-  profileId                 String?
-  status                    SubscriptionStatus @default(ACTIVE) // Mapping Stripe statuses
-  stripeSubscriptionId      String             @unique
-  currentPeriodStart        DateTime
-  currentPeriodEnd          DateTime
-  cancelAtPeriodEnd         Boolean            @default(false)
+  userId                     String?
+  planId                     String
+  profileId                  String?
+  status                     SubscriptionStatus @default(ACTIVE) // Mapping Stripe statuses
+  stripeSubscriptionId       String             @unique
+  currentPeriodStart         DateTime
+  currentPeriodEnd           DateTime
+  cancelAtPeriodEnd          Boolean            @default(false)
   // An add-on (Edits Studio Pro) is held beside the Profile's plan: a
   // Profile has at most one active plan and one active add-on.
-  addOn                     Boolean            @default(false)
+  addOn                      Boolean            @default(false)
   // A withdrawal within 14 days of the purchase (PD-023): when the payer
   // withdrew (the row is CANCELLED from then on), the refund owed for the
   // unused part, in cents, worked out once, the provider's refund, and when
   // every step (end, open invoices voided, refund) was done. A withdrawal
   // marked and not finished is finished by the reconcile job.
-  withdrawnAt               DateTime?
-  withdrawalRefundCents     Int?
-  withdrawalRefundId        String?
-  withdrawalFinishedAt      DateTime?
+  withdrawnAt                DateTime?
+  withdrawalRefundCents      Int?
+  // The part paid from the customer's balance or a credit, which staff
+  // return by hand (owner decision, 2026-11-22), in cents.
+  withdrawalOwedByStaffCents Int?
+  withdrawalRefundId         String?
+  withdrawalFinishedAt       DateTime?
   // The paid invoice and the payment the refund was worked out from: every
   // attempt refunds that payment.
-  withdrawalInvoiceId       String?
-  withdrawalPaymentIntentId String?
+  withdrawalInvoiceId        String?
+  withdrawalPaymentIntentId  String?
   // The idempotency key of the refund; a new one after the provider answered
   // an error, the same one after an outcome that is not known.
-  withdrawalRefundKey       String?
+  withdrawalRefundKey        String?
   // Attempts to finish it, and when the reconcile job tries next.
-  withdrawalAttempts        Int                @default(0)
-  withdrawalNextAttemptAt   DateTime?
+  withdrawalAttempts         Int                @default(0)
+  withdrawalNextAttemptAt    DateTime?
   // When the subscription started at the provider (the purchase): the 14
   // days to withdraw count from it.
-  providerStartedAt         DateTime?
-  createdAt                 DateTime           @default(now())
-  updatedAt                 DateTime           @updatedAt
+  providerStartedAt          DateTime?
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
 
   user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   profile Profile?     @relation(fields: [profileId], references: [id])

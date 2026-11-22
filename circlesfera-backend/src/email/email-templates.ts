@@ -565,16 +565,31 @@ export const EmailTemplates = {
     username: string,
     refundCents: number,
     currency: string,
+    // The part paid from the account balance, which the team returns.
+    owedByTeamCents = 0,
   ): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
-    const amount = new Intl.NumberFormat(
-      ctx.locale === 'es' ? 'es-ES' : 'en-GB',
-      { style: 'currency', currency: currency.toUpperCase() },
-    ).format(refundCents / 100);
-    const refund =
-      refundCents > 0
-        ? fill(copy.planWithdrawn.refunded, { amount: escapeHtml(amount) })
-        : copy.planWithdrawn.nothingToRefund;
+    const money = (cents: number) =>
+      escapeHtml(
+        new Intl.NumberFormat(ctx.locale === 'es' ? 'es-ES' : 'en-GB', {
+          style: 'currency',
+          currency: currency.toUpperCase(),
+        }).format(cents / 100),
+      );
+    const parts: string[] = [];
+    if (refundCents > 0) {
+      parts.push(
+        fill(copy.planWithdrawn.refunded, { amount: money(refundCents) }),
+      );
+    }
+    if (owedByTeamCents > 0) {
+      parts.push(
+        fill(copy.planWithdrawn.byTeam, { amount: money(owedByTeamCents) }),
+      );
+    }
+    const refund = parts.length
+      ? parts.join(' ')
+      : copy.planWithdrawn.nothingToRefund;
     return {
       subject: fill(copy.planWithdrawn.subject, { plan: planName }),
       html: layout(ctx, copy, {
