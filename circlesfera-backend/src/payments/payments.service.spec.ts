@@ -22,6 +22,12 @@ const adultPayer = vi.hoisted(() => ({
 }));
 vi.mock('../common/policies/adult-payer.policy.js', () => adultPayer);
 
+const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
+  captureException: sentry.captureException,
+}));
+
 const asEvent = (event: unknown) => event as unknown as Stripe.Event;
 
 describe('PaymentsService', () => {
@@ -1144,7 +1150,9 @@ describe('PaymentsService', () => {
       row = plan();
       // The row as the database holds it: the conditional writes change it
       // only when their condition still holds.
-      prisma.platformSubscription.findFirst = vi.fn(async () => ({ ...row }));
+      prisma.platformSubscription.findFirst = vi.fn(async () => ({
+        ...row,
+      })) as any;
       (prisma.platformSubscription as any).findUnique = vi.fn(async () => ({
         ...row,
       }));
@@ -1436,29 +1444,28 @@ describe('PaymentsService', () => {
       expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalledTimes(1);
     });
 
-    it('a second request finds the row already withdrawn and finishes it with the stored amount, without working it out again', async () => {
-      row = plan({
-        status: SubscriptionStatus.CANCELLED,
-        withdrawnAt: today,
-        withdrawalRefundCents: 500,
-      });
-
+    it('acts on the running plan only, never on an older withdrawal not finished yet', async () => {
       await service.withdrawPlan('u_1', 'prof_1');
 
-      expect(
-        vi.mocked(prisma.platformSubscription.findFirst).mock.calls[0][0]
-          ?.where,
-      ).toMatchObject({
-        OR: [
-          expect.objectContaining({ withdrawnAt: null }),
-          { withdrawnAt: { not: null }, withdrawalFinishedAt: null },
-        ],
+      const where = vi.mocked(prisma.platformSubscription.findFirst).mock
+        .calls[0][0]?.where;
+      expect(where).toEqual({
+        userId: 'u_1',
+        profileId: 'prof_1',
+        addOn: false,
+        withdrawnAt: null,
+        status: {
+          in: [
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.TRIALING,
+            SubscriptionStatus.PAST_DUE,
+          ],
+        },
       });
-      expect(stripeService.getSubscription).not.toHaveBeenCalled();
-      expect(markCall()).toBeUndefined();
-      expect(stripeService.refundSubscriptionPayment).toHaveBeenCalledWith(
-        expect.objectContaining({ amountInCents: 500 }),
-      );
+      expect(markCall()?.[0].where).toEqual({
+        id: 'sub_1',
+        withdrawnAt: null,
+      });
     });
 
     it('two requests at once mark the row once and tell the payer once', async () => {
@@ -1545,20 +1552,79 @@ describe('PaymentsService', () => {
       expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
     });
 
-    it('a plan already ended whose state cannot be read again is still finished', async () => {
-      stripeService.endSubscriptionNow.mockRejectedValue(
-        Object.assign(new Error('already canceled'), {
-          type: 'StripeInvalidRequestError',
-        }),
+    describe('when the provider refuses to end the plan', () => {
+      beforeEach(() => {
+        stripeService.endSubscriptionNow.mockRejectedValue(
+          Object.assign(new Error('refused'), {
+            type: 'StripeInvalidRequestError',
+          }),
+        );
+      });
+
+      it.each(['canceled', 'incomplete_expired'])(
+        'counts it ended when the provider holds it %s, and finishes',
+        async (status) => {
+          stripeService.getSubscription
+            .mockResolvedValueOnce(running)
+            .mockResolvedValue({ ...ended, status });
+
+          await service.withdrawPlan('u_1', 'prof_1');
+
+          expect(stripeService.refundSubscriptionPayment).toHaveBeenCalled();
+          expect(row.withdrawalFinishedAt).not.toBeNull();
+        },
       );
-      stripeService.getSubscription
-        .mockResolvedValueOnce(running)
-        .mockRejectedValue(new Error('down'));
 
-      await service.withdrawPlan('u_1', 'prof_1');
+      it('leaves it unfinished, refunding nothing this round, when the provider still holds it running', async () => {
+        stripeService.getSubscription.mockResolvedValue(running);
 
-      expect(row.status).toBe(SubscriptionStatus.CANCELLED);
-      expect(row.withdrawalFinishedAt).not.toBeNull();
+        await expect(
+          service.withdrawPlan('u_1', 'prof_1'),
+        ).resolves.toBeDefined();
+
+        expect(row.status).toBe(SubscriptionStatus.CANCELLED);
+        expect(row.withdrawalFinishedAt).toBeNull();
+        expect(stripeService.voidOpenInvoices).not.toHaveBeenCalled();
+        expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
+        expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
+      });
+
+      it('leaves it unfinished when the subscription cannot be read back', async () => {
+        stripeService.getSubscription
+          .mockResolvedValueOnce(running)
+          .mockRejectedValue(new Error('down'));
+
+        await service.withdrawPlan('u_1', 'prof_1');
+
+        expect(row.withdrawalFinishedAt).toBeNull();
+        expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
+      });
+    });
+
+    it('reports a withdrawal that keeps failing to the error tracker, at most once an hour', async () => {
+      row = plan({
+        status: SubscriptionStatus.CANCELLED,
+        withdrawnAt: today,
+        withdrawalRefundCents: 666,
+      });
+      prisma.platformSubscription.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: 'sub_1' }]);
+      const failure = new Error('card network down');
+      stripeService.refundSubscriptionPayment.mockRejectedValue(failure);
+      sentry.captureException.mockClear();
+
+      await service.finishPendingWithdrawals();
+      await service.finishPendingWithdrawals();
+      expect(sentry.captureException).toHaveBeenCalledTimes(1);
+      expect(sentry.captureException).toHaveBeenCalledWith(failure, {
+        tags: { area: 'plan-withdrawal' },
+        extra: { platformSubscriptionId: 'sub_1' },
+      });
+
+      vi.setSystemTime(new Date(today.getTime() + 60 * 60 * 1000));
+      await service.finishPendingWithdrawals();
+      expect(sentry.captureException).toHaveBeenCalledTimes(2);
     });
 
     it('the reconcile round finishes pending withdrawals, and a failure there does not stop the notices', async () => {
@@ -2402,6 +2468,23 @@ describe('PaymentsService', () => {
           .invocationCallOrder[0],
       );
       expect(usersService.syncUserTier).toHaveBeenCalledWith('user1');
+      // Retried after a withdrawal, the notice leaves the row CANCELLED.
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+        where: {
+          stripeSubscriptionId: 'sub_123',
+          withdrawnAt: { not: null },
+          status: { not: SubscriptionStatus.CANCELLED },
+        },
+        data: { status: SubscriptionStatus.CANCELLED },
+      });
+      expect(
+        vi.mocked(prisma.platformSubscription.upsert).mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        vi
+          .mocked(prisma.platformSubscription.updateMany)
+          .mock.invocationCallOrder.at(-1)!,
+      );
       expect(stripeService.cancelSubscription).toHaveBeenCalledWith(
         'old_stripe_sub',
         false,
@@ -2930,8 +3013,9 @@ describe('PaymentsService', () => {
 
       await service.processWebhookEvent(asEvent(event));
 
+      // A withdrawn plan is never brought back as overdue.
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-        where: { stripeSubscriptionId: 'sub_fail' },
+        where: { stripeSubscriptionId: 'sub_fail', withdrawnAt: null },
         data: { status: SubscriptionStatus.PAST_DUE },
       });
       expect(usersService.syncUserTier).toHaveBeenCalledWith('u_fail');
