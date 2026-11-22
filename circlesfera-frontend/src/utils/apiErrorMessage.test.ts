@@ -33,6 +33,21 @@ describe('apiErrorMessage', () => {
     );
   });
 
+  it('says the last day to withdraw, written for the reader language', () => {
+    const error = clientError(400, {
+      errorCode: 'WITHDRAWAL_PERIOD_ENDED',
+      details: { deadline: '2026-11-15T12:00:00.000Z' },
+    });
+    expect(apiErrorMessage(error, t)).toBe(
+      'Los 14 días para desistir de este plan terminaron el 15 de noviembre de 2026. Aún puedes cancelarlo al final de su periodo.',
+    );
+
+    const english = createTestI18n('en');
+    expect(apiErrorMessage(error, english.t.bind(english))).toBe(
+      'The 14 days to withdraw from this plan ended on November 15, 2026. You can still cancel it at the end of its period.',
+    );
+  });
+
   it('puts the values the error carries into its text', () => {
     const error = clientError(403, {
       errorCode: 'PAYER_UNDER_AGE',

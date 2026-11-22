@@ -37,6 +37,7 @@ describe('PaymentsController', () => {
     getBillingStatus: vi.fn(),
     cancelPlan: vi.fn(),
     resumePlan: vi.fn(),
+    withdrawPlan: vi.fn(),
     getLedgerCsv: vi.fn(),
     constructEvent: vi.fn(),
     processWebhookEvent: vi.fn(),
@@ -211,6 +212,44 @@ describe('PaymentsController', () => {
       TEST_USER.profileId,
       true,
     );
+  });
+
+  it('withdraws from the plan, and apart from it the add-on, of the session Profile, for the person who pays it', async () => {
+    mockService.withdrawPlan.mockResolvedValue({
+      hasActiveSubscription: false,
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/withdraw')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/studio-pro/withdraw')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual({ hasActiveSubscription: false });
+    expect(mockService.withdrawPlan).toHaveBeenNthCalledWith(
+      1,
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
+    expect(mockService.withdrawPlan).toHaveBeenNthCalledWith(
+      2,
+      TEST_USER.userId,
+      TEST_USER.profileId,
+      true,
+    );
+  });
+
+  it('refuses to withdraw from a plan or the add-on without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/withdraw')
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/studio-pro/withdraw')
+      .expect(401);
+    expect(mockService.withdrawPlan).not.toHaveBeenCalled();
   });
 
   it('refuses to cancel the add-on without a session', async () => {

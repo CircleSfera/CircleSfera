@@ -556,4 +556,54 @@ export const EmailTemplates = {
       }),
     };
   },
+
+  // A plan withdrawn from within 14 days: it ended at once, and the unused
+  // part of what was paid is refunded. The amount is in cents.
+  planWithdrawn: (
+    ctx: EmailContext,
+    planName: string,
+    username: string,
+    refundCents: number,
+    currency: string,
+    // The part paid from the account balance, which the team returns.
+    owedByTeamCents = 0,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const money = (cents: number) =>
+      escapeHtml(
+        new Intl.NumberFormat(ctx.locale === 'es' ? 'es-ES' : 'en-GB', {
+          style: 'currency',
+          currency: currency.toUpperCase(),
+        }).format(cents / 100),
+      );
+    const parts: string[] = [];
+    if (refundCents > 0) {
+      parts.push(
+        fill(copy.planWithdrawn.refunded, { amount: money(refundCents) }),
+      );
+    }
+    if (owedByTeamCents > 0) {
+      parts.push(
+        fill(copy.planWithdrawn.byTeam, { amount: money(owedByTeamCents) }),
+      );
+    }
+    const refund = parts.length
+      ? parts.join(' ')
+      : copy.planWithdrawn.nothingToRefund;
+    return {
+      subject: fill(copy.planWithdrawn.subject, { plan: planName }),
+      html: layout(ctx, copy, {
+        title: copy.planWithdrawn.title,
+        content: fill(copy.planWithdrawn.body, {
+          plan: escapeHtml(planName),
+          username: escapeHtml(username),
+          refund,
+        }),
+        button: {
+          text: copy.planWithdrawn.button,
+          url: `${ctx.frontendUrl}/accounts/billing`,
+        },
+      }),
+    };
+  },
 };

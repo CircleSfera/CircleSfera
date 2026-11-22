@@ -68,6 +68,8 @@ export function isIdentityVerificationRequired(error: unknown): boolean {
 // technical. Order: the error code's text, then the kind of failure
 // (offline, too many attempts, session ended, server error), then the
 // screen's own message, then a generic one.
+const ISO_MOMENT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+
 export function apiErrorMessage(
   error: unknown,
   t: TFunction,
@@ -82,11 +84,20 @@ export function apiErrorMessage(
   const useCode = code && !(options.signIn && code === 'UNAUTHORIZED');
   if (useCode) {
     // A number or a word the error carries (the age it asks for, a price
-    // range) can go into its text.
+    // range) can go into its text. A moment (an ISO date and time, such as
+    // the last day to withdraw) goes in as a date, which the text formats
+    // for the reader's language.
     const values = Object.fromEntries(
-      Object.entries(apiErrorDetails(error) ?? {}).filter(
-        ([, value]) => typeof value === 'number' || typeof value === 'string',
-      ),
+      Object.entries(apiErrorDetails(error) ?? {})
+        .filter(
+          ([, value]) => typeof value === 'number' || typeof value === 'string',
+        )
+        .map(([key, value]) => [
+          key,
+          typeof value === 'string' && ISO_MOMENT.test(value)
+            ? new Date(value)
+            : value,
+        ]),
     );
     const text = t(`errors.codes.${code}`, { ...values, defaultValue: '' });
     if (text) return text;

@@ -5,11 +5,14 @@ import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '../../services/payments.service';
 import { studioProState } from '../../utils/plans';
 import { Button } from '../ui';
+import PlanWithdrawal from './PlanWithdrawal';
 
 type Subscription = {
   status: string;
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
+  // The last moment to withdraw from it, within 14 days of buying it.
+  withdrawableUntil?: string | null;
 };
 
 interface StudioProBillingProps {
@@ -133,6 +136,14 @@ export default function StudioProBilling({
             {t('settings.billing.studio_pro.cancel')}
           </Button>
         ))}
+
+      {subscription?.withdrawableUntil && (
+        <PlanWithdrawal
+          name={t('settings.billing.studio_pro.title')}
+          until={subscription.withdrawableUntil}
+          withdraw={() => paymentsApi.withdrawStudioPro()}
+        />
+      )}
 
       {subscription &&
         RESUMABLE.includes(subscription.status) &&

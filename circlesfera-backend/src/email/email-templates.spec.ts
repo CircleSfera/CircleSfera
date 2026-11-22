@@ -189,6 +189,63 @@ describe('EmailTemplates', () => {
     ).toContain('1 de noviembre de 2026');
   });
 
+  it('a withdrawn plan says it ended and how much is refunded, in each language, and links to the plan', () => {
+    const mail = EmailTemplates.planWithdrawn(
+      en,
+      '<b>Pro</b>',
+      'ana',
+      666,
+      'eur',
+    );
+
+    expect(mail.subject).toBe('You withdrew from your <b>Pro</b> plan');
+    expect(mail.html).toContain(
+      'A refund of <strong>€6.66</strong>, the part of the period you had not used, is on its way',
+    );
+    expect(mail.html).toContain('&lt;b&gt;Pro&lt;/b&gt;');
+    expect(mail.html).toContain('@ana');
+    expect(mail.html).toContain(
+      'href="https://circlesfera.com/accounts/billing"',
+    );
+    const es666 = EmailTemplates.planWithdrawn(es, 'Pro', 'ana', 666, 'eur');
+    expect(es666.subject).toBe('Has desistido de tu plan Pro');
+    expect(es666.html).toMatch(
+      /Una devolución de <strong>6,66\s€<\/strong>.* está en camino/,
+    );
+  });
+
+  it('a withdrawn plan paid partly from the balance says the card part is on its way and the team returns the rest, in each language', () => {
+    const mail = EmailTemplates.planWithdrawn(
+      en,
+      'Pro',
+      'ana',
+      400,
+      'eur',
+      266,
+    );
+    expect(mail.html).toContain(
+      'A refund of <strong>€4.00</strong>, the part of the period you had not used, is on its way',
+    );
+    expect(mail.html).toContain(
+      'The other <strong>€2.66</strong>, paid from your account balance, is returned to you by the CircleSfera team.',
+    );
+
+    const es266 = EmailTemplates.planWithdrawn(es, 'Pro', 'ana', 0, 'eur', 266);
+    expect(es266.html).toMatch(
+      /Los otros <strong>2,66\s€<\/strong>, pagados con el saldo de tu cuenta, te los devuelve el equipo de CircleSfera\./,
+    );
+    // Wholly from the balance: no card refund is named.
+    expect(es266.html).not.toContain('Una devolución de');
+    expect(es266.html).not.toContain('No quedaba nada por devolver');
+  });
+
+  it('a withdrawn plan with nothing left to refund says so and names no amount', () => {
+    const mail = EmailTemplates.planWithdrawn(en, 'Pro', 'ana', 0, 'eur');
+
+    expect(mail.html).toContain('Nothing was left to refund');
+    expect(mail.html).not.toContain('A refund of');
+  });
+
   it('links the receipt and the removed post to live app pages', () => {
     expect(
       EmailTemplates.subscriptionReceipt(en, 'Premium', '€9.99').html,

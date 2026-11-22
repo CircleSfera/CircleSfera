@@ -9,6 +9,7 @@ vi.mock('../../services/payments.service', () => ({
   paymentsApi: {
     cancelStudioPro: vi.fn(),
     resumeStudioPro: vi.fn(),
+    withdrawStudioPro: vi.fn(),
   },
 }));
 vi.mock('react-hot-toast', () => ({
@@ -90,6 +91,37 @@ describe('StudioProBilling', () => {
       ),
     );
     expect(paymentsApi.cancelStudioPro).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers the withdrawal from the add-on within 14 days, and calls its own endpoint after the confirmation', async () => {
+    vi.mocked(paymentsApi.withdrawStudioPro).mockResolvedValue({});
+    renderWithProviders(
+      <StudioProBilling
+        billingStatus={held({ withdrawableUntil: '2026-11-15T12:00:00.000Z' })}
+      />,
+    );
+
+    expect(screen.getByTestId('plan-withdrawal')).toHaveTextContent(
+      'November 15, 2026',
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Withdraw from the contract here' }),
+    );
+    expect(screen.getByRole('dialog')).toHaveTextContent(
+      'Edits Studio Pro ends now',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, withdraw' }));
+
+    await waitFor(() =>
+      expect(paymentsApi.withdrawStudioPro).toHaveBeenCalledTimes(1),
+    );
+  });
+
+  it('offers no withdrawal from the add-on once the 14 days have passed', () => {
+    renderWithProviders(
+      <StudioProBilling billingStatus={held({ withdrawableUntil: null })} />,
+    );
+    expect(screen.queryByTestId('plan-withdrawal')).not.toBeInTheDocument();
   });
 
   it('says when cancelling fails', async () => {

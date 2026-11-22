@@ -66,7 +66,7 @@ export default function CreatorPlansTab({ onToast }: Props) {
 
   // Before paying: the consent to start at once and the acknowledgement of
   // losing the withdrawal right.
-  const consent = useWithdrawalConsent();
+  const consent = useWithdrawalConsent('plan');
   const checkoutMutation = useMutation({
     mutationFn: ({
       planId,

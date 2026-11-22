@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { sellsInApp } from '../../utils/sellsInApp';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
+import PlanWithdrawal from './PlanWithdrawal';
 import SettingsSection from './SettingsSection';
 import StudioProBilling from './StudioProBilling';
 
@@ -215,6 +216,18 @@ export default function BillingSettings() {
               </Button>
             </div>
           )}
+
+        {/* Within 14 days of the purchase: withdrawing ends the plan now
+            and refunds the unused part (the server checks the days). */}
+        {subscription?.withdrawableUntil && (
+          <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <PlanWithdrawal
+              name={subscription.planName}
+              until={subscription.withdrawableUntil}
+              withdraw={() => paymentsApi.withdrawPlan()}
+            />
+          </div>
+        )}
 
         <StudioProBilling billingStatus={billingStatus ?? null} />
       </SettingsSection>

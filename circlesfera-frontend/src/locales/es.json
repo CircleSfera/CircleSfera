@@ -359,6 +359,16 @@
       "resume_hint": "Tu plan está cancelado y termina el {{date}}. Si lo reanudas, se renovará ese día como antes y hoy no se cobra nada.",
       "resume_done": "Plan reanudado. Se renovará en su fecha.",
       "resume_error": "No se pudo reanudar el plan. Inténtalo de nuevo.",
+      "withdrawal": {
+        "hint": "Lo compraste hace menos de 14 días: hasta el {{date}} puedes desistir del contrato y recuperar la parte que no hayas usado.",
+        "open": "Desistir del contrato aquí",
+        "title": "¿Desistir del contrato?",
+        "explain": "{{name}} termina ahora y sus funciones se detienen ahora. La parte del periodo que no has usado se devuelve a la tarjeta con la que pagaste; los días ya usados, no.",
+        "confirm": "Sí, desistir",
+        "keep": "Mantenerlo",
+        "done": "Has desistido del contrato. La devolución de la parte no usada está en camino a tu tarjeta.",
+        "error": "No se ha podido completar el desistimiento. Inténtalo de nuevo."
+      },
       "studio_pro": {
         "title": "Edits Studio Pro",
         "included": "Incluido con tu plan.",
@@ -6374,7 +6384,8 @@
       "COMPANY_EMAIL_CODE_TRIES": "No quedan intentos para este código. Envía uno nuevo.",
       "COMPANY_DOCUMENT_INVALID": "Sube un PDF, JPG o PNG de hasta 5 MB.",
       "COMPANY_DOCUMENTS_FULL": "Puedes subir hasta 3 documentos.",
-      "COMPANY_EMAIL_CODE_WAIT": "Espera un momento antes de pedir otro código. Se pueden pedir 5 al día."
+      "COMPANY_EMAIL_CODE_WAIT": "Espera un momento antes de pedir otro código. Se pueden pedir 5 al día.",
+      "WITHDRAWAL_PERIOD_ENDED": "Los 14 días para desistir de este plan terminaron el {{deadline, datetime(dateStyle: long)}}. Aún puedes cancelarlo al final de su periodo."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",
@@ -6419,6 +6430,7 @@
     "withdrawal": {
       "title": "Antes de pagar",
       "consent": "Quiero que el acceso empiece ya, y entiendo que pierdo mi derecho de desistimiento de 14 días en cuanto empiece.",
+      "plan_consent": "Pido que mi plan empiece ya. Entiendo que puedo desistir en un plazo de 14 días y que, si lo hago, pago la parte del plan que ya haya usado.",
       "required": "Sin esto, la compra no puede empezar.",
       "continue": "Continuar al pago"
     }

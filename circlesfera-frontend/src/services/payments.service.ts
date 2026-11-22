@@ -54,6 +54,19 @@ export const paymentsApi = {
     return response.data;
   },
 
+  // Withdraws from the plan of the profile in use within 14 days of buying
+  // it: it ends now and the unused part is refunded; answers the billing
+  // status after it.
+  withdrawPlan: async () => {
+    const response = await api.post('/payments/plan/withdraw');
+    return response.data;
+  },
+
+  withdrawStudioPro: async () => {
+    const response = await api.post('/payments/plan/studio-pro/withdraw');
+    return response.data;
+  },
+
   // Get billing status for the current user
   getBillingStatus: async () => {
     const response = await api.get('/payments/status');

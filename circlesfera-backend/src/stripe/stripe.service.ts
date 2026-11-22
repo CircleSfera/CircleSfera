@@ -22,6 +22,22 @@ const PAYMENT_METHOD_CONFIGURATION = /^pmc_[A-Za-z0-9]+$/;
 // until this moves with it.
 const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2026-11-18.endive';
 
+// The newest paid invoice of a subscription. Amounts are integer cents:
+// `totalCents` is what the invoice came to (0 for a free one),
+// `amountPaidCents` what was paid of it by a payment (not from the
+// customer's balance or a credit), `paidCents` the part of it paid with
+// `paymentIntentId` (what can be refunded on it).
+export interface PaidSubscriptionInvoice {
+  id: string;
+  totalCents: number;
+  amountPaidCents: number;
+  paidCents: number;
+  currency: string;
+  periodStart: Date;
+  periodEnd: Date;
+  paymentIntentId: string | null;
+}
+
 @Injectable()
 export class StripeService implements OnModuleInit {
   public readonly stripe: Stripe;
@@ -269,6 +285,159 @@ export class StripeService implements OnModuleInit {
     return this.stripe.subscriptions.cancel(subscriptionId);
   }
 
+  // Ends a subscription now, after a withdrawal within 14 days: no credit
+  // for the unused part (the refund pays it back) and no final invoice.
+  // Ending one that has already ended is refused by the provider with an
+  // invalid-request error.
+  async endSubscriptionNow(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.cancel(subscriptionId, {
+      prorate: false,
+      invoice_now: false,
+    });
+  }
+
+  // The newest paid invoice of a subscription: what was paid, in cents, the
+  // service period it paid for, and the payment it was paid with. Null when
+  // the subscription has no paid invoice.
+  async latestPaidInvoice(
+    subscriptionId: string,
+  ): Promise<PaidSubscriptionInvoice | null> {
+    const invoices = await this.stripe.invoices.list({
+      subscription: subscriptionId,
+      status: 'paid',
+      limit: 1,
+    });
+    const invoice = invoices.data[0];
+    if (!invoice) return null;
+
+    // The period the invoice paid for is that of its charged lines; the
+    // invoice's own period_start/period_end describe the period before it.
+    const lines = invoice.lines.data.filter(
+      (line) => line.amount > 0 && line.period.end > line.period.start,
+    );
+    const periodStart = lines.length
+      ? Math.min(...lines.map((line) => line.period.start))
+      : invoice.period_start;
+    const periodEnd = lines.length
+      ? Math.max(...lines.map((line) => line.period.end))
+      : invoice.period_end;
+
+    let paymentIntentId: string | null = null;
+    let paidCents = invoice.amount_paid;
+    if (invoice.amount_paid > 0) {
+      const payments = await this.stripe.invoicePayments.list({
+        invoice: invoice.id,
+        status: 'paid',
+      });
+      const payment = payments.data.find((p) => p.payment.payment_intent);
+      const intent = payment?.payment.payment_intent;
+      paymentIntentId =
+        (typeof intent === 'string' ? intent : intent?.id) ?? null;
+      if (typeof payment?.amount_paid === 'number') {
+        paidCents = Math.min(paidCents, payment.amount_paid);
+      }
+    }
+
+    return {
+      id: invoice.id,
+      totalCents: invoice.total,
+      amountPaidCents: invoice.amount_paid,
+      paidCents,
+      currency: invoice.currency,
+      periodStart: new Date(periodStart * 1000),
+      periodEnd: new Date(periodEnd * 1000),
+      paymentIntentId,
+    };
+  }
+
+  // Refunds part of a subscription's payment to the card it came from. Never
+  // more than what is left of that payment after the refunds that stand on
+  // it. A refund already made for the same reason and subscription (by its
+  // metadata) that still stands (succeeded, or pending on the bank) is
+  // returned instead of refunding twice, so a retry refunds nothing more. A
+  // failed or cancelled one gave nothing back: it is not counted, and the key
+  // names how many failed, so the next try is a new refund rather than the
+  // answer of the failed one. Null when there is nothing to refund.
+  async refundSubscriptionPayment(params: {
+    paymentIntentId: string;
+    amountInCents: number;
+    idempotencyKey: string;
+    metadata: { reason: string; platformSubscriptionId: string };
+  }): Promise<Stripe.Refund | null> {
+    if (params.amountInCents <= 0) return null;
+
+    const refunds: Stripe.Refund[] = [];
+    for await (const refund of this.stripe.refunds.list({
+      payment_intent: params.paymentIntentId,
+      limit: 100,
+    })) {
+      refunds.push(refund);
+    }
+    const gaveNothing = (refund: Stripe.Refund) =>
+      refund.status === 'failed' || refund.status === 'canceled';
+    const ours = (refund: Stripe.Refund) =>
+      refund.metadata?.reason === params.metadata.reason &&
+      refund.metadata?.platformSubscriptionId ===
+        params.metadata.platformSubscriptionId;
+    const standing = refunds.filter((refund) => !gaveNothing(refund));
+    const earlier = standing.find(ours);
+    if (earlier) return earlier;
+    const failedTries = refunds.filter(
+      (refund) => gaveNothing(refund) && ours(refund),
+    ).length;
+
+    const payment = await this.stripe.paymentIntents.retrieve(
+      params.paymentIntentId,
+    );
+    const alreadyRefunded = standing.reduce(
+      (sum, refund) => sum + refund.amount,
+      0,
+    );
+    const amount = Math.min(
+      params.amountInCents,
+      payment.amount_received - alreadyRefunded,
+    );
+    if (amount <= 0) return null;
+
+    return this.stripe.refunds.create(
+      {
+        payment_intent: params.paymentIntentId,
+        amount,
+        reason: 'requested_by_customer',
+        metadata: params.metadata,
+      },
+      { idempotencyKey: `${params.idempotencyKey}-${failedTries}` },
+    );
+  }
+
+  // Voids the open invoices of a subscription, so none is collected after
+  // it ended (a renewal that failed leaves one the provider keeps trying).
+  // One already paid or voided meanwhile is left as it is.
+  async voidOpenInvoices(subscriptionId: string): Promise<number> {
+    const open: string[] = [];
+    for await (const invoice of this.stripe.invoices.list({
+      subscription: subscriptionId,
+      status: 'open',
+      limit: 100,
+    })) {
+      open.push(invoice.id);
+    }
+    let voided = 0;
+    for (const id of open) {
+      try {
+        await this.stripe.invoices.voidInvoice(id);
+        voided++;
+      } catch (err) {
+        if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') {
+          throw err;
+        }
+      }
+    }
+    return voided;
+  }
+
   // Takes back a cancellation at the end of the period: the subscription
   // renews on its date again, and nothing is charged now.
   async resumeSubscription(
@@ -326,6 +495,20 @@ export class StripeService implements OnModuleInit {
       expand: ['verified_outputs'],
     });
   }
+}
+
+// Whether the provider answered a request with an error (its response
+// carries a status), as opposed to a request whose outcome is not known (the
+// connection failed). An answered error is kept under its idempotency key,
+// so the same request with the same key gets the same error again.
+export function isProviderErrorResponse(error: unknown): boolean {
+  const e = error as { type?: unknown; statusCode?: unknown } | null;
+  return (
+    typeof e?.statusCode === 'number' &&
+    typeof e.type === 'string' &&
+    e.type.startsWith('Stripe') &&
+    e.type !== 'StripeConnectionError'
+  );
 }
 
 export type StripeFailureClass = 'transient' | 'permanent';

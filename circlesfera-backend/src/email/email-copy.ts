@@ -107,6 +107,19 @@ export interface EmailCopy {
     body: string;
     button: string;
   };
+  // The person withdrew from the contract within 14 days: the plan ended at
+  // once and the unused part was refunded (or nothing was left to refund).
+  planWithdrawn: {
+    subject: string;
+    title: string;
+    body: string;
+    refunded: string;
+    nothingToRefund: string;
+    // The part paid from the account balance or a credit, which the team
+    // returns.
+    byTeam: string;
+    button: string;
+  };
   greeting: string;
   fallbackName: string;
 }
@@ -249,6 +262,18 @@ const en: EmailCopy = {
     subject: 'Your {plan} plan continues',
     title: 'Plan resumed',
     body: 'You resumed the <strong>{plan}</strong> plan of @{username}. It is no longer cancelled: it renews on <strong>{date}</strong> as before, and nothing was charged today.<br><br>If you did not resume it, write to support@circlesfera.com.',
+    button: 'See my plan',
+  },
+  planWithdrawn: {
+    subject: 'You withdrew from your {plan} plan',
+    title: 'Withdrawal confirmed',
+    body: 'You withdrew from the contract of the <strong>{plan}</strong> plan of @{username}. The plan has ended and its features stopped today.<br><br>{refund}<br><br>If you did not withdraw, write to support@circlesfera.com.',
+    refunded:
+      'A refund of <strong>{amount}</strong>, the part of the period you had not used, is on its way to the card you paid with. It can take 5 to 10 days to show on your statement.',
+    nothingToRefund:
+      'Nothing was left to refund: no part of the period paid was unused.',
+    byTeam:
+      'The other <strong>{amount}</strong>, paid from your account balance, is returned to you by the CircleSfera team.',
     button: 'See my plan',
   },
   greeting: 'Hello',
@@ -398,6 +423,18 @@ const es: EmailCopy = {
     subject: 'Tu plan {plan} continúa',
     title: 'Plan reanudado',
     body: 'Has reanudado el plan <strong>{plan}</strong> de @{username}. Ya no está cancelado: se renueva el <strong>{date}</strong> como antes, y hoy no se ha cobrado nada.<br><br>Si no lo has reanudado tú, escribe a support@circlesfera.com.',
+    button: 'Ver mi plan',
+  },
+  planWithdrawn: {
+    subject: 'Has desistido de tu plan {plan}',
+    title: 'Desistimiento confirmado',
+    body: 'Has desistido del contrato del plan <strong>{plan}</strong> de @{username}. El plan ha terminado y sus funciones se han detenido hoy.<br><br>{refund}<br><br>Si no has desistido tú, escribe a support@circlesfera.com.',
+    refunded:
+      'Una devolución de <strong>{amount}</strong>, la parte del periodo que no habías usado, está en camino a la tarjeta con la que pagaste. Puede tardar de 5 a 10 días en verse en tu extracto.',
+    nothingToRefund:
+      'No quedaba nada por devolver: no había ninguna parte del periodo pagado sin usar.',
+    byTeam:
+      'Los otros <strong>{amount}</strong>, pagados con el saldo de tu cuenta, te los devuelve el equipo de CircleSfera.',
     button: 'Ver mi plan',
   },
   greeting: 'Hola',
