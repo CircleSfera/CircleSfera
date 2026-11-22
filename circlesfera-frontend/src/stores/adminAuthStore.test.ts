@@ -121,12 +121,12 @@ describe('adminAuthStore', () => {
     expect(useAdminAuthStore.getState().hasPermission('reports.review')).toBe(
       true,
     );
-    expect(useAdminAuthStore.getState().hasPermission('payouts.manage')).toBe(
+    expect(useAdminAuthStore.getState().hasPermission('admins.manage')).toBe(
       false,
     );
 
     setAdmin(staff(['ADMIN'], ['admins.manage']));
-    expect(useAdminAuthStore.getState().hasPermission('payouts.manage')).toBe(
+    expect(useAdminAuthStore.getState().hasPermission('admins.manage')).toBe(
       true,
     );
 

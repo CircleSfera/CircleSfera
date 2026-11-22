@@ -38,7 +38,7 @@ export function setModerationStatus(
   };
   const args = { where: { id }, data, select: SELECT };
   // A post or story staff decide to show has been looked at by a person:
-  // it may be sold or tipped as if automatic moderation had passed it.
+  // it may be promoted as if automatic moderation had passed it.
   const cleared =
     status === 'VISIBLE'
       ? {

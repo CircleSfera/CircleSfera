@@ -21,7 +21,7 @@ export interface InteractionRailProps {
   onComment: () => void;
   onShare: () => void;
   onBookmark: () => void;
-  // Inserted after share (for example tip on posts)
+  // Inserted after share
   extraActions?: ReactNode;
   // Overflow menu for frames
   onMenu?: () => void;

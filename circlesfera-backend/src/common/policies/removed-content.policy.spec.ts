@@ -8,9 +8,9 @@ import {
   isRemoved,
   isUnlisted,
   LISTED_POST,
+  MODERATION_PASSED_POST,
+  MODERATION_PASSED_STORY,
   NOT_REMOVED,
-  SELLABLE_POST,
-  SELLABLE_STORY,
   SHOWN_COMMENTS_COUNT,
 } from './removed-content.policy.js';
 
@@ -200,17 +200,17 @@ describe('setModerationStatus', () => {
     });
   });
 
-  it('sells and lets tip only what automatic moderation passed: never what it is still to check, flagged, hid or removed', () => {
+  it('lets promote only what automatic moderation passed: never what it is still to check, flagged, hid or removed', () => {
     const passed = {
       moderationStatus: 'VISIBLE',
       moderationPassedAt: { not: null },
     };
-    expect(SELLABLE_POST).toEqual({
+    expect(MODERATION_PASSED_POST).toEqual({
       ...passed,
       deletedAt: null,
       archivedAt: null,
     });
-    expect(SELLABLE_STORY).toEqual({ ...passed, deletedAt: null });
+    expect(MODERATION_PASSED_STORY).toEqual({ ...passed, deletedAt: null });
     expect(AWAITING_MODERATION).toEqual({
       moderationStatus: 'VISIBLE',
       moderationPassedAt: null,

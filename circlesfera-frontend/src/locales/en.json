@@ -3775,8 +3775,7 @@
         "UPDATE_SETTINGS": "Changed the settings",
         "BLOCK": "Blocked content",
         "IGNORE": "Dismissed a case",
-        "STRIKE": "Issued a strike",
-        "PAID_CONTENT_APPROVED": "Paid content approved for sale"
+        "STRIKE": "Issued a strike"
       },
       "targets": {
         "USER": "Account",

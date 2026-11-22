@@ -12,7 +12,7 @@ export interface MyPostTag {
     id: string;
     caption: string | null;
     createdAt: string;
-    // None for a paid post: the tag is not a way into it.
+    // None for a mature post the viewer blurs or does not allow.
     thumbnailUrl: string | null;
     profile: {
       id: string;

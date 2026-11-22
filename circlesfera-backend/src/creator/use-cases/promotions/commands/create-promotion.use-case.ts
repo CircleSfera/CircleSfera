@@ -8,8 +8,8 @@ import { AppException } from '../../../../common/errors/app.exception.js';
 import { assertAdultPayer } from '../../../../common/policies/adult-payer.policy.js';
 import {
   AWAITING_MODERATION,
-  SELLABLE_POST,
-  SELLABLE_STORY,
+  MODERATION_PASSED_POST,
+  MODERATION_PASSED_STORY,
 } from '../../../../common/policies/removed-content.policy.js';
 import { assertRealMoneyAllowed } from '../../../../common/policies/test-account.policy.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
@@ -88,7 +88,11 @@ export class CreatePromotionUseCase {
     const owned = { id: targetId, profileId: { in: profileIds } };
     if (targetType === 'post' || targetType === 'frame') {
       const post = await this.prisma.post.findFirst({
-        where: { ...owned, ...SELLABLE_POST, scheduledStatus: 'PUBLISHED' },
+        where: {
+          ...owned,
+          ...MODERATION_PASSED_POST,
+          scheduledStatus: 'PUBLISHED',
+        },
         select: { id: true },
       });
       if (!post) {
@@ -97,7 +101,11 @@ export class CreatePromotionUseCase {
       }
     } else if (targetType === 'story') {
       const story = await this.prisma.story.findFirst({
-        where: { ...owned, ...SELLABLE_STORY, scheduledStatus: 'PUBLISHED' },
+        where: {
+          ...owned,
+          ...MODERATION_PASSED_STORY,
+          scheduledStatus: 'PUBLISHED',
+        },
         select: { id: true },
       });
       if (!story) {
