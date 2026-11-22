@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { subscriptionPeriod } from './subscription-period.js';
+import {
+  subscriptionInterval,
+  subscriptionPeriod,
+} from './subscription-period.js';
 
 describe('subscriptionPeriod', () => {
   it('reads the billing period from the subscription item', () => {
@@ -44,5 +47,22 @@ describe('subscriptionPeriod', () => {
         items: { data: [{ current_period_start: 1 }] },
       }),
     ).toThrow(/no billing period/);
+  });
+});
+
+describe('subscriptionInterval', () => {
+  const withInterval = (interval?: string) => ({
+    items: { data: [{ price: { recurring: interval ? { interval } : null } }] },
+  });
+
+  it('is how often the price of the item is charged, a month or a year', () => {
+    expect(subscriptionInterval(withInterval('month'))).toBe('month');
+    expect(subscriptionInterval(withInterval('year'))).toBe('year');
+  });
+
+  it('is nothing for any other interval or none, so a row keeps its own', () => {
+    expect(subscriptionInterval(withInterval('week'))).toBeUndefined();
+    expect(subscriptionInterval(withInterval())).toBeUndefined();
+    expect(subscriptionInterval({})).toBeUndefined();
   });
 });

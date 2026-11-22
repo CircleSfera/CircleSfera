@@ -38,6 +38,7 @@ describe('PaymentsController', () => {
     cancelPlan: vi.fn(),
     resumePlan: vi.fn(),
     withdrawPlan: vi.fn(),
+    switchPlanToYearly: vi.fn(),
     getLedgerCsv: vi.fn(),
     constructEvent: vi.fn(),
     processWebhookEvent: vi.fn(),
@@ -378,6 +379,36 @@ describe('PaymentsController', () => {
         rawBody: Buffer.from('{}'),
       } as any),
     ).rejects.toThrow('Unknown error');
+  });
+
+  it('moves the plan of the session Profile to yearly, for the person who pays it, only with the consent', async () => {
+    mockService.switchPlanToYearly.mockResolvedValue({ paymentUrl: null });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/yearly')
+      .set(BEARER)
+      .send({ withdrawalConsent: true })
+      .expect(200);
+
+    expect(res.body).toEqual({ paymentUrl: null });
+    expect(mockService.switchPlanToYearly).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
+
+    mockService.switchPlanToYearly.mockClear();
+    for (const body of [{}, { withdrawalConsent: false }]) {
+      await request(app.getHttpServer())
+        .post('/api/v1/payments/plan/yearly')
+        .set(BEARER)
+        .send(body)
+        .expect(400);
+    }
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/plan/yearly')
+      .send({ withdrawalConsent: true })
+      .expect(401);
+    expect(mockService.switchPlanToYearly).not.toHaveBeenCalled();
   });
 
   it('refuses a plan checkout without the withdrawal consent', async () => {

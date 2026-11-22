@@ -1,5 +1,5 @@
-// The platform plans CircleSfera sells, what each includes and its monthly
-// price, VAT included. A benefit is listed
+// The platform plans CircleSfera sells, what each includes, its monthly
+// price and, for some, its yearly price (BD-016), VAT included. A benefit is listed
 // here once it is built, never before; `verified_badge` is also the key the
 // profile reads to show the badge.
 export type CatalogPlan = {
@@ -7,6 +7,9 @@ export type CatalogPlan = {
   // Names a stored plan had before, told apart by its price.
   formerNames: readonly string[];
   priceCents: number;
+  // The price of a year, when the plan is sold by the year too (BD-016);
+  // it is on sale once the provider has that price.
+  yearlyPriceCents?: number;
   description: string;
   features: readonly string[];
 };
@@ -24,6 +27,7 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     name: 'Premium',
     formerNames: ['Verified'],
     priceCents: 999,
+    yearlyPriceCents: 9990,
     description: 'Verified badge and priority support.',
     features: ['verified_badge', 'priority_support'],
   },
@@ -31,6 +35,7 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     name: 'Elite Creator',
     formerNames: [],
     priceCents: 1999,
+    yearlyPriceCents: 19990,
     description:
       'Elite badge, priority support, a feed without promoted posts, advanced analytics and Edits Studio Pro.',
     features: [
@@ -45,6 +50,7 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     name: 'Business',
     formerNames: [],
     priceCents: 4999,
+    yearlyPriceCents: 49990,
     description:
       'Business badge, priority support, a feed without promoted posts, advanced analytics, team access for up to 5 people and Edits Studio Pro.',
     features: [
@@ -99,6 +105,7 @@ export type StoredPlan = {
   stripeProductId: string;
   stripePriceId: string;
   yearlyStripePriceId: string | null;
+  yearlyPriceCents: number | null;
   isActive: boolean;
 };
 
@@ -158,6 +165,52 @@ export function planPrice(
   return monthly.length === 1 ? monthly[0] : null;
 }
 
+// VAT included: said on the price, or left to an account whose tax default
+// includes it, always or, inferred by currency, in euros.
+function vatIncluded(
+  price: ProviderPrice,
+  accountTaxBehavior: string | null,
+): boolean {
+  const accountIncludesVat =
+    accountTaxBehavior === 'inclusive' ||
+    (accountTaxBehavior === 'inferred_by_currency' && price.currency === 'eur');
+  return (
+    price.tax_behavior === 'inclusive' ||
+    (price.tax_behavior === 'unspecified' && accountIncludesVat)
+  );
+}
+
+/**
+ * The yearly price a plan is sold at (BD-016): the one active yearly price
+ * of its product in euros at the catalog's yearly amount, VAT included.
+ * None, with a notice, while the provider has no such price or has several
+ * (which one is meant is not guessed): the plan is then sold monthly only,
+ * and the run does not fail, since the yearly prices are created at the
+ * provider by hand.
+ */
+export function planYearlyPrice(
+  activePrices: readonly ProviderPrice[],
+  plan: CatalogPlan,
+  accountTaxBehavior: string | null = null,
+): { price?: ProviderPrice; notice?: string } {
+  if (!plan.yearlyPriceCents) return {};
+  const matching = activePrices.filter(
+    (price) =>
+      price.active &&
+      price.currency === 'eur' &&
+      price.recurring?.interval === 'year' &&
+      price.unit_amount === plan.yearlyPriceCents &&
+      vatIncluded(price, accountTaxBehavior),
+  );
+  if (matching.length === 1) return { price: matching[0] };
+  return {
+    notice:
+      matching.length === 0
+        ? `${plan.name}: no active yearly price of ${plan.yearlyPriceCents} cents in euros, VAT included; sold monthly only`
+        : `${plan.name}: ${matching.length} yearly prices match (${matching.map((p) => p.id).join(', ')}); sold monthly only`,
+  };
+}
+
 // What is wrong with the default price of a plan's product, if anything:
 // it must be the plan's monthly price in euros, VAT included.
 export function priceProblems(
@@ -179,15 +232,7 @@ export function priceProblems(
   if (price.unit_amount !== plan.priceCents) {
     problems.push(`it is ${price.unit_amount} cents, not ${plan.priceCents}`);
   }
-  // VAT included: said on the price, or left to an account whose tax
-  // default includes it, always or, inferred by currency, in euros.
-  const accountIncludesVat =
-    accountTaxBehavior === 'inclusive' ||
-    (accountTaxBehavior === 'inferred_by_currency' && price.currency === 'eur');
-  const vatIncluded =
-    price.tax_behavior === 'inclusive' ||
-    (price.tax_behavior === 'unspecified' && accountIncludesVat);
-  if (!vatIncluded) {
+  if (!vatIncluded(price, accountTaxBehavior)) {
     problems.push(`its VAT is ${price.tax_behavior ?? 'unset'}, not inclusive`);
   }
   return problems.map(
@@ -219,16 +264,17 @@ export function findStoredPlan(
 }
 
 /**
- * What a stored plan must be set to, or null when it is already so. A yearly
- * price that is not one of the product's active prices is cleared: it names
- * a price of another environment or one archived since.
+ * What a stored plan must be set to, or null when it is already so. Its
+ * yearly price is the one found for this environment, or none: a yearly
+ * price of another environment, one archived since, or one at another
+ * amount is cleared.
  */
 export function planUpdate(
   row: StoredPlan | undefined,
   plan: CatalogPlan,
   productId: string,
   priceId: string,
-  activePriceIds: readonly string[],
+  yearlyPrice: { id: string; cents: number } | null,
 ): Record<string, unknown> | null {
   const target = {
     name: plan.name,
@@ -240,10 +286,8 @@ export function planUpdate(
     stripeProductId: productId,
     stripePriceId: priceId,
     isActive: true,
-    ...(row?.yearlyStripePriceId &&
-    !activePriceIds.includes(row.yearlyStripePriceId)
-      ? { yearlyStripePriceId: null, yearlyPriceCents: null }
-      : {}),
+    yearlyStripePriceId: yearlyPrice?.id ?? null,
+    yearlyPriceCents: yearlyPrice?.cents ?? null,
   };
   if (!row) return target;
   const changed = Object.fromEntries(

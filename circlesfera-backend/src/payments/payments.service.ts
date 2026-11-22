@@ -24,6 +24,7 @@ import {
 } from '../stripe/stripe.service.js';
 import {
   type SubscriptionWithItems,
+  subscriptionInterval,
   subscriptionPeriod,
 } from '../stripe/subscription-period.js';
 import { UsersService } from '../users/users.service.js';
@@ -104,6 +105,13 @@ type StripeSubscriptionState = {
   start_date?: number;
 } & SubscriptionWithItems;
 
+// A subscription read or changed to move it to another price: whether a
+// change waits for its charge to be paid, and the invoice of that charge.
+type SwitchedSubscription = StripeSubscriptionState & {
+  pending_update?: unknown;
+  latest_invoice?: string | { hosted_invoice_url?: string | null } | null;
+};
+
 // When a subscription started at the provider, to keep on its row.
 function providerStart(
   subscription: { start_date?: number } | null | undefined,
@@ -111,6 +119,15 @@ function providerStart(
   return typeof subscription?.start_date === 'number'
     ? { providerStartedAt: new Date(subscription.start_date * 1000) }
     : {};
+}
+
+// How often a subscription is charged, to keep on its row; nothing when the
+// provider names no interval, so the row keeps its own.
+function providerInterval(
+  subscription: SubscriptionWithItems,
+): { billingInterval: 'month' | 'year' } | Record<string, never> {
+  const interval = subscriptionInterval(subscription);
+  return interval ? { billingInterval: interval } : {};
 }
 
 @Injectable()
@@ -514,6 +531,8 @@ export class PaymentsService {
             id: true,
             name: true,
             priceCents: true,
+            yearlyPriceCents: true,
+            yearlyStripePriceId: true,
             currency: true,
             features: true,
           },
@@ -536,7 +555,18 @@ export class PaymentsService {
       currentPeriodStart: subscription.currentPeriodStart,
       currentPeriodEnd: subscription.currentPeriodEnd,
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-      priceCents: subscription.plan.priceCents,
+      billingInterval: subscription.billingInterval,
+      // What is charged each period: the yearly price for a yearly plan.
+      priceCents:
+        subscription.billingInterval === 'year'
+          ? (subscription.plan.yearlyPriceCents ?? subscription.plan.priceCents)
+          : subscription.plan.priceCents,
+      // The yearly price a monthly plan can move to now (BD-016), or null
+      // when it cannot: an add-on, a plan with no yearly price on sale, or
+      // one that is not running, is cancelled or is withdrawn.
+      yearlyPriceCents: this.canSwitchToYearly(subscription)
+        ? subscription.plan.yearlyPriceCents
+        : null,
       currency: subscription.plan.currency,
       // Until when the payer can withdraw from it (14 days from the purchase
       // at the provider, decided as the server decides), while it runs; null
@@ -550,6 +580,7 @@ export class PaymentsService {
     stripeSubscriptionId: string;
     createdAt: Date;
     providerStartedAt: Date | null;
+    yearlyStartedAt: Date | null;
     withdrawnAt: Date | null;
     status: SubscriptionStatus;
   }): Promise<Date | null> {
@@ -562,6 +593,12 @@ export class PaymentsService {
       return null;
     }
     const now = Date.now();
+    // A plan moved to the yearly price: its 14 days count from the move.
+    if (subscription.yearlyStartedAt) {
+      return this.withdrawalOpen(subscription.yearlyStartedAt, now)
+        ? withdrawalDeadline(subscription.yearlyStartedAt)
+        : null;
+    }
     // The row is written after the purchase: once 14 days have passed since
     // it was written, they have passed since the purchase too, and the
     // provider is not asked.
@@ -780,6 +817,7 @@ export class PaymentsService {
     currentPeriodStart: Date;
     currentPeriodEnd: Date;
     providerStartedAt: Date | null;
+    yearlyStartedAt: Date | null;
   }): Promise<{
     refundCents: number;
     owedByStaffCents: number;
@@ -796,9 +834,12 @@ export class PaymentsService {
       (await this.keepProviderStart(subscription).catch((err: unknown) =>
         this.refusedByProvider(stripeSubscriptionId, err),
       ));
+    // The 14 days count from the purchase, or from the move to the yearly
+    // price, a new contract, for a plan moved to it.
+    const windowFrom = subscription.yearlyStartedAt ?? startedAt;
     const now = Date.now();
-    if (!this.withdrawalOpen(startedAt, now)) {
-      const deadline = withdrawalDeadline(startedAt);
+    if (!this.withdrawalOpen(windowFrom, now)) {
+      const deadline = withdrawalDeadline(windowFrom);
       throw AppException.BadRequest(
         ErrorCode.WITHDRAWAL_PERIOD_ENDED,
         `The 14 days to withdraw from this plan ended on ${deadline.toISOString().slice(0, 10)}. It can still be cancelled at the end of its period.`,
@@ -1146,6 +1187,130 @@ export class PaymentsService {
     return this.getBillingStatus(userId, profileId);
   }
 
+  // Whether a plan can move from monthly to yearly now (BD-016): a running
+  // monthly plan, not an add-on, not cancelled nor withdrawn, whose plan has
+  // a yearly price on sale.
+  private canSwitchToYearly(subscription: {
+    status: SubscriptionStatus;
+    addOn: boolean;
+    billingInterval: string;
+    cancelAtPeriodEnd: boolean;
+    withdrawnAt: Date | null;
+    plan: {
+      yearlyPriceCents: number | null;
+      yearlyStripePriceId: string | null;
+    };
+  }): boolean {
+    return (
+      subscription.status === SubscriptionStatus.ACTIVE &&
+      !subscription.addOn &&
+      subscription.billingInterval === 'month' &&
+      !subscription.cancelAtPeriodEnd &&
+      !subscription.withdrawnAt &&
+      !!subscription.plan.yearlyStripePriceId &&
+      (subscription.plan.yearlyPriceCents ?? 0) > 0
+    );
+  }
+
+  // Moves the monthly plan of the Profile in use to its yearly price
+  // (BD-016): what is left of the month paid is credited, the year starts
+  // today and the difference is charged now. The change applies once that
+  // charge is paid; when the card needs the payer (authentication, a
+  // decline), the plan stays monthly and `paymentUrl` is the provider's page
+  // to pay it, after which the change applies. The 14 days to withdraw keep
+  // counting from the first purchase. Only the person who pays it can.
+  //
+  // Public contract addition decided by the owner under BD-016: the
+  // endpoint POST plan/yearly, and the billing status fields
+  // `billingInterval` and `yearlyPriceCents`.
+  async switchPlanToYearly(userId: string, profileId: string) {
+    const subscription = await this.subscriptionInUse(userId, profileId, false);
+    if (!subscription || subscription.status !== SubscriptionStatus.ACTIVE) {
+      throw AppException.NotFound(
+        ErrorCode.SUBSCRIPTION_NOT_FOUND,
+        'This profile has no running plan to pay by the year',
+      );
+    }
+    if (subscription.billingInterval === 'year') {
+      throw AppException.Conflict(
+        ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+        'This plan is already paid by the year.',
+      );
+    }
+    if (subscription.cancelAtPeriodEnd || subscription.withdrawnAt) {
+      throw AppException.Conflict(
+        ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+        'Resume this plan before paying it by the year.',
+      );
+    }
+    const yearlyPriceId = subscription.plan.yearlyStripePriceId;
+    if (!this.canSwitchToYearly(subscription) || !yearlyPriceId) {
+      throw AppException.BadRequest(
+        ErrorCode.PRICE_NOT_FOUND,
+        'This plan has no yearly price.',
+      );
+    }
+    // A new charge: the same checks as a new plan.
+    await assertRealMoneyAllowed(this.prisma, userId);
+    await assertAdultPayer(this.prisma, userId);
+    await this.stripeService.assertPaymentsEnabled();
+
+    const stripeSubscriptionId = subscription.stripeSubscriptionId;
+    const current = (await this.stripeService
+      .getSubscription(stripeSubscriptionId)
+      .catch((err: unknown) =>
+        this.refusedByProvider(stripeSubscriptionId, err),
+      )) as unknown as SwitchedSubscription;
+    const item = current.items?.data?.[0];
+    if (!item?.id || typeof item.current_period_start !== 'number') {
+      throw new Error(
+        `Subscription ${stripeSubscriptionId} has no item to move to the yearly price`,
+      );
+    }
+    // The provider already holds it yearly (a notice not processed yet):
+    // the row is brought in line and nothing is charged again.
+    if (subscriptionInterval(current) === 'year') {
+      await this.applyStripeSubscription(current);
+      return {
+        ...(await this.getBillingStatus(userId, profileId)),
+        paymentUrl: null,
+      };
+    }
+
+    // The key is the same for every request made in this period, so two
+    // requests at once (two clicks, two devices) charge once; a request
+    // within a day of one whose charge was not paid answers that same
+    // charge, to be paid on its page.
+    const updated = (await this.stripeService
+      .switchSubscriptionPrice({
+        subscriptionId: stripeSubscriptionId,
+        itemId: item.id,
+        priceId: yearlyPriceId,
+        metadata: planStartConsentMetadata(),
+        idempotencyKey: `plan_yearly_${PLAN_START_CONSENT_VERSION}_${stripeSubscriptionId}_${item.current_period_start}`,
+      })
+      .catch((err: unknown) =>
+        this.refusedByProvider(stripeSubscriptionId, err),
+      )) as unknown as SwitchedSubscription;
+
+    if (updated.pending_update) {
+      const invoice = updated.latest_invoice;
+      const paymentUrl =
+        invoice && typeof invoice === 'object'
+          ? (invoice.hosted_invoice_url ?? null)
+          : null;
+      return {
+        ...(await this.getBillingStatus(userId, profileId)),
+        paymentUrl,
+      };
+    }
+    await this.applyStripeSubscription(updated);
+    return {
+      ...(await this.getBillingStatus(userId, profileId)),
+      paymentUrl: null,
+    };
+  }
+
   // A notice may arrive late or twice: one about a cancellation can come
   // after the plan was resumed. The subscription is read again from the
   // provider, so the row always takes its state as it is now; the notice's
@@ -1181,6 +1346,18 @@ export class PaymentsService {
   private async applyStripeSubscription(subscription: StripeSubscriptionState) {
     const period = subscriptionPeriod(subscription);
     await this.prisma.$transaction(async (tx) => {
+      // A monthly plan now charged by the year moved to it (BD-016): its new
+      // period starts at the move, and so do its 14 days to withdraw. Kept
+      // once, while the row is still monthly.
+      if (subscriptionInterval(subscription) === 'year') {
+        await tx.platformSubscription.updateMany({
+          where: {
+            stripeSubscriptionId: subscription.id,
+            billingInterval: 'month',
+          },
+          data: { yearlyStartedAt: period.start },
+        });
+      }
       await tx.platformSubscription.updateMany({
         where: { stripeSubscriptionId: subscription.id },
         data: {
@@ -1189,6 +1366,7 @@ export class PaymentsService {
           currentPeriodEnd: period.end,
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
           ...providerStart(subscription),
+          ...providerInterval(subscription),
         },
       });
       await this.keepWithdrawnEnded(tx, subscription.id);
@@ -1713,6 +1891,7 @@ export class PaymentsService {
                 cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
                 profileId,
                 ...providerStart(stripeSubscription),
+                ...providerInterval(stripeSubscription),
               },
               create: {
                 userId,
@@ -1725,6 +1904,7 @@ export class PaymentsService {
                 cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
                 addOn,
                 ...providerStart(stripeSubscription),
+                ...providerInterval(stripeSubscription),
               },
             });
             await this.keepWithdrawnEnded(tx, stripeSubscriptionId);

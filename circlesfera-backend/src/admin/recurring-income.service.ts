@@ -8,15 +8,25 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // The recurring monthly income of a set of subscriptions: the list price of
-// the plan of each one, in integer cents. One rule for the figure shown now
-// and for the one kept each day.
+// the plan of each one, in integer cents; a plan paid by the year counts a
+// twelfth of its yearly price, rounded to the cent. One rule for the figure
+// shown now and for the one kept each day.
 export function recurringIncomeCents(
-  subscriptions: { plan?: { priceCents?: number | null } | null }[],
+  subscriptions: {
+    billingInterval?: string | null;
+    plan?: {
+      priceCents?: number | null;
+      yearlyPriceCents?: number | null;
+    } | null;
+  }[],
 ): number {
-  return subscriptions.reduce(
-    (sum, subscription) => sum + (subscription.plan?.priceCents ?? 0),
-    0,
-  );
+  return subscriptions.reduce((sum, subscription) => {
+    const plan = subscription.plan;
+    if (subscription.billingInterval === 'year' && plan?.yearlyPriceCents) {
+      return sum + Math.round(plan.yearlyPriceCents / 12);
+    }
+    return sum + (plan?.priceCents ?? 0);
+  }, 0);
 }
 
 const MAX_DAYS = 90;
@@ -31,7 +41,10 @@ export class RecurringIncomeService implements OnApplicationBootstrap {
   async current() {
     const subscriptions = await this.prisma.platformSubscription.findMany({
       where: { status: 'ACTIVE' },
-      select: { plan: { select: { priceCents: true } } },
+      select: {
+        billingInterval: true,
+        plan: { select: { priceCents: true, yearlyPriceCents: true } },
+      },
     });
     return {
       mrrCents: recurringIncomeCents(subscriptions),

@@ -8,6 +8,7 @@ import {
   type ProviderProduct,
   planPrice,
   planUpdate,
+  planYearlyPrice,
   priceProblems,
   type StoredPlan,
   staleProductDescription,
@@ -43,9 +44,12 @@ const stored = (over: Partial<StoredPlan>): StoredPlan => ({
   stripeProductId: 'prod_1',
   stripePriceId: 'price_m',
   yearlyStripePriceId: null,
+  yearlyPriceCents: null,
   isActive: true,
   ...over,
 });
+const yearly = (amount: number, over: object = {}) =>
+  monthly(amount, { id: 'price_y', recurring: { interval: 'year' }, ...over });
 
 describe('the plan catalog', () => {
   it('sells Verified with the badge only, apart from Premium', () => {
@@ -226,6 +230,55 @@ describe('priceProblems', () => {
   });
 });
 
+describe('planYearlyPrice', () => {
+  it('sells Premium, Elite Creator and Business by the year (BD-016), and Verified and the add-on monthly only', () => {
+    expect(
+      PLAN_CATALOG.map((p) => [p.name, p.yearlyPriceCents ?? null]),
+    ).toEqual([
+      ['Verified', null],
+      ['Premium', 9990],
+      ['Elite Creator', 19990],
+      ['Business', 49990],
+      [STUDIO_PRO_PLAN_NAME, null],
+    ]);
+  });
+
+  it('is the one active yearly price in euros at the yearly amount, VAT included', () => {
+    const price = yearly(9990);
+    expect(planYearlyPrice([monthly(999), price], plan('Premium'))).toEqual({
+      price,
+    });
+  });
+
+  it('is none, with a notice, while the provider has no such price', () => {
+    for (const prices of [
+      [monthly(999)],
+      [yearly(9900)],
+      [yearly(9990, { currency: 'usd' })],
+      [yearly(9990, { tax_behavior: 'exclusive' })],
+      [yearly(9990, { active: false })],
+    ]) {
+      expect(planYearlyPrice(prices, plan('Premium'))).toEqual({
+        notice:
+          'Premium: no active yearly price of 9990 cents in euros, VAT included; sold monthly only',
+      });
+    }
+  });
+
+  it('is none when several prices match: which one is meant is not guessed', () => {
+    expect(
+      planYearlyPrice(
+        [yearly(9990, { id: 'a' }), yearly(9990, { id: 'b' })],
+        plan('Premium'),
+      ).notice,
+    ).toBe('Premium: 2 yearly prices match (a, b); sold monthly only');
+  });
+
+  it('is nothing for a plan not sold by the year', () => {
+    expect(planYearlyPrice([yearly(4990)], plan('Verified'))).toEqual({});
+  });
+});
+
 describe('findStoredPlan', () => {
   it('finds the stored plan by its product first', () => {
     const row = stored({ name: 'Old name', stripeProductId: 'prod_1' });
@@ -255,7 +308,7 @@ describe('findStoredPlan', () => {
 describe('planUpdate', () => {
   it('changes nothing in a plan already as the catalog says', () => {
     expect(
-      planUpdate(stored({}), plan('Premium'), 'prod_1', 'price_m', ['price_m']),
+      planUpdate(stored({}), plan('Premium'), 'prod_1', 'price_m', null),
     ).toBeNull();
   });
 
@@ -270,7 +323,7 @@ describe('planUpdate', () => {
         plan('Premium'),
         'prod_test',
         'price_test',
-        ['price_test'],
+        null,
       ),
     ).toEqual({
       name: 'Premium',
@@ -279,30 +332,39 @@ describe('planUpdate', () => {
     });
   });
 
-  it('clears a yearly price that is not one of the product', () => {
+  it('sets the yearly price found, and clears one no longer found', () => {
+    expect(
+      planUpdate(stored({}), plan('Premium'), 'prod_1', 'price_m', {
+        id: 'price_y',
+        cents: 9990,
+      }),
+    ).toEqual({ yearlyStripePriceId: 'price_y', yearlyPriceCents: 9990 });
     expect(
       planUpdate(
-        stored({ yearlyStripePriceId: 'price_year_live' }),
+        stored({
+          yearlyStripePriceId: 'price_year_live',
+          yearlyPriceCents: 9990,
+        }),
         plan('Premium'),
         'prod_1',
         'price_m',
-        ['price_m'],
+        null,
       ),
     ).toEqual({ yearlyStripePriceId: null, yearlyPriceCents: null });
     expect(
       planUpdate(
-        stored({ yearlyStripePriceId: 'price_year' }),
+        stored({ yearlyStripePriceId: 'price_y', yearlyPriceCents: 9990 }),
         plan('Premium'),
         'prod_1',
         'price_m',
-        ['price_m', 'price_year'],
+        { id: 'price_y', cents: 9990 },
       ),
     ).toBeNull();
   });
 
   it('adds a plan the database lacks, whole', () => {
     expect(
-      planUpdate(undefined, plan('Verified'), 'prod_v', 'price_v', ['price_v']),
+      planUpdate(undefined, plan('Verified'), 'prod_v', 'price_v', null),
     ).toEqual({
       name: 'Verified',
       description: 'Verified badge.',
@@ -313,6 +375,8 @@ describe('planUpdate', () => {
       stripeProductId: 'prod_v',
       stripePriceId: 'price_v',
       isActive: true,
+      yearlyStripePriceId: null,
+      yearlyPriceCents: null,
     });
   });
 
@@ -323,7 +387,7 @@ describe('planUpdate', () => {
         plan('Premium'),
         'prod_1',
         'price_m',
-        ['price_m'],
+        null,
       ),
     ).toEqual({
       features: ['verified_badge', 'priority_support'],

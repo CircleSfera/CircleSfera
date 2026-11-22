@@ -24,6 +24,7 @@ import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CheckoutDto } from './dto/checkout.dto.js';
+import { SwitchToYearlyDto } from './dto/switch-to-yearly.dto.js';
 import { PaymentsService } from './payments.service.js';
 
 interface RequestWithUser extends Request {
@@ -87,6 +88,23 @@ export class PaymentsController {
   @ApiResponse({ status: HttpStatus.OK })
   async resumePlan(@Req() req: RequestWithUser) {
     return this.paymentsService.resumePlan(req.user.userId, req.user.profileId);
+  }
+
+  // Moves the monthly plan of the Profile in use to its yearly price: the
+  // rest of the month is credited and the year starts today.
+  @Post('plan/yearly')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, IdentityVerifiedGuard)
+  @ApiResponse({ status: HttpStatus.OK })
+  async switchPlanToYearly(
+    @Req() req: RequestWithUser,
+    // Validated only: the consent is required to reach here.
+    @Body() _body: SwitchToYearlyDto,
+  ) {
+    return this.paymentsService.switchPlanToYearly(
+      req.user.userId,
+      req.user.profileId,
+    );
   }
 
   // The same for the Profile's Edits Studio Pro add-on, which is kept

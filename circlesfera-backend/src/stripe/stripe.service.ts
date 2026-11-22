@@ -448,6 +448,33 @@ export class StripeService implements OnModuleInit {
     });
   }
 
+  // Moves a subscription to another price now (BD-016: monthly to yearly).
+  // What is left of the period paid is credited, the new period starts
+  // today and the difference is invoiced and charged at once. The change
+  // applies only once that invoice is paid: while it is not, the
+  // subscription keeps its price, `pending_update` is set, and the invoice
+  // can be paid on its hosted page.
+  async switchSubscriptionPrice(params: {
+    subscriptionId: string;
+    itemId: string;
+    priceId: string;
+    metadata: Record<string, string>;
+    idempotencyKey: string;
+  }): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.update(
+      params.subscriptionId,
+      {
+        items: [{ id: params.itemId, price: params.priceId }],
+        proration_behavior: 'always_invoice',
+        billing_cycle_anchor: { type: 'now' },
+        payment_behavior: 'pending_if_incomplete',
+        metadata: params.metadata,
+        expand: ['latest_invoice'],
+      },
+      { idempotencyKey: params.idempotencyKey },
+    );
+  }
+
   // The events of the platform created in a window that the provider has
   // not delivered to every destination yet.
   async listUndeliveredEvents(window: {

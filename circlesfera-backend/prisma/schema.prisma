@@ -1764,6 +1764,12 @@ model PlatformSubscription {
   currentPeriodStart         DateTime
   currentPeriodEnd           DateTime
   cancelAtPeriodEnd          Boolean            @default(false)
+  // How often it is charged, as the provider's price says: "month" or
+  // "year" (BD-016).
+  billingInterval            String             @default("month")
+  // When a monthly plan moved to the yearly price: paying a year is a new
+  // contract, and its 14 days to withdraw count from then.
+  yearlyStartedAt            DateTime?
   // An add-on (Edits Studio Pro) is held beside the Profile's plan: a
   // Profile has at most one active plan and one active add-on.
   addOn                      Boolean            @default(false)

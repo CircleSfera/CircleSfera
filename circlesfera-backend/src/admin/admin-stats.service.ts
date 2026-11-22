@@ -259,10 +259,12 @@ export class AdminStatsService {
       id: string;
       status: string;
       planId: string;
+      billingInterval: string;
       plan: {
         id: string;
         name: string;
         priceCents: number;
+        yearlyPriceCents: number | null;
         features: string[];
       };
     }

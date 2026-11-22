@@ -10,6 +10,7 @@ import {
   type ProviderProduct,
   planPrice,
   planUpdate,
+  planYearlyPrice,
   priceProblems,
   type StoredPlan,
   staleProductDescription,
@@ -87,10 +88,19 @@ async function main() {
         continue;
       }
       const priceId = (price as ProviderPrice).id;
-      const activePriceIds = activePrices.map((active) => active.id);
+      const yearly = planYearlyPrice(activePrices, plan, accountTaxBehavior);
+      if (yearly.notice) console.log(`NOTICE ${yearly.notice}`);
 
       const row = findStoredPlan(stored, plan, product.id);
-      const update = planUpdate(row, plan, product.id, priceId, activePriceIds);
+      const update = planUpdate(
+        row,
+        plan,
+        product.id,
+        priceId,
+        yearly.price && plan.yearlyPriceCents
+          ? { id: yearly.price.id, cents: plan.yearlyPriceCents }
+          : null,
+      );
       if (!update) {
         console.log(`SAME ${plan.name}`);
         continue;

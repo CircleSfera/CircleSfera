@@ -228,6 +228,28 @@ describe('StripeService checkout, customers and subscriptions', () => {
       cancel_at_period_end: false,
     });
   });
+
+  it('moves a subscription to another price now, crediting the rest of the period, and applies it only once the charge is paid', async () => {
+    await service.switchSubscriptionPrice({
+      subscriptionId: 'sub_1',
+      itemId: 'si_1',
+      priceId: 'price_year',
+      metadata: { plan_start_consent: 'accepted' },
+      idempotencyKey: 'plan_yearly_key',
+    });
+    expect(client.subscriptions.update).toHaveBeenCalledWith(
+      'sub_1',
+      {
+        items: [{ id: 'si_1', price: 'price_year' }],
+        proration_behavior: 'always_invoice',
+        billing_cycle_anchor: { type: 'now' },
+        payment_behavior: 'pending_if_incomplete',
+        metadata: { plan_start_consent: 'accepted' },
+        expand: ['latest_invoice'],
+      },
+      { idempotencyKey: 'plan_yearly_key' },
+    );
+  });
 });
 
 describe('StripeService withdrawal from a plan', () => {
