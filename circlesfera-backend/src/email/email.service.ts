@@ -417,6 +417,28 @@ export class EmailService {
     );
   }
 
+  // A plan was withdrawn from within 14 days: it ended at once and the
+  // unused part, in cents, is refunded.
+  async sendPlanWithdrawnEmail(
+    email: string,
+    planName: string,
+    username: string,
+    refundCents: number,
+    currency: string,
+  ) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.planWithdrawn(
+        ctx,
+        planName,
+        username,
+        refundCents,
+        currency,
+      ),
+    );
+  }
+
   // The code that shows a company controls an address on its domain, in
   // the language of the person who applies. The code is never logged.
   async sendCompanyDomainCode(

@@ -9,7 +9,9 @@ const client = {
   checkout: {
     sessions: { create: vi.fn(), retrieve: vi.fn(), expire: vi.fn() },
   },
-  refunds: { create: vi.fn() },
+  refunds: { create: vi.fn(), list: vi.fn() },
+  invoices: { list: vi.fn() },
+  invoicePayments: { list: vi.fn() },
   customers: { create: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
   webhooks: { constructEvent: vi.fn() },
@@ -223,6 +225,177 @@ describe('StripeService checkout, customers and subscriptions', () => {
     expect(client.subscriptions.update).toHaveBeenCalledWith('sub_1', {
       cancel_at_period_end: false,
     });
+  });
+});
+
+describe('StripeService withdrawal from a plan', () => {
+  // The provider's list, as the library pages through it.
+  const listOf = (items: object[]) => ({
+    async *[Symbol.asyncIterator]() {
+      yield* items;
+    },
+  });
+  const at = (iso: string) => new Date(iso).getTime() / 1000;
+  const refund = (service: StripeService, over: object = {}) =>
+    service.refundSubscriptionPayment({
+      paymentIntentId: 'pi_1',
+      paidCents: 999,
+      amountInCents: 666,
+      idempotencyKey: 'plan-withdrawal-sub_1',
+      metadata: { reason: 'withdrawal', platformSubscriptionId: 'ps_1' },
+      ...over,
+    });
+
+  it('ends a subscription now, with no credit and no final invoice', async () => {
+    const { service } = serviceWith();
+    client.subscriptions.cancel.mockResolvedValue({ id: 'sub_1' });
+
+    await service.endSubscriptionNow('sub_1');
+
+    expect(client.subscriptions.cancel).toHaveBeenCalledWith('sub_1', {
+      prorate: false,
+      invoice_now: false,
+    });
+  });
+
+  it('reads the newest paid invoice: what was paid, the period of its charged lines and the payment it came from', async () => {
+    const { service } = serviceWith();
+    client.invoices.list.mockResolvedValue({
+      data: [
+        {
+          id: 'in_1',
+          amount_paid: 999,
+          currency: 'eur',
+          // The invoice's own period is the one before it.
+          period_start: at('2026-11-01T00:00:00Z'),
+          period_end: at('2026-11-01T00:00:00Z'),
+          lines: {
+            data: [
+              {
+                amount: 999,
+                period: {
+                  start: at('2026-11-01T00:00:00Z'),
+                  end: at('2026-12-01T00:00:00Z'),
+                },
+              },
+              { amount: 0, period: { start: 0, end: 1 } },
+            ],
+          },
+        },
+      ],
+    });
+    client.invoicePayments.list.mockResolvedValue({
+      data: [{ amount_paid: 999, payment: { payment_intent: 'pi_1' } }],
+    });
+
+    await expect(service.latestPaidInvoice('sub_1')).resolves.toEqual({
+      amountPaidCents: 999,
+      paidCents: 999,
+      currency: 'eur',
+      periodStart: new Date('2026-11-01T00:00:00Z'),
+      periodEnd: new Date('2026-12-01T00:00:00Z'),
+      paymentIntentId: 'pi_1',
+    });
+    expect(client.invoices.list).toHaveBeenCalledWith({
+      subscription: 'sub_1',
+      status: 'paid',
+      limit: 1,
+    });
+    expect(client.invoicePayments.list).toHaveBeenCalledWith({
+      invoice: 'in_1',
+      status: 'paid',
+    });
+  });
+
+  it('has no paid invoice for a subscription never paid, and no payment for an invoice that cost nothing', async () => {
+    const { service } = serviceWith();
+    client.invoices.list.mockResolvedValueOnce({ data: [] });
+    await expect(service.latestPaidInvoice('sub_1')).resolves.toBeNull();
+
+    client.invoices.list.mockResolvedValueOnce({
+      data: [
+        {
+          id: 'in_0',
+          amount_paid: 0,
+          currency: 'eur',
+          period_start: 1,
+          period_end: 2,
+          lines: { data: [] },
+        },
+      ],
+    });
+    await expect(service.latestPaidInvoice('sub_1')).resolves.toMatchObject({
+      amountPaidCents: 0,
+      paymentIntentId: null,
+    });
+    expect(client.invoicePayments.list).not.toHaveBeenCalled();
+  });
+
+  it('refunds the amount asked on the payment, as asked by the customer, once per key', async () => {
+    const { service } = serviceWith();
+    client.refunds.list.mockReturnValue(listOf([]));
+    client.refunds.create.mockResolvedValue({ id: 're_1', amount: 666 });
+
+    await expect(refund(service)).resolves.toEqual({ id: 're_1', amount: 666 });
+    expect(client.refunds.list).toHaveBeenCalledWith({
+      payment_intent: 'pi_1',
+      limit: 100,
+    });
+    expect(client.refunds.create).toHaveBeenCalledWith(
+      {
+        payment_intent: 'pi_1',
+        amount: 666,
+        reason: 'requested_by_customer',
+        metadata: { reason: 'withdrawal', platformSubscriptionId: 'ps_1' },
+      },
+      { idempotencyKey: 'plan-withdrawal-sub_1' },
+    );
+  });
+
+  it('never refunds more than is left of the payment after earlier refunds', async () => {
+    const { service } = serviceWith();
+    client.refunds.list.mockReturnValue(
+      listOf([
+        { amount: 500, status: 'succeeded', metadata: {} },
+        // A failed refund gave nothing back.
+        { amount: 400, status: 'failed', metadata: {} },
+      ]),
+    );
+    client.refunds.create.mockResolvedValue({ id: 're_2', amount: 499 });
+
+    await refund(service);
+
+    expect(client.refunds.create).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 499 }),
+      expect.anything(),
+    );
+  });
+
+  it('refunds nothing when nothing is asked or nothing is left', async () => {
+    const { service } = serviceWith();
+    await expect(refund(service, { amountInCents: 0 })).resolves.toBeNull();
+
+    client.refunds.list.mockReturnValue(
+      listOf([{ amount: 999, status: 'succeeded', metadata: {} }]),
+    );
+    await expect(refund(service)).resolves.toBeNull();
+    expect(client.refunds.create).not.toHaveBeenCalled();
+  });
+
+  it('returns the withdrawal refund already made instead of refunding twice', async () => {
+    const { service } = serviceWith();
+    const earlier = {
+      id: 're_1',
+      amount: 666,
+      status: 'succeeded',
+      metadata: { reason: 'withdrawal', platformSubscriptionId: 'ps_1' },
+    };
+    client.refunds.list.mockReturnValue(listOf([earlier]));
+
+    await expect(refund(service, { amountInCents: 650 })).resolves.toBe(
+      earlier,
+    );
+    expect(client.refunds.create).not.toHaveBeenCalled();
   });
 });
 

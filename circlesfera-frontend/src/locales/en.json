@@ -359,6 +359,16 @@
       "resume_hint": "Your plan is cancelled and ends on {{date}}. If you resume it, it renews that day as before and nothing is charged today.",
       "resume_done": "Plan resumed. It renews on its date.",
       "resume_error": "The plan could not be resumed. Please try again.",
+      "withdrawal": {
+        "hint": "You bought it less than 14 days ago: until {{date}} you can withdraw from the contract and get back the part you have not used.",
+        "open": "Withdraw from the contract here",
+        "title": "Withdraw from the contract?",
+        "explain": "{{name}} ends now and its features stop now. The part of the period you have not used is refunded to the card you paid with; the days already used are not.",
+        "confirm": "Yes, withdraw",
+        "keep": "Keep it",
+        "done": "You withdrew from the contract. The unused part is refunded to your card.",
+        "error": "The withdrawal could not be completed. Try again."
+      },
       "studio_pro": {
         "title": "Edits Studio Pro",
         "included": "Included with your plan.",
@@ -6374,7 +6384,8 @@
       "COMPANY_EMAIL_CODE_TRIES": "No tries are left for this code. Send a new one.",
       "COMPANY_DOCUMENT_INVALID": "Upload a PDF, JPG or PNG of up to 5 MB.",
       "COMPANY_DOCUMENTS_FULL": "You can upload up to 3 documents.",
-      "COMPANY_EMAIL_CODE_WAIT": "Wait a moment before asking for a new code. A day allows 5 codes."
+      "COMPANY_EMAIL_CODE_WAIT": "Wait a moment before asking for a new code. A day allows 5 codes.",
+      "WITHDRAWAL_PERIOD_ENDED": "The 14 days to withdraw from this plan have passed. You can still cancel it at the end of its period."
     },
     "generic": {
       "network": "You're offline or the connection failed. Check it and try again.",
@@ -6419,6 +6430,7 @@
     "withdrawal": {
       "title": "Before you pay",
       "consent": "I want access to start right away, and I understand that I lose my 14-day right of withdrawal once it starts.",
+      "plan_consent": "I ask for my plan to start right away. I understand that I can still withdraw within 14 days and that, if I do, I pay for the part of the plan I have already used.",
       "required": "Without this, the purchase cannot start.",
       "continue": "Continue to payment"
     }

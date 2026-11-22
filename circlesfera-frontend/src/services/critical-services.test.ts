@@ -236,6 +236,18 @@ const cases: Case[] = [
     ['/payments/plan/studio-pro/resume'],
   ],
   [
+    'payments.withdrawPlan',
+    () => paymentsApi.withdrawPlan(),
+    'post',
+    ['/payments/plan/withdraw'],
+  ],
+  [
+    'payments.withdrawStudioPro',
+    () => paymentsApi.withdrawStudioPro(),
+    'post',
+    ['/payments/plan/studio-pro/withdraw'],
+  ],
+  [
     'payments.ledger',
     () => paymentsApi.getLedger(),
     'get',

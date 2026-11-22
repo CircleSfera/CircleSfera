@@ -556,4 +556,39 @@ export const EmailTemplates = {
       }),
     };
   },
+
+  // A plan withdrawn from within 14 days: it ended at once, and the unused
+  // part of what was paid is refunded. The amount is in cents.
+  planWithdrawn: (
+    ctx: EmailContext,
+    planName: string,
+    username: string,
+    refundCents: number,
+    currency: string,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const amount = new Intl.NumberFormat(
+      ctx.locale === 'es' ? 'es-ES' : 'en-GB',
+      { style: 'currency', currency: currency.toUpperCase() },
+    ).format(refundCents / 100);
+    const refund =
+      refundCents > 0
+        ? fill(copy.planWithdrawn.refunded, { amount: escapeHtml(amount) })
+        : copy.planWithdrawn.nothingToRefund;
+    return {
+      subject: fill(copy.planWithdrawn.subject, { plan: planName }),
+      html: layout(ctx, copy, {
+        title: copy.planWithdrawn.title,
+        content: fill(copy.planWithdrawn.body, {
+          plan: escapeHtml(planName),
+          username: escapeHtml(username),
+          refund,
+        }),
+        button: {
+          text: copy.planWithdrawn.button,
+          url: `${ctx.frontendUrl}/accounts/billing`,
+        },
+      }),
+    };
+  },
 };

@@ -34,6 +34,10 @@ export enum ErrorCode {
   PLAN_NOT_FOUND = 'PLAN_NOT_FOUND',
   // The Profile in use has no plan the person pays.
   SUBSCRIPTION_NOT_FOUND = 'SUBSCRIPTION_NOT_FOUND',
+  // The 14 days to withdraw from a plan have passed; details carry the
+  // last moment it could be withdrawn from. It can still be cancelled at
+  // the end of its period.
+  WITHDRAWAL_PERIOD_ENDED = 'WITHDRAWAL_PERIOD_ENDED',
   PRICE_NOT_FOUND = 'PRICE_NOT_FOUND',
   ACTIVE_SUBSCRIPTION_EXISTS = 'ACTIVE_SUBSCRIPTION_EXISTS',
   // The plan is meant for another type of Profile; details carry which.

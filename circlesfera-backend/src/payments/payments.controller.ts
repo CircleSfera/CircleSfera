@@ -115,6 +115,31 @@ export class PaymentsController {
     );
   }
 
+  // Withdraws from the plan of the Profile in use within 14 days of buying
+  // it: it ends now and the unused part is refunded.
+  @Post('plan/withdraw')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: HttpStatus.OK })
+  async withdrawPlan(@Req() req: RequestWithUser) {
+    return this.paymentsService.withdrawPlan(
+      req.user.userId,
+      req.user.profileId,
+    );
+  }
+
+  @Post('plan/studio-pro/withdraw')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: HttpStatus.OK })
+  async withdrawStudioPro(@Req() req: RequestWithUser) {
+    return this.paymentsService.withdrawPlan(
+      req.user.userId,
+      req.user.profileId,
+      true,
+    );
+  }
+
   @Get('status')
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200 })

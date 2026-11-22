@@ -173,7 +173,7 @@ export default function Pricing() {
 
   // Before paying for a plan: the consent to start at once and the
   // acknowledgement of losing the withdrawal right.
-  const consent = useWithdrawalConsent();
+  const consent = useWithdrawalConsent('plan');
   const checkoutMutation = useMutation({
     mutationFn: async ({
       plan,

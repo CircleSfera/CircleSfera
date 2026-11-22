@@ -15,8 +15,10 @@ export class CheckoutDto {
   @IsIn(['MONTHLY', 'YEARLY'])
   billingCycle: 'MONTHLY' | 'YEARLY' = 'MONTHLY';
 
-  // The buyer consents to start at once and acknowledges losing the right of
-  // withdrawal; without it the purchase is refused.
+  // The buyer asks for the plan to start at once and accepts paying for the
+  // part already used if they withdraw within 14 days (TRLGDCU Art. 108);
+  // without it the purchase is refused. The name is kept from the earlier
+  // wording so the API does not change.
   @ApiProperty({ required: true, type: () => Boolean })
   @Equals(true, { message: 'withdrawalConsent must be true' })
   withdrawalConsent!: true;

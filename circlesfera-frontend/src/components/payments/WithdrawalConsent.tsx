@@ -4,21 +4,29 @@ import { Button, Dialog } from '../ui';
 import { BUTTON_FIT, BUTTON_ROW } from '../ui/buttonWidth';
 
 /**
- * What the server asks of every purchase of digital content or a plan: the
- * buyer consents to start at once and acknowledges losing the 14-day right of
- * withdrawal. Only this box, once ticked, makes one.
+ * What the server asks of every purchase of digital content or a plan. For
+ * digital content (a promotion) the buyer consents to start at once and
+ * acknowledges losing the 14-day right of withdrawal. For a plan, a service,
+ * the buyer asks for it to start at once and accepts paying for the part
+ * used if they withdraw within 14 days (TRLGDCU Art. 108). Only the box,
+ * once ticked, makes one.
  */
 export interface WithdrawalConsentGiven {
   withdrawalConsent: true;
 }
 
+/** Which wording the box shows: a plan's, or digital content's. */
+export type ConsentWording = 'plan' | 'content';
+
 /** The box, unticked until the person ticks it. */
 export function WithdrawalConsentBox({
   checked,
   onChange,
+  wording = 'content',
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
+  wording?: ConsentWording;
 }) {
   const { t } = useTranslation();
   return (
@@ -31,7 +39,13 @@ export function WithdrawalConsentBox({
         onChange={(e) => onChange(e.target.checked)}
         className="mt-0.5 h-5 w-5 shrink-0 accent-brand-primary"
       />
-      <span>{t('payments.withdrawal.consent')}</span>
+      <span>
+        {t(
+          wording === 'plan'
+            ? 'payments.withdrawal.plan_consent'
+            : 'payments.withdrawal.consent',
+        )}
+      </span>
     </label>
   );
 }
@@ -40,7 +54,7 @@ export function WithdrawalConsentBox({
  * Asks for the consent before a purchase starts. `ask` opens the dialog;
  * only "Continue" with the box ticked runs the purchase, with the consent.
  */
-export function useWithdrawalConsent() {
+export function useWithdrawalConsent(wording: ConsentWording = 'content') {
   const { t } = useTranslation();
   const [pending, setPending] = useState<
     ((given: WithdrawalConsentGiven) => void) | null
@@ -67,7 +81,11 @@ export function useWithdrawalConsent() {
       <h2 className="mb-2 text-lg font-bold text-white">
         {t('payments.withdrawal.title')}
       </h2>
-      <WithdrawalConsentBox checked={checked} onChange={setChecked} />
+      <WithdrawalConsentBox
+        checked={checked}
+        onChange={setChecked}
+        wording={wording}
+      />
       <p className="mt-2 text-xs text-gray-400">
         {t('payments.withdrawal.required')}
       </p>

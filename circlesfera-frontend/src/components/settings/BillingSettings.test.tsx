@@ -12,6 +12,7 @@ vi.mock('../../services/payments.service', () => ({
     getBillingPortalUrl: vi.fn(),
     cancelPlan: vi.fn(),
     resumePlan: vi.fn(),
+    withdrawPlan: vi.fn(),
   },
 }));
 vi.mock('react-hot-toast', () => ({
@@ -131,6 +132,56 @@ describe('BillingSettings', () => {
     await waitFor(() =>
       expect(location.href).toBe('https://billing.stripe.com/session/x'),
     );
+  });
+
+  describe('withdrawal within 14 days', () => {
+    const plan = (withdrawableUntil: string | null) => ({
+      hasActiveSubscription: true,
+      subscription: {
+        planName: 'Premium',
+        status: 'ACTIVE',
+        currentPeriodEnd: '2026-12-01T00:00:00.000Z',
+        cancelAtPeriodEnd: false,
+        withdrawableUntil,
+      },
+    });
+
+    it('offers it with the last day, and withdraws the plan after the confirmation', async () => {
+      vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue(
+        plan('2026-11-15T12:00:00.000Z'),
+      );
+      vi.mocked(paymentsApi.withdrawPlan).mockResolvedValue(plan(null));
+      renderWithProviders(<BillingSettings />);
+
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Withdraw from the contract here',
+        }),
+      );
+      expect(screen.getByTestId('plan-withdrawal')).toHaveTextContent(
+        'November 15, 2026',
+      );
+      expect(screen.getByRole('dialog')).toHaveTextContent('Premium ends now');
+      expect(paymentsApi.withdrawPlan).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Yes, withdraw' }));
+
+      await waitFor(() =>
+        expect(paymentsApi.withdrawPlan).toHaveBeenCalledTimes(1),
+      );
+    });
+
+    it('is not offered once the 14 days have passed', async () => {
+      vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue(plan(null));
+      renderWithProviders(<BillingSettings />);
+
+      await screen.findByText('Premium');
+      expect(screen.queryByTestId('plan-withdrawal')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {
+          name: 'Withdraw from the contract here',
+        }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('cancels in two steps, and then says when the plan ends', async () => {

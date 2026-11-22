@@ -537,6 +537,24 @@ describe('EmailService', () => {
       );
     });
 
+    it('enqueues the email of a withdrawn plan, with the amount refunded', async () => {
+      await service.sendPlanWithdrawnEmail(
+        'subscriber@example.com',
+        'Pro Creator',
+        'ana',
+        666,
+        'eur',
+      );
+      expect(mockEmailQueue.add).toHaveBeenCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({
+          to: 'subscriber@example.com',
+          subject: 'Has desistido de tu plan Pro Creator',
+          html: expect.stringMatching(/6,66\s€/),
+        }),
+      );
+    });
+
     it('enqueues the email of a resumed plan', async () => {
       await service.sendPlanResumedEmail(
         'subscriber@example.com',

@@ -189,6 +189,34 @@ describe('EmailTemplates', () => {
     ).toContain('1 de noviembre de 2026');
   });
 
+  it('a withdrawn plan says it ended and how much is refunded, in each language, and links to the plan', () => {
+    const mail = EmailTemplates.planWithdrawn(
+      en,
+      '<b>Pro</b>',
+      'ana',
+      666,
+      'eur',
+    );
+
+    expect(mail.subject).toBe('You withdrew from your <b>Pro</b> plan');
+    expect(mail.html).toContain('We are refunding <strong>€6.66</strong>');
+    expect(mail.html).toContain('&lt;b&gt;Pro&lt;/b&gt;');
+    expect(mail.html).toContain('@ana');
+    expect(mail.html).toContain(
+      'href="https://circlesfera.com/accounts/billing"',
+    );
+    const es666 = EmailTemplates.planWithdrawn(es, 'Pro', 'ana', 666, 'eur');
+    expect(es666.subject).toBe('Has desistido de tu plan Pro');
+    expect(es666.html).toMatch(/Te devolvemos <strong>6,66\s€<\/strong>/);
+  });
+
+  it('a withdrawn plan with nothing left to refund says so and names no amount', () => {
+    const mail = EmailTemplates.planWithdrawn(en, 'Pro', 'ana', 0, 'eur');
+
+    expect(mail.html).toContain('Nothing was left to refund');
+    expect(mail.html).not.toContain('We are refunding');
+  });
+
   it('links the receipt and the removed post to live app pages', () => {
     expect(
       EmailTemplates.subscriptionReceipt(en, 'Premium', '€9.99').html,
