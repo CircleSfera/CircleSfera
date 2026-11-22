@@ -1077,7 +1077,10 @@ describe('PaymentsService', () => {
     const boughtAt = new Date('2026-11-01T00:00:00.000Z');
     const periodEnd = new Date('2026-12-01T00:00:00.000Z');
     const today = new Date('2026-11-11T00:00:00.000Z');
-    const plan = (over: Record<string, unknown> = {}) => ({
+    const seconds = (date: Date) => date.getTime() / 1000;
+    type Row = Record<string, any>;
+    let row: Row;
+    const plan = (over: Row = {}): Row => ({
       id: 'sub_1',
       userId: 'u_1',
       planId: 'plan_pro',
@@ -1087,6 +1090,10 @@ describe('PaymentsService', () => {
       currentPeriodStart: boughtAt,
       currentPeriodEnd: periodEnd,
       cancelAtPeriodEnd: false,
+      withdrawnAt: null,
+      withdrawalRefundCents: null,
+      withdrawalRefundId: null,
+      withdrawalFinishedAt: null,
       plan: {
         id: 'plan_pro',
         name: 'Pro',
@@ -1097,7 +1104,7 @@ describe('PaymentsService', () => {
       profile: { username: 'ana' },
       ...over,
     });
-    const invoice = (over: Record<string, unknown> = {}) => ({
+    const invoice = (over: Row = {}) => ({
       amountPaidCents: 999,
       paidCents: 999,
       currency: 'eur',
@@ -1110,23 +1117,57 @@ describe('PaymentsService', () => {
       id: 'stripe_sub_1',
       status: 'canceled',
       cancel_at_period_end: false,
+      start_date: seconds(boughtAt),
       items: {
         data: [
           {
-            current_period_start: boughtAt.getTime() / 1000,
-            current_period_end: today.getTime() / 1000,
+            current_period_start: seconds(boughtAt),
+            current_period_end: seconds(today),
           },
         ],
       },
     };
+    const running = { ...ended, status: 'active' };
+    // Where the request marks the row, and where it is marked finished.
+    const markCall = () =>
+      vi
+        .mocked(prisma.platformSubscription.updateMany)
+        .mock.calls.find(
+          ([args]) => (args as Row).data?.withdrawnAt !== undefined,
+        );
+    const order = (fn: { mock: { invocationCallOrder: number[] } }) =>
+      fn.mock.invocationCallOrder[0];
 
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(today);
-      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      row = plan();
+      // The row as the database holds it: the conditional writes change it
+      // only when their condition still holds.
+      prisma.platformSubscription.findFirst = vi.fn(async () => ({ ...row }));
+      (prisma.platformSubscription as any).findUnique = vi.fn(async () => ({
+        ...row,
+      }));
+      prisma.platformSubscription.findMany = vi.fn().mockResolvedValue([]);
+      prisma.platformSubscription.updateMany = vi.fn(async (args: any) => {
+        const where = args.where ?? {};
+        if (where.id && where.id !== row.id) return { count: 0 };
+        if ('withdrawnAt' in where && where.withdrawnAt === null) {
+          if (row.withdrawnAt) return { count: 0 };
+        }
+        if ('withdrawalFinishedAt' in where && row.withdrawalFinishedAt) {
+          return { count: 0 };
+        }
+        if (where.withdrawnAt?.not === null && !row.withdrawnAt) {
+          return { count: 0 };
+        }
+        Object.assign(row, args.data);
+        return { count: 1 };
+      }) as any;
       prisma.user.findUnique = vi
         .fn()
         .mockResolvedValue({ email: 'ana@example.com' });
+      stripeService.getSubscription = vi.fn().mockResolvedValue(running);
       stripeService.latestPaidInvoice = vi.fn().mockResolvedValue(invoice());
       stripeService.refundSubscriptionPayment = vi
         .fn()
@@ -1135,9 +1176,7 @@ describe('PaymentsService', () => {
           amount: amountInCents,
         }));
       stripeService.endSubscriptionNow = vi.fn().mockResolvedValue(ended);
-      prisma.platformSubscription.updateMany = vi
-        .fn()
-        .mockResolvedValue({ count: 1 });
+      stripeService.voidOpenInvoices = vi.fn().mockResolvedValue(0);
       emailService.sendPlanWithdrawnEmail = vi
         .fn()
         .mockResolvedValue(undefined);
@@ -1146,7 +1185,7 @@ describe('PaymentsService', () => {
       vi.useRealTimers();
     });
 
-    it('within 14 days refunds the unused part first, then ends the plan now, applies it and emails the payer', async () => {
+    it('marks the row withdrawn and CANCELLED with the refund owed, then ends the plan, voids its open invoices, refunds the stored amount and emails the payer', async () => {
       await service.withdrawPlan('u_1', 'prof_1');
 
       expect(prisma.platformSubscription.findFirst).toHaveBeenCalledWith(
@@ -1158,10 +1197,22 @@ describe('PaymentsService', () => {
           }),
         }),
       );
-      expect(stripeService.latestPaidInvoice).toHaveBeenCalledWith(
+      // Marked once, conditionally, with 999 x 20/30 = 666 cents.
+      expect(markCall()?.[0]).toEqual({
+        where: { id: 'sub_1', withdrawnAt: null },
+        data: {
+          withdrawnAt: today,
+          withdrawalRefundCents: 666,
+          status: SubscriptionStatus.CANCELLED,
+        },
+      });
+      expect(usersService.syncUserTier).toHaveBeenCalledWith('u_1');
+      expect(stripeService.endSubscriptionNow).toHaveBeenCalledWith(
         'stripe_sub_1',
       );
-      // 999 cents for 30 days, 20 of them unused: 666.
+      expect(stripeService.voidOpenInvoices).toHaveBeenCalledWith(
+        'stripe_sub_1',
+      );
       expect(stripeService.refundSubscriptionPayment).toHaveBeenCalledWith({
         paymentIntentId: 'pi_1',
         paidCents: 999,
@@ -1169,23 +1220,23 @@ describe('PaymentsService', () => {
         idempotencyKey: 'plan-withdrawal-stripe_sub_1',
         metadata: { reason: 'withdrawal', platformSubscriptionId: 'sub_1' },
       });
-      expect(stripeService.endSubscriptionNow).toHaveBeenCalledWith(
-        'stripe_sub_1',
+      // The benefits stop before anything is asked of the provider.
+      expect(order(usersService.syncUserTier)).toBeLessThan(
+        order(stripeService.endSubscriptionNow),
       );
-      expect(
-        stripeService.refundSubscriptionPayment.mock.invocationCallOrder[0],
-      ).toBeLessThan(
-        stripeService.endSubscriptionNow.mock.invocationCallOrder[0],
+      expect(order(stripeService.endSubscriptionNow)).toBeLessThan(
+        order(stripeService.voidOpenInvoices),
       );
-      // The provider's ended state goes on the row and the benefits follow.
-      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-        where: { stripeSubscriptionId: 'stripe_sub_1' },
-        data: expect.objectContaining({
-          status: SubscriptionStatus.CANCELLED,
-          cancelAtPeriodEnd: false,
-        }),
+      expect(order(stripeService.voidOpenInvoices)).toBeLessThan(
+        order(stripeService.refundSubscriptionPayment),
+      );
+      expect(row).toMatchObject({
+        status: SubscriptionStatus.CANCELLED,
+        withdrawnAt: today,
+        withdrawalRefundCents: 666,
+        withdrawalRefundId: 're_1',
+        withdrawalFinishedAt: today,
       });
-      expect(usersService.syncUserTier).toHaveBeenCalledWith('u_1');
       expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalledWith(
         'ana@example.com',
         'Pro',
@@ -1220,6 +1271,16 @@ describe('PaymentsService', () => {
       ).toBe(Math.floor((1_000_000_00 * 364) / 365));
     });
 
+    it('works out the refund on the period of the row when the invoice names none', async () => {
+      stripeService.latestPaidInvoice.mockResolvedValue(
+        invoice({ periodStart: today, periodEnd: today }),
+      );
+
+      await service.withdrawPlan('u_1', 'prof_1');
+
+      expect(markCall()?.[0].data.withdrawalRefundCents).toBe(666);
+    });
+
     it('refunds nothing when the invoice paid nothing, and still ends the plan', async () => {
       stripeService.latestPaidInvoice.mockResolvedValue(
         invoice({ amountPaidCents: 0, paidCents: 0, paymentIntentId: null }),
@@ -1227,6 +1288,7 @@ describe('PaymentsService', () => {
 
       await service.withdrawPlan('u_1', 'prof_1');
 
+      expect(markCall()?.[0].data.withdrawalRefundCents).toBe(0);
       expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
       expect(stripeService.endSubscriptionNow).toHaveBeenCalled();
       expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalledWith(
@@ -1238,20 +1300,36 @@ describe('PaymentsService', () => {
       );
     });
 
-    it('after the 14 days refuses with WITHDRAWAL_PERIOD_ENDED, naming the last day, and asks the provider nothing', async () => {
-      vi.setSystemTime(new Date(boughtAt.getTime() + 14 * DAY + 1));
+    it('counts the 14 days from the purchase at the provider, not from when the row was written', async () => {
+      // The row was written on the 1st, but the purchase was 15 days ago.
+      stripeService.getSubscription.mockResolvedValue({
+        ...running,
+        start_date: seconds(new Date(today.getTime() - 15 * DAY)),
+      });
 
       await expect(service.withdrawPlan('u_1', 'prof_1')).rejects.toMatchObject(
         {
           errorCode: 'WITHDRAWAL_PERIOD_ENDED',
           status: 400,
-          details: { deadline: '2026-11-15T00:00:00.000Z' },
-          message: expect.stringContaining('2026-11-15'),
+          details: { deadline: '2026-11-10T00:00:00.000Z' },
+          message: expect.stringContaining('2026-11-10'),
         },
       );
-      expect(stripeService.latestPaidInvoice).not.toHaveBeenCalled();
-      expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
+      expect(stripeService.getSubscription).toHaveBeenCalledWith(
+        'stripe_sub_1',
+      );
+      expect(markCall()).toBeUndefined();
       expect(stripeService.endSubscriptionNow).not.toHaveBeenCalled();
+      expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
+
+      // The other way round: a row written late, a purchase 13 days ago.
+      row = plan({ createdAt: new Date(today.getTime() - 20 * DAY) });
+      stripeService.getSubscription.mockResolvedValue({
+        ...running,
+        start_date: seconds(new Date(today.getTime() - 13 * DAY)),
+      });
+      await service.withdrawPlan('u_1', 'prof_1');
+      expect(markCall()).toBeDefined();
     });
 
     it('on the last moment of the 14 days still withdraws', async () => {
@@ -1259,7 +1337,7 @@ describe('PaymentsService', () => {
 
       await service.withdrawPlan('u_1', 'prof_1');
 
-      expect(stripeService.endSubscriptionNow).toHaveBeenCalled();
+      expect(markCall()).toBeDefined();
     });
 
     it('refuses when the Profile in use has no plan the person pays', async () => {
@@ -1273,24 +1351,25 @@ describe('PaymentsService', () => {
           where: expect.objectContaining({ profileId: '__no_profile__' }),
         }),
       );
+      expect(stripeService.getSubscription).not.toHaveBeenCalled();
+      expect(stripeService.endSubscriptionNow).not.toHaveBeenCalled();
+    });
+
+    it('a subscription the provider no longer holds is answered as gone, with nothing marked', async () => {
+      stripeService.getSubscription.mockRejectedValue(
+        Object.assign(new Error('No such subscription'), {
+          type: 'StripeInvalidRequestError',
+        }),
+      );
+
+      await expect(service.withdrawPlan('u_1', 'prof_1')).rejects.toMatchObject(
+        { errorCode: 'SUBSCRIPTION_NOT_FOUND' },
+      );
+      expect(markCall()).toBeUndefined();
       expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
-      expect(stripeService.endSubscriptionNow).not.toHaveBeenCalled();
     });
 
-    it('a failed refund is thrown and the plan is not ended, so the person can try again', async () => {
-      stripeService.refundSubscriptionPayment.mockRejectedValue(
-        new Error('card network down'),
-      );
-
-      await expect(service.withdrawPlan('u_1', 'prof_1')).rejects.toThrow(
-        'card network down',
-      );
-      expect(stripeService.endSubscriptionNow).not.toHaveBeenCalled();
-      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
-      expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
-    });
-
-    it('a paid invoice with no card payment to refund is thrown before the plan ends', async () => {
+    it('a paid invoice with no card payment to refund is refused before anything is marked', async () => {
       stripeService.latestPaidInvoice.mockResolvedValue(
         invoice({ paymentIntentId: null }),
       );
@@ -1298,81 +1377,146 @@ describe('PaymentsService', () => {
       await expect(service.withdrawPlan('u_1', 'prof_1')).rejects.toThrow(
         'cannot be refunded',
       );
+      expect(markCall()).toBeUndefined();
       expect(stripeService.endSubscriptionNow).not.toHaveBeenCalled();
     });
 
-    it('a retry after the plan already ended at the provider applies the ended state', async () => {
+    it('an end the provider cannot do now leaves the row withdrawn, refunds nothing yet, and still answers that the plan ended', async () => {
+      stripeService.endSubscriptionNow.mockRejectedValue(
+        Object.assign(new Error('rate limited'), {
+          type: 'StripeRateLimitError',
+        }),
+      );
+
+      await expect(
+        service.withdrawPlan('u_1', 'prof_1'),
+      ).resolves.toBeDefined();
+      expect(row).toMatchObject({
+        status: SubscriptionStatus.CANCELLED,
+        withdrawalRefundCents: 666,
+        withdrawalFinishedAt: null,
+      });
+      expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
+      expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
+    });
+
+    it('a failed refund leaves the row withdrawn, and the reconcile job finishes it with the amount stored', async () => {
+      stripeService.refundSubscriptionPayment.mockRejectedValueOnce(
+        new Error('card network down'),
+      );
+
+      await expect(
+        service.withdrawPlan('u_1', 'prof_1'),
+      ).resolves.toBeDefined();
+      expect(row.withdrawalFinishedAt).toBeNull();
+      expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
+
+      // Later, with more of the period used: the amount is the one stored.
+      vi.setSystemTime(new Date(today.getTime() + 2 * DAY));
+      prisma.platformSubscription.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: 'sub_1' }]);
+      await expect(service.finishPendingWithdrawals()).resolves.toBe(1);
+
+      expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            withdrawnAt: {
+              not: null,
+              lte: new Date(today.getTime() + 2 * DAY - 2 * 60 * 1000),
+            },
+            withdrawalFinishedAt: null,
+          },
+        }),
+      );
+      expect(stripeService.refundSubscriptionPayment).toHaveBeenLastCalledWith(
+        expect.objectContaining({ amountInCents: 666 }),
+      );
+      expect(row.withdrawalFinishedAt).not.toBeNull();
+      expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('a second request finds the row already withdrawn and finishes it with the stored amount, without working it out again', async () => {
+      row = plan({
+        status: SubscriptionStatus.CANCELLED,
+        withdrawnAt: today,
+        withdrawalRefundCents: 500,
+      });
+
+      await service.withdrawPlan('u_1', 'prof_1');
+
+      expect(
+        vi.mocked(prisma.platformSubscription.findFirst).mock.calls[0][0]
+          ?.where,
+      ).toMatchObject({
+        OR: [
+          expect.objectContaining({ withdrawnAt: null }),
+          { withdrawnAt: { not: null }, withdrawalFinishedAt: null },
+        ],
+      });
+      expect(stripeService.getSubscription).not.toHaveBeenCalled();
+      expect(markCall()).toBeUndefined();
+      expect(stripeService.refundSubscriptionPayment).toHaveBeenCalledWith(
+        expect.objectContaining({ amountInCents: 500 }),
+      );
+    });
+
+    it('two requests at once mark the row once and tell the payer once', async () => {
+      await Promise.all([
+        service.withdrawPlan('u_1', 'prof_1'),
+        service.withdrawPlan('u_1', 'prof_1'),
+      ]);
+
+      // Both try to mark it; only the first write finds it unmarked.
+      const update = vi.mocked(prisma.platformSubscription.updateMany).mock;
+      const marks = await Promise.all(
+        update.calls
+          .map(([args], i) => [args as Row, update.results[i].value] as const)
+          .filter(([args]) => args.data?.withdrawnAt !== undefined)
+          .map(([, result]) => result),
+      );
+      expect(marks).toEqual([{ count: 1 }, { count: 0 }]);
+      expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalledTimes(1);
+      for (const [args] of vi.mocked(stripeService.refundSubscriptionPayment)
+        .mock.calls) {
+        expect((args as Row).amountInCents).toBe(666);
+      }
+    });
+
+    it('a plan the provider already ended counts as ended, and the rest is still done', async () => {
       stripeService.endSubscriptionNow.mockRejectedValue(
         Object.assign(new Error('already canceled'), {
           type: 'StripeInvalidRequestError',
         }),
       );
-      stripeService.getSubscription.mockResolvedValue(ended);
+      stripeService.getSubscription
+        .mockResolvedValueOnce(running)
+        .mockResolvedValue(ended);
 
-      await service.withdrawPlan('u_1', 'prof_1');
+      await expect(
+        service.withdrawPlan('u_1', 'prof_1'),
+      ).resolves.toBeDefined();
 
-      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            status: SubscriptionStatus.CANCELLED,
-          }),
-        }),
-      );
+      expect(stripeService.voidOpenInvoices).toHaveBeenCalled();
+      expect(stripeService.refundSubscriptionPayment).toHaveBeenCalled();
+      expect(row.withdrawalFinishedAt).not.toBeNull();
       expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalled();
     });
 
-    it('a provider that refuses a plan it holds as running answers it as gone, and other failures pass through', async () => {
-      stripeService.endSubscriptionNow.mockRejectedValueOnce(
-        Object.assign(new Error('refused'), {
-          type: 'StripeInvalidRequestError',
-        }),
-      );
-      stripeService.getSubscription.mockResolvedValue({
-        ...ended,
-        status: 'active',
-      });
-
-      await expect(service.withdrawPlan('u_1', 'prof_1')).rejects.toMatchObject(
-        { errorCode: 'SUBSCRIPTION_NOT_FOUND' },
-      );
-      expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
-
-      stripeService.endSubscriptionNow.mockRejectedValueOnce(
-        Object.assign(new Error('rate limited'), {
-          type: 'StripeRateLimitError',
-        }),
-      );
-      await expect(service.withdrawPlan('u_1', 'prof_1')).rejects.toThrow(
-        'rate limited',
-      );
-    });
-
-    it('works out the refund on the period of the row when the invoice names none', async () => {
-      stripeService.latestPaidInvoice.mockResolvedValue(
-        invoice({ periodStart: today, periodEnd: today }),
-      );
+    it('a notice read while the provider still says the plan runs leaves a withdrawn row CANCELLED', async () => {
+      stripeService.endSubscriptionNow.mockResolvedValue(running);
 
       await service.withdrawPlan('u_1', 'prof_1');
 
-      // The row's period: 1 November to 1 December, 20 of 30 days left.
-      expect(stripeService.refundSubscriptionPayment).toHaveBeenCalledWith(
-        expect.objectContaining({ amountInCents: 666 }),
-      );
-    });
-
-    it('a refused end whose subscription cannot be read again is answered as gone', async () => {
-      stripeService.endSubscriptionNow.mockRejectedValue(
-        Object.assign(new Error('refused'), {
-          type: 'StripeInvalidRequestError',
-        }),
-      );
-      stripeService.getSubscription.mockRejectedValue(new Error('down'));
-
-      await expect(service.withdrawPlan('u_1', 'prof_1')).rejects.toMatchObject(
-        { errorCode: 'SUBSCRIPTION_NOT_FOUND' },
-      );
-      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
-      expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+        where: {
+          stripeSubscriptionId: 'stripe_sub_1',
+          withdrawnAt: { not: null },
+          status: { not: SubscriptionStatus.CANCELLED },
+        },
+        data: { status: SubscriptionStatus.CANCELLED },
+      });
+      expect(row.status).toBe(SubscriptionStatus.CANCELLED);
     });
 
     it('a failed email does not fail the withdrawal', async () => {
@@ -1383,7 +1527,82 @@ describe('PaymentsService', () => {
       await expect(
         service.withdrawPlan('u_1', 'prof_1'),
       ).resolves.toBeDefined();
-      expect(prisma.platformSubscription.updateMany).toHaveBeenCalled();
+      expect(row.withdrawalFinishedAt).not.toBeNull();
+    });
+
+    it('a marked withdrawal whose payment can no longer be found stays pending rather than finished without its refund', async () => {
+      row = plan({
+        status: SubscriptionStatus.CANCELLED,
+        withdrawnAt: today,
+        withdrawalRefundCents: 666,
+      });
+      stripeService.latestPaidInvoice.mockResolvedValue(null);
+
+      await expect(
+        service.withdrawPlan('u_1', 'prof_1'),
+      ).resolves.toBeDefined();
+      expect(row.withdrawalFinishedAt).toBeNull();
+      expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
+    });
+
+    it('a plan already ended whose state cannot be read again is still finished', async () => {
+      stripeService.endSubscriptionNow.mockRejectedValue(
+        Object.assign(new Error('already canceled'), {
+          type: 'StripeInvalidRequestError',
+        }),
+      );
+      stripeService.getSubscription
+        .mockResolvedValueOnce(running)
+        .mockRejectedValue(new Error('down'));
+
+      await service.withdrawPlan('u_1', 'prof_1');
+
+      expect(row.status).toBe(SubscriptionStatus.CANCELLED);
+      expect(row.withdrawalFinishedAt).not.toBeNull();
+    });
+
+    it('the reconcile round finishes pending withdrawals, and a failure there does not stop the notices', async () => {
+      prisma.platformSubscription.findMany = vi
+        .fn()
+        .mockRejectedValue(new Error('db'));
+      prisma.webhookEvent.findMany = vi.fn().mockResolvedValue([]);
+
+      await expect(service.reconcileStuckWebhookEvents()).resolves.toBe(0);
+      expect(prisma.platformSubscription.findMany).toHaveBeenCalled();
+      expect(prisma.webhookEvent.findMany).toHaveBeenCalled();
+    });
+
+    it('a pending withdrawal finished meanwhile by its request is left as it is', async () => {
+      row = plan({
+        status: SubscriptionStatus.CANCELLED,
+        withdrawnAt: today,
+        withdrawalRefundCents: 666,
+        withdrawalFinishedAt: today,
+      });
+      prisma.platformSubscription.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: 'sub_1' }]);
+
+      await service.finishPendingWithdrawals();
+
+      expect(stripeService.endSubscriptionNow).not.toHaveBeenCalled();
+      expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
+      expect(emailService.sendPlanWithdrawnEmail).not.toHaveBeenCalled();
+    });
+
+    it('a pending withdrawal that fails again stays pending', async () => {
+      row = plan({
+        status: SubscriptionStatus.CANCELLED,
+        withdrawnAt: today,
+        withdrawalRefundCents: 666,
+      });
+      prisma.platformSubscription.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: 'sub_1' }]);
+      stripeService.voidOpenInvoices.mockRejectedValue(new Error('down'));
+
+      await expect(service.finishPendingWithdrawals()).resolves.toBe(0);
+      expect(row.withdrawalFinishedAt).toBeNull();
     });
   });
 

@@ -266,7 +266,7 @@ const en: EmailCopy = {
     title: 'Withdrawal confirmed',
     body: 'You withdrew from the contract of the <strong>{plan}</strong> plan of @{username}. The plan has ended and its features stopped today.<br><br>{refund}<br><br>If you did not withdraw, write to support@circlesfera.com.',
     refunded:
-      'We are refunding <strong>{amount}</strong>, the part of the period you had not used, to the card you paid with. It can take 5 to 10 days to show on your statement.',
+      'A refund of <strong>{amount}</strong>, the part of the period you had not used, is on its way to the card you paid with. It can take 5 to 10 days to show on your statement.',
     nothingToRefund:
       'Nothing was left to refund: no part of the period paid was unused.',
     button: 'See my plan',
@@ -425,7 +425,7 @@ const es: EmailCopy = {
     title: 'Desistimiento confirmado',
     body: 'Has desistido del contrato del plan <strong>{plan}</strong> de @{username}. El plan ha terminado y sus funciones se han detenido hoy.<br><br>{refund}<br><br>Si no has desistido tú, escribe a support@circlesfera.com.',
     refunded:
-      'Te devolvemos <strong>{amount}</strong>, la parte del periodo que no habías usado, a la tarjeta con la que pagaste. Puede tardar de 5 a 10 días en verse en tu extracto.',
+      'Una devolución de <strong>{amount}</strong>, la parte del periodo que no habías usado, está en camino a la tarjeta con la que pagaste. Puede tardar de 5 a 10 días en verse en tu extracto.',
     nothingToRefund:
       'No quedaba nada por devolver: no había ninguna parte del periodo pagado sin usar.',
     button: 'Ver mi plan',

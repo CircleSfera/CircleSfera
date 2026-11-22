@@ -366,7 +366,7 @@
         "explain": "{{name}} ends now and its features stop now. The part of the period you have not used is refunded to the card you paid with; the days already used are not.",
         "confirm": "Yes, withdraw",
         "keep": "Keep it",
-        "done": "You withdrew from the contract. The unused part is refunded to your card.",
+        "done": "You withdrew from the contract. The refund of the unused part is on its way to your card.",
         "error": "The withdrawal could not be completed. Try again."
       },
       "studio_pro": {

@@ -348,10 +348,13 @@ export class StripeService implements OnModuleInit {
 
   // Refunds part of a subscription's payment to the card it came from. Never
   // more than what is left of it after earlier refunds. A refund already
-  // made for the same reason and subscription (by its metadata) is returned
-  // instead of refunding twice, so a retry after the idempotency key has
-  // expired, or with an amount worked out a moment later, refunds nothing
-  // more. Null when there is nothing to refund.
+  // made for the same reason and subscription (by its metadata) that still
+  // stands (succeeded, or pending on the bank) is returned instead of
+  // refunding twice, so a retry after the idempotency key has expired
+  // refunds nothing more. A failed or cancelled one gave nothing back: it is
+  // not counted, and the key names how many failed, so the next try is a new
+  // refund rather than the answer of the failed one. Null when there is
+  // nothing to refund.
   async refundSubscriptionPayment(params: {
     paymentIntentId: string;
     paidCents: number;
@@ -368,16 +371,18 @@ export class StripeService implements OnModuleInit {
     })) {
       refunds.push(refund);
     }
-    const standing = refunds.filter(
-      (refund) => refund.status !== 'failed' && refund.status !== 'canceled',
-    );
-    const earlier = standing.find(
-      (refund) =>
-        refund.metadata?.reason === params.metadata.reason &&
-        refund.metadata?.platformSubscriptionId ===
-          params.metadata.platformSubscriptionId,
-    );
+    const gaveNothing = (refund: Stripe.Refund) =>
+      refund.status === 'failed' || refund.status === 'canceled';
+    const ours = (refund: Stripe.Refund) =>
+      refund.metadata?.reason === params.metadata.reason &&
+      refund.metadata?.platformSubscriptionId ===
+        params.metadata.platformSubscriptionId;
+    const standing = refunds.filter((refund) => !gaveNothing(refund));
+    const earlier = standing.find(ours);
     if (earlier) return earlier;
+    const failedTries = refunds.filter(
+      (refund) => gaveNothing(refund) && ours(refund),
+    ).length;
 
     const alreadyRefunded = standing.reduce(
       (sum, refund) => sum + refund.amount,
@@ -396,8 +401,34 @@ export class StripeService implements OnModuleInit {
         reason: 'requested_by_customer',
         metadata: params.metadata,
       },
-      { idempotencyKey: params.idempotencyKey },
+      { idempotencyKey: `${params.idempotencyKey}-${failedTries}` },
     );
+  }
+
+  // Voids the open invoices of a subscription, so none is collected after
+  // it ended (a renewal that failed leaves one the provider keeps trying).
+  // One already paid or voided meanwhile is left as it is.
+  async voidOpenInvoices(subscriptionId: string): Promise<number> {
+    const open: string[] = [];
+    for await (const invoice of this.stripe.invoices.list({
+      subscription: subscriptionId,
+      status: 'open',
+      limit: 100,
+    })) {
+      open.push(invoice.id);
+    }
+    let voided = 0;
+    for (const id of open) {
+      try {
+        await this.stripe.invoices.voidInvoice(id);
+        voided++;
+      } catch (err) {
+        if ((err as { type?: string })?.type !== 'StripeInvalidRequestError') {
+          throw err;
+        }
+      }
+    }
+    return voided;
   }
 
   // Takes back a cancellation at the end of the period: the subscription

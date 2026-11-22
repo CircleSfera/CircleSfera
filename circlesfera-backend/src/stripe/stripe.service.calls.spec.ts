@@ -10,7 +10,7 @@ const client = {
     sessions: { create: vi.fn(), retrieve: vi.fn(), expire: vi.fn() },
   },
   refunds: { create: vi.fn(), list: vi.fn() },
-  invoices: { list: vi.fn() },
+  invoices: { list: vi.fn(), voidInvoice: vi.fn() },
   invoicePayments: { list: vi.fn() },
   customers: { create: vi.fn() },
   billingPortal: { sessions: { create: vi.fn() } },
@@ -348,7 +348,7 @@ describe('StripeService withdrawal from a plan', () => {
         reason: 'requested_by_customer',
         metadata: { reason: 'withdrawal', platformSubscriptionId: 'ps_1' },
       },
-      { idempotencyKey: 'plan-withdrawal-sub_1' },
+      { idempotencyKey: 'plan-withdrawal-sub_1-0' },
     );
   });
 
@@ -396,6 +396,80 @@ describe('StripeService withdrawal from a plan', () => {
       earlier,
     );
     expect(client.refunds.create).not.toHaveBeenCalled();
+  });
+
+  it('returns a withdrawal refund still pending on the bank instead of refunding twice', async () => {
+    const { service } = serviceWith();
+    const pending = {
+      id: 're_1',
+      amount: 666,
+      status: 'pending',
+      metadata: { reason: 'withdrawal', platformSubscriptionId: 'ps_1' },
+    };
+    client.refunds.list.mockReturnValue(listOf([pending]));
+
+    await expect(refund(service)).resolves.toBe(pending);
+    expect(client.refunds.create).not.toHaveBeenCalled();
+  });
+
+  it('refunds again after a withdrawal refund failed, with a new key, not counting what gave nothing back', async () => {
+    const { service } = serviceWith();
+    client.refunds.list.mockReturnValue(
+      listOf([
+        {
+          id: 're_failed',
+          amount: 666,
+          status: 'failed',
+          metadata: { reason: 'withdrawal', platformSubscriptionId: 'ps_1' },
+        },
+        {
+          id: 're_canceled',
+          amount: 666,
+          status: 'canceled',
+          metadata: { reason: 'withdrawal', platformSubscriptionId: 'ps_1' },
+        },
+      ]),
+    );
+    client.refunds.create.mockResolvedValue({ id: 're_3', amount: 666 });
+
+    await expect(refund(service)).resolves.toEqual({ id: 're_3', amount: 666 });
+    expect(client.refunds.create).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 666 }),
+      { idempotencyKey: 'plan-withdrawal-sub_1-2' },
+    );
+  });
+
+  it('voids every open invoice of the subscription, leaving one paid or voided meanwhile', async () => {
+    const { service } = serviceWith();
+    client.invoices.list.mockReturnValue(
+      listOf([{ id: 'in_1' }, { id: 'in_2' }]),
+    );
+    client.invoices.voidInvoice
+      .mockResolvedValueOnce({ id: 'in_1' })
+      .mockRejectedValueOnce(
+        Object.assign(new Error('already paid'), {
+          type: 'StripeInvalidRequestError',
+        }),
+      );
+
+    await expect(service.voidOpenInvoices('sub_1')).resolves.toBe(1);
+    expect(client.invoices.list).toHaveBeenCalledWith({
+      subscription: 'sub_1',
+      status: 'open',
+      limit: 100,
+    });
+    expect(client.invoices.voidInvoice).toHaveBeenCalledWith('in_1');
+    expect(client.invoices.voidInvoice).toHaveBeenCalledWith('in_2');
+  });
+
+  it('throws when an open invoice cannot be voided for another reason', async () => {
+    const { service } = serviceWith();
+    client.invoices.list.mockReturnValue(listOf([{ id: 'in_1' }]));
+    client.invoices.voidInvoice.mockRejectedValueOnce(
+      Object.assign(new Error('down'), { type: 'StripeAPIError' }),
+    );
+
+    await expect(service.voidOpenInvoices('sub_1')).rejects.toThrow('down');
   });
 });
 

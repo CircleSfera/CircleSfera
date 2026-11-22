@@ -366,7 +366,7 @@
         "explain": "{{name}} termina ahora y sus funciones se detienen ahora. La parte del periodo que no has usado se devuelve a la tarjeta con la que pagaste; los días ya usados, no.",
         "confirm": "Sí, desistir",
         "keep": "Mantenerlo",
-        "done": "Has desistido del contrato. La parte no usada se devuelve a tu tarjeta.",
+        "done": "Has desistido del contrato. La devolución de la parte no usada está en camino a tu tarjeta.",
         "error": "No se ha podido completar el desistimiento. Inténtalo de nuevo."
       },
       "studio_pro": {

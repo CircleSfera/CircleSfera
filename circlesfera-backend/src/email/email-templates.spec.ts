@@ -199,7 +199,9 @@ describe('EmailTemplates', () => {
     );
 
     expect(mail.subject).toBe('You withdrew from your <b>Pro</b> plan');
-    expect(mail.html).toContain('We are refunding <strong>€6.66</strong>');
+    expect(mail.html).toContain(
+      'A refund of <strong>€6.66</strong>, the part of the period you had not used, is on its way',
+    );
     expect(mail.html).toContain('&lt;b&gt;Pro&lt;/b&gt;');
     expect(mail.html).toContain('@ana');
     expect(mail.html).toContain(
@@ -207,14 +209,16 @@ describe('EmailTemplates', () => {
     );
     const es666 = EmailTemplates.planWithdrawn(es, 'Pro', 'ana', 666, 'eur');
     expect(es666.subject).toBe('Has desistido de tu plan Pro');
-    expect(es666.html).toMatch(/Te devolvemos <strong>6,66\s€<\/strong>/);
+    expect(es666.html).toMatch(
+      /Una devolución de <strong>6,66\s€<\/strong>.* está en camino/,
+    );
   });
 
   it('a withdrawn plan with nothing left to refund says so and names no amount', () => {
     const mail = EmailTemplates.planWithdrawn(en, 'Pro', 'ana', 0, 'eur');
 
     expect(mail.html).toContain('Nothing was left to refund');
-    expect(mail.html).not.toContain('We are refunding');
+    expect(mail.html).not.toContain('A refund of');
   });
 
   it('links the receipt and the removed post to live app pages', () => {

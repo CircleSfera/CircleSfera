@@ -1754,22 +1754,31 @@ model PlatformPlan {
 }
 
 model PlatformSubscription {
-  id                   String             @id @default(uuid())
+  id                    String             @id @default(uuid())
   // Nullable for financial retention: userId is set to NULL on user hard-deletion
   // (onDelete: SetNull). The row survives for fiscal audit compliance (7-year retention).
-  userId               String?
-  planId               String
-  profileId            String?
-  status               SubscriptionStatus @default(ACTIVE) // Mapping Stripe statuses
-  stripeSubscriptionId String             @unique
-  currentPeriodStart   DateTime
-  currentPeriodEnd     DateTime
-  cancelAtPeriodEnd    Boolean            @default(false)
+  userId                String?
+  planId                String
+  profileId             String?
+  status                SubscriptionStatus @default(ACTIVE) // Mapping Stripe statuses
+  stripeSubscriptionId  String             @unique
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  cancelAtPeriodEnd     Boolean            @default(false)
   // An add-on (Edits Studio Pro) is held beside the Profile's plan: a
   // Profile has at most one active plan and one active add-on.
-  addOn                Boolean            @default(false)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  addOn                 Boolean            @default(false)
+  // A withdrawal within 14 days of the purchase (PD-023): when the payer
+  // withdrew (the row is CANCELLED from then on), the refund owed for the
+  // unused part, in cents, worked out once, the provider's refund, and when
+  // every step (end, open invoices voided, refund) was done. A withdrawal
+  // marked and not finished is finished by the reconcile job.
+  withdrawnAt           DateTime?
+  withdrawalRefundCents Int?
+  withdrawalRefundId    String?
+  withdrawalFinishedAt  DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
 
   user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   profile Profile?     @relation(fields: [profileId], references: [id])
