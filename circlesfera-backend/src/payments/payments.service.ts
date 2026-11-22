@@ -92,6 +92,10 @@ export function withdrawalRetryDelayMs(attempts: number): number {
 // From this failed attempt on (attempts by then over an hour apart), a
 // withdrawal that keeps failing is reported to the error tracker.
 const WITHDRAWAL_REPORT_FROM_ATTEMPT = 5;
+// A withdrawal not finished this long after it was made is reported too.
+const WITHDRAWAL_REPORT_AFTER_MS = 2 * 24 * 60 * 60 * 1000;
+// A plan paid from the balance is reported to staff at most once an hour.
+const SUPPORT_REPORT_INTERVAL_MS = 60 * 60 * 1000;
 
 // A subscription as the provider describes it, in a notice or read again.
 type StripeSubscriptionState = {
@@ -114,6 +118,9 @@ function providerStart(
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
+  // When each balance-paid plan someone tried to withdraw from was last
+  // reported to the error tracker.
+  private readonly supportReportedAt = new Map<string, number>();
   private readonly checkoutInFlight = new Map<
     string,
     Promise<Stripe.Checkout.Session>
@@ -475,7 +482,7 @@ export class PaymentsService {
     return {
       hasActiveSubscription: running(subscription),
       subscription: subscription
-        ? this.describeSubscription(subscription)
+        ? await this.describeSubscription(subscription)
         : null,
       studioPro: {
         // Whether the Profile's plan already gives the Studio's Pro
@@ -483,7 +490,7 @@ export class PaymentsService {
         includedInPlan:
           running(subscription) &&
           subscription!.plan.features.includes('studio_pro'),
-        subscription: addOn ? this.describeSubscription(addOn) : null,
+        subscription: addOn ? await this.describeSubscription(addOn) : null,
       },
       otherProfiles: await this.plansOfOtherProfiles(userId, profileId),
     };
@@ -521,7 +528,7 @@ export class PaymentsService {
     });
   }
 
-  private describeSubscription(
+  private async describeSubscription(
     subscription: NonNullable<
       Awaited<ReturnType<PaymentsService['subscriptionInUse']>>
     >,
@@ -537,20 +544,20 @@ export class PaymentsService {
       priceCents: subscription.plan.priceCents,
       currency: subscription.plan.currency,
       // Until when the payer can withdraw from it (14 days from the purchase
-      // at the provider, the same moment the server allows), while it runs;
-      // null once that has passed. A row written before the start was kept
-      // shows it from its creation, close to the purchase; the server then
-      // reads the start from the provider.
-      withdrawableUntil: this.withdrawableUntil(subscription),
+      // at the provider, decided as the server decides), while it runs; null
+      // once that has passed or while the purchase cannot be known.
+      withdrawableUntil: await this.withdrawableUntil(subscription),
     };
   }
 
-  private withdrawableUntil(subscription: {
+  private async withdrawableUntil(subscription: {
+    id: string;
+    stripeSubscriptionId: string;
     createdAt: Date;
     providerStartedAt: Date | null;
     withdrawnAt: Date | null;
     status: SubscriptionStatus;
-  }): Date | null {
+  }): Promise<Date | null> {
     const running: SubscriptionStatus[] = [
       SubscriptionStatus.ACTIVE,
       SubscriptionStatus.TRIALING,
@@ -559,10 +566,45 @@ export class PaymentsService {
     if (!running.includes(subscription.status) || subscription.withdrawnAt) {
       return null;
     }
-    const startedAt = subscription.providerStartedAt ?? subscription.createdAt;
-    return this.withdrawalOpen(startedAt, Date.now())
+    const now = Date.now();
+    // The row is written after the purchase: once 14 days have passed since
+    // it was written, they have passed since the purchase too, and the
+    // provider is not asked.
+    if (!this.withdrawalOpen(subscription.createdAt, now)) return null;
+    let startedAt = subscription.providerStartedAt;
+    if (!startedAt) {
+      try {
+        startedAt = await this.keepProviderStart(subscription);
+      } catch (err) {
+        // Not offered while the purchase cannot be known: the server would
+        // need it too. The next look asks again.
+        this.logger.warn(
+          `Could not read when subscription ${subscription.id} started at the provider`,
+          err,
+        );
+        return null;
+      }
+    }
+    return this.withdrawalOpen(startedAt, now)
       ? withdrawalDeadline(startedAt)
       : null;
+  }
+
+  // Reads when a subscription started at the provider (the purchase) and
+  // keeps it on its row, for a row written before it was kept.
+  private async keepProviderStart(subscription: {
+    id: string;
+    stripeSubscriptionId: string;
+  }): Promise<Date> {
+    const provider = await this.stripeService.getSubscription(
+      subscription.stripeSubscriptionId,
+    );
+    const startedAt = new Date(provider.start_date * 1000);
+    await this.prisma.platformSubscription.updateMany({
+      where: { id: subscription.id, providerStartedAt: null },
+      data: { providerStartedAt: startedAt },
+    });
+    return startedAt;
   }
 
   // Cancels the plan of the Profile in use (or its add-on) at the end of
@@ -705,7 +747,7 @@ export class PaymentsService {
     if (subscription.userId)
       await this.syncBenefitsOfWithdrawn(subscription.userId);
 
-    await this.attemptWithdrawal(subscription.id, 0);
+    await this.attemptWithdrawal(subscription.id, 0, new Date(now));
     return this.getBillingStatus(userId, profileId);
   }
 
@@ -737,15 +779,11 @@ export class PaymentsService {
     // From the purchase at the provider: the row is written when its notice
     // is processed, which can be hours later. Read from the provider for a
     // row written before the start was kept.
-    let startedAt = subscription.providerStartedAt;
-    if (!startedAt) {
-      const provider = await this.stripeService
-        .getSubscription(stripeSubscriptionId)
-        .catch((err: unknown) =>
-          this.refusedByProvider(stripeSubscriptionId, err),
-        );
-      startedAt = new Date(provider.start_date * 1000);
-    }
+    const startedAt =
+      subscription.providerStartedAt ??
+      (await this.keepProviderStart(subscription).catch((err: unknown) =>
+        this.refusedByProvider(stripeSubscriptionId, err),
+      ));
     const now = Date.now();
     if (!this.withdrawalOpen(startedAt, now)) {
       const deadline = withdrawalDeadline(startedAt);
@@ -767,14 +805,23 @@ export class PaymentsService {
         startedAt,
       };
     }
-    if (invoice.amountPaidCents <= 0 || !invoice.paymentIntentId) {
+    if (invoice.paidCents <= 0 || !invoice.paymentIntentId) {
       // It cost something but was settled from the customer's balance or a
-      // credit: there is no card payment to refund here. Refused before
-      // anything changes; staff are told.
-      const message = `Withdrawal of subscription ${subscription.id}: invoice ${invoice.id} was settled without a card payment; staff refund it`;
+      // credit: there is no card payment to refund here. Support takes the
+      // withdrawal; the plan is NOT ended here (how to end it and give the
+      // balance back is for the owner to decide). Staff are told, once an
+      // hour per subscription.
+      const message = `Withdrawal of subscription ${subscription.id}: invoice ${invoice.id} was settled without a card payment; support takes it`;
       this.logger.error(message);
-      Sentry.captureMessage(message, 'error');
-      throw new Error('The payment of this plan cannot be refunded here');
+      const reportedAt = this.supportReportedAt.get(subscription.id) ?? 0;
+      if (Date.now() - reportedAt >= SUPPORT_REPORT_INTERVAL_MS) {
+        this.supportReportedAt.set(subscription.id, Date.now());
+        Sentry.captureMessage(message, 'error');
+      }
+      throw AppException.Conflict(
+        ErrorCode.WITHDRAWAL_NEEDS_SUPPORT,
+        'This plan was paid from the account balance: support takes the withdrawal.',
+      );
     }
     // The period paid for, as the invoice says; the row's when the invoice
     // names none.
@@ -785,7 +832,9 @@ export class PaymentsService {
       end = subscription.currentPeriodEnd.getTime();
     }
     return {
-      refundCents: unusedPartCents(invoice.amountPaidCents, start, end, now),
+      // Only the card payment is refunded here: what the payment intent
+      // took, not what the invoice came to.
+      refundCents: unusedPartCents(invoice.paidCents, start, end, now),
       invoiceId: invoice.id,
       paymentIntentId: invoice.paymentIntentId,
       startedAt,
@@ -809,6 +858,7 @@ export class PaymentsService {
   private async attemptWithdrawal(
     id: string,
     attemptsBefore: number,
+    withdrawnAt: Date,
   ): Promise<boolean> {
     let failure: unknown = null;
     try {
@@ -839,13 +889,26 @@ export class PaymentsService {
           err,
         ),
       );
-    // Someone must look at a refund owed that does not go through. From
-    // this attempt on the attempts are over an hour apart.
-    if (failure && attempts >= WITHDRAWAL_REPORT_FROM_ATTEMPT) {
-      Sentry.captureException(failure, {
+    // Someone must look at a withdrawal that does not finish: one failing
+    // again and again, or one waiting on a refund that stays pending. Once
+    // per attempt, and from the fifth one on attempts are over an hour
+    // apart.
+    if (
+      attempts >= WITHDRAWAL_REPORT_FROM_ATTEMPT ||
+      Date.now() - withdrawnAt.getTime() > WITHDRAWAL_REPORT_AFTER_MS
+    ) {
+      const context = {
         tags: { area: 'plan-withdrawal' },
         extra: { platformSubscriptionId: id, attempts },
-      });
+      };
+      if (failure) {
+        Sentry.captureException(failure, context);
+      } else {
+        Sentry.captureMessage(
+          `Withdrawal of subscription ${id} is still waiting for its refund`,
+          { level: 'warning', ...context },
+        );
+      }
     }
     return false;
   }
@@ -984,13 +1047,18 @@ export class PaymentsService {
         withdrawalFinishedAt: null,
         withdrawalNextAttemptAt: { lte: new Date() },
       },
-      select: { id: true, withdrawalAttempts: true },
+      select: { id: true, withdrawalAttempts: true, withdrawnAt: true },
       take: limit,
       orderBy: { withdrawalNextAttemptAt: 'asc' },
     });
     let finished = 0;
-    for (const { id, withdrawalAttempts } of due) {
-      if (await this.attemptWithdrawal(id, withdrawalAttempts)) finished++;
+    for (const { id, withdrawalAttempts, withdrawnAt } of due) {
+      if (
+        withdrawnAt &&
+        (await this.attemptWithdrawal(id, withdrawalAttempts, withdrawnAt))
+      ) {
+        finished++;
+      }
     }
     return finished;
   }

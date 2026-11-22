@@ -38,6 +38,9 @@ export enum ErrorCode {
   // last moment it could be withdrawn from. It can still be cancelled at
   // the end of its period.
   WITHDRAWAL_PERIOD_ENDED = 'WITHDRAWAL_PERIOD_ENDED',
+  // The plan was paid from the account balance or a credit, with no card
+  // payment to refund in the app: support takes the withdrawal.
+  WITHDRAWAL_NEEDS_SUPPORT = 'WITHDRAWAL_NEEDS_SUPPORT',
   PRICE_NOT_FOUND = 'PRICE_NOT_FOUND',
   ACTIVE_SUBSCRIPTION_EXISTS = 'ACTIVE_SUBSCRIPTION_EXISTS',
   // The plan is meant for another type of Profile; details carry which.
