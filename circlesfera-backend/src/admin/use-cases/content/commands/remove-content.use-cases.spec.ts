@@ -181,7 +181,6 @@ describe('staff removal of content', () => {
         moderationStatus: 'VISIBLE',
         moderationNote: undefined,
         moderationPassedAt: expect.any(Date),
-        moderationPassedByStaff: true,
       },
       select,
     });

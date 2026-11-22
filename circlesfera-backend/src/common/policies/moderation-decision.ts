@@ -43,11 +43,7 @@ export function setModerationStatus(
     status === 'VISIBLE'
       ? {
           ...args,
-          data: {
-            ...data,
-            moderationPassedAt: new Date(),
-            moderationPassedByStaff: true,
-          },
+          data: { ...data, moderationPassedAt: new Date() },
         }
       : args;
   if (type === 'POST') return db.post.update(cleared);

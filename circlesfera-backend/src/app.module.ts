@@ -38,7 +38,6 @@ import { CloseFriendsModule } from './close-friends/close-friends.module.js';
 import { CollectionsModule } from './collections/collections.module.js';
 import { CommentsModule } from './comments/comments.module.js';
 import { RedisCacheModule } from './common/cache/cache.module.js';
-import { AppConfigModule } from './common/config/app-config.module.js';
 import { validateEnv } from './common/config/env.validation.js';
 import { GLOBAL_DEFAULT_JOB_OPTIONS } from './common/constants/queue-policy.constants.js';
 import { CorrelationMiddleware } from './common/correlation/correlation.middleware.js';
@@ -148,7 +147,6 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
       isGlobal: true,
       validate: validateEnv,
     }),
-    AppConfigModule,
     ObservabilityModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],

@@ -602,9 +602,8 @@ describe('AppealsService.update — effects and notices', () => {
       where: { id: 'post-1' },
       data: {
         moderationStatus: 'VISIBLE',
-        // Restored after a person looked at it: on sale again.
+        // Restored after a person looked at it: promotable again.
         moderationPassedAt: expect.any(Date),
-        moderationPassedByStaff: true,
       },
     });
     expect(t.notifications.create).toHaveBeenCalledWith(

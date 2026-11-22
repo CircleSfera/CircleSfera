@@ -403,7 +403,7 @@ export class AIProcessor extends WorkerHost {
       this.logger.error(
         `Could not apply the moderation rules to ${targetType} ${targetId}: ${error instanceof Error ? error.message : String(error)}`,
       );
-      // Not known whether a rule matched: kept off sale until it is.
+      // Not known whether a rule matched: not promotable until it is.
       return true;
     }
   }
@@ -458,7 +458,7 @@ export class AIProcessor extends WorkerHost {
 
     // The rules staff keep (words or phrases) are applied first and without
     // the AI service, so they hold even when it is down. Content a rule sent
-    // to review is not put on sale until staff have looked at it.
+    // to review is not promotable until staff have looked at it.
     const sentToReview = await this.applyModerationRules(
       targetType,
       targetId,
