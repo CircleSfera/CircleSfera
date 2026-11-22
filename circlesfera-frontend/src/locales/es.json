@@ -3775,8 +3775,7 @@
         "UPDATE_SETTINGS": "Cambió la configuración",
         "BLOCK": "Bloqueó contenido",
         "IGNORE": "Descartó un caso",
-        "STRIKE": "Puso un aviso",
-        "PAID_CONTENT_APPROVED": "Contenido de pago aprobado para la venta"
+        "STRIKE": "Puso un aviso"
       },
       "targets": {
         "USER": "Cuenta",

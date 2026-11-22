@@ -116,7 +116,7 @@ model User {
 
 // The credentials one or more Profiles of a person sign in with: email,
 // password, two-factor and the tokens for verifying the email and resetting the
-// password. The person (KYC, payouts, the payer, data rights) stays on User.
+// password. The person (KYC, the payer, data rights) stays on User.
 //
 // While sign-in still reads User, the database keeps this row equal to the
 // credential columns of its User: see the migration that creates the table.
@@ -607,11 +607,10 @@ model Post {
   // When it was last hidden or removed by moderation: the six months to
   // appeal it count from then.
   moderatedAt             DateTime?
-  // When automatic moderation checked it and found nothing: only then is it
-  // sold or tipped. Null until checked, or while the check cannot run.
+  // When automatic moderation checked it and found nothing: only then may it
+  // be promoted. Null until checked, or while the check cannot run.
   moderationPassedAt      DateTime?
-  // Whether that pass was given by a person on staff. The first priced items
-  // of a Profile are passed by a person before automatic passes count.
+  // Whether that pass was given by a person on staff.
   moderationPassedByStaff Boolean          @default(false)
   // When its author last changed its caption or cover: a person passing it
   // passes it only as it was when they looked at it.
@@ -698,7 +697,7 @@ model PostTag {
 }
 
 // The one collaborator of a post or Frame: invited by its author, a co-author
-// once it accepts. Only a public, unpaid post carries one; the author keeps
+// once it accepts. Only a public post carries one; the author keeps
 // every control over the post.
 model PostCollaborator {
   postId      String              @id
@@ -842,11 +841,10 @@ model Story {
   // When it was last hidden or removed by moderation. Removed content is
   // kept for the six months its author has to appeal, then erased.
   moderatedAt             DateTime?
-  // When automatic moderation checked it and found nothing: only then is it
-  // sold or tipped. Null until checked, or while the check cannot run.
+  // When automatic moderation checked it and found nothing: only then may it
+  // be promoted. Null until checked, or while the check cannot run.
   moderationPassedAt      DateTime?
-  // Whether that pass was given by a person on staff. The first priced items
-  // of a Profile are passed by a person before automatic passes count.
+  // Whether that pass was given by a person on staff.
   moderationPassedByStaff Boolean          @default(false)
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
@@ -1898,7 +1896,7 @@ model Transaction {
   type          TransactionType
   amount        Int // Integer cents (legacy name; not amountCents — public money API contract)
   // The VAT inside amount, in cents: CircleSfera's to pay the tax agency,
-  // never part of the creator's earnings or income.
+  // never part of CircleSfera's income.
   vatCents      Int               @default(0)
   // What the buyer got back of amount by refunds, in cents. A payment
   // refunded in full is REFUNDED; one refunded in part keeps the rest.
@@ -2854,7 +2852,6 @@ enum AdminAction {
   CONTENT_REMOVED
   CONTENT_RESTRICTED
   CONTENT_RESTORED
-  PAID_CONTENT_APPROVED
   CONTENT_LABELED
 
   // Report Management
