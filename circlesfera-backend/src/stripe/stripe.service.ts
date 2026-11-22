@@ -23,9 +23,13 @@ const PAYMENT_METHOD_CONFIGURATION = /^pmc_[A-Za-z0-9]+$/;
 const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2026-11-18.endive';
 
 // The newest paid invoice of a subscription. Amounts are integer cents:
-// `amountPaidCents` is what the invoice was paid, `paidCents` the part of it
-// paid with `paymentIntentId` (what can be refunded on it).
+// `totalCents` is what the invoice came to (0 for a free one),
+// `amountPaidCents` what was paid of it by a payment (not from the
+// customer's balance or a credit), `paidCents` the part of it paid with
+// `paymentIntentId` (what can be refunded on it).
 export interface PaidSubscriptionInvoice {
+  id: string;
+  totalCents: number;
   amountPaidCents: number;
   paidCents: number;
   currency: string;
@@ -337,6 +341,8 @@ export class StripeService implements OnModuleInit {
     }
 
     return {
+      id: invoice.id,
+      totalCents: invoice.total,
       amountPaidCents: invoice.amount_paid,
       paidCents,
       currency: invoice.currency,
@@ -347,17 +353,15 @@ export class StripeService implements OnModuleInit {
   }
 
   // Refunds part of a subscription's payment to the card it came from. Never
-  // more than what is left of it after earlier refunds. A refund already
-  // made for the same reason and subscription (by its metadata) that still
-  // stands (succeeded, or pending on the bank) is returned instead of
-  // refunding twice, so a retry after the idempotency key has expired
-  // refunds nothing more. A failed or cancelled one gave nothing back: it is
-  // not counted, and the key names how many failed, so the next try is a new
-  // refund rather than the answer of the failed one. Null when there is
-  // nothing to refund.
+  // more than what is left of that payment after the refunds that stand on
+  // it. A refund already made for the same reason and subscription (by its
+  // metadata) that still stands (succeeded, or pending on the bank) is
+  // returned instead of refunding twice, so a retry refunds nothing more. A
+  // failed or cancelled one gave nothing back: it is not counted, and the key
+  // names how many failed, so the next try is a new refund rather than the
+  // answer of the failed one. Null when there is nothing to refund.
   async refundSubscriptionPayment(params: {
     paymentIntentId: string;
-    paidCents: number;
     amountInCents: number;
     idempotencyKey: string;
     metadata: { reason: string; platformSubscriptionId: string };
@@ -384,13 +388,16 @@ export class StripeService implements OnModuleInit {
       (refund) => gaveNothing(refund) && ours(refund),
     ).length;
 
+    const payment = await this.stripe.paymentIntents.retrieve(
+      params.paymentIntentId,
+    );
     const alreadyRefunded = standing.reduce(
       (sum, refund) => sum + refund.amount,
       0,
     );
     const amount = Math.min(
       params.amountInCents,
-      params.paidCents - alreadyRefunded,
+      payment.amount_received - alreadyRefunded,
     );
     if (amount <= 0) return null;
 
@@ -488,6 +495,20 @@ export class StripeService implements OnModuleInit {
       expand: ['verified_outputs'],
     });
   }
+}
+
+// Whether the provider answered a request with an error (its response
+// carries a status), as opposed to a request whose outcome is not known (the
+// connection failed). An answered error is kept under its idempotency key,
+// so the same request with the same key gets the same error again.
+export function isProviderErrorResponse(error: unknown): boolean {
+  const e = error as { type?: unknown; statusCode?: unknown } | null;
+  return (
+    typeof e?.statusCode === 'number' &&
+    typeof e.type === 'string' &&
+    e.type.startsWith('Stripe') &&
+    e.type !== 'StripeConnectionError'
+  );
 }
 
 export type StripeFailureClass = 'transient' | 'permanent';

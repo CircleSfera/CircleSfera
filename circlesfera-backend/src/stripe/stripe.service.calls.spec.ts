@@ -1,7 +1,7 @@
 import { ErrorCode } from '@circlesfera/shared';
 import type { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { StripeService } from './stripe.service.js';
+import { isProviderErrorResponse, StripeService } from './stripe.service.js';
 
 // What the service asks the payment provider, and what it does with the
 // answer. The provider's client is replaced: nothing here reaches it.
@@ -10,6 +10,7 @@ const client = {
     sessions: { create: vi.fn(), retrieve: vi.fn(), expire: vi.fn() },
   },
   refunds: { create: vi.fn(), list: vi.fn() },
+  paymentIntents: { retrieve: vi.fn() },
   invoices: { list: vi.fn(), voidInvoice: vi.fn() },
   invoicePayments: { list: vi.fn() },
   customers: { create: vi.fn() },
@@ -39,6 +40,7 @@ const serviceWith = (env: Record<string, string | undefined> = {}) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  client.paymentIntents.retrieve.mockResolvedValue({ amount_received: 999 });
 });
 
 describe('StripeService at startup', () => {
@@ -239,7 +241,6 @@ describe('StripeService withdrawal from a plan', () => {
   const refund = (service: StripeService, over: object = {}) =>
     service.refundSubscriptionPayment({
       paymentIntentId: 'pi_1',
-      paidCents: 999,
       amountInCents: 666,
       idempotencyKey: 'plan-withdrawal-sub_1',
       metadata: { reason: 'withdrawal', platformSubscriptionId: 'ps_1' },
@@ -264,6 +265,7 @@ describe('StripeService withdrawal from a plan', () => {
       data: [
         {
           id: 'in_1',
+          total: 999,
           amount_paid: 999,
           currency: 'eur',
           // The invoice's own period is the one before it.
@@ -289,6 +291,8 @@ describe('StripeService withdrawal from a plan', () => {
     });
 
     await expect(service.latestPaidInvoice('sub_1')).resolves.toEqual({
+      id: 'in_1',
+      totalCents: 999,
       amountPaidCents: 999,
       paidCents: 999,
       currency: 'eur',
@@ -354,6 +358,7 @@ describe('StripeService withdrawal from a plan', () => {
 
   it('never refunds more than is left of the payment after earlier refunds', async () => {
     const { service } = serviceWith();
+    client.paymentIntents.retrieve.mockResolvedValue({ amount_received: 999 });
     client.refunds.list.mockReturnValue(
       listOf([
         { amount: 500, status: 'succeeded', metadata: {} },
@@ -365,16 +370,43 @@ describe('StripeService withdrawal from a plan', () => {
 
     await refund(service);
 
+    // What the payment received, less what stands refunded of it.
+    expect(client.paymentIntents.retrieve).toHaveBeenCalledWith('pi_1');
     expect(client.refunds.create).toHaveBeenCalledWith(
       expect.objectContaining({ amount: 499 }),
       expect.anything(),
     );
   });
 
+  it('tells an error the provider answered from an outcome that is not known', () => {
+    expect(
+      isProviderErrorResponse({ type: 'StripeAPIError', statusCode: 500 }),
+    ).toBe(true);
+    expect(
+      isProviderErrorResponse({
+        type: 'StripeInvalidRequestError',
+        statusCode: 400,
+      }),
+    ).toBe(true);
+    // The connection failed: the provider may have done it.
+    expect(isProviderErrorResponse({ type: 'StripeConnectionError' })).toBe(
+      false,
+    );
+    expect(
+      isProviderErrorResponse({
+        type: 'StripeConnectionError',
+        statusCode: 500,
+      }),
+    ).toBe(false);
+    expect(isProviderErrorResponse(new Error('socket hang up'))).toBe(false);
+    expect(isProviderErrorResponse(null)).toBe(false);
+  });
+
   it('refunds nothing when nothing is asked or nothing is left', async () => {
     const { service } = serviceWith();
     await expect(refund(service, { amountInCents: 0 })).resolves.toBeNull();
 
+    client.paymentIntents.retrieve.mockResolvedValue({ amount_received: 999 });
     client.refunds.list.mockReturnValue(
       listOf([{ amount: 999, status: 'succeeded', metadata: {} }]),
     );
