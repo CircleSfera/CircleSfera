@@ -6385,7 +6385,7 @@
       "COMPANY_DOCUMENT_INVALID": "Sube un PDF, JPG o PNG de hasta 5 MB.",
       "COMPANY_DOCUMENTS_FULL": "Puedes subir hasta 3 documentos.",
       "COMPANY_EMAIL_CODE_WAIT": "Espera un momento antes de pedir otro código. Se pueden pedir 5 al día.",
-      "WITHDRAWAL_PERIOD_ENDED": "Ya han pasado los 14 días para desistir de este plan. Aún puedes cancelarlo al final de su periodo."
+      "WITHDRAWAL_PERIOD_ENDED": "Los 14 días para desistir de este plan terminaron el {{deadline, datetime(dateStyle: long)}}. Aún puedes cancelarlo al final de su periodo."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

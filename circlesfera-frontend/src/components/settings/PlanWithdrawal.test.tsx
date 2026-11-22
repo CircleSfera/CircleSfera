@@ -81,7 +81,7 @@ describe('PlanWithdrawal', () => {
     expect(refresh).toHaveBeenCalledWith({ queryKey: ['billingStatus'] });
   });
 
-  it('says plainly when the 14 days have passed', async () => {
+  it('says plainly when the 14 days have passed, with the last day', async () => {
     const withdraw = vi.fn().mockRejectedValue({
       status: 400,
       data: {
@@ -89,7 +89,7 @@ describe('PlanWithdrawal', () => {
         details: { deadline: until },
       },
     });
-    const { i18n } = renderWithProviders(
+    renderWithProviders(
       <PlanWithdrawal name="Pro" until={until} withdraw={withdraw} />,
     );
 
@@ -100,10 +100,9 @@ describe('PlanWithdrawal', () => {
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
-        i18n!.t('errors.codes.WITHDRAWAL_PERIOD_ENDED'),
+        'The 14 days to withdraw from this plan ended on November 15, 2026. You can still cancel it at the end of its period.',
       ),
     );
-    expect(i18n!.t('errors.codes.WITHDRAWAL_PERIOD_ENDED')).toMatch(/14 days/);
   });
 
   it('says so when the withdrawal fails for another reason', async () => {
