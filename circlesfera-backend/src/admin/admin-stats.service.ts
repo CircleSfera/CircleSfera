@@ -260,6 +260,7 @@ export class AdminStatsService {
       status: string;
       planId: string;
       billingInterval: string;
+      periodPriceCents: number | null;
       plan: {
         id: string;
         name: string;

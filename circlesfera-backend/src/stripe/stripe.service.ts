@@ -32,6 +32,10 @@ export interface PaidSubscriptionInvoice {
   totalCents: number;
   amountPaidCents: number;
   paidCents: number;
+  // The credit taken off inside the invoice (its negative lines: the unused
+  // part of an earlier period, when the plan moved to another price), in
+  // cents. Zero for an ordinary renewal.
+  creditCents: number;
   currency: string;
   periodStart: Date;
   periodEnd: Date;
@@ -340,11 +344,16 @@ export class StripeService implements OnModuleInit {
       }
     }
 
+    const creditCents = invoice.lines.data
+      .filter((line) => line.amount < 0)
+      .reduce((sum, line) => sum - line.amount, 0);
+
     return {
       id: invoice.id,
       totalCents: invoice.total,
       amountPaidCents: invoice.amount_paid,
       paidCents,
+      creditCents,
       currency: invoice.currency,
       periodStart: new Date(periodStart * 1000),
       periodEnd: new Date(periodEnd * 1000),

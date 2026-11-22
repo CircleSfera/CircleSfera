@@ -1767,6 +1767,10 @@ model PlatformSubscription {
   // How often it is charged, as the provider's price says: "month" or
   // "year" (BD-016).
   billingInterval            String             @default("month")
+  // What each period costs, as the provider's price says, in cents: what
+  // the payer is shown and the recurring income counts, whatever the
+  // catalog says later. Null until a notice gives it.
+  periodPriceCents           Int?
   // When a monthly plan moved to the yearly price: paying a year is a new
   // contract, and its 14 days to withdraw count from then.
   yearlyStartedAt            DateTime?

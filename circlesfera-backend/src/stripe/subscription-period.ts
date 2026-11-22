@@ -9,7 +9,11 @@ export type SubscriptionWithItems = {
       id?: string;
       current_period_start?: number;
       current_period_end?: number;
-      price?: { id?: string; recurring?: { interval?: string } | null } | null;
+      price?: {
+        id?: string;
+        unit_amount?: number | null;
+        recurring?: { interval?: string } | null;
+      } | null;
     }[];
   };
 };

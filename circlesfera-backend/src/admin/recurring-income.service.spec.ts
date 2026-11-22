@@ -47,6 +47,16 @@ describe('RecurringIncomeService', () => {
         },
       ]),
     ).toBe(999);
+    // What the subscription pays wins over the catalog.
+    expect(
+      recurringIncomeCents([
+        {
+          billingInterval: 'year',
+          periodPriceCents: 12000,
+          plan: { priceCents: 999, yearlyPriceCents: null },
+        },
+      ]),
+    ).toBe(1000);
   });
 
   it('counts the figure of now from the active subscriptions only', async () => {
@@ -60,6 +70,7 @@ describe('RecurringIncomeService', () => {
       where: { status: 'ACTIVE' },
       select: {
         billingInterval: true,
+        periodPriceCents: true,
         plan: { select: { priceCents: true, yearlyPriceCents: true } },
       },
     });

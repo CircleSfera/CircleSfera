@@ -3,6 +3,9 @@
 -- previous image never names it.
 ALTER TABLE "platform_subscriptions" ADD COLUMN "billingInterval" TEXT NOT NULL DEFAULT 'month';
 
+-- What each period costs, as the provider's price says, in cents.
+ALTER TABLE "platform_subscriptions" ADD COLUMN "periodPriceCents" INTEGER;
+
 -- When a monthly plan moved to the yearly price: the 14 days to withdraw
 -- from that year count from then.
 ALTER TABLE "platform_subscriptions" ADD COLUMN "yearlyStartedAt" TIMESTAMP(3);

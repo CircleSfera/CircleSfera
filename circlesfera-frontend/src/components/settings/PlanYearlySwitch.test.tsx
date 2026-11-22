@@ -121,7 +121,7 @@ describe('PlanYearlySwitch', () => {
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
-        'Your plan could not be moved to yearly. Nothing was charged; try again.',
+        'Your plan could not be moved to yearly. Check your plan below before trying again.',
       ),
     );
   });

@@ -9,11 +9,13 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 // The recurring monthly income of a set of subscriptions: the list price of
 // the plan of each one, in integer cents; a plan paid by the year counts a
-// twelfth of its yearly price, rounded to the cent. One rule for the figure
+// twelfth of what its year costs (as kept on the subscription, else the
+// plan's yearly price), rounded to the cent. One rule for the figure
 // shown now and for the one kept each day.
 export function recurringIncomeCents(
   subscriptions: {
     billingInterval?: string | null;
+    periodPriceCents?: number | null;
     plan?: {
       priceCents?: number | null;
       yearlyPriceCents?: number | null;
@@ -22,8 +24,10 @@ export function recurringIncomeCents(
 ): number {
   return subscriptions.reduce((sum, subscription) => {
     const plan = subscription.plan;
-    if (subscription.billingInterval === 'year' && plan?.yearlyPriceCents) {
-      return sum + Math.round(plan.yearlyPriceCents / 12);
+    const yearCents =
+      subscription.periodPriceCents ?? plan?.yearlyPriceCents ?? null;
+    if (subscription.billingInterval === 'year' && yearCents) {
+      return sum + Math.round(yearCents / 12);
     }
     return sum + (plan?.priceCents ?? 0);
   }, 0);
@@ -43,6 +47,7 @@ export class RecurringIncomeService implements OnApplicationBootstrap {
       where: { status: 'ACTIVE' },
       select: {
         billingInterval: true,
+        periodPriceCents: true,
         plan: { select: { priceCents: true, yearlyPriceCents: true } },
       },
     });
