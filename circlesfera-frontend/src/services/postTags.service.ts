@@ -12,7 +12,8 @@ export interface MyPostTag {
     id: string;
     caption: string | null;
     createdAt: string;
-    // None for a mature post the viewer blurs or does not allow.
+    // None for a post the viewer cannot open, or a mature one they blur or
+    // do not allow.
     thumbnailUrl: string | null;
     profile: {
       id: string;
