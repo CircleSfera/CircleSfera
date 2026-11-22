@@ -610,11 +610,10 @@ model Post {
   // When automatic moderation checked it and found nothing: only then may it
   // be promoted. Null until checked, or while the check cannot run.
   moderationPassedAt      DateTime?
-  // Whether that pass was given by a person on staff.
-  moderationPassedByStaff Boolean          @default(false)
-  // When its author last changed its caption or cover: a person passing it
-  // passes it only as it was when they looked at it.
-  contentEditedAt         DateTime?
+  // Never read: the client leaves it alone, and the next release drops it.
+  moderationPassedByStaff Boolean          @default(false) @ignore
+  // Never read: the client leaves it alone, and the next release drops it.
+  contentEditedAt         DateTime? @ignore
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
   deletedAt               DateTime?
@@ -844,8 +843,8 @@ model Story {
   // When automatic moderation checked it and found nothing: only then may it
   // be promoted. Null until checked, or while the check cannot run.
   moderationPassedAt      DateTime?
-  // Whether that pass was given by a person on staff.
-  moderationPassedByStaff Boolean          @default(false)
+  // Never read: the client leaves it alone, and the next release drops it.
+  moderationPassedByStaff Boolean          @default(false) @ignore
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
   deletedAt               DateTime?
