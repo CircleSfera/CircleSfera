@@ -32,6 +32,10 @@ export interface PaidSubscriptionInvoice {
   totalCents: number;
   amountPaidCents: number;
   paidCents: number;
+  // The proration credit taken off inside the invoice (the unused part of an
+  // earlier period, when the plan moved to another price), in cents. Zero
+  // for an ordinary renewal; any other credit is not counted.
+  creditCents: number;
   currency: string;
   periodStart: Date;
   periodEnd: Date;
@@ -257,6 +261,16 @@ export class StripeService implements OnModuleInit {
     return this.stripe.subscriptions.retrieve(subscriptionId);
   }
 
+  // A subscription with its latest invoice, to see whether a change waits
+  // on a charge and the page to pay it.
+  async getSubscriptionWithInvoice(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['latest_invoice'],
+    });
+  }
+
   // List all Subscriptions for a Customer (e.g. account-deletion cleanup).
   async listSubscriptionsForCustomer(
     customerId: string,
@@ -340,11 +354,22 @@ export class StripeService implements OnModuleInit {
       }
     }
 
+    // Only a proration credit: the unused part of the earlier price.
+    const creditCents = invoice.lines.data
+      .filter(
+        (line) =>
+          line.amount < 0 &&
+          (line.parent?.subscription_item_details?.proration === true ||
+            line.parent?.invoice_item_details?.proration === true),
+      )
+      .reduce((sum, line) => sum - line.amount, 0);
+
     return {
       id: invoice.id,
       totalCents: invoice.total,
       amountPaidCents: invoice.amount_paid,
       paidCents,
+      creditCents,
       currency: invoice.currency,
       periodStart: new Date(periodStart * 1000),
       periodEnd: new Date(periodEnd * 1000),
@@ -446,6 +471,33 @@ export class StripeService implements OnModuleInit {
     return this.stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: false,
     });
+  }
+
+  // Moves a subscription to another price now (BD-016: monthly to yearly).
+  // What is left of the period paid is credited, the new period starts
+  // today and the difference is invoiced and charged at once. The change
+  // applies only once that invoice is paid: while it is not, the
+  // subscription keeps its price, `pending_update` is set, and the invoice
+  // can be paid on its hosted page.
+  async switchSubscriptionPrice(params: {
+    subscriptionId: string;
+    itemId: string;
+    priceId: string;
+    metadata: Record<string, string>;
+    idempotencyKey: string;
+  }): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.update(
+      params.subscriptionId,
+      {
+        items: [{ id: params.itemId, price: params.priceId }],
+        proration_behavior: 'always_invoice',
+        billing_cycle_anchor: { type: 'now' },
+        payment_behavior: 'pending_if_incomplete',
+        metadata: params.metadata,
+        expand: ['latest_invoice'],
+      },
+      { idempotencyKey: params.idempotencyKey },
+    );
   }
 
   // The events of the platform created in a window that the provider has

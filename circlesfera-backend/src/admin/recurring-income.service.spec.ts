@@ -29,6 +29,45 @@ describe('RecurringIncomeService', () => {
     expect(recurringIncomeCents([])).toBe(0);
   });
 
+  it('counts a plan paid by the year as a twelfth of its yearly price, rounded to the cent', () => {
+    const premium = { priceCents: 999, yearlyPriceCents: 9990 };
+    expect(
+      recurringIncomeCents([
+        { billingInterval: 'year', plan: premium },
+        { billingInterval: 'month', plan: premium },
+      ]),
+    ).toBe(833 + 999);
+    // A yearly subscription whose plan lost its yearly price counts the
+    // monthly list price.
+    expect(
+      recurringIncomeCents([
+        {
+          billingInterval: 'year',
+          plan: { priceCents: 999, yearlyPriceCents: null },
+        },
+      ]),
+    ).toBe(999);
+    // What the subscription pays wins over the catalog, monthly too.
+    expect(
+      recurringIncomeCents([
+        {
+          billingInterval: 'month',
+          periodPriceCents: 999,
+          plan: { priceCents: 1299, yearlyPriceCents: null },
+        },
+      ]),
+    ).toBe(999);
+    expect(
+      recurringIncomeCents([
+        {
+          billingInterval: 'year',
+          periodPriceCents: 12000,
+          plan: { priceCents: 999, yearlyPriceCents: null },
+        },
+      ]),
+    ).toBe(1000);
+  });
+
   it('counts the figure of now from the active subscriptions only', async () => {
     prisma.platformSubscription.findMany.mockResolvedValue(plans(999, 2999));
 
@@ -38,7 +77,11 @@ describe('RecurringIncomeService', () => {
     });
     expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith({
       where: { status: 'ACTIVE' },
-      select: { plan: { select: { priceCents: true } } },
+      select: {
+        billingInterval: true,
+        periodPriceCents: true,
+        plan: { select: { priceCents: true, yearlyPriceCents: true } },
+      },
     });
   });
 

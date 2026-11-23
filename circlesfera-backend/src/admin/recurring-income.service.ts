@@ -7,16 +7,30 @@ import {
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-// The recurring monthly income of a set of subscriptions: the list price of
-// the plan of each one, in integer cents. One rule for the figure shown now
-// and for the one kept each day.
+// The recurring monthly income of a set of subscriptions, in integer cents:
+// what each one pays a period, as kept on the subscription, else its
+// plan's list price; a plan paid by the year counts a twelfth of its year,
+// rounded to the cent. One rule for the figure
+// shown now and for the one kept each day.
 export function recurringIncomeCents(
-  subscriptions: { plan?: { priceCents?: number | null } | null }[],
+  subscriptions: {
+    billingInterval?: string | null;
+    periodPriceCents?: number | null;
+    plan?: {
+      priceCents?: number | null;
+      yearlyPriceCents?: number | null;
+    } | null;
+  }[],
 ): number {
-  return subscriptions.reduce(
-    (sum, subscription) => sum + (subscription.plan?.priceCents ?? 0),
-    0,
-  );
+  return subscriptions.reduce((sum, subscription) => {
+    const plan = subscription.plan;
+    const yearCents =
+      subscription.periodPriceCents ?? plan?.yearlyPriceCents ?? null;
+    if (subscription.billingInterval === 'year' && yearCents) {
+      return sum + Math.round(yearCents / 12);
+    }
+    return sum + (subscription.periodPriceCents ?? plan?.priceCents ?? 0);
+  }, 0);
 }
 
 const MAX_DAYS = 90;
@@ -31,7 +45,11 @@ export class RecurringIncomeService implements OnApplicationBootstrap {
   async current() {
     const subscriptions = await this.prisma.platformSubscription.findMany({
       where: { status: 'ACTIVE' },
-      select: { plan: { select: { priceCents: true } } },
+      select: {
+        billingInterval: true,
+        periodPriceCents: true,
+        plan: { select: { priceCents: true, yearlyPriceCents: true } },
+      },
     });
     return {
       mrrCents: recurringIncomeCents(subscriptions),

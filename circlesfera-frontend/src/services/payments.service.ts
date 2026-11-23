@@ -54,6 +54,15 @@ export const paymentsApi = {
     return response.data;
   },
 
+  // Moves the monthly plan of the profile in use to its yearly price: the
+  // rest of the month is credited and the year starts today. Answers the
+  // billing status after it, with `paymentUrl` when the charge waits for the
+  // person on the provider's page.
+  switchPlanToYearly: async (consent: WithdrawalConsentGiven) => {
+    const response = await api.post('/payments/plan/yearly', consent);
+    return response.data;
+  },
+
   // Withdraws from the plan of the profile in use within 14 days of buying
   // it: it ends now and the unused part is refunded; answers the billing
   // status after it.

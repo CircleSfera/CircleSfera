@@ -228,6 +228,35 @@ describe('StripeService checkout, customers and subscriptions', () => {
       cancel_at_period_end: false,
     });
   });
+
+  it('reads a subscription with its latest invoice', async () => {
+    await service.getSubscriptionWithInvoice('sub_1');
+    expect(client.subscriptions.retrieve).toHaveBeenCalledWith('sub_1', {
+      expand: ['latest_invoice'],
+    });
+  });
+
+  it('moves a subscription to another price now, crediting the rest of the period, and applies it only once the charge is paid', async () => {
+    await service.switchSubscriptionPrice({
+      subscriptionId: 'sub_1',
+      itemId: 'si_1',
+      priceId: 'price_year',
+      metadata: { plan_start_consent: 'accepted' },
+      idempotencyKey: 'plan_yearly_key',
+    });
+    expect(client.subscriptions.update).toHaveBeenCalledWith(
+      'sub_1',
+      {
+        items: [{ id: 'si_1', price: 'price_year' }],
+        proration_behavior: 'always_invoice',
+        billing_cycle_anchor: { type: 'now' },
+        payment_behavior: 'pending_if_incomplete',
+        metadata: { plan_start_consent: 'accepted' },
+        expand: ['latest_invoice'],
+      },
+      { idempotencyKey: 'plan_yearly_key' },
+    );
+  });
 });
 
 describe('StripeService withdrawal from a plan', () => {
@@ -295,6 +324,7 @@ describe('StripeService withdrawal from a plan', () => {
       totalCents: 999,
       amountPaidCents: 999,
       paidCents: 999,
+      creditCents: 0,
       currency: 'eur',
       periodStart: new Date('2026-11-01T00:00:00Z'),
       periodEnd: new Date('2026-12-01T00:00:00Z'),
@@ -308,6 +338,58 @@ describe('StripeService withdrawal from a plan', () => {
     expect(client.invoicePayments.list).toHaveBeenCalledWith({
       invoice: 'in_1',
       status: 'paid',
+    });
+  });
+
+  it('reads the credit taken off inside the invoice of a move to another price, and the period of the year charged', async () => {
+    const { service } = serviceWith();
+    client.invoices.list.mockResolvedValue({
+      data: [
+        {
+          id: 'in_move',
+          total: 8991,
+          amount_paid: 8991,
+          currency: 'eur',
+          period_start: at('2026-11-01T00:00:00Z'),
+          period_end: at('2026-11-01T00:00:00Z'),
+          lines: {
+            data: [
+              // The unused part of the month, given back.
+              {
+                amount: -999,
+                parent: { subscription_item_details: { proration: true } },
+                period: {
+                  start: at('2026-11-01T00:00:00Z'),
+                  end: at('2026-12-01T00:00:00Z'),
+                },
+              },
+              {
+                amount: 9990,
+                period: {
+                  start: at('2026-11-01T00:00:00Z'),
+                  end: at('2027-11-01T00:00:00Z'),
+                },
+              },
+              // A credit of another kind is not the move's.
+              {
+                amount: -500,
+                parent: { invoice_item_details: { proration: false } },
+                period: { start: 0, end: 1 },
+              },
+            ],
+          },
+        },
+      ],
+    });
+    client.invoicePayments.list.mockResolvedValue({
+      data: [{ amount_paid: 8991, payment: { payment_intent: 'pi_2' } }],
+    });
+
+    await expect(service.latestPaidInvoice('sub_1')).resolves.toMatchObject({
+      totalCents: 8991,
+      creditCents: 999,
+      periodStart: new Date('2026-11-01T00:00:00Z'),
+      periodEnd: new Date('2027-11-01T00:00:00Z'),
     });
   });
 

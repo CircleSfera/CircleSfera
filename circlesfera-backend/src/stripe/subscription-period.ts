@@ -5,7 +5,16 @@
 export type SubscriptionWithItems = {
   id?: string;
   items?: {
-    data?: { current_period_start?: number; current_period_end?: number }[];
+    data?: {
+      id?: string;
+      current_period_start?: number;
+      current_period_end?: number;
+      price?: {
+        id?: string;
+        unit_amount?: number | null;
+        recurring?: { interval?: string } | null;
+      } | null;
+    }[];
   };
 };
 
@@ -22,4 +31,14 @@ export function subscriptionPeriod(subscription: SubscriptionWithItems): {
     );
   }
   return { start: new Date(start * 1000), end: new Date(end * 1000) };
+}
+
+// How often a subscription is charged, from the price of its item: "month"
+// or "year". Undefined when the provider names neither, so a row keeps
+// what it had.
+export function subscriptionInterval(
+  subscription: SubscriptionWithItems,
+): 'month' | 'year' | undefined {
+  const interval = subscription.items?.data?.[0]?.price?.recurring?.interval;
+  return interval === 'month' || interval === 'year' ? interval : undefined;
 }

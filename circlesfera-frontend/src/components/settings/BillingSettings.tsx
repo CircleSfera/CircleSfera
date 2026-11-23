@@ -6,10 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
+import { formatCents } from '../../utils/money';
 import { sellsInApp } from '../../utils/sellsInApp';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import PlanWithdrawal from './PlanWithdrawal';
+import PlanYearlySwitch from './PlanYearlySwitch';
 import SettingsSection from './SettingsSection';
 import StudioProBilling from './StudioProBilling';
 
@@ -113,6 +115,22 @@ export default function BillingSettings() {
                   )
                 : t('settings.billing.no_subscription')}
             </p>
+            {subscription?.priceCents > 0 && (
+              <p className="text-xs text-white/50 mt-1">
+                {t(
+                  subscription.billingInterval === 'year'
+                    ? 'settings.billing.price_yearly'
+                    : 'settings.billing.price_monthly',
+                  {
+                    price: formatCents(
+                      subscription.priceCents,
+                      i18n.language,
+                      subscription.currency,
+                    ),
+                  },
+                )}
+              </p>
+            )}
             {subscription?.currentPeriodEnd && (
               <p className="text-xs text-white/40 mt-1">
                 {subscription.cancelAtPeriodEnd
@@ -216,6 +234,20 @@ export default function BillingSettings() {
               </Button>
             </div>
           )}
+
+        {/* A monthly plan with a yearly price on sale can move to it; the
+            server says when (and checks it again). Billing is handled on
+            the web only. */}
+        {subscription?.yearlyPriceCents > 0 && sellsInApp() && (
+          <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <PlanYearlySwitch
+              name={subscription.planName}
+              monthlyCents={subscription.priceCents}
+              yearlyCents={subscription.yearlyPriceCents}
+              currency={subscription.currency}
+            />
+          </div>
+        )}
 
         {/* Within 14 days of the purchase: withdrawing ends the plan now
             and refunds the unused part (the server checks the days). */}

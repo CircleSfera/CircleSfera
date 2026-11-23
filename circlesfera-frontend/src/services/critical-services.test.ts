@@ -236,6 +236,12 @@ const cases: Case[] = [
     ['/payments/plan/studio-pro/resume'],
   ],
   [
+    'payments.switchPlanToYearly',
+    () => paymentsApi.switchPlanToYearly({ withdrawalConsent: true }),
+    'post',
+    ['/payments/plan/yearly', { withdrawalConsent: true }],
+  ],
+  [
     'payments.withdrawPlan',
     () => paymentsApi.withdrawPlan(),
     'post',
