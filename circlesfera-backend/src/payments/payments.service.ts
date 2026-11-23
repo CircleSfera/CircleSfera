@@ -110,8 +110,14 @@ type StripeSubscriptionState = {
 // change waits for its charge to be paid, and the invoice of that charge.
 type SwitchedSubscription = StripeSubscriptionState & {
   pending_update?: unknown;
-  latest_invoice?: string | { hosted_invoice_url?: string | null } | null;
+  latest_invoice?:
+    | string
+    | { status?: string | null; hosted_invoice_url?: string | null }
+    | null;
 };
+
+// How long a request to move a plan to the yearly price holds the move.
+const YEARLY_MOVE_CLAIM_MS = 2 * 60 * 1000;
 
 // When a subscription started at the provider, to keep on its row.
 function providerStart(
@@ -1076,15 +1082,33 @@ export class PaymentsService {
         }
         throw err;
       }
-      if (refund) {
+      // The provider refunds no more than is left of the payment: what it
+      // could not give back is owed by staff, kept and reported once (the
+      // write changes the row only while it still owes the amount asked).
+      const refundedCents = refund?.amount ?? 0;
+      const shortCents = Math.max(0, owed - refundedCents);
+      const { count: settled } =
         await this.prisma.platformSubscription.updateMany({
-          where: { id: row.id },
-          data: { withdrawalRefundId: refund.id },
+          where: { id: row.id, withdrawalRefundCents: owed },
+          data: {
+            ...(refund && { withdrawalRefundId: refund.id }),
+            ...(shortCents > 0 && {
+              withdrawalRefundCents: refundedCents,
+              withdrawalOwedByStaffCents: { increment: shortCents },
+            }),
+          },
         });
-      } else {
-        this.logger.warn(
-          `Withdrawal of subscription ${row.id}: nothing was left of its payment to refund`,
-        );
+      if (shortCents > 0 && settled > 0) {
+        const message = `Plan withdrawal of subscription ${row.id}: ${shortCents} cents could not be refunded to the payment and are owed by staff`;
+        this.logger.warn(message);
+        Sentry.captureMessage(message, {
+          level: 'warning',
+          tags: { area: 'plan-withdrawal' },
+          extra: {
+            platformSubscriptionId: row.id,
+            owedByStaffCents: shortCents,
+          },
+        });
       }
     }
 
@@ -1303,9 +1327,35 @@ export class PaymentsService {
     await assertAdultPayer(this.prisma, userId);
     await this.stripeService.assertPaymentsEnabled();
 
+    // One request at a time: the move is claimed on the row for two
+    // minutes, so a second click or device is refused rather than charged.
+    const claimedAt = new Date();
+    const { count: claimed } =
+      await this.prisma.platformSubscription.updateMany({
+        where: {
+          id: subscription.id,
+          billingInterval: 'month',
+          OR: [
+            { yearlyMoveClaimedAt: null },
+            {
+              yearlyMoveClaimedAt: {
+                lt: new Date(claimedAt.getTime() - YEARLY_MOVE_CLAIM_MS),
+              },
+            },
+          ],
+        },
+        data: { yearlyMoveClaimedAt: claimedAt },
+      });
+    if (claimed === 0) {
+      throw AppException.Conflict(
+        ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+        'This plan is already being moved to yearly.',
+      );
+    }
+
     const stripeSubscriptionId = subscription.stripeSubscriptionId;
     const current = (await this.stripeService
-      .getSubscription(stripeSubscriptionId)
+      .getSubscriptionWithInvoice(stripeSubscriptionId)
       .catch((err: unknown) =>
         this.refusedByProvider(stripeSubscriptionId, err),
       )) as unknown as SwitchedSubscription;
@@ -1321,14 +1371,33 @@ export class PaymentsService {
       await this.applyStripeSubscription(current);
       return {
         ...(await this.getBillingStatus(userId, profileId)),
+        pending: false,
         paymentUrl: null,
       };
     }
+    // The provider has it cancelled or not running, though the row does not
+    // say so yet: the row is brought in line and nothing is charged.
+    if (current.status !== 'active' || current.cancel_at_period_end) {
+      await this.applyStripeSubscription(current);
+      throw AppException.Conflict(
+        ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
+        'Resume this plan before paying it by the year.',
+      );
+    }
+    // A move asked for earlier still waits for its charge: its page is
+    // given again, and nothing new is charged.
+    const waiting = this.pendingMovePage(current);
+    if (waiting) {
+      return {
+        ...(await this.getBillingStatus(userId, profileId)),
+        pending: true,
+        paymentUrl: waiting,
+      };
+    }
 
-    // The key is the same for every request made in this period, so two
-    // requests at once (two clicks, two devices) charge once; a request
-    // within a day of one whose charge was not paid answers that same
-    // charge, to be paid on its page.
+    // The key names this claim: the library's own retries of this request
+    // reuse it, and a later request (an earlier charge left unpaid and
+    // expired) makes a new one.
     const updated = (await this.stripeService
       .switchSubscriptionPrice({
         subscriptionId: stripeSubscriptionId,
@@ -1338,36 +1407,53 @@ export class PaymentsService {
           ...planStartConsentMetadata(),
           [YEARLY_MOVE_METADATA_KEY]: 'true',
         },
-        idempotencyKey: `plan_yearly_${PLAN_START_CONSENT_VERSION}_${stripeSubscriptionId}_${item.current_period_start}`,
+        idempotencyKey: `plan_yearly_${PLAN_START_CONSENT_VERSION}_${stripeSubscriptionId}_${claimedAt.getTime()}`,
       })
-      .catch((err: unknown) => {
-        // Another request for the same move is being made right now: that
-        // one charges, this one is refused.
-        if ((err as { type?: string })?.type === 'StripeIdempotencyError') {
-          throw AppException.Conflict(
-            ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
-            'This plan is already being moved to yearly.',
-          );
+      .catch(async (err: unknown) => {
+        // A refusal of the change itself, for a plan still running at the
+        // provider, is not "the plan has ended".
+        if ((err as { type?: string })?.type === 'StripeInvalidRequestError') {
+          const still = await this.stripeService
+            .getSubscription(stripeSubscriptionId)
+            .catch(() => null);
+          if (still && !ENDED_AT_PROVIDER.includes(still.status)) {
+            this.logger.error(
+              `The provider refused to move subscription ${stripeSubscriptionId} to the yearly price: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            );
+            throw AppException.BadRequest(
+              ErrorCode.PRICE_NOT_FOUND,
+              'The yearly price could not be applied to this plan.',
+            );
+          }
         }
         return this.refusedByProvider(stripeSubscriptionId, err);
       })) as unknown as SwitchedSubscription;
 
     if (updated.pending_update) {
-      const invoice = updated.latest_invoice;
-      const paymentUrl =
-        invoice && typeof invoice === 'object'
-          ? (invoice.hosted_invoice_url ?? null)
-          : null;
       return {
         ...(await this.getBillingStatus(userId, profileId)),
-        paymentUrl,
+        pending: true,
+        paymentUrl: this.pendingMovePage(updated),
       };
     }
     await this.applyStripeSubscription(updated);
     return {
       ...(await this.getBillingStatus(userId, profileId)),
+      pending: false,
       paymentUrl: null,
     };
+  }
+
+  // The page to pay the charge a waiting move needs, while that charge can
+  // still be paid; null when nothing waits or its invoice is gone.
+  private pendingMovePage(subscription: SwitchedSubscription): string | null {
+    if (!subscription.pending_update) return null;
+    const invoice = subscription.latest_invoice;
+    if (!invoice || typeof invoice !== 'object') return null;
+    if (invoice.status !== 'open') return null;
+    return invoice.hosted_invoice_url ?? null;
   }
 
   // A notice may arrive late or twice: one about a cancellation can come
@@ -1406,8 +1492,16 @@ export class PaymentsService {
     const period = subscriptionPeriod(subscription);
     await this.prisma.$transaction(async (tx) => {
       await this.keepYearlyMove(tx, subscription, period);
+      // A copy read before a move to the yearly price, written after it,
+      // never takes the row back to the month it left.
       await tx.platformSubscription.updateMany({
-        where: { stripeSubscriptionId: subscription.id },
+        where: {
+          stripeSubscriptionId: subscription.id,
+          OR: [
+            { yearlyStartedAt: null },
+            { yearlyStartedAt: { lte: period.start } },
+          ],
+        },
         data: {
           status: this.mapStripeStatus(subscription.status),
           currentPeriodStart: period.start,

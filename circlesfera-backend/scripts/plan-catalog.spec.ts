@@ -257,6 +257,7 @@ describe('planYearlyPrice', () => {
       [yearly(9990, { currency: 'usd' })],
       [yearly(9990, { tax_behavior: 'exclusive' })],
       [yearly(9990, { active: false })],
+      [yearly(9990, { recurring: { interval: 'year', interval_count: 2 } })],
     ]) {
       expect(planYearlyPrice(prices, plan('Premium'))).toEqual({
         notice:

@@ -7,10 +7,10 @@ import {
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-// The recurring monthly income of a set of subscriptions: the list price of
-// the plan of each one, in integer cents; a plan paid by the year counts a
-// twelfth of what its year costs (as kept on the subscription, else the
-// plan's yearly price), rounded to the cent. One rule for the figure
+// The recurring monthly income of a set of subscriptions, in integer cents:
+// what each one pays a period, as kept on the subscription, else its
+// plan's list price; a plan paid by the year counts a twelfth of its year,
+// rounded to the cent. One rule for the figure
 // shown now and for the one kept each day.
 export function recurringIncomeCents(
   subscriptions: {
@@ -29,7 +29,7 @@ export function recurringIncomeCents(
     if (subscription.billingInterval === 'year' && yearCents) {
       return sum + Math.round(yearCents / 12);
     }
-    return sum + (plan?.priceCents ?? 0);
+    return sum + (subscription.periodPriceCents ?? plan?.priceCents ?? 0);
   }, 0);
 }
 

@@ -370,6 +370,7 @@
         "confirm": "Pay {{yearly}} a year",
         "keep": "Keep paying monthly",
         "done": "Your plan is now paid by the year.",
+        "pending": "Your payment is being processed. Your plan moves to yearly once it is paid.",
         "error": "Your plan could not be moved to yearly. Check your plan below before trying again."
       },
       "withdrawal": {

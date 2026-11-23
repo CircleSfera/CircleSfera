@@ -32,9 +32,9 @@ export interface PaidSubscriptionInvoice {
   totalCents: number;
   amountPaidCents: number;
   paidCents: number;
-  // The credit taken off inside the invoice (its negative lines: the unused
-  // part of an earlier period, when the plan moved to another price), in
-  // cents. Zero for an ordinary renewal.
+  // The proration credit taken off inside the invoice (the unused part of an
+  // earlier period, when the plan moved to another price), in cents. Zero
+  // for an ordinary renewal; any other credit is not counted.
   creditCents: number;
   currency: string;
   periodStart: Date;
@@ -261,6 +261,16 @@ export class StripeService implements OnModuleInit {
     return this.stripe.subscriptions.retrieve(subscriptionId);
   }
 
+  // A subscription with its latest invoice, to see whether a change waits
+  // on a charge and the page to pay it.
+  async getSubscriptionWithInvoice(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['latest_invoice'],
+    });
+  }
+
   // List all Subscriptions for a Customer (e.g. account-deletion cleanup).
   async listSubscriptionsForCustomer(
     customerId: string,
@@ -344,8 +354,14 @@ export class StripeService implements OnModuleInit {
       }
     }
 
+    // Only a proration credit: the unused part of the earlier price.
     const creditCents = invoice.lines.data
-      .filter((line) => line.amount < 0)
+      .filter(
+        (line) =>
+          line.amount < 0 &&
+          (line.parent?.subscription_item_details?.proration === true ||
+            line.parent?.invoice_item_details?.proration === true),
+      )
       .reduce((sum, line) => sum - line.amount, 0);
 
     return {

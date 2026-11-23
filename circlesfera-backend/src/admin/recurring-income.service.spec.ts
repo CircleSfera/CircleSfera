@@ -47,7 +47,16 @@ describe('RecurringIncomeService', () => {
         },
       ]),
     ).toBe(999);
-    // What the subscription pays wins over the catalog.
+    // What the subscription pays wins over the catalog, monthly too.
+    expect(
+      recurringIncomeCents([
+        {
+          billingInterval: 'month',
+          periodPriceCents: 999,
+          plan: { priceCents: 1299, yearlyPriceCents: null },
+        },
+      ]),
+    ).toBe(999);
     expect(
       recurringIncomeCents([
         {

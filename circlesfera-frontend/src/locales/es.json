@@ -370,6 +370,7 @@
         "confirm": "Pagar {{yearly}} al año",
         "keep": "Seguir pagando por mes",
         "done": "Tu plan ya se paga por año.",
+        "pending": "Tu pago se está procesando. Tu plan pasa a anual en cuanto se pague.",
         "error": "No se pudo pasar tu plan a anual. Revisa tu plan aquí abajo antes de volver a intentarlo."
       },
       "withdrawal": {

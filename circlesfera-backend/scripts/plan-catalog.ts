@@ -82,7 +82,7 @@ export type ProviderPrice = {
   currency: string;
   unit_amount: number | null;
   tax_behavior?: string | null;
-  recurring: { interval: string } | null;
+  recurring: { interval: string; interval_count?: number } | null;
 };
 export type ProviderProduct = {
   id: string;
@@ -199,6 +199,8 @@ export function planYearlyPrice(
       price.active &&
       price.currency === 'eur' &&
       price.recurring?.interval === 'year' &&
+      // Once a year, never every two or more.
+      (price.recurring.interval_count ?? 1) === 1 &&
       price.unit_amount === plan.yearlyPriceCents &&
       vatIncluded(price, accountTaxBehavior),
   );

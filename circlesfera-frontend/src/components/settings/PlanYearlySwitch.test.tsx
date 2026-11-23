@@ -6,7 +6,7 @@ import { renderWithProviders } from '../../test/test-utils';
 import PlanYearlySwitch from './PlanYearlySwitch';
 
 vi.mock('react-hot-toast', () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
 
 vi.mock('../../services/payments.service', () => ({
@@ -105,6 +105,29 @@ describe('PlanYearlySwitch', () => {
 
     await waitFor(() =>
       expect(location.href).toBe('https://pay.example/inv_1'),
+    );
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('says the payment is being processed, not that the plan moved, when the charge still waits with no page to open', async () => {
+    vi.mocked(paymentsApi.switchPlanToYearly).mockResolvedValue({
+      subscription: { billingInterval: 'month' },
+      pending: true,
+      paymentUrl: null,
+    });
+    renderWithProviders(<PlanYearlySwitch {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pay by the year' }));
+    expect(
+      screen.getByRole('heading', { name: 'Pay Premium by the year?' }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Pay €99.90 a year' }));
+
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        'Your payment is being processed. Your plan moves to yearly once it is paid.',
+      ),
     );
     expect(toast.success).not.toHaveBeenCalled();
   });

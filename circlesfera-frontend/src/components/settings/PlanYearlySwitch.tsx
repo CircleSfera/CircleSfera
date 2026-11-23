@@ -49,13 +49,18 @@ export default function PlanYearlySwitch({
   const mutation = useMutation({
     mutationFn: () =>
       paymentsApi.switchPlanToYearly({ withdrawalConsent: true }),
-    onSuccess: (status: { paymentUrl?: string | null }) => {
+    onSuccess: (status: { pending?: boolean; paymentUrl?: string | null }) => {
       close();
       if (status?.paymentUrl) {
         window.location.href = status.paymentUrl;
         return;
       }
       queryClient.setQueryData(['billingStatus'], status);
+      // A charge still being processed: the plan moves once it is paid.
+      if (status?.pending) {
+        toast(t('settings.billing.yearly.pending'));
+        return;
+      }
       toast.success(t('settings.billing.yearly.done'));
     },
     onError: (error) => {
@@ -89,11 +94,11 @@ export default function PlanYearlySwitch({
         onClose={() => {
           if (!mutation.isPending) close();
         }}
-        ariaLabel={t('settings.billing.yearly.title')}
+        ariaLabel={t('settings.billing.yearly.title', { name })}
         maxWidth="sm"
       >
         <h2 className="mb-2 text-lg font-bold text-white">
-          {t('settings.billing.yearly.title')}
+          {t('settings.billing.yearly.title', { name })}
         </h2>
         <p className="text-sm text-white/80">
           {t('settings.billing.yearly.explain', { name, yearly })}

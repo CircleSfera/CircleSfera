@@ -35,6 +35,16 @@ vi.mock('@sentry/nestjs', async (importOriginal) => ({
 
 const asEvent = (event: unknown) => event as unknown as Stripe.Event;
 
+// Where a notice writes a subscription's state: never over a row moved to
+// the yearly price after the period the notice names started.
+const written = (stripeSubscriptionId: string) => ({
+  stripeSubscriptionId,
+  OR: [
+    { yearlyStartedAt: null },
+    { yearlyStartedAt: { lte: expect.any(Date) } },
+  ],
+});
+
 describe('PaymentsService', () => {
   let service: PaymentsService;
   let prisma: PrismaService;
@@ -1750,6 +1760,43 @@ describe('PaymentsService', () => {
       expect(emailService.sendPlanWithdrawnEmail).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps what the payment could not give back as owed by staff, once, and says so', async () => {
+      // Another refund already stands on the payment: only 600 of the 666
+      // owed is left to refund.
+      stripeService.refundSubscriptionPayment = vi
+        .fn()
+        .mockResolvedValue(refunded({ amount: 600 }));
+
+      await service.withdrawPlan('u_1', 'prof_1');
+
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+        where: { id: 'sub_1', withdrawalRefundCents: 666 },
+        data: {
+          withdrawalRefundId: 're_1',
+          withdrawalRefundCents: 600,
+          withdrawalOwedByStaffCents: { increment: 66 },
+        },
+      });
+      expect(sentry.captureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('66 cents could not be refunded'),
+        expect.objectContaining({ level: 'warning' }),
+      );
+    });
+
+    it('owes all of it by staff when nothing was left of the payment to refund', async () => {
+      stripeService.refundSubscriptionPayment = vi.fn().mockResolvedValue(null);
+
+      await service.withdrawPlan('u_1', 'prof_1');
+
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+        where: { id: 'sub_1', withdrawalRefundCents: 666 },
+        data: {
+          withdrawalRefundCents: 0,
+          withdrawalOwedByStaffCents: { increment: 666 },
+        },
+      });
+    });
+
     describe('after a move to the yearly price', () => {
       const movedAt = new Date('2026-11-10T00:00:00.000Z');
       const yearEnd = new Date('2027-11-10T00:00:00.000Z');
@@ -2287,7 +2334,7 @@ describe('PaymentsService', () => {
         errorCode: 'SUBSCRIPTION_NOT_FOUND',
       });
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-        where: { stripeSubscriptionId: 'stripe_sub_1' },
+        where: written('stripe_sub_1'),
         data: expect.objectContaining({ status: SubscriptionStatus.CANCELLED }),
       });
       expect(emailService.sendPlanResumedEmail).not.toHaveBeenCalled();
@@ -2369,7 +2416,7 @@ describe('PaymentsService', () => {
         .fn()
         .mockResolvedValueOnce(row())
         .mockResolvedValue(row({ billingInterval: 'year' }));
-      stripeService.getSubscription = vi
+      stripeService.getSubscriptionWithInvoice = vi
         .fn()
         .mockResolvedValue(atProvider('month'));
       stripeService.switchSubscriptionPrice.mockResolvedValue(
@@ -2385,12 +2432,14 @@ describe('PaymentsService', () => {
         metadata: expect.objectContaining({
           plan_start_consent: expect.any(String),
         }),
-        // One key per period: two requests at once charge once.
-        idempotencyKey: expect.stringContaining(`stripe_sub_1_${periodStart}`),
+        // A key of this request: the library's retries reuse it.
+        idempotencyKey: expect.stringMatching(
+          /^plan_yearly_.+_stripe_sub_1_\d+$/,
+        ),
       });
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { stripeSubscriptionId: 'stripe_sub_1' },
+          where: written('stripe_sub_1'),
           data: expect.objectContaining({ billingInterval: 'year' }),
         }),
       );
@@ -2412,20 +2461,27 @@ describe('PaymentsService', () => {
 
     it('leaves the plan monthly and gives the page to pay when the charge waits for the payer', async () => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
-      stripeService.getSubscription = vi
+      stripeService.getSubscriptionWithInvoice = vi
         .fn()
         .mockResolvedValue(atProvider('month'));
       stripeService.switchSubscriptionPrice.mockResolvedValue(
         atProvider('month', {
           pending_update: { subscription_items: [] },
-          latest_invoice: { hosted_invoice_url: 'https://pay.example/inv_1' },
+          latest_invoice: {
+            status: 'open',
+            hosted_invoice_url: 'https://pay.example/inv_1',
+          },
         }),
       );
 
       const result = await service.switchPlanToYearly('u_1', 'prof_1');
 
       expect(result.paymentUrl).toBe('https://pay.example/inv_1');
-      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalled();
+      // Only the claim is written: the row stays monthly until it is paid.
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({ where: written('stripe_sub_1') }),
+      );
       expect(result.subscription).toMatchObject({
         billingInterval: 'month',
         priceCents: 999,
@@ -2435,7 +2491,7 @@ describe('PaymentsService', () => {
 
     it('charges nothing again when the provider already holds it yearly, and brings the row in line', async () => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
-      stripeService.getSubscription = vi
+      stripeService.getSubscriptionWithInvoice = vi
         .fn()
         .mockResolvedValue(atProvider('year'));
 
@@ -2496,38 +2552,157 @@ describe('PaymentsService', () => {
       });
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
       stripeService.getSubscription = vi.fn().mockRejectedValue(gone);
+      stripeService.getSubscriptionWithInvoice = vi
+        .fn()
+        .mockRejectedValue(gone);
       await expect(
         service.switchPlanToYearly('u_1', 'prof_1'),
       ).rejects.toMatchObject({ errorCode: 'SUBSCRIPTION_NOT_FOUND' });
 
-      stripeService.getSubscription = vi
+      stripeService.getSubscriptionWithInvoice = vi
         .fn()
-        .mockResolvedValueOnce(atProvider('month'))
-        .mockRejectedValue(gone);
+        .mockResolvedValue(atProvider('month'));
       stripeService.switchSubscriptionPrice.mockRejectedValue(gone);
       await expect(
         service.switchPlanToYearly('u_1', 'prof_1'),
       ).rejects.toMatchObject({ errorCode: 'SUBSCRIPTION_NOT_FOUND' });
     });
 
-    it('refuses a second request made at the same moment, which the first one charges', async () => {
+    it('says the yearly price could not be applied, not that the plan ended, when the provider refuses the change of a running plan', async () => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
+      stripeService.getSubscriptionWithInvoice = vi
+        .fn()
+        .mockResolvedValue(atProvider('month'));
       stripeService.getSubscription = vi
         .fn()
         .mockResolvedValue(atProvider('month'));
       stripeService.switchSubscriptionPrice.mockRejectedValue(
-        Object.assign(new Error('Keys for idempotent requests'), {
-          type: 'StripeIdempotencyError',
+        Object.assign(new Error('No such price'), {
+          type: 'StripeInvalidRequestError',
         }),
       );
       await expect(
         service.switchPlanToYearly('u_1', 'prof_1'),
+      ).rejects.toMatchObject({ errorCode: 'PRICE_NOT_FOUND' });
+    });
+
+    it('refuses a second request while the first holds the move, before asking the provider anything', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
+      prisma.platformSubscription.updateMany = vi
+        .fn()
+        .mockResolvedValue({ count: 0 });
+      stripeService.getSubscriptionWithInvoice = vi.fn();
+      await expect(
+        service.switchPlanToYearly('u_1', 'prof_1'),
       ).rejects.toMatchObject({ errorCode: 'ACTIVE_SUBSCRIPTION_EXISTS' });
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'sub_1',
+          billingInterval: 'month',
+          OR: [
+            { yearlyMoveClaimedAt: null },
+            { yearlyMoveClaimedAt: { lt: expect.any(Date) } },
+          ],
+        },
+        data: { yearlyMoveClaimedAt: expect.any(Date) },
+      });
+      expect(stripeService.getSubscriptionWithInvoice).not.toHaveBeenCalled();
+      expect(stripeService.switchSubscriptionPrice).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['cancelled at the end of its period', { cancel_at_period_end: true }],
+      ['not running', { status: 'past_due' }],
+    ])(
+      'charges nothing for a plan the provider holds %s, and brings the row in line',
+      async (_label, over) => {
+        prisma.platformSubscription.findFirst = vi
+          .fn()
+          .mockResolvedValue(row());
+        stripeService.getSubscriptionWithInvoice = vi
+          .fn()
+          .mockResolvedValue(atProvider('month', over));
+        await expect(
+          service.switchPlanToYearly('u_1', 'prof_1'),
+        ).rejects.toMatchObject({ errorCode: 'ACTIVE_SUBSCRIPTION_EXISTS' });
+        expect(stripeService.switchSubscriptionPrice).not.toHaveBeenCalled();
+        expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: written('stripe_sub_1') }),
+        );
+      },
+    );
+
+    it('gives again the page of a move that still waits for its charge, and charges nothing new', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
+      stripeService.getSubscriptionWithInvoice = vi.fn().mockResolvedValue(
+        atProvider('month', {
+          pending_update: {},
+          latest_invoice: {
+            status: 'open',
+            hosted_invoice_url: 'https://pay.example/inv_1',
+          },
+        }),
+      );
+      const result = await service.switchPlanToYearly('u_1', 'prof_1');
+      expect(result).toMatchObject({
+        pending: true,
+        paymentUrl: 'https://pay.example/inv_1',
+      });
+      expect(stripeService.switchSubscriptionPrice).not.toHaveBeenCalled();
+    });
+
+    it('offers no page for a waiting charge whose invoice can no longer be paid', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
+      stripeService.getSubscriptionWithInvoice = vi
+        .fn()
+        .mockResolvedValue(atProvider('month'));
+      stripeService.switchSubscriptionPrice.mockResolvedValue(
+        atProvider('month', {
+          pending_update: {},
+          latest_invoice: {
+            status: 'void',
+            hosted_invoice_url: 'https://pay.example/void',
+          },
+        }),
+      );
+      const result = await service.switchPlanToYearly('u_1', 'prof_1');
+      expect(result).toMatchObject({ pending: true, paymentUrl: null });
+    });
+
+    it('asks again for a move whose earlier charge expired unpaid, under a new key', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
+      stripeService.getSubscriptionWithInvoice = vi.fn().mockResolvedValue(
+        atProvider('month', {
+          pending_update: null,
+          latest_invoice: {
+            status: 'void',
+            hosted_invoice_url: 'https://pay.example/old',
+          },
+        }),
+      );
+      stripeService.switchSubscriptionPrice.mockResolvedValue(
+        atProvider('month', {
+          pending_update: {},
+          latest_invoice: {
+            status: 'open',
+            hosted_invoice_url: 'https://pay.example/new',
+          },
+        }),
+      );
+      const result = await service.switchPlanToYearly('u_1', 'prof_1');
+      expect(result.paymentUrl).toBe('https://pay.example/new');
+      expect(stripeService.switchSubscriptionPrice).toHaveBeenCalledWith(
+        expect.objectContaining({
+          idempotencyKey: expect.stringMatching(
+            /^plan_yearly_.+_stripe_sub_1_\d+$/,
+          ),
+        }),
+      );
     });
 
     it('marks the move at the provider, so only a moved plan starts new 14 days', async () => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
-      stripeService.getSubscription = vi
+      stripeService.getSubscriptionWithInvoice = vi
         .fn()
         .mockResolvedValue(atProvider('month'));
       stripeService.switchSubscriptionPrice.mockResolvedValue(
@@ -2539,13 +2714,13 @@ describe('PaymentsService', () => {
           metadata: expect.objectContaining({ moved_to_yearly: 'true' }),
         }),
       );
-      // Waiting with no page to pay given: none is offered.
-      expect(result.paymentUrl).toBeNull();
+      // Waiting with no page to pay given: said to be waiting, none offered.
+      expect(result).toMatchObject({ pending: true, paymentUrl: null });
     });
 
     it('charges nothing for a subscription with no item at the provider', async () => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(row());
-      stripeService.getSubscription = vi
+      stripeService.getSubscriptionWithInvoice = vi
         .fn()
         .mockResolvedValue(atProvider('month', { items: { data: [] } }));
       await expect(service.switchPlanToYearly('u_1', 'prof_1')).rejects.toThrow(
@@ -3636,7 +3811,7 @@ describe('PaymentsService', () => {
       await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-        where: { stripeSubscriptionId: 'sub_456' },
+        where: written('sub_456'),
         data: {
           status: SubscriptionStatus.PAST_DUE,
           currentPeriodStart: new Date(1_796_061_164_000),
@@ -3684,7 +3859,7 @@ describe('PaymentsService', () => {
 
       expect(stripeService.getSubscription).toHaveBeenCalledWith('sub_late');
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-        where: { stripeSubscriptionId: 'sub_late' },
+        where: written('sub_late'),
         data: expect.objectContaining({ cancelAtPeriodEnd: false }),
       });
     });
@@ -3719,7 +3894,7 @@ describe('PaymentsService', () => {
       await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-        where: { stripeSubscriptionId: 'sub_fb' },
+        where: written('sub_fb'),
         data: expect.objectContaining({ cancelAtPeriodEnd: true }),
       });
     });
@@ -3756,7 +3931,7 @@ describe('PaymentsService', () => {
       );
       expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { stripeSubscriptionId: 'sub_tr' },
+          where: written('sub_tr'),
         }),
       );
     });
@@ -3813,7 +3988,7 @@ describe('PaymentsService', () => {
       await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
-        where: { stripeSubscriptionId: 'sub_789' },
+        where: written('sub_789'),
         data: expect.objectContaining({ status: SubscriptionStatus.CANCELLED }),
       });
 

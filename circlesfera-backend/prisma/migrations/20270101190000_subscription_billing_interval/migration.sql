@@ -9,3 +9,7 @@ ALTER TABLE "platform_subscriptions" ADD COLUMN "periodPriceCents" INTEGER;
 -- When a monthly plan moved to the yearly price: the 14 days to withdraw
 -- from that year count from then.
 ALTER TABLE "platform_subscriptions" ADD COLUMN "yearlyStartedAt" TIMESTAMP(3);
+
+-- When a request to move it to the yearly price claimed the move: one
+-- request at a time.
+ALTER TABLE "platform_subscriptions" ADD COLUMN "yearlyMoveClaimedAt" TIMESTAMP(3);
