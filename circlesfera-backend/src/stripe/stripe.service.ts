@@ -16,6 +16,9 @@ import { usableWebhookSecret } from './stripe-webhook-secrets.js';
 
 // A Stripe Payment Method Configuration id (pmc_...).
 const PAYMENT_METHOD_CONFIGURATION = /^pmc_[A-Za-z0-9]+$/;
+// A restricted key of the payment provider, and the mode of any key.
+const RESTRICTED_KEY = /^rk_(?:live|test)_/;
+const keyMode = (key: string) => /^(?:sk|rk)_(live|test)_/.exec(key)?.[1];
 
 // The API version every request names: the one the installed library is
 // typed for, so moving the library to a new version fails the type check
@@ -45,6 +48,14 @@ export interface PaidSubscriptionInvoice {
 @Injectable()
 export class StripeService implements OnModuleInit {
   public readonly stripe: Stripe;
+  // Reads identity verifications with the date of birth read from the
+  // document. The provider gives that date only to a restricted key with
+  // the "Identity Verification Results" and "Recent Detailed Verification
+  // Results" read permissions, and only when it is asked for by name: never
+  // to the secret key. It is STRIPE_IDENTITY_KEY, or the main key when that
+  // is itself restricted; null when there is none, and then no date of
+  // birth is read and nobody can be shown to be an adult payer.
+  private readonly identityReader: Stripe | null;
   private readonly logger = new Logger(StripeService.name);
 
   constructor(
@@ -55,11 +66,34 @@ export class StripeService implements OnModuleInit {
     private readonly systemSettings?: SystemSettingsService,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
-    this.stripe = new Stripe(secretKey, {
+    const options: Stripe.StripeConfig = {
       apiVersion: STRIPE_API_VERSION,
       timeout: 20_000,
       maxNetworkRetries: 2,
-    });
+    };
+    this.stripe = new Stripe(secretKey, options);
+    const identityKey = this.identityKey();
+    this.identityReader = identityKey
+      ? identityKey === secretKey
+        ? this.stripe
+        : new Stripe(identityKey, options)
+      : null;
+  }
+
+  // The restricted key that reads dates of birth: STRIPE_IDENTITY_KEY when
+  // it is one, of the same mode (test or live) as the main key; otherwise
+  // the main key when it is restricted.
+  private identityKey(): string | undefined {
+    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
+    const identityKey =
+      this.configService.get<string>('STRIPE_IDENTITY_KEY')?.trim() || '';
+    if (
+      RESTRICTED_KEY.test(identityKey) &&
+      keyMode(identityKey) === keyMode(secretKey)
+    ) {
+      return identityKey;
+    }
+    return RESTRICTED_KEY.test(secretKey) ? secretKey : undefined;
   }
 
   // Validate that required Stripe keys are present on startup.
@@ -100,6 +134,11 @@ export class StripeService implements OnModuleInit {
     if (!secretKey || secretKey.includes('dummy')) {
       this.logger.warn(
         'Stripe is running in SIMULATOR mode — no real charges will be processed.',
+      );
+    } else if (!this.identityKey()) {
+      // Said, not refused: everything else works without it.
+      this.logger.warn(
+        'STRIPE_IDENTITY_KEY is not a restricted key of the same mode as STRIPE_SECRET_KEY: dates of birth are not read from identity documents, so nobody can be shown to be an adult payer and nobody can pay.',
       );
     }
   }
@@ -543,6 +582,14 @@ export class StripeService implements OnModuleInit {
   async getIdentityVerificationSession(
     sessionId: string,
   ): Promise<Stripe.Identity.VerificationSession> {
+    // The date of birth only with a restricted key: the secret key is
+    // refused when it asks for it.
+    if (this.identityReader) {
+      return this.identityReader.identity.verificationSessions.retrieve(
+        sessionId,
+        { expand: ['verified_outputs', 'verified_outputs.dob'] },
+      );
+    }
     return this.stripe.identity.verificationSessions.retrieve(sessionId, {
       expand: ['verified_outputs'],
     });

@@ -49,6 +49,7 @@ describe('StripeService at startup', () => {
     STRIPE_SECRET_KEY: 'sk_live_fake',
     STRIPE_WEBHOOK_SECRET: 'whsec_fake',
     STRIPE_PAYMENT_METHOD_CONFIGURATION: 'pmc_1AbC2dEf',
+    STRIPE_IDENTITY_KEY: 'rk_live_fake',
   };
 
   it('starts in production with real settings, without a word', () => {
@@ -94,7 +95,10 @@ describe('StripeService at startup', () => {
   });
 
   it('starts outside production with a test key, without a word', () => {
-    const { service, warn } = serviceWith({ STRIPE_SECRET_KEY: 'sk_test_1' });
+    const { service, warn } = serviceWith({
+      STRIPE_SECRET_KEY: 'sk_test_1',
+      STRIPE_IDENTITY_KEY: 'rk_test_1',
+    });
 
     service.onModuleInit();
 
@@ -783,12 +787,65 @@ describe('StripeService identity', () => {
     });
   });
 
-  it('reads a verification with what was verified', async () => {
+  it('reads a verification with what was verified, without the date of birth the secret key is refused', async () => {
     await service.getIdentityVerificationSession('vs_1');
 
     expect(client.identity.verificationSessions.retrieve).toHaveBeenCalledWith(
       'vs_1',
       { expand: ['verified_outputs'] },
     );
+  });
+});
+
+describe('StripeService reading the date of birth of an identity', () => {
+  const reader = {
+    identity: { verificationSessions: { retrieve: vi.fn() } },
+  };
+  const readerOf = (service: StripeService) =>
+    (service as unknown as { identityReader: unknown }).identityReader;
+
+  it('asks for the date of birth by name, with the restricted identity key', async () => {
+    const { service } = serviceWith({ STRIPE_IDENTITY_KEY: 'rk_test_abc' });
+    expect(readerOf(service)).not.toBeNull();
+    (service as unknown as { identityReader: unknown }).identityReader = reader;
+
+    await service.getIdentityVerificationSession('vs_1');
+
+    expect(reader.identity.verificationSessions.retrieve).toHaveBeenCalledWith(
+      'vs_1',
+      { expand: ['verified_outputs', 'verified_outputs.dob'] },
+    );
+    expect(
+      client.identity.verificationSessions.retrieve,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('reads it with the main key when that key is itself restricted', () => {
+    const { service } = serviceWith({ STRIPE_SECRET_KEY: 'rk_live_main' });
+    expect(readerOf(service)).not.toBeNull();
+  });
+
+  it.each([
+    ['a secret key', 'sk_test_abc'],
+    ['a key of the other mode', 'rk_live_abc'],
+    ['nothing', undefined],
+  ])('does not read it with %s as the identity key', (_label, key) => {
+    const { service } = serviceWith({ STRIPE_IDENTITY_KEY: key });
+    expect(readerOf(service)).toBeNull();
+  });
+
+  it('says at startup that nobody can pay without it, and not when it is set', () => {
+    const real = { STRIPE_SECRET_KEY: 'sk_test_real' };
+    const without = serviceWith(real);
+    without.service.onModuleInit();
+    expect(without.warn).toHaveBeenCalledWith(
+      expect.stringContaining('STRIPE_IDENTITY_KEY'),
+    );
+
+    const withKey = serviceWith({ ...real, STRIPE_IDENTITY_KEY: 'rk_test_x' });
+    // One spy on the loggers' shared method: only what follows counts.
+    withKey.warn.mockClear();
+    withKey.service.onModuleInit();
+    expect(withKey.warn).not.toHaveBeenCalled();
   });
 });
