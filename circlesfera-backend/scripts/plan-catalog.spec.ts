@@ -231,11 +231,11 @@ describe('priceProblems', () => {
 });
 
 describe('planYearlyPrice', () => {
-  it('sells Premium, Elite Creator and Business by the year (BD-016), and Verified and the add-on monthly only', () => {
+  it('sells every plan by the year too (BD-016), and the add-on monthly only', () => {
     expect(
       PLAN_CATALOG.map((p) => [p.name, p.yearlyPriceCents ?? null]),
     ).toEqual([
-      ['Verified', null],
+      ['Verified', 4990],
       ['Premium', 9990],
       ['Elite Creator', 19990],
       ['Business', 49990],
@@ -275,8 +275,10 @@ describe('planYearlyPrice', () => {
     ).toBe('Premium: 2 yearly prices match (a, b); sold monthly only');
   });
 
-  it('is nothing for a plan not sold by the year', () => {
-    expect(planYearlyPrice([yearly(4990)], plan('Verified'))).toEqual({});
+  it('is nothing for what is not sold by the year, as the add-on', () => {
+    expect(planYearlyPrice([yearly(7990)], plan(STUDIO_PRO_PLAN_NAME))).toEqual(
+      {},
+    );
   });
 });
 
