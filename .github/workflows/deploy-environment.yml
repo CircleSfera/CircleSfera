@@ -264,13 +264,16 @@ jobs:
           # takes both from its settings (ENV_DEV_B64).
           OWN_STRIPE_SECRET_KEY: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_SECRET_KEY || '' }}
           OWN_STRIPE_WEBHOOK_SECRET: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_WEBHOOK_SECRET || '' }}
+          # Staging's restricted key that reads the date of birth of an
+          # identity verification (rk_test_..., Identity read permissions).
+          OWN_STRIPE_IDENTITY_KEY: ${{ inputs.environment == 'staging' && secrets.STAGING_STRIPE_IDENTITY_KEY || '' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_FILE_B64,ENV_NAME,IMAGE_TAG,COMMIT_SHA,WIPE_DATA,REGISTRY_TOKEN,REGISTRY_USER,LIVE_RECORDING,OWN_STRIPE_SECRET_KEY,OWN_STRIPE_WEBHOOK_SECRET
+          envs: ENV_FILE_B64,ENV_NAME,IMAGE_TAG,COMMIT_SHA,WIPE_DATA,REGISTRY_TOKEN,REGISTRY_USER,LIVE_RECORDING,OWN_STRIPE_SECRET_KEY,OWN_STRIPE_WEBHOOK_SECRET,OWN_STRIPE_IDENTITY_KEY
           script: |
             set -euo pipefail
 
@@ -314,6 +317,9 @@ jobs:
             if [ -n "${OWN_STRIPE_SECRET_KEY:-}" ]; then
               use_own STRIPE_SECRET_KEY "$OWN_STRIPE_SECRET_KEY"
               use_own STRIPE_WEBHOOK_SECRET "${OWN_STRIPE_WEBHOOK_SECRET:-}"
+            fi
+            if [ -n "${OWN_STRIPE_IDENTITY_KEY:-}" ]; then
+              use_own STRIPE_IDENTITY_KEY "$OWN_STRIPE_IDENTITY_KEY"
             fi
             # Creator accounts and their tax panels are gone.
             sed -i '/^STRIPE_CONNECT_WEBHOOK_SECRET=/d; /^STRIPE_PUBLISHABLE_KEY=/d' .env.new
