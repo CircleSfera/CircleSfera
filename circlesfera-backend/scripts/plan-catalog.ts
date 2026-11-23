@@ -1,5 +1,5 @@
 // The platform plans CircleSfera sells, what each includes, its monthly
-// price and, for some, its yearly price (BD-016), VAT included. A benefit is listed
+// price and, for the plans, its yearly price (BD-016), VAT included. A benefit is listed
 // here once it is built, never before; `verified_badge` is also the key the
 // profile reads to show the badge.
 export type CatalogPlan = {
@@ -19,6 +19,7 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     name: 'Verified',
     formerNames: [],
     priceCents: 499,
+    yearlyPriceCents: 4990,
     description: 'Verified badge.',
     features: ['verified_badge'],
   },
