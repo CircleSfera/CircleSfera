@@ -41,9 +41,25 @@ test('an identity verification is started from Settings, and its cancellation re
 
   try {
     await viewer.page.goto('/accounts/account');
-    await viewer.page
-      .getByRole('button', { name: /^(Verify identity|Verify again)$/ })
-      .click();
+    // An account not yet verified starts it from Settings, as a person
+    // does. One verified already (the payment check verifies it with the
+    // provider's test data) shows no button: the session is started through
+    // the same request the button sends.
+    const verify = viewer.page.getByRole('button', {
+      name: 'Verify identity',
+    });
+    if (await verify.isVisible({ timeout: 10_000 }).catch(() => false)) {
+      await verify.click();
+    } else {
+      await expect(
+        viewer.page.getByText('Verified', { exact: true }).first(),
+      ).toBeVisible();
+      const started = await viewer.post('/users/identity-session', {
+        returnUrl: new URL('/accounts/account', viewer.page.url()).toString(),
+      });
+      expect(started.ok(), await started.text()).toBe(true);
+      await viewer.page.goto(((await started.json()) as { url: string }).url);
+    }
     // The provider's own page, in test mode.
     await viewer.page.waitForURL(/^https:\/\/verify\.stripe\.com\//, {
       timeout: 30_000,
