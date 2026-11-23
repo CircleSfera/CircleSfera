@@ -307,8 +307,7 @@ jobs:
             # The restricted identity key: the secret wins over the file.
             if [ -n "${STRIPE_IDENTITY_KEY:-}" ]; then
               sed -i '/^STRIPE_IDENTITY_KEY=/d' .env.production
-              printf 'STRIPE_IDENTITY_KEY=%s
-' "$STRIPE_IDENTITY_KEY" >> .env.production
+              printf 'STRIPE_IDENTITY_KEY=%s\n' "$STRIPE_IDENTITY_KEY" >> .env.production
               echo "✅ STRIPE_IDENTITY_KEY merged from GitHub secret."
             fi
 
