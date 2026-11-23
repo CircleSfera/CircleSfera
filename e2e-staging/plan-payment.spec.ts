@@ -75,24 +75,24 @@ async function verifyIdentityWithTestData(page: Page) {
   await page.waitForURL(/^https:\/\/verify\.stripe\.com\//, {
     timeout: 30_000,
   });
-  // Past the provider's own introduction, when it shows one.
-  const start = page.getByRole('button', {
-    name: /^(Get started|Accept and continue|Continue)$/i,
-  });
-  if (
-    await start
-      .first()
-      .isVisible({ timeout: 10_000 })
-      .catch(() => false)
-  ) {
-    await start.first().click();
-  }
+  // The page shown only in test mode: "Complete with test data", with the
+  // outcome chosen in a list and sent with "Submit".
   await page
-    .getByRole('button', { name: /verification success|^verify$|success/i })
-    .first()
-    .click();
-  // Back on CircleSfera once the provider is done.
-  await page.waitForURL(/circlesfera\.com/, { timeout: 60_000 });
+    .getByRole('combobox', { name: 'autocompleteSetting' })
+    .selectOption({ label: 'Verification success' }, { timeout: 30_000 });
+  await page.getByRole('button', { name: 'Submit' }).click({ timeout: 30_000 });
+  // Back on CircleSfera once the provider is done, by itself or through
+  // its own button.
+  const back = page.getByRole('button', { name: /circlesfera|return|done/i });
+  await Promise.race([
+    page.waitForURL(/circlesfera\.com/, { timeout: 60_000 }),
+    // Never fails the race itself: the address decides.
+    back
+      .first()
+      .click({ timeout: 60_000 })
+      .then(() => page.waitForURL(/circlesfera\.com/, { timeout: 30_000 }))
+      .catch(() => new Promise<never>(() => undefined)),
+  ]);
 }
 
 // The provider's payment page, filled as a person does, with its test card.
@@ -105,7 +105,9 @@ async function payOnCheckout(page: Page) {
   if (await card.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await card.click();
   }
-  await page.locator('#cardNumber').fill('4242 4242 4242 4242');
+  await page
+    .locator('#cardNumber')
+    .fill('4242 4242 4242 4242', { timeout: 30_000 });
   await page.locator('#cardExpiry').fill('12 / 34');
   await page.locator('#cardCvc').fill('123');
   await page.locator('#billingName').fill('QA Viewer');
@@ -124,7 +126,9 @@ async function payOnCheckout(page: Page) {
   // Never saved with the provider's own wallet.
   const save = page.locator('#enableStripePass');
   if (await save.isChecked().catch(() => false)) await save.uncheck();
-  await page.getByTestId('hosted-payment-submit-button').click();
+  await page
+    .getByTestId('hosted-payment-submit-button')
+    .click({ timeout: 30_000 });
 }
 
 // A plan bought on Pricing is paid on the provider's page in test mode; the
@@ -179,7 +183,9 @@ test('a plan is bought on Pricing and paid at the provider; withdrawing ends it 
 
     // Verified, by the month: the cheapest plan.
     await page.goto('/pricing');
-    await page.getByRole('button', { name: 'Choose Verified' }).click();
+    await page
+      .getByRole('button', { name: 'Choose Verified' })
+      .click({ timeout: 30_000 });
     const dialog = page.getByRole('dialog', { name: 'Before you pay' });
     await dialog.getByRole('checkbox').check();
     await dialog.getByRole('button', { name: 'Continue to payment' }).click();
