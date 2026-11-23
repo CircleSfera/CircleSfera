@@ -310,9 +310,7 @@
         "unverified_desc": "Verifica tu identidad para obtener la insignia. Necesitarás un DNI o pasaporte válido.",
         "btn": "Verificar identidad",
         "verified": "Verificado",
-        "error": "No se pudo iniciar la sesión de verificación",
-        "reverify_desc": "Tu identidad está verificada, pero entonces no se leyó la fecha de nacimiento de tu documento. Verifícala de nuevo para pagar en CircleSfera.",
-        "reverify_btn": "Verificar de nuevo"
+        "error": "No se pudo iniciar la sesión de verificación"
       },
       "ledger": {
         "button": "Descargar libro",
@@ -5073,7 +5071,7 @@
     "button_business": "Elegir Business",
     "identity_verified": "¡Tu identidad ha sido verificada!",
     "verification_required_title": "Verificación requerida",
-    "verification_required_desc": "Debes verificar tu identidad antes de realizar compras.",
+    "verification_required_desc": "Los planes con la insignia de verificado necesitan antes tu identidad verificada.",
     "verify_button": "Verificar identidad con Stripe",
     "verify_error": "No se pudo iniciar la verificación de identidad.",
     "checkout_error": "Error al iniciar el pago. Inténtalo de nuevo.",
@@ -6377,7 +6375,7 @@
       "GIF_NOT_FOUND": "Ese GIF no está disponible. Elige otro.",
       "PAYMENTS_PAUSED": "Los pagos están en pausa por ahora. Vuelve a intentarlo más tarde.",
       "PROMOTIONS_NOT_ON_SALE": "Las promociones aún no están a la venta.",
-      "PAYER_UNDER_AGE": "Puedes pagar a partir de los {{minAge}} años, con tu identidad y tu fecha de nacimiento verificadas. Si ya te verificaste antes, vuelve a hacerlo en Ajustes → Cuenta.",
+      "PAYER_UNDER_AGE": "Puedes pagar a partir de los {{minAge}} años, según la fecha de nacimiento de tu cuenta.",
       "MESSAGE_REQUESTS_OFF": "Esta cuenta no acepta solicitudes de mensajes.",
       "CONTENT_UNDER_REVIEW": "Este contenido todavía se está revisando. Podrás promocionarlo en cuanto termine: vuelve a intentarlo en unos minutos.",
       "COLLAB_NOT_ALLOWED": "Solo una publicación pública puede tener un colaborador, y nunca su autor.",

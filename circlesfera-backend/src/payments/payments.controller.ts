@@ -47,7 +47,8 @@ export class PaymentsController {
   }
 
   @Post('checkout')
-  @UseGuards(JwtAuthGuard, IdentityVerifiedGuard)
+  // The identity is asked by what is bought: a plan with the badge.
+  @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 201, type: Object })
   async createCheckout(
     @Req() req: RequestWithUser,

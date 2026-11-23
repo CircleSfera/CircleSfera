@@ -87,6 +87,9 @@ async function main() {
           email,
           role: 'USER',
           isTestAccount: true,
+          // An adult's date of birth, as sign-up asks of a person: the
+          // payment checks of an environment run with it.
+          dateOfBirth: new Date('1990-01-01T00:00:00.000Z'),
           settings: { create: { privacyLevel: 'PRIVATE' } },
         },
       });

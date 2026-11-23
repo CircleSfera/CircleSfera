@@ -13,7 +13,10 @@ import {
   withdrawalDeadline,
 } from '../common/consumer/withdrawal-consent.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { assertAdultPayer } from '../common/policies/adult-payer.policy.js';
+import {
+  assertAdultPayer,
+  assertIdentityForBadge,
+} from '../common/policies/adult-payer.policy.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -329,6 +332,8 @@ export class PaymentsService {
     }
 
     const buyingAddOn = isAddOnPlan(plan.name);
+    // A plan with the badge needs the identity verified; the add-on not.
+    await assertIdentityForBadge(this.prisma, userId, plan.features);
     if (buyingAddOn) {
       // The Studio's Pro features already come with some plans: they are
       // not paid for twice.
