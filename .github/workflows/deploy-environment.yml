@@ -293,7 +293,13 @@ jobs:
             echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin > /dev/null
 
             # The Compose file and the proxy rules of the commit being deployed.
-            git fetch --quiet origin "$COMMIT_SHA"
+            # The repository is private: git reads it with this run's own
+            # token, given in git's environment (never on its command line,
+            # which other users of the server can see, nor in the
+            # repository's settings), and void once the run ends.
+            FETCH_AUTH="$(printf 'x-access-token:%s' "$REGISTRY_TOKEN" | base64 -w0)"
+            GIT_CONFIG_COUNT=1               GIT_CONFIG_KEY_0="http.https://github.com/.extraheader"               GIT_CONFIG_VALUE_0="AUTHORIZATION: basic ${FETCH_AUTH}"               git fetch --quiet origin "$COMMIT_SHA"
+            unset FETCH_AUTH
             git checkout --quiet --detach "$COMMIT_SHA"
 
             # The settings, private to the deploy user.
