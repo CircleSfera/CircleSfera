@@ -161,24 +161,49 @@ test('a plan is bought on Pricing and paid at the provider; withdrawing ends it 
 
     // Only an adult with a verified identity pays.
     const page = viewer.page;
-    const adultPayer = async () => {
+    // Said as the app holds it, so a failure shows which part is missing.
+    const identity = async () => {
       const now = (await (await viewer.get('/profiles/me')).json()) as {
         identityVerifiedAt?: string | null;
         dateOfBirthVerified?: boolean;
       };
-      return !!now.identityVerifiedAt && !!now.dateOfBirthVerified;
+      return `identity verified: ${!!now.identityVerifiedAt}, date of birth verified: ${!!now.dateOfBirthVerified}`;
     };
-    if (!(await adultPayer())) {
+    const ADULT = 'identity verified: true, date of birth verified: true';
+    if ((await identity()) !== ADULT) {
+      const asked = Math.floor(Date.now() / 1000) - 5;
       await verifyIdentityWithTestData(page);
+      // What the provider holds of the session: its status, and whether it
+      // read a date of birth (never the date itself).
+      const provider = async () => {
+        const sessions = await stripe<{
+          data: Array<{ id: string; metadata: { userId?: string } }>;
+        }>(`/identity/verification_sessions?limit=10&created[gte]=${asked}`);
+        const mine = sessions.data.find((s) => s.metadata.userId === userId);
+        if (!mine) return 'provider: no session';
+        const full = await stripe<{
+          status: string;
+          verified_outputs?: { dob?: { year?: number } | null } | null;
+        }>(
+          `/identity/verification_sessions/${mine.id}?expand[]=verified_outputs`,
+        );
+        return `provider: ${full.status}, date of birth read: ${!!full.verified_outputs?.dob?.year}`;
+      };
       await expect
         .poll(
           async () => {
-            await viewer.post('/users/identity-session/sync');
-            return adultPayer();
+            const sync = await viewer.post('/users/identity-session/sync');
+            const said = (await sync.json().catch(() => ({}))) as {
+              status?: string;
+            };
+            const held = await identity();
+            return held === ADULT
+              ? held
+              : `${held}; sync: ${sync.status()} ${said.status}; ${await provider()}`;
           },
           { timeout: 90_000, intervals: [5_000] },
         )
-        .toBe(true);
+        .toBe(ADULT);
     }
 
     // Verified, by the month: the cheapest plan.
