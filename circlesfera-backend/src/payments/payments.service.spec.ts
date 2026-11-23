@@ -16,10 +16,11 @@ import {
   withdrawalRetryDelayMs,
 } from './payments.service.js';
 
-// Whoever pays here is an adult, unless a test says otherwise; the rule is
-// tested on its own (adult-payer.policy.spec.ts).
+// Whoever pays here is an adult with a verified identity, unless a test says
+// otherwise; the rules are tested on their own (adult-payer.policy.spec.ts).
 const adultPayer = vi.hoisted(() => ({
   assertAdultPayer: vi.fn().mockResolvedValue(undefined),
+  assertIdentityForBadge: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('../common/policies/adult-payer.policy.js', () => adultPayer);
 
@@ -333,6 +334,38 @@ describe('PaymentsService', () => {
       await expect(
         service.createCheckout('u_1', 'plan_1', 'MONTHLY', 'prof_1'),
       ).rejects.toMatchObject({ errorCode: 'PAYER_UNDER_AGE' });
+      expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    it('opens no checkout of a plan with the badge without a verified identity', async () => {
+      adultPayer.assertIdentityForBadge.mockRejectedValueOnce(
+        Object.assign(new Error('no identity'), {
+          errorCode: 'IDENTITY_VERIFICATION_REQUIRED',
+        }),
+      );
+      prisma.user.findUnique = vi.fn().mockResolvedValue({
+        id: 'u_1',
+        email: 'u@example.com',
+        stripeCustomerId: 'cus_1',
+        platformSubscriptions: [],
+      });
+      prisma.profile.findFirst = vi
+        .fn()
+        .mockResolvedValue({ id: 'prof_1', accountType: 'PERSONAL' });
+      prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        id: 'plan_1',
+        name: 'Verified',
+        stripePriceId: 'price_m',
+        features: ['verified_badge'],
+      });
+      await expect(
+        service.createCheckout('u_1', 'plan_1', 'MONTHLY', 'prof_1'),
+      ).rejects.toMatchObject({ errorCode: 'IDENTITY_VERIFICATION_REQUIRED' });
+      expect(adultPayer.assertIdentityForBadge).toHaveBeenCalledWith(
+        expect.anything(),
+        'u_1',
+        ['verified_badge'],
+      );
       expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
@@ -763,7 +796,7 @@ describe('PaymentsService', () => {
           idempotencyKey: 'checkout_sub_tax_2026-2_u_year:prof_1:plan_1:YEARLY',
         }),
       );
-      // Whoever pays is an adult with a verified identity.
+      // Whoever pays is an adult.
       expect(adultPayer.assertAdultPayer).toHaveBeenCalledWith(
         expect.anything(),
         'u_year',

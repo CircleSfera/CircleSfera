@@ -8,9 +8,6 @@ import { useBodyParsers } from '../src/common/config/body-parsers.config.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { uniqueSuffix } from './utils/unique-id.js';
 
-const KYC_REQUIRED =
-  'Debes verificar tu identidad primero para poder comprar o cobrar.';
-
 describe('Money flows (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -64,7 +61,8 @@ describe('Money flows (e2e)', () => {
         stripeProductId: activeStripeProductId,
         stripePriceId: `price_e2e_on_${uniqueId}`,
         yearlyStripePriceId: `price_e2e_on_y_${uniqueId}`,
-        features: ['e2e'],
+        // A plan with the verified badge: bought only with a verified identity.
+        features: ['e2e', 'verified_badge'],
         isActive: true,
       },
     });
@@ -225,7 +223,7 @@ describe('Money flows (e2e)', () => {
       expect(status.body.subscription).toBeNull();
     });
 
-    it('blocks checkout until identity is verified', async () => {
+    it('blocks checkout of a plan with the badge until identity is verified', async () => {
       const checkout = await request(app.getHttpServer())
         .post('/api/v1/payments/checkout')
         .set('Cookie', [`access_token=${accessToken}`, csrfCookie])
@@ -236,7 +234,7 @@ describe('Money flows (e2e)', () => {
           withdrawalConsent: true,
         })
         .expect(403);
-      expect(checkout.body.message).toBe(KYC_REQUIRED);
+      expect(checkout.body.errorCode).toBe('IDENTITY_VERIFICATION_REQUIRED');
     });
   });
 
@@ -244,20 +242,20 @@ describe('Money flows (e2e)', () => {
     beforeAll(async () => {
       await prisma.user.update({
         where: { id: userId },
-        // An adult whose date of birth came from the identity document:
-        // only such a person may pay.
+        // An adult with a verified identity, as a plan with the badge asks.
         data: {
           identityVerifiedAt: new Date(),
           dateOfBirth: new Date('1990-01-15T00:00:00.000Z'),
-          dateOfBirthVerified: true,
         },
       });
     });
 
-    it('refuses to open a payment for someone whose age is not verified', async () => {
+    it('refuses to open a payment for someone under 18 by the date of birth on the account', async () => {
+      const under18 = new Date();
+      under18.setFullYear(under18.getFullYear() - 17);
       await prisma.user.update({
         where: { id: userId },
-        data: { dateOfBirthVerified: false },
+        data: { dateOfBirth: under18 },
       });
       try {
         const res = await request(app.getHttpServer())
@@ -274,7 +272,7 @@ describe('Money flows (e2e)', () => {
       } finally {
         await prisma.user.update({
           where: { id: userId },
-          data: { dateOfBirthVerified: true },
+          data: { dateOfBirth: new Date('1990-01-15T00:00:00.000Z') },
         });
       }
     });
