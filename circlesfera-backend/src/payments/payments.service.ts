@@ -1770,10 +1770,13 @@ export class PaymentsService {
   // is skipped. Any other is recorded (its payload kept for staff to send
   // again from the admin panel) and handled; a failure marks it FAILED and
   // is thrown, so the controller answers 5xx and the provider sends it again
-  // (for up to three days), as Stripe expects. The handlers read the state
-  // again from the provider and can run twice, so a notice delivered twice
-  // at once, or handled before a crash kept it from being marked, does no
-  // harm when it comes back.
+  // (for up to three days), as Stripe expects. The handlers can run twice:
+  // the subscription ones read the state again from the provider, and the
+  // others (promotions, refunds, disputes) find what was already recorded
+  // and leave it. So a notice delivered twice, or handled before a crash
+  // kept it from being marked, does no harm when it comes back; at worst a
+  // receipt email goes twice. No write here ever takes a PROCESSED notice
+  // back to another state.
   async processWebhookEvent(event: Stripe.Event) {
     const existing = await this.prisma.webhookEvent.findUnique({
       where: { externalId: event.id },
@@ -1783,7 +1786,7 @@ export class PaymentsService {
 
     await this.prisma.webhookEvent.upsert({
       where: { externalId: event.id },
-      update: { status: 'PENDING' },
+      update: {},
       create: {
         provider: 'stripe',
         externalId: event.id,
@@ -1804,9 +1807,10 @@ export class PaymentsService {
           err instanceof Error ? err.message : String(err)
         }`,
       );
+      // Never over a PROCESSED written by a delivery that ran at once.
       await this.prisma.webhookEvent
-        .update({
-          where: { externalId: event.id },
+        .updateMany({
+          where: { externalId: event.id, status: { not: 'PROCESSED' } },
           data: { status: 'FAILED' },
         })
         .catch(() => undefined);

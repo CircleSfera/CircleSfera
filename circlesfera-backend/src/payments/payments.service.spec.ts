@@ -2995,7 +2995,7 @@ describe('PaymentsService', () => {
 
       expect(prisma.webhookEvent.upsert).toHaveBeenCalledWith({
         where: { externalId: 'evt_n' },
-        update: { status: 'PENDING' },
+        update: {},
         create: {
           provider: 'stripe',
           externalId: 'evt_n',
@@ -3046,8 +3046,9 @@ describe('PaymentsService', () => {
           }),
         ),
       ).rejects.toThrow('not paid');
-      expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
-        where: { externalId: 'evt_unpaid' },
+      // Never over a PROCESSED written by a delivery that ran at once.
+      expect(prisma.webhookEvent.updateMany).toHaveBeenCalledWith({
+        where: { externalId: 'evt_unpaid', status: { not: 'PROCESSED' } },
         data: { status: 'FAILED' },
       });
     });
@@ -3098,8 +3099,8 @@ describe('PaymentsService', () => {
       await expect(service.processWebhookEvent(asEvent(event))).rejects.toThrow(
         'db down',
       );
-      expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
-        where: { externalId: 'evt_fail' },
+      expect(prisma.webhookEvent.updateMany).toHaveBeenCalledWith({
+        where: { externalId: 'evt_fail', status: { not: 'PROCESSED' } },
         data: { status: 'FAILED' },
       });
     });

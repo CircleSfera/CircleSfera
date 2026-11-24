@@ -353,8 +353,9 @@ export class AdminOpsService {
       );
     }
 
-    await this.prisma.webhookEvent.update({
-      where: { id },
+    // Never over a PROCESSED written meanwhile by the provider's own retry.
+    await this.prisma.webhookEvent.updateMany({
+      where: { id, status: { not: 'PROCESSED' } },
       data: { status: 'PENDING' },
     });
 
