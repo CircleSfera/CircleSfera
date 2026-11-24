@@ -122,6 +122,11 @@ describe('PaymentsService', () => {
             createCustomer: vi.fn(),
             assertPaymentsEnabled: vi.fn().mockResolvedValue(undefined),
             createCheckoutSession: vi.fn(),
+            listOpenCheckoutSessions: vi.fn().mockResolvedValue([]),
+            expireCheckoutSession: vi.fn().mockResolvedValue(undefined),
+            endSubscriptionNow: vi.fn().mockResolvedValue(undefined),
+            latestPaidInvoice: vi.fn().mockResolvedValue(null),
+            refundSubscriptionPayment: vi.fn().mockResolvedValue(null),
             createPortalSession: vi.fn(),
             constructEvent: vi.fn(),
           },
@@ -593,6 +598,63 @@ describe('PaymentsService', () => {
         expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
       });
 
+      it('sends a plan whose renewal failed to the billing portal, never a second plan', async () => {
+        holding([sub('Premium', ['verified_badge'], { status: 'PAST_DUE' })]);
+        buying('Elite Creator', ['verified_badge']);
+
+        await expect(checkout()).rejects.toThrow(
+          'This profile has a plan with a payment due. Pay it in the billing portal.',
+        );
+        expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+      });
+
+      it('leaves one payment page open per Profile and kind: the older one of a plan is expired', async () => {
+        holding([]);
+        buying('Elite Creator', ['verified_badge']);
+        stripeService.createCheckoutSession.mockResolvedValue({
+          id: 'cs_new',
+          url: 'https://checkout',
+        });
+        const page = (id: string, metadata: object, mode = 'subscription') => ({
+          id,
+          mode,
+          metadata,
+        });
+        stripeService.listOpenCheckoutSessions.mockResolvedValue([
+          page('cs_new', { profileId: 'prof_1', addOn: 'false' }),
+          page('cs_older_plan', { profileId: 'prof_1', addOn: 'false' }),
+          page('cs_addon', { profileId: 'prof_1', addOn: 'true' }),
+          page('cs_other_profile', { profileId: 'prof_2', addOn: 'false' }),
+          page('cs_promotion', { profileId: 'prof_1' }, 'payment'),
+        ]);
+
+        await expect(checkout()).resolves.toMatchObject({ id: 'cs_new' });
+
+        expect(stripeService.createCheckoutSession).toHaveBeenCalledWith(
+          expect.objectContaining({
+            metadata: expect.objectContaining({ addOn: 'false' }),
+          }),
+          expect.anything(),
+        );
+        expect(stripeService.listOpenCheckoutSessions).toHaveBeenCalledWith(
+          'cust_1',
+        );
+        expect(stripeService.expireCheckoutSession).toHaveBeenCalledTimes(1);
+        expect(stripeService.expireCheckoutSession).toHaveBeenCalledWith(
+          'cs_older_plan',
+        );
+      });
+
+      it('still opens the payment page when the older ones cannot be expired', async () => {
+        holding([]);
+        buying('Elite Creator', ['verified_badge']);
+        stripeService.listOpenCheckoutSessions.mockRejectedValueOnce(
+          new Error('down'),
+        );
+
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+      });
+
       it('does not let a Profile with the add-on buy a second plan beside its plan', async () => {
         holding([
           sub('Premium', ['verified_badge']),
@@ -792,8 +854,11 @@ describe('PaymentsService', () => {
         expect.objectContaining({
           // The consent wording is part of the parameters: its version
           // names the key, so a key used with the earlier wording is not
-          // reused with this one.
-          idempotencyKey: 'checkout_sub_tax_2026-2_u_year:prof_1:plan_1:YEARLY',
+          // reused with this one. The minute keeps a retry on the same page
+          // and a purchase made again later on a new one.
+          idempotencyKey: expect.stringMatching(
+            /^checkout_sub_tax_2026-2_u_year:prof_1:plan_1:YEARLY:\d+$/,
+          ),
         }),
       );
       // Whoever pays is an adult.
@@ -3358,14 +3423,8 @@ describe('PaymentsService', () => {
         id: 'user1',
         email: 'user1@test.com',
       });
-      prisma.platformSubscription.findMany = vi.fn().mockResolvedValue([
-        {
-          id: 'old_sub_id',
-          stripeSubscriptionId: 'old_stripe_sub',
-          planId: 'old_plan',
-        },
-      ]);
-      prisma.platformSubscription.update = vi.fn().mockResolvedValue({});
+      // The Profile holds no other plan.
+      prisma.platformSubscription.findMany = vi.fn().mockResolvedValue([]);
 
       await service.processWebhookEvent(asEvent(event));
 
@@ -3385,26 +3444,14 @@ describe('PaymentsService', () => {
           }),
         }),
       );
-      // Only the other plans of that Profile are cancelled, and before the
-      // new one is recorded.
-      expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith({
-        where: {
-          profileId: 'prof_1',
-          // A plan cancels only another plan, never the add-on beside it.
-          addOn: false,
-          status: {
-            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-          },
-          NOT: { stripeSubscriptionId: 'sub_123' },
-        },
-      });
-      expect(
-        vi.mocked(prisma.platformSubscription.update).mock
-          .invocationCallOrder[0],
-      ).toBeLessThan(
-        vi.mocked(prisma.platformSubscription.upsert).mock
-          .invocationCallOrder[0],
+      // Only the other plans of that Profile are looked at: a plan is never
+      // weighed against the add-on beside it.
+      expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ profileId: 'prof_1', addOn: false }),
+        }),
       );
+      expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
       expect(usersService.syncUserTier).toHaveBeenCalledWith('user1');
       // Retried after a withdrawal, the notice leaves the row CANCELLED.
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
@@ -3423,17 +3470,7 @@ describe('PaymentsService', () => {
           .mocked(prisma.platformSubscription.updateMany)
           .mock.invocationCallOrder.at(-1)!,
       );
-      expect(stripeService.cancelSubscription).toHaveBeenCalledWith(
-        'old_stripe_sub',
-        false,
-      );
-      expect(prisma.platformSubscription.update).toHaveBeenCalledWith({
-        where: { id: 'old_sub_id' },
-        data: {
-          status: SubscriptionStatus.CANCELLED,
-          cancelAtPeriodEnd: false,
-        },
-      });
+      expect(stripeService.cancelSubscription).not.toHaveBeenCalled();
       expect(emailService.sendSubscriptionReceipt).toHaveBeenCalled();
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'payment.alert',
@@ -3560,7 +3597,7 @@ describe('PaymentsService', () => {
       expect(yearlyStart).toBeUndefined();
     });
 
-    it('2b. records Edits Studio Pro as an add-on that cancels only an older add-on, never the plan beside it', async () => {
+    it('2b. records Edits Studio Pro as an add-on, weighed only against another add-on, never the plan beside it', async () => {
       stripeService.getSubscription.mockResolvedValue({
         status: 'active',
         items: {
@@ -3598,9 +3635,11 @@ describe('PaymentsService', () => {
         }),
       );
 
-      expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith({
-        where: expect.objectContaining({ profileId: 'prof_1', addOn: true }),
-      });
+      expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ profileId: 'prof_1', addOn: true }),
+        }),
+      );
       expect(prisma.platformSubscription.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({ addOn: true }),
@@ -3762,39 +3801,127 @@ describe('PaymentsService', () => {
       expect(prisma.platformSubscription.upsert).not.toHaveBeenCalled();
     });
 
-    it('2b. gracefully handles Stripe error when cancelling previous subscription', async () => {
-      const event = {
-        id: 'evt_sub_err',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_sub_err',
-            amount_total: 1000,
-            currency: 'eur',
-            subscription: 'sub_err',
-            metadata: { userId: 'user1', planId: 'plan_elite' },
+    describe('a second plan paid for a Profile that holds one (two tabs)', () => {
+      const secondPlan = (id: string) =>
+        asEvent({
+          id,
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: `cs_${id}`,
+              amount_total: 1999,
+              currency: 'eur',
+              subscription: 'sub_second',
+              metadata: {
+                userId: 'user1',
+                planId: 'plan_business',
+                profileId: 'prof_1',
+              },
+            },
           },
-        },
-      };
-
-      stripeService.getSubscription.mockResolvedValue({
-        status: 'active',
+        });
+      const atProvider = (status: string) => ({
+        status,
         items: {
           data: [{ current_period_start: 1000, current_period_end: 2000 }],
         },
         cancel_at_period_end: false,
       });
-      prisma.platformSubscription.findMany = vi
-        .fn()
-        .mockResolvedValue([
-          { id: 'old_sub', stripeSubscriptionId: 'old_stripe_fail' },
-        ]);
-      stripeService.cancelSubscription.mockRejectedValue(
-        new Error('Stripe cancel fail'),
-      );
 
-      await service.processWebhookEvent(asEvent(event));
-      expect(prisma.platformSubscription.update).not.toHaveBeenCalled();
+      beforeEach(() => {
+        prisma.profile.findFirst = vi.fn().mockResolvedValue({ id: 'prof_1' });
+        prisma.platformPlan.findUnique = vi
+          .fn()
+          .mockResolvedValue({ id: 'plan_business', name: 'Business' });
+        prisma.platformSubscription.findMany = vi
+          .fn()
+          .mockResolvedValue([{ stripeSubscriptionId: 'sub_held' }]);
+        stripeService.latestPaidInvoice.mockResolvedValue({
+          paymentIntentId: 'pi_second',
+          paidCents: 1999,
+        });
+      });
+
+      it('ends the new one and pays it back in full; the plan held stays and nothing is recorded', async () => {
+        stripeService.getSubscription.mockResolvedValue(atProvider('active'));
+
+        await service.processWebhookEvent(secondPlan('evt_second'));
+
+        // Counted against the Profile's plans, an overdue one included.
+        expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              profileId: 'prof_1',
+              addOn: false,
+              status: {
+                in: [
+                  SubscriptionStatus.ACTIVE,
+                  SubscriptionStatus.TRIALING,
+                  SubscriptionStatus.PAST_DUE,
+                ],
+              },
+              NOT: { stripeSubscriptionId: 'sub_second' },
+            }),
+          }),
+        );
+        expect(stripeService.endSubscriptionNow).toHaveBeenCalledWith(
+          'sub_second',
+        );
+        expect(stripeService.refundSubscriptionPayment).toHaveBeenCalledWith({
+          paymentIntentId: 'pi_second',
+          amountInCents: 1999,
+          idempotencyKey: 'duplicate_plan_sub_second',
+          metadata: {
+            reason: 'duplicate_plan',
+            platformSubscriptionId: 'sub_second',
+          },
+        });
+        // The plan held is never cancelled.
+        expect(stripeService.cancelSubscription).not.toHaveBeenCalled();
+        expect(prisma.platformSubscription.upsert).not.toHaveBeenCalled();
+        expect(emailService.sendSubscriptionReceipt).not.toHaveBeenCalled();
+      });
+
+      it('records the new plan when the provider has already ended the one held', async () => {
+        stripeService.getSubscription.mockImplementation(async (id: string) =>
+          id === 'sub_held'
+            ? { id, ...atProvider('canceled') }
+            : { id, ...atProvider('active') },
+        );
+
+        await service.processWebhookEvent(secondPlan('evt_stale'));
+
+        // The row held is brought up to date from the provider.
+        expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              stripeSubscriptionId: 'sub_held',
+            }),
+            data: expect.objectContaining({
+              status: SubscriptionStatus.CANCELLED,
+            }),
+          }),
+        );
+        expect(stripeService.endSubscriptionNow).not.toHaveBeenCalled();
+        expect(stripeService.refundSubscriptionPayment).not.toHaveBeenCalled();
+        expect(prisma.platformSubscription.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { stripeSubscriptionId: 'sub_second' },
+          }),
+        );
+      });
+
+      it('fails the notice when the refund fails, so the provider sends it again', async () => {
+        stripeService.getSubscription.mockResolvedValue(atProvider('active'));
+        stripeService.refundSubscriptionPayment.mockRejectedValueOnce(
+          new Error('down'),
+        );
+
+        await expect(
+          service.processWebhookEvent(secondPlan('evt_refund_down')),
+        ).rejects.toThrow('down');
+        expect(prisma.platformSubscription.upsert).not.toHaveBeenCalled();
+      });
     });
 
     it('2c. ignores checkout.session.completed when subscription metadata is missing', async () => {

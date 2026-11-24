@@ -207,6 +207,21 @@ export class StripeService implements OnModuleInit {
     return this.stripe.checkout.sessions.expire(sessionId);
   }
 
+  // The Checkout Sessions of a customer still open to pay.
+  async listOpenCheckoutSessions(
+    customerId: string,
+  ): Promise<Stripe.Checkout.Session[]> {
+    const sessions: Stripe.Checkout.Session[] = [];
+    for await (const session of this.stripe.checkout.sessions.list({
+      customer: customerId,
+      status: 'open',
+      limit: 100,
+    })) {
+      sessions.push(session);
+    }
+    return sessions;
+  }
+
   // Create a partial/full refund against the PaymentIntent of a Checkout Session.
   // Returns null when the session has no charge to refund.
   async createRefundFromCheckoutSession(params: {
