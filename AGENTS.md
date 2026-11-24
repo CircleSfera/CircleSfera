@@ -113,8 +113,10 @@ set to BLOCKED with the question, never built; the queue moves on to the next it
   changes, compare every direct dependency and override of the four workspaces with its latest
   stable release and move what is behind. What is held back and why: Notion → Engineering →
   Technical Operations → Dependency & Supply Chain Management.
-- **Working folder:** one, `../CircleSfera-work`, a branch per pull request inside it. No other
-  worktree or directory beside the repository; temporary files go to the session's scratch space.
+- **Working folder:** the repository itself, in the package the change belongs to
+  (`circlesfera-backend/`, `circlesfera-frontend/`, `circlesfera-shared/`, ...), with a branch per pull
+  request. No worktree, copy or directory beside it; temporary files go to the session's scratch
+  space.
 - **Pull requests:** never a push to `main`; `main` merges only through the merge queue, with every
   required check green and no unresolved review thread. The agent puts its own pull requests in
   the queue, those under `.github/workflows/` included once `reviewer` has checked them. CI runs

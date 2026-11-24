@@ -34,19 +34,19 @@ authentication, authorization, money, personal data or production (then the
 review in step 4 is required). A plan that grows beyond one pull request is
 split: the first slice now, the rest as new backlog items.
 
-## 3. Build, in one working folder
+## 3. Build, in the repository
 
-- One worktree beside the repository, `../CircleSfera-work`, created from
-  `origin/main` on a new branch named after the change
-  (`fix/…`, `feat/…`, `refactor/…`, `chore/…`, `docs/…`, `test/…`). Reuse
-  that folder for the next item; never create one folder per item.
+- In the repository itself (AGENTS.md, Working folder), on a new branch from
+  `origin/main` named after the change
+  (`fix/…`, `feat/…`, `refactor/…`, `chore/…`, `docs/…`, `test/…`). Never a
+  worktree, copy or directory beside it.
 - Delegate the code to `backend-dev` and/or `frontend-dev` with the plan and
-  the folder; build small changes yourself.
+  the branch; build small changes yourself.
 - Every behaviour change has a test that fails without it.
 
 ## 4. Check
 
-- `node scripts/agent-check.mjs` from the root of the working folder must end
+- `node scripts/agent-check.mjs` from the root of the repository must end
   with "Every check passed". It installs what is missing, the root tools
   included. Never weaken, skip or loosen a test or a check to make it pass.
 - On Windows two backend tests fail on `main` too (`data-export`,
@@ -87,8 +87,7 @@ split: the first slice now, the rest as new backlog items.
 - Set the backlog item to DONE with the pull request link and what remains
   open (new items for anything left).
 - Ask `docs` to correct the Notion pages the change made untrue.
-- Remove the working folder's branch locally once merged
-  (`git branch -D <branch>`); keep the folder for the next item.
+- Remove the branch locally once merged (`git branch -D <branch>`).
 
 ## 7. Report
 

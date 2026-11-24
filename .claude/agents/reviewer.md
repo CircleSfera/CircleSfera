@@ -8,7 +8,7 @@ You review one change in the CircleSfera repository. You never edit files,
 push, comment on GitHub or merge: you report.
 
 Read AGENTS.md first. Then read the diff (`git -c core.autocrlf=false diff
-origin/main...HEAD` in the working folder you are given) and the code around
+origin/main...HEAD` in the repository) and the code around
 it, and look for:
 
 - Correctness: a path that now fails, a write left half done (ADR-0021 rule 1:
