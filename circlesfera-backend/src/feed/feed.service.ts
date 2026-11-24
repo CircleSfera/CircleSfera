@@ -33,6 +33,7 @@ import {
 import { PUBLIC_PROFILE_SELECT } from '../common/selects/public-profile.select.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
+import { profilePlanFeatures } from '../payments/plan-features.js';
 import {
   ACCEPTED_COLLABORATOR_INCLUDE,
   shownCollaborator,
@@ -893,12 +894,10 @@ export class FeedService {
           },
         },
       });
-      // A Profile on the Elite Creator or Business plan sees no promoted
-      // posts: it is one of the things those plans include.
-      if (
-        viewer?.verificationLevel === 'ELITE' ||
-        viewer?.verificationLevel === 'BUSINESS'
-      ) {
+      // A Profile whose plan includes it (Premium, Elite Creator, Business)
+      // sees no promoted posts (PD-013, PD-088).
+      const features = await profilePlanFeatures(this.prisma, profileId);
+      if (features.has('no_promoted_content')) {
         return posts;
       }
       viewerCountry = viewerCountryOf(viewer?.user);

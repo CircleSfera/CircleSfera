@@ -14,6 +14,8 @@ describe('FeedService', () => {
   let service: FeedService;
 
   const mockPrismaService = {
+    // The plans of the viewing Profile: none unless a test gives one.
+    platformSubscription: { findMany: vi.fn().mockResolvedValue([]) },
     user: { findMany: vi.fn().mockResolvedValue([]) },
     block: { findMany: vi.fn().mockResolvedValue([]) },
     like: {
@@ -871,8 +873,12 @@ describe('FeedService', () => {
       verificationLevel: string,
       promoted: boolean,
       promotedPost: Record<string, unknown> = {},
+      planFeatures: string[] = [],
     ) {
       mockCache.get.mockResolvedValue(null);
+      mockPrismaService.platformSubscription.findMany.mockResolvedValueOnce(
+        planFeatures.length > 0 ? [{ plan: { features: planFeatures } }] : [],
+      );
       mockPrismaService.like.findMany.mockResolvedValueOnce([]);
       mockPrismaService.$queryRaw.mockResolvedValueOnce(
         Array.from({ length: 5 }, (_, i) => ({ id: `post-${i + 1}` })),
@@ -912,21 +918,41 @@ describe('FeedService', () => {
       })) as any;
     }
 
-    it.each(['ELITE', 'BUSINESS'])(
-      'shows no promoted posts to a Profile on the %s plan',
-      async (level) => {
-        const res = await feedSeenBy(level, false);
+    it.each([
+      ['Premium', 'VERIFIED'],
+      ['Elite Creator', 'ELITE'],
+      ['Business', 'BUSINESS'],
+    ])(
+      'shows no promoted posts to a Profile on the %s plan, which includes it',
+      async (_plan, level) => {
+        const res = await feedSeenBy(level, false, {}, [
+          'verified_badge',
+          'no_promoted_content',
+        ]);
 
         expect(res.data).toHaveLength(5);
         expect(res.data.some((p: any) => p.isPromoted)).toBe(false);
         expect(mockPrismaService.promotion.findMany).not.toHaveBeenCalled();
+        // The plans read are those of the viewing Profile only.
+        expect(
+          mockPrismaService.platformSubscription.findMany,
+        ).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({ profileId: 'viewer-prof' }),
+          }),
+        );
       },
     );
 
-    it.each(['BASIC', 'VERIFIED'])(
-      'still shows promoted posts to a Profile on the %s level',
-      async (level) => {
-        const res = await feedSeenBy(level, true);
+    it.each([
+      ['no', 'BASIC', []],
+      ['Verified', 'VERIFIED', ['verified_badge']],
+      // The badge level alone never removes them: the plan's features do.
+      ['no plan but the ELITE level', 'ELITE', []],
+    ])(
+      'still shows promoted posts to a Profile on %s plan',
+      async (_plan, level, features) => {
+        const res = await feedSeenBy(level, true, {}, features as string[]);
 
         expect(res.data.some((p: any) => p.isPromoted)).toBe(true);
       },

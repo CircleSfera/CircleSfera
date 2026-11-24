@@ -161,7 +161,7 @@
       "colour": {
         "title": "Profile colour",
         "hint": "It shows at the top of your profile, on the main button and on your link. Everyone who visits your profile sees it.",
-        "plan_hint": "The profile colour comes with the Elite Creator and Business plans.",
+        "plan_hint": "The profile colour comes with the Premium, Elite Creator and Business plans.",
         "options": {
           "default": "CircleSfera purple",
           "blue": "Blue",
@@ -5056,6 +5056,7 @@
       "api_access_beta": "API access (beta)",
       "verified_filter": "You appear in the verified filter",
       "no_promoted_content": "No promoted content",
+      "profile_colour": "Profile colour",
       "personalization": "Profile personalization",
       "elite_badge": "Elite badge",
       "business_badge": "Business badge",

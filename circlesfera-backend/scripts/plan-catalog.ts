@@ -36,8 +36,15 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     formerNames: ['Verified'],
     priceCents: 999,
     yearlyPriceCents: 9990,
-    description: 'Verified badge and priority support.',
-    features: ['verified_badge', 'priority_support'],
+    // A feed without promoted posts and the Profile colour since PD-088.
+    description:
+      'Verified badge, priority support, a feed without promoted posts and a Profile colour.',
+    features: [
+      'verified_badge',
+      'priority_support',
+      'no_promoted_content',
+      'profile_colour',
+    ],
     badge: 'VERIFIED',
   },
   {
@@ -48,11 +55,12 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     priceCents: 1999,
     yearlyPriceCents: 19990,
     description:
-      'Elite badge, priority support, a feed without promoted posts, advanced analytics and Edits Studio Pro.',
+      'Elite badge, priority support, a feed without promoted posts, a Profile colour, advanced analytics and Edits Studio Pro.',
     features: [
       'verified_badge',
       'priority_support',
       'no_promoted_content',
+      'profile_colour',
       'advanced_analytics',
       'studio_pro',
     ],
@@ -65,11 +73,12 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     priceCents: 4999,
     yearlyPriceCents: 49990,
     description:
-      'Business badge, priority support, a feed without promoted posts, advanced analytics, team access for up to 5 people and Edits Studio Pro.',
+      'Business badge, priority support, a feed without promoted posts, a Profile colour, advanced analytics, team access for up to 5 people and Edits Studio Pro.',
     features: [
       'verified_badge',
       'priority_support',
       'no_promoted_content',
+      'profile_colour',
       'advanced_analytics',
       'team_access',
       'studio_pro',

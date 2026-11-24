@@ -9,11 +9,14 @@ import { SubscriptionStatus } from '@prisma/client';
  * - `team_access` is only shown: the team follows the Business plan itself,
  *   so it belongs on the Business plan alone.
  * - `studio_pro`: the Edits Studio's Pro features, for the Profile with it.
+ * - `no_promoted_content` and `profile_colour` follow the plan's features,
+ *   not its badge, so Premium (a verified badge) carries them (PD-088).
  */
 export const PLAN_FEATURE_KEYS = [
   'verified_badge',
   'priority_support',
   'no_promoted_content',
+  'profile_colour',
   'advanced_analytics',
   'team_access',
   'studio_pro',

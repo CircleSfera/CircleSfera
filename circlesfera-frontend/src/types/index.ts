@@ -113,6 +113,8 @@ export interface ProfileWithUser extends IProfile {
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   // Colour chosen for the profile page; empty means the colour of the app.
   accentColor?: string | null;
+  // On one's own Profile: whether its plan includes choosing that colour.
+  canChooseColour?: boolean;
   // Set when the session acts as this Profile as a team member: the role.
   memberRole?: 'ADMINISTRATOR' | 'EDITOR';
   isVerified?: boolean;

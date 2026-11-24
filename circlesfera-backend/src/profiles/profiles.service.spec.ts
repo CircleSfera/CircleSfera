@@ -39,7 +39,7 @@ describe('ProfilesService', () => {
       findUnique: vi.fn(),
     },
     platformSubscription: {
-      findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     block: {
       findFirst: vi.fn(),
@@ -164,7 +164,7 @@ describe('ProfilesService', () => {
         user: null,
         _count: { posts: 0, followers: 0, following: 0 },
       });
-      mockPrismaService.platformSubscription.findFirst.mockResolvedValue(null);
+      mockPrismaService.platformSubscription.findMany.mockResolvedValue([]);
       mockPrismaService.block.findFirst.mockResolvedValue({ id: 'block-2' });
 
       await expect(service.getProfile('dbuser', 'p-viewer')).rejects.toThrow(
@@ -208,7 +208,7 @@ describe('ProfilesService', () => {
     it('tells nobody who the person behind a Profile is, how it was sanctioned or how it is set up', async () => {
       mockCacheManager.get.mockResolvedValue(null);
       mockPrismaService.block.findFirst.mockResolvedValue(null);
-      mockPrismaService.platformSubscription.findFirst.mockResolvedValue(null);
+      mockPrismaService.platformSubscription.findMany.mockResolvedValue([]);
       mockPrismaService.profile.findFirst.mockResolvedValue({
         id: 'p-target',
         userId: 'u-target',
@@ -308,9 +308,7 @@ describe('ProfilesService', () => {
       it('shows the category, contact and address of a Business Profile', async () => {
         mockCacheManager.get.mockResolvedValue(null);
         mockPrismaService.block.findFirst.mockResolvedValue(null);
-        mockPrismaService.platformSubscription.findFirst.mockResolvedValue(
-          null,
-        );
+        mockPrismaService.platformSubscription.findMany.mockResolvedValue([]);
         mockPrismaService.profile.findFirst.mockResolvedValue(row('BUSINESS'));
 
         const result = await service.getProfile('shop');
@@ -328,9 +326,7 @@ describe('ProfilesService', () => {
         async (accountType) => {
           mockCacheManager.get.mockResolvedValue(null);
           mockPrismaService.block.findFirst.mockResolvedValue(null);
-          mockPrismaService.platformSubscription.findFirst.mockResolvedValue(
-            null,
-          );
+          mockPrismaService.platformSubscription.findMany.mockResolvedValue([]);
           mockPrismaService.profile.findFirst.mockResolvedValue(
             row(accountType),
           );
@@ -441,12 +437,30 @@ describe('ProfilesService', () => {
     });
 
     describe('profile colour', () => {
-      const stored = (verificationLevel: string) => ({
-        id: 'p-1',
-        userId: 'u-1',
-        username: 'testuser',
-        verificationLevel,
-      });
+      // The Profile, and the features its plans give now.
+      const stored = (verificationLevel: string) => {
+        const features: Record<string, string[]> = {
+          BASIC: [],
+          VERIFIED: ['verified_badge'],
+          PREMIUM: ['verified_badge', 'no_promoted_content', 'profile_colour'],
+          ELITE: ['verified_badge', 'profile_colour'],
+          BUSINESS: ['verified_badge', 'profile_colour'],
+        };
+        mockPrismaService.platformSubscription.findMany = vi
+          .fn()
+          .mockResolvedValue(
+            features[verificationLevel].length > 0
+              ? [{ plan: { features: features[verificationLevel] } }]
+              : [],
+          );
+        return {
+          id: 'p-1',
+          userId: 'u-1',
+          username: 'testuser',
+          verificationLevel:
+            verificationLevel === 'PREMIUM' ? 'VERIFIED' : verificationLevel,
+        };
+      };
       const saved = {
         id: 'p-1',
         userId: 'u-1',
@@ -457,7 +471,7 @@ describe('ProfilesService', () => {
       };
 
       it.each(['BASIC', 'VERIFIED'])(
-        'refuses a colour for a Profile on the %s level',
+        'refuses a colour for a Profile whose plan does not include it (%s)',
         async (level) => {
           mockPrismaService.profile.findUnique.mockResolvedValue(stored(level));
           mockPrismaService.profile.update.mockClear();
@@ -469,7 +483,7 @@ describe('ProfilesService', () => {
         },
       );
 
-      it.each(['ELITE', 'BUSINESS'])(
+      it.each(['PREMIUM', 'ELITE', 'BUSINESS'])(
         'saves the colour of a Profile on the %s plan',
         async (level) => {
           mockPrismaService.profile.findUnique.mockResolvedValue(stored(level));
@@ -896,7 +910,9 @@ describe('ProfilesService', () => {
         _count: { posts: 5, followers: 10, following: 2 },
       });
       mockPrismaService.platformSubscription = {
-        findFirst: vi.fn().mockResolvedValue({ id: 'sub-active' }),
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ plan: { features: ['verified_badge'] } }]),
       };
 
       const res: any = await service.getProfile('dbuser');
@@ -911,13 +927,14 @@ describe('ProfilesService', () => {
     });
 
     it.each([
-      ['ELITE', 'teal'],
-      ['BUSINESS', 'teal'],
-      ['VERIFIED', null],
-      ['BASIC', null],
+      ['Premium', 'VERIFIED', ['verified_badge', 'profile_colour'], 'teal'],
+      ['Elite Creator', 'ELITE', ['verified_badge', 'profile_colour'], 'teal'],
+      ['Business', 'BUSINESS', ['verified_badge', 'profile_colour'], 'teal'],
+      ['Verified', 'VERIFIED', ['verified_badge'], null],
+      ['no', 'BASIC', [], null],
     ])(
-      'a Profile on the %s level shows the colour %s',
-      async (level, shown) => {
+      'a Profile on the %s plan shows the colour it chose only when its plan includes it',
+      async (_plan, level, features, shown) => {
         mockCacheManager.get.mockResolvedValue(null);
         mockPrismaService.profile.findFirst.mockResolvedValue({
           id: 'p-colour',
@@ -931,7 +948,11 @@ describe('ProfilesService', () => {
           _count: { posts: 0, followers: 0, following: 0 },
         });
         mockPrismaService.platformSubscription = {
-          findFirst: vi.fn().mockResolvedValue(null),
+          findMany: vi
+            .fn()
+            .mockResolvedValue(
+              features.length > 0 ? [{ plan: { features } }] : [],
+            ),
         };
 
         const res: any = await service.getProfile('colouruser');
@@ -957,7 +978,7 @@ describe('ProfilesService', () => {
         domain: 'acme.es',
       };
       mockPrismaService.platformSubscription = {
-        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
       };
       // The approved verification, then the application waiting, if any.
       const holds = (approved: object | null, pending: object | null) => {
@@ -1019,7 +1040,7 @@ describe('ProfilesService', () => {
         _count: { posts: 0, followers: 0, following: 0 },
       });
       mockPrismaService.platformSubscription = {
-        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
       };
 
       const res: any = await service.getProfile('eliteuser');
@@ -1124,7 +1145,7 @@ describe('ProfilesService', () => {
         _count: { followers: 100, following: 50 },
       });
       mockPrismaService.platformSubscription = {
-        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
       };
       mockPrismaService.signIn = {
         findFirst: vi.fn().mockResolvedValue({
@@ -1141,10 +1162,10 @@ describe('ProfilesService', () => {
       // The badge is looked for among the plans of this Profile, not among
       // those of the person's other Profiles.
       expect(
-        mockPrismaService.platformSubscription.findFirst.mock.calls[0][0].where,
+        mockPrismaService.platformSubscription.findMany.mock.calls[0][0].where,
       ).toMatchObject({ profileId: 'p-me' });
       expect(
-        mockPrismaService.platformSubscription.findFirst.mock.calls[0][0].where,
+        mockPrismaService.platformSubscription.findMany.mock.calls[0][0].where,
       ).not.toHaveProperty('userId');
       // A session that names no sign-in reads the Profile's own sign-in.
       expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
@@ -1173,7 +1194,7 @@ describe('ProfilesService', () => {
         _count: { followers: 0, following: 0, strikes: 0 },
       });
       mockPrismaService.platformSubscription = {
-        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
       };
       mockPrismaService.signIn = {
         findFirst: vi.fn().mockResolvedValue({
@@ -1545,6 +1566,8 @@ describe('ProfilesService', () => {
           id: 'p-shop',
           username: 'shop',
           memberRole: 'EDITOR',
+          // The Profile's plan, not the member's, decides the colour.
+          canChooseColour: false,
         });
         spy.mockRestore();
       });

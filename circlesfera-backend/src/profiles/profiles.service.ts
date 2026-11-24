@@ -6,7 +6,6 @@ import { type AccountType, Visibility } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import { accountStanding, lastActiveBucket } from '../abuse/trust-score.js';
-import { ENTITLED_STATUSES } from '../common/constants/plan-features.constants.js';
 import {
   BUSINESS_PROFILE_LIMIT,
   canPersonalizeProfile,
@@ -22,6 +21,7 @@ import { LISTED_POST } from '../common/policies/removed-content.policy.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { isVerifiedCompany } from '../company-verification/company-mark.js';
+import { profilePlanFeatures } from '../payments/plan-features.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { followTeamPlan } from '../team/team-plan.js';
@@ -235,19 +235,12 @@ export class ProfilesService {
 
     await this.assertNotBlocked(viewerProfileId, profile.id);
 
-    // The badge comes from a plan of this Profile, not of another Profile of
-    // the same person, that still gives it (ENTITLED_STATUSES).
-    const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
-      where: {
-        profileId: profile.id,
-        status: { in: [...ENTITLED_STATUSES] },
-        plan: { features: { has: 'verified_badge' } },
-      },
-      select: { id: true },
-    });
+    // The badge and the colour come from a plan of this Profile, not of
+    // another Profile of the same person, that still gives them.
+    const planFeatures = await profilePlanFeatures(this.prisma, profile.id);
 
     const planVerified =
-      !!isVerifiedResult ||
+      planFeatures.has('verified_badge') ||
       profile.verificationLevel === 'VERIFIED' ||
       profile.verificationLevel === 'ELITE' ||
       profile.verificationLevel === 'BUSINESS';
@@ -263,7 +256,7 @@ export class ProfilesService {
       isVerified: planVerified,
       // The chosen colour shows only while the plan that includes it is
       // active; the choice itself stays stored.
-      accentColor: canPersonalizeProfile(profile.verificationLevel)
+      accentColor: canPersonalizeProfile(planFeatures)
         ? profile.accentColor
         : null,
       ...businessPresentation(profile),
@@ -401,10 +394,13 @@ export class ProfilesService {
       await this.storedFiles.assertOwnedBy(profileId, [dto.avatar]);
     }
 
-    if (dto.accentColor && !canPersonalizeProfile(profile.verificationLevel)) {
+    if (
+      dto.accentColor &&
+      !canPersonalizeProfile(await profilePlanFeatures(this.prisma, profileId))
+    ) {
       throw AppException.Forbidden(
         ErrorCode.FORBIDDEN_ACCESS,
-        'Choosing a Profile colour needs the Elite Creator or Business plan',
+        'Choosing a Profile colour needs the Premium, Elite Creator or Business plan',
       );
     }
 
@@ -581,18 +577,12 @@ export class ProfilesService {
       );
     }
 
-    // The badge comes from a plan of this Profile that still gives it.
-    const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
-      where: {
-        profileId: profile.id,
-        status: { in: [...ENTITLED_STATUSES] },
-        plan: { features: { has: 'verified_badge' } },
-      },
-      select: { id: true },
-    });
+    // The badge and the colour come from a plan of this Profile that still
+    // gives them.
+    const planFeatures = await profilePlanFeatures(this.prisma, profile.id);
 
     const planVerified =
-      !!isVerifiedResult ||
+      planFeatures.has('verified_badge') ||
       profile.verificationLevel === 'VERIFIED' ||
       profile.verificationLevel === 'ELITE' ||
       profile.verificationLevel === 'BUSINESS';
@@ -612,6 +602,9 @@ export class ProfilesService {
       ...profile,
       accountType: profile.accountType,
       verificationLevel: profile.verificationLevel,
+      // Whether a plan of this Profile includes the Profile colour, so the
+      // app offers the choice instead of a refusal.
+      canChooseColour: canPersonalizeProfile(planFeatures),
       identityVerifiedAt: profile.user?.identityVerifiedAt,
       identityVerified: !!profile.user?.identityVerifiedAt,
       // A verification made before the date of birth was read from the
@@ -686,7 +679,12 @@ export class ProfilesService {
       string,
       unknown
     >;
-    return { ...view, memberRole };
+    // As on the owner's own view: whether the Profile's plan includes the
+    // colour, so an administrator is offered the choice.
+    const canChooseColour = canPersonalizeProfile(
+      await profilePlanFeatures(this.prisma, profileId),
+    );
+    return { ...view, memberRole, canChooseColour };
   }
 
   // Get all profiles owned by the authenticated User identity.
