@@ -48,14 +48,10 @@ export default function AccountSettings() {
     retry: false,
   });
 
-  // Verified before the date of birth was read from the document: it is
-  // verified again to pay or to charge.
-  const reverify =
-    !!profile?.identityVerifiedAt && profile?.dateOfBirthVerified === false;
-  const verified = !!profile?.identityVerifiedAt && !reverify;
+  const verified = !!profile?.identityVerifiedAt;
 
   useEffect(() => {
-    if (!profile || (profile.identityVerifiedAt && !reverify)) return;
+    if (!profile || profile.identityVerifiedAt) return;
     usersApi
       .syncIdentitySession()
       .then((res) => {
@@ -67,7 +63,7 @@ export default function AccountSettings() {
       .catch((err) => {
         logger.error('Failed to sync identity session:', err);
       });
-  }, [profile, reverify, queryClient, t]);
+  }, [profile, queryClient, t]);
 
   const deactivateMutation = useMutation({
     mutationFn: () => profileApi.deactivateAccount(),
@@ -254,9 +250,7 @@ export default function AccountSettings() {
             <p className="text-xs text-white/50 leading-relaxed mb-3">
               {verified
                 ? t('settings.account.verification.verified_desc')
-                : reverify
-                  ? t('settings.account.verification.reverify_desc')
-                  : t('settings.account.verification.unverified_desc')}
+                : t('settings.account.verification.unverified_desc')}
             </p>
             {verified ? (
               <div className="inline-flex items-center gap-2 text-green-400 font-medium text-xs px-2 py-1 bg-green-500/10 rounded-lg">
@@ -270,9 +264,7 @@ export default function AccountSettings() {
                 variant="outline"
                 className="min-h-11 text-sm font-semibold"
               >
-                {reverify
-                  ? t('settings.account.verification.reverify_btn')
-                  : t('settings.account.verification.btn')}
+                {t('settings.account.verification.btn')}
               </Button>
             )}
           </div>

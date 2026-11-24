@@ -54,7 +54,7 @@ describe('apiErrorMessage', () => {
       details: { minAge: 18, nested: { no: 1 } },
     });
     expect(apiErrorMessage(error, t)).toBe(
-      'Puedes pagar a partir de los 18 años, con tu identidad y tu fecha de nacimiento verificadas. Si ya te verificaste antes, vuelve a hacerlo en Ajustes → Cuenta.',
+      'Puedes pagar a partir de los 18 años, según la fecha de nacimiento de tu cuenta.',
     );
   });
 

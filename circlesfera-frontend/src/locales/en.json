@@ -310,9 +310,7 @@
         "unverified_desc": "Verify your identity to get the verified badge. You will need a valid ID or Passport.",
         "btn": "Verify identity",
         "verified": "Verified",
-        "error": "Failed to initialize verification session",
-        "reverify_desc": "Your identity is verified, but your date of birth was not read from your document then. Verify again to pay on CircleSfera.",
-        "reverify_btn": "Verify again"
+        "error": "Failed to initialize verification session"
       },
       "ledger": {
         "button": "Download Ledger",
@@ -5073,7 +5071,7 @@
     "button_business": "Choose Business",
     "identity_verified": "Your identity has been verified!",
     "verification_required_title": "Verification Required",
-    "verification_required_desc": "You must verify your identity before making purchases.",
+    "verification_required_desc": "Plans with the verified badge need your identity verified first.",
     "verify_button": "Verify Identity with Stripe",
     "verify_error": "Could not start identity verification.",
     "checkout_error": "Failed to start checkout. Please try again.",
@@ -6377,7 +6375,7 @@
       "GIF_NOT_FOUND": "That GIF isn't available. Pick another one.",
       "PAYMENTS_PAUSED": "Payments are paused for now. Please try again later.",
       "PROMOTIONS_NOT_ON_SALE": "Promotions are not on sale yet.",
-      "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, with your identity and date of birth verified. If you verified before, verify again in Settings → Account.",
+      "PAYER_UNDER_AGE": "You can pay from age {{minAge}}, by the date of birth on your account.",
       "MESSAGE_REQUESTS_OFF": "This account doesn't take message requests.",
       "CONTENT_UNDER_REVIEW": "This content is still being checked. It can be promoted once that is done: try again in a few minutes.",
       "COLLAB_NOT_ALLOWED": "Only a public post can have a collaborator, and never its author.",
