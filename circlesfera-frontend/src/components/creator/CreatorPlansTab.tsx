@@ -111,19 +111,22 @@ export default function CreatorPlansTab({ onToast }: Props) {
   };
 
   // The plan of the subscription when there is one; otherwise the plan the
-  // level stands for. The Verified and Premium plans both give the VERIFIED
-  // level, the badge, so without a subscription it stands for Verified.
-  const isTierActive = (planName: string) => {
+  // level stands for: the cheapest plan giving that badge (the plans come
+  // cheapest first), as Verified and Premium both give the VERIFIED level.
+  const isTierActive = (plan: PlatformPlanDto) => {
     // The add-on is held beside the plan, never as it.
-    if (isAddOnPlan(planName)) return studioProState(billingStatus) === 'held';
-    const lower = planName.toLowerCase();
+    if (isAddOnPlan(plan)) return studioProState(billingStatus) === 'held';
     if (billingStatus?.hasActiveSubscription) {
-      return billingStatus.subscription?.planName?.toLowerCase() === lower;
+      return (
+        billingStatus.subscription?.planName?.toLowerCase() ===
+        plan.name.toLowerCase()
+      );
     }
-    if (lower === 'verified') return currentLevel === 'VERIFIED';
-    if (lower.includes('elite')) return currentLevel === 'ELITE';
-    if (lower.includes('business')) return currentLevel === 'BUSINESS';
-    return false;
+    if (!currentLevel || currentLevel === 'BASIC') return false;
+    return (
+      plans?.find((p) => !isAddOnPlan(p) && p.badge === currentLevel)?.id ===
+      plan.id
+    );
   };
 
   const currentPlanLabel =
@@ -187,11 +190,10 @@ export default function CreatorPlansTab({ onToast }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans?.map((plan) => {
             const displayName = plan.name;
-            const active = isTierActive(plan.name);
+            const active = isTierActive(plan);
             // Edits Studio Pro already comes with this Profile's plan.
             const included =
-              isAddOnPlan(plan.name) &&
-              studioProState(billingStatus) === 'included';
+              isAddOnPlan(plan) && studioProState(billingStatus) === 'included';
             return (
               <div
                 key={plan.id}

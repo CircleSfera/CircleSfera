@@ -36,6 +36,17 @@ vi.mock('react-hot-toast', () => {
   return { toast: t, default: t };
 });
 
+// What the server sends of each plan, as the plan catalog sets it.
+const KIND: Record<
+  string,
+  { badge: string; forAccountType: string | null; addOn: boolean }
+> = {
+  Verified: { badge: 'VERIFIED', forAccountType: null, addOn: false },
+  Premium: { badge: 'VERIFIED', forAccountType: null, addOn: false },
+  'Elite Creator': { badge: 'ELITE', forAccountType: 'CREATOR', addOn: false },
+  Business: { badge: 'BUSINESS', forAccountType: 'BUSINESS', addOn: false },
+  'Edits Studio Pro': { badge: 'BASIC', forAccountType: null, addOn: true },
+};
 const plan = (name: string, id: string, priceCents: number) => ({
   id,
   name,
@@ -43,6 +54,7 @@ const plan = (name: string, id: string, priceCents: number) => ({
   currency: 'EUR',
   interval: 'month',
   features: ['feature_one'],
+  ...KIND[name],
 });
 
 // The shape the API client rejects with: server text in English.

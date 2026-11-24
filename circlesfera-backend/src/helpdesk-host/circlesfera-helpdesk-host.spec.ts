@@ -409,13 +409,13 @@ describe('CircleSfera as the host of the Help Desk', () => {
   describe('who has preference', () => {
     const levels = new PlanServiceLevel(prisma as never);
 
-    it('is a requester with any Profile on an active plan with priority support', async () => {
+    it('is a requester with any Profile on a plan with priority support that still gives it, a trial or a renewal being tried again included', async () => {
       prisma.platformSubscription.count.mockResolvedValue(1);
 
       expect(await levels.levelOf('u-1')).toBe('PRIORITY');
       expect(prisma.platformSubscription.count).toHaveBeenCalledWith({
         where: {
-          status: 'ACTIVE',
+          status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
           plan: { features: { has: 'priority_support' } },
           OR: [{ userId: 'u-1' }, { profile: { userId: 'u-1' } }],
         },

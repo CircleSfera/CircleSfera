@@ -1,3 +1,5 @@
+import { SubscriptionStatus } from '@prisma/client';
+
 /**
  * The features a platform plan can include, in the order the pricing page
  * lists them. A plan stores the keys of the ones it includes, and staff can
@@ -20,12 +22,17 @@ export const PLAN_FEATURE_KEYS = [
 export type PlanFeatureKey = (typeof PLAN_FEATURE_KEYS)[number];
 
 /**
- * Edits Studio Pro is an add-on: a Profile may hold it beside its plan
- * (Verified or Premium). The plans that include `studio_pro` already give
- * it, so it is not bought on top of them.
+ * The states of a subscription that give what its plan includes. A renewal
+ * that failed (PAST_DUE) keeps them while the payment provider tries the
+ * card again, as most services do; once it stops trying (UNPAID) or the
+ * subscription ends, they stop.
  */
-export const STUDIO_PRO_PLAN_NAME = 'Edits Studio Pro';
+export const ENTITLED_STATUSES = [
+  SubscriptionStatus.ACTIVE,
+  SubscriptionStatus.TRIALING,
+  SubscriptionStatus.PAST_DUE,
+] as const;
 
-export function isAddOnPlan(planName: string | null | undefined): boolean {
-  return planName === STUDIO_PRO_PLAN_NAME;
+export function isEntitled(status: SubscriptionStatus): boolean {
+  return (ENTITLED_STATUSES as readonly SubscriptionStatus[]).includes(status);
 }

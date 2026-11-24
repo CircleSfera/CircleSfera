@@ -1237,7 +1237,7 @@ describe('UsersService', () => {
         expect.objectContaining({
           where: { id: 'u_full' },
           data: expect.objectContaining({
-            dateOfBirth: new Date(1990, 4, 1),
+            dateOfBirth: new Date(Date.UTC(1990, 4, 1)),
             dateOfBirthVerified: true,
           }),
         }),
@@ -1589,127 +1589,105 @@ describe('UsersService', () => {
       });
     });
 
+    it('reads the plans that still give what they include, a renewal being tried again included', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await service.syncUserTier('u_grace');
+
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'u_grace' },
+        include: {
+          profiles: {
+            include: {
+              platformSubscriptions: {
+                where: {
+                  status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
+                },
+                include: { plan: true },
+              },
+            },
+          },
+        },
+      });
+    });
+
     it('returns early when user is not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       await service.syncUserTier('u_none');
       expect(mockPrismaService.profile.update).not.toHaveBeenCalled();
     });
 
-    it('sets BUSINESS verification for business plans without touching Account Type', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u_biz',
-        profiles: [
-          {
-            id: 'p_biz',
-            accountType: AccountType.PERSONAL,
-            verificationLevel: VerificationLevel.BASIC,
-            platformSubscriptions: [
-              {
-                status: SubscriptionStatus.ACTIVE,
-                plan: { name: 'Business Pro' },
-              },
-            ],
-          },
-        ],
-      });
-
-      await service.syncUserTier('u_biz');
-
-      expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
-        where: { id: 'p_biz' },
-        data: { verificationLevel: VerificationLevel.BUSINESS },
-      });
-    });
-
-    it('sets ELITE verification for elite plans without touching Account Type', async () => {
+    // A Profile holding plans with these badges, as the catalog sets them.
+    const holding = (
+      badges: VerificationLevel[],
+      verificationLevel: VerificationLevel = VerificationLevel.BASIC,
+    ) =>
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u1',
         profiles: [
           {
             id: 'p1',
             accountType: AccountType.PERSONAL,
-            verificationLevel: VerificationLevel.BASIC,
-            platformSubscriptions: [
-              { status: SubscriptionStatus.ACTIVE, plan: { name: 'Elite' } },
-            ],
+            verificationLevel,
+            platformSubscriptions: badges.map((badge) => ({
+              status: SubscriptionStatus.ACTIVE,
+              // The name tells nothing: the badge is what the plan gives.
+              plan: { name: 'Any plan', badge },
+            })),
           },
         ],
       });
+
+    it.each([
+      VerificationLevel.VERIFIED,
+      VerificationLevel.ELITE,
+      VerificationLevel.BUSINESS,
+    ])(
+      'sets the %s level its plan gives, without touching the Account Type',
+      async (badge) => {
+        holding([badge]);
+
+        await service.syncUserTier('u1');
+
+        expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
+          where: { id: 'p1' },
+          data: { verificationLevel: badge },
+        });
+      },
+    );
+
+    it('ranks Business above Elite, whatever order the plans come in', async () => {
+      holding([VerificationLevel.BUSINESS, VerificationLevel.ELITE]);
 
       await service.syncUserTier('u1');
 
       expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
         where: { id: 'p1' },
-        data: { verificationLevel: VerificationLevel.ELITE },
+        data: { verificationLevel: VerificationLevel.BUSINESS },
       });
     });
 
-    it('sets VERIFIED for the legacy Premium plan name', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u_prem',
-        profiles: [
-          {
-            id: 'p_prem',
-            accountType: AccountType.PERSONAL,
-            verificationLevel: VerificationLevel.BASIC,
-            platformSubscriptions: [
-              {
-                status: SubscriptionStatus.ACTIVE,
-                plan: { name: 'Premium Plan' },
-              },
-            ],
-          },
-        ],
-      });
+    it('sets the highest level among its plans and add-ons', async () => {
+      // An add-on gives no badge; Business is above Verified.
+      holding([
+        VerificationLevel.BASIC,
+        VerificationLevel.BUSINESS,
+        VerificationLevel.VERIFIED,
+      ]);
 
-      await service.syncUserTier('u_prem');
+      await service.syncUserTier('u1');
 
       expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
-        where: { id: 'p_prem' },
-        data: { verificationLevel: VerificationLevel.VERIFIED },
+        where: { id: 'p1' },
+        data: { verificationLevel: VerificationLevel.BUSINESS },
       });
     });
 
     it('does not update profile if verificationLevel already matches', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u_match',
-        profiles: [
-          {
-            id: 'p_match',
-            accountType: AccountType.BUSINESS,
-            verificationLevel: VerificationLevel.BUSINESS,
-            platformSubscriptions: [
-              { status: SubscriptionStatus.ACTIVE, plan: { name: 'Business' } },
-            ],
-          },
-        ],
-      });
+      holding([VerificationLevel.BUSINESS], VerificationLevel.BUSINESS);
 
-      await service.syncUserTier('u_match');
+      await service.syncUserTier('u1');
       expect(mockPrismaService.profile.update).not.toHaveBeenCalled();
-    });
-
-    it('sets VERIFIED for the current Verified plan name (regression)', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'u_ver',
-        profiles: [
-          {
-            id: 'p_ver',
-            accountType: AccountType.PERSONAL,
-            verificationLevel: VerificationLevel.BASIC,
-            platformSubscriptions: [
-              { status: SubscriptionStatus.ACTIVE, plan: { name: 'Verified' } },
-            ],
-          },
-        ],
-      });
-
-      await service.syncUserTier('u_ver');
-
-      expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
-        where: { id: 'p_ver' },
-        data: { verificationLevel: VerificationLevel.VERIFIED },
-      });
     });
 
     it('downgrades verification to BASIC without plans and keeps a user-chosen Creator type', async () => {

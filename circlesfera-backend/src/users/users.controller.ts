@@ -24,6 +24,7 @@ import {
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import { parseAllowedOrigins } from '../common/config/origin.config.js';
 import { DataExportService } from './data-export.service.js';
 import { UpdateLocaleDto } from './dto/update-locale.dto.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -171,8 +172,38 @@ export class UsersController {
       'http://localhost:5173';
     return this.usersService.createIdentitySession(
       user.userId,
-      body.returnUrl || `${frontendUrl}/accounts/account`,
+      this.ownReturnUrl(body?.returnUrl) ?? `${frontendUrl}/accounts/account`,
     );
+  }
+
+  // The provider sends the person back only to one of the web app's own
+  // origins (FRONTEND_URL, or an origin listed in CORS_ORIGIN); any other
+  // address is replaced by the account page. The native apps' addresses
+  // have no web origin, so they get the account page too (the provider's
+  // page opens in the system browser there anyway).
+  private ownReturnUrl(returnUrl: unknown): string | undefined {
+    if (typeof returnUrl !== 'string' || returnUrl.length > 2048) {
+      return undefined;
+    }
+    let origin: string;
+    try {
+      origin = new URL(returnUrl).origin;
+    } catch {
+      return undefined;
+    }
+    // A scheme with no web origin (capacitor:, javascript:, data:) is "null".
+    if (origin === 'null') return undefined;
+    const frontendUrl = this.configService?.get<string>('FRONTEND_URL');
+    const own = new Set(
+      parseAllowedOrigins(
+        this.configService?.get<string>('CORS_ORIGIN'),
+        false,
+      ),
+    );
+    if (URL.canParse(frontendUrl ?? '')) {
+      own.add(new URL(frontendUrl as string).origin);
+    }
+    return own.has(origin) ? returnUrl : undefined;
   }
 
   @Post('identity-session/sync')

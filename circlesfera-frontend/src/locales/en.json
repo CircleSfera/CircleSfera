@@ -345,7 +345,8 @@
       "pro_desc": "Elite creator upgrade",
       "status_active": "Active",
       "status_trialing": "Free trial",
-      "status_past_due": "Payment overdue",
+      "status_past_due": "Payment overdue: we keep trying and you keep your plan. Check your card in the billing portal.",
+      "status_unpaid": "Unpaid: your plan is paused until you pay the open invoice in the billing portal.",
       "status_incomplete": "Payment pending",
       "status_cancelled": "Cancelled",
       "status_expired": "Expired",
@@ -3493,6 +3494,7 @@
         "ACTIVE": "Active",
         "TRIALING": "Trialing",
         "PAST_DUE": "Payment pending",
+        "UNPAID": "Unpaid",
         "INCOMPLETE": "Incomplete",
         "CANCELLED": "Cancelled",
         "EXPIRED": "Expired"

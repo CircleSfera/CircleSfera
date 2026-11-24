@@ -345,7 +345,8 @@
       "pro_desc": "Mejora para creadores élite",
       "status_active": "Activa",
       "status_trialing": "Prueba gratuita",
-      "status_past_due": "Pago atrasado",
+      "status_past_due": "Pago atrasado: lo seguimos intentando y mantienes tu plan. Revisa tu tarjeta en el portal de pagos.",
+      "status_unpaid": "Sin pagar: tu plan está en pausa hasta que pagues la factura pendiente en el portal de pagos.",
       "status_incomplete": "Pago pendiente",
       "status_cancelled": "Cancelada",
       "status_expired": "Caducada",
@@ -3493,6 +3494,7 @@
         "ACTIVE": "Activa",
         "TRIALING": "En prueba",
         "PAST_DUE": "Pago pendiente",
+        "UNPAID": "Impagada",
         "INCOMPLETE": "Sin completar",
         "CANCELLED": "Cancelada",
         "EXPIRED": "Caducada"

@@ -139,9 +139,10 @@ describe('AdminUsersService: broadcasts', () => {
   it('counts and sends to one language, and to who has a plan or has none', async () => {
     prisma.user.count.mockResolvedValue(3);
     prisma.user.findMany.mockResolvedValue([]);
+    // A renewal being tried again is still a plan.
     const withPlan = {
       platformSubscriptions: {
-        some: { status: { in: ['ACTIVE', 'TRIALING'] } },
+        some: { status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] } },
       },
     };
 

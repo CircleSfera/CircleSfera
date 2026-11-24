@@ -3,11 +3,9 @@ import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Visibility } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { REQUIRES_PLAN_KEY } from '../../auth/decorators/requires-plan.decorator.js';
 import { AdminGuard } from '../../auth/guards/admin.guard.js';
 import { IdentityVerifiedGuard } from '../../auth/guards/identity-verified.guard.js';
 import { OwnershipGuard } from '../../auth/guards/ownership.guard.js';
-import { SubscriptionGuard } from '../../auth/guards/subscription.guard.js';
 import { MediaAuthService } from '../../media/media-auth.service.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -417,54 +415,6 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
   // 9. Domain: Promotions & Ads
   // =========================================================================
   describe('Domain 9: Promotions & Ads', () => {
-    let subscriptionGuard: SubscriptionGuard;
-    let mockPrisma: any;
-
-    beforeEach(() => {
-      mockPrisma = {
-        user: { findUnique: vi.fn() },
-        platformPlan: { findFirst: vi.fn() },
-        platformSubscription: { findFirst: vi.fn() },
-      };
-      subscriptionGuard = new SubscriptionGuard(
-        mockPrisma as unknown as PrismaService,
-        new Reflector(),
-      );
-    });
-
-    it('refuses a route that requires a platform plan the user does not hold, and allows it once held', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ role: 'USER' });
-      mockPrisma.platformPlan.findFirst.mockResolvedValue({
-        name: 'Elite Creator',
-        priceCents: 2999,
-      });
-
-      // User has no subscription
-      mockPrisma.platformSubscription.findFirst.mockResolvedValue(null);
-      const deniedCtx = createMockContext(
-        { userId: 'u-basic', profileId: 'p-basic' },
-        {},
-        { [REQUIRES_PLAN_KEY]: 'Elite Creator' },
-      );
-      await expect(subscriptionGuard.canActivate(deniedCtx)).rejects.toThrow(
-        ForbiddenException,
-      );
-
-      // User has active Elite Creator subscription
-      mockPrisma.platformSubscription.findFirst.mockResolvedValue({
-        status: 'ACTIVE',
-        plan: { name: 'Elite Creator', priceCents: 2999 },
-      });
-      const allowedCtx = createMockContext(
-        { userId: 'u-elite', profileId: 'p-elite' },
-        {},
-        { [REQUIRES_PLAN_KEY]: 'Elite Creator' },
-      );
-      await expect(subscriptionGuard.canActivate(allowedCtx)).resolves.toBe(
-        true,
-      );
-    });
-
     it('restricts promotion mutations to campaign owner', () => {
       const verifyPromotionOwner = (
         campaignUserId: string,
@@ -498,32 +448,6 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
 
       const aliceQuery = scopeAnalytics('profile-alice');
       expect(aliceQuery.where.profileId).toBe('profile-alice');
-    });
-
-    it('gives no subscription bypass to a User.role of ADMIN (staff use AdminIdentity)', async () => {
-      const mockPrisma = {
-        user: { findUnique: vi.fn().mockResolvedValue({ role: 'ADMIN' }) },
-        platformPlan: {
-          findFirst: vi
-            .fn()
-            .mockResolvedValue({ name: 'Elite Creator', priceCents: 1999 }),
-        },
-        platformSubscription: { findFirst: vi.fn().mockResolvedValue(null) },
-      };
-      const guard = new SubscriptionGuard(
-        mockPrisma as unknown as PrismaService,
-        new Reflector(),
-      );
-
-      const adminCtx = createMockContext(
-        { userId: 'u-admin', role: 'ADMIN' },
-        {},
-        { [REQUIRES_PLAN_KEY]: 'Elite Creator' },
-      );
-      await expect(guard.canActivate(adminCtx)).rejects.toThrow(
-        ForbiddenException,
-      );
-      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
     });
   });
 

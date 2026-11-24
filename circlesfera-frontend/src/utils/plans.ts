@@ -9,35 +9,32 @@ export function hasElitePlan(verificationLevel: string | null | undefined) {
 
 export type ProfileAccountKind = 'PERSONAL' | 'CREATOR' | 'BUSINESS';
 
-/**
- * The type of profile a plan is for, from its name: Business for business
- * profiles, Elite Creator for creator profiles, Premium for any. The server
- * refuses the others at checkout; the pricing page says so beforehand.
- */
-export function planAccountType(planName: string): ProfileAccountKind | null {
-  const name = planName.toLowerCase();
-  if (name.includes('business')) return 'BUSINESS';
-  if (name.includes('elite')) return 'CREATOR';
-  return null;
-}
+// What the pricing pages read of a plan to know what it is and for whom: the
+// fields the plan catalog sets, never the plan's name.
+type PlanKind = {
+  forAccountType?: ProfileAccountKind | null;
+  addOn?: boolean;
+};
 
-/** Whether a profile of that type can buy the plan. */
+/**
+ * Whether a profile of that type can buy the plan: a plan for one type of
+ * profile (Elite Creator for creators, Business for businesses) only for
+ * it, the others for any. The server refuses the others at checkout; the
+ * pricing page says so beforehand.
+ */
 export function planFitsProfile(
-  planName: string,
+  plan: PlanKind,
   accountType: ProfileAccountKind | null | undefined,
 ): boolean {
-  const required = planAccountType(planName);
-  return !required || required === accountType;
+  return !plan.forAccountType || plan.forAccountType === accountType;
 }
 
 /**
  * Edits Studio Pro is an add-on, held beside the Verified or Premium plan;
- * Elite Creator and Business include it. The server knows it by this name.
+ * Elite Creator and Business include it.
  */
-export const STUDIO_PRO_PLAN_NAME = 'Edits Studio Pro';
-
-export function isAddOnPlan(planName: string | null | undefined): boolean {
-  return planName === STUDIO_PRO_PLAN_NAME;
+export function isAddOnPlan(plan: PlanKind | null | undefined): boolean {
+  return plan?.addOn === true;
 }
 
 type StudioProBilling = {
@@ -55,8 +52,14 @@ export function studioProState(
   billing: StudioProBilling | undefined,
 ): 'held' | 'included' | 'none' {
   const status = billing?.studioPro?.subscription?.status;
-  // A renewal that failed is still the add-on: paid, not bought again.
-  if (status === 'ACTIVE' || status === 'TRIALING' || status === 'PAST_DUE')
+  // A renewal that failed is still the add-on, being tried again or left
+  // unpaid: paid, not bought again.
+  if (
+    status === 'ACTIVE' ||
+    status === 'TRIALING' ||
+    status === 'PAST_DUE' ||
+    status === 'UNPAID'
+  )
     return 'held';
   if (billing?.studioPro?.includedInPlan) return 'included';
   return 'none';

@@ -266,14 +266,14 @@ describe('EditsService', () => {
   });
 
   describe('studioPro', () => {
-    it('is true only with a running plan or add-on of this Profile that includes it', async () => {
+    it('is true only with a plan or add-on of this Profile that includes it and still gives it, a renewal being tried again included', async () => {
       mockPrismaService.platformSubscription.count.mockResolvedValueOnce(1);
       await expect(service.studioPro('p-1')).resolves.toEqual({ pro: true });
       expect(mockPrismaService.platformSubscription.count).toHaveBeenCalledWith(
         {
           where: {
             profileId: 'p-1',
-            status: { in: ['ACTIVE', 'TRIALING'] },
+            status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
             plan: { features: { has: 'studio_pro' } },
           },
         },

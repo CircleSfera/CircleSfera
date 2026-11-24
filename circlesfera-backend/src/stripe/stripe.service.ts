@@ -138,7 +138,7 @@ export class StripeService implements OnModuleInit {
     } else if (!this.identityKey()) {
       // Said, not refused: everything else works without it.
       this.logger.warn(
-        'STRIPE_IDENTITY_KEY is not a restricted key of the same mode as STRIPE_SECRET_KEY: dates of birth are not read from identity documents, so nobody can be shown to be an adult payer and nobody can pay.',
+        'STRIPE_IDENTITY_KEY is not a restricted key of the same mode as STRIPE_SECRET_KEY: dates of birth are not read from identity documents (an adult pays by the date given at sign-up).',
       );
     }
   }
