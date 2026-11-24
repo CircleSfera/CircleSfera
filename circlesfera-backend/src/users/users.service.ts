@@ -1214,12 +1214,14 @@ export class UsersService {
           where: { id: profile.id },
           data: { verificationLevel: targetVerificationLevel },
         });
-        // The public profile is cached with what the old level allowed.
-        await forgetCachedProfiles(this.cacheManager, [profile.username]);
         this.logger.log(
           `Profile ${profile.id} verification synced: ${targetVerificationLevel}`,
         );
       }
+      // The public profile is cached with what the plans gave before: the
+      // badge, and the colour, which can change while the badge stays
+      // (Premium ending on a Profile that keeps a verified badge, PD-088).
+      await forgetCachedProfiles(this.cacheManager, [profile.username]);
       // The team pauses when the Business plan ends and returns with it.
       await followTeamPlan(this.prisma, profile.id);
     }

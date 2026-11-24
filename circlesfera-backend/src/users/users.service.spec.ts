@@ -1535,7 +1535,7 @@ describe('UsersService', () => {
   });
 
   describe('syncUserTier', () => {
-    it('clears the cached public profile when the level changes, and only then', async () => {
+    it('clears the cached public profile on every plan change, the badge kept or not (the colour follows the plan, PD-088)', async () => {
       const profile = (verificationLevel: VerificationLevel) => ({
         id: 'p_down',
         username: 'ana',
@@ -1552,13 +1552,15 @@ describe('UsersService', () => {
       await service.syncUserTier('u_down');
       expect(mockCacheManager.del).toHaveBeenCalledWith('profile:ana');
 
+      // Premium ending while the level stays: the colour it gave must go
+      // from the cached view too.
       mockCacheManager.del.mockClear();
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u_down',
         profiles: [profile(VerificationLevel.BASIC)],
       });
       await service.syncUserTier('u_down');
-      expect(mockCacheManager.del).not.toHaveBeenCalled();
+      expect(mockCacheManager.del).toHaveBeenCalledWith('profile:ana');
     });
 
     it('pauses the team of each Profile that leaves the Business plan', async () => {
