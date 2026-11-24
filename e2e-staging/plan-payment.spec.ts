@@ -103,26 +103,27 @@ async function payOnCheckout(page: Page) {
   if (await card.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await card.click();
   }
-  await page
-    .locator('#cardNumber')
-    .fill('4242 4242 4242 4242', { timeout: 30_000 });
-  await page.locator('#cardExpiry').fill('12 / 34');
-  await page.locator('#cardCvc').fill('123');
-  await page.locator('#billingName').fill('QA Payer');
-  const country = page.locator('#billingCountry');
+  // The fields by their standard autocomplete names, which stay when the
+  // provider redesigns its page (its own ids did not).
+  const field = (autocomplete: string) =>
+    page.locator(`input[autocomplete="${autocomplete}"]`).first();
+  await field('cc-number').fill('4242 4242 4242 4242', { timeout: 30_000 });
+  await field('cc-exp').fill('12 / 34');
+  await field('cc-csc').fill('123');
+  const optional = async (autocomplete: string, value: string) => {
+    const input = field(autocomplete);
+    if (await input.isVisible().catch(() => false)) await input.fill(value);
+  };
+  await optional('cc-name', 'QA Payer');
+  const country = page.locator('select[autocomplete="country"]').first();
   if (await country.isVisible().catch(() => false)) {
     await country.selectOption('ES');
   }
-  for (const [id, value] of [
-    ['#billingAddressLine1', 'Calle Mayor 1'],
-    ['#billingPostalCode', '28013'],
-    ['#billingLocality', 'Madrid'],
-  ] as const) {
-    const field = page.locator(id);
-    if (await field.isVisible().catch(() => false)) await field.fill(value);
-  }
-  // Never saved with the provider's own wallet.
-  const save = page.locator('#enableStripePass');
+  await optional('address-line1', 'Calle Mayor 1');
+  await optional('postal-code', '28013');
+  await optional('address-level2', 'Madrid');
+  // Never saved with the provider's own wallet, which would ask for a phone.
+  const save = page.getByRole('checkbox', { name: /save my information/i });
   if (await save.isChecked().catch(() => false)) await save.uncheck();
   await page
     .getByTestId('hosted-payment-submit-button')
