@@ -13,9 +13,10 @@ the full text of ADRs in `docs/adr/`.
 - Update the backlog item in Notion → Execution → CircleSfera Implementation
   Backlog: status, the pull request, and what remains open.
 - Whether the change needs an ADR or a technology decision: Notion →
-  Engineering → Engineering Foundation, section 3 (AD-004). A new decision is
-  proposed to the owner with options and a recommendation, never recorded as
-  taken.
+  Engineering → Engineering Foundation, section 3 (AD-004). A decision the agent
+  took is recorded as taken by the agent, with its reason and the options it
+  weighed; one inside the owner's gate (AGENTS.md) is recorded as proposed
+  until the owner answers.
 - Code shows what is implemented, not what is intended: never write current
   behaviour into Notion as product intent.
 

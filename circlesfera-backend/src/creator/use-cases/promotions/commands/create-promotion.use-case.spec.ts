@@ -69,6 +69,34 @@ describe('CreatePromotionUseCase', () => {
     useCase = module.get<CreatePromotionUseCase>(CreatePromotionUseCase);
   });
 
+  it('asks a buyer who is not a customer yet for the address the VAT needs, saving nothing on a customer', async () => {
+    mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'p-1' }]);
+    mockPrismaService.post.findFirst.mockResolvedValue({
+      id: 'post-100',
+      profileId: 'p-1',
+    });
+    mockPrismaService.user.findUnique.mockResolvedValue({
+      id: 'u-1',
+      email: 'creator@example.com',
+      stripeCustomerId: null,
+    });
+    mockPrismaService.promotion.create.mockResolvedValue({ id: 'promo-1' });
+    mockStripeService.createCheckoutSession.mockResolvedValue({
+      id: 'cs_1',
+      url: 'https://checkout.stripe.com/pay/cs_1',
+    });
+
+    await useCase.execute('u-1', 'post', 'post-100', 7, 50, 'EUR');
+
+    const params = mockStripeService.createCheckoutSession.mock.calls[0][0];
+    expect(params).toMatchObject({
+      customer_email: 'creator@example.com',
+      automatic_tax: { enabled: true },
+      billing_address_collection: 'required',
+    });
+    expect(params).not.toHaveProperty('customer_update');
+  });
+
   it('creates promotion and checkout session when target post is owned by user', async () => {
     mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'p-1' }]);
     mockPrismaService.post.findFirst.mockResolvedValue({
@@ -122,9 +150,15 @@ describe('CreatePromotionUseCase', () => {
                 name: 'Promotion: POST',
                 description: 'Promotion for 7 days',
               }),
+              // VAT inside the budget, worked out by the provider.
+              tax_behavior: 'inclusive',
             }),
           }),
         ],
+        automatic_tax: { enabled: true },
+        billing_address_collection: 'required',
+        // The address is saved on the customer the buyer already is.
+        customer_update: { address: 'auto', name: 'auto' },
       }),
     );
     expect(result.url).toBe('https://checkout.stripe.com/pay/cs_123');

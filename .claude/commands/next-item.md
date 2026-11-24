@@ -17,11 +17,12 @@ The backlog is Notion → Execution → CircleSfera Implementation Backlog
 - Read the whole item: Description, Expected Outcome, Acceptance Criteria,
   Implementation Notes, Dependencies. An item whose dependency is not DONE is
   skipped.
-- If the item needs the owner (AGENTS.md "Explicit confirmation required", a
-  new Product, Business or Decision Register decision, or anything ambiguous
-  you cannot settle from the code): do not build it. Set it to BLOCKED, write
+- If the item falls inside the owner's gate (AGENTS.md "The owner's gate"):
+  do not build it. Set it to BLOCKED, write
   the question at the top of its Implementation Notes with the options and
   your recommendation, tell the owner, and take the next item.
+- Anything else ambiguous is yours to settle: decide, record the decision in
+  the Decision Register with its reason, and build.
 - Otherwise set it to IN PROGRESS.
 
 ## 2. Plan
@@ -33,19 +34,19 @@ authentication, authorization, money, personal data or production (then the
 review in step 4 is required). A plan that grows beyond one pull request is
 split: the first slice now, the rest as new backlog items.
 
-## 3. Build, in one working folder
+## 3. Build, in the repository
 
-- One worktree beside the repository, `../CircleSfera-work`, created from
-  `origin/main` on a new branch named after the change
-  (`fix/…`, `feat/…`, `refactor/…`, `chore/…`, `docs/…`, `test/…`). Reuse
-  that folder for the next item; never create one folder per item.
+- In the repository itself (AGENTS.md, Working folder), on a new branch from
+  `origin/main` named after the change
+  (`fix/…`, `feat/…`, `refactor/…`, `chore/…`, `docs/…`, `test/…`). Never a
+  worktree, copy or directory beside it.
 - Delegate the code to `backend-dev` and/or `frontend-dev` with the plan and
-  the folder; build small changes yourself.
+  the branch; build small changes yourself.
 - Every behaviour change has a test that fails without it.
 
 ## 4. Check
 
-- `node scripts/agent-check.mjs` from the root of the working folder must end
+- `node scripts/agent-check.mjs` from the root of the repository must end
   with "Every check passed". It installs what is missing, the root tools
   included. Never weaken, skip or loosen a test or a check to make it pass.
 - On Windows two backend tests fail on `main` too (`data-export`,
@@ -64,9 +65,9 @@ split: the first slice now, the rest as new backlog items.
 - Push the branch and open the pull request against `main` with: What, Why,
   Checks (each check run and its result; a check not run is said to be not
   run), and the backlog item it tracks.
-- A pull request that changes `.github/workflows/` is merged by the owner:
-  open it, tell the owner, and stop at that item.
-- Otherwise, once its required checks are green and no review thread is
+- A pull request that changes `.github/workflows/` goes through `reviewer`
+  first, always.
+- Once its required checks are green and no review thread is
   unresolved, put it in the merge queue:
   `gh api graphql -f query='mutation($id:ID!){enqueuePullRequest(input:{pullRequestId:$id}){mergeQueueEntry{position}}}' -f id=<node id>`
   (`gh pr view <n> --json id -q .id`). If a check fails, read its log, fix
@@ -75,6 +76,7 @@ split: the first slice now, the rest as new backlog items.
 
 ## 6. Production
 
+- Waits (checks, queue, deploy) run in the background; never block on them.
 - After the merge, follow the deploy run on `main`
   (`gh run list --workflow deploy.yml`): staging, its browser checks, then
   production. If staging stops it, the change goes no further: fix it in a
@@ -85,8 +87,7 @@ split: the first slice now, the rest as new backlog items.
 - Set the backlog item to DONE with the pull request link and what remains
   open (new items for anything left).
 - Ask `docs` to correct the Notion pages the change made untrue.
-- Remove the working folder's branch locally once merged
-  (`git branch -D <branch>`); keep the folder for the next item.
+- Remove the branch locally once merged (`git branch -D <branch>`).
 
 ## 7. Report
 
