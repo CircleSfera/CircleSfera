@@ -151,6 +151,9 @@ describe('PromoteModal', () => {
   it('says what is paid and when the promotion ends, and promises no reach', () => {
     open(post);
 
+    // The budget includes VAT, as plan prices do.
+    expect(screen.getByText('VAT included')).toBeInTheDocument();
+
     expect(
       screen.getByText(
         'You pay it now, once. The promotion ends when the budget is spent or after 7 days, whichever comes first.',
