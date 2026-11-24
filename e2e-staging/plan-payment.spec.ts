@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { type Session, signIn, VIEWER } from './session.js';
+import { PAYER, type Session, signIn } from './session.js';
 
 const STRIPE = 'https://api.stripe.com/v1';
 
@@ -66,12 +66,10 @@ async function endOpenSubscriptions(userId: string, since: number) {
 }
 
 // The provider's identity page in test mode offers its own test outcomes;
-// the one that verifies gives an adult's document data.
+// the one that verifies the identity.
 async function verifyIdentityWithTestData(page: Page) {
   await page.goto('/accounts/account');
-  await page
-    .getByRole('button', { name: /^(Verify identity|Verify again)$/ })
-    .click();
+  await page.getByRole('button', { name: 'Verify identity' }).click();
   await page.waitForURL(/^https:\/\/verify\.stripe\.com\//, {
     timeout: 30_000,
   });
@@ -110,7 +108,7 @@ async function payOnCheckout(page: Page) {
     .fill('4242 4242 4242 4242', { timeout: 30_000 });
   await page.locator('#cardExpiry').fill('12 / 34');
   await page.locator('#cardCvc').fill('123');
-  await page.locator('#billingName').fill('QA Viewer');
+  await page.locator('#billingName').fill('QA Payer');
   const country = page.locator('#billingCountry');
   if (await country.isVisible().catch(() => false)) {
     await country.selectOption('ES');
@@ -140,7 +138,7 @@ test('a plan is bought on Pricing and paid at the provider; withdrawing ends it 
   test.setTimeout(300_000);
   stripeKey();
   const since = Math.floor(Date.now() / 1000) - 30 * 24 * 3600;
-  const viewer = await signIn(browser, VIEWER, { phone: true });
+  const viewer = await signIn(browser, PAYER, { phone: true });
   const me = (await (await viewer.get('/profiles/me')).json()) as {
     userId?: string;
     user?: { id: string };
@@ -159,51 +157,37 @@ test('a plan is bought on Pricing and paid at the provider; withdrawing ends it 
       })
       .toBe(false);
 
-    // Only an adult with a verified identity pays.
+    // An adult pays, by the date of birth the Test Account was made with;
+    // Verified carries the badge, so it also needs the identity verified.
     const page = viewer.page;
-    // Said as the app holds it, so a failure shows which part is missing.
-    const identity = async () => {
+    const verified = async () => {
       const now = (await (await viewer.get('/profiles/me')).json()) as {
         identityVerifiedAt?: string | null;
-        dateOfBirthVerified?: boolean;
       };
-      return `identity verified: ${!!now.identityVerifiedAt}, date of birth verified: ${!!now.dateOfBirthVerified}`;
+      return !!now.identityVerifiedAt;
     };
-    const ADULT = 'identity verified: true, date of birth verified: true';
-    if ((await identity()) !== ADULT) {
+    if (!(await verified())) {
       const asked = Math.floor(Date.now() / 1000) - 5;
       await verifyIdentityWithTestData(page);
-      // What the provider holds of the session: its status, and whether it
-      // read a date of birth (never the date itself).
+      // What the provider holds of the session, so a failure shows where it
+      // stopped.
       const provider = async () => {
         const sessions = await stripe<{
-          data: Array<{ id: string; metadata: { userId?: string } }>;
+          data: Array<{ status: string; metadata: { userId?: string } }>;
         }>(`/identity/verification_sessions?limit=10&created[gte]=${asked}`);
         const mine = sessions.data.find((s) => s.metadata.userId === userId);
-        if (!mine) return 'provider: no session';
-        const full = await stripe<{
-          status: string;
-          verified_outputs?: { dob?: { year?: number } | null } | null;
-        }>(
-          `/identity/verification_sessions/${mine.id}?expand[]=verified_outputs`,
-        );
-        return `provider: ${full.status}, date of birth read: ${!!full.verified_outputs?.dob?.year}`;
+        return `provider: ${mine?.status ?? 'no session'}`;
       };
       await expect
         .poll(
           async () => {
             const sync = await viewer.post('/users/identity-session/sync');
-            const said = (await sync.json().catch(() => ({}))) as {
-              status?: string;
-            };
-            const held = await identity();
-            return held === ADULT
-              ? held
-              : `${held}; sync: ${sync.status()} ${said.status}; ${await provider()}`;
+            if (await verified()) return 'identity verified';
+            return `not verified; sync: ${sync.status()}; ${await provider()}`;
           },
           { timeout: 90_000, intervals: [5_000] },
         )
-        .toBe(ADULT);
+        .toBe('identity verified');
     }
 
     // Verified, by the month: the cheapest plan.
