@@ -183,12 +183,15 @@ describe('PaymentsService', () => {
       const map = (status: string) => (service as any).mapStripeStatus(status);
       expect(map('active')).toBe(SubscriptionStatus.ACTIVE);
       expect(map('trialing')).toBe(SubscriptionStatus.TRIALING);
+      // Still being tried again, and no longer.
       expect(map('past_due')).toBe(SubscriptionStatus.PAST_DUE);
-      expect(map('unpaid')).toBe(SubscriptionStatus.PAST_DUE);
+      expect(map('unpaid')).toBe(SubscriptionStatus.UNPAID);
       expect(map('incomplete')).toBe(SubscriptionStatus.INCOMPLETE);
       expect(map('incomplete_expired')).toBe(SubscriptionStatus.EXPIRED);
       expect(map('canceled')).toBe(SubscriptionStatus.CANCELLED);
-      expect(map('unknown_status')).toBe(SubscriptionStatus.PAST_DUE);
+      // A state not known here gives nothing.
+      expect(map('paused')).toBe(SubscriptionStatus.UNPAID);
+      expect(map('unknown_status')).toBe(SubscriptionStatus.UNPAID);
     });
   });
 
@@ -2948,18 +2951,28 @@ describe('PaymentsService', () => {
       expect(res.subscription?.priceCents).toBe(2000);
     });
 
-    it('returns hasActiveSubscription: false for PAST_DUE subscription', async () => {
+    it.each([
+      // The provider is trying the card again: the plan still runs.
+      [SubscriptionStatus.PAST_DUE, true],
+      // It has stopped trying: the plan gives nothing until paid.
+      [SubscriptionStatus.UNPAID, false],
+    ])('says a plan %s runs: %s', async (status, running) => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue({
         id: 'sub_past',
         planId: 'plan_pro',
-        status: SubscriptionStatus.PAST_DUE,
+        status,
         createdAt: new Date('2026-01-01'),
-        plan: { name: 'Pro', priceCents: 2000, currency: 'EUR', features: [] },
+        plan: {
+          name: 'Pro',
+          priceCents: 2000,
+          currency: 'EUR',
+          features: [],
+        },
       });
 
       const res = await service.getBillingStatus('u_1', 'prof_1');
-      expect(res.hasActiveSubscription).toBe(false);
-      expect(res.subscription?.status).toBe(SubscriptionStatus.PAST_DUE);
+      expect(res.hasActiveSubscription).toBe(running);
+      expect(res.subscription?.status).toBe(status);
     });
 
     it('reads the plan of the Profile in use, and names the other Profiles of the person that have one', async () => {

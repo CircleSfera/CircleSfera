@@ -11,7 +11,6 @@ import {
   ContentRating,
   type Locale,
   type Prisma,
-  SubscriptionStatus,
   VerificationLevel,
   Visibility,
 } from '@prisma/client';
@@ -24,6 +23,7 @@ import {
   announceAdminNotices,
   ensureGroupAdmin,
 } from '../chat/services/group-admin-succession.service.js';
+import { ENTITLED_STATUSES } from '../common/constants/plan-features.constants.js';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { isTestViewer } from '../common/policies/test-account.policy.js';
@@ -1173,12 +1173,10 @@ export class UsersService {
       include: {
         profiles: {
           include: {
+            // The plans that still give what they include: a renewal being
+            // tried again included (ENTITLED_STATUSES).
             platformSubscriptions: {
-              where: {
-                status: {
-                  in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-                },
-              },
+              where: { status: { in: [...ENTITLED_STATUSES] } },
               include: { plan: true },
             },
           },

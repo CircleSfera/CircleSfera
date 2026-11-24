@@ -6,7 +6,10 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { AccountType, SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
-import { isAddOnPlan } from '../common/constants/plan-features.constants.js';
+import {
+  isAddOnPlan,
+  isEntitled,
+} from '../common/constants/plan-features.constants.js';
 import {
   PLAN_START_CONSENT_VERSION,
   planStartConsentMetadata,
@@ -185,9 +188,14 @@ export class PaymentsService {
         return SubscriptionStatus.ACTIVE;
       case 'trialing':
         return SubscriptionStatus.TRIALING;
+      // A renewal that failed, which the provider is still trying: the plan
+      // keeps what it gives meanwhile (ENTITLED_STATUSES).
       case 'past_due':
-      case 'unpaid':
         return SubscriptionStatus.PAST_DUE;
+      // The provider has stopped trying: the invoice stays open, and nothing
+      // is given until it is paid.
+      case 'unpaid':
+        return SubscriptionStatus.UNPAID;
       case 'incomplete':
         return SubscriptionStatus.INCOMPLETE;
       case 'incomplete_expired':
@@ -195,8 +203,8 @@ export class PaymentsService {
       case 'canceled':
         return SubscriptionStatus.CANCELLED;
       default:
-        // Unknown Stripe status must not grant entitlements
-        return SubscriptionStatus.PAST_DUE;
+        // A state not known here (paused, or a new one) gives nothing.
+        return SubscriptionStatus.UNPAID;
     }
   }
 
@@ -508,10 +516,9 @@ export class PaymentsService {
       this.subscriptionInUse(userId, profileId, false),
       this.subscriptionInUse(userId, profileId, true),
     ]);
+    // A plan whose renewal is being tried again still runs.
     const running = (sub: typeof subscription) =>
-      !!sub &&
-      (sub.status === SubscriptionStatus.ACTIVE ||
-        sub.status === SubscriptionStatus.TRIALING);
+      !!sub && isEntitled(sub.status);
 
     return {
       hasActiveSubscription: running(subscription),

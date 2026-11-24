@@ -3207,10 +3207,14 @@ enum ScheduledPostStatus {
   CANCELLED
 }
 
+/// PAST_DUE: a renewal failed and the payment provider is still trying the
+/// card; the plan keeps what it gives meanwhile. UNPAID: the provider has
+/// stopped trying; nothing is given until the open invoice is paid.
 enum SubscriptionStatus {
   ACTIVE
   TRIALING
   PAST_DUE
+  UNPAID
   INCOMPLETE
   CANCELLED
   EXPIRED

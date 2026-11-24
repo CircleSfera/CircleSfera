@@ -1589,6 +1589,28 @@ describe('UsersService', () => {
       });
     });
 
+    it('reads the plans that still give what they include, a renewal being tried again included', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await service.syncUserTier('u_grace');
+
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'u_grace' },
+        include: {
+          profiles: {
+            include: {
+              platformSubscriptions: {
+                where: {
+                  status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
+                },
+                include: { plan: true },
+              },
+            },
+          },
+        },
+      });
+    });
+
     it('returns early when user is not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       await service.syncUserTier('u_none');

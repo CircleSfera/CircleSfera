@@ -55,8 +55,14 @@ export function studioProState(
   billing: StudioProBilling | undefined,
 ): 'held' | 'included' | 'none' {
   const status = billing?.studioPro?.subscription?.status;
-  // A renewal that failed is still the add-on: paid, not bought again.
-  if (status === 'ACTIVE' || status === 'TRIALING' || status === 'PAST_DUE')
+  // A renewal that failed is still the add-on, being tried again or left
+  // unpaid: paid, not bought again.
+  if (
+    status === 'ACTIVE' ||
+    status === 'TRIALING' ||
+    status === 'PAST_DUE' ||
+    status === 'UNPAID'
+  )
     return 'held';
   if (billing?.studioPro?.includedInPlan) return 'included';
   return 'none';
