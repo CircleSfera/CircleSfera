@@ -7,6 +7,7 @@ import { AccountType, SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
 import {
+  ENTITLED_STATUSES,
   isAddOnPlan,
   isEntitled,
 } from '../common/constants/plan-features.constants.js';
@@ -348,6 +349,16 @@ export class PaymentsService {
     const activeSubs = user.platformSubscriptions.filter(
       (s) => s.profileId === profile.id && activeStatuses.includes(s.status),
     );
+    // What still gives the Studio's Pro features: a renewal being tried again
+    // included (ENTITLED_STATUSES).
+    const givingSubs = user.platformSubscriptions.filter(
+      (s) => s.profileId === profile.id && isEntitled(s.status),
+    );
+    // A payment due, being tried again or no longer: paid in the billing
+    // portal, never replaced by a new purchase.
+    const owing = (s: { status: SubscriptionStatus }) =>
+      s.status === SubscriptionStatus.PAST_DUE ||
+      s.status === SubscriptionStatus.UNPAID;
 
     if (activeSubs.some((s) => s.planId === plan.id)) {
       throw AppException.BadRequest(
@@ -362,7 +373,12 @@ export class PaymentsService {
     if (buyingAddOn) {
       // The Studio's Pro features already come with some plans: they are
       // not paid for twice.
-      if (activeSubs.some((s) => s.plan.features.includes('studio_pro'))) {
+      if (
+        givingSubs.some(
+          (s) =>
+            !isAddOnPlan(s.plan.name) && s.plan.features.includes('studio_pro'),
+        )
+      ) {
         throw AppException.Conflict(
           ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
           'This profile already has Edits Studio Pro with its plan.',
@@ -372,9 +388,7 @@ export class PaymentsService {
       // bought again: two add-ons are never charged.
       const overdue = user.platformSubscriptions.some(
         (s) =>
-          s.profileId === profile.id &&
-          s.status === SubscriptionStatus.PAST_DUE &&
-          isAddOnPlan(s.plan.name),
+          s.profileId === profile.id && owing(s) && isAddOnPlan(s.plan.name),
       );
       if (overdue) {
         throw AppException.Conflict(
@@ -387,9 +401,7 @@ export class PaymentsService {
       // replaced by another: two plans are never charged.
       const overdue = user.platformSubscriptions.some(
         (s) =>
-          s.profileId === profile.id &&
-          s.status === SubscriptionStatus.PAST_DUE &&
-          !isAddOnPlan(s.plan.name),
+          s.profileId === profile.id && owing(s) && !isAddOnPlan(s.plan.name),
       );
       if (overdue) {
         throw AppException.Conflict(
@@ -407,7 +419,7 @@ export class PaymentsService {
       // add-on is cancelled, so the two are never charged together.
       if (
         plan.features.includes('studio_pro') &&
-        activeSubs.some((s) => isAddOnPlan(s.plan.name) && !s.cancelAtPeriodEnd)
+        givingSubs.some((s) => isAddOnPlan(s.plan.name) && !s.cancelAtPeriodEnd)
       ) {
         throw AppException.Conflict(
           ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
@@ -635,11 +647,14 @@ export class PaymentsService {
         // Without a Profile the session has no plan: never another one's.
         profileId: profileId || '__no_profile__',
         addOn,
+        // A plan left unpaid is still the person's: shown, so it is paid
+        // or cancelled, never bought again beside it.
         status: {
           in: [
             SubscriptionStatus.ACTIVE,
             SubscriptionStatus.TRIALING,
             SubscriptionStatus.PAST_DUE,
+            SubscriptionStatus.UNPAID,
           ],
         },
       },
@@ -768,11 +783,13 @@ export class PaymentsService {
         userId,
         profileId: profileId || '__no_profile__',
         addOn,
+        // One left unpaid can be cancelled too.
         status: {
           in: [
             SubscriptionStatus.ACTIVE,
             SubscriptionStatus.TRIALING,
             SubscriptionStatus.PAST_DUE,
+            SubscriptionStatus.UNPAID,
           ],
         },
       },
@@ -1694,9 +1711,7 @@ export class PaymentsService {
       where: {
         profileId: profileId || '__no_profile__',
         addOn: false,
-        status: {
-          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-        },
+        status: { in: [...ENTITLED_STATUSES] },
         plan: { features: { has: 'studio_pro' } },
       },
     });
@@ -1714,9 +1729,8 @@ export class PaymentsService {
         profileId,
         addOn: true,
         cancelAtPeriodEnd: false,
-        status: {
-          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-        },
+        // An add-on still charged or still being tried again stops too.
+        status: { in: [...ENTITLED_STATUSES] },
       },
       select: { id: true, stripeSubscriptionId: true },
     });
@@ -1746,9 +1760,7 @@ export class PaymentsService {
         // The plans, not the add-ons.
         addOn: false,
         profileId: { not: profileId || '__no_profile__' },
-        status: {
-          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-        },
+        status: { in: [...ENTITLED_STATUSES] },
       },
       orderBy: { createdAt: 'asc' },
       select: {
@@ -2019,6 +2031,41 @@ export class PaymentsService {
         .catch(() => undefined);
       throw err;
     }
+  }
+
+  // A renewal being tried again keeps what the plan gives, so a row must not
+  // stay PAST_DUE once the provider has stopped trying: no notice may come
+  // then. Overdue rows with no news for a day are read again from the
+  // provider, a few at a time; each read updates the row, so each is asked
+  // about at most once a day. Whether it finished.
+  @Cron(CronExpression.EVERY_HOUR)
+  async refreshOverdueSubscriptions(limit = 25): Promise<number> {
+    const stale = await this.prisma.platformSubscription.findMany({
+      where: {
+        status: SubscriptionStatus.PAST_DUE,
+        updatedAt: { lte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+      select: { stripeSubscriptionId: true },
+      orderBy: { updatedAt: 'asc' },
+      take: limit,
+    });
+    let refreshed = 0;
+    for (const { stripeSubscriptionId } of stale) {
+      try {
+        const current = await this.currentSubscription({
+          id: stripeSubscriptionId,
+        } as StripeSubscriptionState);
+        // One the provider does not hold comes back without a status.
+        if (!current.status) continue;
+        await this.applyStripeSubscription(current);
+        refreshed++;
+      } catch (err) {
+        this.logger.warn(
+          `Could not read overdue subscription ${stripeSubscriptionId} again (${classifyStripeError(err)})`,
+        );
+      }
+    }
+    return refreshed;
   }
 
   /**

@@ -1,8 +1,9 @@
 import type { SupportTicketCreatedEvent } from '@circlesfera/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AdminAction, SubscriptionStatus } from '@prisma/client';
+import { AdminAction } from '@prisma/client';
 import { accessNotExpired } from '../admin-auth/external-reviewer.js';
+import { ENTITLED_STATUSES } from '../common/constants/plan-features.constants.js';
 import {
   primaryProfileIdForUser,
   withPrimaryProfile,
@@ -90,8 +91,9 @@ export class CircleSferaAccountCard implements AccountCardProvider {
           },
         },
         platformSubscriptions: {
-          // The plan, not the Edits Studio Pro add-on.
-          where: { status: 'ACTIVE', addOn: false },
+          // The plan, not the Edits Studio Pro add-on, while it still gives
+          // what it includes.
+          where: { status: { in: [...ENTITLED_STATUSES] }, addOn: false },
           orderBy: { createdAt: 'desc' },
           take: 1,
           select: {
@@ -256,9 +258,11 @@ export class PlanServiceLevel implements ServiceLevelProvider {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async levelOf(requesterRef: string) {
+    // A plan that still gives what it includes (ENTITLED_STATUSES): a trial,
+    // and a renewal being tried again, answer first too.
     const paid = await this.prisma.platformSubscription.count({
       where: {
-        status: SubscriptionStatus.ACTIVE,
+        status: { in: [...ENTITLED_STATUSES] },
         plan: { features: { has: 'priority_support' } },
         OR: [{ userId: requesterRef }, { profile: { userId: requesterRef } }],
       },
