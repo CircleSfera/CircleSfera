@@ -80,11 +80,23 @@ export class RecordPromotionInteractionUseCase {
         return { success: true };
       }
 
+      // A person seen on no earlier day still kept is new to this promotion.
+      // One whose last view was purged (over 7 days ago) counts again.
+      const seenBefore = await tx.promotionView.findFirst({
+        where: {
+          promotionId,
+          userId: viewerId,
+          day: { lt: new Date(`${day}T00:00:00.000Z`) },
+        },
+        select: { day: true },
+      });
+
       const newBudgetCents = promo.budgetCents - PROMOTION_COST_PER_VIEW_CENTS;
       await tx.promotion.update({
         where: { id: promotionId },
         data: {
           reach: { increment: 1 },
+          ...(seenBefore ? {} : { peopleReached: { increment: 1 } }),
           budgetCents: newBudgetCents,
           spendDay: new Date(`${day}T00:00:00.000Z`),
           spentTodayCents: spentOn(promo, day) + PROMOTION_COST_PER_VIEW_CENTS,

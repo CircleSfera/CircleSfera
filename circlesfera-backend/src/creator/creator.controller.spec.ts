@@ -398,7 +398,6 @@ describe('CreatorController', () => {
     mockEstimatePromotionReachQ.execute.mockResolvedValue({
       low: 500,
       high: 3500,
-      audience: 9000,
     });
 
     const res = await request(app.getHttpServer())
@@ -407,13 +406,11 @@ describe('CreatorController', () => {
       .set(BEARER)
       .expect(200);
 
-    expect(res.body).toEqual({ low: 500, high: 3500, audience: 9000 });
-    expect(mockEstimatePromotionReachQ.execute).toHaveBeenCalledWith(
-      TEST_USER.userId,
-      5,
-      7,
-      ['ES', 'MX'],
-    );
+    expect(res.body).toEqual({ low: 500, high: 3500 });
+    expect(mockEstimatePromotionReachQ.execute).toHaveBeenCalledWith(5, 7, [
+      'ES',
+      'MX',
+    ]);
   });
 
   it.each([

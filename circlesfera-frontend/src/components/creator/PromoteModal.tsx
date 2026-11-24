@@ -206,8 +206,8 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
                 aria-live="polite"
               >
                 {reach
-                  ? reach.high === 0
-                    ? t('creator.promote.reach_none')
+                  ? reach.low === null || reach.high === null
+                    ? t('creator.promote.reach_few')
                     : reach.low === reach.high
                       ? t('creator.promote.reach_exact', {
                           count: reach.high,

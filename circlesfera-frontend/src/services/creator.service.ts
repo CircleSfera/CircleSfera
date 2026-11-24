@@ -135,7 +135,8 @@ export const creatorApi = {
     durationDays: number;
     countries: string[];
   }) =>
-    apiClient.get<{ low: number; high: number; audience: number }>(
+    // Rounded; both null when too few people are there to say a number.
+    apiClient.get<{ low: number | null; high: number | null }>(
       'creator/promotions/estimate',
       {
         params: {

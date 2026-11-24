@@ -165,12 +165,8 @@ export class CreatorController {
   @Get('promotions/estimate')
   @UseGuards(CreatorAccountGuard)
   @ApiResponse({ status: 200 })
-  async estimatePromotionReach(
-    @Req() req: AuthRequest,
-    @Query() query: EstimatePromotionReachDto,
-  ) {
+  async estimatePromotionReach(@Query() query: EstimatePromotionReachDto) {
     return this.estimatePromotionReachQ.execute(
-      req.user.userId,
       query.dailyBudget,
       query.durationDays,
       query.countries,

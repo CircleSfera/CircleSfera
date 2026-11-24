@@ -1875,6 +1875,9 @@ model Promotion {
   startDate   DateTime            @default(now())
   endDate     DateTime
   reach       Int                 @default(0)
+  // The different people it reached (PD-089): a person counts on their
+  // first view. Kept here because views by person are purged after 7 days.
+  peopleReached Int               @default(0)
   clicks      Int                 @default(0)
 
   // Aimed by country only: ISO codes joined by commas, or none for

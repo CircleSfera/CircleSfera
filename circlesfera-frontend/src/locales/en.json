@@ -2860,7 +2860,7 @@
       "reach_range": "{{low}}–{{high}} people",
       "reach_exact_one": "{{people}} person",
       "reach_exact_other": "{{people}} people",
-      "reach_none": "Nobody in these countries yet",
+      "reach_few": "Too few people in these countries yet to estimate it",
       "reach_unknown": "Could not be worked out",
       "reach_hint": "Each person counts once a day. What is not delivered is refunded to you.",
       "total": "Total",

@@ -50,7 +50,7 @@ describe('PromoteModal', () => {
       data: { data: [post, frame], meta: { total: 2 } },
     } as never);
     vi.mocked(creatorApi.estimatePromotionReach).mockResolvedValue({
-      data: { low: 500, high: 3500, audience: 9000 },
+      data: { low: 500, high: 3500 },
     } as never);
     Object.defineProperty(window, 'location', {
       configurable: true,
@@ -186,7 +186,7 @@ describe('PromoteModal', () => {
     });
 
     vi.mocked(creatorApi.estimatePromotionReach).mockResolvedValue({
-      data: { low: 1000, high: 1000, audience: 1000 },
+      data: { low: 1000, high: 1000 },
     } as never);
     await user.click(screen.getByRole('button', { name: '€10' }));
 
@@ -198,13 +198,25 @@ describe('PromoteModal', () => {
     });
   });
 
-  it('says when nobody is there to reach, and when the estimate failed', async () => {
+  it('gives no number when too few people are there', async () => {
     vi.mocked(creatorApi.estimatePromotionReach).mockResolvedValue({
-      data: { low: 0, high: 0, audience: 0 },
+      data: { low: null, high: null },
     } as never);
     open(post);
     expect(
-      await screen.findByText('Nobody in these countries yet'),
+      await screen.findByText(
+        'Too few people in these countries yet to estimate it',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('says when the estimate could not be worked out', async () => {
+    vi.mocked(creatorApi.estimatePromotionReach).mockRejectedValue(
+      new Error('down'),
+    );
+    open(post);
+    expect(
+      await screen.findByText('Could not be worked out', {}, { timeout: 5000 }),
     ).toBeInTheDocument();
   });
 
