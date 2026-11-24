@@ -29,6 +29,8 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         webhookEvent: {
           findUnique: vi.fn(),
           create: vi.fn(),
+          upsert: vi.fn().mockResolvedValue({}),
+          update: vi.fn().mockResolvedValue({}),
           updateMany: vi.fn(),
         },
       };
@@ -83,27 +85,22 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       expect(mockEmailService.sendSubscriptionReceipt).not.toHaveBeenCalled();
     });
 
-    it('handles concurrent P2002 race condition on webhookEvent creation safely', async () => {
+    it('records a notice delivered twice at once in one row, by its id, never failing on the second insert', async () => {
       const racingEvent = {
         id: 'evt_racing_123',
         type: 'customer.subscription.created',
       } as any;
-
-      // First query: not found yet
-      mockPrisma.webhookEvent.findUnique.mockResolvedValueOnce(null);
-
-      // Concurrent insert throws Prisma unique constraint P2002
-      mockPrisma.webhookEvent.create.mockRejectedValueOnce({ code: 'P2002' });
-
-      // Second query after P2002: other worker already set it to PROCESSED
-      mockPrisma.webhookEvent.findUnique.mockResolvedValueOnce({
-        id: 'evt_racing_123',
-        status: 'PROCESSED',
-      });
+      mockPrisma.webhookEvent.findUnique.mockResolvedValue(null);
 
       await paymentsService.processWebhookEvent(racingEvent);
+      await paymentsService.processWebhookEvent(racingEvent);
 
-      expect(mockPrisma.webhookEvent.findUnique).toHaveBeenCalledTimes(2);
+      // An upsert on the unique id: the second delivery finds the row.
+      expect(mockPrisma.webhookEvent.create).not.toHaveBeenCalled();
+      expect(mockPrisma.webhookEvent.upsert).toHaveBeenCalledTimes(2);
+      expect(mockPrisma.webhookEvent.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { externalId: 'evt_racing_123' } }),
+      );
     });
   });
 
