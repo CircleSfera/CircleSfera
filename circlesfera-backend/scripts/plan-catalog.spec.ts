@@ -47,7 +47,8 @@ const stored = (over: Partial<StoredPlan>): StoredPlan => ({
   stripePriceId: 'price_m',
   yearlyStripePriceId: null,
   yearlyPriceCents: null,
-  isActive: true,
+  // Premium is off sale since BD-032.
+  isActive: false,
   badge: 'VERIFIED',
   forAccountType: null,
   addOn: false,
@@ -57,15 +58,17 @@ const yearly = (amount: number, over: object = {}) =>
   monthly(amount, { id: 'price_y', recurring: { interval: 'year' }, ...over });
 
 describe('the plan catalog', () => {
-  it('sells Verified with the badge only, apart from Premium', () => {
+  it('sells two products, Verified with priority support and Business; the rest stay in the catalog off sale (BD-032)', () => {
     expect(plan('Verified')).toMatchObject({
       priceCents: 499,
-      features: ['verified_badge'],
-    });
-    expect(plan('Premium')).toMatchObject({
-      priceCents: 999,
       features: ['verified_badge', 'priority_support'],
     });
+    expect(
+      PLAN_CATALOG.filter((p) => p.onSale !== false).map((p) => p.name),
+    ).toEqual(['Verified', 'Business']);
+    expect(
+      PLAN_CATALOG.filter((p) => p.onSale === false).map((p) => p.name),
+    ).toEqual(['Premium', 'Elite Creator', STUDIO_PRO_PLAN_NAME]);
     expect(PLAN_CATALOG.map((p) => p.priceCents)).toEqual([
       499, 999, 1999, 4999, 799,
     ]);
@@ -380,8 +383,8 @@ describe('planUpdate', () => {
       planUpdate(undefined, plan('Verified'), 'prod_v', 'price_v', null),
     ).toEqual({
       name: 'Verified',
-      description: 'Verified badge.',
-      features: ['verified_badge'],
+      description: 'Verified badge and priority support.',
+      features: ['verified_badge', 'priority_support'],
       priceCents: 499,
       currency: 'EUR',
       interval: 'month',
@@ -394,6 +397,42 @@ describe('planUpdate', () => {
       forAccountType: null,
       addOn: false,
     });
+  });
+
+  it('adds a plan the catalog keeps off sale off sale, and takes one on sale off', () => {
+    expect(
+      planUpdate(undefined, plan('Elite Creator'), 'prod_e', 'price_e', null),
+    ).toMatchObject({ name: 'Elite Creator', isActive: false });
+    // Premium on sale before BD-032: the sync takes it off.
+    expect(
+      planUpdate(
+        stored({ isActive: true }),
+        plan('Premium'),
+        'prod_1',
+        'price_m',
+        null,
+      ),
+    ).toEqual({ isActive: false });
+  });
+
+  it('never puts back on sale a plan on sale in the catalog that staff took off', () => {
+    expect(
+      planUpdate(
+        stored({
+          name: 'Business',
+          priceCents: 4999,
+          description: plan('Business').description,
+          features: [...plan('Business').features],
+          badge: 'BUSINESS',
+          forAccountType: 'BUSINESS',
+          isActive: false,
+        }),
+        plan('Business'),
+        'prod_1',
+        'price_m',
+        null,
+      ),
+    ).toBeNull();
   });
 
   it('sets what a plan gives and to whom from the catalog, never from its name', () => {

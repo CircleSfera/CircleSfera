@@ -161,7 +161,7 @@
       "colour": {
         "title": "Color del perfil",
         "hint": "Se ve en la parte alta de tu perfil, en el botón principal y en tu enlace. Lo ve todo el que visita tu perfil.",
-        "plan_hint": "El color del perfil viene con los planes Elite Creator y Business.",
+        "plan_hint": "El color del perfil viene con el plan Business.",
         "options": {
           "default": "Morado de CircleSfera",
           "blue": "Azul",
@@ -1141,7 +1141,7 @@
         "s5_title": "5. Moderación, sanciones y apelaciones",
         "s5_content": "• Puedes denunciar contenido o perfiles. Una persona de nuestro equipo revisa las denuncias.\n• Una primera infracción leve recibe un aviso sin consecuencias; las siguientes reciben strikes. Con 2 strikes activos el perfil queda suspendido 7 días, y con 3 queda bloqueado. Cada aviso y cada strike caduca a los 90 días. Las infracciones graves pueden suponer un bloqueo inmediato.\n• Las sanciones se aplican al perfil que incumplió las normas, no a tus otros perfiles, salvo en casos graves (contenido ilegal, eludir un bloqueo anterior o una orden de una autoridad).\n• Un sistema automático detecta actividad de spam y puede limitar temporalmente, durante un máximo de 72 horas, a cuántas cuentas puedes seguir y a cuántas personas puedes escribir mientras una persona lo revisa.\n• Siempre explicamos el motivo de cada decisión, y puedes apelarla desde Ajustes → Apelaciones.",
         "s6_title": "6. Planes de pago",
-        "s6_content": "Ofrecemos planes (Verified, Premium, Elite Creator y Business) y el complemento Edits Studio Pro, con las funciones y los precios que se muestran en la app. Se cobran por adelantado a través de Stripe y se pagan por mes; los planes que muestran un precio anual también se pueden pagar por año. Un plan se renueva al final de cada periodo pagado hasta que lo canceles; si cancelas, sigue activo hasta el final del periodo pagado. Un plan mensual puede pasar a anual mientras está en vigor, en Ajustes → Suscripción en la web: lo que queda del mes pagado se descuenta del precio del año, que empieza ese día. En los 14 días siguientes a la compra de un plan, o a su paso a anual, puedes desistir del contrato en Ajustes → Suscripción: el plan termina entonces y se te devuelve la parte de lo pagado por el tiempo no usado.",
+        "s6_content": "Ofrecemos los planes Verified y Business, con las funciones y los precios que se muestran en la app. Se cobran por adelantado a través de Stripe y se pagan por mes; los planes que muestran un precio anual también se pueden pagar por año. Un plan se renueva al final de cada periodo pagado hasta que lo canceles; si cancelas, sigue activo hasta el final del periodo pagado. Un plan mensual puede pasar a anual mientras está en vigor, en Ajustes → Suscripción en la web: lo que queda del mes pagado se descuenta del precio del año, que empieza ese día. En los 14 días siguientes a la compra de un plan, o a su paso a anual, puedes desistir del contrato en Ajustes → Suscripción: el plan termina entonces y se te devuelve la parte de lo pagado por el tiempo no usado.",
         "s7_title": "7. Pagos entre usuarios",
         "s7_content": "• CircleSfera no procesa pagos entre usuarios: nadie puede comprar contenido ni pagar a otro usuario a través de CircleSfera, y CircleSfera no cobra comisión sobre las ventas de nadie.\n• Los únicos pagos en CircleSfera son los de sus propios planes y promociones.\n• Stripe, nuestro proveedor de pagos, puede revisar cómo aplicamos estas normas, para cumplir sus propias obligaciones legales y de supervisión. Para ello le damos un acceso de solo lectura que termina en una fecha fijada y registra cada página que abre.",
         "s8_title": "8. Promociones",
@@ -1430,7 +1430,7 @@
           },
           "p3": {
             "title": "Perfiles de creador y de empresa",
-            "body": "Creator Studio viene con los perfiles de creador y de empresa. La analítica avanzada viene con los planes Elite Creator y Business."
+            "body": "Creator Studio viene con los perfiles de creador y de empresa. La analítica avanzada viene con el plan Business."
           }
         },
         "closing": "Lee Precios para el detalle de planes y luego crea una cuenta para abrir Creator Studio."
@@ -2777,7 +2777,7 @@
       }
     },
     "advanced": {
-      "plan_desc": "Las horas a las que miran tus publicaciones, tus mejores publicaciones y la exportación completa vienen con los planes Elite Creator y Business.",
+      "plan_desc": "Las horas a las que miran tus publicaciones, tus mejores publicaciones y la exportación completa vienen con el plan Business.",
       "plan_cta": "Ver planes",
       "title": "Analítica avanzada",
       "error": "No se pudo cargar la analítica avanzada.",
@@ -5140,7 +5140,7 @@
       "frame_rate": "Fotogramas por segundo",
       "fps": "{{rate}} fps",
       "frames_note": "Los tamaños mayores tardan más. Un Frame publicado se reproduce con la calidad de la app; el tamaño mayor se conserva en el archivo descargado.",
-      "on_computer": "Edits Studio Pro exporta hasta en 4K y a 60 fps en un ordenador.",
+      "on_computer": "Con el plan Business, Edits Studio exporta hasta en 4K y a 60 fps en un ordenador.",
       "unknown": "No se pudo comprobar Edits Studio Pro. La exportación usa el tamaño normal; ciérrala y vuelve a abrirla para reintentarlo."
     },
     "export_options_title": "Ajustes de exportación",
@@ -5376,7 +5376,7 @@
       "replace": "Cambiar por",
       "add_hint": "Se añade en el cursor, en la capa de efectos",
       "duotone": "Duotono",
-      "pro_note": "Duotono, caleidoscopio, destello de luz y VHS vienen con Edits Studio Pro.",
+      "pro_note": "Duotono, caleidoscopio, destello de luz y VHS vienen con el plan Business.",
       "kaleidoscope": "Caleidoscopio",
       "lightleak": "Destello de luz",
       "vhs": "VHS"
@@ -5396,7 +5396,7 @@
       "glitch": "Glitch",
       "spin": "Giro",
       "zoomblur": "Zoom con desenfoque",
-      "pro_note": "Barrido rápido, glitch, giro y zoom con desenfoque vienen con Edits Studio Pro.",
+      "pro_note": "Barrido rápido, glitch, giro y zoom con desenfoque vienen con el plan Business.",
       "length": "Duración",
       "apply_all": "Aplicar a todas",
       "cut": "Transición tras el clip {{index}}",

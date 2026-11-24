@@ -18,16 +18,23 @@ export type CatalogPlan = {
   badge: 'BASIC' | 'VERIFIED' | 'ELITE' | 'BUSINESS';
   forAccountType?: 'CREATOR' | 'BUSINESS';
   addOn?: boolean;
+  // False keeps the plan in the catalog but off sale (BD-032): the sync takes
+  // it off sale and never puts it back; staff may still take others off.
+  onSale?: boolean;
 };
 
+// On sale at launch (BD-032, owner, 2026-11-24): Verified, which now
+// includes priority support, and Business. Premium, Elite Creator and Edits
+// Studio Pro stay in the catalog off sale until conversion data says
+// otherwise; nobody holds them.
 export const PLAN_CATALOG: readonly CatalogPlan[] = [
   {
     name: 'Verified',
     formerNames: [],
     priceCents: 499,
     yearlyPriceCents: 4990,
-    description: 'Verified badge.',
-    features: ['verified_badge'],
+    description: 'Verified badge and priority support.',
+    features: ['verified_badge', 'priority_support'],
     badge: 'VERIFIED',
   },
   {
@@ -39,12 +46,15 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     description: 'Verified badge and priority support.',
     features: ['verified_badge', 'priority_support'],
     badge: 'VERIFIED',
+    // Merged into Verified (BD-032).
+    onSale: false,
   },
   {
     name: 'Elite Creator',
     formerNames: [],
     badge: 'ELITE',
     forAccountType: 'CREATOR',
+    onSale: false,
     priceCents: 1999,
     yearlyPriceCents: 19990,
     description:
@@ -81,6 +91,7 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     formerNames: [],
     badge: 'BASIC',
     addOn: true,
+    onSale: false,
     priceCents: 799,
     description:
       'Edits Studio Pro: export in up to 4K and at 60 fps on a computer, keyframe curves, the duotone, kaleidoscope, light leak and VHS effects, and the whip pan, glitch, spin and zoom blur transitions.',
@@ -309,10 +320,22 @@ export function planUpdate(
     forAccountType: plan.forAccountType ?? null,
     addOn: plan.addOn ?? false,
   };
-  // A new plan goes on sale; whether one is on sale after that is staff's
-  // (the admin panel), so the sync never puts back one taken off.
-  if (!row) return { ...target, isActive: true };
-  const changed = Object.fromEntries(
+  // A new plan goes on sale unless the catalog keeps it off; after that,
+  // the catalog may only take a plan off sale (BD-032) and staff decide the
+  // rest (the admin panel): the sync never puts back one taken off.
+  const onSale = plan.onSale ?? true;
+  if (!row) return { ...target, isActive: onSale };
+  const changed: Record<string, unknown> = planChanges(row, target);
+  if (!onSale && row.isActive) changed.isActive = false;
+  return Object.keys(changed).length > 0 ? changed : null;
+}
+
+// The fields of `target` the stored plan does not have yet.
+function planChanges(
+  row: StoredPlan,
+  target: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
     Object.entries(target).filter(([key, value]) => {
       const current = (row as Record<string, unknown>)[key];
       return Array.isArray(value)
@@ -320,5 +343,4 @@ export function planUpdate(
         : current !== value;
     }),
   );
-  return Object.keys(changed).length > 0 ? changed : null;
 }

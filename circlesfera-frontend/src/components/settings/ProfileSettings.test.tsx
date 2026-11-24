@@ -356,9 +356,7 @@ describe('ProfileSettings', () => {
     ).toBeChecked();
     expect(within(colours).getByRole('radio', { name: 'Blue' })).toBeDisabled();
     expect(
-      screen.getByText(
-        'The profile colour comes with the Elite Creator and Business plans.',
-      ),
+      screen.getByText('The profile colour comes with the Business plan.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute(
       'href',
