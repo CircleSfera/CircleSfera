@@ -719,12 +719,15 @@ jobs:
             # do: the plan catalog (scripts/plan-catalog.ts, prices and plans
             # decided by the owner before they reach the code) and the help
             # centre articles kept in the code. Both are idempotent and change
-            # only what differs. A failure alerts without a rollback: the
-            # version is healthy, and the next deploy applies them again.
+            # only what differs; an article staff took down stays down. A
+            # failure alerts without a rollback: the version is healthy, and
+            # the next deploy applies them again. Each has three minutes, so
+            # a hung database or provider call never stops the deploy before
+            # it records this version.
             declared_ok=1
             for script in sync-plan-catalog publish-help-articles; do
               echo "--- Applying ${script} ---"
-              if ! docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+              if ! timeout 180 docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
                 -e APPLY=1 backend node "scripts/${script}.ts"; then
                 echo "  FAIL ${script}"
                 declared_ok=0
@@ -807,16 +810,19 @@ jobs:
             fi
 
       # Sentry's uptime checks of the site and their alert are declared in
-      # scripts/sentry-uptime.mjs and added on every deploy when missing
-      # (ED-016). "apply" only adds what is missing and changes nothing that
-      # exists; a failure here never fails the deploy.
+      # scripts/sentry-uptime.mjs and set to that on every deploy (ED-016):
+      # a missing one is added, a listed one is turned on, and an enabled
+      # check of an address not listed is turned off, so a check is changed
+      # in the script, not in Sentry. A failure here never fails the deploy.
       - name: Checkout the uptime checks
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: scripts/sentry-uptime.mjs
           sparse-checkout-cone-mode: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        continue-on-error: true
         with:
           node-version: '26'
       - name: Apply the uptime checks
