@@ -12,6 +12,12 @@ export type CatalogPlan = {
   yearlyPriceCents?: number;
   description: string;
   features: readonly string[];
+  // What the plan gives and to whom, read by the server instead of its
+  // name: the badge level, the type of Profile it is for (none: any), and
+  // whether it is an add-on held beside a plan.
+  badge: 'BASIC' | 'VERIFIED' | 'ELITE' | 'BUSINESS';
+  forAccountType?: 'CREATOR' | 'BUSINESS';
+  addOn?: boolean;
 };
 
 export const PLAN_CATALOG: readonly CatalogPlan[] = [
@@ -22,6 +28,7 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     yearlyPriceCents: 4990,
     description: 'Verified badge.',
     features: ['verified_badge'],
+    badge: 'VERIFIED',
   },
   {
     // The €9.99 plan was once named Verified.
@@ -31,10 +38,13 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     yearlyPriceCents: 9990,
     description: 'Verified badge and priority support.',
     features: ['verified_badge', 'priority_support'],
+    badge: 'VERIFIED',
   },
   {
     name: 'Elite Creator',
     formerNames: [],
+    badge: 'ELITE',
+    forAccountType: 'CREATOR',
     priceCents: 1999,
     yearlyPriceCents: 19990,
     description:
@@ -50,6 +60,8 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
   {
     name: 'Business',
     formerNames: [],
+    badge: 'BUSINESS',
+    forAccountType: 'BUSINESS',
     priceCents: 4999,
     yearlyPriceCents: 49990,
     description:
@@ -64,11 +76,11 @@ export const PLAN_CATALOG: readonly CatalogPlan[] = [
     ],
   },
   {
-    // An add-on, held beside Verified or Premium. The server tells it from
-    // the plans by this exact name (STUDIO_PRO_PLAN_NAME): renaming it would
-    // make its purchases plans.
+    // An add-on, held beside Verified or Premium.
     name: 'Edits Studio Pro',
     formerNames: [],
+    badge: 'BASIC',
+    addOn: true,
     priceCents: 799,
     description:
       'Edits Studio Pro: export in up to 4K and at 60 fps on a computer, keyframe curves, the duotone, kaleidoscope, light leak and VHS effects, and the whip pan, glitch, spin and zoom blur transitions.',
@@ -108,6 +120,9 @@ export type StoredPlan = {
   yearlyStripePriceId: string | null;
   yearlyPriceCents: number | null;
   isActive: boolean;
+  badge: string;
+  forAccountType: string | null;
+  addOn: boolean;
 };
 
 // The provider shows a product's description to the buyer at checkout and
@@ -290,6 +305,9 @@ export function planUpdate(
     stripePriceId: priceId,
     yearlyStripePriceId: yearlyPrice?.id ?? null,
     yearlyPriceCents: yearlyPrice?.cents ?? null,
+    badge: plan.badge,
+    forAccountType: plan.forAccountType ?? null,
+    addOn: plan.addOn ?? false,
   };
   // A new plan goes on sale; whether one is on sale after that is staff's
   // (the admin panel), so the sync never puts back one taken off.

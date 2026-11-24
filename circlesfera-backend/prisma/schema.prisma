@@ -602,23 +602,23 @@ model Post {
   /// The template others may use, offered from this Frame.
   studioTemplate   StudioTemplate? @relation("TemplateOfPost")
 
-  moderationStatus        ModerationStatus @default(VISIBLE)
-  moderationNote          String?          @db.Text
+  moderationStatus   ModerationStatus @default(VISIBLE)
+  moderationNote     String?          @db.Text
   // When it was last hidden or removed by moderation: the six months to
   // appeal it count from then.
-  moderatedAt             DateTime?
+  moderatedAt        DateTime?
   // When automatic moderation checked it and found nothing: only then may it
   // be promoted. Null until checked, or while the check cannot run.
-  moderationPassedAt      DateTime?
+  moderationPassedAt DateTime?
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt               DateTime?
+  deletedAt          DateTime?
   // When its author archived it: shown in their archive only, with its likes
   // and comments, until they show it on their profile again.
-  archivedAt              DateTime?
+  archivedAt         DateTime?
   // When its author pinned it to the top of their profile; null when not
   // pinned. A Profile pins at most PROFILE_PINS_MAX.
-  pinnedToProfileAt       DateTime?
+  pinnedToProfileAt  DateTime?
 
   // Scheduling & Interactive Features
   scheduledAt     DateTime?
@@ -831,17 +831,17 @@ model Story {
   placeId  String?
   place    Place?  @relation(fields: [placeId], references: [id], onDelete: SetNull)
 
-  moderationStatus        ModerationStatus @default(VISIBLE)
-  moderationNote          String?
+  moderationStatus   ModerationStatus @default(VISIBLE)
+  moderationNote     String?
   // When it was last hidden or removed by moderation. Removed content is
   // kept for the six months its author has to appeal, then erased.
-  moderatedAt             DateTime?
+  moderatedAt        DateTime?
   // When automatic moderation checked it and found nothing: only then may it
   // be promoted. Null until checked, or while the check cannot run.
-  moderationPassedAt      DateTime?
+  moderationPassedAt DateTime?
   // When its author deleted it: it waits in their Recently deleted, shown to
   // nobody else, for 30 days, then it is erased.
-  deletedAt               DateTime?
+  deletedAt          DateTime?
 
   // Relation to highlights
 
@@ -1726,20 +1726,27 @@ model Notification {
 // =============================================================================
 
 model PlatformPlan {
-  id                  String   @id @default(uuid())
+  id                  String            @id @default(uuid())
   name                String // e.g. "Pro Creator", "Verified"
   description         String?
-  priceCents          Int      @default(0) // Source of truth (e.g. 999 = €9.99)
+  priceCents          Int               @default(0) // Source of truth (e.g. 999 = €9.99)
   yearlyPriceCents    Int? // Yearly price in cents
-  currency            String   @default("EUR") // Default to EUR
-  interval            String   @default("month") // "month", "year"
-  stripeProductId     String   @unique
-  stripePriceId       String   @unique
-  yearlyStripePriceId String?  @unique // Support for yearly pricing
+  currency            String            @default("EUR") // Default to EUR
+  interval            String            @default("month") // "month", "year"
+  stripeProductId     String            @unique
+  stripePriceId       String            @unique
+  yearlyStripePriceId String?           @unique // Support for yearly pricing
   features            String[] // Array of included features
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  // What the plan gives and to whom, set by the plan catalog
+  // (scripts/plan-catalog.ts), never read from its name: the level of the
+  // badge it gives, the type of Profile it is for (none: any), and whether
+  // it is an add-on held beside a plan.
+  badge               VerificationLevel @default(BASIC)
+  forAccountType      AccountType?
+  addOn               Boolean           @default(false)
+  isActive            Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   subscriptions PlatformSubscription[]
 
@@ -3207,10 +3214,14 @@ enum ScheduledPostStatus {
   CANCELLED
 }
 
+/// PAST_DUE: a renewal failed and the payment provider is still trying the
+/// card; the plan keeps what it gives meanwhile. UNPAID: the provider has
+/// stopped trying; nothing is given until the open invoice is paid.
 enum SubscriptionStatus {
   ACTIVE
   TRIALING
   PAST_DUE
+  UNPAID
   INCOMPLETE
   CANCELLED
   EXPIRED

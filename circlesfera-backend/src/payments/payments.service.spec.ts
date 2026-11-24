@@ -12,7 +12,6 @@ import { UsersService } from '../users/users.service.js';
 import { PaymentEventsService } from './payment-events.service.js';
 import {
   PaymentsService,
-  planAccountType,
   unusedPartCents,
   withdrawalRetryDelayMs,
 } from './payments.service.js';
@@ -189,12 +188,15 @@ describe('PaymentsService', () => {
       const map = (status: string) => (service as any).mapStripeStatus(status);
       expect(map('active')).toBe(SubscriptionStatus.ACTIVE);
       expect(map('trialing')).toBe(SubscriptionStatus.TRIALING);
+      // Still being tried again, and no longer.
       expect(map('past_due')).toBe(SubscriptionStatus.PAST_DUE);
-      expect(map('unpaid')).toBe(SubscriptionStatus.PAST_DUE);
+      expect(map('unpaid')).toBe(SubscriptionStatus.UNPAID);
       expect(map('incomplete')).toBe(SubscriptionStatus.INCOMPLETE);
       expect(map('incomplete_expired')).toBe(SubscriptionStatus.EXPIRED);
       expect(map('canceled')).toBe(SubscriptionStatus.CANCELLED);
-      expect(map('unknown_status')).toBe(SubscriptionStatus.PAST_DUE);
+      // A state not known here gives nothing.
+      expect(map('paused')).toBe(SubscriptionStatus.UNPAID);
+      expect(map('unknown_status')).toBe(SubscriptionStatus.UNPAID);
     });
   });
 
@@ -539,12 +541,14 @@ describe('PaymentsService', () => {
     });
 
     describe('Edits Studio Pro is an add-on', () => {
+      // An add-on as the catalog marks it; the name tells nothing.
+      const isAddOn = (name: string) => name === 'Edits Studio Pro';
       const sub = (name: string, features: string[], over = {}) => ({
         planId: `plan_${name}`,
         profileId: 'prof_1',
         status: SubscriptionStatus.ACTIVE,
         cancelAtPeriodEnd: false,
-        plan: { name, features },
+        plan: { name, features, addOn: isAddOn(name) },
         ...over,
       });
       const holding = (subscriptions: object[]) => {
@@ -560,6 +564,8 @@ describe('PaymentsService', () => {
           id: 'plan_new',
           name,
           features,
+          addOn: isAddOn(name),
+          forAccountType: null,
           stripePriceId: 'price_new',
         });
       };
@@ -591,27 +597,46 @@ describe('PaymentsService', () => {
         expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
       });
 
-      it('sends an add-on whose renewal failed to the billing portal, never a second checkout', async () => {
+      it.each(['PAST_DUE', 'UNPAID'])(
+        'sends an add-on left %s to the billing portal, never a second checkout',
+        async (status) => {
+          holding([
+            sub('Premium', ['verified_badge']),
+            sub('Edits Studio Pro', ['studio_pro'], { status }),
+          ]);
+          buying('Edits Studio Pro', ['studio_pro']);
+
+          await expect(checkout()).rejects.toThrow(
+            'Edits Studio Pro has a payment due. Pay it in the billing portal.',
+          );
+          expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each(['PAST_DUE', 'UNPAID'])(
+        'sends a plan left %s to the billing portal, never a second plan',
+        async (status) => {
+          holding([sub('Premium', ['verified_badge'], { status })]);
+          buying('Elite Creator', ['verified_badge']);
+
+          await expect(checkout()).rejects.toThrow(
+            'This profile has a plan with a payment due. Pay it in the billing portal.',
+          );
+          expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+        },
+      );
+
+      it('is not bought beside a plan that includes it whose renewal is being tried again', async () => {
         holding([
-          sub('Premium', ['verified_badge']),
-          sub('Edits Studio Pro', ['studio_pro'], { status: 'PAST_DUE' }),
+          sub('Elite Creator', ['verified_badge', 'studio_pro'], {
+            status: 'PAST_DUE',
+          }),
         ]);
         buying('Edits Studio Pro', ['studio_pro']);
 
         await expect(checkout()).rejects.toThrow(
-          'Edits Studio Pro has a payment due. Pay it in the billing portal.',
+          'This profile already has Edits Studio Pro with its plan.',
         );
-        expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
-      });
-
-      it('sends a plan whose renewal failed to the billing portal, never a second plan', async () => {
-        holding([sub('Premium', ['verified_badge'], { status: 'PAST_DUE' })]);
-        buying('Elite Creator', ['verified_badge']);
-
-        await expect(checkout()).rejects.toThrow(
-          'This profile has a plan with a payment due. Pay it in the billing portal.',
-        );
-        expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
       });
 
       it('leaves one payment page open per Profile and kind: the older one of a plan is expired', async () => {
@@ -623,10 +648,10 @@ describe('PaymentsService', () => {
           url: 'https://checkout',
         });
         // Pages opened before the add-on mark are told apart by their plan.
-        prisma.platformPlan.findMany = vi.fn().mockResolvedValue([
-          { id: 'plan_studio', name: 'Edits Studio Pro' },
-          { id: 'plan_old', name: 'Premium' },
-        ]);
+        // The add-on plans, as the catalog marks them.
+        prisma.platformPlan.findMany = vi
+          .fn()
+          .mockResolvedValue([{ id: 'plan_studio' }]);
         const page = (
           id: string,
           metadata: object,
@@ -696,6 +721,40 @@ describe('PaymentsService', () => {
         await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
       });
 
+      it('tells an add-on from a plan by its mark, never by its name', async () => {
+        // A plan renamed like the add-on is still a plan: a second plan
+        // beside the Profile's plan is refused.
+        holding([sub('Premium', ['verified_badge'])]);
+        prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+          id: 'plan_new',
+          name: 'Edits Studio Pro',
+          features: ['verified_badge'],
+          addOn: false,
+          forAccountType: null,
+          stripePriceId: 'price_new',
+        });
+        await expect(checkout()).rejects.toThrow(
+          'This profile already has an active platform plan',
+        );
+
+        // An add-on under any name is bought beside the plan.
+        prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+          id: 'plan_new',
+          name: 'Studio Pro (renamed)',
+          features: ['studio_pro'],
+          addOn: true,
+          forAccountType: null,
+          stripePriceId: 'price_new',
+        });
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+        expect(stripeService.createCheckoutSession).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            metadata: expect.objectContaining({ addOn: 'true' }),
+          }),
+          expect.anything(),
+        );
+      });
+
       it('asks to cancel the add-on before a plan that includes it, so the two are never charged together', async () => {
         holding([sub('Edits Studio Pro', ['studio_pro'])]);
         buying('Elite Creator', ['verified_badge', 'studio_pro']);
@@ -720,11 +779,18 @@ describe('PaymentsService', () => {
           platformSubscriptions: subscriptions,
         });
       };
-      const plan = (name: string) => {
+      // The type of Profile each plan is for, as the catalog sets it.
+      const FOR_TYPE: Record<string, string | null> = {
+        'Elite Creator': 'CREATOR',
+        Business: 'BUSINESS',
+      };
+      const plan = (name: string, forAccountType = FOR_TYPE[name] ?? null) => {
         prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
           features: [],
           id: 'plan_1',
           name,
+          forAccountType,
+          addOn: false,
           stripePriceId: 'price_monthly',
         });
       };
@@ -828,12 +894,16 @@ describe('PaymentsService', () => {
         await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
       });
 
-      it('names the type of Profile each plan is for from its name', () => {
-        expect(planAccountType('Business')).toBe('BUSINESS');
-        expect(planAccountType('Elite Creator')).toBe('CREATOR');
-        expect(planAccountType('Premium')).toBeNull();
-        expect(planAccountType('Verified')).toBeNull();
-        expect(planAccountType(undefined)).toBeNull();
+      it('takes the type of Profile a plan is for from the plan, never from its name', async () => {
+        person();
+        // A plan renamed, or named like another, follows what it is set to.
+        plan('Business Lite', null);
+        profileOfType('PERSONAL');
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+
+        plan('Verified', 'CREATOR');
+        const error = await checkout().catch((e) => e);
+        expect(error.errorCode).toBe('PLAN_NOT_FOR_PROFILE_TYPE');
       });
     });
 
@@ -1076,12 +1146,21 @@ describe('PaymentsService', () => {
 
       await service.cancelPlan('u_1', 'prof_1');
 
-      // Only the person who pays, for the Profile in use.
+      // Only the person who pays, for the Profile in use; a plan left unpaid
+      // can be cancelled too.
       expect(prisma.platformSubscription.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             userId: 'u_1',
             profileId: 'prof_1',
+            status: {
+              in: [
+                SubscriptionStatus.ACTIVE,
+                SubscriptionStatus.TRIALING,
+                SubscriptionStatus.PAST_DUE,
+                SubscriptionStatus.UNPAID,
+              ],
+            },
           }),
         }),
       );
@@ -3083,18 +3162,44 @@ describe('PaymentsService', () => {
       expect(res.subscription?.priceCents).toBe(2000);
     });
 
-    it('returns hasActiveSubscription: false for PAST_DUE subscription', async () => {
+    it.each([
+      // The provider is trying the card again: the plan still runs.
+      [SubscriptionStatus.PAST_DUE, true],
+      // It has stopped trying: the plan gives nothing until paid.
+      [SubscriptionStatus.UNPAID, false],
+    ])('says a plan %s runs: %s', async (status, running) => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue({
         id: 'sub_past',
         planId: 'plan_pro',
-        status: SubscriptionStatus.PAST_DUE,
+        status,
         createdAt: new Date('2026-01-01'),
-        plan: { name: 'Pro', priceCents: 2000, currency: 'EUR', features: [] },
+        plan: {
+          name: 'Pro',
+          priceCents: 2000,
+          currency: 'EUR',
+          features: [],
+        },
       });
 
       const res = await service.getBillingStatus('u_1', 'prof_1');
-      expect(res.hasActiveSubscription).toBe(false);
-      expect(res.subscription?.status).toBe(SubscriptionStatus.PAST_DUE);
+      expect(res.hasActiveSubscription).toBe(running);
+      expect(res.subscription?.status).toBe(status);
+      // A plan left unpaid is still read, so the person sees it and pays
+      // or cancels it.
+      expect(prisma.platformSubscription.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: {
+              in: [
+                SubscriptionStatus.ACTIVE,
+                SubscriptionStatus.TRIALING,
+                SubscriptionStatus.PAST_DUE,
+                SubscriptionStatus.UNPAID,
+              ],
+            },
+          }),
+        }),
+      );
     });
 
     it('reads the plan of the Profile in use, and names the other Profiles of the person that have one', async () => {
@@ -3237,6 +3342,71 @@ describe('PaymentsService', () => {
       const res = service.constructEvent(buf, 'sig_1');
       expect(res).toEqual({ id: 'evt_1' });
       expect(stripeService.constructEvent).toHaveBeenCalledWith(buf, 'sig_1');
+    });
+  });
+
+  describe('refreshOverdueSubscriptions', () => {
+    const atProvider = (id: string, status: string) => ({
+      id,
+      status,
+      cancel_at_period_end: false,
+      items: {
+        data: [{ current_period_start: 1000, current_period_end: 2000 }],
+      },
+    });
+
+    it('reads again from the provider the overdue rows with no news for a day, and takes the state it holds now', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-24T12:00:00.000Z'));
+      prisma.platformSubscription.findMany = vi
+        .fn()
+        .mockResolvedValue([
+          { stripeSubscriptionId: 'sub_unpaid' },
+          { stripeSubscriptionId: 'sub_gone' },
+          { stripeSubscriptionId: 'sub_down' },
+        ]);
+      stripeService.getSubscription.mockImplementation(async (id: string) => {
+        if (id === 'sub_gone') {
+          throw Object.assign(new Error('No such subscription'), {
+            type: 'StripeInvalidRequestError',
+          });
+        }
+        if (id === 'sub_down') throw new Error('socket hang up');
+        return atProvider(id, 'unpaid');
+      });
+
+      try {
+        await expect(service.refreshOverdueSubscriptions(10)).resolves.toBe(1);
+      } finally {
+        vi.useRealTimers();
+      }
+
+      expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith({
+        where: {
+          status: SubscriptionStatus.PAST_DUE,
+          updatedAt: { lte: new Date('2026-11-23T12:00:00.000Z') },
+        },
+        select: { stripeSubscriptionId: true },
+        orderBy: { updatedAt: 'asc' },
+        take: 10,
+      });
+      // The provider stopped trying: the row gives nothing from now on.
+      expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            stripeSubscriptionId: 'sub_unpaid',
+          }),
+          data: expect.objectContaining({
+            status: SubscriptionStatus.UNPAID,
+          }),
+        }),
+      );
+      // One the provider does not hold, or cannot answer about, is left.
+      expect(prisma.platformSubscription.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ stripeSubscriptionId: 'sub_gone' }),
+        }),
+      );
     });
   });
 
@@ -3683,6 +3853,7 @@ describe('PaymentsService', () => {
       prisma.platformPlan.findUnique = vi.fn().mockResolvedValue({
         id: 'plan_studio',
         name: 'Edits Studio Pro',
+        addOn: true,
       });
       prisma.user.findUnique = vi
         .fn()

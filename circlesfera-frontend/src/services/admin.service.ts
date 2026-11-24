@@ -445,6 +445,7 @@ export interface AdminSubscription {
     | 'ACTIVE'
     | 'TRIALING'
     | 'PAST_DUE'
+    | 'UNPAID'
     | 'INCOMPLETE'
     | 'CANCELLED'
     | 'EXPIRED';
