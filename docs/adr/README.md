@@ -33,5 +33,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0031](./0031-staff-identity-own-credentials.md) | Staff sign in with credentials of their own (invitation link, own password, passkeys next), never with a CircleSfera account; amends 0013 | Accepted |
 | [0032](./0032-refresh-retry-grace-window.md) | A renewal retried within 30 seconds, while the token it issued is unused, is not taken as a stolen refresh token; conditional revoke; amends 0007 | Accepted |
 | [0033](./0033-agent-framework-claude-code.md) | Agents carry a backlog item to production through Claude Code commands, agents and a guard hook; supersedes 0011 | Accepted |
+| [0034](./0034-help-desk-own-package.md) | Help Desk — a product of its own in the package `circlesfera-helpdesk/`, its own database, sign-in and deploy, CircleSfera its first customer over HTTP; amends 0027 | Accepted |
 
 When adding a durable architectural choice, create `NNNN-slug.md`, link it from this table and add it as a row of Notion → Governance → Decision Register (domain Architecture). A change that is structural and also chooses a tool is one ADR only; a change that only swaps a tool is a technology decision (TD) in Notion, not an ADR (AD-004).
