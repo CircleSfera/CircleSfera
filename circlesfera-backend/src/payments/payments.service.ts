@@ -31,7 +31,6 @@ import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   classifyStripeError,
-  isProviderErrorResponse,
   StripeService,
 } from '../stripe/stripe.service.js';
 import {
@@ -83,19 +82,6 @@ function csvText(value: string | null | undefined): string {
 
 // The provider's states of a subscription that has ended for good.
 const ENDED_AT_PROVIDER = ['canceled', 'incomplete_expired'];
-
-// A withdrawal not finished is tried again after 5 minutes, then twice as
-// long each time, at most 6 hours apart.
-export function withdrawalRetryDelayMs(attempts: number): number {
-  const minute = 60 * 1000;
-  return Math.min(6 * 60 * minute, 5 * minute * 2 ** Math.max(0, attempts - 1));
-}
-
-// From this failed attempt on (attempts by then over an hour apart), a
-// withdrawal that keeps failing is reported to the error tracker.
-const WITHDRAWAL_REPORT_FROM_ATTEMPT = 5;
-// A withdrawal not finished this long after it was made is reported too.
-const WITHDRAWAL_REPORT_AFTER_MS = 2 * 24 * 60 * 60 * 1000;
 
 // A subscription as the provider describes it, in a notice or read again.
 type StripeSubscriptionState = {
@@ -1170,221 +1156,6 @@ export class PaymentsService {
     }
   }
 
-  // One attempt to finish a marked withdrawal. When it does not finish (a
-  // step failed, or the refund is still pending) the next attempt is put
-  // off, longer each time, and a withdrawal that keeps failing is reported
-  // to the error tracker. Whether it finished.
-  private async attemptWithdrawal(
-    id: string,
-    attemptsBefore: number,
-    withdrawnAt: Date,
-  ): Promise<boolean> {
-    let failure: unknown = null;
-    try {
-      if ((await this.finishWithdrawal(id)) === 'finished') return true;
-    } catch (err) {
-      failure = err;
-      this.logger.error(
-        `Withdrawal of subscription ${id} could not be finished yet; it is tried again later (${classifyStripeError(err)}): ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-    }
-
-    const attempts = attemptsBefore + 1;
-    await this.prisma.platformSubscription
-      .updateMany({
-        where: { id, withdrawalFinishedAt: null },
-        data: {
-          withdrawalAttempts: attempts,
-          withdrawalNextAttemptAt: new Date(
-            Date.now() + withdrawalRetryDelayMs(attempts),
-          ),
-        },
-      })
-      .catch((err: unknown) =>
-        this.logger.error(
-          'Failed to schedule the next withdrawal attempt',
-          err,
-        ),
-      );
-    // Someone must look at a withdrawal that does not finish: one failing
-    // again and again, or one waiting on a refund that stays pending. Once
-    // per attempt, and from the fifth one on attempts are over an hour
-    // apart.
-    if (
-      attempts >= WITHDRAWAL_REPORT_FROM_ATTEMPT ||
-      Date.now() - withdrawnAt.getTime() > WITHDRAWAL_REPORT_AFTER_MS
-    ) {
-      const context = {
-        tags: { area: 'plan-withdrawal' },
-        extra: { platformSubscriptionId: id, attempts },
-      };
-      if (failure) {
-        Sentry.captureException(failure, context);
-      } else {
-        Sentry.captureMessage(
-          `Withdrawal of subscription ${id} is still waiting for its refund`,
-          { level: 'warning', ...context },
-        );
-      }
-    }
-    return false;
-  }
-
-  // Finishes a withdrawal marked before withdrawals were made in one request
-  // (completeWithdrawal): only those carry a next attempt, so only those are
-  // finished here, by the reconcile job. Every step can be repeated.
-  // 'waiting' while its refund is pending at the provider. Removed with the
-  // columns it uses once none is left.
-  private async finishWithdrawal(id: string): Promise<'finished' | 'waiting'> {
-    const row = await this.prisma.platformSubscription.findUnique({
-      where: { id },
-      include: {
-        plan: { select: { name: true, currency: true } },
-        profile: { select: { username: true } },
-      },
-    });
-    if (!row?.withdrawnAt || row.withdrawalFinishedAt) return 'finished';
-    const stripeSubscriptionId = row.stripeSubscriptionId;
-
-    // The benefits follow the row, which is CANCELLED: synced again on every
-    // attempt in case the sync failed when it was marked.
-    if (row.userId) await this.syncBenefitsOfWithdrawn(row.userId);
-
-    // Ended at the provider; one that has already ended (an earlier try)
-    // counts as done. Otherwise nothing more is done this round (no
-    // refund); the row stays marked and the reconcile job tries again.
-    const ended = await this.endAtProvider(stripeSubscriptionId);
-    // A renewal that failed leaves an open invoice the provider would keep
-    // trying to collect.
-    await this.stripeService.voidOpenInvoices(stripeSubscriptionId);
-
-    const owed = row.withdrawalRefundCents ?? 0;
-    let refund: Stripe.Refund | null = null;
-    if (owed > 0) {
-      if (!row.withdrawalPaymentIntentId) {
-        throw new Error('The withdrawal names no payment to refund');
-      }
-      try {
-        refund = await this.stripeService.refundSubscriptionPayment({
-          paymentIntentId: row.withdrawalPaymentIntentId,
-          amountInCents: owed,
-          idempotencyKey:
-            row.withdrawalRefundKey ??
-            `plan-withdrawal-${stripeSubscriptionId}`,
-          metadata: { reason: 'withdrawal', platformSubscriptionId: row.id },
-        });
-      } catch (err) {
-        // The provider answered with an error, which it keeps under the key:
-        // the next attempt takes a new key (it first looks for a refund of
-        // this withdrawal, so none is made twice). An outcome that is not
-        // known keeps the key.
-        if (isProviderErrorResponse(err)) {
-          await this.prisma.platformSubscription.updateMany({
-            where: { id: row.id },
-            data: {
-              withdrawalRefundKey: `plan-withdrawal-${stripeSubscriptionId}-${Date.now()}`,
-            },
-          });
-        }
-        throw err;
-      }
-      // The provider refunds no more than is left of the payment: what it
-      // could not give back is owed by staff, kept and reported once (the
-      // write changes the row only while it still owes the amount asked).
-      const refundedCents = refund?.amount ?? 0;
-      const shortCents = Math.max(0, owed - refundedCents);
-      const { count: settled } =
-        await this.prisma.platformSubscription.updateMany({
-          where: { id: row.id, withdrawalRefundCents: owed },
-          data: {
-            ...(refund && { withdrawalRefundId: refund.id }),
-            ...(shortCents > 0 && {
-              withdrawalRefundCents: refundedCents,
-              withdrawalOwedByStaffCents: { increment: shortCents },
-            }),
-          },
-        });
-      if (shortCents > 0 && settled > 0) {
-        const message = `Plan withdrawal of subscription ${row.id}: ${shortCents} cents could not be refunded to the payment and are owed by staff`;
-        this.logger.warn(message);
-        Sentry.captureMessage(message, {
-          level: 'warning',
-          tags: { area: 'plan-withdrawal' },
-          extra: {
-            platformSubscriptionId: row.id,
-            owedByStaffCents: shortCents,
-          },
-        });
-      }
-    }
-
-    // The provider's state on the row; a withdrawn row stays CANCELLED.
-    await this.applyStripeSubscription(ended);
-
-    // A refund pending at the bank may still fail: the withdrawal is
-    // finished, and the payer told, once it has gone through.
-    if (refund && refund.status !== 'succeeded') return 'waiting';
-
-    const { count } = await this.prisma.platformSubscription.updateMany({
-      where: { id: row.id, withdrawalFinishedAt: null },
-      data: { withdrawalFinishedAt: new Date(), withdrawalNextAttemptAt: null },
-    });
-    // Finished by another request meanwhile: it told the payer.
-    if (count === 0) return 'finished';
-
-    // Telling the payer is best effort: the withdrawal already stands.
-    try {
-      const payer = row.userId
-        ? await this.prisma.user.findUnique({
-            where: { id: row.userId },
-            select: { email: true },
-          })
-        : null;
-      if (payer?.email) {
-        await this.emailService.sendPlanWithdrawnEmail(
-          payer.email,
-          row.plan.name,
-          row.profile?.username ?? '',
-          refund?.amount ?? 0,
-          refund?.currency ?? row.plan.currency,
-          row.withdrawalOwedByStaffCents ?? 0,
-        );
-      }
-    } catch (err) {
-      this.logger.error('Failed to send the plan withdrawn email', err);
-    }
-    return 'finished';
-  }
-
-  // Finishes the withdrawals marked and not finished whose next attempt is
-  // due, the longest waiting first: the end, the voiding or the refund
-  // failed, or the refund was pending. One that keeps failing waits longer
-  // each time, so it never holds back the others.
-  async finishPendingWithdrawals(limit = 25): Promise<number> {
-    const due = await this.prisma.platformSubscription.findMany({
-      where: {
-        withdrawnAt: { not: null },
-        withdrawalFinishedAt: null,
-        withdrawalNextAttemptAt: { lte: new Date() },
-      },
-      select: { id: true, withdrawalAttempts: true, withdrawnAt: true },
-      take: limit,
-      orderBy: { withdrawalNextAttemptAt: 'asc' },
-    });
-    let finished = 0;
-    for (const { id, withdrawalAttempts, withdrawnAt } of due) {
-      if (
-        withdrawnAt &&
-        (await this.attemptWithdrawal(id, withdrawalAttempts, withdrawnAt))
-      ) {
-        finished++;
-      }
-    }
-    return finished;
-  }
-
   // Takes back the cancellation of the plan of the Profile in use while it
   // is still in force: it renews on its date again and nothing is charged
   // now. Only the person who pays it can. Resuming a plan that is not
@@ -2164,12 +1935,6 @@ export class PaymentsService {
    */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async reconcileStuckWebhookEvents(limit = 25): Promise<number> {
-    // Withdrawals marked and not finished are finished on the same round;
-    // a failure there never stops the notices below.
-    await this.finishPendingWithdrawals(limit).catch((err: unknown) =>
-      this.logger.error('Failed to finish pending withdrawals', err),
-    );
-
     const leaseCutoff = new Date(Date.now() - WEBHOOK_LEASE_DURATION_MS);
 
     const stuckEvents = await this.prisma.webhookEvent.findMany({
