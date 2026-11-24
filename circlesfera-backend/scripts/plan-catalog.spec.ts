@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { STUDIO_PRO_PLAN_NAME } from '../src/common/constants/plan-features.constants.js';
 import {
   findProviderProduct,
   findStoredPlan,
@@ -13,6 +12,9 @@ import {
   type StoredPlan,
   staleProductDescription,
 } from './plan-catalog.ts';
+
+// The add-on's name in the catalog; the server knows it by its addOn mark.
+const STUDIO_PRO_PLAN_NAME = 'Edits Studio Pro';
 
 const plan = (name: string) =>
   PLAN_CATALOG.find((candidate) => candidate.name === name)!;
@@ -46,6 +48,9 @@ const stored = (over: Partial<StoredPlan>): StoredPlan => ({
   yearlyStripePriceId: null,
   yearlyPriceCents: null,
   isActive: true,
+  badge: 'VERIFIED',
+  forAccountType: null,
+  addOn: false,
   ...over,
 });
 const yearly = (amount: number, over: object = {}) =>
@@ -66,11 +71,16 @@ describe('the plan catalog', () => {
     ]);
   });
 
-  it('sells Edits Studio Pro as the add-on the server knows by name, and gives it with Elite Creator and Business only', () => {
+  it('sells Edits Studio Pro as the add-on, marked so, and gives it with Elite Creator and Business only', () => {
     expect(plan(STUDIO_PRO_PLAN_NAME)).toMatchObject({
       priceCents: 799,
       features: ['studio_pro'],
+      addOn: true,
     });
+    // The only add-on.
+    expect(PLAN_CATALOG.filter((p) => p.addOn).map((p) => p.name)).toEqual([
+      STUDIO_PRO_PLAN_NAME,
+    ]);
     expect(
       PLAN_CATALOG.filter((p) => p.features.includes('studio_pro')).map(
         (p) => p.name,
@@ -380,7 +390,34 @@ describe('planUpdate', () => {
       isActive: true,
       yearlyStripePriceId: null,
       yearlyPriceCents: null,
+      badge: 'VERIFIED',
+      forAccountType: null,
+      addOn: false,
     });
+  });
+
+  it('sets what a plan gives and to whom from the catalog, never from its name', () => {
+    expect(
+      planUpdate(
+        stored({ name: 'Business', badge: 'BASIC', forAccountType: null }),
+        plan('Business'),
+        'prod_1',
+        'price_m',
+        null,
+      ),
+    ).toMatchObject({ badge: 'BUSINESS', forAccountType: 'BUSINESS' });
+    expect(plan('Edits Studio Pro')).toMatchObject({
+      badge: 'BASIC',
+      addOn: true,
+    });
+    expect(plan('Elite Creator')).toMatchObject({
+      badge: 'ELITE',
+      forAccountType: 'CREATOR',
+    });
+    // Every plan but the add-on gives a badge.
+    for (const candidate of PLAN_CATALOG) {
+      expect(candidate.badge === 'BASIC').toBe(candidate.addOn === true);
+    }
   });
 
   it('turns on a plan switched off, and sets features that differ', () => {

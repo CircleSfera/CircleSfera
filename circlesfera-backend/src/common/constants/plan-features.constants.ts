@@ -18,14 +18,3 @@ export const PLAN_FEATURE_KEYS = [
 ] as const;
 
 export type PlanFeatureKey = (typeof PLAN_FEATURE_KEYS)[number];
-
-/**
- * Edits Studio Pro is an add-on: a Profile may hold it beside its plan
- * (Verified or Premium). The plans that include `studio_pro` already give
- * it, so it is not bought on top of them.
- */
-export const STUDIO_PRO_PLAN_NAME = 'Edits Studio Pro';
-
-export function isAddOnPlan(planName: string | null | undefined): boolean {
-  return planName === STUDIO_PRO_PLAN_NAME;
-}

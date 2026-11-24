@@ -11,7 +11,6 @@ import { UsersService } from '../users/users.service.js';
 import { PaymentEventsService } from './payment-events.service.js';
 import {
   PaymentsService,
-  planAccountType,
   unusedPartCents,
   withdrawalRetryDelayMs,
 } from './payments.service.js';
@@ -533,12 +532,14 @@ describe('PaymentsService', () => {
     });
 
     describe('Edits Studio Pro is an add-on', () => {
+      // An add-on as the catalog marks it; the name tells nothing.
+      const isAddOn = (name: string) => name === 'Edits Studio Pro';
       const sub = (name: string, features: string[], over = {}) => ({
         planId: `plan_${name}`,
         profileId: 'prof_1',
         status: SubscriptionStatus.ACTIVE,
         cancelAtPeriodEnd: false,
-        plan: { name, features },
+        plan: { name, features, addOn: isAddOn(name) },
         ...over,
       });
       const holding = (subscriptions: object[]) => {
@@ -554,6 +555,8 @@ describe('PaymentsService', () => {
           id: 'plan_new',
           name,
           features,
+          addOn: isAddOn(name),
+          forAccountType: null,
           stripePriceId: 'price_new',
         });
       };
@@ -617,10 +620,10 @@ describe('PaymentsService', () => {
           url: 'https://checkout',
         });
         // Pages opened before the add-on mark are told apart by their plan.
-        prisma.platformPlan.findMany = vi.fn().mockResolvedValue([
-          { id: 'plan_studio', name: 'Edits Studio Pro' },
-          { id: 'plan_old', name: 'Premium' },
-        ]);
+        // The add-on plans, as the catalog marks them.
+        prisma.platformPlan.findMany = vi
+          .fn()
+          .mockResolvedValue([{ id: 'plan_studio' }]);
         const page = (
           id: string,
           metadata: object,
@@ -714,11 +717,18 @@ describe('PaymentsService', () => {
           platformSubscriptions: subscriptions,
         });
       };
-      const plan = (name: string) => {
+      // The type of Profile each plan is for, as the catalog sets it.
+      const FOR_TYPE: Record<string, string | null> = {
+        'Elite Creator': 'CREATOR',
+        Business: 'BUSINESS',
+      };
+      const plan = (name: string, forAccountType = FOR_TYPE[name] ?? null) => {
         prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
           features: [],
           id: 'plan_1',
           name,
+          forAccountType,
+          addOn: false,
           stripePriceId: 'price_monthly',
         });
       };
@@ -822,12 +832,16 @@ describe('PaymentsService', () => {
         await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
       });
 
-      it('names the type of Profile each plan is for from its name', () => {
-        expect(planAccountType('Business')).toBe('BUSINESS');
-        expect(planAccountType('Elite Creator')).toBe('CREATOR');
-        expect(planAccountType('Premium')).toBeNull();
-        expect(planAccountType('Verified')).toBeNull();
-        expect(planAccountType(undefined)).toBeNull();
+      it('takes the type of Profile a plan is for from the plan, never from its name', async () => {
+        person();
+        // A plan renamed, or named like another, follows what it is set to.
+        plan('Business Lite', null);
+        profileOfType('PERSONAL');
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+
+        plan('Verified', 'CREATOR');
+        const error = await checkout().catch((e) => e);
+        expect(error.errorCode).toBe('PLAN_NOT_FOR_PROFILE_TYPE');
       });
     });
 
@@ -3629,6 +3643,7 @@ describe('PaymentsService', () => {
       prisma.platformPlan.findUnique = vi.fn().mockResolvedValue({
         id: 'plan_studio',
         name: 'Edits Studio Pro',
+        addOn: true,
       });
       prisma.user.findUnique = vi
         .fn()

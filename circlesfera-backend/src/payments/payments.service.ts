@@ -3,10 +3,9 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { AccountType, SubscriptionStatus } from '@prisma/client';
+import { SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
-import { isAddOnPlan } from '../common/constants/plan-features.constants.js';
 import {
   PLAN_START_CONSENT_VERSION,
   planStartConsentMetadata,
@@ -39,17 +38,6 @@ import {
 } from './payment-events.service.js';
 
 export const WEBHOOK_LEASE_DURATION_MS = 2 * 60 * 1000; // 2 minutes lease duration
-
-// The type of Profile a plan is meant for, from its name; Premium, and any
-// plan that names none, is for every Profile.
-export function planAccountType(
-  planName: string | null | undefined,
-): AccountType | null {
-  const name = (planName ?? '').toLowerCase();
-  if (name.includes('business')) return AccountType.BUSINESS;
-  if (name.includes('elite')) return AccountType.CREATOR;
-  return null;
-}
 
 // An amount kept in cents, written in euros with two decimals.
 function centsToEuros(cents: number): string {
@@ -325,8 +313,9 @@ export class PaymentsService {
       SubscriptionStatus.ACTIVE,
       SubscriptionStatus.TRIALING,
     ];
-    // Each plan is for one type of Profile; Premium is for any.
-    const requiredType = planAccountType(plan.name);
+    // A plan may be for one type of Profile only, as the catalog says;
+    // Verified and Premium are for any.
+    const requiredType = plan.forAccountType;
     if (requiredType && profile.accountType !== requiredType) {
       throw AppException.BadRequest(
         ErrorCode.PLAN_NOT_FOR_PROFILE_TYPE,
@@ -348,7 +337,7 @@ export class PaymentsService {
       );
     }
 
-    const buyingAddOn = isAddOnPlan(plan.name);
+    const buyingAddOn = plan.addOn;
     // A plan with the badge needs the identity verified; the add-on not.
     await assertIdentityForBadge(this.prisma, userId, plan.features);
     if (buyingAddOn) {
@@ -366,7 +355,7 @@ export class PaymentsService {
         (s) =>
           s.profileId === profile.id &&
           s.status === SubscriptionStatus.PAST_DUE &&
-          isAddOnPlan(s.plan.name),
+          s.plan.addOn,
       );
       if (overdue) {
         throw AppException.Conflict(
@@ -381,7 +370,7 @@ export class PaymentsService {
         (s) =>
           s.profileId === profile.id &&
           s.status === SubscriptionStatus.PAST_DUE &&
-          !isAddOnPlan(s.plan.name),
+          !s.plan.addOn,
       );
       if (overdue) {
         throw AppException.Conflict(
@@ -389,7 +378,7 @@ export class PaymentsService {
           'This profile has a plan with a payment due. Pay it in the billing portal.',
         );
       }
-      if (activeSubs.some((s) => !isAddOnPlan(s.plan.name))) {
+      if (activeSubs.some((s) => !s.plan.addOn)) {
         throw AppException.Conflict(
           ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
           'This profile already has an active platform plan. Cancel or change it via the billing portal before starting another.',
@@ -399,7 +388,7 @@ export class PaymentsService {
       // add-on is cancelled, so the two are never charged together.
       if (
         plan.features.includes('studio_pro') &&
-        activeSubs.some((s) => isAddOnPlan(s.plan.name) && !s.cancelAtPeriodEnd)
+        activeSubs.some((s) => s.plan.addOn && !s.cancelAtPeriodEnd)
       ) {
         throw AppException.Conflict(
           ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
@@ -502,11 +491,10 @@ export class PaymentsService {
       const addOnPlanIds = new Set(
         (
           await this.prisma.platformPlan.findMany({
-            select: { id: true, name: true },
+            where: { addOn: true },
+            select: { id: true },
           })
-        )
-          .filter((plan) => isAddOnPlan(plan.name))
-          .map((plan) => plan.id),
+        ).map((plan) => plan.id),
       );
       const isAddOn = (metadata: Stripe.Metadata | null | undefined) =>
         metadata?.[CHECKOUT_ADD_ON_METADATA_KEY] !== undefined
@@ -2183,7 +2171,7 @@ export class PaymentsService {
           const plan = await this.prisma.platformPlan.findUnique({
             where: { id: planId },
           });
-          const addOn = isAddOnPlan(plan?.name);
+          const addOn = plan?.addOn ?? false;
 
           // A Profile holds one plan (and one add-on). One paid while it
           // already had one is a duplicate: it ends and is paid back, and the

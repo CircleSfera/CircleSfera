@@ -58,6 +58,14 @@ const PROFILE_PUSH_SELECT = Object.fromEntries(
 // Files of an erased account deleted by one job.
 const ERASE_FILES_PER_JOB = 500;
 
+// The badge levels, lowest first: a Profile shows the highest its plans give.
+const BADGE_RANK: readonly VerificationLevel[] = [
+  VerificationLevel.BASIC,
+  VerificationLevel.VERIFIED,
+  VerificationLevel.ELITE,
+  VerificationLevel.BUSINESS,
+];
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
@@ -1189,22 +1197,17 @@ export class UsersService {
     if (!user) return;
 
     for (const profile of user.profiles ?? []) {
-      const planNames = profile.platformSubscriptions.map((sub) =>
-        sub.plan.name.toLowerCase(),
-      );
-      const has = (keyword: string) =>
-        planNames.some((name) => name.includes(keyword));
-
-      // Highest tier wins. The Verified and Premium plans both give the
-      // VERIFIED level, which is the badge; what else a plan includes is read
-      // from its features, never from this level.
-      const targetVerificationLevel: VerificationLevel = has('business')
-        ? VerificationLevel.BUSINESS
-        : has('elite')
-          ? VerificationLevel.ELITE
-          : has('verified') || has('premium')
-            ? VerificationLevel.VERIFIED
-            : VerificationLevel.BASIC;
+      // The highest badge the Profile's plans give, as the plan catalog sets
+      // it on each plan, never read from a plan's name. What else a plan
+      // includes is read from its features, never from this level.
+      const targetVerificationLevel =
+        profile.platformSubscriptions.reduce<VerificationLevel>(
+          (highest, sub) =>
+            BADGE_RANK.indexOf(sub.plan.badge) > BADGE_RANK.indexOf(highest)
+              ? sub.plan.badge
+              : highest,
+          VerificationLevel.BASIC,
+        );
 
       if (profile.verificationLevel !== targetVerificationLevel) {
         await this.prisma.profile.update({
