@@ -4593,7 +4593,7 @@
       "load_error": "No se pudieron cargar operadores",
       "email_label": "Correo electrónico",
       "display_name": "Nombre visible",
-      "create_hint": "No necesita cuenta de CircleSfera. Le enviamos un enlace a este correo para que elija su propia contraseña de equipo y, si no es revisor externo, configure su autenticador.",
+      "create_hint": "No necesita cuenta de CircleSfera. Le enviamos un enlace a este correo para que elija su propia contraseña de equipo y configure su autenticador.",
       "save": "Crear",
       "roles": "Roles",
       "actions": "Acciones",
@@ -4632,7 +4632,7 @@
         "EXTERNAL_REVIEWER": "Revisor externo"
       },
       "enrolment_title": "Configuración del acceso",
-      "enrolment_hint": "Esta persona aún no ha terminado de configurar su acceso. Lo hace con el enlace enviado a su email o con un código que le des en persona: elige su contraseña y, si es del equipo, su autenticador.",
+      "enrolment_hint": "Esta persona aún no ha terminado de configurar su acceso. Lo hace con el enlace enviado a su email o con un código que le des en persona: elige su contraseña y su autenticador.",
       "send_link": "Enviar el enlace de nuevo",
       "link_sent": "Enlace enviado a su email",
       "issue_code": "Crear un código",
@@ -4649,11 +4649,11 @@
       "access_clear": "Quitar fecha de fin",
       "access_updated": "Fecha de fin guardada",
       "access_error": "No se ha podido guardar la fecha de fin",
-      "reviewer_hint": "Un revisor externo, como el proveedor de pagos, no necesita cuenta de CircleSfera: elige su contraseña con el enlace que le enviamos y entra sin autenticador. Solo lee la sección Revisión del Admin Panel y del Backoffice, y cada página que abre queda registrada.",
-      "reviewer_no_mfa": "Revisor externo: entra sin autenticador, solo lectura",
+      "reviewer_hint": "Un revisor externo, como el proveedor de pagos, no necesita cuenta de CircleSfera: elige su contraseña y configura su autenticador con el enlace que le enviamos, y entra con un código de él o con una passkey, como todo el equipo. Solo lee la sección Revisión del Admin Panel y del Backoffice, y cada página que abre queda registrada.",
+      "reviewer_read_only": "Revisor externo: solo lectura, hasta el fin de su acceso",
       "no_own_password": "Sin contraseña propia: entra con la de su cuenta de CircleSfera o aún no ha usado su enlace",
       "mfa_reset_code": "Acceso restablecido. Crea un código y dáselo en persona: quien ya tuvo acceso no lo recupera con un enlace al email.",
-      "enrolment_hint_code": "Esta persona ya tuvo acceso, así que no se le envía enlace al email: crea un código y dáselo en persona. Con él elige su contraseña y, si es del equipo, su autenticador."
+      "enrolment_hint_code": "Esta persona ya tuvo acceso, así que no se le envía enlace al email: crea un código y dáselo en persona. Con él elige su contraseña y su autenticador."
     },
     "split": {
       "list_region": "Lista",

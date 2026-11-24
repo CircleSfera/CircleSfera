@@ -416,6 +416,43 @@ describe('RolesTab', () => {
     );
   });
 
+  it('no longer shows a code it handed out once access is reset, which revokes it', async () => {
+    api.getOperators.mockResolvedValue(
+      list([operator('b', { totpEnabled: false, ownPassword: true })]) as never,
+    );
+    show();
+    const pane = await open('Operator b');
+
+    fireEvent.click(
+      within(pane).getByRole('button', { name: 'Create a code' }),
+    );
+    expect(await within(pane).findByText('ABCD-EFGH-JKMN')).toBeInTheDocument();
+
+    fireEvent.click(within(pane).getByRole('button', { name: 'Reset access' }));
+    await waitFor(() => expect(api.resetOperatorMfa).toHaveBeenCalledWith('b'));
+    await waitFor(() =>
+      expect(within(pane).queryByText('ABCD-EFGH-JKMN')).toBeNull(),
+    );
+  });
+
+  it('keeps the code shown when resetting access fails', async () => {
+    api.getOperators.mockResolvedValue(
+      list([operator('b', { totpEnabled: false, ownPassword: true })]) as never,
+    );
+    api.resetOperatorMfa.mockRejectedValue({ response: refused } as never);
+    show();
+    const pane = await open('Operator b');
+
+    fireEvent.click(
+      within(pane).getByRole('button', { name: 'Create a code' }),
+    );
+    expect(await within(pane).findByText('ABCD-EFGH-JKMN')).toBeInTheDocument();
+
+    fireEvent.click(within(pane).getByRole('button', { name: 'Reset access' }));
+    await waitFor(() => expect(api.resetOperatorMfa).toHaveBeenCalledWith('b'));
+    expect(within(pane).getByText('ABCD-EFGH-JKMN')).toBeInTheDocument();
+  });
+
   it('sends the set-up link again', async () => {
     api.getOperators.mockResolvedValue(
       list([operator('b', { totpEnabled: false })]) as never,
@@ -719,22 +756,22 @@ describe('RolesTab', () => {
       ).toBeDisabled();
     });
 
-    it('shows a reviewer without the authenticator actions, and extends the access', async () => {
+    it('shows a reviewer read only, with its second factor and the reset like anyone (PD-091), and extends the access', async () => {
       api.getOperators.mockResolvedValue(list([reviewer()]) as never);
       show();
       const pane = await open('Operator rev');
 
       expect(
-        within(pane).getByText(
-          /External reviewer: signs in without an authenticator/,
-        ),
+        within(pane).getByText(/External reviewer: read only/),
+      ).toBeInTheDocument();
+      expect(within(pane).queryByText(/without an authenticator/)).toBeNull();
+      expect(
+        within(pane).getByText('Two-step verification not set up yet'),
       ).toBeInTheDocument();
       expect(within(pane).getByText(/Access ends on .+\./)).toBeInTheDocument();
       expect(
-        within(pane).queryByRole('button', {
-          name: 'Reset access',
-        }),
-      ).toBeNull();
+        within(pane).getByRole('button', { name: 'Reset access' }),
+      ).toBeInTheDocument();
       expect(
         within(pane).getByRole('button', { name: 'Disable' }),
       ).toBeInTheDocument();
@@ -790,6 +827,22 @@ describe('RolesTab', () => {
       expect(
         within(pane).getByText(/No password of their own/),
       ).toBeInTheDocument();
+    });
+
+    it('offers a reviewer with an authenticator no link nor code, like anyone', async () => {
+      api.getOperators.mockResolvedValue(
+        list([reviewer({ totpEnabled: true, ownPassword: true })]) as never,
+      );
+      show();
+      const pane = await open('Operator rev');
+
+      expect(
+        within(pane).getByText('Two-step verification set up'),
+      ).toBeInTheDocument();
+      expect(within(pane).queryByText('Access set-up')).toBeNull();
+      expect(
+        within(pane).queryByRole('button', { name: 'Create a code' }),
+      ).toBeNull();
     });
 
     it('never carries a day typed for one operator over to the next', async () => {

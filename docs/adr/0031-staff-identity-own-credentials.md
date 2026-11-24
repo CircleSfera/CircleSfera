@@ -1,6 +1,6 @@
 # ADR-0031: Staff sign in with credentials of their own, never with a CircleSfera account
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-11-24 by PD-091: an external reviewer signs in with a second factor too; see the amendment below)
 - **Date:** 2026-11-10
 - **Deciders:** CircleSfera owner, CircleSfera engineering
 - **Scope:** backend | frontend | data | trust & safety
@@ -56,6 +56,17 @@ and no CircleSfera account is needed or used.
   first.
 
 Public sign-up and sign-in do not change (ADR-0025).
+
+### Amendment (2026-11-24): no staff sign-in without a second factor (PD-091)
+
+The owner's decision PD-091 replaces PD-062: nobody signs in to a staff site without a second
+factor. An external reviewer sets a password and enrols an authenticator from the link or a code,
+and signs in with its code or with a staff passkey, exactly like a member of staff; one without a
+second factor cannot sign in until it enrols one, and no data is changed for that. What stays: the
+reviewer role held alone, read-only access to the review area, an end date of at most 90 days, and
+a session capped at a working day from its sign-in, which a step-up keeps. Sessions given to
+reviewers with the password alone end. Where the text above says "unless they are an external
+reviewer" or that a reviewer signs in without an authenticator, this amendment applies.
 
 ## Alternatives considered
 

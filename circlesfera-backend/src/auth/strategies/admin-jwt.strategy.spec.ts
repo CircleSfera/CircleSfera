@@ -306,9 +306,10 @@ describe('AdminJwtStrategy', () => {
     });
   });
   describe('an external reviewer', () => {
+    // A reviewer with an authenticator enrolled (PD-091).
     const reviewer = {
       ...activeAdmin,
-      totpEnabled: false,
+      totpEnabled: true,
       accessExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       roles: [
         {
@@ -327,15 +328,38 @@ describe('AdminJwtStrategy', () => {
         jti: 'j',
         aud: ADMIN_JWT_AUDIENCE,
         typ: 'access',
+        mfa: true,
         rev: true,
         sst: nowSec(),
         ...extra,
       }) as AdminJwtPayload;
 
-    it('is let in without a second factor, marked as a reviewer', async () => {
+    it('is let in after the second factor, marked as a reviewer, with when its session began', async () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer);
-      await expect(strategy.validate(reviewerPayload())).resolves.toMatchObject(
-        { permissions: ['review'], externalReviewer: true },
+      const sst = nowSec() - 60;
+      await expect(
+        strategy.validate(reviewerPayload({ sst })),
+      ).resolves.toMatchObject({
+        permissions: ['review'],
+        externalReviewer: true,
+        reviewerSessionStartedAt: sst,
+      });
+    });
+
+    it('a session opened with the password alone, before PD-091, is refused', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer);
+      await expect(
+        strategy.validate(reviewerPayload({ mfa: undefined })),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('is refused once its authenticator is reset', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        ...reviewer,
+        totpEnabled: false,
+      });
+      await expect(strategy.validate(reviewerPayload())).rejects.toThrow(
+        UnauthorizedException,
       );
     });
 
@@ -366,15 +390,10 @@ describe('AdminJwtStrategy', () => {
       );
     });
 
-    it('a session with the second factor is refused once the identity is a reviewer', async () => {
-      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
-        ...reviewer,
-        totpEnabled: true,
-      });
+    it("a member of staff's session is refused once the identity is a reviewer", async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer);
       await expect(
-        strategy.validate(
-          reviewerPayload({ rev: undefined, sst: undefined, mfa: true }),
-        ),
+        strategy.validate(reviewerPayload({ rev: undefined, sst: undefined })),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -395,7 +414,7 @@ describe('AdminJwtStrategy', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('a token without the reviewer mark or the second factor is refused', async () => {
+    it('a token without the whole reviewer mark is refused', async () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue(reviewer);
       await expect(
         strategy.validate(reviewerPayload({ rev: undefined })),

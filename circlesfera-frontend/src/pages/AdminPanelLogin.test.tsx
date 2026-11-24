@@ -132,14 +132,10 @@ describe('Admin Panel sign-in', () => {
     expect(useAdminAuthStore.getState().isAuthenticated).toBe(true);
   });
 
-  it("opens an external reviewer's review section at once, with no code asked", async () => {
-    vi.mocked(adminAuthApi.login).mockResolvedValue({
-      data: { status: 'SIGNED_IN' },
-    } as never);
+  it('asks an external reviewer for the authenticator code, then opens their review section (PD-091)', async () => {
     vi.mocked(adminAuthApi.me).mockResolvedValue({
       data: {
         ...SUPER_ADMIN,
-        totpEnabled: false,
         roles: ['EXTERNAL_REVIEWER'],
         permissions: ['review'],
         externalReviewer: true,
@@ -147,7 +143,7 @@ describe('Admin Panel sign-in', () => {
     } as never);
     const { i18n } = renderWithProviders(<AdminPanelLogin />);
 
-    submitCredentials(i18n!);
+    await signInWithCode(i18n!);
 
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith(
@@ -155,27 +151,7 @@ describe('Admin Panel sign-in', () => {
         { replace: true },
       ),
     );
-    expect(adminAuthApi.verifyMfa).not.toHaveBeenCalled();
-    expect(
-      screen.queryByLabelText(i18n!.t('adminPanel.login.mfa_code')),
-    ).toBeNull();
-  });
-
-  it("says the sign-in failed when the reviewer's profile cannot be loaded", async () => {
-    vi.mocked(adminAuthApi.login).mockResolvedValue({
-      data: { status: 'SIGNED_IN' },
-    } as never);
-    vi.mocked(adminAuthApi.me).mockRejectedValue(new Error('down'));
-    const { i18n } = renderWithProviders(<AdminPanelLogin />);
-
-    submitCredentials(i18n!);
-
-    // The credentials were right: the failure is never said to be them.
-    expect(
-      await screen.findByText(i18n!.t('errors.generic.server')),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(i18n!.t('adminPanel.login.invalid'))).toBeNull();
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(adminAuthApi.verifyMfa).toHaveBeenCalledWith('mfa-token', '123456');
   });
 
   it('opens the first tab the staff member is allowed to see', async () => {
@@ -637,50 +613,6 @@ describe('Admin Panel sign-in', () => {
       ).toBeInTheDocument();
       typePasswords(i18n!, LONG);
       expect(saveButton(i18n!)).toBeEnabled();
-    });
-
-    it('signs an external reviewer in at once', async () => {
-      vi.mocked(adminAuthApi.setUpAccess).mockResolvedValue({
-        data: { status: 'SIGNED_IN' },
-      } as never);
-      vi.mocked(adminAuthApi.me).mockResolvedValue({
-        data: SUPER_ADMIN,
-      } as never);
-      window.history.replaceState(
-        null,
-        '',
-        '/login#enrol=tok-12345678&email=s%40e.com',
-      );
-      const { i18n } = renderWithProviders(<AdminPanelLogin />);
-
-      typePasswords(i18n!, LONG);
-      fireEvent.click(saveButton(i18n!));
-
-      await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
-      expect(useAdminAuthStore.getState().admin).toMatchObject({
-        id: 'admin-1',
-      });
-    });
-
-    it('says so when the reviewer is signed in but who it is cannot be loaded', async () => {
-      vi.mocked(adminAuthApi.setUpAccess).mockResolvedValue({
-        data: { status: 'SIGNED_IN' },
-      } as never);
-      vi.mocked(adminAuthApi.me).mockRejectedValue(new Error('down'));
-      window.history.replaceState(
-        null,
-        '',
-        '/login#enrol=tok-12345678&email=s%40e.com',
-      );
-      const { i18n } = renderWithProviders(<AdminPanelLogin />);
-
-      typePasswords(i18n!, LONG);
-      fireEvent.click(saveButton(i18n!));
-
-      expect(
-        await screen.findByText(i18n!.t('errors.generic.server')),
-      ).toBeInTheDocument();
-      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     it('goes back to the sign-in, the error cleared', async () => {
