@@ -47,6 +47,7 @@ describe('AdminPlansService', () => {
       'verified_badge',
       'priority_support',
       'no_promoted_content',
+      'profile_colour',
       'advanced_analytics',
       'team_access',
       'studio_pro',

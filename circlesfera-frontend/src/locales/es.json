@@ -161,7 +161,7 @@
       "colour": {
         "title": "Color del perfil",
         "hint": "Se ve en la parte alta de tu perfil, en el botón principal y en tu enlace. Lo ve todo el que visita tu perfil.",
-        "plan_hint": "El color del perfil viene con los planes Elite Creator y Business.",
+        "plan_hint": "El color del perfil viene con los planes Premium, Elite Creator y Business.",
         "options": {
           "default": "Morado de CircleSfera",
           "blue": "Azul",
@@ -5056,6 +5056,7 @@
       "api_access_beta": "Acceso a la API (beta)",
       "verified_filter": "Apareces en el filtro de verificados",
       "no_promoted_content": "Sin contenido promocionado",
+      "profile_colour": "Color de perfil",
       "personalization": "Personalización del perfil",
       "elite_badge": "Insignia élite",
       "business_badge": "Insignia de empresa",

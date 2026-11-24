@@ -24,7 +24,6 @@ import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
 import { keepSavedOwnProfile } from '../../utils/ownProfileCache';
-import { hasElitePlan } from '../../utils/plans';
 import { PROFILE_COLOR_KEYS, PROFILE_COLORS } from '../../utils/profileColors';
 import { sellsInApp } from '../../utils/sellsInApp';
 import type { PlaceSelection } from '../create-post/LocationSubScreen';
@@ -217,7 +216,9 @@ export default function ProfileSettings() {
     }
   };
 
-  const canChooseColour = hasElitePlan(profile?.verificationLevel);
+  // The server says whether this Profile's plan includes the colour
+  // (Premium, Elite Creator and Business).
+  const canChooseColour = profile?.canChooseColour === true;
 
   const isBusiness = accountType === 'BUSINESS';
   const savedPlaceLabel =

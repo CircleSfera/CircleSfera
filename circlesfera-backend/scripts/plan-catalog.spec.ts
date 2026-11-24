@@ -39,8 +39,14 @@ const stored = (over: Partial<StoredPlan>): StoredPlan => ({
   id: 'plan_1',
   name: 'Premium',
   priceCents: 999,
-  description: 'Verified badge and priority support.',
-  features: ['verified_badge', 'priority_support'],
+  description:
+    'Verified badge, priority support, a feed without promoted posts and a Profile colour.',
+  features: [
+    'verified_badge',
+    'priority_support',
+    'no_promoted_content',
+    'profile_colour',
+  ],
   currency: 'EUR',
   interval: 'month',
   stripeProductId: 'prod_1',
@@ -57,15 +63,25 @@ const yearly = (amount: number, over: object = {}) =>
   monthly(amount, { id: 'price_y', recurring: { interval: 'year' }, ...over });
 
 describe('the plan catalog', () => {
-  it('sells Verified with the badge only, apart from Premium', () => {
+  it('sells Verified with the badge only, and Premium with support, no promoted posts and the colour (PD-088)', () => {
     expect(plan('Verified')).toMatchObject({
       priceCents: 499,
       features: ['verified_badge'],
     });
     expect(plan('Premium')).toMatchObject({
       priceCents: 999,
-      features: ['verified_badge', 'priority_support'],
+      features: [
+        'verified_badge',
+        'priority_support',
+        'no_promoted_content',
+        'profile_colour',
+      ],
     });
+    // The colour comes with every plan from Premium up; the plan reactions
+    // stay with the elite and business badges.
+    for (const name of ['Premium', 'Elite Creator', 'Business']) {
+      expect(plan(name).features).toContain('profile_colour');
+    }
     expect(PLAN_CATALOG.map((p) => p.priceCents)).toEqual([
       499, 999, 1999, 4999, 799,
     ]);
@@ -430,7 +446,36 @@ describe('planUpdate', () => {
         null,
       ),
     ).toEqual({
-      features: ['verified_badge', 'priority_support'],
+      features: [
+        'verified_badge',
+        'priority_support',
+        'no_promoted_content',
+        'profile_colour',
+      ],
+    });
+  });
+
+  it('gives Premium bought before PD-088 the feed without promoted posts and the colour, at the same price', () => {
+    expect(
+      planUpdate(
+        stored({
+          description: 'Verified badge and priority support.',
+          features: ['verified_badge', 'priority_support'],
+        }),
+        plan('Premium'),
+        'prod_1',
+        'price_m',
+        null,
+      ),
+    ).toEqual({
+      description:
+        'Verified badge, priority support, a feed without promoted posts and a Profile colour.',
+      features: [
+        'verified_badge',
+        'priority_support',
+        'no_promoted_content',
+        'profile_colour',
+      ],
     });
   });
 });
