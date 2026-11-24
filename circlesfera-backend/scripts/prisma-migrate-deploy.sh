@@ -4,7 +4,10 @@
 # nothing, so it is marked rolled back and applied again.
 set -eu
 
-RECOVERABLE_MIGRATIONS="20260827160002_user_profile_ownership_sync 20261228090000_drop_person_payout_account_column"
+# 20270101200000_plan_withdrawal_columns_archived refuses, before changing
+# anything, while an old-style withdrawal is unfinished; once it is
+# finished, the next deploy applies it.
+RECOVERABLE_MIGRATIONS="20260827160002_user_profile_ownership_sync 20261228090000_drop_person_payout_account_column 20270101200000_plan_withdrawal_columns_archived"
 
 run_deploy() {
   ./node_modules/.bin/prisma migrate deploy

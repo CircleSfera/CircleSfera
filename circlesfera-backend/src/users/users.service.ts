@@ -11,7 +11,6 @@ import {
   ContentRating,
   type Locale,
   type Prisma,
-  SubscriptionStatus,
   VerificationLevel,
   Visibility,
 } from '@prisma/client';
@@ -24,6 +23,7 @@ import {
   announceAdminNotices,
   ensureGroupAdmin,
 } from '../chat/services/group-admin-succession.service.js';
+import { ENTITLED_STATUSES } from '../common/constants/plan-features.constants.js';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { isTestViewer } from '../common/policies/test-account.policy.js';
@@ -57,6 +57,14 @@ const PROFILE_PUSH_SELECT = Object.fromEntries(
 // Service for user management: follow suggestions, banning, and unbanning.
 // Files of an erased account deleted by one job.
 const ERASE_FILES_PER_JOB = 500;
+
+// The badge levels, lowest first: a Profile shows the highest its plans give.
+const BADGE_RANK: readonly VerificationLevel[] = [
+  VerificationLevel.BASIC,
+  VerificationLevel.VERIFIED,
+  VerificationLevel.ELITE,
+  VerificationLevel.BUSINESS,
+];
 
 @Injectable()
 export class UsersService {
@@ -1000,12 +1008,14 @@ export class UsersService {
     let underMinimumAge = false;
 
     if (dob?.year && dob?.month && dob?.day) {
-      dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
+      // A calendar date, at midnight UTC as the date given at sign-up, so it
+      // never moves a day with the server's time zone.
+      dateOfBirth = new Date(Date.UTC(dob.year, dob.month - 1, dob.day));
 
       const today = new Date();
-      let age = today.getFullYear() - dateOfBirth.getFullYear();
-      const m = today.getMonth() - dateOfBirth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
+      let age = today.getUTCFullYear() - dateOfBirth.getUTCFullYear();
+      const m = today.getUTCMonth() - dateOfBirth.getUTCMonth();
+      if (m < 0 || (m === 0 && today.getUTCDate() < dateOfBirth.getUTCDate())) {
         age--;
       }
       underMinimumAge = age < 16;
@@ -1173,12 +1183,10 @@ export class UsersService {
       include: {
         profiles: {
           include: {
+            // The plans that still give what they include: a renewal being
+            // tried again included (ENTITLED_STATUSES).
             platformSubscriptions: {
-              where: {
-                status: {
-                  in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-                },
-              },
+              where: { status: { in: [...ENTITLED_STATUSES] } },
               include: { plan: true },
             },
           },
@@ -1189,34 +1197,31 @@ export class UsersService {
     if (!user) return;
 
     for (const profile of user.profiles ?? []) {
-      const planNames = profile.platformSubscriptions.map((sub) =>
-        sub.plan.name.toLowerCase(),
-      );
-      const has = (keyword: string) =>
-        planNames.some((name) => name.includes(keyword));
-
-      // Highest tier wins. The Verified and Premium plans both give the
-      // VERIFIED level, which is the badge; what else a plan includes is read
-      // from its features, never from this level.
-      const targetVerificationLevel: VerificationLevel = has('business')
-        ? VerificationLevel.BUSINESS
-        : has('elite')
-          ? VerificationLevel.ELITE
-          : has('verified') || has('premium')
-            ? VerificationLevel.VERIFIED
-            : VerificationLevel.BASIC;
+      // The highest badge the Profile's plans give, as the plan catalog sets
+      // it on each plan, never read from a plan's name. What else a plan
+      // includes is read from its features, never from this level.
+      const targetVerificationLevel =
+        profile.platformSubscriptions.reduce<VerificationLevel>(
+          (highest, sub) =>
+            BADGE_RANK.indexOf(sub.plan.badge) > BADGE_RANK.indexOf(highest)
+              ? sub.plan.badge
+              : highest,
+          VerificationLevel.BASIC,
+        );
 
       if (profile.verificationLevel !== targetVerificationLevel) {
         await this.prisma.profile.update({
           where: { id: profile.id },
           data: { verificationLevel: targetVerificationLevel },
         });
-        // The public profile is cached with what the old level allowed.
-        await forgetCachedProfiles(this.cacheManager, [profile.username]);
         this.logger.log(
           `Profile ${profile.id} verification synced: ${targetVerificationLevel}`,
         );
       }
+      // The public profile is cached with what the plans gave before: the
+      // badge, and the colour, which can change while the badge stays
+      // (Premium ending on a Profile that keeps a verified badge, PD-088).
+      await forgetCachedProfiles(this.cacheManager, [profile.username]);
       // The team pauses when the Business plan ends and returns with it.
       await followTeamPlan(this.prisma, profile.id);
     }

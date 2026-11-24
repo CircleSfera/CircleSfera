@@ -1,6 +1,7 @@
 # ADR-0027: Help Desk — a module of the monolith behind host contracts, with records per organization
 
-- **Status:** Accepted
+- **Status:** Accepted, amended by [ADR-0034](./0034-help-desk-own-package.md) (2026-11-24): the
+  Help Desk becomes a product of its own, with its own package, database, sign-in and deploy
 - **Date:** 2026-10-08
 - **Deciders:** CircleSfera owner, engineering
 - **Scope:** backend | data | frontend

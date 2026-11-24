@@ -17,6 +17,7 @@ export class AdminSubscriptionsQueryDto extends PaginationDto {
       'CANCELLED',
       'TRIALING',
       'PAST_DUE',
+      'UNPAID',
       'INCOMPLETE',
       'EXPIRED',
     ],

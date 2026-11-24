@@ -6,7 +6,9 @@
 
 -- Refused while a withdrawal marked the old way is still unfinished: it
 -- would never be finished. Finish it (or end it in the provider's
--- Dashboard and set withdrawalFinishedAt) and deploy again.
+-- Dashboard and set withdrawalFinishedAt) and deploy again: the refusal
+-- changes nothing, and scripts/prisma-migrate-deploy.sh marks it rolled
+-- back and applies it again.
 DO $$
 BEGIN
   IF EXISTS (

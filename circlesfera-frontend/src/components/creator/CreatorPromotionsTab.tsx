@@ -45,6 +45,12 @@ function computeDaysLeft(endDate: string): number {
   );
 }
 
+// The different people a promotion reached (PD-089); a server that does not
+// send it yet gives the times it was shown.
+function peopleReachedBy(promo: CreatorPromotion): number {
+  return promo.peopleReached ?? promo.reach ?? 0;
+}
+
 function isActiveStatus(status: string) {
   return [
     'ACTIVE',
@@ -204,7 +210,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
               ],
               [
                 'creator.promotions.total_reach',
-                formatNumber(promo.reach ?? 0, i18n.language),
+                formatNumber(peopleReachedBy(promo), i18n.language),
               ],
               [
                 'creator.promotions.clicks',
@@ -418,8 +424,11 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                       amount: money(promo.budgetCents, promo.currency),
                     }),
                     t('creator.promotions.reached', {
-                      count: promo.reach ?? 0,
-                      formatted: formatNumber(promo.reach ?? 0, i18n.language),
+                      count: peopleReachedBy(promo),
+                      formatted: formatNumber(
+                        peopleReachedBy(promo),
+                        i18n.language,
+                      ),
                     }),
                   ].join(' · '),
                   isActiveStatus(promo.status)

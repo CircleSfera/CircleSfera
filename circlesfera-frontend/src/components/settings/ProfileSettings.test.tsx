@@ -357,7 +357,7 @@ describe('ProfileSettings', () => {
     expect(within(colours).getByRole('radio', { name: 'Blue' })).toBeDisabled();
     expect(
       screen.getByText(
-        'The profile colour comes with the Elite Creator and Business plans.',
+        'The profile colour comes with the Premium, Elite Creator and Business plans.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute(
@@ -374,8 +374,31 @@ describe('ProfileSettings', () => {
     );
   });
 
+  it('offers the colour by what the plan includes, not by the badge: Premium has a verified badge', async () => {
+    await show(mine({ verificationLevel: 'VERIFIED', canChooseColour: true }));
+
+    const colours = screen.getByRole('radiogroup', { name: 'Profile colour' });
+    expect(
+      within(colours).getByRole('radio', { name: 'Blue' }),
+    ).not.toBeDisabled();
+    expect(screen.queryByRole('link', { name: 'See plans' })).toBeNull();
+  });
+
+  it('keeps the colour for an elite badge whose plan no longer includes it', async () => {
+    await show(mine({ verificationLevel: 'ELITE', canChooseColour: false }));
+
+    const colours = screen.getByRole('radiogroup', { name: 'Profile colour' });
+    expect(within(colours).getByRole('radio', { name: 'Blue' })).toBeDisabled();
+  });
+
   it('chooses a colour, and goes back to the one of the app', async () => {
-    await show(mine({ verificationLevel: 'ELITE', accentColor: 'teal' }));
+    await show(
+      mine({
+        verificationLevel: 'ELITE',
+        canChooseColour: true,
+        accentColor: 'teal',
+      }),
+    );
 
     const colours = screen.getByRole('radiogroup', { name: 'Profile colour' });
     expect(within(colours).getByRole('radio', { name: 'Teal' })).toBeChecked();

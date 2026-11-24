@@ -35,7 +35,6 @@ import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
 import {
   isAddOnPlan,
-  planAccountType,
   planFitsProfile,
   studioProState,
 } from '../../utils/plans';
@@ -157,7 +156,7 @@ export default function Pricing() {
   // Profile's level stands for.
   const isPlanActive = (plan: PlatformPlanDto) => {
     // The add-on is held beside the plan, never as it.
-    if (isAddOnPlan(plan.name)) {
+    if (isAddOnPlan(plan)) {
       return studioProState(billingStatus) === 'held';
     }
     const name = plan.name.toLowerCase();
@@ -191,7 +190,7 @@ export default function Pricing() {
       return paymentsApi.createSubscriptionCheckout(
         plan.id,
         // The add-on is sold by the month only.
-        isAddOnPlan(plan.name) ? 'MONTHLY' : billingCycle,
+        isAddOnPlan(plan) ? 'MONTHLY' : billingCycle,
         given,
       );
     },
@@ -226,8 +225,8 @@ export default function Pricing() {
   };
 
   // Edits Studio Pro is shown apart, under the plans, as an add-on.
-  const tierPlans = plans?.filter((plan) => !isAddOnPlan(plan.name));
-  const addOn = plans?.find((plan) => isAddOnPlan(plan.name));
+  const tierPlans = plans?.filter((plan) => !isAddOnPlan(plan));
+  const addOn = plans?.find((plan) => isAddOnPlan(plan));
   const addOnState = studioProState(billingStatus);
 
   const hasYearlyPlans =
@@ -321,7 +320,7 @@ export default function Pricing() {
               const notForThisProfile =
                 isAuthenticated &&
                 !isActive &&
-                !planFitsProfile(plan.name, currentUser?.accountType);
+                !planFitsProfile(plan, currentUser?.accountType);
 
               return (
                 <article
@@ -424,9 +423,7 @@ export default function Pricing() {
                       id={`plan-${plan.id}-profile`}
                       className="mt-3 text-center text-sm leading-relaxed text-white/60"
                     >
-                      {t(
-                        `pricingPage.for_profile.${planAccountType(plan.name)}`,
-                      )}
+                      {t(`pricingPage.for_profile.${plan.forAccountType}`)}
                     </p>
                   )}
                 </article>

@@ -15,6 +15,7 @@ import { computeTrustScore } from '../abuse/trust-score.js';
 import { TurnstileService } from '../abuse/turnstile.service.js';
 import { deleteRefreshTokens } from '../auth/refresh-token-deletion.js';
 import { FIRST_SIGN_IN_ORDER } from '../common/auth/sign-in-lookup.js';
+import { ENTITLED_STATUSES } from '../common/constants/plan-features.constants.js';
 import {
   decodeKeysetCursor,
   encodeKeysetCursor,
@@ -64,13 +65,14 @@ export interface UserWithVerification {
 // Who a broadcast is sent to: active accounts whose newsletter preference is
 // on (an account with no settings row has the default, on).
 // The count and the send build it here, so the send goes to exactly who the
-// count counted. "With a plan" is a subscription that is active or in trial.
+// count counted. "With a plan" is a subscription that still gives what it
+// includes: active, in trial, or a renewal being tried again.
 export function broadcastAudienceWhere(
   audience?: BroadcastAudienceDto,
 ): Prisma.UserWhereInput {
   const withPlan: Prisma.UserWhereInput = {
     platformSubscriptions: {
-      some: { status: { in: ['ACTIVE', 'TRIALING'] } },
+      some: { status: { in: [...ENTITLED_STATUSES] } },
     },
   };
   return {

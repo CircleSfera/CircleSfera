@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { STUDIO_PRO_PLAN_NAME } from '../src/common/constants/plan-features.constants.js';
 import {
   findProviderProduct,
   findStoredPlan,
@@ -13,6 +12,9 @@ import {
   type StoredPlan,
   staleProductDescription,
 } from './plan-catalog.ts';
+
+// The add-on's name in the catalog; the server knows it by its addOn mark.
+const STUDIO_PRO_PLAN_NAME = 'Edits Studio Pro';
 
 const plan = (name: string) =>
   PLAN_CATALOG.find((candidate) => candidate.name === name)!;
@@ -37,8 +39,14 @@ const stored = (over: Partial<StoredPlan>): StoredPlan => ({
   id: 'plan_1',
   name: 'Premium',
   priceCents: 999,
-  description: 'Verified badge and priority support.',
-  features: ['verified_badge', 'priority_support'],
+  description:
+    'Verified badge, priority support, a feed without promoted posts and a Profile colour.',
+  features: [
+    'verified_badge',
+    'priority_support',
+    'no_promoted_content',
+    'profile_colour',
+  ],
   currency: 'EUR',
   interval: 'month',
   stripeProductId: 'prod_1',
@@ -46,31 +54,49 @@ const stored = (over: Partial<StoredPlan>): StoredPlan => ({
   yearlyStripePriceId: null,
   yearlyPriceCents: null,
   isActive: true,
+  badge: 'VERIFIED',
+  forAccountType: null,
+  addOn: false,
   ...over,
 });
 const yearly = (amount: number, over: object = {}) =>
   monthly(amount, { id: 'price_y', recurring: { interval: 'year' }, ...over });
 
 describe('the plan catalog', () => {
-  it('sells Verified with the badge only, apart from Premium', () => {
+  it('sells Verified with the badge only, and Premium with support, no promoted posts and the colour (PD-088)', () => {
     expect(plan('Verified')).toMatchObject({
       priceCents: 499,
       features: ['verified_badge'],
     });
     expect(plan('Premium')).toMatchObject({
       priceCents: 999,
-      features: ['verified_badge', 'priority_support'],
+      features: [
+        'verified_badge',
+        'priority_support',
+        'no_promoted_content',
+        'profile_colour',
+      ],
     });
+    // The colour comes with every plan from Premium up; the plan reactions
+    // stay with the elite and business badges.
+    for (const name of ['Premium', 'Elite Creator', 'Business']) {
+      expect(plan(name).features).toContain('profile_colour');
+    }
     expect(PLAN_CATALOG.map((p) => p.priceCents)).toEqual([
       499, 999, 1999, 4999, 799,
     ]);
   });
 
-  it('sells Edits Studio Pro as the add-on the server knows by name, and gives it with Elite Creator and Business only', () => {
+  it('sells Edits Studio Pro as the add-on, marked so, and gives it with Elite Creator and Business only', () => {
     expect(plan(STUDIO_PRO_PLAN_NAME)).toMatchObject({
       priceCents: 799,
       features: ['studio_pro'],
+      addOn: true,
     });
+    // The only add-on.
+    expect(PLAN_CATALOG.filter((p) => p.addOn).map((p) => p.name)).toEqual([
+      STUDIO_PRO_PLAN_NAME,
+    ]);
     expect(
       PLAN_CATALOG.filter((p) => p.features.includes('studio_pro')).map(
         (p) => p.name,
@@ -380,7 +406,34 @@ describe('planUpdate', () => {
       isActive: true,
       yearlyStripePriceId: null,
       yearlyPriceCents: null,
+      badge: 'VERIFIED',
+      forAccountType: null,
+      addOn: false,
     });
+  });
+
+  it('sets what a plan gives and to whom from the catalog, never from its name', () => {
+    expect(
+      planUpdate(
+        stored({ name: 'Business', badge: 'BASIC', forAccountType: null }),
+        plan('Business'),
+        'prod_1',
+        'price_m',
+        null,
+      ),
+    ).toMatchObject({ badge: 'BUSINESS', forAccountType: 'BUSINESS' });
+    expect(plan('Edits Studio Pro')).toMatchObject({
+      badge: 'BASIC',
+      addOn: true,
+    });
+    expect(plan('Elite Creator')).toMatchObject({
+      badge: 'ELITE',
+      forAccountType: 'CREATOR',
+    });
+    // Every plan but the add-on gives a badge.
+    for (const candidate of PLAN_CATALOG) {
+      expect(candidate.badge === 'BASIC').toBe(candidate.addOn === true);
+    }
   });
 
   it('sets features that differ, and leaves a plan staff took off sale off sale', () => {
@@ -393,7 +446,36 @@ describe('planUpdate', () => {
         null,
       ),
     ).toEqual({
-      features: ['verified_badge', 'priority_support'],
+      features: [
+        'verified_badge',
+        'priority_support',
+        'no_promoted_content',
+        'profile_colour',
+      ],
+    });
+  });
+
+  it('gives Premium bought before PD-088 the feed without promoted posts and the colour, at the same price', () => {
+    expect(
+      planUpdate(
+        stored({
+          description: 'Verified badge and priority support.',
+          features: ['verified_badge', 'priority_support'],
+        }),
+        plan('Premium'),
+        'prod_1',
+        'price_m',
+        null,
+      ),
+    ).toEqual({
+      description:
+        'Verified badge, priority support, a feed without promoted posts and a Profile colour.',
+      features: [
+        'verified_badge',
+        'priority_support',
+        'no_promoted_content',
+        'profile_colour',
+      ],
     });
   });
 });

@@ -1726,20 +1726,27 @@ model Notification {
 // =============================================================================
 
 model PlatformPlan {
-  id                  String   @id @default(uuid())
+  id                  String            @id @default(uuid())
   name                String // e.g. "Pro Creator", "Verified"
   description         String?
-  priceCents          Int      @default(0) // Source of truth (e.g. 999 = €9.99)
+  priceCents          Int               @default(0) // Source of truth (e.g. 999 = €9.99)
   yearlyPriceCents    Int? // Yearly price in cents
-  currency            String   @default("EUR") // Default to EUR
-  interval            String   @default("month") // "month", "year"
-  stripeProductId     String   @unique
-  stripePriceId       String   @unique
-  yearlyStripePriceId String?  @unique // Support for yearly pricing
+  currency            String            @default("EUR") // Default to EUR
+  interval            String            @default("month") // "month", "year"
+  stripeProductId     String            @unique
+  stripePriceId       String            @unique
+  yearlyStripePriceId String?           @unique // Support for yearly pricing
   features            String[] // Array of included features
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  // What the plan gives and to whom, set by the plan catalog
+  // (scripts/plan-catalog.ts), never read from its name: the level of the
+  // badge it gives, the type of Profile it is for (none: any), and whether
+  // it is an add-on held beside a plan.
+  badge               VerificationLevel @default(BASIC)
+  forAccountType      AccountType?
+  addOn               Boolean           @default(false)
+  isActive            Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   subscriptions PlatformSubscription[]
 
@@ -1874,6 +1881,9 @@ model Promotion {
   startDate   DateTime            @default(now())
   endDate     DateTime
   reach       Int                 @default(0)
+  // The different people it reached (PD-089): a person counts on their
+  // first view. Kept here because views by person are purged after 7 days.
+  peopleReached Int               @default(0)
   clicks      Int                 @default(0)
 
   // Aimed by country only: ISO codes joined by commas, or none for
@@ -3213,10 +3223,14 @@ enum ScheduledPostStatus {
   CANCELLED
 }
 
+/// PAST_DUE: a renewal failed and the payment provider is still trying the
+/// card; the plan keeps what it gives meanwhile. UNPAID: the provider has
+/// stopped trying; nothing is given until the open invoice is paid.
 enum SubscriptionStatus {
   ACTIVE
   TRIALING
   PAST_DUE
+  UNPAID
   INCOMPLETE
   CANCELLED
   EXPIRED

@@ -194,6 +194,7 @@ async function main() {
         stripeProductId: 'prod_VX4tFskGtJkvzh',
         stripePriceId: 'price_1UW0jeIEniBX3suAKCHQ5lrM',
         features: ['verified_badge'],
+        badge: 'VERIFIED',
       },
     });
 
@@ -209,6 +210,7 @@ async function main() {
         stripeProductId: 'prod_UtQGHGBnYo5yGX',
         stripePriceId: 'price_1TtdPZIEniBX3suALJ68LF3d',
         features: ['verified_badge', 'priority_support'],
+        badge: 'VERIFIED',
       },
     });
 
@@ -230,6 +232,8 @@ async function main() {
           'no_promoted_content',
           'advanced_analytics',
         ],
+        badge: 'ELITE',
+        forAccountType: 'CREATOR',
       },
     });
 
@@ -252,6 +256,8 @@ async function main() {
           'advanced_analytics',
           'team_access',
         ],
+        badge: 'BUSINESS',
+        forAccountType: 'BUSINESS',
       },
     });
 

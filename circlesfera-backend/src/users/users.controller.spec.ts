@@ -275,7 +275,7 @@ describe('UsersController', () => {
     );
   });
 
-  it('starts identity verification as the caller userId with an explicit returnUrl', async () => {
+  it('starts identity verification as the caller userId, back to the page of the app it was asked from', async () => {
     mockUsersService.createIdentitySession.mockResolvedValue({
       url: 'https://example.com/verify',
     });
@@ -283,14 +283,38 @@ describe('UsersController', () => {
     await request(app.getHttpServer())
       .post('/api/v1/users/identity-session')
       .set(BEARER)
-      .send({ returnUrl: 'https://example.com/return' })
+      .send({ returnUrl: 'http://localhost:5173/pricing?plan=verified' })
       .expect(201);
 
     expect(mockUsersService.createIdentitySession).toHaveBeenCalledWith(
       TEST_USER.userId,
-      'https://example.com/return',
+      'http://localhost:5173/pricing?plan=verified',
     );
   });
+
+  it.each([
+    ['another site', 'https://example.com/return'],
+    ['no address', 'not a url'],
+    ['a script', 'javascript:alert(1)'],
+  ])(
+    'sends the person back to the account page, never to %s',
+    async (_case, returnUrl) => {
+      mockUsersService.createIdentitySession.mockResolvedValue({
+        url: 'https://example.com/verify',
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/v1/users/identity-session')
+        .set(BEARER)
+        .send({ returnUrl })
+        .expect(201);
+
+      expect(mockUsersService.createIdentitySession).toHaveBeenCalledWith(
+        TEST_USER.userId,
+        `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/account`,
+      );
+    },
+  );
 
   it('starts identity verification with the frontend account fallback', async () => {
     mockUsersService.createIdentitySession.mockResolvedValue({
