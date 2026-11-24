@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import { PAYER, type Session, signIn } from './session.js';
 
 const STRIPE = 'https://api.stripe.com/v1';
@@ -93,43 +93,77 @@ async function verifyIdentityWithTestData(page: Page) {
   ]);
 }
 
+// A field of the provider's payment page, in whichever frame holds it: the
+// card and the billing address sit in the provider's own frames. Waits for it
+// to show, up to the time given.
+async function fieldOnCheckout(
+  page: Page,
+  selector: string,
+  timeout = 30_000,
+): Promise<Locator | null> {
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    for (const frame of page.frames()) {
+      const found = frame.locator(selector).first();
+      if (await found.isVisible().catch(() => false)) return found;
+    }
+    if (Date.now() > deadline) return null;
+    await page.waitForTimeout(500);
+  }
+}
+
 // The provider's payment page, filled as a person does, with its test card.
+// The fields are found by their standard autocomplete names, which stay when
+// the provider redesigns its page (its own ids did not).
 async function payOnCheckout(page: Page) {
   await page.waitForURL(/^https:\/\/checkout\.stripe\.com\//, {
     timeout: 30_000,
   });
+  // Paid in euros, the plan's own currency, when the page offers another.
+  const euros = page.locator('label[for="currency-eur"]');
+  if (await euros.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await euros.click();
+  }
   // A card, when the page offers other ways to pay first.
   const card = page.getByTestId('card-accordion-item-button');
   if (await card.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await card.click();
   }
-  // The fields by their standard autocomplete names, which stay when the
-  // provider redesigns its page (its own ids did not).
-  const field = (autocomplete: string) =>
-    page.locator(`input[autocomplete="${autocomplete}"]`).first();
-  await field('cc-number').fill('4242 4242 4242 4242', { timeout: 30_000 });
-  await field('cc-exp').fill('12 / 34');
-  await field('cc-csc').fill('123');
-  const optional = async (autocomplete: string, value: string) => {
-    const input = field(autocomplete);
-    if (await input.isVisible().catch(() => false)) await input.fill(value);
+  const fill = async (selector: string, value: string, required = true) => {
+    const field = await fieldOnCheckout(
+      page,
+      selector,
+      required ? 30_000 : 2_000,
+    );
+    if (field) await field.fill(value);
+    else if (required) throw new Error(`No ${selector} on the payment page`);
   };
-  await optional('cc-name', 'QA Payer');
-  const country = page.locator('select[autocomplete="country"]').first();
-  if (await country.isVisible().catch(() => false)) {
-    await country.selectOption('ES');
-  }
-  await optional('address-line1', 'Calle Mayor 1');
-  await optional('postal-code', '28013');
-  await optional('address-level2', 'Madrid');
+  await fill('input[autocomplete$="cc-number"]', '4242 4242 4242 4242');
+  await fill('input[autocomplete$="cc-exp"]', '12 / 34');
+  await fill('input[autocomplete$="cc-csc"]', '123');
   // Never saved with the provider's own wallet, which would ask for a phone.
-  const save = page.getByRole('checkbox', { name: /save my information/i });
-  if (await save.isChecked().catch(() => false)) await save.uncheck();
+  const save = await fieldOnCheckout(page, 'input[name="linkOptIn"]', 2_000);
+  if (save && (await save.isChecked().catch(() => false))) {
+    await save.uncheck({ force: true });
+  }
+  await fill(
+    'input[autocomplete="billing name"], input[autocomplete="cc-name"]',
+    'QA Payer',
+    false,
+  );
+  const country = await fieldOnCheckout(
+    page,
+    'select[autocomplete$="country"]',
+    2_000,
+  );
+  if (country) await country.selectOption('ES');
+  await fill('input[autocomplete$="address-line1"]', 'Calle Mayor 1', false);
+  await fill('input[autocomplete$="address-level2"]', 'Madrid', false);
+  await fill('input[autocomplete$="postal-code"]', '28013', false);
   await page
     .getByTestId('hosted-payment-submit-button')
     .click({ timeout: 30_000 });
 }
-
 // A plan bought on Pricing is paid on the provider's page in test mode; the
 // provider's notice reaches this environment and the plan runs. Withdrawing
 // at once ends it and refunds the payment at the provider.
