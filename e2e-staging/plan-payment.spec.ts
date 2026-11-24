@@ -50,11 +50,24 @@ async function billing(session: Session): Promise<BillingStatus> {
 // Ends at the provider every subscription a checkout of this account
 // started that still runs: one left by an earlier run, or by this one if it
 // stopped before withdrawing. The provider's notice then ends it in the app.
-async function endOpenSubscriptions(userId: string, since: number) {
-  const sessions = await stripe<{ data: CheckoutSession[] }>(
-    `/checkout/sessions?limit=100&status=complete&created[gte]=${since}`,
-  );
-  for (const s of sessions.data) {
+// Every completed checkout of the account, page after page and however old:
+// a subscription left by an interrupted run renews on, while its checkout
+// keeps the date it was made.
+async function completedCheckouts(): Promise<CheckoutSession[]> {
+  const all: CheckoutSession[] = [];
+  let after = '';
+  for (;;) {
+    const page = await stripe<{ data: CheckoutSession[]; has_more: boolean }>(
+      `/checkout/sessions?limit=100&status=complete${after}`,
+    );
+    all.push(...page.data);
+    if (!page.has_more || page.data.length === 0) return all;
+    after = `&starting_after=${page.data[page.data.length - 1].id}`;
+  }
+}
+
+async function endOpenSubscriptions(userId: string) {
+  for (const s of await completedCheckouts()) {
     if (s.metadata.userId !== userId || !s.subscription) continue;
     const sub = await stripe<{ status: string }>(
       `/subscriptions/${s.subscription}`,
@@ -120,15 +133,21 @@ async function payOnCheckout(page: Page) {
     timeout: 30_000,
   });
   // Paid in euros, the plan's own currency, when the page offers another.
+  // isVisible does not wait: the selector is waited for, a while, and the
+  // page that offers no other currency goes on without it.
   const euros = page.locator('label[for="currency-eur"]');
-  if (await euros.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await euros.click();
-  }
+  const offersEuros = await euros
+    .waitFor({ state: 'visible', timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (offersEuros) await euros.click();
   // A card, when the page offers other ways to pay first.
   const card = page.getByTestId('card-accordion-item-button');
-  if (await card.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await card.click();
-  }
+  const offersOthers = await card
+    .waitFor({ state: 'visible', timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (offersOthers) await card.click();
   const fill = async (selector: string, value: string, required = true) => {
     const field = await fieldOnCheckout(
       page,
@@ -183,7 +202,8 @@ test('a plan is bought on Pricing and paid at the provider; withdrawing ends it 
 }) => {
   test.setTimeout(300_000);
   stripeKey();
-  const since = Math.floor(Date.now() / 1000) - 30 * 24 * 3600;
+  // The checkout of this run is made after this moment.
+  const since = Math.floor(Date.now() / 1000) - 60;
   const viewer = await signIn(browser, PAYER, { phone: true });
   const me = (await (await viewer.get('/profiles/me')).json()) as {
     userId?: string;
@@ -195,7 +215,7 @@ test('a plan is bought on Pricing and paid at the provider; withdrawing ends it 
 
   try {
     // Nothing left running from an earlier run.
-    await endOpenSubscriptions(userId, since);
+    await endOpenSubscriptions(userId);
     await expect
       .poll(async () => (await billing(viewer)).hasActiveSubscription, {
         timeout: 90_000,
@@ -286,26 +306,30 @@ test('a plan is bought on Pricing and paid at the provider; withdrawing ends it 
     );
     expect(sub.status).toBe('canceled');
     const invoice = await stripe<{
+      amount_paid: number;
       payments?: { data: Array<{ payment: { payment_intent?: string } }> };
     }>(`/invoices/${sub.latest_invoice}?expand[]=payments`);
     const intent = invoice.payments?.data[0]?.payment.payment_intent;
     expect(intent, 'the payment of the first invoice').toBeTruthy();
+    // The unused part of the month: the plan ran for a few minutes, so all of
+    // the payment but what an hour of a 28-day month is worth, at most.
+    const paidCents = invoice.amount_paid;
+    const leastCents = Math.floor(paidCents * (1 - 1 / (28 * 24)));
+    const refundedCents = async () => {
+      const refunds = await stripe<{
+        data: Array<{ status: string; amount: number }>;
+      }>(`/refunds?payment_intent=${intent}`);
+      return refunds.data.reduce(
+        (sum, r) => (r.status === 'failed' ? sum : sum + r.amount),
+        0,
+      );
+    };
     await expect
-      .poll(
-        async () => {
-          const refunds = await stripe<{
-            data: Array<{ status: string; amount: number }>;
-          }>(`/refunds?payment_intent=${intent}`);
-          return refunds.data.reduce(
-            (sum, r) => (r.status === 'failed' ? sum : sum + r.amount),
-            0,
-          );
-        },
-        { timeout: 60_000, intervals: [5_000] },
-      )
-      .toBeGreaterThan(0);
+      .poll(refundedCents, { timeout: 60_000, intervals: [5_000] })
+      .toBeGreaterThanOrEqual(leastCents);
+    expect(await refundedCents()).toBeLessThanOrEqual(paidCents);
   } finally {
-    await endOpenSubscriptions(userId, since).catch(() => undefined);
+    await endOpenSubscriptions(userId).catch(() => undefined);
     await viewer.context.close().catch(() => undefined);
   }
 });
