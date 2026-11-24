@@ -13,8 +13,8 @@ report.
 
 While writing:
 
-- Follow the module's existing patterns. No new layer, framework or
-  dependency without the owner's confirmation.
+- Follow the module's existing patterns. A new layer, framework or
+  dependency only when the change needs it; say why in your report.
 - A schema change comes with its migration (`npx prisma migrate dev --name
   <what>` against a local database) and, for a stored file column,
   `MEDIA_COLUMNS` in `src/uploads/services/media-references.service.ts`.

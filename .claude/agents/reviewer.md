@@ -20,7 +20,8 @@ it, and look for:
   in integer cents, social content not on Profile.id, a secret or token
   logged, staff access through User.role instead of AdminIdentity.
 - Contract: a public API response, an endpoint, an enum or a table changed
-  without the owner's confirmation (AGENTS.md change policy).
+  without its callers (frontend, shared types, tests) changed with it; and
+  anything inside the owner's gate (AGENTS.md) done without the owner.
 - Tests: does each new test fail without the change? Do the assertions prove
   what the test name says? A test weakened, skipped or loosened to pass is a
   finding.

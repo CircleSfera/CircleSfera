@@ -17,11 +17,12 @@ The backlog is Notion → Execution → CircleSfera Implementation Backlog
 - Read the whole item: Description, Expected Outcome, Acceptance Criteria,
   Implementation Notes, Dependencies. An item whose dependency is not DONE is
   skipped.
-- If the item needs the owner (AGENTS.md "Explicit confirmation required", a
-  new Product, Business or Decision Register decision, or anything ambiguous
-  you cannot settle from the code): do not build it. Set it to BLOCKED, write
+- If the item falls inside the owner's gate (AGENTS.md "The owner's gate"):
+  do not build it. Set it to BLOCKED, write
   the question at the top of its Implementation Notes with the options and
   your recommendation, tell the owner, and take the next item.
+- Anything else ambiguous is yours to settle: decide, record the decision in
+  the Decision Register with its reason, and build.
 - Otherwise set it to IN PROGRESS.
 
 ## 2. Plan
@@ -64,9 +65,9 @@ split: the first slice now, the rest as new backlog items.
 - Push the branch and open the pull request against `main` with: What, Why,
   Checks (each check run and its result; a check not run is said to be not
   run), and the backlog item it tracks.
-- A pull request that changes `.github/workflows/` is merged by the owner:
-  open it, tell the owner, and stop at that item.
-- Otherwise, once its required checks are green and no review thread is
+- A pull request that changes `.github/workflows/` goes through `reviewer`
+  first, always.
+- Once its required checks are green and no review thread is
   unresolved, put it in the merge queue:
   `gh api graphql -f query='mutation($id:ID!){enqueuePullRequest(input:{pullRequestId:$id}){mergeQueueEntry{position}}}' -f id=<node id>`
   (`gh pr view <n> --json id -q .id`). If a check fails, read its log, fix
@@ -75,6 +76,7 @@ split: the first slice now, the rest as new backlog items.
 
 ## 6. Production
 
+- Waits (checks, queue, deploy) run in the background; never block on them.
 - After the merge, follow the deploy run on `main`
   (`gh run list --workflow deploy.yml`): staging, its browser checks, then
   production. If staging stops it, the change goes no further: fix it in a
