@@ -181,8 +181,13 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
               <span className="text-sm text-white/70">
                 {t('creator.promote.total')}
               </span>
-              <span className="text-2xl font-semibold text-white tabular-nums tracking-tight">
-                {total}
+              <span className="flex flex-col items-end">
+                <span className="text-2xl font-semibold text-white tabular-nums tracking-tight">
+                  {total}
+                </span>
+                <span className="text-xs text-white/50">
+                  {t('vat.included')}
+                </span>
               </span>
             </div>
             <p className="text-xs text-white/50 leading-relaxed">

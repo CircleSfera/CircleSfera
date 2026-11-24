@@ -178,10 +178,18 @@ export class CreatePromotionUseCase {
               description: `Promotion for ${durationDays} days`,
             },
             unit_amount: budgetCents,
+            // The budget includes VAT, as the plans' prices do: the provider
+            // works out the VAT inside it for where the buyer is.
+            tax_behavior: 'inclusive',
           },
           quantity: 1,
         },
       ],
+      automatic_tax: { enabled: true },
+      billing_address_collection: 'required',
+      ...(user.stripeCustomerId && {
+        customer_update: { address: 'auto' as const, name: 'auto' as const },
+      }),
       mode: 'payment',
       success_url: `${frontendUrl}/creator/ads?promotion=success&id=${promotion.id}`,
       cancel_url: `${frontendUrl}/creator/ads?promotion=cancelled`,

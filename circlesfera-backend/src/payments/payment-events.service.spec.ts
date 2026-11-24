@@ -61,6 +61,7 @@ describe('PaymentEventsService', () => {
         amount_total: 5000,
         currency: 'eur',
         payment_intent: 'pi_promo_1',
+        total_details: { amount_tax: 868 },
         metadata: {
           type: 'PROMOTION',
           promotionId: 'promo_test_id',
@@ -82,6 +83,7 @@ describe('PaymentEventsService', () => {
           status: 'COMPLETED',
           senderId: 'user_promo',
           promotionId: 'promo_test_id',
+          vatCents: 868,
           stripePaymentIntentId: 'pi_promo_1',
           description: 'Promotion checkout cs_promo_1',
         },
@@ -108,6 +110,8 @@ describe('PaymentEventsService', () => {
           amount: 0,
           currency: 'EUR',
           senderId: null,
+          // No tax worked out: none recorded.
+          vatCents: 0,
           stripePaymentIntentId: 'pi_obj',
         }),
       });
