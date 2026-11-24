@@ -5930,7 +5930,7 @@
       "title_part1": "Your World,",
       "title_part2": "Connected.",
       "lead": "A social network built to give you more control.",
-      "subtitle": "Share, discover content, connect with other people and build your community, knowing how the platform works. You decide what you see, who you connect with and how you live it.",
+      "subtitle": "Share, discover content, connect with other people and build your community, knowing how the platform works. You decide who you connect with and how you live it, and you always know why you see what you see.",
       "get_started": "Create account",
       "log_in": "Log in",
       "already": "Already have an account?",
@@ -5987,7 +5987,7 @@
       "items": {
         "control": {
           "title": "User Control",
-          "desc": "You decide what you see, who can interact with you and which recommendations you get. Automation helps; it does not override your choices."
+          "desc": "You decide who can interact with you, what stays in your feed and which recommendations you get, and you always know why you see each thing. Automation helps; it does not override your choices."
         },
         "transparency": {
           "title": "Algorithmic Transparency",

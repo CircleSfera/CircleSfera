@@ -5930,7 +5930,7 @@
       "title_part1": "Your World,",
       "title_part2": "Connected.",
       "lead": "Una red social hecha para que tú tengas el control.",
-      "subtitle": "Comparte, descubre contenido, conecta con otras personas y crea tu comunidad, sabiendo cómo funciona la plataforma. Tú decides qué ves, con quién conectas y cómo lo vives.",
+      "subtitle": "Comparte, descubre contenido, conecta con otras personas y crea tu comunidad, sabiendo cómo funciona la plataforma. Tú decides con quién conectas y cómo lo vives, y siempre sabes por qué ves lo que ves.",
       "get_started": "Crear cuenta",
       "log_in": "Entrar",
       "already": "¿Ya tienes cuenta?",
@@ -5987,7 +5987,7 @@
       "items": {
         "control": {
           "title": "Control del usuario",
-          "desc": "Tú decides qué ves, quién puede interactuar contigo y qué recomendaciones recibes. La automatización ayuda, no anula tus elecciones."
+          "desc": "Tú decides quién puede interactuar contigo, qué se queda en tu feed y qué recomendaciones recibes, y siempre sabes por qué ves cada cosa. La automatización ayuda, no anula tus elecciones."
         },
         "transparency": {
           "title": "Transparencia algorítmica",
