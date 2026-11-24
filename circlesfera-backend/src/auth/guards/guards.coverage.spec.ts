@@ -1,6 +1,5 @@
 import { ApiErrorCode, ErrorCode } from '@circlesfera/shared';
 import { type ExecutionContext, ForbiddenException } from '@nestjs/common';
-import type { Reflector } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../common/errors/app.exception.js';
 import { EmailVerifiedGuard } from './email-verified.guard.js';
