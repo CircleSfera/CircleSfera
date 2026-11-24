@@ -64,6 +64,7 @@ import { VoiceNoteConverter } from './voice-note.converter.js';
   exports: [
     UploadsService,
     MediaReconciliationService,
+    MediaReferencesService,
     StoredFilesService,
     STORAGE_PROVIDER,
   ],

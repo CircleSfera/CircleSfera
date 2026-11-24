@@ -11,6 +11,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LiveKitHealthIndicator } from './livekit-health.indicator.js';
 import { RedisHealthIndicator } from './redis-health.indicator.js';
+import {
+  DISK_ALERT_RATIO,
+  DISK_BUDGET_PATH,
+  HEAP_ALERT_BYTES,
+  RSS_ALERT_BYTES,
+} from './resource-budgets.js';
 
 @Controller('health')
 export class HealthController {
@@ -32,9 +38,12 @@ export class HealthController {
       () => this.prismaHealth.pingCheck('database', this.prisma),
       () => this.redis.pingCheck('redis'),
       () =>
-        this.disk.checkStorage('storage', { path: '/', thresholdPercent: 0.9 }),
-      () => this.memory.checkHeap('memory_heap', 1024 * 1024 * 1024), // 1GB
-      () => this.memory.checkRSS('memory_rss', 1024 * 1024 * 1024), // 1GB
+        this.disk.checkStorage('storage', {
+          path: DISK_BUDGET_PATH,
+          thresholdPercent: DISK_ALERT_RATIO,
+        }),
+      () => this.memory.checkHeap('memory_heap', HEAP_ALERT_BYTES),
+      () => this.memory.checkRSS('memory_rss', RSS_ALERT_BYTES),
     ]);
   }
 
@@ -53,7 +62,10 @@ export class HealthController {
       () => this.prismaHealth.pingCheck('database', this.prisma),
       () => this.redis.pingCheck('redis'),
       () =>
-        this.disk.checkStorage('storage', { path: '/', thresholdPercent: 0.9 }),
+        this.disk.checkStorage('storage', {
+          path: DISK_BUDGET_PATH,
+          thresholdPercent: DISK_ALERT_RATIO,
+        }),
       () => this.liveKit.pingCheck('live'),
     ]);
   }
@@ -67,8 +79,8 @@ export class HealthController {
   @ApiResponse({ status: 200, type: Object })
   checkLiveness(): Promise<HealthCheckResult> {
     return this.health.check([
-      () => this.memory.checkHeap('memory_heap', 1024 * 1024 * 1024), // 1GB
-      () => this.memory.checkRSS('memory_rss', 1024 * 1024 * 1024), // 1GB
+      () => this.memory.checkHeap('memory_heap', HEAP_ALERT_BYTES),
+      () => this.memory.checkRSS('memory_rss', RSS_ALERT_BYTES),
     ]);
   }
 
@@ -84,7 +96,10 @@ export class HealthController {
       () => this.prismaHealth.pingCheck('database', this.prisma),
       () => this.redis.pingCheck('redis'),
       () =>
-        this.disk.checkStorage('storage', { path: '/', thresholdPercent: 0.9 }),
+        this.disk.checkStorage('storage', {
+          path: DISK_BUDGET_PATH,
+          thresholdPercent: DISK_ALERT_RATIO,
+        }),
     ]);
   }
 }

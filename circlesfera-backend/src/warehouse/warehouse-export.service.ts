@@ -76,13 +76,19 @@ export class WarehouseExportService {
     private readonly helpdeskData: HelpdeskDataPort,
   ) {}
 
+  // The folder the nightly exports are written into, one folder each.
+  exportRoot(): string {
+    return (
+      this.config.get<string>('ETL_DIR') ??
+      join(process.cwd(), 'backups', 'etl')
+    );
+  }
+
   async runNightlyExport(): Promise<AnalyticsExportResult> {
     const started = Date.now();
     const sinceDays = Number(this.config.get('ETL_SINCE_DAYS') ?? 1);
     const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
-    const etlRoot =
-      this.config.get<string>('ETL_DIR') ??
-      join(process.cwd(), 'backups', 'etl');
+    const etlRoot = this.exportRoot();
     const outputDir = join(
       etlRoot,
       new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19),
@@ -262,4 +268,4 @@ export class WarehouseExportService {
 // How many days a nightly export is kept, unless ETL_RETENTION_DAYS says.
 const ETL_RETENTION_DAYS_DEFAULT = 7;
 // The folder name of one export: its UTC time, as runNightlyExport writes it.
-const EXPORT_FOLDER = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})$/;
+export const EXPORT_FOLDER = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})$/;

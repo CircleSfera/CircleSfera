@@ -52,6 +52,113 @@ export interface SystemHealthResponse {
   };
 }
 
+// The Operations page of the Backoffice (GET /admin/operations/*): counts,
+// sizes, ratios and dates only.
+export interface OperationsDiskUsage {
+  totalBytes: number;
+  freeBytes: number;
+  usedRatio: number;
+}
+
+export interface OperationsResources {
+  generatedAt: string;
+  host: {
+    memoryTotalBytes: number | null;
+    memoryAvailableBytes: number | null;
+    loadAverage: [number, number, number];
+    cpus: number;
+  };
+  container: { memoryBytes: number | null; memoryLimitBytes: number | null };
+  process: {
+    heapUsedBytes: number;
+    rssBytes: number;
+    heapAlertBytes: number;
+    rssAlertBytes: number;
+  };
+  disks: {
+    alertRatio: number;
+    root: OperationsDiskUsage | null;
+    uploads: OperationsDiskUsage | null;
+  };
+  database: { reachable: boolean; sizeBytes: number | null };
+  redis: {
+    reachable: boolean;
+    usedMemoryBytes: number | null;
+    peakMemoryBytes: number | null;
+    maxMemoryBytes: number | null;
+    evictedKeys: number | null;
+  };
+  queues: {
+    name: string;
+    waiting: number;
+    active: number;
+    delayed: number;
+    failed: number;
+  }[];
+  notVisible: string[];
+}
+
+export interface OperationsWarehouse {
+  generatedAt: string;
+  configured: boolean;
+  tables:
+    | {
+        name: string;
+        rows: number;
+        bytes: number;
+        newestRowAt: string | null;
+      }[]
+    | null;
+  readError: 'unreachable' | null;
+  exportFolder: 'missing' | 'writable' | 'not_writable';
+  recentExports: { name: string; rows: Record<string, number> }[];
+  job: {
+    completed: number;
+    failed: number;
+    scheduled: number;
+    lastFailure: string | null;
+  } | null;
+}
+
+export interface OperationsCspSummary {
+  days: number;
+  firstDay: string | null;
+  lastDay: string | null;
+  total: number;
+  rows: {
+    count: number;
+    disposition: string;
+    directive: string;
+    blocked: string;
+  }[];
+}
+
+export interface OperationsOrphanFiles {
+  generatedAt: string;
+  status: 'ok' | 'no_local_storage';
+  policy: {
+    graceHours: number;
+    deletionsPerNight: number;
+    deletedContentKeptDays: number;
+  };
+  files: { count: number; bytes: number };
+  used: number;
+  sweepable: { count: number; bytes: number; nights: number };
+  keptDeleted: number;
+  unusedRecent: number;
+  breakdown: Record<
+    'shape' | 'extension' | 'owner' | 'age' | 'size',
+    Record<string, number>
+  >;
+  record: {
+    rows: number;
+    withOwner: number;
+    withoutOwner: number;
+    missingOnDisk: number;
+  };
+  unrecordedOnDisk: number;
+}
+
 export interface AdminUser {
   id: string;
   email: string;
@@ -899,6 +1006,34 @@ export const adminApi = {
 
   getSystemHealth: async (): Promise<SystemHealthResponse> => {
     const { data } = await apiClient.get<SystemHealthResponse>('/admin/health');
+    return data;
+  },
+
+  getOperationsResources: async (): Promise<OperationsResources> => {
+    const { data } = await apiClient.get<OperationsResources>(
+      '/admin/operations/resources',
+    );
+    return data;
+  },
+
+  getOperationsWarehouse: async (): Promise<OperationsWarehouse> => {
+    const { data } = await apiClient.get<OperationsWarehouse>(
+      '/admin/operations/warehouse',
+    );
+    return data;
+  },
+
+  getOperationsCsp: async (): Promise<OperationsCspSummary> => {
+    const { data } = await apiClient.get<OperationsCspSummary>(
+      '/admin/operations/csp',
+    );
+    return data;
+  },
+
+  getOperationsOrphanFiles: async (): Promise<OperationsOrphanFiles> => {
+    const { data } = await apiClient.get<OperationsOrphanFiles>(
+      '/admin/operations/orphan-files',
+    );
     return data;
   },
 

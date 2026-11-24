@@ -22,6 +22,7 @@ import {
   ModerationTab,
   MonetizationTab,
   NewsletterTab,
+  OperationsTab,
   OverviewTab,
   PlansTab,
   PostsTab,
@@ -152,6 +153,7 @@ export default function Admin() {
         {activeTab === 'experiments' && <ExperimentsTab />}
         {activeTab === 'newsletter' && <NewsletterTab onToast={addToast} />}
         {activeTab === 'system-health' && <SystemHealthTab />}
+        {activeTab === 'operations' && <OperationsTab />}
         {activeTab === 'settings' && <SettingsTab onToast={addToast} />}
         {activeTab === 'trust' && <TrustTab />}
       </div>

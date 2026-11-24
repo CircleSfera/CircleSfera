@@ -137,7 +137,7 @@ export class ClickHouseLoadService {
     contentType: string,
     body: string,
     what: string,
-  ): Promise<void> {
+  ): Promise<Response> {
     const headers: Record<string, string> = {
       'Content-Type': contentType,
     };
@@ -161,5 +161,25 @@ export class ClickHouseLoadService {
         `ClickHouse ${what} failed (${response.status}): ${text.slice(0, 500)}`,
       );
     }
+    return response;
+  }
+
+  // Runs one read-only query and answers its rows; null when the warehouse
+  // is not configured. The query is the caller's own text, never a person's.
+  async select<Row>(query: string): Promise<Row[] | null> {
+    const baseUrl = this.config.get<string>('CLICKHOUSE_URL')?.trim();
+    if (!baseUrl) return null;
+    const url = new URL(baseUrl);
+    url.searchParams.set('database', this.database());
+    // The server refuses anything but a read in this request.
+    url.searchParams.set('readonly', '1');
+    const response = await this.post(
+      url,
+      'text/plain',
+      `${query} FORMAT JSON`,
+      'read',
+    );
+    const body = (await response.json()) as { data?: Row[] };
+    return body.data ?? [];
   }
 }

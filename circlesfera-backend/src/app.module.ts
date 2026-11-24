@@ -77,6 +77,7 @@ import { MediaModule } from './media/media.module.js';
 import { NewsletterModule } from './newsletter/newsletter.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { ObservabilityModule } from './observability/observability.module.js';
+import { OperationsModule } from './operations/operations.module.js';
 import { OutboxModule } from './outbox/outbox.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { PlacesModule } from './places/places.module.js';
@@ -233,6 +234,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     WarehouseModule,
     OutboxModule,
     SecurityReportsModule,
+    OperationsModule,
     NewsletterModule,
     IllegalNoticesModule,
     ReviewModule,

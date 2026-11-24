@@ -25,6 +25,7 @@ import {
   Radio,
   Scale,
   ScrollText,
+  Server,
   Settings,
   Shield,
   ShieldAlert,
@@ -60,6 +61,7 @@ export type AdminTab =
   | 'newsletter'
   | 'experiments'
   | 'system-health'
+  | 'operations'
   | 'appeals'
   | 'spam-review'
   | 'support'
@@ -110,6 +112,8 @@ export const ADMIN_TAB_PERMISSIONS: Record<
   'link-domains': 'content',
   audio: 'content',
   'system-health': 'system',
+  // The server's resources and the reports that were manual workflows.
+  operations: 'system',
   settings: 'system',
   trust: 'reports',
   experiments: 'experiments',
@@ -321,6 +325,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         labelKey: 'admin.nav.disputes',
         icon: ShieldAlert,
       },
+      {
+        id: 'operations',
+        labelKey: 'backoffice.nav.operations',
+        icon: Server,
+      },
     ],
   },
   {
@@ -358,11 +367,19 @@ const BACKOFFICE_TABS: readonly AdminTab[] = [
   'monetization',
   'newsletter',
   'review-business',
+  'operations',
 ];
+
+// The Backoffice sections that run the platform, not the business: a group
+// of their own in its navigation.
+const PLATFORM_TABS: readonly AdminTab[] = ['operations'];
 
 // A Backoffice section that is not the business itself: who opens only it
 // does not open the home of the Backoffice, which shows the business.
-const NOT_BUSINESS_TABS: readonly AdminTab[] = ['review-business'];
+const NOT_BUSINESS_TABS: readonly AdminTab[] = [
+  'review-business',
+  ...PLATFORM_TABS,
+];
 
 export function tabSite(tab: AdminTab): StaffSite {
   return BACKOFFICE_TABS.includes(tab) ? 'backoffice' : 'admin';
@@ -390,15 +407,32 @@ export function currentStaffSite(): StaffSite {
 }
 
 // The navigation of one site: the Admin Panel keeps its groups without the
-// sections that moved; the Backoffice shows the moved ones as one group.
+// sections that moved; the Backoffice shows the business as one group and
+// the platform as another.
 export function navGroupsFor(site: StaffSite): AdminNavGroup[] {
   if (site === 'backoffice') {
-    const items = BACKOFFICE_TABS.map((tab) =>
-      ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(
-        (item) => item.id === tab,
-      ),
-    ).filter((item): item is AdminNavItem => !!item);
-    return [{ labelKey: 'backoffice.nav.business', icon: Briefcase, items }];
+    const itemsOf = (tabs: readonly AdminTab[]) =>
+      tabs
+        .map((tab) =>
+          ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(
+            (item) => item.id === tab,
+          ),
+        )
+        .filter((item): item is AdminNavItem => !!item);
+    return [
+      {
+        labelKey: 'backoffice.nav.business',
+        icon: Briefcase,
+        items: itemsOf(
+          BACKOFFICE_TABS.filter((tab) => !PLATFORM_TABS.includes(tab)),
+        ),
+      },
+      {
+        labelKey: 'backoffice.nav.platform',
+        icon: Server,
+        items: itemsOf(PLATFORM_TABS),
+      },
+    ];
   }
   return ADMIN_NAV_GROUPS.map((group) => ({
     ...group,

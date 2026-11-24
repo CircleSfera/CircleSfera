@@ -66,6 +66,30 @@ const cases: Case[] = [
     ['/admin/health'],
   ],
   [
+    'getOperationsResources',
+    () => adminApi.getOperationsResources(),
+    'get',
+    ['/admin/operations/resources'],
+  ],
+  [
+    'getOperationsWarehouse',
+    () => adminApi.getOperationsWarehouse(),
+    'get',
+    ['/admin/operations/warehouse'],
+  ],
+  [
+    'getOperationsCsp',
+    () => adminApi.getOperationsCsp(),
+    'get',
+    ['/admin/operations/csp'],
+  ],
+  [
+    'getOperationsOrphanFiles',
+    () => adminApi.getOperationsOrphanFiles(),
+    'get',
+    ['/admin/operations/orphan-files'],
+  ],
+  [
     'getActivityChart',
     () => adminApi.getActivityChart(),
     'get',
@@ -1175,6 +1199,10 @@ describe('the staff API client', () => {
     await expect(adminApi.getStats()).resolves.toBe('payload');
     await expect(adminApi.getEnhancedStats()).resolves.toBe('payload');
     await expect(adminApi.getSystemHealth()).resolves.toBe('payload');
+    await expect(adminApi.getOperationsResources()).resolves.toBe('payload');
+    await expect(adminApi.getOperationsWarehouse()).resolves.toBe('payload');
+    await expect(adminApi.getOperationsCsp()).resolves.toBe('payload');
+    await expect(adminApi.getOperationsOrphanFiles()).resolves.toBe('payload');
     await expect(adminApi.getSystemSettings()).resolves.toBe('payload');
     await expect(adminApi.updateSystemSettings([])).resolves.toBe('payload');
   });

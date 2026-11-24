@@ -1,8 +1,11 @@
 name: Ops — server resources report
 
-# Reports how much memory, disk and CPU the production server has and uses,
-# and what each container takes, so the owner can decide with numbers
-# whether a new service (an analytics store) fits on it.
+# Reports what only the host can see: what each container takes, Docker's
+# own disk use and the host's filesystems. The server's memory, load, the
+# backend's disk, the database and Redis sizes and the queues are on the
+# Operations page of the Backoffice (ED-016), which reads them from inside
+# the backend container; a container cannot see the others without the
+# Docker socket, so this part stays here.
 # Read-only: it changes nothing. Actions logs are public, so it prints only
 # sizes, counts and container names, never an address, a path of user files
 # or a setting.
@@ -35,7 +38,7 @@ jobs:
             echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
             exit 1
           fi
-      - name: Memory, disk, CPU and containers
+      - name: Containers and the host's disks
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -46,10 +49,6 @@ jobs:
           command_timeout: 5m
           script: |
             set -euo pipefail
-            echo "== CPU cores: $(nproc)"
-            echo "== Load (1, 5, 15 min): $(cut -d' ' -f1-3 /proc/loadavg)"
-            echo "== Memory (MiB)"
-            free -m
             echo "== Disk of the root and Docker filesystems"
             df -h --output=size,used,avail,pcent / /var/lib/docker 2>/dev/null || df -h --output=size,used,avail,pcent /
             echo "== Docker disk use"

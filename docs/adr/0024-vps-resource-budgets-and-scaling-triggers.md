@@ -79,3 +79,15 @@ Closing these is future work, not silently rolled into this documentation-gate t
 - Add a Redis memory-usage-percentage or eviction-rate threshold beyond bare ping.
 - Record the actual current VPS tier (vCPU/RAM/disk) somewhere in `circlesfera-documentation/` as an
   operational fact, so future percentage-based thresholds have an absolute baseline to reason about.
+
+## Update (2026-11-25, ED-016)
+
+The first known gap is closed for disk, RAM, database and Redis: `ResourceAlertsService`
+(`operations/resource-alerts.service.ts`) reads them every 10 minutes and sends `system.incident`
+to Slack when an ALERT threshold of the table above is crossed (disk 90% of `/`, heap or RSS 1 GB,
+database or Redis not answering), at most once per threshold per UTC day. The thresholds are the
+health check's own (`health/resource-budgets.ts`). It is still conditional on the Slack webhook
+being set, as the queue tier is. The database size and Redis memory have no threshold in this ADR,
+so they are shown, not alerted; their thresholds remain a known gap. The values are shown to staff
+on the Backoffice's Operations page, together with what the backend container cannot see (each
+container's usage, Docker's disk use).
