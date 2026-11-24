@@ -96,6 +96,8 @@ export class PaymentEventsService {
             status: 'COMPLETED',
             senderId: metadata.userId || null,
             promotionId,
+            // The VAT inside the amount, as the provider worked it out.
+            vatCents: session.total_details?.amount_tax ?? 0,
             stripePaymentIntentId:
               typeof session.payment_intent === 'string'
                 ? session.payment_intent
