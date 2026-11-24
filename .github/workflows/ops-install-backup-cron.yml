@@ -1,8 +1,9 @@
 name: Ops — install backup cron
 
-# Reinstalls the nightly backup cron from scripts/install-backup-cron.sh (the
-# deploy already checked out the current main on the VPS), then runs one
-# backup straight away and prints the result lines from backups/backup.log.
+# Reinstalls the nightly backup cron and the weekly restore drill from
+# scripts/install-backup-cron.sh (every production deploy does too, ED-016),
+# then runs one backup straight away and prints the result lines from
+# backups/backup.log.
 # The run adds one database dump and one media archive; it deletes nothing
 # newer than the retention period. Actions logs are public, so it prints only
 # status lines, sizes and file counts.

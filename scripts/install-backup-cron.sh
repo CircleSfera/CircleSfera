@@ -77,9 +77,11 @@ DRILL_MARKER="# circlesfera-restore-drill"
 DRILL_WRAPPER="${ROOT}/scripts/.run-restore-drill.sh"
 cat > "${DRILL_WRAPPER}" <<EOF
 #!/usr/bin/env bash
-set -uo pipefail
+set -o pipefail
 umask 077
 cd "${ROOT}"
+# Read without -u, so a value of the environment file never stops the drill
+# before it can alert.
 set -a
 # shellcheck disable=SC1091
 source "${ROOT}/.env.production"
@@ -87,7 +89,9 @@ set +a
 export BACKUP_DIR="${BACKUP_DIR}"
 {
   echo "[\$(date -u +%Y-%m-%dT%H:%M:%SZ)] Starting restore drill"
-  if ! "${ROOT}/scripts/backup-restore-drill.sh"; then
+  # One at a time with a deploy, which takes the same lock: a deploy never
+  # recreates the containers or migrates in the middle of the drill.
+  if ! flock -w 1800 "${ROOT}/.ops.lock" "${ROOT}/scripts/backup-restore-drill.sh"; then
     if [ -n "\${SLACK_WEBHOOK_ALERTS:-}" ]; then
       curl -s -m 10 -X POST -H 'Content-type: application/json' \\
         --data '{"text":"CircleSfera: the weekly backup restore drill FAILED on the VPS. See backups/restore-drill.log."}' \\

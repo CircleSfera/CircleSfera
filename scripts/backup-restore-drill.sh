@@ -21,6 +21,24 @@ cleanup() {
 trap cleanup EXIT
 FAIL=0
 
+# Room on the disk first: the drill restores a second copy of the database
+# into the live Postgres and unpacks the media archive on the same disk, and
+# a full disk would stop production. It needs four times the dump (a dump is
+# compressed) and the archive once more, plus a tenth to spare.
+NEWEST_DUMP=$(ls -1t "$B"/postgres/full/pg_backup_*.dump 2>/dev/null | head -n 1 || true)
+NEWEST_ARCHIVE=$(ls -1t "$B"/uploads/uploads_*.tar 2>/dev/null | head -n 1 || true)
+need=0
+[ -n "$NEWEST_DUMP" ] && need=$((need + 4 * $(stat -c %s "$NEWEST_DUMP")))
+[ -n "$NEWEST_ARCHIVE" ] && need=$((need + $(stat -c %s "$NEWEST_ARCHIVE")))
+need=$((need + need / 10))
+free=$(df --output=avail -B1 "$B" | tail -n 1 | tr -d ' ')
+echo "disk: $((free / 1048576)) MB free, $((need / 1048576)) MB needed"
+if [ "$free" -lt "$need" ]; then
+  echo "RESULT disk: FAIL (not enough free space to restore safely)"
+  echo "Drill FAILED"
+  exit 1
+fi
+
 echo "=== Database ==="
 DUMP=$(ls -1t "$B"/postgres/full/pg_backup_*.dump 2>/dev/null | head -n 1 || true)
 if [ -z "$DUMP" ]; then

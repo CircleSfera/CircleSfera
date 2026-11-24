@@ -258,6 +258,13 @@ jobs:
             # Navigate to project directory
             cd /srv/circlesfera
 
+            # One at a time with the weekly restore drill, which takes the same
+            # lock (scripts/install-backup-cron.sh). Held until this script
+            # ends; a drill that does not finish in 15 minutes does not stop
+            # the deploy.
+            exec 9> /srv/circlesfera/.ops.lock
+            flock -w 900 9 || echo "The restore drill still holds the ops lock; deploying anyway."
+
             # Login to GHCR on the VPS
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
