@@ -130,16 +130,8 @@ export default function AdminPanelLogin() {
     mutationFn: () => adminAuthApi.login(email.trim(), password),
     onSuccess: ({ data }) => {
       setError(null);
-      // An external reviewer: no second factor, the session is open. The
-      // credentials were accepted, so a failure now is the server's.
-      if (data.status === 'SIGNED_IN') {
-        void finishLogin().catch((err: unknown) =>
-          setError(
-            apiErrorMessage(err, t, 'errors.generic.server', { signIn: true }),
-          ),
-        );
-        return;
-      }
+      // The password alone opens nothing, for an external reviewer too
+      // (PD-091): the code of the authenticator, or the proof to set it up.
       if (data.status === 'MFA_REQUIRED') {
         setMfaToken(data.mfaToken);
         setStep('mfa');
@@ -161,7 +153,7 @@ export default function AdminPanelLogin() {
   });
 
   // Sets up the access from the link or a code: a password of one's own,
-  // then, for a member of staff, a new authenticator.
+  // then a new authenticator.
   const accessMutation = useMutation({
     mutationFn: () =>
       adminAuthApi.setUpAccess(
@@ -173,14 +165,6 @@ export default function AdminPanelLogin() {
       setError(null);
       setNewPassword('');
       setRepeatPassword('');
-      if (data.status === 'SIGNED_IN') {
-        void finishLogin().catch((err: unknown) =>
-          setError(
-            apiErrorMessage(err, t, 'errors.generic.server', { signIn: true }),
-          ),
-        );
-        return;
-      }
       setMfaToken(data.mfaToken);
       setSecret(data.secret);
       setQrCodeDataUrl(data.qrCodeDataUrl || '');

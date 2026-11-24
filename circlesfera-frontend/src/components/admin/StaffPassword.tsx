@@ -17,7 +17,7 @@ const labelClass = 'block text-xs font-semibold text-white/60 mb-1 px-1';
  * Sets the staff password of the identity signed in, or changes it. One that
  * still signs in the old way (with its CircleSfera account's password) gives
  * that password as the current one; from then on only the new one works
- * here. A member of staff also gives a code of the authenticator.
+ * here. A code of the authenticator is given too, by everyone.
  */
 export function StaffPasswordDialog({
   isOpen,
@@ -38,13 +38,14 @@ export function StaffPasswordDialog({
   const [error, setError] = useState<string | null>(null);
 
   const firstTime = admin?.ownPassword === false;
-  const needsCode = !admin?.externalReviewer;
   const differ = repeat.length > 0 && next !== repeat;
+  // A code of the authenticator is always asked for, an external
+  // reviewer's too (PD-091).
   const ready =
     current.length > 0 &&
     next.length >= STAFF_PASSWORD_MIN_LENGTH &&
     next === repeat &&
-    (!needsCode || code.length === 6);
+    code.length === 6;
 
   const close = () => {
     setCurrent('');
@@ -65,7 +66,7 @@ export function StaffPasswordDialog({
       await adminAuthApi.changePassword({
         currentPassword: current,
         newPassword: next,
-        ...(needsCode ? { totpCode: code } : {}),
+        totpCode: code,
       });
     } catch (err: unknown) {
       const status = apiErrorStatus(err);
@@ -180,25 +181,23 @@ export function StaffPasswordDialog({
             </p>
           )}
         </div>
-        {needsCode && (
-          <div>
-            <label htmlFor={`${id}-code`} className={labelClass}>
-              {t('adminPanel.login.mfa_code')}
-            </label>
-            <input
-              id={`${id}-code`}
-              value={code}
-              onChange={(e) =>
-                setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-              }
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="000000"
-              maxLength={6}
-              className={`${fieldClass} text-center font-mono tracking-widest`}
-            />
-          </div>
-        )}
+        <div>
+          <label htmlFor={`${id}-code`} className={labelClass}>
+            {t('adminPanel.login.mfa_code')}
+          </label>
+          <input
+            id={`${id}-code`}
+            value={code}
+            onChange={(e) =>
+              setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+            }
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="000000"
+            maxLength={6}
+            className={`${fieldClass} text-center font-mono tracking-widest`}
+          />
+        </div>
         {error && (
           <p role="alert" className="text-sm text-red-400">
             {error}

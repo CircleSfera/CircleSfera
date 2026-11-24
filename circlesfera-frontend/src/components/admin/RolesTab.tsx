@@ -605,13 +605,14 @@ export default function RolesTab({ onToast }: Props) {
                     </div>
                     <StatusBadge status={selected.status.toLowerCase()} />
                   </div>
+                  {selected.externalReviewer && (
+                    <p className="text-xs text-white/50 flex items-center gap-1.5">
+                      <Eye size={14} className="text-brand-primary-text" />
+                      {t('admin.operators.reviewer_read_only')}
+                    </p>
+                  )}
                   <p className="text-xs text-white/50 flex items-center gap-1.5">
-                    {selected.externalReviewer ? (
-                      <>
-                        <Eye size={14} className="text-brand-primary-text" />
-                        {t('admin.operators.reviewer_no_mfa')}
-                      </>
-                    ) : selected.totpEnabled ? (
+                    {selected.totpEnabled ? (
                       <>
                         <ShieldCheck size={14} className="text-emerald-400" />
                         {t('admin.operators.mfa_on')}
@@ -712,18 +713,16 @@ export default function RolesTab({ onToast }: Props) {
                         ? t('admin.operators.disable')
                         : t('admin.operators.enable')}
                     </Button>
-                    {!selected.externalReviewer && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="min-h-11 gap-2"
-                        onClick={() => resetMfaMutation.mutate()}
-                      >
-                        <KeyRound size={14} />
-                        {t('admin.operators.reset_mfa')}
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="min-h-11 gap-2"
+                      onClick={() => resetMfaMutation.mutate()}
+                    >
+                      <KeyRound size={14} />
+                      {t('admin.operators.reset_mfa')}
+                    </Button>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button
@@ -738,75 +737,73 @@ export default function RolesTab({ onToast }: Props) {
                     </Button>
                   </div>
                 </div>
-                {/* A reviewer always may be given a proof: it has no
-                    authenticator to reset, and recovers a forgotten
-                    password with a code. */}
-                {selected.status === 'ACTIVE' &&
-                  (selected.externalReviewer || !selected.totpEnabled) && (
-                    <section className="py-4 space-y-2.5">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
-                        {t('admin.operators.enrolment_title')}
-                      </h4>
-                      <p className="text-xs text-white/60 leading-relaxed">
-                        {t(
-                          hadAccess(selected)
-                            ? 'admin.operators.enrolment_hint_code'
-                            : 'admin.operators.enrolment_hint',
-                        )}
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        {!hadAccess(selected) && (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            className="min-h-11 gap-2"
-                            isLoading={sendLinkMutation.isPending}
-                            onClick={() => sendLinkMutation.mutate()}
-                          >
-                            <Mail size={14} />
-                            {t('admin.operators.send_link')}
-                          </Button>
-                        )}
+                {/* A proof only while no authenticator is set up, for an
+                    external reviewer as for anyone (PD-091). */}
+                {selected.status === 'ACTIVE' && !selected.totpEnabled && (
+                  <section className="py-4 space-y-2.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
+                      {t('admin.operators.enrolment_title')}
+                    </h4>
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      {t(
+                        hadAccess(selected)
+                          ? 'admin.operators.enrolment_hint_code'
+                          : 'admin.operators.enrolment_hint',
+                      )}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      {!hadAccess(selected) && (
                         <Button
                           type="button"
                           variant="secondary"
                           size="sm"
                           className="min-h-11 gap-2"
-                          isLoading={issueCodeMutation.isPending}
-                          onClick={() => issueCodeMutation.mutate()}
+                          isLoading={sendLinkMutation.isPending}
+                          onClick={() => sendLinkMutation.mutate()}
                         >
-                          <KeyRound size={14} />
-                          {t('admin.operators.issue_code')}
+                          <Mail size={14} />
+                          {t('admin.operators.send_link')}
                         </Button>
-                      </div>
-                      {issuedCode?.id === selected.id && (
-                        <div className="space-y-1.5 rounded-lg border border-brand-primary/30 bg-brand-primary/10 p-3">
-                          <p className="text-[11px] font-bold uppercase tracking-wide text-white/70">
-                            {t('admin.operators.code_title')}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <p className="flex-1 font-mono text-base tracking-widest text-white break-all">
-                              {issuedCode.code}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => void copyIssuedCode()}
-                              className="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
-                              aria-label={t('admin.operators.copy_code')}
-                            >
-                              <Copy size={16} />
-                            </button>
-                          </div>
-                          <p className="text-xs text-white/60 leading-relaxed">
-                            {t('admin.operators.code_hint', {
-                              hours: issuedCode.hours,
-                            })}
-                          </p>
-                        </div>
                       )}
-                    </section>
-                  )}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="min-h-11 gap-2"
+                        isLoading={issueCodeMutation.isPending}
+                        onClick={() => issueCodeMutation.mutate()}
+                      >
+                        <KeyRound size={14} />
+                        {t('admin.operators.issue_code')}
+                      </Button>
+                    </div>
+                    {issuedCode?.id === selected.id && (
+                      <div className="space-y-1.5 rounded-lg border border-brand-primary/30 bg-brand-primary/10 p-3">
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-white/70">
+                          {t('admin.operators.code_title')}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="flex-1 font-mono text-base tracking-widest text-white break-all">
+                            {issuedCode.code}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => void copyIssuedCode()}
+                            className="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
+                            aria-label={t('admin.operators.copy_code')}
+                          >
+                            <Copy size={16} />
+                          </button>
+                        </div>
+                        <p className="text-xs text-white/60 leading-relaxed">
+                          {t('admin.operators.code_hint', {
+                            hours: issuedCode.hours,
+                          })}
+                        </p>
+                      </div>
+                    )}
+                  </section>
+                )}
               </div>
             ) : null
           }

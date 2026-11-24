@@ -263,7 +263,6 @@ export class AdminAuthService {
   ): Promise<
     | { status: 'MFA_REQUIRED'; mfaToken: string }
     | { status: 'ENROLMENT_PROOF_REQUIRED'; mfaToken: string }
-    | { status: 'SIGNED_IN'; tokens: AdminTokenPair }
   > {
     const admin = await this.loadAdminByEmail(email);
 
@@ -287,21 +286,14 @@ export class AdminAuthService {
       await fail(admin.id);
     }
 
-    // An external reviewer signs in with the password alone (see
-    // external-reviewer.ts), and only while their access has an end date.
-    if (isExternalReviewer(this.permissionsOf(admin).roles)) {
-      if (!reviewerAccessIsValid(admin.accessExpiresAt)) {
-        return fail(admin.id);
-      }
-      await this.prisma.adminIdentity.update({
-        where: { id: admin.id },
-        data: { failedLoginCount: 0, lockedUntil: null },
-      });
-      const tokens = await this.issueSession(admin.id, admin.email, meta, {
-        startedAt: Date.now(),
-        accessExpiresAt: admin.accessExpiresAt,
-      });
-      return { status: 'SIGNED_IN', tokens };
+    // An external reviewer signs in only while their access has an end date
+    // (see external-reviewer.ts), and then with the second factor like
+    // anyone else.
+    if (
+      isExternalReviewer(this.permissionsOf(admin).roles) &&
+      !reviewerAccessIsValid(admin.accessExpiresAt)
+    ) {
+      return fail(admin.id);
     }
 
     // A right password clears the failed attempts, except while the
@@ -314,8 +306,8 @@ export class AdminAuthService {
       });
     }
 
-    // A second factor is mandatory for every member of staff, with no switch
-    // to turn it off. A staff identity with no authenticator enrols one only
+    // A second factor is mandatory for every staff identity, external
+    // reviewers included (PD-091), with no switch to turn it off. One with no authenticator enrols one only
     // with a proof beyond the password: the link sent to its email or a code
     // from an administrator. Nothing of the authenticator is shown yet.
     if (!admin.totpEnabled) {
@@ -466,13 +458,15 @@ export class AdminAuthService {
       where: { id: payload.sub },
       include: { roles: { select: { role: { select: { name: true } } } } },
     });
-    // An external reviewer never opens a session with the second factor:
-    // only theirs, capped, which this would not be.
+    // An external reviewer finishes the second factor like anyone else, but
+    // only while their access has an end date; their session is capped.
+    const reviewer =
+      !!admin && isExternalReviewer(admin.roles.map((r) => r.role.name));
     if (
       !admin?.totpSecret ||
       admin.status !== 'ACTIVE' ||
       accessHasExpired(admin.accessExpiresAt) ||
-      isExternalReviewer(admin.roles.map((r) => r.role.name))
+      (reviewer && !reviewerAccessIsValid(admin.accessExpiresAt))
     ) {
       throw new UnauthorizedException('MFA not configured');
     }
@@ -528,26 +522,29 @@ export class AdminAuthService {
       });
     }
 
-    return this.issueSession(admin.id, admin.email, meta);
+    return this.issueSession(
+      admin.id,
+      admin.email,
+      meta,
+      reviewer ? this.reviewerSession(admin.accessExpiresAt) : undefined,
+    );
   }
 
   /**
    * Sets up a staff identity's access from the link sent to its email, or a
    * code from an administrator: no CircleSfera account and no earlier
    * password are needed. The proof is spent, the password given becomes the
-   * identity's own, and every session it had ends. A member of staff then
-   * gets a new authenticator to confirm at the MFA step, which opens the
-   * session; an external reviewer, who signs in without one, is signed in.
-   * A wrong proof counts like a wrong password towards the lockout.
+   * identity's own, and every session it had ends. The identity, an external
+   * reviewer too, then gets a new authenticator to confirm at the MFA step,
+   * which opens the session. A wrong proof counts like a wrong password
+   * towards the lockout.
    */
   async setUpAccess(
     email: string,
     proof: string,
     password: string,
     meta: ClientMeta,
-  ): Promise<
-    AuthenticatorSetup | { status: 'SIGNED_IN'; tokens: AdminTokenPair }
-  > {
+  ): Promise<AuthenticatorSetup> {
     // Every refusal before the proof is accepted is the same 401, so this
     // tells nobody whether an email is staff, and nothing about any password
     // is looked at until the proof is right.
@@ -560,8 +557,10 @@ export class AdminAuthService {
     ) {
       throw refused();
     }
-    const reviewer = isExternalReviewer(this.permissionsOf(admin).roles);
-    if (reviewer && !reviewerAccessIsValid(admin.accessExpiresAt)) {
+    if (
+      isExternalReviewer(this.permissionsOf(admin).roles) &&
+      !reviewerAccessIsValid(admin.accessExpiresAt)
+    ) {
       throw refused();
     }
 
@@ -586,11 +585,11 @@ export class AdminAuthService {
           passwordSetAt: new Date(),
           failedLoginCount: 0,
           lockedUntil: null,
-          // A member of staff sets up a new authenticator next; until it is
-          // confirmed the identity has none.
-          ...(reviewer
-            ? {}
-            : { totpSecret: null, totpEnabled: false, totpLastTimeStep: null }),
+          // A new authenticator is set up next; until it is confirmed the
+          // identity has none.
+          totpSecret: null,
+          totpEnabled: false,
+          totpLastTimeStep: null,
         },
       }),
       this.prisma.adminRefreshToken.deleteMany({
@@ -612,22 +611,14 @@ export class AdminAuthService {
       }),
     ]);
 
-    if (reviewer) {
-      const tokens = await this.issueSession(admin.id, admin.email, meta, {
-        startedAt: Date.now(),
-        accessExpiresAt: admin.accessExpiresAt as Date,
-      });
-      return { status: 'SIGNED_IN', tokens };
-    }
     return this.startAuthenticatorSetup(admin);
   }
 
   /**
    * Changes the password of the identity signed in, or sets its own for the
    * first time (one that still signs in the old way). It takes the password
-   * it signs in with now and, for a member of staff, a code of its
-   * authenticator. Every other session of the identity ends; a wrong answer
-   * counts towards the lockout.
+   * it signs in with now and a code of its authenticator. Every other
+   * session of the identity ends; a wrong answer counts towards the lockout.
    */
   async changePassword(
     adminId: string,
@@ -636,7 +627,6 @@ export class AdminAuthService {
   ): Promise<void> {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
-      include: { roles: { select: { role: { select: { name: true } } } } },
     });
     if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
       throw new UnauthorizedException();
@@ -644,13 +634,12 @@ export class AdminAuthService {
     if (admin.lockedUntil && admin.lockedUntil > new Date()) {
       throw new ForbiddenException('Account temporarily locked');
     }
-    const reviewer = isExternalReviewer(admin.roles.map((r) => r.role.name));
 
     let ok = await this.passwordIsValid(admin, dto.currentPassword);
     // The new password is checked before the code is spent, so a refused
     // one is tried again with the same code.
     if (ok) await this.assertUsableStaffPassword(admin.email, dto.newPassword);
-    if (ok && !reviewer) {
+    if (ok) {
       ok =
         admin.totpEnabled &&
         !!admin.totpSecret &&
@@ -704,9 +693,9 @@ export class AdminAuthService {
   /**
    * Opens a session for the identity whose staff passkey was just verified:
    * the same checks as any sign-in (active, access not over, not locked),
-   * and for a member of staff an authenticator still enrolled, since a
-   * passkey adds to the second factor and never replaces enrolling one. An
-   * external reviewer's session is capped as at any reviewer sign-in.
+   * and an authenticator still enrolled, since a passkey adds to the second
+   * factor and never replaces enrolling one: for an external reviewer too.
+   * A reviewer's session is capped as at any reviewer sign-in.
    */
   async signInWithPasskey(
     adminId: string,
@@ -741,9 +730,10 @@ export class AdminAuthService {
       return refused();
     }
     const reviewer = isExternalReviewer(admin.roles.map((r) => r.role.name));
-    if (reviewer) {
-      if (!reviewerAccessIsValid(admin.accessExpiresAt)) return refused();
-    } else if (!admin.totpEnabled) {
+    if (
+      !admin.totpEnabled ||
+      (reviewer && !reviewerAccessIsValid(admin.accessExpiresAt))
+    ) {
       return refused();
     }
     await this.prisma.adminIdentity.update({
@@ -754,14 +744,15 @@ export class AdminAuthService {
       admin.id,
       admin.email,
       meta,
-      reviewer
-        ? {
-            startedAt: Date.now(),
-            accessExpiresAt: admin.accessExpiresAt as Date,
-          }
-        : undefined,
+      reviewer ? this.reviewerSession(admin.accessExpiresAt) : undefined,
       'Signed in with a passkey',
     );
+  }
+
+  // An external reviewer's session beginning now. Called only once their
+  // access was checked to have an end (reviewerAccessIsValid).
+  private reviewerSession(accessExpiresAt: Date | null): ReviewerSession {
+    return { startedAt: Date.now(), accessExpiresAt: accessExpiresAt as Date };
   }
 
   async me(adminId: string) {
@@ -827,12 +818,12 @@ export class AdminAuthService {
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
-    // Only a refresh token issued after a verified second factor, or to an
-    // external reviewer, renews a session; tokens from before that rule carry
-    // no such mark.
+    // Only a refresh token issued after a verified second factor renews a
+    // session; tokens from before that rule carry no such mark, nor do the
+    // tokens external reviewers were given before PD-091.
     const reviewerToken =
       payload.rev === true && typeof payload.sst === 'number';
-    if (payload.typ !== 'refresh' || (payload.mfa !== true && !reviewerToken)) {
+    if (payload.typ !== 'refresh' || payload.mfa !== true) {
       throw new UnauthorizedException('Sign in again');
     }
 
@@ -861,7 +852,11 @@ export class AdminAuthService {
         roles: { select: { role: { select: { name: true } } } },
       },
     });
-    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
+    if (
+      admin?.status !== 'ACTIVE' ||
+      accessHasExpired(admin.accessExpiresAt) ||
+      !admin.totpEnabled
+    ) {
       throw new UnauthorizedException('Sign in again');
     }
 
@@ -882,12 +877,9 @@ export class AdminAuthService {
       });
     }
 
-    // A session with the second factor is never renewed for an identity
-    // that is now a reviewer: they sign in as one.
-    if (
-      !admin.totpEnabled ||
-      isExternalReviewer(admin.roles.map((r) => r.role.name))
-    ) {
+    // A member of staff's session is never renewed for an identity that is
+    // now a reviewer: they sign in as one, with the cap.
+    if (isExternalReviewer(admin.roles.map((r) => r.role.name))) {
       throw new UnauthorizedException('Sign in again');
     }
     return this.issueSession(payload.sub, payload.email, meta);
@@ -938,9 +930,14 @@ export class AdminAuthService {
     });
   }
 
+  // Proves the second factor again for a sensitive action. An external
+  // reviewer steps up only to add or remove their own passkey (nothing they
+  // read needs it): within their session, whose start the new token keeps,
+  // so its working day still holds.
   async stepUp(
     adminId: string,
     dto: { totpCode: string },
+    reviewerSessionStartedAt?: number,
   ): Promise<{ accessToken: string }> {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
@@ -951,10 +948,16 @@ export class AdminAuthService {
     }
 
     // Step-up proves the second factor again; a password alone never does.
-    // An external reviewer has nothing to step up to.
+    // A reviewer's only within a reviewer's session still open, and a
+    // member of staff's never within one.
+    const reviewer = isExternalReviewer(admin.roles.map((r) => r.role.name));
+    const reviewerSessionOpen =
+      typeof reviewerSessionStartedAt === 'number' &&
+      reviewerSessionStartedAt * 1000 + REVIEWER_SESSION_MAX_MS > Date.now() &&
+      reviewerAccessIsValid(admin.accessExpiresAt);
     if (
       !admin.totpEnabled ||
-      isExternalReviewer(admin.roles.map((r) => r.role.name))
+      (reviewer ? !reviewerSessionOpen : reviewerSessionStartedAt !== undefined)
     ) {
       throw new UnauthorizedException('Step-up verification failed');
     }
@@ -994,6 +997,7 @@ export class AdminAuthService {
         jti: randomUUID(),
         typ: 'access',
         mfa: true,
+        ...(reviewer ? { rev: true, sst: reviewerSessionStartedAt } : {}),
         stepUp: true,
         stepUpExp: Math.floor(Date.now() / 1000) + STEP_UP_TTL_SEC,
       },
@@ -1003,9 +1007,9 @@ export class AdminAuthService {
     return { accessToken };
   }
 
-  // A staff session after the second factor, or an external reviewer's
-  // session, which carries when it began and never outlasts its working day
-  // nor the reviewer's access (both still ahead: sign-in and renewal check).
+  // A staff session after the second factor. An external reviewer's also
+  // carries when it began and never outlasts its working day nor the
+  // reviewer's access (both still ahead: sign-in and renewal check).
   private async issueSession(
     adminId: string,
     email: string,
@@ -1015,7 +1019,7 @@ export class AdminAuthService {
   ): Promise<AdminTokenPair> {
     const now = Date.now();
     const mark = reviewer
-      ? { rev: true, sst: Math.floor(reviewer.startedAt / 1000) }
+      ? { mfa: true, rev: true, sst: Math.floor(reviewer.startedAt / 1000) }
       : { mfa: true };
     const refreshTtlMs = reviewer
       ? Math.min(

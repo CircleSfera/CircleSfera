@@ -3,6 +3,7 @@ import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
+import jwt from 'jsonwebtoken';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UNUSED_STAFF_PASSWORD_HASH } from '../admin/staff-password.constants.js';
 import type { CryptoService } from '../common/services/crypto.service.js';
@@ -55,11 +56,10 @@ describe('AdminAuthService — a staff password of its own', () => {
     _count: { passkeys: 0 },
     ...over,
   });
+  // An external reviewer with an authenticator enrolled, as anyone (PD-091).
   const reviewer = (over: Record<string, unknown> = {}) =>
     identity({
       roles: [role('EXTERNAL_REVIEWER')],
-      totpEnabled: false,
-      totpSecret: null,
       accessExpiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
       ...over,
     });
@@ -224,8 +224,10 @@ describe('AdminAuthService — a staff password of its own', () => {
       expect(prisma.adminRefreshToken.create).not.toHaveBeenCalled();
     });
 
-    it('signs an external reviewer in at once, with no authenticator', async () => {
-      prisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
+    it('starts a new authenticator for an external reviewer too, opening no session', async () => {
+      prisma.adminIdentity.findUnique.mockResolvedValue(
+        reviewer({ totpEnabled: false, totpSecret: null }),
+      );
       rightProof();
 
       const result = await service.setUpAccess(
@@ -235,10 +237,17 @@ describe('AdminAuthService — a staff password of its own', () => {
         {},
       );
 
-      expect(result).toMatchObject({ status: 'SIGNED_IN' });
+      expect(result).toMatchObject({
+        status: 'MFA_SETUP_REQUIRED',
+        secret: 'NEW_GENERATED_BASE32_SECRET',
+      });
       const set = prisma.adminIdentity.update.mock.calls[0][0];
-      expect(set.data).not.toHaveProperty('totpEnabled');
-      expect(prisma.adminRefreshToken.create).toHaveBeenCalledTimes(1);
+      expect(set.data).toMatchObject({
+        totpSecret: null,
+        totpEnabled: false,
+        totpLastTimeStep: null,
+      });
+      expect(prisma.adminRefreshToken.create).not.toHaveBeenCalled();
     });
 
     it('gives the same refusal for an unknown, disabled, expired, locked or reviewer-without-end identity, before looking at the proof', async () => {
@@ -421,18 +430,29 @@ describe('AdminAuthService — a staff password of its own', () => {
       ]);
     });
 
-    it('lets an external reviewer change it without an authenticator', async () => {
-      prisma.adminIdentity.findUnique.mockResolvedValue(
-        reviewer({ passwordHash: ownHash, passwordSetAt: new Date() }),
-      );
-
-      await expect(
+    it('asks an external reviewer for a right code of the authenticator too', async () => {
+      const own = { passwordHash: ownHash, passwordSetAt: new Date() };
+      const reviewerChange = (totpCode?: string) =>
         change({
           currentPassword: STAFF_PASSWORD,
           newPassword: 'another long staff password',
-          totpCode: undefined,
-        }),
-      ).resolves.toBeUndefined();
+          totpCode,
+        });
+
+      prisma.adminIdentity.findUnique.mockResolvedValueOnce(reviewer(own));
+      await expect(reviewerChange(undefined)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      prisma.adminIdentity.findUnique.mockResolvedValueOnce(
+        reviewer({ ...own, totpEnabled: false, totpSecret: null }),
+      );
+      await expect(reviewerChange(undefined)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+
+      prisma.adminIdentity.findUnique.mockResolvedValueOnce(reviewer(own));
+      await expect(reviewerChange('123456')).resolves.toBeUndefined();
     });
 
     it('refuses the account password as the new one', async () => {
@@ -502,21 +522,24 @@ describe('AdminAuthService — a staff password of its own', () => {
       });
     });
 
-    it('opens a capped session for an external reviewer', async () => {
+    it('opens a capped session for an external reviewer with an authenticator', async () => {
       prisma.adminIdentity.findUnique.mockResolvedValue(reviewer());
 
-      await expect(
-        service.signInWithPasskey('admin-1', {}),
-      ).resolves.toMatchObject({ accessToken: expect.any(String) });
+      const tokens = await service.signInWithPasskey('admin-1', {});
+
+      const access = jwt.decode(tokens.accessToken) as Record<string, unknown>;
+      expect(access).toMatchObject({ mfa: true, rev: true });
+      expect(typeof access.sst).toBe('number');
     });
 
-    it('refuses an identity that is unknown, disabled, expired, without an authenticator, or a reviewer with no end, writing it down', async () => {
+    it('refuses an identity that is unknown, disabled, expired, without an authenticator, or a reviewer with no end or no authenticator, writing it down', async () => {
       for (const found of [
         null,
         identity({ status: 'DISABLED' }),
         identity({ accessExpiresAt: new Date(Date.now() - 1000) }),
         identity({ totpEnabled: false }),
         reviewer({ accessExpiresAt: null }),
+        reviewer({ totpEnabled: false, totpSecret: null }),
       ]) {
         prisma.adminIdentity.findUnique.mockResolvedValueOnce(found);
         await expect(service.signInWithPasskey('admin-1', {})).rejects.toThrow(
@@ -524,8 +547,8 @@ describe('AdminAuthService — a staff password of its own', () => {
         );
       }
       expect(prisma.adminRefreshToken.create).not.toHaveBeenCalled();
-      // The four known identities are written down, and never counted.
-      expect(failuresWritten()).toHaveLength(4);
+      // The five known identities are written down, and never counted.
+      expect(failuresWritten()).toHaveLength(5);
       expect(failuresWritten()[0]).toMatchObject({
         details: 'Passkey refused',
       });

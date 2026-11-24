@@ -3,11 +3,14 @@
 // sign in to the staff panel with a staff identity that holds this one role
 // and nothing else, read the review area only and never change anything.
 //
-// Their sign-in asks for no authenticator: the owner chose so, because the
-// reviewer cannot be given a member of staff's second factor. What keeps it
-// safe instead: the identity lasts only until a date, a session lasts at most
-// a working day from its sign-in and is never renewed past it, the role reads
-// nothing but the review area, and every page it opens is written down.
+// No one signs in to a staff site without a second factor (PD-091, which
+// replaced PD-062's sign-in with the password alone): a reviewer enrols an
+// authenticator from the link or a code, and signs in with its code or with
+// a passkey, exactly like any member of staff. One without a second factor
+// cannot sign in until it enrols one. Beyond that, the identity lasts only
+// until a date, a session lasts at most a working day from its sign-in and
+// is never renewed past it, the role reads nothing but the review area, and
+// every page it opens is written down.
 
 import {
   EXTERNAL_REVIEWER_ROLE,

@@ -151,24 +151,25 @@ describe('StaffPasswordDialog', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
-  it('asks an external reviewer for no code', async () => {
-    signIn(staff({ externalReviewer: true, totpEnabled: false }));
+  it('asks an external reviewer for the code of the authenticator too (PD-091)', async () => {
+    signIn(staff({ externalReviewer: true }));
     vi.mocked(adminAuthApi.changePassword).mockResolvedValue({} as never);
     vi.mocked(adminAuthApi.me).mockResolvedValue({ data: staff() } as never);
     const { i18n } = renderWithProviders(
       <StaffPasswordDialog isOpen onClose={onClose} />,
     );
 
-    expect(
-      screen.queryByLabelText(i18n!.t('adminPanel.login.mfa_code')),
-    ).not.toBeInTheDocument();
     fill(i18n!, { current: 'old', next: LONG, repeat: LONG });
+    // Without the code nothing is sent.
+    expect(saveButton(i18n!)).toBeDisabled();
+    fill(i18n!, { current: 'old', next: LONG, repeat: LONG, code: '123456' });
     fireEvent.click(saveButton(i18n!));
 
     await waitFor(() =>
       expect(adminAuthApi.changePassword).toHaveBeenCalledWith({
         currentPassword: 'old',
         newPassword: LONG,
+        totpCode: '123456',
       }),
     );
   });

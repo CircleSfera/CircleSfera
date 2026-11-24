@@ -63,15 +63,15 @@ export class AdminJwtStrategy extends PassportStrategy(
     if (payload.aud !== ADMIN_JWT_AUDIENCE) {
       throw new UnauthorizedException('Invalid admin token audience');
     }
-    // Only an access token issued after a verified second factor, or to an
-    // external reviewer, opens a staff session. The sign-in step token
-    // (purpose) and the refresh token are signed with the same key and must
-    // never be accepted here.
+    // Only an access token issued after a verified second factor opens a
+    // staff session, an external reviewer's too (PD-091). The sign-in step
+    // token (purpose) and the refresh token are signed with the same key and
+    // must never be accepted here.
     const reviewerToken =
       payload.rev === true && typeof payload.sst === 'number';
     if (
       payload.typ !== 'access' ||
-      (payload.mfa !== true && !reviewerToken) ||
+      payload.mfa !== true ||
       payload.purpose !== undefined
     ) {
       throw new UnauthorizedException('Invalid admin token');
@@ -92,15 +92,20 @@ export class AdminJwtStrategy extends PassportStrategy(
       },
     });
 
-    if (admin?.status !== 'ACTIVE' || accessHasExpired(admin.accessExpiresAt)) {
+    // Every session needs the second factor, enrolled and verified.
+    if (
+      admin?.status !== 'ACTIVE' ||
+      accessHasExpired(admin.accessExpiresAt) ||
+      !admin.totpEnabled
+    ) {
       throw new UnauthorizedException('Admin identity not found or disabled');
     }
 
     const roles = admin.roles.map((r) => r.role.name);
     const externalReviewer = isExternalReviewer(roles);
     // A reviewer's session holds only while the identity is a reviewer alone,
-    // with an end date, within the working day from its sign-in. Any other
-    // session needs the second factor, enrolled and verified.
+    // with an end date, within the working day from its sign-in. A reviewer
+    // identity never holds any other session.
     if (reviewerToken) {
       if (
         !externalReviewer ||
@@ -109,7 +114,7 @@ export class AdminJwtStrategy extends PassportStrategy(
       ) {
         throw new UnauthorizedException('Admin identity not found or disabled');
       }
-    } else if (!admin.totpEnabled || externalReviewer) {
+    } else if (externalReviewer) {
       throw new UnauthorizedException('Admin identity not found or disabled');
     }
     const permissions = [
@@ -142,6 +147,7 @@ export class AdminJwtStrategy extends PassportStrategy(
       roles,
       stepUpVerified,
       externalReviewer: reviewerToken,
+      ...(reviewerToken ? { reviewerSessionStartedAt: payload.sst } : {}),
     };
   }
 }
