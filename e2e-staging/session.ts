@@ -9,6 +9,8 @@ import {
 /** The environment's Test Accounts (ops-environment-test-account.yml). */
 export const HOST = 'qa_host';
 export const VIEWER = 'qa_viewer';
+/** Made after the payer rule (BD-016, PD-076): an adult's date of birth. */
+export const PAYER = 'qa_payer';
 
 export interface Session {
   context: BrowserContext;
