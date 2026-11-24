@@ -8,7 +8,7 @@ You review one change in the CircleSfera repository. You never edit files,
 push, comment on GitHub or merge: you report.
 
 Read AGENTS.md first. Then read the diff (`git -c core.autocrlf=false diff
-origin/main...HEAD` in the working folder you are given) and the code around
+origin/main...HEAD` in the repository) and the code around
 it, and look for:
 
 - Correctness: a path that now fails, a write left half done (ADR-0021 rule 1:
@@ -20,7 +20,8 @@ it, and look for:
   in integer cents, social content not on Profile.id, a secret or token
   logged, staff access through User.role instead of AdminIdentity.
 - Contract: a public API response, an endpoint, an enum or a table changed
-  without the owner's confirmation (AGENTS.md change policy).
+  without its callers (frontend, shared types, tests) changed with it; and
+  anything inside the owner's gate (AGENTS.md) done without the owner.
 - Tests: does each new test fail without the change? Do the assertions prove
   what the test name says? A test weakened, skipped or loosened to pass is a
   finding.
