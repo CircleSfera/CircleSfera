@@ -714,6 +714,26 @@ jobs:
               curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 A public address of CircleSfera does not reach production through the host nginx. The new version stays; see the deploy log."}' "$DEPLOY_WEBHOOK" || true
             fi
 
+            # What the code declares is applied on every deploy, once the
+            # version is healthy (ED-016), as staging and development already
+            # do: the plan catalog (scripts/plan-catalog.ts, prices and plans
+            # decided by the owner before they reach the code) and the help
+            # centre articles kept in the code. Both are idempotent and change
+            # only what differs. A failure alerts without a rollback: the
+            # version is healthy, and the next deploy applies them again.
+            declared_ok=1
+            for script in sync-plan-catalog publish-help-articles; do
+              echo "--- Applying ${script} ---"
+              if ! docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+                -e APPLY=1 backend node "scripts/${script}.ts"; then
+                echo "  FAIL ${script}"
+                declared_ok=0
+              fi
+            done
+            if [ "$declared_ok" != "1" ] && [ -n "$DEPLOY_WEBHOOK" ]; then
+              curl -X POST -H 'Content-type: application/json' --data '{"text":"⚠️ *Deployment done*: the plan catalog or the help articles could not be applied in full. See the deploy log; the next deploy applies them again."}' "$DEPLOY_WEBHOOK" || true
+            fi
+
             # Postgres and Redis keep running through a deploy, so a new pin
             # of theirs reaches them only through "Ops — recreate the
             # database and the cache", run by the owner. Say so when one runs
@@ -785,3 +805,22 @@ jobs:
             if [ -n "$DEPLOY_WEBHOOK" ]; then
               curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ *Deployment SUCCESS* to OVH VPS. All containers running."}' "$DEPLOY_WEBHOOK" || true
             fi
+
+      # Sentry's uptime checks of the site and their alert are declared in
+      # scripts/sentry-uptime.mjs and added on every deploy when missing
+      # (ED-016). "apply" only adds what is missing and changes nothing that
+      # exists; a failure here never fails the deploy.
+      - name: Checkout the uptime checks
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/sentry-uptime.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26'
+      - name: Apply the uptime checks
+        continue-on-error: true
+        env:
+          SENTRY_WRITE_TOKEN: ${{ secrets.SENTRY_WRITE_TOKEN }}
+        run: node scripts/sentry-uptime.mjs apply

@@ -24,8 +24,7 @@ const { Pool } = pkg;
 // environment never names another's prices. A plan missing in the database
 // is added. It prints what would change and changes nothing unless APPLY=1.
 // Subscriptions are never touched. Runs with plain Node inside the backend
-// image: in staging after each deploy, in production through the
-// "Ops — sync plan catalog" workflow.
+// image, with APPLY=1 after every deploy of each environment (ED-016).
 async function main() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL is not set');

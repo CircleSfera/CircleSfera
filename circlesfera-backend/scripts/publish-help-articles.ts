@@ -141,8 +141,8 @@ Una publicación promocionada aparece marcada como promocionada. Llega a los pa�
 // Creates or updates each article above, in every language it has, and
 // publishes it. It prints what would change and changes nothing unless
 // APPLY=1. Articles written in the Backoffice and not listed here are never
-// touched. Runs with plain Node inside the production image, through the
-// "Ops — publish help articles" workflow.
+// touched. Runs with plain Node inside the backend image, with APPLY=1 after
+// every deploy of each environment (ED-016).
 async function main() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL is not set');
