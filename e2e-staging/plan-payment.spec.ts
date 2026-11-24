@@ -132,22 +132,19 @@ async function payOnCheckout(page: Page) {
   await page.waitForURL(/^https:\/\/checkout\.stripe\.com\//, {
     timeout: 30_000,
   });
-  // Paid in euros, the plan's own currency, when the page offers another.
-  // isVisible does not wait: the selector is waited for, a while, and the
-  // page that offers no other currency goes on without it.
-  const euros = page.locator('label[for="currency-eur"]');
-  const offersEuros = await euros
-    .waitFor({ state: 'visible', timeout: 5_000 })
-    .then(() => true)
-    .catch(() => false);
-  if (offersEuros) await euros.click();
-  // A card, when the page offers other ways to pay first.
+  // The currency is left as the page offers it: switching it closes the
+  // provider's test page. The refund is checked against what was paid.
+  // A card, when the page offers other ways to pay first and the card form
+  // is not open yet (clicking it then would close it).
+  const cardForm = await fieldOnCheckout(
+    page,
+    'input[autocomplete$="cc-number"]',
+    10_000,
+  );
   const card = page.getByTestId('card-accordion-item-button');
-  const offersOthers = await card
-    .waitFor({ state: 'visible', timeout: 5_000 })
-    .then(() => true)
-    .catch(() => false);
-  if (offersOthers) await card.click();
+  if (!cardForm && (await card.isVisible().catch(() => false))) {
+    await card.click();
+  }
   const fill = async (selector: string, value: string, required = true) => {
     const field = await fieldOnCheckout(
       page,
