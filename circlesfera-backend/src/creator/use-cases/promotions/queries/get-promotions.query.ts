@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PromotionStatus, PromotionTargetType } from '@prisma/client';
+import { Prisma, PromotionStatus, PromotionTargetType } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
 @Injectable()
@@ -38,6 +38,8 @@ export class GetPromotionsQuery {
       }),
       this.prisma.promotion.count({ where }),
     ]);
+
+    const peopleReached = await this.peopleReached(data.map((p) => p.id));
 
     const enriched = await Promise.all(
       data.map(async (promo) => {
@@ -93,6 +95,9 @@ export class GetPromotionsQuery {
         return {
           ...promo,
           target,
+          // The different people it reached (PD-089); `reach` counts a
+          // person once a day, as charged.
+          peopleReached: peopleReached.get(promo.id) ?? 0,
         };
       }),
     );
@@ -101,5 +106,21 @@ export class GetPromotionsQuery {
       data: enriched,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  // How many different people each of these promotions reached.
+  private async peopleReached(
+    promotionIds: string[],
+  ): Promise<Map<string, number>> {
+    if (promotionIds.length === 0) return new Map();
+    const rows = await this.prisma.$queryRaw<
+      Array<{ promotionId: string; people: bigint | number }>
+    >`
+      SELECT "promotionId", COUNT(DISTINCT "userId") AS "people"
+      FROM promotion_views
+      WHERE "promotionId" IN (${Prisma.join(promotionIds)})
+      GROUP BY "promotionId"
+    `;
+    return new Map(rows.map((row) => [row.promotionId, Number(row.people)]));
   }
 }

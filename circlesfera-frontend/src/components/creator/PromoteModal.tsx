@@ -6,6 +6,7 @@ import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse, Post } from '../../types';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import { formatNumber } from '../../utils/format';
 import { formatWholeEuros } from '../../utils/money';
 import MediaThumb, { postThumbShape } from '../common/MediaThumb';
 import { WithdrawalConsentBox } from '../payments/WithdrawalConsent';
@@ -87,6 +88,25 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
         apiErrorMessage(err, t, 'creator.promotions.error_create'),
         'error',
       ),
+  });
+
+  // The people it would reach, worked out by the server from the choices
+  // (PD-089); it changes as they change.
+  const { data: reach, isError: reachFailed } = useQuery({
+    queryKey: [
+      'creator',
+      'promotions',
+      'estimate',
+      dailyBudget,
+      durationDays,
+      countries.join(','),
+    ],
+    queryFn: () =>
+      creatorApi
+        .estimatePromotionReach({ dailyBudget, durationDays, countries })
+        .then((r) => r.data),
+    enabled: !!chosen,
+    staleTime: 60_000,
   });
 
   const total = formatWholeEuros(dailyBudget * durationDays, language);
@@ -177,6 +197,34 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           </div>
 
           <div className="pt-4 border-t border-white/10 space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-sm text-white/70">
+                {t('creator.promote.reach')}
+              </span>
+              <span
+                className="text-base font-semibold text-white tabular-nums text-right"
+                aria-live="polite"
+              >
+                {reach
+                  ? reach.high === 0
+                    ? t('creator.promote.reach_none')
+                    : reach.low === reach.high
+                      ? t('creator.promote.reach_exact', {
+                          count: reach.high,
+                          people: formatNumber(reach.high, language),
+                        })
+                      : t('creator.promote.reach_range', {
+                          low: formatNumber(reach.low, language),
+                          high: formatNumber(reach.high, language),
+                        })
+                  : reachFailed
+                    ? t('creator.promote.reach_unknown')
+                    : '…'}
+              </span>
+            </div>
+            <p className="text-xs text-white/50 leading-relaxed">
+              {t('creator.promote.reach_hint')}
+            </p>
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-sm text-white/70">
                 {t('creator.promote.total')}

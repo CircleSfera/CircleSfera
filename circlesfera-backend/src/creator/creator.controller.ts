@@ -28,6 +28,8 @@ import {
   CreatePromotionDto,
   UpdatePromotionDto,
 } from './dto/create-promotion.dto.js';
+// Promotions
+import { EstimatePromotionReachDto } from './dto/estimate-promotion-reach.dto.js';
 // Analytics
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
 import { GetAudienceRetentionQuery } from './use-cases/analytics/queries/get-audience-retention.query.js';
@@ -36,10 +38,10 @@ import { GetTopContentQuery } from './use-cases/analytics/queries/get-top-conten
 // Content
 import { GetCreatorPostsQuery } from './use-cases/content/queries/get-creator-posts.query.js';
 import { GetCreatorStoriesQuery } from './use-cases/content/queries/get-creator-stories.query.js';
-// Promotions
 import { CreatePromotionUseCase } from './use-cases/promotions/commands/create-promotion.use-case.js';
 import { ManagePromotionUseCase } from './use-cases/promotions/commands/manage-promotion.use-case.js';
 import { RecordPromotionInteractionUseCase } from './use-cases/promotions/commands/record-promotion-interaction.use-case.js';
+import { EstimatePromotionReachQuery } from './use-cases/promotions/queries/estimate-promotion-reach.query.js';
 import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotions.query.js';
 
 interface AuthRequest extends Request {
@@ -69,6 +71,8 @@ export class CreatorController {
     // Promotions
     @Inject(GetPromotionsQuery)
     private readonly getPromotionsQ: GetPromotionsQuery,
+    @Inject(EstimatePromotionReachQuery)
+    private readonly estimatePromotionReachQ: EstimatePromotionReachQuery,
     @Inject(CreatePromotionUseCase)
     private readonly createPromotionUC: CreatePromotionUseCase,
     @Inject(ManagePromotionUseCase)
@@ -154,6 +158,22 @@ export class CreatorController {
       req.user.userId,
       page ? Number.parseInt(page, 10) : 1,
       limit ? Number.parseInt(limit, 10) : 10,
+    );
+  }
+
+  // The people a promotion would reach, shown before it is bought (PD-089).
+  @Get('promotions/estimate')
+  @UseGuards(CreatorAccountGuard)
+  @ApiResponse({ status: 200 })
+  async estimatePromotionReach(
+    @Req() req: AuthRequest,
+    @Query() query: EstimatePromotionReachDto,
+  ) {
+    return this.estimatePromotionReachQ.execute(
+      req.user.userId,
+      query.dailyBudget,
+      query.durationDays,
+      query.countries,
     );
   }
 

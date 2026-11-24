@@ -10,6 +10,7 @@ vi.mock('../../services/creator.service', () => ({
   creatorApi: {
     createPromotion: vi.fn(),
     getPosts: vi.fn(),
+    estimatePromotionReach: vi.fn(),
   },
 }));
 
@@ -47,6 +48,9 @@ describe('PromoteModal', () => {
     } as never);
     vi.mocked(creatorApi.getPosts).mockResolvedValue({
       data: { data: [post, frame], meta: { total: 2 } },
+    } as never);
+    vi.mocked(creatorApi.estimatePromotionReach).mockResolvedValue({
+      data: { low: 500, high: 3500, audience: 9000 },
     } as never);
     Object.defineProperty(window, 'location', {
       configurable: true,
@@ -148,7 +152,7 @@ describe('PromoteModal', () => {
     );
   });
 
-  it('says what is paid and when the promotion ends, and promises no reach', () => {
+  it('says what is paid and when the promotion ends, and asks no objective or interests', () => {
     open(post);
 
     // The budget includes VAT, as plan prices do.
@@ -159,9 +163,49 @@ describe('PromoteModal', () => {
         'You pay it now, once. The promotion ends when the budget is spent or after 7 days, whichever comes first.',
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/reach/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/objective/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/interests/i)).not.toBeInTheDocument();
+    // No price per view or impression is shown (PD-089).
+    expect(screen.queryByText(/per 1,000|impression/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the estimated reach of the choices, as on Meta, and works it out again when they change (PD-089)', async () => {
+    const user = userEvent.setup();
+    open(post);
+
+    expect(await screen.findByText('500–3,500 people')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Each person counts once a day. What is not delivered is refunded to you.',
+      ),
+    ).toBeInTheDocument();
+    expect(creatorApi.estimatePromotionReach).toHaveBeenLastCalledWith({
+      dailyBudget: 5,
+      durationDays: 7,
+      countries: [],
+    });
+
+    vi.mocked(creatorApi.estimatePromotionReach).mockResolvedValue({
+      data: { low: 1000, high: 1000, audience: 1000 },
+    } as never);
+    await user.click(screen.getByRole('button', { name: '€10' }));
+
+    expect(await screen.findByText('1,000 people')).toBeInTheDocument();
+    expect(creatorApi.estimatePromotionReach).toHaveBeenLastCalledWith({
+      dailyBudget: 10,
+      durationDays: 7,
+      countries: [],
+    });
+  });
+
+  it('says when nobody is there to reach, and when the estimate failed', async () => {
+    vi.mocked(creatorApi.estimatePromotionReach).mockResolvedValue({
+      data: { low: 0, high: 0, audience: 0 },
+    } as never);
+    open(post);
+    expect(
+      await screen.findByText('Nobody in these countries yet'),
+    ).toBeInTheDocument();
   });
 
   it('asks which post first when it opens with none', async () => {

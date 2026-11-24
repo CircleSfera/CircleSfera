@@ -30,6 +30,7 @@ import { GetCreatorStoriesQuery } from './use-cases/content/queries/get-creator-
 import { CreatePromotionUseCase } from './use-cases/promotions/commands/create-promotion.use-case.js';
 import { ManagePromotionUseCase } from './use-cases/promotions/commands/manage-promotion.use-case.js';
 import { RecordPromotionInteractionUseCase } from './use-cases/promotions/commands/record-promotion-interaction.use-case.js';
+import { EstimatePromotionReachQuery } from './use-cases/promotions/queries/estimate-promotion-reach.query.js';
 import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotions.query.js';
 
 // The key under which @UseGuards stores a handler's guards.
@@ -50,6 +51,7 @@ describe('CreatorController', () => {
   const mockGetCreatorPostsQ = { execute: vi.fn() };
   const mockGetCreatorStoriesQ = { execute: vi.fn() };
   const mockGetPromotionsQ = { execute: vi.fn() };
+  const mockEstimatePromotionReachQ = { execute: vi.fn() };
   const mockCreatePromotionUC = { execute: vi.fn() };
   const mockManagePromotionUC = {
     cancelPromotion: vi.fn(),
@@ -80,6 +82,10 @@ describe('CreatorController', () => {
         { provide: GetCreatorPostsQuery, useValue: mockGetCreatorPostsQ },
         { provide: GetCreatorStoriesQuery, useValue: mockGetCreatorStoriesQ },
         { provide: GetPromotionsQuery, useValue: mockGetPromotionsQ },
+        {
+          provide: EstimatePromotionReachQuery,
+          useValue: mockEstimatePromotionReachQ,
+        },
         { provide: CreatePromotionUseCase, useValue: mockCreatePromotionUC },
         { provide: ManagePromotionUseCase, useValue: mockManagePromotionUC },
         {
@@ -388,8 +394,45 @@ describe('CreatorController', () => {
 
   // Creator and Business Profiles promote without a platform plan: the Account
   // Type decides, so no promotion route may carry a plan check.
+  it('estimates the reach of a promotion from its budget, length and countries (PD-089)', async () => {
+    mockEstimatePromotionReachQ.execute.mockResolvedValue({
+      low: 500,
+      high: 3500,
+      audience: 9000,
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/creator/promotions/estimate')
+      .query({ dailyBudget: '5', durationDays: '7', countries: 'es,MX' })
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual({ low: 500, high: 3500, audience: 9000 });
+    expect(mockEstimatePromotionReachQ.execute).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      5,
+      7,
+      ['ES', 'MX'],
+    );
+  });
+
+  it.each([
+    { dailyBudget: '6', durationDays: '7' },
+    { dailyBudget: '5', durationDays: '8' },
+    { dailyBudget: '5', durationDays: '7', countries: 'ZZ' },
+  ])('refuses an estimate with a choice not on sale: %o', async (query) => {
+    mockEstimatePromotionReachQ.execute.mockClear();
+    await request(app.getHttpServer())
+      .get('/api/v1/creator/promotions/estimate')
+      .query(query)
+      .set(BEARER)
+      .expect(400);
+    expect(mockEstimatePromotionReachQ.execute).not.toHaveBeenCalled();
+  });
+
   it.each([
     'getPromotions',
+    'estimatePromotionReach',
     'createPromotion',
     'updatePromotion',
     'cancelPromotion',
