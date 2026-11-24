@@ -129,15 +129,16 @@ export const creatorApi = {
   getPromotionsOnSale: () =>
     apiClient.get<{ onSale: boolean }>('creator/promotions/on-sale'),
 
-  // The people a promotion would reach, as a range, before it is bought.
-  estimatePromotionReach: (params: {
+  // Before a promotion is bought, exact figures: the people it can be shown
+  // to in the countries chosen (null when a country has too few to say), and
+  // the most times its budget can show it.
+  getPromotionAudience: (params: {
     dailyBudget: number;
     durationDays: number;
     countries: string[];
   }) =>
-    // Rounded; both null when too few people are there to say a number.
-    apiClient.get<{ low: number | null; high: number | null }>(
-      'creator/promotions/estimate',
+    apiClient.get<{ people: number | null; maxShows: number }>(
+      'creator/promotions/audience',
       {
         params: {
           dailyBudget: params.dailyBudget,

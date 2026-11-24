@@ -161,8 +161,10 @@ export class CreatorController {
     );
   }
 
-  // The people a promotion would reach, shown before it is bought (PD-089).
-  @Get('promotions/estimate')
+  // Before a promotion is bought, exact figures (PD-089): the people it can
+  // be shown to in the countries chosen, and the most times its budget can
+  // show it.
+  @Get('promotions/audience')
   @UseGuards(CreatorAccountGuard)
   @ApiResponse({ status: 200 })
   async estimatePromotionReach(@Query() query: EstimatePromotionReachDto) {

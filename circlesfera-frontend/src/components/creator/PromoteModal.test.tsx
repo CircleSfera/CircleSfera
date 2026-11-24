@@ -10,7 +10,7 @@ vi.mock('../../services/creator.service', () => ({
   creatorApi: {
     createPromotion: vi.fn(),
     getPosts: vi.fn(),
-    estimatePromotionReach: vi.fn(),
+    getPromotionAudience: vi.fn(),
   },
 }));
 
@@ -49,8 +49,8 @@ describe('PromoteModal', () => {
     vi.mocked(creatorApi.getPosts).mockResolvedValue({
       data: { data: [post, frame], meta: { total: 2 } },
     } as never);
-    vi.mocked(creatorApi.estimatePromotionReach).mockResolvedValue({
-      data: { low: 500, high: 3500 },
+    vi.mocked(creatorApi.getPromotionAudience).mockResolvedValue({
+      data: { people: 4990, maxShows: 3500 },
     } as never);
     Object.defineProperty(window, 'location', {
       configurable: true,
@@ -169,55 +169,63 @@ describe('PromoteModal', () => {
     expect(screen.queryByText(/per 1,000|impression/i)).not.toBeInTheDocument();
   });
 
-  it('shows the estimated reach of the choices, as on Meta, and works it out again when they change (PD-089)', async () => {
+  it('shows exact figures, never an estimate: the people who can see it and the most times it is shown, again when the choices change (PD-089)', async () => {
     const user = userEvent.setup();
     open(post);
 
-    expect(await screen.findByText('500–3,500 people')).toBeInTheDocument();
+    expect(await screen.findByText('4,990 people')).toBeInTheDocument();
+    expect(screen.getByText('3,500 times')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Each person counts once a day. What is not delivered is refunded to you.',
+        'People active in the last 30 days in those countries. Each person counts once a day. What is not shown is refunded to you.',
       ),
     ).toBeInTheDocument();
-    expect(creatorApi.estimatePromotionReach).toHaveBeenLastCalledWith({
+    expect(screen.queryByText(/estimat|–/i)).not.toBeInTheDocument();
+    expect(creatorApi.getPromotionAudience).toHaveBeenLastCalledWith({
       dailyBudget: 5,
       durationDays: 7,
       countries: [],
     });
 
-    vi.mocked(creatorApi.estimatePromotionReach).mockResolvedValue({
-      data: { low: 1000, high: 1000 },
+    vi.mocked(creatorApi.getPromotionAudience).mockResolvedValue({
+      data: { people: 4990, maxShows: 7000 },
     } as never);
     await user.click(screen.getByRole('button', { name: '€10' }));
 
-    expect(await screen.findByText('1,000 people')).toBeInTheDocument();
-    expect(creatorApi.estimatePromotionReach).toHaveBeenLastCalledWith({
+    expect(await screen.findByText('7,000 times')).toBeInTheDocument();
+    expect(creatorApi.getPromotionAudience).toHaveBeenLastCalledWith({
       dailyBudget: 10,
       durationDays: 7,
       countries: [],
     });
   });
 
-  it('gives no number when too few people are there', async () => {
-    vi.mocked(creatorApi.estimatePromotionReach).mockResolvedValue({
-      data: { low: null, high: null },
+  it('gives no number of people when too few are there, and still the most times', async () => {
+    vi.mocked(creatorApi.getPromotionAudience).mockResolvedValue({
+      data: { people: null, maxShows: 3500 },
     } as never);
     open(post);
     expect(
       await screen.findByText(
-        'Too few people in these countries yet to estimate it',
+        'Too few people in these countries yet to give the figure',
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText('3,500 times')).toBeInTheDocument();
   });
 
-  it('says when the estimate could not be worked out', async () => {
-    vi.mocked(creatorApi.estimatePromotionReach).mockRejectedValue(
+  it('says when the figures could not be worked out', async () => {
+    vi.mocked(creatorApi.getPromotionAudience).mockRejectedValue(
       new Error('down'),
     );
     open(post);
+    // Both figures say so.
     expect(
-      await screen.findByText('Could not be worked out', {}, { timeout: 5000 }),
-    ).toBeInTheDocument();
+      await screen.findAllByText(
+        'Could not be worked out',
+        {},
+        { timeout: 5000 },
+      ),
+    ).toHaveLength(2);
   });
 
   it('asks which post first when it opens with none', async () => {

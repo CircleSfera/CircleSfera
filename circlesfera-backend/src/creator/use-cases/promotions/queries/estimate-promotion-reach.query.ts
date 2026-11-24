@@ -5,26 +5,27 @@ import type { Cache } from 'cache-manager';
 import { ENTITLED_STATUSES } from '../../../../common/constants/plan-features.constants.js';
 import { eurosToCents } from '../../../../common/constants/promotion.constants.js';
 import {
-  estimatedReach,
   PROMOTION_AUDIENCE_ACTIVE_DAYS,
   PROMOTION_AUDIENCE_MINIMUM,
+  promotionMaxShows,
 } from '../../../../common/promotions/promotion-reach.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
-// The people there are to reach, by country, worked out at most once an
-// hour for every buyer: an estimate never scans the people on each choice.
+// The people there are to reach, by country, counted at most every ten
+// minutes for every buyer instead of on each choice.
 const AUDIENCE_CACHE_KEY = 'promotions:audience-by-country';
-const AUDIENCE_CACHE_MS = 60 * 60 * 1000;
+const AUDIENCE_CACHE_MS = 10 * 60 * 1000;
 
 // People whose country is not known: reached only by a promotion aimed
 // everywhere.
 const NO_COUNTRY = '';
 
 /**
- * The reach a promotion would have, shown before it is bought (PD-089): a
- * range of people, from the budget, the length and how many people the feed
- * would show it to in the countries chosen. It never gives the number of
- * people itself; a small group gives no number at all.
+ * What a promotion can reach, shown before it is bought (PD-089, amended by
+ * the owner: exact figures, never an estimate): the people the feed would
+ * show it to in the countries chosen, counted exactly, and the most times
+ * its budget can show it. When a chosen country has fewer people than the
+ * minimum, no number of people is given.
  */
 @Injectable()
 export class EstimatePromotionReachQuery {
@@ -37,30 +38,21 @@ export class EstimatePromotionReachQuery {
     dailyBudget: number,
     durationDays: number,
     countries: string[] = [],
-  ): Promise<{ low: number; high: number } | { low: null; high: null }> {
+  ): Promise<{ people: number | null; maxShows: number }> {
+    const maxShows = promotionMaxShows(eurosToCents(dailyBudget), durationDays);
     const byCountry = await this.audienceByCountry();
-    // A country with fewer people than the minimum adds nobody to the sum,
-    // so adding it to a choice never changes the number shown and never says
-    // whether someone there was active.
-    const counted = (people: number) =>
-      people >= PROMOTION_AUDIENCE_MINIMUM ? people : 0;
-    const audience =
-      countries.length === 0
-        ? Object.values(byCountry).reduce(
-            (sum, people) => sum + counted(people),
-            0,
-          )
-        : countries.reduce(
-            (sum, code) => sum + counted(byCountry[code] ?? 0),
-            0,
-          );
-    return (
-      estimatedReach({
-        dailyBudgetCents: eurosToCents(dailyBudget),
-        durationDays,
-        audience,
-      }) ?? { low: null, high: null }
-    );
+    if (countries.length === 0) {
+      const people = Object.values(byCountry).reduce((sum, n) => sum + n, 0);
+      return {
+        people: people >= PROMOTION_AUDIENCE_MINIMUM ? people : null,
+        maxShows,
+      };
+    }
+    const counts = countries.map((code) => byCountry[code] ?? 0);
+    const people = counts.every((n) => n >= PROMOTION_AUDIENCE_MINIMUM)
+      ? counts.reduce((sum, n) => sum + n, 0)
+      : null;
+    return { people, maxShows };
   }
 
   /**

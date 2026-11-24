@@ -394,19 +394,19 @@ describe('CreatorController', () => {
 
   // Creator and Business Profiles promote without a platform plan: the Account
   // Type decides, so no promotion route may carry a plan check.
-  it('estimates the reach of a promotion from its budget, length and countries (PD-089)', async () => {
+  it('gives the exact people and the most shows of a promotion from its budget, length and countries (PD-089)', async () => {
     mockEstimatePromotionReachQ.execute.mockResolvedValue({
-      low: 500,
-      high: 3500,
+      people: 4990,
+      maxShows: 3500,
     });
 
     const res = await request(app.getHttpServer())
-      .get('/api/v1/creator/promotions/estimate')
+      .get('/api/v1/creator/promotions/audience')
       .query({ dailyBudget: '5', durationDays: '7', countries: 'es,MX' })
       .set(BEARER)
       .expect(200);
 
-    expect(res.body).toEqual({ low: 500, high: 3500 });
+    expect(res.body).toEqual({ people: 4990, maxShows: 3500 });
     expect(mockEstimatePromotionReachQ.execute).toHaveBeenCalledWith(5, 7, [
       'ES',
       'MX',
@@ -420,7 +420,7 @@ describe('CreatorController', () => {
   ])('refuses an estimate with a choice not on sale: %o', async (query) => {
     mockEstimatePromotionReachQ.execute.mockClear();
     await request(app.getHttpServer())
-      .get('/api/v1/creator/promotions/estimate')
+      .get('/api/v1/creator/promotions/audience')
       .query(query)
       .set(BEARER)
       .expect(400);

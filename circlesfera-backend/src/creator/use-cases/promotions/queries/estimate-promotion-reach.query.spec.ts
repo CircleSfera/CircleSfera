@@ -15,22 +15,22 @@ describe('EstimatePromotionReachQuery', () => {
     cache.set.mockReset();
   });
 
-  it('counts the people by country once, keeps the count an hour, and adds the countries chosen', async () => {
+  it('counts the people by country exactly, keeps the count ten minutes, and adds the countries chosen', async () => {
     cache.get.mockResolvedValue(undefined);
     prisma.$queryRaw.mockResolvedValue([
-      { country: 'ES', people: 3000n },
-      { country: 'MX', people: 1500 },
+      { country: 'ES', people: 3487n },
+      { country: 'MX', people: 1503 },
       { country: null, people: 700 },
     ]);
 
     await expect(query.execute(5, 7, ['ES', 'MX'])).resolves.toEqual({
-      low: 500,
-      high: 3500,
+      people: 4990,
+      maxShows: 3500,
     });
     expect(cache.set).toHaveBeenCalledWith(
       'promotions:audience-by-country',
-      { ES: 3000, MX: 1500, '': 700 },
-      3_600_000,
+      { ES: 3487, MX: 1503, '': 700 },
+      600_000,
     );
     // The count leaves out Test Accounts and people whose plan has no
     // promoted posts, as the feed does.
@@ -39,39 +39,30 @@ describe('EstimatePromotionReachQuery', () => {
     expect(sql).toContain("'no_promoted_content' = ANY");
   });
 
-  it('reads the kept count instead of counting again', async () => {
-    cache.get.mockResolvedValue({ ES: 3000, MX: 1500, '': 1200 });
+  it('reads the kept count instead of counting again; everywhere counts everyone', async () => {
+    cache.get.mockResolvedValue({ ES: 3487, MX: 1503, '': 700 });
 
-    // Everywhere: people with no known country included.
     await expect(query.execute(50, 30)).resolves.toEqual({
-      low: 5000,
-      high: 5700,
+      people: 5690,
+      maxShows: 150_000,
     });
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
-  it('gives no number for countries with few people, and never the count itself', async () => {
-    cache.get.mockResolvedValue({ ES: 3000, AD: 2 });
+  it('gives no number of people when a chosen country has few people, and still the most shows', async () => {
+    cache.get.mockResolvedValue({ ES: 3487, AD: 2 });
 
-    const result = await query.execute(5, 7, ['AD']);
-
-    expect(result).toEqual({ low: null, high: null });
-    expect(result).not.toHaveProperty('audience');
-  });
-
-  it('never lets a small country change the number, alone or added to others', async () => {
-    cache.get.mockResolvedValue({ FR: 990, AD: 12, ES: 1990, '': 30 });
-
-    // FR under the minimum and AD added: still no number.
-    await expect(query.execute(50, 30, ['FR', 'AD'])).resolves.toEqual({
-      low: null,
-      high: null,
+    await expect(query.execute(5, 7, ['AD'])).resolves.toEqual({
+      people: null,
+      maxShows: 3500,
     });
-    // ES with or without AD: the same number.
-    const withoutAd = await query.execute(50, 30, ['ES']);
-    const withAd = await query.execute(50, 30, ['ES', 'AD']);
-    expect(withAd).toEqual(withoutAd);
-    // Everywhere counts only the countries over the minimum.
-    await expect(query.execute(50, 30)).resolves.toEqual(withoutAd);
+    await expect(query.execute(5, 7, ['ES', 'AD'])).resolves.toEqual({
+      people: null,
+      maxShows: 3500,
+    });
+    await expect(query.execute(5, 7, ['ES'])).resolves.toEqual({
+      people: 3487,
+      maxShows: 3500,
+    });
   });
 });
