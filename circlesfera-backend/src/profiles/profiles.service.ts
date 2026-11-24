@@ -2,14 +2,11 @@ import { ErrorCode } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  type AccountType,
-  SubscriptionStatus,
-  Visibility,
-} from '@prisma/client';
+import { type AccountType, Visibility } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import { accountStanding, lastActiveBucket } from '../abuse/trust-score.js';
+import { ENTITLED_STATUSES } from '../common/constants/plan-features.constants.js';
 import {
   BUSINESS_PROFILE_LIMIT,
   canPersonalizeProfile,
@@ -239,11 +236,11 @@ export class ProfilesService {
     await this.assertNotBlocked(viewerProfileId, profile.id);
 
     // The badge comes from a plan of this Profile, not of another Profile of
-    // the same person.
+    // the same person, that still gives it (ENTITLED_STATUSES).
     const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
       where: {
         profileId: profile.id,
-        status: SubscriptionStatus.ACTIVE,
+        status: { in: [...ENTITLED_STATUSES] },
         plan: { features: { has: 'verified_badge' } },
       },
       select: { id: true },
@@ -584,11 +581,11 @@ export class ProfilesService {
       );
     }
 
-    // The badge comes from a plan of this Profile.
+    // The badge comes from a plan of this Profile that still gives it.
     const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
       where: {
         profileId: profile.id,
-        status: SubscriptionStatus.ACTIVE,
+        status: { in: [...ENTITLED_STATUSES] },
         plan: { features: { has: 'verified_badge' } },
       },
       select: { id: true },

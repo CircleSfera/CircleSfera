@@ -1,3 +1,5 @@
+import { SubscriptionStatus } from '@prisma/client';
+
 /**
  * The features a platform plan can include, in the order the pricing page
  * lists them. A plan stores the keys of the ones it includes, and staff can
@@ -18,3 +20,19 @@ export const PLAN_FEATURE_KEYS = [
 ] as const;
 
 export type PlanFeatureKey = (typeof PLAN_FEATURE_KEYS)[number];
+
+/**
+ * The states of a subscription that give what its plan includes. A renewal
+ * that failed (PAST_DUE) keeps them while the payment provider tries the
+ * card again, as most services do; once it stops trying (UNPAID) or the
+ * subscription ends, they stop.
+ */
+export const ENTITLED_STATUSES = [
+  SubscriptionStatus.ACTIVE,
+  SubscriptionStatus.TRIALING,
+  SubscriptionStatus.PAST_DUE,
+] as const;
+
+export function isEntitled(status: SubscriptionStatus): boolean {
+  return (ENTITLED_STATUSES as readonly SubscriptionStatus[]).includes(status);
+}

@@ -38,6 +38,12 @@ describe('Edits Studio Pro', () => {
         studioPro: { subscription: { status: 'PAST_DUE' } },
       }),
     ).toBe('held');
+    // Left unpaid: paid in the billing portal, never bought again.
+    expect(
+      studioProState({
+        studioPro: { subscription: { status: 'UNPAID' } },
+      }),
+    ).toBe('held');
     expect(studioProState(undefined)).toBe('none');
   });
 });
