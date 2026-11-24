@@ -79,7 +79,21 @@ export class PaymentEventsService {
       const amount = session.amount_total || 0;
       const currency = (session.currency || 'eur').toUpperCase();
 
-      await this.prisma.$transaction(async (tx) => {
+      const stripePaymentIntentId =
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : session.payment_intent?.id || session.id;
+      const recordedNow = await this.prisma.$transaction(async (tx) => {
+        // A notice sent again after this committed finds the payment
+        // recorded and changes nothing: the promotion is not turned on
+        // again (it may have been cancelled or rejected since), and staff
+        // are not told twice.
+        const recorded = await tx.transaction.findUnique({
+          where: { stripePaymentIntentId },
+          select: { id: true },
+        });
+        if (recorded) return false;
+
         await tx.promotion.update({
           where: { id: promotionId },
           data: {
@@ -87,17 +101,8 @@ export class PaymentEventsService {
             chargedAt: new Date(),
           },
         });
-
-        const stripePaymentIntentId =
-          typeof session.payment_intent === 'string'
-            ? session.payment_intent
-            : session.payment_intent?.id || session.id;
-        // A notice sent again after this committed finds the payment
-        // recorded and leaves it as it is, instead of failing on it.
-        await tx.transaction.upsert({
-          where: { stripePaymentIntentId },
-          update: {},
-          create: {
+        await tx.transaction.create({
+          data: {
             type: 'PROMOTION_PAYMENT',
             amount,
             currency,
@@ -108,7 +113,14 @@ export class PaymentEventsService {
             description: `Promotion checkout ${session.id}`,
           },
         });
+        return true;
       });
+      if (!recordedNow) {
+        this.logger.log(
+          `Promotion payment ${stripePaymentIntentId} was already recorded; nothing changed`,
+        );
+        return;
+      }
 
       this.logger.log(
         `Successfully processed promotion payment for ${promotionId}`,

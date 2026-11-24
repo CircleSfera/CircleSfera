@@ -176,9 +176,11 @@ export class UsersController {
     );
   }
 
-  // The provider sends the person back only to one of the app's own origins
-  // (the site, or the native apps allowed by CORS_ORIGIN); any other address
-  // is replaced by the account page.
+  // The provider sends the person back only to one of the web app's own
+  // origins (FRONTEND_URL, or an origin listed in CORS_ORIGIN); any other
+  // address is replaced by the account page. The native apps' addresses
+  // have no web origin, so they get the account page too (the provider's
+  // page opens in the system browser there anyway).
   private ownReturnUrl(returnUrl: unknown): string | undefined {
     if (typeof returnUrl !== 'string' || returnUrl.length > 2048) {
       return undefined;
@@ -189,6 +191,8 @@ export class UsersController {
     } catch {
       return undefined;
     }
+    // A scheme with no web origin (capacitor:, javascript:, data:) is "null".
+    if (origin === 'null') return undefined;
     const frontendUrl = this.configService?.get<string>('FRONTEND_URL');
     const own = new Set(
       parseAllowedOrigins(
@@ -196,7 +200,9 @@ export class UsersController {
         false,
       ),
     );
-    if (frontendUrl) own.add(new URL(frontendUrl).origin);
+    if (URL.canParse(frontendUrl ?? '')) {
+      own.add(new URL(frontendUrl as string).origin);
+    }
     return own.has(origin) ? returnUrl : undefined;
   }
 
