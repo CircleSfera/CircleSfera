@@ -10,10 +10,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { StripeService } from '../stripe/stripe.service.js';
 import { UsersService } from '../users/users.service.js';
 import { PaymentEventsService } from './payment-events.service.js';
-import {
-  PaymentsService,
-  unusedPartCents,
-} from './payments.service.js';
+import { PaymentsService, unusedPartCents } from './payments.service.js';
 
 // Whoever pays here is an adult with a verified identity, unless a test says
 // otherwise; the rules are tested on their own (adult-payer.policy.spec.ts).
