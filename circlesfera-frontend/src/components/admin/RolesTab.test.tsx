@@ -416,6 +416,43 @@ describe('RolesTab', () => {
     );
   });
 
+  it('no longer shows a code it handed out once access is reset, which revokes it', async () => {
+    api.getOperators.mockResolvedValue(
+      list([operator('b', { totpEnabled: false, ownPassword: true })]) as never,
+    );
+    show();
+    const pane = await open('Operator b');
+
+    fireEvent.click(
+      within(pane).getByRole('button', { name: 'Create a code' }),
+    );
+    expect(await within(pane).findByText('ABCD-EFGH-JKMN')).toBeInTheDocument();
+
+    fireEvent.click(within(pane).getByRole('button', { name: 'Reset access' }));
+    await waitFor(() => expect(api.resetOperatorMfa).toHaveBeenCalledWith('b'));
+    await waitFor(() =>
+      expect(within(pane).queryByText('ABCD-EFGH-JKMN')).toBeNull(),
+    );
+  });
+
+  it('keeps the code shown when resetting access fails', async () => {
+    api.getOperators.mockResolvedValue(
+      list([operator('b', { totpEnabled: false, ownPassword: true })]) as never,
+    );
+    api.resetOperatorMfa.mockRejectedValue({ response: refused } as never);
+    show();
+    const pane = await open('Operator b');
+
+    fireEvent.click(
+      within(pane).getByRole('button', { name: 'Create a code' }),
+    );
+    expect(await within(pane).findByText('ABCD-EFGH-JKMN')).toBeInTheDocument();
+
+    fireEvent.click(within(pane).getByRole('button', { name: 'Reset access' }));
+    await waitFor(() => expect(api.resetOperatorMfa).toHaveBeenCalledWith('b'));
+    expect(within(pane).getByText('ABCD-EFGH-JKMN')).toBeInTheDocument();
+  });
+
   it('sends the set-up link again', async () => {
     api.getOperators.mockResolvedValue(
       list([operator('b', { totpEnabled: false })]) as never,

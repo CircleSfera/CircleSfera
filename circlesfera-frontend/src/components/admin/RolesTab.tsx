@@ -287,6 +287,8 @@ export default function RolesTab({ onToast }: Props) {
       runWithStepUp(async () => {
         if (!selectedId) return;
         await adminApi.resetOperatorMfa(selectedId);
+        // The reset revokes any code handed out before: it is no longer shown.
+        setIssuedCode((code) => (code?.id === selectedId ? null : code));
         // Someone who had access recovers it only with a code in person.
         onToast(
           t(
