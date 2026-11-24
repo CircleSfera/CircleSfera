@@ -90,6 +90,8 @@ export class GetPromotionsQuery {
         }
 
         // Wire money as integer cents (budgetCents / dailyBudgetCents).
+        // `peopleReached` is the different people it reached (PD-089);
+        // `reach` counts a person once a day, as charged.
         return {
           ...promo,
           target,

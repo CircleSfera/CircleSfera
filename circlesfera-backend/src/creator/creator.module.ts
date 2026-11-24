@@ -19,6 +19,7 @@ import { CreatePromotionUseCase } from './use-cases/promotions/commands/create-p
 import { ManagePromotionUseCase } from './use-cases/promotions/commands/manage-promotion.use-case.js';
 import { RecordPromotionInteractionUseCase } from './use-cases/promotions/commands/record-promotion-interaction.use-case.js';
 import { RefundPromotionUseCase } from './use-cases/promotions/commands/refund-promotion.use-case.js';
+import { EstimatePromotionReachQuery } from './use-cases/promotions/queries/estimate-promotion-reach.query.js';
 import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotions.query.js';
 
 @Module({
@@ -35,6 +36,7 @@ import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotion
     GetCreatorStoriesQuery,
     // Promotions
     GetPromotionsQuery,
+    EstimatePromotionReachQuery,
     CreatePromotionUseCase,
     ManagePromotionUseCase,
     RecordPromotionInteractionUseCase,

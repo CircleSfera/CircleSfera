@@ -10,6 +10,7 @@ vi.mock('../../services/creator.service', () => ({
   creatorApi: {
     createPromotion: vi.fn(),
     getPosts: vi.fn(),
+    getPromotionAudience: vi.fn(),
   },
 }));
 
@@ -47,6 +48,9 @@ describe('PromoteModal', () => {
     } as never);
     vi.mocked(creatorApi.getPosts).mockResolvedValue({
       data: { data: [post, frame], meta: { total: 2 } },
+    } as never);
+    vi.mocked(creatorApi.getPromotionAudience).mockResolvedValue({
+      data: { people: 4990, maxShows: 3500 },
     } as never);
     Object.defineProperty(window, 'location', {
       configurable: true,
@@ -148,7 +152,7 @@ describe('PromoteModal', () => {
     );
   });
 
-  it('says what is paid and when the promotion ends, and promises no reach', () => {
+  it('says what is paid and when the promotion ends, and asks no objective or interests', () => {
     open(post);
 
     // The budget includes VAT, as plan prices do.
@@ -159,9 +163,69 @@ describe('PromoteModal', () => {
         'You pay it now, once. The promotion ends when the budget is spent or after 7 days, whichever comes first.',
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/reach/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/objective/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/interests/i)).not.toBeInTheDocument();
+    // No price per view or impression is shown (PD-089).
+    expect(screen.queryByText(/per 1,000|impression/i)).not.toBeInTheDocument();
+  });
+
+  it('shows exact figures, never an estimate: the people who can see it and the most times it is shown, again when the choices change (PD-089)', async () => {
+    const user = userEvent.setup();
+    open(post);
+
+    expect(await screen.findByText('4,990 people')).toBeInTheDocument();
+    expect(screen.getByText('3,500 times')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'People active in the last 30 days in those countries. Each person counts once a day. What is not shown is refunded to you.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/estimat|–/i)).not.toBeInTheDocument();
+    expect(creatorApi.getPromotionAudience).toHaveBeenLastCalledWith({
+      dailyBudget: 5,
+      durationDays: 7,
+      countries: [],
+    });
+
+    vi.mocked(creatorApi.getPromotionAudience).mockResolvedValue({
+      data: { people: 4990, maxShows: 7000 },
+    } as never);
+    await user.click(screen.getByRole('button', { name: '€10' }));
+
+    expect(await screen.findByText('7,000 times')).toBeInTheDocument();
+    expect(creatorApi.getPromotionAudience).toHaveBeenLastCalledWith({
+      dailyBudget: 10,
+      durationDays: 7,
+      countries: [],
+    });
+  });
+
+  it('gives no number of people when too few are there, and still the most times', async () => {
+    vi.mocked(creatorApi.getPromotionAudience).mockResolvedValue({
+      data: { people: null, maxShows: 3500 },
+    } as never);
+    open(post);
+    expect(
+      await screen.findByText(
+        'Too few people in these countries yet to give the figure',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('3,500 times')).toBeInTheDocument();
+  });
+
+  it('says when the figures could not be worked out', async () => {
+    vi.mocked(creatorApi.getPromotionAudience).mockRejectedValue(
+      new Error('down'),
+    );
+    open(post);
+    // Both figures say so.
+    expect(
+      await screen.findAllByText(
+        'Could not be worked out',
+        {},
+        { timeout: 5000 },
+      ),
+    ).toHaveLength(2);
   });
 
   it('asks which post first when it opens with none', async () => {

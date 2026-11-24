@@ -6,6 +6,7 @@ import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse, Post } from '../../types';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import { formatNumber } from '../../utils/format';
 import { formatWholeEuros } from '../../utils/money';
 import MediaThumb, { postThumbShape } from '../common/MediaThumb';
 import { WithdrawalConsentBox } from '../payments/WithdrawalConsent';
@@ -87,6 +88,26 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
         apiErrorMessage(err, t, 'creator.promotions.error_create'),
         'error',
       ),
+  });
+
+  // Exact figures from the server for the choices (PD-089), never an
+  // estimate: the people it can be shown to, and the most times the budget
+  // can show it. They change as the choices change.
+  const { data: audience, isError: audienceFailed } = useQuery({
+    queryKey: [
+      'creator',
+      'promotions',
+      'audience',
+      dailyBudget,
+      durationDays,
+      countries.join(','),
+    ],
+    queryFn: () =>
+      creatorApi
+        .getPromotionAudience({ dailyBudget, durationDays, countries })
+        .then((r) => r.data),
+    enabled: !!chosen,
+    staleTime: 60_000,
   });
 
   const total = formatWholeEuros(dailyBudget * durationDays, language);
@@ -177,6 +198,47 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           </div>
 
           <div className="pt-4 border-t border-white/10 space-y-3">
+            <div
+              className="flex items-baseline justify-between gap-3"
+              aria-live="polite"
+            >
+              <span className="text-sm text-white/70">
+                {t('creator.promote.audience')}
+              </span>
+              <span className="text-base font-semibold text-white tabular-nums text-right">
+                {audience
+                  ? audience.people === null
+                    ? t('creator.promote.audience_few')
+                    : t('creator.promote.people', {
+                        count: audience.people,
+                        formatted: formatNumber(audience.people, language),
+                      })
+                  : audienceFailed
+                    ? t('creator.promote.audience_unknown')
+                    : '…'}
+              </span>
+            </div>
+            <div
+              className="flex items-baseline justify-between gap-3"
+              aria-live="polite"
+            >
+              <span className="text-sm text-white/70">
+                {t('creator.promote.max_shows')}
+              </span>
+              <span className="text-base font-semibold text-white tabular-nums text-right">
+                {audience
+                  ? t('creator.promote.times', {
+                      count: audience.maxShows,
+                      formatted: formatNumber(audience.maxShows, language),
+                    })
+                  : audienceFailed
+                    ? t('creator.promote.audience_unknown')
+                    : '…'}
+              </span>
+            </div>
+            <p className="text-xs text-white/50 leading-relaxed">
+              {t('creator.promote.audience_hint')}
+            </p>
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-sm text-white/70">
                 {t('creator.promote.total')}

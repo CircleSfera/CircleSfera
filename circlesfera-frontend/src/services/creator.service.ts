@@ -72,7 +72,10 @@ export interface CreatorPromotion {
   status: string;
   startDate: string;
   endDate: string;
+  // Times shown and charged: a person counts once a day.
   reach: number;
+  // The different people it reached.
+  peopleReached?: number;
   clicks: number;
   createdAt: string;
   // ISO codes joined by commas; none for everywhere.
@@ -125,6 +128,27 @@ export const creatorApi = {
   // Whether promotions are on sale.
   getPromotionsOnSale: () =>
     apiClient.get<{ onSale: boolean }>('creator/promotions/on-sale'),
+
+  // Before a promotion is bought, exact figures: the people it can be shown
+  // to in the countries chosen (null when a country has too few to say), and
+  // the most times its budget can show it.
+  getPromotionAudience: (params: {
+    dailyBudget: number;
+    durationDays: number;
+    countries: string[];
+  }) =>
+    apiClient.get<{ people: number | null; maxShows: number }>(
+      'creator/promotions/audience',
+      {
+        params: {
+          dailyBudget: params.dailyBudget,
+          durationDays: params.durationDays,
+          ...(params.countries.length
+            ? { countries: params.countries.join(',') }
+            : {}),
+        },
+      },
+    ),
 
   recordPromotionView: (promotionId: string) =>
     apiClient.post<{ success: boolean }>(

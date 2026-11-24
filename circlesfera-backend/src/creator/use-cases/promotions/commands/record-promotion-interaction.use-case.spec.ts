@@ -20,6 +20,7 @@ describe('RecordPromotionInteractionUseCase.recordView', () => {
   let tx: {
     $queryRaw: ReturnType<typeof vi.fn>;
     promotion: { update: ReturnType<typeof vi.fn> };
+    promotionView: { findFirst: ReturnType<typeof vi.fn> };
   };
   let useCase: RecordPromotionInteractionUseCase;
 
@@ -32,7 +33,12 @@ describe('RecordPromotionInteractionUseCase.recordView', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(`${TODAY}T12:00:00Z`));
-    tx = { $queryRaw: vi.fn(), promotion: { update: vi.fn() } };
+    tx = {
+      $queryRaw: vi.fn(),
+      promotion: { update: vi.fn() },
+      // Not seen on an earlier day, unless a test says so.
+      promotionView: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
     const prisma = {
       $transaction: vi.fn((run: (t: typeof tx) => unknown) => run(tx)),
     };
@@ -56,6 +62,32 @@ describe('RecordPromotionInteractionUseCase.recordView', () => {
         spentTodayCents: 11,
       }),
     });
+  });
+
+  it('counts a person among the people reached on their first view only (PD-089)', async () => {
+    answers(promo());
+    await useCase.recordView('promo-1', 'viewer');
+    expect(tx.promotion.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ peopleReached: { increment: 1 } }),
+      }),
+    );
+    expect(tx.promotionView.findFirst).toHaveBeenCalledWith({
+      where: {
+        promotionId: 'promo-1',
+        userId: 'viewer',
+        day: { lt: new Date(`${TODAY}T00:00:00.000Z`) },
+      },
+      select: { day: true },
+    });
+
+    // Seen on an earlier day: charged again today, not a new person.
+    tx.promotionView.findFirst.mockResolvedValue({ day: new Date() });
+    answers(promo());
+    await useCase.recordView('promo-1', 'viewer');
+    const data = tx.promotion.update.mock.calls.at(-1)?.[0].data;
+    expect(data.reach).toEqual({ increment: 1 });
+    expect(data).not.toHaveProperty('peopleReached');
   });
 
   it('charges nothing when the person saw it earlier that day', async () => {
