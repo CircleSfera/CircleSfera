@@ -160,9 +160,20 @@ async function payOnCheckout(page: Page) {
   await fill('input[autocomplete$="address-line1"]', 'Calle Mayor 1', false);
   await fill('input[autocomplete$="address-level2"]', 'Madrid', false);
   await fill('input[autocomplete$="postal-code"]', '28013', false);
-  await page
-    .getByTestId('hosted-payment-submit-button')
-    .click({ timeout: 30_000 });
+  // The province, which an address in Spain needs.
+  const province = await fieldOnCheckout(
+    page,
+    'select[autocomplete$="address-level1"]',
+    2_000,
+  );
+  if (province) await province.selectOption({ label: 'Madrid' });
+  // The pay button, by the test id of the page as it is now or as it was.
+  const pay = await fieldOnCheckout(
+    page,
+    '[data-testid="payment-form-submit-button"]:not([disabled]), [data-testid="hosted-payment-submit-button"]:not([disabled])',
+  );
+  if (!pay) throw new Error('The pay button never became active');
+  await pay.click();
 }
 // A plan bought on Pricing is paid on the provider's page in test mode; the
 // provider's notice reaches this environment and the plan runs. Withdrawing
