@@ -492,19 +492,24 @@ export class MaintenanceService {
     }
   }
 
-  // Promotion views by person are needed for the day they belong to: they
-  // cap how often one person sees a promotion and make them count once. Kept
-  // seven days, then purged.
+  // Promotion views by person cap how often one person sees a promotion,
+  // make them count once a day, and tell a person new to the promotion from
+  // one seen before (people reached, PD-089). Kept while the promotion runs
+  // and seven days after it ends (at most 37 days, within the 90 the privacy
+  // policy states for activity), then purged.
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async purgeOldPromotionViews() {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     try {
       const result = await this.prisma.promotionView.deleteMany({
-        where: { day: { lt: sevenDaysAgo } },
+        where: {
+          day: { lt: sevenDaysAgo },
+          promotion: { endDate: { lt: sevenDaysAgo } },
+        },
       });
       if (result.count > 0) {
         this.logger.log(
-          `Purged ${result.count} promotion view records older than 7 days.`,
+          `Purged ${result.count} promotion view records of promotions ended over 7 days ago.`,
         );
       }
     } catch (error) {

@@ -80,8 +80,8 @@ export class RecordPromotionInteractionUseCase {
         return { success: true };
       }
 
-      // A person seen on no earlier day still kept is new to this promotion.
-      // One whose last view was purged (over 7 days ago) counts again.
+      // A person seen on no earlier day is new to this promotion: views by
+      // person are kept while it runs (purgeOldPromotionViews).
       const seenBefore = await tx.promotionView.findFirst({
         where: {
           promotionId,

@@ -7,6 +7,7 @@ import { eurosToCents } from '../../../../common/constants/promotion.constants.j
 import {
   estimatedReach,
   PROMOTION_AUDIENCE_ACTIVE_DAYS,
+  PROMOTION_AUDIENCE_MINIMUM,
 } from '../../../../common/promotions/promotion-reach.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
@@ -38,10 +39,21 @@ export class EstimatePromotionReachQuery {
     countries: string[] = [],
   ): Promise<{ low: number; high: number } | { low: null; high: null }> {
     const byCountry = await this.audienceByCountry();
+    // A country with fewer people than the minimum adds nobody to the sum,
+    // so adding it to a choice never changes the number shown and never says
+    // whether someone there was active.
+    const counted = (people: number) =>
+      people >= PROMOTION_AUDIENCE_MINIMUM ? people : 0;
     const audience =
       countries.length === 0
-        ? Object.values(byCountry).reduce((sum, people) => sum + people, 0)
-        : countries.reduce((sum, code) => sum + (byCountry[code] ?? 0), 0);
+        ? Object.values(byCountry).reduce(
+            (sum, people) => sum + counted(people),
+            0,
+          )
+        : countries.reduce(
+            (sum, code) => sum + counted(byCountry[code] ?? 0),
+            0,
+          );
     return (
       estimatedReach({
         dailyBudgetCents: eurosToCents(dailyBudget),

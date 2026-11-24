@@ -614,7 +614,7 @@ describe('MaintenanceService', () => {
   });
 
   describe('purgeOldPromotionViews', () => {
-    it('purges the views by person of days more than a week old', async () => {
+    it('purges the views by person only once their promotion ended over a week ago, so a person is never counted twice while it runs', async () => {
       mockPrismaService.promotionView.deleteMany.mockResolvedValue({
         count: 3,
       });
@@ -627,6 +627,7 @@ describe('MaintenanceService', () => {
       const cut = where.day.lt.getTime();
       expect(cut).toBeLessThanOrEqual(before - 7 * 24 * 60 * 60 * 1000 + 1000);
       expect(cut).toBeGreaterThan(before - 8 * 24 * 60 * 60 * 1000);
+      expect(where.promotion.endDate.lt.getTime()).toBe(cut);
     });
 
     it('catches errors', async () => {
