@@ -163,7 +163,7 @@ const en: EmailCopy = {
   staffEnrolment: {
     subject: 'Set up your CircleSfera staff access',
     title: 'Set up your staff access',
-    body: 'You have been given staff access to CircleSfera. Open the link below and choose a password for staff access: it is not the password of any CircleSfera account, and you do not need one. Staff then set up an authenticator app on their phone, whose code staff access always asks for.',
+    body: 'You have been given staff access to CircleSfera. Open the link below and choose a password for staff access: it is not the password of any CircleSfera account, and you do not need one. You then set up an authenticator app on your phone, whose code staff access always asks for.',
     button: 'Set up my access',
     footer:
       'This link works once and expires in 24 hours. If you were not expecting it, ignore this email and tell the person who gave you access.',
@@ -321,7 +321,7 @@ const es: EmailCopy = {
   staffEnrolment: {
     subject: 'Configura tu acceso de equipo en CircleSfera',
     title: 'Configura tu acceso de equipo',
-    body: 'Te han dado acceso de equipo a CircleSfera. Abre el enlace de abajo y elige una contraseña para el acceso de equipo: no es la contraseña de ninguna cuenta de CircleSfera y no necesitas tener una. Después, el equipo configura una app de autenticación en el móvil, cuyo código el acceso de equipo pide siempre.',
+    body: 'Te han dado acceso de equipo a CircleSfera. Abre el enlace de abajo y elige una contraseña para el acceso de equipo: no es la contraseña de ninguna cuenta de CircleSfera y no necesitas tener una. Después configuras una app de autenticación en el móvil, cuyo código el acceso de equipo pide siempre.',
     button: 'Configurar mi acceso',
     footer:
       'Este enlace funciona una vez y caduca en 24 horas. Si no lo esperabas, ignora este mensaje y avisa a quien te dio el acceso.',
