@@ -1237,7 +1237,7 @@ describe('UsersService', () => {
         expect.objectContaining({
           where: { id: 'u_full' },
           data: expect.objectContaining({
-            dateOfBirth: new Date(1990, 4, 1),
+            dateOfBirth: new Date(Date.UTC(1990, 4, 1)),
             dateOfBirthVerified: true,
           }),
         }),

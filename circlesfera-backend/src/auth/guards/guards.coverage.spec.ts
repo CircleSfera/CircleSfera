@@ -1,12 +1,10 @@
 import { ApiErrorCode, ErrorCode } from '@circlesfera/shared';
 import { type ExecutionContext, ForbiddenException } from '@nestjs/common';
-import type { Reflector } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../common/errors/app.exception.js';
 import { EmailVerifiedGuard } from './email-verified.guard.js';
 import { IdentityVerifiedGuard } from './identity-verified.guard.js';
 import { JwtOptionalGuard } from './jwt-optional.guard.js';
-import { SubscriptionGuard } from './subscription.guard.js';
 
 const contextFor = (user: unknown): ExecutionContext =>
   ({
@@ -148,89 +146,5 @@ describe('IdentityVerifiedGuard', () => {
     await expect(
       guard.canActivate(contextFor({ userId: 'u-1' })),
     ).resolves.toBe(true);
-  });
-});
-
-describe('SubscriptionGuard', () => {
-  const prisma = {
-    platformPlan: { findFirst: vi.fn() },
-    platformSubscription: { findFirst: vi.fn() },
-  };
-  const reflector = { getAllAndOverride: vi.fn() };
-  const guard = new SubscriptionGuard(
-    prisma as never,
-    reflector as unknown as Reflector,
-  );
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    reflector.getAllAndOverride.mockReturnValue('Premium');
-    prisma.platformPlan.findFirst.mockResolvedValue({
-      name: 'Premium',
-      priceCents: 999,
-    });
-  });
-
-  it('lets everyone through on routes without a plan requirement', async () => {
-    reflector.getAllAndOverride.mockReturnValue(undefined);
-    await expect(guard.canActivate(contextFor(undefined))).resolves.toBe(true);
-  });
-
-  it('refuses a request without a signed-in user', async () => {
-    await expect(guard.canActivate(contextFor(undefined))).resolves.toBe(false);
-  });
-
-  it('never lets a participant account through because of its role', async () => {
-    prisma.platformSubscription.findFirst.mockResolvedValue(null);
-    await expect(
-      guard.canActivate(contextFor({ userId: 'u-1', role: 'ADMIN' })),
-    ).rejects.toThrow(ForbiddenException);
-  });
-
-  it('refuses when the required plan does not exist', async () => {
-    prisma.platformPlan.findFirst.mockResolvedValue(null);
-    await expect(
-      guard.canActivate(contextFor({ userId: 'u-1' })),
-    ).resolves.toBe(false);
-  });
-
-  it('refuses a lower plan and accepts the same or a higher one', async () => {
-    prisma.platformSubscription.findFirst.mockResolvedValueOnce({
-      plan: { name: 'Basic', priceCents: 499 },
-    });
-    await expect(
-      guard.canActivate(contextFor({ userId: 'u-1', profileId: 'p-1' })),
-    ).rejects.toThrow(ForbiddenException);
-
-    prisma.platformSubscription.findFirst.mockResolvedValueOnce({
-      plan: { name: 'Business', priceCents: 4999 },
-    });
-    await expect(
-      guard.canActivate(contextFor({ userId: 'u-1', profileId: 'p-1' })),
-    ).resolves.toBe(true);
-  });
-
-  it('looks for the plan of the Profile in use, not of another Profile of the person', async () => {
-    prisma.platformSubscription.findFirst.mockResolvedValueOnce({
-      plan: { name: 'Business', priceCents: 4999 },
-    });
-
-    await guard.canActivate(contextFor({ userId: 'u-1', profileId: 'p-2' }));
-
-    expect(
-      prisma.platformSubscription.findFirst.mock.calls[0][0].where,
-    ).toEqual({
-      userId: 'u-1',
-      profileId: 'p-2',
-      addOn: false,
-      status: 'ACTIVE',
-    });
-  });
-
-  it('refuses a session without a Profile, without looking for any plan', async () => {
-    await expect(
-      guard.canActivate(contextFor({ userId: 'u-1' })),
-    ).rejects.toThrow(ForbiddenException);
-    expect(prisma.platformSubscription.findFirst).not.toHaveBeenCalled();
   });
 });

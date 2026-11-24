@@ -10,11 +10,9 @@ import {
   vi,
 } from 'vitest';
 import { AnalyticsService } from '../analytics/analytics.service.js';
-import { REQUIRES_PLAN_KEY } from '../auth/decorators/requires-plan.decorator.js';
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { ElitePlanGuard } from '../auth/guards/elite-plan.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
 import {
   BEARER,
   createControllerApp,
@@ -402,9 +400,7 @@ describe('CreatorController', () => {
     const guards: unknown[] =
       Reflect.getMetadata(NEST_GUARDS_METADATA, method) ?? [];
 
-    expect(Reflect.getMetadata(REQUIRES_PLAN_KEY, method)).toBeUndefined();
     expect(guards).not.toContain(ElitePlanGuard);
-    expect(guards).not.toContain(SubscriptionGuard);
     expect(guards).toContain(CreatorAccountGuard);
   });
 

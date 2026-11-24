@@ -131,6 +131,27 @@ describe('PaymentEventsService', () => {
       });
     });
 
+    it('changes nothing for a notice sent again after the payment was recorded: the promotion is not turned on again, nor staff told twice', async () => {
+      // Cancelled or rejected since: a replayed notice must not revive it.
+      prisma.transaction.findUnique.mockResolvedValueOnce({ id: 'tx-1' });
+
+      await service.handleCheckoutSessionCompleted({
+        id: 'cs_promo_again',
+        amount_total: 5000,
+        currency: 'eur',
+        payment_intent: 'pi_again',
+        metadata: { type: 'PROMOTION', promotionId: 'promo_cancelled' },
+      } as any);
+
+      expect(prisma.transaction.findUnique).toHaveBeenCalledWith({
+        where: { stripePaymentIntentId: 'pi_again' },
+        select: { id: true },
+      });
+      expect(prisma.promotion.update).not.toHaveBeenCalled();
+      expect(prisma.transaction.create).not.toHaveBeenCalled();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
     it('throws BadRequest when PROMOTION metadata lacks promotionId', async () => {
       const session = {
         id: 'cs_promo_err',
@@ -183,7 +204,10 @@ describe('PaymentEventsService', () => {
             transactionId: null,
           },
         ]);
-        prisma.transaction.findUnique.mockResolvedValue(recorded);
+        // Not recorded before this notice; recorded by it.
+        prisma.transaction.findUnique
+          .mockResolvedValueOnce(null)
+          .mockResolvedValue(recorded);
 
         await service.handleCheckoutSessionCompleted(session);
 
@@ -212,6 +236,7 @@ describe('PaymentEventsService', () => {
           prisma.paymentDispute.findMany.mockResolvedValueOnce([
             { stripeDisputeId: 'du_early', status },
           ]);
+          prisma.transaction.findUnique.mockResolvedValueOnce(null);
           prisma.transaction.findUnique.mockResolvedValue({
             ...recorded,
             status: status === 'won' ? 'DISPUTED' : 'COMPLETED',
@@ -229,9 +254,9 @@ describe('PaymentEventsService', () => {
         prisma.paymentDispute.findMany.mockResolvedValueOnce([
           { stripeDisputeId: 'du_early', status: 'lost' },
         ]);
-        prisma.transaction.findUnique.mockRejectedValueOnce(
-          new Error('db down'),
-        );
+        prisma.transaction.findUnique
+          .mockResolvedValueOnce(null)
+          .mockRejectedValueOnce(new Error('db down'));
 
         await expect(
           service.handleCheckoutSessionCompleted(session),
