@@ -1461,6 +1461,22 @@ export class PaymentsService {
     return invoice.hosted_invoice_url ?? null;
   }
 
+  // The plan whose monthly or yearly price the subscription is charged at,
+  // or undefined when no plan has it (the row keeps the plan it has).
+  private async planOfPrice(
+    subscription: SubscriptionWithItems,
+  ): Promise<string | undefined> {
+    const priceId = subscription.items?.data?.[0]?.price?.id;
+    if (!priceId) return undefined;
+    const plan = await this.prisma.platformPlan.findFirst({
+      where: {
+        OR: [{ stripePriceId: priceId }, { yearlyStripePriceId: priceId }],
+      },
+      select: { id: true },
+    });
+    return plan?.id;
+  }
+
   // A notice may arrive late or twice: one about a cancellation can come
   // after the plan was resumed. The subscription is read again from the
   // provider, so the row always takes its state as it is now; the notice's
@@ -1495,6 +1511,9 @@ export class PaymentsService {
   // so the row is never seen running again.
   private async applyStripeSubscription(subscription: StripeSubscriptionState) {
     const period = subscriptionPeriod(subscription);
+    // The plan follows the price the provider charges: a plan changed in the
+    // billing portal is the new plan here too, with its benefits.
+    const planId = await this.planOfPrice(subscription);
     await this.prisma.$transaction(async (tx) => {
       await this.keepYearlyMove(tx, subscription, period);
       // A copy read before a move to the yearly price, written after it,
@@ -1512,6 +1531,7 @@ export class PaymentsService {
           currentPeriodStart: period.start,
           currentPeriodEnd: period.end,
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          ...(planId && { planId }),
           ...providerStart(subscription),
           ...providerInterval(subscription),
         },
@@ -2160,19 +2180,15 @@ export class PaymentsService {
         const named = invoice.parent?.subscription_details?.subscription;
         const subscriptionId = typeof named === 'string' ? named : named?.id;
         if (subscriptionId) {
-          // A withdrawn plan has ended: a failed collection does not bring
-          // it back as overdue.
-          await this.prisma.platformSubscription.updateMany({
-            where: { stripeSubscriptionId: subscriptionId, withdrawnAt: null },
-            data: { status: SubscriptionStatus.PAST_DUE },
-          });
-          const platformSub = await this.prisma.platformSubscription.findFirst({
-            where: { stripeSubscriptionId: subscriptionId },
-            select: { userId: true },
-          });
-          if (platformSub?.userId) {
-            await this.usersService.syncUserTier(platformSub.userId);
-          }
+          // The subscription is read from the provider, not assumed overdue:
+          // a declined move to the yearly price leaves the plan active at
+          // its monthly price, and its benefits stay. A withdrawn plan stays
+          // ended (applyStripeSubscription keeps it so).
+          await this.applyStripeSubscription(
+            await this.currentSubscription({
+              id: subscriptionId,
+            } as StripeSubscriptionState),
+          );
         }
         break;
       }
