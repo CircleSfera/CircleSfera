@@ -366,6 +366,17 @@ export class StripeService implements OnModuleInit {
     });
   }
 
+  // Ends a second plan a Profile paid for by mistake, marked first, so a
+  // later try knows it was a duplicate and refunds it even after it ended.
+  async endDuplicateSubscription(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
+    await this.stripe.subscriptions.update(subscriptionId, {
+      metadata: { duplicate_plan: 'true' },
+    });
+    return this.endSubscriptionNow(subscriptionId);
+  }
+
   // The newest paid invoice of a subscription: what was paid, in cents, the
   // service period it paid for, and the payment it was paid with. Null when
   // the subscription has no paid invoice.
