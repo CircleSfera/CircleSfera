@@ -144,4 +144,10 @@ export interface PlatformPlanDto {
   interval: string;
   features: string[];
   stripePriceId: string;
+  // What the plan gives and to whom, as the plan catalog sets it: the badge
+  // level, the type of Profile it is for (null: any), and whether it is an
+  // add-on held beside a plan. Never read from the plan's name.
+  badge: 'BASIC' | 'VERIFIED' | 'ELITE' | 'BUSINESS';
+  forAccountType: 'PERSONAL' | 'CREATOR' | 'BUSINESS' | null;
+  addOn: boolean;
 }

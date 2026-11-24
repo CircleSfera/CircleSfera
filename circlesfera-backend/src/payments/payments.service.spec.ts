@@ -715,6 +715,40 @@ describe('PaymentsService', () => {
         await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
       });
 
+      it('tells an add-on from a plan by its mark, never by its name', async () => {
+        // A plan renamed like the add-on is still a plan: a second plan
+        // beside the Profile's plan is refused.
+        holding([sub('Premium', ['verified_badge'])]);
+        prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+          id: 'plan_new',
+          name: 'Edits Studio Pro',
+          features: ['verified_badge'],
+          addOn: false,
+          forAccountType: null,
+          stripePriceId: 'price_new',
+        });
+        await expect(checkout()).rejects.toThrow(
+          'This profile already has an active platform plan',
+        );
+
+        // An add-on under any name is bought beside the plan.
+        prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+          id: 'plan_new',
+          name: 'Studio Pro (renamed)',
+          features: ['studio_pro'],
+          addOn: true,
+          forAccountType: null,
+          stripePriceId: 'price_new',
+        });
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+        expect(stripeService.createCheckoutSession).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            metadata: expect.objectContaining({ addOn: 'true' }),
+          }),
+          expect.anything(),
+        );
+      });
+
       it('asks to cancel the add-on before a plan that includes it, so the two are never charged together', async () => {
         holding([sub('Edits Studio Pro', ['studio_pro'])]);
         buying('Elite Creator', ['verified_badge', 'studio_pro']);

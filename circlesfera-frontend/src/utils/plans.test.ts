@@ -2,15 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   hasElitePlan,
   isAddOnPlan,
-  planAccountType,
   planFitsProfile,
   studioProState,
 } from './plans';
 
 describe('Edits Studio Pro', () => {
-  it('is the add-on, known by its name', () => {
-    expect(isAddOnPlan('Edits Studio Pro')).toBe(true);
-    expect(isAddOnPlan('Premium')).toBe(false);
+  it('is the add-on as the plan says, whatever its name', () => {
+    expect(isAddOnPlan({ addOn: true })).toBe(true);
+    expect(isAddOnPlan({ addOn: false })).toBe(false);
     expect(isAddOnPlan(undefined)).toBe(false);
   });
 
@@ -62,26 +61,23 @@ describe('hasElitePlan', () => {
 });
 
 describe('plans', () => {
-  it('names the type of profile each plan is for from its name', () => {
-    expect(planAccountType('Business')).toBe('BUSINESS');
-    expect(planAccountType('Elite Creator')).toBe('CREATOR');
-    expect(planAccountType('Premium')).toBeNull();
-    expect(planAccountType('Verified')).toBeNull();
-  });
-
+  // The type of profile each plan is for, as the catalog sets it.
   it.each([
-    ['Premium', 'PERSONAL', true],
-    ['Premium', 'CREATOR', true],
-    ['Premium', 'BUSINESS', true],
-    ['Elite Creator', 'CREATOR', true],
-    ['Elite Creator', 'PERSONAL', false],
-    ['Elite Creator', 'BUSINESS', false],
-    ['Business', 'BUSINESS', true],
-    ['Business', 'CREATOR', false],
-    ['Business', undefined, false],
-  ] as const)('%s for a %s profile: %s', (plan, type, fits) => {
-    expect(planFitsProfile(plan, type)).toBe(fits);
-  });
+    [null, 'PERSONAL', true],
+    [null, 'CREATOR', true],
+    [null, 'BUSINESS', true],
+    ['CREATOR', 'CREATOR', true],
+    ['CREATOR', 'PERSONAL', false],
+    ['CREATOR', 'BUSINESS', false],
+    ['BUSINESS', 'BUSINESS', true],
+    ['BUSINESS', 'CREATOR', false],
+    ['BUSINESS', undefined, false],
+  ] as const)(
+    'a plan for %s fits a %s profile: %s',
+    (forAccountType, type, fits) => {
+      expect(planFitsProfile({ forAccountType }, type)).toBe(fits);
+    },
+  );
 
   it('reads the elite benefits from the level of the profile', () => {
     expect(hasElitePlan('ELITE')).toBe(true);

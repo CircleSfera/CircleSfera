@@ -1656,6 +1656,17 @@ describe('UsersService', () => {
       },
     );
 
+    it('ranks Business above Elite, whatever order the plans come in', async () => {
+      holding([VerificationLevel.BUSINESS, VerificationLevel.ELITE]);
+
+      await service.syncUserTier('u1');
+
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: { verificationLevel: VerificationLevel.BUSINESS },
+      });
+    });
+
     it('sets the highest level among its plans and add-ons', async () => {
       // An add-on gives no badge; Business is above Verified.
       holding([
