@@ -3430,7 +3430,7 @@
     },
     "plans": {
       "title": "Plans",
-      "subtitle": "What each plan includes and whether it is on sale. Changes apply to every subscriber of the plan.",
+      "subtitle": "What each plan includes, set in the code, and whether it is on sale, changed here. Whoever has it keeps it.",
       "price_month": "{{price}} a month",
       "price_year": "{{price}} a year",
       "price_note": "Stripe charges the price; it cannot be changed here.",

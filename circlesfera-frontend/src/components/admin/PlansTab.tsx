@@ -38,31 +38,21 @@ function isStepUpRequired(err: unknown): boolean {
 class StepUpRefused extends Error {}
 
 interface Draft {
-  features: string[];
   isActive: boolean;
 }
 
-const draftOf = (plan: AdminPlan): Draft => ({
-  features: plan.features,
-  isActive: plan.isActive,
-});
+const draftOf = (plan: AdminPlan): Draft => ({ isActive: plan.isActive });
 
 /** Only what differs from the saved plan. */
-function changesOf(plan: AdminPlan, draft: Draft): AdminPlanChanges {
-  const saved = draftOf(plan);
-  const sameFeatures =
-    saved.features.length === draft.features.length &&
-    saved.features.every((key) => draft.features.includes(key));
-  return {
-    ...(!sameFeatures && { features: draft.features }),
-    ...(saved.isActive !== draft.isActive && { isActive: draft.isActive }),
-  };
+function changesOf(plan: AdminPlan, draft: Draft): AdminPlanChanges | null {
+  return plan.isActive !== draft.isActive ? { isActive: draft.isActive } : null;
 }
 
 /**
- * The plan catalogue: what each platform plan includes and whether it is on
- * sale. Prices are shown and cannot be changed here, because Stripe is who
- * charges. Saving asks for the authenticator code.
+ * The plan catalogue: what each platform plan includes, and whether it is
+ * on sale, the one thing changed here. What a plan includes and its price
+ * come from the plan catalog in the code, set on every deploy. Saving asks
+ * for the authenticator code.
  */
 export default function PlansTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
@@ -148,7 +138,6 @@ export default function PlansTab({ onToast }: Props) {
         {data.plans.map((plan) => {
           const draft = drafts[plan.id] ?? draftOf(plan);
           const changes = changesOf(plan, draft);
-          const dirty = Object.keys(changes).length > 0;
           const confirming = pending?.id === plan.id;
           const edit = (patch: Partial<Draft>) =>
             setDrafts((all) => ({ ...all, [plan.id]: { ...draft, ...patch } }));
@@ -196,31 +185,16 @@ export default function PlansTab({ onToast }: Props) {
                 onChange={(e) => edit({ isActive: e.target.checked })}
               />
 
-              <fieldset className="space-y-1">
-                <legend className="text-sm font-medium text-white mb-1">
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium text-white">
                   {t('admin.plans.includes')}
-                </legend>
-                {data.featureKeys.map((key) => (
-                  <label
-                    key={key}
-                    className="flex min-h-11 items-center gap-3 text-sm text-white/85 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5 shrink-0 accent-brand-primary"
-                      checked={draft.features.includes(key)}
-                      onChange={(e) =>
-                        edit({
-                          features: e.target.checked
-                            ? [...draft.features, key]
-                            : draft.features.filter((k) => k !== key),
-                        })
-                      }
-                    />
-                    {t(`pricingPage.features.${key}`, key)}
-                  </label>
-                ))}
-              </fieldset>
+                </h4>
+                <ul className="space-y-1 text-sm text-white/85">
+                  {plan.features.map((key) => (
+                    <li key={key}>{t(`pricingPage.features.${key}`, key)}</li>
+                  ))}
+                </ul>
+              </div>
 
               {confirming ? (
                 <div className="space-y-2">
@@ -267,12 +241,14 @@ export default function PlansTab({ onToast }: Props) {
                   type="button"
                   variant="primary"
                   className="button-alone"
-                  disabled={!dirty || saveMutation.isPending}
+                  disabled={!changes || saveMutation.isPending}
                   isLoading={
                     saveMutation.isPending &&
                     saveMutation.variables?.id === plan.id
                   }
-                  onClick={() => saveMutation.mutate({ id: plan.id, changes })}
+                  onClick={() =>
+                    changes && saveMutation.mutate({ id: plan.id, changes })
+                  }
                 >
                   {t('admin.plans.save')}
                 </Button>
