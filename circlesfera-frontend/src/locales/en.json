@@ -6310,6 +6310,7 @@
       "EDIT_PROJECT_NOT_FOUND": "We couldn't find that project.",
       "EDIT_CLIP_NOT_FOUND": "We couldn't find that clip.",
       "AI_SERVICE_UNAVAILABLE": "This feature is temporarily unavailable. Try again later.",
+      "PAYMENT_PROVIDER_UNAVAILABLE": "The payment provider could not complete this right now. Nothing was changed: try again in a moment.",
       "FEATURE_DISABLED": "This feature is turned off right now.",
       "INTERACTIVE_NOT_FOUND": "This poll or question is no longer available.",
       "MISSING_POST_OR_STORY_ID": "Choose a post or story first.",
