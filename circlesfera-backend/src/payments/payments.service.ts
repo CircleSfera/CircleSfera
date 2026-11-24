@@ -1,5 +1,11 @@
 import { ErrorCode, type PaymentAlertEvent } from '@circlesfera/shared';
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import {
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -738,20 +744,20 @@ export class PaymentsService {
   // `withdrawableUntil` field of the billing status and the error code
   // WITHDRAWAL_PERIOD_ENDED.
   //
-  // Steps:
+  // Steps, all in the one request that asks for it:
   // 1. Checked, with nothing changed: the 14 days, counted from the purchase
   //    at the provider, and the refund owed for the unused part, worked out
   //    once from the paid invoice.
-  // 2. Marked, in one conditional write: withdrawn now, the refund owed and
-  //    the payment it comes from, and CANCELLED, so the benefits stop at
-  //    once. A second request at the same time finds the row marked and
-  //    changes nothing.
-  // 3. Finished (finishWithdrawal): ended at the provider, its open invoices
-  //    voided, the stored amount refunded from the stored payment, and, once
-  //    the refund has gone through, the payer emailed. Each step can be
-  //    repeated. A step that fails, or a refund still pending, leaves the
-  //    row marked and the reconcile job tries again later, so once marked
-  //    the person is answered that the plan ended.
+  // 2. Settled at the provider first (settleWithdrawal): the plan ended, its
+  //    open invoices voided, the unused part refunded to the card. Each step
+  //    can be repeated (an ended plan counts as ended, and the refund is
+  //    looked for by its metadata before one is made), so when one fails
+  //    nothing is marked here, the person is told to try again, and trying
+  //    again finishes it without refunding twice.
+  // 3. Marked, in one conditional write: withdrawn, CANCELLED, what was
+  //    refunded and what the team owes, so the benefits stop. A second
+  //    request at the same time finds the row marked and tells no one.
+  // 4. The team told what it owes; the payer emailed.
   // The request acts on the running plan only: an older withdrawal not
   // finished yet is the reconcile job's, never taken for this one.
   async withdrawPlan(userId: string, profileId: string, addOn = false) {
@@ -779,62 +785,63 @@ export class PaymentsService {
     }
 
     const owed = await this.withdrawalRefundOwed(subscription);
+    const refund = await this.settleWithdrawal(subscription, owed);
+
+    // What the card could not take is the team's to pay back.
+    const refundedCents = refund?.amount ?? 0;
+    const owedByStaffCents =
+      owed.owedByStaffCents + Math.max(0, owed.refundCents - refundedCents);
+    const now = new Date();
     const { count } = await this.prisma.platformSubscription.updateMany({
       where: { id: subscription.id, withdrawnAt: null },
       data: {
-        withdrawnAt: new Date(),
-        withdrawalRefundCents: owed.refundCents,
+        withdrawnAt: now,
+        withdrawalRefundCents: refundedCents,
+        withdrawalRefundId: refund?.id ?? null,
+        withdrawalOwedByStaffCents: owedByStaffCents,
+        withdrawalFinishedAt: now,
         providerStartedAt: owed.startedAt,
         status: SubscriptionStatus.CANCELLED,
       },
     });
-    // Marked by another request at the same time: that one finishes it.
+    // Marked by another request at the same time: that one tells everyone.
     if (count === 0) return this.getBillingStatus(userId, profileId);
 
-    // The benefits stop now; a failure here does not hold back the rest.
     if (subscription.userId)
       await this.syncBenefitsOfWithdrawn(subscription.userId);
-
-    await this.completeWithdrawal(subscription, owed);
+    if (owedByStaffCents > 0) {
+      const message = `Plan withdrawal of subscription ${subscription.id}: ${owedByStaffCents} cents are owed by staff`;
+      this.logger.warn(message);
+      Sentry.captureMessage(message, {
+        level: 'warning',
+        tags: { area: 'plan-withdrawal' },
+        fingerprint: ['plan-withdrawal-owed', subscription.id],
+        extra: {
+          platformSubscriptionId: subscription.id,
+          stripeSubscriptionId: subscription.stripeSubscriptionId,
+          paymentIntentId: owed.paymentIntentId,
+          refundId: refund?.id ?? null,
+          owedByStaffCents,
+        },
+      });
+    }
+    await this.emailWithdrawal(subscription, refund, owedByStaffCents);
     return this.getBillingStatus(userId, profileId);
   }
 
-  // Ends the withdrawn plan at the provider, voids its open invoices, refunds
-  // the unused part to the card and tells the payer, in this one request.
-  // What the card cannot take (paid from the balance, or more than is left
-  // of the payment) is owed by the team and reported. A step that fails is
-  // reported to the error tracker, to be finished from the provider's
-  // Dashboard: the person is answered that the plan ended either way, and
-  // the provider's notices keep the row in line.
-  private async completeWithdrawal(
-    subscription: {
-      id: string;
-      userId: string | null;
-      stripeSubscriptionId: string;
-      planId: string;
-      profileId: string | null;
-    },
-    owed: {
-      refundCents: number;
-      owedByStaffCents: number;
-      paymentIntentId: string | null;
-    },
-  ): Promise<void> {
+  // Ends the plan at the provider, voids its open invoices and refunds the
+  // unused part to the card. When a step fails nothing is marked: it is
+  // reported, and the person is told to try again, which finishes it.
+  private async settleWithdrawal(
+    subscription: { id: string; stripeSubscriptionId: string },
+    owed: { refundCents: number; paymentIntentId: string | null },
+  ): Promise<Stripe.Refund | null> {
     const stripeSubscriptionId = subscription.stripeSubscriptionId;
-    const context = {
-      tags: { area: 'plan-withdrawal' },
-      extra: {
-        platformSubscriptionId: subscription.id,
-        stripeSubscriptionId,
-        refundCents: owed.refundCents,
-      },
-    };
-    let refund: Stripe.Refund | null = null;
     try {
       await this.endAtProvider(stripeSubscriptionId);
       await this.stripeService.voidOpenInvoices(stripeSubscriptionId);
       if (owed.refundCents > 0 && owed.paymentIntentId) {
-        refund = await this.stripeService.refundSubscriptionPayment({
+        return await this.stripeService.refundSubscriptionPayment({
           paymentIntentId: owed.paymentIntentId,
           amountInCents: owed.refundCents,
           idempotencyKey: `plan-withdrawal-${stripeSubscriptionId}`,
@@ -844,29 +851,40 @@ export class PaymentsService {
           },
         });
       }
+      return null;
     } catch (err) {
       this.logger.error(
-        `Withdrawal of subscription ${subscription.id} not finished at the provider (${classifyStripeError(err)}); finish it in the Dashboard`,
+        `Withdrawal of subscription ${subscription.id} could not be settled at the provider (${classifyStripeError(err)}); the person can try again`,
       );
-      Sentry.captureException(err, context);
-      return;
-    }
-
-    // What the card could not take is the team's to pay back: told once.
-    const refundedCents = refund?.amount ?? 0;
-    const owedByStaffCents =
-      owed.owedByStaffCents + Math.max(0, owed.refundCents - refundedCents);
-    if (owedByStaffCents > 0) {
-      const message = `Plan withdrawal of subscription ${subscription.id}: ${owedByStaffCents} cents are owed by staff`;
-      this.logger.warn(message);
-      Sentry.captureMessage(message, {
-        level: 'warning',
-        ...context,
-        extra: { ...context.extra, owedByStaffCents },
+      Sentry.captureException(err, {
+        tags: { area: 'plan-withdrawal' },
+        fingerprint: ['plan-withdrawal-unsettled', subscription.id],
+        extra: {
+          platformSubscriptionId: subscription.id,
+          stripeSubscriptionId,
+          paymentIntentId: owed.paymentIntentId,
+          refundCents: owed.refundCents,
+        },
       });
+      throw new AppException(
+        ErrorCode.PAYMENT_PROVIDER_UNAVAILABLE,
+        HttpStatus.SERVICE_UNAVAILABLE,
+        'The withdrawal could not be completed right now. Try again in a moment.',
+      );
     }
+  }
 
-    // Telling the payer is best effort: the withdrawal already stands.
+  // Tells the payer the plan was withdrawn and what was refunded. Best
+  // effort: the withdrawal already stands.
+  private async emailWithdrawal(
+    subscription: {
+      userId: string | null;
+      planId: string;
+      profileId: string | null;
+    },
+    refund: Stripe.Refund | null,
+    owedByStaffCents: number,
+  ): Promise<void> {
     try {
       const [payer, plan, profile] = await Promise.all([
         subscription.userId
@@ -891,7 +909,7 @@ export class PaymentsService {
           payer.email,
           plan.name,
           profile?.username ?? '',
-          refundedCents,
+          refund?.amount ?? 0,
           refund?.currency ?? plan.currency,
           owedByStaffCents,
         );
