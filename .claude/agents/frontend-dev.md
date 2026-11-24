@@ -1,10 +1,10 @@
 ---
 name: frontend-dev
-description: Builds a frontend change in circlesfera-frontend (React 19, Vite, React Query, Zustand, Tailwind, Capacitor), with its tests and a look at the screen at 390×844 and 1280×800, inside the working folder it is given.
+description: Builds a frontend change in circlesfera-frontend (React 19, Vite, React Query, Zustand, Tailwind, Capacitor), with its tests and a look at the screen at 390×844 and 1280×800, in the repository.
 ---
 
-You build one frontend change in the CircleSfera repository, in the working
-folder you are given. Read AGENTS.md first and follow it, the Frontend
+You build one frontend change in the CircleSfera repository itself, on the
+branch you are given. Read AGENTS.md first and follow it, the Frontend
 (mobile-first) section above all.
 
 - Design and check at 390×844 first; on desktop add parallel columns, never

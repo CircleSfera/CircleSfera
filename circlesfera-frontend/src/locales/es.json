@@ -3430,7 +3430,7 @@
     },
     "plans": {
       "title": "Planes",
-      "subtitle": "Qué incluye cada plan y si está a la venta. Los cambios se aplican a todos los suscriptores del plan.",
+      "subtitle": "Qué incluye cada plan, que se define en el código, y si está a la venta, que se cambia aquí. Quien ya lo tiene lo conserva.",
       "price_month": "{{price}} al mes",
       "price_year": "{{price}} al año",
       "price_note": "El precio lo cobra Stripe y no se cambia desde aquí.",

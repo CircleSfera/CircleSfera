@@ -57,11 +57,23 @@ export class RefundPromotionUseCase {
         where: { id: promotionId },
         data: { refundedAt: new Date() },
       });
+      const refundedCents = refund.amount || amountInCents;
+      // The budget includes VAT: the refund gives back its share of the VAT
+      // of the payment, kept negative beside the amount.
+      const payment = await this.prisma.transaction.findFirst({
+        where: { promotionId, type: 'PROMOTION_PAYMENT', amount: { gt: 0 } },
+        select: { amount: true, vatCents: true },
+      });
+      const vatCents =
+        payment && payment.amount > 0
+          ? Math.round((refundedCents * payment.vatCents) / payment.amount)
+          : 0;
       try {
         await this.prisma.transaction.create({
           data: {
             type: 'PROMOTION_PAYMENT',
-            amount: -(refund.amount || amountInCents),
+            amount: -refundedCents,
+            vatCents: vatCents > 0 ? -vatCents : 0,
             currency: (refund.currency || promo.currency).toUpperCase(),
             status: 'REFUNDED',
             // The person who paid, as on the payment refunded; the amount

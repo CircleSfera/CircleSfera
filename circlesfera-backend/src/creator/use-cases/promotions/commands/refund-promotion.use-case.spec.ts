@@ -28,6 +28,8 @@ describe('RefundPromotionUseCase', () => {
     },
     transaction: {
       create: vi.fn(),
+      // The payment refunded: 3500 with 607 of VAT inside.
+      findFirst: vi.fn().mockResolvedValue({ amount: 3500, vatCents: 607 }),
     },
   };
   const mockStripeService = {
@@ -119,6 +121,8 @@ describe('RefundPromotionUseCase', () => {
       data: expect.objectContaining({
         type: 'PROMOTION_PAYMENT',
         amount: -1000,
+        // Its share of the payment's VAT: 1000 x 607 / 3500 = 173.4.
+        vatCents: -173,
         currency: 'EUR',
         status: 'REFUNDED',
         senderId: 'user-1',
@@ -129,6 +133,32 @@ describe('RefundPromotionUseCase', () => {
         // in the ledger, same as every other Transaction.
         stripePaymentIntentId: 're_test_123',
       }),
+    });
+  });
+
+  it('records no VAT on the refund when the payment row is not found', async () => {
+    mockPrismaService.promotion.findUnique.mockResolvedValue(basePromo());
+    mockStripeService.createRefundFromCheckoutSession.mockResolvedValue({
+      id: 're_no_payment',
+      amount: 1000,
+      currency: 'eur',
+    });
+    mockPrismaService.promotion.update.mockResolvedValue({});
+    mockPrismaService.transaction.create.mockResolvedValue({});
+    mockPrismaService.transaction.findFirst.mockResolvedValueOnce(null);
+
+    await useCase.execute('promo-1', 'user-cancel');
+
+    expect(mockPrismaService.transaction.findFirst).toHaveBeenCalledWith({
+      where: {
+        promotionId: 'promo-1',
+        type: 'PROMOTION_PAYMENT',
+        amount: { gt: 0 },
+      },
+      select: { amount: true, vatCents: true },
+    });
+    expect(mockPrismaService.transaction.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ amount: -1000, vatCents: 0 }),
     });
   });
 
